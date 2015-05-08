@@ -33,8 +33,7 @@ public class ExampleApplication extends Application {
 
 ## Why should I use LeakCanary?
 
-Glad you ask! We wrote a [blog post](http://corner.squareup.com/2015/05/leak-canary.html
-) to answer precisely that question.
+Glad you ask! We wrote a [blog post](http://squ.re/leakcanary) to answer precisely that question.
 
 ## How do I use it?
 
