@@ -83,7 +83,7 @@ public abstract class BaseFragment extends Fragment {
 
 1. `RefWatcher.watch()` creates a [KeyedWeakReference](https://github.com/square/leakcanary/blob/master/library/leakcanary-watcher/src/main/java/com/squareup/leakcanary/KeyedWeakReference.java) to the watched object.
 2. Later, in a background thread, it checks if the reference has been cleared and if not it triggers a GC.
-3. If the reference is still not cleared, it them dumps the heap into a `.hprof` file stored on the app file system.
+3. If the reference is still not cleared, it then dumps the heap into a `.hprof` file stored on the app file system.
 4. `HeapAnalyzerService` is started in a separate process and `HeapAnalyzer` parses the heap dump using [HAHA](https://github.com/square/haha).
 5. `HeapAnalyzer` finds the `KeyedWeakReference` in the heap dump thanks to a unique reference key and locates the leaking reference.
 6. `HeapAnalyzer` computes the *shortest strong reference path to the GC Roots* to determine if there is a leak, and then builds the chain of references causing the leak.
