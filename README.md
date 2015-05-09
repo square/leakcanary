@@ -107,7 +107,11 @@ In com.example.leakcanary:1.0:1 com.example.leakcanary.MainActivity has leaked:
 
 You can also share the leak trace and the heap dump file from the **action bar menu**.
 
-## My leak is caused by the SDK implementation!
+## How do I fix a memory leak?
+
+Once you have the leak trace, figure out which reference in the path should not exist. Then figure out why that reference still exists. Often times it's a registered listener that should have been unregistered, a `close()` method that wasn't called, an anonymous class that holds a reference an outer class. If you cannot figure out an issue in your code, **please do not file an issue**. Instead, create a [Stack Overflow question](http://stackoverflow.com/questions/tagged/leakcanary) (using the *leakcanary* tag).
+
+## My leak is caused by the Android SDK implementation!
 
 There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: [AndroidExcludedRefs.java](https://github.com/square/leakcanary/blob/master/library/leakcanary-android/src/main/java/com/squareup/leakcanary/AndroidExcludedRefs.java). If you find a new one, please [create an issue](https://github.com/square/leakcanary/issues/new) with the leak trace, the reference key, the device and the Android version. It's even better if you provide a link to a heap dump file.
 
