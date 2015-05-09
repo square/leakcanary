@@ -35,7 +35,9 @@ import static android.content.pm.PackageManager.GET_SERVICES;
 
 public final class LeakCanary {
 
-  /**
+    private static RefWatcher refWatcher;
+
+    /**
    * Creates a {@link RefWatcher} that works out of the box, and starts watching activity
    * references (on ICS+).
    */
@@ -55,7 +57,7 @@ public final class LeakCanary {
     enableDisplayLeakActivity(application);
     HeapDump.Listener heapDumpListener =
         new ServiceHeapDumpListener(application, listenerServiceClass);
-    RefWatcher refWatcher = androidWatcher(application, heapDumpListener);
+      refWatcher = androidWatcher(application, heapDumpListener);
     ActivityRefWatcher.installOnIcsPlus(application, refWatcher);
     return refWatcher;
   }
@@ -131,6 +133,17 @@ public final class LeakCanary {
         + "\n";
 
     return info;
+  }
+
+  public static void watch(final Object watchedReference, String referenceName) {
+    if (refWatcher == null) {
+      return;
+    }
+    refWatcher.watch(watchedReference, referenceName);
+  }
+
+  public static void watch(final Object watchedReference) {
+    watch(watchedReference, "");
   }
 
   /**
