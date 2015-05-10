@@ -17,6 +17,7 @@ package com.squareup.leakcanary;
 
 import android.os.Debug;
 import android.util.Log;
+import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
 import java.io.IOException;
 
@@ -57,13 +58,17 @@ public final class AndroidHeapDumper implements HeapDumper {
    * the app process was killed.
    */
   public void cleanup() {
-    if (isExternalStorageWritable()) {
-      Log.d(TAG, "Could not attempt cleanup, external storage not mounted.");
-    }
-    File heapDumpFile = getHeapDumpFile();
-    if (heapDumpFile.exists()) {
-      Log.d(TAG, "Previous analysis did not complete correctly, cleaning: " + heapDumpFile);
-      heapDumpFile.delete();
-    }
+    LeakCanaryInternals.executeOnFileIoThread(new Runnable() {
+      @Override public void run() {
+        if (isExternalStorageWritable()) {
+          Log.d(TAG, "Could not attempt cleanup, external storage not mounted.");
+        }
+        File heapDumpFile = getHeapDumpFile();
+        if (heapDumpFile.exists()) {
+          Log.d(TAG, "Previous analysis did not complete correctly, cleaning: " + heapDumpFile);
+          heapDumpFile.delete();
+        }
+      }
+    });
   }
 }
