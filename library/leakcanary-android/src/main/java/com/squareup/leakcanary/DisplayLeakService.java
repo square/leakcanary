@@ -30,8 +30,10 @@ import java.io.ObjectOutputStream;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.HONEYCOMB;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
-import static com.squareup.leakcanary.LeakCanary.classSimpleName;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.classSimpleName;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.findNextAvailableHprofFile;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.leakResultFile;
 
 /**
  * Logs leak analysis results, and then shows a notification which will start {@link
@@ -41,20 +43,6 @@ import static com.squareup.leakcanary.LeakCanary.leakInfo;
  * String)} to add custom behavior, e.g. uploading the heap dump.
  */
 public class DisplayLeakService extends AbstractAnalysisResultService {
-
-  private static File findNextAvailableHprofFile(File directory, int maxFiles) {
-    if (!directory.exists()) {
-      directory.mkdir();
-    }
-    for (int i = 0; i < maxFiles; i++) {
-      String heapDumpName = "heap_dump_" + i + ".hprof";
-      File file = new File(directory, heapDumpName);
-      if (!file.exists()) {
-        return file;
-      }
-    }
-    return null;
-  }
 
   @TargetApi(HONEYCOMB) @Override
   protected final void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result) {
@@ -66,9 +54,8 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       return;
     }
 
-    File leakDirectory = DisplayLeakActivity.leakDirectory(this);
     int maxStoredLeaks = getResources().getInteger(R.integer.__leak_canary_max_stored_leaks);
-    File renamedFile = findNextAvailableHprofFile(leakDirectory, maxStoredLeaks);
+    File renamedFile = findNextAvailableHprofFile(maxStoredLeaks);
 
     if (renamedFile == null) {
       // No file available.
@@ -80,7 +67,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
 
     heapDump = heapDump.renameFile(renamedFile);
 
-    File resultFile = DisplayLeakActivity.leakResultFile(renamedFile);
+    File resultFile = leakResultFile(renamedFile);
     FileOutputStream fos = null;
     try {
       fos = new FileOutputStream(resultFile);
