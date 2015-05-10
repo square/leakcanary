@@ -19,12 +19,12 @@ import java.io.File;
 import java.util.concurrent.Executor;
 import org.junit.Test;
 
-import static com.squareup.leakcanary.DebuggerControl.NONE;
-import static com.squareup.leakcanary.GcTrigger.DEFAULT;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class RefWatcherTest {
+
+  static final ExcludedRefs NO_REF = new ExcludedRefs.Builder().build();
 
   static class TestDumper implements HeapDumper {
     boolean called;
@@ -44,10 +44,11 @@ public class RefWatcherTest {
 
   static class TestExecutor implements Executor {
     private Runnable command;
+
     @Override public void execute(Runnable command) {
       this.command = command;
     }
-  };
+  }
 
   /**
    * In theory, this test doesn't have a 100% chance of success. In practice, {@link
@@ -56,7 +57,7 @@ public class RefWatcherTest {
   @Test public void unreachableObject_noDump() {
     TestDumper dumper = new TestDumper();
     TestExecutor executor = new TestExecutor();
-    RefWatcher refWatcher = new RefWatcher(executor, NONE, DEFAULT, dumper, new TestListener());
+    RefWatcher refWatcher = defaultWatcher(dumper, executor);
     refWatcher.watch(new Object());
     executor.command.run();
     assertFalse(dumper.called);
@@ -65,10 +66,15 @@ public class RefWatcherTest {
   @Test public void retainedObject_triggersDump() {
     TestDumper dumper = new TestDumper();
     TestExecutor executor = new TestExecutor();
-    RefWatcher refWatcher = new RefWatcher(executor, NONE, DEFAULT, dumper, new TestListener());
+    RefWatcher refWatcher = defaultWatcher(dumper, executor);
     ref = new Object();
     refWatcher.watch(ref);
     executor.command.run();
     assertTrue(dumper.called);
+  }
+
+  private RefWatcher defaultWatcher(TestDumper dumper, TestExecutor executor) {
+    return new RefWatcher(executor, DebuggerControl.NONE, GcTrigger.DEFAULT, dumper,
+        new TestListener(), NO_REF);
   }
 }
