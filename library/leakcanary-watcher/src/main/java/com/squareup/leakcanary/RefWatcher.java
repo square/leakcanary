@@ -48,7 +48,7 @@ public final class RefWatcher {
   }, new HeapDump.Listener() {
     @Override public void analyze(HeapDump heapDump) {
     }
-  });
+  }, new ExcludedRefs.Builder().build());
 
   private final Executor watchExecutor;
   private final DebuggerControl debuggerControl;
@@ -57,20 +57,23 @@ public final class RefWatcher {
   private final Set<String> retainedKeys;
   private final ReferenceQueue<Object> queue;
   private final HeapDump.Listener heapdumpListener;
+  private final ExcludedRefs excludedRefs;
 
   public RefWatcher(Executor watchExecutor, DebuggerControl debuggerControl, GcTrigger gcTrigger,
-      HeapDumper heapDumper, HeapDump.Listener heapdumpListener) {
+      HeapDumper heapDumper, HeapDump.Listener heapdumpListener, ExcludedRefs excludedRefs) {
     this.watchExecutor = checkNotNull(watchExecutor, "watchExecutor");
     this.debuggerControl = checkNotNull(debuggerControl, "debuggerControl");
     this.gcTrigger = checkNotNull(gcTrigger, "gcTrigger");
     this.heapDumper = checkNotNull(heapDumper, "heapDumper");
     this.heapdumpListener = checkNotNull(heapdumpListener, "heapdumpListener");
+    this.excludedRefs = checkNotNull(excludedRefs, "excludedRefs");
     retainedKeys = new CopyOnWriteArraySet<>();
     queue = new ReferenceQueue<>();
   }
 
   /**
    * Identical to {@link #watch(Object, String)} with an empty string reference name.
+   *
    * @see #watch(Object, String)
    */
   public void watch(Object watchedReference) {
@@ -124,8 +127,8 @@ public final class RefWatcher {
       }
       long heapDumpDurationMs = NANOSECONDS.toMillis(System.nanoTime() - startDumpHeap);
       heapdumpListener.analyze(
-          new HeapDump(heapDumpFile, reference.key, reference.name, watchDurationMs, gcDurationMs,
-              heapDumpDurationMs));
+          new HeapDump(heapDumpFile, reference.key, reference.name, excludedRefs, watchDurationMs,
+              gcDurationMs, heapDumpDurationMs));
     }
   }
 
