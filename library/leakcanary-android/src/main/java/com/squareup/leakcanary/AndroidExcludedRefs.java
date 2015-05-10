@@ -18,6 +18,7 @@ package com.squareup.leakcanary;
 import static android.os.Build.MANUFACTURER;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
+import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 import static android.os.Build.VERSION_CODES.KITKAT;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
@@ -156,9 +157,10 @@ public final class AndroidExcludedRefs {
           "mServedInputConnection");
     }
 
-    if (SDK_INT >= LOLLIPOP && SDK_INT <= LOLLIPOP_MR1) {
+    if (SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= LOLLIPOP_MR1) {
       // The singleton InputMethodManager is holding a reference to mCurRootView long after the
       // activity has been destroyed.
+      // Observed on ICS MR1: https://github.com/square/leakcanary/issues/1#issuecomment-100579429
       // Hack: https://gist.github.com/pyricau/4df64341cc978a7de414
       excluded.instanceField("android.view.inputmethod.InputMethodManager", "mCurRootView");
     }
@@ -226,6 +228,22 @@ public final class AndroidExcludedRefs {
       // android.content.res.Resources.mPersonaManager which has a reference to
       // android.os.PersonaManager.mContext which is an activity.
       excluded.instanceField("android.os.PersonaManager", "mContext");
+    }
+
+    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+      // In AOSP the Resources class does not have a context.
+      // Here we have ZygoteInit.mResources (static field) holding on to a Resources instance that
+      // has a context that is the activity.
+      // Observed here: https://github.com/square/leakcanary/issues/1#issue-74450184
+      excluded.instanceField("android.content.res.Resources", "mContext");
+    }
+
+    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+      // In AOSP the ViewConfiguration class does not have a context.
+      // Here we have ViewConfiguration.sConfigurations (static field) holding on to a
+      // ViewConfiguration instance that has a context that is the activity.
+      // Observed here: https://github.com/square/leakcanary/issues/1#issuecomment-100324683
+      excluded.instanceField("android.view.ViewConfiguration", "mContext");
     }
 
     return excluded;
