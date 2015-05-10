@@ -61,8 +61,9 @@ public final class LeakCanary {
     DebuggerControl debuggerControl = new AndroidDebuggerControl();
     AndroidHeapDumper heapDumper = new AndroidHeapDumper();
     heapDumper.cleanup();
+    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAndroidDefaults().build();
     return new RefWatcher(new AndroidWatchExecutor(), debuggerControl, GcTrigger.DEFAULT,
-        heapDumper, heapDumpListener);
+        heapDumper, heapDumpListener, excludedRefs);
   }
 
   public static void enableDisplayLeakActivity(Context context) {
