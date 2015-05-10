@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
 
 public class HeapAnalyzerTest {
 
-  static final ExcludedRefs NONE = new ExcludedRefs();
+  static final ExcludedRefs NONE = new ExcludedRefs.Builder().build();
 
   static final String ASYNC_TASK_THREAD = "AsyncTask #1";
   static final String ASYNC_TASK_CLASS = "android.os.AsyncTask";
@@ -45,9 +45,9 @@ public class HeapAnalyzerTest {
   }
 
   @Test public void excludeThread() {
-    ExcludedRefs excludedRefs = new ExcludedRefs();
+    ExcludedRefs.Builder excludedRefs = new ExcludedRefs.Builder();
     excludedRefs.thread(ASYNC_TASK_THREAD);
-    AnalysisResult result = analyze(new HeapAnalyzer(excludedRefs));
+    AnalysisResult result = analyze(new HeapAnalyzer(excludedRefs.build()));
     assertTrue(result.leakFound);
     assertFalse(result.excludedLeak);
     LeakTraceElement gcRoot = result.leakTrace.elements.get(0);
@@ -57,19 +57,19 @@ public class HeapAnalyzerTest {
   }
 
   @Test public void excludeStatic() {
-    ExcludedRefs excludedRefs = new ExcludedRefs();
+    ExcludedRefs.Builder excludedRefs = new ExcludedRefs.Builder();
     excludedRefs.thread(ASYNC_TASK_THREAD);
     excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD);
-    AnalysisResult result = analyze(new HeapAnalyzer(excludedRefs));
+    AnalysisResult result = analyze(new HeapAnalyzer(excludedRefs.build()));
     assertTrue(result.leakFound);
     assertTrue(result.excludedLeak);
   }
 
   @Test public void excludeStaticForBase() {
-    ExcludedRefs excludedRefs = new ExcludedRefs();
+    ExcludedRefs.Builder excludedRefs = new ExcludedRefs.Builder();
     excludedRefs.thread(ASYNC_TASK_THREAD);
     excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD);
-    AnalysisResult result = analyze(new HeapAnalyzer(excludedRefs, excludedRefs));
+    AnalysisResult result = analyze(new HeapAnalyzer(excludedRefs.build(), excludedRefs.build()));
     assertFalse(result.leakFound);
   }
 
