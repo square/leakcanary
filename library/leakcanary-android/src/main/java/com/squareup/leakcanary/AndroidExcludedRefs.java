@@ -172,6 +172,13 @@ public final class AndroidExcludedRefs {
       excluded.instanceField("android.animation.LayoutTransition$1", "val$parent");
     }
 
+    if (SDK_INT >= JELLY_BEAN || SDK_INT <= LOLLIPOP_MR1) {
+      // SpellCheckerSessionListenerImpl.mHandler is leaking destroyed Activity when the
+      // SpellCheckerSession is closed before the service is connected.
+      // Tracked here: https://code.google.com/p/android/issues/detail?id=172542
+      excluded.instanceField("android.view.textservice.SpellCheckerSession$1", "this$0");
+    }
+
     if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
       // DevicePolicyManager keeps a reference to the context it has been created with instead of
       // extracting the application context. In this Motorola build, DevicePolicyManager has an
@@ -213,14 +220,6 @@ public final class AndroidExcludedRefs {
     if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
       // mLastHoveredView is a static field in TextView that leaks the last hovered view.
       excluded.staticField("android.widget.TextView", "mLastHoveredView");
-    }
-
-    if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == JELLY_BEAN) {
-      // android.view.textservice.SpellCheckerSession$SpellCheckerSessionListenerImpl.mHandler is
-      // a GC root, it's an inner class that references SpellCheckerSession which itself references
-      // a SpellChecker through SpellCheckerSession.mSpellCheckerSessionListener.
-      excluded.instanceField("android.view.textservice.SpellCheckerSession",
-          "mSpellCheckerSessionListener");
     }
 
     if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
