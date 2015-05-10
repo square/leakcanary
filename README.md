@@ -6,6 +6,8 @@ A memory leak detection library for Android and Java.
 
 ![screenshot.png](assets/screenshot.png)
 
+[中文版说明](http://www.liaohuqiu.net/cn/posts/leak-canary-read-me/)
+
 ## Getting started
 
 In your `build.gradle`:
