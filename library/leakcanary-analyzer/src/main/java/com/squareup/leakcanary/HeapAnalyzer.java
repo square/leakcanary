@@ -62,7 +62,7 @@ public final class HeapAnalyzer {
   private final ExcludedRefs excludedRefs;
 
   public HeapAnalyzer(ExcludedRefs excludedRefs) {
-    this(new ExcludedRefs(), excludedRefs);
+    this(new ExcludedRefs.Builder().build(), excludedRefs);
   }
 
   public HeapAnalyzer(ExcludedRefs baseExcludedRefs, ExcludedRefs excludedRefs) {

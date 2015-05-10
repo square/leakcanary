@@ -45,8 +45,8 @@ public final class AndroidExcludedRefs {
   /**
    * This returns the references in the leak path that should be ignored by all on Android.
    */
-  public static ExcludedRefs createAndroidDefaults() {
-    ExcludedRefs excluded = new ExcludedRefs();
+  public static ExcludedRefs.Builder createAndroidDefaults() {
+    ExcludedRefs.Builder excluded = new ExcludedRefs.Builder();
     // If the FinalizerWatchdogDaemon thread is on the shortest path, then there was no other
     // reference to the object and it was about to be GCed.
     excluded.thread("FinalizerWatchdogDaemon");
@@ -66,8 +66,8 @@ public final class AndroidExcludedRefs {
    * in AOSP or manufacturer forks of AOSP. In such cases, there is very little we can do as app
    * developers except by resorting to serious hacks, so we remove the noise caused by those leaks.
    */
-  public static ExcludedRefs createAppDefaults() {
-    ExcludedRefs excluded = createAndroidDefaults();
+  public static ExcludedRefs.Builder createAppDefaults() {
+    ExcludedRefs.Builder excluded = createAndroidDefaults();
     if (SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
       // Android AOSP sometimes keeps a reference to a destroyed activity as a "nextIdle" client
       // record in the android.app.ActivityThread.mActivities map.

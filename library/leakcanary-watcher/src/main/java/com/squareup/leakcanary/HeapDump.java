@@ -43,16 +43,20 @@ public final class HeapDump implements Serializable {
    */
   public final String referenceName;
 
+  /** References that should be ignored when analyzing this heap dump. */
+  public final ExcludedRefs excludedRefs;
+
   /** Time from the request to watch the reference until the GC was triggered. */
   public final long watchDurationMs;
   public final long gcDurationMs;
   public final long heapDumpDurationMs;
 
   public HeapDump(File heapDumpFile, String referenceKey, String referenceName,
-      long watchDurationMs, long gcDurationMs, long heapDumpDurationMs) {
+      ExcludedRefs excludedRefs, long watchDurationMs, long gcDurationMs, long heapDumpDurationMs) {
     this.heapDumpFile = checkNotNull(heapDumpFile, "heapDumpFile");
     this.referenceKey = checkNotNull(referenceKey, "referenceKey");
     this.referenceName = checkNotNull(referenceName, "referenceName");
+    this.excludedRefs = checkNotNull(excludedRefs, "excludedRefs");
     this.watchDurationMs = watchDurationMs;
     this.gcDurationMs = gcDurationMs;
     this.heapDumpDurationMs = heapDumpDurationMs;
@@ -61,7 +65,7 @@ public final class HeapDump implements Serializable {
   /** Renames the heap dump file and creates a new {@link HeapDump} pointing to it. */
   public HeapDump renameFile(File newFile) {
     heapDumpFile.renameTo(newFile);
-    return new HeapDump(newFile, referenceKey, referenceName, watchDurationMs, gcDurationMs,
-        heapDumpDurationMs);
+    return new HeapDump(newFile, referenceKey, referenceName, excludedRefs, watchDurationMs,
+        gcDurationMs, heapDumpDurationMs);
   }
 }
