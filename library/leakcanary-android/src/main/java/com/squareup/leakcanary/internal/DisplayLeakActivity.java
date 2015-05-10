@@ -57,20 +57,14 @@ import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 import static android.text.format.DateUtils.FORMAT_SHOW_DATE;
 import static android.text.format.DateUtils.FORMAT_SHOW_TIME;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.detectedLeakDirectory;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.leakResultFile;
 
 @SuppressWarnings("ConstantConditions") @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public final class DisplayLeakActivity extends Activity {
 
   private static final String TAG = "DisplayLeakActivity";
   private static final String SHOW_LEAK_EXTRA = "show_latest";
-
-  public static File leakDirectory(Context context) {
-    return new File(context.getFilesDir(), "detected_leaks");
-  }
-
-  public static File leakResultFile(File heapdumpFile) {
-    return new File(heapdumpFile.getParentFile(), heapdumpFile.getName() + ".result");
-  }
 
   public static PendingIntent createPendingIntent(Context context, String referenceKey) {
     Intent intent = new Intent(context, DisplayLeakActivity.class);
@@ -257,9 +251,9 @@ public final class DisplayLeakActivity extends Activity {
         actionButton.setText("Remove all leaks");
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
-            File directory = leakDirectory(DisplayLeakActivity.this);
-            if (directory.exists()) {
-              for (File file : directory.listFiles()) {
+            File[] files = detectedLeakDirectory().listFiles();
+            if (files != null) {
+              for (File file : files) {
                 file.delete();
               }
             }
@@ -359,7 +353,7 @@ public final class DisplayLeakActivity extends Activity {
 
     LoadLeaks(DisplayLeakActivity activity) {
       this.activityOrNull = activity;
-      leakDirectory = leakDirectory(activity);
+      leakDirectory = detectedLeakDirectory();
       mainHandler = new Handler(Looper.getMainLooper());
     }
 
@@ -371,8 +365,8 @@ public final class DisplayLeakActivity extends Activity {
         }
       });
       if (files != null) {
-        for (File file : files) {
-          File resultFile = leakResultFile(file);
+        for (File heapDumpFile : files) {
+          File resultFile = leakResultFile(heapDumpFile);
           FileInputStream fis = null;
           try {
             fis = new FileInputStream(resultFile);
@@ -383,9 +377,10 @@ public final class DisplayLeakActivity extends Activity {
           } catch (IOException | ClassNotFoundException e) {
             // Likely a change in the serializable result class.
             // Let's remove the files, we can't read them anymore.
-            file.delete();
+            heapDumpFile.delete();
             resultFile.delete();
-            Log.e(TAG, "Could not read result file, deleted result and heap dump:" + file, e);
+            Log.e(TAG, "Could not read result file, deleted result and heap dump:" + heapDumpFile,
+                e);
           } finally {
             if (fis != null) {
               try {
