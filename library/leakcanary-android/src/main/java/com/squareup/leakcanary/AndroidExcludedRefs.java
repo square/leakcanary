@@ -245,6 +245,13 @@ public final class AndroidExcludedRefs {
       excluded.instanceField("android.view.ViewConfiguration", "mContext");
     }
 
+    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+      // Samsung added a static mContext_static field to AudioManager, holds a reference to the
+      // activity.
+      // Observed here: https://github.com/square/leakcanary/issues/32
+      excluded.staticField("android.media.AudioManager", "mContext_static");
+    }
+
     return excluded;
   }
 
