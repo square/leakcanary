@@ -19,6 +19,7 @@ import android.content.Context;
 import com.squareup.leakcanary.internal.HeapAnalyzerService;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabled;
 
 public final class ServiceHeapDumpListener implements HeapDump.Listener {
 
@@ -27,8 +28,8 @@ public final class ServiceHeapDumpListener implements HeapDump.Listener {
 
   public ServiceHeapDumpListener(Context context,
       Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
-    LeakCanary.setEnabled(context, listenerServiceClass, true);
-    LeakCanary.setEnabled(context, HeapAnalyzerService.class, true);
+    setEnabled(context, listenerServiceClass, true);
+    setEnabled(context, HeapAnalyzerService.class, true);
     this.listenerServiceClass = checkNotNull(listenerServiceClass, "listenerServiceClass");
     this.context = checkNotNull(context, "context").getApplicationContext();
   }
