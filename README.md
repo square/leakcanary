@@ -230,6 +230,8 @@ Don't forget to register the service in your debug manifest:
 </manifest>
 ```
 
+You can also upload the leak traces to Slack or HipChat, [here's an example](https://gist.github.com/pyricau/06c2c486d24f5f85f7f0).
+
 ![icon_512.png](assets/icon_512.png)
 
 ## License
