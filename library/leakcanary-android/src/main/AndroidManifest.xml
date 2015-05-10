@@ -19,6 +19,9 @@
     package="com.squareup.leakcanary"
     >
 
+  <!-- To store the heap dumps and leak analysis results. -->
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
   <application>
     <service
         android:name=".internal.HeapAnalyzerService"

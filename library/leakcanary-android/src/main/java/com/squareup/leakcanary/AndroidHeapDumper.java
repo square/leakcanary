@@ -15,24 +15,26 @@
  */
 package com.squareup.leakcanary;
 
-import android.content.Context;
 import android.os.Debug;
 import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.isExternalStorageWritable;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.storageDirectory;
+
 public final class AndroidHeapDumper implements HeapDumper {
 
-  private final File heapDumpFile;
-
-  public AndroidHeapDumper(Context context) {
-    heapDumpFile = new File(context.getFilesDir(), "suspected_leak_heapdump.hprof");
-  }
+  private static final String TAG = "AndroidHeapDumper";
 
   @Override public File dumpHeap() {
+    if (!isExternalStorageWritable()) {
+      Log.d(TAG, "Could not dump heap, external storage not mounted.");
+    }
+    File heapDumpFile = getHeapDumpFile();
     if (heapDumpFile.exists()) {
-      Log.d("AndroidHeapDumper", "Could not dump heap, previous analysis still is in progress.");
-      // Heap analysis in progress, let's not put to much pressure on the device.
+      Log.d(TAG, "Could not dump heap, previous analysis still is in progress.");
+      // Heap analysis in progress, let's not put too much pressure on the device.
       return null;
     }
     try {
@@ -40,10 +42,14 @@ public final class AndroidHeapDumper implements HeapDumper {
       return heapDumpFile;
     } catch (IOException e) {
       cleanup();
-      Log.e("AndroidHeapDumper", "Could not perform heap dump", e);
+      Log.e(TAG, "Could not perform heap dump", e);
       // Abort heap dump
       return null;
     }
+  }
+
+  private File getHeapDumpFile() {
+    return new File(storageDirectory(), "suspected_leak_heapdump.hprof");
   }
 
   /**
@@ -51,9 +57,12 @@ public final class AndroidHeapDumper implements HeapDumper {
    * the app process was killed.
    */
   public void cleanup() {
+    if (isExternalStorageWritable()) {
+      Log.d(TAG, "Could not attempt cleanup, external storage not mounted.");
+    }
+    File heapDumpFile = getHeapDumpFile();
     if (heapDumpFile.exists()) {
-      Log.d("AndroidHeapDumper",
-          "Previous analysis did not complete correctly, cleaning: " + heapDumpFile);
+      Log.d(TAG, "Previous analysis did not complete correctly, cleaning: " + heapDumpFile);
       heapDumpFile.delete();
     }
   }
