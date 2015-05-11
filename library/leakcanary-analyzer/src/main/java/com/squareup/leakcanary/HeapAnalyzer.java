@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary;
 
+import android.util.Log;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.ArrayList;
@@ -57,6 +58,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 public final class HeapAnalyzer {
 
   private static final String ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$";
+  private static final String TAG = "HeapAnalyzer";
 
   private final ExcludedRefs baseExcludedRefs;
   private final ExcludedRefs excludedRefs;
@@ -337,8 +339,12 @@ public final class HeapAnalyzer {
             .equals(heapDumpFileName);
       }
     });
-    for (File file : toRemove) {
-      file.delete();
+    if (toRemove != null) {
+      for (File file : toRemove) {
+        file.delete();
+      }
+    } else {
+      Log.d(TAG, "Could not find HAHA files to cleanup.");
     }
   }
 
