@@ -21,7 +21,7 @@ import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 import static android.os.Build.VERSION_CODES.KITKAT;
-import static android.os.Build.VERSION_CODES.LOLLIPOP;
+
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
 
 /**
@@ -38,7 +38,8 @@ public final class AndroidExcludedRefs {
   private static final String MOTOROLA = "motorola";
   private static final String LG = "LGE";
   private static final String NVIDIA = "NVIDIA";
-
+  // SDK INT for API 21.
+  private static final int LOLLIPOP=21;
   // SDK INT for API 22.
   private static final int LOLLIPOP_MR1 = 22;
 
