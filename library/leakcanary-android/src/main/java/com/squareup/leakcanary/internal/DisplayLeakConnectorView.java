@@ -16,35 +16,33 @@
 package com.squareup.leakcanary.internal;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PorterDuffXfermode;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.view.View;
 
 import static android.graphics.Bitmap.Config.ARGB_8888;
-import static android.graphics.PorterDuff.Mode.CLEAR;
-import static com.squareup.leakcanary.internal.DisplayLeakConnectorView.Type.NODE;
-import static com.squareup.leakcanary.internal.DisplayLeakConnectorView.Type.START;
 
 public final class DisplayLeakConnectorView extends View {
 
-  static final int LIGHT_GREY = 0xFFbababa;
-  static final int ROOT_COLOR = 0xFF84a6c5;
-  static final int LEAK_COLOR = 0xFFb1554e;
+  private static final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private static final Paint rootPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private static final Paint leakPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private static final Paint clearPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+  static {
+    iconPaint.setColor(Ui.LIGHT_GREY);
+    rootPaint.setColor(Ui.ROOT_COLOR);
+    leakPaint.setColor(Ui.LEAK_COLOR);
+    clearPaint.setColor(Color.TRANSPARENT);
+    clearPaint.setXfermode(Ui.CLEAR_XFER_MODE);
+  }
 
   public enum Type {
     START, NODE, END
   }
-
-  private final Paint iconPaint;
-  private final Paint clearPaint;
-  private final Paint rootPaint;
-  private final Paint leakPaint;
-  private final float strokeSize;
 
   private Type type;
   private Bitmap cache;
@@ -52,26 +50,7 @@ public final class DisplayLeakConnectorView extends View {
   public DisplayLeakConnectorView(Context context, AttributeSet attrs) {
     super(context, attrs);
 
-    iconPaint = new Paint();
-    iconPaint.setColor(LIGHT_GREY);
-    strokeSize = dpToPixel(4, getResources());
-    iconPaint.setStrokeWidth(strokeSize);
-    iconPaint.setAntiAlias(true);
-
-    clearPaint = new Paint();
-    clearPaint.setColor(0);
-    clearPaint.setXfermode(new PorterDuffXfermode(CLEAR));
-    clearPaint.setAntiAlias(true);
-
-    rootPaint = new Paint();
-    rootPaint.setColor(ROOT_COLOR);
-    rootPaint.setAntiAlias(true);
-    rootPaint.setStrokeWidth(strokeSize);
-
-    leakPaint = new Paint();
-    leakPaint.setColor(LEAK_COLOR);
-    leakPaint.setAntiAlias(true);
-    type = NODE;
+    type = Type.NODE;
   }
 
   @SuppressWarnings("SuspiciousNameCombination") @Override protected void onDraw(Canvas canvas) {
@@ -90,24 +69,33 @@ public final class DisplayLeakConnectorView extends View {
 
       float halfWidth = width / 2f;
       float halfHeight = height / 2f;
-      float thirdWidth = width / 3;
+      float thirdWidth = width / 3f;
 
-      if (type == NODE) {
-        cacheCanvas.drawLine(halfWidth, 0, halfWidth, height, iconPaint);
-        cacheCanvas.drawCircle(halfWidth, halfHeight, halfWidth, iconPaint);
-        cacheCanvas.drawCircle(halfWidth, halfHeight, thirdWidth, clearPaint);
-      } else if (type == START) {
-        float radiusClear = halfWidth - strokeSize / 2;
-        cacheCanvas.drawRect(0, 0, width, radiusClear, rootPaint);
-        cacheCanvas.drawCircle(0, radiusClear, radiusClear, clearPaint);
-        cacheCanvas.drawCircle(width, radiusClear, radiusClear, clearPaint);
-        cacheCanvas.drawLine(halfWidth, 0, halfWidth, halfHeight, rootPaint);
-        cacheCanvas.drawLine(halfWidth, halfHeight, halfWidth, height, iconPaint);
-        cacheCanvas.drawCircle(halfWidth, halfHeight, halfWidth, iconPaint);
-        cacheCanvas.drawCircle(halfWidth, halfHeight, thirdWidth, clearPaint);
-      } else {
-        cacheCanvas.drawLine(halfWidth, 0, halfWidth, halfHeight, iconPaint);
-        cacheCanvas.drawCircle(halfWidth, halfHeight, thirdWidth, leakPaint);
+      float strokeSize = Ui.dpToPixel(4f, getResources());
+
+      iconPaint.setStrokeWidth(strokeSize);
+      rootPaint.setStrokeWidth(strokeSize);
+
+      switch (type) {
+        case NODE:
+          cacheCanvas.drawLine(halfWidth, 0, halfWidth, height, iconPaint);
+          cacheCanvas.drawCircle(halfWidth, halfHeight, halfWidth, iconPaint);
+          cacheCanvas.drawCircle(halfWidth, halfHeight, thirdWidth, clearPaint);
+          break;
+        case START:
+          float radiusClear = halfWidth - strokeSize / 2f;
+          cacheCanvas.drawRect(0, 0, width, radiusClear, rootPaint);
+          cacheCanvas.drawCircle(0, radiusClear, radiusClear, clearPaint);
+          cacheCanvas.drawCircle(width, radiusClear, radiusClear, clearPaint);
+          cacheCanvas.drawLine(halfWidth, 0, halfWidth, halfHeight, rootPaint);
+          cacheCanvas.drawLine(halfWidth, halfHeight, halfWidth, height, iconPaint);
+          cacheCanvas.drawCircle(halfWidth, halfHeight, halfWidth, iconPaint);
+          cacheCanvas.drawCircle(halfWidth, halfHeight, thirdWidth, clearPaint);
+          break;
+        default:
+          cacheCanvas.drawLine(halfWidth, 0, halfWidth, halfHeight, iconPaint);
+          cacheCanvas.drawCircle(halfWidth, halfHeight, thirdWidth, leakPaint);
+          break;
       }
     }
     canvas.drawBitmap(cache, 0, 0, null);
@@ -122,11 +110,5 @@ public final class DisplayLeakConnectorView extends View {
       }
       invalidate();
     }
-  }
-
-  static float dpToPixel(float dp, Resources resources) {
-    DisplayMetrics metrics = resources.getDisplayMetrics();
-    float px = dp * (metrics.densityDpi / 160f);
-    return px;
   }
 }
