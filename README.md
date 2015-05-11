@@ -234,6 +234,8 @@ You can also upload the leak traces to Slack or HipChat, [here's an example](htt
 
 ![icon_512.png](assets/icon_512.png)
 
+The name **LeakCanary** is a reference to the expression [canary in a coal mine](http://en.wiktionary.org/wiki/canary_in_a_coal_mine), because LeakCanary is a sentinel used to detect risks by providing advance warning of a danger. Props to [@edenman](https://github.com/edenman) for suggesting it!
+
 ## License
 
     Copyright 2015 Square, Inc.
