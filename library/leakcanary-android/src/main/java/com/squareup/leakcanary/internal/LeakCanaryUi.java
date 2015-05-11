@@ -21,7 +21,7 @@ import android.util.DisplayMetrics;
 
 import static android.graphics.PorterDuff.Mode.CLEAR;
 
-final class Ui {
+final class LeakCanaryUi {
   static final int LIGHT_GREY = 0xFFbababa;
   static final int ROOT_COLOR = 0xFF84a6c5;
   static final int LEAK_COLOR = 0xFFb1554e;
@@ -46,7 +46,7 @@ final class Ui {
     return metrics.density * dp;
   }
 
-  private Ui() {
+  private LeakCanaryUi() {
     throw new AssertionError();
   }
 }

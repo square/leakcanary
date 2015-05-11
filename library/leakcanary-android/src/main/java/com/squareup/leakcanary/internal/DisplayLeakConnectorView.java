@@ -33,11 +33,11 @@ public final class DisplayLeakConnectorView extends View {
   private static final Paint clearPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
   static {
-    iconPaint.setColor(Ui.LIGHT_GREY);
-    rootPaint.setColor(Ui.ROOT_COLOR);
-    leakPaint.setColor(Ui.LEAK_COLOR);
+    iconPaint.setColor(LeakCanaryUi.LIGHT_GREY);
+    rootPaint.setColor(LeakCanaryUi.ROOT_COLOR);
+    leakPaint.setColor(LeakCanaryUi.LEAK_COLOR);
     clearPaint.setColor(Color.TRANSPARENT);
-    clearPaint.setXfermode(Ui.CLEAR_XFER_MODE);
+    clearPaint.setXfermode(LeakCanaryUi.CLEAR_XFER_MODE);
   }
 
   public enum Type {
@@ -71,7 +71,7 @@ public final class DisplayLeakConnectorView extends View {
       float halfHeight = height / 2f;
       float thirdWidth = width / 3f;
 
-      float strokeSize = Ui.dpToPixel(4f, getResources());
+      float strokeSize = LeakCanaryUi.dpToPixel(4f, getResources());
 
       iconPaint.setStrokeWidth(strokeSize);
       rootPaint.setStrokeWidth(strokeSize);

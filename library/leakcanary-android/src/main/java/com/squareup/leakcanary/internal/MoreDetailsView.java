@@ -26,14 +26,14 @@ public final class MoreDetailsView extends View {
   private static final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
   static {
-    iconPaint.setColor(Ui.ROOT_COLOR);
+    iconPaint.setColor(LeakCanaryUi.ROOT_COLOR);
   }
-
-  private final float strokeSize;
 
   public MoreDetailsView(Context context, AttributeSet attrs) {
     super(context, attrs);
-    strokeSize = Ui.dpToPixel(2f, getResources());
+
+    float strokeSize = LeakCanaryUi.dpToPixel(2f, getResources());
+    iconPaint.setStrokeWidth(strokeSize);
   }
 
   private boolean opened;
@@ -43,8 +43,6 @@ public final class MoreDetailsView extends View {
     int height = getHeight();
     int halfHeight = height / 2;
     int halfWidth = width / 2;
-
-    iconPaint.setStrokeWidth(strokeSize);
 
     if (opened) {
       canvas.drawLine(0, halfHeight, width, halfHeight, iconPaint);
