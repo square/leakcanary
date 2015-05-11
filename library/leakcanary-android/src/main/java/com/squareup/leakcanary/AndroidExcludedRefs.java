@@ -39,7 +39,7 @@ public final class AndroidExcludedRefs {
   private static final String LG = "LGE";
   private static final String NVIDIA = "NVIDIA";
   // SDK INT for API 21.
-  private static final int VERSION_CODES.LOLLIPOP=21;
+  private static final int LOLLIPOP=21;
   // SDK INT for API 22.
   private static final int LOLLIPOP_MR1 = 22;
 
