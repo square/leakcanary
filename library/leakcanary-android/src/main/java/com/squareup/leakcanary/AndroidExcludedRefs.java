@@ -252,6 +252,15 @@ public final class AndroidExcludedRefs {
       excluded.staticField("android.media.AudioManager", "mContext_static");
     }
 
+    if (SDK_INT > ICE_CREAM_SANDWICH && SDK_INT <= LOLLIPOP_MR1) {
+      // ActivityChooserModel holds a static reference to the last set ActivityChooserModelPolicy
+      // which can be a activity context.
+      // Observed here : https://code.google.com/p/android/issues/detail?id=172659
+      // Hack : https://gist.github.com/andaag/b05ab66ed0f06167d6e0
+      excluded.staticField("android.support.v7.internal.widget.ActivityChooserModel", "mActivityChoserModelPolicy");
+      excluded.staticField("android.widget.ActivityChooserModel", "mActivityChoserModelPolicy");
+    }
+
     return excluded;
   }
 
