@@ -16,27 +16,24 @@
 package com.squareup.leakcanary.internal;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.view.View;
-
-import static com.squareup.leakcanary.internal.DisplayLeakConnectorView.ROOT_COLOR;
 
 public final class MoreDetailsView extends View {
 
-  private final Paint iconPaint;
+  private static final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+  static {
+    iconPaint.setColor(LeakCanaryUi.ROOT_COLOR);
+  }
 
   public MoreDetailsView(Context context, AttributeSet attrs) {
     super(context, attrs);
 
-    float strokeSize = dpToPixel(2, getResources());
-    iconPaint = new Paint();
-    iconPaint.setColor(ROOT_COLOR);
+    float strokeSize = LeakCanaryUi.dpToPixel(2f, getResources());
     iconPaint.setStrokeWidth(strokeSize);
-    iconPaint.setAntiAlias(true);
   }
 
   private boolean opened;
@@ -60,11 +57,5 @@ public final class MoreDetailsView extends View {
       this.opened = opened;
       invalidate();
     }
-  }
-
-  static float dpToPixel(float dp, Resources resources) {
-    DisplayMetrics metrics = resources.getDisplayMetrics();
-    float px = dp * (metrics.densityDpi / 160f);
-    return px;
   }
 }
