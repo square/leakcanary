@@ -171,10 +171,10 @@ res/
 
 You can change the default behavior to upload the leak trace and heap dump to a server of your choosing.
 
-Create your own `AbstractAnalysisResultService`. The easiest way is to extend `DefaultAnalysisResultService` in your debug sources:
+Create your own `AbstractAnalysisResultService`. The easiest way is to extend `DisplayLeakService` in your debug sources:
 
 ```java
-public class LeakUploadService extends DefaultAnalysisResultService {
+public class LeakUploadService extends DisplayLeakService {
   @Override protected void afterDefaultHandling(HeapDump heapDump, AnalysisResult result, String leakInfo) {
     if (!result.leakFound || result.excludedLeak) {
       return;
