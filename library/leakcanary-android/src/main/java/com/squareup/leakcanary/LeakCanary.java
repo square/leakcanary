@@ -61,7 +61,7 @@ public final class LeakCanary {
     DebuggerControl debuggerControl = new AndroidDebuggerControl();
     AndroidHeapDumper heapDumper = new AndroidHeapDumper();
     heapDumper.cleanup();
-    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAndroidDefaults().build();
+    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults().build();
     return new RefWatcher(new AndroidWatchExecutor(), debuggerControl, GcTrigger.DEFAULT,
         heapDumper, heapDumpListener, excludedRefs);
   }
