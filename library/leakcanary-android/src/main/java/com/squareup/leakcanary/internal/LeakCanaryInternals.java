@@ -25,6 +25,8 @@ import android.content.pm.ServiceInfo;
 import android.os.Environment;
 import android.util.Log;
 import java.io.File;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
@@ -33,6 +35,12 @@ import static android.content.pm.PackageManager.GET_SERVICES;
 import static android.os.Environment.DIRECTORY_DOWNLOADS;
 
 public final class LeakCanaryInternals {
+
+  private static final Executor fileIoExecutor = Executors.newSingleThreadExecutor();
+
+  public static void executeOnFileIoThread(Runnable runnable) {
+    fileIoExecutor.execute(runnable);
+  }
 
   public static File storageDirectory() {
     File downloadsDirectory = Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS);
@@ -78,12 +86,18 @@ public final class LeakCanaryInternals {
     }
   }
 
-  public static void setEnabled(Context context, Class<?> componentClass, boolean enabled) {
-    ComponentName component = new ComponentName(context, componentClass);
-    PackageManager packageManager = context.getPackageManager();
-    int newState = enabled ? COMPONENT_ENABLED_STATE_ENABLED : COMPONENT_ENABLED_STATE_DISABLED;
-    // Blocks on IPC.
-    packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP);
+  public static void setEnabled(Context context, final Class<?> componentClass,
+      final boolean enabled) {
+    final Context appContext = context.getApplicationContext();
+    executeOnFileIoThread(new Runnable() {
+      @Override public void run() {
+        ComponentName component = new ComponentName(appContext, componentClass);
+        PackageManager packageManager = appContext.getPackageManager();
+        int newState = enabled ? COMPONENT_ENABLED_STATE_ENABLED : COMPONENT_ENABLED_STATE_DISABLED;
+        // Blocks on IPC.
+        packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP);
+      }
+    });
   }
 
   public static boolean isInServiceProcess(Context context, Class<? extends Service> serviceClass) {
