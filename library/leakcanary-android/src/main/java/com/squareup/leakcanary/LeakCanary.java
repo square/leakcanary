@@ -113,6 +113,8 @@ public final class LeakCanary {
         + Build.VERSION.RELEASE
         + " API: "
         + Build.VERSION.SDK_INT
+        + " LeakCanary: "
+        + BuildConfig.LIBRARY_VERSION
         + "\n"
         + "* Durations: watch="
         + heapDump.watchDurationMs
