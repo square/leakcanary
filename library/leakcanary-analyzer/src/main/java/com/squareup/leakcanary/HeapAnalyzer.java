@@ -105,7 +105,7 @@ public final class HeapAnalyzer {
       }
 
       return result;
-    } catch (SnapshotException e) {
+    } catch (Exception e) {
       return failure(e, since(analysisStartNanoTime));
     } finally {
       cleanup(heapDumpFile, snapshot);
