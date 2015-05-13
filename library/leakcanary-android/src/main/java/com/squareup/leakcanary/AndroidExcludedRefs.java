@@ -306,9 +306,7 @@ public enum AndroidExcludedRefs {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.thread(LEAK_CANARY_THREAD_NAME);
     }
-  },
-  //
-  ;
+  };
 
   /**
    * This returns the references in the leak path that should be ignored by all on Android.
