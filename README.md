@@ -232,6 +232,29 @@ Don't forget to register the service in your debug manifest:
 
 You can also upload the leak traces to Slack or HipChat, [here's an example](https://gist.github.com/pyricau/06c2c486d24f5f85f7f0).
 
+## Snapshots of the development version
+
+See the [CHANGELOG](https://github.com/square/leakcanary/blob/master/CHANGELOG.md).
+
+## Troubleshooting
+
+* if `leakcanary-android` is not in the list of external libraries in Android Studio, but `leakcanary-analyzer` and `leakcanary-watcher` are there: try doing a `Clean Build`. Also, try building from the command line.
+* `error: package com.squareup.leakcanary does not exist`: if you have other build types than `debug` and `release`, you need to add a specific dependency for those too (`xxxCompile`).
+
+## Resources
+
+* LeakCanary: Detect all memory leaks! [squ.re/leakcanary](http://squ.re/leakcanary).
+* Wrangling Dalvik series: [Memory management in Android](http://www.raizlabs.com/dev/2014/03/wrangling-dalvik-memory-management-in-android-part-1-of-2/).
+* Uploading leak traces to a [Slack or HipChat channel](https://gist.github.com/pyricau/06c2c486d24f5f85f7f0).
+* Dump the heap on [OutOfMemoryError crashes](https://gist.github.com/pyricau/4726389fd64f3b7c6f32).
+* StackOverflow: [leakcanary tag](http://stackoverflow.com/questions/tagged/leakcanary).
+
+### Translations
+
+* squ.re/leakcanary [in Chinese](http://www.liaohuqiu.net/cn/posts/leak-canary/).
+* squ.re/leakcanary [in Russian](http://habrahabr.ru/post/257633/).
+* `README.md` in Chinese: [中文版说明](http://www.liaohuqiu.net/cn/posts/leak-canary-read-me/).
+
 ![icon_512.png](assets/icon_512.png)
 
 The name **LeakCanary** is a reference to the expression [canary in a coal mine](http://en.wiktionary.org/wiki/canary_in_a_coal_mine), because LeakCanary is a sentinel used to detect risks by providing advance warning of a danger. Props to [@edenman](https://github.com/edenman) for suggesting it!
