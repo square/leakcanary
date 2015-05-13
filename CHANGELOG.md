@@ -1,5 +1,16 @@
 # Change Log
 
+Snapshots of the development version are available in Sonatype's `snapshots` repository:
+
+```
+  repositories {
+    mavenCentral()
+    maven {
+      url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+  }
+```
+
 ## Version 1.3.1-SNAPSHOT
 
 * Heap dumps and analysis results are now saved on the sd card: [#21](https://github.com/square/leakcanary/issues/21).
@@ -23,6 +34,24 @@
 * `AndroidExcludedRefs.createAppDefaults()` & `AndroidExcludedRefs.createAndroidDefaults()` return a `ExcludedRef.Builder`.
 * `ExcludedRef` moved from `leakcanary-analyzer` to `leakcanary-watcher`
 
+### Dependencies
+
+```gradle
+ dependencies {
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.1-SNAPSHOT'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1-SNAPSHOT'
+ }
+```
+
 ## Version 1.3 *(2015-05-08)*
 
 Initial release.
+
+### Dependencies
+
+```gradle
+ dependencies {
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3'
+ }
+```
