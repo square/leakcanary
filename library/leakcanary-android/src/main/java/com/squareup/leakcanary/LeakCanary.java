@@ -34,7 +34,8 @@ public final class LeakCanary {
    * references (on ICS+).
    */
   public static RefWatcher install(Application application) {
-    return install(application, DisplayLeakService.class);
+    return install(application, DisplayLeakService.class,
+        AndroidExcludedRefs.createAppDefaults().build());
   }
 
   /**
@@ -42,14 +43,15 @@ public final class LeakCanary {
    * activity references (on ICS+).
    */
   public static RefWatcher install(Application application,
-      Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
+      Class<? extends AbstractAnalysisResultService> listenerServiceClass,
+      ExcludedRefs excludedRefs) {
     if (isInAnalyzerProcess(application)) {
       return RefWatcher.DISABLED;
     }
     enableDisplayLeakActivity(application);
     HeapDump.Listener heapDumpListener =
         new ServiceHeapDumpListener(application, listenerServiceClass);
-    RefWatcher refWatcher = androidWatcher(heapDumpListener);
+    RefWatcher refWatcher = androidWatcher(heapDumpListener, excludedRefs);
     ActivityRefWatcher.installOnIcsPlus(application, refWatcher);
     return refWatcher;
   }
@@ -57,11 +59,11 @@ public final class LeakCanary {
   /**
    * Creates a {@link RefWatcher} with a default configuration suitable for Android.
    */
-  public static RefWatcher androidWatcher(HeapDump.Listener heapDumpListener) {
+  public static RefWatcher androidWatcher(HeapDump.Listener heapDumpListener,
+      ExcludedRefs excludedRefs) {
     DebuggerControl debuggerControl = new AndroidDebuggerControl();
     AndroidHeapDumper heapDumper = new AndroidHeapDumper();
     heapDumper.cleanup();
-    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults().build();
     return new RefWatcher(new AndroidWatchExecutor(), debuggerControl, GcTrigger.DEFAULT,
         heapDumper, heapDumpListener, excludedRefs);
   }

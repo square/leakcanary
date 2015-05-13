@@ -15,6 +15,8 @@
  */
 package com.squareup.leakcanary;
 
+import java.util.EnumSet;
+
 import static android.os.Build.MANUFACTURER;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
@@ -23,6 +25,11 @@ import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 import static android.os.Build.VERSION_CODES.KITKAT;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.LG;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.LOLLIPOP_MR1;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.MOTOROLA;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.NVIDIA;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.SAMSUNG;
 
 /**
  * This class is a work in progress. You can help by reporting leak traces that seem to be caused
@@ -31,51 +38,24 @@ import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NA
  * We filter on SDK versions and Manufacturers because many of those leaks are specific to a given
  * manufacturer implementation, they usually share their builds across multiple models, and the
  * leaks eventually get fixed in newer versions.
+ *
+ * Most app developers should use {@link #createAppDefaults()}. However, you can also pick the
+ * leaks you want to ignore by creating an {@link EnumSet} that matches your needs and calling
+ * {@link #createBuilder(EnumSet)}
  */
-public final class AndroidExcludedRefs {
+public enum AndroidExcludedRefs {
 
-  private static final String SAMSUNG = "samsung";
-  private static final String MOTOROLA = "motorola";
-  private static final String LG = "LGE";
-  private static final String NVIDIA = "NVIDIA";
-
-  // SDK INT for API 22.
-  private static final int LOLLIPOP_MR1 = 22;
-
-  /**
-   * This returns the references in the leak path that should be ignored by all on Android.
-   */
-  public static ExcludedRefs.Builder createAndroidDefaults() {
-    ExcludedRefs.Builder excluded = new ExcludedRefs.Builder();
-    // If the FinalizerWatchdogDaemon thread is on the shortest path, then there was no other
-    // reference to the object and it was about to be GCed.
-    excluded.thread("FinalizerWatchdogDaemon");
-
-    // The main thread stack is ever changing so local variables aren't likely to hold references
-    // for long. If this is on the shortest path, it's probably that there's a longer path with
-    // a real leak.
-    excluded.thread("main");
-
-    excluded.thread(LEAK_CANARY_THREAD_NAME);
-    return excluded;
-  }
-
-  /**
-   * This returns the references in the leak path that can be ignored for app developers. This
-   * doesn't mean there is no memory leak, to the contrary. However, some leaks are caused by bugs
-   * in AOSP or manufacturer forks of AOSP. In such cases, there is very little we can do as app
-   * developers except by resorting to serious hacks, so we remove the noise caused by those leaks.
-   */
-  public static ExcludedRefs.Builder createAppDefaults() {
-    ExcludedRefs.Builder excluded = createAndroidDefaults();
-    if (SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
+  ACTIVITY_CLIENT_RECORD__NEXT_IDLE(SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // Android AOSP sometimes keeps a reference to a destroyed activity as a "nextIdle" client
       // record in the android.app.ActivityThread.mActivities map.
       // Not sure what's going on there, input welcome.
       excluded.instanceField("android.app.ActivityThread$ActivityClientRecord", "nextIdle");
     }
+  },
 
-    if (SDK_INT <= KITKAT) {
+  SPAN_CONTROLLER(SDK_INT <= KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // Editor inserts a special span, which has a reference to the EditText. That span is a
       // NoCopySpan, which makes sure it gets dropped when creating a new SpannableStringBuilder
       // from a given CharSequence.
@@ -92,8 +72,10 @@ public final class AndroidExcludedRefs {
       excluded.instanceField("android.widget.Editor$EasyEditSpanController", "this$0");
       excluded.instanceField("android.widget.Editor$SpanController", "this$0");
     }
+  },
 
-    if (SDK_INT == LOLLIPOP) {
+  MEDIA_SESSION_LEGACY_HELPER__SINSTANCE(SDK_INT == LOLLIPOP) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // MediaSessionLegacyHelper is a static singleton that is lazily instantiated and keeps a
       // reference to the context it's given the first time MediaSessionLegacyHelper.getHelper()
       // is called.
@@ -106,8 +88,10 @@ public final class AndroidExcludedRefs {
       // Application.onCreate() and pass it the application context.
       excluded.staticField("android.media.session.MediaSessionLegacyHelper", "sInstance");
     }
+  },
 
-    if (SDK_INT < LOLLIPOP_MR1) {
+  TEXT_LINE__SCACHED(SDK_INT < LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // TextLine.sCached is a pool of 3 TextLine instances. TextLine.recycle() has had at least two
       // bugs that created memory leaks by not correctly clearing the recycled TextLine instances.
       // The first was fixed in android-5.1.0_r1:
@@ -122,8 +106,10 @@ public final class AndroidExcludedRefs {
       // (e.g. on activity destroy).
       excluded.staticField("android.text.TextLine", "sCached");
     }
+  },
 
-    if (SDK_INT < LOLLIPOP) {
+  BLOCKING_QUEUE(SDK_INT < LOLLIPOP) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // Prior to ART, a thread waiting on a blocking queue will leak the last dequeued object
       // as a stack local reference.
       // So when a HandlerThread becomes idle, it keeps a local reference to the last message it
@@ -145,8 +131,10 @@ public final class AndroidExcludedRefs {
       excluded.instanceField("android.os.Message", "next");
       excluded.instanceField("android.os.Message", "target");
     }
+  },
 
-    if (SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP_MR1) {
+  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // When we detach a view that receives keyboard input, the InputMethodManager leaks a
       // reference to it until a new view asks for keyboard input.
       // Tracked here: https://code.google.com/p/android/issues/detail?id=171190
@@ -156,106 +144,196 @@ public final class AndroidExcludedRefs {
       excluded.instanceField("android.view.inputmethod.InputMethodManager",
           "mServedInputConnection");
     }
+  },
 
-    if (SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= LOLLIPOP_MR1) {
+  INPUT_METHOD_MANAGER__ROOT_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // The singleton InputMethodManager is holding a reference to mCurRootView long after the
       // activity has been destroyed.
       // Observed on ICS MR1: https://github.com/square/leakcanary/issues/1#issuecomment-100579429
       // Hack: https://gist.github.com/pyricau/4df64341cc978a7de414
       excluded.instanceField("android.view.inputmethod.InputMethodManager", "mCurRootView");
     }
+  },
 
-    if (SDK_INT >= ICE_CREAM_SANDWICH && SDK_INT <= LOLLIPOP_MR1) {
+  LAYOUT_TRANSITION(SDK_INT >= ICE_CREAM_SANDWICH && SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // LayoutTransition leaks parent ViewGroup through ViewTreeObserver.OnPreDrawListener
       // When triggered, this leaks stays until the window is destroyed.
       // Tracked here: https://code.google.com/p/android/issues/detail?id=171830
       excluded.instanceField("android.animation.LayoutTransition$1", "val$parent");
     }
+  },
 
-    if (SDK_INT >= JELLY_BEAN || SDK_INT <= LOLLIPOP_MR1) {
+  SPELL_CHECKER_SESSION(SDK_INT >= JELLY_BEAN || SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // SpellCheckerSessionListenerImpl.mHandler is leaking destroyed Activity when the
       // SpellCheckerSession is closed before the service is connected.
       // Tracked here: https://code.google.com/p/android/issues/detail?id=172542
       excluded.instanceField("android.view.textservice.SpellCheckerSession$1", "this$0");
     }
+  },
 
-    if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
-      // DevicePolicyManager keeps a reference to the context it has been created with instead of
-      // extracting the application context. In this Motorola build, DevicePolicyManager has an
-      // inner SettingsObserver class that is a content observer, which is held into memory
-      // by a binder transport object.
-      excluded.instanceField("android.app.admin.DevicePolicyManager$SettingsObserver", "this$0");
+  DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+        // DevicePolicyManager keeps a reference to the context it has been created with instead of
+        // extracting the application context. In this Motorola build, DevicePolicyManager has an
+        // inner SettingsObserver class that is a content observer, which is held into memory
+        // by a binder transport object.
+        excluded.instanceField("android.app.admin.DevicePolicyManager$SettingsObserver", "this$0");
+      }
     }
+  },
 
-    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  SPEN_GESTURE_MANAGER(SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // SpenGestureManager has a static mContext field that leaks a reference to the activity.
       // Yes, a STATIC "mContext" field.
       excluded.staticField("com.samsung.android.smartclip.SpenGestureManager", "mContext");
     }
+  },
 
-    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
+  CLIPBOARD_UI_MANAGER__SINSTANCE(
+      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // ClipboardUIManager is a static singleton that leaks an activity context.
       excluded.staticField("android.sec.clipboard.ClipboardUIManager", "sInstance");
     }
+  },
 
-    if (LG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
+  BUBBLE_POPUP_HELPER__SHELPER(
+      LG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // A static helper for EditText "bubble popups" leaks a reference to the latest focused view.
       excluded.staticField("android.widget.BubblePopupHelper", "sHelper");
     }
+  },
 
-    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  AW_RESOURCE__SRESOURCES(SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // AwResource#setResources() is called with resources that hold a reference to the
       // activity context (instead of the application context) and doesn't clear it.
       // Not sure what's going on there, input welcome.
       excluded.staticField("com.android.org.chromium.android_webview.AwResource", "sResources");
     }
+  },
 
-    if (NVIDIA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  MAPPER_CLIENT(NVIDIA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // Not sure exactly what ControllerMapper is about, but there is an anonymous Handler in
       // ControllerMapper.MapperClient.ServiceClient, which leaks ControllerMapper.MapperClient
       // which leaks the activity context.
       excluded.instanceField("com.nvidia.ControllerMapper.MapperClient$ServiceClient", "this$0");
     }
+  },
 
-    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  TEXT_VIEW__MLAST_HOVERED_VIEW(SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // mLastHoveredView is a static field in TextView that leaks the last hovered view.
       excluded.staticField("android.widget.TextView", "mLastHoveredView");
     }
+  },
 
-    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  PERSONA_MANAGER(SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // android.app.LoadedApk.mResources has a reference to
       // android.content.res.Resources.mPersonaManager which has a reference to
       // android.os.PersonaManager.mContext which is an activity.
       excluded.instanceField("android.os.PersonaManager", "mContext");
     }
+  },
 
-    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  RESOURCES__MCONTEXT(SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // In AOSP the Resources class does not have a context.
       // Here we have ZygoteInit.mResources (static field) holding on to a Resources instance that
       // has a context that is the activity.
       // Observed here: https://github.com/square/leakcanary/issues/1#issue-74450184
       excluded.instanceField("android.content.res.Resources", "mContext");
     }
+  },
 
-    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  VIEW_CONFIGURATION__MCONTEXT(SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // In AOSP the ViewConfiguration class does not have a context.
       // Here we have ViewConfiguration.sConfigurations (static field) holding on to a
       // ViewConfiguration instance that has a context that is the activity.
       // Observed here: https://github.com/square/leakcanary/issues/1#issuecomment-100324683
       excluded.instanceField("android.view.ViewConfiguration", "mContext");
     }
+  },
 
-    if (SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  AUDIO_MANAGER__MCONTEXT_STATIC(SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
       // Samsung added a static mContext_static field to AudioManager, holds a reference to the
       // activity.
       // Observed here: https://github.com/square/leakcanary/issues/32
       excluded.staticField("android.media.AudioManager", "mContext_static");
     }
+  },
 
+  FINALIZER_WATCHDOG_DAEMON {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // If the FinalizerWatchdogDaemon thread is on the shortest path, then there was no other
+      // reference to the object and it was about to be GCed.
+      excluded.thread("FinalizerWatchdogDaemon");
+    }
+  },
+
+  MAIN {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // The main thread stack is ever changing so local variables aren't likely to hold references
+      // for long. If this is on the shortest path, it's probably that there's a longer path with
+      // a real leak.
+      excluded.thread("main");
+    }
+  },
+
+  LEAK_CANARY_THREAD {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.thread(LEAK_CANARY_THREAD_NAME);
+    }
+  },
+  //
+  ;
+
+  /**
+   * This returns the references in the leak path that should be ignored by all on Android.
+   */
+  public static ExcludedRefs.Builder createAndroidDefaults() {
+    return createBuilder(EnumSet.of(FINALIZER_WATCHDOG_DAEMON, MAIN, LEAK_CANARY_THREAD));
+  }
+
+  /**
+   * This returns the references in the leak path that can be ignored for app developers. This
+   * doesn't mean there is no memory leak, to the contrary. However, some leaks are caused by bugs
+   * in AOSP or manufacturer forks of AOSP. In such cases, there is very little we can do as app
+   * developers except by resorting to serious hacks, so we remove the noise caused by those leaks.
+   */
+  public static ExcludedRefs.Builder createAppDefaults() {
+    return createBuilder(EnumSet.allOf(AndroidExcludedRefs.class));
+  }
+
+  public static ExcludedRefs.Builder createBuilder(EnumSet<AndroidExcludedRefs> refs) {
+    ExcludedRefs.Builder excluded = new ExcludedRefs.Builder();
+    for (AndroidExcludedRefs ref : refs) {
+      if (ref.applies) {
+        ref.add(excluded);
+      }
+    }
     return excluded;
   }
 
-  private AndroidExcludedRefs() {
-    throw new AssertionError();
+  final boolean applies;
+
+  AndroidExcludedRefs() {
+    this(true);
   }
+
+  AndroidExcludedRefs(boolean applies) {
+    this.applies = applies;
+  }
+
+  abstract void add(ExcludedRefs.Builder excluded);
 }
