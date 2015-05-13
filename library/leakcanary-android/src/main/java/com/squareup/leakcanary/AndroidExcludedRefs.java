@@ -174,6 +174,18 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  ACTIVITY_CHOOSE_MODEL(SDK_INT > ICE_CREAM_SANDWICH && SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // ActivityChooserModel holds a static reference to the last set ActivityChooserModelPolicy
+      // which can be an activity context.
+      // Tracked here : https://code.google.com/p/android/issues/detail?id=172659
+      // Hack : https://gist.github.com/andaag/b05ab66ed0f06167d6e0
+      excluded.staticField("android.support.v7.internal.widget.ActivityChooserModel",
+          "mActivityChoserModelPolicy");
+      excluded.staticField("android.widget.ActivityChooserModel", "mActivityChoserModelPolicy");
+    }
+  },
+
   DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
     @Override void add(ExcludedRefs.Builder excluded) {
       if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
