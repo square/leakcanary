@@ -14,7 +14,6 @@ repositories {
 }
 
 dependencies {
-  compile project(':leakcanary-watcher')
 }
 
 android {
