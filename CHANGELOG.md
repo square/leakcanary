@@ -4,7 +4,7 @@
 
 * Heap dumps and analysis results are now saved on the sd card: [#21](https://github.com/square/leakcanary/issues/21).
 * `ExcludedRef` and `AndroidExcludedRefs` are customizable: [#12](https://github.com/square/leakcanary/issues/12) [#73](https://github.com/square/leakcanary/issues/73).
-* 5 new ignored Android SDK leaks: [#1](https://github.com/square/leakcanary/issue/1) [#4](https://github.com/square/leakcanary/issue/4) [#32](https://github.com/square/leakcanary/issues/32).
+* 5 new ignored Android SDK leaks: [#1](https://github.com/square/leakcanary/issues/1) [#4](https://github.com/square/leakcanary/issues/4) [#32](https://github.com/square/leakcanary/issues/32).
 * Fixed 3 crashes in LeakCanary: [#37](https://github.com/square/leakcanary/issues/37) [#46](https://github.com/square/leakcanary/issues/46) [#66](https://github.com/square/leakcanary/issues/66).
 * Fixed StrictMode thread policy violations: [#15](https://github.com/square/leakcanary/issues/15).
 * Updated `minSdkVersion` from `9` to `8`: [#57](https://github.com/square/leakcanary/issues/57).
