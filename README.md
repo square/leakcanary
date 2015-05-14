@@ -113,11 +113,18 @@ Once you have the leak trace, figure out which reference in the path should not 
 
 ## My leak is caused by the Android SDK implementation!
 
-There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: [AndroidExcludedRefs.java](https://github.com/square/leakcanary/blob/master/library/leakcanary-android/src/main/java/com/squareup/leakcanary/AndroidExcludedRefs.java). If you find a new one, please [create an issue](https://github.com/square/leakcanary/issues/new) with the leak trace, the reference key, the device and the Android version. It's even better if you provide a link to a heap dump file.
+There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: [AndroidExcludedRefs.java](https://github.com/square/leakcanary/blob/master/library/leakcanary-android/src/main/java/com/squareup/leakcanary/AndroidExcludedRefs.java).
 
-This is especially important for **new releases of Android**. You have the opportunity to help detect new memory leaks early on, which could benefit the entire Android community. 
+If you find a new one, please [create an issue](https://github.com/square/leakcanary/issues/new) and follow these steps:
 
-Snapshots of the development version are available in [Sonatype's `snapshots` repository](https://oss.sonatype.org/content/repositories/snapshots/).
+1. Provide the entire leak trace information (reference key, device, etc).
+2. Read the AOSP source for that version of Android, and try to figure out why it happens. You can easily navigate through SDK versions [android/platform_frameworks_base](https://github.com/android/platform_frameworks_base).
+3. Check if it happens on the latest version of Android, and otherwise use blame to find when it was fixed.
+4. If it's still happening, build a simple repro case
+5. File an issue on [b.android.com](http://b.android.com) with the leak trace and the repro case
+6. Create a PR in LeakCanary to update `AndroidExcludedRefs.java`. Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.
+
+This is especially important for **new releases of Android**. You have the opportunity to help detect new memory leaks early on, which benefits the entire Android community. 
 
 ## Beyond the leak trace
 
