@@ -186,6 +186,16 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  SPEECH_RECOGNIZER(SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // Prior to Android 5, SpeechRecognizer.InternalListener was a non static inner class and
+      // leaked the SpeechRecognizer which leaked an activity context.
+      // Fixed in AOSP: https://github.com/android/platform_frameworks_base/commit
+      // /b37866db469e81aca534ff6186bdafd44352329b
+      excluded.instanceField("android.speech.SpeechRecognizer$InternalListener", "this$0");
+    }
+  },
+
   DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
     @Override void add(ExcludedRefs.Builder excluded) {
       if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
