@@ -359,7 +359,9 @@ public final class HeapAnalyzer {
 
   private String fieldToString(Field field) throws SnapshotException {
     Object value = field.getValue();
-    if (value instanceof ObjectReference) value = ((ObjectReference) value).getObject();
+    if (value instanceof ObjectReference) {
+      value = ((ObjectReference) value).getObject();
+    }
     return field.getName() + " = " + value;
   }
 
