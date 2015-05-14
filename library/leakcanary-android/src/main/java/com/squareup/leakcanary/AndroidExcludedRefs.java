@@ -133,7 +133,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP_MR1) {
+  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       // When we detach a view that receives keyboard input, the InputMethodManager leaks a
       // reference to it until a new view asks for keyboard input.
