@@ -73,7 +73,8 @@ public final class LeakCanary {
   }
 
   /** Returns a string representation of the result of a heap analysis. */
-  public static String leakInfo(Context context, HeapDump heapDump, AnalysisResult result) {
+  public static String leakInfo(Context context, HeapDump heapDump, AnalysisResult result,
+      boolean detailed) {
     PackageManager packageManager = context.getPackageManager();
     String packageName = context.getPackageName();
     PackageInfo packageInfo;
@@ -85,6 +86,7 @@ public final class LeakCanary {
     String versionName = packageInfo.versionName;
     int versionCode = packageInfo.versionCode;
     String info = "In " + packageName + ":" + versionName + ":" + versionCode + ".\n";
+    String detailedString = "";
     if (result.leakFound) {
       if (result.excludedLeak) {
         info += "* LEAK CAN BE IGNORED.\n";
@@ -94,6 +96,9 @@ public final class LeakCanary {
         info += " (" + heapDump.referenceName + ")";
       }
       info += " has leaked:\n" + result.leakTrace.toString() + "\n";
+      if (detailed) {
+        detailedString = "\n* Details:\n" + result.leakTrace.toDetailedString();
+      }
     } else if (result.failure != null) {
       info += "* FAILURE:\n" + Log.getStackTraceString(result.failure) + "\n";
     } else {
@@ -127,7 +132,8 @@ public final class LeakCanary {
         + "ms, analysis="
         + result.analysisDurationMs
         + "ms"
-        + "\n";
+        + "\n"
+        + detailedString;
 
     return info;
   }
