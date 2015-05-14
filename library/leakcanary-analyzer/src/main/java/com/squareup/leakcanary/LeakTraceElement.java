@@ -16,10 +16,14 @@
 package com.squareup.leakcanary;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.squareup.leakcanary.LeakTraceElement.Holder.ARRAY;
+import static com.squareup.leakcanary.LeakTraceElement.Holder.CLASS;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Locale.US;
 
 /** Represents one reference in the chain of references that holds a leaking object in memory. */
@@ -44,12 +48,17 @@ public final class LeakTraceElement implements Serializable {
   /** Additional information, may be null. */
   public final String extra;
 
-  LeakTraceElement(String referenceName, Type type, Holder holder, String className, String extra) {
+  /** List of all fields (member and static) for that object. */
+  public final List<String> fields;
+
+  LeakTraceElement(String referenceName, Type type, Holder holder, String className, String extra,
+      List<String> fields) {
     this.referenceName = referenceName;
     this.type = type;
     this.holder = holder;
     this.className = className;
     this.extra = extra;
+    this.fields = unmodifiableList(new ArrayList<>(fields));
   }
 
   @Override public String toString() {
@@ -73,6 +82,22 @@ public final class LeakTraceElement implements Serializable {
 
     if (extra != null) {
       string += " " + extra;
+    }
+    return string;
+  }
+
+  public String toDetailedString() {
+    String string = "* ";
+    if (holder == ARRAY) {
+      string += "Array of";
+    } else if (holder == CLASS) {
+      string += "Class";
+    } else {
+      string += "Instance of";
+    }
+    string += " " + className + "\n";
+    for (String field : fields) {
+      string += "|   " + field + "\n";
     }
     return string;
   }
