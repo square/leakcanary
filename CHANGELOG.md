@@ -1,15 +1,6 @@
 # Change Log
 
-Snapshots of the development version are available in Sonatype's `snapshots` repository:
 
-```
-  repositories {
-    mavenCentral()
-    maven {
-      url 'https://oss.sonatype.org/content/repositories/snapshots/'
-    }
-  }
-```
 
 ## Version 1.3.1-SNAPSHOT
 
@@ -43,6 +34,17 @@ Snapshots of the development version are available in Sonatype's `snapshots` rep
    debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.1-SNAPSHOT'
    releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1-SNAPSHOT'
  }
+```
+
+Snapshots are available in Sonatype's `snapshots` repository:
+
+```
+  repositories {
+    mavenCentral()
+    maven {
+      url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+  }
 ```
 
 ## Version 1.3 *(2015-05-08)*
