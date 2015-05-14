@@ -30,10 +30,14 @@ import org.eclipse.mat.parser.internal.SnapshotFactory;
 import org.eclipse.mat.snapshot.IPathsFromGCRootsComputer;
 import org.eclipse.mat.snapshot.ISnapshot;
 import org.eclipse.mat.snapshot.PathsFromGCRootsTree;
+import org.eclipse.mat.snapshot.model.Field;
 import org.eclipse.mat.snapshot.model.IArray;
 import org.eclipse.mat.snapshot.model.IClass;
+import org.eclipse.mat.snapshot.model.IInstance;
 import org.eclipse.mat.snapshot.model.IObject;
+import org.eclipse.mat.snapshot.model.IObjectArray;
 import org.eclipse.mat.snapshot.model.NamedReference;
+import org.eclipse.mat.snapshot.model.ObjectReference;
 import org.eclipse.mat.snapshot.model.PrettyPrinter;
 import org.eclipse.mat.snapshot.model.ThreadToLocalReference;
 import org.eclipse.mat.util.VoidProgressListener;
@@ -209,25 +213,25 @@ public final class HeapAnalyzer {
       return true;
     }
     // Note: the first child is the leaking object, the last child is the GC root.
-    IObject parent = null;
+    IObject held = null;
     while (tree != null) {
-      IObject child = snapshot.getObject(tree.getOwnId());
+      IObject holder = snapshot.getObject(tree.getOwnId());
       // Static field reference
-      if (child instanceof IClass) {
-        IClass childClass = (IClass) child;
+      if (holder instanceof IClass) {
+        IClass childClass = (IClass) holder;
         Set<String> childClassExcludedFields = excludedStaticFields.get(childClass);
         if (childClassExcludedFields != null) {
-          NamedReference ref = findChildInParent(parent, child, excludedRefs);
+          NamedReference ref = findHeldInHolder(held, holder, excludedRefs);
           if (ref != null && childClassExcludedFields.contains(ref.getName())) {
             return false;
           }
         }
-      } else if (child.getClazz().doesExtend(Thread.class.getName())) {
-        if (excludedRefs.excludedThreads.contains(getThreadName(child))) {
+      } else if (holder.getClazz().doesExtend(Thread.class.getName())) {
+        if (excludedRefs.excludedThreads.contains(getThreadName(holder))) {
           return false;
         }
       }
-      parent = child;
+      held = holder;
       int[] branchIds = tree.getObjectIds();
       tree = branchIds.length > 0 ? tree.getBranch(branchIds[0]) : null;
     }
@@ -238,16 +242,16 @@ public final class HeapAnalyzer {
     return PrettyPrinter.objectAsString((IObject) thread.resolveValue("name"), MAX_VALUE);
   }
 
-  private NamedReference findChildInParent(IObject parent, IObject child, ExcludedRefs excludedRefs)
+  private NamedReference findHeldInHolder(IObject held, IObject holder, ExcludedRefs excludedRefs)
       throws SnapshotException {
-    if (parent == null) {
+    if (held == null) {
       return null;
     }
-    Set<String> excludedFields = excludedRefs.excludeFieldMap.get(child.getClazz().getName());
-    for (NamedReference childRef : child.getOutboundReferences()) {
-      if (childRef.getObjectId() == parent.getObjectId() && (excludedFields == null
-          || !excludedFields.contains(childRef.getName()))) {
-        return childRef;
+    Set<String> excludedFields = excludedRefs.excludeFieldMap.get(holder.getClazz().getName());
+    for (NamedReference holdingRef : holder.getOutboundReferences()) {
+      if (holdingRef.getObjectId() == held.getObjectId() && (excludedFields == null
+          || !excludedFields.contains(holdingRef.getName()))) {
+        return holdingRef;
       }
     }
     return null;
@@ -256,55 +260,82 @@ public final class HeapAnalyzer {
   private LeakTrace buildLeakTrace(ISnapshot snapshot, PathsFromGCRootsTree tree,
       ExcludedRefs excludedRefs) throws SnapshotException {
     List<LeakTraceElement> elements = new ArrayList<>();
-    IObject parent = null;
+    // We iterate from the leak to the GC root
+    IObject held = null;
     while (tree != null) {
-      IObject child = snapshot.getObject(tree.getOwnId());
-      elements.add(0, buildLeakElement(parent, child, excludedRefs));
-      parent = child;
+      IObject holder = snapshot.getObject(tree.getOwnId());
+      elements.add(0, buildLeakElement(held, holder, excludedRefs));
+      held = holder;
       int[] branchIds = tree.getObjectIds();
       tree = branchIds.length > 0 ? tree.getBranch(branchIds[0]) : null;
     }
     return new LeakTrace(elements);
   }
 
-  private LeakTraceElement buildLeakElement(IObject parent, IObject child,
-      ExcludedRefs excludedRefs) throws SnapshotException {
+  private LeakTraceElement buildLeakElement(IObject held, IObject holder, ExcludedRefs excludedRefs)
+      throws SnapshotException {
     LeakTraceElement.Type type = null;
     String referenceName = null;
-    NamedReference childRef = findChildInParent(parent, child, excludedRefs);
-    if (childRef != null) {
-      referenceName = childRef.getName();
-      if (child instanceof IClass) {
+    NamedReference holdingRef = findHeldInHolder(held, holder, excludedRefs);
+    if (holdingRef != null) {
+      referenceName = holdingRef.getName();
+      if (holder instanceof IClass) {
         type = STATIC_FIELD;
-      } else if (childRef instanceof ThreadToLocalReference) {
+      } else if (holdingRef instanceof ThreadToLocalReference) {
         type = LOCAL;
       } else {
         type = INSTANCE_FIELD;
       }
     }
 
-    LeakTraceElement.Holder holder;
+    LeakTraceElement.Holder holderType;
     String className;
     String extra = null;
-    if (child instanceof IClass) {
-      IClass clazz = (IClass) child;
-      holder = CLASS;
+    List<String> fields = new ArrayList<>();
+    if (holder instanceof IClass) {
+      IClass clazz = (IClass) holder;
+      holderType = CLASS;
       className = clazz.getName();
-    } else if (child instanceof IArray) {
-      holder = ARRAY;
-      IClass clazz = child.getClazz();
+      for (Field staticField : clazz.getStaticFields()) {
+        fields.add("static " + fieldToString(staticField));
+      }
+    } else if (holder instanceof IArray) {
+      holderType = ARRAY;
+      IClass clazz = holder.getClazz();
       className = clazz.getName();
+      if (holder instanceof IObjectArray) {
+        IObjectArray array = (IObjectArray) holder;
+        int i = 0;
+        ISnapshot snapshot = holder.getSnapshot();
+        for (long address : array.getReferenceArray()) {
+          if (address == 0) {
+            fields.add("[" + i + "] = null");
+          } else {
+            int objectId = snapshot.mapAddressToId(address);
+            IObject object = snapshot.getObject(objectId);
+            fields.add("[" + i + "] = " + object);
+          }
+          i++;
+        }
+      }
     } else {
-      IClass clazz = child.getClazz();
+      IInstance instance = (IInstance) holder;
+      IClass clazz = holder.getClazz();
+      for (Field staticField : clazz.getStaticFields()) {
+        fields.add("static " + fieldToString(staticField));
+      }
+      for (Field field : instance.getFields()) {
+        fields.add(fieldToString(field));
+      }
       className = clazz.getName();
       if (clazz.doesExtend(Thread.class.getName())) {
-        holder = THREAD;
-        String threadName = getThreadName(child);
+        holderType = THREAD;
+        String threadName = getThreadName(holder);
         extra = "(named '" + threadName + "')";
       } else if (className.matches(ANONYMOUS_CLASS_NAME_PATTERN)) {
         String parentClassName = clazz.getSuperClass().getName();
         if (Object.class.getName().equals(parentClassName)) {
-          holder = OBJECT;
+          holderType = OBJECT;
           // This is an anonymous class implementing an interface. The API does not give access
           // to the interfaces implemented by the class. Let's see if it's in the class path and
           // use that instead.
@@ -315,15 +346,21 @@ public final class HeapAnalyzer {
           } catch (ClassNotFoundException ignored) {
           }
         } else {
-          holder = OBJECT;
+          holderType = OBJECT;
           // Makes it easier to figure out which anonymous class we're looking at.
           extra = "(anonymous class extends " + parentClassName + ")";
         }
       } else {
-        holder = OBJECT;
+        holderType = OBJECT;
       }
     }
-    return new LeakTraceElement(referenceName, type, holder, className, extra);
+    return new LeakTraceElement(referenceName, type, holderType, className, extra, fields);
+  }
+
+  private String fieldToString(Field field) throws SnapshotException {
+    Object value = field.getValue();
+    if (value instanceof ObjectReference) value = ((ObjectReference) value).getObject();
+    return field.getName() + " = " + value;
   }
 
   private void cleanup(File heapDumpFile, ISnapshot snapshot) {

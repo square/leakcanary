@@ -166,7 +166,7 @@ public final class DisplayLeakActivity extends Activity {
 
   private void shareLeak() {
     Leak visibleLeak = getVisibleLeak();
-    String leakInfo = leakInfo(this, visibleLeak.heapDump, visibleLeak.result);
+    String leakInfo = leakInfo(this, visibleLeak.heapDump, visibleLeak.result, true);
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("text/plain");
     intent.putExtra(Intent.EXTRA_TEXT, leakInfo);
