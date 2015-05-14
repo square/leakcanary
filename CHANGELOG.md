@@ -15,12 +15,13 @@ Snapshots of the development version are available in Sonatype's `snapshots` rep
 
 * Heap dumps and analysis results are now saved on the sd card: [#21](https://github.com/square/leakcanary/issues/21).
 * `ExcludedRef` and `AndroidExcludedRefs` are customizable: [#12](https://github.com/square/leakcanary/issues/12) [#73](https://github.com/square/leakcanary/issues/73).
-* 5 new ignored Android SDK leaks: [#1](https://github.com/square/leakcanary/issues/1) [#4](https://github.com/square/leakcanary/issues/4) [#32](https://github.com/square/leakcanary/issues/32).
+* 6 new ignored Android SDK leaks: [#1](https://github.com/square/leakcanary/issues/1) [#4](https://github.com/square/leakcanary/issues/4) [#32](https://github.com/square/leakcanary/issues/32) [#89](https://github.com/square/leakcanary/pull/89) [82](https://github.com/square/leakcanary/pull/82).
 * Fixed 3 crashes in LeakCanary: [#37](https://github.com/square/leakcanary/issues/37) [#46](https://github.com/square/leakcanary/issues/46) [#66](https://github.com/square/leakcanary/issues/66).
 * Fixed StrictMode thread policy violations: [#15](https://github.com/square/leakcanary/issues/15).
 * Updated `minSdkVersion` from `9` to `8`: [#57](https://github.com/square/leakcanary/issues/57).
 * Added LeakCanary version name to `LeakCanary.leakInfo()`: [#49](https://github.com/square/leakcanary/issues/49).
 * `leakcanary-android-no-op` is lighter, it does not depend on `leakcanary-watcher` anymore, only 2 classes now: [#74](https://github.com/square/leakcanary/issues/74).
+* Adding field state details to the text leak trace.
 
 ### Public API changes
 
@@ -28,6 +29,7 @@ Snapshots of the development version are available in Sonatype's `snapshots` rep
 * Added `android.permission.WRITE_EXTERNAL_STORAGE` to `leakcanary-android` artifact.
 * `LeakCanary.androidWatcher()` parameter types have changed (-Application, +ExcludedRefs).
 * `AndroidHeapDumper()` parameter types have changed (-Application).
+* `LeakCanary.leakInfo()` parameter types have changed (+boolean)
 * `ExcludedRef` is now serializable and immutable, instances can be created using `ExcludedRef.Builder`.
 * `ExcludedRef` is available in `HeapDump`
 * `AndroidExcludedRefs` is an enum, you can now pick the leaks you want to ignore in `AndroidExcludedRefs` by creating an `EnumSet` and calling `AndroidExcludedRefs.createBuilder()`.
