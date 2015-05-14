@@ -46,8 +46,15 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
 
   @TargetApi(HONEYCOMB) @Override
   protected final void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result) {
-    String leakInfo = leakInfo(this, heapDump, result);
-    Log.d("LeakCanary", leakInfo);
+    String leakInfo = leakInfo(this, heapDump, result, true);
+    if (leakInfo.length() < 4000) {
+      Log.d("LeakCanary", leakInfo);
+    } else {
+      String[] lines = leakInfo.split("\n");
+      for (String line : lines) {
+        Log.d("LeakCanary", line);
+      }
+    }
 
     if (!result.leakFound || result.excludedLeak) {
       afterDefaultHandling(heapDump, result, leakInfo);
