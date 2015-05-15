@@ -245,7 +245,7 @@ See the [CHANGELOG](https://github.com/square/leakcanary/blob/master/CHANGELOG.m
 
 ## Troubleshooting
 
-* if `leakcanary-android` is not in the list of external libraries in Android Studio, but `leakcanary-analyzer` and `leakcanary-watcher` are there: try doing a `Clean Build`. Also, try building from the command line.
+* if `leakcanary-android` is not in the list of external libraries in Android Studio, but `leakcanary-analyzer` and `leakcanary-watcher` are there: try doing a `Clean Build`. If it's still a problem, try building from the command line.
 * `error: package com.squareup.leakcanary does not exist`: if you have other build types than `debug` and `release`, you need to add a specific dependency for those too (`xxxCompile`).
 
 ## Resources
