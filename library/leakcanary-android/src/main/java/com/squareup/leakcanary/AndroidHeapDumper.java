@@ -15,18 +15,35 @@
  */
 package com.squareup.leakcanary;
 
+import android.content.Context;
 import android.os.Debug;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.MessageQueue;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.widget.Toast;
+import com.squareup.leakcanary.internal.FutureResult;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
 import java.io.IOException;
 
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.isExternalStorageWritable;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.storageDirectory;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class AndroidHeapDumper implements HeapDumper {
 
   private static final String TAG = "AndroidHeapDumper";
+
+  private final Context context;
+  private final Handler mainHandler;
+
+  public AndroidHeapDumper(Context context) {
+    this.context = context.getApplicationContext();
+    mainHandler = new Handler(Looper.getMainLooper());
+  }
 
   @Override public File dumpHeap() {
     if (!isExternalStorageWritable()) {
@@ -36,21 +53,28 @@ public final class AndroidHeapDumper implements HeapDumper {
     if (heapDumpFile.exists()) {
       Log.d(TAG, "Could not dump heap, previous analysis still is in progress.");
       // Heap analysis in progress, let's not put too much pressure on the device.
-      return null;
+      return NO_DUMP;
     }
+
+    FutureResult<Toast> waitingForToast = new FutureResult<>();
+    showToast(waitingForToast);
+
+    if (!waitingForToast.wait(5, SECONDS)) {
+      Log.d(TAG, "Did not dump heap, too much time waiting for Toast.");
+      return NO_DUMP;
+    }
+
+    Toast toast = waitingForToast.get();
     try {
       Debug.dumpHprofData(heapDumpFile.getAbsolutePath());
+      cancelToast(toast);
       return heapDumpFile;
     } catch (IOException e) {
       cleanup();
       Log.e(TAG, "Could not perform heap dump", e);
       // Abort heap dump
-      return null;
+      return NO_DUMP;
     }
-  }
-
-  private File getHeapDumpFile() {
-    return new File(storageDirectory(), "suspected_leak_heapdump.hprof");
   }
 
   /**
@@ -68,6 +92,38 @@ public final class AndroidHeapDumper implements HeapDumper {
           Log.d(TAG, "Previous analysis did not complete correctly, cleaning: " + heapDumpFile);
           heapDumpFile.delete();
         }
+      }
+    });
+  }
+
+  private File getHeapDumpFile() {
+    return new File(storageDirectory(), "suspected_leak_heapdump.hprof");
+  }
+
+  private void showToast(final FutureResult<Toast> waitingForToast) {
+    mainHandler.post(new Runnable() {
+      @Override public void run() {
+        final Toast toast = new Toast(context);
+        toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
+        toast.setDuration(Toast.LENGTH_LONG);
+        LayoutInflater inflater = LayoutInflater.from(context);
+        toast.setView(inflater.inflate(R.layout.__leak_canary_heap_dump_toast, null));
+        toast.show();
+        // Waiting for Idle to make sure Toast gets rendered.
+        Looper.myQueue().addIdleHandler(new MessageQueue.IdleHandler() {
+          @Override public boolean queueIdle() {
+            waitingForToast.set(toast);
+            return false;
+          }
+        });
+      }
+    });
+  }
+
+  private void cancelToast(final Toast toast) {
+    mainHandler.post(new Runnable() {
+      @Override public void run() {
+        toast.cancel();
       }
     });
   }
