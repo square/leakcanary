@@ -13,13 +13,13 @@
 * Added LeakCanary version name to `LeakCanary.leakInfo()`: [#49](https://github.com/square/leakcanary/issues/49).
 * `leakcanary-android-no-op` is lighter, it does not depend on `leakcanary-watcher` anymore, only 2 classes now: [#74](https://github.com/square/leakcanary/issues/74).
 * Adding field state details to the text leak trace.
+* A Toast is displayed while the heap dump is in progress to warn that the UI will freeze: [#20](https://github.com/square/leakcanary/issues/49). You can customize the toast by providing your own layout named `__leak_canary_heap_dump_toast.xml` (e.g. you could make it an empty layout).
 
 ### Public API changes
 
 * When upgrading from 1.3 to 1.3.1, previously saved heap dumps will not be readable any more, but they won't be removed from the app directory. You should probably uninstall your app.
 * Added `android.permission.WRITE_EXTERNAL_STORAGE` to `leakcanary-android` artifact.
-* `LeakCanary.androidWatcher()` parameter types have changed (-Application, +ExcludedRefs).
-* `AndroidHeapDumper()` parameter types have changed (-Application).
+* `LeakCanary.androidWatcher()` parameter types have changed (+ExcludedRefs).
 * `LeakCanary.leakInfo()` parameter types have changed (+boolean)
 * `ExcludedRef` is now serializable and immutable, instances can be created using `ExcludedRef.Builder`.
 * `ExcludedRef` is available in `HeapDump`

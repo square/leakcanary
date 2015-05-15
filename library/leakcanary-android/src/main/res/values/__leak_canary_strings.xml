@@ -23,5 +23,6 @@
   <string name="__leak_canary_share_heap_dump">Share heap dump</string>
   <string name="__leak_canary_share_with">Share with…</string>
   <string name="__leak_canary_display_activity_label">Leaks</string>
+  <string name="__leak_canary_toast_heap_dump">Dumping memory, app will freeze. Brrrr.</string>
 
 </resources>
