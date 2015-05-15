@@ -19,6 +19,11 @@ import java.io.File;
 
 public interface HeapDumper {
 
-  /** @return a {@link File} referencing the heap dump, or null if the heap could not be dumped. */
+  File NO_DUMP = null;
+
+  /**
+   * @return a {@link File} referencing the heap dump, or {@link #NO_DUMP} if the heap could not be
+   * dumped.
+   */
   File dumpHeap();
 }
