@@ -186,7 +186,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SPEECH_RECOGNIZER(SDK_INT == KITKAT) {
+  SPEECH_RECOGNIZER(SDK_INT < LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
       // Prior to Android 5, SpeechRecognizer.InternalListener was a non static inner class and
       // leaked the SpeechRecognizer which leaked an activity context.
