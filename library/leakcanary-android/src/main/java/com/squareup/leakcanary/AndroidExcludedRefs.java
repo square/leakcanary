@@ -316,6 +316,17 @@ public enum AndroidExcludedRefs {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.thread(LEAK_CANARY_THREAD_NAME);
     }
+  },
+
+  EVENT_RECEIVER__MMESSAGE_QUEUE {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      //  DisplayEventReceiver keeps a reference message queue object so that it is not GC'd while
+      // the native peer of the receiver is using them.
+      // The main thread message queue is held on by the main Looper, but that might be a longer
+      // path. Let's not confuse people with a shorter path that is less meaningful.
+      excluded.instanceField("android.view.Choreographer.FrameDisplayEventReceiver",
+          "mMessageQueue");
+    }
   };
 
   /**
