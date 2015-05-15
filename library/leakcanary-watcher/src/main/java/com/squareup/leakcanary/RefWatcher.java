@@ -121,7 +121,7 @@ public final class RefWatcher {
 
       File heapDumpFile = heapDumper.dumpHeap();
 
-      if (heapDumpFile == null) {
+      if (heapDumpFile == HeapDumper.NO_DUMP) {
         // Could not dump the heap, abort.
         return;
       }
