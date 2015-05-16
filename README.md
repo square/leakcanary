@@ -12,8 +12,8 @@ In your `build.gradle`:
 
 ```gradle
  dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3'
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.1'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1'
  }
 ```
 
@@ -219,7 +219,7 @@ Build a custom `RefWatcher` in your debug Application class:
 ```java
 public class DebugExampleApplication extends ExampleApplication {
   protected RefWatcher installLeakCanary() {
-    return LeakCanary.install(app, LeakUploadService.class);
+    return LeakCanary.install(app, LeakUploadService.class, AndroidExcludedRefs.createAppDefaults().build());
   }
 }
 ```
@@ -238,6 +238,21 @@ Don't forget to register the service in your debug manifest:
 ```
 
 You can also upload the leak traces to Slack or HipChat, [here's an example](https://gist.github.com/pyricau/06c2c486d24f5f85f7f0).
+
+### Ignoring specific references
+
+You can create your own version of `ExcludedRefs` to ignore specific references that you know are causing leaks but you still want to ignore:
+
+```java
+public class DebugExampleApplication extends ExampleApplication {
+  protected RefWatcher installLeakCanary() {
+    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAndroidDefaults()
+        .instanceField("com.example.ExampleClass", "exampleField")
+        .build();
+    return LeakCanary.install(this, DisplayLeakService.class, excludedRefs);
+  }
+}
+```
 
 ## Snapshots of the development version
 
