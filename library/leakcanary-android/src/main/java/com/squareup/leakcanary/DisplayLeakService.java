@@ -56,7 +56,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       }
     }
 
-    if (!result.leakFound || result.excludedLeak) {
+    if (result.failure == null && (!result.leakFound || result.excludedLeak)) {
       afterDefaultHandling(heapDump, result, leakInfo);
       return;
     }
@@ -97,8 +97,13 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     PendingIntent pendingIntent =
         DisplayLeakActivity.createPendingIntent(this, heapDump.referenceKey);
 
-    String contentTitle =
-        getString(R.string.__leak_canary_class_has_leaked, classSimpleName(result.className));
+    String contentTitle;
+    if (result.failure == null) {
+      contentTitle =
+          getString(R.string.__leak_canary_class_has_leaked, classSimpleName(result.className));
+    } else {
+      contentTitle = getString(R.string.__leak_canary_analysis_failed);
+    }
     String contentText = getString(R.string.__leak_canary_notification_message);
 
     NotificationManager notificationManager =
