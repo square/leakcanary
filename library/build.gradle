@@ -26,7 +26,7 @@ ext {
   javaVersion = JavaVersion.VERSION_1_7
 
   GROUP = 'com.squareup.leakcanary'
-  VERSION_NAME = "1.3.1"
+  VERSION_NAME = "1.3.2-SNAPSHOT"
   POM_PACKAGING = "pom"
   POM_DESCRIPTION= "Leak Canary"
 
