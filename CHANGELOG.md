@@ -37,6 +37,7 @@ Snapshots are available in Sonatype's `snapshots` repository:
 * Adding field state details to the text leak trace.
 * A Toast is displayed while the heap dump is in progress to warn that the UI will freeze: [#20](https://github.com/square/leakcanary/issues/49). You can customize the toast by providing your own layout named `__leak_canary_heap_dump_toast.xml` (e.g. you could make it an empty layout).
 * If the analysis fails, the result and heap dump are kept so that it can be reported to LeakCanary: [#102](https://github.com/square/leakcanary/issues/102).
+* Update to HAHA 1.3 to fix a 2 crashes [#3](https://github.com/square/leakcanary/issues/3) [46](https://github.com/square/leakcanary/issues/46)
 
 ### Public API changes
 
@@ -58,6 +59,11 @@ Snapshots are available in Sonatype's `snapshots` repository:
    releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1'
  }
 ```
+
+### Statistics
+
+* 33 commits to the LeakCanary library code and 11 commits to [HAHA](https://github.com/square/haha).
+* 6 contributors: [Pierre-Yves Ricau](https://github.com/square/leakcanary/commits?author=pyricau), [Sergey Shulepov](https://github.com/square/leakcanary/commits?author=pepyakin), [Romain Guy](https://github.com/square/leakcanary/commits?author=romainguy), [liaohuqiu](https://github.com/square/leakcanary/commits?author=liaohuqiu), [Dario Marcato](https://github.com/square/leakcanary/commits?author=dmarcato), [Anders Aagaard](https://github.com/square/leakcanary/commits?author=andaag).
 
 ## Version 1.3 *(2015-05-08)*
 
