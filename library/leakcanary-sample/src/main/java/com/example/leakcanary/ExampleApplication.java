@@ -17,6 +17,9 @@ package com.example.leakcanary;
 
 import android.app.Application;
 import android.os.StrictMode;
+import com.squareup.leakcanary.AndroidExcludedRefs;
+import com.squareup.leakcanary.DisplayLeakService;
+import com.squareup.leakcanary.ExcludedRefs;
 import com.squareup.leakcanary.LeakCanary;
 
 import static android.os.Build.VERSION.SDK_INT;
@@ -27,7 +30,10 @@ public class ExampleApplication extends Application {
   @Override public void onCreate() {
     super.onCreate();
     enabledStrictMode();
-    LeakCanary.install(this);
+    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAndroidDefaults()
+        .instanceField("com.example.ExampleClass", "exampleField")
+        .build();
+    LeakCanary.install(this, DisplayLeakService.class, excludedRefs);
   }
 
   private void enabledStrictMode() {

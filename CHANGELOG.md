@@ -1,8 +1,30 @@
 # Change Log
 
+## Version 1.3.2-SNAPSHOT
 
+No change yet.
 
-## Version 1.3.1-SNAPSHOT
+### Dependencies
+
+```gradle
+ dependencies {
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.2-SNAPSHOT'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.2-SNAPSHOT'
+ }
+```
+
+Snapshots are available in Sonatype's `snapshots` repository:
+
+```
+  repositories {
+    mavenCentral()
+    maven {
+      url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+  }
+```
+
+## Version 1.3.1 *(2015-05-16)*
 
 * Heap dumps and analysis results are now saved on the sd card: [#21](https://github.com/square/leakcanary/issues/21).
 * `ExcludedRef` and `AndroidExcludedRefs` are customizable: [#12](https://github.com/square/leakcanary/issues/12) [#73](https://github.com/square/leakcanary/issues/73).
@@ -32,20 +54,9 @@
 
 ```gradle
  dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.1-SNAPSHOT'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1-SNAPSHOT'
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.1'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1'
  }
-```
-
-Snapshots are available in Sonatype's `snapshots` repository:
-
-```
-  repositories {
-    mavenCentral()
-    maven {
-      url 'https://oss.sonatype.org/content/repositories/snapshots/'
-    }
-  }
 ```
 
 ## Version 1.3 *(2015-05-08)*
