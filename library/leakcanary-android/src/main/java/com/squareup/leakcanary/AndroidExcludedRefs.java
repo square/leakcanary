@@ -19,6 +19,7 @@ import java.util.EnumSet;
 
 import static android.os.Build.MANUFACTURER;
 import static android.os.Build.VERSION.SDK_INT;
+import static android.os.Build.VERSION_CODES.ECLAIR;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
@@ -193,6 +194,19 @@ public enum AndroidExcludedRefs {
       // Fixed in AOSP: https://github.com/android/platform_frameworks_base/commit
       // /b37866db469e81aca534ff6186bdafd44352329b
       excluded.instanceField("android.speech.SpeechRecognizer$InternalListener", "this$0");
+    }
+  },
+
+  ACCOUNT_MANAGER(SDK_INT > ECLAIR && SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // AccountManager$AmsTask$Response is a stub and is held in memory by native code, probably
+      // because the reference to the response in the other process hasn't been cleared.
+      // AccountManager$AmsTask is holding on to the activity reference to use for launching a new
+      // sub- Activity.
+      // Tracked here: https://code.google.com/p/android/issues/detail?id=173689
+      // Fix: Pass a null activity reference to the AccountManager methods and then deal with the
+      // returned future to to get the result and correctly start an activity when it's available.
+      excluded.instanceField("android.accounts.AccountManager$AmsTask$Response", "this$1");
     }
   },
 
