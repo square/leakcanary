@@ -28,7 +28,14 @@
       android:dividerHeight="0dp"
       android:divider="@null"
       />
-
+  <TextView
+      android:id="@+id/__leak_canary_display_leak_failure"
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_weight="1"
+      android:textSize="12sp"
+      android:visibility="gone"
+      />
   <Button
       android:id="@+id/__leak_canary_action"
       android:layout_width="match_parent"
