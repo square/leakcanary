@@ -210,6 +210,17 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  MEDIA_SCANNER_CONNECTION(SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // The static method MediaScannerConnection.scanFile() takes an activity context but the
+      // service might not disconnect after the activity has been destroyed.
+      // Tracked here: https://code.google.com/p/android/issues/detail?id=173788
+      // Fix: Create an instance of MediaScannerConnection yourself and pass in the application
+      // context. Call connect() and disconnect() manually.
+      excluded.instanceField("android.media.MediaScannerConnection", "mContext");
+    }
+  },
+
   DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
     @Override void add(ExcludedRefs.Builder excluded) {
       if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
