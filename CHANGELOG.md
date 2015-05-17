@@ -24,6 +24,8 @@ Snapshots are available in Sonatype's `snapshots` repository:
   }
 ```
 
+[![Build Status](https://travis-ci.org/square/leakcanary.svg?branch=master)](https://travis-ci.org/square/leakcanary)
+
 ## Version 1.3.1 *(2015-05-16)*
 
 * Heap dumps and analysis results are now saved on the sd card: [#21](https://github.com/square/leakcanary/issues/21).
