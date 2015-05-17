@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/square/leakcanary.svg?branch=master)](https://travis-ci.org/square/leakcanary)
+
 #LeakCanary
 
 A memory leak detection library for Android and Java.
