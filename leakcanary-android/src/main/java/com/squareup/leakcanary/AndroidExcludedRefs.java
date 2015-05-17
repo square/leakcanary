@@ -221,6 +221,20 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  USER_MANAGER__SINSTANCE(SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // UserManager has a static sInstance field that creates an instance and caches it the first
+      // time UserManager.get() is called. This instance is created with the outer context (which
+      // is an activity base context).
+      // Tracked here: https://code.google.com/p/android/issues/detail?id=173789
+      // Introduced by: https://github.com/android/platform_frameworks_base/commit
+      // /27db46850b708070452c0ce49daf5f79503fbde6
+      // Fix: trigger a call to UserManager.get() in Application.onCreate(), so that the
+      // UserManager instance gets cached with a reference to the application context.
+      excluded.instanceField("android.os.UserManager", "mContext");
+    }
+  },
+
   DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
     @Override void add(ExcludedRefs.Builder excluded) {
       if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
