@@ -363,7 +363,7 @@ public enum AndroidExcludedRefs {
       // the native peer of the receiver is using them.
       // The main thread message queue is held on by the main Looper, but that might be a longer
       // path. Let's not confuse people with a shorter path that is less meaningful.
-      excluded.instanceField("android.view.Choreographer.FrameDisplayEventReceiver",
+      excluded.instanceField("android.view.Choreographer$FrameDisplayEventReceiver",
           "mMessageQueue");
     }
   };
