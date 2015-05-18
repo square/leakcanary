@@ -372,7 +372,8 @@ public enum AndroidExcludedRefs {
    * This returns the references in the leak path that should be ignored by all on Android.
    */
   public static ExcludedRefs.Builder createAndroidDefaults() {
-    return createBuilder(EnumSet.of(FINALIZER_WATCHDOG_DAEMON, MAIN, LEAK_CANARY_THREAD));
+    return createBuilder(EnumSet.of(FINALIZER_WATCHDOG_DAEMON, MAIN, LEAK_CANARY_THREAD,
+        EVENT_RECEIVER__MMESSAGE_QUEUE));
   }
 
   /**
