@@ -17,6 +17,12 @@ In your `build.gradle`:
  }
 ```
 
+```
+  repositories {
+    mavenCentral()
+  }
+```
+
 In your `Application` class:
 
 ```java
