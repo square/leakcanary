@@ -47,6 +47,26 @@ public final class ExcludedRefs implements Serializable {
     this.excludedThreads = unmodifiableSet(new LinkedHashSet<>(excludedThreads));
   }
 
+  @Override public String toString() {
+    String string = "";
+    for (Map.Entry<String, Set<String>> classes : excludeFieldMap.entrySet()) {
+      String clazz = classes.getKey();
+      for (String field : classes.getValue()) {
+        string += "| Field: " + clazz + "." + field + "\n";
+      }
+    }
+    for (Map.Entry<String, Set<String>> classes : excludeStaticFieldMap.entrySet()) {
+      String clazz = classes.getKey();
+      for (String field : classes.getValue()) {
+        string += "| Static field: " + clazz + "." + field + "\n";
+      }
+    }
+    for (String thread : excludedThreads) {
+      string += "| Thread:" + thread;
+    }
+    return string;
+  }
+
   public static final class Builder {
     private final Map<String, Set<String>> excludeFieldMap = new LinkedHashMap<>();
     private final Map<String, Set<String>> excludeStaticFieldMap = new LinkedHashMap<>();
