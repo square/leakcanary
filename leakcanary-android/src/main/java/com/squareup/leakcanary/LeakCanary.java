@@ -104,6 +104,10 @@ public final class LeakCanary {
     } else {
       info += "* NO LEAK FOUND.\n\n";
     }
+    if (detailed) {
+      detailedString += "* Excluded Refs:\n" + heapDump.excludedRefs;
+    }
+
     info += "* Reference Key: "
         + heapDump.referenceKey
         + "\n"
