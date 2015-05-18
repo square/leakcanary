@@ -122,6 +122,8 @@ public final class LeakCanary {
         + Build.VERSION.SDK_INT
         + " LeakCanary: "
         + BuildConfig.LIBRARY_VERSION
+        + " "
+        + BuildConfig.GIT_SHA
         + "\n"
         + "* Durations: watch="
         + heapDump.watchDurationMs
