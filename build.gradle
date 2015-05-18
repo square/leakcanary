@@ -18,7 +18,6 @@ subprojects {
 }
 
 ext {
-  androidPlugin = 'com.android.tools.build:gradle:1.2.0'
   minSdkVersion = 8
   compileSdkVersion = 21
   targetSdkVersion = compileSdkVersion
