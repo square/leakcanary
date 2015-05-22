@@ -1,0 +1,23 @@
+language: android
+
+android:
+  components:
+    - build-tools-21.1.2
+    - android-21
+  licenses:
+    - android-sdk-license-5be876d5
+
+jdk:
+  - oraclejdk7
+
+script:
+  - ./gradlew clean build check
+
+notifications:
+  email: false
+
+sudo: false
+
+cache:
+  directories:
+    - $HOME/.gradle

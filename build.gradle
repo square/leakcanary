@@ -1,0 +1,43 @@
+subprojects {
+
+  repositories {
+    mavenCentral()
+//    maven {
+//      url 'https://oss.sonatype.org/content/repositories/snapshots/'
+//    }
+  }
+
+  buildscript {
+    repositories {
+      mavenCentral()
+    }
+    dependencies {
+      classpath 'com.android.tools.build:gradle:1.2.3'
+    }
+  }
+}
+
+ext {
+  minSdkVersion = 8
+  compileSdkVersion = 21
+  targetSdkVersion = compileSdkVersion
+  buildToolsVersion = '21.1.2'
+  javaVersion = JavaVersion.VERSION_1_7
+
+  GROUP = 'com.squareup.leakcanary'
+  VERSION_NAME = "1.3.2-SNAPSHOT"
+  POM_PACKAGING = "pom"
+  POM_DESCRIPTION= "Leak Canary"
+
+  POM_URL="http://github.com/square/leakcanary/"
+  POM_SCM_URL="http://github.com/square/leakcanary/"
+  POM_SCM_CONNECTION="scm:git:https://github.com/square/leakcanary.git"
+  POM_SCM_DEV_CONNECTION="scm:git:git@github.com:square/leakcanary.git"
+
+  POM_LICENCE_NAME="The Apache Software License, Version 2.0"
+  POM_LICENCE_URL="http://www.apache.org/licenses/LICENSE-2.0.txt"
+  POM_LICENCE_DIST="repo"
+
+  POM_DEVELOPER_ID="square"
+  POM_DEVELOPER_NAME="Square, Inc."
+}

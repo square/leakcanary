@@ -1,0 +1,29 @@
+apply plugin: 'com.android.application'
+
+dependencies {
+  debugCompile project(':leakcanary-android')
+  releaseCompile project(':leakcanary-android-no-op');
+}
+
+android {
+  compileSdkVersion rootProject.ext.compileSdkVersion
+  buildToolsVersion rootProject.ext.buildToolsVersion
+
+  compileOptions {
+    sourceCompatibility rootProject.ext.javaVersion
+    targetCompatibility rootProject.ext.javaVersion
+  }
+
+  defaultConfig {
+    applicationId "com.example.leakcanary"
+    minSdkVersion rootProject.ext.minSdkVersion
+    targetSdkVersion rootProject.ext.compileSdkVersion
+
+    versionCode 1
+    versionName "1.0"
+  }
+
+  buildTypes {
+    debug
+  }
+}
