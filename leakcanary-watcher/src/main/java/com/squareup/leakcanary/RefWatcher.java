@@ -92,6 +92,10 @@ public final class RefWatcher {
     if (debuggerControl.isDebuggerAttached()) {
       return;
     }
+    if (excludedRefs.excludedClasses.contains(watchedReference.getClass().getName())) {
+      // Don't watch specifically excluded classes
+      return;
+    }
     final long watchStartNanoTime = System.nanoTime();
     String key = UUID.randomUUID().toString();
     retainedKeys.add(key);
