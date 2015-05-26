@@ -38,13 +38,15 @@ public final class ExcludedRefs implements Serializable {
   public final Map<String, Set<String>> excludeFieldMap;
   public final Map<String, Set<String>> excludeStaticFieldMap;
   public final Set<String> excludedThreads;
+  public final Set<String> excludedClasses;
 
   private ExcludedRefs(Map<String, Set<String>> excludeFieldMap,
-      Map<String, Set<String>> excludeStaticFieldMap, Set<String> excludedThreads) {
+      Map<String, Set<String>> excludeStaticFieldMap, Set<String> excludedThreads, Set<String> excludedClasses) {
     // Copy + unmodifiable.
     this.excludeFieldMap = unmodifiableMap(new LinkedHashMap<>(excludeFieldMap));
     this.excludeStaticFieldMap = unmodifiableMap(new LinkedHashMap<>(excludeStaticFieldMap));
     this.excludedThreads = unmodifiableSet(new LinkedHashSet<>(excludedThreads));
+    this.excludedClasses = unmodifiableSet(new LinkedHashSet<>(excludedClasses));
   }
 
   @Override public String toString() {
@@ -64,6 +66,9 @@ public final class ExcludedRefs implements Serializable {
     for (String thread : excludedThreads) {
       string += "| Thread:" + thread;
     }
+    for (String className : excludedClasses) {
+      string += "| Classes:" + className;
+    }
     return string;
   }
 
@@ -71,6 +76,7 @@ public final class ExcludedRefs implements Serializable {
     private final Map<String, Set<String>> excludeFieldMap = new LinkedHashMap<>();
     private final Map<String, Set<String>> excludeStaticFieldMap = new LinkedHashMap<>();
     private final Set<String> excludedThreads = new LinkedHashSet<>();
+    private final Set<String> excludedClasses = new LinkedHashSet<>();
 
     public Builder instanceField(String className, String fieldName) {
       checkNotNull(className, "className");
@@ -102,8 +108,14 @@ public final class ExcludedRefs implements Serializable {
       return this;
     }
 
+    public Builder ignoreClass(String className) {
+      checkNotNull(className, "className");
+      excludedClasses.add(className);
+      return this;
+    }
+
     public ExcludedRefs build() {
-      return new ExcludedRefs(excludeFieldMap, excludeStaticFieldMap, excludedThreads);
+      return new ExcludedRefs(excludeFieldMap, excludeStaticFieldMap, excludedThreads, excludedClasses);
     }
   }
 }
