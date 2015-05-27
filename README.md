@@ -17,12 +17,6 @@ In your `build.gradle`:
  }
 ```
 
-```
-  repositories {
-    mavenCentral()
-  }
-```
-
 In your `Application` class:
 
 ```java
@@ -252,13 +246,43 @@ You can create your own version of `ExcludedRefs` to ignore specific references 
 ```java
 public class DebugExampleApplication extends ExampleApplication {
   protected RefWatcher installLeakCanary() {
-    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAndroidDefaults()
+    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults()
         .instanceField("com.example.ExampleClass", "exampleField")
         .build();
     return LeakCanary.install(this, DisplayLeakService.class, excludedRefs);
   }
 }
 ```
+
+### Not watching specific activity classes
+
+`ActivityRefWatcher` is installed by default and watches all activities. You can customize the installation steps to use something different instead:
+
+```java
+public class DebugExampleApplication extends ExampleApplication {
+  protected RefWatcher installLeakCanary() {
+    if(isInAnalyzerProcess(this)) {
+      return RefWatcher.DISABLED;
+    } else {
+      ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults().build();
+      enableDisplayLeakActivity(application);
+      ServiceHeapDumpListener heapDumpListener = new ServiceHeapDumpListener(application, DisplayLeakService.class);
+      final RefWatcher refWatcher = androidWatcher(application, heapDumpListener, excludedRefs);
+      registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+        public void onActivityDestroyed(Activity activity) {
+          if (activity instanceof ThirdPartyActivity) {
+              return;
+          }
+          refWatcher.watch(activity);
+        }
+        // ...
+      });
+      return refWatcher;
+    }
+  }
+}
+```
+
 
 ## Snapshots of the development version
 
