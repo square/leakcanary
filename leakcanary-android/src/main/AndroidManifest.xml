@@ -46,5 +46,14 @@
       </intent-filter>
     </activity>
 
+  <provider
+      android:name="android.support.v4.content.FileProvider"
+      android:authorities="@string/__leak_canary_file_provider_authority"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/file_paths" />
+  </provider>
   </application>
 </manifest>

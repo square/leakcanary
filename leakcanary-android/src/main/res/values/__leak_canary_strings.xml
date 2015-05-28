@@ -28,5 +28,5 @@
   <string name="__leak_canary_delete">Delete</string>
   <string name="__leak_canary_failure_report">"Please report this failure to http://github.com/square/leakcanary\n"</string>
   <string name="__leak_canary_delete_all">Delete all</string>
-
+  <string name="__leak_canary_file_provider_authority">com.squareup.leakcanary.fileprovider</string>
 </resources>

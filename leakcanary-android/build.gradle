@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
   compile project(':leakcanary-analyzer')
+  compile "com.android.support:support-v4:22.1.1"
 }
 
 def gitSha() {
