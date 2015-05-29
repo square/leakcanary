@@ -112,13 +112,13 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     Notification notification;
     if (SDK_INT < HONEYCOMB) {
       notification = new Notification();
-      notification.icon = R.drawable.__leak_canary_notification;
+      notification.icon = R.drawable.leak_canary_notification;
       notification.when = System.currentTimeMillis();
       notification.flags |= Notification.FLAG_AUTO_CANCEL;
       notification.setLatestEventInfo(this, contentTitle, contentText, pendingIntent);
     } else {
       Notification.Builder builder = new Notification.Builder(this) //
-          .setSmallIcon(R.drawable.__leak_canary_notification)
+          .setSmallIcon(R.drawable.leak_canary_notification)
           .setWhen(System.currentTimeMillis())
           .setContentTitle(contentTitle)
           .setContentText(contentText)
