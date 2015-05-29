@@ -107,7 +107,7 @@ public final class AndroidHeapDumper implements HeapDumper {
         toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
         toast.setDuration(Toast.LENGTH_LONG);
         LayoutInflater inflater = LayoutInflater.from(context);
-        toast.setView(inflater.inflate(R.layout.__leak_canary_heap_dump_toast, null));
+        toast.setView(inflater.inflate(R.layout.leak_canary_heap_dump_toast, null));
         toast.show();
         // Waiting for Idle to make sure Toast gets rendered.
         Looper.myQueue().addIdleHandler(new MessageQueue.IdleHandler() {

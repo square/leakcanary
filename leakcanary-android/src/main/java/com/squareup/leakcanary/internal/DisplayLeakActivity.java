@@ -99,7 +99,7 @@ public final class DisplayLeakActivity extends Activity {
     //noinspection unchecked
     leaks = (List<Leak>) getLastNonConfigurationInstance();
 
-    setContentView(R.layout.__leak_canary_display_leak);
+    setContentView(R.layout.leak_canary_display_leak);
 
     listView = (ListView) findViewById(R.id.__leak_canary_display_leak_list);
     failureView = (TextView) findViewById(R.id.__leak_canary_display_leak_failure);
@@ -317,7 +317,7 @@ public final class DisplayLeakActivity extends Activity {
     @Override public View getView(int position, View convertView, ViewGroup parent) {
       if (convertView == null) {
         convertView = LayoutInflater.from(DisplayLeakActivity.this)
-            .inflate(R.layout.__leak_canary_leak_row, parent, false);
+            .inflate(R.layout.leak_canary_leak_row, parent, false);
       }
       TextView titleView = (TextView) convertView.findViewById(R.id.__leak_canary_row_text);
       TextView timeView = (TextView) convertView.findViewById(R.id.__leak_canary_row_time);
