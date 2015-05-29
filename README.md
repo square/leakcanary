@@ -261,7 +261,7 @@ public class DebugExampleApplication extends ExampleApplication {
 ```java
 public class DebugExampleApplication extends ExampleApplication {
   protected RefWatcher installLeakCanary() {
-    if(isInAnalyzerProcess(this)) {
+    if (isInAnalyzerProcess(this)) {
       return RefWatcher.DISABLED;
     } else {
       ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults().build();
