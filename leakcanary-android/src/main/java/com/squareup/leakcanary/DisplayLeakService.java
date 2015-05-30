@@ -33,6 +33,7 @@ import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.classSimpleName;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.findNextAvailableHprofFile;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.humanReadableByteCount;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.leakResultFile;
 
 /**
@@ -100,7 +101,8 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     String contentTitle;
     if (result.failure == null) {
       contentTitle =
-          getString(R.string.__leak_canary_class_has_leaked, classSimpleName(result.className));
+          getString(R.string.__leak_canary_class_has_leaked, classSimpleName(result.className),
+              humanReadableByteCount(result.retainedHeapSize));
     } else {
       contentTitle = getString(R.string.__leak_canary_analysis_failed);
     }

@@ -24,6 +24,7 @@ import android.util.Log;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import com.squareup.leakcanary.internal.HeapAnalyzerService;
 
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.humanReadableByteCount;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.isInServiceProcess;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabled;
 
@@ -96,6 +97,7 @@ public final class LeakCanary {
         info += " (" + heapDump.referenceName + ")";
       }
       info += " has leaked:\n" + result.leakTrace.toString() + "\n";
+      info += "* Retaining: " + humanReadableByteCount(result.retainedHeapSize) + ".\n";
       if (detailed) {
         detailedString = "\n* Details:\n" + result.leakTrace.toDetailedString();
       }

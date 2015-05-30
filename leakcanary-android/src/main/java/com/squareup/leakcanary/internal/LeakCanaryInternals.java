@@ -107,6 +107,14 @@ public final class LeakCanaryInternals {
     });
   }
 
+  /** Based on http://stackoverflow.com/a/3758880. */
+  public static String humanReadableByteCount(long bytes) {
+    if (bytes < 1024) return bytes + " B";
+    int exp = (int) (Math.log(bytes) / Math.log(1024));
+    String pre = "KMGTPE".charAt(exp - 1) + "";
+    return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
+  }
+
   public static boolean isInServiceProcess(Context context, Class<? extends Service> serviceClass) {
     PackageManager packageManager = context.getPackageManager();
     PackageInfo packageInfo;
