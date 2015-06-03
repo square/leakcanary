@@ -18,6 +18,7 @@ package com.squareup.leakcanary.internal;
 import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import com.squareup.leakcanary.AbstractAnalysisResultService;
 import com.squareup.leakcanary.AnalysisResult;
 import com.squareup.leakcanary.ExcludedRefs;
@@ -34,6 +35,7 @@ public final class HeapAnalyzerService extends IntentService {
 
   private static final String LISTENER_CLASS_EXTRA = "listener_class_extra";
   private static final String HEAPDUMP_EXTRA = "heapdump_extra";
+  public static final String TAG = "HeapAnalyzerService";
 
   public static void runAnalysis(Context context, HeapDump heapDump,
       Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
@@ -48,6 +50,10 @@ public final class HeapAnalyzerService extends IntentService {
   }
 
   @Override protected void onHandleIntent(Intent intent) {
+    if (intent == null) {
+      Log.d(TAG, "HeapAnalyzerService received a null intent, ignoring.");
+      return;
+    }
     String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);
     HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
 
