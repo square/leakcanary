@@ -1,3 +1,5 @@
+[![Android Gems](http://www.android-gems.com/badge/square/leakcanary.svg?branch=master)](http://www.android-gems.com/lib/square/leakcanary)
+
 #LeakCanary
 
 A memory leak detection library for Android and Java.
