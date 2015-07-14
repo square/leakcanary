@@ -301,6 +301,16 @@ public class DebugExampleApplication extends ExampleApplication {
 }
 ```
 
+### ProGuard
+
+If you use Proguard in your debug builds, make sure to keep the HAHA and LeakCanary classes:
+
+```
+# LeakCanary
+-keep class org.eclipse.mat.** { *; }
+-keep class com.squareup.leakcanary.** { *; }
+```
+
 ## Snapshots of the development version
 
 See the [CHANGELOG](https://github.com/square/leakcanary/blob/master/CHANGELOG.md).
