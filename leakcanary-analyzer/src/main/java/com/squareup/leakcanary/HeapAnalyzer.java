@@ -99,13 +99,18 @@ public final class HeapAnalyzer {
         return noLeak(since(analysisStartNanoTime));
       }
 
+      long retainedHeapSize = snapshot.getRetainedHeapSize(leakingRef.getObjectId());
+
       String className = leakingRef.getClazz().getName();
 
       AnalysisResult result =
-          findLeakTrace(analysisStartNanoTime, snapshot, leakingRef, className, true);
+          findLeakTrace(analysisStartNanoTime, snapshot, leakingRef, className, retainedHeapSize,
+              true);
 
       if (!result.leakFound) {
-        result = findLeakTrace(analysisStartNanoTime, snapshot, leakingRef, className, false);
+        result =
+            findLeakTrace(analysisStartNanoTime, snapshot, leakingRef, className, retainedHeapSize,
+                false);
       }
 
       return result;
@@ -117,7 +122,8 @@ public final class HeapAnalyzer {
   }
 
   private AnalysisResult findLeakTrace(long analysisStartNanoTime, ISnapshot snapshot,
-      IObject leakingRef, String className, boolean excludingKnownLeaks) throws SnapshotException {
+      IObject leakingRef, String className, long retainedHeapSize, boolean excludingKnownLeaks)
+      throws SnapshotException {
 
     ExcludedRefs excludedRefs = excludingKnownLeaks ? this.excludedRefs : baseExcludedRefs;
 
@@ -130,7 +136,8 @@ public final class HeapAnalyzer {
 
     LeakTrace leakTrace = buildLeakTrace(snapshot, gcRootsTree, excludedRefs);
 
-    return leakDetected(!excludingKnownLeaks, className, leakTrace, since(analysisStartNanoTime));
+    return leakDetected(!excludingKnownLeaks, className, leakTrace, retainedHeapSize,
+        since(analysisStartNanoTime));
   }
 
   private ISnapshot openSnapshot(File heapDumpFile) throws SnapshotException {

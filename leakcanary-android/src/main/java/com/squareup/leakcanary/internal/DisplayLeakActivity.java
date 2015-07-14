@@ -60,6 +60,7 @@ import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.detectedLeakDirectory;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.humanReadableByteCount;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.leakResultFile;
 
 @SuppressWarnings("ConstantConditions") @TargetApi(Build.VERSION_CODES.HONEYCOMB)
@@ -252,7 +253,8 @@ public final class DisplayLeakActivity extends Activity {
         HeapDump heapDump = visibleLeak.heapDump;
         adapter.update(result.leakTrace, heapDump.referenceKey, heapDump.referenceName);
         setTitle(
-            getString(R.string.__leak_canary_class_has_leaked, classSimpleName(result.className)));
+            getString(R.string.__leak_canary_class_has_leaked, classSimpleName(result.className),
+                humanReadableByteCount(result.retainedHeapSize)));
       }
     } else {
       if (listAdapter instanceof LeakListAdapter) {
@@ -333,7 +335,8 @@ public final class DisplayLeakActivity extends Activity {
       String title;
       if (leak.result.failure == null) {
         title = index + getString(R.string.__leak_canary_class_has_leaked,
-            classSimpleName(leak.result.className));
+            classSimpleName(leak.result.className),
+            humanReadableByteCount(leak.result.retainedHeapSize));
       } else {
         title = index
             + leak.result.failure.getClass().getSimpleName()

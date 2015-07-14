@@ -16,7 +16,7 @@
   -->
 <resources>
 
-  <string name="__leak_canary_class_has_leaked">%s has leaked</string>
+  <string name="__leak_canary_class_has_leaked">%1$s has leaked %2$s</string>
   <string name="__leak_canary_analysis_failed">Leak analysis failed</string>
   <string name="__leak_canary_leak_list_title">Leaks in %s</string>
   <string name="__leak_canary_notification_message">Click for more details</string>
