@@ -25,6 +25,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.v4.content.FileProvider;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -38,9 +39,11 @@ import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+
 import com.squareup.leakcanary.AnalysisResult;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.R;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
@@ -180,10 +183,13 @@ public final class DisplayLeakActivity extends Activity {
   private void shareHeapDump() {
     Leak visibleLeak = getVisibleLeak();
     File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
-    heapDumpFile.setReadable(true, false);
     Intent intent = new Intent(Intent.ACTION_SEND);
+    Uri uri = FileProvider.getUriForFile(this,
+            getString(R.string.__leak_canary_file_provider_authority), heapDumpFile);
     intent.setType("application/octet-stream");
-    intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(heapDumpFile));
+    intent.setData(uri);
+    intent.putExtra(Intent.EXTRA_STREAM, uri);
+    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
     startActivity(Intent.createChooser(intent, getString(R.string.__leak_canary_share_with)));
   }
 
@@ -273,7 +279,7 @@ public final class DisplayLeakActivity extends Activity {
         actionButton.setText(R.string.__leak_canary_delete_all);
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
-            File[] files = detectedLeakDirectory().listFiles();
+            File[] files = detectedLeakDirectory(DisplayLeakActivity.this).listFiles();
             if (files != null) {
               for (File file : files) {
                 file.delete();
@@ -383,7 +389,7 @@ public final class DisplayLeakActivity extends Activity {
 
     LoadLeaks(DisplayLeakActivity activity) {
       this.activityOrNull = activity;
-      leakDirectory = detectedLeakDirectory();
+      leakDirectory = detectedLeakDirectory(activity);
       mainHandler = new Handler(Looper.getMainLooper());
     }
 

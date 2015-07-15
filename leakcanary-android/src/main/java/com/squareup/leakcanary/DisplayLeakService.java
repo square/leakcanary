@@ -62,7 +62,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     }
 
     int maxStoredLeaks = getResources().getInteger(R.integer.__leak_canary_max_stored_leaks);
-    File renamedFile = findNextAvailableHprofFile(maxStoredLeaks);
+    File renamedFile = findNextAvailableHprofFile(this, maxStoredLeaks);
 
     if (renamedFile == null) {
       // No file available.
