@@ -22,6 +22,7 @@ def gitSha() {
 }
 
 android {
+  resourcePrefix 'leak_canary_'
   compileSdkVersion rootProject.ext.compileSdkVersion
   buildToolsVersion rootProject.ext.buildToolsVersion
   defaultConfig {

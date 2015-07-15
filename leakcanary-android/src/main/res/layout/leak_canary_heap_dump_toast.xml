@@ -33,7 +33,7 @@
       android:layout_gravity="center_horizontal"
       android:textColor="#ffffff"
       android:textSize="18sp"
-      android:text="@string/__leak_canary_toast_heap_dump"
+      android:text="@string/leak_canary_toast_heap_dump"
       />
 
 </LinearLayout>

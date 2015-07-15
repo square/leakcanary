@@ -15,5 +15,5 @@
   ~ limitations under the License.
   -->
 <resources>
-  <integer name="__leak_canary_max_stored_leaks">7</integer>
+  <integer name="leak_canary_max_stored_leaks">7</integer>
 </resources>

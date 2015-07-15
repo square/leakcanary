@@ -15,6 +15,6 @@
   ~ limitations under the License.
   -->
 <resources>
-  <style name="__LeakCanary.Base" parent="android:Theme.Holo">
+  <style name="leak_canary_LeakCanary.Base" parent="android:Theme.Holo">
   </style>
 </resources>
