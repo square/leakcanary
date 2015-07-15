@@ -68,6 +68,10 @@ public final class DisplayLeakActivity extends Activity {
   private static final String TAG = "DisplayLeakActivity";
   private static final String SHOW_LEAK_EXTRA = "show_latest";
 
+  public static PendingIntent createPendingIntent(Context context) {
+    return createPendingIntent(context, null);
+  }
+
   public static PendingIntent createPendingIntent(Context context, String referenceKey) {
     Intent intent = new Intent(context, DisplayLeakActivity.class);
     intent.putExtra(SHOW_LEAK_EXTRA, referenceKey);
