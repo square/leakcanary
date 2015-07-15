@@ -350,6 +350,20 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  AUDIO_MANAGER(SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // Prior to Android M, VideoView required audio focus from AudioManager and
+      // never abandoned it, which leaks the Activity context through the AudioManager.
+      // The root of the problem is that AudioManager uses whichever
+      // context it receives, which in the case of the VideoView example is an Activity,
+      // even though it only needs the application's context. The issue is fixed in
+      // Android M, and the AudioManager now uses the application's context.
+      // Tracked here: https://code.google.com/p/android/issues/detail?id=152173
+      // Fix: https://gist.github.com/jankovd/891d96f476f7a9ce24e2
+      excluded.instanceField("android.media.AudioManager$1", "this$0");
+    }
+  },
+
   FINALIZER_WATCHDOG_DAEMON {
     @Override void add(ExcludedRefs.Builder excluded) {
       // If the FinalizerWatchdogDaemon thread is on the shortest path, then there was no other
