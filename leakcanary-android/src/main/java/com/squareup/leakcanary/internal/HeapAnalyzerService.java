@@ -21,11 +21,8 @@ import android.content.Intent;
 import android.util.Log;
 import com.squareup.leakcanary.AbstractAnalysisResultService;
 import com.squareup.leakcanary.AnalysisResult;
-import com.squareup.leakcanary.ExcludedRefs;
 import com.squareup.leakcanary.HeapAnalyzer;
 import com.squareup.leakcanary.HeapDump;
-
-import static com.squareup.leakcanary.AndroidExcludedRefs.createAndroidDefaults;
 
 /**
  * This service runs in a separate process to avoid slowing down the app process or making it run
@@ -57,8 +54,7 @@ public final class HeapAnalyzerService extends IntentService {
     String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);
     HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
 
-    ExcludedRefs androidExcludedDefault = createAndroidDefaults().build();
-    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(androidExcludedDefault, heapDump.excludedRefs);
+    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(heapDump.excludedRefs);
 
     AnalysisResult result = heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey);
     AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, heapDump, result);
