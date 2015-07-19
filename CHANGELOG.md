@@ -6,6 +6,7 @@
 * 2 new ignored Android SDK leaks: [#26](https://github.com/square/leakcanary/issues/26) [#62](https://github.com/square/leakcanary/issues/62).
 * Added excluded leaks to text report [#119](https://github.com/square/leakcanary/issues/119).
 * Added LeakCanary SHA to text report [#120](https://github.com/square/leakcanary/issues/120).
+* Renamed all resources to begin with `leak_canary_` instead of `__leak_canary`[#161](https://github.com/square/leakcanary/pull/161)
 
 ### Dependencies
 
