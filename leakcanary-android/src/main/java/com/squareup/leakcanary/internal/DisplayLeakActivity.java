@@ -99,13 +99,13 @@ public final class DisplayLeakActivity extends Activity {
     //noinspection unchecked
     leaks = (List<Leak>) getLastNonConfigurationInstance();
 
-    setContentView(R.layout.__leak_canary_display_leak);
+    setContentView(R.layout.leak_canary_display_leak);
 
     listView = (ListView) findViewById(R.id.__leak_canary_display_leak_list);
     failureView = (TextView) findViewById(R.id.__leak_canary_display_leak_failure);
     actionButton = (Button) findViewById(R.id.__leak_canary_action);
 
-    maxStoredLeaks = getResources().getInteger(R.integer.__leak_canary_max_stored_leaks);
+    maxStoredLeaks = getResources().getInteger(R.integer.leak_canary_max_stored_leaks);
 
     updateUi();
   }
@@ -132,14 +132,14 @@ public final class DisplayLeakActivity extends Activity {
 
   @Override public boolean onCreateOptionsMenu(Menu menu) {
     if (getVisibleLeak() != null) {
-      menu.add(R.string.__leak_canary_share_leak)
+      menu.add(R.string.leak_canary_share_leak)
           .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override public boolean onMenuItemClick(MenuItem item) {
               shareLeak();
               return true;
             }
           });
-      menu.add(R.string.__leak_canary_share_heap_dump)
+      menu.add(R.string.leak_canary_share_heap_dump)
           .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override public boolean onMenuItemClick(MenuItem item) {
               shareHeapDump();
@@ -174,7 +174,7 @@ public final class DisplayLeakActivity extends Activity {
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("text/plain");
     intent.putExtra(Intent.EXTRA_TEXT, leakInfo);
-    startActivity(Intent.createChooser(intent, getString(R.string.__leak_canary_share_with)));
+    startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
   private void shareHeapDump() {
@@ -184,7 +184,7 @@ public final class DisplayLeakActivity extends Activity {
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("application/octet-stream");
     intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(heapDumpFile));
-    startActivity(Intent.createChooser(intent, getString(R.string.__leak_canary_share_with)));
+    startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
   private void updateUi() {
@@ -212,13 +212,13 @@ public final class DisplayLeakActivity extends Activity {
         listView.setVisibility(GONE);
         failureView.setVisibility(VISIBLE);
         failureView.setText(
-            getString(R.string.__leak_canary_failure_report) + Log.getStackTraceString(
+            getString(R.string.leak_canary_failure_report) + Log.getStackTraceString(
                 result.failure));
-        setTitle(R.string.__leak_canary_analysis_failed);
+        setTitle(R.string.leak_canary_analysis_failed);
         invalidateOptionsMenu();
         getActionBar().setDisplayHomeAsUpEnabled(true);
         actionButton.setVisibility(VISIBLE);
-        actionButton.setText(R.string.__leak_canary_delete);
+        actionButton.setText(R.string.leak_canary_delete);
         listView.setAdapter(null);
       } else {
         final DisplayLeakAdapter adapter;
@@ -236,7 +236,7 @@ public final class DisplayLeakActivity extends Activity {
           invalidateOptionsMenu();
           getActionBar().setDisplayHomeAsUpEnabled(true);
           actionButton.setVisibility(VISIBLE);
-          actionButton.setText(R.string.__leak_canary_delete);
+          actionButton.setText(R.string.leak_canary_delete);
           actionButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
               Leak visibleLeak = getVisibleLeak();
@@ -252,7 +252,7 @@ public final class DisplayLeakActivity extends Activity {
         HeapDump heapDump = visibleLeak.heapDump;
         adapter.update(result.leakTrace, heapDump.referenceKey, heapDump.referenceName);
         setTitle(
-            getString(R.string.__leak_canary_class_has_leaked, classSimpleName(result.className)));
+            getString(R.string.leak_canary_class_has_leaked, classSimpleName(result.className)));
       }
     } else {
       if (listAdapter instanceof LeakListAdapter) {
@@ -268,9 +268,9 @@ public final class DisplayLeakActivity extends Activity {
           }
         });
         invalidateOptionsMenu();
-        setTitle(getString(R.string.__leak_canary_leak_list_title, getPackageName()));
+        setTitle(getString(R.string.leak_canary_leak_list_title, getPackageName()));
         getActionBar().setDisplayHomeAsUpEnabled(false);
-        actionButton.setText(R.string.__leak_canary_delete_all);
+        actionButton.setText(R.string.leak_canary_delete_all);
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
             File[] files = detectedLeakDirectory().listFiles();
@@ -317,7 +317,7 @@ public final class DisplayLeakActivity extends Activity {
     @Override public View getView(int position, View convertView, ViewGroup parent) {
       if (convertView == null) {
         convertView = LayoutInflater.from(DisplayLeakActivity.this)
-            .inflate(R.layout.__leak_canary_leak_row, parent, false);
+            .inflate(R.layout.leak_canary_leak_row, parent, false);
       }
       TextView titleView = (TextView) convertView.findViewById(R.id.__leak_canary_row_text);
       TextView timeView = (TextView) convertView.findViewById(R.id.__leak_canary_row_time);
@@ -332,7 +332,7 @@ public final class DisplayLeakActivity extends Activity {
 
       String title;
       if (leak.result.failure == null) {
-        title = index + getString(R.string.__leak_canary_class_has_leaked,
+        title = index + getString(R.string.leak_canary_class_has_leaked,
             classSimpleName(leak.result.className));
       } else {
         title = index

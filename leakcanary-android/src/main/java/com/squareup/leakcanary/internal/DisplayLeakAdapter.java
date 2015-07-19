@@ -49,14 +49,14 @@ final class DisplayLeakAdapter extends BaseAdapter {
     if (getItemViewType(position) == TOP_ROW) {
       if (convertView == null) {
         convertView =
-            LayoutInflater.from(context).inflate(R.layout.__leak_canary_ref_top_row, parent, false);
+            LayoutInflater.from(context).inflate(R.layout.leak_canary_ref_top_row, parent, false);
       }
       TextView textView = findById(convertView, R.id.__leak_canary_row_text);
       textView.setText(context.getPackageName());
     } else {
       if (convertView == null) {
         convertView =
-            LayoutInflater.from(context).inflate(R.layout.__leak_canary_ref_row, parent, false);
+            LayoutInflater.from(context).inflate(R.layout.leak_canary_ref_row, parent, false);
       }
       TextView textView = findById(convertView, R.id.__leak_canary_row_text);
 
