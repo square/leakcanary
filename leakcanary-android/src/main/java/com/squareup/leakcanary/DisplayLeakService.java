@@ -61,7 +61,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       return;
     }
 
-    int maxStoredLeaks = getResources().getInteger(R.integer.__leak_canary_max_stored_leaks);
+    int maxStoredLeaks = getResources().getInteger(R.integer.leak_canary_max_stored_leaks);
     File renamedFile = findNextAvailableHprofFile(maxStoredLeaks);
 
     if (renamedFile == null) {
@@ -100,11 +100,11 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     String contentTitle;
     if (result.failure == null) {
       contentTitle =
-          getString(R.string.__leak_canary_class_has_leaked, classSimpleName(result.className));
+          getString(R.string.leak_canary_class_has_leaked, classSimpleName(result.className));
     } else {
-      contentTitle = getString(R.string.__leak_canary_analysis_failed);
+      contentTitle = getString(R.string.leak_canary_analysis_failed);
     }
-    String contentText = getString(R.string.__leak_canary_notification_message);
+    String contentText = getString(R.string.leak_canary_notification_message);
 
     NotificationManager notificationManager =
         (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -112,13 +112,13 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     Notification notification;
     if (SDK_INT < HONEYCOMB) {
       notification = new Notification();
-      notification.icon = R.drawable.__leak_canary_notification;
+      notification.icon = R.drawable.leak_canary_notification;
       notification.when = System.currentTimeMillis();
       notification.flags |= Notification.FLAG_AUTO_CANCEL;
       notification.setLatestEventInfo(this, contentTitle, contentText, pendingIntent);
     } else {
       Notification.Builder builder = new Notification.Builder(this) //
-          .setSmallIcon(R.drawable.__leak_canary_notification)
+          .setSmallIcon(R.drawable.leak_canary_notification)
           .setWhen(System.currentTimeMillis())
           .setContentTitle(contentTitle)
           .setContentText(contentText)

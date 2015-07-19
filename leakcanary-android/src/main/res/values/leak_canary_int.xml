@@ -15,6 +15,5 @@
   ~ limitations under the License.
   -->
 <resources>
-  <style name="__LeakCanary.Base" parent="android:Theme">
-  </style>
+  <integer name="leak_canary_max_stored_leaks">7</integer>
 </resources>
