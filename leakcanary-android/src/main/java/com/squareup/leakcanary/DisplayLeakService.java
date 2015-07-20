@@ -44,7 +44,7 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.leakResultFil
  */
 public class DisplayLeakService extends AbstractAnalysisResultService {
 
-  @TargetApi(HONEYCOMB) @Override
+  @Override
   protected final void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result) {
     String leakInfo = leakInfo(this, heapDump, result, true);
     if (leakInfo.length() < 4000) {
@@ -57,6 +57,13 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     }
 
     if (result.failure == null && (!result.leakFound || result.excludedLeak)) {
+      if (result.excludedLeak) {
+        PendingIntent pendingIntent = DisplayLeakActivity.createPendingIntent(this);
+        String contentTitle =
+            getString(R.string.leak_canary_class_leak_ignored, classSimpleName(result.className));
+        String contentText = getString(R.string.leak_canary_notification_leak_ignored_message);
+        notify(contentTitle, contentText, pendingIntent);
+      }
       afterDefaultHandling(heapDump, result, leakInfo);
       return;
     }
@@ -106,6 +113,13 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     }
     String contentText = getString(R.string.leak_canary_notification_message);
 
+    notify(contentTitle, contentText, pendingIntent);
+    afterDefaultHandling(heapDump, result, leakInfo);
+  }
+
+  @TargetApi(HONEYCOMB)
+  private void notify(String contentTitle, String contentText,
+      PendingIntent pendingIntent) {
     NotificationManager notificationManager =
         (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -131,7 +145,6 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       }
     }
     notificationManager.notify(0xDEAFBEEF, notification);
-    afterDefaultHandling(heapDump, result, leakInfo);
   }
 
   /**
