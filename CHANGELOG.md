@@ -2,8 +2,8 @@
 
 ## Version 1.3.2-SNAPSHOT
 
-* A statusbar notification is displayed when the trace analysis results in an excluded ref leak.
-* Added ProGuard configuration for debug library [132](https://github.com/square/leakcanary/issues/132).
+* A status bar notification is displayed when the trace analysis results in an excluded ref leak [#216](https://github.com/square/leakcanary/pull/216).
+* Added ProGuard configuration for debug library [#132](https://github.com/square/leakcanary/issues/132).
 * 2 new ignored Android SDK leaks: [#26](https://github.com/square/leakcanary/issues/26) [#62](https://github.com/square/leakcanary/issues/62).
 * Added excluded leaks to text report [#119](https://github.com/square/leakcanary/issues/119).
 * Added LeakCanary SHA to text report [#120](https://github.com/square/leakcanary/issues/120).
