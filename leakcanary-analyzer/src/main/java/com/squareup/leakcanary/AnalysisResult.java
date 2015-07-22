@@ -28,8 +28,8 @@ public final class AnalysisResult implements Serializable {
     return new AnalysisResult(true, excludedLeak, className, leakTrace, null, analysisDurationMs);
   }
 
-  public static AnalysisResult failure(Exception exception, long analysisDurationMs) {
-    return new AnalysisResult(false, false, null, null, exception, analysisDurationMs);
+  public static AnalysisResult failure(Throwable failure, long analysisDurationMs) {
+    return new AnalysisResult(false, false, null, null, failure, analysisDurationMs);
   }
 
   /** True if a leak was found in the heap dump. */
@@ -54,13 +54,13 @@ public final class AnalysisResult implements Serializable {
   public final LeakTrace leakTrace;
 
   /** Null unless the analysis failed. */
-  public final Exception failure;
+  public final Throwable failure;
 
   /** Total time spent analyzing the heap. */
   public final long analysisDurationMs;
 
   private AnalysisResult(boolean leakFound, boolean excludedLeak, String className,
-      LeakTrace leakTrace, Exception failure, long analysisDurationMs) {
+      LeakTrace leakTrace, Throwable failure, long analysisDurationMs) {
     this.leakFound = leakFound;
     this.excludedLeak = excludedLeak;
     this.className = className;

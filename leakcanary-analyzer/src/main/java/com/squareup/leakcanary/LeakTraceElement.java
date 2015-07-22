@@ -30,7 +30,7 @@ import static java.util.Locale.US;
 public final class LeakTraceElement implements Serializable {
 
   public enum Type {
-    INSTANCE_FIELD, STATIC_FIELD, LOCAL
+    INSTANCE_FIELD, STATIC_FIELD, LOCAL, ARRAY_ENTRY
   }
 
   public enum Holder {

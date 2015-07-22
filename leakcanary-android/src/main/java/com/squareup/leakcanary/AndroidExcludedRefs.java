@@ -15,6 +15,9 @@
  */
 package com.squareup.leakcanary;
 
+import java.lang.ref.PhantomReference;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.util.EnumSet;
 
 import static android.os.Build.MANUFACTURER;
@@ -334,11 +337,21 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  SOFT_REFERENCES {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.clazz(WeakReference.class.getName(), true);
+      excluded.clazz(SoftReference.class.getName(), true);
+      excluded.clazz(PhantomReference.class.getName(), true);
+      excluded.clazz("java.lang.ref.Finalizer", true);
+      excluded.clazz("java.lang.ref.FinalizerReference", true);
+    }
+  },
+
   FINALIZER_WATCHDOG_DAEMON {
     @Override void add(ExcludedRefs.Builder excluded) {
       // If the FinalizerWatchdogDaemon thread is on the shortest path, then there was no other
       // reference to the object and it was about to be GCed.
-      excluded.thread("FinalizerWatchdogDaemon");
+      excluded.thread("FinalizerWatchdogDaemon", true);
     }
   },
 
@@ -347,13 +360,13 @@ public enum AndroidExcludedRefs {
       // The main thread stack is ever changing so local variables aren't likely to hold references
       // for long. If this is on the shortest path, it's probably that there's a longer path with
       // a real leak.
-      excluded.thread("main");
+      excluded.thread("main", true);
     }
   },
 
   LEAK_CANARY_THREAD {
     @Override void add(ExcludedRefs.Builder excluded) {
-      excluded.thread(LEAK_CANARY_THREAD_NAME);
+      excluded.thread(LEAK_CANARY_THREAD_NAME, true);
     }
   },
 
@@ -364,7 +377,7 @@ public enum AndroidExcludedRefs {
       // The main thread message queue is held on by the main Looper, but that might be a longer
       // path. Let's not confuse people with a shorter path that is less meaningful.
       excluded.instanceField("android.view.Choreographer$FrameDisplayEventReceiver",
-          "mMessageQueue");
+          "mMessageQueue", true);
     }
   };
 
@@ -372,7 +385,7 @@ public enum AndroidExcludedRefs {
    * This returns the references in the leak path that should be ignored by all on Android.
    */
   public static ExcludedRefs.Builder createAndroidDefaults() {
-    return createBuilder(EnumSet.of(FINALIZER_WATCHDOG_DAEMON, MAIN, LEAK_CANARY_THREAD,
+    return createBuilder(EnumSet.of(SOFT_REFERENCES, FINALIZER_WATCHDOG_DAEMON, MAIN, LEAK_CANARY_THREAD,
         EVENT_RECEIVER__MMESSAGE_QUEUE));
   }
 
