@@ -1,7 +1,8 @@
 # Change Log
 
-## Version 1.3.2-SNAPSHOT
+## Version 1.4-SNAPSHOT
 
+* Switched to HAHA 2.0.2 with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This should fix most crashes and improve speed a lot. We can now parse Android M heap dumps, although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
 * A status bar notification is displayed when the trace analysis results in an excluded ref leak [#216](https://github.com/square/leakcanary/pull/216).
 * Added ProGuard configuration for debug library [#132](https://github.com/square/leakcanary/issues/132).
 * 2 new ignored Android SDK leaks: [#26](https://github.com/square/leakcanary/issues/26) [#62](https://github.com/square/leakcanary/issues/62).
@@ -9,12 +10,20 @@
 * Added LeakCanary SHA to text report [#120](https://github.com/square/leakcanary/issues/120).
 * Renamed all resources to begin with `leak_canary_` instead of `__leak_canary`[#161](https://github.com/square/leakcanary/pull/161)
 
+### Public API changes
+
+* AnalysisResult.failure is now a `Throwable` instead of an `Exception`. Main goal is to catch and correctly report OOMs while parsing.
+* Added ARRAY_ENTRY to LeakTraceElement.Type for references through array entries.
+* Renamed `ExcludedRefs` fields.
+* Each `ExcludedRef` entry can now be ignored entirely or "kept only if no other path".
+* Added support for ignoring all fields (static and non static) for a given class.
+
 ### Dependencies
 
 ```gradle
  dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.2-SNAPSHOT'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.2-SNAPSHOT'
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.4-SNAPSHOT'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-SNAPSHOT'
  }
 ```
 
