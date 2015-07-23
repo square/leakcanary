@@ -238,15 +238,13 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
-      if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
         // DevicePolicyManager keeps a reference to the context it has been created with instead of
         // extracting the application context. In this Motorola build, DevicePolicyManager has an
         // inner SettingsObserver class that is a content observer, which is held into memory
         // by a binder transport object.
         excluded.instanceField("android.app.admin.DevicePolicyManager$SettingsObserver", "this$0");
-      }
     }
   },
 
