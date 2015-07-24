@@ -28,13 +28,17 @@ import static java.util.Collections.unmodifiableList;
 public final class LeakTrace implements Serializable {
 
   public final List<LeakTraceElement> elements;
+  public final long retainedSize;
 
-  LeakTrace(List<LeakTraceElement> elements) {
+  LeakTrace(List<LeakTraceElement> elements, long retainedSize) {
+    this.retainedSize = retainedSize;
     this.elements = unmodifiableList(new ArrayList<>(elements));
   }
 
   @Override public String toString() {
     StringBuilder sb = new StringBuilder();
+    // TODO Human readable size.
+    sb.append("Memory retained: ").append(retainedSize).append("\n");
     for (int i = 0; i < elements.size(); i++) {
       LeakTraceElement element = elements.get(i);
       sb.append("* ");

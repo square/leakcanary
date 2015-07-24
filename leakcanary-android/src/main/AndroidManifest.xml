@@ -29,6 +29,11 @@
         android:enabled="false"
         />
     <service
+        android:name=".internal.AutopsyService"
+        android:process=":autopsy"
+        android:enabled="false"
+        />
+    <service
         android:name=".DisplayLeakService"
         android:enabled="false"
         />

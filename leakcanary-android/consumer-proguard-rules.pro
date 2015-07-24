@@ -1,2 +1,2 @@
--keep class org.eclipse.mat.** { *; }
+-keep class com.squareup.haha.** { *; }
 -keep class com.squareup.leakcanary.** { *; }

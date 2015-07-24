@@ -25,11 +25,14 @@ import com.squareup.haha.perflib.RootObj;
 import com.squareup.haha.perflib.RootType;
 import com.squareup.haha.perflib.Snapshot;
 import com.squareup.haha.perflib.Type;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import static com.squareup.leakcanary.HahaHelper.isPrimitiveOrWrapperArray;
 import static com.squareup.leakcanary.HahaHelper.isPrimitiveWrapper;
@@ -54,7 +57,6 @@ final class ShortestPathFinder {
   private final LinkedHashSet<Instance> toVisitSet;
   private final LinkedHashSet<Instance> toVisitIfNoPathSet;
   private final LinkedHashSet<Instance> visitedSet;
-  private boolean canIgnoreStrings;
 
   ShortestPathFinder(ExcludedRefs excludedRefs) {
     this.excludedRefs = excludedRefs;
@@ -66,23 +68,24 @@ final class ShortestPathFinder {
   }
 
   static final class Result {
-    final LeakNode leakingNode;
+    final List<LeakNode> leakingNodes;
     final boolean excludingKnownLeaks;
 
-    Result(LeakNode leakingNode, boolean excludingKnownLeaks) {
-      this.leakingNode = leakingNode;
+    Result(List<LeakNode> leakingNodes, boolean excludingKnownLeaks) {
+      this.leakingNodes = leakingNodes;
       this.excludingKnownLeaks = excludingKnownLeaks;
     }
   }
 
-  Result findPath(Snapshot snapshot, Instance leakingRef) {
+  Result findPath(Snapshot snapshot, List<Instance> leakingRefs) {
     clearState();
-    canIgnoreStrings = !isString(leakingRef);
+
+    Set<Instance> remainingRefs = new LinkedHashSet<>(leakingRefs);
 
     enqueueGcRoots(snapshot);
 
     boolean excludingKnownLeaks = false;
-    LeakNode leakingNode = null;
+    List<LeakNode> leakingNodes = new ArrayList<>();
     while (!toVisitQueue.isEmpty() || !toVisitIfNoPathQueue.isEmpty()) {
       LeakNode node;
       if (!toVisitQueue.isEmpty()) {
@@ -93,9 +96,12 @@ final class ShortestPathFinder {
       }
 
       // Termination
-      if (node.instance == leakingRef) {
-        leakingNode = node;
-        break;
+      boolean removed = remainingRefs.remove(node.instance);
+      if (removed) {
+        leakingNodes.add(node);
+        if (remainingRefs.isEmpty()) {
+          break;
+        }
       }
 
       if (checkSeen(node)) {
@@ -114,7 +120,7 @@ final class ShortestPathFinder {
         throw new IllegalStateException("Unexpected type for " + node.instance);
       }
     }
-    return new Result(leakingNode, excludingKnownLeaks);
+    return new Result(leakingNodes, excludingKnownLeaks);
   }
 
   private void clearState() {
@@ -299,7 +305,7 @@ final class ShortestPathFinder {
     if (!visitNow && toVisitIfNoPathSet.contains(child)) {
       return;
     }
-    if (canIgnoreStrings && isString(child)) {
+    if (isString(child)) {
       return;
     }
     if (visitedSet.contains(child)) {

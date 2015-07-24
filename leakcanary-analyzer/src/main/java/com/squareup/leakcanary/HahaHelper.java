@@ -21,16 +21,28 @@ import com.squareup.haha.perflib.ClassObj;
 import com.squareup.haha.perflib.Field;
 import com.squareup.haha.perflib.Heap;
 import com.squareup.haha.perflib.Instance;
+import com.squareup.haha.perflib.RootObj;
+import com.squareup.haha.perflib.Snapshot;
 import com.squareup.haha.perflib.Type;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.squareup.leakcanary.LeakTraceElement.Holder.ARRAY;
+import static com.squareup.leakcanary.LeakTraceElement.Holder.CLASS;
+import static com.squareup.leakcanary.LeakTraceElement.Holder.OBJECT;
+import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 public final class HahaHelper {
+
+  private static final String ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$";
 
   private static final Set<String> WRAPPER_TYPES = new HashSet<>(
       asList(Boolean.class.getName(), Character.class.getName(), Float.class.getName(),
@@ -141,6 +153,116 @@ public final class HahaHelper {
       }
     }
     throw new IllegalArgumentException("Field " + fieldName + " does not exists");
+  }
+
+  static LeakTrace buildLeakTrace(Snapshot snapshot, LeakNode leakingNode) {
+    // Compute retained size.
+    snapshot.computeDominators();
+
+    List<LeakTraceElement> elements = new ArrayList<>();
+    // We iterate from the leak to the GC root
+    LeakNode node = new LeakNode(null, leakingNode, null, null);
+    while (node != null) {
+      LeakTraceElement element = buildLeakElement(node);
+      if (element != null) {
+        elements.add(0, element);
+      }
+      node = node.parent;
+    }
+    long retainedSize = leakingNode.instance.getTotalRetainedSize();
+
+    return new LeakTrace(elements, retainedSize);
+  }
+
+  static LeakTraceElement buildLeakElement(LeakNode node) {
+    if (node.parent == null) {
+      // Ignore any root node.
+      return null;
+    }
+    Instance holder = node.parent.instance;
+
+    if (holder instanceof RootObj) {
+      return null;
+    }
+    LeakTraceElement.Type type = node.referenceType;
+    String referenceName = node.referenceName;
+
+    LeakTraceElement.Holder holderType;
+    String className;
+    String extra = null;
+    List<String> fields = new ArrayList<>();
+    if (holder instanceof ClassObj) {
+      ClassObj classObj = (ClassObj) holder;
+      holderType = CLASS;
+      className = classObj.getClassName();
+      for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
+        Field field = entry.getKey();
+        Object value = entry.getValue();
+        fields.add("static " + field.getName() + " = " + value);
+      }
+    } else if (holder instanceof ArrayInstance) {
+      ArrayInstance arrayInstance = (ArrayInstance) holder;
+      holderType = ARRAY;
+      className = arrayInstance.getClassObj().getClassName();
+      if (arrayInstance.getArrayType() == Type.OBJECT) {
+        Object[] values = arrayInstance.getValues();
+        for (int i = 0; i < values.length; i++) {
+          fields.add("[" + i + "] = " + values[i]);
+        }
+      }
+    } else {
+      ClassInstance classInstance = (ClassInstance) holder;
+      ClassObj classObj = holder.getClassObj();
+      for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
+        fields.add("static " + fieldToString(entry));
+      }
+      for (ClassInstance.FieldValue field : classInstance.getValues()) {
+        fields.add(fieldToString(field));
+      }
+      className = classObj.getClassName();
+
+      if (extendsThread(classObj)) {
+        holderType = THREAD;
+        String threadName = threadName(holder);
+        extra = "(named '" + threadName + "')";
+      } else if (className.matches(ANONYMOUS_CLASS_NAME_PATTERN)) {
+        String parentClassName = classObj.getSuperClassObj().getClassName();
+        if (Object.class.getName().equals(parentClassName)) {
+          holderType = OBJECT;
+          // This is an anonymous class implementing an interface. The API does not give access
+          // to the interfaces implemented by the class. Let's see if it's in the class path and
+          // use that instead.
+          try {
+            Class<?> actualClass = Class.forName(classObj.getClassName());
+            Class<?> implementedInterface = actualClass.getInterfaces()[0];
+            extra = "(anonymous class implements " + implementedInterface.getName() + ")";
+          } catch (ClassNotFoundException ignored) {
+          }
+        } else {
+          holderType = OBJECT;
+          // Makes it easier to figure out which anonymous class we're looking at.
+          extra = "(anonymous class extends " + parentClassName + ")";
+        }
+      } else {
+        holderType = OBJECT;
+      }
+    }
+    return new LeakTraceElement(referenceName, type, holderType, className, extra, fields);
+  }
+
+  static String getStackTraceString(Throwable throwable) {
+    if (throwable == null) {
+      return "";
+    }
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    throwable.printStackTrace(pw);
+    pw.flush();
+    return sw.toString();
+  }
+
+  static long since(long analysisStartNanoTime) {
+    return NANOSECONDS.toMillis(System.nanoTime() - analysisStartNanoTime);
   }
 
   private HahaHelper() {
