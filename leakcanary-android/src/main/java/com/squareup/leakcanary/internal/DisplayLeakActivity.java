@@ -38,9 +38,11 @@ import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+
 import com.squareup.leakcanary.AnalysisResult;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.R;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
@@ -127,6 +129,13 @@ public final class DisplayLeakActivity extends Activity {
   @Override protected void onResume() {
     super.onResume();
     LoadLeaks.load(this);
+  }
+
+  @Override
+  public void setTheme(int resid) {
+    if (resid == R.style.leak_canary_LeakCanary_Base) {
+      super.setTheme(resid);
+    }
   }
 
   @Override protected void onDestroy() {
