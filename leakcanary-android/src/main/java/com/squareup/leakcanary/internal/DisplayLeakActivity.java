@@ -277,7 +277,7 @@ public final class DisplayLeakActivity extends Activity {
         actionButton.setText(R.string.leak_canary_delete_all);
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
-            File[] files = detectedLeakDirectory().listFiles();
+            File[] files = detectedLeakDirectory(DisplayLeakActivity.this).listFiles();
             if (files != null) {
               for (File file : files) {
                 file.delete();
@@ -382,18 +382,19 @@ public final class DisplayLeakActivity extends Activity {
     }
 
     private DisplayLeakActivity activityOrNull;
-    private final File leakDirectory;
     private final Handler mainHandler;
 
     LoadLeaks(DisplayLeakActivity activity) {
       this.activityOrNull = activity;
-      leakDirectory = detectedLeakDirectory();
       mainHandler = new Handler(Looper.getMainLooper());
     }
 
     @Override public void run() {
+      if (activityOrNull == null) {
+        return;
+      }
       final List<Leak> leaks = new ArrayList<>();
-      File[] files = leakDirectory.listFiles(new FilenameFilter() {
+      File[] files = detectedLeakDirectory(activityOrNull).listFiles(new FilenameFilter() {
         @Override public boolean accept(File dir, String filename) {
           return filename.endsWith(".hprof");
         }
