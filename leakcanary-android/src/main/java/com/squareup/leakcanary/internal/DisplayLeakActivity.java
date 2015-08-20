@@ -54,6 +54,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+
 import com.squareup.leakcanary.IOUtils;
 
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
@@ -440,33 +441,34 @@ public final class DisplayLeakActivity extends Activity {
                     } finally {
                         IOUtils.closeSilently(ois);
                     }
-                    Collections.sort(leaks, new Comparator<Leak>() {
-                        @Override
-                        public int compare(Leak lhs, Leak rhs) {
-                            return Long.valueOf(rhs.heapDump.heapDumpFile.lastModified())
-                                    .compareTo(lhs.heapDump.heapDumpFile.lastModified());
-                        }
-                    });
                 }
-                mainHandler.post(new Runnable() {
+                Collections.sort(leaks, new Comparator<Leak>() {
                     @Override
-                    public void run() {
-                        inFlight.remove(LoadLeaks.this);
-                        if (activityOrNull != null) {
-                            activityOrNull.leaks = leaks;
-                            activityOrNull.updateUi();
-                        }
+                    public int compare(Leak lhs, Leak rhs) {
+                        return Long.valueOf(rhs.heapDump.heapDumpFile.lastModified())
+                                .compareTo(lhs.heapDump.heapDumpFile.lastModified());
                     }
                 });
             }
-        }
-
-        static String classSimpleName(String className) {
-            int separator = className.lastIndexOf('.');
-            if (separator == -1) {
-                return className;
-            } else {
-                return className.substring(separator + 1);
-            }
+            mainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    inFlight.remove(LoadLeaks.this);
+                    if (activityOrNull != null) {
+                        activityOrNull.leaks = leaks;
+                        activityOrNull.updateUi();
+                    }
+                }
+            });
         }
     }
+
+    static String classSimpleName(String className) {
+        int separator = className.lastIndexOf('.');
+        if (separator == -1) {
+            return className;
+        } else {
+            return className.substring(separator + 1);
+        }
+    }
+}
