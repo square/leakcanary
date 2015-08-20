@@ -27,6 +27,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 
+import com.squareup.leakcanary.IOUtils;
+
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.HONEYCOMB;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
@@ -82,10 +84,9 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     heapDump = heapDump.renameFile(renamedFile);
 
     File resultFile = leakResultFile(renamedFile);
-    FileOutputStream fos = null;
+    ObjectOutputStream oos = null;
     try {
-      fos = new FileOutputStream(resultFile);
-      ObjectOutputStream oos = new ObjectOutputStream(fos);
+      oos = new ObjectOutputStream(new FileOutputStream(resultFile));
       oos.writeObject(heapDump);
       oos.writeObject(result);
     } catch (IOException e) {
@@ -93,12 +94,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       afterDefaultHandling(heapDump, result, leakInfo);
       return;
     } finally {
-      if (fos != null) {
-        try {
-          fos.close();
-        } catch (IOException ignored) {
-        }
-      }
+      IOUtils.closeSilently(oos);
     }
 
     PendingIntent pendingIntent =
