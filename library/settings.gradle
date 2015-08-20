@@ -1,5 +1,0 @@
-include ':leakcanary-watcher'
-include ':leakcanary-analyzer'
-include ':leakcanary-android'
-include ':leakcanary-android-no-op'
-include ':leakcanary-sample'

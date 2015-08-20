@@ -1,0 +1,33 @@
+version rootProject.ext.VERSION_NAME
+group rootProject.ext.GROUP
+
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+apply plugin: 'com.android.library'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+}
+
+android {
+  compileSdkVersion rootProject.ext.compileSdkVersion
+  buildToolsVersion rootProject.ext.buildToolsVersion
+  defaultConfig {
+    minSdkVersion rootProject.ext.minSdkVersion
+    targetSdkVersion rootProject.ext.targetSdkVersion
+  }
+}
+
+task sourceJar(type: Jar) {
+  from 'src/main/java'
+}
+
+apply from: rootProject.file('gradle/checkstyle.gradle')
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

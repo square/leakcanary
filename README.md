@@ -12,8 +12,8 @@ In your `build.gradle`:
 
 ```gradle
  dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3'
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.1'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1'
  }
 ```
 
@@ -81,7 +81,7 @@ public abstract class BaseFragment extends Fragment {
 
 ## How does it work?
 
-1. `RefWatcher.watch()` creates a [KeyedWeakReference](https://github.com/square/leakcanary/blob/master/library/leakcanary-watcher/src/main/java/com/squareup/leakcanary/KeyedWeakReference.java) to the watched object.
+1. `RefWatcher.watch()` creates a [KeyedWeakReference](https://github.com/square/leakcanary/blob/master/leakcanary-watcher/src/main/java/com/squareup/leakcanary/KeyedWeakReference.java) to the watched object.
 2. Later, in a background thread, it checks if the reference has been cleared and if not it triggers a GC.
 3. If the reference is still not cleared, it then dumps the heap into a `.hprof` file stored on the app file system.
 4. `HeapAnalyzerService` is started in a separate process and `HeapAnalyzer` parses the heap dump using [HAHA](https://github.com/square/haha).
@@ -113,7 +113,7 @@ Once you have the leak trace, figure out which reference in the path should not 
 
 ## My leak is caused by the Android SDK implementation!
 
-There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: [AndroidExcludedRefs.java](https://github.com/square/leakcanary/blob/master/library/leakcanary-android/src/main/java/com/squareup/leakcanary/AndroidExcludedRefs.java).
+There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: [AndroidExcludedRefs.java](https://github.com/square/leakcanary/blob/master/leakcanary-android/src/main/java/com/squareup/leakcanary/AndroidExcludedRefs.java).
 
 If you find a new one, please [create an issue](https://github.com/square/leakcanary/issues/new) and follow these steps:
 
@@ -137,6 +137,47 @@ Sometimes the leak trace isn't enough and you need to dig into the heap dump wit
 5. From then on, the matter is in your hands. A good start is to look at the shortest path to GC Roots (excluding weak references).
 
 ## Customizing
+
+### Customizing and using the no-op dependency
+
+The `leakcanary-android-no-op` dependency for release builds only contains the `LeakCanary` and `RefWatcher` class. If you start customizing LeakCanary, you need to make sure that the customization happens only in debug build, since it will likely reference classes that do not exist in the `leakcanary-android-no-op` dependency.
+
+Let's say your release build declares an `ExampleApplication` class in `AndroidManifest.xml`, and your debug build declares a `DebugExampleApplication` that extends `ExampleApplication`.
+
+In your shared sources:
+
+```java
+public class ExampleApplication extends Application {
+
+  public static RefWatcher getRefWatcher(Context context) {
+    ExampleApplication application = (ExampleApplication) context.getApplicationContext();
+    return application.refWatcher;
+  }
+
+  private RefWatcher refWatcher;
+
+  @Override public void onCreate() {
+    super.onCreate();
+    refWatcher = installLeakCanary();
+  }
+
+  protected RefWatcher installLeakCanary() {
+    return RefWatcher.DISABLED;
+  }
+}
+```
+
+In your debug sources:
+
+```java
+public class DebugExampleApplication extends ExampleApplication {
+  protected RefWatcher installLeakCanary() {
+	RefWatcher refWatcher = ? // Build a customized RefWatcher
+    return refWatcher;
+  }
+}
+```
+That way, your release code will contain no reference to LeakCanary other than the two empty classes that exist in the `leakcanary-android-no-op` dependency.
 
 ### Icon and label
 
@@ -191,40 +232,17 @@ public class LeakUploadService extends DisplayLeakService {
 }
 ```
 
-Make sure the release Application class uses the disabled `RefWatcher`:
-
-```java
-public class ExampleApplication extends Application {
-
-  public static RefWatcher getRefWatcher(Context context) {
-    ExampleApplication application = (ExampleApplication) context.getApplicationContext();
-    return application.refWatcher;
-  }
-
-  private RefWatcher refWatcher;
-
-  @Override public void onCreate() {
-    super.onCreate();
-    refWatcher = installLeakCanary();
-  }
-  
-  protected RefWatcher installLeakCanary() {
-    return RefWatcher.DISABLED;
-  }
-}
-```
-
 Build a custom `RefWatcher` in your debug Application class:
 
 ```java
 public class DebugExampleApplication extends ExampleApplication {
   protected RefWatcher installLeakCanary() {
-    return LeakCanary.install(app, LeakUploadService.class);
+    return LeakCanary.install(app, LeakUploadService.class, AndroidExcludedRefs.createAppDefaults().build());
   }
 }
 ```
 
-Don't forget to register the service in your debug manifest:
+Don't forget to register the service in your debug `AndroidManifest.xml`:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -238,6 +256,60 @@ Don't forget to register the service in your debug manifest:
 ```
 
 You can also upload the leak traces to Slack or HipChat, [here's an example](https://gist.github.com/pyricau/06c2c486d24f5f85f7f0).
+
+### Ignoring specific references
+
+You can create your own version of `ExcludedRefs` to ignore specific references that you know are causing leaks but you still want to ignore:
+
+```java
+public class DebugExampleApplication extends ExampleApplication {
+  protected RefWatcher installLeakCanary() {
+    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults()
+        .instanceField("com.example.ExampleClass", "exampleField")
+        .build();
+    return LeakCanary.install(this, DisplayLeakService.class, excludedRefs);
+  }
+}
+```
+
+### Not watching specific activity classes
+
+`ActivityRefWatcher` is installed by default and watches all activities. You can customize the installation steps to use something different instead:
+
+```java
+public class DebugExampleApplication extends ExampleApplication {
+  protected RefWatcher installLeakCanary() {
+    if (isInAnalyzerProcess(this)) {
+      return RefWatcher.DISABLED;
+    } else {
+      ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults().build();
+      enableDisplayLeakActivity(application);
+      ServiceHeapDumpListener heapDumpListener = new ServiceHeapDumpListener(application, DisplayLeakService.class);
+      final RefWatcher refWatcher = androidWatcher(application, heapDumpListener, excludedRefs);
+      registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+        public void onActivityDestroyed(Activity activity) {
+          if (activity instanceof ThirdPartyActivity) {
+              return;
+          }
+          refWatcher.watch(activity);
+        }
+        // ...
+      });
+      return refWatcher;
+    }
+  }
+}
+```
+
+### ProGuard
+
+If you use Proguard in your debug builds, make sure to keep the HAHA and LeakCanary classes:
+
+```
+# LeakCanary
+-keep class org.eclipse.mat.** { *; }
+-keep class com.squareup.leakcanary.** { *; }
+```
 
 ## Snapshots of the development version
 
