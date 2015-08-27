@@ -25,8 +25,8 @@
       android:id="@+id/__leak_canary_row_connector"
       android:layout_width="16dp"
       android:layout_height="match_parent"
-      android:layout_marginLeft="16dp"
-      android:layout_marginRight="16dp"
+      android:layout_marginStart="16dp"
+      android:layout_marginEnd="16dp"
       />
 
   <TextView
@@ -42,8 +42,8 @@
       android:layout_width="12dp"
       android:layout_height="12dp"
       android:layout_gravity="center_vertical"
-      android:layout_marginLeft="16dp"
-      android:layout_marginRight="16dp"
+      android:layout_marginStart="16dp"
+      android:layout_marginEnd="16dp"
       />
 
 </LinearLayout>
