@@ -20,7 +20,6 @@ import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.MessageQueue;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.widget.Toast;
@@ -34,8 +33,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class AndroidHeapDumper implements HeapDumper {
 
-  private static final String TAG = "AndroidHeapDumper";
-
   private final Context context;
   private final Handler mainHandler;
 
@@ -46,11 +43,11 @@ public final class AndroidHeapDumper implements HeapDumper {
 
   @Override public File dumpHeap() {
     if (!isExternalStorageWritable()) {
-      Log.d(TAG, "Could not dump heap, external storage not mounted.");
+      CanaryLog.d("Could not dump heap, external storage not mounted.");
     }
     File heapDumpFile = getHeapDumpFile();
     if (heapDumpFile.exists()) {
-      Log.d(TAG, "Could not dump heap, previous analysis still is in progress.");
+      CanaryLog.d("Could not dump heap, previous analysis still is in progress.");
       // Heap analysis in progress, let's not put too much pressure on the device.
       return NO_DUMP;
     }
@@ -59,7 +56,7 @@ public final class AndroidHeapDumper implements HeapDumper {
     showToast(waitingForToast);
 
     if (!waitingForToast.wait(5, SECONDS)) {
-      Log.d(TAG, "Did not dump heap, too much time waiting for Toast.");
+      CanaryLog.d("Did not dump heap, too much time waiting for Toast.");
       return NO_DUMP;
     }
 
@@ -70,7 +67,7 @@ public final class AndroidHeapDumper implements HeapDumper {
       return heapDumpFile;
     } catch (Exception e) {
       cleanup();
-      Log.e(TAG, "Could not perform heap dump", e);
+      CanaryLog.d(e, "Could not perform heap dump");
       // Abort heap dump
       return NO_DUMP;
     }
@@ -84,11 +81,11 @@ public final class AndroidHeapDumper implements HeapDumper {
     LeakCanaryInternals.executeOnFileIoThread(new Runnable() {
       @Override public void run() {
         if (isExternalStorageWritable()) {
-          Log.d(TAG, "Could not attempt cleanup, external storage not mounted.");
+          CanaryLog.d("Could not attempt cleanup, external storage not mounted.");
         }
         File heapDumpFile = getHeapDumpFile();
         if (heapDumpFile.exists()) {
-          Log.d(TAG, "Previous analysis did not complete correctly, cleaning: " + heapDumpFile);
+          CanaryLog.d("Previous analysis did not complete correctly, cleaning: %s", heapDumpFile);
           heapDumpFile.delete();
         }
       }

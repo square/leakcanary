@@ -23,7 +23,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.os.Environment;
-import android.util.Log;
+import com.squareup.leakcanary.CanaryLog;
 import java.io.File;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -113,7 +113,7 @@ public final class LeakCanaryInternals {
     try {
       packageInfo = packageManager.getPackageInfo(context.getPackageName(), GET_SERVICES);
     } catch (Exception e) {
-      Log.e("AndroidUtils", "Could not get package info for " + context.getPackageName(), e);
+      CanaryLog.d(e, "Could not get package info for %s", context.getPackageName());
       return false;
     }
     String mainProcess = packageInfo.applicationInfo.processName;
@@ -128,8 +128,7 @@ public final class LeakCanaryInternals {
     }
 
     if (serviceInfo.processName.equals(mainProcess)) {
-      Log.e("AndroidUtils",
-          "Did not expect service " + serviceClass + " to run in main process " + mainProcess);
+      CanaryLog.d("Did not expect service %s to run in main process %s", serviceClass, mainProcess);
       // Technically we are in the service process, but we're not in the service dedicated process.
       return false;
     }
@@ -145,7 +144,7 @@ public final class LeakCanaryInternals {
       }
     }
     if (myProcess == null) {
-      Log.e("AndroidUtils", "Could not find running process for " + myPid);
+      CanaryLog.d("Could not find running process for %d", myPid);
       return false;
     }
 
