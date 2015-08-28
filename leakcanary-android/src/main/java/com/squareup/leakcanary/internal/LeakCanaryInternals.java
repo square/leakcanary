@@ -56,8 +56,8 @@ public final class LeakCanaryInternals {
     return leakCanaryDirectory;
   }
 
-  public static File detectedLeakDirectory() {
-    File directory = new File(storageDirectory(), "detected_leaks");
+  public static File detectedLeakDirectory(Context context) {
+    File directory = new File(storageDirectory(), "detected_leaks/" + context.getPackageName());
     directory.mkdirs();
     return directory;
   }
@@ -71,8 +71,8 @@ public final class LeakCanaryInternals {
     return Environment.MEDIA_MOUNTED.equals(state);
   }
 
-  public static File findNextAvailableHprofFile(int maxFiles) {
-    File directory = detectedLeakDirectory();
+  public static File findNextAvailableHprofFile(Context context, int maxFiles) {
+    File directory = detectedLeakDirectory(context);
     for (int i = 0; i < maxFiles; i++) {
       String heapDumpName = "heap_dump_" + i + ".hprof";
       File file = new File(directory, heapDumpName);
