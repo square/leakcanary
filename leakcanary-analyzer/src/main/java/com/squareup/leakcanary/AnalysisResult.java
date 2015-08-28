@@ -20,16 +20,17 @@ import java.io.Serializable;
 public final class AnalysisResult implements Serializable {
 
   public static AnalysisResult noLeak(long analysisDurationMs) {
-    return new AnalysisResult(false, false, null, null, null, analysisDurationMs);
+    return new AnalysisResult(false, false, null, null, null, 0, analysisDurationMs);
   }
 
   public static AnalysisResult leakDetected(boolean excludedLeak, String className,
-      LeakTrace leakTrace, long analysisDurationMs) {
-    return new AnalysisResult(true, excludedLeak, className, leakTrace, null, analysisDurationMs);
+      LeakTrace leakTrace, long retainedHeapSize, long analysisDurationMs) {
+    return new AnalysisResult(true, excludedLeak, className, leakTrace, null, retainedHeapSize,
+        analysisDurationMs);
   }
 
   public static AnalysisResult failure(Throwable failure, long analysisDurationMs) {
-    return new AnalysisResult(false, false, null, null, failure, analysisDurationMs);
+    return new AnalysisResult(false, false, null, null, failure, 0, analysisDurationMs);
   }
 
   /** True if a leak was found in the heap dump. */
@@ -56,16 +57,23 @@ public final class AnalysisResult implements Serializable {
   /** Null unless the analysis failed. */
   public final Throwable failure;
 
+  /**
+   * The number of bytes which would be freed if all references to the leaking object were
+   * released. 0 if {@link #leakFound} is false.
+   */
+  public final long retainedHeapSize;
+
   /** Total time spent analyzing the heap. */
   public final long analysisDurationMs;
 
   private AnalysisResult(boolean leakFound, boolean excludedLeak, String className,
-      LeakTrace leakTrace, Throwable failure, long analysisDurationMs) {
+      LeakTrace leakTrace, Throwable failure, long retainedHeapSize, long analysisDurationMs) {
     this.leakFound = leakFound;
     this.excludedLeak = excludedLeak;
     this.className = className;
     this.leakTrace = leakTrace;
     this.failure = failure;
+    this.retainedHeapSize = retainedHeapSize;
     this.analysisDurationMs = analysisDurationMs;
   }
 }
