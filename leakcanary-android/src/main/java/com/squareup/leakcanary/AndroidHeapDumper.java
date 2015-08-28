@@ -27,7 +27,6 @@ import android.widget.Toast;
 import com.squareup.leakcanary.internal.FutureResult;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
-import java.io.IOException;
 
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.isExternalStorageWritable;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.storageDirectory;
@@ -69,7 +68,7 @@ public final class AndroidHeapDumper implements HeapDumper {
       Debug.dumpHprofData(heapDumpFile.getAbsolutePath());
       cancelToast(toast);
       return heapDumpFile;
-    } catch (IOException e) {
+    } catch (Exception e) {
       cleanup();
       Log.e(TAG, "Could not perform heap dump", e);
       // Abort heap dump
