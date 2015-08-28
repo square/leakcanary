@@ -192,13 +192,18 @@ public final class HeapAnalyzer {
         String parentClassName = classObj.getSuperClassObj().getClassName();
         if (Object.class.getName().equals(parentClassName)) {
           holderType = OBJECT;
-          // This is an anonymous class implementing an interface. The API does not give access
-          // to the interfaces implemented by the class. Let's see if it's in the class path and
-          // use that instead.
           try {
+            // This is an anonymous class implementing an interface. The API does not give access
+            // to the interfaces implemented by the class. We check if it's in the class path and
+            // use that instead.
             Class<?> actualClass = Class.forName(classObj.getClassName());
-            Class<?> implementedInterface = actualClass.getInterfaces()[0];
-            extra = "(anonymous class implements " + implementedInterface.getName() + ")";
+            Class<?>[] interfaces = actualClass.getInterfaces();
+            if (interfaces.length > 0) {
+              Class<?> implementedInterface = interfaces[0];
+              extra = "(anonymous class implements " + implementedInterface.getName() + ")";
+            } else {
+              extra = "(anonymous class extends java.lang.Object)";
+            }
           } catch (ClassNotFoundException ignored) {
           }
         } else {
