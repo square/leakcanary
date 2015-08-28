@@ -5,7 +5,7 @@
 * Switched to [HAHA 2.0.2](https://github.com/square/haha/blob/master/CHANGELOG.md#version-202-2015-07-20) with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This should fix most crashes and improve speed a lot. We can now parse Android M heap dumps, although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
 * A status bar notification is displayed when the trace analysis results in an excluded ref leak [#216](https://github.com/square/leakcanary/pull/216).
 * Added ProGuard configuration for debug library [#132](https://github.com/square/leakcanary/issues/132).
-* 2 new ignored Android SDK leaks: [#26](https://github.com/square/leakcanary/issues/26) [#62](https://github.com/square/leakcanary/issues/62).
+* 2 new ignored Android SDK leaks: [#26](https://github.com/square/leakcanary/issues/26) [#62](https://github.com/square/leakcanary/issues/62). 1 Android SDK leak updated: [#133](https://github.com/square/leakcanary/issues/133).
 * Added excluded leaks to text report [#119](https://github.com/square/leakcanary/issues/119).
 * Added LeakCanary SHA to text report [#120](https://github.com/square/leakcanary/issues/120).
 * Renamed all resources to begin with `leak_canary_` instead of `__leak_canary`[#161](https://github.com/square/leakcanary/pull/161)

@@ -262,7 +262,10 @@ public enum AndroidExcludedRefs {
       SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
       // ClipboardUIManager is a static singleton that leaks an activity context.
-      excluded.staticField("android.sec.clipboard.ClipboardUIManager", "sInstance");
+      // Fix: trigger a call to ClipboardUIManager.getInstance() in Application.onCreate(), so
+      // that the ClipboardUIManager instance gets cached with a reference to the
+      // application context. Example: https://gist.github.com/pepyakin/8d2221501fd572d4a61c
+      excluded.instanceField("android.sec.clipboard.ClipboardUIManager", "mContext");
     }
   },
 
