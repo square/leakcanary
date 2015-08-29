@@ -21,7 +21,7 @@
     android:background="#3c3c3c"
     >
   <ListView
-      android:id="@+id/__leak_canary_display_leak_list"
+      android:id="@+id/leak_canary_display_leak_list"
       android:layout_width="match_parent"
       android:layout_height="0dp"
       android:layout_weight="1"
@@ -29,7 +29,7 @@
       android:divider="@null"
       />
   <TextView
-      android:id="@+id/__leak_canary_display_leak_failure"
+      android:id="@+id/leak_canary_display_leak_failure"
       android:layout_width="match_parent"
       android:layout_height="0dp"
       android:layout_weight="1"
@@ -37,7 +37,7 @@
       android:visibility="gone"
       />
   <Button
-      android:id="@+id/__leak_canary_action"
+      android:id="@+id/leak_canary_action"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:visibility="gone"

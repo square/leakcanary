@@ -105,9 +105,9 @@ public final class DisplayLeakActivity extends Activity {
 
     setContentView(R.layout.leak_canary_display_leak);
 
-    listView = (ListView) findViewById(R.id.__leak_canary_display_leak_list);
-    failureView = (TextView) findViewById(R.id.__leak_canary_display_leak_failure);
-    actionButton = (Button) findViewById(R.id.__leak_canary_action);
+    listView = (ListView) findViewById(R.id.leak_canary_display_leak_list);
+    failureView = (TextView) findViewById(R.id.leak_canary_display_leak_failure);
+    actionButton = (Button) findViewById(R.id.leak_canary_action);
 
     maxStoredLeaks = getResources().getInteger(R.integer.leak_canary_max_stored_leaks);
 
@@ -323,8 +323,8 @@ public final class DisplayLeakActivity extends Activity {
         convertView = LayoutInflater.from(DisplayLeakActivity.this)
             .inflate(R.layout.leak_canary_leak_row, parent, false);
       }
-      TextView titleView = (TextView) convertView.findViewById(R.id.__leak_canary_row_text);
-      TextView timeView = (TextView) convertView.findViewById(R.id.__leak_canary_row_time);
+      TextView titleView = (TextView) convertView.findViewById(R.id.leak_canary_row_text);
+      TextView timeView = (TextView) convertView.findViewById(R.id.leak_canary_row_time);
       Leak leak = getItem(position);
 
       String index;

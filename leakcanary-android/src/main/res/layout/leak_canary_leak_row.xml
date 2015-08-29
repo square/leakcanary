@@ -23,7 +23,7 @@
     >
 
   <TextView
-      android:id="@+id/__leak_canary_row_text"
+      android:id="@+id/leak_canary_row_text"
       android:layout_width="0dp"
       android:layout_weight="1"
       android:layout_height="wrap_content"
@@ -32,7 +32,7 @@
       />
 
   <TextView
-      android:id="@+id/__leak_canary_row_time"
+      android:id="@+id/leak_canary_row_time"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:layout_gravity="center_vertical"
