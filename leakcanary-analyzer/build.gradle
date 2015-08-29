@@ -38,7 +38,7 @@ task copyTestResources(type: Copy) {
 }
 
 afterEvaluate { project ->
-  testDebug.dependsOn copyTestResources
+  testDebugUnitTest.dependsOn copyTestResources
 }
 
 android {

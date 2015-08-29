@@ -15,10 +15,10 @@
   ~ limitations under the License.
   -->
 <resources>
-  <string name="app_name">LeakCanary Sample</string>
-  <string name="start_async_task">Start new AsyncTask</string>
-  <string name="helper_text">Start the async task, <b>rotate the screen</b> and wait for a bit. A
-    wild notification appears.
-  </string>
-  <string name="leak_canary_display_activity_label">Leaks Sample</string>
+
+  <public name="leak_canary_icon" type="drawable"/>
+  <public name="leak_canary_display_activity_label" type="string"/>
+  <public name="leak_canary_max_stored_leaks" type="integer"/>
+  <public name="leak_canary_heap_dump_toast" type="layout"/>
+
 </resources>
