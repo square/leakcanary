@@ -17,10 +17,30 @@ In your `build.gradle`:
  }
 ```
 
-In your `Application` class:
+In your `AndroidManifest` class:
+
+```xml
+<manifest ...>
+    <application android:name="com.squareup.leakcanary.Application" ...>
+        ...
+```
+
+**You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
+
+### What if I'm using another Application class
+
+If you are using a custom Application class, you can extend com.squareup.leakcanary.Application instead of android.app.Application:
 
 ```java
-public class ExampleApplication extends Application {
+public class ExampleApplication extends com.squareup.leakcanary.Application {
+  ...
+}
+```
+
+If you are already extending another class, you'll need to initialize LeakCanary manually:
+
+```java
+public class ExampleApplication extends OtherApplication {
 
   @Override public void onCreate() {
     super.onCreate();
@@ -28,8 +48,6 @@ public class ExampleApplication extends Application {
   }
 }
 ```
-
-**You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
 
 ## Why should I use LeakCanary?
 
@@ -46,34 +64,14 @@ RefWatcher refWatcher = {...};
 refWatcher.watch(schrodingerCat);
 ```
 
-`LeakCanary.install()` returns a pre configured `RefWatcher`.
-It also installs an `ActivityRefWatcher` that automatically detects if an activity is leaking after `Activity.onDestroy()` has been called.
-
-```java
-public class ExampleApplication extends Application {
-
-  public static RefWatcher getRefWatcher(Context context) {
-    ExampleApplication application = (ExampleApplication) context.getApplicationContext();
-    return application.refWatcher;
-  }
-
-  private RefWatcher refWatcher;
-
-  @Override public void onCreate() {
-    super.onCreate();
-    refWatcher = LeakCanary.install(this);
-  }
-}
-```
-
-You could use the `RefWatcher` to watch for fragment leaks:
+You can use the Applicacion class to get a `RefWatcher`:
 
 ```java
 public abstract class BaseFragment extends Fragment {
 
   @Override public void onDestroy() {
     super.onDestroy();
-    RefWatcher refWatcher = ExampleApplication.getRefWatcher(getActivity());
+    RefWatcher refWatcher = com.squareup.leakcanary.Application.getRefWatcher(getActivity());
     refWatcher.watch(this);
   }
 }
@@ -140,7 +138,7 @@ Sometimes the leak trace isn't enough and you need to dig into the heap dump wit
 
 ### Customizing and using the no-op dependency
 
-The `leakcanary-android-no-op` dependency for release builds only contains the `LeakCanary` and `RefWatcher` class. If you start customizing LeakCanary, you need to make sure that the customization happens only in debug build, since it will likely reference classes that do not exist in the `leakcanary-android-no-op` dependency.
+The `leakcanary-android-no-op` dependency for release builds only contains the `Application`, `LeakCanary` and `RefWatcher` class. If you start customizing LeakCanary, you need to make sure that the customization happens only in debug build, since it will likely reference classes that do not exist in the `leakcanary-android-no-op` dependency.
 
 Let's say your release build declares an `ExampleApplication` class in `AndroidManifest.xml`, and your debug build declares a `DebugExampleApplication` that extends `ExampleApplication`.
 
