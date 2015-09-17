@@ -184,9 +184,9 @@ public enum AndroidExcludedRefs {
       // which can be an activity context.
       // Tracked here : https://code.google.com/p/android/issues/detail?id=172659
       // Hack : https://gist.github.com/andaag/b05ab66ed0f06167d6e0
-      excluded.staticField("android.support.v7.internal.widget.ActivityChooserModel",
-          "mActivityChoserModelPolicy");
-      excluded.staticField("android.widget.ActivityChooserModel", "mActivityChoserModelPolicy");
+      excluded.instanceField("android.support.v7.internal.widget.ActivityChooserModel",
+                             "mActivityChoserModelPolicy");
+      excluded.instanceField("android.widget.ActivityChooserModel", "mActivityChoserModelPolicy");
     }
   },
 
