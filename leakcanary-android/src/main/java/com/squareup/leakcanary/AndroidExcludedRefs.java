@@ -382,6 +382,18 @@ public enum AndroidExcludedRefs {
       excluded.instanceField("android.view.Choreographer$FrameDisplayEventReceiver",
           "mMessageQueue", true);
     }
+  },
+
+  EDITTEXT_BLINK_MESSAGEQUEUE {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // The EditText Blink of the Cursor is implemented using a callback and Messages, which
+      // trigger the display of the Cursor. If an AlertDialog or DialogFragment that contains a
+      // blinking cursor is detached a message is posted with a delay after the
+      // dialog has been closed and as a result leaks the Activity.
+      // This can be fixed manually by calling setCursorEnabled(false) in the dismiss() method of
+      // the dialog
+      excluded.instanceField("android.widget.EditText", "mContext");
+    }
   };
 
   /**
