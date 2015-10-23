@@ -74,7 +74,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     if (renamedFile == null) {
       // No file available.
       Log.e("LeakCanary",
-          "Leak result dropped because we already store " + maxStoredLeaks + " leak traces.");
+          "Leak result dropped because we already stored " + maxStoredLeaks + " leak traces.");
       afterDefaultHandling(heapDump, result, leakInfo);
       return;
     }
