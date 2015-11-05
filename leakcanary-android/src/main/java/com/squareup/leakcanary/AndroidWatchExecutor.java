@@ -23,22 +23,22 @@ import java.util.concurrent.Executor;
 
 /**
  * {@link Executor} suitable for watching Android reference leaks. This executor waits for the main
- * thread to be idle then posts to a serial background thread with a delay of {@link
- * #DELAY_MILLIS} milliseconds.
+ * thread to be idle then posts to a serial background thread with a delay of
+ * {@link R.integer.leak_canary_watch_delay_millis} seconds.
  */
 public final class AndroidWatchExecutor implements Executor {
 
   static final String LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump";
-  private static final int DELAY_MILLIS = 5000;
-
   private final Handler mainHandler;
   private final Handler backgroundHandler;
+  private final long delayMillis;
 
-  public AndroidWatchExecutor() {
+  public AndroidWatchExecutor(int delayMillis) {
     mainHandler = new Handler(Looper.getMainLooper());
     HandlerThread handlerThread = new HandlerThread(LEAK_CANARY_THREAD_NAME);
     handlerThread.start();
     backgroundHandler = new Handler(handlerThread.getLooper());
+    this.delayMillis = delayMillis;
   }
 
   @Override public void execute(final Runnable command) {
@@ -61,7 +61,7 @@ public final class AndroidWatchExecutor implements Executor {
     // This needs to be called from the main thread.
     Looper.myQueue().addIdleHandler(new MessageQueue.IdleHandler() {
       @Override public boolean queueIdle() {
-        backgroundHandler.postDelayed(runnable, DELAY_MILLIS);
+        backgroundHandler.postDelayed(runnable, delayMillis);
         return false;
       }
     });
