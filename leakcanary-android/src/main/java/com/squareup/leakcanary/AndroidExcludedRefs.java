@@ -232,8 +232,9 @@ public enum AndroidExcludedRefs {
       // Tracked here: https://code.google.com/p/android/issues/detail?id=173789
       // Introduced by: https://github.com/android/platform_frameworks_base/commit
       // /27db46850b708070452c0ce49daf5f79503fbde6
-      // Fix: trigger a call to UserManager.get() in Application.onCreate(), so that the
+      // Fix #1: call getSystemService(Context.USER_SERVICE) in Application.onCreate(), so that the
       // UserManager instance gets cached with a reference to the application context.
+      // Fix #2: use getApplicationContext() to call getSystemService to get UserManager.
       excluded.instanceField("android.os.UserManager", "mContext");
     }
   },
