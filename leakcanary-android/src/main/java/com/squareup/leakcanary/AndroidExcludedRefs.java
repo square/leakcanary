@@ -349,6 +349,16 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  SERVICE_BINDER {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // We should ignore leaks where an android.os.Binder is the root of the leak.
+      // When you bind and unbind from a Service, the OS will keep a reference to the Binder
+      // until the client binder has been GC'ed. This means the Binder can be retained after
+      // Service.onDestroy() is called.
+      excluded.rootClass("android.os.Binder", true);
+    }
+  },
+
   SOFT_REFERENCES {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.clazz(WeakReference.class.getName(), true);
@@ -412,7 +422,7 @@ public enum AndroidExcludedRefs {
    */
   public static ExcludedRefs.Builder createAndroidDefaults() {
     return createBuilder(EnumSet.of(SOFT_REFERENCES, FINALIZER_WATCHDOG_DAEMON, MAIN, LEAK_CANARY_THREAD,
-        EVENT_RECEIVER__MMESSAGE_QUEUE));
+        EVENT_RECEIVER__MMESSAGE_QUEUE, SERVICE_BINDER));
   }
 
   /**

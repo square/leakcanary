@@ -36,16 +36,19 @@ public final class ExcludedRefs implements Serializable {
   public final Map<String, Map<String, Boolean>> staticFieldNameByClassName;
   public final Map<String, Boolean> threadNames;
   public final Map<String, Boolean> classNames;
+  public final Map<String, Boolean> rootClassNames;
 
   private ExcludedRefs(Map<String, Map<String, Boolean>> fieldNameByClassName,
       Map<String, Map<String, Boolean>> staticFieldNameByClassName,
-      Map<String, Boolean> threadNames, Map<String, Boolean> classNames) {
+      Map<String, Boolean> threadNames, Map<String, Boolean> classNames,
+      Map<String, Boolean> rootClassNames) {
     // Copy + unmodifiable.
     this.fieldNameByClassName = unmodifiableMap(new LinkedHashMap<>(fieldNameByClassName));
     this.staticFieldNameByClassName =
         unmodifiableMap(new LinkedHashMap<>(staticFieldNameByClassName));
     this.threadNames = unmodifiableMap(new LinkedHashMap<>(threadNames));
     this.classNames = unmodifiableMap(new LinkedHashMap<>(classNames));
+    this.rootClassNames = unmodifiableMap(new LinkedHashMap<>(rootClassNames));
   }
 
   @Override public String toString() {
@@ -72,6 +75,10 @@ public final class ExcludedRefs implements Serializable {
       String always = clazz.getValue() ? " (always)" : "";
       string += "| Class:" + clazz.getKey() + always + "\n";
     }
+    for (Map.Entry<String, Boolean> clazz : rootClassNames.entrySet()) {
+      String always = clazz.getValue() ? " (always)" : "";
+      string += "| Root Class:" + clazz.getKey() + always + "\n";
+    }
     return string;
   }
 
@@ -81,6 +88,7 @@ public final class ExcludedRefs implements Serializable {
         new LinkedHashMap<>();
     private final Map<String, Boolean> threadNames = new LinkedHashMap<>();
     private final Map<String, Boolean> classNames = new LinkedHashMap<>();
+    private final Map<String, Boolean> rootClassNames = new LinkedHashMap<>();
 
     public Builder instanceField(String className, String fieldName) {
       return instanceField(className, fieldName, false);
@@ -134,9 +142,19 @@ public final class ExcludedRefs implements Serializable {
       return this;
     }
 
+    public Builder rootClass(String rootClassName) {
+      return rootClass(rootClassName, false);
+    }
+
+    public Builder rootClass(String rootClassName, boolean always) {
+      checkNotNull(rootClassName, "rootClassName");
+      rootClassNames.put(rootClassName, always);
+      return this;
+    }
+
     public ExcludedRefs build() {
       return new ExcludedRefs(fieldNameByClassName, staticFieldNameByClassName, threadNames,
-          classNames);
+          classNames, rootClassNames);
     }
   }
 }

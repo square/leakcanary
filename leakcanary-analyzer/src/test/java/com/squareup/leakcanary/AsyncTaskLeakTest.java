@@ -17,7 +17,6 @@ package com.squareup.leakcanary;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import org.junit.Before;
@@ -25,6 +24,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static com.squareup.leakcanary.TestUtil.fileFromName;
+import static com.squareup.leakcanary.TestUtil.analyze;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
 import static org.hamcrest.core.StringContains.containsString;
@@ -49,12 +50,6 @@ public class AsyncTaskLeakTest {
     });
   }
 
-  private static File fileFromName(String filename) {
-    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-    URL url = classLoader.getResource(filename);
-    return new File(url.getPath());
-  }
-
   final File heapDumpFile;
   final String referenceKey;
 
@@ -71,7 +66,7 @@ public class AsyncTaskLeakTest {
   }
 
   @Test public void leakFound() {
-    AnalysisResult result = analyze();
+    AnalysisResult result = analyze(heapDumpFile, referenceKey, excludedRefs);
     assertTrue(result.leakFound);
     assertFalse(result.excludedLeak);
     LeakTraceElement gcRoot = result.leakTrace.elements.get(0);
@@ -82,7 +77,7 @@ public class AsyncTaskLeakTest {
 
   @Test public void excludeThread() {
     excludedRefs.thread(ASYNC_TASK_THREAD);
-    AnalysisResult result = analyze();
+    AnalysisResult result = analyze(heapDumpFile, referenceKey, excludedRefs);
     assertTrue(result.leakFound);
     assertFalse(result.excludedLeak);
     LeakTraceElement gcRoot = result.leakTrace.elements.get(0);
@@ -96,22 +91,9 @@ public class AsyncTaskLeakTest {
     excludedRefs.thread(ASYNC_TASK_THREAD);
     excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_1);
     excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_2);
-    AnalysisResult result = analyze();
+    AnalysisResult result = analyze(heapDumpFile, referenceKey, excludedRefs);
     assertTrue(result.leakFound);
     assertTrue(result.excludedLeak);
   }
-
-  private AnalysisResult analyze() {
-    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(excludedRefs.build());
-    AnalysisResult result = heapAnalyzer.checkForLeak(heapDumpFile, referenceKey);
-    if (result.failure != null) {
-      result.failure.printStackTrace();
-    }
-    if (result.leakTrace != null) {
-      System.out.println(result.leakTrace);
-    }
-    return result;
-  }
-
 
 }
