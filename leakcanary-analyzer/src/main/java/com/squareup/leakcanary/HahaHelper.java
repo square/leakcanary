@@ -78,12 +78,22 @@ public final class HahaHelper {
     ArrayInstance charArray;
     if (isCharArray(value)) {
       charArray = (ArrayInstance) value;
-      offset = fieldValue(values, "offset");
+      offset = 0;
+      // < API 23
+      // As of Marshmallow, substrings no longer share their parent strings' char arrays
+      // eliminating the need for String.offset
+      // https://android-review.googlesource.com/#/c/83611/
+      if (hasField(values, "offset")) {
+        offset = fieldValue(values, "offset");
+      }
     } else {
-      // In M preview 2+, the underlying char buffer resides in the heap with ID equalling the
+      // In M preview 2, the underlying char buffer resides in the heap with ID equaling the
       // String's ID + 16.
       // https://android-review.googlesource.com/#/c/160380/2/android/src/com/android/tools/idea/
       // editors/hprof/descriptors/InstanceFieldDescriptorImpl.java
+      // This workaround is only needed for M preview 2, as it has been fixed on the hprof
+      // generation end by reintroducing a virtual "value" variable.
+      // https://android.googlesource.com/platform/art/+/master/runtime/hprof/hprof.cc#1242
       Heap heap = instance.getHeap();
       Instance inlineInstance = heap.getInstance(instance.getId() + 16);
       if (isCharArray(inlineInstance)) {
@@ -141,6 +151,16 @@ public final class HahaHelper {
       }
     }
     throw new IllegalArgumentException("Field " + fieldName + " does not exists");
+  }
+
+  static boolean hasField(List<ClassInstance.FieldValue> values, String fieldName) {
+    for (ClassInstance.FieldValue fieldValue : values) {
+      if (fieldValue.getField().getName().equals(fieldName)) {
+        //noinspection unchecked
+        return true;
+      }
+    }
+    return false;
   }
 
   private HahaHelper() {
