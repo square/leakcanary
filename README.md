@@ -17,12 +17,6 @@ In your `build.gradle`:
  }
 ```
 
-```
-  repositories {
-    mavenCentral()
-  }
-```
-
 In your `Application` class:
 
 ```java
@@ -144,6 +138,47 @@ Sometimes the leak trace isn't enough and you need to dig into the heap dump wit
 
 ## Customizing
 
+### Customizing and using the no-op dependency
+
+The `leakcanary-android-no-op` dependency for release builds only contains the `LeakCanary` and `RefWatcher` class. If you start customizing LeakCanary, you need to make sure that the customization happens only in debug build, since it will likely reference classes that do not exist in the `leakcanary-android-no-op` dependency.
+
+Let's say your release build declares an `ExampleApplication` class in `AndroidManifest.xml`, and your debug build declares a `DebugExampleApplication` that extends `ExampleApplication`.
+
+In your shared sources:
+
+```java
+public class ExampleApplication extends Application {
+
+  public static RefWatcher getRefWatcher(Context context) {
+    ExampleApplication application = (ExampleApplication) context.getApplicationContext();
+    return application.refWatcher;
+  }
+
+  private RefWatcher refWatcher;
+
+  @Override public void onCreate() {
+    super.onCreate();
+    refWatcher = installLeakCanary();
+  }
+
+  protected RefWatcher installLeakCanary() {
+    return RefWatcher.DISABLED;
+  }
+}
+```
+
+In your debug sources:
+
+```java
+public class DebugExampleApplication extends ExampleApplication {
+  protected RefWatcher installLeakCanary() {
+	RefWatcher refWatcher = ? // Build a customized RefWatcher
+    return refWatcher;
+  }
+}
+```
+That way, your release code will contain no reference to LeakCanary other than the two empty classes that exist in the `leakcanary-android-no-op` dependency.
+
 ### Icon and label
 
 `DisplayLeakActivity` comes with a default icon and label, which you can change by providing `R.drawable.__leak_canary_icon` and `R.string.__leak_canary_display_activity_label` in your app:
@@ -197,29 +232,6 @@ public class LeakUploadService extends DisplayLeakService {
 }
 ```
 
-Make sure the release Application class uses the disabled `RefWatcher`:
-
-```java
-public class ExampleApplication extends Application {
-
-  public static RefWatcher getRefWatcher(Context context) {
-    ExampleApplication application = (ExampleApplication) context.getApplicationContext();
-    return application.refWatcher;
-  }
-
-  private RefWatcher refWatcher;
-
-  @Override public void onCreate() {
-    super.onCreate();
-    refWatcher = installLeakCanary();
-  }
-  
-  protected RefWatcher installLeakCanary() {
-    return RefWatcher.DISABLED;
-  }
-}
-```
-
 Build a custom `RefWatcher` in your debug Application class:
 
 ```java
@@ -230,7 +242,7 @@ public class DebugExampleApplication extends ExampleApplication {
 }
 ```
 
-Don't forget to register the service in your debug manifest:
+Don't forget to register the service in your debug `AndroidManifest.xml`:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -252,12 +264,51 @@ You can create your own version of `ExcludedRefs` to ignore specific references 
 ```java
 public class DebugExampleApplication extends ExampleApplication {
   protected RefWatcher installLeakCanary() {
-    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAndroidDefaults()
+    ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults()
         .instanceField("com.example.ExampleClass", "exampleField")
         .build();
     return LeakCanary.install(this, DisplayLeakService.class, excludedRefs);
   }
 }
+```
+
+### Not watching specific activity classes
+
+`ActivityRefWatcher` is installed by default and watches all activities. You can customize the installation steps to use something different instead:
+
+```java
+public class DebugExampleApplication extends ExampleApplication {
+  protected RefWatcher installLeakCanary() {
+    if (isInAnalyzerProcess(this)) {
+      return RefWatcher.DISABLED;
+    } else {
+      ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults().build();
+      enableDisplayLeakActivity(application);
+      ServiceHeapDumpListener heapDumpListener = new ServiceHeapDumpListener(application, DisplayLeakService.class);
+      final RefWatcher refWatcher = androidWatcher(application, heapDumpListener, excludedRefs);
+      registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+        public void onActivityDestroyed(Activity activity) {
+          if (activity instanceof ThirdPartyActivity) {
+              return;
+          }
+          refWatcher.watch(activity);
+        }
+        // ...
+      });
+      return refWatcher;
+    }
+  }
+}
+```
+
+### ProGuard
+
+If you use Proguard in your debug builds, make sure to keep the HAHA and LeakCanary classes:
+
+```
+# LeakCanary
+-keep class org.eclipse.mat.** { *; }
+-keep class com.squareup.leakcanary.** { *; }
 ```
 
 ## Snapshots of the development version

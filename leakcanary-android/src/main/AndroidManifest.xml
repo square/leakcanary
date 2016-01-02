@@ -33,11 +33,11 @@
         android:enabled="false"
         />
     <activity
-        android:theme="@style/__LeakCanary.Base"
+        android:theme="@style/leak_canary_LeakCanary.Base"
         android:name=".internal.DisplayLeakActivity"
         android:enabled="false"
-        android:label="@string/__leak_canary_display_activity_label"
-        android:icon="@drawable/__leak_canary_icon"
+        android:label="@string/leak_canary_display_activity_label"
+        android:icon="@drawable/leak_canary_icon"
         android:taskAffinity="com.squareup.leakcanary"
         >
       <intent-filter>
