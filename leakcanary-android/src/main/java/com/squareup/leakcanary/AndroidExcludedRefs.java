@@ -169,7 +169,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SPELL_CHECKER_SESSION(SDK_INT >= JELLY_BEAN || SDK_INT <= LOLLIPOP_MR1) {
+  SPELL_CHECKER_SESSION(SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       // SpellCheckerSessionListenerImpl.mHandler is leaking destroyed Activity when the
       // SpellCheckerSession is closed before the service is connected.
