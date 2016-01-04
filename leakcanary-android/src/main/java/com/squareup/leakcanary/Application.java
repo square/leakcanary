@@ -13,21 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.leakcanary;
+package com.squareup.leakcanary;
 
-import android.app.Application;
+import android.content.Context;
 import android.os.StrictMode;
-import com.squareup.leakcanary.LeakCanary;
 
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.GINGERBREAD;
 
-public class ExampleApplication extends Application {
+public class Application extends android.app.Application {
+  private RefWatcher refWatcher;
 
   @Override public void onCreate() {
     super.onCreate();
     enabledStrictMode();
-    LeakCanary.install(this);
+    refWatcher = LeakCanary.install(this);
+  }
+
+  public static RefWatcher getRefWatcher(Context context) {
+    Application application = (Application) context.getApplicationContext();
+    return application.refWatcher;
   }
 
   private void enabledStrictMode() {

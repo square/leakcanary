@@ -18,7 +18,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.leakcanary"
     >
-  <application android:name=".ExampleApplication" android:allowBackup="false"
+  <application android:name="com.squareup.leakcanary.Application" android:allowBackup="false"
       android:icon="@drawable/ic_launcher"
       >
     <activity
