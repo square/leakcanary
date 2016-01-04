@@ -94,7 +94,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  TEXT_LINE__SCACHED(SDK_INT < LOLLIPOP_MR1) {
+  TEXT_LINE__SCACHED(SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       // TextLine.sCached is a pool of 3 TextLine instances. TextLine.recycle() has had at least two
       // bugs that created memory leaks by not correctly clearing the recycled TextLine instances.
