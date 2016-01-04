@@ -93,6 +93,14 @@ afterEvaluate { project ->
         from android.sourceSets.main.java.sourceFiles
     }
 
+    if (JavaVersion.current().isJava8Compatible()) {
+        allprojects {
+            tasks.withType(Javadoc) {
+                options.addStringOption('Xdoclint:none', '-quiet')
+            }
+        }
+    }
+
     artifacts {
         archives androidSourcesJar
         archives androidJavadocsJar
