@@ -9,6 +9,7 @@
 * Fixed crash for anonymous classes that extend Object: [#195](https://github.com/square/leakcanary/issues/195).
 * Added excluded leaks to text report [#119](https://github.com/square/leakcanary/issues/119).
 * Added LeakCanary SHA to text report [#120](https://github.com/square/leakcanary/issues/120).
+* Added CanaryLog API to replace the logger: [#201](https://github.com/square/leakcanary/issues/201).
 * Renamed all resources to begin with `leak_canary_` instead of `__leak_canary`[#161](https://github.com/square/leakcanary/pull/161)
 * No crash when heap dump fails [#226](https://github.com/square/leakcanary/issues/226).
 
