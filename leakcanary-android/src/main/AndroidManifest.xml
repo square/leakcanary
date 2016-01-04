@@ -27,6 +27,7 @@
         android:name=".internal.HeapAnalyzerService"
         android:process=":leakcanary"
         android:enabled="false"
+        android:largeHeap="true"
         />
     <service
         android:name=".DisplayLeakService"
