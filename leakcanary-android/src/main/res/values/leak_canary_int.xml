@@ -16,4 +16,5 @@
   -->
 <resources>
   <integer name="leak_canary_max_stored_leaks">7</integer>
+  <integer name="leak_canary_watch_delay_millis">5000</integer>
 </resources>

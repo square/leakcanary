@@ -215,6 +215,17 @@ res/
 </resources>
 ```
 
+### Watcher delay
+
+With version 1.4-SNAPSHOT you now have the possibility to change the delay time until a reference is effectively considered a memory leak by providing `R.integer.leak_canary_watch_delay_millis` in your app:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <integer name="leak_canary_watch_delay_millis">1500</integer>
+</resources>
+```
+
 ### Uploading to a server
 
 You can change the default behavior to upload the leak trace and heap dump to a server of your choosing.
