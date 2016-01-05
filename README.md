@@ -1,4 +1,4 @@
-#LeakCanary
+# LeakCanary
 
 A memory leak detection library for Android and Java.
 
@@ -217,7 +217,9 @@ res/
 
 ### Watcher delay
 
-With version 1.4-SNAPSHOT you now have the possibility to change the delay time until a reference is effectively considered a memory leak by providing `R.integer.leak_canary_watch_delay_millis` in your app:
+*Available in 1.4-SNAPSHOT*.
+
+You can change the delay until a reference is considered a memory leak by providing `R.integer.leak_canary_watch_delay_millis` in your app:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -225,6 +227,8 @@ With version 1.4-SNAPSHOT you now have the possibility to change the delay time 
   <integer name="leak_canary_watch_delay_millis">1500</integer>
 </resources>
 ```
+
+The default delay is 5 seconds.
 
 ### Uploading to a server
 
