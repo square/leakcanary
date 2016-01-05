@@ -24,7 +24,7 @@ import java.util.concurrent.Executor;
 /**
  * {@link Executor} suitable for watching Android reference leaks. This executor waits for the main
  * thread to be idle then posts to a serial background thread with a delay of
- * {@link R.integer.leak_canary_watch_delay_millis} seconds.
+ * {@link R.integer#leak_canary_watch_delay_millis} seconds.
  */
 public final class AndroidWatchExecutor implements Executor {
 
