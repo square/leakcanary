@@ -238,6 +238,15 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  APP_WIDGET_HOST_CALLBACKS(SDK_INT < LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      // android.appwidget.AppWidgetHost$Callbacks is a stub and is held in memory native code
+      // The reference to the `mContext` was not being cleared, which caused the Callbacks instance to retain this reference
+      // Fixed in AOSP: https://github.com/android/platform_frameworks_base/commit/7a96f3c917e0001ee739b65da37b2fadec7d7765
+      excluded.instanceField("android.appwidget.AppWidgetHost$Callbacks", "this$0");
+    }
+  },
+
   DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
     @Override void add(ExcludedRefs.Builder excluded) {
       if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
