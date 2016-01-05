@@ -26,27 +26,41 @@ import android.widget.Toast;
 import com.squareup.leakcanary.internal.FutureResult;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
+import java.io.IOException;
 
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.isExternalStorageWritable;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.storageDirectory;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class AndroidHeapDumper implements HeapDumper {
 
+  private static final String HEAPDUMP_FILE = "suspected_leak_heapdump.hprof";
+
   private final Context context;
+  private final LeakDirectoryProvider leakDirectoryProvider;
   private final Handler mainHandler;
 
-  public AndroidHeapDumper(Context context) {
+  public AndroidHeapDumper(Context context, LeakDirectoryProvider leakDirectoryProvider) {
+    this.leakDirectoryProvider = leakDirectoryProvider;
     this.context = context.getApplicationContext();
     mainHandler = new Handler(Looper.getMainLooper());
   }
 
   @Override public File dumpHeap() {
-    if (!isExternalStorageWritable()) {
+    if (!leakDirectoryProvider.isLeakStorageWritable()) {
       CanaryLog.d("Could not dump heap, external storage not mounted.");
     }
     File heapDumpFile = getHeapDumpFile();
-    if (heapDumpFile.exists()) {
+    // Atomic way to check for existence & create the file if it doesn't exist.
+    // Prevents several processes in the same app to attempt a heapdump at the same time.
+    boolean fileCreated;
+    try {
+      fileCreated = heapDumpFile.createNewFile();
+    } catch (IOException e) {
+      cleanup();
+      CanaryLog.d(e, "Could not check if heap dump file exists");
+      return NO_DUMP;
+    }
+
+    if (!fileCreated) {
       CanaryLog.d("Could not dump heap, previous analysis still is in progress.");
       // Heap analysis in progress, let's not put too much pressure on the device.
       return NO_DUMP;
@@ -80,20 +94,23 @@ public final class AndroidHeapDumper implements HeapDumper {
   public void cleanup() {
     LeakCanaryInternals.executeOnFileIoThread(new Runnable() {
       @Override public void run() {
-        if (isExternalStorageWritable()) {
-          CanaryLog.d("Could not attempt cleanup, external storage not mounted.");
+        if (!leakDirectoryProvider.isLeakStorageWritable()) {
+          CanaryLog.d("Could not attempt cleanup, leak storage not mounted.");
         }
         File heapDumpFile = getHeapDumpFile();
         if (heapDumpFile.exists()) {
           CanaryLog.d("Previous analysis did not complete correctly, cleaning: %s", heapDumpFile);
-          heapDumpFile.delete();
+          boolean success = heapDumpFile.delete();
+          if (!success) {
+            CanaryLog.d("Could not delete file %s", heapDumpFile.getPath());
+          }
         }
       }
     });
   }
 
   private File getHeapDumpFile() {
-    return new File(storageDirectory(), "suspected_leak_heapdump.hprof");
+    return new File(leakDirectoryProvider.leakDirectory(), HEAPDUMP_FILE);
   }
 
   private void showToast(final FutureResult<Toast> waitingForToast) {
