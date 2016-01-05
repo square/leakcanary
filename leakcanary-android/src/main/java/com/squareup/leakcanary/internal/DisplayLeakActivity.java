@@ -40,6 +40,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.squareup.leakcanary.AnalysisResult;
+import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.R;
 
@@ -67,7 +68,6 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.leakResultFil
 @SuppressWarnings("ConstantConditions") @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public final class DisplayLeakActivity extends Activity {
 
-  private static final String TAG = "DisplayLeakActivity";
   private static final String SHOW_LEAK_EXTRA = "show_latest";
 
   public static PendingIntent createPendingIntent(Context context) {
@@ -426,8 +426,8 @@ public final class DisplayLeakActivity extends Activity {
             // Let's remove the files, we can't read them anymore.
             heapDumpFile.delete();
             resultFile.delete();
-            Log.e(TAG, "Could not read result file, deleted result and heap dump:" + heapDumpFile,
-                e);
+            CanaryLog.d(e, "Could not read result file, deleted result and heap dump: %s",
+                heapDumpFile);
           } finally {
             if (fis != null) {
               try {

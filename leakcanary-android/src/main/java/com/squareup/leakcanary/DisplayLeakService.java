@@ -20,7 +20,6 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.util.Log;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -44,17 +43,9 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.leakResultFil
  */
 public class DisplayLeakService extends AbstractAnalysisResultService {
 
-  @Override
-  protected final void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result) {
+  @Override protected final void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result) {
     String leakInfo = leakInfo(this, heapDump, result, true);
-    if (leakInfo.length() < 4000) {
-      Log.d("LeakCanary", leakInfo);
-    } else {
-      String[] lines = leakInfo.split("\n");
-      for (String line : lines) {
-        Log.d("LeakCanary", line);
-      }
-    }
+    CanaryLog.d(leakInfo);
 
     if (result.failure == null && (!result.leakFound || result.excludedLeak)) {
       if (result.excludedLeak) {
@@ -73,8 +64,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
 
     if (renamedFile == null) {
       // No file available.
-      Log.e("LeakCanary",
-          "Leak result dropped because we already store " + maxStoredLeaks + " leak traces.");
+      CanaryLog.d("Leak result dropped because we already store %d leak traces.", maxStoredLeaks);
       afterDefaultHandling(heapDump, result, leakInfo);
       return;
     }
@@ -89,7 +79,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       oos.writeObject(heapDump);
       oos.writeObject(result);
     } catch (IOException e) {
-      Log.e("LeakCanary", "Could not save leak analysis result to disk", e);
+      CanaryLog.d(e, "Could not save leak analysis result to disk");
       afterDefaultHandling(heapDump, result, leakInfo);
       return;
     } finally {
@@ -118,8 +108,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
   }
 
   @TargetApi(HONEYCOMB)
-  private void notify(String contentTitle, String contentText,
-      PendingIntent pendingIntent) {
+  private void notify(String contentTitle, String contentText, PendingIntent pendingIntent) {
     NotificationManager notificationManager =
         (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 

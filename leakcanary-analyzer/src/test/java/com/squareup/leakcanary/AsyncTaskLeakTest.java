@@ -45,6 +45,7 @@ public class AsyncTaskLeakTest {
     return Arrays.asList(new Object[][] {
         { fileFromName("leak_asynctask.hprof"), "dc983a12-d029-4003-8890-7dd644c664c5" },
         { fileFromName("leak_asynctask_mpreview2.hprof"), "1114018e-e154-435f-9a3d-da63ae9b47fa" },
+        { fileFromName("leak_asynctask_m_postpreview2.hprof"), "25ae1778-7c1d-4ec7-ac50-5cce55424069" }
     });
   }
 

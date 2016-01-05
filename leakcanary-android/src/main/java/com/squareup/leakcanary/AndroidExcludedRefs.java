@@ -94,7 +94,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  TEXT_LINE__SCACHED(SDK_INT < LOLLIPOP_MR1) {
+  TEXT_LINE__SCACHED(SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       // TextLine.sCached is a pool of 3 TextLine instances. TextLine.recycle() has had at least two
       // bugs that created memory leaks by not correctly clearing the recycled TextLine instances.
@@ -169,7 +169,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SPELL_CHECKER_SESSION(SDK_INT >= JELLY_BEAN || SDK_INT <= LOLLIPOP_MR1) {
+  SPELL_CHECKER_SESSION(SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       // SpellCheckerSessionListenerImpl.mHandler is leaking destroyed Activity when the
       // SpellCheckerSession is closed before the service is connected.
@@ -184,9 +184,9 @@ public enum AndroidExcludedRefs {
       // which can be an activity context.
       // Tracked here : https://code.google.com/p/android/issues/detail?id=172659
       // Hack : https://gist.github.com/andaag/b05ab66ed0f06167d6e0
-      excluded.staticField("android.support.v7.internal.widget.ActivityChooserModel",
-          "mActivityChoserModelPolicy");
-      excluded.staticField("android.widget.ActivityChooserModel", "mActivityChoserModelPolicy");
+      excluded.instanceField("android.support.v7.internal.widget.ActivityChooserModel",
+                             "mActivityChoserModelPolicy");
+      excluded.instanceField("android.widget.ActivityChooserModel", "mActivityChoserModelPolicy");
     }
   },
 
