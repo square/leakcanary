@@ -1,5 +1,7 @@
 # Change Log
 
+You can watch releases [on Bintray](https://bintray.com/pyricau/maven/com.squareup.leakcanary%3Aleakcanary-android/view?source=watch).
+
 ## Version 1.4-SNAPSHOT
 
 * Switched to [HAHA 2.0.2](https://github.com/square/haha/blob/master/CHANGELOG.md#version-202-2015-07-20) with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This should fix most crashes and improve speed a lot. We can now parse Android M heap dumps, although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
