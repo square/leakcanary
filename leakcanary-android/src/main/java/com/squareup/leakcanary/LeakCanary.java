@@ -19,6 +19,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.os.Build;
 import android.util.Log;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
@@ -61,13 +62,15 @@ public final class LeakCanary {
    */
   public static RefWatcher androidWatcher(Context context, HeapDump.Listener heapDumpListener,
       ExcludedRefs excludedRefs) {
+    LeakDirectoryProvider leakDirectoryProvider = new DefaultLeakDirectoryProvider(context);
     DebuggerControl debuggerControl = new AndroidDebuggerControl();
-    AndroidHeapDumper heapDumper = new AndroidHeapDumper(context);
+    AndroidHeapDumper heapDumper = new AndroidHeapDumper(context, leakDirectoryProvider);
     heapDumper.cleanup();
-    int watchDelayMillis =
-        context.getResources().getInteger(R.integer.leak_canary_watch_delay_millis);
-    return new RefWatcher(new AndroidWatchExecutor(watchDelayMillis), debuggerControl,
-        GcTrigger.DEFAULT, heapDumper, heapDumpListener, excludedRefs);
+    Resources resources = context.getResources();
+    int watchDelayMillis = resources.getInteger(R.integer.leak_canary_watch_delay_millis);
+    AndroidWatchExecutor executor = new AndroidWatchExecutor(watchDelayMillis);
+    return new RefWatcher(executor, debuggerControl, GcTrigger.DEFAULT, heapDumper,
+        heapDumpListener, excludedRefs);
   }
 
   public static void enableDisplayLeakActivity(Context context) {

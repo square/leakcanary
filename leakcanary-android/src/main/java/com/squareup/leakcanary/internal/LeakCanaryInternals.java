@@ -22,9 +22,7 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
-import android.os.Environment;
 import com.squareup.leakcanary.CanaryLog;
-import java.io.File;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -32,7 +30,6 @@ import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 import static android.content.pm.PackageManager.DONT_KILL_APP;
 import static android.content.pm.PackageManager.GET_SERVICES;
-import static android.os.Environment.DIRECTORY_DOWNLOADS;
 
 public final class LeakCanaryInternals {
 
@@ -47,40 +44,6 @@ public final class LeakCanaryInternals {
 
   public static void executeOnFileIoThread(Runnable runnable) {
     fileIoExecutor.execute(runnable);
-  }
-
-  public static File storageDirectory() {
-    File downloadsDirectory = Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS);
-    File leakCanaryDirectory = new File(downloadsDirectory, "leakcanary");
-    leakCanaryDirectory.mkdirs();
-    return leakCanaryDirectory;
-  }
-
-  public static File detectedLeakDirectory() {
-    File directory = new File(storageDirectory(), "detected_leaks");
-    directory.mkdirs();
-    return directory;
-  }
-
-  public static File leakResultFile(File heapdumpFile) {
-    return new File(heapdumpFile.getParentFile(), heapdumpFile.getName() + ".result");
-  }
-
-  public static boolean isExternalStorageWritable() {
-    String state = Environment.getExternalStorageState();
-    return Environment.MEDIA_MOUNTED.equals(state);
-  }
-
-  public static File findNextAvailableHprofFile(int maxFiles) {
-    File directory = detectedLeakDirectory();
-    for (int i = 0; i < maxFiles; i++) {
-      String heapDumpName = "heap_dump_" + i + ".hprof";
-      File file = new File(directory, heapDumpName);
-      if (!file.exists()) {
-        return file;
-      }
-    }
-    return null;
   }
 
   /** Extracts the class simple name out of a string containing a fully qualified class name. */

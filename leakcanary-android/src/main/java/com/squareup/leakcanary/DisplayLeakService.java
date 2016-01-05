@@ -20,19 +20,24 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.res.Resources;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Locale;
 
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.HONEYCOMB;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.classSimpleName;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.findNextAvailableHprofFile;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.leakResultFile;
 
 /**
  * Logs leak analysis results, and then shows a notification which will start {@link
@@ -47,41 +52,57 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     String leakInfo = leakInfo(this, heapDump, result, true);
     CanaryLog.d(leakInfo);
 
-    if (result.failure == null && (!result.leakFound || result.excludedLeak)) {
-      if (result.excludedLeak) {
-        PendingIntent pendingIntent = DisplayLeakActivity.createPendingIntent(this);
-        String contentTitle =
-            getString(R.string.leak_canary_class_leak_ignored, classSimpleName(result.className));
-        String contentText = getString(R.string.leak_canary_notification_leak_ignored_message);
-        notify(contentTitle, contentText, pendingIntent);
+    boolean resultSaved = false;
+    boolean shouldSaveResult = result.leakFound || result.failure != null;
+    if (shouldSaveResult) {
+      heapDump = renameHeapdump(heapDump);
+      resultSaved = saveResult(heapDump, result);
+    }
+
+    PendingIntent pendingIntent;
+    String contentTitle;
+    String contentText;
+
+    if (!shouldSaveResult) {
+      contentTitle = getString(R.string.leak_canary_no_leak_title);
+      contentText = getString(R.string.leak_canary_no_leak_text);
+      pendingIntent = null;
+    } else if (resultSaved) {
+      pendingIntent = DisplayLeakActivity.createPendingIntent(this, heapDump.referenceKey);
+
+      if (result.failure == null) {
+        if (result.excludedLeak) {
+          contentTitle =
+              getString(R.string.leak_canary_leak_excluded, classSimpleName(result.className));
+        } else {
+          contentTitle =
+              getString(R.string.leak_canary_class_has_leaked, classSimpleName(result.className));
+        }
+      } else {
+        contentTitle = getString(R.string.leak_canary_analysis_failed);
       }
-      afterDefaultHandling(heapDump, result, leakInfo);
-      return;
+      contentText = getString(R.string.leak_canary_notification_message);
+    } else {
+      contentTitle = getString(R.string.leak_canary_could_not_save_title);
+      contentText = getString(R.string.leak_canary_could_not_save_text);
+      pendingIntent = null;
     }
+    notify(contentTitle, contentText, pendingIntent);
+    afterDefaultHandling(heapDump, result, leakInfo);
+  }
 
-    int maxStoredLeaks = getResources().getInteger(R.integer.leak_canary_max_stored_leaks);
-    File renamedFile = findNextAvailableHprofFile(maxStoredLeaks);
-
-    if (renamedFile == null) {
-      // No file available.
-      CanaryLog.d("Leak result dropped because we already store %d leak traces.", maxStoredLeaks);
-      afterDefaultHandling(heapDump, result, leakInfo);
-      return;
-    }
-
-    heapDump = heapDump.renameFile(renamedFile);
-
-    File resultFile = leakResultFile(renamedFile);
+  private boolean saveResult(HeapDump heapDump, AnalysisResult result) {
+    File resultFile = new File(heapDump.heapDumpFile.getParentFile(),
+        heapDump.heapDumpFile.getName() + ".result");
     FileOutputStream fos = null;
     try {
       fos = new FileOutputStream(resultFile);
       ObjectOutputStream oos = new ObjectOutputStream(fos);
       oos.writeObject(heapDump);
       oos.writeObject(result);
+      return true;
     } catch (IOException e) {
-      CanaryLog.d(e, "Could not save leak analysis result to disk");
-      afterDefaultHandling(heapDump, result, leakInfo);
-      return;
+      CanaryLog.d(e, "Could not save leak analysis result to disk.");
     } finally {
       if (fos != null) {
         try {
@@ -90,21 +111,45 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
         }
       }
     }
+    return false;
+  }
 
-    PendingIntent pendingIntent =
-        DisplayLeakActivity.createPendingIntent(this, heapDump.referenceKey);
+  private HeapDump renameHeapdump(HeapDump heapDump) {
+    String fileName =
+        new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(new Date());
 
-    String contentTitle;
-    if (result.failure == null) {
-      contentTitle =
-          getString(R.string.leak_canary_class_has_leaked, classSimpleName(result.className));
-    } else {
-      contentTitle = getString(R.string.leak_canary_analysis_failed);
+    File newFile = new File(heapDump.heapDumpFile.getParent(), fileName);
+    boolean renamed = heapDump.heapDumpFile.renameTo(newFile);
+    if (!renamed) {
+      CanaryLog.d("Could not rename heap dump file %s to %s", heapDump.heapDumpFile.getPath(),
+          newFile.getPath());
     }
-    String contentText = getString(R.string.leak_canary_notification_message);
+    heapDump =
+        new HeapDump(newFile, heapDump.referenceKey, heapDump.referenceName, heapDump.excludedRefs,
+            heapDump.watchDurationMs, heapDump.gcDurationMs, heapDump.heapDumpDurationMs);
 
-    notify(contentTitle, contentText, pendingIntent);
-    afterDefaultHandling(heapDump, result, leakInfo);
+    Resources resources = getResources();
+    int maxStoredHeapDumps =
+        Math.max(resources.getInteger(R.integer.leak_canary_max_stored_leaks), 1);
+    File[] hprofFiles = heapDump.heapDumpFile.getParentFile().listFiles(new FilenameFilter() {
+      @Override public boolean accept(File dir, String filename) {
+        return filename.endsWith(".hprof");
+      }
+    });
+
+    if (hprofFiles.length > maxStoredHeapDumps) {
+      // Sort with oldest modified first.
+      Arrays.sort(hprofFiles, new Comparator<File>() {
+        @Override public int compare(File lhs, File rhs) {
+          return Long.valueOf(lhs.lastModified()).compareTo(rhs.lastModified());
+        }
+      });
+      boolean deleted = hprofFiles[0].delete();
+      if (!deleted) {
+        CanaryLog.d("Could not delete old hprof file %s", hprofFiles[0].getPath());
+      }
+    }
+    return heapDump;
   }
 
   @TargetApi(HONEYCOMB)

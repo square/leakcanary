@@ -61,11 +61,4 @@ public final class HeapDump implements Serializable {
     this.gcDurationMs = gcDurationMs;
     this.heapDumpDurationMs = heapDumpDurationMs;
   }
-
-  /** Renames the heap dump file and creates a new {@link HeapDump} pointing to it. */
-  public HeapDump renameFile(File newFile) {
-    heapDumpFile.renameTo(newFile);
-    return new HeapDump(newFile, referenceKey, referenceName, excludedRefs, watchDurationMs,
-        gcDurationMs, heapDumpDurationMs);
-  }
 }
