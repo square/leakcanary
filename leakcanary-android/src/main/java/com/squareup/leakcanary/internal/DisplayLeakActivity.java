@@ -54,7 +54,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 import static android.text.format.DateUtils.FORMAT_SHOW_DATE;
@@ -62,6 +61,7 @@ import static android.text.format.DateUtils.FORMAT_SHOW_TIME;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.newSingleThreadExecutor;
 
 @SuppressWarnings("ConstantConditions") @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public final class DisplayLeakActivity extends Activity {
@@ -380,8 +380,9 @@ public final class DisplayLeakActivity extends Activity {
             + leak.result.failure.getMessage();
       }
       titleView.setText(title);
-      String time = DateUtils.formatDateTime(DisplayLeakActivity.this, leak.resultFile.lastModified(),
-          FORMAT_SHOW_TIME | FORMAT_SHOW_DATE);
+      String time =
+          DateUtils.formatDateTime(DisplayLeakActivity.this, leak.resultFile.lastModified(),
+              FORMAT_SHOW_TIME | FORMAT_SHOW_DATE);
       timeView.setText(time);
       return convertView;
     }
@@ -403,7 +404,7 @@ public final class DisplayLeakActivity extends Activity {
 
     static final List<LoadLeaks> inFlight = new ArrayList<>();
 
-    static final Executor backgroundExecutor = Executors.newSingleThreadExecutor();
+    static final Executor backgroundExecutor = newSingleThreadExecutor("LoadLeaks");
 
     static void load(DisplayLeakActivity activity) {
       LoadLeaks loadLeaks = new LoadLeaks(activity);

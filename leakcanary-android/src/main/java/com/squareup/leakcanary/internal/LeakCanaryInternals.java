@@ -40,7 +40,7 @@ public final class LeakCanaryInternals {
   public static final String LG = "LGE";
   public static final String NVIDIA = "NVIDIA";
 
-  private static final Executor fileIoExecutor = Executors.newSingleThreadExecutor();
+  private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
 
   public static void executeOnFileIoThread(Runnable runnable) {
     fileIoExecutor.execute(runnable);
@@ -112,6 +112,10 @@ public final class LeakCanaryInternals {
     }
 
     return myProcess.processName.equals(serviceInfo.processName);
+  }
+
+  public static Executor newSingleThreadExecutor(String threadName) {
+    return Executors.newSingleThreadExecutor(new LeakCanarySingleThreadFactory(threadName));
   }
 
   private LeakCanaryInternals() {
