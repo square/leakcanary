@@ -13,6 +13,7 @@ public final class CanaryLog {
   }
 
   private static class DefaultLogger implements Logger {
+    DefaultLogger() { }
 
     @Override public void d(String message, Object... args) {
       String formatted = String.format(message, args);

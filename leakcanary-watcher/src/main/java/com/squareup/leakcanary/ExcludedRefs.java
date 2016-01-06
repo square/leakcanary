@@ -37,9 +37,9 @@ public final class ExcludedRefs implements Serializable {
   public final Map<String, Boolean> threadNames;
   public final Map<String, Boolean> classNames;
 
-  private ExcludedRefs(Map<String, Map<String, Boolean>> fieldNameByClassName,
-      Map<String, Map<String, Boolean>> staticFieldNameByClassName,
-      Map<String, Boolean> threadNames, Map<String, Boolean> classNames) {
+  ExcludedRefs(Map<String, Map<String, Boolean>> fieldNameByClassName,
+               Map<String, Map<String, Boolean>> staticFieldNameByClassName,
+               Map<String, Boolean> threadNames, Map<String, Boolean> classNames) {
     // Copy + unmodifiable.
     this.fieldNameByClassName = unmodifiableMap(new LinkedHashMap<>(fieldNameByClassName));
     this.staticFieldNameByClassName =
