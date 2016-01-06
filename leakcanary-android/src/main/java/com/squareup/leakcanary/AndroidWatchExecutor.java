@@ -30,8 +30,8 @@ public final class AndroidWatchExecutor implements Executor {
 
   static final String LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump";
   private final Handler mainHandler;
-  private final Handler backgroundHandler;
-  private final long delayMillis;
+  final Handler backgroundHandler;
+  final long delayMillis;
 
   public AndroidWatchExecutor(int delayMillis) {
     mainHandler = new Handler(Looper.getMainLooper());
@@ -57,7 +57,7 @@ public final class AndroidWatchExecutor implements Executor {
     return Looper.getMainLooper().getThread() == Thread.currentThread();
   }
 
-  private void executeDelayedAfterIdleUnsafe(final Runnable runnable) {
+  void executeDelayedAfterIdleUnsafe(final Runnable runnable) {
     // This needs to be called from the main thread.
     Looper.myQueue().addIdleHandler(new MessageQueue.IdleHandler() {
       @Override public boolean queueIdle() {

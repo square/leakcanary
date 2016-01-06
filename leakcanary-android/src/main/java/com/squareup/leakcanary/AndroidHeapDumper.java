@@ -34,8 +34,8 @@ public final class AndroidHeapDumper implements HeapDumper {
 
   private static final String HEAPDUMP_FILE = "suspected_leak_heapdump.hprof";
 
-  private final Context context;
-  private final LeakDirectoryProvider leakDirectoryProvider;
+  final Context context;
+  final LeakDirectoryProvider leakDirectoryProvider;
   private final Handler mainHandler;
 
   public AndroidHeapDumper(Context context, LeakDirectoryProvider leakDirectoryProvider) {
@@ -109,7 +109,7 @@ public final class AndroidHeapDumper implements HeapDumper {
     });
   }
 
-  private File getHeapDumpFile() {
+  File getHeapDumpFile() {
     return new File(leakDirectoryProvider.leakDirectory(), HEAPDUMP_FILE);
   }
 

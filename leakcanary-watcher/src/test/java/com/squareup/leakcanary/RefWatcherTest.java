@@ -43,7 +43,7 @@ public class RefWatcherTest {
   @SuppressWarnings("FieldCanBeLocal") Object ref;
 
   static class TestExecutor implements Executor {
-    private Runnable command;
+    Runnable command;
 
     @Override public void execute(Runnable command) {
       this.command = command;

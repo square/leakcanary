@@ -85,7 +85,7 @@ public final class DisplayLeakActivity extends Activity {
     DisplayLeakActivity.leakDirectoryProvider = leakDirectoryProvider;
   }
 
-  private static File getLeakDirectory(Context context) {
+  static File getLeakDirectory(Context context) {
     LeakDirectoryProvider leakDirectoryProvider = DisplayLeakActivity.leakDirectoryProvider;
     if (leakDirectoryProvider != null) {
       return leakDirectoryProvider.leakDirectory();
@@ -95,8 +95,8 @@ public final class DisplayLeakActivity extends Activity {
   }
 
   // null until it's been first loaded.
-  private List<Leak> leaks;
-  private String visibleLeakRefKey;
+  List<Leak> leaks;
+  String visibleLeakRefKey;
 
   private ListView listView;
   private TextView failureView;
@@ -197,7 +197,7 @@ public final class DisplayLeakActivity extends Activity {
     }
   }
 
-  private void shareLeak() {
+  void shareLeak() {
     Leak visibleLeak = getVisibleLeak();
     String leakInfo = leakInfo(this, visibleLeak.heapDump, visibleLeak.result, true);
     Intent intent = new Intent(Intent.ACTION_SEND);
@@ -206,7 +206,7 @@ public final class DisplayLeakActivity extends Activity {
     startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
-  private void shareHeapDump() {
+  void shareHeapDump() {
     Leak visibleLeak = getVisibleLeak();
     File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
     heapDumpFile.setReadable(true, false);
@@ -216,7 +216,7 @@ public final class DisplayLeakActivity extends Activity {
     startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
-  private void updateUi() {
+  void updateUi() {
     if (leaks == null) {
       setTitle("Loading leaks...");
       return;
@@ -328,7 +328,7 @@ public final class DisplayLeakActivity extends Activity {
     }
   }
 
-  private Leak getVisibleLeak() {
+  Leak getVisibleLeak() {
     if (leaks == null) {
       return null;
     }
@@ -418,7 +418,7 @@ public final class DisplayLeakActivity extends Activity {
       inFlight.clear();
     }
 
-    private DisplayLeakActivity activityOrNull;
+    DisplayLeakActivity activityOrNull;
     private final File leakDirectory;
     private final Handler mainHandler;
 
