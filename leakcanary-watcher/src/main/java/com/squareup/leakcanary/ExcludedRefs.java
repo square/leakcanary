@@ -23,10 +23,10 @@ import static com.squareup.leakcanary.Preconditions.checkNotNull;
 import static java.util.Collections.unmodifiableMap;
 
 /**
- * Prevents specific references from being taken into account when computing the shortest strong
- * reference path from a suspected leaking instance to the GC roots.
+ * Prevents specific references from being taken into account when computing the shortest reference
+ * path from a suspected leaking instance to the GC roots.
  *
- * This class lets you ignore known memory leaks that you known about. If the shortest path
+ * This class lets you ignore known memory leaks that you know about. If the shortest path
  * matches {@link ExcludedRefs}, than the heap analyzer should look for a longer path with nothing
  * matching in {@link ExcludedRefs}.
  */
@@ -36,19 +36,19 @@ public final class ExcludedRefs implements Serializable {
   public final Map<String, Map<String, Boolean>> staticFieldNameByClassName;
   public final Map<String, Boolean> threadNames;
   public final Map<String, Boolean> classNames;
-  public final Map<String, Boolean> rootClassNames;
+  public final Map<String, Boolean> rootSuperClassNames;
 
   private ExcludedRefs(Map<String, Map<String, Boolean>> fieldNameByClassName,
       Map<String, Map<String, Boolean>> staticFieldNameByClassName,
       Map<String, Boolean> threadNames, Map<String, Boolean> classNames,
-      Map<String, Boolean> rootClassNames) {
+      Map<String, Boolean> rootSuperClassNames) {
     // Copy + unmodifiable.
     this.fieldNameByClassName = unmodifiableMap(new LinkedHashMap<>(fieldNameByClassName));
     this.staticFieldNameByClassName =
         unmodifiableMap(new LinkedHashMap<>(staticFieldNameByClassName));
     this.threadNames = unmodifiableMap(new LinkedHashMap<>(threadNames));
     this.classNames = unmodifiableMap(new LinkedHashMap<>(classNames));
-    this.rootClassNames = unmodifiableMap(new LinkedHashMap<>(rootClassNames));
+    this.rootSuperClassNames = unmodifiableMap(new LinkedHashMap<>(rootSuperClassNames));
   }
 
   @Override public String toString() {
@@ -75,7 +75,7 @@ public final class ExcludedRefs implements Serializable {
       String always = clazz.getValue() ? " (always)" : "";
       string += "| Class:" + clazz.getKey() + always + "\n";
     }
-    for (Map.Entry<String, Boolean> clazz : rootClassNames.entrySet()) {
+    for (Map.Entry<String, Boolean> clazz : rootSuperClassNames.entrySet()) {
       String always = clazz.getValue() ? " (always)" : "";
       string += "| Root Class:" + clazz.getKey() + always + "\n";
     }
@@ -88,7 +88,7 @@ public final class ExcludedRefs implements Serializable {
         new LinkedHashMap<>();
     private final Map<String, Boolean> threadNames = new LinkedHashMap<>();
     private final Map<String, Boolean> classNames = new LinkedHashMap<>();
-    private final Map<String, Boolean> rootClassNames = new LinkedHashMap<>();
+    private final Map<String, Boolean> rootSuperClassNames = new LinkedHashMap<>();
 
     public Builder instanceField(String className, String fieldName) {
       return instanceField(className, fieldName, false);
@@ -142,19 +142,20 @@ public final class ExcludedRefs implements Serializable {
       return this;
     }
 
-    public Builder rootClass(String rootClassName) {
-      return rootClass(rootClassName, false);
+    public Builder rootSuperClass(String rootSuperClassName) {
+      return rootSuperClass(rootSuperClassName, false);
     }
 
-    public Builder rootClass(String rootClassName, boolean always) {
-      checkNotNull(rootClassName, "rootClassName");
-      rootClassNames.put(rootClassName, always);
+    /** Ignores any GC root that is a subclass of the provided class name. */
+    public Builder rootSuperClass(String rootSuperClassName, boolean always) {
+      checkNotNull(rootSuperClassName, "rootSuperClassName");
+      rootSuperClassNames.put(rootSuperClassName, always);
       return this;
     }
 
     public ExcludedRefs build() {
       return new ExcludedRefs(fieldNameByClassName, staticFieldNameByClassName, threadNames,
-          classNames, rootClassNames);
+          classNames, rootSuperClassNames);
     }
   }
 }

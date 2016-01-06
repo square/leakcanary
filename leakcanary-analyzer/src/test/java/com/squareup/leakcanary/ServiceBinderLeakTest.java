@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Square, Inc.
+ * Copyright (C) 2016 Square, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ public class ServiceBinderLeakTest {
   }
 
   @Test public void realBinderLeak() {
-    excludedRefs.rootClass("android.os.Binder", true);
+    excludedRefs.rootSuperClass("android.os.Binder", true);
 
     AnalysisResult result = analyze(
         TestUtil.fileFromName("leak_service_binder.hprof"),
@@ -61,7 +61,7 @@ public class ServiceBinderLeakTest {
   }
 
   @Test public void ignorableBinderLeak() {
-    excludedRefs.rootClass("android.os.Binder", false);
+    excludedRefs.rootSuperClass("android.os.Binder", false);
 
     AnalysisResult result = analyze(
         TestUtil.fileFromName("leak_service_binder_ignored.hprof"),
@@ -78,7 +78,7 @@ public class ServiceBinderLeakTest {
   }
 
   @Test public void alwaysIgnorableBinderLeak() {
-    excludedRefs.rootClass("android.os.Binder", true);
+    excludedRefs.rootSuperClass("android.os.Binder", true);
 
     AnalysisResult result = analyze(
         TestUtil.fileFromName("leak_service_binder_ignored.hprof"),

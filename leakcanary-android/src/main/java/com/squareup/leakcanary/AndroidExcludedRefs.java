@@ -355,7 +355,7 @@ public enum AndroidExcludedRefs {
       // When you bind and unbind from a Service, the OS will keep a reference to the Binder
       // until the client binder has been GC'ed. This means the Binder can be retained after
       // Service.onDestroy() is called.
-      excluded.rootClass("android.os.Binder", true);
+      excluded.rootSuperClass("android.os.Binder", true);
     }
   },
 
