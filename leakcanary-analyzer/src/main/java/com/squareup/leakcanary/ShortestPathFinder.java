@@ -176,15 +176,45 @@ final class ShortestPathFinder {
     RootObj rootObj = (RootObj) node.instance;
     Instance child = rootObj.getReferredInstance();
 
+    boolean visitRootNow = true;
+    if (child != null) {
+      // true = ignore root, false = visit root later, null = visit root now.
+      Boolean rootSuperClassAlwaysIgnored = rootSuperClassAlwaysIgnored(child);
+      if (rootSuperClassAlwaysIgnored != null) {
+        if (rootSuperClassAlwaysIgnored) {
+          return;
+        } else {
+          visitRootNow = false;
+        }
+      }
+    }
+
     if (rootObj.getRootType() == RootType.JAVA_LOCAL) {
       Instance holder = HahaSpy.allocatingThread(rootObj);
       // We switch the parent node with the thread instance that holds
       // the local reference.
       LeakNode parent = new LeakNode(holder, null, null, null);
-      enqueue(true, parent, child, "<Java Local>", LOCAL);
+      enqueue(visitRootNow, parent, child, "<Java Local>", LOCAL);
     } else {
-      enqueue(true, node, child, null, null);
+      enqueue(visitRootNow, node, child, null, null);
     }
+  }
+
+  private Boolean rootSuperClassAlwaysIgnored(Instance child) {
+    Boolean alwaysIgnoreClassHierarchy = null;
+    ClassObj superClassObj = child.getClassObj();
+    while (superClassObj != null) {
+      Boolean alwaysIgnoreClass =
+          excludedRefs.rootSuperClassNames.get(superClassObj.getClassName());
+      if (alwaysIgnoreClass != null) {
+        // true overrides null or false.
+        if (alwaysIgnoreClassHierarchy == null || !alwaysIgnoreClassHierarchy) {
+          alwaysIgnoreClassHierarchy = alwaysIgnoreClass;
+        }
+      }
+      superClassObj = superClassObj.getSuperClassObj();
+    }
+    return alwaysIgnoreClassHierarchy;
   }
 
   private void visitClassObj(LeakNode node) {
