@@ -27,6 +27,7 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -164,7 +165,14 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       notification.icon = R.drawable.leak_canary_notification;
       notification.when = System.currentTimeMillis();
       notification.flags |= Notification.FLAG_AUTO_CANCEL;
-      notification.setLatestEventInfo(this, contentTitle, contentText, pendingIntent);
+      try {
+        Method method =
+            Notification.class.getMethod("setLatestEventInfo", Context.class, CharSequence.class,
+                CharSequence.class, PendingIntent.class);
+        method.invoke(notification, this, contentTitle, contentText, pendingIntent);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     } else {
       Notification.Builder builder = new Notification.Builder(this) //
           .setSmallIcon(R.drawable.leak_canary_notification)
