@@ -78,6 +78,11 @@ public final class LeakCanary {
     setEnabled(context, DisplayLeakActivity.class, true);
   }
 
+  public static void setDisplayLeakActivityDirectoryProvider(
+      LeakDirectoryProvider leakDirectoryProvider) {
+    DisplayLeakActivity.setLeakDirectoryProvider(leakDirectoryProvider);
+  }
+
   /** Returns a string representation of the result of a heap analysis. */
   public static String leakInfo(Context context, HeapDump heapDump, AnalysisResult result,
       boolean detailed) {

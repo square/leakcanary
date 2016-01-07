@@ -15,11 +15,7 @@
  */
 package com.squareup.leakcanary;
 
-import android.annotation.TargetApi;
-import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.res.Resources;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import java.io.File;
@@ -27,19 +23,16 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Locale;
 
-import static android.os.Build.VERSION.SDK_INT;
-import static android.os.Build.VERSION_CODES.HONEYCOMB;
-import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 import static android.text.format.Formatter.formatShortFileSize;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.classSimpleName;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.showNotification;
 
 /**
  * Logs leak analysis results, and then shows a notification which will start {@link
@@ -89,7 +82,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       contentText = getString(R.string.leak_canary_could_not_save_text);
       pendingIntent = null;
     }
-    notify(contentTitle, contentText, pendingIntent);
+    showNotification(this, contentTitle, contentText, pendingIntent);
     afterDefaultHandling(heapDump, result, leakInfo);
   }
 
@@ -152,42 +145,6 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       }
     }
     return heapDump;
-  }
-
-  @TargetApi(HONEYCOMB)
-  private void notify(String contentTitle, String contentText, PendingIntent pendingIntent) {
-    NotificationManager notificationManager =
-        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-    Notification notification;
-    if (SDK_INT < HONEYCOMB) {
-      notification = new Notification();
-      notification.icon = R.drawable.leak_canary_notification;
-      notification.when = System.currentTimeMillis();
-      notification.flags |= Notification.FLAG_AUTO_CANCEL;
-      try {
-        Method method =
-            Notification.class.getMethod("setLatestEventInfo", Context.class, CharSequence.class,
-                CharSequence.class, PendingIntent.class);
-        method.invoke(notification, this, contentTitle, contentText, pendingIntent);
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    } else {
-      Notification.Builder builder = new Notification.Builder(this) //
-          .setSmallIcon(R.drawable.leak_canary_notification)
-          .setWhen(System.currentTimeMillis())
-          .setContentTitle(contentTitle)
-          .setContentText(contentText)
-          .setAutoCancel(true)
-          .setContentIntent(pendingIntent);
-      if (SDK_INT < JELLY_BEAN) {
-        notification = builder.getNotification();
-      } else {
-        notification = builder.build();
-      }
-    }
-    notificationManager.notify(0xDEAFBEEF, notification);
   }
 
   /**

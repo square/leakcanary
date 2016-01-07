@@ -24,6 +24,7 @@
   <string name="leak_canary_share_heap_dump">Share heap dump</string>
   <string name="leak_canary_share_with">Share with…</string>
   <string name="leak_canary_display_activity_label">Leaks</string>
+  <string name="leak_canary_storage_permission_activity_label">Storage permission</string>
   <string name="leak_canary_toast_heap_dump">Dumping memory, app will freeze. Brrrr.</string>
   <string name="leak_canary_delete">Delete</string>
   <string name="leak_canary_failure_report">"Please report this failure to http://github.com/square/leakcanary\n"</string>
@@ -33,4 +34,6 @@
   <string name="leak_canary_no_leak_title">No leak found</string>
   <string name="leak_canary_no_leak_text">The GC was being lazy.</string>
   <string name="leak_canary_excluded_row">[Excluded] %s</string>
+  <string name="leak_canary_permission_notification_title">Leak detected, need permission</string>
+  <string name="leak_canary_permission_notification_text">Click to enable storage permission for %s.</string>
 </resources>

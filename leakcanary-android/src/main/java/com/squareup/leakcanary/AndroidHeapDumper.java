@@ -46,7 +46,9 @@ public final class AndroidHeapDumper implements HeapDumper {
 
   @Override public File dumpHeap() {
     if (!leakDirectoryProvider.isLeakStorageWritable()) {
-      CanaryLog.d("Could not dump heap, external storage not mounted.");
+      CanaryLog.d("Could not write to leak storage to dump heap.");
+      leakDirectoryProvider.requestWritePermission();
+      return NO_DUMP;
     }
     File heapDumpFile = getHeapDumpFile();
     // Atomic way to check for existence & create the file if it doesn't exist.
@@ -95,7 +97,8 @@ public final class AndroidHeapDumper implements HeapDumper {
     LeakCanaryInternals.executeOnFileIoThread(new Runnable() {
       @Override public void run() {
         if (!leakDirectoryProvider.isLeakStorageWritable()) {
-          CanaryLog.d("Could not attempt cleanup, leak storage not mounted.");
+          CanaryLog.d("Could not attempt cleanup, leak storage not writable.");
+          return;
         }
         File heapDumpFile = getHeapDumpFile();
         if (heapDumpFile.exists()) {

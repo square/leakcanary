@@ -17,4 +17,12 @@
 <resources>
   <style name="leak_canary_LeakCanary.Base" parent="android:Theme">
   </style>
+
+  <style name="leak_canary_Theme.Transparent" parent="android:Theme">
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:windowNoTitle">true</item>
+    <item name="android:backgroundDimEnabled">false</item>
+  </style>
 </resources>

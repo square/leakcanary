@@ -20,6 +20,7 @@
     >
 
   <!-- To store the heap dumps and leak analysis results. -->
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
   <application>
@@ -45,6 +46,14 @@
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
+    <activity
+        android:theme="@style/leak_canary_Theme.Transparent"
+        android:name=".internal.RequestStoragePermissionActivity"
+        android:taskAffinity="com.squareup.leakcanary"
+        android:enabled="false"
+        android:icon="@drawable/leak_canary_icon"
+        android:label="@string/leak_canary_storage_permission_activity_label"
+        />
 
   </application>
 </manifest>
