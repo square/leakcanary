@@ -304,7 +304,8 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  TEXT_VIEW__MLAST_HOVERED_VIEW(SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  TEXT_VIEW__MLAST_HOVERED_VIEW(
+      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
       // mLastHoveredView is a static field in TextView that leaks the last hovered view.
       excluded.staticField("android.widget.TextView", "mLastHoveredView");
