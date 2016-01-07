@@ -15,7 +15,6 @@
  */
 package com.squareup.leakcanary;
 
-import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,10 +23,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static com.squareup.leakcanary.TestUtil.fileFromName;
-import static com.squareup.leakcanary.TestUtil.analyze;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_MPREVIEW2;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_M_POSTPREVIEW2;
+import static com.squareup.leakcanary.TestUtil.analyze;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,20 +45,17 @@ public class AsyncTaskLeakTest {
 
   @Parameterized.Parameters public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][] {
-        { fileFromName("leak_asynctask.hprof"), "dc983a12-d029-4003-8890-7dd644c664c5" },
-        { fileFromName("leak_asynctask_mpreview2.hprof"), "1114018e-e154-435f-9a3d-da63ae9b47fa" },
-        { fileFromName("leak_asynctask_m_postpreview2.hprof"), "25ae1778-7c1d-4ec7-ac50-5cce55424069" }
+        { ASYNC_TASK }, //
+        { ASYNC_TASK_MPREVIEW2 }, //
+        { ASYNC_TASK_M_POSTPREVIEW2 } //
     });
   }
 
-  final File heapDumpFile;
-  final String referenceKey;
-
+  private final TestUtil.HeapDumpFile heapDumpFile;
   ExcludedRefs.Builder excludedRefs;
 
-  public AsyncTaskLeakTest(File heapDumpFile, String referenceKey) {
+  public AsyncTaskLeakTest(TestUtil.HeapDumpFile heapDumpFile) {
     this.heapDumpFile = heapDumpFile;
-    this.referenceKey = referenceKey;
   }
 
   @Before public void setUp() {
@@ -66,7 +64,7 @@ public class AsyncTaskLeakTest {
   }
 
   @Test public void leakFound() {
-    AnalysisResult result = analyze(heapDumpFile, referenceKey, excludedRefs);
+    AnalysisResult result = analyze(heapDumpFile, excludedRefs);
     assertTrue(result.leakFound);
     assertFalse(result.excludedLeak);
     LeakTraceElement gcRoot = result.leakTrace.elements.get(0);
@@ -77,7 +75,7 @@ public class AsyncTaskLeakTest {
 
   @Test public void excludeThread() {
     excludedRefs.thread(ASYNC_TASK_THREAD);
-    AnalysisResult result = analyze(heapDumpFile, referenceKey, excludedRefs);
+    AnalysisResult result = analyze(heapDumpFile, excludedRefs);
     assertTrue(result.leakFound);
     assertFalse(result.excludedLeak);
     LeakTraceElement gcRoot = result.leakTrace.elements.get(0);
@@ -91,9 +89,8 @@ public class AsyncTaskLeakTest {
     excludedRefs.thread(ASYNC_TASK_THREAD);
     excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_1);
     excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_2);
-    AnalysisResult result = analyze(heapDumpFile, referenceKey, excludedRefs);
+    AnalysisResult result = analyze(heapDumpFile, excludedRefs);
     assertTrue(result.leakFound);
     assertTrue(result.excludedLeak);
   }
-
 }

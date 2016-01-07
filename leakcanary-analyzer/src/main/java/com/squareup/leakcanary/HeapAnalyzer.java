@@ -22,6 +22,7 @@ import com.squareup.haha.perflib.Field;
 import com.squareup.haha.perflib.HprofParser;
 import com.squareup.haha.perflib.Instance;
 import com.squareup.haha.perflib.RootObj;
+import com.squareup.haha.perflib.RootType;
 import com.squareup.haha.perflib.Snapshot;
 import com.squareup.haha.perflib.Type;
 import com.squareup.haha.perflib.io.HprofBuffer;
@@ -119,8 +120,71 @@ public final class HeapAnalyzer {
 
     String className = leakingRef.getClassObj().getClassName();
 
-    return leakDetected(result.excludingKnownLeaks, className, leakTrace,
+    // Side effect: computes retained size.
+    snapshot.computeDominators();
+
+    Instance leakingInstance = result.leakingNode.instance;
+
+    long retainedSize = leakingInstance.getTotalRetainedSize();
+
+    retainedSize += computeIgnoredBitmapRetainedSize(snapshot, leakingInstance);
+
+    return leakDetected(result.excludingKnownLeaks, className, leakTrace, retainedSize,
         since(analysisStartNanoTime));
+  }
+
+  /**
+   * Bitmaps and bitmap byte arrays are sometimes held by native gc roots, so they aren't included
+   * in the retained size because their root dominator is a native gc root.
+   * To fix this, we check if the leaking instance is a dominator for each bitmap instance and then
+   * add the bitmap size.
+   *
+   * From experience, we've found that bitmap created in code (Bitmap.createBitmap()) are correctly
+   * accounted for, however bitmaps set in layouts are not.
+   */
+  private int computeIgnoredBitmapRetainedSize(Snapshot snapshot, Instance leakingInstance) {
+    int bitmapRetainedSize = 0;
+    ClassObj bitmapClass = snapshot.findClass("android.graphics.Bitmap");
+
+    for (Instance bitmapInstance : bitmapClass.getInstancesList()) {
+      if (isIgnoredDominator(leakingInstance, bitmapInstance)) {
+        ArrayInstance mBufferInstance = fieldValue(classInstanceValues(bitmapInstance), "mBuffer");
+        // Native bitmaps have mBuffer set to null. We sadly can't account for them.
+        if (mBufferInstance == null) {
+          continue;
+        }
+        long bufferSize = mBufferInstance.getTotalRetainedSize();
+        long bitmapSize = bitmapInstance.getTotalRetainedSize();
+        // Sometimes the size of the buffer isn't accounted for in the bitmap retained size. Since
+        // the buffer is large, it's easy to detect by checking for bitmap size < buffer size.
+        if (bitmapSize < bufferSize) {
+          bitmapSize += bufferSize;
+        }
+        bitmapRetainedSize += bitmapSize;
+      }
+    }
+    return bitmapRetainedSize;
+  }
+
+  private boolean isIgnoredDominator(Instance dominator, Instance instance) {
+    boolean foundNativeRoot = false;
+    while (true) {
+      Instance immediateDominator = instance.getImmediateDominator();
+      if (immediateDominator instanceof RootObj
+          && ((RootObj) immediateDominator).getRootType() == RootType.UNKNOWN) {
+        // Ignore native roots
+        instance = instance.getNextInstanceToGcRoot();
+        foundNativeRoot = true;
+      } else {
+        instance = immediateDominator;
+      }
+      if (instance == null) {
+        return false;
+      }
+      if (instance == dominator) {
+        return foundNativeRoot;
+      }
+    }
   }
 
   private LeakTrace buildLeakTrace(LeakNode leakingNode) {

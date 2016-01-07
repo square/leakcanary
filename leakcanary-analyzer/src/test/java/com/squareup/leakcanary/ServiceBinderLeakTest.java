@@ -15,15 +15,16 @@
  */
 package com.squareup.leakcanary;
 
+import java.lang.ref.WeakReference;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.lang.ref.WeakReference;
 
 import static com.squareup.leakcanary.LeakTraceElement.Holder.CLASS;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.OBJECT;
 import static com.squareup.leakcanary.LeakTraceElement.Type.INSTANCE_FIELD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.SERVICE_BINDER;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.SERVICE_BINDER_IGNORED;
 import static com.squareup.leakcanary.TestUtil.analyze;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -38,19 +39,14 @@ public class ServiceBinderLeakTest {
   ExcludedRefs.Builder excludedRefs;
 
   @Before public void setUp() {
-    excludedRefs = new ExcludedRefs.Builder()
-        .clazz(WeakReference.class.getName(), true)
+    excludedRefs = new ExcludedRefs.Builder().clazz(WeakReference.class.getName(), true)
         .clazz("java.lang.ref.FinalizerReference", true);
   }
 
   @Test public void realBinderLeak() {
     excludedRefs.rootSuperClass("android.os.Binder", true);
 
-    AnalysisResult result = analyze(
-        TestUtil.fileFromName("leak_service_binder.hprof"),
-        "b3abfae6-2c53-42e1-b8c1-96b0558dbeae",
-        excludedRefs
-    );
+    AnalysisResult result = analyze(SERVICE_BINDER, excludedRefs);
 
     assertTrue(result.leakFound);
     assertFalse(result.excludedLeak);
@@ -63,11 +59,7 @@ public class ServiceBinderLeakTest {
   @Test public void ignorableBinderLeak() {
     excludedRefs.rootSuperClass("android.os.Binder", false);
 
-    AnalysisResult result = analyze(
-        TestUtil.fileFromName("leak_service_binder_ignored.hprof"),
-        "6e524414-9581-4ce7-8690-e8ddf8b82454",
-        excludedRefs
-    );
+    AnalysisResult result = analyze(SERVICE_BINDER_IGNORED, excludedRefs);
 
     assertTrue(result.leakFound);
     assertTrue(result.excludedLeak);
@@ -80,13 +72,8 @@ public class ServiceBinderLeakTest {
   @Test public void alwaysIgnorableBinderLeak() {
     excludedRefs.rootSuperClass("android.os.Binder", true);
 
-    AnalysisResult result = analyze(
-        TestUtil.fileFromName("leak_service_binder_ignored.hprof"),
-        "6e524414-9581-4ce7-8690-e8ddf8b82454",
-        excludedRefs
-    );
+    AnalysisResult result = analyze(SERVICE_BINDER_IGNORED, excludedRefs);
 
     assertFalse(result.leakFound);
   }
-
 }

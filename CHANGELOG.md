@@ -14,6 +14,7 @@ You can watch releases [on Bintray](https://bintray.com/pyricau/maven/com.square
 * Added CanaryLog API to replace the logger: [#201](https://github.com/square/leakcanary/issues/201).
 * Renamed all resources to begin with `leak_canary_` instead of `__leak_canary`[#161](https://github.com/square/leakcanary/pull/161)
 * No crash when heap dump fails [#226](https://github.com/square/leakcanary/issues/226).
+* Add retained size to leak reports [#162](https://github.com/square/leakcanary/issues/162).
 
 ### Public API changes
 
