@@ -190,7 +190,7 @@ public final class HeapAnalyzer {
   private LeakTrace buildLeakTrace(LeakNode leakingNode) {
     List<LeakTraceElement> elements = new ArrayList<>();
     // We iterate from the leak to the GC root
-    LeakNode node = new LeakNode(null, leakingNode, null, null);
+    LeakNode node = new LeakNode(null, null, leakingNode, null, null);
     while (node != null) {
       LeakTraceElement element = buildLeakElement(node);
       if (element != null) {
@@ -264,22 +264,23 @@ public final class HeapAnalyzer {
             Class<?>[] interfaces = actualClass.getInterfaces();
             if (interfaces.length > 0) {
               Class<?> implementedInterface = interfaces[0];
-              extra = "(anonymous class implements " + implementedInterface.getName() + ")";
+              extra = "(anonymous implementation of " + implementedInterface.getName() + ")";
             } else {
-              extra = "(anonymous class extends java.lang.Object)";
+              extra = "(anonymous subclass of java.lang.Object)";
             }
           } catch (ClassNotFoundException ignored) {
           }
         } else {
           holderType = OBJECT;
           // Makes it easier to figure out which anonymous class we're looking at.
-          extra = "(anonymous class extends " + parentClassName + ")";
+          extra = "(anonymous subclass of " + parentClassName + ")";
         }
       } else {
         holderType = OBJECT;
       }
     }
-    return new LeakTraceElement(referenceName, type, holderType, className, extra, fields);
+    return new LeakTraceElement(referenceName, type, holderType, className, extra, node.exclusion,
+        fields);
   }
 
   private long since(long analysisStartNanoTime) {

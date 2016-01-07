@@ -22,6 +22,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
+import com.squareup.leakcanary.Exclusion;
 import com.squareup.leakcanary.LeakTrace;
 import com.squareup.leakcanary.LeakTraceElement;
 import com.squareup.leakcanary.R;
@@ -132,6 +133,23 @@ final class DisplayLeakAdapter extends BaseAdapter {
     if (opened && element.extra != null) {
       htmlString += " <font color='#919191'>" + element.extra + "</font>";
     }
+
+    Exclusion exclusion = element.exclusion;
+    if (exclusion != null) {
+      if (opened) {
+        htmlString += "<br/><br/>Excluded by rule";
+        if (exclusion.name != null) {
+          htmlString += " <font color='#ffffff'>" + exclusion.name + "</font>";
+        }
+        htmlString += " matching <font color='#f3cf83'>" + exclusion.matching + "</font>";
+        if (exclusion.reason != null) {
+          htmlString += " because <font color='#f3cf83'>" + exclusion.reason + "</font>";
+        }
+      } else {
+        htmlString += " (excluded)";
+      }
+    }
+
     return htmlString;
   }
 

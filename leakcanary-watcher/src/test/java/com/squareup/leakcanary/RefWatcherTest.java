@@ -24,7 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 public class RefWatcherTest {
 
-  static final ExcludedRefs NO_REF = new ExcludedRefs.Builder().build();
+  static final ExcludedRefs NO_REF = new ExcludedRefs.BuilderWithParams().build();
 
   static class TestDumper implements HeapDumper {
     boolean called;

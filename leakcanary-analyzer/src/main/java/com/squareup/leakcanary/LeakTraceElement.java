@@ -48,16 +48,20 @@ public final class LeakTraceElement implements Serializable {
   /** Additional information, may be null. */
   public final String extra;
 
+  /** If not null, there was no path that could exclude this element. */
+  public final Exclusion exclusion;
+
   /** List of all fields (member and static) for that object. */
   public final List<String> fields;
 
   LeakTraceElement(String referenceName, Type type, Holder holder, String className, String extra,
-      List<String> fields) {
+      Exclusion exclusion, List<String> fields) {
     this.referenceName = referenceName;
     this.type = type;
     this.holder = holder;
     this.className = className;
     this.extra = extra;
+    this.exclusion = exclusion;
     this.fields = unmodifiableList(new ArrayList<>(fields));
   }
 
@@ -83,6 +87,11 @@ public final class LeakTraceElement implements Serializable {
     if (extra != null) {
       string += " " + extra;
     }
+
+    if (exclusion != null) {
+      string += " , matching exclusion " + exclusion.matching;
+    }
+
     return string;
   }
 

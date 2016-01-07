@@ -100,7 +100,7 @@ public final class LeakCanary {
     String detailedString = "";
     if (result.leakFound) {
       if (result.excludedLeak) {
-        info += "* LEAK CAN BE IGNORED.\n";
+        info += "* EXCLUDED LEAK.\n";
       }
       info += "* " + result.className;
       if (!heapDump.referenceName.equals("")) {

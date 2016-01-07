@@ -48,7 +48,7 @@ public final class RefWatcher {
   }, new HeapDump.Listener() {
     @Override public void analyze(HeapDump heapDump) {
     }
-  }, new ExcludedRefs.Builder().build());
+  }, new ExcludedRefs.BuilderWithParams().build());
 
   private final Executor watchExecutor;
   private final DebuggerControl debuggerControl;

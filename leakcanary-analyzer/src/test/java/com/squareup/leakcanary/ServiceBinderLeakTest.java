@@ -36,15 +36,17 @@ import static org.junit.Assert.assertTrue;
  */
 public class ServiceBinderLeakTest {
 
-  ExcludedRefs.Builder excludedRefs;
+  ExcludedRefs.BuilderWithParams excludedRefs;
 
   @Before public void setUp() {
-    excludedRefs = new ExcludedRefs.Builder().clazz(WeakReference.class.getName(), true)
-        .clazz("java.lang.ref.FinalizerReference", true);
+    excludedRefs = new ExcludedRefs.BuilderWithParams().clazz(WeakReference.class.getName())
+        .alwaysExclude()
+        .clazz("java.lang.ref.FinalizerReference")
+        .alwaysExclude();
   }
 
   @Test public void realBinderLeak() {
-    excludedRefs.rootSuperClass("android.os.Binder", true);
+    excludedRefs.rootClass("android.os.Binder").alwaysExclude();
 
     AnalysisResult result = analyze(SERVICE_BINDER, excludedRefs);
 
@@ -57,7 +59,7 @@ public class ServiceBinderLeakTest {
   }
 
   @Test public void ignorableBinderLeak() {
-    excludedRefs.rootSuperClass("android.os.Binder", false);
+    excludedRefs.rootClass("android.os.Binder");
 
     AnalysisResult result = analyze(SERVICE_BINDER_IGNORED, excludedRefs);
 
@@ -70,7 +72,7 @@ public class ServiceBinderLeakTest {
   }
 
   @Test public void alwaysIgnorableBinderLeak() {
-    excludedRefs.rootSuperClass("android.os.Binder", true);
+    excludedRefs.rootClass("android.os.Binder").alwaysExclude();
 
     AnalysisResult result = analyze(SERVICE_BINDER_IGNORED, excludedRefs);
 

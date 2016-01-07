@@ -16,8 +16,8 @@
 package com.squareup.leakcanary;
 
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,6 +29,7 @@ import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK;
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_MPREVIEW2;
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_M_POSTPREVIEW2;
 import static com.squareup.leakcanary.TestUtil.analyze;
+import static java.util.Arrays.asList;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,7 +45,7 @@ public class AsyncTaskLeakTest {
   static final String EXECUTOR_FIELD_2 = "sDefaultExecutor";
 
   @Parameterized.Parameters public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][] {
+    return asList(new Object[][] {
         { ASYNC_TASK }, //
         { ASYNC_TASK_MPREVIEW2 }, //
         { ASYNC_TASK_M_POSTPREVIEW2 } //
@@ -52,15 +53,17 @@ public class AsyncTaskLeakTest {
   }
 
   private final TestUtil.HeapDumpFile heapDumpFile;
-  ExcludedRefs.Builder excludedRefs;
+  ExcludedRefs.BuilderWithParams excludedRefs;
 
   public AsyncTaskLeakTest(TestUtil.HeapDumpFile heapDumpFile) {
     this.heapDumpFile = heapDumpFile;
   }
 
   @Before public void setUp() {
-    excludedRefs = new ExcludedRefs.Builder().clazz(WeakReference.class.getName(), true)
-        .clazz("java.lang.ref.FinalizerReference", true);
+    excludedRefs = new ExcludedRefs.BuilderWithParams().clazz(WeakReference.class.getName())
+        .alwaysExclude()
+        .clazz("java.lang.ref.FinalizerReference")
+        .alwaysExclude();
   }
 
   @Test public void leakFound() {
@@ -86,11 +89,17 @@ public class AsyncTaskLeakTest {
   }
 
   @Test public void excludeStatic() {
-    excludedRefs.thread(ASYNC_TASK_THREAD);
-    excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_1);
-    excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_2);
+    excludedRefs.thread(ASYNC_TASK_THREAD).named(ASYNC_TASK_THREAD);
+    excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_1).named(EXECUTOR_FIELD_1);
+    excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_2).named(EXECUTOR_FIELD_2);
     AnalysisResult result = analyze(heapDumpFile, excludedRefs);
     assertTrue(result.leakFound);
     assertTrue(result.excludedLeak);
+    LeakTrace leakTrace = result.leakTrace;
+    List<LeakTraceElement> elements = leakTrace.elements;
+    Exclusion exclusion = elements.get(0).exclusion;
+
+    List<String> expectedExclusions = asList(ASYNC_TASK_THREAD, EXECUTOR_FIELD_1, EXECUTOR_FIELD_2);
+    assertTrue(expectedExclusions.contains(exclusion.name));
   }
 }
