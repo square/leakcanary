@@ -4,7 +4,11 @@ You can watch releases [on Bintray](https://bintray.com/pyricau/maven/com.square
 
 ## Version 1.4-SNAPSHOT
 
+Nothing yet.
+
 ### Public API changes
+
+Nothing yet.
 
 ### Dependencies
 
@@ -31,11 +35,12 @@ Snapshots are available in Sonatype's `snapshots` repository:
 
 ## Version 1.4-beta1 *(2016-12-08)*
 
-* Switched to [HAHA 2.0.2](https://github.com/square/haha/blob/master/CHANGELOG.md#version-202-2015-07-20) with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This should fix most crashes and improve speed a lot. We can now parse Android M heap dumps, although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
-* A status bar notification is displayed when the trace analysis results in an excluded ref leak [#216](https://github.com/square/leakcanary/pull/216).
-* Added ProGuard configuration for debug library [#132](https://github.com/square/leakcanary/issues/132).
-* 3 new ignored Android SDK leaks: [#26](https://github.com/square/leakcanary/issues/26) [#62](https://github.com/square/leakcanary/issues/62) [#205](https://github.com/square/leakcanary/issues/205). 1 Android SDK leak updated: [#133](https://github.com/square/leakcanary/issues/133).
-* Fixed crash for anonymous classes that extend Object: [#195](https://github.com/square/leakcanary/issues/195).
+All actual changes are [tracked here](https://github.com/square/leakcanary/pulls?utf8=%E2%9C%93&q=milestone%3A1.4+is%3Apr).
+
+* Switched to [HAHA 2.0.2](https://github.com/square/haha/blob/master/CHANGELOG.md#version-202-2015-07-20) with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This fixes crashes and improves speed a lot. We can now parse Android M heap dumps, although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
+* Excluded leaks are now reported as well and available in the display leak activity.
+* Added ProGuard configuration for [#132](https://github.com/square/leakcanary/issues/132).
+* Many new ignored Android SDK leaks.
 * Added excluded leaks to text report [#119](https://github.com/square/leakcanary/issues/119).
 * Added LeakCanary SHA to text report [#120](https://github.com/square/leakcanary/issues/120).
 * Added CanaryLog API to replace the logger: [#201](https://github.com/square/leakcanary/issues/201).
