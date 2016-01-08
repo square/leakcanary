@@ -37,7 +37,8 @@ Snapshots are available in Sonatype's `snapshots` repository:
 
 All actual changes are [tracked here](https://github.com/square/leakcanary/pulls?utf8=%E2%9C%93&q=milestone%3A1.4+is%3Apr).
 
-* Switched to [HAHA 2.0.2](https://github.com/square/haha/blob/master/CHANGELOG.md#version-202-2015-07-20) with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This fixes crashes and improves speed a lot. We can now parse Android M heap dumps, although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
+* Switched to [HAHA 2.0.2](https://github.com/square/haha/blob/master/CHANGELOG.md#version-202-2015-07-20) with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This fixes crashes and improves speed a lot.
+* We can now parse Android M heap dumps [#267](https://github.com/square/leakcanary/issues/267), although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
 * Excluded leaks are now reported as well and available in the display leak activity.
 * Added ProGuard configuration for [#132](https://github.com/square/leakcanary/issues/132).
 * Many new ignored Android SDK leaks.
