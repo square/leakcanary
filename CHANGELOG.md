@@ -4,25 +4,7 @@ You can watch releases [on Bintray](https://bintray.com/pyricau/maven/com.square
 
 ## Version 1.4-SNAPSHOT
 
-* Switched to [HAHA 2.0.2](https://github.com/square/haha/blob/master/CHANGELOG.md#version-202-2015-07-20) with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This should fix most crashes and improve speed a lot. We can now parse Android M heap dumps, although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
-* A status bar notification is displayed when the trace analysis results in an excluded ref leak [#216](https://github.com/square/leakcanary/pull/216).
-* Added ProGuard configuration for debug library [#132](https://github.com/square/leakcanary/issues/132).
-* 3 new ignored Android SDK leaks: [#26](https://github.com/square/leakcanary/issues/26) [#62](https://github.com/square/leakcanary/issues/62) [#205](https://github.com/square/leakcanary/issues/205). 1 Android SDK leak updated: [#133](https://github.com/square/leakcanary/issues/133).
-* Fixed crash for anonymous classes that extend Object: [#195](https://github.com/square/leakcanary/issues/195).
-* Added excluded leaks to text report [#119](https://github.com/square/leakcanary/issues/119).
-* Added LeakCanary SHA to text report [#120](https://github.com/square/leakcanary/issues/120).
-* Added CanaryLog API to replace the logger: [#201](https://github.com/square/leakcanary/issues/201).
-* Renamed all resources to begin with `leak_canary_` instead of `__leak_canary`[#161](https://github.com/square/leakcanary/pull/161)
-* No crash when heap dump fails [#226](https://github.com/square/leakcanary/issues/226).
-* Add retained size to leak reports [#162](https://github.com/square/leakcanary/issues/162).
-
 ### Public API changes
-
-* AnalysisResult.failure is now a `Throwable` instead of an `Exception`. Main goal is to catch and correctly report OOMs while parsing.
-* Added ARRAY_ENTRY to LeakTraceElement.Type for references through array entries.
-* Renamed `ExcludedRefs` fields.
-* Each `ExcludedRef` entry can now be ignored entirely or "kept only if no other path".
-* Added support for ignoring all fields (static and non static) for a given class.
 
 ### Dependencies
 
@@ -45,6 +27,29 @@ Snapshots are available in Sonatype's `snapshots` repository:
 ```
 
 [![Build Status](https://travis-ci.org/square/leakcanary.svg?branch=master)](https://travis-ci.org/square/leakcanary)
+
+
+## Version 1.4-beta1 *(2016-12-08)*
+
+* Switched to [HAHA 2.0.2](https://github.com/square/haha/blob/master/CHANGELOG.md#version-202-2015-07-20) with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This should fix most crashes and improve speed a lot. We can now parse Android M heap dumps, although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
+* A status bar notification is displayed when the trace analysis results in an excluded ref leak [#216](https://github.com/square/leakcanary/pull/216).
+* Added ProGuard configuration for debug library [#132](https://github.com/square/leakcanary/issues/132).
+* 3 new ignored Android SDK leaks: [#26](https://github.com/square/leakcanary/issues/26) [#62](https://github.com/square/leakcanary/issues/62) [#205](https://github.com/square/leakcanary/issues/205). 1 Android SDK leak updated: [#133](https://github.com/square/leakcanary/issues/133).
+* Fixed crash for anonymous classes that extend Object: [#195](https://github.com/square/leakcanary/issues/195).
+* Added excluded leaks to text report [#119](https://github.com/square/leakcanary/issues/119).
+* Added LeakCanary SHA to text report [#120](https://github.com/square/leakcanary/issues/120).
+* Added CanaryLog API to replace the logger: [#201](https://github.com/square/leakcanary/issues/201).
+* Renamed all resources to begin with `leak_canary_` instead of `__leak_canary`[#161](https://github.com/square/leakcanary/pull/161)
+* No crash when heap dump fails [#226](https://github.com/square/leakcanary/issues/226).
+* Add retained size to leak reports [#162](https://github.com/square/leakcanary/issues/162).
+
+### Public API changes
+
+* AnalysisResult.failure is now a `Throwable` instead of an `Exception`. Main goal is to catch and correctly report OOMs while parsing.
+* Added ARRAY_ENTRY to LeakTraceElement.Type for references through array entries.
+* Renamed `ExcludedRefs` fields.
+* Each `ExcludedRef` entry can now be ignored entirely or "kept only if no other path".
+* Added support for ignoring all fields (static and non static) for a given class.
 
 ## Version 1.3.1 *(2015-05-16)*
 
