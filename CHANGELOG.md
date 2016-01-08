@@ -33,7 +33,7 @@ Snapshots are available in Sonatype's `snapshots` repository:
 [![Build Status](https://travis-ci.org/square/leakcanary.svg?branch=master)](https://travis-ci.org/square/leakcanary)
 
 
-## Version 1.4-beta1 *(2016-12-08)*
+## Version 1.4-beta1 *(2016-01-08)*
 
 All actual changes are [tracked here](https://github.com/square/leakcanary/pulls?utf8=%E2%9C%93&q=milestone%3A1.4+is%3Apr).
 
