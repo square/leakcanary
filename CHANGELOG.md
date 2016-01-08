@@ -56,6 +56,15 @@ All actual changes are [tracked here](https://github.com/square/leakcanary/pulls
 * Each `ExcludedRef` entry can now be ignored entirely or "kept only if no other path".
 * Added support for ignoring all fields (static and non static) for a given class.
 
+### Dependencies
+
+```gradle
+ dependencies {
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.4-beta1'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta1'
+ }
+```
+
 ## Version 1.3.1 *(2015-05-16)*
 
 * Heap dumps and analysis results are now saved on the sd card: [#21](https://github.com/square/leakcanary/issues/21).
