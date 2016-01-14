@@ -298,9 +298,9 @@ public class DebugExampleApplication extends ExampleApplication {
       return RefWatcher.DISABLED;
     } else {
       ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults().build();
-      enableDisplayLeakActivity(application);
-      ServiceHeapDumpListener heapDumpListener = new ServiceHeapDumpListener(application, DisplayLeakService.class);
-      final RefWatcher refWatcher = androidWatcher(application, heapDumpListener, excludedRefs);
+      enableDisplayLeakActivity(this);
+      ServiceHeapDumpListener heapDumpListener = new ServiceHeapDumpListener(this, DisplayLeakService.class);
+      final RefWatcher refWatcher = androidWatcher(this, heapDumpListener, excludedRefs);
       registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
         public void onActivityDestroyed(Activity activity) {
           if (activity instanceof ThirdPartyActivity) {
