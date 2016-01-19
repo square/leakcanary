@@ -125,7 +125,7 @@ If you find a new one, please [create an issue](https://github.com/square/leakca
 5. File an issue on [b.android.com](http://b.android.com) with the leak trace and the repro case
 6. Create a PR in LeakCanary to update `AndroidExcludedRefs.java`. Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.
 
-This is especially important for **new releases of Android**. You have the opportunity to help detect new memory leaks early on, which benefits the entire Android community. 
+This is especially important for **new releases of Android**. You have the opportunity to help detect new memory leaks early on, which benefits the entire Android community.
 
 ## Beyond the leak trace
 
@@ -315,16 +315,6 @@ public class DebugExampleApplication extends ExampleApplication {
     }
   }
 }
-```
-
-### ProGuard
-
-If you use Proguard in your debug builds, make sure to keep the HAHA and LeakCanary classes:
-
-```
-# LeakCanary
--keep class org.eclipse.mat.** { *; }
--keep class com.squareup.leakcanary.** { *; }
 ```
 
 ## Snapshots of the development version
