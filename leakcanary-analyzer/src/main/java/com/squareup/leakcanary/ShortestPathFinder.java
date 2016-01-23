@@ -89,6 +89,9 @@ final class ShortestPathFinder {
         node = toVisitQueue.poll();
       } else {
         node = toVisitIfNoPathQueue.poll();
+        if (node.exclusion == null) {
+          throw new IllegalStateException("Expected node to have an exclusion " + node);
+        }
         excludingKnownLeaks = true;
       }
 
@@ -131,9 +134,9 @@ final class ShortestPathFinder {
         case JAVA_LOCAL:
           Instance thread = HahaSpy.allocatingThread(rootObj);
           String threadName = threadName(thread);
-          Boolean alwaysIgnore = excludedRefs.threadNames.get(threadName);
-          if (alwaysIgnore == null || !alwaysIgnore) {
-            enqueue(alwaysIgnore == null, null, rootObj, null, null);
+          Exclusion params = excludedRefs.threadNames.get(threadName);
+          if (params == null || !params.alwaysExclude) {
+            enqueue(params, null, rootObj, null, null);
           }
           break;
         case INTERNED_STRING:
@@ -160,7 +163,7 @@ final class ShortestPathFinder {
           // Input or output parameters in native code.
         case NATIVE_STACK:
         case JAVA_STATIC:
-          enqueue(true, null, rootObj, null, null);
+          enqueue(null, null, rootObj, null, null);
           break;
         default:
           throw new UnsupportedOperationException("Unknown root type:" + rootObj.getRootType());
@@ -176,50 +179,48 @@ final class ShortestPathFinder {
     RootObj rootObj = (RootObj) node.instance;
     Instance child = rootObj.getReferredInstance();
 
-    boolean visitRootNow = true;
-    if (child != null) {
-      // true = ignore root, false = visit root later, null = visit root now.
-      Boolean rootSuperClassAlwaysIgnored = rootSuperClassAlwaysIgnored(child);
-      if (rootSuperClassAlwaysIgnored != null) {
-        if (rootSuperClassAlwaysIgnored) {
-          return;
-        } else {
-          visitRootNow = false;
-        }
-      }
+    Exclusion exclusion = rootSuperClassAlwaysIgnored(child);
+
+    if (exclusion != null && exclusion.alwaysExclude) {
+      return;
     }
 
     if (rootObj.getRootType() == RootType.JAVA_LOCAL) {
       Instance holder = HahaSpy.allocatingThread(rootObj);
       // We switch the parent node with the thread instance that holds
       // the local reference.
-      LeakNode parent = new LeakNode(holder, null, null, null);
-      enqueue(visitRootNow, parent, child, "<Java Local>", LOCAL);
+      LeakNode parent = new LeakNode(null, holder, null, null, null);
+      if (node.exclusion != null) {
+        exclusion = node.exclusion;
+      }
+      enqueue(exclusion, parent, child, "<Java Local>", LOCAL);
     } else {
-      enqueue(visitRootNow, node, child, null, null);
+      enqueue(exclusion, node, child, null, null);
     }
   }
 
-  private Boolean rootSuperClassAlwaysIgnored(Instance child) {
-    Boolean alwaysIgnoreClassHierarchy = null;
+  private Exclusion rootSuperClassAlwaysIgnored(Instance child) {
+    if (child == null) {
+      return null;
+    }
+    Exclusion matchingParams = null;
     ClassObj superClassObj = child.getClassObj();
     while (superClassObj != null) {
-      Boolean alwaysIgnoreClass =
-          excludedRefs.rootSuperClassNames.get(superClassObj.getClassName());
-      if (alwaysIgnoreClass != null) {
+      Exclusion params = excludedRefs.rootClassNames.get(superClassObj.getClassName());
+      if (params != null) {
         // true overrides null or false.
-        if (alwaysIgnoreClassHierarchy == null || !alwaysIgnoreClassHierarchy) {
-          alwaysIgnoreClassHierarchy = alwaysIgnoreClass;
+        if (matchingParams == null || !matchingParams.alwaysExclude) {
+          matchingParams = params;
         }
       }
       superClassObj = superClassObj.getSuperClassObj();
     }
-    return alwaysIgnoreClassHierarchy;
+    return matchingParams;
   }
 
   private void visitClassObj(LeakNode node) {
     ClassObj classObj = (ClassObj) node.instance;
-    Map<String, Boolean> ignoredStaticFields =
+    Map<String, Exclusion> ignoredStaticFields =
         excludedRefs.staticFieldNameByClassName.get(classObj.getClassName());
     for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
       Field field = entry.getKey();
@@ -233,72 +234,60 @@ final class ShortestPathFinder {
       Instance child = (Instance) entry.getValue();
       boolean visit = true;
       if (ignoredStaticFields != null) {
-        Boolean alwaysIgnore = ignoredStaticFields.get(fieldName);
-        if (alwaysIgnore != null) {
+        Exclusion params = ignoredStaticFields.get(fieldName);
+        if (params != null) {
           visit = false;
-          if (!alwaysIgnore) {
-            enqueue(false, node, child, fieldName, STATIC_FIELD);
+          if (!params.alwaysExclude) {
+            enqueue(params, node, child, fieldName, STATIC_FIELD);
           }
         }
       }
       if (visit) {
-        enqueue(true, node, child, fieldName, STATIC_FIELD);
+        enqueue(null, node, child, fieldName, STATIC_FIELD);
       }
     }
   }
 
   private void visitClassInstance(LeakNode node) {
     ClassInstance classInstance = (ClassInstance) node.instance;
-    Map<String, Boolean> ignoredFields = null;
+    Map<String, Exclusion> ignoredFields = new LinkedHashMap<>();
     ClassObj superClassObj = classInstance.getClassObj();
-    Boolean alwaysIgnoreClassHierarchy = null;
+    Exclusion classExclusion = null;
     while (superClassObj != null) {
-      Boolean alwaysIgnoreClass = excludedRefs.classNames.get(superClassObj.getClassName());
-      if (alwaysIgnoreClass != null) {
+      Exclusion params = excludedRefs.classNames.get(superClassObj.getClassName());
+      if (params != null) {
         // true overrides null or false.
-        if (alwaysIgnoreClassHierarchy == null || !alwaysIgnoreClassHierarchy) {
-          alwaysIgnoreClassHierarchy = alwaysIgnoreClass;
+        if (classExclusion == null || !classExclusion.alwaysExclude) {
+          classExclusion = params;
         }
       }
-      Map<String, Boolean> classIgnoredFields =
+      Map<String, Exclusion> classIgnoredFields =
           excludedRefs.fieldNameByClassName.get(superClassObj.getClassName());
       if (classIgnoredFields != null) {
-        if (ignoredFields == null) {
-          ignoredFields = new LinkedHashMap<>();
-        }
         ignoredFields.putAll(classIgnoredFields);
       }
       superClassObj = superClassObj.getSuperClassObj();
     }
 
-    if (alwaysIgnoreClassHierarchy != null && alwaysIgnoreClassHierarchy) {
+    if (classExclusion != null && classExclusion.alwaysExclude) {
       return;
     }
 
     for (ClassInstance.FieldValue fieldValue : classInstance.getValues()) {
+      Exclusion fieldExclusion = classExclusion;
       Field field = fieldValue.getField();
       if (field.getType() != Type.OBJECT) {
         continue;
       }
       Instance child = (Instance) fieldValue.getValue();
-      boolean visit = true;
-      boolean visitIfNoPath = false;
-      // We don't even get here if alwaysIgnoreClassHierarchy is false.
-      if (alwaysIgnoreClassHierarchy != null) {
-        visit = false;
-        visitIfNoPath = true;
-      }
       String fieldName = field.getName();
-      if (ignoredFields != null) {
-        Boolean alwaysIgnore = ignoredFields.get(fieldName);
-        if (alwaysIgnore != null) {
-          visit = false;
-          visitIfNoPath = !alwaysIgnore;
-        }
+      Exclusion params = ignoredFields.get(fieldName);
+      // If we found a field exclusion and it's stronger than a class exclusion
+      if (params != null && (fieldExclusion == null || (params.alwaysExclude
+          && !fieldExclusion.alwaysExclude))) {
+        fieldExclusion = params;
       }
-      if (visit || visitIfNoPath) {
-        enqueue(visit, node, child, fieldName, INSTANCE_FIELD);
-      }
+      enqueue(fieldExclusion, node, child, fieldName, INSTANCE_FIELD);
     }
   }
 
@@ -309,12 +298,12 @@ final class ShortestPathFinder {
       Object[] values = arrayInstance.getValues();
       for (int i = 0; i < values.length; i++) {
         Instance child = (Instance) values[i];
-        enqueue(true, node, child, "[" + i + "]", ARRAY_ENTRY);
+        enqueue(null, node, child, "[" + i + "]", ARRAY_ENTRY);
       }
     }
   }
 
-  private void enqueue(boolean visitNow, LeakNode parent, Instance child, String referenceName,
+  private void enqueue(Exclusion exclusion, LeakNode parent, Instance child, String referenceName,
       LeakTraceElement.Type referenceType) {
     if (child == null) {
       return;
@@ -326,6 +315,7 @@ final class ShortestPathFinder {
     if (toVisitSet.contains(child)) {
       return;
     }
+    boolean visitNow = exclusion == null;
     if (!visitNow && toVisitIfNoPathSet.contains(child)) {
       return;
     }
@@ -335,7 +325,7 @@ final class ShortestPathFinder {
     if (visitedSet.contains(child)) {
       return;
     }
-    LeakNode childNode = new LeakNode(child, parent, referenceName, referenceType);
+    LeakNode childNode = new LeakNode(exclusion, child, parent, referenceName, referenceType);
     if (visitNow) {
       toVisitSet.add(child);
       toVisitQueue.add(childNode);

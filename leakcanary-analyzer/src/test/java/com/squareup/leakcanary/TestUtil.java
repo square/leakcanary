@@ -46,7 +46,7 @@ final class TestUtil {
     return new File(url.getPath());
   }
 
-  static AnalysisResult analyze(HeapDumpFile heapDumpFile, ExcludedRefs.Builder excludedRefs) {
+  static AnalysisResult analyze(HeapDumpFile heapDumpFile, ExcludedRefs.BuilderWithParams excludedRefs) {
     File file = fileFromName(heapDumpFile.filename);
     String referenceKey = heapDumpFile.referenceKey;
     HeapAnalyzer heapAnalyzer = new HeapAnalyzer(excludedRefs.build());
