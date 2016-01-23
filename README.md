@@ -251,6 +251,7 @@ public class LeakUploadService extends DisplayLeakService {
 Build a custom `RefWatcher` in your debug Application class:
 
 ```java
+// ExampleApplication is defined in "Customizing and using the no-op dependency"
 public class DebugExampleApplication extends ExampleApplication {
   protected RefWatcher installLeakCanary() {
     return LeakCanary.install(app, LeakUploadService.class, AndroidExcludedRefs.createAppDefaults().build());
@@ -278,6 +279,7 @@ You can also upload the leak traces to Slack or HipChat, [here's an example](htt
 You can create your own version of `ExcludedRefs` to ignore specific references that you know are causing leaks but you still want to ignore:
 
 ```java
+// ExampleApplication is defined in "Customizing and using the no-op dependency"
 public class DebugExampleApplication extends ExampleApplication {
   protected RefWatcher installLeakCanary() {
     ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults()
@@ -293,15 +295,16 @@ public class DebugExampleApplication extends ExampleApplication {
 `ActivityRefWatcher` is installed by default and watches all activities. You can customize the installation steps to use something different instead:
 
 ```java
+// ExampleApplication is defined in "Customizing and using the no-op dependency"
 public class DebugExampleApplication extends ExampleApplication {
-  protected RefWatcher installLeakCanary() {
-    if (isInAnalyzerProcess(this)) {
+  @Override protected RefWatcher installLeakCanary() {
+    if (LeakCanary.isInAnalyzerProcess(this)) {
       return RefWatcher.DISABLED;
     } else {
       ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults().build();
-      enableDisplayLeakActivity(this);
+      LeakCanary.enableDisplayLeakActivity(this);
       ServiceHeapDumpListener heapDumpListener = new ServiceHeapDumpListener(this, DisplayLeakService.class);
-      final RefWatcher refWatcher = androidWatcher(this, heapDumpListener, excludedRefs);
+      final RefWatcher refWatcher = LeakCanary.androidWatcher(this, heapDumpListener, excludedRefs);
       registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
         public void onActivityDestroyed(Activity activity) {
           if (activity instanceof ThirdPartyActivity) {
