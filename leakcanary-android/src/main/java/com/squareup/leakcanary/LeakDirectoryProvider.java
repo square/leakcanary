@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary;
 
+import android.app.Activity;
 import java.io.File;
 
 /**
@@ -27,7 +28,9 @@ public interface LeakDirectoryProvider {
   /** Returns a path to an existing directory were leaks can be stored. */
   File leakDirectory();
 
-  void requestWritePermission();
+  void requestWritePermissionNotification();
+
+  void requestPermission(Activity activity);
 
   /** True if we can currently write to the leak directory. */
   boolean isLeakStorageWritable();

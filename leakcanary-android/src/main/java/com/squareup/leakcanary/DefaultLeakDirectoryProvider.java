@@ -16,6 +16,7 @@
 package com.squareup.leakcanary;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.os.Environment;
@@ -48,7 +49,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     return directory;
   }
 
-  @Override public void requestWritePermission() {
+  @Override public void requestWritePermissionNotification() {
     if (hasStoragePermission()) {
       return;
     }
@@ -58,6 +59,16 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     String contentText =
         context.getString(R.string.leak_canary_permission_notification_text, packageName);
     showNotification(context, contentTitle, contentText, pendingIntent);
+  }
+
+  @TargetApi(M) @Override public void requestPermission(Activity activity) {
+    if (hasStoragePermission()) {
+      return;
+    }
+    String[] permissions = {
+        WRITE_EXTERNAL_STORAGE
+    };
+    activity.requestPermissions(permissions, 42);
   }
 
   @Override public boolean isLeakStorageWritable() {
