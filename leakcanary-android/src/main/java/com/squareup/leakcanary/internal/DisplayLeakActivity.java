@@ -217,6 +217,38 @@ public final class DisplayLeakActivity extends Activity {
     startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
+  void deleteVisibleLeak() {
+    Leak visibleLeak = getVisibleLeak();
+    File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
+    File resultFile = visibleLeak.resultFile;
+    boolean resultDeleted = resultFile.delete();
+    if (!resultDeleted) {
+      CanaryLog.d("Could not delete result file %s", resultFile.getPath());
+    }
+    boolean heapDumpDeleted = heapDumpFile.delete();
+    if (!heapDumpDeleted) {
+      CanaryLog.d("Could not delete heap dump file %s", heapDumpFile.getPath());
+    }
+    visibleLeakRefKey = null;
+    leaks.remove(visibleLeak);
+    updateUi();
+  }
+
+  void deleteAllLeaks() {
+    File leakDirectory = getLeakDirectory(DisplayLeakActivity.this);
+    File[] files = leakDirectory.listFiles();
+    if (files != null) {
+      for (File file : files) {
+        boolean deleted = file.delete();
+        if (!deleted) {
+          CanaryLog.d("Could not delete file %s", file.getPath());
+        }
+      }
+    }
+    leaks = Collections.emptyList();
+    updateUi();
+  }
+
   void updateUi() {
     if (leaks == null) {
       setTitle("Loading leaks...");
@@ -249,6 +281,12 @@ public final class DisplayLeakActivity extends Activity {
         getActionBar().setDisplayHomeAsUpEnabled(true);
         actionButton.setVisibility(VISIBLE);
         actionButton.setText(R.string.leak_canary_delete);
+        actionButton.setOnClickListener(new View.OnClickListener() {
+          @Override
+          public void onClick(View v) {
+            deleteVisibleLeak();
+          }
+        });
         listView.setAdapter(null);
       } else {
         final DisplayLeakAdapter adapter;
@@ -269,20 +307,7 @@ public final class DisplayLeakActivity extends Activity {
           actionButton.setText(R.string.leak_canary_delete);
           actionButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-              Leak visibleLeak = getVisibleLeak();
-              File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
-              File resultFile = visibleLeak.resultFile;
-              boolean resultDeleted = resultFile.delete();
-              if (!resultDeleted) {
-                CanaryLog.d("Could not delete result file %s", resultFile.getPath());
-              }
-              boolean heapDumpDeleted = heapDumpFile.delete();
-              if (!heapDumpDeleted) {
-                CanaryLog.d("Could not delete heap dump file %s", heapDumpFile.getPath());
-              }
-              visibleLeakRefKey = null;
-              leaks.remove(visibleLeak);
-              updateUi();
+              deleteVisibleLeak();
             }
           });
         }
@@ -311,18 +336,7 @@ public final class DisplayLeakActivity extends Activity {
         actionButton.setText(R.string.leak_canary_delete_all);
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
-            File leakDirectory = getLeakDirectory(DisplayLeakActivity.this);
-            File[] files = leakDirectory.listFiles();
-            if (files != null) {
-              for (File file : files) {
-                boolean deleted = file.delete();
-                if (!deleted) {
-                  CanaryLog.d("Could not delete file %s", file.getPath());
-                }
-              }
-            }
-            leaks = Collections.emptyList();
-            updateUi();
+            deleteAllLeaks();
           }
         });
       }
