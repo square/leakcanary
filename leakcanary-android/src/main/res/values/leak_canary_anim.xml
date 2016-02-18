@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="leak_canary_assistive_panel_anim" parent="android:Animation">
+        <item name="android:windowEnterAnimation">@anim/leak_canary_grow_fade_in_from_bottom</item>
+        <item name="android:windowExitAnimation">@anim/leak_canary_shrink_fade_out_from_bottom</item>
+    </style>
+</resources>

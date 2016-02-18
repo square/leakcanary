@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <ImageView
+        android:id="@+id/__leak_canary_touch_icon"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:src="@drawable/leak_canary_icon" />
+
+    <RelativeLayout
+        android:id="@+id/__leak_canary_dot_layout"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_alignRight="@id/__leak_canary_touch_icon"
+        android:background="@drawable/leak_canary_dot_icon"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/__leak_canary_leak_num_txt"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:textColor="#ffffff"
+            android:textSize="12sp" />
+    </RelativeLayout>
+</RelativeLayout>

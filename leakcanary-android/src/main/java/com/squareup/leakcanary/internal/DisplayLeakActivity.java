@@ -18,13 +18,18 @@ package com.squareup.leakcanary.internal;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
+import android.os.Message;
+import android.os.Messenger;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -44,6 +49,8 @@ import com.squareup.leakcanary.DefaultLeakDirectoryProvider;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.LeakDirectoryProvider;
 import com.squareup.leakcanary.R;
+import com.squareup.leakcanary.assistivetouch.AssistiveGuardService;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
@@ -105,7 +112,6 @@ public final class DisplayLeakActivity extends Activity {
 
   @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
     if (savedInstanceState != null) {
       visibleLeakRefKey = savedInstanceState.getString("visibleLeakRefKey");
     } else {
@@ -280,6 +286,7 @@ public final class DisplayLeakActivity extends Activity {
               if (!heapDumpDeleted) {
                 CanaryLog.d("Could not delete heap dump file %s", heapDumpFile.getPath());
               }
+              onDeleteSuccess();
               visibleLeakRefKey = null;
               leaks.remove(visibleLeak);
               updateUi();
@@ -321,6 +328,7 @@ public final class DisplayLeakActivity extends Activity {
                 }
               }
             }
+            onDeleteSuccess();
             leaks = Collections.emptyList();
             updateUi();
           }
@@ -494,5 +502,95 @@ public final class DisplayLeakActivity extends Activity {
     } else {
       return className.substring(separator + 1);
     }
+  }
+  //add bind AssistiveGuardService for making leak num correspond with real num after delete
+  /** Messenger for communicating with service. */
+  Messenger mService = null;
+  private boolean mIsBound;
+
+  /**
+   * Handler of incoming messages from service.
+   */
+  class IncomingHandler extends Handler {
+    @Override
+    public void handleMessage(Message msg) {
+      switch (msg.what) {
+        case AssistiveGuardService.MSG_RECEIVED:
+          CanaryLog.d("MSG_RECEIVED msg.obj:" + msg.obj);
+          break;
+        default:
+          super.handleMessage(msg);
+      }
+    }
+  }
+
+  /**
+   * Target we publish for clients to send messages to IncomingHandler.
+   */
+  final Messenger mMessenger = new Messenger(new IncomingHandler());
+
+  private ServiceConnection connection = new ServiceConnection() {
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder service) {
+      mService = new Messenger(service);
+
+      // We want to monitor the service for as long as we are
+      // connected to it.
+      Message msg = Message.obtain(null, AssistiveGuardService.MSG_REGISTER_CLIENT);
+      msg.replyTo = mMessenger;
+      AssistiveGuardService.sendMsgQuitely(mService, msg);
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+      // This is called when the connection with the service has been
+      // unexpectedly disconnected -- that is, its process crashed.
+      mService = null;
+    }
+  };
+
+  @Override
+  protected void onStart() {
+    super.onStart();
+    doBindService();
+  }
+
+  @Override
+  protected void onStop() {
+    super.onStop();
+    doUnbindService();
+  }
+
+  void doBindService() {
+    // Establish a connection with the service.  We use an explicit
+    // class name because there is no reason to be able to let other
+    // applications replace our component.
+    Intent intent = new Intent(DisplayLeakActivity.this,
+            AssistiveGuardService.class);
+    bindService(intent, connection, Context.BIND_AUTO_CREATE);
+    mIsBound = true;
+  }
+
+  void doUnbindService() {
+    if (mIsBound) {
+      // If we have received the service, and hence registered with
+      // it, then now is the time to unregister.
+      if (mService != null) {
+        Message msg = Message.obtain(null,
+                AssistiveGuardService.MSG_UNREGISTER_CLIENT);
+        msg.replyTo = mMessenger;
+        AssistiveGuardService.sendMsgQuitely(mService, msg);
+      }
+
+      // Detach our existing connection.
+      unbindService(connection);
+      mIsBound = false;
+    }
+  }
+
+  void onDeleteSuccess() {
+    Message msg = Message.obtain(null,
+            AssistiveGuardService.MSG_DELETE_FILE, 0, 0);
+    AssistiveGuardService.sendMsgQuitely(mService, msg);
   }
 }

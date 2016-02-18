@@ -22,6 +22,9 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.os.Build;
 import android.util.Log;
+
+import com.squareup.leakcanary.assistivetouch.AssistiveGuardService;
+import com.squareup.leakcanary.assistivetouch.AssistiveResultService;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import com.squareup.leakcanary.internal.HeapAnalyzerService;
 
@@ -36,8 +39,10 @@ public final class LeakCanary {
    * references (on ICS+).
    */
   public static RefWatcher install(Application application) {
-    return install(application, DisplayLeakService.class,
-        AndroidExcludedRefs.createAppDefaults().build());
+//    return install(application, DisplayLeakService.class,
+//        AndroidExcludedRefs.createAppDefaults().build());
+      return install(application, AssistiveResultService.class,
+              AndroidExcludedRefs.createAppDefaults().build());
   }
 
   /**
@@ -51,6 +56,8 @@ public final class LeakCanary {
       return RefWatcher.DISABLED;
     }
     enableDisplayLeakActivity(application);
+      //add assistive service
+    AssistiveGuardService.startAssistiveService(application);
     HeapDump.Listener heapDumpListener =
         new ServiceHeapDumpListener(application, listenerServiceClass);
     RefWatcher refWatcher = androidWatcher(application, heapDumpListener, excludedRefs);

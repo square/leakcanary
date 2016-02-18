@@ -23,6 +23,9 @@
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
+    <!--to show assistive floating window-->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
   <application>
     <service
         android:name=".internal.HeapAnalyzerService"
@@ -33,6 +36,16 @@
         android:name=".DisplayLeakService"
         android:enabled="false"
         />
+      <service
+          android:name=".assistivetouch.AssistiveGuardService"
+          android:process=":leakcanary"
+          android:enabled="false"
+          />
+      <service
+          android:name=".assistivetouch.AssistiveResultService"
+          android:process=":leakcanary"
+          android:enabled="false"
+          />
     <activity
         android:theme="@style/leak_canary_LeakCanary.Base"
         android:name=".internal.DisplayLeakActivity"
@@ -41,10 +54,11 @@
         android:icon="@drawable/leak_canary_icon"
         android:taskAffinity="com.squareup.leakcanary"
         >
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN"/>
-        <category android:name="android.intent.category.LAUNCHER"/>
-      </intent-filter>
+        <!-- mricefox modify, remove launcher icon-->
+      <!--<intent-filter>-->
+        <!--<action android:name="android.intent.action.MAIN"/>-->
+        <!--<category android:name="android.intent.category.LAUNCHER"/>-->
+      <!--</intent-filter>-->
     </activity>
     <activity
         android:theme="@style/leak_canary_Theme.Transparent"
