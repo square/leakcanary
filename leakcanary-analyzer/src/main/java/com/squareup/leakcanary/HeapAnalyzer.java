@@ -27,6 +27,9 @@ import com.squareup.haha.perflib.Snapshot;
 import com.squareup.haha.perflib.Type;
 import com.squareup.haha.perflib.io.HprofBuffer;
 import com.squareup.haha.perflib.io.MemoryMappedFileBuffer;
+import com.squareup.haha.trove.THashMap;
+import com.squareup.haha.trove.TObjectProcedure;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,6 +79,7 @@ public final class HeapAnalyzer {
       HprofBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
       HprofParser parser = new HprofParser(buffer);
       Snapshot snapshot = parser.parse();
+      deduplicateGcRoots(snapshot);
 
       Instance leakingRef = findLeakingReference(referenceKey, snapshot);
 
@@ -88,6 +92,35 @@ public final class HeapAnalyzer {
     } catch (Throwable e) {
       return failure(e, since(analysisStartNanoTime));
     }
+  }
+
+  /**
+   * Pruning duplicates reduces memory pressure from hprof bloat added in Marshmallow.
+   */
+  void deduplicateGcRoots(Snapshot snapshot) {
+    // THashMap has a smaller memory footprint than HashMap.
+    final THashMap<String, RootObj> uniqueRootMap = new THashMap<>();
+
+    final List<RootObj> gcRoots = (ArrayList) snapshot.getGCRoots();
+    for (RootObj root : gcRoots) {
+      String key = generateRootKey(root);
+      if (!uniqueRootMap.containsKey(key)) {
+        uniqueRootMap.put(key, root);
+      }
+    }
+
+    // Repopulate snapshot with unique GC roots.
+    gcRoots.clear();
+    uniqueRootMap.forEach(new TObjectProcedure<String>() {
+      @Override
+      public boolean execute(String key) {
+        return gcRoots.add(uniqueRootMap.get(key));
+      }
+    });
+  }
+
+  private String generateRootKey(RootObj root) {
+    return String.format("%s@0x%08x", root.getRootType().getName(), root.getId());
   }
 
   private Instance findLeakingReference(String key, Snapshot snapshot) {
