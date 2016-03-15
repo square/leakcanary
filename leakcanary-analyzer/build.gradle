@@ -17,6 +17,7 @@ dependencies {
   compile 'com.squareup.haha:haha:2.0.2'
   compile project(':leakcanary-watcher')
   testCompile 'junit:junit:4.12'
+  testCompile 'org.assertj:assertj-core:1.7.0'
 }
 
 android.libraryVariants.all { variant ->
