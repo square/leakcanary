@@ -217,7 +217,19 @@ public final class DisplayLeakActivity extends Activity {
     startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
-  void updateUi() {
+  private void safeInvalidateOptionsMenu() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+      super.invalidateOptionsMenu();
+    }
+  }
+
+  private void enableActionBarShowDisplayHomeAsUp(boolean enabled) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+      getActionBar().setDisplayHomeAsUpEnabled(enabled);
+    }
+  }
+
+  private void updateUi() {
     if (leaks == null) {
       setTitle("Loading leaks...");
       return;
@@ -245,8 +257,8 @@ public final class DisplayLeakActivity extends Activity {
             getString(R.string.leak_canary_failure_report) + Log.getStackTraceString(
                 result.failure));
         setTitle(R.string.leak_canary_analysis_failed);
-        invalidateOptionsMenu();
-        getActionBar().setDisplayHomeAsUpEnabled(true);
+        safeInvalidateOptionsMenu();
+        enableActionBarShowDisplayHomeAsUp(true);
         actionButton.setVisibility(VISIBLE);
         actionButton.setText(R.string.leak_canary_delete);
         listView.setAdapter(null);
@@ -263,8 +275,8 @@ public final class DisplayLeakActivity extends Activity {
               adapter.toggleRow(position);
             }
           });
-          invalidateOptionsMenu();
-          getActionBar().setDisplayHomeAsUpEnabled(true);
+          safeInvalidateOptionsMenu();
+          enableActionBarShowDisplayHomeAsUp(true);
           actionButton.setVisibility(VISIBLE);
           actionButton.setText(R.string.leak_canary_delete);
           actionButton.setOnClickListener(new View.OnClickListener() {
@@ -305,9 +317,9 @@ public final class DisplayLeakActivity extends Activity {
             updateUi();
           }
         });
-        invalidateOptionsMenu();
+        safeInvalidateOptionsMenu();
         setTitle(getString(R.string.leak_canary_leak_list_title, getPackageName()));
-        getActionBar().setDisplayHomeAsUpEnabled(false);
+        enableActionBarShowDisplayHomeAsUp(false);
         actionButton.setText(R.string.leak_canary_delete_all);
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
