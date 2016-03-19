@@ -282,8 +282,7 @@ public final class DisplayLeakActivity extends Activity {
         actionButton.setVisibility(VISIBLE);
         actionButton.setText(R.string.leak_canary_delete);
         actionButton.setOnClickListener(new View.OnClickListener() {
-          @Override
-          public void onClick(View v) {
+          @Override public void onClick(View v) {
             deleteVisibleLeak();
           }
         });
