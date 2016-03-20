@@ -43,8 +43,6 @@ import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 
 public final class LeakCanaryInternals {
 
-  // SDK INT for API 22.
-  public static final int LOLLIPOP_MR1 = 22;
   public static final String SAMSUNG = "samsung";
   public static final String MOTOROLA = "motorola";
   public static final String LG = "LGE";
