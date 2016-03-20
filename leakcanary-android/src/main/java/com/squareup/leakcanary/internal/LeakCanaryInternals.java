@@ -29,6 +29,7 @@ import android.content.pm.ServiceInfo;
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.R;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -114,10 +115,14 @@ public final class LeakCanaryInternals {
     ActivityManager activityManager =
         (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
     ActivityManager.RunningAppProcessInfo myProcess = null;
-    for (ActivityManager.RunningAppProcessInfo process : activityManager.getRunningAppProcesses()) {
-      if (process.pid == myPid) {
-        myProcess = process;
-        break;
+    List<ActivityManager.RunningAppProcessInfo> runningProcesses =
+        activityManager.getRunningAppProcesses();
+    if (runningProcesses != null) {
+      for (ActivityManager.RunningAppProcessInfo process : runningProcesses) {
+        if (process.pid == myPid) {
+          myProcess = process;
+          break;
+        }
       }
     }
     if (myProcess == null) {
