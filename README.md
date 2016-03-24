@@ -12,9 +12,9 @@ In your `build.gradle`:
 
 ```gradle
  dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.1' // or 1.4-beta1
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1' // or 1.4-beta1
-   testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1' // or 1.4-beta1
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.4-beta2'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
+   testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
  }
 ```
 
@@ -31,6 +31,21 @@ public class ExampleApplication extends Application {
 ```
 
 **You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
+
+## Releases
+
+You can watch for releases [on Bintray](https://bintray.com/pyricau/maven/com.squareup.leakcanary%3Aleakcanary-android/view?source=watch).
+
+Snapshots are available in [Sonatype's `snapshots` repository][snap]:
+
+```
+  repositories {
+    mavenCentral()
+    maven {
+      url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+  }
+```
 
 ## Why should I use LeakCanary?
 
@@ -320,10 +335,6 @@ public class DebugExampleApplication extends ExampleApplication {
 }
 ```
 
-## Snapshots of the development version
-
-See the [CHANGELOG](https://github.com/square/leakcanary/blob/master/CHANGELOG.md).
-
 ## Troubleshooting
 
 * if `leakcanary-android` is not in the list of external libraries in Android Studio, but `leakcanary-analyzer` and `leakcanary-watcher` are there: try doing a `Clean Build`. If it's still a problem, try building from the command line.
@@ -362,3 +373,5 @@ The name **LeakCanary** is a reference to the expression [canary in a coal mine]
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+
+[snap]: https://oss.sonatype.org/content/repositories/snapshots/
