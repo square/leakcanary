@@ -32,10 +32,23 @@ Snapshots are available in Sonatype's `snapshots` repository:
 
 [![Build Status](https://travis-ci.org/square/leakcanary.svg?branch=master)](https://travis-ci.org/square/leakcanary)
 
+# Change Log
+
+All changes in 1.4+ are [tracked here](https://github.com/square/leakcanary/pulls?utf8=%E2%9C%93&q=milestone%3A1.4+is%3Apr).
+
+## Version 1.4-beta2 *(2016-03-23)*
+
+* Add reason for ignoring to analysis result [#365](https://github.com/square/leakcanary/issues/365).
+* Lower memory usage when parsing heap dumps on M [#223](https://github.com/square/leakcanary/issues/223).
+* Fix NPE in LeakCanaryInternals.isInServiceProcess() [#449](https://github.com/square/leakcanary/issues/449).
+* New ignored Android SDK leaks [#297](https://github.com/square/leakcanary/issues/297),[#322](https://github.com/square/leakcanary/issues/322).
+* Use leakcanary-android-no-op in test builds [#143](https://github.com/square/leakcanary/issues/143).
+* Fixes to allow LeakCanary to work with ProGuard [#398](https://github.com/square/leakcanary/pull/398).
+* Optimize png assets [#406](https://github.com/square/leakcanary/pull/406).
+* Fix delete button not working on error views [#408](https://github.com/square/leakcanary/pull/408).
+* Add German translation [#437](https://github.com/square/leakcanary/pull/437).
 
 ## Version 1.4-beta1 *(2016-01-08)*
-
-All actual changes are [tracked here](https://github.com/square/leakcanary/pulls?utf8=%E2%9C%93&q=milestone%3A1.4+is%3Apr).
 
 * Switched to [HAHA 2.0.2](https://github.com/square/haha/blob/master/CHANGELOG.md#version-202-2015-07-20) with uses Perflib instead of MAT under the hood [#219](https://github.com/square/leakcanary/pull/219). This fixes crashes and improves speed a lot.
 * We can now parse Android M heap dumps [#267](https://github.com/square/leakcanary/issues/267), although there are still memory issues (see [#223](https://github.com/square/leakcanary/issues/223)).
