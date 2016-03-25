@@ -182,37 +182,37 @@ That way, your release code will contain no reference to LeakCanary other than t
 
 ### Icon and label
 
-`DisplayLeakActivity` comes with a default icon and label, which you can change by providing `R.drawable.__leak_canary_icon` and `R.string.__leak_canary_display_activity_label` in your app:
+`DisplayLeakActivity` comes with a default icon and label, which you can change by providing `R.drawable.leak_canary_icon` and `R.string.leak_canary_display_activity_label` in your app:
 
 ```
 res/
   drawable-hdpi/
-    __leak_canary_icon.png
+    leak_canary_icon.png
   drawable-mdpi/
-    __leak_canary_icon.png
+    leak_canary_icon.png
   drawable-xhdpi/
-    __leak_canary_icon.png
+    leak_canary_icon.png
   drawable-xxhdpi/
-    __leak_canary_icon.png
+    leak_canary_icon.png
   drawable-xxxhdpi/
-    __leak_canary_icon.png
+    leak_canary_icon.png
 ```
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="__leak_canary_display_activity_label">MyLeaks</string>
+  <string name="leak_canary_display_activity_label">MyLeaks</string>
 </resources>
 ```
 
 ### Stored leak traces
 
-`DisplayLeakActivity` saves up to 7 heap dumps & leak traces in the app directory. You can change that number by providing `R.integer.__leak_canary_max_stored_leaks` in your app:
+`DisplayLeakActivity` saves up to 7 heap dumps & leak traces in the app directory. You can change that number by providing `R.integer.leak_canary_max_stored_leaks` in your app:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <integer name="__leak_canary_max_stored_leaks">20</integer>
+  <integer name="leak_canary_max_stored_leaks">20</integer>
 </resources>
 ```
 
