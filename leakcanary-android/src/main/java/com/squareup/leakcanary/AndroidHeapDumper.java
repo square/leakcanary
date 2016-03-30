@@ -47,7 +47,7 @@ public final class AndroidHeapDumper implements HeapDumper {
   @Override public File dumpHeap() {
     if (!leakDirectoryProvider.isLeakStorageWritable()) {
       CanaryLog.d("Could not write to leak storage to dump heap.");
-      leakDirectoryProvider.requestWritePermission();
+      leakDirectoryProvider.requestWritePermissionNotification();
       return NO_DUMP;
     }
     File heapDumpFile = getHeapDumpFile();
