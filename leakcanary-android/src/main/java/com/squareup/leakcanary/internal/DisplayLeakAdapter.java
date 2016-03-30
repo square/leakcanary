@@ -52,14 +52,14 @@ final class DisplayLeakAdapter extends BaseAdapter {
         convertView =
             LayoutInflater.from(context).inflate(R.layout.leak_canary_ref_top_row, parent, false);
       }
-      TextView textView = findById(convertView, R.id.__leak_canary_row_text);
+      TextView textView = findById(convertView, R.id.leak_canary_row_text);
       textView.setText(context.getPackageName());
     } else {
       if (convertView == null) {
         convertView =
             LayoutInflater.from(context).inflate(R.layout.leak_canary_ref_row, parent, false);
       }
-      TextView textView = findById(convertView, R.id.__leak_canary_row_text);
+      TextView textView = findById(convertView, R.id.leak_canary_row_text);
 
       boolean isRoot = position == 1;
       boolean isLeakingInstance = position == getCount() - 1;
@@ -70,7 +70,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
       }
       textView.setText(Html.fromHtml(htmlString));
 
-      DisplayLeakConnectorView connector = findById(convertView, R.id.__leak_canary_row_connector);
+      DisplayLeakConnectorView connector = findById(convertView, R.id.leak_canary_row_connector);
       if (isRoot) {
         connector.setType(DisplayLeakConnectorView.Type.START);
       } else {
@@ -80,7 +80,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
           connector.setType(DisplayLeakConnectorView.Type.NODE);
         }
       }
-      MoreDetailsView moreDetailsView = findById(convertView, R.id.__leak_canary_row_more);
+      MoreDetailsView moreDetailsView = findById(convertView, R.id.leak_canary_row_more);
       moreDetailsView.setOpened(opened[position]);
     }
 
