@@ -26,6 +26,8 @@ import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import com.squareup.leakcanary.internal.HeapAnalyzerService;
 
 import static android.text.format.Formatter.formatShortFileSize;
+import static com.squareup.leakcanary.BuildConfig.GIT_SHA;
+import static com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.isInServiceProcess;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabled;
 
@@ -112,7 +114,10 @@ public final class LeakCanary {
         detailedString = "\n* Details:\n" + result.leakTrace.toDetailedString();
       }
     } else if (result.failure != null) {
-      info += "* FAILURE:\n" + Log.getStackTraceString(result.failure) + "\n";
+      // We duplicate the library version & Sha information because bug reports often only contain
+      // the stacktrace.
+      info += "* FAILURE in " + LIBRARY_VERSION + " " + GIT_SHA + ":" + Log.getStackTraceString(
+          result.failure) + "\n";
     } else {
       info += "* NO LEAK FOUND.\n\n";
     }
@@ -137,9 +142,9 @@ public final class LeakCanary {
         + " API: "
         + Build.VERSION.SDK_INT
         + " LeakCanary: "
-        + BuildConfig.LIBRARY_VERSION
+        + LIBRARY_VERSION
         + " "
-        + BuildConfig.GIT_SHA
+        + GIT_SHA
         + "\n"
         + "* Durations: watch="
         + heapDump.watchDurationMs

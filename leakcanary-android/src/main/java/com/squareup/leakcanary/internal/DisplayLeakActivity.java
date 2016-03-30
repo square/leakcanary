@@ -61,6 +61,8 @@ import static android.text.format.DateUtils.FORMAT_SHOW_TIME;
 import static android.text.format.Formatter.formatShortFileSize;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
+import static com.squareup.leakcanary.BuildConfig.GIT_SHA;
+import static com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.newSingleThreadExecutor;
 
@@ -273,9 +275,13 @@ public final class DisplayLeakActivity extends Activity {
       if (result.failure != null) {
         listView.setVisibility(GONE);
         failureView.setVisibility(VISIBLE);
-        failureView.setText(
-            getString(R.string.leak_canary_failure_report) + Log.getStackTraceString(
-                result.failure));
+        String failureMessage = getString(R.string.leak_canary_failure_report)
+            + LIBRARY_VERSION
+            + " "
+            + GIT_SHA
+            + "\n"
+            + Log.getStackTraceString(result.failure);
+        failureView.setText(failureMessage);
         setTitle(R.string.leak_canary_analysis_failed);
         invalidateOptionsMenu();
         getActionBar().setDisplayHomeAsUpEnabled(true);
