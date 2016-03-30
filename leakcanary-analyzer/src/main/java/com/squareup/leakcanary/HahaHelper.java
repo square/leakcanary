@@ -52,6 +52,11 @@ public final class HahaHelper {
   static String threadName(Instance holder) {
     List<ClassInstance.FieldValue> values = classInstanceValues(holder);
     Object nameField = fieldValue(values, "name");
+    if (nameField == null) {
+      // Sometimes we can't find the String at the expected memory address in the heap dump.
+      // See https://github.com/square/leakcanary/issues/417 .
+      return "Thread name not available";
+    }
     return asString(nameField);
   }
 
