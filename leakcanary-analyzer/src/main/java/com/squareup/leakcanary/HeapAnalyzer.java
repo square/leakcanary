@@ -43,6 +43,7 @@ import static com.squareup.leakcanary.HahaHelper.classInstanceValues;
 import static com.squareup.leakcanary.HahaHelper.extendsThread;
 import static com.squareup.leakcanary.HahaHelper.fieldToString;
 import static com.squareup.leakcanary.HahaHelper.fieldValue;
+import static com.squareup.leakcanary.HahaHelper.hasField;
 import static com.squareup.leakcanary.HahaHelper.threadName;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.ARRAY;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.CLASS;
@@ -61,6 +62,36 @@ public final class HeapAnalyzer {
 
   public HeapAnalyzer(ExcludedRefs excludedRefs) {
     this.excludedRefs = excludedRefs;
+  }
+
+  public List<TrackedReference> findTrackedReferences(File heapDumpFile) {
+    if (!heapDumpFile.exists()) {
+      throw new IllegalArgumentException("File does not exist: " + heapDumpFile);
+    }
+    try {
+      HprofBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
+      HprofParser parser = new HprofParser(buffer);
+      Snapshot snapshot = parser.parse();
+      deduplicateGcRoots(snapshot);
+
+      ClassObj refClass = snapshot.findClass(KeyedWeakReference.class.getName());
+      List<TrackedReference> references = new ArrayList<>();
+      for (Instance weakRef : refClass.getInstancesList()) {
+        List<ClassInstance.FieldValue> values = classInstanceValues(weakRef);
+        String key = asString(fieldValue(values, "key"));
+        String name =
+            hasField(values, "name") ? asString(fieldValue(values, "name")) : "(No name field)";
+        Instance instance = fieldValue(values, "referent");
+        if (instance != null) {
+          String className = getClassName(instance);
+          List<String> fields = describeFields(instance);
+          references.add(new TrackedReference(key, name, className, fields));
+        }
+      }
+      return references;
+    } catch (Throwable e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -112,8 +143,7 @@ public final class HeapAnalyzer {
     // Repopulate snapshot with unique GC roots.
     gcRoots.clear();
     uniqueRootMap.forEach(new TObjectProcedure<String>() {
-      @Override
-      public boolean execute(String key) {
+      @Override public boolean execute(String key) {
         return gcRoots.add(uniqueRootMap.get(key));
       }
     });
@@ -250,37 +280,16 @@ public final class HeapAnalyzer {
     LeakTraceElement.Holder holderType;
     String className;
     String extra = null;
-    List<String> fields = new ArrayList<>();
-    if (holder instanceof ClassObj) {
-      ClassObj classObj = (ClassObj) holder;
-      holderType = CLASS;
-      className = classObj.getClassName();
-      for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
-        Field field = entry.getKey();
-        Object value = entry.getValue();
-        fields.add("static " + field.getName() + " = " + value);
-      }
-    } else if (holder instanceof ArrayInstance) {
-      ArrayInstance arrayInstance = (ArrayInstance) holder;
-      holderType = ARRAY;
-      className = arrayInstance.getClassObj().getClassName();
-      if (arrayInstance.getArrayType() == Type.OBJECT) {
-        Object[] values = arrayInstance.getValues();
-        for (int i = 0; i < values.length; i++) {
-          fields.add("[" + i + "] = " + values[i]);
-        }
-      }
-    } else {
-      ClassInstance classInstance = (ClassInstance) holder;
-      ClassObj classObj = holder.getClassObj();
-      for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
-        fields.add("static " + fieldToString(entry));
-      }
-      for (ClassInstance.FieldValue field : classInstance.getValues()) {
-        fields.add(fieldToString(field));
-      }
-      className = classObj.getClassName();
+    List<String> fields = describeFields(holder);
 
+    className = getClassName(holder);
+
+    if (holder instanceof ClassObj) {
+      holderType = CLASS;
+    } else if (holder instanceof ArrayInstance) {
+      holderType = ARRAY;
+    } else {
+      ClassObj classObj = holder.getClassObj();
       if (extendsThread(classObj)) {
         holderType = THREAD;
         String threadName = threadName(holder);
@@ -314,6 +323,52 @@ public final class HeapAnalyzer {
     }
     return new LeakTraceElement(referenceName, type, holderType, className, extra, node.exclusion,
         fields);
+  }
+
+  private List<String> describeFields(Instance instance) {
+    List<String> fields = new ArrayList<>();
+
+    if (instance instanceof ClassObj) {
+      ClassObj classObj = (ClassObj) instance;
+      for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
+        Field field = entry.getKey();
+        Object value = entry.getValue();
+        fields.add("static " + field.getName() + " = " + value);
+      }
+    } else if (instance instanceof ArrayInstance) {
+      ArrayInstance arrayInstance = (ArrayInstance) instance;
+      if (arrayInstance.getArrayType() == Type.OBJECT) {
+        Object[] values = arrayInstance.getValues();
+        for (int i = 0; i < values.length; i++) {
+          fields.add("[" + i + "] = " + values[i]);
+        }
+      }
+    } else {
+      ClassObj classObj = instance.getClassObj();
+      for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
+        fields.add("static " + fieldToString(entry));
+      }
+      ClassInstance classInstance = (ClassInstance) instance;
+      for (ClassInstance.FieldValue field : classInstance.getValues()) {
+        fields.add(fieldToString(field));
+      }
+    }
+    return fields;
+  }
+
+  private String getClassName(Instance instance) {
+    String className;
+    if (instance instanceof ClassObj) {
+      ClassObj classObj = (ClassObj) instance;
+      className = classObj.getClassName();
+    } else if (instance instanceof ArrayInstance) {
+      ArrayInstance arrayInstance = (ArrayInstance) instance;
+      className = arrayInstance.getClassObj().getClassName();
+    } else {
+      ClassObj classObj = instance.getClassObj();
+      className = classObj.getClassName();
+    }
+    return className;
   }
 
   private long since(long analysisStartNanoTime) {
