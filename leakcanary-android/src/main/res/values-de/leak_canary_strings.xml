@@ -33,6 +33,7 @@
     <string name="leak_canary_no_leak_title">Kein Leak gefunden</string>
     <string name="leak_canary_no_leak_text">Der GC war untätig.</string>
     <string name="leak_canary_excluded_row">[Ausgeschlossen] %s</string>
+    <string name="leak_canary_permission_not_granted">Please grant external storage permission, otherwise memory leaks will not be detected.</string>
     <string name="leak_canary_permission_notification_title">Leak detektiert, benötige Berechtigung</string>
     <string name="leak_canary_permission_notification_text">Hier klicken um Storage Berechtigung für %s zu aktivieren.</string>
 </resources>
