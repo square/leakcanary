@@ -34,6 +34,7 @@
   <string name="leak_canary_no_leak_title">No leak found</string>
   <string name="leak_canary_no_leak_text">The GC was being lazy.</string>
   <string name="leak_canary_excluded_row">[Excluded] %s</string>
+  <string name="leak_canary_permission_not_granted">Please grant external storage permission, otherwise memory leaks will not be detected.</string>
   <string name="leak_canary_permission_notification_title">Leak detected, need permission</string>
   <string name="leak_canary_permission_notification_text">Click to enable storage permission for %s.</string>
 </resources>
