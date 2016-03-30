@@ -281,8 +281,8 @@ public enum AndroidExcludedRefs {
           .reason("ClipboardUIManager is a static singleton that leaks an activity context."
               + " Fix: trigger a call to ClipboardUIManager.getInstance() in Application.onCreate()"
               + " , so that the ClipboardUIManager instance gets cached with a reference to the"
-              + " application context. Example: https://gist.github.com/pepyakin"
-              + "/8d2221501fd572d4a61c");
+              + " application context. Example: https://gist.github.com/cypressious/"
+              + "91c4fb1455470d803a602838dfcd5774");
     }
   },
 
