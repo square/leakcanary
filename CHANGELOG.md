@@ -1,7 +1,5 @@
 # Change Log
 
-You can watch releases [on Bintray](https://bintray.com/pyricau/maven/com.squareup.leakcanary%3Aleakcanary-android/view?source=watch).
-
 ## Version 1.4-SNAPSHOT
 
 Nothing yet.
@@ -9,28 +7,6 @@ Nothing yet.
 ### Public API changes
 
 Nothing yet.
-
-### Dependencies
-
-```gradle
- dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.4-SNAPSHOT'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-SNAPSHOT'
- }
-```
-
-Snapshots are available in Sonatype's `snapshots` repository:
-
-```
-  repositories {
-    mavenCentral()
-    maven {
-      url 'https://oss.sonatype.org/content/repositories/snapshots/'
-    }
-  }
-```
-
-[![Build Status](https://travis-ci.org/square/leakcanary.svg?branch=master)](https://travis-ci.org/square/leakcanary)
 
 # Change Log
 
@@ -70,15 +46,6 @@ All changes in 1.4+ are [tracked here](https://github.com/square/leakcanary/pull
 * Each `ExcludedRef` entry can now be ignored entirely or "kept only if no other path".
 * Added support for ignoring all fields (static and non static) for a given class.
 
-### Dependencies
-
-```gradle
- dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.4-beta1'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta1'
- }
-```
-
 ## Version 1.3.1 *(2015-05-16)*
 
 * Heap dumps and analysis results are now saved on the sd card: [#21](https://github.com/square/leakcanary/issues/21).
@@ -106,29 +73,8 @@ All changes in 1.4+ are [tracked here](https://github.com/square/leakcanary/pull
 * `AndroidExcludedRefs.createAppDefaults()` & `AndroidExcludedRefs.createAndroidDefaults()` return a `ExcludedRef.Builder`.
 * `ExcludedRef` moved from `leakcanary-analyzer` to `leakcanary-watcher`
 
-### Dependencies
-
-```gradle
- dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3.1'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3.1'
- }
-```
-
-### Statistics
-
-* 33 commits to the LeakCanary library code and 11 commits to [HAHA](https://github.com/square/haha).
-* 6 contributors: [Pierre-Yves Ricau](https://github.com/square/leakcanary/commits?author=pyricau), [Sergey Shulepov](https://github.com/square/leakcanary/commits?author=pepyakin), [Romain Guy](https://github.com/square/leakcanary/commits?author=romainguy), [liaohuqiu](https://github.com/square/leakcanary/commits?author=liaohuqiu), [Dario Marcato](https://github.com/square/leakcanary/commits?author=dmarcato), [Anders Aagaard](https://github.com/square/leakcanary/commits?author=andaag).
-
 ## Version 1.3 *(2015-05-08)*
 
 Initial release.
 
 ### Dependencies
-
-```gradle
- dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.3'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.3'
- }
-```
