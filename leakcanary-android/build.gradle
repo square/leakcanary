@@ -32,6 +32,9 @@ android {
     buildConfigField "String", "GIT_SHA", "\"${gitSha()}\""
     consumerProguardFiles 'consumer-proguard-rules.pro'
   }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+  }
 }
 
 task sourceJar(type: Jar) {
