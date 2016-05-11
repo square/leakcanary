@@ -24,7 +24,7 @@
     <string name="leak_canary_share_with">Teilen mit…</string>
     <string name="leak_canary_display_activity_label">Leaks</string>
     <string name="leak_canary_storage_permission_activity_label">Storage Berechtigung</string>
-    <string name="leak_canary_toast_heap_dump">Analysiere Speichert, die App wird einfrieren. Brrr.</string>
+    <string name="leak_canary_toast_heap_dump">Sichere den Speicher, die App wird einfrieren. Brrr.</string>
     <string name="leak_canary_delete">Löschen</string>
     <string name="leak_canary_failure_report">"Bitte sende diesen Fehler an http://github.com/square/leakcanary\n"</string>
     <string name="leak_canary_delete_all">Alle löschen</string>
@@ -33,7 +33,7 @@
     <string name="leak_canary_no_leak_title">Kein Leak gefunden</string>
     <string name="leak_canary_no_leak_text">Der GC war untätig.</string>
     <string name="leak_canary_excluded_row">[Ausgeschlossen] %s</string>
-    <string name="leak_canary_permission_not_granted">Please grant external storage permission, otherwise memory leaks will not be detected.</string>
-    <string name="leak_canary_permission_notification_title">Leak detektiert, benötige Berechtigung</string>
-    <string name="leak_canary_permission_notification_text">Hier klicken um Storage Berechtigung für %s zu aktivieren.</string>
+    <string name="leak_canary_permission_not_granted">Bitte gewähre die Storage Berechtigung, andernfalls werden Memory Leaks nicht erkannt.</string>
+    <string name="leak_canary_permission_notification_title">Leak erkannt, benötige Berechtigung</string>
+    <string name="leak_canary_permission_notification_text">Hier klicken, um Storage Berechtigung für %s zu aktivieren.</string>
 </resources>
