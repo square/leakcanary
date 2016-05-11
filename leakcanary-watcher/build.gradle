@@ -35,6 +35,9 @@ android {
     minSdkVersion rootProject.ext.minSdkVersion
     targetSdkVersion rootProject.ext.targetSdkVersion
   }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+  }
 }
 
 task sourceJar(type: Jar) {
