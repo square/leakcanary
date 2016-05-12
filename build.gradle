@@ -1,20 +1,19 @@
-subprojects {
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'com.android.tools.build:gradle:1.5.0'
+  }
+}
 
+subprojects {
   repositories {
     mavenCentral()
 //    maven {
 //      url 'https://oss.sonatype.org/content/repositories/snapshots/'
 //    }
 //    mavenLocal()
-  }
-
-  buildscript {
-    repositories {
-      mavenCentral()
-    }
-    dependencies {
-      classpath 'com.android.tools.build:gradle:1.5.0'
-    }
   }
 }
 
