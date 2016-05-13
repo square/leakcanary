@@ -27,6 +27,10 @@ android {
     debug
   }
 
+  dexOptions {
+    dexInProcess false
+  }
+
   lintOptions {
     disable 'GoogleAppIndexingWarning'
   }
