@@ -54,10 +54,10 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
       return;
     }
     PendingIntent pendingIntent = RequestStoragePermissionActivity.createPendingIntent(context);
-    String contentTitle = context.getString(R.string.leak_canary_permission_notification_title);
+    String contentTitle = context.getString(ResourceProvider.provider().leak_canary_permission_notification_title());
     CharSequence packageName = context.getPackageName();
     String contentText =
-        context.getString(R.string.leak_canary_permission_notification_text, packageName);
+        context.getString(ResourceProvider.provider().leak_canary_permission_notification_text(), packageName);
     showNotification(context, contentTitle, contentText, pendingIntent);
   }
 

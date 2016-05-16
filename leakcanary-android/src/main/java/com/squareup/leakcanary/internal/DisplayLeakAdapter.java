@@ -22,10 +22,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
+
 import com.squareup.leakcanary.Exclusion;
 import com.squareup.leakcanary.LeakTrace;
 import com.squareup.leakcanary.LeakTraceElement;
-import com.squareup.leakcanary.R;
+import com.squareup.leakcanary.ResourceProvider;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -50,16 +52,16 @@ final class DisplayLeakAdapter extends BaseAdapter {
     if (getItemViewType(position) == TOP_ROW) {
       if (convertView == null) {
         convertView =
-            LayoutInflater.from(context).inflate(R.layout.leak_canary_ref_top_row, parent, false);
+            LayoutInflater.from(context).inflate(ResourceProvider.provider().leak_canary_ref_top_row(), parent, false);
       }
-      TextView textView = findById(convertView, R.id.leak_canary_row_text);
+      TextView textView = findById(convertView, ResourceProvider.provider().leak_canary_row_text());
       textView.setText(context.getPackageName());
     } else {
       if (convertView == null) {
         convertView =
-            LayoutInflater.from(context).inflate(R.layout.leak_canary_ref_row, parent, false);
+            LayoutInflater.from(context).inflate(ResourceProvider.provider().leak_canary_ref_row(), parent, false);
       }
-      TextView textView = findById(convertView, R.id.leak_canary_row_text);
+      TextView textView = findById(convertView, ResourceProvider.provider().leak_canary_row_text());
 
       boolean isRoot = position == 1;
       boolean isLeakingInstance = position == getCount() - 1;
@@ -70,7 +72,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
       }
       textView.setText(Html.fromHtml(htmlString));
 
-      DisplayLeakConnectorView connector = findById(convertView, R.id.leak_canary_row_connector);
+      DisplayLeakConnectorView connector = findById(convertView, ResourceProvider.provider().leak_canary_row_connector());
       if (isRoot) {
         connector.setType(DisplayLeakConnectorView.Type.START);
       } else {
@@ -80,7 +82,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
           connector.setType(DisplayLeakConnectorView.Type.NODE);
         }
       }
-      MoreDetailsView moreDetailsView = findById(convertView, R.id.leak_canary_row_more);
+      MoreDetailsView moreDetailsView = findById(convertView, ResourceProvider.provider().leak_canary_row_more());
       moreDetailsView.setOpened(opened[position]);
     }
 

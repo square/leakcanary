@@ -32,6 +32,13 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.isInServicePr
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabled;
 
 public final class LeakCanary {
+  /**
+   * Use custom resource provider.
+   * @param provider
+   */
+  public static void installResourceProvider(IResourceProvider provider) {
+    ResourceProvider.setProvider(provider);
+  }
 
   /**
    * Creates a {@link RefWatcher} that works out of the box, and starts watching activity
@@ -70,7 +77,7 @@ public final class LeakCanary {
     AndroidHeapDumper heapDumper = new AndroidHeapDumper(context, leakDirectoryProvider);
     heapDumper.cleanup();
     Resources resources = context.getResources();
-    int watchDelayMillis = resources.getInteger(R.integer.leak_canary_watch_delay_millis);
+    int watchDelayMillis = resources.getInteger(ResourceProvider.provider().leak_canary_watch_delay_millis());
     AndroidWatchExecutor executor = new AndroidWatchExecutor(watchDelayMillis);
     return new RefWatcher(executor, debuggerControl, GcTrigger.DEFAULT, heapDumper,
         heapDumpListener, excludedRefs);
