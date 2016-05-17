@@ -32,8 +32,10 @@ import com.squareup.haha.trove.TObjectProcedure;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.squareup.leakcanary.AnalysisResult.failure;
 import static com.squareup.leakcanary.AnalysisResult.leakDetected;
@@ -48,6 +50,7 @@ import static com.squareup.leakcanary.LeakTraceElement.Holder.ARRAY;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.CLASS;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.OBJECT;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
+import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
@@ -95,6 +98,37 @@ public final class HeapAnalyzer {
   }
 
   /**
+   * Searches the heap dump for all {@link KeyedWeakReference} objects, and then computes the
+   * shortest strong reference path from that instance to the GC roots.
+   */
+  public List<AnalysisResult> checkForLeaks(File heapDumpFile) {
+    long analysisStartNanoTime = System.nanoTime();
+
+    if (!heapDumpFile.exists()) {
+      Exception exception = new IllegalArgumentException("File does not exist: " + heapDumpFile);
+      return asList(failure(exception, since(analysisStartNanoTime)));
+    }
+
+    List<AnalysisResult> results = new ArrayList<>();
+    try {
+      HprofBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
+      HprofParser parser = new HprofParser(buffer);
+      Snapshot snapshot = parser.parse();
+      deduplicateGcRoots(snapshot);
+      Set<String> keys = keysForSnapshot(snapshot);
+      for (String key : keys) {
+        Instance leakingRef = findLeakingReference(key, snapshot);
+        if (leakingRef != null) {
+          results.add(findLeakTrace(analysisStartNanoTime, snapshot, leakingRef));
+        }
+      }
+    } catch (Throwable e) {
+      results.add(failure(e, since(analysisStartNanoTime)));
+    }
+    return results;
+  }
+
+  /**
    * Pruning duplicates reduces memory pressure from hprof bloat added in Marshmallow.
    */
   void deduplicateGcRoots(Snapshot snapshot) {
@@ -136,6 +170,17 @@ public final class HeapAnalyzer {
     }
     throw new IllegalStateException(
         "Could not find weak reference with key " + key + " in " + keysFound);
+  }
+
+  private Set<String> keysForSnapshot(Snapshot snapshot) {
+    ClassObj refClass = snapshot.findClass(KeyedWeakReference.class.getName());
+    Set<String> keysFound = new HashSet<>();
+    for (Instance instance : refClass.getInstancesList()) {
+      List<ClassInstance.FieldValue> values = classInstanceValues(instance);
+      String keyCandidate = asString(fieldValue(values, "key"));
+      keysFound.add(keyCandidate);
+    }
+    return keysFound;
   }
 
   private AnalysisResult findLeakTrace(long analysisStartNanoTime, Snapshot snapshot,
