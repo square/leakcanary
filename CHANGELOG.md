@@ -1,15 +1,5 @@
 # Change Log
 
-## Version 1.4-SNAPSHOT
-
-Nothing yet.
-
-### Public API changes
-
-Nothing yet.
-
-# Change Log
-
 All changes in 1.4+ are [tracked here](https://github.com/square/leakcanary/pulls?utf8=%E2%9C%93&q=milestone%3A1.4+is%3Apr).
 
 ## Version 1.4-beta2 *(2016-03-23)*
