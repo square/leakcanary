@@ -31,17 +31,6 @@ android.libraryVariants.all { variant ->
   artifacts.add('archives', task);
 }
 
-
-// See: https://code.google.com/p/android/issues/detail?id=64887#c13
-task copyTestResources(type: Copy) {
-  from "${projectDir}/src/test/resources"
-  into "${buildDir}/classes/test"
-}
-
-afterEvaluate { project ->
-  testDebugUnitTest.dependsOn copyTestResources
-}
-
 android {
   compileSdkVersion rootProject.ext.compileSdkVersion
   buildToolsVersion rootProject.ext.buildToolsVersion
