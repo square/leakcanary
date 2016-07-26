@@ -45,6 +45,7 @@ public final class LeakCanaryInternals {
 
   public static final String SAMSUNG = "samsung";
   public static final String MOTOROLA = "motorola";
+  public static final String LENOVO = "LENOVO";
   public static final String LG = "LGE";
   public static final String NVIDIA = "NVIDIA";
 
