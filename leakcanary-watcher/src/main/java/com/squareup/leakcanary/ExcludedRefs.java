@@ -23,10 +23,10 @@ import static com.squareup.leakcanary.Preconditions.checkNotNull;
 import static java.util.Collections.unmodifiableMap;
 
 /**
- * Prevents specific references from being taken into account when computing the shortest reference
- * path from a suspected leaking instance to the GC roots.
+ * Prevents specific references from being taken into account when computing the shortest strong
+ * reference path from a suspected leaking instance to the GC roots.
  *
- * This class lets you ignore known memory leaks that you know about. If the shortest path
+ * This class lets you ignore known memory leaks that you known about. If the shortest path
  * matches {@link ExcludedRefs}, than the heap analyzer should look for a longer path with nothing
  * matching in {@link ExcludedRefs}.
  */
@@ -40,14 +40,12 @@ public final class ExcludedRefs implements Serializable {
   public final Map<String, Map<String, Exclusion>> staticFieldNameByClassName;
   public final Map<String, Exclusion> threadNames;
   public final Map<String, Exclusion> classNames;
-  public final Map<String, Exclusion> rootClassNames;
 
   ExcludedRefs(BuilderWithParams builder) {
     this.fieldNameByClassName = unmodifiableRefStringMap(builder.fieldNameByClassName);
     this.staticFieldNameByClassName = unmodifiableRefStringMap(builder.staticFieldNameByClassName);
     this.threadNames = unmodifiableRefMap(builder.threadNames);
     this.classNames = unmodifiableRefMap(builder.classNames);
-    this.rootClassNames = unmodifiableRefMap(builder.rootClassNames);
   }
 
   private Map<String, Map<String, Exclusion>> unmodifiableRefStringMap(
@@ -91,10 +89,6 @@ public final class ExcludedRefs implements Serializable {
       String always = clazz.getValue().alwaysExclude ? " (always)" : "";
       string += "| Class:" + clazz.getKey() + always + "\n";
     }
-    for (Map.Entry<String, Exclusion> clazz : rootClassNames.entrySet()) {
-      String always = clazz.getValue().alwaysExclude ? " (always)" : "";
-      string += "| Root Class:" + clazz.getKey() + always + "\n";
-    }
     return string;
   }
 
@@ -118,8 +112,6 @@ public final class ExcludedRefs implements Serializable {
 
     BuilderWithParams clazz(String className);
 
-    BuilderWithParams rootClass(String rootSuperClassName);
-
     ExcludedRefs build();
   }
 
@@ -131,7 +123,6 @@ public final class ExcludedRefs implements Serializable {
         new LinkedHashMap<>();
     private final Map<String, ParamsBuilder> threadNames = new LinkedHashMap<>();
     private final Map<String, ParamsBuilder> classNames = new LinkedHashMap<>();
-    private final Map<String, ParamsBuilder> rootClassNames = new LinkedHashMap<>();
 
     private ParamsBuilder lastParams;
 
@@ -176,14 +167,6 @@ public final class ExcludedRefs implements Serializable {
       checkNotNull(className, "className");
       lastParams = new ParamsBuilder("any subclass of " + className);
       classNames.put(className, lastParams);
-      return this;
-    }
-
-    /** Ignores any GC root that belongs to a subclass of the provided class name. */
-    @Override public BuilderWithParams rootClass(String rootClassName) {
-      checkNotNull(rootClassName, "rootClassName");
-      lastParams = new ParamsBuilder("any GC root subclass of " + rootClassName);
-      rootClassNames.put(rootClassName, lastParams);
       return this;
     }
 

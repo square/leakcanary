@@ -179,43 +179,19 @@ final class ShortestPathFinder {
     RootObj rootObj = (RootObj) node.instance;
     Instance child = rootObj.getReferredInstance();
 
-    Exclusion exclusion = rootSuperClassAlwaysIgnored(child);
-
-    if (exclusion != null && exclusion.alwaysExclude) {
-      return;
-    }
-
     if (rootObj.getRootType() == RootType.JAVA_LOCAL) {
       Instance holder = HahaSpy.allocatingThread(rootObj);
       // We switch the parent node with the thread instance that holds
       // the local reference.
-      LeakNode parent = new LeakNode(null, holder, null, null, null);
+      Exclusion exclusion = null;
       if (node.exclusion != null) {
         exclusion = node.exclusion;
       }
+      LeakNode parent = new LeakNode(null, holder, null, null, null);
       enqueue(exclusion, parent, child, "<Java Local>", LOCAL);
     } else {
-      enqueue(exclusion, node, child, null, null);
+      enqueue(null, node, child, null, null);
     }
-  }
-
-  private Exclusion rootSuperClassAlwaysIgnored(Instance child) {
-    if (child == null) {
-      return null;
-    }
-    Exclusion matchingParams = null;
-    ClassObj superClassObj = child.getClassObj();
-    while (superClassObj != null) {
-      Exclusion params = excludedRefs.rootClassNames.get(superClassObj.getClassName());
-      if (params != null) {
-        // true overrides null or false.
-        if (matchingParams == null || !matchingParams.alwaysExclude) {
-          matchingParams = params;
-        }
-      }
-      superClassObj = superClassObj.getSuperClassObj();
-    }
-    return matchingParams;
   }
 
   private void visitClassObj(LeakNode node) {

@@ -11,8 +11,6 @@ import org.junit.runners.Parameterized;
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK;
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_MPREVIEW2;
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_M_POSTPREVIEW2;
-import static com.squareup.leakcanary.TestUtil.HeapDumpFile.SERVICE_BINDER;
-import static com.squareup.leakcanary.TestUtil.HeapDumpFile.SERVICE_BINDER_IGNORED;
 import static com.squareup.leakcanary.TestUtil.analyze;
 import static org.junit.Assert.assertEquals;
 
@@ -27,8 +25,6 @@ public class RetainedSizeTest {
         { ASYNC_TASK, 207_407 }, //
         { ASYNC_TASK_MPREVIEW2, 1_604 }, //
         { ASYNC_TASK_M_POSTPREVIEW2, 1_870 }, //
-        { SERVICE_BINDER, 378 }, //
-        { SERVICE_BINDER_IGNORED, 378 }, //
     });
   }
 
