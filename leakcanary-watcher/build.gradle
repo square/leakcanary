@@ -35,6 +35,9 @@ android {
     minSdkVersion rootProject.ext.minSdkVersion
     targetSdkVersion rootProject.ext.targetSdkVersion
   }
+  dexOptions {
+    javaMaxHeapSize '2048M'
+  }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
   }
