@@ -1,6 +1,15 @@
 # Change Log
 
-All changes in 1.4+ are [tracked here](https://github.com/square/leakcanary/pulls?utf8=%E2%9C%93&q=milestone%3A1.4+is%3Apr).
+## Version 1.4 *(2016-09-11)*
+
+* Fix false negative where GC root is of type android.os.Binder [#482](https://github.com/square/leakcanary/issues/482)
+* Update HAHA to 2.0.3; clear compiler warnings [#563](https://github.com/square/leakcanary/issues/563) 
+* Correct some mistakes in German translation [#516](https://github.com/square/leakcanary/pull/516)
+* Don't loop when storage permission denied [#422](https://github.com/square/leakcanary/issues/422)
+* Remove old references to "__" prefixed resources [#477](https://github.com/square/leakcanary/pull/477)
+* Fix permission crash for DisplayLeakActivity on M [#382](https://github.com/square/leakcanary/issues/382)
+* Fix NPE when thread name not found in heap dump [#417](https://github.com/square/leakcanary/issues/417)
+* Add version info to stacktrace [#473](https://github.com/square/leakcanary/issues/473)
 
 ## Version 1.4-beta2 *(2016-03-23)*
 

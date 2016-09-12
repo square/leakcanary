@@ -12,9 +12,9 @@ In your `build.gradle`:
 
 ```gradle
  dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.4-beta2'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
-   testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.4'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4'
+   testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4'
  }
 ```
 
