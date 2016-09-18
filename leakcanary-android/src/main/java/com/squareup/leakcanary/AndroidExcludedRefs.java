@@ -50,6 +50,8 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.SAMSUNG;
  */
 public enum AndroidExcludedRefs {
 
+  // ######## Android SDK Excluded refs ########
+
   ACTIVITY_CLIENT_RECORD__NEXT_IDLE(SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.app.ActivityThread$ActivityClientRecord", "nextIdle")
@@ -254,6 +256,37 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  AUDIO_MANAGER(SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("android.media.AudioManager$1", "this$0")
+          .reason("Prior to Android M, VideoView required audio focus from AudioManager and"
+              + " never abandoned it, which leaks the Activity context through the AudioManager."
+              + " The root of the problem is that AudioManager uses whichever"
+              + " context it receives, which in the case of the VideoView example is an Activity,"
+              + " even though it only needs the application's context. The issue is fixed in"
+              + " Android M, and the AudioManager now uses the application's context."
+              + " Tracked here: https://code.google.com/p/android/issues/detail?id=152173"
+              + " Fix: https://gist.github.com/jankovd/891d96f476f7a9ce24e2");
+    }
+  },
+
+  EDITTEXT_BLINK_MESSAGEQUEUE(SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("android.widget.Editor$Blink", "this$0")
+          .reason("The EditText Blink of the Cursor is implemented using a callback and Messages,"
+              + " which trigger the display of the Cursor. If an AlertDialog or DialogFragment that"
+              + " contains a blinking cursor is detached a message is posted with a delay after the"
+              + " dialog has been closed and as a result leaks the Activity."
+              + " This can be fixed manually by calling setCursorEnabled(false) in the dismiss()"
+              + " method of the dialog."
+              + " Tracked here: https://code.google.com/p/android/issues/detail?id=188551"
+              + " Fixed in AOSP: https://android.googlesource.com/platform/frameworks/base/+"
+              + "/5b734f2430e9f26c769d6af8ea5645e390fcf5af%5E%21/");
+    }
+  },
+
+  // ######## Manufacturer specific Excluded refs ########
+
   DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
     @Override void add(ExcludedRefs.Builder excluded) {
       if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
@@ -361,34 +394,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  AUDIO_MANAGER(SDK_INT <= LOLLIPOP_MR1) {
-    @Override void add(ExcludedRefs.Builder excluded) {
-      excluded.instanceField("android.media.AudioManager$1", "this$0")
-          .reason("Prior to Android M, VideoView required audio focus from AudioManager and"
-              + " never abandoned it, which leaks the Activity context through the AudioManager."
-              + " The root of the problem is that AudioManager uses whichever"
-              + " context it receives, which in the case of the VideoView example is an Activity,"
-              + " even though it only needs the application's context. The issue is fixed in"
-              + " Android M, and the AudioManager now uses the application's context."
-              + " Tracked here: https://code.google.com/p/android/issues/detail?id=152173"
-              + " Fix: https://gist.github.com/jankovd/891d96f476f7a9ce24e2");
-    }
-  },
-
-  EDITTEXT_BLINK_MESSAGEQUEUE {
-    @Override void add(ExcludedRefs.Builder excluded) {
-      excluded.instanceField("android.widget.Editor$Blink", "this$0")
-          .reason("The EditText Blink of the Cursor is implemented using a callback and Messages,"
-              + " which trigger the display of the Cursor. If an AlertDialog or DialogFragment that"
-              + " contains a blinking cursor is detached a message is posted with a delay after the"
-              + " dialog has been closed and as a result leaks the Activity."
-              + " This can be fixed manually by calling setCursorEnabled(false) in the dismiss()"
-              + " method of the dialog."
-              + " Tracked here: https://code.google.com/p/android/issues/detail?id=188551"
-              + " Fixed in AOSP: https://android.googlesource.com/platform/frameworks/base/+"
-              + "/5b734f2430e9f26c769d6af8ea5645e390fcf5af%5E%21/");
-    }
-  },
+  // ######## General Excluded refs ########
 
   SOFT_REFERENCES {
     @Override void add(ExcludedRefs.Builder excluded) {
