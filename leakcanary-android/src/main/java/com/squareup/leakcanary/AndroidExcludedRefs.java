@@ -394,6 +394,16 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  ACTIVITY_MANAGER_MCONTEXT(SAMSUNG.equals(MANUFACTURER) && SDK_INT == LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.staticField("android.app.ActivityManager", "mContext")
+          .reason("Samsung added a static mContext field to ActivityManager, holds a reference"
+              + " to the activity."
+              + " Observed here: https://github.com/square/leakcanary/issues/177 Fix in comment:"
+              + " https://github.com/square/leakcanary/issues/177#issuecomment-222724283");
+    }
+  },
+
   // ######## General Excluded refs ########
 
   SOFT_REFERENCES {
