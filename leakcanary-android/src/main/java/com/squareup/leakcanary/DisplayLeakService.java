@@ -59,8 +59,8 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     String contentText;
 
     if (!shouldSaveResult) {
-      contentTitle = getString(R.string.leak_canary_no_leak_title);
-      contentText = getString(R.string.leak_canary_no_leak_text);
+      contentTitle = getString(ResourceProvider.provider().leak_canary_no_leak_title());
+      contentText = getString(ResourceProvider.provider().leak_canary_no_leak_text());
       pendingIntent = null;
     } else if (resultSaved) {
       pendingIntent = DisplayLeakActivity.createPendingIntent(this, heapDump.referenceKey);
@@ -69,17 +69,17 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
         String size = formatShortFileSize(this, result.retainedHeapSize);
         String className = classSimpleName(result.className);
         if (result.excludedLeak) {
-          contentTitle = getString(R.string.leak_canary_leak_excluded, className, size);
+          contentTitle = getString(ResourceProvider.provider().leak_canary_leak_excluded(), className, size);
         } else {
-          contentTitle = getString(R.string.leak_canary_class_has_leaked, className, size);
+          contentTitle = getString(ResourceProvider.provider().leak_canary_class_has_leaked(), className, size);
         }
       } else {
-        contentTitle = getString(R.string.leak_canary_analysis_failed);
+        contentTitle = getString(ResourceProvider.provider().leak_canary_analysis_failed());
       }
-      contentText = getString(R.string.leak_canary_notification_message);
+      contentText = getString(ResourceProvider.provider().leak_canary_notification_message());
     } else {
-      contentTitle = getString(R.string.leak_canary_could_not_save_title);
-      contentText = getString(R.string.leak_canary_could_not_save_text);
+      contentTitle = getString(ResourceProvider.provider().leak_canary_could_not_save_title());
+      contentText = getString(ResourceProvider.provider().leak_canary_could_not_save_text());
       pendingIntent = null;
     }
     showNotification(this, contentTitle, contentText, pendingIntent);
@@ -125,7 +125,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
 
     Resources resources = getResources();
     int maxStoredHeapDumps =
-        Math.max(resources.getInteger(R.integer.leak_canary_max_stored_leaks), 1);
+        Math.max(resources.getInteger(ResourceProvider.provider().leak_canary_max_stored_leaks()), 1);
     File[] hprofFiles = heapDump.heapDumpFile.getParentFile().listFiles(new FilenameFilter() {
       @Override public boolean accept(File dir, String filename) {
         return filename.endsWith(".hprof");

@@ -36,6 +36,23 @@ public class ExampleApplication extends Application {
 }
 ```
 
+Also, if you want to inject LeakCanary into your own project, you can build this project and add libs to your project, then:
+```java
+public class ExampleApplication extends Application {
+
+  @Override public void onCreate() {
+    super.onCreate();
+    LeakCanary.installResourceProvider(new IResourceProvider() {
+        // blah blah
+    });
+	LeakCanary.install(this, XDisplayLeakService.class, AndroidExcludedRefs.createAppDefaults().build());
+  }
+  private static class XDisplayLeakService extends DisplayLeakService {
+      // empty class is OK.
+  }
+}
+```
+
 **You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
 
 Questions? Check out [the FAQ](https://github.com/square/leakcanary/wiki/FAQ)!

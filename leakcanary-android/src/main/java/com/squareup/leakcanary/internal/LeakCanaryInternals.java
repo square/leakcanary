@@ -26,8 +26,10 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
+
 import com.squareup.leakcanary.CanaryLog;
-import com.squareup.leakcanary.R;
+import com.squareup.leakcanary.ResourceProvider;
+
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -140,7 +142,7 @@ public final class LeakCanaryInternals {
     Notification notification;
     if (SDK_INT < HONEYCOMB) {
       notification = new Notification();
-      notification.icon = R.drawable.leak_canary_notification;
+      notification.icon = ResourceProvider.provider().leak_canary_notification();
       notification.when = System.currentTimeMillis();
       notification.flags |= Notification.FLAG_AUTO_CANCEL;
       try {
@@ -153,7 +155,7 @@ public final class LeakCanaryInternals {
       }
     } else {
       Notification.Builder builder = new Notification.Builder(context) //
-          .setSmallIcon(R.drawable.leak_canary_notification)
+          .setSmallIcon(ResourceProvider.provider().leak_canary_notification())
           .setWhen(System.currentTimeMillis())
           .setContentTitle(contentTitle)
           .setContentText(contentText)

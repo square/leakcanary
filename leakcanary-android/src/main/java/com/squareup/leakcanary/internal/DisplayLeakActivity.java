@@ -43,7 +43,8 @@ import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.DefaultLeakDirectoryProvider;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.LeakDirectoryProvider;
-import com.squareup.leakcanary.R;
+import com.squareup.leakcanary.ResourceProvider;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
@@ -119,11 +120,11 @@ public final class DisplayLeakActivity extends Activity {
     //noinspection unchecked
     leaks = (List<Leak>) getLastNonConfigurationInstance();
 
-    setContentView(R.layout.leak_canary_display_leak);
+    setContentView(ResourceProvider.provider().leak_canary_display_leak());
 
-    listView = (ListView) findViewById(R.id.leak_canary_display_leak_list);
-    failureView = (TextView) findViewById(R.id.leak_canary_display_leak_failure);
-    actionButton = (Button) findViewById(R.id.leak_canary_action);
+    listView = (ListView) findViewById(ResourceProvider.provider().leak_canary_display_leak_list());
+    failureView = (TextView) findViewById(ResourceProvider.provider().leak_canary_display_leak_failure());
+    actionButton = (Button) findViewById(ResourceProvider.provider().leak_canary_action());
 
     updateUi();
   }
@@ -153,7 +154,7 @@ public final class DisplayLeakActivity extends Activity {
     // We don't want this to be called with an incompatible theme.
     // This could happen if you implement runtime switching of themes
     // using ActivityLifecycleCallbacks.
-    if (resid != R.style.leak_canary_LeakCanary_Base) {
+    if (resid != ResourceProvider.provider().leak_canary_LeakCanary_Base()) {
       return;
     }
     super.setTheme(resid);
@@ -167,7 +168,7 @@ public final class DisplayLeakActivity extends Activity {
   @Override public boolean onCreateOptionsMenu(Menu menu) {
     Leak visibleLeak = getVisibleLeak();
     if (visibleLeak != null) {
-      menu.add(R.string.leak_canary_share_leak)
+      menu.add(ResourceProvider.provider().leak_canary_share_leak())
           .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override public boolean onMenuItemClick(MenuItem item) {
               shareLeak();
@@ -175,7 +176,7 @@ public final class DisplayLeakActivity extends Activity {
             }
           });
       if (visibleLeak.heapDump.heapDumpFile.exists()) {
-        menu.add(R.string.leak_canary_share_heap_dump)
+        menu.add(ResourceProvider.provider().leak_canary_share_heap_dump())
             .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
               @Override public boolean onMenuItemClick(MenuItem item) {
                 shareHeapDump();
@@ -211,7 +212,7 @@ public final class DisplayLeakActivity extends Activity {
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("text/plain");
     intent.putExtra(Intent.EXTRA_TEXT, leakInfo);
-    startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
+    startActivity(Intent.createChooser(intent, getString(ResourceProvider.provider().leak_canary_share_with())));
   }
 
   void shareHeapDump() {
@@ -221,7 +222,7 @@ public final class DisplayLeakActivity extends Activity {
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("application/octet-stream");
     intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(heapDumpFile));
-    startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
+    startActivity(Intent.createChooser(intent, getString(ResourceProvider.provider().leak_canary_share_with())));
   }
 
   void deleteVisibleLeak() {
@@ -280,18 +281,18 @@ public final class DisplayLeakActivity extends Activity {
       if (result.failure != null) {
         listView.setVisibility(GONE);
         failureView.setVisibility(VISIBLE);
-        String failureMessage = getString(R.string.leak_canary_failure_report)
+        String failureMessage = getString(ResourceProvider.provider().leak_canary_failure_report())
             + LIBRARY_VERSION
             + " "
             + GIT_SHA
             + "\n"
             + Log.getStackTraceString(result.failure);
         failureView.setText(failureMessage);
-        setTitle(R.string.leak_canary_analysis_failed);
+        setTitle(ResourceProvider.provider().leak_canary_analysis_failed());
         invalidateOptionsMenu();
         getActionBar().setDisplayHomeAsUpEnabled(true);
         actionButton.setVisibility(VISIBLE);
-        actionButton.setText(R.string.leak_canary_delete);
+        actionButton.setText(ResourceProvider.provider().leak_canary_delete());
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
             deleteVisibleLeak();
@@ -314,7 +315,7 @@ public final class DisplayLeakActivity extends Activity {
           invalidateOptionsMenu();
           getActionBar().setDisplayHomeAsUpEnabled(true);
           actionButton.setVisibility(VISIBLE);
-          actionButton.setText(R.string.leak_canary_delete);
+          actionButton.setText(ResourceProvider.provider().leak_canary_delete());
           actionButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
               deleteVisibleLeak();
@@ -325,7 +326,7 @@ public final class DisplayLeakActivity extends Activity {
         adapter.update(result.leakTrace, heapDump.referenceKey, heapDump.referenceName);
         String size = formatShortFileSize(this, result.retainedHeapSize);
         String className = classSimpleName(result.className);
-        setTitle(getString(R.string.leak_canary_class_has_leaked, className, size));
+        setTitle(getString(ResourceProvider.provider().leak_canary_class_has_leaked(), className, size));
       }
     } else {
       if (listAdapter instanceof LeakListAdapter) {
@@ -341,9 +342,9 @@ public final class DisplayLeakActivity extends Activity {
           }
         });
         invalidateOptionsMenu();
-        setTitle(getString(R.string.leak_canary_leak_list_title, getPackageName()));
+        setTitle(getString(ResourceProvider.provider().leak_canary_leak_list_title(), getPackageName()));
         getActionBar().setDisplayHomeAsUpEnabled(false);
-        actionButton.setText(R.string.leak_canary_delete_all);
+        actionButton.setText(ResourceProvider.provider().leak_canary_delete_all());
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
             deleteAllLeaks();
@@ -383,10 +384,10 @@ public final class DisplayLeakActivity extends Activity {
     @Override public View getView(int position, View convertView, ViewGroup parent) {
       if (convertView == null) {
         convertView = LayoutInflater.from(DisplayLeakActivity.this)
-            .inflate(R.layout.leak_canary_leak_row, parent, false);
+            .inflate(ResourceProvider.provider().leak_canary_leak_row(), parent, false);
       }
-      TextView titleView = (TextView) convertView.findViewById(R.id.leak_canary_row_text);
-      TextView timeView = (TextView) convertView.findViewById(R.id.leak_canary_row_time);
+      TextView titleView = (TextView) convertView.findViewById(ResourceProvider.provider().leak_canary_row_text());
+      TextView timeView = (TextView) convertView.findViewById(ResourceProvider.provider().leak_canary_row_time());
       Leak leak = getItem(position);
 
       String index = (leaks.size() - position) + ". ";
@@ -395,9 +396,9 @@ public final class DisplayLeakActivity extends Activity {
       if (leak.result.failure == null) {
         String className = classSimpleName(leak.result.className);
         String size = formatShortFileSize(DisplayLeakActivity.this, leak.result.retainedHeapSize);
-        title = getString(R.string.leak_canary_class_has_leaked, className, size);
+        title = getString(ResourceProvider.provider().leak_canary_class_has_leaked(), className, size);
         if (leak.result.excludedLeak) {
-          title = getString(R.string.leak_canary_excluded_row, title);
+          title = getString(ResourceProvider.provider().leak_canary_excluded_row(), title);
         }
         title = index + title;
       } else {
