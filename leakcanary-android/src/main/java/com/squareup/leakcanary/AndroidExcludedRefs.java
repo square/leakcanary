@@ -285,6 +285,24 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  CONNECTIVITY_MANAGER__SINSTANCE(SDK_INT <= M) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("android.net.ConnectivityManager", "sInstance")
+          .reason("ConnectivityManager has a sInstance field that is set when the first"
+              + "ConnectivityManager instance is created. ConnectivityManager has a mContext field."
+              + "When calling activity.getSystemService(Context.CONNECTIVITY_SERVICE) , the first"
+              + "ConnectivityManager instance is created with the activity context and stored in"
+              + "sInstance. That activity context then leaks forever."
+              + "Until this is fixed, app developers can prevent this leak by making sure the"
+              + " ConnectivityManager is first created with an App Context. E.g. in some static"
+              + " init do: context.getApplicationContext()"
+              + ".getSystemService(Context.CONNECTIVITY_SERVICE)"
+              + " Tracked here: https://code.google.com/p/android/issues/detail?id=198852"
+              + " Introduced here: https://github.com/android/platform_frameworks_base/commit/"
+              + "e0bef71662d81caaaa0d7214fb0bef5d39996a69");
+    }
+  },
+
   // ######## Manufacturer specific Excluded refs ########
 
   DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(
