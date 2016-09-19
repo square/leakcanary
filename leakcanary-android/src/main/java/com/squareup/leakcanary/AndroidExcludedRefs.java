@@ -275,10 +275,10 @@ public enum AndroidExcludedRefs {
       excluded.instanceField("android.widget.Editor$Blink", "this$0")
           .reason("The EditText Blink of the Cursor is implemented using a callback and Messages,"
               + " which trigger the display of the Cursor. If an AlertDialog or DialogFragment that"
-              + " contains a blinking cursor is detached a message is posted with a delay after the"
+              + " contains a blinking cursor is detached, a message is posted with a delay after the"
               + " dialog has been closed and as a result leaks the Activity."
-              + " This can be fixed manually by calling setCursorEnabled(false) in the dismiss()"
-              + " method of the dialog."
+              + " This can be fixed manually by calling TextView.setCursorVisible(false) in the"
+              + " dismiss() method of the dialog."
               + " Tracked here: https://code.google.com/p/android/issues/detail?id=188551"
               + " Fixed in AOSP: https://android.googlesource.com/platform/frameworks/base/+"
               + "/5b734f2430e9f26c769d6af8ea5645e390fcf5af%5E%21/");
