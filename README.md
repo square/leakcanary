@@ -25,7 +25,12 @@ public class ExampleApplication extends Application {
 
   @Override public void onCreate() {
     super.onCreate();
+    if (LeakCanary.isInAnalyzerProcess()) {
+      // LeakCanary performs the analysis in a separate process. No need to do your usual app init in that case.
+      return;
+    }
     LeakCanary.install(this);
+    // Normal app init code...
   }
 }
 ```
