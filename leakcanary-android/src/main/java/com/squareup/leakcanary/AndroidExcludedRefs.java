@@ -287,7 +287,8 @@ public enum AndroidExcludedRefs {
 
   // ######## Manufacturer specific Excluded refs ########
 
-  DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(
+      MOTOROLA.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       if (MOTOROLA.equals(MANUFACTURER) && SDK_INT == KITKAT) {
         excluded.instanceField("android.app.admin.DevicePolicyManager$SettingsObserver", "this$0")
