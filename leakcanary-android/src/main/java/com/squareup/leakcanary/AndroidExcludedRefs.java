@@ -231,7 +231,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  USER_MANAGER__SINSTANCE(SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) {
+  USER_MANAGER__SINSTANCE(SDK_INT >= JELLY_BEAN && SDK_INT <= M) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.os.UserManager", "mContext")
           .reason("UserManager has a static sInstance field that creates an instance and caches it"
