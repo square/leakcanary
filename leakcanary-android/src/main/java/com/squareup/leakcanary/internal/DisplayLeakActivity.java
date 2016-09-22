@@ -17,8 +17,10 @@ package com.squareup.leakcanary.internal;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -346,7 +348,17 @@ public final class DisplayLeakActivity extends Activity {
         actionButton.setText(R.string.leak_canary_delete_all);
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
-            deleteAllLeaks();
+            new AlertDialog.Builder(DisplayLeakActivity.this)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setTitle(R.string.leak_canary_delete_all)
+                .setMessage(R.string.leak_canary_delete_all_leaks_title)
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                  @Override public void onClick(DialogInterface dialog, int which) {
+                    deleteAllLeaks();
+                  }
+                })
+                .setNegativeButton(android.R.string.no, null)
+                .show();
           }
         });
       }

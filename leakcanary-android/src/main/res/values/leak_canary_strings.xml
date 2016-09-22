@@ -29,6 +29,7 @@
   <string name="leak_canary_delete">Delete</string>
   <string name="leak_canary_failure_report">"Please report this failure to http://github.com/square/leakcanary\n"</string>
   <string name="leak_canary_delete_all">Delete all</string>
+  <string name="leak_canary_delete_all_leaks_title">Are you sure you want to delete all leaks?</string>
   <string name="leak_canary_could_not_save_title">Could not save result.</string>
   <string name="leak_canary_could_not_save_text">LeakCanary was unable to save the analysis result.</string>
   <string name="leak_canary_no_leak_title">No leak found</string>
