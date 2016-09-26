@@ -133,7 +133,7 @@ public final class LeakCanaryInternals {
 
   @TargetApi(HONEYCOMB)
   public static void showNotification(Context context, CharSequence contentTitle,
-      CharSequence contentText, PendingIntent pendingIntent) {
+      CharSequence contentText, PendingIntent pendingIntent, int notificationId) {
     NotificationManager notificationManager =
         (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -165,7 +165,7 @@ public final class LeakCanaryInternals {
         notification = builder.build();
       }
     }
-    notificationManager.notify(0xDEAFBEEF, notification);
+    notificationManager.notify(notificationId, notification);
   }
 
   public static Executor newSingleThreadExecutor(String threadName) {

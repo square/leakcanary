@@ -142,13 +142,7 @@ public final class DisplayLeakActivity extends Activity {
 
   @Override protected void onResume() {
     super.onResume();
-    LeakDirectoryProvider leakDirectoryProvider = leakDirectoryProvider(this);
-    if (leakDirectoryProvider.isLeakStorageWritable()) {
-      File leakDirectory = leakDirectoryProvider.leakDirectory();
-      LoadLeaks.load(this, leakDirectory);
-    } else {
-      leakDirectoryProvider.requestPermission(this);
-    }
+    LoadLeaks.load(this, leakDirectoryProvider(this));
   }
 
   @Override public void setTheme(int resid) {
@@ -244,16 +238,7 @@ public final class DisplayLeakActivity extends Activity {
   }
 
   void deleteAllLeaks() {
-    File leakDirectory = leakDirectoryProvider(DisplayLeakActivity.this).leakDirectory();
-    File[] files = leakDirectory.listFiles();
-    if (files != null) {
-      for (File file : files) {
-        boolean deleted = file.delete();
-        if (!deleted) {
-          CanaryLog.d("Could not delete file %s", file.getPath());
-        }
-      }
-    }
+    leakDirectoryProvider(DisplayLeakActivity.this).clearLeakDirectory();
     leaks = Collections.emptyList();
     updateUi();
   }
@@ -348,8 +333,8 @@ public final class DisplayLeakActivity extends Activity {
         actionButton.setText(R.string.leak_canary_delete_all);
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
-            new AlertDialog.Builder(DisplayLeakActivity.this)
-                .setIcon(android.R.drawable.ic_dialog_alert)
+            new AlertDialog.Builder(DisplayLeakActivity.this).setIcon(
+                android.R.drawable.ic_dialog_alert)
                 .setTitle(R.string.leak_canary_delete_all)
                 .setMessage(R.string.leak_canary_delete_all_leaks_title)
                 .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
@@ -445,8 +430,8 @@ public final class DisplayLeakActivity extends Activity {
 
     static final Executor backgroundExecutor = newSingleThreadExecutor("LoadLeaks");
 
-    static void load(DisplayLeakActivity activity, File leakDirectory) {
-      LoadLeaks loadLeaks = new LoadLeaks(activity, leakDirectory);
+    static void load(DisplayLeakActivity activity, LeakDirectoryProvider leakDirectoryProvider) {
+      LoadLeaks loadLeaks = new LoadLeaks(activity, leakDirectoryProvider);
       inFlight.add(loadLeaks);
       backgroundExecutor.execute(loadLeaks);
     }
@@ -459,58 +444,55 @@ public final class DisplayLeakActivity extends Activity {
     }
 
     DisplayLeakActivity activityOrNull;
-    private final File leakDirectory;
+    private final LeakDirectoryProvider leakDirectoryProvider;
     private final Handler mainHandler;
 
-    LoadLeaks(DisplayLeakActivity activity, File leakDirectory) {
+    LoadLeaks(DisplayLeakActivity activity, LeakDirectoryProvider leakDirectoryProvider) {
       this.activityOrNull = activity;
-      this.leakDirectory = leakDirectory;
+      this.leakDirectoryProvider = leakDirectoryProvider;
       mainHandler = new Handler(Looper.getMainLooper());
     }
 
     @Override public void run() {
       final List<Leak> leaks = new ArrayList<>();
-      File[] files = leakDirectory.listFiles(new FilenameFilter() {
+      List<File> files = leakDirectoryProvider.listFiles(new FilenameFilter() {
         @Override public boolean accept(File dir, String filename) {
           return filename.endsWith(".result");
         }
       });
-
-      if (files != null) {
-        for (File resultFile : files) {
-          FileInputStream fis = null;
-          try {
-            fis = new FileInputStream(resultFile);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            HeapDump heapDump = (HeapDump) ois.readObject();
-            AnalysisResult result = (AnalysisResult) ois.readObject();
-            leaks.add(new Leak(heapDump, result, resultFile));
-          } catch (IOException | ClassNotFoundException e) {
-            // Likely a change in the serializable result class.
-            // Let's remove the files, we can't read them anymore.
-            boolean deleted = resultFile.delete();
-            if (deleted) {
-              CanaryLog.d(e, "Could not read result file %s, deleted it.", resultFile);
-            } else {
-              CanaryLog.d(e, "Could not read result file %s, could not delete it either.",
-                  resultFile);
-            }
-          } finally {
-            if (fis != null) {
-              try {
-                fis.close();
-              } catch (IOException ignored) {
-              }
+      for (File resultFile : files) {
+        FileInputStream fis = null;
+        try {
+          fis = new FileInputStream(resultFile);
+          ObjectInputStream ois = new ObjectInputStream(fis);
+          HeapDump heapDump = (HeapDump) ois.readObject();
+          AnalysisResult result = (AnalysisResult) ois.readObject();
+          leaks.add(new Leak(heapDump, result, resultFile));
+        } catch (IOException | ClassNotFoundException e) {
+          // Likely a change in the serializable result class.
+          // Let's remove the files, we can't read them anymore.
+          boolean deleted = resultFile.delete();
+          if (deleted) {
+            CanaryLog.d(e, "Could not read result file %s, deleted it.", resultFile);
+          } else {
+            CanaryLog.d(e, "Could not read result file %s, could not delete it either.",
+                resultFile);
+          }
+        } finally {
+          if (fis != null) {
+            try {
+              fis.close();
+            } catch (IOException ignored) {
             }
           }
         }
-        Collections.sort(leaks, new Comparator<Leak>() {
-          @Override public int compare(Leak lhs, Leak rhs) {
-            return Long.valueOf(rhs.resultFile.lastModified())
-                .compareTo(lhs.resultFile.lastModified());
-          }
-        });
       }
+      Collections.sort(leaks, new Comparator<Leak>() {
+        @Override public int compare(Leak lhs, Leak rhs) {
+          return Long.valueOf(rhs.resultFile.lastModified())
+              .compareTo(lhs.resultFile.lastModified());
+        }
+      });
       mainHandler.post(new Runnable() {
         @Override public void run() {
           inFlight.remove(LoadLeaks.this);

@@ -16,7 +16,6 @@
 package com.squareup.leakcanary;
 
 import java.io.File;
-import java.util.concurrent.Executor;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -42,11 +41,11 @@ public class RefWatcherTest {
 
   @SuppressWarnings("FieldCanBeLocal") Object ref;
 
-  static class TestExecutor implements Executor {
-    Runnable command;
+  static class TestExecutor implements WatchExecutor {
+    Retryable retryable;
 
-    @Override public void execute(Runnable command) {
-      this.command = command;
+    @Override public void execute(Retryable retryable) {
+      this.retryable = retryable;
     }
   }
 
@@ -59,7 +58,7 @@ public class RefWatcherTest {
     TestExecutor executor = new TestExecutor();
     RefWatcher refWatcher = defaultWatcher(dumper, executor);
     refWatcher.watch(new Object());
-    executor.command.run();
+    executor.retryable.run();
     assertFalse(dumper.called);
   }
 
@@ -69,7 +68,7 @@ public class RefWatcherTest {
     RefWatcher refWatcher = defaultWatcher(dumper, executor);
     ref = new Object();
     refWatcher.watch(ref);
-    executor.command.run();
+    executor.retryable.run();
     assertTrue(dumper.called);
   }
 

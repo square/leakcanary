@@ -16,16 +16,13 @@
 package com.squareup.leakcanary;
 
 import android.app.PendingIntent;
-import android.content.res.Resources;
+import android.os.SystemClock;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.Locale;
 
@@ -82,7 +79,9 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       contentText = getString(R.string.leak_canary_could_not_save_text);
       pendingIntent = null;
     }
-    showNotification(this, contentTitle, contentText, pendingIntent);
+    // New notification id every second.
+    int notificationId = (int) (SystemClock.uptimeMillis() / 1000);
+    showNotification(this, contentTitle, contentText, pendingIntent, notificationId);
     afterDefaultHandling(heapDump, result, leakInfo);
   }
 
@@ -119,32 +118,9 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       CanaryLog.d("Could not rename heap dump file %s to %s", heapDump.heapDumpFile.getPath(),
           newFile.getPath());
     }
-    heapDump =
-        new HeapDump(newFile, heapDump.referenceKey, heapDump.referenceName, heapDump.excludedRefs,
-            heapDump.watchDurationMs, heapDump.gcDurationMs, heapDump.heapDumpDurationMs);
-
-    Resources resources = getResources();
-    int maxStoredHeapDumps =
-        Math.max(resources.getInteger(R.integer.leak_canary_max_stored_leaks), 1);
-    File[] hprofFiles = heapDump.heapDumpFile.getParentFile().listFiles(new FilenameFilter() {
-      @Override public boolean accept(File dir, String filename) {
-        return filename.endsWith(".hprof");
-      }
-    });
-
-    if (hprofFiles.length > maxStoredHeapDumps) {
-      // Sort with oldest modified first.
-      Arrays.sort(hprofFiles, new Comparator<File>() {
-        @Override public int compare(File lhs, File rhs) {
-          return Long.valueOf(lhs.lastModified()).compareTo(rhs.lastModified());
-        }
-      });
-      boolean deleted = hprofFiles[0].delete();
-      if (!deleted) {
-        CanaryLog.d("Could not delete old hprof file %s", hprofFiles[0].getPath());
-      }
-    }
-    return heapDump;
+    return new HeapDump(newFile, heapDump.referenceKey, heapDump.referenceName,
+        heapDump.excludedRefs, heapDump.watchDurationMs, heapDump.gcDurationMs,
+        heapDump.heapDumpDurationMs);
   }
 
   /**
