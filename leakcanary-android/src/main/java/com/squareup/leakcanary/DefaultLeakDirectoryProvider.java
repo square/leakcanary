@@ -39,14 +39,22 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
   }
 
   @Override public File leakDirectory() {
-    File downloadsDirectory = Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS);
-    File directory = new File(downloadsDirectory, "leakcanary-" + context.getPackageName());
-    boolean success = directory.mkdirs();
-    if (!success && !directory.exists()) {
+    File directory = leakDirectoryUnsafe();
+    if (directoryExistsAfterMkdirs(directory)) {
       throw new UnsupportedOperationException(
           "Could not create leak directory " + directory.getPath());
     }
     return directory;
+  }
+
+  private File leakDirectoryUnsafe() {
+    File downloadsDirectory = Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS);
+    return new File(downloadsDirectory, "leakcanary-" + context.getPackageName());
+  }
+
+  private boolean directoryExistsAfterMkdirs(File directory) {
+    boolean success = directory.mkdirs();
+    return !success && !directory.exists();
   }
 
   @Override public void requestWritePermissionNotification() {
@@ -73,10 +81,21 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
 
   @Override public boolean isLeakStorageWritable() {
     if (!hasStoragePermission()) {
+      CanaryLog.d("Leak storage not writable, WRITE_EXTERNAL_STORAGE permission not granted");
       return false;
     }
     String state = Environment.getExternalStorageState();
-    return Environment.MEDIA_MOUNTED.equals(state);
+    if (!Environment.MEDIA_MOUNTED.equals(state)) {
+      CanaryLog.d("Leak storage not writable, external storage not mounted, state: " + state);
+      return false;
+    }
+    File directory = leakDirectoryUnsafe();
+    if (!directoryExistsAfterMkdirs(directory)) {
+      CanaryLog.d(
+          "Leak storage not writable, leak directory cannot be created at " + directory.getPath());
+      return false;
+    }
+    return true;
   }
 
   @TargetApi(M) private boolean hasStoragePermission() {
