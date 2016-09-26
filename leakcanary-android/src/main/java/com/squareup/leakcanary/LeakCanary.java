@@ -68,7 +68,6 @@ public final class LeakCanary {
     LeakDirectoryProvider leakDirectoryProvider = new DefaultLeakDirectoryProvider(context);
     DebuggerControl debuggerControl = new AndroidDebuggerControl();
     AndroidHeapDumper heapDumper = new AndroidHeapDumper(context, leakDirectoryProvider);
-    heapDumper.cleanup();
     Resources resources = context.getResources();
     int watchDelayMillis = resources.getInteger(R.integer.leak_canary_watch_delay_millis);
     AndroidWatchExecutor executor = new AndroidWatchExecutor(watchDelayMillis);

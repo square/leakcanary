@@ -20,9 +20,11 @@ import java.lang.ref.ReferenceQueue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.Executor;
 
+import static com.squareup.leakcanary.HeapDumper.RETRY_LATER;
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
+import static com.squareup.leakcanary.Retryable.Result.DONE;
+import static com.squareup.leakcanary.Retryable.Result.RETRY;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
@@ -33,8 +35,8 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  */
 public final class RefWatcher {
 
-  public static final RefWatcher DISABLED = new RefWatcher(new Executor() {
-    @Override public void execute(Runnable command) {
+  public static final RefWatcher DISABLED = new RefWatcher(new WatchExecutor() {
+    @Override public void execute(Retryable retryable) {
     }
   }, new DebuggerControl() {
     @Override public boolean isDebuggerAttached() {
@@ -43,14 +45,14 @@ public final class RefWatcher {
     }
   }, GcTrigger.DEFAULT, new HeapDumper() {
     @Override public File dumpHeap() {
-      return null;
+      return RETRY_LATER;
     }
   }, new HeapDump.Listener() {
     @Override public void analyze(HeapDump heapDump) {
     }
   }, new ExcludedRefs.BuilderWithParams().build());
 
-  private final Executor watchExecutor;
+  private final WatchExecutor watchExecutor;
   private final DebuggerControl debuggerControl;
   private final GcTrigger gcTrigger;
   private final HeapDumper heapDumper;
@@ -59,8 +61,9 @@ public final class RefWatcher {
   private final HeapDump.Listener heapdumpListener;
   private final ExcludedRefs excludedRefs;
 
-  public RefWatcher(Executor watchExecutor, DebuggerControl debuggerControl, GcTrigger gcTrigger,
-      HeapDumper heapDumper, HeapDump.Listener heapdumpListener, ExcludedRefs excludedRefs) {
+  public RefWatcher(WatchExecutor watchExecutor, DebuggerControl debuggerControl,
+      GcTrigger gcTrigger, HeapDumper heapDumper, HeapDump.Listener heapdumpListener,
+      ExcludedRefs excludedRefs) {
     this.watchExecutor = checkNotNull(watchExecutor, "watchExecutor");
     this.debuggerControl = checkNotNull(debuggerControl, "debuggerControl");
     this.gcTrigger = checkNotNull(gcTrigger, "gcTrigger");
@@ -82,36 +85,43 @@ public final class RefWatcher {
 
   /**
    * Watches the provided references and checks if it can be GCed. This method is non blocking,
-   * the check is done on the {@link Executor} this {@link RefWatcher} has been constructed with.
+   * the check is done on the {@link WatchExecutor} this {@link RefWatcher} has been constructed
+   * with.
    *
    * @param referenceName An logical identifier for the watched object.
    */
   public void watch(Object watchedReference, String referenceName) {
     checkNotNull(watchedReference, "watchedReference");
     checkNotNull(referenceName, "referenceName");
-    if (debuggerControl.isDebuggerAttached()) {
-      return;
-    }
     final long watchStartNanoTime = System.nanoTime();
     String key = UUID.randomUUID().toString();
     retainedKeys.add(key);
     final KeyedWeakReference reference =
         new KeyedWeakReference(watchedReference, key, referenceName, queue);
 
-    watchExecutor.execute(new Runnable() {
-      @Override public void run() {
-        ensureGone(reference, watchStartNanoTime);
+    ensureGoneAsync(watchStartNanoTime, reference);
+  }
+
+  private void ensureGoneAsync(final long watchStartNanoTime, final KeyedWeakReference reference) {
+    watchExecutor.execute(new Retryable() {
+      @Override public Retryable.Result run() {
+        return ensureGone(reference, watchStartNanoTime);
       }
     });
   }
 
-  void ensureGone(KeyedWeakReference reference, long watchStartNanoTime) {
+  Retryable.Result ensureGone(final KeyedWeakReference reference, final long watchStartNanoTime) {
     long gcStartNanoTime = System.nanoTime();
-
     long watchDurationMs = NANOSECONDS.toMillis(gcStartNanoTime - watchStartNanoTime);
+
     removeWeaklyReachableReferences();
-    if (gone(reference) || debuggerControl.isDebuggerAttached()) {
-      return;
+
+    if (debuggerControl.isDebuggerAttached()) {
+      // The debugger can create false leaks.
+      return RETRY;
+    }
+    if (gone(reference)) {
+      return DONE;
     }
     gcTrigger.runGc();
     removeWeaklyReachableReferences();
@@ -120,16 +130,16 @@ public final class RefWatcher {
       long gcDurationMs = NANOSECONDS.toMillis(startDumpHeap - gcStartNanoTime);
 
       File heapDumpFile = heapDumper.dumpHeap();
-
-      if (heapDumpFile == HeapDumper.NO_DUMP) {
-        // Could not dump the heap, abort.
-        return;
+      if (heapDumpFile == RETRY_LATER) {
+        // Could not dump the heap.
+        return RETRY;
       }
       long heapDumpDurationMs = NANOSECONDS.toMillis(System.nanoTime() - startDumpHeap);
       heapdumpListener.analyze(
           new HeapDump(heapDumpFile, reference.key, reference.name, excludedRefs, watchDurationMs,
               gcDurationMs, heapDumpDurationMs));
     }
+    return DONE;
   }
 
   private boolean gone(KeyedWeakReference reference) {

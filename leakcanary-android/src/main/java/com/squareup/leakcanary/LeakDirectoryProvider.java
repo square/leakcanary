@@ -15,23 +15,28 @@
  */
 package com.squareup.leakcanary;
 
-import android.app.Activity;
 import java.io.File;
+import java.io.FilenameFilter;
+import java.util.List;
 
 /**
- * Provides the directory in which heap dumps and analysis results will be stored.
- * When using your own implementation, you may also want to call {@link
- * LeakCanary#setDisplayLeakActivityDirectoryProvider(LeakDirectoryProvider)}.
+ * Provides access to where heap dumps and analysis results will be stored.
+ * When using your own implementation, you should also call {@link
+ * LeakCanary#setDisplayLeakActivityDirectoryProvider(LeakDirectoryProvider)} to ensure the
+ * provided activity is able to display the leaks.
  */
 public interface LeakDirectoryProvider {
 
-  /** Returns a path to an existing directory were leaks can be stored. */
-  File leakDirectory();
+  List<File> listFiles(FilenameFilter filter);
 
-  void requestWritePermissionNotification();
+  /**
+   * @return {@link HeapDumper#RETRY_LATER} if a new heap dump file could not be created.
+   */
+  File newHeapDumpFile();
 
-  void requestPermission(Activity activity);
-
-  /** True if we can currently write to the leak directory. */
-  boolean isLeakStorageWritable();
+  /**
+   * Removes all heap dumps and analysis results, except for heap dumps that haven't been
+   * analyzed yet.
+   */
+  void clearLeakDirectory();
 }
