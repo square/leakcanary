@@ -13,11 +13,11 @@ import java.util.List;
 
 import static com.squareup.haha.perflib.RootType.NATIVE_STATIC;
 import static com.squareup.haha.perflib.RootType.SYSTEM_CLASS;
+import static com.squareup.leakcanary.TestUtil.NO_EXCLUDED_REFS;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class HeapAnalyzerTest {
-  private static final ExcludedRefs NO_EXCLUDED_REFS = null;
   private static final List<RootObj> DUP_ROOTS =
           asList(new RootObj(SYSTEM_CLASS, 6L),
                   new RootObj(SYSTEM_CLASS, 5L),
