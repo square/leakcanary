@@ -19,7 +19,6 @@ import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
 import android.os.Build;
 import android.util.Log;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
@@ -38,47 +37,25 @@ public final class LeakCanary {
    * references (on ICS+).
    */
   public static RefWatcher install(Application application) {
-    return install(application, DisplayLeakService.class,
-        AndroidExcludedRefs.createAppDefaults().build());
+    return refWatcher(application).listenerServiceClass(DisplayLeakService.class)
+        .excludedRefs(AndroidExcludedRefs.createAppDefaults().build())
+        .buildAndInstall();
   }
 
-  /**
-   * Creates a {@link RefWatcher} that reports results to the provided service, and starts watching
-   * activity references (on ICS+).
-   */
-  public static RefWatcher install(Application application,
-      Class<? extends AbstractAnalysisResultService> listenerServiceClass,
-      ExcludedRefs excludedRefs) {
-    if (isInAnalyzerProcess(application)) {
-      return RefWatcher.DISABLED;
-    }
-    enableDisplayLeakActivity(application);
-    HeapDump.Listener heapDumpListener =
-        new ServiceHeapDumpListener(application, listenerServiceClass);
-    RefWatcher refWatcher = androidWatcher(application, heapDumpListener, excludedRefs);
-    ActivityRefWatcher.installOnIcsPlus(application, refWatcher);
-    return refWatcher;
-  }
-
-  /**
-   * Creates a {@link RefWatcher} with a default configuration suitable for Android.
-   */
-  public static RefWatcher androidWatcher(Context context, HeapDump.Listener heapDumpListener,
-      ExcludedRefs excludedRefs) {
-    LeakDirectoryProvider leakDirectoryProvider = new DefaultLeakDirectoryProvider(context);
-    DebuggerControl debuggerControl = new AndroidDebuggerControl();
-    AndroidHeapDumper heapDumper = new AndroidHeapDumper(context, leakDirectoryProvider);
-    Resources resources = context.getResources();
-    int watchDelayMillis = resources.getInteger(R.integer.leak_canary_watch_delay_millis);
-    AndroidWatchExecutor executor = new AndroidWatchExecutor(watchDelayMillis);
-    return new RefWatcher(executor, debuggerControl, GcTrigger.DEFAULT, heapDumper,
-        heapDumpListener, excludedRefs);
+  /** Builder to create a customized {@link RefWatcher} with appropriate Android defaults. */
+  public static AndroidRefWatcherBuilder refWatcher(Context context) {
+    return new AndroidRefWatcherBuilder(context);
   }
 
   public static void enableDisplayLeakActivity(Context context) {
     setEnabled(context, DisplayLeakActivity.class, true);
   }
 
+  /**
+   * If you build a {@link RefWatcher} with a {@link AndroidHeapDumper} that has a custom {@link
+   * LeakDirectoryProvider}, then you should also call this method to make sure the activity in
+   * charge of displaying leaks can find those on the file system.
+   */
   public static void setDisplayLeakActivityDirectoryProvider(
       LeakDirectoryProvider leakDirectoryProvider) {
     DisplayLeakActivity.setLeakDirectoryProvider(leakDirectoryProvider);

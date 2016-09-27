@@ -35,7 +35,7 @@ public final class AndroidWatchExecutor implements WatchExecutor {
   private final long initialDelayMillis;
   private final long maxBackoffFactor;
 
-  public AndroidWatchExecutor(int initialDelayMillis) {
+  public AndroidWatchExecutor(long initialDelayMillis) {
     mainHandler = new Handler(Looper.getMainLooper());
     HandlerThread handlerThread = new HandlerThread(LEAK_CANARY_THREAD_NAME);
     handlerThread.start();

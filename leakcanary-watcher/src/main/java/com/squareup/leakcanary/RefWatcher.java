@@ -35,22 +35,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  */
 public final class RefWatcher {
 
-  public static final RefWatcher DISABLED = new RefWatcher(new WatchExecutor() {
-    @Override public void execute(Retryable retryable) {
-    }
-  }, new DebuggerControl() {
-    @Override public boolean isDebuggerAttached() {
-      // Skips watching.
-      return true;
-    }
-  }, GcTrigger.DEFAULT, new HeapDumper() {
-    @Override public File dumpHeap() {
-      return RETRY_LATER;
-    }
-  }, new HeapDump.Listener() {
-    @Override public void analyze(HeapDump heapDump) {
-    }
-  }, new ExcludedRefs.BuilderWithParams().build());
+  public static final RefWatcher DISABLED = new RefWatcherBuilder<>().build();
 
   private final WatchExecutor watchExecutor;
   private final DebuggerControl debuggerControl;
@@ -61,9 +46,8 @@ public final class RefWatcher {
   private final HeapDump.Listener heapdumpListener;
   private final ExcludedRefs excludedRefs;
 
-  public RefWatcher(WatchExecutor watchExecutor, DebuggerControl debuggerControl,
-      GcTrigger gcTrigger, HeapDumper heapDumper, HeapDump.Listener heapdumpListener,
-      ExcludedRefs excludedRefs) {
+  RefWatcher(WatchExecutor watchExecutor, DebuggerControl debuggerControl, GcTrigger gcTrigger,
+      HeapDumper heapDumper, HeapDump.Listener heapdumpListener, ExcludedRefs excludedRefs) {
     this.watchExecutor = checkNotNull(watchExecutor, "watchExecutor");
     this.debuggerControl = checkNotNull(debuggerControl, "debuggerControl");
     this.gcTrigger = checkNotNull(gcTrigger, "gcTrigger");
@@ -91,6 +75,9 @@ public final class RefWatcher {
    * @param referenceName An logical identifier for the watched object.
    */
   public void watch(Object watchedReference, String referenceName) {
+    if (this == DISABLED) {
+      return;
+    }
     checkNotNull(watchedReference, "watchedReference");
     checkNotNull(referenceName, "referenceName");
     final long watchStartNanoTime = System.nanoTime();
