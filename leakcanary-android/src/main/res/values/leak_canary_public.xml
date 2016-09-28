@@ -19,7 +19,5 @@
   <public name="leak_canary_display_activity_label" type="string"/>
   <public name="leak_canary_heap_dump_toast" type="layout"/>
   <public name="leak_canary_icon" type="drawable"/>
-  <public name="leak_canary_max_stored_leaks" type="integer"/>
-  <public name="leak_canary_watch_delay_millis" type="integer"/>
 
 </resources>

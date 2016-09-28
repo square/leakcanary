@@ -18,7 +18,6 @@ package com.squareup.leakcanary;
 import android.annotation.TargetApi;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.content.res.Resources;
 import android.os.Environment;
 import com.squareup.leakcanary.internal.RequestStoragePermissionActivity;
 import java.io.File;
@@ -40,6 +39,8 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.showNotificat
 
 public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider {
 
+  private static final int DEFAULT_MAX_STORED_HEAP_DUMPS = 7;
+
   private static final String HPROF_SUFFIX = ".hprof";
   private static final String PENDING_HEAPDUMP_SUFFIX = "_pending" + HPROF_SUFFIX;
 
@@ -47,12 +48,21 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
   private static final int ANALYSIS_MAX_DURATION_MS = 10 * 60 * 1000;
 
   private final Context context;
+  private final int maxStoredHeapDumps;
 
-  private boolean writeExternalStorageGranted;
-  private boolean permissionNotificationDisplayed;
+  private volatile boolean writeExternalStorageGranted;
+  private volatile boolean permissionNotificationDisplayed;
 
   public DefaultLeakDirectoryProvider(Context context) {
+    this(context, DEFAULT_MAX_STORED_HEAP_DUMPS);
+  }
+
+  public DefaultLeakDirectoryProvider(Context context, int maxStoredHeapDumps) {
+    if (maxStoredHeapDumps < 1) {
+      throw new IllegalArgumentException("maxStoredHeapDumps must be at least 1");
+    }
     this.context = context.getApplicationContext();
+    this.maxStoredHeapDumps = maxStoredHeapDumps;
   }
 
   @Override public List<File> listFiles(FilenameFilter filter) {
@@ -176,9 +186,6 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
   }
 
   private void cleanupOldHeapDumps() {
-    Resources resources = context.getResources();
-    int configStoredHeapDumps = resources.getInteger(R.integer.leak_canary_max_stored_leaks);
-    int maxStoredHeapDumps = Math.max(configStoredHeapDumps, 1);
     List<File> hprofFiles = listFiles(new FilenameFilter() {
       @Override public boolean accept(File dir, String filename) {
         return filename.endsWith(HPROF_SUFFIX);

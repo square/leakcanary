@@ -17,7 +17,13 @@ package com.squareup.leakcanary;
 
 import java.io.File;
 
+/** Dumps the heap into a file. */
 public interface HeapDumper {
+  HeapDumper NONE = new HeapDumper() {
+    @Override public File dumpHeap() {
+      return RETRY_LATER;
+    }
+  };
 
   File RETRY_LATER = null;
 

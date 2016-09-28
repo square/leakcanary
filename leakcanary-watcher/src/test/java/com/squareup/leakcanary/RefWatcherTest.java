@@ -23,8 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 public class RefWatcherTest {
 
-  static final ExcludedRefs NO_REF = new ExcludedRefs.BuilderWithParams().build();
-
   static class TestDumper implements HeapDumper {
     boolean called;
 
@@ -73,7 +71,9 @@ public class RefWatcherTest {
   }
 
   private RefWatcher defaultWatcher(TestDumper dumper, TestExecutor executor) {
-    return new RefWatcher(executor, DebuggerControl.NONE, GcTrigger.DEFAULT, dumper,
-        new TestListener(), NO_REF);
+    return new RefWatcherBuilder<>().watchExecutor(executor)
+        .heapDumper(dumper)
+        .heapDumpListener(new TestListener())
+        .build();
   }
 }
