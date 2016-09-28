@@ -1,5 +1,29 @@
 # Change Log
 
+## Version 1.5 *(2016-09-28)*
+
+* New excluded leaks
+* Added `LeakCanary.isInAnalyzerProcess()` to the no-op jar
+* Fixed several file access issues:
+  * No more cleanup on startup, we rotate the heap dump files on every new heap dump.
+  * LeakCanary now falls back to the app directory until it can write to the external storage.
+* Leak notifications now each use a distinct notification instead of erasing each other.
+* If LeakCanary can't perform a heap dump for any reason (e.g. analysis in progress, debugger attached ), it retries later with an exponential backoff.
+* Added confirmation dialog when user deletes all leaks.
+* Replace the two leakcanary configuration methods with a builder that provides more flexibility, see `LeakCanary.refWatcher()`.
+* For more details, see the [full diff](https://github.com/square/leakcanary/compare/v1.4...v1.5).
+
+### Public API changes
+
+* New `HeapAnalyzer.findTrackedReferences()` method for headless analysis when you have no context on what leaked.
+* Added `LeakCanary.isInAnalyzerProcess()` to the no-op jar
+* Added `LeakCanary.refWatcher()` which returns an `AndroidRefWatcherBuilder` that extends `RefWatcherBuilder` and lets you fully customize the `RefWatcher` instance.
+* Removed `LeakCanary.install(Application, Class)` and `LeakCanary.androidWatcher(Context, HeapDump.Listener, ExcludedRefs)`.
+* Removed `R.integer.leak_canary_max_stored_leaks` and `R.integer.leak_canary_watch_delay_millis`, those can now be set via `LeakCanary.refWatcher()`.
+* Updated the `LeakDirectoryProvider` API to centralize all file related responsibilities.
+* `RefWatcher` is now constructed with a `WatchExecutor` which executes a `Retryable`, instead of an `Executor` that executes a `Runnable`.
+* `HeapDumper.NO_DUMP` was renamed `HeapDumper.RETRY_LATER`
+
 ## Version 1.4 *(2016-09-11)*
 
 * Fix false negative where GC root is of type android.os.Binder [#482](https://github.com/square/leakcanary/issues/482)
