@@ -8,7 +8,7 @@
   * No more cleanup on startup, we rotate the heap dump files on every new heap dump.
   * LeakCanary now falls back to the app directory until it can write to the external storage.
 * Leak notifications now each use a distinct notification instead of erasing each other.
-* If LeakCanary can't perform a heap dump for any reason (e.g. analysis in progress, debugger attached ), it retries later with an exponential backoff.
+* If LeakCanary can't perform a heap dump for any reason (e.g. analysis in progress, debugger attached), it retries later with an exponential backoff.
 * Added confirmation dialog when user deletes all leaks.
 * Replace the two leakcanary configuration methods with a builder that provides more flexibility, see `LeakCanary.refWatcher()`.
 * For more details, see the [full diff](https://github.com/square/leakcanary/compare/v1.4...v1.5).
