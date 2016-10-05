@@ -1,0 +1,21 @@
+apply plugin: 'com.android.library'
+
+dependencies {
+  api project(':leakcanary-android')
+  implementation 'com.android.support.test:runner:0.4'
+}
+
+android {
+  compileSdkVersion versions.compileSdk
+  defaultConfig {
+    minSdkVersion versions.minSdk
+  }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    // junit references java.lang.management
+    ignore 'InvalidPackage'
+  }
+}
+
+apply from: rootProject.file('gradle/checkstyle.gradle')
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
