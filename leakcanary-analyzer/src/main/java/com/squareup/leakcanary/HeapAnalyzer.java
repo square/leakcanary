@@ -32,6 +32,7 @@ import com.squareup.haha.trove.TObjectProcedure;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -132,7 +133,7 @@ public final class HeapAnalyzer {
     // THashMap has a smaller memory footprint than HashMap.
     final THashMap<String, RootObj> uniqueRootMap = new THashMap<>();
 
-    final List<RootObj> gcRoots = (ArrayList) snapshot.getGCRoots();
+    final Collection<RootObj> gcRoots = snapshot.getGCRoots();
     for (RootObj root : gcRoots) {
       String key = generateRootKey(root);
       if (!uniqueRootMap.containsKey(key)) {
