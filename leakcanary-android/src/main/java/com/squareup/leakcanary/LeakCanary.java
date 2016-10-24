@@ -134,7 +134,7 @@ public final class LeakCanary {
         + "\n"
         + detailedString;
 
-    return info;
+    return info.replace("%", "%%");
   }
 
   /**
