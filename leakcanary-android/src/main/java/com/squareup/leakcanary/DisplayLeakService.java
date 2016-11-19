@@ -42,7 +42,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
 
   @Override protected final void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result) {
     String leakInfo = leakInfo(this, heapDump, result, true);
-    CanaryLog.d(leakInfo);
+    CanaryLog.d("%s", leakInfo);
 
     boolean resultSaved = false;
     boolean shouldSaveResult = result.leakFound || result.failure != null;
