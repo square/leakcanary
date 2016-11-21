@@ -30,6 +30,7 @@ import static android.os.Build.VERSION_CODES.KITKAT;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static android.os.Build.VERSION_CODES.M;
+import static android.os.Build.VERSION_CODES.N;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LG;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.MOTOROLA;
@@ -173,7 +174,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SPELL_CHECKER_SESSION(SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) {
+  SPELL_CHECKER_SESSION((SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) || SDK_INT >= N) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.textservice.SpellCheckerSession$1", "this$0")
           .reason("SpellCheckerSessionListenerImpl.mHandler is leaking destroyed Activity when the"
