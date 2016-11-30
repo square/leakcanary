@@ -39,7 +39,7 @@
         android:enabled="false"
         android:label="@string/leak_canary_display_activity_label"
         android:icon="@drawable/leak_canary_icon"
-        android:taskAffinity="com.squareup.leakcanary"
+        android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         >
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
@@ -49,7 +49,7 @@
     <activity
         android:theme="@style/leak_canary_Theme.Transparent"
         android:name=".internal.RequestStoragePermissionActivity"
-        android:taskAffinity="com.squareup.leakcanary"
+        android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:enabled="false"
         android:icon="@drawable/leak_canary_icon"
         android:label="@string/leak_canary_storage_permission_activity_label"
