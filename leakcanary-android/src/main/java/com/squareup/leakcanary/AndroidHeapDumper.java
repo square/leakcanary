@@ -25,6 +25,7 @@ import android.view.LayoutInflater;
 import android.widget.Toast;
 import com.squareup.leakcanary.internal.FutureResult;
 import java.io.File;
+import java.util.Objects;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -43,7 +44,7 @@ public final class AndroidHeapDumper implements HeapDumper {
   @Override public File dumpHeap() {
     File heapDumpFile = leakDirectoryProvider.newHeapDumpFile();
 
-    if (heapDumpFile == RETRY_LATER) {
+    if (Objects.equals(heapDumpFile, RETRY_LATER)) {
       return RETRY_LATER;
     }
 
