@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
   compile project(':leakcanary-analyzer')
+  provided "com.android.support:support-fragment:25.1.0"
 }
 
 def gitSha() {

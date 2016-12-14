@@ -3,6 +3,7 @@ apply plugin: 'com.android.application'
 dependencies {
   debugCompile project(':leakcanary-android')
   releaseCompile project(':leakcanary-android-no-op');
+  compile "com.android.support:support-fragment:25.1.0"
 }
 
 android {

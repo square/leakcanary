@@ -19,6 +19,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
@@ -35,9 +36,22 @@ import static com.squareup.leakcanary.Preconditions.checkNotNull;
     activityRefWatcher.watchActivities();
   }
 
+    private static boolean supportsFragmentLifecycleCallbacks(Activity activity) {
+      try {
+        Class.forName("android.support.v4.app.FragmentManager$FragmentLifecycleCallbacks");
+        Class fragmentActivityClass = Class.forName("android.support.v4.app.FragmentActivity");
+        return fragmentActivityClass.isInstance(activity);
+      } catch (ClassNotFoundException e) {
+        return false;
+      }
+    }
+
   private final Application.ActivityLifecycleCallbacks lifecycleCallbacks =
       new Application.ActivityLifecycleCallbacks() {
         @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+          if (supportsFragmentLifecycleCallbacks(activity)) {
+            FragmentRefWatcher.install((FragmentActivity) activity, refWatcher);
+          }
         }
 
         @Override public void onActivityStarted(Activity activity) {
