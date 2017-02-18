@@ -18,31 +18,31 @@ package com.example.leakcanary;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.support.v4.app.FragmentActivity;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 
-public class MainActivity extends FragmentActivity {
+public class MainFragment extends Fragment {
 
-  @Override protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    setContentView(R.layout.main_activity);
-
-    getSupportFragmentManager().beginTransaction()
-            .replace(R.id.container, new MainFragment())
-            .commitNow();
-
-    View button = findViewById(R.id.async_task_activity);
+  @Nullable
+  @Override
+  public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    View rootView = inflater.inflate(R.layout.main_fragment, container, false);
+    View button = rootView.findViewById(R.id.async_task_fragment);
     button.setOnClickListener(new View.OnClickListener() {
       @Override public void onClick(View v) {
         startAsyncTask();
       }
     });
+    return rootView;
   }
 
   void startAsyncTask() {
     // This async task is an anonymous class and therefore has a hidden reference to the outer
-    // class MainActivity. If the activity gets destroyed before the task finishes (e.g. rotation),
-    // the activity instance will leak.
+    // class MainFragment. If the fragment gets destroyed before the task finishes (e.g. rotation),
+    // the fragment instance will leak.
     new AsyncTask<Void, Void, Void>() {
       @Override protected Void doInBackground(Void... params) {
         // Do some slow work in background
