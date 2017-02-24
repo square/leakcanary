@@ -19,9 +19,9 @@ subprojects {
 
 ext {
   minSdkVersion = 8
-  compileSdkVersion = 23
+  compileSdkVersion = 25
   targetSdkVersion = compileSdkVersion
-  buildToolsVersion = '23.0.2'
+  buildToolsVersion = '25.0.2'
   javaVersion = JavaVersion.VERSION_1_7
 
   GROUP = 'com.squareup.leakcanary'
