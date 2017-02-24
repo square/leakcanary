@@ -130,7 +130,6 @@ public final class DisplayLeakActivity extends Activity {
     updateUi();
   }
 
-  // No, it's not deprecated. Android lies.
   @Override public Object onRetainNonConfigurationInstance() {
     return leaks;
   }

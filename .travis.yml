@@ -4,11 +4,10 @@ android:
   components:
     - tools
     - platform-tools
-    - build-tools-23.0.2
-    - android-23
+    - build-tools-25.0.2
+    - android-25
 
 jdk:
-  - oraclejdk7
   - oraclejdk8
 
 script:
