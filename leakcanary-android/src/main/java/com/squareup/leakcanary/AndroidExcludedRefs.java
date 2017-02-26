@@ -37,6 +37,7 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.LG;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.MOTOROLA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.NVIDIA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.SAMSUNG;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.MEIZU;
 
 
 /**
@@ -307,6 +308,14 @@ public enum AndroidExcludedRefs {
   },
 
   // ######## Manufacturer specific Excluded refs ########
+
+  INSTRUMENTATION_RECOMMEND_ACTIVITY(MEIZU.equals(MANUFACTURER) && SDK_INT >= LOLLIPOP && SDK_INT <= LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.staticField("android.app.Instrumentation", "mRecommendActivity")
+              .reason("Instrumentation would leak com.android.internal.app.RecommendActivity (in framework.jar)"
+                  + " in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and above");
+    }
+  },
 
   DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER(
       MOTOROLA.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP_MR1) {
