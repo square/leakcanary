@@ -32,10 +32,12 @@ import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.N;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.LENOVO;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LG;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.MOTOROLA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.NVIDIA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.SAMSUNG;
+
 
 /**
  * This class is a work in progress. You can help by reporting leak traces that seem to be caused
@@ -402,6 +404,15 @@ public enum AndroidExcludedRefs {
               + " ViewConfiguration instance that has a context that is the activity."
               + " Observed here: https://github.com/square/leakcanary/issues"
               + "/1#issuecomment-100324683");
+    }
+  },
+
+  SYSTEM_SENSOR_MANAGER_LENOVO(LENOVO.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.staticField("android.hardware.SystemSensorManager", "mAppContextImpl")
+              .reason("Lenovo specific leak. SystemSensorManager stores a reference to context "
+                      + "in a static field in its constructor. Found on LENOVO 4.4.2. "
+                      + "Fix: use application context to get SensorManager");
     }
   },
 
