@@ -23,6 +23,8 @@
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
+  <uses-feature android:name="android.software.leanback" android:required="false"/>
+
   <application>
     <service
         android:name=".internal.HeapAnalyzerService"
@@ -39,11 +41,13 @@
         android:enabled="false"
         android:label="@string/leak_canary_display_activity_label"
         android:icon="@drawable/leak_canary_icon"
+        android:banner="@drawable/leak_canary_tv_icon"
         android:taskAffinity="com.squareup.leakcanary"
         >
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
+        <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
       </intent-filter>
     </activity>
     <activity
