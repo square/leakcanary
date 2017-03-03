@@ -15,24 +15,22 @@
  */
 package com.squareup.leakcanary;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
 import android.os.Bundle;
 
-import static android.os.Build.VERSION.SDK_INT;
-import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
 
-@TargetApi(ICE_CREAM_SANDWICH) public final class ActivityRefWatcher {
+public final class ActivityRefWatcher {
 
+  /** @deprecated Use {@link #install(Application, RefWatcher)}. */
+  @Deprecated
   public static void installOnIcsPlus(Application application, RefWatcher refWatcher) {
-    if (SDK_INT < ICE_CREAM_SANDWICH) {
-      // If you need to support Android < ICS, override onDestroy() in your base activity.
-      return;
-    }
-    ActivityRefWatcher activityRefWatcher = new ActivityRefWatcher(application, refWatcher);
-    activityRefWatcher.watchActivities();
+    install(application, refWatcher);
+  }
+
+  public static void install(Application application, RefWatcher refWatcher) {
+    new ActivityRefWatcher(application, refWatcher).watchActivities();
   }
 
   private final Application.ActivityLifecycleCallbacks lifecycleCallbacks =
@@ -67,7 +65,7 @@ import static com.squareup.leakcanary.Preconditions.checkNotNull;
    * Constructs an {@link ActivityRefWatcher} that will make sure the activities are not leaking
    * after they have been destroyed.
    */
-  public ActivityRefWatcher(Application application, final RefWatcher refWatcher) {
+  public ActivityRefWatcher(Application application, RefWatcher refWatcher) {
     this.application = checkNotNull(application, "application");
     this.refWatcher = checkNotNull(refWatcher, "refWatcher");
   }

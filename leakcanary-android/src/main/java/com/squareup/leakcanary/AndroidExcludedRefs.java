@@ -22,7 +22,6 @@ import java.util.EnumSet;
 
 import static android.os.Build.MANUFACTURER;
 import static android.os.Build.VERSION.SDK_INT;
-import static android.os.Build.VERSION_CODES.ECLAIR;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
@@ -34,10 +33,10 @@ import static android.os.Build.VERSION_CODES.N;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LENOVO;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LG;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.MEIZU;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.MOTOROLA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.NVIDIA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.SAMSUNG;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.MEIZU;
 
 
 /**
@@ -52,6 +51,7 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.MEIZU;
  * leaks you want to ignore by creating an {@link EnumSet} that matches your needs and calling
  * {@link #createBuilder(EnumSet)}
  */
+@SuppressWarnings({ "unused", "WeakerAccess" }) // Public API.
 public enum AndroidExcludedRefs {
 
   // ######## Android SDK Excluded refs ########
@@ -209,7 +209,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  ACCOUNT_MANAGER(SDK_INT > ECLAIR && SDK_INT <= LOLLIPOP_MR1) {
+  ACCOUNT_MANAGER(SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.accounts.AccountManager$AmsTask$Response", "this$1")
           .reason("AccountManager$AmsTask$Response is a stub and is held in memory by native code,"

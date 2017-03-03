@@ -15,7 +15,6 @@
  */
 package com.squareup.leakcanary.internal;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
@@ -23,7 +22,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -68,7 +66,7 @@ import static com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.newSingleThreadExecutor;
 
-@SuppressWarnings("ConstantConditions") @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+@SuppressWarnings("ConstantConditions")
 public final class DisplayLeakActivity extends Activity {
 
   private static LeakDirectoryProvider leakDirectoryProvider = null;
