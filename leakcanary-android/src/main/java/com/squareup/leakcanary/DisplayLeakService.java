@@ -89,9 +89,10 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     File resultFile = new File(heapDump.heapDumpFile.getParentFile(),
         heapDump.heapDumpFile.getName() + ".result");
     FileOutputStream fos = null;
+    ObjectOutputStream oos = null;
     try {
       fos = new FileOutputStream(resultFile);
-      ObjectOutputStream oos = new ObjectOutputStream(fos);
+      oos = new ObjectOutputStream(fos);
       oos.writeObject(heapDump);
       oos.writeObject(result);
       return true;
@@ -101,6 +102,12 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       if (fos != null) {
         try {
           fos.close();
+        } catch (IOException ignored) {
+        }
+      }
+      if (oos != null) {
+        try {
+          oos.close();
         } catch (IOException ignored) {
         }
       }
