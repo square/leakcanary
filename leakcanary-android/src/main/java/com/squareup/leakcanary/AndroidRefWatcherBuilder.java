@@ -57,7 +57,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
     RefWatcher refWatcher = build();
     if (refWatcher != DISABLED) {
       LeakCanary.enableDisplayLeakActivity(context);
-      ActivityRefWatcher.installOnIcsPlus((Application) context, refWatcher);
+      ActivityRefWatcher.install((Application) context, refWatcher);
     }
     return refWatcher;
   }
