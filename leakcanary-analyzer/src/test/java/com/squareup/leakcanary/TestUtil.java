@@ -24,10 +24,9 @@ final class TestUtil {
   public static final ExcludedRefs NO_EXCLUDED_REFS = ExcludedRefs.builder().build();
 
   enum HeapDumpFile {
-    ASYNC_TASK("leak_asynctask.hprof", "dc983a12-d029-4003-8890-7dd644c664c5"),
-    ASYNC_TASK_MPREVIEW2("leak_asynctask_mpreview2.hprof", "1114018e-e154-435f-9a3d-da63ae9b47fa"),
-    ASYNC_TASK_M_POSTPREVIEW2("leak_asynctask_m_postpreview2.hprof",
-        "25ae1778-7c1d-4ec7-ac50-5cce55424069");
+    ASYNC_TASK_PRE_M("leak_asynctask_pre_m.hprof", "dc983a12-d029-4003-8890-7dd644c664c5"), //
+    ASYNC_TASK_M("leak_asynctask_m.hprof", "25ae1778-7c1d-4ec7-ac50-5cce55424069"), //
+    ASYNC_TASK_O("leak_asynctask_o.hprof", "0e8d40d7-8302-4493-93d5-962a4c176089");
 
     public final String filename;
     public final String referenceKey;
