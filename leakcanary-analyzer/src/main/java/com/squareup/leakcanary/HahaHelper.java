@@ -19,9 +19,11 @@ import com.squareup.haha.perflib.ArrayInstance;
 import com.squareup.haha.perflib.ClassInstance;
 import com.squareup.haha.perflib.ClassObj;
 import com.squareup.haha.perflib.Field;
-import com.squareup.haha.perflib.Heap;
 import com.squareup.haha.perflib.Instance;
 import com.squareup.haha.perflib.Type;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -78,11 +80,19 @@ public final class HahaHelper {
     List<ClassInstance.FieldValue> values = classInstanceValues(instance);
 
     Integer count = fieldValue(values, "count");
+    checkNotNull(count, "count");
+    if (count == 0) {
+      return "";
+    }
+
     Object value = fieldValue(values, "value");
+    checkNotNull(value, "value");
+
     Integer offset;
-    ArrayInstance charArray;
+    ArrayInstance array;
     if (isCharArray(value)) {
-      charArray = (ArrayInstance) value;
+      array = (ArrayInstance) value;
+
       offset = 0;
       // < API 23
       // As of Marshmallow, substrings no longer share their parent strings' char arrays
@@ -90,35 +100,32 @@ public final class HahaHelper {
       // https://android-review.googlesource.com/#/c/83611/
       if (hasField(values, "offset")) {
         offset = fieldValue(values, "offset");
+        checkNotNull(offset, "offset");
+      }
+
+      char[] chars = array.asCharArray(offset, count);
+      return new String(chars);
+    } else if (isByteArray(value)) {
+      // In API 26, Strings are now internally represented as byte arrays.
+      array = (ArrayInstance) value;
+
+      // HACK - remove when HAHA's perflib is updated to https://goo.gl/Oe7ZwO.
+      try {
+        Method asRawByteArray =
+            ArrayInstance.class.getDeclaredMethod("asRawByteArray", int.class, int.class);
+        asRawByteArray.setAccessible(true);
+        byte[] rawByteArray = (byte[]) asRawByteArray.invoke(array, 0, count);
+        return new String(rawByteArray, Charset.forName("UTF-8"));
+      } catch (NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(e);
+      } catch (InvocationTargetException e) {
+        throw new RuntimeException(e);
       }
     } else {
-      // In M preview 2, the underlying char buffer resides in the heap with ID equaling the
-      // String's ID + 16.
-      // https://android-review.googlesource.com/#/c/160380/2/android/src/com/android/tools/idea/
-      // editors/hprof/descriptors/InstanceFieldDescriptorImpl.java
-      // This workaround is only needed for M preview 2, as it has been fixed on the hprof
-      // generation end by reintroducing a virtual "value" variable.
-      // https://android.googlesource.com/platform/art/+/master/runtime/hprof/hprof.cc#1242
-      Heap heap = instance.getHeap();
-      Instance inlineInstance = heap.getInstance(instance.getId() + 16);
-      if (isCharArray(inlineInstance)) {
-        charArray = (ArrayInstance) inlineInstance;
-        offset = 0;
-      } else {
-        throw new UnsupportedOperationException("Could not find char array in " + instance);
-      }
+      throw new UnsupportedOperationException("Could not find char array in " + instance);
     }
-    checkNotNull(count, "count");
-    checkNotNull(charArray, "charArray");
-    checkNotNull(offset, "offset");
-
-    if (count == 0) {
-      return "";
-    }
-
-    char[] chars = charArray.asCharArray(offset, count);
-
-    return new String(chars);
   }
 
   public static boolean isPrimitiveWrapper(Object value) {
@@ -141,6 +148,10 @@ public final class HahaHelper {
 
   private static boolean isCharArray(Object value) {
     return value instanceof ArrayInstance && ((ArrayInstance) value).getArrayType() == Type.CHAR;
+  }
+
+  private static boolean isByteArray(Object value) {
+    return value instanceof ArrayInstance && ((ArrayInstance) value).getArrayType() == Type.BYTE;
   }
 
   static List<ClassInstance.FieldValue> classInstanceValues(Instance instance) {

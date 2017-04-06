@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary;
 
+import java.lang.ref.PhantomReference;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.List;
@@ -25,9 +26,9 @@ import org.junit.runners.Parameterized;
 
 import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
-import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK;
-import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_MPREVIEW2;
-import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_M_POSTPREVIEW2;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_M;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_O;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_PRE_M;
 import static com.squareup.leakcanary.TestUtil.analyze;
 import static java.util.Arrays.asList;
 import static org.hamcrest.core.StringContains.containsString;
@@ -46,9 +47,9 @@ public class AsyncTaskLeakTest {
 
   @Parameterized.Parameters public static Collection<Object[]> data() {
     return asList(new Object[][] {
-        { ASYNC_TASK }, //
-        { ASYNC_TASK_MPREVIEW2 }, //
-        { ASYNC_TASK_M_POSTPREVIEW2 } //
+        { ASYNC_TASK_PRE_M }, //
+        { ASYNC_TASK_M }, //
+        { ASYNC_TASK_O } //
     });
   }
 
@@ -60,9 +61,12 @@ public class AsyncTaskLeakTest {
   }
 
   @Before public void setUp() {
-    excludedRefs = new ExcludedRefs.BuilderWithParams().clazz(WeakReference.class.getName())
+    excludedRefs = new ExcludedRefs.BuilderWithParams() //
+        .clazz(WeakReference.class.getName())
         .alwaysExclude()
         .clazz("java.lang.ref.FinalizerReference")
+        .alwaysExclude()
+        .clazz(PhantomReference.class.getName())
         .alwaysExclude();
   }
 

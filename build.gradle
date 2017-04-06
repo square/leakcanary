@@ -15,6 +15,15 @@ subprojects {
 //    }
 //    mavenLocal()
   }
+
+  tasks.withType(Test) {
+    testLogging {
+      exceptionFormat 'FULL'
+      showCauses true
+      showExceptions true
+      showStackTraces true
+    }
+  }
 }
 
 ext {

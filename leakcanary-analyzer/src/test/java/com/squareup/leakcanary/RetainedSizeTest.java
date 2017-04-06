@@ -8,9 +8,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK;
-import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_MPREVIEW2;
-import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_M_POSTPREVIEW2;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_M;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_O;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_PRE_M;
 import static com.squareup.leakcanary.TestUtil.analyze;
 import static org.junit.Assert.assertEquals;
 
@@ -22,9 +22,9 @@ public class RetainedSizeTest {
 
   @Parameterized.Parameters public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][] {
-        { ASYNC_TASK, 207_407 }, //
-        { ASYNC_TASK_MPREVIEW2, 1_604 }, //
-        { ASYNC_TASK_M_POSTPREVIEW2, 1_870 }, //
+        { ASYNC_TASK_PRE_M, 207_407 }, //
+        { ASYNC_TASK_M, 1_870 }, //
+        { ASYNC_TASK_O, 753 }, //
     });
   }
 

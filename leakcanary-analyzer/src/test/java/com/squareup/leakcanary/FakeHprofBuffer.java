@@ -6,6 +6,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 public final class FakeHprofBuffer implements HprofBuffer {
+  private static final String PRE_O_CHARSET = "UTF-16BE";
+
+  private final String stringCharset;
+
   private List<Byte> byteList;
   private List<byte[]> byteArrayList;
 
@@ -13,6 +17,14 @@ public final class FakeHprofBuffer implements HprofBuffer {
   private int intIndex = -1;
   private String[] stringsToRead;
   private int stringIndex = -1;
+
+  FakeHprofBuffer() {
+    this(PRE_O_CHARSET);
+  }
+
+  FakeHprofBuffer(String stringCharset) {
+    this.stringCharset = stringCharset;
+  }
 
   public void setIntsToRead(int... ints) {
     intsToRead = ints;
@@ -42,7 +54,7 @@ public final class FakeHprofBuffer implements HprofBuffer {
 
     String s = stringsToRead[stringIndex++];
     try {
-      System.arraycopy(s.getBytes("UTF-16BE"), start, bytes, 0, length);
+      System.arraycopy(s.getBytes(stringCharset), start, bytes, 0, length);
     } catch (UnsupportedEncodingException e) {
       throw new UnsupportedOperationException(e);
     }
