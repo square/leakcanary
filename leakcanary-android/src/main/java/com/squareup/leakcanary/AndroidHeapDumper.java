@@ -40,6 +40,8 @@ public final class AndroidHeapDumper implements HeapDumper {
     mainHandler = new Handler(Looper.getMainLooper());
   }
 
+
+  @SuppressWarnings("ReferenceEquality") // Explicitly checking for named null.
   @Override public File dumpHeap() {
     File heapDumpFile = leakDirectoryProvider.newHeapDumpFile();
 

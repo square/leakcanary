@@ -97,6 +97,7 @@ public final class RefWatcher {
     });
   }
 
+  @SuppressWarnings("ReferenceEquality") // Explicitly checking for named null.
   Retryable.Result ensureGone(final KeyedWeakReference reference, final long watchStartNanoTime) {
     long gcStartNanoTime = System.nanoTime();
     long watchDurationMs = NANOSECONDS.toMillis(gcStartNanoTime - watchStartNanoTime);

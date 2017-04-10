@@ -104,6 +104,7 @@ public final class DisplayLeakActivity extends Activity {
   private TextView failureView;
   private Button actionButton;
 
+  @SuppressWarnings("unchecked")
   @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
@@ -116,7 +117,6 @@ public final class DisplayLeakActivity extends Activity {
       }
     }
 
-    //noinspection unchecked
     leaks = (List<Leak>) getLastNonConfigurationInstance();
 
     setContentView(R.layout.leak_canary_display_leak);
@@ -334,12 +334,12 @@ public final class DisplayLeakActivity extends Activity {
                 android.R.drawable.ic_dialog_alert)
                 .setTitle(R.string.leak_canary_delete_all)
                 .setMessage(R.string.leak_canary_delete_all_leaks_title)
-                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                   @Override public void onClick(DialogInterface dialog, int which) {
                     deleteAllLeaks();
                   }
                 })
-                .setNegativeButton(android.R.string.no, null)
+                .setNegativeButton(android.R.string.cancel, null)
                 .show();
           }
         });

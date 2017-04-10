@@ -4,7 +4,7 @@ package com.squareup.leakcanary;
  * Responsible for building {@link RefWatcher} instances. Subclasses should provide sane defaults
  * for the platform they support.
  */
-public class RefWatcherBuilder<T extends RefWatcherBuilder> {
+public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
 
   private ExcludedRefs excludedRefs;
   private HeapDump.Listener heapDumpListener;
@@ -117,8 +117,8 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder> {
     return WatchExecutor.NONE;
   }
 
+  @SuppressWarnings("unchecked")
   protected final T self() {
-    //noinspection unchecked
     return (T) this;
   }
 }
