@@ -19,13 +19,14 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.MessageQueue;
+import java.util.concurrent.TimeUnit;
 
 import static com.squareup.leakcanary.Retryable.Result.RETRY;
 
 /**
  * {@link WatchExecutor} suitable for watching Android reference leaks. This executor waits for the
- * main thread to be idle then posts to a serial background thread with a delay of
- * {@link R.integer#leak_canary_watch_delay_millis} seconds.
+ * main thread to be idle then posts to a serial background thread with the delay specified by
+ * {@link AndroidRefWatcherBuilder#watchDelay(long, TimeUnit)}.
  */
 public final class AndroidWatchExecutor implements WatchExecutor {
 
