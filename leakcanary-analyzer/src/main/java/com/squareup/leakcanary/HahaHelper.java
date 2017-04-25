@@ -159,10 +159,10 @@ public final class HahaHelper {
     return classInstance.getValues();
   }
 
+  @SuppressWarnings({ "unchecked", "TypeParameterUnusedInFormals" })
   static <T> T fieldValue(List<ClassInstance.FieldValue> values, String fieldName) {
     for (ClassInstance.FieldValue fieldValue : values) {
       if (fieldValue.getField().getName().equals(fieldName)) {
-        //noinspection unchecked
         return (T) fieldValue.getValue();
       }
     }

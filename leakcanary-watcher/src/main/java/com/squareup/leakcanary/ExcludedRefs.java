@@ -185,7 +185,7 @@ public final class ExcludedRefs implements Serializable {
       return this;
     }
 
-    public ExcludedRefs build() {
+    @Override public ExcludedRefs build() {
       return new ExcludedRefs(this);
     }
   }

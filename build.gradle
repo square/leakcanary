@@ -1,9 +1,11 @@
 buildscript {
   repositories {
     jcenter()
+    maven { url 'https://plugins.gradle.org/m2/' }
   }
   dependencies {
     classpath 'com.android.tools.build:gradle:2.3.0'
+    classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.10'
   }
 }
 
@@ -14,6 +16,15 @@ subprojects {
 //      url 'https://oss.sonatype.org/content/repositories/snapshots/'
 //    }
 //    mavenLocal()
+  }
+
+  apply plugin: 'net.ltgt.errorprone'
+
+  tasks.withType(JavaCompile) {
+    options.compilerArgs += ['-Xlint:all',
+                             '-Xlint:-serial',
+                             '-Xlint:-deprecation',
+                             '-Werror']
   }
 
   tasks.withType(Test) {

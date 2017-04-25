@@ -196,7 +196,8 @@ final class DisplayLeakAdapter extends BaseAdapter {
     return position;
   }
 
-  @SuppressWarnings("unchecked") private static <T extends View> T findById(View view, int id) {
+  @SuppressWarnings({ "unchecked", "TypeParameterUnusedInFormals" })
+  private static <T extends View> T findById(View view, int id) {
     return (T) view.findViewById(id);
   }
 }
