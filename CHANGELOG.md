@@ -1,5 +1,15 @@
 # Change Log
 
+## Version 1.5.1 *(2017-04-25)*
+
+* New excluded leaks
+* Fix java.util.MissingFormatArgumentException in DisplayLeakService
+* Separate task affinities for different apps
+* Bump minSdk to 14
+* Fix HahaHelper for O Preview
+  
+For more details, see the [full diff](https://github.com/square/leakcanary/compare/v1.5...v1.5.1).
+
 ## Version 1.5 *(2016-09-28)*
 
 * New excluded leaks
@@ -10,8 +20,9 @@
 * Leak notifications now each use a distinct notification instead of erasing each other.
 * If LeakCanary can't perform a heap dump for any reason (e.g. analysis in progress, debugger attached), it retries later with an exponential backoff.
 * Added confirmation dialog when user deletes all leaks.
-* Replace the two leakcanary configuration methods with a builder that provides more flexibility, see `LeakCanary.refWatcher()`.
-* For more details, see the [full diff](https://github.com/square/leakcanary/compare/v1.4...v1.5).
+* Replace the two LeakCanary configuration methods with a builder that provides more flexibility, see `LeakCanary.refWatcher()`.
+
+For more details, see the [full diff](https://github.com/square/leakcanary/compare/v1.4...v1.5).
 
 ### Public API changes
 
