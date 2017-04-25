@@ -52,7 +52,7 @@ public final class AndroidWatchExecutor implements WatchExecutor {
     }
   }
 
-  private void postWaitForIdle(final Retryable retryable, final int failedAttempts) {
+  void postWaitForIdle(final Retryable retryable, final int failedAttempts) {
     mainHandler.post(new Runnable() {
       @Override public void run() {
         waitForIdle(retryable, failedAttempts);
@@ -70,7 +70,7 @@ public final class AndroidWatchExecutor implements WatchExecutor {
     });
   }
 
-  private void postToBackgroundWithDelay(final Retryable retryable, final int failedAttempts) {
+  void postToBackgroundWithDelay(final Retryable retryable, final int failedAttempts) {
     long exponentialBackoffFactor = (long) Math.min(Math.pow(2, failedAttempts), maxBackoffFactor);
     long delayMillis = initialDelayMillis * exponentialBackoffFactor;
     backgroundHandler.postDelayed(new Runnable() {

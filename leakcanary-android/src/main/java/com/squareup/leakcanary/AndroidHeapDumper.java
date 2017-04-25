@@ -30,7 +30,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class AndroidHeapDumper implements HeapDumper {
 
-  private final Context context;
+  final Context context;
   private final LeakDirectoryProvider leakDirectoryProvider;
   private final Handler mainHandler;
 
