@@ -1,3 +1,4 @@
+
 # LeakCanary
 
 A memory leak detection library for Android and Java.
@@ -12,9 +13,9 @@ In your `build.gradle`:
 
 ```gradle
  dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
-   testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.1'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.1'
+   testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.1'
  }
 ```
 
