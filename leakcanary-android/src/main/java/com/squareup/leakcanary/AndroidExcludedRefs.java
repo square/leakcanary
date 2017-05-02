@@ -30,6 +30,7 @@ import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.N;
+import static android.os.Build.VERSION_CODES.N_MR1;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LENOVO;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LG;
@@ -141,7 +142,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= M) {
+  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= N_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       String reason = "When we detach a view that receives keyboard input, the InputMethodManager"
           + " leaks a reference to it until a new view asks for keyboard input."
