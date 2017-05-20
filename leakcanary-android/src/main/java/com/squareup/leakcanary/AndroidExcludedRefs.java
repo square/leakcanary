@@ -378,6 +378,13 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  LGCONTEXT__MCONTEXT(LG.equals(MANUFACTURER) && SDK_INT == LOLLIPOP) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("com.lge.systemservice.core.LGContext", "mContext")
+          .reason("LGContext is a static singleton that leaks an activity context.");
+    }
+  },
+
   AW_RESOURCE__SRESOURCES(SAMSUNG.equals(MANUFACTURER) && SDK_INT == KITKAT) {
     @Override void add(ExcludedRefs.Builder excluded) {
       // AwResource#setResources() is called with resources that hold a reference to the
