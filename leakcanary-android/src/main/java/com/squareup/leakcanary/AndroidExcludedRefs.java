@@ -351,6 +351,16 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  SEM_CLIPBOARD_MANAGER__MCONTEXT(
+      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("com.samsung.android.content.clipboard.SemClipboardManager",
+          "mContext")
+          .reason("SemClipboardManager is held in memory by an anonymous inner class "
+              + "implementation of android.os.Binder, thereby leaking an activity context.");
+    }
+  },
+
   BUBBLE_POPUP_HELPER__SHELPER(
       LG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
