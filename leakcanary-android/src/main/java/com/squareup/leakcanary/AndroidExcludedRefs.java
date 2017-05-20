@@ -361,6 +361,14 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  SEM_EMERGENCY_MANAGER__MCONTEXT(
+      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("com.samsung.android.emergencymode.SemEmergencyManager", "mContext")
+          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext.");
+    }
+  },
+
   BUBBLE_POPUP_HELPER__SHELPER(
       LG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
