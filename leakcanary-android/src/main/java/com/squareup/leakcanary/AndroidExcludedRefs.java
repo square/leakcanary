@@ -351,12 +351,37 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  SEM_CLIPBOARD_MANAGER__MCONTEXT(
+      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("com.samsung.android.content.clipboard.SemClipboardManager",
+          "mContext")
+          .reason("SemClipboardManager is held in memory by an anonymous inner class "
+              + "implementation of android.os.Binder, thereby leaking an activity context.");
+    }
+  },
+
+  SEM_EMERGENCY_MANAGER__MCONTEXT(
+      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("com.samsung.android.emergencymode.SemEmergencyManager", "mContext")
+          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext.");
+    }
+  },
+
   BUBBLE_POPUP_HELPER__SHELPER(
       LG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.widget.BubblePopupHelper", "sHelper")
           .reason("A static helper for EditText bubble popups leaks a reference to the latest"
               + "focused view.");
+    }
+  },
+
+  LGCONTEXT__MCONTEXT(LG.equals(MANUFACTURER) && SDK_INT == LOLLIPOP) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("com.lge.systemservice.core.LGContext", "mContext")
+          .reason("LGContext is a static singleton that leaks an activity context.");
     }
   },
 
