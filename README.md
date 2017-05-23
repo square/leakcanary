@@ -1,6 +1,8 @@
 
 # LeakCanary
 
+[中文版说明](http://www.liaohuqiu.net/cn/posts/leak-canary-read-me/)
+
 A memory leak detection library for Android and Java.
 
 *“A small leak will sink a great ship.”* - Benjamin Franklin
