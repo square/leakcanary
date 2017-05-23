@@ -5,6 +5,8 @@ import com.squareup.haha.perflib.Snapshot;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,6 +19,7 @@ import static com.squareup.leakcanary.TestUtil.NO_EXCLUDED_REFS;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@RunWith(JUnit4.class)
 public class HeapAnalyzerTest {
   private static final List<RootObj> DUP_ROOTS =
           asList(new RootObj(SYSTEM_CLASS, 6L),
