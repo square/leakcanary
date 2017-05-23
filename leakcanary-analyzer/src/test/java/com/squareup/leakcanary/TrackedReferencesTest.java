@@ -2,12 +2,15 @@ package com.squareup.leakcanary;
 
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_PRE_M;
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_M;
 import static com.squareup.leakcanary.TestUtil.findTrackedReferences;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@RunWith(JUnit4.class)
 public class TrackedReferencesTest {
 
   @Test public void findsExpectedRef() {

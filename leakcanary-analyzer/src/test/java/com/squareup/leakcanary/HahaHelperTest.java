@@ -9,10 +9,13 @@ import com.squareup.haha.perflib.Type;
 import com.squareup.haha.perflib.io.HprofBuffer;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+@RunWith(JUnit4.class)
 public class HahaHelperTest {
   private static final int STRING_CLASS_ID = 100;
   private static final int CHAR_ARRAY_CLASS_ID = 101;
