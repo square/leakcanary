@@ -29,13 +29,14 @@ import com.squareup.haha.perflib.io.HprofBuffer;
 import com.squareup.haha.perflib.io.MemoryMappedFileBuffer;
 import com.squareup.haha.trove.THashMap;
 import com.squareup.haha.trove.TObjectProcedure;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static android.os.Build.VERSION.SDK_INT;
+import static android.os.Build.VERSION_CODES.N_MR1;
 import static com.squareup.leakcanary.AnalysisResult.failure;
 import static com.squareup.leakcanary.AnalysisResult.leakDetected;
 import static com.squareup.leakcanary.AnalysisResult.noLeak;
@@ -191,7 +192,10 @@ public final class HeapAnalyzer {
 
     long retainedSize = leakingInstance.getTotalRetainedSize();
 
-    retainedSize += computeIgnoredBitmapRetainedSize(snapshot, leakingInstance);
+    // TODO: check O sources and see what happened to android.graphics.Bitmap.mBuffer
+    if (SDK_INT <= N_MR1) {
+      retainedSize += computeIgnoredBitmapRetainedSize(snapshot, leakingInstance);
+    }
 
     return leakDetected(result.excludingKnownLeaks, className, leakTrace, retainedSize,
         since(analysisStartNanoTime));
