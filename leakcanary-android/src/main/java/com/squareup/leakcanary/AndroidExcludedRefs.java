@@ -32,6 +32,7 @@ import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.N;
 import static android.os.Build.VERSION_CODES.N_MR1;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.HUAWEI;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LENOVO;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LG;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.MEIZU;
@@ -336,6 +337,14 @@ public enum AndroidExcludedRefs {
       excluded.staticField("com.samsung.android.smartclip.SpenGestureManager", "mContext")
           .reason("SpenGestureManager has a static mContext field that leaks a reference to the"
               + " activity. Yes, a STATIC mContext field.");
+    }
+  },
+
+  GESTURE_BOOST_MANAGER(HUAWEI.equals(MANUFACTURER) && SDK_INT >= N && SDK_INT <= N_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.staticField("android.gestureboost.GestureBoostManager", "mContext")
+          .reason("GestureBoostManager is a static singleton that leaks an activity context."
+          + "Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756");
     }
   },
 
