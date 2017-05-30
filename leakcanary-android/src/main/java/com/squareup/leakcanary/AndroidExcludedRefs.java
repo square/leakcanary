@@ -118,7 +118,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  BLOCKING_QUEUE(SDK_INT < LOLLIPOP) {
+  BLOCKING_QUEUE(SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
       String reason = "Prior to ART, a thread waiting on a blocking queue will leak the last"
           + " dequeued object as a stack local reference. So when a HandlerThread becomes idle, it"
