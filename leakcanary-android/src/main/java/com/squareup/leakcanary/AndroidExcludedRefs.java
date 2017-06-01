@@ -523,6 +523,16 @@ public enum AndroidExcludedRefs {
       excluded.instanceField("android.view.Choreographer$FrameDisplayEventReceiver",
           "mMessageQueue").alwaysExclude();
     }
+  },
+
+  SYSTEM_SENSOR_MANAGER_LENOVO {
+    @Override
+    void add(ExcludedRefs.Builder excluded) {
+      excluded.staticField("android.hardware.SystemSensorManager", "mAppContextImpl")
+        .reason("Lenovo specific leak. SystemSensorManager stores a reference to context "
+                + "in a static field in its constructor. Found on LENOVO 4.4.2. "
+                + "Fix: use application context to get SensorManager");
+    }
   };
 
   /**
