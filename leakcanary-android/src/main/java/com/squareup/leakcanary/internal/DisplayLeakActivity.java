@@ -459,9 +459,10 @@ public final class DisplayLeakActivity extends Activity {
       });
       for (File resultFile : files) {
         FileInputStream fis = null;
+        ObjectInputStream ois = null;
         try {
           fis = new FileInputStream(resultFile);
-          ObjectInputStream ois = new ObjectInputStream(fis);
+          ois = new ObjectInputStream(fis);
           HeapDump heapDump = (HeapDump) ois.readObject();
           AnalysisResult result = (AnalysisResult) ois.readObject();
           leaks.add(new Leak(heapDump, result, resultFile));
@@ -479,6 +480,12 @@ public final class DisplayLeakActivity extends Activity {
           if (fis != null) {
             try {
               fis.close();
+            } catch (IOException ignored) {
+            }
+          }
+          if (ois != null) {
+            try {
+              ois.close();
             } catch (IOException ignored) {
             }
           }
