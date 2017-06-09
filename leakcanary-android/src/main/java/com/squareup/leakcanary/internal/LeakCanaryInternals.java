@@ -15,8 +15,10 @@
  */
 package com.squareup.leakcanary.internal;
 
+import android.annotation.TargetApi;
 import android.app.ActivityManager;
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -37,6 +39,7 @@ import static android.content.pm.PackageManager.DONT_KILL_APP;
 import static android.content.pm.PackageManager.GET_SERVICES;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
+import static android.os.Build.VERSION_CODES.O;
 
 public final class LeakCanaryInternals {
 
@@ -49,6 +52,8 @@ public final class LeakCanaryInternals {
   public static final String HUAWEI = "HUAWEI";
 
   private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
+
+  private static final String NOTIFICATION_CHANNEL_ID = "leakcanary";
 
   public static void executeOnFileIoThread(Runnable runnable) {
     fileIoExecutor.execute(runnable);
@@ -144,12 +149,28 @@ public final class LeakCanaryInternals {
         .setContentText(contentText)
         .setAutoCancel(true)
         .setContentIntent(pendingIntent);
+    if (SDK_INT >= O) {
+      String channelName = context.getString(R.string.leak_canary_notification_channel);
+      setupNotificationChannel(channelName, notificationManager, builder);
+    }
     if (SDK_INT < JELLY_BEAN) {
       notification = builder.getNotification();
     } else {
       notification = builder.build();
     }
     notificationManager.notify(notificationId, notification);
+  }
+
+  @TargetApi(O)
+  private static void setupNotificationChannel(String channelName,
+      NotificationManager notificationManager, Notification.Builder builder) {
+    if (notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID) == null) {
+      NotificationChannel notificationChannel =
+          new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName,
+              NotificationManager.IMPORTANCE_DEFAULT);
+      notificationManager.createNotificationChannel(notificationChannel);
+    }
+    builder.setChannelId(NOTIFICATION_CHANNEL_ID);
   }
 
   public static Executor newSingleThreadExecutor(String threadName) {
