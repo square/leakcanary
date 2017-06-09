@@ -17,6 +17,7 @@ package com.squareup.leakcanary.internal;
 
 import android.app.ActivityManager;
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -25,8 +26,10 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
+
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.R;
+
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -37,6 +40,7 @@ import static android.content.pm.PackageManager.DONT_KILL_APP;
 import static android.content.pm.PackageManager.GET_SERVICES;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
+import static android.os.Build.VERSION_CODES.O;
 
 public final class LeakCanaryInternals {
 
@@ -49,6 +53,8 @@ public final class LeakCanaryInternals {
   public static final String HUAWEI = "HUAWEI";
 
   private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
+
+  private static final String notificationChannelId = "leakcanary";
 
   public static void executeOnFileIoThread(Runnable runnable) {
     fileIoExecutor.execute(runnable);
@@ -144,6 +150,16 @@ public final class LeakCanaryInternals {
         .setContentText(contentText)
         .setAutoCancel(true)
         .setContentIntent(pendingIntent);
+    if (SDK_INT >= O) {
+      if (notificationManager.getNotificationChannel(notificationChannelId) == null) {
+        NotificationChannel notificationChannel =
+                new NotificationChannel(notificationChannelId,
+                        context.getString(R.string.leak_canary_notification_channel),
+                        NotificationManager.IMPORTANCE_DEFAULT);
+        notificationManager.createNotificationChannel(notificationChannel);
+      }
+      builder.setChannelId(notificationChannelId);
+    }
     if (SDK_INT < JELLY_BEAN) {
       notification = builder.getNotification();
     } else {
