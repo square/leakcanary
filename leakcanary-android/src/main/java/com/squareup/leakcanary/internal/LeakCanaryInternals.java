@@ -26,10 +26,8 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
-
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.R;
-
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -54,7 +52,7 @@ public final class LeakCanaryInternals {
 
   private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
 
-  private static final String notificationChannelId = "leakcanary";
+  private static final String NOTIFICATION_CHANNEL_ID = "leakcanary";
 
   public static void executeOnFileIoThread(Runnable runnable) {
     fileIoExecutor.execute(runnable);
@@ -151,14 +149,13 @@ public final class LeakCanaryInternals {
         .setAutoCancel(true)
         .setContentIntent(pendingIntent);
     if (SDK_INT >= O) {
-      if (notificationManager.getNotificationChannel(notificationChannelId) == null) {
-        NotificationChannel notificationChannel =
-                new NotificationChannel(notificationChannelId,
-                        context.getString(R.string.leak_canary_notification_channel),
-                        NotificationManager.IMPORTANCE_DEFAULT);
+      if (notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID) == null) {
+        NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
+            context.getString(R.string.leak_canary_notification_channel),
+            NotificationManager.IMPORTANCE_DEFAULT);
         notificationManager.createNotificationChannel(notificationChannel);
       }
-      builder.setChannelId(notificationChannelId);
+      builder.setChannelId(NOTIFICATION_CHANNEL_ID);
     }
     if (SDK_INT < JELLY_BEAN) {
       notification = builder.getNotification();
