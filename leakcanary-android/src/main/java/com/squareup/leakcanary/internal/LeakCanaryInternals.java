@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary.internal;
 
+import android.annotation.TargetApi;
 import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -135,6 +136,7 @@ public final class LeakCanaryInternals {
     return myProcess.processName.equals(serviceInfo.processName);
   }
 
+  @TargetApi(O)
   public static void showNotification(Context context, CharSequence contentTitle,
       CharSequence contentText, PendingIntent pendingIntent, int notificationId) {
     NotificationManager notificationManager =
