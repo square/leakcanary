@@ -19,6 +19,7 @@
     <string name="leak_canary_analysis_failed">Leak Analyse fehlgeschlagen</string>
     <string name="leak_canary_leak_list_title">Leaks in %s</string>
     <string name="leak_canary_notification_message">Für mehr Details hier klicken</string>
+    <string name="leak_canary_notification_channel">LeakCanary</string>
     <string name="leak_canary_share_leak">Info teilen</string>
     <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>
     <string name="leak_canary_share_with">Teilen mit…</string>
