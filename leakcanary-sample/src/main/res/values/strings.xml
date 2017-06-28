@@ -14,7 +14,9 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<resources>
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingTranslation" >
   <string name="app_name">LeakCanary Sample</string>
   <string name="start_async_task">Start new AsyncTask</string>
   <string name="helper_text">Start the async task, <b>rotate the screen</b> and wait for a bit. A
