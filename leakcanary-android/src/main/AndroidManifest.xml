@@ -54,6 +54,7 @@
         android:process=":leakcanary"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:enabled="false"
+        android:excludeFromRecents="true"
         android:icon="@drawable/leak_canary_icon"
         android:label="@string/leak_canary_storage_permission_activity_label"
         />
