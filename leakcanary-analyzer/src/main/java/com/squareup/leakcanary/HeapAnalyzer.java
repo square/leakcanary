@@ -210,8 +210,8 @@ public final class HeapAnalyzer {
    * From experience, we've found that bitmap created in code (Bitmap.createBitmap()) are correctly
    * accounted for, however bitmaps set in layouts are not.
    */
-  private int computeIgnoredBitmapRetainedSize(Snapshot snapshot, Instance leakingInstance) {
-    int bitmapRetainedSize = 0;
+  private long computeIgnoredBitmapRetainedSize(Snapshot snapshot, Instance leakingInstance) {
+    long bitmapRetainedSize = 0;
     ClassObj bitmapClass = snapshot.findClass("android.graphics.Bitmap");
 
     for (Instance bitmapInstance : bitmapClass.getInstancesList()) {
