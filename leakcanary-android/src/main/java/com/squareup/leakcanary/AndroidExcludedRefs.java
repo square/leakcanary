@@ -39,7 +39,7 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.MEIZU;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.MOTOROLA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.NVIDIA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.SAMSUNG;
-
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.VIVO;
 
 /**
  * This class is a work in progress. You can help by reporting leak traces that seem to be caused
@@ -451,12 +451,13 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SYSTEM_SENSOR_MANAGER_LENOVO(LENOVO.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  SYSTEM_SENSOR_MANAGER__MAPPCONTEXTIMPL((LENOVO.equals(MANUFACTURER) && SDK_INT == KITKAT) //
+      || (VIVO.equals(MANUFACTURER) && SDK_INT == LOLLIPOP_MR1)) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.hardware.SystemSensorManager", "mAppContextImpl")
-              .reason("Lenovo specific leak. SystemSensorManager stores a reference to context "
-                      + "in a static field in its constructor. Found on LENOVO 4.4.2. "
-                      + "Fix: use application context to get SensorManager");
+          .reason("SystemSensorManager stores a reference to context "
+              + "in a static field in its constructor."
+              + "Fix: use application context to get SensorManager");
     }
   },
 
