@@ -32,6 +32,7 @@ import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.N;
 import static android.os.Build.VERSION_CODES.N_MR1;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.VIVO;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.HUAWEI;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LENOVO;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LG;
@@ -451,12 +452,13 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SYSTEM_SENSOR_MANAGER_LENOVO(LENOVO.equals(MANUFACTURER) && SDK_INT == KITKAT) {
+  SYSTEM_SENSOR_MANAGER_MAPPCONTEXTIMPL((LENOVO.equals(MANUFACTURER) && SDK_INT == KITKAT) ||
+      (VIVO.equals(MANUFACTURER) && SDK_INT == LOLLIPOP_MR1)) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.hardware.SystemSensorManager", "mAppContextImpl")
-              .reason("Lenovo specific leak. SystemSensorManager stores a reference to context "
-                      + "in a static field in its constructor. Found on LENOVO 4.4.2. "
-                      + "Fix: use application context to get SensorManager");
+          .reason("Lenovo and Vivo specific leak. SystemSensorManager stores a reference to context "
+              + "in a static field in its constructor. Found in LENOVO 4.4.2 and VIVO 5.1."
+              + "Fix: use application context to get SensorManager");
     }
   },
 

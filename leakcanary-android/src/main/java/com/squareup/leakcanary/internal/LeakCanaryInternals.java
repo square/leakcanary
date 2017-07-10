@@ -50,6 +50,7 @@ public final class LeakCanaryInternals {
   public static final String NVIDIA = "NVIDIA";
   public static final String MEIZU = "Meizu";
   public static final String HUAWEI = "HUAWEI";
+  public static final String VIVO = "vivo";
 
   private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
 
