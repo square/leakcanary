@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-  debugCompile project(':leakcanary-android')
-  releaseCompile project(':leakcanary-android-no-op')
+  debugImplementation project(':leakcanary-android')
+  releaseImplementation project(':leakcanary-android-no-op')
 
-  testCompile "junit:junit:4.12"
-  testCompile "org.robolectric:robolectric:3.4.2"
+  testImplementation "junit:junit:4.12"
+  testImplementation "org.robolectric:robolectric:3.4.2"
 }
 
 android {
@@ -36,5 +36,11 @@ android {
 
   lintOptions {
     disable 'GoogleAppIndexingWarning'
+  }
+
+  testOptions {
+    unitTests {
+      includeAndroidResources = true
+    }
   }
 }
