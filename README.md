@@ -17,7 +17,6 @@ In your `build.gradle`:
  dependencies {
    debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.1'
    releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.1'
-   testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.1'
  }
 ```
 
@@ -37,6 +36,34 @@ public class ExampleApplication extends Application {
     // Normal app init code...
   }
 }
+```
+
+For Robolectric users:
+
+```java
+public class ExampleApplication extends Application {
+
+  @Override public void onCreate() {
+    super.onCreate();
+    setupLeakCanary();
+  }
+ 
+  protected RefWatcher setupLeakCanary() {
+    if (LeakCanary.isInAnalyzerProcess(this)) {
+      return;
+    }
+    return LeakCanary.install(this);
+  }
+}
+ 
+// in src/test/java
+public class TestExampleApplication extends ExampleApplication {
+  @Override protected RefWatcher setupLeakCanary() {
+    // No leakcanary in unit tests.
+    return RefWatcher.DISABLED;
+  }
+}
+
 ```
 
 **You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
