@@ -2,6 +2,8 @@ apply plugin: 'com.android.application'
 
 dependencies {
   debugCompile project(':leakcanary-android')
+  releaseCompile project(':leakcanary-android-no-op')
+
   testCompile "junit:junit:4.12"
   testCompile "org.robolectric:robolectric:3.4.2"
 }
