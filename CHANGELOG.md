@@ -1,5 +1,16 @@
 # Change Log
 
+## Version 1.5.2 *(2017-08-09)*
+
+* New excluded leaks
+* Move Leakcanary UI into leak analyzer process
+* Ignore computing retained sizes for bitmaps on O+
+* Add notification channel for persistent messages on O+
+* Exclude permission activity from recents menu
+* Updated README and sample for handling Robolectric tests
+
+For more details, see the [full diff](https://github.com/square/leakcanary/compare/v1.5.1...v1.5.2).
+
 ## Version 1.5.1 *(2017-04-25)*
 
 * New excluded leaks
