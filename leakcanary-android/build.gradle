@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-  compile project(':leakcanary-analyzer')
+  api project(':leakcanary-analyzer')
 }
 
 def gitSha() {
