@@ -67,6 +67,12 @@ public class RequestStoragePermissionActivity extends Activity {
     finish();
   }
 
+  @Override public void finish() {
+    // Reset the animation to avoid flickering.
+    overridePendingTransition(0, 0);
+    super.finish();
+  }
+
   private boolean hasStoragePermission() {
     return checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED;
   }
