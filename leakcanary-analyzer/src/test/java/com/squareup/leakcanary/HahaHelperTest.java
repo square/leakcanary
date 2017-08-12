@@ -112,8 +112,7 @@ public class HahaHelperTest {
     try {
       HahaHelper.asString(stringInstance);
       fail("this test should have thrown UnsupportedOperationException");
-    }
-    catch (UnsupportedOperationException uoe) {
+    } catch (UnsupportedOperationException uoe) {
       String message = uoe.getMessage();
       assertTrue(message.equals("Could not find char array in " + stringInstance));
     }
