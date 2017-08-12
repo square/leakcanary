@@ -94,7 +94,7 @@ public final class FakeHprofBuffer implements HprofBuffer {
   }
 
   @Override
-  public void setPosition(long l) {}
+  public void setPosition(long l) { }
 
   @Override
   public long position() {
