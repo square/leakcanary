@@ -20,17 +20,6 @@ dependencies {
   testImplementation 'org.assertj:assertj-core:3.8.0'
 }
 
-android.libraryVariants.all { variant ->
-  def name = variant.buildType.name
-  if (name.equals(com.android.builder.core.BuilderConstants.DEBUG)) {
-    return; // Skip debug builds.
-  }
-  def task = project.tasks.create "jar${name.capitalize()}", Jar
-  task.dependsOn variant.javaCompile
-  task.from variant.javaCompile.destinationDir
-  artifacts.add('archives', task);
-}
-
 android {
   compileSdkVersion rootProject.ext.compileSdkVersion
   buildToolsVersion rootProject.ext.buildToolsVersion
