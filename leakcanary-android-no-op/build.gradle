@@ -1,6 +1,3 @@
-version rootProject.ext.VERSION_NAME
-group rootProject.ext.GROUP
-
 apply plugin: 'com.android.library'
 
 android {
@@ -9,10 +6,6 @@ android {
   defaultConfig {
     minSdkVersion versions.minSdk
   }
-}
-
-task sourceJar(type: Jar) {
-  from 'src/main/java'
 }
 
 apply from: rootProject.file('gradle/checkstyle.gradle')
