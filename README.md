@@ -50,7 +50,7 @@ public class ExampleApplication extends Application {
  
   protected RefWatcher setupLeakCanary() {
     if (LeakCanary.isInAnalyzerProcess(this)) {
-      return;
+      return RefWatcher.DISABLED;
     }
     return LeakCanary.install(this);
   }
