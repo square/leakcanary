@@ -77,32 +77,50 @@ afterEvaluate { project ->
         sign configurations.archives
     }
 
-    task androidJavadocs(type: Javadoc) {
+    def plugins = project.getPlugins()
+    if (plugins.hasPlugin('com.android.application') || plugins.hasPlugin('com.android.library')) {
+      task androidJavadocs(type: Javadoc) {
         source = android.sourceSets.main.java.srcDirs
-        ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
-        classpath += files(ext.androidJar)
-    }
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+      }
 
-    task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+      task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
         classifier = 'javadoc'
         from androidJavadocs.destinationDir
-    }
+      }
 
-    task androidSourcesJar(type: Jar) {
+      task androidSourcesJar(type: Jar) {
         classifier = 'sources'
         from android.sourceSets.main.java.sourceFiles
+      }
+
+      artifacts {
+        archives androidSourcesJar
+        archives androidJavadocsJar
+      }
+    }
+    else {
+      task sourcesJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+      }
+
+      task javadocsJar(type: Jar, dependsOn: javadoc) {
+        classifier = 'javadoc'
+        from javadoc.destinationDir
+      }
+
+      artifacts {
+        archives sourcesJar
+        archives javadocsJar
+      }
     }
 
     if (JavaVersion.current().isJava8Compatible()) {
-        allprojects {
-            tasks.withType(Javadoc) {
-                options.addStringOption('Xdoclint:none', '-quiet')
-            }
+      allprojects {
+        tasks.withType(Javadoc) {
+          options.addStringOption('Xdoclint:none', '-quiet')
         }
-    }
-
-    artifacts {
-        archives androidSourcesJar
-        archives androidJavadocsJar
+      }
     }
 }
