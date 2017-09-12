@@ -1,25 +1,10 @@
 version rootProject.ext.VERSION_NAME
 group rootProject.ext.GROUP
 
-apply plugin: 'com.android.library'
+apply plugin: 'java-library'
 
 dependencies {
   testImplementation 'junit:junit:4.12'
-}
-
-android {
-  compileSdkVersion rootProject.ext.compileSdkVersion
-  buildToolsVersion rootProject.ext.buildToolsVersion
-  defaultConfig {
-    minSdkVersion rootProject.ext.minSdkVersion
-  }
-  dexOptions {
-    javaMaxHeapSize '2048M'
-  }
-  lintOptions {
-    disable 'GoogleAppIndexingWarning'
-    error 'ObsoleteSdkInt'
-  }
 }
 
 task sourceJar(type: Jar) {
