@@ -5,8 +5,8 @@ buildscript {
     maven { url 'https://plugins.gradle.org/m2/' }
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.0.0-beta2'
-    classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.10'
+    classpath 'com.android.tools.build:gradle:3.0.0-beta5'
+    classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.11'
   }
 }
 
@@ -42,7 +42,7 @@ ext {
   minSdkVersion = 14
   compileSdkVersion = 26
   targetSdkVersion = compileSdkVersion
-  buildToolsVersion = '26.0.0'
+  buildToolsVersion = '26.0.1'
   javaVersion = JavaVersion.VERSION_1_7
 
   GROUP = 'com.squareup.leakcanary'
