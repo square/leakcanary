@@ -1,4 +1,9 @@
 buildscript {
+  ext.versions = [
+    'minSdk': 14,
+    'compileSdk': 26,
+    'buildTools': '26.0.1',
+  ]
   repositories {
     jcenter()
     google()
@@ -39,12 +44,6 @@ subprojects {
 }
 
 ext {
-  minSdkVersion = 14
-  compileSdkVersion = 26
-  targetSdkVersion = compileSdkVersion
-  buildToolsVersion = '26.0.1'
-  javaVersion = JavaVersion.VERSION_1_7
-
   GROUP = 'com.squareup.leakcanary'
   VERSION_NAME = "1.6-SNAPSHOT"
   POM_PACKAGING = "pom"
