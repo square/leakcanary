@@ -1,5 +1,14 @@
 # Change Log
 
+## Version 1.5.3 *(2017-09-17)*
+
+* Fix broken 1.5.2 [build](https://github.com/square/leakcanary/issues/815)
+* Convert leakcanary-watcher from Android library to Java library
+* Disable finish animations in RequestStoragePermissionActivity
+* Corrected README sample for Robolectric tests
+
+For more details, see the [full diff](https://github.com/square/leakcanary/compare/v1.5.2...v1.5.3).
+
 ## Version 1.5.2 *(2017-08-09)*
 
 * New excluded leaks
