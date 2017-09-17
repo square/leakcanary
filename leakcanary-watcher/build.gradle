@@ -1,14 +1,7 @@
-version rootProject.ext.VERSION_NAME
-group rootProject.ext.GROUP
-
 apply plugin: 'java-library'
 
 dependencies {
   testImplementation 'junit:junit:4.12'
-}
-
-task sourceJar(type: Jar) {
-  from 'src/main/java'
 }
 
 apply from: rootProject.file('gradle/checkstyle.gradle')
