@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 1.5.4 *(2017-09-22)*
+
+* Restore Java 7 compatibility in leakcanary-watcher
+
 ## Version 1.5.3 *(2017-09-17)*
 
 * Fix broken 1.5.2 [build](https://github.com/square/leakcanary/issues/815)

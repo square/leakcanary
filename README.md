@@ -15,8 +15,8 @@ In your `build.gradle`:
 
 ```gradle
  dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.3'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.3'
+   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.4'
+   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
  }
 ```
 
