@@ -17,7 +17,11 @@ package com.squareup.leakcanary;
 
 import android.app.Activity;
 import android.app.Application;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.FragmentActivity;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
 
@@ -36,6 +40,13 @@ public final class ActivityRefWatcher {
   private final Application.ActivityLifecycleCallbacks lifecycleCallbacks =
       new Application.ActivityLifecycleCallbacks() {
         @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+          if (activity instanceof FragmentActivity) {
+            supportFragmentRefWatcher.watch((FragmentActivity) activity);
+          }
+          // FragmentActivity can still have non-support child fragments.
+          if (fragmentRefWatcher != null) {
+            fragmentRefWatcher.watch(activity);
+          }
         }
 
         @Override public void onActivityStarted(Activity activity) {
@@ -55,11 +66,20 @@ public final class ActivityRefWatcher {
 
         @Override public void onActivityDestroyed(Activity activity) {
           ActivityRefWatcher.this.onActivityDestroyed(activity);
+          if (activity instanceof FragmentActivity) {
+            supportFragmentRefWatcher.unwatch((FragmentActivity) activity);
+          }
+          if (fragmentRefWatcher != null) {
+            fragmentRefWatcher.unwatch(activity);
+          }
         }
       };
 
+
   private final Application application;
   private final RefWatcher refWatcher;
+  @Nullable private final FragmentRefWatcher fragmentRefWatcher;
+  private final SupportFragmentRefWatcher supportFragmentRefWatcher;
 
   /**
    * Constructs an {@link ActivityRefWatcher} that will make sure the activities are not leaking
@@ -68,6 +88,12 @@ public final class ActivityRefWatcher {
   public ActivityRefWatcher(Application application, RefWatcher refWatcher) {
     this.application = checkNotNull(application, "application");
     this.refWatcher = checkNotNull(refWatcher, "refWatcher");
+    this.supportFragmentRefWatcher = new SupportFragmentRefWatcher(refWatcher);
+    if (VERSION.SDK_INT >= VERSION_CODES.O) {
+      this.fragmentRefWatcher = new FragmentRefWatcher(refWatcher);
+    } else {
+      this.fragmentRefWatcher = null;
+    }
   }
 
   void onActivityDestroyed(Activity activity) {
