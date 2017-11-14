@@ -25,9 +25,9 @@ import com.squareup.haha.perflib.RootObj;
 import com.squareup.haha.perflib.RootType;
 import com.squareup.haha.perflib.Snapshot;
 import com.squareup.haha.perflib.Type;
+import java.util.ArrayDeque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 
@@ -58,8 +58,8 @@ final class ShortestPathFinder {
 
   ShortestPathFinder(ExcludedRefs excludedRefs) {
     this.excludedRefs = excludedRefs;
-    toVisitQueue = new LinkedList<>();
-    toVisitIfNoPathQueue = new LinkedList<>();
+    toVisitQueue = new ArrayDeque<>();
+    toVisitIfNoPathQueue = new ArrayDeque<>();
     toVisitSet = new LinkedHashSet<>();
     toVisitIfNoPathSet = new LinkedHashSet<>();
     visitedSet = new LinkedHashSet<>();
