@@ -11,7 +11,6 @@ def gitSha() {
 android {
   resourcePrefix 'leak_canary_'
   compileSdkVersion versions.compileSdk
-  buildToolsVersion versions.buildTools
   defaultConfig {
     minSdkVersion versions.minSdk
     buildConfigField "String", "LIBRARY_VERSION", "\"${rootProject.ext.VERSION_NAME}\""

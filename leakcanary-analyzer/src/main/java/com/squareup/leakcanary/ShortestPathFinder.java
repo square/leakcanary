@@ -25,11 +25,11 @@ import com.squareup.haha.perflib.RootObj;
 import com.squareup.haha.perflib.RootType;
 import com.squareup.haha.perflib.Snapshot;
 import com.squareup.haha.perflib.Type;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
 
 import static com.squareup.leakcanary.HahaHelper.isPrimitiveOrWrapperArray;
 import static com.squareup.leakcanary.HahaHelper.isPrimitiveWrapper;
@@ -49,8 +49,8 @@ import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
 final class ShortestPathFinder {
 
   private final ExcludedRefs excludedRefs;
-  private final Queue<LeakNode> toVisitQueue;
-  private final Queue<LeakNode> toVisitIfNoPathQueue;
+  private final Deque<LeakNode> toVisitQueue;
+  private final Deque<LeakNode> toVisitIfNoPathQueue;
   private final LinkedHashSet<Instance> toVisitSet;
   private final LinkedHashSet<Instance> toVisitIfNoPathSet;
   private final LinkedHashSet<Instance> visitedSet;
@@ -58,8 +58,8 @@ final class ShortestPathFinder {
 
   ShortestPathFinder(ExcludedRefs excludedRefs) {
     this.excludedRefs = excludedRefs;
-    toVisitQueue = new LinkedList<>();
-    toVisitIfNoPathQueue = new LinkedList<>();
+    toVisitQueue = new ArrayDeque<>();
+    toVisitIfNoPathQueue = new ArrayDeque<>();
     toVisitSet = new LinkedHashSet<>();
     toVisitIfNoPathSet = new LinkedHashSet<>();
     visitedSet = new LinkedHashSet<>();

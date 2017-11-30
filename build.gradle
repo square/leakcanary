@@ -2,7 +2,6 @@ buildscript {
   ext.versions = [
     'minSdk': 14,
     'compileSdk': 26,
-    'buildTools': '26.0.1',
   ]
   repositories {
     jcenter()
@@ -10,8 +9,8 @@ buildscript {
     maven { url 'https://plugins.gradle.org/m2/' }
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.0.0-beta6'
-    classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.11'
+    classpath 'com.android.tools.build:gradle:3.0.1'
+    classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.13'
   }
 }
 
@@ -30,10 +29,24 @@ subprojects {
   apply plugin: 'net.ltgt.errorprone'
 
   tasks.withType(JavaCompile) {
-    options.compilerArgs += ['-Xlint:all',
-                             '-Xlint:-serial',
-                             '-Xlint:-deprecation',
-                             '-Werror']
+    options.compilerArgs += [
+      '-Xlint:all',
+      '-Xlint:-serial',
+      '-Xlint:-deprecation',
+      '-Werror'
+    ]
+  }
+
+  configurations.all {
+    resolutionStrategy {
+      eachDependency { details ->
+        // Force all the error-prone dependencies to use the same version.
+        if (details.requested.group == 'com.google.errorprone' &&
+                details.requested.name.startsWith('error_prone_')) {
+          details.useVersion '2.1.2'
+        }
+      }
+    }
   }
 
   tasks.withType(Test) {
