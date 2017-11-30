@@ -44,7 +44,7 @@ subprojects {
         // Force all the error-prone dependencies to use the same version.
         if (details.requested.group == 'com.google.errorprone' &&
                 details.requested.name.startsWith('error_prone_')) {
-          details.useVersion '2.1.1'
+          details.useVersion '2.1.2'
         }
       }
     }
