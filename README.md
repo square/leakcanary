@@ -13,11 +13,11 @@ A memory leak detection library for Android and Java.
 
 In your `build.gradle`:
 
-```gradle
- dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.4'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
- }
+```groovy
+dependencies {
+  debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.4'
+  releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
+}
 ```
 
 In your `Application` class:
@@ -38,35 +38,25 @@ public class ExampleApplication extends Application {
 }
 ```
 
-For Robolectric users:
+**You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
 
-```java
-public class ExampleApplication extends Application {
+To disable LeakCanary in unit tests, add the following to your `build.gradle`:
 
-  @Override public void onCreate() {
-    super.onCreate();
-    setupLeakCanary();
-  }
- 
-  protected RefWatcher setupLeakCanary() {
-    if (LeakCanary.isInAnalyzerProcess(this)) {
-      return RefWatcher.DISABLED;
+```groovy
+// Ensure the no-op dependency is always used in JVM tests.
+configurations.all { config ->
+  if (config.name.contains('UnitTest')) {
+    config.resolutionStrategy.eachDependency { details ->
+      if (details.requested.group == 'com.squareup.leakcanary' && details.requested.name == 'leakcanary-android') {
+        details.useTarget(group: details.requested.group, name: 'leakcanary-android-no-op', version: details.requested.version)
+      }
     }
-    return LeakCanary.install(this);
   }
 }
- 
-// in src/test/java
-public class TestExampleApplication extends ExampleApplication {
-  @Override protected RefWatcher setupLeakCanary() {
-    // No leakcanary in unit tests.
-    return RefWatcher.DISABLED;
-  }
-}
-
 ```
 
-**You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
+If you want to also disable leak detection in instrumentation tests, add `|| config.name.contains('AndroidTest')` to the
+`if` check above.
 
 Questions? Check out [the FAQ](https://github.com/square/leakcanary/wiki/FAQ)!
 
