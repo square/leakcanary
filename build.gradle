@@ -1,7 +1,9 @@
+apply plugin: 'com.github.ben-manes.versions'
+
 buildscript {
   ext.versions = [
     'minSdk': 14,
-    'compileSdk': 26,
+    'compileSdk': 27,
   ]
   repositories {
     jcenter()
@@ -11,6 +13,7 @@ buildscript {
   dependencies {
     classpath 'com.android.tools.build:gradle:3.0.1'
     classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.13'
+    classpath 'com.github.ben-manes:gradle-versions-plugin:0.17.0'
   }
 }
 
