@@ -15,20 +15,27 @@
  */
 package com.squareup.leakcanary.internal;
 
-import android.app.IntentService;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
+import android.os.IBinder;
 import com.squareup.leakcanary.AbstractAnalysisResultService;
 import com.squareup.leakcanary.AnalysisResult;
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.HeapAnalyzer;
 import com.squareup.leakcanary.HeapDump;
+import com.squareup.leakcanary.R;
 
 /**
  * This service runs in a separate process to avoid slowing down the app process or making it run
  * out of memory.
  */
-public final class HeapAnalyzerService extends IntentService {
+public final class HeapAnalyzerService extends Service {
 
   private static final String LISTENER_CLASS_EXTRA = "listener_class_extra";
   private static final String HEAPDUMP_EXTRA = "heapdump_extra";
@@ -41,15 +48,45 @@ public final class HeapAnalyzerService extends IntentService {
     context.startService(intent);
   }
 
-  public HeapAnalyzerService() {
-    super(HeapAnalyzerService.class.getSimpleName());
+  @Override
+  public void onCreate() {
+    super.onCreate();
+
+    Notification.Builder notificationBuilder = new Notification.Builder(this);
+    notificationBuilder.setContentTitle("Leak Canary Analyzer Service");
+    notificationBuilder.setSmallIcon(R.drawable.leak_canary_notification);
+
+
+    if (VERSION.SDK_INT >= VERSION_CODES.O) {
+      NotificationChannel notificationChannel = new NotificationChannel(
+          "leakCanaryService", "Leak Canary Service", NotificationManager.IMPORTANCE_LOW);
+
+      NotificationManager notificationManager =
+          (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+      notificationManager.createNotificationChannel(notificationChannel);
+      notificationBuilder.setChannelId("leakCanaryService");
+    }
+
+    Notification notification;
+
+    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
+      notificationBuilder.setPriority(Notification.PRIORITY_MIN);
+      notification = notificationBuilder.build();
+    } else {
+      notification = notificationBuilder.getNotification();
+    }
+
+    startForeground(123, notification);
   }
 
-  @Override protected void onHandleIntent(Intent intent) {
+  @Override
+  public int onStartCommand(Intent intent, int flags, int startId) {
     if (intent == null) {
       CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.");
-      return;
+      stopForeground(true);
+      stopSelf();
     }
+
     String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);
     HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
 
@@ -57,5 +94,15 @@ public final class HeapAnalyzerService extends IntentService {
 
     AnalysisResult result = heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey);
     AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, heapDump, result);
+
+    stopForeground(true);
+    stopSelf();
+
+    return START_NOT_STICKY;
+  }
+
+  @Override
+  public IBinder onBind(Intent intent) {
+    return null;
   }
 }
