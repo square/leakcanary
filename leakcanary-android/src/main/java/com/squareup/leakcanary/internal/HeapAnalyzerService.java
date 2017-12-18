@@ -21,6 +21,7 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.os.IBinder;
@@ -88,16 +89,24 @@ public final class HeapAnalyzerService extends Service {
       stopSelf();
     }
 
-    String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);
-    HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
+    final String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);
+    final HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
 
-    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(heapDump.excludedRefs);
+    AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
+      @Override
+      public void run() {
+        HeapAnalyzer heapAnalyzer = new HeapAnalyzer(heapDump.excludedRefs);
 
-    AnalysisResult result = heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey);
-    AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, heapDump, result);
+        AnalysisResult result = heapAnalyzer.checkForLeak(
+            heapDump.heapDumpFile, heapDump.referenceKey);
+        AbstractAnalysisResultService.sendResultToListener(
+            HeapAnalyzerService.this, listenerClassName, heapDump, result);
 
-    stopForeground(true);
-    stopSelf();
+        stopForeground(true);
+        stopSelf();
+      }
+    });
+
 
     return START_NOT_STICKY;
   }

@@ -20,6 +20,7 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.os.IBinder;
@@ -74,17 +75,23 @@ public abstract class AbstractAnalysisResultService extends Service {
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
-    HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAP_DUMP_EXTRA);
-    AnalysisResult result = (AnalysisResult) intent.getSerializableExtra(RESULT_EXTRA);
-    try {
-      onHeapAnalyzed(heapDump, result);
-    } finally {
-      //noinspection ResultOfMethodCallIgnored
-      heapDump.heapDumpFile.delete();
-    }
+    final HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAP_DUMP_EXTRA);
+    final AnalysisResult result = (AnalysisResult) intent.getSerializableExtra(RESULT_EXTRA);
 
-    stopForeground(true);
-    stopSelf();
+    AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          onHeapAnalyzed(heapDump, result);
+        } finally {
+          //noinspection ResultOfMethodCallIgnored
+          heapDump.heapDumpFile.delete();
+        }
+
+        stopForeground(true);
+        stopSelf();
+      }
+    });
 
     return START_NOT_STICKY;
   }
