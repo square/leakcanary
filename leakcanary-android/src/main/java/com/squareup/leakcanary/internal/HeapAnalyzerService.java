@@ -16,7 +16,6 @@
 package com.squareup.leakcanary.internal;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
