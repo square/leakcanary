@@ -58,13 +58,10 @@ public final class HeapAnalyzerService extends Service {
 
 
     if (VERSION.SDK_INT >= VERSION_CODES.O) {
-      NotificationChannel notificationChannel = new NotificationChannel(
-          "leakCanaryService", "Leak Canary Service", NotificationManager.IMPORTANCE_LOW);
-
-      NotificationManager notificationManager =
-          (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-      notificationManager.createNotificationChannel(notificationChannel);
-      notificationBuilder.setChannelId("leakCanaryService");
+      LeakCanaryInternals.setupNotificationChannel(
+          this,
+          (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE),
+          notificationBuilder);
     }
 
     Notification notification;

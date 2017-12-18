@@ -16,7 +16,6 @@
 package com.squareup.leakcanary;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
@@ -24,6 +23,7 @@ import android.content.Intent;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.os.IBinder;
+import com.squareup.leakcanary.internal.LeakCanaryInternals;
 
 public abstract class AbstractAnalysisResultService extends Service {
 
@@ -54,13 +54,10 @@ public abstract class AbstractAnalysisResultService extends Service {
 
 
     if (VERSION.SDK_INT >= VERSION_CODES.O) {
-      NotificationChannel notificationChannel = new NotificationChannel(
-          "leakCanaryService", "Leak Canary Service", NotificationManager.IMPORTANCE_LOW);
-
-      NotificationManager notificationManager =
-          (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-      notificationManager.createNotificationChannel(notificationChannel);
-      notificationBuilder.setChannelId("leakCanaryService");
+      LeakCanaryInternals.setupNotificationChannel(
+          this,
+          (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE),
+          notificationBuilder);
     }
 
     Notification notification;
