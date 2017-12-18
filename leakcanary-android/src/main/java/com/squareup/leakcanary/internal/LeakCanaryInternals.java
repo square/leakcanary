@@ -149,8 +149,7 @@ public final class LeakCanaryInternals {
         .setAutoCancel(true)
         .setContentIntent(pendingIntent);
     if (SDK_INT >= O) {
-      String channelName = context.getString(R.string.leak_canary_notification_channel);
-      setupNotificationChannel(channelName, notificationManager, builder);
+      setupNotificationChannel(context, notificationManager, builder);
     }
     if (SDK_INT < JELLY_BEAN) {
       notification = builder.getNotification();
@@ -161,8 +160,10 @@ public final class LeakCanaryInternals {
   }
 
   @TargetApi(O)
-  private static void setupNotificationChannel(String channelName,
+  public static void setupNotificationChannel(Context context,
       NotificationManager notificationManager, Notification.Builder builder) {
+    String channelName = context.getString(R.string.leak_canary_notification_channel);
+
     if (notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID) == null) {
       NotificationChannel notificationChannel =
           new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName,
