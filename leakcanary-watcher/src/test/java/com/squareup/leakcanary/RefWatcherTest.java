@@ -16,15 +16,15 @@
 package com.squareup.leakcanary;
 
 import java.io.File;
-import java.util.concurrent.Executor;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+@RunWith(JUnit4.class)
 public class RefWatcherTest {
-
-  static final ExcludedRefs NO_REF = new ExcludedRefs.Builder().build();
 
   static class TestDumper implements HeapDumper {
     boolean called;
@@ -42,11 +42,11 @@ public class RefWatcherTest {
 
   @SuppressWarnings("FieldCanBeLocal") Object ref;
 
-  static class TestExecutor implements Executor {
-    private Runnable command;
+  static class TestExecutor implements WatchExecutor {
+    Retryable retryable;
 
-    @Override public void execute(Runnable command) {
-      this.command = command;
+    @Override public void execute(Retryable retryable) {
+      this.retryable = retryable;
     }
   }
 
@@ -59,7 +59,7 @@ public class RefWatcherTest {
     TestExecutor executor = new TestExecutor();
     RefWatcher refWatcher = defaultWatcher(dumper, executor);
     refWatcher.watch(new Object());
-    executor.command.run();
+    executor.retryable.run();
     assertFalse(dumper.called);
   }
 
@@ -69,12 +69,14 @@ public class RefWatcherTest {
     RefWatcher refWatcher = defaultWatcher(dumper, executor);
     ref = new Object();
     refWatcher.watch(ref);
-    executor.command.run();
+    executor.retryable.run();
     assertTrue(dumper.called);
   }
 
   private RefWatcher defaultWatcher(TestDumper dumper, TestExecutor executor) {
-    return new RefWatcher(executor, DebuggerControl.NONE, GcTrigger.DEFAULT, dumper,
-        new TestListener(), NO_REF);
+    return new RefWatcherBuilder<>().watchExecutor(executor)
+        .heapDumper(dumper)
+        .heapDumpListener(new TestListener())
+        .build();
   }
 }

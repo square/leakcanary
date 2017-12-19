@@ -19,51 +19,68 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.MessageQueue;
-import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+
+import static com.squareup.leakcanary.Retryable.Result.RETRY;
 
 /**
- * {@link Executor} suitable for watching Android reference leaks. This executor waits for the main
- * thread to be idle then posts to a serial background thread with a delay of {@link
- * #DELAY_MILLIS} milliseconds.
+ * {@link WatchExecutor} suitable for watching Android reference leaks. This executor waits for the
+ * main thread to be idle then posts to a serial background thread with the delay specified by
+ * {@link AndroidRefWatcherBuilder#watchDelay(long, TimeUnit)}.
  */
-public final class AndroidWatchExecutor implements Executor {
+public final class AndroidWatchExecutor implements WatchExecutor {
 
   static final String LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump";
-  private static final int DELAY_MILLIS = 5000;
-
   private final Handler mainHandler;
   private final Handler backgroundHandler;
+  private final long initialDelayMillis;
+  private final long maxBackoffFactor;
 
-  public AndroidWatchExecutor() {
+  public AndroidWatchExecutor(long initialDelayMillis) {
     mainHandler = new Handler(Looper.getMainLooper());
     HandlerThread handlerThread = new HandlerThread(LEAK_CANARY_THREAD_NAME);
     handlerThread.start();
     backgroundHandler = new Handler(handlerThread.getLooper());
+    this.initialDelayMillis = initialDelayMillis;
+    maxBackoffFactor = Long.MAX_VALUE / initialDelayMillis;
   }
 
-  @Override public void execute(final Runnable command) {
-    if (isOnMainThread()) {
-      executeDelayedAfterIdleUnsafe(command);
+  @Override public void execute(Retryable retryable) {
+    if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
+      waitForIdle(retryable, 0);
     } else {
-      mainHandler.post(new Runnable() {
-        @Override public void run() {
-          executeDelayedAfterIdleUnsafe(command);
-        }
-      });
+      postWaitForIdle(retryable, 0);
     }
   }
 
-  private boolean isOnMainThread() {
-    return Looper.getMainLooper().getThread() == Thread.currentThread();
+  void postWaitForIdle(final Retryable retryable, final int failedAttempts) {
+    mainHandler.post(new Runnable() {
+      @Override public void run() {
+        waitForIdle(retryable, failedAttempts);
+      }
+    });
   }
 
-  private void executeDelayedAfterIdleUnsafe(final Runnable runnable) {
+  void waitForIdle(final Retryable retryable, final int failedAttempts) {
     // This needs to be called from the main thread.
     Looper.myQueue().addIdleHandler(new MessageQueue.IdleHandler() {
       @Override public boolean queueIdle() {
-        backgroundHandler.postDelayed(runnable, DELAY_MILLIS);
+        postToBackgroundWithDelay(retryable, failedAttempts);
         return false;
       }
     });
+  }
+
+  void postToBackgroundWithDelay(final Retryable retryable, final int failedAttempts) {
+    long exponentialBackoffFactor = (long) Math.min(Math.pow(2, failedAttempts), maxBackoffFactor);
+    long delayMillis = initialDelayMillis * exponentialBackoffFactor;
+    backgroundHandler.postDelayed(new Runnable() {
+      @Override public void run() {
+        Retryable.Result result = retryable.run();
+        if (result == RETRY) {
+          postWaitForIdle(retryable, failedAttempts + 1);
+        }
+      }
+    }, delayMillis);
   }
 }

@@ -1,23 +1,25 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-  debugCompile project(':leakcanary-android')
-  releaseCompile project(':leakcanary-android-no-op');
+  debugImplementation project(':leakcanary-android')
+  releaseImplementation project(':leakcanary-android-no-op')
+
+  testImplementation "junit:junit:4.12"
+  testImplementation "org.robolectric:robolectric:3.5.1"
 }
 
 android {
-  compileSdkVersion rootProject.ext.compileSdkVersion
-  buildToolsVersion rootProject.ext.buildToolsVersion
+  compileSdkVersion versions.compileSdk
 
   compileOptions {
-    sourceCompatibility rootProject.ext.javaVersion
-    targetCompatibility rootProject.ext.javaVersion
+    sourceCompatibility JavaVersion.VERSION_1_7
+    targetCompatibility JavaVersion.VERSION_1_7
   }
 
   defaultConfig {
     applicationId "com.example.leakcanary"
-    minSdkVersion rootProject.ext.minSdkVersion
-    targetSdkVersion rootProject.ext.compileSdkVersion
+    minSdkVersion versions.minSdk
+    targetSdkVersion versions.compileSdk
 
     versionCode 1
     versionName "1.0"
@@ -25,5 +27,19 @@ android {
 
   buildTypes {
     debug
+  }
+
+  dexOptions {
+    dexInProcess false
+  }
+
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+  }
+
+  testOptions {
+    unitTests {
+      includeAndroidResources = true
+    }
   }
 }

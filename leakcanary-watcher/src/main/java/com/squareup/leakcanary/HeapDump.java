@@ -20,9 +20,16 @@ import java.io.Serializable;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
 
+/** Data structure holding information about a heap dump. */
 public final class HeapDump implements Serializable {
 
+  /** Receives a heap dump to analyze. */
   public interface Listener {
+    Listener NONE = new Listener() {
+      @Override public void analyze(HeapDump heapDump) {
+      }
+    };
+
     void analyze(HeapDump heapDump);
   }
 
@@ -60,12 +67,5 @@ public final class HeapDump implements Serializable {
     this.watchDurationMs = watchDurationMs;
     this.gcDurationMs = gcDurationMs;
     this.heapDumpDurationMs = heapDumpDurationMs;
-  }
-
-  /** Renames the heap dump file and creates a new {@link HeapDump} pointing to it. */
-  public HeapDump renameFile(File newFile) {
-    heapDumpFile.renameTo(newFile);
-    return new HeapDump(newFile, referenceKey, referenceName, excludedRefs, watchDurationMs,
-        gcDurationMs, heapDumpDurationMs);
   }
 }

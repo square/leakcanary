@@ -15,16 +15,21 @@
  */
 package com.squareup.leakcanary.internal;
 
+import android.annotation.TargetApi;
 import android.app.ActivityManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
-import android.os.Environment;
-import android.util.Log;
-import java.io.File;
+import com.squareup.leakcanary.CanaryLog;
+import com.squareup.leakcanary.R;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -32,55 +37,27 @@ import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 import static android.content.pm.PackageManager.DONT_KILL_APP;
 import static android.content.pm.PackageManager.GET_SERVICES;
-import static android.os.Environment.DIRECTORY_DOWNLOADS;
+import static android.os.Build.VERSION.SDK_INT;
+import static android.os.Build.VERSION_CODES.JELLY_BEAN;
+import static android.os.Build.VERSION_CODES.O;
 
 public final class LeakCanaryInternals {
 
-  // SDK INT for API 22.
-  public static final int LOLLIPOP_MR1 = 22;
   public static final String SAMSUNG = "samsung";
   public static final String MOTOROLA = "motorola";
+  public static final String LENOVO = "LENOVO";
   public static final String LG = "LGE";
   public static final String NVIDIA = "NVIDIA";
+  public static final String MEIZU = "Meizu";
+  public static final String HUAWEI = "HUAWEI";
+  public static final String VIVO = "vivo";
 
-  private static final Executor fileIoExecutor = Executors.newSingleThreadExecutor();
+  private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
+
+  private static final String NOTIFICATION_CHANNEL_ID = "leakcanary";
 
   public static void executeOnFileIoThread(Runnable runnable) {
     fileIoExecutor.execute(runnable);
-  }
-
-  public static File storageDirectory() {
-    File downloadsDirectory = Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS);
-    File leakCanaryDirectory = new File(downloadsDirectory, "leakcanary");
-    leakCanaryDirectory.mkdirs();
-    return leakCanaryDirectory;
-  }
-
-  public static File detectedLeakDirectory() {
-    File directory = new File(storageDirectory(), "detected_leaks");
-    directory.mkdirs();
-    return directory;
-  }
-
-  public static File leakResultFile(File heapdumpFile) {
-    return new File(heapdumpFile.getParentFile(), heapdumpFile.getName() + ".result");
-  }
-
-  public static boolean isExternalStorageWritable() {
-    String state = Environment.getExternalStorageState();
-    return Environment.MEDIA_MOUNTED.equals(state);
-  }
-
-  public static File findNextAvailableHprofFile(int maxFiles) {
-    File directory = detectedLeakDirectory();
-    for (int i = 0; i < maxFiles; i++) {
-      String heapDumpName = "heap_dump_" + i + ".hprof";
-      File file = new File(directory, heapDumpName);
-      if (!file.exists()) {
-        return file;
-      }
-    }
-    return null;
   }
 
   /** Extracts the class simple name out of a string containing a fully qualified class name. */
@@ -98,13 +75,18 @@ public final class LeakCanaryInternals {
     final Context appContext = context.getApplicationContext();
     executeOnFileIoThread(new Runnable() {
       @Override public void run() {
-        ComponentName component = new ComponentName(appContext, componentClass);
-        PackageManager packageManager = appContext.getPackageManager();
-        int newState = enabled ? COMPONENT_ENABLED_STATE_ENABLED : COMPONENT_ENABLED_STATE_DISABLED;
-        // Blocks on IPC.
-        packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP);
+        setEnabledBlocking(appContext, componentClass, enabled);
       }
     });
+  }
+
+  public static void setEnabledBlocking(Context appContext, Class<?> componentClass,
+      boolean enabled) {
+    ComponentName component = new ComponentName(appContext, componentClass);
+    PackageManager packageManager = appContext.getPackageManager();
+    int newState = enabled ? COMPONENT_ENABLED_STATE_ENABLED : COMPONENT_ENABLED_STATE_DISABLED;
+    // Blocks on IPC.
+    packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP);
   }
 
   public static boolean isInServiceProcess(Context context, Class<? extends Service> serviceClass) {
@@ -113,7 +95,7 @@ public final class LeakCanaryInternals {
     try {
       packageInfo = packageManager.getPackageInfo(context.getPackageName(), GET_SERVICES);
     } catch (Exception e) {
-      Log.e("AndroidUtils", "Could not get package info for " + context.getPackageName(), e);
+      CanaryLog.d(e, "Could not get package info for %s", context.getPackageName());
       return false;
     }
     String mainProcess = packageInfo.applicationInfo.processName;
@@ -128,8 +110,7 @@ public final class LeakCanaryInternals {
     }
 
     if (serviceInfo.processName.equals(mainProcess)) {
-      Log.e("AndroidUtils",
-          "Did not expect service " + serviceClass + " to run in main process " + mainProcess);
+      CanaryLog.d("Did not expect service %s to run in main process %s", serviceClass, mainProcess);
       // Technically we are in the service process, but we're not in the service dedicated process.
       return false;
     }
@@ -138,18 +119,63 @@ public final class LeakCanaryInternals {
     ActivityManager activityManager =
         (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
     ActivityManager.RunningAppProcessInfo myProcess = null;
-    for (ActivityManager.RunningAppProcessInfo process : activityManager.getRunningAppProcesses()) {
-      if (process.pid == myPid) {
-        myProcess = process;
-        break;
+    List<ActivityManager.RunningAppProcessInfo> runningProcesses =
+        activityManager.getRunningAppProcesses();
+    if (runningProcesses != null) {
+      for (ActivityManager.RunningAppProcessInfo process : runningProcesses) {
+        if (process.pid == myPid) {
+          myProcess = process;
+          break;
+        }
       }
     }
     if (myProcess == null) {
-      Log.e("AndroidUtils", "Could not find running process for " + myPid);
+      CanaryLog.d("Could not find running process for %d", myPid);
       return false;
     }
 
     return myProcess.processName.equals(serviceInfo.processName);
+  }
+
+  public static void showNotification(Context context, CharSequence contentTitle,
+      CharSequence contentText, PendingIntent pendingIntent, int notificationId) {
+    NotificationManager notificationManager =
+        (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+    Notification notification;
+    Notification.Builder builder = new Notification.Builder(context) //
+        .setSmallIcon(R.drawable.leak_canary_notification)
+        .setWhen(System.currentTimeMillis())
+        .setContentTitle(contentTitle)
+        .setContentText(contentText)
+        .setAutoCancel(true)
+        .setContentIntent(pendingIntent);
+    if (SDK_INT >= O) {
+      String channelName = context.getString(R.string.leak_canary_notification_channel);
+      setupNotificationChannel(channelName, notificationManager, builder);
+    }
+    if (SDK_INT < JELLY_BEAN) {
+      notification = builder.getNotification();
+    } else {
+      notification = builder.build();
+    }
+    notificationManager.notify(notificationId, notification);
+  }
+
+  @TargetApi(O)
+  private static void setupNotificationChannel(String channelName,
+      NotificationManager notificationManager, Notification.Builder builder) {
+    if (notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID) == null) {
+      NotificationChannel notificationChannel =
+          new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName,
+              NotificationManager.IMPORTANCE_DEFAULT);
+      notificationManager.createNotificationChannel(notificationChannel);
+    }
+    builder.setChannelId(NOTIFICATION_CHANNEL_ID);
+  }
+
+  public static Executor newSingleThreadExecutor(String threadName) {
+    return Executors.newSingleThreadExecutor(new LeakCanarySingleThreadFactory(threadName));
   }
 
   private LeakCanaryInternals() {

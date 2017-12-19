@@ -20,47 +20,41 @@ import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.MessageQueue;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.widget.Toast;
 import com.squareup.leakcanary.internal.FutureResult;
-import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
 
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.isExternalStorageWritable;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.storageDirectory;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class AndroidHeapDumper implements HeapDumper {
 
-  private static final String TAG = "AndroidHeapDumper";
-
-  private final Context context;
+  final Context context;
+  private final LeakDirectoryProvider leakDirectoryProvider;
   private final Handler mainHandler;
 
-  public AndroidHeapDumper(Context context) {
+  public AndroidHeapDumper(Context context, LeakDirectoryProvider leakDirectoryProvider) {
+    this.leakDirectoryProvider = leakDirectoryProvider;
     this.context = context.getApplicationContext();
     mainHandler = new Handler(Looper.getMainLooper());
   }
 
+
+  @SuppressWarnings("ReferenceEquality") // Explicitly checking for named null.
   @Override public File dumpHeap() {
-    if (!isExternalStorageWritable()) {
-      Log.d(TAG, "Could not dump heap, external storage not mounted.");
-    }
-    File heapDumpFile = getHeapDumpFile();
-    if (heapDumpFile.exists()) {
-      Log.d(TAG, "Could not dump heap, previous analysis still is in progress.");
-      // Heap analysis in progress, let's not put too much pressure on the device.
-      return NO_DUMP;
+    File heapDumpFile = leakDirectoryProvider.newHeapDumpFile();
+
+    if (heapDumpFile == RETRY_LATER) {
+      return RETRY_LATER;
     }
 
     FutureResult<Toast> waitingForToast = new FutureResult<>();
     showToast(waitingForToast);
 
     if (!waitingForToast.wait(5, SECONDS)) {
-      Log.d(TAG, "Did not dump heap, too much time waiting for Toast.");
-      return NO_DUMP;
+      CanaryLog.d("Did not dump heap, too much time waiting for Toast.");
+      return RETRY_LATER;
     }
 
     Toast toast = waitingForToast.get();
@@ -69,34 +63,10 @@ public final class AndroidHeapDumper implements HeapDumper {
       cancelToast(toast);
       return heapDumpFile;
     } catch (Exception e) {
-      cleanup();
-      Log.e(TAG, "Could not perform heap dump", e);
+      CanaryLog.d(e, "Could not dump heap");
       // Abort heap dump
-      return NO_DUMP;
+      return RETRY_LATER;
     }
-  }
-
-  /**
-   * Call this on app startup to clean up all heap dump files that had not been handled yet when
-   * the app process was killed.
-   */
-  public void cleanup() {
-    LeakCanaryInternals.executeOnFileIoThread(new Runnable() {
-      @Override public void run() {
-        if (isExternalStorageWritable()) {
-          Log.d(TAG, "Could not attempt cleanup, external storage not mounted.");
-        }
-        File heapDumpFile = getHeapDumpFile();
-        if (heapDumpFile.exists()) {
-          Log.d(TAG, "Previous analysis did not complete correctly, cleaning: " + heapDumpFile);
-          heapDumpFile.delete();
-        }
-      }
-    });
-  }
-
-  private File getHeapDumpFile() {
-    return new File(storageDirectory(), "suspected_leak_heapdump.hprof");
   }
 
   private void showToast(final FutureResult<Toast> waitingForToast) {
