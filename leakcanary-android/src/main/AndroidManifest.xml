@@ -40,7 +40,8 @@
         android:process=":leakcanary"
         android:enabled="false"
         android:label="@string/leak_canary_display_activity_label"
-        android:icon="@drawable/leak_canary_icon"
+        android:icon="@mipmap/leak_canary_icon"
+        android:roundIcon="@mipmap/leak_canary_icon"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         >
       <intent-filter>
@@ -55,7 +56,8 @@
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:enabled="false"
         android:excludeFromRecents="true"
-        android:icon="@drawable/leak_canary_icon"
+        android:icon="@mipmap/leak_canary_icon"
+        android:roundIcon="@mipmap/leak_canary_icon"
         android:label="@string/leak_canary_storage_permission_activity_label"
         />
 
