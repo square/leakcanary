@@ -21,9 +21,15 @@ dependencies {
 ```
 
 In your `Application` class:
-
 ```java
 public class ExampleApplication extends Application {
+
+  public static RefWatcher getRefWatcher(Context context) {
+    ExampleApplication application = (ExampleApplication) context.getApplicationContext();
+    return application.refWatcher;
+  }
+
+  private RefWatcher refWatcher;
 
   @Override public void onCreate() {
     super.onCreate();
@@ -32,8 +38,7 @@ public class ExampleApplication extends Application {
       // You should not init your app in this process.
       return;
     }
-    LeakCanary.install(this);
-    // Normal app init code...
+    refWatcher = LeakCanary.install(this);
   }
 }
 ```
