@@ -144,7 +144,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= N_MR1) {
+  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       String reason = "When we detach a view that receives keyboard input, the InputMethodManager"
           + " leaks a reference to it until a new view asks for keyboard input."
