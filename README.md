@@ -15,8 +15,8 @@ In your `build.gradle`:
 
 ```groovy
 dependencies {
-  debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.4'
-  releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
 }
 ```
 
