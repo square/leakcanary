@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
+import static android.support.v4.content.FileProvider.getUriForFile;
 import static android.text.format.DateUtils.FORMAT_SHOW_DATE;
 import static android.text.format.DateUtils.FORMAT_SHOW_TIME;
 import static android.text.format.Formatter.formatShortFileSize;
@@ -213,7 +214,9 @@ public final class DisplayLeakActivity extends Activity {
     heapDumpFile.setReadable(true, false);
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("application/octet-stream");
-    intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(heapDumpFile));
+    Uri heapDumpUri = getUriForFile(getBaseContext(),
+        "com.squareup.leakcanary.fileprovider." + getApplication().getPackageName(), heapDumpFile);
+    intent.putExtra(Intent.EXTRA_STREAM, heapDumpUri);
     startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 

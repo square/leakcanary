@@ -34,6 +34,16 @@
         android:process=":leakcanary"
         android:enabled="false"
         />
+    <provider
+        android:name="android.support.v4.content.FileProvider"
+        android:authorities="com.squareup.leakcanary.fileprovider.${applicationId}"
+        android:exported="false"
+        android:grantUriPermissions="true"
+        >
+      <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/leak_canary_file_paths"/>
+    </provider>
     <activity
         android:theme="@style/leak_canary_LeakCanary.Base"
         android:name=".internal.DisplayLeakActivity"
