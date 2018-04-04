@@ -66,7 +66,7 @@ public final class HahaHelper {
     boolean extendsThread = false;
     ClassObj parentClass = clazz;
     while (parentClass.getSuperClassObj() != null) {
-      if (clazz.getClassName().equals(Thread.class.getName())) {
+      if (parentClass.getClassName().equals(Thread.class.getName())) {
         extendsThread = true;
         break;
       }
