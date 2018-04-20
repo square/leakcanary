@@ -12,8 +12,6 @@ What kind of issue is this?
    Instead, read here: https://github.com/square/leakcanary/#how-do-i-fix-a-memory-leak
  
  - **Leak analysis failed**: if it's an OutOfMemoryError, no need to report it. See https://github.com/square/leakcanary/wiki/Future#low-memory-leak-analysis
- 
- - **OOM error**: Please provide a heap dump!
 
  - **Bug report**: If you’ve found a bug, spend the time to write a failing test. Bugs with tests get fixed. 
    Here’s an example: https://gist.github.com/swankjesse/981fcae102f513eb13ed
