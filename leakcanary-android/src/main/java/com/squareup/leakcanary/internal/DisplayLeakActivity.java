@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary.internal;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
@@ -276,7 +277,7 @@ public final class DisplayLeakActivity extends Activity {
         failureView.setText(failureMessage);
         setTitle(R.string.leak_canary_analysis_failed);
         invalidateOptionsMenu();
-        getActionBar().setDisplayHomeAsUpEnabled(true);
+        setDisplayHomeAsUpEnabled(true);
         actionButton.setVisibility(VISIBLE);
         actionButton.setText(R.string.leak_canary_delete);
         actionButton.setOnClickListener(new View.OnClickListener() {
@@ -299,7 +300,7 @@ public final class DisplayLeakActivity extends Activity {
             }
           });
           invalidateOptionsMenu();
-          getActionBar().setDisplayHomeAsUpEnabled(true);
+          setDisplayHomeAsUpEnabled(true);
           actionButton.setVisibility(VISIBLE);
           actionButton.setText(R.string.leak_canary_delete);
           actionButton.setOnClickListener(new View.OnClickListener() {
@@ -329,7 +330,7 @@ public final class DisplayLeakActivity extends Activity {
         });
         invalidateOptionsMenu();
         setTitle(getString(R.string.leak_canary_leak_list_title, getPackageName()));
-        getActionBar().setDisplayHomeAsUpEnabled(false);
+        setDisplayHomeAsUpEnabled(false);
         actionButton.setText(R.string.leak_canary_delete_all);
         actionButton.setOnClickListener(new View.OnClickListener() {
           @Override public void onClick(View v) {
@@ -349,6 +350,15 @@ public final class DisplayLeakActivity extends Activity {
       }
       actionButton.setVisibility(leaks.size() == 0 ? GONE : VISIBLE);
     }
+  }
+
+  private void setDisplayHomeAsUpEnabled(boolean enabled) {
+    ActionBar actionBar = getActionBar();
+    if (actionBar == null) {
+      // https://github.com/square/leakcanary/issues/967
+      return;
+    }
+    actionBar.setDisplayHomeAsUpEnabled(enabled);
   }
 
   Leak getVisibleLeak() {
