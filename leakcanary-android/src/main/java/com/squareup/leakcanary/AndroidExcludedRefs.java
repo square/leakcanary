@@ -384,7 +384,8 @@ public enum AndroidExcludedRefs {
       SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("com.samsung.android.emergencymode.SemEmergencyManager", "mContext")
-          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext.");
+          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext. "
+              + "Fix: https://gist.github.com/jankovd/a210460b814c04d500eb12025902d60d");
     }
   },
 
