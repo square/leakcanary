@@ -349,6 +349,15 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  INPUT_METHOD_MANAGER__LAST_SERVED_VIEW(HUAWEI.equals(MANUFACTURER) && SDK_INT == N) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      String reason = "HUAWEI added a mLastSrvView field to InputMethodManager"
+          + " that leaks a reference to the last served view.";
+      excluded.instanceField("android.view.inputmethod.InputMethodManager", "mLastSrvView")
+          .reason(reason);
+    }
+  },
+
   CLIPBOARD_UI_MANAGER__SINSTANCE(
       SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
