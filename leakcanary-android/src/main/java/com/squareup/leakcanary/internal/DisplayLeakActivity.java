@@ -206,7 +206,16 @@ public final class DisplayLeakActivity extends Activity {
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("text/plain");
     intent.putExtra(Intent.EXTRA_TEXT, leakInfo);
-    startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
+    try {
+      startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
+    } catch (RuntimeException exception) {
+      // Likely caused by a TransactionTooLargeException, let's try again with a shorter string.
+      // https://github.com/square/leakcanary/issues/968
+      String shorterLeakInfo = leakInfo(this, visibleLeak.heapDump, visibleLeak.result, false);
+      shorterLeakInfo += "Info was shortened because initial info may have been too large.\n";
+      intent.putExtra(Intent.EXTRA_TEXT, shorterLeakInfo);
+      startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
+    }
   }
 
   void shareHeapDump() {
