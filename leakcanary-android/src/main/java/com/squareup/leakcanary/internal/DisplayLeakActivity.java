@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary.internal;
 
+import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -75,6 +76,8 @@ public final class DisplayLeakActivity extends Activity {
 
   private static final String SHOW_LEAK_EXTRA = "show_latest";
 
+  // Public API.
+  @SuppressWarnings("unused")
   public static PendingIntent createPendingIntent(Context context) {
     return createPendingIntent(context, null);
   }
@@ -123,9 +126,9 @@ public final class DisplayLeakActivity extends Activity {
 
     setContentView(R.layout.leak_canary_display_leak);
 
-    listView = (ListView) findViewById(R.id.leak_canary_display_leak_list);
-    failureView = (TextView) findViewById(R.id.leak_canary_display_leak_failure);
-    actionButton = (Button) findViewById(R.id.leak_canary_action);
+    listView = findViewById(R.id.leak_canary_display_leak_list);
+    failureView = findViewById(R.id.leak_canary_display_leak_failure);
+    actionButton = findViewById(R.id.leak_canary_action);
 
     updateUi();
   }
@@ -209,9 +212,11 @@ public final class DisplayLeakActivity extends Activity {
     startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
+  @SuppressLint("SetWorldReadable")
   void shareHeapDump() {
     Leak visibleLeak = getVisibleLeak();
     File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
+    //noinspection ResultOfMethodCallIgnored
     heapDumpFile.setReadable(true, false);
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("application/octet-stream");
@@ -392,8 +397,8 @@ public final class DisplayLeakActivity extends Activity {
         convertView = LayoutInflater.from(DisplayLeakActivity.this)
             .inflate(R.layout.leak_canary_leak_row, parent, false);
       }
-      TextView titleView = (TextView) convertView.findViewById(R.id.leak_canary_row_text);
-      TextView timeView = (TextView) convertView.findViewById(R.id.leak_canary_row_time);
+      TextView titleView = convertView.findViewById(R.id.leak_canary_row_text);
+      TextView timeView = convertView.findViewById(R.id.leak_canary_row_time);
       Leak leak = getItem(position);
 
       String index = (leaks.size() - position) + ". ";
