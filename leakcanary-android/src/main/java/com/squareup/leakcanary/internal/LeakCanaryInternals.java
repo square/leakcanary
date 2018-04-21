@@ -119,8 +119,14 @@ public final class LeakCanaryInternals {
     ActivityManager activityManager =
         (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
     ActivityManager.RunningAppProcessInfo myProcess = null;
-    List<ActivityManager.RunningAppProcessInfo> runningProcesses =
-        activityManager.getRunningAppProcesses();
+    List<ActivityManager.RunningAppProcessInfo> runningProcesses;
+    try {
+      runningProcesses = activityManager.getRunningAppProcesses();
+    } catch (SecurityException exception) {
+      // https://github.com/square/leakcanary/issues/948
+      CanaryLog.d("Could not get running app processes %d", exception);
+      return false;
+    }
     if (runningProcesses != null) {
       for (ActivityManager.RunningAppProcessInfo process : runningProcesses) {
         if (process.pid == myPid) {
