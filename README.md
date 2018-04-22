@@ -40,25 +40,29 @@ public class ExampleApplication extends Application {
 
 **You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
 
-To disable LeakCanary in unit tests, add the following to your `build.gradle`:
+## FAQ
 
-```groovy
-// Ensure the no-op dependency is always used in JVM tests.
-configurations.all { config ->
-  if (config.name.contains('UnitTest')) {
-    config.resolutionStrategy.eachDependency { details ->
-      if (details.requested.group == 'com.squareup.leakcanary' && details.requested.name == 'leakcanary-android') {
-        details.useTarget(group: details.requested.group, name: 'leakcanary-android-no-op', version: details.requested.version)
-      }
-    }
-  }
-}
-```
+* [Why should I use LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#why-should-i-use-leakcanary)
+* [How do I use it?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-use-it)
+* [How does it work?](https://github.com/square/leakcanary/wiki/FAQ#how-does-it-work)
+* [How do I customize LeakCanary to my needs?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-customize-leakcanary-to-my-needs)
+* [How do I copy the leak trace?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-copy-the-leak-trace)
+* [How do I fix a memory leak?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-fix-a-memory-leak)
+* [Can a leak be caused by the Android SDK?](https://github.com/square/leakcanary/wiki/FAQ#can-a-leak-be-caused-by-the-android-sdk)
+* [How can I dig beyond the leak trace?](https://github.com/square/leakcanary/wiki/FAQ#how-can-i-dig-beyond-the-leak-trace)
+* [How do disable LeakCanary in tests?](https://github.com/square/leakcanary/wiki/FAQ#how-do-disable-leakcanary-in-tests)
+* [How do I fix build errors?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-fix-build-errors)
+* [How many methods does LeakCanary add?](https://github.com/square/leakcanary/wiki/FAQ#how-many-methods-does-leakcanary-add)
+* [Where can I learn more?](https://github.com/square/leakcanary/wiki/FAQ#where-can-i-learn-more)
+* [How do I use the SNAPSHOT version?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-use-the-snapshot-version)
+* [How can I be notified of new releases?](https://github.com/square/leakcanary/wiki/FAQ#how-can-i-be-notified-of-new-releases)
+* [Who's behind LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#whos-behind-leakcanary)
+* [Why is it called LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#why-is-it-called-leakcanary)
+* [Who made the logo?](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo)
+* [Build error: Failed to resolve](https://github.com/square/leakcanary/wiki/FAQ#build-error-failed-to-resolve)
+* [Instant Run can trigger invalid leaks](https://github.com/square/leakcanary/wiki/FAQ#instant-run-can-trigger-invalid-leaks)
+* [I know I have a leak. Why doesn't the notification show?](https://github.com/square/leakcanary/wiki/FAQ#i-know-i-have-a-leak-why-doesnt-the-notification-show)
 
-If you want to also disable leak detection in instrumentation tests, add `|| config.name.contains('AndroidTest')` to the
-`if` check above.
-
-Questions? Check out [the FAQ](https://github.com/square/leakcanary/wiki/FAQ)!
 
 <p align="center">
 <img src="https://github.com/square/leakcanary/blob/master/assets/icon_512.png" width="250"/>
