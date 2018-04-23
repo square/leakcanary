@@ -18,7 +18,6 @@ package com.squareup.leakcanary;
 import com.squareup.haha.perflib.ArrayInstance;
 import com.squareup.haha.perflib.ClassInstance;
 import com.squareup.haha.perflib.ClassObj;
-import com.squareup.haha.perflib.Field;
 import com.squareup.haha.perflib.Instance;
 import com.squareup.haha.perflib.Type;
 import java.lang.reflect.InvocationTargetException;
@@ -26,7 +25,6 @@ import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
@@ -38,18 +36,6 @@ public final class HahaHelper {
       asList(Boolean.class.getName(), Character.class.getName(), Float.class.getName(),
           Double.class.getName(), Byte.class.getName(), Short.class.getName(),
           Integer.class.getName(), Long.class.getName()));
-
-  static String fieldToString(Map.Entry<Field, Object> entry) {
-    return fieldToString(entry.getKey(), entry.getValue());
-  }
-
-  static String fieldToString(ClassInstance.FieldValue fieldValue) {
-    return fieldToString(fieldValue.getField(), fieldValue.getValue());
-  }
-
-  static String fieldToString(Field field, Object value) {
-    return field.getName() + " = " + value;
-  }
 
   static String threadName(Instance holder) {
     List<ClassInstance.FieldValue> values = classInstanceValues(holder);

@@ -43,7 +43,6 @@ import static com.squareup.leakcanary.AnalysisResult.noLeak;
 import static com.squareup.leakcanary.HahaHelper.asString;
 import static com.squareup.leakcanary.HahaHelper.classInstanceValues;
 import static com.squareup.leakcanary.HahaHelper.extendsThread;
-import static com.squareup.leakcanary.HahaHelper.fieldToString;
 import static com.squareup.leakcanary.HahaHelper.fieldValue;
 import static com.squareup.leakcanary.HahaHelper.hasField;
 import static com.squareup.leakcanary.HahaHelper.threadName;
@@ -51,6 +50,9 @@ import static com.squareup.leakcanary.LeakTraceElement.Holder.ARRAY;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.CLASS;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.OBJECT;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
+import static com.squareup.leakcanary.LeakTraceElement.Type.ARRAY_ENTRY;
+import static com.squareup.leakcanary.LeakTraceElement.Type.INSTANCE_FIELD;
+import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
@@ -86,7 +88,7 @@ public final class HeapAnalyzer {
         Instance instance = fieldValue(values, "referent");
         if (instance != null) {
           String className = getClassName(instance);
-          List<String> fields = describeFields(instance);
+          List<LeakReference> fields = describeFields(instance);
           references.add(new TrackedReference(key, name, className, fields));
         }
       }
@@ -258,7 +260,7 @@ public final class HeapAnalyzer {
   private LeakTrace buildLeakTrace(LeakNode leakingNode) {
     List<LeakTraceElement> elements = new ArrayList<>();
     // We iterate from the leak to the GC root
-    LeakNode node = new LeakNode(null, null, leakingNode, null, null);
+    LeakNode node = new LeakNode(null, null, leakingNode, null);
     while (node != null) {
       LeakTraceElement element = buildLeakElement(node);
       if (element != null) {
@@ -279,15 +281,22 @@ public final class HeapAnalyzer {
     if (holder instanceof RootObj) {
       return null;
     }
-    LeakTraceElement.Type type = node.referenceType;
-    String referenceName = node.referenceName;
-
     LeakTraceElement.Holder holderType;
     String className;
     String extra = null;
-    List<String> fields = describeFields(holder);
+    List<LeakReference> leakReferences = describeFields(holder);
 
     className = getClassName(holder);
+
+    List<String> classHierarchy = new ArrayList<>();
+    classHierarchy.add(className);
+    String rootClassName = Object.class.getName();
+    if (holder instanceof ClassInstance) {
+      ClassObj classObj = holder.getClassObj();
+      while (!(classObj = classObj.getSuperClassObj()).getClassName().equals(rootClassName)) {
+        classHierarchy.add(classObj.getClassName());
+      }
+    }
 
     if (holder instanceof ClassObj) {
       holderType = CLASS;
@@ -301,7 +310,7 @@ public final class HeapAnalyzer {
         extra = "(named '" + threadName + "')";
       } else if (className.matches(ANONYMOUS_CLASS_NAME_PATTERN)) {
         String parentClassName = classObj.getSuperClassObj().getClassName();
-        if (Object.class.getName().equals(parentClassName)) {
+        if (rootClassName.equals(parentClassName)) {
           holderType = OBJECT;
           try {
             // This is an anonymous class implementing an interface. The API does not give access
@@ -326,39 +335,45 @@ public final class HeapAnalyzer {
         holderType = OBJECT;
       }
     }
-    return new LeakTraceElement(referenceName, type, holderType, className, extra, node.exclusion,
-        fields);
+    return new LeakTraceElement(node.leakReference, holderType, classHierarchy, extra,
+        node.exclusion, leakReferences);
   }
 
-  private List<String> describeFields(Instance instance) {
-    List<String> fields = new ArrayList<>();
+  private List<LeakReference> describeFields(Instance instance) {
+    List<LeakReference> leakReferences = new ArrayList<>();
 
     if (instance instanceof ClassObj) {
       ClassObj classObj = (ClassObj) instance;
       for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
-        Field field = entry.getKey();
-        Object value = entry.getValue();
-        fields.add("static " + field.getName() + " = " + value);
+        String name = entry.getKey().getName();
+        String value = entry.getValue() == null ? "null" : entry.getValue().toString();
+        leakReferences.add(new LeakReference(STATIC_FIELD, name, value));
       }
     } else if (instance instanceof ArrayInstance) {
       ArrayInstance arrayInstance = (ArrayInstance) instance;
       if (arrayInstance.getArrayType() == Type.OBJECT) {
         Object[] values = arrayInstance.getValues();
         for (int i = 0; i < values.length; i++) {
-          fields.add("[" + i + "] = " + values[i]);
+          String name = Integer.toString(i);
+          String value = values[i] == null ? "null" : values[i].toString();
+          leakReferences.add(new LeakReference(ARRAY_ENTRY, name, value));
         }
       }
     } else {
       ClassObj classObj = instance.getClassObj();
       for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
-        fields.add("static " + fieldToString(entry));
+        String name = entry.getKey().getName();
+        String value = entry.getValue() == null ? "null" : entry.getValue().toString();
+        leakReferences.add(new LeakReference(STATIC_FIELD, name, value));
       }
       ClassInstance classInstance = (ClassInstance) instance;
       for (ClassInstance.FieldValue field : classInstance.getValues()) {
-        fields.add(fieldToString(field));
+        String name = field.getField().getName();
+        String value = field.getValue() == null ? "null" : field.getValue().toString();
+        leakReferences.add(new LeakReference(INSTANCE_FIELD, name, value));
       }
     }
-    return fields;
+    return leakReferences;
   }
 
   private String getClassName(Instance instance) {

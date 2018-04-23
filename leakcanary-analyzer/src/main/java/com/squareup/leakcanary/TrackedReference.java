@@ -20,9 +20,9 @@ public class TrackedReference {
   public final String className;
 
   /** List of all fields (member and static) for that instance. */
-  public final List<String> fields;
+  public final List<LeakReference> fields;
 
-  public TrackedReference(String key, String name, String className, List<String> fields) {
+  public TrackedReference(String key, String name, String className, List<LeakReference> fields) {
     this.key = key;
     this.name = name;
     this.className = className;
