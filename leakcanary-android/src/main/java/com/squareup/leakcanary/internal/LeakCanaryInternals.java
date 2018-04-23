@@ -56,6 +56,8 @@ public final class LeakCanaryInternals {
 
   private static final String NOTIFICATION_CHANNEL_ID = "leakcanary";
 
+  public static volatile Boolean isInAnalyzerProcess;
+
   public static void executeOnFileIoThread(Runnable runnable) {
     fileIoExecutor.execute(runnable);
   }
