@@ -23,6 +23,7 @@ import android.os.Build;
 import android.util.Log;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import com.squareup.leakcanary.internal.HeapAnalyzerService;
+import com.squareup.leakcanary.internal.LeakCanaryInternals;
 
 import static android.text.format.Formatter.formatShortFileSize;
 import static com.squareup.leakcanary.BuildConfig.GIT_SHA;
@@ -42,7 +43,17 @@ public final class LeakCanary {
         .buildAndInstall();
   }
 
-  /** Builder to create a customized {@link RefWatcher} with appropriate Android defaults. */
+  /**
+   * @return the {@link RefWatcher} installed via {@link AndroidRefWatcherBuilder#buildAndInstall()}.
+   */
+  public static RefWatcher installedRefWatcher() {
+    RefWatcher refWatcher = LeakCanaryInternals.installedRefWatcher;
+    if (refWatcher == null) {
+      throw new IllegalStateException("AndroidRefWatcherBuilder.buildAndInstall() was not called");
+    }
+    return refWatcher;
+  }
+
   public static AndroidRefWatcherBuilder refWatcher(Context context) {
     return new AndroidRefWatcherBuilder(context);
   }
