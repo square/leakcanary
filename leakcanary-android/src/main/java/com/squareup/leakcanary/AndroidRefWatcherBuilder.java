@@ -2,6 +2,7 @@ package com.squareup.leakcanary;
 
 import android.app.Application;
 import android.content.Context;
+import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.util.concurrent.TimeUnit;
 
 import static com.squareup.leakcanary.RefWatcher.DISABLED;
@@ -13,6 +14,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   private static final long DEFAULT_WATCH_DELAY_MILLIS = SECONDS.toMillis(5);
 
   private final Context context;
+  private boolean watchActivities = true;
 
   AndroidRefWatcherBuilder(Context context) {
     this.context = context.getApplicationContext();
@@ -37,6 +39,15 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   }
 
   /**
+   * Whether we should automatically watch activities when {@link #buildAndInstall()}. Default is
+   * true.
+   */
+  public AndroidRefWatcherBuilder watchActivities(boolean watchActivities) {
+    this.watchActivities = watchActivities;
+    return this;
+  }
+
+  /**
    * Sets the maximum number of heap dumps stored. This overrides any call to {@link
    * #heapDumper(HeapDumper)} as well as any call to
    * {@link LeakCanary#setDisplayLeakActivityDirectoryProvider(LeakDirectoryProvider)})}
@@ -51,14 +62,25 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   }
 
   /**
-   * Creates a {@link RefWatcher} instance and starts watching activity references (on ICS+).
+   * Creates a {@link RefWatcher} instance and makes it available through {@link
+   * LeakCanary#installedRefWatcher()}.
+   *
+   * Also starts watching activity references if {@link #watchActivities(boolean)} was set to true.
+   *
+   * @throws UnsupportedOperationException if called more than once per Android process.
    */
   public RefWatcher buildAndInstall() {
+    if (LeakCanaryInternals.installedRefWatcher != null) {
+      throw new UnsupportedOperationException("buildAndInstall() should only be called once.");
+    }
     RefWatcher refWatcher = build();
     if (refWatcher != DISABLED) {
       LeakCanary.enableDisplayLeakActivity(context);
-      ActivityRefWatcher.install((Application) context, refWatcher);
+      if (watchActivities) {
+        ActivityRefWatcher.install((Application) context, refWatcher);
+      }
     }
+    LeakCanaryInternals.installedRefWatcher = refWatcher;
     return refWatcher;
   }
 

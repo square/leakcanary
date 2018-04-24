@@ -29,6 +29,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.R;
+import com.squareup.leakcanary.RefWatcher;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -53,6 +54,7 @@ public final class LeakCanaryInternals {
   public static final String VIVO = "vivo";
 
   private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
+  public static volatile RefWatcher installedRefWatcher;
 
   private static final String NOTIFICATION_CHANNEL_ID = "leakcanary";
 
