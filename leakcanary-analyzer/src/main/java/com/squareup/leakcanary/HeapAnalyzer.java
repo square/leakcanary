@@ -157,6 +157,11 @@ public final class HeapAnalyzer {
 
   private Instance findLeakingReference(String key, Snapshot snapshot) {
     ClassObj refClass = snapshot.findClass(KeyedWeakReference.class.getName());
+
+    if (refClass == null || refClass.getInstancesList() == null) {
+      return null;
+    }
+
     List<String> keysFound = new ArrayList<>();
     for (Instance instance : refClass.getInstancesList()) {
       List<ClassInstance.FieldValue> values = classInstanceValues(instance);
