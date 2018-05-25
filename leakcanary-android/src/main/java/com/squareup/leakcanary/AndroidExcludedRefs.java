@@ -212,7 +212,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  ACCOUNT_MANAGER(SDK_INT <= LOLLIPOP_MR1) {
+  ACCOUNT_MANAGER(SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.accounts.AccountManager$AmsTask$Response", "this$1")
           .reason("AccountManager$AmsTask$Response is a stub and is held in memory by native code,"
