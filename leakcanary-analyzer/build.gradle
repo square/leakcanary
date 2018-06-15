@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 dependencies {
-  implementation 'com.squareup.haha:haha:2.0.3'
+  implementation 'com.squareup.haha:haha:2.0.4'
   api project(':leakcanary-watcher')
   testImplementation 'junit:junit:4.12'
   testImplementation 'org.assertj:assertj-core:3.9.1'
