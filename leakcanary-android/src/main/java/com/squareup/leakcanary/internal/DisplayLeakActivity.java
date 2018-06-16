@@ -68,6 +68,7 @@ import static com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.getLeakDirectoryProvider;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.newSingleThreadExecutor;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabledBlocking;
 
 @SuppressWarnings("ConstantConditions")
 public final class DisplayLeakActivity extends Activity {
@@ -83,6 +84,7 @@ public final class DisplayLeakActivity extends Activity {
   }
 
   public static PendingIntent createPendingIntent(Context context, String referenceKey) {
+    setEnabledBlocking(context, DisplayLeakActivity.class, true);
     Intent intent = new Intent(context, DisplayLeakActivity.class);
     intent.putExtra(SHOW_LEAK_EXTRA, referenceKey);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
