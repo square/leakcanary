@@ -41,6 +41,7 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.MOTOROLA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.NVIDIA;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.SAMSUNG;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.VIVO;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.WIKO;
 
 /**
  * This class is a work in progress. You can help by reporting leak traces that seem to be caused
@@ -463,7 +464,7 @@ public enum AndroidExcludedRefs {
   },
 
   SYSTEM_SENSOR_MANAGER__MAPPCONTEXTIMPL((LENOVO.equals(MANUFACTURER) && SDK_INT == KITKAT) //
-      || (VIVO.equals(MANUFACTURER) && SDK_INT == LOLLIPOP_MR1)) {
+      || (VIVO.equals(MANUFACTURER) && SDK_INT == LOLLIPOP_MR1) || (WIKO.equals(MANUFACTURER) && SDK_INT == KITKAT)) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.hardware.SystemSensorManager", "mAppContextImpl")
           .reason("SystemSensorManager stores a reference to context "

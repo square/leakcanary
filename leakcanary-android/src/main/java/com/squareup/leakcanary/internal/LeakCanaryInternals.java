@@ -52,6 +52,7 @@ public final class LeakCanaryInternals {
   public static final String MEIZU = "Meizu";
   public static final String HUAWEI = "HUAWEI";
   public static final String VIVO = "vivo";
+  public static final String WIKO = "WIKO";
 
   private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
   public static volatile RefWatcher installedRefWatcher;
