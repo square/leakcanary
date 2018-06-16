@@ -39,8 +39,8 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   }
 
   /**
-   * Whether we should automatically watch activities when {@link #buildAndInstall()}. Default is
-   * true.
+   * Whether we should automatically watch activities when calling {@link #buildAndInstall()}.
+   * Default is true.
    */
   public AndroidRefWatcherBuilder watchActivities(boolean watchActivities) {
     this.watchActivities = watchActivities;
