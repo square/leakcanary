@@ -29,7 +29,6 @@ import static android.text.format.Formatter.formatShortFileSize;
 import static com.squareup.leakcanary.BuildConfig.GIT_SHA;
 import static com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.isInServiceProcess;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabled;
 
 public final class LeakCanary {
 
