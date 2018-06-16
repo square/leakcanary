@@ -48,17 +48,16 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   }
 
   /**
-   * Sets the maximum number of heap dumps stored. This overrides any call to {@link
-   * #heapDumper(HeapDumper)} as well as any call to
-   * {@link LeakCanary#setDisplayLeakActivityDirectoryProvider(LeakDirectoryProvider)})}
+   * Sets the maximum number of heap dumps stored. This overrides any call to
+   * {@link LeakCanary#setLeakDirectoryProvider(LeakDirectoryProvider)}
    *
    * @throws IllegalArgumentException if maxStoredHeapDumps < 1.
    */
   public AndroidRefWatcherBuilder maxStoredHeapDumps(int maxStoredHeapDumps) {
     LeakDirectoryProvider leakDirectoryProvider =
         new DefaultLeakDirectoryProvider(context, maxStoredHeapDumps);
-    LeakCanary.setDisplayLeakActivityDirectoryProvider(leakDirectoryProvider);
-    return heapDumper(new AndroidHeapDumper(context, leakDirectoryProvider));
+    LeakCanary.setLeakDirectoryProvider(leakDirectoryProvider);
+    return self();
   }
 
   /**
@@ -89,7 +88,8 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   }
 
   @Override protected HeapDumper defaultHeapDumper() {
-    LeakDirectoryProvider leakDirectoryProvider = new DefaultLeakDirectoryProvider(context);
+    LeakDirectoryProvider leakDirectoryProvider =
+        LeakCanaryInternals.getLeakDirectoryProvider(context);
     return new AndroidHeapDumper(context, leakDirectoryProvider);
   }
 

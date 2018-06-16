@@ -28,6 +28,8 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import com.squareup.leakcanary.CanaryLog;
+import com.squareup.leakcanary.DefaultLeakDirectoryProvider;
+import com.squareup.leakcanary.LeakDirectoryProvider;
 import com.squareup.leakcanary.R;
 import com.squareup.leakcanary.RefWatcher;
 import java.util.List;
@@ -55,6 +57,7 @@ public final class LeakCanaryInternals {
 
   private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
   public static volatile RefWatcher installedRefWatcher;
+  private static volatile LeakDirectoryProvider leakDirectoryProvider;
 
   private static final String NOTIFICATION_CHANNEL_ID = "leakcanary";
 
@@ -186,6 +189,22 @@ public final class LeakCanaryInternals {
 
   public static Executor newSingleThreadExecutor(String threadName) {
     return Executors.newSingleThreadExecutor(new LeakCanarySingleThreadFactory(threadName));
+  }
+
+  public static void setLeakDirectoryProvider(LeakDirectoryProvider leakDirectoryProvider) {
+    if (LeakCanaryInternals.leakDirectoryProvider != null) {
+      throw new IllegalStateException("Cannot set the LeakDirectoryProvider after it has already "
+          + "been set. Try setting it before installing the RefWatcher.");
+    }
+    LeakCanaryInternals.leakDirectoryProvider = leakDirectoryProvider;
+  }
+
+  public static LeakDirectoryProvider getLeakDirectoryProvider(Context context) {
+    LeakDirectoryProvider leakDirectoryProvider = LeakCanaryInternals.leakDirectoryProvider;
+    if (leakDirectoryProvider == null) {
+      leakDirectoryProvider = new DefaultLeakDirectoryProvider(context);
+    }
+    return leakDirectoryProvider;
   }
 
   private LeakCanaryInternals() {
