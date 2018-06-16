@@ -24,6 +24,8 @@ import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.HeapAnalyzer;
 import com.squareup.leakcanary.HeapDump;
 
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabledBlocking;
+
 /**
  * This service runs in a separate process to avoid slowing down the app process or making it run
  * out of memory.
@@ -35,6 +37,8 @@ public final class HeapAnalyzerService extends IntentService {
 
   public static void runAnalysis(Context context, HeapDump heapDump,
       Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
+    setEnabledBlocking(context, HeapAnalyzerService.class, true);
+    setEnabledBlocking(context, listenerServiceClass, true);
     Intent intent = new Intent(context, HeapAnalyzerService.class);
     intent.putExtra(LISTENER_CLASS_EXTRA, listenerServiceClass.getName());
     intent.putExtra(HEAPDUMP_EXTRA, heapDump);

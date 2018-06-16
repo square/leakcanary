@@ -53,16 +53,11 @@ public final class LeakCanaryInternals {
   public static final String HUAWEI = "HUAWEI";
   public static final String VIVO = "vivo";
 
-  private static final Executor fileIoExecutor = newSingleThreadExecutor("File-IO");
   public static volatile RefWatcher installedRefWatcher;
 
   private static final String NOTIFICATION_CHANNEL_ID = "leakcanary";
 
   public static volatile Boolean isInAnalyzerProcess;
-
-  public static void executeOnFileIoThread(Runnable runnable) {
-    fileIoExecutor.execute(runnable);
-  }
 
   /** Extracts the class simple name out of a string containing a fully qualified class name. */
   public static String classSimpleName(String className) {
@@ -72,16 +67,6 @@ public final class LeakCanaryInternals {
     } else {
       return className.substring(separator + 1);
     }
-  }
-
-  public static void setEnabled(Context context, final Class<?> componentClass,
-      final boolean enabled) {
-    final Context appContext = context.getApplicationContext();
-    executeOnFileIoThread(new Runnable() {
-      @Override public void run() {
-        setEnabledBlocking(appContext, componentClass, enabled);
-      }
-    });
   }
 
   public static void setEnabledBlocking(Context appContext, Class<?> componentClass,

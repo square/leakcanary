@@ -58,8 +58,14 @@ public final class LeakCanary {
     return new AndroidRefWatcherBuilder(context);
   }
 
+  /**
+   * Blocking inter process call that enables the {@link DisplayLeakActivity}. When you first
+   * install the app, {@link DisplayLeakActivity} is disabled by default and will only be enabled
+   * once a potential leak has been found and the analysis starts. You can call this method to
+   * enable {@link DisplayLeakActivity} before any potential leak has been detected.
+   */
   public static void enableDisplayLeakActivity(Context context) {
-    setEnabled(context, DisplayLeakActivity.class, true);
+    LeakCanaryInternals.setEnabledBlocking(context, DisplayLeakActivity.class, true);
   }
 
   /**
