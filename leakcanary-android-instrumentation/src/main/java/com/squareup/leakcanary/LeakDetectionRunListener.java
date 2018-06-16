@@ -115,8 +115,9 @@ public class LeakDetectionRunListener extends RunListener {
     }
     Instrumentation instrumentation = getInstrumentation();
     Context context = instrumentation.getTargetContext();
-    RefWatcher refWatcher = LeakCanaryInternals.refWatcher;
-    LeakDirectoryProvider leakDirectoryProvider = LeakCanaryInternals.leakDirectoryProvider;
+    RefWatcher refWatcher = LeakCanaryInternals.installedRefWatcher;
+    LeakDirectoryProvider leakDirectoryProvider =
+        LeakCanaryInternals.getLeakDirectoryProvider(context);
     if (refWatcher == null || leakDirectoryProvider == null) {
       throw new IllegalStateException("AndroidRefWatcherBuilder.buildAndInstall() was not called");
     }
