@@ -2,13 +2,14 @@ apply plugin: 'com.android.library'
 
 dependencies {
   api project(':leakcanary-android')
-  implementation 'com.android.support.test:runner:0.4'
+  implementation 'com.android.support.test:runner:1.0.2'
 }
 
 android {
   compileSdkVersion versions.compileSdk
   defaultConfig {
     minSdkVersion versions.minSdk
+    testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'

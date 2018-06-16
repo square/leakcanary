@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (C) 2015 Square, Inc.
+  ~ Copyright (C) 2018 Square, Inc.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -14,26 +14,10 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<LinearLayout
+<manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_margin="16dp"
-    >
+    package="com.squareup.leakcanary.instrumentation.test">
 
-  <TextView
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_marginBottom="16dp"
-      android:text="@string/helper_text"
-      />
-
-  <Button
-      android:id="@+id/async_work"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:text="@string/start_async_work"
-      />
-
-</LinearLayout>
+  <application android:name="com.example.leakcanary.tests.InstrumentationExampleApplication">
+  </application>
+</manifest>
