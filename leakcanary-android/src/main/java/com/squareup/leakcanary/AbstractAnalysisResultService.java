@@ -15,18 +15,11 @@
  */
 package com.squareup.leakcanary;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
-import android.os.IBinder;
-import com.squareup.leakcanary.internal.LeakCanaryInternals;
+import com.squareup.leakcanary.internal.ForegroundService;
 
-public abstract class AbstractAnalysisResultService extends Service {
+public abstract class AbstractAnalysisResultService extends ForegroundService {
 
   private static final String HEAP_DUMP_EXTRA = "heap_dump_extra";
   private static final String RESULT_EXTRA = "result_extra";
@@ -45,55 +38,20 @@ public abstract class AbstractAnalysisResultService extends Service {
     context.startService(intent);
   }
 
-  @Override
-  public void onCreate() {
-    super.onCreate();
-
-    Notification.Builder notificationBuilder = new Notification.Builder(this);
-    notificationBuilder.setContentTitle("Leak Canary Analyzer Service");
-    notificationBuilder.setSmallIcon(R.drawable.leak_canary_notification);
-
-
-    if (VERSION.SDK_INT >= VERSION_CODES.O) {
-      LeakCanaryInternals.setupNotificationChannel(
-          this,
-          (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE),
-          notificationBuilder);
-    }
-
-    Notification notification;
-
-    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
-      notificationBuilder.setPriority(Notification.PRIORITY_MIN);
-      notification = notificationBuilder.build();
-    } else {
-      notification = notificationBuilder.getNotification();
-    }
-
-    startForeground(123, notification);
+  public AbstractAnalysisResultService() {
+    super(AbstractAnalysisResultService.class.getName(),
+        R.string.leak_canary_notification_reporting);
   }
 
-  @Override
-  public int onStartCommand(Intent intent, int flags, int startId) {
-    final HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAP_DUMP_EXTRA);
-    final AnalysisResult result = (AnalysisResult) intent.getSerializableExtra(RESULT_EXTRA);
-
-    AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          onHeapAnalyzed(heapDump, result);
-        } finally {
-          //noinspection ResultOfMethodCallIgnored
-          heapDump.heapDumpFile.delete();
-        }
-
-        stopForeground(true);
-        stopSelf();
-      }
-    });
-
-    return START_NOT_STICKY;
+  @Override protected final void onHandleIntentInForeground(Intent intent) {
+    HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAP_DUMP_EXTRA);
+    AnalysisResult result = (AnalysisResult) intent.getSerializableExtra(RESULT_EXTRA);
+    try {
+      onHeapAnalyzed(heapDump, result);
+    } finally {
+      //noinspection ResultOfMethodCallIgnored
+      heapDump.heapDumpFile.delete();
+    }
   }
 
   /**
@@ -108,9 +66,4 @@ public abstract class AbstractAnalysisResultService extends Service {
    * The heap dump file will be deleted immediately after this callback returns.
    */
   protected abstract void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result);
-
-  @Override
-  public IBinder onBind(Intent intent) {
-    return null;
-  }
 }

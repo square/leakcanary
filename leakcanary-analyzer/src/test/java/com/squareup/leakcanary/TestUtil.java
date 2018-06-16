@@ -50,11 +50,13 @@ final class TestUtil {
     return heapAnalyzer.findTrackedReferences(file);
   }
 
-  static AnalysisResult analyze(HeapDumpFile heapDumpFile, ExcludedRefs.BuilderWithParams excludedRefs) {
+  static AnalysisResult analyze(HeapDumpFile heapDumpFile,
+      ExcludedRefs.BuilderWithParams excludedRefs) {
     File file = fileFromName(heapDumpFile.filename);
     String referenceKey = heapDumpFile.referenceKey;
     HeapAnalyzer heapAnalyzer = new HeapAnalyzer(excludedRefs.build());
-    AnalysisResult result = heapAnalyzer.checkForLeak(file, referenceKey);
+    AnalysisResult result =
+        heapAnalyzer.checkForLeak(file, referenceKey);
     if (result.failure != null) {
       result.failure.printStackTrace();
     }

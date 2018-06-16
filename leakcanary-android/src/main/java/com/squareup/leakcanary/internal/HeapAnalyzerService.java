@@ -15,17 +15,12 @@
  */
 package com.squareup.leakcanary.internal;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
-import android.os.IBinder;
+import android.support.annotation.Nullable;
 import com.squareup.leakcanary.AbstractAnalysisResultService;
 import com.squareup.leakcanary.AnalysisResult;
+import com.squareup.leakcanary.AnalyzerProgressListener;
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.HeapAnalyzer;
 import com.squareup.leakcanary.HeapDump;
@@ -37,7 +32,8 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabledBlo
  * This service runs in a separate process to avoid slowing down the app process or making it run
  * out of memory.
  */
-public final class HeapAnalyzerService extends Service {
+public final class HeapAnalyzerService extends ForegroundService
+    implements AnalyzerProgressListener {
 
   private static final String LISTENER_CLASS_EXTRA = "listener_class_extra";
   private static final String HEAPDUMP_EXTRA = "heapdump_extra";
@@ -52,66 +48,30 @@ public final class HeapAnalyzerService extends Service {
     context.startService(intent);
   }
 
-  @Override
-  public void onCreate() {
-    super.onCreate();
-
-    Notification.Builder notificationBuilder = new Notification.Builder(this);
-    notificationBuilder.setContentTitle("Leak Canary Analyzer Service");
-    notificationBuilder.setSmallIcon(R.drawable.leak_canary_notification);
-
-
-    if (VERSION.SDK_INT >= VERSION_CODES.O) {
-      LeakCanaryInternals.setupNotificationChannel(
-          this,
-          (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE),
-          notificationBuilder);
-    }
-
-    Notification notification;
-
-    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
-      notificationBuilder.setPriority(Notification.PRIORITY_MIN);
-      notification = notificationBuilder.build();
-    } else {
-      notification = notificationBuilder.getNotification();
-    }
-
-    startForeground(123, notification);
+  public HeapAnalyzerService() {
+    super(HeapAnalyzerService.class.getSimpleName(), R.string.leak_canary_notification_analysing);
   }
 
-  @Override
-  public int onStartCommand(Intent intent, int flags, int startId) {
+  @Override protected void onHandleIntentInForeground(@Nullable Intent intent) {
     if (intent == null) {
       CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.");
-      stopForeground(true);
-      stopSelf();
+      return;
     }
+    String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);
+    HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
 
-    final String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);
-    final HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
+    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(heapDump.excludedRefs, this);
 
-    AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
-      @Override
-      public void run() {
-        HeapAnalyzer heapAnalyzer = new HeapAnalyzer(heapDump.excludedRefs);
-
-        AnalysisResult result = heapAnalyzer.checkForLeak(
-            heapDump.heapDumpFile, heapDump.referenceKey);
-        AbstractAnalysisResultService.sendResultToListener(
-            HeapAnalyzerService.this, listenerClassName, heapDump, result);
-
-        stopForeground(true);
-        stopSelf();
-      }
-    });
-
-
-    return START_NOT_STICKY;
+    AnalysisResult result =
+        heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey);
+    AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, heapDump, result);
   }
 
-  @Override
-  public IBinder onBind(Intent intent) {
-    return null;
+  @Override public void onProgressUpdate(Step step) {
+    int percent = (int) ((100f * step.ordinal()) / Step.values().length);
+    CanaryLog.d("Analysis in progress, working on: %s", step.name());
+    String lowercase = step.name().replace("_", " ").toLowerCase();
+    String message = lowercase.substring(0, 1).toUpperCase() + lowercase.substring(1);
+    showForegroundNotification(100, percent, false, message);
   }
 }

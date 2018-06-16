@@ -19,8 +19,12 @@
   <string name="leak_canary_leak_excluded">[Excluded] %1$s leaked %2$s</string>
   <string name="leak_canary_analysis_failed">Leak analysis failed</string>
   <string name="leak_canary_leak_list_title">Leaks in %s</string>
-  <string name="leak_canary_notification_message">Click for more details</string>
+  <string name="leak_canary_notification_analysing">Analyzing Heap Dump</string>
   <string name="leak_canary_notification_channel">LeakCanary</string>
+  <string name="leak_canary_notification_dumping">Dumping Heap</string>
+  <string name="leak_canary_notification_foreground_text">LeakCanary is working.</string>
+  <string name="leak_canary_notification_message">Click for more details</string>
+  <string name="leak_canary_notification_reporting">Reporting LeakCanary result</string>
   <string name="leak_canary_share_leak">Share info</string>
   <string name="leak_canary_share_heap_dump">Share heap dump</string>
   <string name="leak_canary_share_with">Share with…</string>
