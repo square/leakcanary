@@ -6,7 +6,7 @@ A memory leak detection library for Android and Java.
 *“A small leak will sink a great ship.”* - Benjamin Franklin
 
 <p align="center">
-<img src="https://github.com/square/leakcanary/blob/master/assets/screenshot.png"/>
+<img src="https://github.com/square/leakcanary/wiki/assets/screenshot.png"/>
 </p>
 
 ## Getting started
@@ -65,7 +65,7 @@ public class ExampleApplication extends Application {
 
 
 <p align="center">
-<img src="https://github.com/square/leakcanary/blob/master/assets/icon_512.png" width="250"/>
+<img src="https://github.com/square/leakcanary/wiki/assets/icon_512.png" width="250"/>
 </p>
 
 ## License
