@@ -89,6 +89,15 @@ public final class RefWatcher {
     ensureGoneAsync(watchStartNanoTime, reference);
   }
 
+  boolean isEmpty() {
+    removeWeaklyReachableReferences();
+    return retainedKeys.isEmpty();
+  }
+
+  ExcludedRefs getExcludedRefs() {
+    return excludedRefs;
+  }
+
   private void ensureGoneAsync(final long watchStartNanoTime, final KeyedWeakReference reference) {
     watchExecutor.execute(new Retryable() {
       @Override public Retryable.Result run() {
