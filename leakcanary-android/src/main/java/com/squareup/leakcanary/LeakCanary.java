@@ -63,13 +63,23 @@ public final class LeakCanary {
   }
 
   /**
-   * If you build a {@link RefWatcher} with a {@link AndroidHeapDumper} that has a custom {@link
-   * LeakDirectoryProvider}, then you should also call this method to make sure the activity in
-   * charge of displaying leaks can find those on the file system.
+   * @deprecated Use {@link #setLeakDirectoryProvider(LeakDirectoryProvider)} instead.
    */
+  @Deprecated
   public static void setDisplayLeakActivityDirectoryProvider(
       LeakDirectoryProvider leakDirectoryProvider) {
-    DisplayLeakActivity.setLeakDirectoryProvider(leakDirectoryProvider);
+    setLeakDirectoryProvider(leakDirectoryProvider);
+  }
+
+  /**
+   * Used to customize the location for the storage of heap dumps. The default implementation is
+   * {@link DefaultLeakDirectoryProvider}.
+   *
+   * @throws IllegalStateException if a LeakDirectoryProvider has already been set, including
+   * if the default has been automatically set when installing the ref watcher.
+   */
+  public static void setLeakDirectoryProvider(LeakDirectoryProvider leakDirectoryProvider) {
+    LeakCanaryInternals.setLeakDirectoryProvider(leakDirectoryProvider);
   }
 
   /** Returns a string representation of the result of a heap analysis. */

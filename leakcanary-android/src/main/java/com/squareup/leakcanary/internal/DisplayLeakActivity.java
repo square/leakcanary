@@ -42,7 +42,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import com.squareup.leakcanary.AnalysisResult;
 import com.squareup.leakcanary.CanaryLog;
-import com.squareup.leakcanary.DefaultLeakDirectoryProvider;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.LeakDirectoryProvider;
 import com.squareup.leakcanary.R;
@@ -67,6 +66,7 @@ import static android.view.View.VISIBLE;
 import static com.squareup.leakcanary.BuildConfig.GIT_SHA;
 import static com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION;
 import static com.squareup.leakcanary.LeakCanary.leakInfo;
+import static com.squareup.leakcanary.internal.LeakCanaryInternals.getLeakDirectoryProvider;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.newSingleThreadExecutor;
 
 @SuppressWarnings("ConstantConditions")
@@ -87,18 +87,6 @@ public final class DisplayLeakActivity extends Activity {
     intent.putExtra(SHOW_LEAK_EXTRA, referenceKey);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
     return PendingIntent.getActivity(context, 1, intent, FLAG_UPDATE_CURRENT);
-  }
-
-  public static void setLeakDirectoryProvider(LeakDirectoryProvider leakDirectoryProvider) {
-    DisplayLeakActivity.leakDirectoryProvider = leakDirectoryProvider;
-  }
-
-  private static LeakDirectoryProvider leakDirectoryProvider(Context context) {
-    LeakDirectoryProvider leakDirectoryProvider = DisplayLeakActivity.leakDirectoryProvider;
-    if (leakDirectoryProvider == null) {
-      leakDirectoryProvider = new DefaultLeakDirectoryProvider(context);
-    }
-    return leakDirectoryProvider;
   }
 
   // null until it's been first loaded.
@@ -144,7 +132,7 @@ public final class DisplayLeakActivity extends Activity {
 
   @Override protected void onResume() {
     super.onResume();
-    LoadLeaks.load(this, leakDirectoryProvider(this));
+    LoadLeaks.load(this, getLeakDirectoryProvider(this));
   }
 
   @Override public void setTheme(int resid) {
@@ -244,7 +232,7 @@ public final class DisplayLeakActivity extends Activity {
   }
 
   void deleteAllLeaks() {
-    leakDirectoryProvider(DisplayLeakActivity.this).clearLeakDirectory();
+    getLeakDirectoryProvider(this).clearLeakDirectory();
     leaks = Collections.emptyList();
     updateUi();
   }
