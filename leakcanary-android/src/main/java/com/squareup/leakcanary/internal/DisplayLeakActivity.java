@@ -24,6 +24,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -162,7 +163,7 @@ public final class DisplayLeakActivity extends Activity {
               return true;
             }
           });
-      if (visibleLeak.heapDump.heapDumpFile.exists()) {
+      if (visibleLeak.heapDumpFileExists) {
         menu.add(R.string.leak_canary_share_heap_dump)
             .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
               @Override public boolean onMenuItemClick(MenuItem item) {
@@ -205,36 +206,58 @@ public final class DisplayLeakActivity extends Activity {
   @SuppressLint("SetWorldReadable")
   void shareHeapDump() {
     Leak visibleLeak = getVisibleLeak();
-    File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
-    //noinspection ResultOfMethodCallIgnored
-    heapDumpFile.setReadable(true, false);
+    final File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
+    AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
+      @Override public void run() {
+        //noinspection ResultOfMethodCallIgnored
+        heapDumpFile.setReadable(true, false);
+        final Uri heapDumpUri = getUriForFile(getBaseContext(),
+            "com.squareup.leakcanary.fileprovider." + getApplication().getPackageName(),
+            heapDumpFile);
+        runOnUiThread(new Runnable() {
+          @Override public void run() {
+            startShareIntentChooser(heapDumpUri);
+          }
+        });
+      }
+    });
+  }
+
+  private void startShareIntentChooser(Uri heapDumpUri) {
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("application/octet-stream");
-    Uri heapDumpUri = getUriForFile(getBaseContext(),
-        "com.squareup.leakcanary.fileprovider." + getApplication().getPackageName(), heapDumpFile);
     intent.putExtra(Intent.EXTRA_STREAM, heapDumpUri);
     startActivity(Intent.createChooser(intent, getString(R.string.leak_canary_share_with)));
   }
 
   void deleteVisibleLeak() {
-    Leak visibleLeak = getVisibleLeak();
-    File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
-    File resultFile = visibleLeak.resultFile;
-    boolean resultDeleted = resultFile.delete();
-    if (!resultDeleted) {
-      CanaryLog.d("Could not delete result file %s", resultFile.getPath());
-    }
-    boolean heapDumpDeleted = heapDumpFile.delete();
-    if (!heapDumpDeleted) {
-      CanaryLog.d("Could not delete heap dump file %s", heapDumpFile.getPath());
-    }
+    final Leak visibleLeak = getVisibleLeak();
+    AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
+      @Override public void run() {
+        File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
+        File resultFile = visibleLeak.resultFile;
+        boolean resultDeleted = resultFile.delete();
+        if (!resultDeleted) {
+          CanaryLog.d("Could not delete result file %s", resultFile.getPath());
+        }
+        boolean heapDumpDeleted = heapDumpFile.delete();
+        if (!heapDumpDeleted) {
+          CanaryLog.d("Could not delete heap dump file %s", heapDumpFile.getPath());
+        }
+      }
+    });
     visibleLeakRefKey = null;
     leaks.remove(visibleLeak);
     updateUi();
   }
 
   void deleteAllLeaks() {
-    getLeakDirectoryProvider(this).clearLeakDirectory();
+    final LeakDirectoryProvider leakDirectoryProvider = getLeakDirectoryProvider(this);
+    AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
+      @Override public void run() {
+        leakDirectoryProvider.clearLeakDirectory();
+      }
+    });
     leaks = Collections.emptyList();
     updateUi();
   }
@@ -410,7 +433,7 @@ public final class DisplayLeakActivity extends Activity {
       }
       titleView.setText(title);
       String time =
-          DateUtils.formatDateTime(DisplayLeakActivity.this, leak.resultFile.lastModified(),
+          DateUtils.formatDateTime(DisplayLeakActivity.this, leak.resultFileLastModified,
               FORMAT_SHOW_TIME | FORMAT_SHOW_DATE);
       timeView.setText(time);
       return convertView;
@@ -421,11 +444,15 @@ public final class DisplayLeakActivity extends Activity {
     final HeapDump heapDump;
     final AnalysisResult result;
     final File resultFile;
+    final boolean heapDumpFileExists;
+    final long resultFileLastModified;
 
     Leak(HeapDump heapDump, AnalysisResult result, File resultFile) {
       this.heapDump = heapDump;
       this.result = result;
       this.resultFile = resultFile;
+      heapDumpFileExists = heapDump.heapDumpFile.exists();
+      resultFileLastModified = resultFile.lastModified();
     }
   }
 
