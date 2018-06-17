@@ -15,11 +15,11 @@
  */
 package com.squareup.leakcanary;
 
-import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
+import com.squareup.leakcanary.internal.ForegroundService;
 
-public abstract class AbstractAnalysisResultService extends IntentService {
+public abstract class AbstractAnalysisResultService extends ForegroundService {
 
   private static final String HEAP_DUMP_EXTRA = "heap_dump_extra";
   private static final String RESULT_EXTRA = "result_extra";
@@ -39,10 +39,11 @@ public abstract class AbstractAnalysisResultService extends IntentService {
   }
 
   public AbstractAnalysisResultService() {
-    super(AbstractAnalysisResultService.class.getName());
+    super(AbstractAnalysisResultService.class.getName(),
+        R.string.leak_canary_notification_reporting);
   }
 
-  @Override protected final void onHandleIntent(Intent intent) {
+  @Override protected final void onHandleIntentInForeground(Intent intent) {
     HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAP_DUMP_EXTRA);
     AnalysisResult result = (AnalysisResult) intent.getSerializableExtra(RESULT_EXTRA);
     try {

@@ -40,6 +40,14 @@ import static android.os.Build.VERSION_CODES.N_MR1;
 import static com.squareup.leakcanary.AnalysisResult.failure;
 import static com.squareup.leakcanary.AnalysisResult.leakDetected;
 import static com.squareup.leakcanary.AnalysisResult.noLeak;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACE;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.COMPUTING_BITMAP_SIZE;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.COMPUTING_DOMINATORS;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.DEDUPLICATING_GC_ROOTS;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REF;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATH;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE;
 import static com.squareup.leakcanary.HahaHelper.asString;
 import static com.squareup.leakcanary.HahaHelper.classInstanceValues;
 import static com.squareup.leakcanary.HahaHelper.extendsThread;
@@ -63,9 +71,15 @@ public final class HeapAnalyzer {
   private static final String ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$";
 
   private final ExcludedRefs excludedRefs;
+  private final AnalyzerProgressListener listener;
 
   public HeapAnalyzer(ExcludedRefs excludedRefs) {
+    this(excludedRefs, AnalyzerProgressListener.NONE);
+  }
+
+  public HeapAnalyzer(ExcludedRefs excludedRefs, AnalyzerProgressListener listener) {
     this.excludedRefs = excludedRefs;
+    this.listener = listener;
   }
 
   public List<TrackedReference> findTrackedReferences(File heapDumpFile) {
@@ -111,18 +125,20 @@ public final class HeapAnalyzer {
     }
 
     try {
+      listener.onProgressUpdate(READING_HEAP_DUMP_FILE);
       HprofBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
       HprofParser parser = new HprofParser(buffer);
+      listener.onProgressUpdate(PARSING_HEAP_DUMP);
       Snapshot snapshot = parser.parse();
+      listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS);
       deduplicateGcRoots(snapshot);
-
+      listener.onProgressUpdate(FINDING_LEAKING_REF);
       Instance leakingRef = findLeakingReference(referenceKey, snapshot);
 
       // False alarm, weak reference was cleared in between key check and heap dump.
       if (leakingRef == null) {
         return noLeak(since(analysisStartNanoTime));
       }
-
       return findLeakTrace(analysisStartNanoTime, snapshot, leakingRef);
     } catch (Throwable e) {
       return failure(e, since(analysisStartNanoTime));
@@ -175,6 +191,7 @@ public final class HeapAnalyzer {
   private AnalysisResult findLeakTrace(long analysisStartNanoTime, Snapshot snapshot,
       Instance leakingRef) {
 
+    listener.onProgressUpdate(FINDING_SHORTEST_PATH);
     ShortestPathFinder pathFinder = new ShortestPathFinder(excludedRefs);
     ShortestPathFinder.Result result = pathFinder.findPath(snapshot, leakingRef);
 
@@ -183,10 +200,12 @@ public final class HeapAnalyzer {
       return noLeak(since(analysisStartNanoTime));
     }
 
+    listener.onProgressUpdate(BUILDING_LEAK_TRACE);
     LeakTrace leakTrace = buildLeakTrace(result.leakingNode);
 
     String className = leakingRef.getClassObj().getClassName();
 
+    listener.onProgressUpdate(COMPUTING_DOMINATORS);
     // Side effect: computes retained size.
     snapshot.computeDominators();
 
@@ -196,6 +215,7 @@ public final class HeapAnalyzer {
 
     // TODO: check O sources and see what happened to android.graphics.Bitmap.mBuffer
     if (SDK_INT <= N_MR1) {
+      listener.onProgressUpdate(COMPUTING_BITMAP_SIZE);
       retainedSize += computeIgnoredBitmapRetainedSize(snapshot, leakingInstance);
     }
 
