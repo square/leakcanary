@@ -3,9 +3,9 @@
 ## Version 1.6 (Future release)
 
 * [#633](https://github.com/square/leakcanary/pull/633) Support for detecting leaks in instrumentation tests.
-* [#985](https://github.com/square/leakcanary/pull/985) Ability to convert leak traces into stack traces for easy remote reporting
-* [#983](https://github.com/square/leakcanary/issues/983) Support for watching destroyed Fragments
-* [#846](https://github.com/square/leakcanary/issues/846) Fixed crash when analyzing in background on O+
+* [#985](https://github.com/square/leakcanary/pull/985) Ability to convert leak traces into stack traces for easy remote reporting.
+* [#983](https://github.com/square/leakcanary/issues/983) Support for watching destroyed Fragments.
+* [#846](https://github.com/square/leakcanary/issues/846) LeakCanary now uses foreground services and displays a notification when the analysis is in progress. This also fixes crashes when analyzing in background on O+.
 * [#775](https://github.com/square/leakcanary/issues/775) Fixed crash when sharing heap dumps on O+
 * [#930](https://github.com/square/leakcanary/pull/930) DisplayLeakActivity has a responsive icon.
 * [#685](https://github.com/square/leakcanary/issues/685) Stopped doing IO on main thread in DisplayLeakActivity (fixes StrictMode errors).
@@ -20,7 +20,7 @@ Many thanks to [@AdityaAnand1](https://github.com/AdityaAnand1), [@alhah](https:
 * The installed ref watcher singleton is now available via `LeakCanary.installedRefWatcher()`
 * TBD
 
-For more details, see the [full diff](https://github.com/square/leakcanary/compare/v1.5.4...master).
+For more details, see the [1.6 Milestone](https://github.com/square/leakcanary/milestone/3) and the [full diff](https://github.com/square/leakcanary/compare/v1.5.4...master).
 
 ## Version 1.5.4 *(2017-09-22)*
 
