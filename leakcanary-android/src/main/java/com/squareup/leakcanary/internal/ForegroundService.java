@@ -20,7 +20,6 @@ import android.app.Notification;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.SystemClock;
-import android.support.annotation.Nullable;
 import com.squareup.leakcanary.R;
 
 public abstract class ForegroundService extends IntentService {
@@ -51,11 +50,11 @@ public abstract class ForegroundService extends IntentService {
     startForeground(notificationId, notification);
   }
 
-  @Override protected void onHandleIntent(@Nullable Intent intent) {
+  @Override protected void onHandleIntent(Intent intent) {
     onHandleIntentInForeground(intent);
   }
 
-  protected abstract void onHandleIntentInForeground(@Nullable Intent intent);
+  protected abstract void onHandleIntentInForeground(Intent intent);
 
   @Override public void onDestroy() {
     super.onDestroy();

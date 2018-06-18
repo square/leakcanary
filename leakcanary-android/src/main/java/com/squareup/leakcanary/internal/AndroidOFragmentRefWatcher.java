@@ -15,14 +15,12 @@
  */
 package com.squareup.leakcanary.internal;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.os.Build;
-import android.support.annotation.RequiresApi;
 import com.squareup.leakcanary.RefWatcher;
 
-@RequiresApi(Build.VERSION_CODES.O) //
 class AndroidOFragmentRefWatcher implements FragmentRefWatcher {
 
   private final RefWatcher refWatcher;
@@ -39,7 +37,7 @@ class AndroidOFragmentRefWatcher implements FragmentRefWatcher {
         }
       };
 
-  @Override public void watchFragments(Activity activity) {
+  @SuppressLint("NewApi") @Override public void watchFragments(Activity activity) {
     FragmentManager fragmentManager = activity.getFragmentManager();
     fragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, true);
   }
