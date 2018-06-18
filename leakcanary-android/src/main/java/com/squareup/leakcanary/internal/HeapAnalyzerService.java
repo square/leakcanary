@@ -62,8 +62,8 @@ public final class HeapAnalyzerService extends ForegroundService
 
     HeapAnalyzer heapAnalyzer = new HeapAnalyzer(heapDump.excludedRefs, this);
 
-    AnalysisResult result =
-        heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey);
+    AnalysisResult result = heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey,
+        heapDump.computeRetainedHeapSize);
     AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, heapDump, result);
   }
 

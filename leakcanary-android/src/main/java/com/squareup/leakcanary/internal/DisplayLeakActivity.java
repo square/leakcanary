@@ -329,9 +329,14 @@ public final class DisplayLeakActivity extends Activity {
         }
         HeapDump heapDump = visibleLeak.heapDump;
         adapter.update(result.leakTrace, heapDump.referenceKey, heapDump.referenceName);
-        String size = formatShortFileSize(this, result.retainedHeapSize);
-        String className = classSimpleName(result.className);
-        setTitle(getString(R.string.leak_canary_class_has_leaked, className, size));
+        if (result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
+          String className = classSimpleName(result.className);
+          setTitle(getString(R.string.leak_canary_class_has_leaked, className));
+        } else {
+          String size = formatShortFileSize(this, result.retainedHeapSize);
+          String className = classSimpleName(result.className);
+          setTitle(getString(R.string.leak_canary_class_has_leaked_retaining, className, size));
+        }
       }
     } else {
       if (listAdapter instanceof LeakListAdapter) {
@@ -419,8 +424,12 @@ public final class DisplayLeakActivity extends Activity {
       String title;
       if (leak.result.failure == null) {
         String className = classSimpleName(leak.result.className);
-        String size = formatShortFileSize(DisplayLeakActivity.this, leak.result.retainedHeapSize);
-        title = getString(R.string.leak_canary_class_has_leaked, className, size);
+        if (leak.result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
+          title = getString(R.string.leak_canary_class_has_leaked, className);
+        } else {
+          String size = formatShortFileSize(DisplayLeakActivity.this, leak.result.retainedHeapSize);
+          title = getString(R.string.leak_canary_class_has_leaked_retaining, className, size);
+        }
         if (leak.result.excludedLeak) {
           title = getString(R.string.leak_canary_excluded_row, title);
         }

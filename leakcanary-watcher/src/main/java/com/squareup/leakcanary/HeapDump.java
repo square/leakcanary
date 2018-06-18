@@ -57,15 +57,46 @@ public final class HeapDump implements Serializable {
   public final long watchDurationMs;
   public final long gcDurationMs;
   public final long heapDumpDurationMs;
+  public final boolean computeRetainedHeapSize;
 
+  /**
+   * Calls {@link #HeapDump(File, String, String, ExcludedRefs, boolean, Durations)}
+   * with computeRetainedHeapSize set to true.
+   *
+   * @deprecated Use
+   * {@link #HeapDump(File, String, String, ExcludedRefs, boolean, Durations)}  instead.
+   */
+  @Deprecated
   public HeapDump(File heapDumpFile, String referenceKey, String referenceName,
       ExcludedRefs excludedRefs, long watchDurationMs, long gcDurationMs, long heapDumpDurationMs) {
+    this(heapDumpFile, referenceKey, referenceName, excludedRefs, true,
+        new Durations(watchDurationMs, gcDurationMs, heapDumpDurationMs));
+  }
+
+  public HeapDump(File heapDumpFile, String referenceKey, String referenceName,
+      ExcludedRefs excludedRefs, boolean computeRetainedHeapSize, Durations durations) {
     this.heapDumpFile = checkNotNull(heapDumpFile, "heapDumpFile");
     this.referenceKey = checkNotNull(referenceKey, "referenceKey");
     this.referenceName = checkNotNull(referenceName, "referenceName");
     this.excludedRefs = checkNotNull(excludedRefs, "excludedRefs");
-    this.watchDurationMs = watchDurationMs;
-    this.gcDurationMs = gcDurationMs;
-    this.heapDumpDurationMs = heapDumpDurationMs;
+    this.computeRetainedHeapSize = computeRetainedHeapSize;
+    this.watchDurationMs = durations.watchDurationMs;
+    this.gcDurationMs = durations.gcDurationMs;
+    this.heapDumpDurationMs = durations.heapDumpDurationMs;
+  }
+
+  /**
+   * A group of duration related parameters required when constructing a {@link HeapDump} instance.
+   */
+  public static final class Durations {
+    final long watchDurationMs;
+    final long gcDurationMs;
+    final long heapDumpDurationMs;
+
+    public Durations(long watchDurationMs, long gcDurationMs, long heapDumpDurationMs) {
+      this.watchDurationMs = watchDurationMs;
+      this.gcDurationMs = gcDurationMs;
+      this.heapDumpDurationMs = heapDumpDurationMs;
+    }
   }
 }

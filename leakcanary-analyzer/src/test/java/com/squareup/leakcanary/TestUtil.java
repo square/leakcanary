@@ -56,7 +56,7 @@ final class TestUtil {
     String referenceKey = heapDumpFile.referenceKey;
     HeapAnalyzer heapAnalyzer = new HeapAnalyzer(excludedRefs.build());
     AnalysisResult result =
-        heapAnalyzer.checkForLeak(file, referenceKey);
+        heapAnalyzer.checkForLeak(file, referenceKey, true);
     if (result.failure != null) {
       result.failure.printStackTrace();
     }
