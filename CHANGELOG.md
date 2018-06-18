@@ -5,6 +5,7 @@
 * [#633](https://github.com/square/leakcanary/pull/633) Support for detecting leaks in instrumentation tests.
 * [#985](https://github.com/square/leakcanary/pull/985) Ability to convert leak traces into stack traces for easy remote reporting
 * [#983](https://github.com/square/leakcanary/issues/983) Support for watching destroyed Fragments
+* [#846](https://github.com/square/leakcanary/issues/846) Fixed crash when analyzing in background on O+
 * [#775](https://github.com/square/leakcanary/issues/775) Fixed crash when sharing heap dumps on O+
 * [#930](https://github.com/square/leakcanary/pull/930) DisplayLeakActivity has a responsive icon.
 * [#685](https://github.com/square/leakcanary/issues/685) Stopped doing IO on main thread in DisplayLeakActivity (fixes StrictMode errors).
