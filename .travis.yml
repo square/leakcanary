@@ -32,6 +32,7 @@ before_script:
 
 script:
   - ./gradlew leakcanary-android-instrumentation:connectedCheck --stacktrace
+  - ./gradlew leakcanary-support-fragment:connectedCheck --stacktrace
 
 after_success:
   - .buildscript/deploy_snapshot.sh

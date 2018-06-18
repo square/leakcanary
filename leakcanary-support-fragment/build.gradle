@@ -1,0 +1,34 @@
+apply plugin: 'com.android.library'
+
+dependencies {
+  api project(':leakcanary-android')
+  // 25.1.0 is the version that introduced https://developer.android.com/reference/android/support/v4/app/FragmentManager#registerfragmentlifecyclecallbacks
+  // However, FragmentLifecycleCallbacks wasn't properly usable until 25.2.0 where it became static
+  // https://developer.android.com/topic/libraries/support-library/rev-archive#fixed-issues_12
+  // For mysterious reasons we get a NoClassDefFoundError (FragmentActivity) if we use a version
+  // lower than 26.0.0.
+  //noinspection GradleDependency
+  implementation 'com.android.support:support-fragment:26.0.0'
+
+  androidTestImplementation project(':leakcanary-android-instrumentation')
+  androidTestImplementation 'com.android.support.test:runner:1.0.2'
+  androidTestImplementation 'com.android.support.test:rules:1.0.2'
+  androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+}
+
+android {
+  compileSdkVersion versions.compileSdk
+  defaultConfig {
+    minSdkVersion versions.minSdk
+
+    testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+  }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    // junit references java.lang.management
+    ignore 'InvalidPackage'
+  }
+}
+
+apply from: rootProject.file('gradle/checkstyle.gradle')
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
