@@ -1,0 +1,25 @@
+apply plugin: 'com.android.library'
+
+dependencies {
+  api project(':leakcanary-android')
+  // 25.1.0 is the version that introduced https://developer.android.com/reference/android/support/v4/app/FragmentManager#registerfragmentlifecyclecallbacks
+  // However, FragmentLifecycleCallbacks wasn't properly usable until 25.2.0 where it became static
+  // https://developer.android.com/topic/libraries/support-library/rev-archive#fixed-issues_12
+  //noinspection GradleDependency
+  api 'com.android.support:support-fragment:25.2.0'
+}
+
+android {
+  compileSdkVersion versions.compileSdk
+  defaultConfig {
+    minSdkVersion versions.minSdk
+  }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    // junit references java.lang.management
+    ignore 'InvalidPackage'
+  }
+}
+
+apply from: rootProject.file('gradle/checkstyle.gradle')
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

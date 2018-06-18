@@ -1,7 +1,8 @@
 package com.squareup.leakcanary;
 
-import android.app.Application;
 import android.content.Context;
+import com.squareup.leakcanary.internal.ActivityRefWatcher;
+import com.squareup.leakcanary.internal.FragmentRefWatcher;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.util.concurrent.TimeUnit;
 
@@ -15,6 +16,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
 
   private final Context context;
   private boolean watchActivities = true;
+  private boolean watchFragments = true;
 
   AndroidRefWatcherBuilder(Context context) {
     this.context = context.getApplicationContext();
@@ -48,6 +50,16 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   }
 
   /**
+   * Whether we should automatically watch fragments when calling {@link #buildAndInstall()}.
+   * Default is true. When true, LeakCanary watches native fragments on Android O+ and support
+   * fragments if the leakcanary-support-fragment dependency is in the classpath.
+   */
+  public AndroidRefWatcherBuilder watchFragments(boolean watchFragments) {
+    this.watchFragments = watchFragments;
+    return this;
+  }
+
+  /**
    * Sets the maximum number of heap dumps stored. This overrides any call to
    * {@link LeakCanary#setLeakDirectoryProvider(LeakDirectoryProvider)}
    *
@@ -75,7 +87,10 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
     RefWatcher refWatcher = build();
     if (refWatcher != DISABLED) {
       if (watchActivities) {
-        ActivityRefWatcher.install((Application) context, refWatcher);
+        ActivityRefWatcher.install(context, refWatcher);
+      }
+      if (watchFragments) {
+        FragmentRefWatcher.Helper.install(context, refWatcher);
       }
     }
     LeakCanaryInternals.installedRefWatcher = refWatcher;

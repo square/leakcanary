@@ -28,7 +28,6 @@ subprojects {
 //      url 'https://oss.sonatype.org/content/repositories/snapshots/'
 //    }
 //    mavenLocal()
-      google()
   }
 
   apply plugin: 'net.ltgt.errorprone'
