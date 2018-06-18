@@ -35,7 +35,7 @@
         android:enabled="false"
         />
     <provider
-        android:name="android.support.v4.content.FileProvider"
+        android:name="com.squareup.leakcanary.internal.LeakCanaryFileProvider"
         android:authorities="com.squareup.leakcanary.fileprovider.${applicationId}"
         android:exported="false"
         android:grantUriPermissions="true"

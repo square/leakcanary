@@ -2,7 +2,6 @@ apply plugin: 'com.android.library'
 
 dependencies {
   api project(':leakcanary-analyzer')
-  implementation 'com.android.support:support-core-utils:27.1.1'
 }
 
 def gitSha() {

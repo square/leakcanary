@@ -17,7 +17,6 @@ package com.squareup.leakcanary.internal;
 
 import android.content.Context;
 import android.content.Intent;
-import android.support.annotation.Nullable;
 import com.squareup.leakcanary.AbstractAnalysisResultService;
 import com.squareup.leakcanary.AnalysisResult;
 import com.squareup.leakcanary.AnalyzerProgressListener;
@@ -52,7 +51,7 @@ public final class HeapAnalyzerService extends ForegroundService
     super(HeapAnalyzerService.class.getSimpleName(), R.string.leak_canary_notification_analysing);
   }
 
-  @Override protected void onHandleIntentInForeground(@Nullable Intent intent) {
+  @Override protected void onHandleIntentInForeground(Intent intent) {
     if (intent == null) {
       CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.");
       return;
