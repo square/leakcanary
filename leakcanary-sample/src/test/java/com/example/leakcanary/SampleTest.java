@@ -13,7 +13,7 @@ public class SampleTest {
   @Test public void testTheThing() throws Exception {
     ActivityController<MainActivity> controller =
         Robolectric.buildActivity(MainActivity.class).create().start().resume().visible();
-    controller.get().findViewById(R.id.async_task).performClick();
+    controller.get().findViewById(R.id.async_work).performClick();
     controller.stop();
     controller.destroy();
   }
