@@ -66,6 +66,65 @@ public final class AnalysisResult implements Serializable {
   /** Total time spent analyzing the heap. */
   public final long analysisDurationMs;
 
+  /**
+   * <p>Creates a new {@link RuntimeException} with a fake stack trace that maps the leak trace.
+   *
+   * <p>Leak traces uniquely identify memory leaks, much like stack traces uniquely identify
+   * exceptions.
+   *
+   * <p>This method enables you to upload leak traces as stack traces to your preferred
+   * exception reporting tool and benefit from the grouping and counting these tools provide out
+   * of the box. This also means you can track all leaks instead of relying on individuals
+   * reporting them when they happen.
+   *
+   * <p>The following example leak trace:
+   * <pre>
+   * * com.foo.WibbleActivity has leaked:
+   * * GC ROOT static com.foo.Bar.qux
+   * * references com.foo.Quz.context
+   * * leaks com.foo.WibbleActivity instance
+   * </pre>
+   *
+   * <p>Will turn into an exception with the following stacktrace:
+   * <pre>
+   * java.lang.RuntimeException: com.foo.WibbleActivity leak from com.foo.Bar (holder=CLASS,
+   * type=STATIC_FIELD)
+   *         at com.foo.Bar.qux(Bar.java:42)
+   *         at com.foo.Quz.context(Quz.java:42)
+   *         at com.foo.WibbleActivity.leaking(WibbleActivity.java:42)
+   * </pre>
+   */
+  public RuntimeException leakTraceAsFakeException() {
+    if (!leakFound) {
+      throw new UnsupportedOperationException(
+          "leakTraceAsFakeException() can only be called when leakFound is true");
+    }
+    LeakTraceElement firstElement = leakTrace.elements.get(0);
+    String rootSimpleName = classSimpleName(firstElement.className);
+    String leakSimpleName = classSimpleName(className);
+
+    String exceptionMessage = leakSimpleName
+        + " leak from "
+        + rootSimpleName
+        + " (holder="
+        + firstElement.holder
+        + ", type="
+        + firstElement.type
+        + ")";
+    RuntimeException exception = new RuntimeException(exceptionMessage);
+
+    StackTraceElement[] stackTrace = new StackTraceElement[leakTrace.elements.size()];
+    int i = 0;
+    for (LeakTraceElement element : leakTrace.elements) {
+      String methodName = element.referenceName != null ? element.referenceName : "leaking";
+      String file = classSimpleName(element.className) + ".java";
+      stackTrace[i] = new StackTraceElement(element.className, methodName, file, 42);
+      i++;
+    }
+    exception.setStackTrace(stackTrace);
+    return exception;
+  }
+
   private AnalysisResult(boolean leakFound, boolean excludedLeak, String className,
       LeakTrace leakTrace, Throwable failure, long retainedHeapSize, long analysisDurationMs) {
     this.leakFound = leakFound;
@@ -75,5 +134,10 @@ public final class AnalysisResult implements Serializable {
     this.failure = failure;
     this.retainedHeapSize = retainedHeapSize;
     this.analysisDurationMs = analysisDurationMs;
+  }
+
+  private String classSimpleName(String className) {
+    int separator = className.lastIndexOf('.');
+    return separator == -1 ? className : className.substring(separator + 1);
   }
 }

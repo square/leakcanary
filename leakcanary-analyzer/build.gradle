@@ -1,19 +1,26 @@
 apply plugin: 'com.android.library'
 
 dependencies {
-  implementation 'com.squareup.haha:haha:2.0.3'
+  implementation 'com.squareup.haha:haha:2.0.4'
   api project(':leakcanary-watcher')
   testImplementation 'junit:junit:4.12'
-  testImplementation 'org.assertj:assertj-core:3.8.0'
+  testImplementation 'org.assertj:assertj-core:3.9.1'
 }
 
 android {
   compileSdkVersion versions.compileSdk
+
   defaultConfig {
     minSdkVersion versions.minSdk
   }
+
   lintOptions {
     disable 'GoogleAppIndexingWarning'
+  }
+
+  // TODO replace with https://issuetracker.google.com/issues/72050365 once released.
+  libraryVariants.all {
+    it.generateBuildConfig.enabled = false
   }
 }
 

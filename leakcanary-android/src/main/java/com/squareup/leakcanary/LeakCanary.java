@@ -23,12 +23,12 @@ import android.os.Build;
 import android.util.Log;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import com.squareup.leakcanary.internal.HeapAnalyzerService;
+import com.squareup.leakcanary.internal.LeakCanaryInternals;
 
 import static android.text.format.Formatter.formatShortFileSize;
 import static com.squareup.leakcanary.BuildConfig.GIT_SHA;
 import static com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.isInServiceProcess;
-import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabled;
 
 public final class LeakCanary {
 
@@ -42,23 +42,49 @@ public final class LeakCanary {
         .buildAndInstall();
   }
 
-  /** Builder to create a customized {@link RefWatcher} with appropriate Android defaults. */
+  /**
+   * @return the {@link RefWatcher} installed via {@link AndroidRefWatcherBuilder#buildAndInstall()}.
+   */
+  public static RefWatcher installedRefWatcher() {
+    RefWatcher refWatcher = LeakCanaryInternals.installedRefWatcher;
+    if (refWatcher == null) {
+      throw new IllegalStateException("AndroidRefWatcherBuilder.buildAndInstall() was not called");
+    }
+    return refWatcher;
+  }
+
   public static AndroidRefWatcherBuilder refWatcher(Context context) {
     return new AndroidRefWatcherBuilder(context);
   }
 
+  /**
+   * Blocking inter process call that enables the {@link DisplayLeakActivity}. When you first
+   * install the app, {@link DisplayLeakActivity} is disabled by default and will only be enabled
+   * once a potential leak has been found and the analysis starts. You can call this method to
+   * enable {@link DisplayLeakActivity} before any potential leak has been detected.
+   */
   public static void enableDisplayLeakActivity(Context context) {
-    setEnabled(context, DisplayLeakActivity.class, true);
+    LeakCanaryInternals.setEnabledBlocking(context, DisplayLeakActivity.class, true);
   }
 
   /**
-   * If you build a {@link RefWatcher} with a {@link AndroidHeapDumper} that has a custom {@link
-   * LeakDirectoryProvider}, then you should also call this method to make sure the activity in
-   * charge of displaying leaks can find those on the file system.
+   * @deprecated Use {@link #setLeakDirectoryProvider(LeakDirectoryProvider)} instead.
    */
+  @Deprecated
   public static void setDisplayLeakActivityDirectoryProvider(
       LeakDirectoryProvider leakDirectoryProvider) {
-    DisplayLeakActivity.setLeakDirectoryProvider(leakDirectoryProvider);
+    setLeakDirectoryProvider(leakDirectoryProvider);
+  }
+
+  /**
+   * Used to customize the location for the storage of heap dumps. The default implementation is
+   * {@link DefaultLeakDirectoryProvider}.
+   *
+   * @throws IllegalStateException if a LeakDirectoryProvider has already been set, including
+   * if the default has been automatically set when installing the ref watcher.
+   */
+  public static void setLeakDirectoryProvider(LeakDirectoryProvider leakDirectoryProvider) {
+    LeakCanaryInternals.setLeakDirectoryProvider(leakDirectoryProvider);
   }
 
   /** Returns a string representation of the result of a heap analysis. */
@@ -142,7 +168,13 @@ public final class LeakCanary {
    * a different process than the normal app process.
    */
   public static boolean isInAnalyzerProcess(Context context) {
-    return isInServiceProcess(context, HeapAnalyzerService.class);
+    Boolean isInAnalyzerProcess = LeakCanaryInternals.isInAnalyzerProcess;
+    // This only needs to be computed once per process.
+    if (isInAnalyzerProcess == null) {
+      isInAnalyzerProcess = isInServiceProcess(context, HeapAnalyzerService.class);
+      LeakCanaryInternals.isInAnalyzerProcess = isInAnalyzerProcess;
+    }
+    return isInAnalyzerProcess;
   }
 
   private LeakCanary() {

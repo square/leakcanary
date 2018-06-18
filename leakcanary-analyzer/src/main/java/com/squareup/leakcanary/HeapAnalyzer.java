@@ -27,8 +27,8 @@ import com.squareup.haha.perflib.Snapshot;
 import com.squareup.haha.perflib.Type;
 import com.squareup.haha.perflib.io.HprofBuffer;
 import com.squareup.haha.perflib.io.MemoryMappedFileBuffer;
-import com.squareup.haha.trove.THashMap;
-import com.squareup.haha.trove.TObjectProcedure;
+import gnu.trove.THashMap;
+import gnu.trove.TObjectProcedure;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,10 +40,17 @@ import static android.os.Build.VERSION_CODES.N_MR1;
 import static com.squareup.leakcanary.AnalysisResult.failure;
 import static com.squareup.leakcanary.AnalysisResult.leakDetected;
 import static com.squareup.leakcanary.AnalysisResult.noLeak;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACE;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.COMPUTING_BITMAP_SIZE;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.COMPUTING_DOMINATORS;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.DEDUPLICATING_GC_ROOTS;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REF;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATH;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP;
+import static com.squareup.leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE;
 import static com.squareup.leakcanary.HahaHelper.asString;
 import static com.squareup.leakcanary.HahaHelper.classInstanceValues;
 import static com.squareup.leakcanary.HahaHelper.extendsThread;
-import static com.squareup.leakcanary.HahaHelper.fieldToString;
 import static com.squareup.leakcanary.HahaHelper.fieldValue;
 import static com.squareup.leakcanary.HahaHelper.hasField;
 import static com.squareup.leakcanary.HahaHelper.threadName;
@@ -51,6 +58,9 @@ import static com.squareup.leakcanary.LeakTraceElement.Holder.ARRAY;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.CLASS;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.OBJECT;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
+import static com.squareup.leakcanary.LeakTraceElement.Type.ARRAY_ENTRY;
+import static com.squareup.leakcanary.LeakTraceElement.Type.INSTANCE_FIELD;
+import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
@@ -61,9 +71,15 @@ public final class HeapAnalyzer {
   private static final String ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$";
 
   private final ExcludedRefs excludedRefs;
+  private final AnalyzerProgressListener listener;
 
   public HeapAnalyzer(ExcludedRefs excludedRefs) {
+    this(excludedRefs, AnalyzerProgressListener.NONE);
+  }
+
+  public HeapAnalyzer(ExcludedRefs excludedRefs, AnalyzerProgressListener listener) {
     this.excludedRefs = excludedRefs;
+    this.listener = listener;
   }
 
   public List<TrackedReference> findTrackedReferences(File heapDumpFile) {
@@ -86,7 +102,7 @@ public final class HeapAnalyzer {
         Instance instance = fieldValue(values, "referent");
         if (instance != null) {
           String className = getClassName(instance);
-          List<String> fields = describeFields(instance);
+          List<LeakReference> fields = describeFields(instance);
           references.add(new TrackedReference(key, name, className, fields));
         }
       }
@@ -109,18 +125,20 @@ public final class HeapAnalyzer {
     }
 
     try {
+      listener.onProgressUpdate(READING_HEAP_DUMP_FILE);
       HprofBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
       HprofParser parser = new HprofParser(buffer);
+      listener.onProgressUpdate(PARSING_HEAP_DUMP);
       Snapshot snapshot = parser.parse();
+      listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS);
       deduplicateGcRoots(snapshot);
-
+      listener.onProgressUpdate(FINDING_LEAKING_REF);
       Instance leakingRef = findLeakingReference(referenceKey, snapshot);
 
       // False alarm, weak reference was cleared in between key check and heap dump.
       if (leakingRef == null) {
         return noLeak(since(analysisStartNanoTime));
       }
-
       return findLeakTrace(analysisStartNanoTime, snapshot, leakingRef);
     } catch (Throwable e) {
       return failure(e, since(analysisStartNanoTime));
@@ -173,6 +191,7 @@ public final class HeapAnalyzer {
   private AnalysisResult findLeakTrace(long analysisStartNanoTime, Snapshot snapshot,
       Instance leakingRef) {
 
+    listener.onProgressUpdate(FINDING_SHORTEST_PATH);
     ShortestPathFinder pathFinder = new ShortestPathFinder(excludedRefs);
     ShortestPathFinder.Result result = pathFinder.findPath(snapshot, leakingRef);
 
@@ -181,10 +200,12 @@ public final class HeapAnalyzer {
       return noLeak(since(analysisStartNanoTime));
     }
 
+    listener.onProgressUpdate(BUILDING_LEAK_TRACE);
     LeakTrace leakTrace = buildLeakTrace(result.leakingNode);
 
     String className = leakingRef.getClassObj().getClassName();
 
+    listener.onProgressUpdate(COMPUTING_DOMINATORS);
     // Side effect: computes retained size.
     snapshot.computeDominators();
 
@@ -194,6 +215,7 @@ public final class HeapAnalyzer {
 
     // TODO: check O sources and see what happened to android.graphics.Bitmap.mBuffer
     if (SDK_INT <= N_MR1) {
+      listener.onProgressUpdate(COMPUTING_BITMAP_SIZE);
       retainedSize += computeIgnoredBitmapRetainedSize(snapshot, leakingInstance);
     }
 
@@ -258,7 +280,7 @@ public final class HeapAnalyzer {
   private LeakTrace buildLeakTrace(LeakNode leakingNode) {
     List<LeakTraceElement> elements = new ArrayList<>();
     // We iterate from the leak to the GC root
-    LeakNode node = new LeakNode(null, null, leakingNode, null, null);
+    LeakNode node = new LeakNode(null, null, leakingNode, null);
     while (node != null) {
       LeakTraceElement element = buildLeakElement(node);
       if (element != null) {
@@ -279,15 +301,22 @@ public final class HeapAnalyzer {
     if (holder instanceof RootObj) {
       return null;
     }
-    LeakTraceElement.Type type = node.referenceType;
-    String referenceName = node.referenceName;
-
     LeakTraceElement.Holder holderType;
     String className;
     String extra = null;
-    List<String> fields = describeFields(holder);
+    List<LeakReference> leakReferences = describeFields(holder);
 
     className = getClassName(holder);
+
+    List<String> classHierarchy = new ArrayList<>();
+    classHierarchy.add(className);
+    String rootClassName = Object.class.getName();
+    if (holder instanceof ClassInstance) {
+      ClassObj classObj = holder.getClassObj();
+      while (!(classObj = classObj.getSuperClassObj()).getClassName().equals(rootClassName)) {
+        classHierarchy.add(classObj.getClassName());
+      }
+    }
 
     if (holder instanceof ClassObj) {
       holderType = CLASS;
@@ -301,7 +330,7 @@ public final class HeapAnalyzer {
         extra = "(named '" + threadName + "')";
       } else if (className.matches(ANONYMOUS_CLASS_NAME_PATTERN)) {
         String parentClassName = classObj.getSuperClassObj().getClassName();
-        if (Object.class.getName().equals(parentClassName)) {
+        if (rootClassName.equals(parentClassName)) {
           holderType = OBJECT;
           try {
             // This is an anonymous class implementing an interface. The API does not give access
@@ -326,39 +355,45 @@ public final class HeapAnalyzer {
         holderType = OBJECT;
       }
     }
-    return new LeakTraceElement(referenceName, type, holderType, className, extra, node.exclusion,
-        fields);
+    return new LeakTraceElement(node.leakReference, holderType, classHierarchy, extra,
+        node.exclusion, leakReferences);
   }
 
-  private List<String> describeFields(Instance instance) {
-    List<String> fields = new ArrayList<>();
+  private List<LeakReference> describeFields(Instance instance) {
+    List<LeakReference> leakReferences = new ArrayList<>();
 
     if (instance instanceof ClassObj) {
       ClassObj classObj = (ClassObj) instance;
       for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
-        Field field = entry.getKey();
-        Object value = entry.getValue();
-        fields.add("static " + field.getName() + " = " + value);
+        String name = entry.getKey().getName();
+        String value = entry.getValue() == null ? "null" : entry.getValue().toString();
+        leakReferences.add(new LeakReference(STATIC_FIELD, name, value));
       }
     } else if (instance instanceof ArrayInstance) {
       ArrayInstance arrayInstance = (ArrayInstance) instance;
       if (arrayInstance.getArrayType() == Type.OBJECT) {
         Object[] values = arrayInstance.getValues();
         for (int i = 0; i < values.length; i++) {
-          fields.add("[" + i + "] = " + values[i]);
+          String name = Integer.toString(i);
+          String value = values[i] == null ? "null" : values[i].toString();
+          leakReferences.add(new LeakReference(ARRAY_ENTRY, name, value));
         }
       }
     } else {
       ClassObj classObj = instance.getClassObj();
       for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
-        fields.add("static " + fieldToString(entry));
+        String name = entry.getKey().getName();
+        String value = entry.getValue() == null ? "null" : entry.getValue().toString();
+        leakReferences.add(new LeakReference(STATIC_FIELD, name, value));
       }
       ClassInstance classInstance = (ClassInstance) instance;
       for (ClassInstance.FieldValue field : classInstance.getValues()) {
-        fields.add(fieldToString(field));
+        String name = field.getField().getName();
+        String value = field.getValue() == null ? "null" : field.getValue().toString();
+        leakReferences.add(new LeakReference(INSTANCE_FIELD, name, value));
       }
     }
-    return fields;
+    return leakReferences;
   }
 
   private String getClassName(Instance instance) {

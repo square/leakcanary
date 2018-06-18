@@ -22,15 +22,12 @@ final class LeakNode {
   final Exclusion exclusion;
   final Instance instance;
   final LeakNode parent;
-  final String referenceName;
-  final LeakTraceElement.Type referenceType;
+  final LeakReference leakReference;
 
-  LeakNode(Exclusion exclusion, Instance instance, LeakNode parent,
-      String referenceName, LeakTraceElement.Type referenceType) {
+  LeakNode(Exclusion exclusion, Instance instance, LeakNode parent, LeakReference leakReference) {
     this.exclusion = exclusion;
     this.instance = instance;
     this.parent = parent;
-    this.referenceName = referenceName;
-    this.referenceType = referenceType;
+    this.leakReference = leakReference;
   }
 }

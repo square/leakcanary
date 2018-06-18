@@ -6,18 +6,18 @@ A memory leak detection library for Android and Java.
 *“A small leak will sink a great ship.”* - Benjamin Franklin
 
 <p align="center">
-<img src="https://github.com/square/leakcanary/blob/master/assets/screenshot.png"/>
+<img src="https://github.com/square/leakcanary/wiki/assets/screenshot.png"/>
 </p>
 
 ## Getting started
 
 In your `build.gradle`:
 
-```gradle
- dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.4'
-   releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
- }
+```groovy
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.5.4'
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
+}
 ```
 
 In your `Application` class:
@@ -38,40 +38,34 @@ public class ExampleApplication extends Application {
 }
 ```
 
-For Robolectric users:
-
-```java
-public class ExampleApplication extends Application {
-
-  @Override public void onCreate() {
-    super.onCreate();
-    setupLeakCanary();
-  }
- 
-  protected RefWatcher setupLeakCanary() {
-    if (LeakCanary.isInAnalyzerProcess(this)) {
-      return RefWatcher.DISABLED;
-    }
-    return LeakCanary.install(this);
-  }
-}
- 
-// in src/test/java
-public class TestExampleApplication extends ExampleApplication {
-  @Override protected RefWatcher setupLeakCanary() {
-    // No leakcanary in unit tests.
-    return RefWatcher.DISABLED;
-  }
-}
-
-```
-
 **You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
 
-Questions? Check out [the FAQ](https://github.com/square/leakcanary/wiki/FAQ)!
+## FAQ
+
+* [Why should I use LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#why-should-i-use-leakcanary)
+* [How do I use it?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-use-it)
+* [How does it work?](https://github.com/square/leakcanary/wiki/FAQ#how-does-it-work)
+* [How do I customize LeakCanary to my needs?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-customize-leakcanary-to-my-needs)
+* [How do I copy the leak trace?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-copy-the-leak-trace)
+* [How do I fix a memory leak?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-fix-a-memory-leak)
+* [Can a leak be caused by the Android SDK?](https://github.com/square/leakcanary/wiki/FAQ#can-a-leak-be-caused-by-the-android-sdk)
+* [How can I dig beyond the leak trace?](https://github.com/square/leakcanary/wiki/FAQ#how-can-i-dig-beyond-the-leak-trace)
+* [How do I disable LeakCanary in tests?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-disable-leakcanary-in-tests)
+* [How do I fix build errors?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-fix-build-errors)
+* [How many methods does LeakCanary add?](https://github.com/square/leakcanary/wiki/FAQ#how-many-methods-does-leakcanary-add)
+* [Where can I learn more?](https://github.com/square/leakcanary/wiki/FAQ#where-can-i-learn-more)
+* [How do I use the SNAPSHOT version?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-use-the-snapshot-version)
+* [How can I be notified of new releases?](https://github.com/square/leakcanary/wiki/FAQ#how-can-i-be-notified-of-new-releases)
+* [Who's behind LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#whos-behind-leakcanary)
+* [Why is it called LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#why-is-it-called-leakcanary)
+* [Who made the logo?](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo)
+* [Build error: Failed to resolve](https://github.com/square/leakcanary/wiki/FAQ#build-error-failed-to-resolve)
+* [Instant Run can trigger invalid leaks](https://github.com/square/leakcanary/wiki/FAQ#instant-run-can-trigger-invalid-leaks)
+* [I know I have a leak. Why doesn't the notification show?](https://github.com/square/leakcanary/wiki/FAQ#i-know-i-have-a-leak-why-doesnt-the-notification-show)
+
 
 <p align="center">
-<img src="https://github.com/square/leakcanary/blob/master/assets/icon_512.png" width="250"/>
+<img src="https://github.com/square/leakcanary/wiki/assets/icon_512.png" width="250"/>
 </p>
 
 ## License

@@ -34,13 +34,23 @@
         android:process=":leakcanary"
         android:enabled="false"
         />
+    <provider
+        android:name="android.support.v4.content.FileProvider"
+        android:authorities="com.squareup.leakcanary.fileprovider.${applicationId}"
+        android:exported="false"
+        android:grantUriPermissions="true"
+        >
+      <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/leak_canary_file_paths"/>
+    </provider>
     <activity
         android:theme="@style/leak_canary_LeakCanary.Base"
         android:name=".internal.DisplayLeakActivity"
         android:process=":leakcanary"
         android:enabled="false"
         android:label="@string/leak_canary_display_activity_label"
-        android:icon="@drawable/leak_canary_icon"
+        android:icon="@mipmap/leak_canary_icon"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         >
       <intent-filter>
@@ -55,7 +65,8 @@
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:enabled="false"
         android:excludeFromRecents="true"
-        android:icon="@drawable/leak_canary_icon"
+        android:icon="@mipmap/leak_canary_icon"
+        android:roundIcon="@mipmap/leak_canary_icon"
         android:label="@string/leak_canary_storage_permission_activity_label"
         />
 

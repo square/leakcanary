@@ -136,7 +136,7 @@ final class ShortestPathFinder {
           String threadName = threadName(thread);
           Exclusion params = excludedRefs.threadNames.get(threadName);
           if (params == null || !params.alwaysExclude) {
-            enqueue(params, null, rootObj, null, null);
+            enqueue(params, null, rootObj, null);
           }
           break;
         case INTERNED_STRING:
@@ -163,7 +163,7 @@ final class ShortestPathFinder {
           // Input or output parameters in native code.
         case NATIVE_STACK:
         case JAVA_STATIC:
-          enqueue(null, null, rootObj, null, null);
+          enqueue(null, null, rootObj, null);
           break;
         default:
           throw new UnsupportedOperationException("Unknown root type:" + rootObj.getRootType());
@@ -187,10 +187,10 @@ final class ShortestPathFinder {
       if (node.exclusion != null) {
         exclusion = node.exclusion;
       }
-      LeakNode parent = new LeakNode(null, holder, null, null, null);
-      enqueue(exclusion, parent, child, "<Java Local>", LOCAL);
+      LeakNode parent = new LeakNode(null, holder, null, null);
+      enqueue(exclusion, parent, child, new LeakReference(LOCAL, null, null));
     } else {
-      enqueue(null, node, child, null, null);
+      enqueue(null, node, child, null);
     }
   }
 
@@ -209,17 +209,19 @@ final class ShortestPathFinder {
       }
       Instance child = (Instance) entry.getValue();
       boolean visit = true;
+      String fieldValue = entry.getValue() == null ? "null" : entry.getValue().toString();
+      LeakReference leakReference = new LeakReference(STATIC_FIELD, fieldName, fieldValue);
       if (ignoredStaticFields != null) {
         Exclusion params = ignoredStaticFields.get(fieldName);
         if (params != null) {
           visit = false;
           if (!params.alwaysExclude) {
-            enqueue(params, node, child, fieldName, STATIC_FIELD);
+            enqueue(params, node, child, leakReference);
           }
         }
       }
       if (visit) {
-        enqueue(null, node, child, fieldName, STATIC_FIELD);
+        enqueue(null, node, child, leakReference);
       }
     }
   }
@@ -263,7 +265,8 @@ final class ShortestPathFinder {
           && !fieldExclusion.alwaysExclude))) {
         fieldExclusion = params;
       }
-      enqueue(fieldExclusion, node, child, fieldName, INSTANCE_FIELD);
+      String value = fieldValue.getValue() == null ? "null" : fieldValue.getValue().toString();
+      enqueue(fieldExclusion, node, child, new LeakReference(INSTANCE_FIELD, fieldName, value));
     }
   }
 
@@ -274,13 +277,15 @@ final class ShortestPathFinder {
       Object[] values = arrayInstance.getValues();
       for (int i = 0; i < values.length; i++) {
         Instance child = (Instance) values[i];
-        enqueue(null, node, child, "[" + i + "]", ARRAY_ENTRY);
+        String name = Integer.toString(i);
+        String value = child == null ? "null" : child.toString();
+        enqueue(null, node, child, new LeakReference(ARRAY_ENTRY, name, value));
       }
     }
   }
 
-  private void enqueue(Exclusion exclusion, LeakNode parent, Instance child, String referenceName,
-      LeakTraceElement.Type referenceType) {
+  private void enqueue(Exclusion exclusion, LeakNode parent, Instance child,
+      LeakReference leakReference) {
     if (child == null) {
       return;
     }
@@ -301,7 +306,7 @@ final class ShortestPathFinder {
     if (visitedSet.contains(child)) {
       return;
     }
-    LeakNode childNode = new LeakNode(exclusion, child, parent, referenceName, referenceType);
+    LeakNode childNode = new LeakNode(exclusion, child, parent, leakReference);
     if (visitNow) {
       toVisitSet.add(child);
       toVisitQueue.add(childNode);

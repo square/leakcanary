@@ -31,6 +31,7 @@ import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.N;
 import static android.os.Build.VERSION_CODES.N_MR1;
+import static android.os.Build.VERSION_CODES.O_MR1;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.HUAWEI;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LENOVO;
@@ -143,7 +144,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= N_MR1) {
+  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       String reason = "When we detach a view that receives keyboard input, the InputMethodManager"
           + " leaks a reference to it until a new view asks for keyboard input."
@@ -158,7 +159,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  INPUT_METHOD_MANAGER__ROOT_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= M) {
+  INPUT_METHOD_MANAGER__ROOT_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.inputmethod.InputMethodManager", "mCurRootView")
           .reason("The singleton InputMethodManager is holding a reference to mCurRootView long"
@@ -211,7 +212,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  ACCOUNT_MANAGER(SDK_INT <= LOLLIPOP_MR1) {
+  ACCOUNT_MANAGER(SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.accounts.AccountManager$AmsTask$Response", "this$1")
           .reason("AccountManager$AmsTask$Response is a stub and is held in memory by native code,"
@@ -348,6 +349,15 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  INPUT_METHOD_MANAGER__LAST_SERVED_VIEW(HUAWEI.equals(MANUFACTURER) && SDK_INT == N) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      String reason = "HUAWEI added a mLastSrvView field to InputMethodManager"
+          + " that leaks a reference to the last served view.";
+      excluded.instanceField("android.view.inputmethod.InputMethodManager", "mLastSrvView")
+          .reason(reason);
+    }
+  },
+
   CLIPBOARD_UI_MANAGER__SINSTANCE(
       SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP) {
     @Override void add(ExcludedRefs.Builder excluded) {
@@ -374,7 +384,8 @@ public enum AndroidExcludedRefs {
       SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("com.samsung.android.emergencymode.SemEmergencyManager", "mContext")
-          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext.");
+          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext. "
+              + "Fix: https://gist.github.com/jankovd/a210460b814c04d500eb12025902d60d");
     }
   },
 

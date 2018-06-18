@@ -15,22 +15,26 @@
  */
 package com.squareup.leakcanary;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.MessageQueue;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.widget.Toast;
 import com.squareup.leakcanary.internal.FutureResult;
+import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class AndroidHeapDumper implements HeapDumper {
 
-  final Context context;
+  private final Context context;
   private final LeakDirectoryProvider leakDirectoryProvider;
   private final Handler mainHandler;
 
@@ -39,7 +43,6 @@ public final class AndroidHeapDumper implements HeapDumper {
     this.context = context.getApplicationContext();
     mainHandler = new Handler(Looper.getMainLooper());
   }
-
 
   @SuppressWarnings("ReferenceEquality") // Explicitly checking for named null.
   @Override public File dumpHeap() {
@@ -57,10 +60,19 @@ public final class AndroidHeapDumper implements HeapDumper {
       return RETRY_LATER;
     }
 
+    Notification.Builder builder = new Notification.Builder(context)
+        .setContentTitle(context.getString(R.string.leak_canary_notification_dumping));
+    Notification notification = LeakCanaryInternals.buildNotification(context, builder);
+    NotificationManager notificationManager =
+        (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+    int notificationId = (int) SystemClock.uptimeMillis();
+    notificationManager.notify(notificationId, notification);
+
     Toast toast = waitingForToast.get();
     try {
       Debug.dumpHprofData(heapDumpFile.getAbsolutePath());
       cancelToast(toast);
+      notificationManager.cancel(notificationId);
       return heapDumpFile;
     } catch (Exception e) {
       CanaryLog.d(e, "Could not dump heap");

@@ -17,6 +17,7 @@ package com.squareup.leakcanary;
 
 import java.io.File;
 import java.lang.ref.ReferenceQueue;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -87,6 +88,27 @@ public final class RefWatcher {
         new KeyedWeakReference(watchedReference, key, referenceName, queue);
 
     ensureGoneAsync(watchStartNanoTime, reference);
+  }
+
+  /**
+   * LeakCanary will stop watching any references that were passed to {@link #watch(Object, String)}
+   * so far.
+   */
+  public void clearWatchedReferences() {
+    retainedKeys.clear();
+  }
+
+  boolean isEmpty() {
+    removeWeaklyReachableReferences();
+    return retainedKeys.isEmpty();
+  }
+
+  ExcludedRefs getExcludedRefs() {
+    return excludedRefs;
+  }
+
+  Set<String> getRetainedKeys() {
+    return new HashSet<>(retainedKeys);
   }
 
   private void ensureGoneAsync(final long watchStartNanoTime, final KeyedWeakReference reference) {
