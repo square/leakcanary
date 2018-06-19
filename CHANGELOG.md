@@ -2,12 +2,12 @@
 
 ## Version 1.6 (Future release)
 
-* [#1011](https://github.com/square/leakcanary/issues/1011) Analysis duration is greatly reduced: computing the retained heap size is now optional and off by default.
+* [#1011](https://github.com/square/leakcanary/issues/1011) We noticed that computing the retained heap size could take a long time, so it's now optional and off by default.
 * [#633](https://github.com/square/leakcanary/pull/633) Support for detecting leaks in instrumentation tests.
 * [#985](https://github.com/square/leakcanary/pull/985) Ability to convert leak traces into stack traces for easy remote reporting.
 * [#983](https://github.com/square/leakcanary/issues/983) Support for watching destroyed Fragments.
 * [#846](https://github.com/square/leakcanary/issues/846) LeakCanary now uses foreground services and displays a notification when the analysis is in progress. This also fixes crashes when analyzing in background on O+.
-* [#775](https://github.com/square/leakcanary/issues/775) Fixed crash when sharing heap dumps on O+. This required added a dependency on the **support-core-utils** library.
+* [#775](https://github.com/square/leakcanary/issues/775) Fixed crash when sharing heap dumps on O+ and added a dependency to the support-core-utils library.
 * [#930](https://github.com/square/leakcanary/pull/930) DisplayLeakActivity has a responsive icon.
 * [#685](https://github.com/square/leakcanary/issues/685) Stopped doing IO on main thread in DisplayLeakActivity (fixes StrictMode errors).
 * [#999](https://github.com/square/leakcanary/pull/999) Updated HAHA to 2.0.4, which uses Trove4j as an external dependency (from jcenter) instead of rebundling it. This is to clarify licences (Apache v2 vs LGPL 2.1).
