@@ -2,7 +2,13 @@ apply plugin: 'com.android.library'
 
 dependencies {
   api project(':leakcanary-analyzer')
-  implementation 'com.android.support:support-core-utils:27.1.1'
+  // We don't need the latest version of the support library (there are no bugs that impact what
+  // LeakCanary relies on), we're sticking a bit older because most apps will be using a more
+  // recent version and they'll automatically resolve to higher version without having to
+  // necessarily resort to a resolution strategy. This is also the version we use in
+  // leakcanary-support-fragment.
+  //noinspection GradleDependency
+  implementation 'com.android.support:support-core-utils:26.0.0'
 }
 
 def gitSha() {
