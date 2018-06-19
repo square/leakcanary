@@ -1,7 +1,6 @@
 package com.squareup.leakcanary;
 
 import android.content.Context;
-import com.squareup.leakcanary.internal.ActivityRefWatcher;
 import com.squareup.leakcanary.internal.FragmentRefWatcher;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.util.concurrent.TimeUnit;

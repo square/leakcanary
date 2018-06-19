@@ -13,22 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.leakcanary.internal;
+package com.squareup.leakcanary;
 
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
-import com.squareup.leakcanary.RefWatcher;
+import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter;
 
 /**
- * Internal class used to watch for activity leaks.
+ * @deprecated This was initially part of the LeakCanary API, but should not be any more.
+ * {@link AndroidRefWatcherBuilder#watchActivities} should be used instead.
+ * We will make this class internal in the next major version.
  */
+@SuppressWarnings("DeprecatedIsStillUsed")
+@Deprecated
 public final class ActivityRefWatcher {
 
-  public static void install(Context context, RefWatcher refWatcher) {
-    ActivityRefWatcher activityRefWatcher = new ActivityRefWatcher(refWatcher);
+  public static void installOnIcsPlus(Application application, RefWatcher refWatcher) {
+    install(application, refWatcher);
+  }
 
+  public static void install(Context context, RefWatcher refWatcher) {
     Application application = (Application) context.getApplicationContext();
+    ActivityRefWatcher activityRefWatcher = new ActivityRefWatcher(application, refWatcher);
+
     application.registerActivityLifecycleCallbacks(activityRefWatcher.lifecycleCallbacks);
   }
 
@@ -39,9 +47,21 @@ public final class ActivityRefWatcher {
         }
       };
 
+  private final Application application;
   private final RefWatcher refWatcher;
 
-  private ActivityRefWatcher(RefWatcher refWatcher) {
+  private ActivityRefWatcher(Application application, RefWatcher refWatcher) {
+    this.application = application;
     this.refWatcher = refWatcher;
+  }
+
+  public void watchActivities() {
+    // Make sure you don't get installed twice.
+    stopWatchingActivities();
+    application.registerActivityLifecycleCallbacks(lifecycleCallbacks);
+  }
+
+  public void stopWatchingActivities() {
+    application.unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
   }
 }
