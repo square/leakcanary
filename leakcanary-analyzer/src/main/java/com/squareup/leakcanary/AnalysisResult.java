@@ -19,6 +19,8 @@ import java.io.Serializable;
 
 public final class AnalysisResult implements Serializable {
 
+  public static final long RETAINED_HEAP_SKIPPED = -1;
+
   public static AnalysisResult noLeak(long analysisDurationMs) {
     return new AnalysisResult(false, false, null, null, null, 0, analysisDurationMs);
   }
@@ -59,7 +61,8 @@ public final class AnalysisResult implements Serializable {
 
   /**
    * The number of bytes which would be freed if all references to the leaking object were
-   * released. 0 if {@link #leakFound} is false.
+   * released. {@link #RETAINED_HEAP_SKIPPED} if the retained heap size was not computed. 0 if
+   * {@link #leakFound} is false.
    */
   public final long retainedHeapSize;
 

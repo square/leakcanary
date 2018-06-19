@@ -183,10 +183,12 @@ public final class InstrumentationLeakDetector {
         continue;
       }
 
+      HeapDump.Durations durations = new HeapDump.Durations(0, 0, 0);
       HeapDump heapDump =
-          new HeapDump(heapDumpFile, trackedReference.key, trackedReference.name, excludedRefs, 0,
-              0, 0);
-      AnalysisResult analysisResult = heapAnalyzer.checkForLeak(heapDumpFile, trackedReference.key);
+          new HeapDump(heapDumpFile, trackedReference.key, trackedReference.name, excludedRefs,
+              false, durations);
+      AnalysisResult analysisResult =
+          heapAnalyzer.checkForLeak(heapDumpFile, trackedReference.key, false);
 
       InstrumentationLeakResults.Result leakResult =
           new InstrumentationLeakResults.Result(heapDump, analysisResult);

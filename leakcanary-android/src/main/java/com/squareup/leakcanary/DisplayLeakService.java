@@ -63,12 +63,22 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       pendingIntent = DisplayLeakActivity.createPendingIntent(this, heapDump.referenceKey);
 
       if (result.failure == null) {
-        String size = formatShortFileSize(this, result.retainedHeapSize);
-        String className = classSimpleName(result.className);
-        if (result.excludedLeak) {
-          contentTitle = getString(R.string.leak_canary_leak_excluded, className, size);
+        if (result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
+          String className = classSimpleName(result.className);
+          if (result.excludedLeak) {
+            contentTitle = getString(R.string.leak_canary_leak_excluded, className);
+          } else {
+            contentTitle = getString(R.string.leak_canary_class_has_leaked, className);
+          }
         } else {
-          contentTitle = getString(R.string.leak_canary_class_has_leaked, className, size);
+          String size = formatShortFileSize(this, result.retainedHeapSize);
+          String className = classSimpleName(result.className);
+          if (result.excludedLeak) {
+            contentTitle = getString(R.string.leak_canary_leak_excluded_retaining, className, size);
+          } else {
+            contentTitle =
+                getString(R.string.leak_canary_class_has_leaked_retaining, className, size);
+          }
         }
       } else {
         contentTitle = getString(R.string.leak_canary_analysis_failed);
@@ -118,9 +128,11 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       CanaryLog.d("Could not rename heap dump file %s to %s", heapDump.heapDumpFile.getPath(),
           newFile.getPath());
     }
+    HeapDump.Durations durations =
+        new HeapDump.Durations(heapDump.watchDurationMs, heapDump.gcDurationMs,
+            heapDump.heapDumpDurationMs);
     return new HeapDump(newFile, heapDump.referenceKey, heapDump.referenceName,
-        heapDump.excludedRefs, heapDump.watchDurationMs, heapDump.gcDurationMs,
-        heapDump.heapDumpDurationMs);
+        heapDump.excludedRefs, heapDump.computeRetainedHeapSize, durations);
   }
 
   /**

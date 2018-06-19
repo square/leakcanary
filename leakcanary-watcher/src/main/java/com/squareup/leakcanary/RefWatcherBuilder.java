@@ -12,6 +12,7 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
   private HeapDumper heapDumper;
   private WatchExecutor watchExecutor;
   private GcTrigger gcTrigger;
+  private boolean computeRetainedHeapSize;
 
   /** @see HeapDump.Listener */
   public final T heapDumpListener(HeapDump.Listener heapDumpListener) {
@@ -46,6 +47,15 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
   /** @see GcTrigger */
   public final T gcTrigger(GcTrigger gcTrigger) {
     this.gcTrigger = gcTrigger;
+    return self();
+  }
+
+  /**
+   * Whether LeakCanary should compute the retained heap size when a leak is detected. False by
+   * default, because computing the retained heap size takes a long time.
+   */
+  public final T computeRetainedHeapSize(boolean computeRetainedHeapSize) {
+    this.computeRetainedHeapSize = computeRetainedHeapSize;
     return self();
   }
 
@@ -86,7 +96,7 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
     }
 
     return new RefWatcher(watchExecutor, debuggerControl, gcTrigger, heapDumper, heapDumpListener,
-        excludedRefs);
+        excludedRefs, computeRetainedHeapSize);
   }
 
   protected boolean isDisabled() {

@@ -113,10 +113,20 @@ public final class HeapAnalyzer {
   }
 
   /**
+   * Calls {@link #checkForLeak(File, String, boolean)} with computeRetainedSize set to true.
+   * @deprecated Use {@link #checkForLeak(File, String, boolean)} instead.
+   */
+  @Deprecated
+  public AnalysisResult checkForLeak(File heapDumpFile, String referenceKey) {
+    return checkForLeak(heapDumpFile, referenceKey, true);
+  }
+
+  /**
    * Searches the heap dump for a {@link KeyedWeakReference} instance with the corresponding key,
    * and then computes the shortest strong reference path from that instance to the GC roots.
    */
-  public AnalysisResult checkForLeak(File heapDumpFile, String referenceKey) {
+  public AnalysisResult checkForLeak(File heapDumpFile, String referenceKey,
+      boolean computeRetainedSize) {
     long analysisStartNanoTime = System.nanoTime();
 
     if (!heapDumpFile.exists()) {
@@ -139,7 +149,7 @@ public final class HeapAnalyzer {
       if (leakingRef == null) {
         return noLeak(since(analysisStartNanoTime));
       }
-      return findLeakTrace(analysisStartNanoTime, snapshot, leakingRef);
+      return findLeakTrace(analysisStartNanoTime, snapshot, leakingRef, computeRetainedSize);
     } catch (Throwable e) {
       return failure(e, since(analysisStartNanoTime));
     }
@@ -189,7 +199,7 @@ public final class HeapAnalyzer {
   }
 
   private AnalysisResult findLeakTrace(long analysisStartNanoTime, Snapshot snapshot,
-      Instance leakingRef) {
+      Instance leakingRef, boolean computeRetainedSize) {
 
     listener.onProgressUpdate(FINDING_SHORTEST_PATH);
     ShortestPathFinder pathFinder = new ShortestPathFinder(excludedRefs);
@@ -205,18 +215,24 @@ public final class HeapAnalyzer {
 
     String className = leakingRef.getClassObj().getClassName();
 
-    listener.onProgressUpdate(COMPUTING_DOMINATORS);
-    // Side effect: computes retained size.
-    snapshot.computeDominators();
+    long retainedSize;
+    if (computeRetainedSize) {
 
-    Instance leakingInstance = result.leakingNode.instance;
+      listener.onProgressUpdate(COMPUTING_DOMINATORS);
+      // Side effect: computes retained size.
+      snapshot.computeDominators();
 
-    long retainedSize = leakingInstance.getTotalRetainedSize();
+      Instance leakingInstance = result.leakingNode.instance;
 
-    // TODO: check O sources and see what happened to android.graphics.Bitmap.mBuffer
-    if (SDK_INT <= N_MR1) {
-      listener.onProgressUpdate(COMPUTING_BITMAP_SIZE);
-      retainedSize += computeIgnoredBitmapRetainedSize(snapshot, leakingInstance);
+      retainedSize = leakingInstance.getTotalRetainedSize();
+
+      // TODO: check O sources and see what happened to android.graphics.Bitmap.mBuffer
+      if (SDK_INT <= N_MR1) {
+        listener.onProgressUpdate(COMPUTING_BITMAP_SIZE);
+        retainedSize += computeIgnoredBitmapRetainedSize(snapshot, leakingInstance);
+      }
+    } else {
+      retainedSize = AnalysisResult.RETAINED_HEAP_SKIPPED;
     }
 
     return leakDetected(result.excludingKnownLeaks, className, leakTrace, retainedSize,

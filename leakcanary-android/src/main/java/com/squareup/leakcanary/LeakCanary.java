@@ -111,7 +111,9 @@ public final class LeakCanary {
         info += " (" + heapDump.referenceName + ")";
       }
       info += " has leaked:\n" + result.leakTrace.toString() + "\n";
-      info += "* Retaining: " + formatShortFileSize(context, result.retainedHeapSize) + ".\n";
+      if (result.retainedHeapSize != AnalysisResult.RETAINED_HEAP_SKIPPED) {
+        info += "* Retaining: " + formatShortFileSize(context, result.retainedHeapSize) + ".\n";
+      }
       if (detailed) {
         detailedString = "\n* Details:\n" + result.leakTrace.toDetailedString();
       }
