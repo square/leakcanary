@@ -23,6 +23,8 @@ import android.view.View;
 
 public class MainActivity extends Activity {
 
+  private HttpRequestHelper httpRequestHelper;
+
   @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.main_activity);
@@ -33,6 +35,15 @@ public class MainActivity extends Activity {
         startAsyncWork();
       }
     });
+
+    httpRequestHelper = (HttpRequestHelper) getLastNonConfigurationInstance();
+    if (httpRequestHelper == null) {
+      httpRequestHelper = new HttpRequestHelper(button);
+    }
+  }
+
+  @Override public Object onRetainNonConfigurationInstance() {
+    return httpRequestHelper;
   }
 
   @SuppressLint("StaticFieldLeak")

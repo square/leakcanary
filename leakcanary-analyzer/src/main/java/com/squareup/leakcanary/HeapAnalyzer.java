@@ -30,8 +30,11 @@ import com.squareup.haha.perflib.io.MemoryMappedFileBuffer;
 import gnu.trove.THashMap;
 import gnu.trove.TObjectProcedure;
 import java.io.File;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +64,9 @@ import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.ARRAY_ENTRY;
 import static com.squareup.leakcanary.LeakTraceElement.Type.INSTANCE_FIELD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
+import static com.squareup.leakcanary.Reachability.REACHABLE;
+import static com.squareup.leakcanary.Reachability.UNKNOWN;
+import static com.squareup.leakcanary.Reachability.UNREACHABLE;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
@@ -72,14 +78,33 @@ public final class HeapAnalyzer {
 
   private final ExcludedRefs excludedRefs;
   private final AnalyzerProgressListener listener;
+  private final List<Reachability.Inspector> reachabilityInspectors;
 
+  /**
+   * @deprecated Use {@link #HeapAnalyzer(ExcludedRefs, AnalyzerProgressListener, List)}.
+   */
+  @Deprecated
   public HeapAnalyzer(ExcludedRefs excludedRefs) {
-    this(excludedRefs, AnalyzerProgressListener.NONE);
+    this(excludedRefs, AnalyzerProgressListener.NONE,
+        Collections.<Class<? extends Reachability.Inspector>>emptyList());
   }
 
-  public HeapAnalyzer(ExcludedRefs excludedRefs, AnalyzerProgressListener listener) {
+  public HeapAnalyzer(ExcludedRefs excludedRefs, AnalyzerProgressListener listener,
+      List<Class<? extends Reachability.Inspector>> reachabilityInspectorClasses) {
     this.excludedRefs = excludedRefs;
     this.listener = listener;
+
+    this.reachabilityInspectors = new ArrayList<>();
+    for (Class<? extends Reachability.Inspector> reachabilityInspectorClass
+        : reachabilityInspectorClasses) {
+      try {
+        Constructor<? extends Reachability.Inspector> defaultConstructor =
+            reachabilityInspectorClass.getDeclaredConstructor();
+        reachabilityInspectors.add(defaultConstructor.newInstance());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   public List<TrackedReference> findTrackedReferences(File heapDumpFile) {
@@ -114,6 +139,7 @@ public final class HeapAnalyzer {
 
   /**
    * Calls {@link #checkForLeak(File, String, boolean)} with computeRetainedSize set to true.
+   *
    * @deprecated Use {@link #checkForLeak(File, String, boolean)} instead.
    */
   @Deprecated
@@ -304,7 +330,48 @@ public final class HeapAnalyzer {
       }
       node = node.parent;
     }
-    return new LeakTrace(elements);
+
+    Map<LeakTraceElement, Reachability> expectedReachability =
+        computeExpectedReachability(elements);
+
+    return new LeakTrace(elements, expectedReachability);
+  }
+
+  private Map<LeakTraceElement, Reachability> computeExpectedReachability(
+      List<LeakTraceElement> elements) {
+    int lastAliveElement = 0;
+    int firstDeadElement = elements.size() - 1;
+    elementLoop:
+    for (int i = 0; i < elements.size(); i++) {
+      LeakTraceElement element = elements.get(i);
+
+      for (Reachability.Inspector reachabilityInspector : reachabilityInspectors) {
+        Reachability reachability = reachabilityInspector.expectedReachability(element);
+        if (reachability == REACHABLE) {
+          lastAliveElement = i;
+          break;
+        } else if (reachability == UNREACHABLE) {
+          firstDeadElement = i;
+          break elementLoop;
+        }
+      }
+    }
+
+    Map<LeakTraceElement, Reachability> expectedReachability = new HashMap<>();
+    for (int i = 0; i < elements.size(); i++) {
+      LeakTraceElement element = elements.get(i);
+
+      Reachability status;
+      if (i <= lastAliveElement) {
+        status = REACHABLE;
+      } else if (i >= firstDeadElement) {
+        status = UNREACHABLE;
+      } else {
+        status = UNKNOWN;
+      }
+      expectedReachability.put(element, status);
+    }
+    return expectedReachability;
   }
 
   private LeakTraceElement buildLeakElement(LeakNode node) {

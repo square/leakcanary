@@ -168,8 +168,10 @@ public final class InstrumentationLeakDetector {
       return InstrumentationLeakResults.NONE;
     }
 
-    ExcludedRefs excludedRefs = refWatcher.getExcludedRefs();
-    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(excludedRefs);
+    HeapDump.Builder heapDumpBuilder = refWatcher.getHeapDumpBuilder();
+    HeapAnalyzer heapAnalyzer =
+        new HeapAnalyzer(heapDumpBuilder.excludedRefs, AnalyzerProgressListener.NONE,
+            heapDumpBuilder.reachabilityInspectorClasses);
 
     List<TrackedReference> trackedReferences = heapAnalyzer.findTrackedReferences(heapDumpFile);
 
@@ -183,10 +185,14 @@ public final class InstrumentationLeakDetector {
         continue;
       }
 
-      HeapDump.Durations durations = new HeapDump.Durations(0, 0, 0);
-      HeapDump heapDump =
-          new HeapDump(heapDumpFile, trackedReference.key, trackedReference.name, excludedRefs,
-              false, durations);
+      HeapDump heapDump = HeapDump.builder()
+          .heapDumpFile(heapDumpFile)
+          .referenceKey(trackedReference.key)
+          .referenceName(trackedReference.name)
+          .excludedRefs(heapDumpBuilder.excludedRefs)
+          .reachabilityInspectorClasses(heapDumpBuilder.reachabilityInspectorClasses)
+          .build();
+
       AnalysisResult analysisResult =
           heapAnalyzer.checkForLeak(heapDumpFile, trackedReference.key, false);
 

@@ -15,25 +15,37 @@
  */
 package com.squareup.leakcanary.internal;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
+import com.squareup.leakcanary.R;
 
 public final class MoreDetailsView extends View {
 
-  private static final Paint iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-  static {
-    iconPaint.setColor(LeakCanaryUi.ROOT_COLOR);
-  }
+  private final Paint iconPaint;
 
   public MoreDetailsView(Context context, AttributeSet attrs) {
     super(context, attrs);
-
-    float strokeSize = LeakCanaryUi.dpToPixel(2f, getResources());
+    Resources resources = getResources();
+    iconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    float strokeSize = resources.getDimensionPixelSize(R.dimen.leak_canary_more_stroke_width);
     iconPaint.setStrokeWidth(strokeSize);
+
+    // This lint check doesn't work for libraries which have a common prefix.
+    @SuppressLint("CustomViewStyleable") //
+        TypedArray a =
+        context.obtainStyledAttributes(attrs, R.styleable.leak_canary_MoreDetailsView);
+    int plusColor =
+        a.getColor(R.styleable.leak_canary_MoreDetailsView_leak_canary_plus_color, Color.BLACK);
+    a.recycle();
+
+    iconPaint.setColor(plusColor);
   }
 
   private boolean opened;

@@ -42,22 +42,19 @@ public final class RefWatcher {
   private final DebuggerControl debuggerControl;
   private final GcTrigger gcTrigger;
   private final HeapDumper heapDumper;
+  private final HeapDump.Listener heapdumpListener;
+  private final HeapDump.Builder heapDumpBuilder;
   private final Set<String> retainedKeys;
   private final ReferenceQueue<Object> queue;
-  private final HeapDump.Listener heapdumpListener;
-  private final ExcludedRefs excludedRefs;
-  private final boolean computeRetainedHeapSize;
 
   RefWatcher(WatchExecutor watchExecutor, DebuggerControl debuggerControl, GcTrigger gcTrigger,
-      HeapDumper heapDumper, HeapDump.Listener heapdumpListener, ExcludedRefs excludedRefs,
-      boolean computeRetainedHeapSize) {
+      HeapDumper heapDumper, HeapDump.Listener heapdumpListener, HeapDump.Builder heapDumpBuilder) {
     this.watchExecutor = checkNotNull(watchExecutor, "watchExecutor");
     this.debuggerControl = checkNotNull(debuggerControl, "debuggerControl");
     this.gcTrigger = checkNotNull(gcTrigger, "gcTrigger");
     this.heapDumper = checkNotNull(heapDumper, "heapDumper");
     this.heapdumpListener = checkNotNull(heapdumpListener, "heapdumpListener");
-    this.excludedRefs = checkNotNull(excludedRefs, "excludedRefs");
-    this.computeRetainedHeapSize = computeRetainedHeapSize;
+    this.heapDumpBuilder = heapDumpBuilder;
     retainedKeys = new CopyOnWriteArraySet<>();
     queue = new ReferenceQueue<>();
   }
@@ -106,8 +103,8 @@ public final class RefWatcher {
     return retainedKeys.isEmpty();
   }
 
-  ExcludedRefs getExcludedRefs() {
-    return excludedRefs;
+  HeapDump.Builder getHeapDumpBuilder() {
+    return heapDumpBuilder;
   }
 
   Set<String> getRetainedKeys() {
@@ -148,11 +145,15 @@ public final class RefWatcher {
         return RETRY;
       }
       long heapDumpDurationMs = NANOSECONDS.toMillis(System.nanoTime() - startDumpHeap);
-      HeapDump.Durations durations =
-          new HeapDump.Durations(watchDurationMs, gcDurationMs, heapDumpDurationMs);
-      heapdumpListener.analyze(
-          new HeapDump(heapDumpFile, reference.key, reference.name, excludedRefs,
-              computeRetainedHeapSize, durations));
+
+      HeapDump heapDump = heapDumpBuilder.heapDumpFile(heapDumpFile).referenceKey(reference.key)
+          .referenceName(reference.name)
+          .watchDurationMs(watchDurationMs)
+          .gcDurationMs(gcDurationMs)
+          .heapDumpDurationMs(heapDumpDurationMs)
+          .build();
+
+      heapdumpListener.analyze(heapDump);
     }
     return DONE;
   }
