@@ -17,6 +17,7 @@ package com.squareup.leakcanary;
 
 import android.content.Context;
 import android.content.Intent;
+import android.support.v4.content.ContextCompat;
 import com.squareup.leakcanary.internal.ForegroundService;
 
 public abstract class AbstractAnalysisResultService extends ForegroundService {
@@ -35,7 +36,7 @@ public abstract class AbstractAnalysisResultService extends ForegroundService {
     Intent intent = new Intent(context, listenerServiceClass);
     intent.putExtra(HEAP_DUMP_EXTRA, heapDump);
     intent.putExtra(RESULT_EXTRA, result);
-    context.startService(intent);
+    ContextCompat.startForegroundService(context, intent);
   }
 
   public AbstractAnalysisResultService() {
