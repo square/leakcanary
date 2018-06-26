@@ -38,7 +38,7 @@ public final class FailTestOnLeakRunListener extends RunListener {
   private static final String SEPARATOR = "######################################\n";
   private Bundle bundle;
 
-  private boolean skipLeakDetection;
+  private String skipLeakDetectionReason;
 
   @Override public void testStarted(Description description) {
     String testClass = description.getClassName();
@@ -52,15 +52,15 @@ public final class FailTestOnLeakRunListener extends RunListener {
   }
 
   @Override public void testFailure(Failure failure) {
-    skipLeakDetection = true;
+    skipLeakDetectionReason = "failed";
   }
 
   @Override public void testIgnored(Description description) {
-    skipLeakDetection = true;
+    skipLeakDetectionReason = "was ignored";
   }
 
   @Override public void testAssumptionFailure(Failure failure) {
-    skipLeakDetection = true;
+    skipLeakDetectionReason = "had an assumption failure";
   }
 
   @Override public void testFinished(Description description) {
@@ -69,8 +69,9 @@ public final class FailTestOnLeakRunListener extends RunListener {
   }
 
   private void detectLeaks() {
-    if (skipLeakDetection) {
-      CanaryLog.d("Skipping leak detection");
+    if (skipLeakDetectionReason != null) {
+      CanaryLog.d("Skipping leak detection because the test %s", skipLeakDetectionReason);
+      skipLeakDetectionReason = null;
       return;
     }
 
