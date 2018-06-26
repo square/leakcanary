@@ -16,10 +16,8 @@
 package com.squareup.leakcanary;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
-
-import static java.util.Collections.unmodifiableList;
+import java.util.Map;
 
 /**
  * A chain of references that constitute the shortest strong reference path from a leaking instance
@@ -28,9 +26,11 @@ import static java.util.Collections.unmodifiableList;
 public final class LeakTrace implements Serializable {
 
   public final List<LeakTraceElement> elements;
+  public final Map<LeakTraceElement, Reachability> expectedReachability;
 
-  LeakTrace(List<LeakTraceElement> elements) {
-    this.elements = unmodifiableList(new ArrayList<>(elements));
+  LeakTrace(List<LeakTraceElement> elements, Map<LeakTraceElement, Reachability> expectedReachability) {
+    this.elements = elements;
+    this.expectedReachability = expectedReachability;
   }
 
   @Override public String toString() {
@@ -38,14 +38,20 @@ public final class LeakTrace implements Serializable {
     for (int i = 0; i < elements.size(); i++) {
       LeakTraceElement element = elements.get(i);
       sb.append("* ");
-      if (i == 0) {
-        sb.append("GC ROOT ");
-      } else if (i == elements.size() - 1) {
-        sb.append("leaks ");
-      } else {
-        sb.append("references ");
+      if (i != 0) {
+        sb.append("↳ ");
       }
-      sb.append(element).append("\n");
+      boolean maybeLeakCause = false;
+      Reachability currentReachability = expectedReachability.get(element);
+      if (currentReachability == Reachability.UNKNOWN) {
+        maybeLeakCause = true;
+      } else if (currentReachability == Reachability.REACHABLE) {
+        Reachability nextReachability = expectedReachability.get(elements.get(i + 1));
+        if (nextReachability !=  Reachability.REACHABLE) {
+          maybeLeakCause = true;
+        }
+      }
+      sb.append(element.toString(maybeLeakCause)).append("\n");
     }
     return sb.toString();
   }

@@ -83,7 +83,7 @@
       <!--property name="max" value="100"/-->
     <!--/module-->
     <!--module name="MethodLength"/-->
-    <module name="ParameterNumber"/>
+    <!--<module name="ParameterNumber"/>-->
 
 
     <!-- Checks for whitespace                               -->
@@ -111,7 +111,7 @@
     <!--module name="AvoidNestedBlocks"/-->
     <!--module name="EmptyBlock"/-->
     <module name="LeftCurly"/>
-    <module name="NeedBraces"/>
+    <!--<module name="NeedBraces"/>-->
     <module name="RightCurly"/>
 
 

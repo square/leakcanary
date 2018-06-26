@@ -309,7 +309,7 @@ public final class DisplayLeakActivity extends Activity {
         if (listAdapter instanceof DisplayLeakAdapter) {
           adapter = (DisplayLeakAdapter) listAdapter;
         } else {
-          adapter = new DisplayLeakAdapter();
+          adapter = new DisplayLeakAdapter(getResources());
           listView.setAdapter(adapter);
           listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override

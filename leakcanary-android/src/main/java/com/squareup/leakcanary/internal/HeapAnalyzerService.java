@@ -61,7 +61,8 @@ public final class HeapAnalyzerService extends ForegroundService
     String listenerClassName = intent.getStringExtra(LISTENER_CLASS_EXTRA);
     HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
 
-    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(heapDump.excludedRefs, this);
+    HeapAnalyzer heapAnalyzer =
+        new HeapAnalyzer(heapDump.excludedRefs, this, heapDump.reachabilityInspectorClasses);
 
     AnalysisResult result = heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey,
         heapDump.computeRetainedHeapSize);

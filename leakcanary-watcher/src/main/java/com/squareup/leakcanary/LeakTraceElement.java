@@ -38,7 +38,10 @@ public final class LeakTraceElement implements Serializable {
     OBJECT, CLASS, THREAD, ARRAY
   }
 
-  /** Null if this is the last element in the leak trace, ie the leaking object. */
+  /**
+   * Information about the reference that points to the next {@link LeakTraceElement} in the leak
+   * chain. Null if this is the last element in the leak trace, ie the leaking object.
+   */
   public final LeakReference reference;
 
   /**
@@ -98,7 +101,53 @@ public final class LeakTraceElement implements Serializable {
     fields = Collections.unmodifiableList(stringFields);
   }
 
+  /**
+   * Returns the string value of the first field reference that has the provided referenceName, or
+   * null if no field reference with that name was found.
+   */
+  public String getFieldReferenceValue(String referenceName) {
+    for (LeakReference fieldReference : fieldReferences) {
+      if (fieldReference.name.equals(referenceName)) {
+        return fieldReference.value;
+      }
+    }
+    return null;
+  }
+
+  /** @see #isInstanceOf(String) */
+  public boolean isInstanceOf(Class<?> expectedClass) {
+    return isInstanceOf(expectedClass.getName());
+  }
+
+  /**
+   * Returns true if this element is an instance of the provided class name, false otherwise.
+   */
+  public boolean isInstanceOf(String expectedClassName) {
+    for (String className : classHierarchy) {
+      if (className.equals(expectedClassName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns {@link #className} without the package.
+   */
+  public String getSimpleClassName() {
+    int separator = className.lastIndexOf('.');
+    if (separator == -1) {
+      return className;
+    } else {
+      return className.substring(separator + 1);
+    }
+  }
+
   @Override public String toString() {
+    return toString(false);
+  }
+
+  public String toString(boolean maybeLeakCause) {
     String string = "";
 
     if (reference != null && reference.type == STATIC_FIELD) {
@@ -109,12 +158,14 @@ public final class LeakTraceElement implements Serializable {
       string += holder.name().toLowerCase(US) + " ";
     }
 
-    string += classHierarchy.get(0);
+    string += getSimpleClassName();
 
     if (reference != null) {
-      string += "." + reference.getDisplayName();
-    } else {
-      string += " instance";
+      String referenceName = reference.getDisplayName();
+      if (maybeLeakCause) {
+        referenceName = "⚠" + referenceName + "⚠";
+      }
+      string += "." + referenceName;
     }
 
     if (extra != null) {
@@ -142,5 +193,52 @@ public final class LeakTraceElement implements Serializable {
       string += "|   " + leakReference + "\n";
     }
     return string;
+  }
+
+  @Override public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    LeakTraceElement element = (LeakTraceElement) o;
+
+    if (reference != null ? !reference.equals(element.reference) : element.reference != null) {
+      return false;
+    }
+    if (referenceName != null ? !referenceName.equals(element.referenceName)
+        : element.referenceName != null) {
+      return false;
+    }
+    if (type != element.type) return false;
+    if (holder != element.holder) return false;
+    if (classHierarchy != null ? !classHierarchy.equals(element.classHierarchy)
+        : element.classHierarchy != null) {
+      return false;
+    }
+    if (className != null ? !className.equals(element.className) : element.className != null) {
+      return false;
+    }
+    if (extra != null ? !extra.equals(element.extra) : element.extra != null) return false;
+    if (exclusion != null ? !exclusion.equals(element.exclusion) : element.exclusion != null) {
+      return false;
+    }
+    if (fieldReferences != null ? !fieldReferences.equals(element.fieldReferences)
+        : element.fieldReferences != null) {
+      return false;
+    }
+    return fields != null ? fields.equals(element.fields) : element.fields == null;
+  }
+
+  @Override public int hashCode() {
+    int result = reference != null ? reference.hashCode() : 0;
+    result = 31 * result + (referenceName != null ? referenceName.hashCode() : 0);
+    result = 31 * result + (type != null ? type.hashCode() : 0);
+    result = 31 * result + (holder != null ? holder.hashCode() : 0);
+    result = 31 * result + (classHierarchy != null ? classHierarchy.hashCode() : 0);
+    result = 31 * result + (className != null ? className.hashCode() : 0);
+    result = 31 * result + (extra != null ? extra.hashCode() : 0);
+    result = 31 * result + (exclusion != null ? exclusion.hashCode() : 0);
+    result = 31 * result + (fieldReferences != null ? fieldReferences.hashCode() : 0);
+    result = 31 * result + (fields != null ? fields.hashCode() : 0);
+    return result;
   }
 }

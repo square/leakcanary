@@ -18,7 +18,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#3c3c3c"
+    android:background="@color/leak_canary_background_color"
     >
   <ListView
       android:id="@+id/leak_canary_display_leak_list"

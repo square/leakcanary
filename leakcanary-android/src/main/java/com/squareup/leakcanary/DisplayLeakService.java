@@ -128,11 +128,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
       CanaryLog.d("Could not rename heap dump file %s to %s", heapDump.heapDumpFile.getPath(),
           newFile.getPath());
     }
-    HeapDump.Durations durations =
-        new HeapDump.Durations(heapDump.watchDurationMs, heapDump.gcDurationMs,
-            heapDump.heapDumpDurationMs);
-    return new HeapDump(newFile, heapDump.referenceKey, heapDump.referenceName,
-        heapDump.excludedRefs, heapDump.computeRetainedHeapSize, durations);
+    return heapDump.buildUpon().heapDumpFile(newFile).build();
   }
 
   /**
