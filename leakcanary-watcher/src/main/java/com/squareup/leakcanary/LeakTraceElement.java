@@ -163,7 +163,7 @@ public final class LeakTraceElement implements Serializable {
     if (reference != null) {
       String referenceName = reference.getDisplayName();
       if (maybeLeakCause) {
-        referenceName = "⚠" + referenceName + "⚠";
+        referenceName = "!(" + referenceName + ")!";
       }
       string += "." + referenceName;
     }
