@@ -326,6 +326,17 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  // Introduced in Android N, not fixed on master yet.
+  BACKDROP_FRAME_RENDERER__MDECORVIEW(SDK_INT >= N) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("com.android.internal.policy.BackdropFrameRenderer", "mDecorView")
+          .reason("When BackdropFrameRenderer.releaseRenderer() is called, there's an unknown case "
+              + "where mRenderer becomes null but mChoreographer doesn't and the thread doesn't"
+              + "stop and ends up leaking mDecorView which itself holds on to a destroyed"
+              + "activity");
+    }
+  },
+
   // ######## Manufacturer specific Excluded refs ########
 
   INSTRUMENTATION_RECOMMEND_ACTIVITY(MEIZU.equals(MANUFACTURER) && SDK_INT >= LOLLIPOP && SDK_INT <= LOLLIPOP_MR1) {
