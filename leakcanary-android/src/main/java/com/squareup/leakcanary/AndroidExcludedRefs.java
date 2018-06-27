@@ -31,6 +31,7 @@ import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.N;
 import static android.os.Build.VERSION_CODES.N_MR1;
+import static android.os.Build.VERSION_CODES.O;
 import static android.os.Build.VERSION_CODES.O_MR1;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.HUAWEI;
@@ -308,6 +309,20 @@ public enum AndroidExcludedRefs {
               + " Tracked here: https://code.google.com/p/android/issues/detail?id=198852"
               + " Introduced here: https://github.com/android/platform_frameworks_base/commit/"
               + "e0bef71662d81caaaa0d7214fb0bef5d39996a69");
+    }
+  },
+
+  // Introduced in Android O, not fixed on master yet.
+  ACCESSIBILITY_NODE_INFO__MORIGINALTEXT(SDK_INT >= O) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("android.view.accessibility.AccessibilityNodeInfo", "mOriginalText")
+          .reason("AccessibilityNodeInfo has a static sPool of AccessibilityNodeInfo. When "
+              + "AccessibilityNodeInfo instances are released back in the pool, "
+              + "AccessibilityNodeInfo.clear() does not clear the mOriginalText field, which "
+              + "causes spans to leak which in turns causes TextView.ChangeWatcher to leak and the "
+              + "whole view hierarchy. Introduced here: https://android.googlesource.com/platform/"
+              + "frameworks/base/+/193520e3dff5248ddcf8435203bf99d2ba667219%5E%21/core/java/"
+              + "android/view/accessibility/AccessibilityNodeInfo.java");
     }
   },
 
