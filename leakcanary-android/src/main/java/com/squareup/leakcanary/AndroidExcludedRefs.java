@@ -120,9 +120,9 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  BLOCKING_QUEUE(SDK_INT <= LOLLIPOP) {
+  BLOCKING_QUEUE() {
     @Override void add(ExcludedRefs.Builder excluded) {
-      String reason = "Prior to ART, a thread waiting on a blocking queue will leak the last"
+      String reason = "A thread waiting on a blocking queue will leak the last"
           + " dequeued object as a stack local reference. So when a HandlerThread becomes idle, it"
           + " keeps a local reference to the last message it received. That message then gets"
           + " recycled and can be used again. As long as all messages are recycled after being"
@@ -137,7 +137,8 @@ public enum AndroidExcludedRefs {
           + " sleep for a long time."
           + " To fix this, you could post empty messages to the idle handler threads from time to"
           + " time. This won't be easy because you cannot access all handler threads, but a library"
-          + "that is widely used should consider doing this for its own handler threads.";
+          + "that is widely used should consider doing this for its own handler threads. This leaks"
+          + "has been shown to happen in both Dalvik and ART.";
       excluded.instanceField("android.os.Message", "obj").reason(reason);
       excluded.instanceField("android.os.Message", "next").reason(reason);
       excluded.instanceField("android.os.Message", "target").reason(reason);
