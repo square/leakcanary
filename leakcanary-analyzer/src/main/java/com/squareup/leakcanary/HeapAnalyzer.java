@@ -34,7 +34,6 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -331,45 +330,46 @@ public final class HeapAnalyzer {
       node = node.parent;
     }
 
-    Map<LeakTraceElement, Reachability> expectedReachability =
+    List<Reachability> expectedReachability =
         computeExpectedReachability(elements);
 
     return new LeakTrace(elements, expectedReachability);
   }
 
-  private Map<LeakTraceElement, Reachability> computeExpectedReachability(
+  private List<Reachability> computeExpectedReachability(
       List<LeakTraceElement> elements) {
-    int lastAliveElement = 0;
-    int firstDeadElement = elements.size() - 1;
+    int lastReachableElement = 0;
+    int lastElementIndex = elements.size() - 1;
+    int firstUnreachableElement = lastElementIndex;
+    // No need to inspect the first and last element. We know the first should be reachable (gc
+    // root) and the last should be unreachable (watched instance).
     elementLoop:
-    for (int i = 0; i < elements.size(); i++) {
+    for (int i = 1; i < lastElementIndex; i++) {
       LeakTraceElement element = elements.get(i);
 
       for (Reachability.Inspector reachabilityInspector : reachabilityInspectors) {
         Reachability reachability = reachabilityInspector.expectedReachability(element);
         if (reachability == REACHABLE) {
-          lastAliveElement = i;
+          lastReachableElement = i;
           break;
         } else if (reachability == UNREACHABLE) {
-          firstDeadElement = i;
+          firstUnreachableElement = i;
           break elementLoop;
         }
       }
     }
 
-    Map<LeakTraceElement, Reachability> expectedReachability = new HashMap<>();
+    List<Reachability> expectedReachability = new ArrayList<>();
     for (int i = 0; i < elements.size(); i++) {
-      LeakTraceElement element = elements.get(i);
-
       Reachability status;
-      if (i <= lastAliveElement) {
+      if (i <= lastReachableElement) {
         status = REACHABLE;
-      } else if (i >= firstDeadElement) {
+      } else if (i >= firstUnreachableElement) {
         status = UNREACHABLE;
       } else {
         status = UNKNOWN;
       }
-      expectedReachability.put(element, status);
+      expectedReachability.add(status);
     }
     return expectedReachability;
   }
