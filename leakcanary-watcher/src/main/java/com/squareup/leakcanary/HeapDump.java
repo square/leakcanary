@@ -116,7 +116,7 @@ public final class HeapDump implements Serializable {
       this.heapDumpFile = null;
       this.referenceKey = null;
       referenceName = "";
-      excludedRefs = ExcludedRefs.builder().build();
+      excludedRefs = null;
       watchDurationMs = 0;
       gcDurationMs = 0;
       heapDumpDurationMs = 0;
@@ -185,6 +185,7 @@ public final class HeapDump implements Serializable {
     }
 
     public HeapDump build() {
+      checkNotNull(excludedRefs, "excludedRefs");
       checkNotNull(heapDumpFile, "heapDumpFile");
       checkNotNull(referenceKey, "referenceKey");
       checkNotNull(reachabilityInspectorClasses, "reachabilityInspectorClasses");
