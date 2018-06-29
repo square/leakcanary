@@ -191,6 +191,16 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  SPELL_CHECKER(SDK_INT == LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("android.widget.SpellChecker$1", "this$0")
+          .reason("SpellChecker holds on to a detached view that points to a destroyed activity."
+              + "mSpellRunnable is being enqueued, and that callback should be removed when "
+              + "closeSession() is called. Maybe closeSession() wasn't called, or maybe it was "
+              + "called after the view was detached.");
+    }
+  },
+
   ACTIVITY_CHOOSE_MODEL(SDK_INT > ICE_CREAM_SANDWICH && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       String reason = "ActivityChooserModel holds a static reference to the last set"
