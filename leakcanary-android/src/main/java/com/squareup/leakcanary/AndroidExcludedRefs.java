@@ -182,7 +182,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SPELL_CHECKER_SESSION((SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) || SDK_INT >= N) {
+  SPELL_CHECKER_SESSION(SDK_INT >= JELLY_BEAN && SDK_INT <= N) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.textservice.SpellCheckerSession$1", "this$0")
           .reason("SpellCheckerSessionListenerImpl.mHandler is leaking destroyed Activity when the"
@@ -312,8 +312,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  // Introduced in Android O, not fixed on master yet.
-  ACCESSIBILITY_NODE_INFO__MORIGINALTEXT(SDK_INT >= O) {
+  ACCESSIBILITY_NODE_INFO__MORIGINALTEXT(SDK_INT == O) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.accessibility.AccessibilityNodeInfo", "mOriginalText")
           .reason("AccessibilityNodeInfo has a static sPool of AccessibilityNodeInfo. When "
@@ -326,8 +325,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  // Introduced in Android N, not fixed on master yet.
-  BACKDROP_FRAME_RENDERER__MDECORVIEW(SDK_INT >= N) {
+  BACKDROP_FRAME_RENDERER__MDECORVIEW(SDK_INT >= N && SDK_INT <= O) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("com.android.internal.policy.BackdropFrameRenderer", "mDecorView")
           .reason("When BackdropFrameRenderer.releaseRenderer() is called, there's an unknown case "
