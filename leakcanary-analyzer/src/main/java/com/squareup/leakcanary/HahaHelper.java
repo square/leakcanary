@@ -61,6 +61,27 @@ public final class HahaHelper {
     return extendsThread;
   }
 
+  /**
+   * This returns a string representation of any object or value passed in.
+   */
+  static String valueAsString(Object value) {
+    String stringValue;
+    if (value == null) {
+      stringValue = "null";
+    } else if (value instanceof ClassInstance) {
+      String valueClassName = ((ClassInstance) value).getClassObj().getClassName();
+      if (valueClassName.equals(String.class.getName())) {
+        stringValue = '"' + asString(value) + '"';
+      } else {
+        stringValue = value.toString();
+      }
+    } else {
+      stringValue = value.toString();
+    }
+    return stringValue;
+  }
+
+  /** Given a string instance from the heap dump, this returns its actual string value. */
   static String asString(Object stringObject) {
     Instance instance = (Instance) stringObject;
     List<ClassInstance.FieldValue> values = classInstanceValues(instance);

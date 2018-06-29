@@ -56,6 +56,7 @@ import static com.squareup.leakcanary.HahaHelper.extendsThread;
 import static com.squareup.leakcanary.HahaHelper.fieldValue;
 import static com.squareup.leakcanary.HahaHelper.hasField;
 import static com.squareup.leakcanary.HahaHelper.threadName;
+import static com.squareup.leakcanary.HahaHelper.valueAsString;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.ARRAY;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.CLASS;
 import static com.squareup.leakcanary.LeakTraceElement.Holder.OBJECT;
@@ -444,13 +445,12 @@ public final class HeapAnalyzer {
 
   private List<LeakReference> describeFields(Instance instance) {
     List<LeakReference> leakReferences = new ArrayList<>();
-
     if (instance instanceof ClassObj) {
       ClassObj classObj = (ClassObj) instance;
       for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
         String name = entry.getKey().getName();
-        String value = entry.getValue() == null ? "null" : entry.getValue().toString();
-        leakReferences.add(new LeakReference(STATIC_FIELD, name, value));
+        String stringValue = valueAsString(entry.getValue());
+        leakReferences.add(new LeakReference(STATIC_FIELD, name, stringValue));
       }
     } else if (instance instanceof ArrayInstance) {
       ArrayInstance arrayInstance = (ArrayInstance) instance;
@@ -458,22 +458,22 @@ public final class HeapAnalyzer {
         Object[] values = arrayInstance.getValues();
         for (int i = 0; i < values.length; i++) {
           String name = Integer.toString(i);
-          String value = values[i] == null ? "null" : values[i].toString();
-          leakReferences.add(new LeakReference(ARRAY_ENTRY, name, value));
+          String stringValue = valueAsString(values[i]);
+          leakReferences.add(new LeakReference(ARRAY_ENTRY, name, stringValue));
         }
       }
     } else {
       ClassObj classObj = instance.getClassObj();
       for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
         String name = entry.getKey().getName();
-        String value = entry.getValue() == null ? "null" : entry.getValue().toString();
-        leakReferences.add(new LeakReference(STATIC_FIELD, name, value));
+        String stringValue = valueAsString(entry.getValue());
+        leakReferences.add(new LeakReference(STATIC_FIELD, name, stringValue));
       }
       ClassInstance classInstance = (ClassInstance) instance;
       for (ClassInstance.FieldValue field : classInstance.getValues()) {
         String name = field.getField().getName();
-        String value = field.getValue() == null ? "null" : field.getValue().toString();
-        leakReferences.add(new LeakReference(INSTANCE_FIELD, name, value));
+        String stringValue = valueAsString(field.getValue());
+        leakReferences.add(new LeakReference(INSTANCE_FIELD, name, stringValue));
       }
     }
     return leakReferences;
