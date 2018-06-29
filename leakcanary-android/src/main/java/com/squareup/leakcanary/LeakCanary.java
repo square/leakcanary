@@ -88,7 +88,7 @@ public final class LeakCanary {
   }
 
   /** Returns a string representation of the result of a heap analysis. */
-  public static String leakInfo(Context context, HeapDump heapDump, AnalysisResult result,
+  public static String leakInfo(final Context context, HeapDump heapDump, AnalysisResult result,
       boolean detailed) {
     PackageManager packageManager = context.getPackageManager();
     String packageName = context.getPackageName();
@@ -115,7 +115,8 @@ public final class LeakCanary {
         info += "* Retaining: " + formatShortFileSize(context, result.retainedHeapSize) + ".\n";
       }
       if (detailed) {
-        detailedString = "\n* Details:\n" + result.leakTrace.toDetailedString();
+        LeakTrace leakTrace = LeakCanaryInternals.mapLeakTrace(context, result.leakTrace);
+        detailedString = "\n* Details:\n" + leakTrace.toDetailedString();
       }
     } else if (result.failure != null) {
       // We duplicate the library version & Sha information because bug reports often only contain

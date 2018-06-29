@@ -45,6 +45,7 @@ import com.squareup.leakcanary.AnalysisResult;
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.LeakDirectoryProvider;
+import com.squareup.leakcanary.LeakTrace;
 import com.squareup.leakcanary.R;
 import java.io.File;
 import java.io.FileInputStream;
@@ -328,7 +329,8 @@ public final class DisplayLeakActivity extends Activity {
           });
         }
         HeapDump heapDump = visibleLeak.heapDump;
-        adapter.update(result.leakTrace, heapDump.referenceKey, heapDump.referenceName);
+        LeakTrace leakTrace = LeakCanaryInternals.mapLeakTrace(this, result.leakTrace);
+        adapter.update(leakTrace, heapDump.referenceKey, heapDump.referenceName);
         if (result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
           String className = classSimpleName(result.className);
           setTitle(getString(R.string.leak_canary_class_has_leaked, className));

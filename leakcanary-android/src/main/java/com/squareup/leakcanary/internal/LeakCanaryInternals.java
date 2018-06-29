@@ -26,9 +26,13 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
+import android.view.View;
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.DefaultLeakDirectoryProvider;
 import com.squareup.leakcanary.LeakDirectoryProvider;
+import com.squareup.leakcanary.LeakReference;
+import com.squareup.leakcanary.LeakTrace;
+import com.squareup.leakcanary.LeakTraceElement;
 import com.squareup.leakcanary.R;
 import com.squareup.leakcanary.RefWatcher;
 import java.util.List;
@@ -42,6 +46,7 @@ import static android.content.pm.PackageManager.GET_SERVICES;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
 import static android.os.Build.VERSION_CODES.O;
+import static com.squareup.leakcanary.LeakTraceElement.Type.INSTANCE_FIELD;
 
 public final class LeakCanaryInternals {
 
@@ -193,6 +198,26 @@ public final class LeakCanaryInternals {
       leakDirectoryProvider = new DefaultLeakDirectoryProvider(context);
     }
     return leakDirectoryProvider;
+  }
+
+  public static LeakTrace mapLeakTrace(final Context context, LeakTrace leakTrace) {
+    return leakTrace.map(new LeakTrace.Mapper() {
+      @Override
+      public String mapFieldReferenceValue(LeakTraceElement element, LeakReference ref) {
+        if (element.isInstanceOf(View.class)
+            && ref.name.equals("mID")
+            && ref.type == INSTANCE_FIELD) {
+          try {
+            int resId = Integer.parseInt(ref.value);
+            if (resId != -1) {
+              return "R.id." + context.getResources().getResourceEntryName(resId);
+            }
+          } catch (RuntimeException ignored) {
+          }
+        }
+        return ref.value;
+      }
+    });
   }
 
   private LeakCanaryInternals() {

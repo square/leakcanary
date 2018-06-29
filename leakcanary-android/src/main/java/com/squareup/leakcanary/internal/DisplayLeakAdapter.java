@@ -143,6 +143,13 @@ final class DisplayLeakAdapter extends BaseAdapter {
     String styledClassName =
         "<font color='" + classNameColorHexString + "'>" + simpleName + "</font>";
 
+    if (element.isInstanceOf(View.class)) {
+      String viewId = element.getFieldReferenceValue("mID");
+      if (viewId != null && viewId.startsWith("R.id")) {
+        styledClassName += "(" + viewId + ")";
+      }
+    }
+
     if (element.reference != null) {
       String referenceName = element.reference.getDisplayName().replaceAll("<", "&lt;")
           .replaceAll(">", "&gt;");
