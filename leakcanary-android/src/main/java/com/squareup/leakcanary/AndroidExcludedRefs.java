@@ -337,11 +337,13 @@ public enum AndroidExcludedRefs {
 
   // ######## Manufacturer specific Excluded refs ########
 
-  INSTRUMENTATION_RECOMMEND_ACTIVITY(MEIZU.equals(MANUFACTURER) && SDK_INT >= LOLLIPOP && SDK_INT <= LOLLIPOP_MR1) {
+  INSTRUMENTATION_RECOMMEND_ACTIVITY(
+      MEIZU.equals(MANUFACTURER) && SDK_INT >= LOLLIPOP && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.app.Instrumentation", "mRecommendActivity")
-              .reason("Instrumentation would leak com.android.internal.app.RecommendActivity (in framework.jar)"
-                  + " in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and above");
+          .reason("Instrumentation would leak com.android.internal.app.RecommendActivity (in "
+              + "framework.jar) in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and "
+              + "above");
     }
   },
 
@@ -370,7 +372,7 @@ public enum AndroidExcludedRefs {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.gestureboost.GestureBoostManager", "mContext")
           .reason("GestureBoostManager is a static singleton that leaks an activity context."
-          + "Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756");
+              + "Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756");
     }
   },
 
