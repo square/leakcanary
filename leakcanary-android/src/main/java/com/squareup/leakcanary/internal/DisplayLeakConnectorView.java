@@ -144,8 +144,7 @@ public final class DisplayLeakConnectorView extends View {
   private void drawStartLine(Canvas cacheCanvas) {
     int width = getMeasuredWidth();
     float halfWidth = width / 2f;
-    float halfHeight = getMeasuredHeight() / 2f;
-    cacheCanvas.drawLine(halfWidth, 0, halfWidth, halfHeight, classNamePaint);
+    cacheCanvas.drawLine(halfWidth, 0, halfWidth, circleY, classNamePaint);
   }
 
   private void drawRoot(Canvas cacheCanvas) {
