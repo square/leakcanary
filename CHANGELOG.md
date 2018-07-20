@@ -1,7 +1,8 @@
 # Change Log
 
-## Version 1.6 (Future release)
+## Version 1.6 (2018-06-20)
 
+* [#727](https://github.com/square/leakcanary/issues/727) Improved leak analysis: LeakCanary now identifies and highlights the potential causes of the leak.
 * [#1011](https://github.com/square/leakcanary/issues/1011) We noticed that computing the retained heap size could take a long time, so it's now optional and off by default.
 * [#633](https://github.com/square/leakcanary/pull/633) Support for detecting leaks in instrumentation tests.
 * [#985](https://github.com/square/leakcanary/pull/985) Ability to convert leak traces into stack traces for easy remote reporting.
@@ -11,7 +12,7 @@
 * [#930](https://github.com/square/leakcanary/pull/930) DisplayLeakActivity has a responsive icon.
 * [#685](https://github.com/square/leakcanary/issues/685) Stopped doing IO on main thread in DisplayLeakActivity (fixes StrictMode errors).
 * [#999](https://github.com/square/leakcanary/pull/999) Updated HAHA to 2.0.4, which uses Trove4j as an external dependency (from jcenter) instead of rebundling it. This is to clarify licences (Apache v2 vs LGPL 2.1).
-* Several small bug fixes.
+* Several bug and crash fixes.
 
 Many thanks to [@AdityaAnand1](https://github.com/AdityaAnand1), [@alhah](https://github.com/alhah), [@christxph](https://github.com/christxph), [@csoon03](https://github.com/csoon03), [@daqi](https://github.com/daqi), [@JakeWharton](https://github.com/JakeWharton), [@jankovd](https://github.com/jankovd), [@jrodbx](https://github.com/jrodbx), [@kurtisnelson](https://github.com/kurtisnelson), [@NightlyNexus](https://github.com/NightlyNexus), [@pyricau](https://github.com/pyricau), [@SalvatoreT](https://github.com/SalvatoreT), [@shmuelr](https://github.com/shmuelr), [@tokou](https://github.com/tokou), [@xueqiushi](https://github.com/xueqiushi)
  for the code contributions!
@@ -19,9 +20,9 @@ Many thanks to [@AdityaAnand1](https://github.com/AdityaAnand1), [@alhah](https:
 ### Public API changes
 
 * The installed ref watcher singleton is now available via `LeakCanary.installedRefWatcher()`
-* TBD
+* TODO document more API changes.
 
-For more details, see the [1.6 Milestone](https://github.com/square/leakcanary/milestone/3) and the [full diff](https://github.com/square/leakcanary/compare/v1.5.4...master).
+For more details, see the [1.6 Milestone](https://github.com/square/leakcanary/milestone/3) and the [full diff](https://github.com/square/leakcanary/compare/v1.5.4...v1.6).
 
 ## Version 1.5.4 *(2017-09-22)*
 
