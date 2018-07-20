@@ -83,6 +83,7 @@ public final class HahaHelper {
 
   /** Given a string instance from the heap dump, this returns its actual string value. */
   static String asString(Object stringObject) {
+    checkNotNull(stringObject, "stringObject");
     Instance instance = (Instance) stringObject;
     List<ClassInstance.FieldValue> values = classInstanceValues(instance);
 

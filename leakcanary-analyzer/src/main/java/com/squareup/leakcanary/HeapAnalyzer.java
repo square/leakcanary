@@ -211,10 +211,19 @@ public final class HeapAnalyzer {
 
   private Instance findLeakingReference(String key, Snapshot snapshot) {
     ClassObj refClass = snapshot.findClass(KeyedWeakReference.class.getName());
+    if (refClass == null) {
+      throw new IllegalStateException(
+          "Could not find the " + KeyedWeakReference.class.getName() + " class in the heap dump.");
+    }
     List<String> keysFound = new ArrayList<>();
     for (Instance instance : refClass.getInstancesList()) {
       List<ClassInstance.FieldValue> values = classInstanceValues(instance);
-      String keyCandidate = asString(fieldValue(values, "key"));
+      Object keyFieldValue = fieldValue(values, "key");
+      if (keyFieldValue == null) {
+        keysFound.add(null);
+        continue;
+      }
+      String keyCandidate = asString(keyFieldValue);
       if (keyCandidate.equals(key)) {
         return fieldValue(values, "referent");
       }
