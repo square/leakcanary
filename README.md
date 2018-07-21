@@ -54,7 +54,7 @@ public class ExampleApplication extends Application {
 * [How do I fix a memory leak?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-fix-a-memory-leak)
 * [Can a leak be caused by the Android SDK?](https://github.com/square/leakcanary/wiki/FAQ#can-a-leak-be-caused-by-the-android-sdk)
 * [How can I dig beyond the leak trace?](https://github.com/square/leakcanary/wiki/FAQ#how-can-i-dig-beyond-the-leak-trace)
-* [How do I disable LeakCanary in tests?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-disable-leakcanary-in-tests)
+* [How do disable I LeakCanary in tests?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-disable-leakcanary-in-tests)
 * [How do I fix build errors?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-fix-build-errors)
 * [How many methods does LeakCanary add?](https://github.com/square/leakcanary/wiki/FAQ#how-many-methods-does-leakcanary-add)
 * [Where can I learn more?](https://github.com/square/leakcanary/wiki/FAQ#where-can-i-learn-more)
@@ -63,10 +63,8 @@ public class ExampleApplication extends Application {
 * [Who's behind LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#whos-behind-leakcanary)
 * [Why is it called LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#why-is-it-called-leakcanary)
 * [Who made the logo?](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo)
-* [Build error: Failed to resolve](https://github.com/square/leakcanary/wiki/FAQ#build-error-failed-to-resolve)
 * [Instant Run can trigger invalid leaks](https://github.com/square/leakcanary/wiki/FAQ#instant-run-can-trigger-invalid-leaks)
 * [I know I have a leak. Why doesn't the notification show?](https://github.com/square/leakcanary/wiki/FAQ#i-know-i-have-a-leak-why-doesnt-the-notification-show)
-
 
 <p align="center">
 <img src="https://github.com/square/leakcanary/wiki/assets/icon_512.png" width="250"/>
