@@ -2,6 +2,8 @@
 
 ## Version 1.6 (2018-06-20)
 
+Note: due to [#1058](https://github.com/square/leakcanary/issues/1058), 1.6 will be short lived and 1.6.1 will be released soon.
+
 * [#727](https://github.com/square/leakcanary/issues/727) Improved leak analysis: LeakCanary now identifies and highlights the potential causes of the leak.
 * [#1011](https://github.com/square/leakcanary/issues/1011) We noticed that computing the retained heap size could take a long time, so it's now optional and off by default.
 * [#633](https://github.com/square/leakcanary/pull/633) Support for detecting leaks in instrumentation tests.
