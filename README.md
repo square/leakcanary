@@ -47,7 +47,6 @@ public class ExampleApplication extends Application {
 ## FAQ
 
 * [Why should I use LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#why-should-i-use-leakcanary)
-* [How do I use it?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-use-it)
 * [How does it work?](https://github.com/square/leakcanary/wiki/FAQ#how-does-it-work)
 * [How do I customize LeakCanary to my needs?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-customize-leakcanary-to-my-needs)
 * [How do I copy the leak trace?](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-copy-the-leak-trace)
