@@ -20,7 +20,11 @@ Many thanks to [@AdityaAnand1](https://github.com/AdityaAnand1), [@alhah](https:
 ### Public API changes
 
 * The installed ref watcher singleton is now available via `LeakCanary.installedRefWatcher()`
-* TODO document more API changes.
+* `AnalysisResult.leakTraceAsFakeException()` returns an exception that can be used to report and group leak traces to a tool like Bugsnag or Crashlytics.
+* New `InstrumentationLeakDetector` and `FailTestOnLeakRunListener` APIs for detecting leaks in instrumentation tests.
+* New `Reachability.Inspector` API to establish reachability and help identify leak causes.
+* Watching activities can be disabled with `AndroidRefWatcherBuilder.watchActivities(false)`, watching fragments can be disabled with `AndroidRefWatcherBuilder.watchFragments(false)`
+* `LeakCanary.setDisplayLeakActivityDirectoryProvider()` is deprecated and replaced with `LeakCanary.setLeakDirectoryProvider()`
 
 For more details, see the [1.6 Milestone](https://github.com/square/leakcanary/milestone/3) and the [full diff](https://github.com/square/leakcanary/compare/v1.5.4...v1.6).
 
