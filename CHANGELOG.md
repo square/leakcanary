@@ -1,8 +1,8 @@
 # Change Log
 
-## Version 1.6 (2018-06-20)
+## Version 1.6.1 (2018-06-21)
 
-Note: due to [#1058](https://github.com/square/leakcanary/issues/1058), 1.6 will be short lived and 1.6.1 will be released soon.
+Note: due to , 1.6 will be short lived and 1.6.1 will be released soon.
 
 * [#727](https://github.com/square/leakcanary/issues/727) Improved leak analysis: LeakCanary now identifies and highlights the potential causes of the leak.
 * [#1011](https://github.com/square/leakcanary/issues/1011) We noticed that computing the retained heap size could take a long time, so it's now optional and off by default.
@@ -18,6 +18,8 @@ Note: due to [#1058](https://github.com/square/leakcanary/issues/1058), 1.6 will
 
 Many thanks to [@AdityaAnand1](https://github.com/AdityaAnand1), [@alhah](https://github.com/alhah), [@christxph](https://github.com/christxph), [@csoon03](https://github.com/csoon03), [@daqi](https://github.com/daqi), [@JakeWharton](https://github.com/JakeWharton), [@jankovd](https://github.com/jankovd), [@jrodbx](https://github.com/jrodbx), [@kurtisnelson](https://github.com/kurtisnelson), [@NightlyNexus](https://github.com/NightlyNexus), [@pyricau](https://github.com/pyricau), [@SalvatoreT](https://github.com/SalvatoreT), [@shmuelr](https://github.com/shmuelr), [@tokou](https://github.com/tokou), [@xueqiushi](https://github.com/xueqiushi)
  for the code contributions!
+
+Note: we made a 1.6 release but quickly followed up with 1.6.1 due to [#1058](https://github.com/square/leakcanary/issues/1058).
 
 ### Public API changes
 
