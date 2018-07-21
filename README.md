@@ -42,7 +42,7 @@ public class ExampleApplication extends Application {
 
 **You're good to go!** LeakCanary will automatically show a notification when an activity memory leak is detected in your debug build.
 
-**What's next?** You could watch a [live investigation](https://www.youtube.com/watch?v=KwArTJHLq5g), read more on [setting it up](https://github.com/square/leakcanary/wiki/FAQ#how-do-i-use-it) and then [customize it](https://github.com/square/leakcanary/wiki/Customizing-LeakCanary) to your needs.
+**What's next?** You could watch a [live investigation](https://www.youtube.com/watch?v=KwArTJHLq5g) then [customize it](https://github.com/square/leakcanary/wiki/Customizing-LeakCanary) to your needs.
 
 ## FAQ
 
