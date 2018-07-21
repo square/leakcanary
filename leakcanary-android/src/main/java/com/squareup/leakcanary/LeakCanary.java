@@ -43,12 +43,14 @@ public final class LeakCanary {
   }
 
   /**
-   * @return the {@link RefWatcher} installed via {@link AndroidRefWatcherBuilder#buildAndInstall()}.
+   * Returns the {@link RefWatcher} installed via
+   * {@link AndroidRefWatcherBuilder#buildAndInstall()}, and {@link RefWatcher#DISABLED} is no
+   * {@link RefWatcher} has been installed.
    */
   public static RefWatcher installedRefWatcher() {
     RefWatcher refWatcher = LeakCanaryInternals.installedRefWatcher;
     if (refWatcher == null) {
-      throw new IllegalStateException("AndroidRefWatcherBuilder.buildAndInstall() was not called");
+      return RefWatcher.DISABLED;
     }
     return refWatcher;
   }

@@ -12,6 +12,10 @@ public final class LeakCanary {
     return RefWatcher.DISABLED;
   }
 
+  public static RefWatcher installedRefWatcher() {
+    return RefWatcher.DISABLED;
+  }
+
   public static boolean isInAnalyzerProcess(Context context) {
     return false;
   }
