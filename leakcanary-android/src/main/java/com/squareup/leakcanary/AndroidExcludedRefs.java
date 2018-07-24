@@ -25,6 +25,7 @@ import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
+import static android.os.Build.VERSION_CODES.JELLY_BEAN_MR2;
 import static android.os.Build.VERSION_CODES.KITKAT;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
@@ -250,7 +251,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  USER_MANAGER__SINSTANCE(SDK_INT >= JELLY_BEAN && SDK_INT <= M) {
+  USER_MANAGER__SINSTANCE(SDK_INT >= JELLY_BEAN_MR2 && SDK_INT < O) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.os.UserManager", "mContext")
           .reason("UserManager has a static sInstance field that creates an instance and caches it"
