@@ -146,8 +146,8 @@ public final class AndroidHeapDumper implements HeapDumper {
     params.packageName = context.getPackageName();
     try {
       windowManager.addView(view, params);
-    } catch (WindowManager.BadTokenException e) {
-      CanaryLog.d(e, "Could not show leak toast, the window token has been canceled");
+    } catch (WindowManager.BadTokenException ignored) {
+      CanaryLog.d("Could not show leak toast, the window token has been canceled");
       return;
     }
     trySendAccessibilityEvent(view);
