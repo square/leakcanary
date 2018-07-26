@@ -53,6 +53,10 @@ public enum AndroidReachabilityInspectors {
 
   MORTAR_PRESENTER(MortarPresenterInspector.class),
 
+  VIEW_ROOT_IMPL(ViewImplInspector.class),
+
+  MAIN_THEAD(MainThreadInspector.class),
+
   //
   ;
 
@@ -171,6 +175,32 @@ public enum AndroidReachabilityInspectors {
       // when the view is null, we're pretty sure they should be unreachable.
       if ("null".equals(view)) {
         return Reachability.UNREACHABLE;
+      }
+      return Reachability.UNKNOWN;
+    }
+  }
+
+  public static class ViewImplInspector implements Reachability.Inspector {
+    @Override public Reachability expectedReachability(LeakTraceElement element) {
+      if (!element.isInstanceOf("android.view.ViewRootImpl")) {
+        return Reachability.UNKNOWN;
+      }
+      String mView = element.getFieldReferenceValue("mView");
+      if (mView == null) {
+        return Reachability.UNKNOWN;
+      }
+      return mView.equals("null") ? Reachability.UNREACHABLE : Reachability.REACHABLE;
+    }
+  }
+
+  public static class MainThreadInspector implements Reachability.Inspector {
+    @Override public Reachability expectedReachability(LeakTraceElement element) {
+      if (!element.isInstanceOf(Thread.class)) {
+        return Reachability.UNKNOWN;
+      }
+      String name = element.getFieldReferenceValue("name");
+      if ("main".equals(name)) {
+        return Reachability.REACHABLE;
       }
       return Reachability.UNKNOWN;
     }
