@@ -22,7 +22,7 @@
   <!-- To store the heap dumps and leak analysis results. -->
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-  <!-- To allow starting foreground services on Android P+ -->
+  <!-- To allow starting foreground services on Android P+ - https://developer.android.com/preview/behavior-changes#fg-svc -->
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
   <application>
