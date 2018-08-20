@@ -20,12 +20,12 @@
     <string name="leak_canary_leak_excluded_retaining">[Ausgeschlossen] %1$s hat %2$s geleaked</string>
     <string name="leak_canary_analysis_failed">Leak Analyse fehlgeschlagen</string>
     <string name="leak_canary_leak_list_title">Leaks in %s</string>
-    <string name="leak_canary_notification_analysing">Analyzing Heap Dump</string>
+    <string name="leak_canary_notification_analysing">Analyisere Heap Dump</string>
     <string name="leak_canary_notification_channel">LeakCanary</string>
-    <string name="leak_canary_notification_dumping">Dumping Heap</string>
-    <string name="leak_canary_notification_foreground_text">LeakCanary is working.</string>
-    <string name="leak_canary_notification_message">Für mehr Details hier klicken</string>
-    <string name="leak_canary_notification_reporting">Reporting LeakCanary result</string>
+    <string name="leak_canary_notification_dumping">Sichere Heap</string>
+    <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
+    <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>
+    <string name="leak_canary_notification_reporting">Sichere LeakCanary Ergebnis</string>
     <string name="leak_canary_share_leak">Info teilen</string>
     <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>
     <string name="leak_canary_share_with">Teilen mit…</string>
@@ -44,7 +44,7 @@
     <string name="leak_canary_permission_not_granted">Bitte gewähre die Storage Berechtigung, andernfalls werden Memory Leaks nicht erkannt.</string>
     <string name="leak_canary_permission_notification_title">Leak erkannt, benötige Berechtigung</string>
     <string name="leak_canary_permission_notification_text">Hier klicken, um Storage Berechtigung für %s zu aktivieren.</string>
-    <string name="leak_canary_help_title">Tap here to learn more</string>
+    <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
     <string name="leak_canary_help_detail"><![CDATA[A memory leak is a programming error that causes
   your application to keep a reference to an object that is no longer needed. As a result, the
   memory allocated for that object cannot be reclaimed, eventually leading to an OutOfMemoryError
