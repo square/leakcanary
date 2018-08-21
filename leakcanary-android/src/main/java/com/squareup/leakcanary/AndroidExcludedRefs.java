@@ -573,6 +573,17 @@ public enum AndroidExcludedRefs {
       excluded.instanceField("android.view.Choreographer$FrameDisplayEventReceiver",
           "mMessageQueue").alwaysExclude();
     }
+  },
+
+  VIEWLOCATIONHOLDER_ROOT(SDK_INT >= 28) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      //  In Android P+, ViewLocationHolder has an mRoot field that is not cleared in its clear()
+      // method.
+      // Introduced in https://github.com/aosp-mirror/platform_frameworks_base/commit/86b326012813f09d8f1de7d6d26c986a909de894
+      // Bug report: https://issuetracker.google.com/issues/112792715
+      excluded.instanceField("android.view.ViewGroup$ViewLocationHolder",
+          "mRoot").alwaysExclude();
+    }
   };
 
   /**
