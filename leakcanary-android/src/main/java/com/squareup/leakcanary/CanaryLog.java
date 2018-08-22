@@ -20,7 +20,7 @@ public final class CanaryLog {
       if (formatted.length() < 4000) {
         Log.d("LeakCanary", formatted);
       } else {
-        String[] lines = formatted.split("\n");
+        String[] lines = formatted.split("\n", -1);
         for (String line : lines) {
           Log.d("LeakCanary", line);
         }
