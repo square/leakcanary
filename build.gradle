@@ -4,7 +4,7 @@ buildscript {
   ext.versions = [
     'minSdk': 14,
     'compileSdk': 28,
-    'errorProne': "2.3.1",
+    'errorProne': '2.3.1',
   ]
   repositories {
     jcenter()
@@ -50,7 +50,7 @@ subprojects {
         // Force all the error-prone dependencies to use the same version.
         if (details.requested.group == 'com.google.errorprone' &&
                 details.requested.name.startsWith('error_prone_')) {
-          details.useVersion rootProject.ext.versions.errorProne
+          details.useVersion versions.errorProne
         }
       }
     }
@@ -66,6 +66,6 @@ subprojects {
   }
 
   dependencies {
-    errorprone "com.google.errorprone:error_prone_core:${rootProject.ext.versions.errorProne}"
+    errorprone "com.google.errorprone:error_prone_core:${versions.errorProne}"
   }
 }
