@@ -5,7 +5,7 @@ dependencies {
   releaseImplementation project(':leakcanary-android-no-op')
 
   testImplementation "junit:junit:4.12"
-  testImplementation "org.robolectric:robolectric:3.8"
+  testImplementation "org.robolectric:robolectric:4.0-alpha-3"
   androidTestImplementation project(':leakcanary-android-instrumentation')
   androidTestImplementation 'com.android.support.test:runner:1.0.2'
   androidTestImplementation 'com.android.support.test:rules:1.0.2'

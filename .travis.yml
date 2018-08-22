@@ -6,7 +6,7 @@ android:
     - tools
     - platform-tools
     - extra-android-m2repository
-    - android-27
+    - android-28
 
 jdk:
   - oraclejdk8

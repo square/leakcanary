@@ -34,6 +34,7 @@ import static android.os.Build.VERSION_CODES.N;
 import static android.os.Build.VERSION_CODES.N_MR1;
 import static android.os.Build.VERSION_CODES.O;
 import static android.os.Build.VERSION_CODES.O_MR1;
+import static android.os.Build.VERSION_CODES.P;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.HUAWEI;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LENOVO;
@@ -575,7 +576,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  VIEWLOCATIONHOLDER_ROOT(SDK_INT == 28) {
+  VIEWLOCATIONHOLDER_ROOT(SDK_INT == P) {
     @Override void add(ExcludedRefs.Builder excluded) {
       //  In Android P, ViewLocationHolder has an mRoot field that is not cleared in its clear()
       // method.

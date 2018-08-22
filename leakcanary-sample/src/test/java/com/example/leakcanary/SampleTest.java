@@ -8,7 +8,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = BuildConfig.class, application = TestExampleApplication.class)
+@Config(application = TestExampleApplication.class)
 public class SampleTest {
   @Test public void testTheThing() throws Exception {
     ActivityController<MainActivity> controller =
