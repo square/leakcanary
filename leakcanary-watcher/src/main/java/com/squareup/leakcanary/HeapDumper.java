@@ -15,6 +15,8 @@
  */
 package com.squareup.leakcanary;
 
+import com.sun.istack.internal.Nullable;
+
 import java.io.File;
 
 /** Dumps the heap into a file. */
@@ -31,5 +33,5 @@ public interface HeapDumper {
    * @return a {@link File} referencing the dumped heap, or {@link #RETRY_LATER} if the heap could
    * not be dumped.
    */
-  File dumpHeap();
+  @Nullable File dumpHeap();
 }

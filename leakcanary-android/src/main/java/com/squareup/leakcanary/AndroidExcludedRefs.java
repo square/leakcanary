@@ -15,6 +15,8 @@
  */
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
+
 import java.lang.ref.PhantomReference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
@@ -590,7 +592,7 @@ public enum AndroidExcludedRefs {
   /**
    * This returns the references in the leak path that should be ignored by all on Android.
    */
-  public static ExcludedRefs.Builder createAndroidDefaults() {
+  @NonNull public static ExcludedRefs.Builder createAndroidDefaults() {
     return createBuilder(
         EnumSet.of(SOFT_REFERENCES, FINALIZER_WATCHDOG_DAEMON, MAIN, LEAK_CANARY_THREAD,
             EVENT_RECEIVER__MMESSAGE_QUEUE));
@@ -602,11 +604,11 @@ public enum AndroidExcludedRefs {
    * in AOSP or manufacturer forks of AOSP. In such cases, there is very little we can do as app
    * developers except by resorting to serious hacks, so we remove the noise caused by those leaks.
    */
-  public static ExcludedRefs.Builder createAppDefaults() {
+  @NonNull public static ExcludedRefs.Builder createAppDefaults() {
     return createBuilder(EnumSet.allOf(AndroidExcludedRefs.class));
   }
 
-  public static ExcludedRefs.Builder createBuilder(EnumSet<AndroidExcludedRefs> refs) {
+  @NonNull public static ExcludedRefs.Builder createBuilder(EnumSet<AndroidExcludedRefs> refs) {
     ExcludedRefs.Builder excluded = ExcludedRefs.builder();
     for (AndroidExcludedRefs ref : refs) {
       if (ref.applies) {

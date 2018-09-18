@@ -1,6 +1,8 @@
 package com.squareup.leakcanary;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
+
 import com.squareup.leakcanary.internal.FragmentRefWatcher;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.util.List;
@@ -18,7 +20,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   private boolean watchActivities = true;
   private boolean watchFragments = true;
 
-  AndroidRefWatcherBuilder(Context context) {
+  AndroidRefWatcherBuilder(@NonNull Context context) {
     this.context = context.getApplicationContext();
   }
 
@@ -26,8 +28,8 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * Sets a custom {@link AbstractAnalysisResultService} to listen to analysis results. This
    * overrides any call to {@link #heapDumpListener(HeapDump.Listener)}.
    */
-  public AndroidRefWatcherBuilder listenerServiceClass(
-      Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
+  @NonNull public AndroidRefWatcherBuilder listenerServiceClass(
+      @NonNull Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
     return heapDumpListener(new ServiceHeapDumpListener(context, listenerServiceClass));
   }
 
@@ -36,7 +38,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * tracked object has been garbage collected. This overrides any call to {@link
    * #watchExecutor(WatchExecutor)}.
    */
-  public AndroidRefWatcherBuilder watchDelay(long delay, TimeUnit unit) {
+  @NonNull public AndroidRefWatcherBuilder watchDelay(long delay, @NonNull TimeUnit unit) {
     return watchExecutor(new AndroidWatchExecutor(unit.toMillis(delay)));
   }
 
@@ -44,7 +46,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * Whether we should automatically watch activities when calling {@link #buildAndInstall()}.
    * Default is true.
    */
-  public AndroidRefWatcherBuilder watchActivities(boolean watchActivities) {
+  @NonNull public AndroidRefWatcherBuilder watchActivities(boolean watchActivities) {
     this.watchActivities = watchActivities;
     return this;
   }
@@ -54,7 +56,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * Default is true. When true, LeakCanary watches native fragments on Android O+ and support
    * fragments if the leakcanary-support-fragment dependency is in the classpath.
    */
-  public AndroidRefWatcherBuilder watchFragments(boolean watchFragments) {
+  @NonNull public AndroidRefWatcherBuilder watchFragments(boolean watchFragments) {
     this.watchFragments = watchFragments;
     return this;
   }
@@ -65,7 +67,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    *
    * @throws IllegalArgumentException if maxStoredHeapDumps < 1.
    */
-  public AndroidRefWatcherBuilder maxStoredHeapDumps(int maxStoredHeapDumps) {
+  @NonNull public AndroidRefWatcherBuilder maxStoredHeapDumps(int maxStoredHeapDumps) {
     LeakDirectoryProvider leakDirectoryProvider =
         new DefaultLeakDirectoryProvider(context, maxStoredHeapDumps);
     LeakCanary.setLeakDirectoryProvider(leakDirectoryProvider);
@@ -80,7 +82,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    *
    * @throws UnsupportedOperationException if called more than once per Android process.
    */
-  public RefWatcher buildAndInstall() {
+  @NonNull public RefWatcher buildAndInstall() {
     if (LeakCanaryInternals.installedRefWatcher != null) {
       throw new UnsupportedOperationException("buildAndInstall() should only be called once.");
     }
@@ -101,29 +103,29 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
     return LeakCanary.isInAnalyzerProcess(context);
   }
 
-  @Override protected HeapDumper defaultHeapDumper() {
+  @Override @NonNull protected HeapDumper defaultHeapDumper() {
     LeakDirectoryProvider leakDirectoryProvider =
         LeakCanaryInternals.getLeakDirectoryProvider(context);
     return new AndroidHeapDumper(context, leakDirectoryProvider);
   }
 
-  @Override protected DebuggerControl defaultDebuggerControl() {
+  @Override @NonNull protected DebuggerControl defaultDebuggerControl() {
     return new AndroidDebuggerControl();
   }
 
-  @Override protected HeapDump.Listener defaultHeapDumpListener() {
+  @Override @NonNull protected HeapDump.Listener defaultHeapDumpListener() {
     return new ServiceHeapDumpListener(context, DisplayLeakService.class);
   }
 
-  @Override protected ExcludedRefs defaultExcludedRefs() {
+  @Override @NonNull protected ExcludedRefs defaultExcludedRefs() {
     return AndroidExcludedRefs.createAppDefaults().build();
   }
 
-  @Override protected WatchExecutor defaultWatchExecutor() {
+  @Override @NonNull protected WatchExecutor defaultWatchExecutor() {
     return new AndroidWatchExecutor(DEFAULT_WATCH_DELAY_MILLIS);
   }
 
-  @Override protected List<Class<? extends Reachability.Inspector>> defaultReachabilityInspectorClasses() {
+  @Override @NonNull protected List<Class<? extends Reachability.Inspector>> defaultReachabilityInspectorClasses() {
     return AndroidReachabilityInspectors.defaultAndroidInspectors();
   }
 }

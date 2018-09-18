@@ -18,6 +18,8 @@ package com.squareup.leakcanary;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.support.annotation.NonNull;
+
 import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter;
 
 /**
@@ -29,11 +31,12 @@ import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter;
 @Deprecated
 public final class ActivityRefWatcher {
 
-  public static void installOnIcsPlus(Application application, RefWatcher refWatcher) {
+  public static void installOnIcsPlus(@NonNull Application application,
+                                      @NonNull RefWatcher refWatcher) {
     install(application, refWatcher);
   }
 
-  public static void install(Context context, RefWatcher refWatcher) {
+  public static void install(@NonNull Context context, @NonNull RefWatcher refWatcher) {
     Application application = (Application) context.getApplicationContext();
     ActivityRefWatcher activityRefWatcher = new ActivityRefWatcher(application, refWatcher);
 

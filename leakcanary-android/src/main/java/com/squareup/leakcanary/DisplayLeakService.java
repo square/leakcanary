@@ -17,6 +17,8 @@ package com.squareup.leakcanary;
 
 import android.app.PendingIntent;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
+
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -40,7 +42,7 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.showNotificat
  */
 public class DisplayLeakService extends AbstractAnalysisResultService {
 
-  @Override protected final void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result) {
+  @Override protected final void onHeapAnalyzed(@NonNull HeapDump heapDump, @NonNull AnalysisResult result) {
     String leakInfo = leakInfo(this, heapDump, result, true);
     CanaryLog.d("%s", leakInfo);
 

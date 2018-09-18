@@ -26,6 +26,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.MessageQueue;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -46,14 +48,16 @@ public final class AndroidHeapDumper implements HeapDumper {
   private final LeakDirectoryProvider leakDirectoryProvider;
   private final Handler mainHandler;
 
-  public AndroidHeapDumper(Context context, LeakDirectoryProvider leakDirectoryProvider) {
+  public AndroidHeapDumper(@NonNull Context context,
+                           @NonNull LeakDirectoryProvider leakDirectoryProvider) {
     this.leakDirectoryProvider = leakDirectoryProvider;
     this.context = context.getApplicationContext();
     mainHandler = new Handler(Looper.getMainLooper());
   }
 
   @SuppressWarnings("ReferenceEquality") // Explicitly checking for named null.
-  @Override public File dumpHeap() {
+  @Override @Nullable
+  public File dumpHeap() {
     File heapDumpFile = leakDirectoryProvider.newHeapDumpFile();
 
     if (heapDumpFile == RETRY_LATER) {
