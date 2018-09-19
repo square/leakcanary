@@ -27,7 +27,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * Sets a custom {@link AbstractAnalysisResultService} to listen to analysis results. This
    * overrides any call to {@link #heapDumpListener(HeapDump.Listener)}.
    */
-  @NonNull public AndroidRefWatcherBuilder listenerServiceClass(
+  public @NonNull AndroidRefWatcherBuilder listenerServiceClass(
       @NonNull Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
     return heapDumpListener(new ServiceHeapDumpListener(context, listenerServiceClass));
   }
@@ -37,7 +37,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * tracked object has been garbage collected. This overrides any call to {@link
    * #watchExecutor(WatchExecutor)}.
    */
-  @NonNull public AndroidRefWatcherBuilder watchDelay(long delay, @NonNull TimeUnit unit) {
+  public @NonNull AndroidRefWatcherBuilder watchDelay(long delay, @NonNull TimeUnit unit) {
     return watchExecutor(new AndroidWatchExecutor(unit.toMillis(delay)));
   }
 
@@ -45,7 +45,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * Whether we should automatically watch activities when calling {@link #buildAndInstall()}.
    * Default is true.
    */
-  @NonNull public AndroidRefWatcherBuilder watchActivities(boolean watchActivities) {
+  public @NonNull AndroidRefWatcherBuilder watchActivities(boolean watchActivities) {
     this.watchActivities = watchActivities;
     return this;
   }
@@ -55,7 +55,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    * Default is true. When true, LeakCanary watches native fragments on Android O+ and support
    * fragments if the leakcanary-support-fragment dependency is in the classpath.
    */
-  @NonNull public AndroidRefWatcherBuilder watchFragments(boolean watchFragments) {
+  public @NonNull AndroidRefWatcherBuilder watchFragments(boolean watchFragments) {
     this.watchFragments = watchFragments;
     return this;
   }
@@ -66,7 +66,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    *
    * @throws IllegalArgumentException if maxStoredHeapDumps < 1.
    */
-  @NonNull public AndroidRefWatcherBuilder maxStoredHeapDumps(int maxStoredHeapDumps) {
+  public @NonNull AndroidRefWatcherBuilder maxStoredHeapDumps(int maxStoredHeapDumps) {
     LeakDirectoryProvider leakDirectoryProvider =
         new DefaultLeakDirectoryProvider(context, maxStoredHeapDumps);
     LeakCanary.setLeakDirectoryProvider(leakDirectoryProvider);
@@ -81,7 +81,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    *
    * @throws UnsupportedOperationException if called more than once per Android process.
    */
-  @NonNull public RefWatcher buildAndInstall() {
+  public @NonNull RefWatcher buildAndInstall() {
     if (LeakCanaryInternals.installedRefWatcher != null) {
       throw new UnsupportedOperationException("buildAndInstall() should only be called once.");
     }
@@ -102,30 +102,30 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
     return LeakCanary.isInAnalyzerProcess(context);
   }
 
-  @Override @NonNull protected HeapDumper defaultHeapDumper() {
+  @Override protected @NonNull HeapDumper defaultHeapDumper() {
     LeakDirectoryProvider leakDirectoryProvider =
         LeakCanaryInternals.getLeakDirectoryProvider(context);
     return new AndroidHeapDumper(context, leakDirectoryProvider);
   }
 
-  @Override @NonNull protected DebuggerControl defaultDebuggerControl() {
+  @Override protected @NonNull DebuggerControl defaultDebuggerControl() {
     return new AndroidDebuggerControl();
   }
 
-  @Override @NonNull protected HeapDump.Listener defaultHeapDumpListener() {
+  @Override protected @NonNull HeapDump.Listener defaultHeapDumpListener() {
     return new ServiceHeapDumpListener(context, DisplayLeakService.class);
   }
 
-  @Override @NonNull protected ExcludedRefs defaultExcludedRefs() {
+  @Override protected @NonNull ExcludedRefs defaultExcludedRefs() {
     return AndroidExcludedRefs.createAppDefaults().build();
   }
 
-  @Override @NonNull protected WatchExecutor defaultWatchExecutor() {
+  @Override protected @NonNull WatchExecutor defaultWatchExecutor() {
     return new AndroidWatchExecutor(DEFAULT_WATCH_DELAY_MILLIS);
   }
 
-  @Override @NonNull
-  protected List<Class<? extends Reachability.Inspector>> defaultReachabilityInspectorClasses() {
+  @Override protected @NonNull
+  List<Class<? extends Reachability.Inspector>> defaultReachabilityInspectorClasses() {
     return AndroidReachabilityInspectors.defaultAndroidInspectors();
   }
 }

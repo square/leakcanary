@@ -67,8 +67,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     this.maxStoredHeapDumps = maxStoredHeapDumps;
   }
 
-  @NonNull
-  @Override public List<File> listFiles(@NonNull FilenameFilter filter) {
+  @Override public @NonNull List<File> listFiles(@NonNull FilenameFilter filter) {
     if (!hasStoragePermission()) {
       requestWritePermissionNotification();
     }
@@ -86,8 +85,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     return files;
   }
 
-  @Nullable
-  @Override public File newHeapDumpFile() {
+  @Override public @Nullable File newHeapDumpFile() {
     List<File> pendingHeapDumps = listFiles(new FilenameFilter() {
       @Override public boolean accept(File dir, String filename) {
         return filename.endsWith(PENDING_HEAPDUMP_SUFFIX);

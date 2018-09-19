@@ -67,7 +67,7 @@ public enum AndroidReachabilityInspectors {
     this.inspectorClass = inspectorClass;
   }
 
-  @NonNull public static List<Class<? extends Reachability.Inspector>> defaultAndroidInspectors() {
+  public static @NonNull List<Class<? extends Reachability.Inspector>> defaultAndroidInspectors() {
     List<Class<? extends Reachability.Inspector>> inspectorClasses = new ArrayList<>();
     for (AndroidReachabilityInspectors enumValue : AndroidReachabilityInspectors.values()) {
       inspectorClasses.add(enumValue.inspectorClass);
@@ -76,7 +76,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class ViewInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf(View.class)) {
         return Reachability.UNKNOWN;
       }
@@ -89,7 +89,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class ActivityInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf(Activity.class)) {
         return Reachability.UNKNOWN;
       }
@@ -102,7 +102,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class DialogInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf(Dialog.class)) {
         return Reachability.UNKNOWN;
       }
@@ -115,7 +115,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class ApplicationInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (element.isInstanceOf(Application.class)) {
         return Reachability.REACHABLE;
       }
@@ -124,7 +124,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class FragmentInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf(Fragment.class)) {
         return Reachability.UNKNOWN;
       }
@@ -137,7 +137,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class SupportFragmentInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf("android.support.v4.app.Fragment")) {
         return Reachability.UNKNOWN;
       }
@@ -150,7 +150,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class MessageQueueInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf(MessageQueue.class)) {
         return Reachability.UNKNOWN;
       }
@@ -165,7 +165,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class MortarPresenterInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf("mortar.Presenter")) {
         return Reachability.UNKNOWN;
       }
@@ -182,7 +182,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class ViewImplInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf("android.view.ViewRootImpl")) {
         return Reachability.UNKNOWN;
       }
@@ -195,7 +195,7 @@ public enum AndroidReachabilityInspectors {
   }
 
   public static class MainThreadInspector implements Reachability.Inspector {
-    @Override @NonNull public Reachability expectedReachability(@NonNull LeakTraceElement element) {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf(Thread.class)) {
         return Reachability.UNKNOWN;
       }

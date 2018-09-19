@@ -37,7 +37,7 @@ public final class LeakCanary {
    * Creates a {@link RefWatcher} that works out of the box, and starts watching activity
    * references (on ICS+).
    */
-  @NonNull public static RefWatcher install(@NonNull Application application) {
+  public static @NonNull RefWatcher install(@NonNull Application application) {
     return refWatcher(application).listenerServiceClass(DisplayLeakService.class)
         .excludedRefs(AndroidExcludedRefs.createAppDefaults().build())
         .buildAndInstall();
@@ -48,7 +48,7 @@ public final class LeakCanary {
    * {@link AndroidRefWatcherBuilder#buildAndInstall()}, and {@link RefWatcher#DISABLED} is no
    * {@link RefWatcher} has been installed.
    */
-  @NonNull public static RefWatcher installedRefWatcher() {
+  public static @NonNull RefWatcher installedRefWatcher() {
     RefWatcher refWatcher = LeakCanaryInternals.installedRefWatcher;
     if (refWatcher == null) {
       return RefWatcher.DISABLED;
@@ -56,7 +56,7 @@ public final class LeakCanary {
     return refWatcher;
   }
 
-  @NonNull public static AndroidRefWatcherBuilder refWatcher(@NonNull Context context) {
+  public static @NonNull AndroidRefWatcherBuilder refWatcher(@NonNull Context context) {
     return new AndroidRefWatcherBuilder(context);
   }
 
@@ -92,7 +92,7 @@ public final class LeakCanary {
   }
 
   /** Returns a string representation of the result of a heap analysis. */
-  @NonNull public static String leakInfo(@NonNull Context context,
+  public static @NonNull String leakInfo(@NonNull Context context,
       @NonNull HeapDump heapDump,
       @NonNull AnalysisResult result,
       boolean detailed) {
