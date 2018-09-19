@@ -19,7 +19,6 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.support.annotation.NonNull;
-
 import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter;
 
 /**
@@ -32,7 +31,7 @@ import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter;
 public final class ActivityRefWatcher {
 
   public static void installOnIcsPlus(@NonNull Application application,
-                                      @NonNull RefWatcher refWatcher) {
+      @NonNull RefWatcher refWatcher) {
     install(application, refWatcher);
   }
 

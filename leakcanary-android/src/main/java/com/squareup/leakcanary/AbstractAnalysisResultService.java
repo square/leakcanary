@@ -28,9 +28,9 @@ public abstract class AbstractAnalysisResultService extends ForegroundService {
   private static final String RESULT_EXTRA = "result_extra";
 
   public static void sendResultToListener(@NonNull Context context,
-                                          @NonNull String listenerServiceClassName,
-                                          @NonNull HeapDump heapDump,
-                                          @NonNull AnalysisResult result) {
+      @NonNull String listenerServiceClassName,
+      @NonNull HeapDump heapDump,
+      @NonNull AnalysisResult result) {
     Class<?> listenerServiceClass;
     try {
       listenerServiceClass = Class.forName(listenerServiceClassName);
@@ -71,5 +71,5 @@ public abstract class AbstractAnalysisResultService extends ForegroundService {
    * The heap dump file will be deleted immediately after this callback returns.
    */
   protected abstract void onHeapAnalyzed(@NonNull HeapDump heapDump,
-                                         @NonNull AnalysisResult result);
+      @NonNull AnalysisResult result);
 }

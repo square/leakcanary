@@ -2,7 +2,6 @@ package com.squareup.leakcanary;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
-
 import com.squareup.leakcanary.internal.FragmentRefWatcher;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.util.List;
@@ -125,7 +124,8 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
     return new AndroidWatchExecutor(DEFAULT_WATCH_DELAY_MILLIS);
   }
 
-  @Override @NonNull protected List<Class<? extends Reachability.Inspector>> defaultReachabilityInspectorClasses() {
+  @Override @NonNull
+  protected List<Class<? extends Reachability.Inspector>> defaultReachabilityInspectorClasses() {
     return AndroidReachabilityInspectors.defaultAndroidInspectors();
   }
 }

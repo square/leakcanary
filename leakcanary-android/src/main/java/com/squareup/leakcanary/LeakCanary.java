@@ -86,14 +86,15 @@ public final class LeakCanary {
    * @throws IllegalStateException if a LeakDirectoryProvider has already been set, including
    * if the default has been automatically set when installing the ref watcher.
    */
-  public static void setLeakDirectoryProvider(@NonNull LeakDirectoryProvider leakDirectoryProvider) {
+  public static void setLeakDirectoryProvider(
+      @NonNull LeakDirectoryProvider leakDirectoryProvider) {
     LeakCanaryInternals.setLeakDirectoryProvider(leakDirectoryProvider);
   }
 
   /** Returns a string representation of the result of a heap analysis. */
   @NonNull public static String leakInfo(@NonNull Context context,
-                                         @NonNull HeapDump heapDump,
-                                         @NonNull AnalysisResult result,
+      @NonNull HeapDump heapDump,
+      @NonNull AnalysisResult result,
       boolean detailed) {
     PackageManager packageManager = context.getPackageManager();
     String packageName = context.getPackageName();

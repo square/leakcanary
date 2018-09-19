@@ -15,7 +15,8 @@ public final class CanaryLog {
   }
 
   private static class DefaultLogger implements Logger {
-    DefaultLogger() { }
+    DefaultLogger() {
+    }
 
     @Override public void d(@NonNull String message, @NonNull Object... args) {
       String formatted = String.format(message, args);
@@ -30,8 +31,8 @@ public final class CanaryLog {
     }
 
     @Override public void d(@Nullable Throwable throwable,
-                            @NonNull String message,
-                            @NonNull Object... args) {
+        @NonNull String message,
+        @NonNull Object... args) {
       d(String.format(message, args) + '\n' + Log.getStackTraceString(throwable));
     }
   }
@@ -50,8 +51,8 @@ public final class CanaryLog {
   }
 
   public static void d(@Nullable Throwable throwable,
-                       @NonNull String message,
-                       @NonNull Object... args) {
+      @NonNull String message,
+      @NonNull Object... args) {
     // Local variable to prevent the ref from becoming null after the null check.
     Logger logger = CanaryLog.logger;
     if (logger == null) {

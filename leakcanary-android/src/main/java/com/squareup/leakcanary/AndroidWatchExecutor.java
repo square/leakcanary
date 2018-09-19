@@ -20,7 +20,6 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.MessageQueue;
 import android.support.annotation.NonNull;
-
 import java.util.concurrent.TimeUnit;
 
 import static com.squareup.leakcanary.Retryable.Result.RETRY;

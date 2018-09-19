@@ -49,7 +49,7 @@ public final class AndroidHeapDumper implements HeapDumper {
   private final Handler mainHandler;
 
   public AndroidHeapDumper(@NonNull Context context,
-                           @NonNull LeakDirectoryProvider leakDirectoryProvider) {
+      @NonNull LeakDirectoryProvider leakDirectoryProvider) {
     this.leakDirectoryProvider = leakDirectoryProvider;
     this.context = context.getApplicationContext();
     mainHandler = new Handler(Looper.getMainLooper());
@@ -161,7 +161,8 @@ public final class AndroidHeapDumper implements HeapDumper {
     View view = toast.getView();
     if (view.getParent() != null) {
       Context context = toast.getView().getContext();
-      WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+      WindowManager windowManager =
+          (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
       windowManager.removeView(view);
     }
   }
@@ -195,6 +196,4 @@ public final class AndroidHeapDumper implements HeapDumper {
     view.dispatchPopulateAccessibilityEvent(event);
     accessibilityManager.sendAccessibilityEvent(event);
   }
-
-
 }
