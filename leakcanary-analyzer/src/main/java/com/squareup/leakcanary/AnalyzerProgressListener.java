@@ -4,7 +4,7 @@ import android.support.annotation.NonNull;
 
 public interface AnalyzerProgressListener {
 
-  AnalyzerProgressListener NONE = new AnalyzerProgressListener() {
+  @NonNull AnalyzerProgressListener NONE = new AnalyzerProgressListener() {
     @Override public void onProgressUpdate(@NonNull Step step) {
     }
   };

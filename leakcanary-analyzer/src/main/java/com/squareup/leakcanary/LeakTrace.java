@@ -25,8 +25,8 @@ import java.util.List;
  */
 public final class LeakTrace implements Serializable {
 
-  public final @NonNull List<LeakTraceElement> elements;
-  public final @NonNull List<Reachability> expectedReachability;
+  @NonNull public final List<LeakTraceElement> elements;
+  @NonNull public final List<Reachability> expectedReachability;
 
   LeakTrace(List<LeakTraceElement> elements, List<Reachability> expectedReachability) {
     this.elements = elements;

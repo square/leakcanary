@@ -138,6 +138,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
    * the heap dump. Don't forget to check {@link AnalysisResult#leakFound} and {@link
    * AnalysisResult#excludedLeak} first.
    */
-  protected void afterDefaultHandling(HeapDump heapDump, AnalysisResult result, String leakInfo) {
+  protected void afterDefaultHandling(@NonNull HeapDump heapDump, @NonNull AnalysisResult result,
+      @NonNull String leakInfo) {
   }
 }

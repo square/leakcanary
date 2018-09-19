@@ -24,22 +24,22 @@ import static java.util.Collections.unmodifiableList;
 
 public final class InstrumentationLeakResults {
 
-  public static final InstrumentationLeakResults NONE =
+  @NonNull public static final InstrumentationLeakResults NONE =
       new InstrumentationLeakResults(Collections.<Result>emptyList(),
           Collections.<Result>emptyList(), Collections.<Result>emptyList());
 
   /** Proper leaks found during instrumentation tests. */
-  public final @NonNull List<Result> detectedLeaks;
+  @NonNull public final List<Result> detectedLeaks;
 
   /**
    * Excluded leaks found during instrumentation tests, based on {@link RefWatcher#excludedRefs}
    */
-  public final @NonNull List<Result> excludedLeaks;
+  @NonNull public final List<Result> excludedLeaks;
 
   /**
    * Leak analysis failures that happened when we tried to detect leaks.
    */
-  public final @NonNull List<Result> failures;
+  @NonNull public final List<Result> failures;
 
   public InstrumentationLeakResults(@NonNull List<Result> detectedLeaks,
       @NonNull List<Result> excludedLeaks, @NonNull List<Result> failures) {
@@ -49,8 +49,8 @@ public final class InstrumentationLeakResults {
   }
 
   public static final class Result {
-    public final @NonNull HeapDump heapDump;
-    public final @NonNull AnalysisResult analysisResult;
+    @NonNull public final HeapDump heapDump;
+    @NonNull public final AnalysisResult analysisResult;
 
     public Result(@NonNull HeapDump heapDump, @NonNull AnalysisResult analysisResult) {
       this.heapDump = heapDump;

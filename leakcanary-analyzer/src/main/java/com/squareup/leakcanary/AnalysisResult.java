@@ -52,16 +52,16 @@ public final class AnalysisResult implements Serializable {
    * Class name of the object that leaked if {@link #leakFound} is true, null otherwise.
    * The class name format is the same as what would be returned by {@link Class#getName()}.
    */
-  public final @Nullable String className;
+  @Nullable public final String className;
 
   /**
    * Shortest path to GC roots for the leaking object if {@link #leakFound} is true, null
    * otherwise. This can be used as a unique signature for the leak.
    */
-  public final @Nullable LeakTrace leakTrace;
+  @Nullable public final LeakTrace leakTrace;
 
   /** Null unless the analysis failed. */
-  public final @Nullable Throwable failure;
+  @Nullable public final Throwable failure;
 
   /**
    * The number of bytes which would be freed if all references to the leaking object were
