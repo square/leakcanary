@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,30 +29,30 @@ public final class InstrumentationLeakResults {
           Collections.<Result>emptyList(), Collections.<Result>emptyList());
 
   /** Proper leaks found during instrumentation tests. */
-  public final List<Result> detectedLeaks;
+  public final @NonNull List<Result> detectedLeaks;
 
   /**
    * Excluded leaks found during instrumentation tests, based on {@link RefWatcher#excludedRefs}
    */
-  public final List<Result> excludedLeaks;
+  public final @NonNull List<Result> excludedLeaks;
 
   /**
    * Leak analysis failures that happened when we tried to detect leaks.
    */
-  public final List<Result> failures;
+  public final @NonNull List<Result> failures;
 
-  public InstrumentationLeakResults(List<Result> detectedLeaks, List<Result> excludedLeaks,
-      List<Result> failures) {
+  public InstrumentationLeakResults(@NonNull List<Result> detectedLeaks,
+      @NonNull List<Result> excludedLeaks, @NonNull List<Result> failures) {
     this.detectedLeaks = unmodifiableList(new ArrayList<>(detectedLeaks));
     this.excludedLeaks = unmodifiableList(new ArrayList<>(excludedLeaks));
     this.failures = unmodifiableList(new ArrayList<>(failures));
   }
 
   public static final class Result {
-    public final HeapDump heapDump;
-    public final AnalysisResult analysisResult;
+    public final @NonNull HeapDump heapDump;
+    public final @NonNull AnalysisResult analysisResult;
 
-    public Result(HeapDump heapDump, AnalysisResult analysisResult) {
+    public Result(@NonNull HeapDump heapDump, @NonNull AnalysisResult analysisResult) {
       this.heapDump = heapDump;
       this.analysisResult = analysisResult;
     }
