@@ -36,4 +36,11 @@
       android:text="@string/start_async_work"
       />
 
+  <Button
+      android:id="@+id/grow_analysis_size"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/grow_analysis_size"
+      />
+
 </LinearLayout>

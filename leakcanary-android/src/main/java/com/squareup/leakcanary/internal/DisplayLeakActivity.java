@@ -46,11 +46,9 @@ import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.LeakDirectoryProvider;
 import com.squareup.leakcanary.R;
+
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -449,22 +447,6 @@ public final class DisplayLeakActivity extends Activity {
     }
   }
 
-  static class Leak {
-    final HeapDump heapDump;
-    final AnalysisResult result;
-    final File resultFile;
-    final boolean heapDumpFileExists;
-    final long resultFileLastModified;
-
-    Leak(HeapDump heapDump, AnalysisResult result, File resultFile) {
-      this.heapDump = heapDump;
-      this.result = result;
-      this.resultFile = resultFile;
-      heapDumpFileExists = heapDump.heapDumpFile.exists();
-      resultFileLastModified = resultFile.lastModified();
-    }
-  }
-
   static class LoadLeaks implements Runnable {
 
     static final List<LoadLeaks> inFlight = new ArrayList<>();
@@ -487,11 +469,13 @@ public final class DisplayLeakActivity extends Activity {
     DisplayLeakActivity activityOrNull;
     private final LeakDirectoryProvider leakDirectoryProvider;
     private final Handler mainHandler;
+    private final AnalysisResultAccessor accessor;
 
     LoadLeaks(DisplayLeakActivity activity, LeakDirectoryProvider leakDirectoryProvider) {
       this.activityOrNull = activity;
       this.leakDirectoryProvider = leakDirectoryProvider;
       mainHandler = new Handler(Looper.getMainLooper());
+      accessor = new AnalysisResultAccessor();
     }
 
     @Override public void run() {
@@ -502,30 +486,9 @@ public final class DisplayLeakActivity extends Activity {
         }
       });
       for (File resultFile : files) {
-        FileInputStream fis = null;
-        try {
-          fis = new FileInputStream(resultFile);
-          ObjectInputStream ois = new ObjectInputStream(fis);
-          HeapDump heapDump = (HeapDump) ois.readObject();
-          AnalysisResult result = (AnalysisResult) ois.readObject();
-          leaks.add(new Leak(heapDump, result, resultFile));
-        } catch (IOException | ClassNotFoundException e) {
-          // Likely a change in the serializable result class.
-          // Let's remove the files, we can't read them anymore.
-          boolean deleted = resultFile.delete();
-          if (deleted) {
-            CanaryLog.d(e, "Could not read result file %s, deleted it.", resultFile);
-          } else {
-            CanaryLog.d(e, "Could not read result file %s, could not delete it either.",
-                resultFile);
-          }
-        } finally {
-          if (fis != null) {
-            try {
-              fis.close();
-            } catch (IOException ignored) {
-            }
-          }
+        final Leak leak = accessor.loadLeak(resultFile);
+        if (leak != null) {
+          leaks.add(leak);
         }
       }
       Collections.sort(leaks, new Comparator<Leak>() {

@@ -18,15 +18,18 @@ package com.squareup.leakcanary;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.content.ContextCompat;
+import com.squareup.leakcanary.internal.AnalysisResultAccessor;
 import com.squareup.leakcanary.internal.ForegroundService;
+import com.squareup.leakcanary.internal.Leak;
+
+import java.io.File;
 
 public abstract class AbstractAnalysisResultService extends ForegroundService {
 
-  private static final String HEAP_DUMP_EXTRA = "heap_dump_extra";
-  private static final String RESULT_EXTRA = "result_extra";
+  private static final String RESULT_FILE_PATH_EXTRA = "result_file_path_extra";
 
   public static void sendResultToListener(Context context, String listenerServiceClassName,
-      HeapDump heapDump, AnalysisResult result) {
+                                          File result) {
     Class<?> listenerServiceClass;
     try {
       listenerServiceClass = Class.forName(listenerServiceClassName);
@@ -34,24 +37,26 @@ public abstract class AbstractAnalysisResultService extends ForegroundService {
       throw new RuntimeException(e);
     }
     Intent intent = new Intent(context, listenerServiceClass);
-    intent.putExtra(HEAP_DUMP_EXTRA, heapDump);
-    intent.putExtra(RESULT_EXTRA, result);
+
+    intent.putExtra(RESULT_FILE_PATH_EXTRA, result.getAbsolutePath());
     ContextCompat.startForegroundService(context, intent);
   }
+
+  private final AnalysisResultAccessor accessor = new AnalysisResultAccessor();
 
   public AbstractAnalysisResultService() {
     super(AbstractAnalysisResultService.class.getName(),
         R.string.leak_canary_notification_reporting);
   }
 
-  @Override protected final void onHandleIntentInForeground(Intent intent) {
-    HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAP_DUMP_EXTRA);
-    AnalysisResult result = (AnalysisResult) intent.getSerializableExtra(RESULT_EXTRA);
-    try {
-      onHeapAnalyzed(heapDump, result);
-    } finally {
-      //noinspection ResultOfMethodCallIgnored
-      heapDump.heapDumpFile.delete();
+  @Override
+  protected final void onHandleIntentInForeground(Intent intent) {
+    String heapDump = intent.getStringExtra(RESULT_FILE_PATH_EXTRA);
+    final Leak leak = accessor.loadLeak(new File(heapDump));
+    if (leak != null) {
+      onHeapAnalyzed(leak.heapDump, leak.result);
+    } else {
+      onHeapAnalyzed(null, null);
     }
   }
 
@@ -59,7 +64,7 @@ public abstract class AbstractAnalysisResultService extends ForegroundService {
    * Called after a heap dump is analyzed, whether or not a leak was found.
    * Check {@link AnalysisResult#leakFound} and {@link AnalysisResult#excludedLeak} to see if there
    * was a leak and if it can be ignored.
-   *
+   * <p>
    * This will be called from a background intent service thread.
    * <p>
    * It's OK to block here and wait for the heap dump to be uploaded.
