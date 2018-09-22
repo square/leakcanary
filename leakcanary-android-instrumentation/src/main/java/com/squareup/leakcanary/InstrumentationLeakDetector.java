@@ -20,6 +20,7 @@ import android.app.Instrumentation;
 import android.content.Context;
 import android.os.Debug;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,7 +110,8 @@ public final class InstrumentationLeakDetector {
    * {@link RunListener} that calls {@link #detectLeaks()}, for instance
    * {@link FailTestOnLeakRunListener}.
    */
-  public static AndroidRefWatcherBuilder instrumentationRefWatcher(Application application) {
+  public static @NonNull AndroidRefWatcherBuilder instrumentationRefWatcher(
+      @NonNull Application application) {
     return LeakCanary.refWatcher(application)
         .watchExecutor(new WatchExecutor() {
           // Storing weak refs to ensure they make it to the queue.
@@ -121,7 +123,7 @@ public final class InstrumentationLeakDetector {
         });
   }
 
-  public InstrumentationLeakResults detectLeaks() {
+  public @NonNull InstrumentationLeakResults detectLeaks() {
     Instrumentation instrumentation = getInstrumentation();
     Context context = instrumentation.getTargetContext();
     RefWatcher refWatcher = LeakCanary.installedRefWatcher();

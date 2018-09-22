@@ -19,6 +19,8 @@ import android.annotation.TargetApi;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import com.squareup.leakcanary.internal.RequestStoragePermissionActivity;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -53,11 +55,11 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
   private volatile boolean writeExternalStorageGranted;
   private volatile boolean permissionNotificationDisplayed;
 
-  public DefaultLeakDirectoryProvider(Context context) {
+  public DefaultLeakDirectoryProvider(@NonNull Context context) {
     this(context, DEFAULT_MAX_STORED_HEAP_DUMPS);
   }
 
-  public DefaultLeakDirectoryProvider(Context context, int maxStoredHeapDumps) {
+  public DefaultLeakDirectoryProvider(@NonNull Context context, int maxStoredHeapDumps) {
     if (maxStoredHeapDumps < 1) {
       throw new IllegalArgumentException("maxStoredHeapDumps must be at least 1");
     }
@@ -65,7 +67,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     this.maxStoredHeapDumps = maxStoredHeapDumps;
   }
 
-  @Override public List<File> listFiles(FilenameFilter filter) {
+  @Override public @NonNull List<File> listFiles(@NonNull FilenameFilter filter) {
     if (!hasStoragePermission()) {
       requestWritePermissionNotification();
     }
@@ -83,7 +85,7 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     return files;
   }
 
-  @Override public File newHeapDumpFile() {
+  @Override public @Nullable File newHeapDumpFile() {
     List<File> pendingHeapDumps = listFiles(new FilenameFilter() {
       @Override public boolean accept(File dir, String filename) {
         return filename.endsWith(PENDING_HEAPDUMP_SUFFIX);

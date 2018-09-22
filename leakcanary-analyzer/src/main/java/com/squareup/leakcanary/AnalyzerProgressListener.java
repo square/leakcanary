@@ -1,9 +1,11 @@
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
+
 public interface AnalyzerProgressListener {
 
-  AnalyzerProgressListener NONE = new AnalyzerProgressListener() {
-    @Override public void onProgressUpdate(Step step) {
+  @NonNull AnalyzerProgressListener NONE = new AnalyzerProgressListener() {
+    @Override public void onProgressUpdate(@NonNull Step step) {
     }
   };
 
@@ -19,5 +21,5 @@ public interface AnalyzerProgressListener {
     COMPUTING_BITMAP_SIZE,
   }
 
-  void onProgressUpdate(Step step);
+  void onProgressUpdate(@NonNull Step step);
 }

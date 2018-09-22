@@ -11,6 +11,13 @@ android {
   libraryVariants.all {
     it.generateBuildConfig.enabled = false
   }
+  lintOptions {
+    check 'Interoperability'
+  }
+}
+
+dependencies {
+  implementation 'com.android.support:support-annotations:26.0.0'
 }
 
 apply from: rootProject.file('gradle/checkstyle.gradle')

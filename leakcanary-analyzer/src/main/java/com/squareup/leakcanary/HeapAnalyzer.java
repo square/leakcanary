@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
 import com.squareup.haha.perflib.ArrayInstance;
 import com.squareup.haha.perflib.ClassInstance;
 import com.squareup.haha.perflib.ClassObj;
@@ -84,13 +85,14 @@ public final class HeapAnalyzer {
    * @deprecated Use {@link #HeapAnalyzer(ExcludedRefs, AnalyzerProgressListener, List)}.
    */
   @Deprecated
-  public HeapAnalyzer(ExcludedRefs excludedRefs) {
+  public HeapAnalyzer(@NonNull ExcludedRefs excludedRefs) {
     this(excludedRefs, AnalyzerProgressListener.NONE,
         Collections.<Class<? extends Reachability.Inspector>>emptyList());
   }
 
-  public HeapAnalyzer(ExcludedRefs excludedRefs, AnalyzerProgressListener listener,
-      List<Class<? extends Reachability.Inspector>> reachabilityInspectorClasses) {
+  public HeapAnalyzer(@NonNull ExcludedRefs excludedRefs,
+      @NonNull AnalyzerProgressListener listener,
+      @NonNull List<Class<? extends Reachability.Inspector>> reachabilityInspectorClasses) {
     this.excludedRefs = excludedRefs;
     this.listener = listener;
 
@@ -107,7 +109,7 @@ public final class HeapAnalyzer {
     }
   }
 
-  public List<TrackedReference> findTrackedReferences(File heapDumpFile) {
+  public @NonNull List<TrackedReference> findTrackedReferences(@NonNull File heapDumpFile) {
     if (!heapDumpFile.exists()) {
       throw new IllegalArgumentException("File does not exist: " + heapDumpFile);
     }
@@ -143,7 +145,8 @@ public final class HeapAnalyzer {
    * @deprecated Use {@link #checkForLeak(File, String, boolean)} instead.
    */
   @Deprecated
-  public AnalysisResult checkForLeak(File heapDumpFile, String referenceKey) {
+  public @NonNull AnalysisResult checkForLeak(@NonNull File heapDumpFile,
+      @NonNull String referenceKey) {
     return checkForLeak(heapDumpFile, referenceKey, true);
   }
 
@@ -151,7 +154,8 @@ public final class HeapAnalyzer {
    * Searches the heap dump for a {@link KeyedWeakReference} instance with the corresponding key,
    * and then computes the shortest strong reference path from that instance to the GC roots.
    */
-  public AnalysisResult checkForLeak(File heapDumpFile, String referenceKey,
+  public @NonNull AnalysisResult checkForLeak(@NonNull File heapDumpFile,
+      @NonNull String referenceKey,
       boolean computeRetainedSize) {
     long analysisStartNanoTime = System.nanoTime();
 
