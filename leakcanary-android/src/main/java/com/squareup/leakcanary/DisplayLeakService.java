@@ -17,6 +17,8 @@ package com.squareup.leakcanary;
 
 import android.app.PendingIntent;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 
 import static android.text.format.Formatter.formatShortFileSize;
@@ -34,7 +36,7 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.showNotificat
 public class DisplayLeakService extends AbstractAnalysisResultService {
 
   @Override
-  protected final void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result) {
+  protected final void onHeapAnalyzed(@Nullable HeapDump heapDump, @Nullable AnalysisResult result) {
     String leakInfo;
     boolean resultSaved;
     if (heapDump == null) {
@@ -92,6 +94,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
    * the heap dump. Don't forget to check {@link AnalysisResult#leakFound} and {@link
    * AnalysisResult#excludedLeak} first.
    */
-  protected void afterDefaultHandling(HeapDump heapDump, AnalysisResult result, String leakInfo) {
+  protected void afterDefaultHandling(@Nullable HeapDump heapDump, @Nullable AnalysisResult result,
+      @NonNull String leakInfo) {
   }
 }

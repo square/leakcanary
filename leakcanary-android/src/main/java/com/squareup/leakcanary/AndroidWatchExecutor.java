@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.MessageQueue;
+import android.support.annotation.NonNull;
 import java.util.concurrent.TimeUnit;
 
 import static com.squareup.leakcanary.Retryable.Result.RETRY;
@@ -45,7 +46,7 @@ public final class AndroidWatchExecutor implements WatchExecutor {
     maxBackoffFactor = Long.MAX_VALUE / initialDelayMillis;
   }
 
-  @Override public void execute(Retryable retryable) {
+  @Override public void execute(@NonNull Retryable retryable) {
     if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
       waitForIdle(retryable, 0);
     } else {

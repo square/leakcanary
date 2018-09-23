@@ -68,7 +68,7 @@ public class FailTestOnLeakRunListener extends RunListener {
    * is started. Returns null to continue leak detection, or a string describing the reason for
    * skipping otherwise.
    */
-  @Nullable protected String skipLeakDetectionReason(@NonNull Description description) {
+  protected @Nullable String skipLeakDetectionReason(@NonNull Description description) {
     return null;
   }
 
@@ -120,8 +120,7 @@ public class FailTestOnLeakRunListener extends RunListener {
   }
 
   /** Can be overridden to customize the failure string message. */
-  @NonNull
-  protected String buildLeakDetectedMessage(
+  protected @NonNull String buildLeakDetectedMessage(
       @NonNull List<InstrumentationLeakResults.Result> detectedLeaks) {
     StringBuilder failureMessage = new StringBuilder();
     failureMessage.append(

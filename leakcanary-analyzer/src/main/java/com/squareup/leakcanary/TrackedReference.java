@@ -1,5 +1,6 @@
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,18 +12,19 @@ import java.util.List;
 public class TrackedReference {
 
   /** Corresponds to {@link KeyedWeakReference#key}. */
-  public final String key;
+  @NonNull public final String key;
 
   /** Corresponds to {@link KeyedWeakReference#name}. */
-  public final String name;
+  @NonNull public final String name;
 
   /** Class of the tracked instance. */
-  public final String className;
+  @NonNull public final String className;
 
   /** List of all fields (member and static) for that instance. */
-  public final List<LeakReference> fields;
+  @NonNull public final List<LeakReference> fields;
 
-  public TrackedReference(String key, String name, String className, List<LeakReference> fields) {
+  public TrackedReference(@NonNull String key, @NonNull String name, @NonNull String className,
+      @NonNull List<LeakReference> fields) {
     this.key = key;
     this.name = name;
     this.className = className;

@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import com.squareup.leakcanary.internal.HeapAnalyzerService;
@@ -36,7 +37,7 @@ public final class LeakCanary {
    * Creates a {@link RefWatcher} that works out of the box, and starts watching activity
    * references (on ICS+).
    */
-  public static RefWatcher install(Application application) {
+  public static @NonNull RefWatcher install(@NonNull Application application) {
     return refWatcher(application).listenerServiceClass(DisplayLeakService.class)
         .excludedRefs(AndroidExcludedRefs.createAppDefaults().build())
         .buildAndInstall();
@@ -47,7 +48,7 @@ public final class LeakCanary {
    * {@link AndroidRefWatcherBuilder#buildAndInstall()}, and {@link RefWatcher#DISABLED} is no
    * {@link RefWatcher} has been installed.
    */
-  public static RefWatcher installedRefWatcher() {
+  public static @NonNull RefWatcher installedRefWatcher() {
     RefWatcher refWatcher = LeakCanaryInternals.installedRefWatcher;
     if (refWatcher == null) {
       return RefWatcher.DISABLED;
@@ -55,7 +56,7 @@ public final class LeakCanary {
     return refWatcher;
   }
 
-  public static AndroidRefWatcherBuilder refWatcher(Context context) {
+  public static @NonNull AndroidRefWatcherBuilder refWatcher(@NonNull Context context) {
     return new AndroidRefWatcherBuilder(context);
   }
 
@@ -65,7 +66,7 @@ public final class LeakCanary {
    * once a potential leak has been found and the analysis starts. You can call this method to
    * enable {@link DisplayLeakActivity} before any potential leak has been detected.
    */
-  public static void enableDisplayLeakActivity(Context context) {
+  public static void enableDisplayLeakActivity(@NonNull Context context) {
     LeakCanaryInternals.setEnabledBlocking(context, DisplayLeakActivity.class, true);
   }
 
@@ -74,7 +75,7 @@ public final class LeakCanary {
    */
   @Deprecated
   public static void setDisplayLeakActivityDirectoryProvider(
-      LeakDirectoryProvider leakDirectoryProvider) {
+      @NonNull LeakDirectoryProvider leakDirectoryProvider) {
     setLeakDirectoryProvider(leakDirectoryProvider);
   }
 
@@ -85,12 +86,15 @@ public final class LeakCanary {
    * @throws IllegalStateException if a LeakDirectoryProvider has already been set, including
    * if the default has been automatically set when installing the ref watcher.
    */
-  public static void setLeakDirectoryProvider(LeakDirectoryProvider leakDirectoryProvider) {
+  public static void setLeakDirectoryProvider(
+      @NonNull LeakDirectoryProvider leakDirectoryProvider) {
     LeakCanaryInternals.setLeakDirectoryProvider(leakDirectoryProvider);
   }
 
   /** Returns a string representation of the result of a heap analysis. */
-  public static String leakInfo(Context context, HeapDump heapDump, AnalysisResult result,
+  public static @NonNull String leakInfo(@NonNull Context context,
+      @NonNull HeapDump heapDump,
+      @NonNull AnalysisResult result,
       boolean detailed) {
     PackageManager packageManager = context.getPackageManager();
     String packageName = context.getPackageName();
@@ -171,7 +175,7 @@ public final class LeakCanary {
    * Whether the current process is the process running the {@link HeapAnalyzerService}, which is
    * a different process than the normal app process.
    */
-  public static boolean isInAnalyzerProcess(Context context) {
+  public static boolean isInAnalyzerProcess(@NonNull Context context) {
     Boolean isInAnalyzerProcess = LeakCanaryInternals.isInAnalyzerProcess;
     // This only needs to be computed once per process.
     if (isInAnalyzerProcess == null) {

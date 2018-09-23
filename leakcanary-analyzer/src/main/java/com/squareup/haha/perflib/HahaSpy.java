@@ -15,9 +15,11 @@
  */
 package com.squareup.haha.perflib;
 
+import android.support.annotation.NonNull;
+
 public final class HahaSpy {
 
-  public static Instance allocatingThread(Instance instance) {
+  public static @NonNull Instance allocatingThread(@NonNull Instance instance) {
     Snapshot snapshot = instance.mHeap.mSnapshot;
     int threadSerialNumber;
     if (instance instanceof RootObj) {

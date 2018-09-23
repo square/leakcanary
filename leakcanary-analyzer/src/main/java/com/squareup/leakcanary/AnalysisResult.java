@@ -15,23 +15,27 @@
  */
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import java.io.Serializable;
 
 public final class AnalysisResult implements Serializable {
 
   public static final long RETAINED_HEAP_SKIPPED = -1;
 
-  public static AnalysisResult noLeak(long analysisDurationMs) {
+  public static @NonNull AnalysisResult noLeak(long analysisDurationMs) {
     return new AnalysisResult(false, false, null, null, null, 0, analysisDurationMs);
   }
 
-  public static AnalysisResult leakDetected(boolean excludedLeak, String className,
-      LeakTrace leakTrace, long retainedHeapSize, long analysisDurationMs) {
+  public static @NonNull AnalysisResult leakDetected(boolean excludedLeak,
+      @NonNull String className,
+      @NonNull LeakTrace leakTrace, long retainedHeapSize, long analysisDurationMs) {
     return new AnalysisResult(true, excludedLeak, className, leakTrace, null, retainedHeapSize,
         analysisDurationMs);
   }
 
-  public static AnalysisResult failure(Throwable failure, long analysisDurationMs) {
+  public static @NonNull AnalysisResult failure(@NonNull Throwable failure,
+      long analysisDurationMs) {
     return new AnalysisResult(false, false, null, null, failure, 0, analysisDurationMs);
   }
 
@@ -48,16 +52,16 @@ public final class AnalysisResult implements Serializable {
    * Class name of the object that leaked if {@link #leakFound} is true, null otherwise.
    * The class name format is the same as what would be returned by {@link Class#getName()}.
    */
-  public final String className;
+  @Nullable public final String className;
 
   /**
    * Shortest path to GC roots for the leaking object if {@link #leakFound} is true, null
    * otherwise. This can be used as a unique signature for the leak.
    */
-  public final LeakTrace leakTrace;
+  @Nullable public final LeakTrace leakTrace;
 
   /** Null unless the analysis failed. */
-  public final Throwable failure;
+  @Nullable public final Throwable failure;
 
   /**
    * The number of bytes which would be freed if all references to the leaking object were
@@ -97,7 +101,7 @@ public final class AnalysisResult implements Serializable {
    *         at com.foo.WibbleActivity.leaking(WibbleActivity.java:42)
    * </pre>
    */
-  public RuntimeException leakTraceAsFakeException() {
+  public @NonNull RuntimeException leakTraceAsFakeException() {
     if (!leakFound) {
       throw new UnsupportedOperationException(
           "leakTraceAsFakeException() can only be called when leakFound is true");

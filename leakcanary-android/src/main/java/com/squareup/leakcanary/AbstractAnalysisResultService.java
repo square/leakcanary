@@ -17,6 +17,8 @@ package com.squareup.leakcanary;
 
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import com.squareup.leakcanary.internal.AnalysisResultAccessor;
 import com.squareup.leakcanary.internal.ForegroundService;
@@ -28,8 +30,9 @@ public abstract class AbstractAnalysisResultService extends ForegroundService {
 
   private static final String RESULT_FILE_PATH_EXTRA = "result_file_path_extra";
 
-  public static void sendResultToListener(Context context, String listenerServiceClassName,
-                                          File result) {
+  public static void sendResultToListener(@NonNull Context context,
+      @NonNull String listenerServiceClassName,
+      @NonNull File result) {
     Class<?> listenerServiceClass;
     try {
       listenerServiceClass = Class.forName(listenerServiceClassName);
@@ -50,7 +53,7 @@ public abstract class AbstractAnalysisResultService extends ForegroundService {
   }
 
   @Override
-  protected final void onHandleIntentInForeground(Intent intent) {
+  protected final void onHandleIntentInForeground(@Nullable Intent intent) {
     String heapDump = intent.getStringExtra(RESULT_FILE_PATH_EXTRA);
     final Leak leak = accessor.loadLeak(new File(heapDump));
     if (leak != null) {
@@ -71,5 +74,6 @@ public abstract class AbstractAnalysisResultService extends ForegroundService {
    * <p>
    * The heap dump file will be deleted immediately after this callback returns.
    */
-  protected abstract void onHeapAnalyzed(HeapDump heapDump, AnalysisResult result);
+  protected abstract void onHeapAnalyzed(@NonNull HeapDump heapDump,
+      @NonNull AnalysisResult result);
 }
