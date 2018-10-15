@@ -389,7 +389,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  INPUT_METHOD_MANAGER__LAST_SERVED_VIEW(HUAWEI.equals(MANUFACTURER) && SDK_INT == N) {
+  INPUT_METHOD_MANAGER__LAST_SERVED_VIEW(HUAWEI.equals(MANUFACTURER) && SDK_INT >= M && SDK_INT <= N) {
     @Override void add(ExcludedRefs.Builder excluded) {
       String reason = "HUAWEI added a mLastSrvView field to InputMethodManager"
           + " that leaks a reference to the last served view.";
