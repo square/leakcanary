@@ -26,6 +26,7 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
+import android.os.AsyncTask;
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.DefaultLeakDirectoryProvider;
 import com.squareup.leakcanary.LeakDirectoryProvider;
@@ -69,6 +70,16 @@ public final class LeakCanaryInternals {
     } else {
       return className.substring(separator + 1);
     }
+  }
+
+  public static void setEnabledAsync(Context context, final Class<?> componentClass,
+      final boolean enabled) {
+    final Context appContext = context.getApplicationContext();
+    AsyncTask.THREAD_POOL_EXECUTOR.execute(new Runnable() {
+      @Override public void run() {
+        setEnabledBlocking(appContext, componentClass, enabled);
+      }
+    });
   }
 
   public static void setEnabledBlocking(Context appContext, Class<?> componentClass,
