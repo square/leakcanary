@@ -2,6 +2,7 @@ package com.squareup.leakcanary;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
+import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import com.squareup.leakcanary.internal.FragmentRefWatcher;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.util.List;
@@ -87,6 +88,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
     }
     RefWatcher refWatcher = build();
     if (refWatcher != DISABLED) {
+      LeakCanaryInternals.setEnabledAsync(context, DisplayLeakActivity.class, true);
       if (watchActivities) {
         ActivityRefWatcher.install(context, refWatcher);
       }
