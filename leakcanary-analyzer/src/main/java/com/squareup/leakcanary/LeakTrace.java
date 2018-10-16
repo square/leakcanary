@@ -46,8 +46,12 @@ public final class LeakTrace implements Serializable {
       if (currentReachability == Reachability.UNKNOWN) {
         maybeLeakCause = true;
       } else if (currentReachability == Reachability.REACHABLE) {
-        Reachability nextReachability = expectedReachability.get(i + 1);
-        if (nextReachability !=  Reachability.REACHABLE) {
+        if (i < elements.size() - 1) {
+          Reachability nextReachability = expectedReachability.get(i + 1);
+          if (nextReachability != Reachability.REACHABLE) {
+            maybeLeakCause = true;
+          }
+        } else {
           maybeLeakCause = true;
         }
       }
