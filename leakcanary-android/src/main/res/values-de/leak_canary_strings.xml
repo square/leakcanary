@@ -26,6 +26,9 @@
     <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
     <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>
     <string name="leak_canary_notification_reporting">Sichere LeakCanary Ergebnis</string>
+    <string name="leak_canary_result_failure_no_disk_space">The analysis result could not be saved to disk</string>
+    <string name="leak_canary_result_failure_no_file">The analysis result could not be loaded from disk</string>
+    <string name="leak_canary_result_failure_title">Analysis result failure</string>
     <string name="leak_canary_share_leak">Info teilen</string>
     <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>
     <string name="leak_canary_share_with">Teilen mit…</string>
@@ -36,7 +39,6 @@
     <string name="leak_canary_failure_report">"Bitte sende diesen Fehler an http://github.com/square/leakcanary\n"</string>
     <string name="leak_canary_delete_all">Alle löschen</string>
     <string name="leak_canary_delete_all_leaks_title">Bist du dir sicher, dass du alle Leaks löschen möchtest?</string>
-    <string name="leak_canary_could_not_save_title">Konnte Ergebnis nicht speichern.</string>
     <string name="leak_canary_could_not_save_text">LeakCanary konnte das Ergebnis der Analyse nicht speichern.</string>
     <string name="leak_canary_no_leak_title">Kein Leak gefunden</string>
     <string name="leak_canary_no_leak_text">Der GC war untätig.</string>
