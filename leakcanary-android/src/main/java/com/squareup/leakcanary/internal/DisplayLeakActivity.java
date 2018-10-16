@@ -42,11 +42,11 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import com.squareup.leakcanary.AnalysisResult;
+import com.squareup.leakcanary.AnalyzedHeap;
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.LeakDirectoryProvider;
 import com.squareup.leakcanary.R;
-
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
@@ -91,7 +91,7 @@ public final class DisplayLeakActivity extends Activity {
   }
 
   // null until it's been first loaded.
-  List<Leak> leaks;
+  List<AnalyzedHeap> leaks;
   String visibleLeakRefKey;
 
   private ListView listView;
@@ -111,7 +111,7 @@ public final class DisplayLeakActivity extends Activity {
       }
     }
 
-    leaks = (List<Leak>) getLastNonConfigurationInstance();
+    leaks = (List<AnalyzedHeap>) getLastNonConfigurationInstance();
 
     setContentView(R.layout.leak_canary_display_leak);
 
@@ -152,7 +152,7 @@ public final class DisplayLeakActivity extends Activity {
   }
 
   @Override public boolean onCreateOptionsMenu(Menu menu) {
-    Leak visibleLeak = getVisibleLeak();
+    AnalyzedHeap visibleLeak = getVisibleLeak();
     if (visibleLeak != null) {
       menu.add(R.string.leak_canary_share_leak)
           .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
@@ -193,7 +193,7 @@ public final class DisplayLeakActivity extends Activity {
   }
 
   void shareLeak() {
-    Leak visibleLeak = getVisibleLeak();
+    AnalyzedHeap visibleLeak = getVisibleLeak();
     String leakInfo = leakInfo(this, visibleLeak.heapDump, visibleLeak.result, true);
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("text/plain");
@@ -203,7 +203,7 @@ public final class DisplayLeakActivity extends Activity {
 
   @SuppressLint("SetWorldReadable")
   void shareHeapDump() {
-    Leak visibleLeak = getVisibleLeak();
+    AnalyzedHeap visibleLeak = getVisibleLeak();
     final File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
     AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
       @Override public void run() {
@@ -229,11 +229,11 @@ public final class DisplayLeakActivity extends Activity {
   }
 
   void deleteVisibleLeak() {
-    final Leak visibleLeak = getVisibleLeak();
+    final AnalyzedHeap visibleLeak = getVisibleLeak();
     AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
       @Override public void run() {
         File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
-        File resultFile = visibleLeak.resultFile;
+        File resultFile = visibleLeak.selfFile;
         boolean resultDeleted = resultFile.delete();
         if (!resultDeleted) {
           CanaryLog.d("Could not delete result file %s", resultFile.getPath());
@@ -269,7 +269,7 @@ public final class DisplayLeakActivity extends Activity {
       visibleLeakRefKey = null;
     }
 
-    final Leak visibleLeak = getVisibleLeak();
+    final AnalyzedHeap visibleLeak = getVisibleLeak();
     if (visibleLeak == null) {
       visibleLeakRefKey = null;
     }
@@ -382,11 +382,11 @@ public final class DisplayLeakActivity extends Activity {
     actionBar.setDisplayHomeAsUpEnabled(enabled);
   }
 
-  Leak getVisibleLeak() {
+  AnalyzedHeap getVisibleLeak() {
     if (leaks == null) {
       return null;
     }
-    for (Leak leak : leaks) {
+    for (AnalyzedHeap leak : leaks) {
       if (leak.heapDump.referenceKey.equals(visibleLeakRefKey)) {
         return leak;
       }
@@ -400,7 +400,7 @@ public final class DisplayLeakActivity extends Activity {
       return leaks.size();
     }
 
-    @Override public Leak getItem(int position) {
+    @Override public AnalyzedHeap getItem(int position) {
       return leaks.get(position);
     }
 
@@ -415,7 +415,7 @@ public final class DisplayLeakActivity extends Activity {
       }
       TextView titleView = convertView.findViewById(R.id.leak_canary_row_text);
       TextView timeView = convertView.findViewById(R.id.leak_canary_row_time);
-      Leak leak = getItem(position);
+      AnalyzedHeap leak = getItem(position);
 
       String index = (leaks.size() - position) + ". ";
 
@@ -440,7 +440,7 @@ public final class DisplayLeakActivity extends Activity {
       }
       titleView.setText(title);
       String time =
-          DateUtils.formatDateTime(DisplayLeakActivity.this, leak.resultFileLastModified,
+          DateUtils.formatDateTime(DisplayLeakActivity.this, leak.selfLastModified,
               FORMAT_SHOW_TIME | FORMAT_SHOW_DATE);
       timeView.setText(time);
       return convertView;
@@ -469,32 +469,30 @@ public final class DisplayLeakActivity extends Activity {
     DisplayLeakActivity activityOrNull;
     private final LeakDirectoryProvider leakDirectoryProvider;
     private final Handler mainHandler;
-    private final AnalysisResultAccessor accessor;
 
     LoadLeaks(DisplayLeakActivity activity, LeakDirectoryProvider leakDirectoryProvider) {
       this.activityOrNull = activity;
       this.leakDirectoryProvider = leakDirectoryProvider;
       mainHandler = new Handler(Looper.getMainLooper());
-      accessor = new AnalysisResultAccessor();
     }
 
     @Override public void run() {
-      final List<Leak> leaks = new ArrayList<>();
+      final List<AnalyzedHeap> leaks = new ArrayList<>();
       List<File> files = leakDirectoryProvider.listFiles(new FilenameFilter() {
         @Override public boolean accept(File dir, String filename) {
           return filename.endsWith(".result");
         }
       });
       for (File resultFile : files) {
-        final Leak leak = accessor.loadLeak(resultFile);
+        final AnalyzedHeap leak = AnalyzedHeap.load(resultFile);
         if (leak != null) {
           leaks.add(leak);
         }
       }
-      Collections.sort(leaks, new Comparator<Leak>() {
-        @Override public int compare(Leak lhs, Leak rhs) {
-          return Long.valueOf(rhs.resultFile.lastModified())
-              .compareTo(lhs.resultFile.lastModified());
+      Collections.sort(leaks, new Comparator<AnalyzedHeap>() {
+        @Override public int compare(AnalyzedHeap lhs, AnalyzedHeap rhs) {
+          return Long.valueOf(rhs.selfFile.lastModified())
+              .compareTo(lhs.selfFile.lastModified());
         }
       });
       mainHandler.post(new Runnable() {

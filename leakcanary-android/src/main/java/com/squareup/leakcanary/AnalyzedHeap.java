@@ -1,43 +1,29 @@
-package com.squareup.leakcanary.internal;
+package com.squareup.leakcanary;
 
-import com.squareup.leakcanary.AnalysisResult;
-import com.squareup.leakcanary.CanaryLog;
-import com.squareup.leakcanary.HeapDump;
-
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
-public class AnalysisResultAccessor {
+/**
+ * Wraps a {@link HeapDump} and corresponding {@link AnalysisResult}.
+ */
+public final class AnalyzedHeap {
 
-  public HeapDump renameHeapdump(HeapDump heapDump) {
-    String fileName =
-        new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(new Date());
-
-    File newFile = new File(heapDump.heapDumpFile.getParent(), fileName);
-    boolean renamed = heapDump.heapDumpFile.renameTo(newFile);
-    if (!renamed) {
-      CanaryLog.d("Could not rename heap dump file %s to %s", heapDump.heapDumpFile.getPath(),
-          newFile.getPath());
-    }
-    return heapDump.buildUpon().heapDumpFile(newFile).build();
-  }
-
-  public boolean saveResult(HeapDump heapDump, AnalysisResult result) {
-    File resultFile = getResultFile(heapDump);
+  @Nullable public static File save(@NonNull HeapDump heapDump, @NonNull AnalysisResult result) {
+    File analyzedHeapfile = new File(heapDump.heapDumpFile.getParentFile(),
+        heapDump.heapDumpFile.getName() + ".result");
     FileOutputStream fos = null;
     try {
-      fos = new FileOutputStream(resultFile);
+      fos = new FileOutputStream(analyzedHeapfile);
       ObjectOutputStream oos = new ObjectOutputStream(fos);
       oos.writeObject(heapDump);
       oos.writeObject(result);
-      return true;
+      return analyzedHeapfile;
     } catch (IOException e) {
       CanaryLog.d(e, "Could not save leak analysis result to disk.");
     } finally {
@@ -48,22 +34,17 @@ public class AnalysisResultAccessor {
         }
       }
     }
-    return false;
+    return null;
   }
 
-  public File getResultFile(final HeapDump heapDump) {
-    return new File(heapDump.heapDumpFile.getParentFile(),
-        heapDump.heapDumpFile.getName() + ".result");
-  }
-
-  public Leak loadLeak(File resultFile) {
+  @Nullable public static AnalyzedHeap load(@NonNull File resultFile) {
     FileInputStream fis = null;
     try {
       fis = new FileInputStream(resultFile);
       ObjectInputStream ois = new ObjectInputStream(fis);
       HeapDump heapDump = (HeapDump) ois.readObject();
       AnalysisResult result = (AnalysisResult) ois.readObject();
-      return new Leak(heapDump, result, resultFile);
+      return new AnalyzedHeap(heapDump, result, resultFile);
     } catch (IOException | ClassNotFoundException e) {
       // Likely a change in the serializable result class.
       // Let's remove the files, we can't read them anymore.
@@ -83,5 +64,20 @@ public class AnalysisResultAccessor {
       }
     }
     return null;
+  }
+
+  @NonNull public final HeapDump heapDump;
+  @NonNull public final AnalysisResult result;
+  @NonNull public final File selfFile;
+  public final boolean heapDumpFileExists;
+  public final long selfLastModified;
+
+  public AnalyzedHeap(@NonNull HeapDump heapDump, @NonNull AnalysisResult result,
+      @NonNull File analyzedHeapFile) {
+    this.heapDump = heapDump;
+    this.result = result;
+    this.selfFile = analyzedHeapFile;
+    heapDumpFileExists = heapDump.heapDumpFile.exists();
+    selfLastModified = analyzedHeapFile.lastModified();
   }
 }

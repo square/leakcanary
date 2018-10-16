@@ -20,48 +20,29 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
-import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
-  private ChainedReference<HttpRequestHelper> httpRequestHelper;
+  private HttpRequestHelper httpRequestHelper;
 
-  @Override
-  protected void onCreate(Bundle savedInstanceState) {
+  @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.main_activity);
 
     View button = findViewById(R.id.async_work);
     button.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
+      @Override public void onClick(View v) {
         startAsyncWork();
       }
     });
 
-    findViewById(R.id.grow_analysis_size).setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        growAnalysisSize();
-      }
-    });
-
-    httpRequestHelper = (ChainedReference<HttpRequestHelper>) getLastNonConfigurationInstance();
+    httpRequestHelper = (HttpRequestHelper) getLastNonConfigurationInstance();
     if (httpRequestHelper == null) {
-      httpRequestHelper = new ChainedReference<>(new HttpRequestHelper(button), null);
+      httpRequestHelper = new HttpRequestHelper(button);
     }
   }
 
-  // This method makes long reference chain to grow AnalysisReport memory footprint.
-  private void growAnalysisSize() {
-    for (int i = 0; i< 1000; i++) {
-      httpRequestHelper = new ChainedReference<>(null, httpRequestHelper);
-    }
-    Toast.makeText(this, R.string.grown_successfully, Toast.LENGTH_SHORT).show();
-  }
-
-  @Override
-  public Object onRetainNonConfigurationInstance() {
+  @Override public Object onRetainNonConfigurationInstance() {
     return httpRequestHelper;
   }
 
@@ -71,26 +52,13 @@ public class MainActivity extends Activity {
     // class MainActivity. If the activity gets destroyed before the thread finishes (e.g. rotation),
     // the activity instance will leak.
     Runnable work = new Runnable() {
-      @Override
-      public void run() {
+      @Override public void run() {
         // Do some slow work in background
         SystemClock.sleep(20000);
       }
     };
     new Thread(work).start();
   }
-
-  public static class ChainedReference<T> {
-    private final T data;
-    private final ChainedReference<T> next;
-
-    public ChainedReference(T data, ChainedReference<T> reference) {
-      this.data = data;
-      this.next = reference;
-    }
-
-    public T getData() {
-      return data;
-    }
-  }
 }
+
+
