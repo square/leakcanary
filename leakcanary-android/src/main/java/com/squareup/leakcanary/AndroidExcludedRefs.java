@@ -325,7 +325,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  ACCESSIBILITY_NODE_INFO__MORIGINALTEXT(SDK_INT == O) {
+  ACCESSIBILITY_NODE_INFO__MORIGINALTEXT(SDK_INT >= O && SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.accessibility.AccessibilityNodeInfo", "mOriginalText")
           .reason("AccessibilityNodeInfo has a static sPool of AccessibilityNodeInfo. When "
