@@ -1,6 +1,8 @@
 package com.squareup.leakcanary;
 
 import java.util.Date;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -10,6 +12,14 @@ import org.junit.Test;
 public class InstrumentationLeakDetectorTest {
 
   private static Object leaking;
+
+  @Before public void setUp() {
+    LeakCanary.installedRefWatcher().clearWatchedReferences();
+  }
+
+  @After public void tearDown() {
+    LeakCanary.installedRefWatcher().clearWatchedReferences();
+  }
 
   @Test public void detectsLeak() {
     leaking = new Date();
