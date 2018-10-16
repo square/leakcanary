@@ -32,7 +32,8 @@ public final class InstrumentationLeakResults {
   @NonNull public final List<Result> detectedLeaks;
 
   /**
-   * Excluded leaks found during instrumentation tests, based on {@link RefWatcher#excludedRefs}
+   * Excluded leaks found during instrumentation tests, based on {@link
+   * RefWatcherBuilder#excludedRefs}
    */
   @NonNull public final List<Result> excludedLeaks;
 
