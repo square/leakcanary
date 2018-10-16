@@ -20,7 +20,6 @@
   <application android:name="com.squareup.leakcanary.tests.InstrumentationTestApplication">
 
     <activity android:name="com.squareup.leakcanary.tests.TestActivity"/>
-    <activity android:name="com.squareup.leakcanary.tests.NastyActivity"/>
 
   </application>
 </manifest>

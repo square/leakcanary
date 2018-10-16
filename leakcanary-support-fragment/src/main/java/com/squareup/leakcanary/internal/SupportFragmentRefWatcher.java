@@ -32,8 +32,8 @@ class SupportFragmentRefWatcher implements FragmentRefWatcher {
   private final FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks =
       new FragmentManager.FragmentLifecycleCallbacks() {
 
-        @Override public void onFragmentViewDestroyed(FragmentManager fm, Fragment f) {
-          View view = f.getView();
+        @Override public void onFragmentViewDestroyed(FragmentManager fm, Fragment fragment) {
+          View view = fragment.getView();
           if (view != null) {
             refWatcher.watch(view);
           }
