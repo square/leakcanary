@@ -27,7 +27,7 @@ public interface GcTrigger {
       // https://android.googlesource.com/platform/libcore/+/master/support/src/test/java/libcore/
       // java/lang/ref/FinalizationTester.java
       // System.gc() does not garbage collect every time. Runtime.gc() is
-      // more likely to perfom a gc.
+      // more likely to perform a gc.
       Runtime.getRuntime().gc();
       enqueueReferences();
       System.runFinalization();
