@@ -58,6 +58,8 @@ public enum AndroidReachabilityInspectors {
 
   MAIN_THEAD(MainThreadInspector.class),
 
+  WINDOW(WindowInspector.class),
+
   //
   ;
 
@@ -204,6 +206,19 @@ public enum AndroidReachabilityInspectors {
         return Reachability.REACHABLE;
       }
       return Reachability.UNKNOWN;
+    }
+  }
+
+  public static class WindowInspector implements Reachability.Inspector {
+    @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
+      if (!element.isInstanceOf("android.view.Window")) {
+        return Reachability.UNKNOWN;
+      }
+      String mDestroyed = element.getFieldReferenceValue("mDestroyed");
+      if (mDestroyed == null) {
+        return Reachability.UNKNOWN;
+      }
+      return mDestroyed.equals("true") ? Reachability.UNREACHABLE : Reachability.REACHABLE;
     }
   }
 
