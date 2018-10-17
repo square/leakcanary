@@ -15,10 +15,10 @@ In your `build.gradle`:
 
 ```groovy
 dependencies {
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.1'
-  releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.1'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.2'
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.2'
   // Optional, if you use support library fragments:
-  debugImplementation 'com.squareup.leakcanary:leakcanary-support-fragment:1.6.1'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-support-fragment:1.6.2'
 }
 ```
 

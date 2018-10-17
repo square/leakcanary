@@ -1,5 +1,37 @@
 # Change Log
 
+## Version 1.6.2 (2018-10-16)
+
+* [#1067])https://github.com/square/leakcanary/issues/1067) Fixed TransactionTooLargeException crash (leak analysis would never complete).
+* [#1061](https://github.com/square/leakcanary/pull/1061) Detection of Fragment view leaks after Fragment#onDestroyView().
+* [#1076](https://github.com/square/leakcanary/pull/1076) Added the FOREGROUND_SERVICE permission for Android P.
+* [#1062](https://github.com/square/leakcanary/issues/1062) The LeakCanary toast now always shows correctly. It doesn't show if there is no activity in foreground.
+* [#1115](https://github.com/square/leakcanary/issues/1115) Reenabled the DisplayLeakActivity icon on fresh installs.
+* [#1100](https://github.com/square/leakcanary/pull/1100) Added nullability annotations to improve Kotlin support.
+* Updates to excluded leaks ([commits](https://github.com/square/leakcanary/commits/v1.6.2/leakcanary-android/src/main/java/com/squareup/leakcanary/AndroidExcludedRefs.java)).
+* Updates to reachability inspectors ([diff](https://github.com/square/leakcanary/commits/v1.6.2/leakcanary-android/src/main/java/com/squareup/leakcanary/AndroidReachabilityInspectors.java)).
+
+Many thanks to
+[@fractalwrench](https://github.com/fractalwrench),
+[@hzsweers](https://github.com/hzsweers),
+[@Goddchen](https://github.com/Goddchen),
+[@igokoro](https://github.com/igokoro),
+[@IlyaGulya](https://github.com/IlyaGulya),
+[@JakeWharton](https://github.com/JakeWharton),
+[@javmarina](https://github.com/javmarina),
+[@jokermonn](https://github.com/jokermonn),
+[@jrodbx](https://github.com/jrodbx),
+[@Parseus](https://github.com/Parseus),
+[@pyricau](https://github.com/pyricau),
+[@scottkennedy](https://github.com/scottkennedy)
+for the code contributions!
+
+### Public API changes
+
+* Subclasses of `AbstractAnalysisResultService` should now override `onHeapAnalyzed(@NonNull AnalyzedHeap analyzedHeap)` instead of `onHeapAnalyzed(@NonNull HeapDump heapDump, @NonNull AnalysisResult result)`
+
+For more details, see the [1.6.2 Milestone](https://github.com/square/leakcanary/milestone/4) and the [full diff](https://github.com/square/leakcanary/compare/v1.6.1...v1.6.2).
+
 ## Version 1.6.1 (2018-06-21)
 
 * [#727](https://github.com/square/leakcanary/issues/727) Improved leak analysis: LeakCanary now identifies and highlights the potential causes of the leak.
