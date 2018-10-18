@@ -112,11 +112,14 @@ public final class LeakCanary {
       if (result.excludedLeak) {
         info += "* EXCLUDED LEAK.\n";
       }
-      info += "* " + result.className;
+      info += "* The leak of " + result.className;
       if (!heapDump.referenceName.equals("")) {
         info += " (" + heapDump.referenceName + ")";
       }
-      info += " has leaked:\n" + result.leakTrace.toString() + "\n";
+      info += " was caused by one of the references highlighted with ~( )~:\n"
+          + result.leakTrace.toString()
+          + "\n";
+      info += "* Reachability:\n" + result.leakTrace.toReachabilityReasonString() + "\n";
       if (result.retainedHeapSize != AnalysisResult.RETAINED_HEAP_SKIPPED) {
         info += "* Retaining: " + formatShortFileSize(context, result.retainedHeapSize) + ".\n";
       }

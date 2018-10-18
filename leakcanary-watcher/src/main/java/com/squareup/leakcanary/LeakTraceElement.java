@@ -39,6 +39,11 @@ public final class LeakTraceElement implements Serializable {
   }
 
   /**
+   * A unique identifier representing the Java object.
+   */
+  public final String instanceId;
+
+  /**
    * Information about the reference that points to the next {@link LeakTraceElement} in the leak
    * chain. Null if this is the last element in the leak trace, ie the leaking object.
    */
@@ -83,8 +88,9 @@ public final class LeakTraceElement implements Serializable {
   @Deprecated
   public final List<String> fields;
 
-  LeakTraceElement(LeakReference reference, Holder holder, List<String> classHierarchy,
+  LeakTraceElement(String instanceId, LeakReference reference, Holder holder, List<String> classHierarchy,
       String extra, Exclusion exclusion, List<LeakReference> leakReferences) {
+    this.instanceId = instanceId;
     this.reference = reference;
     this.referenceName = reference == null ? null : reference.getDisplayName();
     this.type = reference == null ? null : reference.type;
@@ -163,7 +169,7 @@ public final class LeakTraceElement implements Serializable {
     if (reference != null) {
       String referenceName = reference.getDisplayName();
       if (maybeLeakCause) {
-        referenceName = "!(" + referenceName + ")!";
+        referenceName = "~(" + referenceName + ")~";
       }
       string += "." + referenceName;
     }

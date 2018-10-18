@@ -79,97 +79,62 @@ public enum AndroidReachabilityInspectors {
 
   public static class ViewInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
-      if (!element.isInstanceOf(View.class)) {
-        return Reachability.UNKNOWN;
-      }
-      String mAttachInfo = element.getFieldReferenceValue("mAttachInfo");
-      if (mAttachInfo == null) {
-        return Reachability.UNKNOWN;
-      }
-      return mAttachInfo.equals("null") ? Reachability.UNREACHABLE : Reachability.REACHABLE;
+      return unreachableWhen(element, View.class.getName(), "mAttachInfo", "null");
     }
   }
 
   public static class ActivityInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
-      if (!element.isInstanceOf(Activity.class)) {
-        return Reachability.UNKNOWN;
-      }
-      String mDestroyed = element.getFieldReferenceValue("mDestroyed");
-      if (mDestroyed == null) {
-        return Reachability.UNKNOWN;
-      }
-      return mDestroyed.equals("true") ? Reachability.UNREACHABLE : Reachability.REACHABLE;
+      return unreachableWhen(element, Activity.class.getName(), "mDestroyed", "true");
     }
   }
 
   public static class DialogInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
-      if (!element.isInstanceOf(Dialog.class)) {
-        return Reachability.UNKNOWN;
-      }
-      String mDecor = element.getFieldReferenceValue("mDecor");
-      if (mDecor == null) {
-        return Reachability.UNKNOWN;
-      }
-      return mDecor.equals("null") ? Reachability.UNREACHABLE : Reachability.REACHABLE;
+      return unreachableWhen(element, Dialog.class.getName(), "mDecor", "null");
     }
   }
 
   public static class ApplicationInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (element.isInstanceOf(Application.class)) {
-        return Reachability.REACHABLE;
+        return Reachability.reachable("the application class is a singleton");
       }
-      return Reachability.UNKNOWN;
+      return Reachability.unknown();
     }
   }
 
   public static class FragmentInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
-      if (!element.isInstanceOf(Fragment.class)) {
-        return Reachability.UNKNOWN;
-      }
-      String mDetached = element.getFieldReferenceValue("mDetached");
-      if (mDetached == null) {
-        return Reachability.UNKNOWN;
-      }
-      return mDetached.equals("true") ? Reachability.UNREACHABLE : Reachability.REACHABLE;
+      return unreachableWhen(element, Fragment.class.getName(), "mDetached", "true");
     }
   }
 
   public static class SupportFragmentInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
-      if (!element.isInstanceOf("android.support.v4.app.Fragment")) {
-        return Reachability.UNKNOWN;
-      }
-      String mDetached = element.getFieldReferenceValue("mDetached");
-      if (mDetached == null) {
-        return Reachability.UNKNOWN;
-      }
-      return mDetached.equals("true") ? Reachability.UNREACHABLE : Reachability.REACHABLE;
+      return unreachableWhen(element, "android.support.v4.app.Fragment", "mDetached", "true");
     }
   }
 
   public static class MessageQueueInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf(MessageQueue.class)) {
-        return Reachability.UNKNOWN;
+        return Reachability.unknown();
       }
       String mQuitting = element.getFieldReferenceValue("mQuitting");
       // If the queue is not quitting, maybe it should actually have been, we don't know.
       // However, if it's quitting, it is very likely that's not a bug.
       if ("true".equals(mQuitting)) {
-        return Reachability.UNREACHABLE;
+        return Reachability.unreachable("MessageQueue#mQuitting is true");
       }
-      return Reachability.UNKNOWN;
+      return Reachability.unknown();
     }
   }
 
   public static class MortarPresenterInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf("mortar.Presenter")) {
-        return Reachability.UNKNOWN;
+        return Reachability.unknown();
       }
       String view = element.getFieldReferenceValue("view");
 
@@ -177,48 +142,61 @@ public enum AndroidReachabilityInspectors {
       // should be a unreachable, so in that case we don't know their reachability status. However,
       // when the view is null, we're pretty sure they should be unreachable.
       if ("null".equals(view)) {
-        return Reachability.UNREACHABLE;
+        return Reachability.unreachable("Presenter#view is null");
       }
-      return Reachability.UNKNOWN;
+      return Reachability.unknown();
     }
   }
 
   public static class ViewImplInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
-      if (!element.isInstanceOf("android.view.ViewRootImpl")) {
-        return Reachability.UNKNOWN;
-      }
-      String mView = element.getFieldReferenceValue("mView");
-      if (mView == null) {
-        return Reachability.UNKNOWN;
-      }
-      return mView.equals("null") ? Reachability.UNREACHABLE : Reachability.REACHABLE;
+      return unreachableWhen(element, "android.view.ViewRootImpl", "mView", "null");
     }
   }
 
   public static class MainThreadInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
       if (!element.isInstanceOf(Thread.class)) {
-        return Reachability.UNKNOWN;
+        return Reachability.unknown();
       }
       String name = element.getFieldReferenceValue("name");
       if ("main".equals(name)) {
-        return Reachability.REACHABLE;
+        return Reachability.reachable("the main thread always runs");
       }
-      return Reachability.UNKNOWN;
+      return Reachability.unknown();
     }
   }
 
   public static class WindowInspector implements Reachability.Inspector {
     @Override public @NonNull Reachability expectedReachability(@NonNull LeakTraceElement element) {
-      if (!element.isInstanceOf("android.view.Window")) {
-        return Reachability.UNKNOWN;
-      }
-      String mDestroyed = element.getFieldReferenceValue("mDestroyed");
-      if (mDestroyed == null) {
-        return Reachability.UNKNOWN;
-      }
-      return mDestroyed.equals("true") ? Reachability.UNREACHABLE : Reachability.REACHABLE;
+      return unreachableWhen(element, "android.view.Window", "mDestroyed", "true");
+    }
+  }
+
+  private static Reachability unreachableWhen(LeakTraceElement element, String className, String fieldName,
+      String unreachableValue) {
+    if (!element.isInstanceOf(className)) {
+      return Reachability.unknown();
+    }
+    String fieldValue = element.getFieldReferenceValue(fieldName);
+    if (fieldValue == null) {
+      return Reachability.unknown();
+    }
+    if (fieldValue.equals(unreachableValue)) {
+      return Reachability.unreachable(
+          simpleClassName(className) + "#" + fieldName + " is " + unreachableValue);
+    } else {
+      return Reachability.reachable(
+          simpleClassName(className) + "#" + fieldName + " is not " + unreachableValue);
+    }
+  }
+
+  private static String simpleClassName(String className) {
+    int separator = className.lastIndexOf('.');
+    if (separator == -1) {
+      return className;
+    } else {
+      return className.substring(separator + 1);
     }
   }
 

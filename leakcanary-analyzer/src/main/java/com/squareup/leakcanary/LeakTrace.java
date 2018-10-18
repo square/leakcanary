@@ -37,25 +37,65 @@ public final class LeakTrace implements Serializable {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < elements.size(); i++) {
       LeakTraceElement element = elements.get(i);
-      sb.append("* ");
-      if (i != 0) {
+      if (i == 0) {
+        sb.append("* ");
+      } else {
         sb.append("↳ ");
       }
+      String reachabilityStatus;
       boolean maybeLeakCause = false;
       Reachability currentReachability = expectedReachability.get(i);
-      if (currentReachability == Reachability.UNKNOWN) {
+      if (currentReachability.status == Reachability.Status.UNKNOWN) {
         maybeLeakCause = true;
-      } else if (currentReachability == Reachability.REACHABLE) {
+        reachabilityStatus = "? ";
+      } else if (currentReachability.status == Reachability.Status.REACHABLE) {
         if (i < elements.size() - 1) {
           Reachability nextReachability = expectedReachability.get(i + 1);
-          if (nextReachability != Reachability.REACHABLE) {
+          if (nextReachability.status != Reachability.Status.REACHABLE) {
             maybeLeakCause = true;
           }
         } else {
           maybeLeakCause = true;
         }
+        reachabilityStatus = "✓ ";
+      } else {
+        reachabilityStatus = "† ";
       }
+      sb.append(reachabilityStatus);
       sb.append(element.toString(maybeLeakCause)).append("\n");
+    }
+    return sb.toString();
+  }
+
+  public @NonNull String toReachabilityReasonString() {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < elements.size(); i++) {
+      if (i == 0) {
+        sb.append("* ");
+      } else {
+        sb.append("↳ ");
+      }
+      LeakTraceElement element = elements.get(i);
+      Reachability reachability = expectedReachability.get(i);
+      switch (reachability.status) {
+        case UNKNOWN:
+          sb.append("? ")
+              .append(element.getSimpleClassName())
+              .append(" is unknown\n");
+          break;
+        case REACHABLE:
+          sb.append("✓ ")
+              .append(element.getSimpleClassName())
+              .append(" is expected reachable: ")
+              .append(reachability.reason).append("\n");
+          break;
+        case UNREACHABLE:
+          sb.append("† ")
+              .append(element.getSimpleClassName())
+              .append(" should be unreachable: ")
+              .append(reachability.reason).append("\n");
+          break;
+      }
     }
     return sb.toString();
   }
