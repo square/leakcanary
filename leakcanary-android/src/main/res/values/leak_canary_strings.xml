@@ -56,7 +56,7 @@
   method is called, and storing a reference to that activity in a static field would prevent it from
   being garbage collected.<br>
   <br>
-  LeakCanary identifies an object that is longer needed and finds the chain of
+  LeakCanary identifies an object that is no longer needed and finds the chain of
   <font color=\'#9976a8\'>references</font> that prevents it from being garbage collected.<br>
   <br>
   To fix a memory leak, you need to look at that chain and find which reference is causing the
