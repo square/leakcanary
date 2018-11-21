@@ -26,8 +26,8 @@
     <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
     <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>
     <string name="leak_canary_notification_reporting">Sichere LeakCanary Ergebnis</string>
-    <string name="leak_canary_result_failure_no_disk_space">The analysis result could not be saved to disk</string>
-    <string name="leak_canary_result_failure_no_file">The analysis result could not be loaded from disk</string>
+    <string name="leak_canary_result_failure_no_disk_space">Das Analyseergebnis konnte nicht gespeichert werden</string>
+    <string name="leak_canary_result_failure_no_file">Das Analyseergebnis konnte nicht aus dem Speicher geladen werden</string>
     <string name="leak_canary_result_failure_title">Analysis result failure</string>
     <string name="leak_canary_share_leak">Info teilen</string>
     <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>
@@ -47,22 +47,24 @@
     <string name="leak_canary_permission_notification_title">Leak erkannt, benötige Berechtigung</string>
     <string name="leak_canary_permission_notification_text">Hier klicken, um Storage Berechtigung für %s zu aktivieren.</string>
     <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
-    <string name="leak_canary_help_detail"><![CDATA[A memory leak is a programming error that causes
-  your application to keep a reference to an object that is no longer needed. As a result, the
-  memory allocated for that object cannot be reclaimed, eventually leading to an OutOfMemoryError
-  crash.<br>
-  <br>For instance, an Android activity instance is no longer needed after its <i>onDestroy()</i>
-  method is called, and storing a reference to that activity in a static field would prevent it from
-  being garbage collected.<br>
+    <string name="leak_canary_help_detail"><![CDATA[Ein Memory-Leak ist ein Programmierfehler der
+    dafür sorgt, dass deine Anwendung eine Referenz auf ein Objekt hält, das nicht länger benötigt
+    wird. Daraus folgt, dass der Speicher der dem Objekt zugewiesen wurde nicht wieder freigegeben
+    wird, was eventuell zu einem OutOfMemoryError-Absturz führt.<br>
+  <br>Eine Instanz einer Android-Activity wird nicht mehr benötigt, nachdem ihre <i>onDestroy()</i>
+  Methode aufgerufen wurde. Würde man eine Referenz auf diese Activity in einem statischen Feld
+  speichern, dann wird der durch die Activity genutzte Speicher nicht mehr durch den Garbage
+  Collector freigegeben.<br>
   <br>
-  LeakCanary identifies an object that is longer needed and finds the chain of
-  <font color=\'#9976a8\'>references</font> that prevents it from being garbage collected.<br>
+  LeakCanary identifiziert ein Objekt, dass nicht länger benötigt wird und findet die Kette an
+  <font color=\'#9976a8\'>Referenzen</font> die es davon abhält seinen Speicher freizugeben.<br>
   <br>
-  To fix a memory leak, you need to look at that chain and find which reference is causing the
-  leak, i.e. which reference should have been cleared at the time of the leak. LeakCanary highlights
-  with a red underline wave the <b><u><font color=\'#9976a8\'>references</font></u></b> that are the
-  possible causes of the leak.<br>
+  Um ein Memory-Leak zu beheben, musst du anhand der Kette herausfinden, welche Referenz für das
+  Leak verantwortlich ist, d.h. welche Referenz beim Auftreten des Leaks bereinigt sein soll.
+  LeakCanary hebt <b><u><font color=\'#9976a8\'>Referenzen</font></u></b> die mögliche Ursachen
+  für das Memory-Leak sein könnten mit einer roten Wellenlinie hervor.<br>
   <br>
-  Tap on each reference row for more details, tap again to close.
+  Tippe auf eine Zeile mit einer Referenz um mehr Details anzuzeigen, tippe noch einmal um die
+  Details zu schließen.
 ]]></string>
 </resources>
