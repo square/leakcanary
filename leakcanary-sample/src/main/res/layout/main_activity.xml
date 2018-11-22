@@ -30,10 +30,10 @@
       />
 
   <Button
-      android:id="@+id/async_task"
+      android:id="@+id/async_work"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:text="@string/start_async_task"
+      android:text="@string/start_async_work"
       />
 
 </LinearLayout>

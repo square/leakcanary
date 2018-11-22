@@ -1,11 +1,5 @@
 language: android
 
-android:
-  components:
-    # Update tools and then platform-tools explicitly so lint gets an updated database. Can be removed once 3.0 is out.
-    - tools
-    - platform-tools
-
 jdk:
   - oraclejdk8
 
@@ -13,12 +7,27 @@ before_install:
   # Install SDK license so Android Gradle plugin can install deps.
   - mkdir "$ANDROID_HOME/licenses" || true
   - echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-license"
+  # Install the rest of tools (e.g., avdmanager)
+  - sdkmanager tools
+  # Install the system image
+  - sdkmanager "system-images;android-16;default;armeabi-v7a"
+  # Create and start emulator for the script. Meant to race the install task.
+  - echo no | avdmanager create avd --force -n test -k "system-images;android-16;default;armeabi-v7a"
+  - $ANDROID_HOME/emulator/emulator -avd test -no-audio -no-window &
+
+install: ./gradlew clean build assembleAndroidTest --stacktrace
+
+before_script:
+  - android-wait-for-emulator
+  # 82 is KEYCODE_MENU
+  - adb shell input keyevent 82
 
 script:
-  - ./gradlew clean build
+  - ./gradlew leakcanary-android-instrumentation:connectedCheck --stacktrace
+  - ./gradlew leakcanary-support-fragment:connectedCheck --stacktrace
 
 after_success:
-  - .buildscript/deploy_snapshot.sh
+  - .buildscript/deploy_snapshot.sh || test true
 
 env:
   global:

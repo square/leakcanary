@@ -3,7 +3,8 @@ apply plugin: 'com.github.ben-manes.versions'
 buildscript {
   ext.versions = [
     'minSdk': 14,
-    'compileSdk': 27,
+    'compileSdk': 28,
+    'errorProne': '2.3.1',
   ]
   repositories {
     jcenter()
@@ -11,9 +12,9 @@ buildscript {
     maven { url 'https://plugins.gradle.org/m2/' }
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.0.1'
-    classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.13'
-    classpath 'com.github.ben-manes:gradle-versions-plugin:0.17.0'
+    classpath 'com.android.tools.build:gradle:3.2.0'
+    classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.16'
+    classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
   }
 }
 
@@ -23,6 +24,7 @@ subprojects {
 
   repositories {
     jcenter()
+    google()
 //    maven {
 //      url 'https://oss.sonatype.org/content/repositories/snapshots/'
 //    }
@@ -36,7 +38,9 @@ subprojects {
       '-Xlint:all',
       '-Xlint:-serial',
       '-Xlint:-deprecation',
-      '-Werror'
+        // espresso-core classes say they're compiled with 51.0 but contain 52.0 attributes.
+        // warning: [classfile] MethodParameters attribute introduced in version 52.0 class files is ignored in version 51.0 class files
+      // '-Werror'
     ]
   }
 
@@ -46,7 +50,7 @@ subprojects {
         // Force all the error-prone dependencies to use the same version.
         if (details.requested.group == 'com.google.errorprone' &&
                 details.requested.name.startsWith('error_prone_')) {
-          details.useVersion '2.1.2'
+          details.useVersion versions.errorProne
         }
       }
     }
@@ -59,5 +63,9 @@ subprojects {
       showExceptions true
       showStackTraces true
     }
+  }
+
+  dependencies {
+    errorprone "com.google.errorprone:error_prone_core:${versions.errorProne}"
   }
 }

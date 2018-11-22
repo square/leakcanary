@@ -1,19 +1,21 @@
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
+
 /**
  * No-op implementation of {@link RefWatcher} for release builds. Please use {@link
  * RefWatcher#DISABLED}.
  */
 public final class RefWatcher {
 
-  public static final RefWatcher DISABLED = new RefWatcher();
+  @NonNull public static final RefWatcher DISABLED = new RefWatcher();
 
   private RefWatcher() {
   }
 
-  public void watch(Object watchedReference) {
+  public void watch(@NonNull Object watchedReference) {
   }
 
-  public void watch(Object watchedReference, String referenceName) {
+  public void watch(@NonNull Object watchedReference, @NonNull String referenceName) {
   }
 }

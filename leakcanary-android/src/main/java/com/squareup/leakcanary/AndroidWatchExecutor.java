@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.MessageQueue;
+import android.support.annotation.NonNull;
 import java.util.concurrent.TimeUnit;
 
 import static com.squareup.leakcanary.Retryable.Result.RETRY;
@@ -45,7 +46,7 @@ public final class AndroidWatchExecutor implements WatchExecutor {
     maxBackoffFactor = Long.MAX_VALUE / initialDelayMillis;
   }
 
-  @Override public void execute(Retryable retryable) {
+  @Override public void execute(@NonNull Retryable retryable) {
     if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
       waitForIdle(retryable, 0);
     } else {
@@ -53,7 +54,7 @@ public final class AndroidWatchExecutor implements WatchExecutor {
     }
   }
 
-  void postWaitForIdle(final Retryable retryable, final int failedAttempts) {
+  private void postWaitForIdle(final Retryable retryable, final int failedAttempts) {
     mainHandler.post(new Runnable() {
       @Override public void run() {
         waitForIdle(retryable, failedAttempts);
@@ -61,7 +62,7 @@ public final class AndroidWatchExecutor implements WatchExecutor {
     });
   }
 
-  void waitForIdle(final Retryable retryable, final int failedAttempts) {
+  private void waitForIdle(final Retryable retryable, final int failedAttempts) {
     // This needs to be called from the main thread.
     Looper.myQueue().addIdleHandler(new MessageQueue.IdleHandler() {
       @Override public boolean queueIdle() {
@@ -71,7 +72,7 @@ public final class AndroidWatchExecutor implements WatchExecutor {
     });
   }
 
-  void postToBackgroundWithDelay(final Retryable retryable, final int failedAttempts) {
+  private void postToBackgroundWithDelay(final Retryable retryable, final int failedAttempts) {
     long exponentialBackoffFactor = (long) Math.min(Math.pow(2, failedAttempts), maxBackoffFactor);
     long delayMillis = initialDelayMillis * exponentialBackoffFactor;
     backgroundHandler.postDelayed(new Runnable() {

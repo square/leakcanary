@@ -14,36 +14,39 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.squareup.leakcanary.internal.RowElementLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:lib="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="48dp"
-    android:orientation="horizontal"
+    android:id="@+id/leak_canary_row_layout"
+    android:clipChildren="false"
     >
 
   <com.squareup.leakcanary.internal.DisplayLeakConnectorView
       android:id="@+id/leak_canary_row_connector"
-      android:layout_width="16dp"
-      android:layout_height="match_parent"
-      android:layout_marginStart="16dp"
-      android:layout_marginEnd="16dp"
-      />
-
-  <TextView
-      android:id="@+id/leak_canary_row_text"
-      android:layout_width="0dp"
-      android:layout_weight="1"
+      android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:layout_gravity="center_vertical"
       />
 
   <com.squareup.leakcanary.internal.MoreDetailsView
       android:id="@+id/leak_canary_row_more"
-      android:layout_width="12dp"
-      android:layout_height="12dp"
-      android:layout_gravity="center_vertical"
-      android:layout_marginStart="16dp"
-      android:layout_marginEnd="16dp"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      lib:leak_canary_plus_color="@color/leak_canary_class_name"
       />
 
-</LinearLayout>
+  <TextView
+      android:id="@+id/leak_canary_row_title"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      />
+
+  <TextView
+      android:id="@+id/leak_canary_row_details"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:visibility="gone"
+      />
+
+</com.squareup.leakcanary.internal.RowElementLayout>

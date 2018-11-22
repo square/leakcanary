@@ -14,12 +14,21 @@
   ~ limitations under the License.
   -->
 <resources>
-    <string name="leak_canary_class_has_leaked">%1$s hat %2$s geleaked</string>
-    <string name="leak_canary_leak_excluded">[Ausgeschlossen] %1$s hat %2$s geleaked</string>
+    <string name="leak_canary_class_has_leaked">%1$s hat geleaked</string>
+    <string name="leak_canary_class_has_leaked_retaining">%1$s hat %2$s geleaked</string>
+    <string name="leak_canary_leak_excluded">[Ausgeschlossen] %1$s hat geleaked</string>
+    <string name="leak_canary_leak_excluded_retaining">[Ausgeschlossen] %1$s hat %2$s geleaked</string>
     <string name="leak_canary_analysis_failed">Leak Analyse fehlgeschlagen</string>
     <string name="leak_canary_leak_list_title">Leaks in %s</string>
-    <string name="leak_canary_notification_message">Für mehr Details hier klicken</string>
+    <string name="leak_canary_notification_analysing">Analyisere Heap Dump</string>
     <string name="leak_canary_notification_channel">LeakCanary</string>
+    <string name="leak_canary_notification_dumping">Sichere Heap</string>
+    <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
+    <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>
+    <string name="leak_canary_notification_reporting">Sichere LeakCanary Ergebnis</string>
+    <string name="leak_canary_result_failure_no_disk_space">Das Analyseergebnis konnte nicht gespeichert werden</string>
+    <string name="leak_canary_result_failure_no_file">Das Analyseergebnis konnte nicht aus dem Speicher geladen werden</string>
+    <string name="leak_canary_result_failure_title">Analysis result failure</string>
     <string name="leak_canary_share_leak">Info teilen</string>
     <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>
     <string name="leak_canary_share_with">Teilen mit…</string>
@@ -30,7 +39,6 @@
     <string name="leak_canary_failure_report">"Bitte sende diesen Fehler an http://github.com/square/leakcanary\n"</string>
     <string name="leak_canary_delete_all">Alle löschen</string>
     <string name="leak_canary_delete_all_leaks_title">Bist du dir sicher, dass du alle Leaks löschen möchtest?</string>
-    <string name="leak_canary_could_not_save_title">Konnte Ergebnis nicht speichern.</string>
     <string name="leak_canary_could_not_save_text">LeakCanary konnte das Ergebnis der Analyse nicht speichern.</string>
     <string name="leak_canary_no_leak_title">Kein Leak gefunden</string>
     <string name="leak_canary_no_leak_text">Der GC war untätig.</string>
@@ -38,4 +46,25 @@
     <string name="leak_canary_permission_not_granted">Bitte gewähre die Storage Berechtigung, andernfalls werden Memory Leaks nicht erkannt.</string>
     <string name="leak_canary_permission_notification_title">Leak erkannt, benötige Berechtigung</string>
     <string name="leak_canary_permission_notification_text">Hier klicken, um Storage Berechtigung für %s zu aktivieren.</string>
+    <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
+    <string name="leak_canary_help_detail"><![CDATA[Ein Memory-Leak ist ein Programmierfehler der
+    dafür sorgt, dass deine Anwendung eine Referenz auf ein Objekt hält, das nicht länger benötigt
+    wird. Daraus folgt, dass der Speicher der dem Objekt zugewiesen wurde nicht wieder freigegeben
+    wird, was eventuell zu einem OutOfMemoryError-Absturz führt.<br>
+  <br>Eine Instanz einer Android-Activity wird nicht mehr benötigt, nachdem ihre <i>onDestroy()</i>
+  Methode aufgerufen wurde. Würde man eine Referenz auf diese Activity in einem statischen Feld
+  speichern, dann wird der durch die Activity genutzte Speicher nicht mehr durch den Garbage
+  Collector freigegeben.<br>
+  <br>
+  LeakCanary identifiziert ein Objekt, dass nicht länger benötigt wird und findet die Kette an
+  <font color=\'#9976a8\'>Referenzen</font> die es davon abhält seinen Speicher freizugeben.<br>
+  <br>
+  Um ein Memory-Leak zu beheben, musst du anhand der Kette herausfinden, welche Referenz für das
+  Leak verantwortlich ist, d.h. welche Referenz beim Auftreten des Leaks bereinigt sein soll.
+  LeakCanary hebt <b><u><font color=\'#9976a8\'>Referenzen</font></u></b> die mögliche Ursachen
+  für das Memory-Leak sein könnten mit einer roten Wellenlinie hervor.<br>
+  <br>
+  Tippe auf eine Zeile mit einer Referenz um mehr Details anzuzeigen, tippe noch einmal um die
+  Details zu schließen.
+]]></string>
 </resources>

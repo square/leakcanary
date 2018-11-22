@@ -1,5 +1,7 @@
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 public final class CanaryLog {
@@ -7,36 +9,39 @@ public final class CanaryLog {
   private static volatile Logger logger = new DefaultLogger();
 
   public interface Logger {
-    void d(String message, Object... args);
+    void d(@NonNull String message, @NonNull Object... args);
 
-    void d(Throwable throwable, String message, Object... args);
+    void d(@Nullable Throwable throwable, @NonNull String message, @NonNull Object... args);
   }
 
   private static class DefaultLogger implements Logger {
-    DefaultLogger() { }
+    DefaultLogger() {
+    }
 
-    @Override public void d(String message, Object... args) {
+    @Override public void d(@NonNull String message, @NonNull Object... args) {
       String formatted = String.format(message, args);
       if (formatted.length() < 4000) {
         Log.d("LeakCanary", formatted);
       } else {
-        String[] lines = formatted.split("\n");
+        String[] lines = formatted.split("\n", -1);
         for (String line : lines) {
           Log.d("LeakCanary", line);
         }
       }
     }
 
-    @Override public void d(Throwable throwable, String message, Object... args) {
+    @Override public void d(@Nullable Throwable throwable,
+        @NonNull String message,
+        @NonNull Object... args) {
       d(String.format(message, args) + '\n' + Log.getStackTraceString(throwable));
     }
   }
 
-  public static void setLogger(Logger logger) {
+  public static void setLogger(@Nullable Logger logger) {
     CanaryLog.logger = logger;
   }
 
-  public static void d(String message, Object... args) {
+  public static void d(@NonNull String message, @NonNull Object... args) {
     // Local variable to prevent the ref from becoming null after the null check.
     Logger logger = CanaryLog.logger;
     if (logger == null) {
@@ -45,7 +50,9 @@ public final class CanaryLog {
     logger.d(message, args);
   }
 
-  public static void d(Throwable throwable, String message, Object... args) {
+  public static void d(@Nullable Throwable throwable,
+      @NonNull String message,
+      @NonNull Object... args) {
     // Local variable to prevent the ref from becoming null after the null check.
     Logger logger = CanaryLog.logger;
     if (logger == null) {

@@ -21,7 +21,7 @@
     android:layout_height="wrap_content"
     android:layout_margin="16dp"
     android:textSize="18sp"
-    android:background="#84a6c5"
+    android:background="@color/leak_canary_class_name"
     android:padding="16dp"
-    android:textColor="#ffffff"
+    android:textColor="@color/leak_canary_background_color"
     />

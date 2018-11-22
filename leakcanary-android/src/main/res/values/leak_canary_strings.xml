@@ -15,12 +15,21 @@
   ~ limitations under the License.
   -->
 <resources>
-  <string name="leak_canary_class_has_leaked">%1$s leaked %2$s</string>
-  <string name="leak_canary_leak_excluded">[Excluded] %1$s leaked %2$s</string>
+  <string name="leak_canary_class_has_leaked">%1$s leaked</string>
+  <string name="leak_canary_class_has_leaked_retaining">%1$s leaked %2$s</string>
+  <string name="leak_canary_leak_excluded">[Excluded] %1$s leaked</string>
+  <string name="leak_canary_leak_excluded_retaining">[Excluded] %1$s leaked %2$s</string>
   <string name="leak_canary_analysis_failed">Leak analysis failed</string>
   <string name="leak_canary_leak_list_title">Leaks in %s</string>
-  <string name="leak_canary_notification_message">Click for more details</string>
+  <string name="leak_canary_notification_analysing">Analyzing Heap Dump</string>
   <string name="leak_canary_notification_channel">LeakCanary</string>
+  <string name="leak_canary_notification_dumping">Dumping Heap</string>
+  <string name="leak_canary_notification_foreground_text">LeakCanary is working.</string>
+  <string name="leak_canary_notification_message">Click for more details</string>
+  <string name="leak_canary_notification_reporting">Reporting LeakCanary result</string>
+  <string name="leak_canary_result_failure_no_disk_space">The analysis result could not be saved to disk</string>
+  <string name="leak_canary_result_failure_no_file">The analysis result could not be loaded from disk</string>
+  <string name="leak_canary_result_failure_title">Analysis result failure</string>
   <string name="leak_canary_share_leak">Share info</string>
   <string name="leak_canary_share_heap_dump">Share heap dump</string>
   <string name="leak_canary_share_with">Share with…</string>
@@ -28,10 +37,9 @@
   <string name="leak_canary_storage_permission_activity_label">Storage permission</string>
   <string name="leak_canary_toast_heap_dump">Dumping memory, app will freeze. Brrrr.</string>
   <string name="leak_canary_delete">Delete</string>
-  <string name="leak_canary_failure_report">"Please report this failure to http://github.com/square/leakcanary\n"</string>
+  <string name="leak_canary_failure_report">"Please report this failure to http://github.com/square/leakcanary and share the heapdump file that caused it.\n"</string>
   <string name="leak_canary_delete_all">Delete all</string>
   <string name="leak_canary_delete_all_leaks_title">Are you sure you want to delete all leaks?</string>
-  <string name="leak_canary_could_not_save_title">Could not save result.</string>
   <string name="leak_canary_could_not_save_text">LeakCanary was unable to save the analysis result.</string>
   <string name="leak_canary_no_leak_title">No leak found</string>
   <string name="leak_canary_no_leak_text">The GC was being lazy.</string>
@@ -39,4 +47,23 @@
   <string name="leak_canary_permission_not_granted">Please grant external storage permission, otherwise memory leaks will not be detected.</string>
   <string name="leak_canary_permission_notification_title">Leak detected, need permission</string>
   <string name="leak_canary_permission_notification_text">Click to enable storage permission for %s.</string>
+  <string name="leak_canary_help_title">Tap here to learn more</string>
+  <string name="leak_canary_help_detail"><![CDATA[A memory leak is a programming error that causes
+  your application to keep a reference to an object that is no longer needed. As a result, the
+  memory allocated for that object cannot be reclaimed, eventually leading to an OutOfMemoryError
+  crash.<br>
+  <br>For instance, an Android activity instance is no longer needed after its <i>onDestroy()</i>
+  method is called, and storing a reference to that activity in a static field would prevent it from
+  being garbage collected.<br>
+  <br>
+  LeakCanary identifies an object that is no longer needed and finds the chain of
+  <font color=\'#9976a8\'>references</font> that prevents it from being garbage collected.<br>
+  <br>
+  To fix a memory leak, you need to look at that chain and find which reference is causing the
+  leak, i.e. which reference should have been cleared at the time of the leak. LeakCanary highlights
+  with a red underline wave the <b><u><font color=\'#9976a8\'>references</font></u></b> that are the
+  possible causes of the leak.<br>
+  <br>
+  Tap on each reference row for more details, tap again to close.
+]]></string>
 </resources>

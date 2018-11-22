@@ -17,61 +17,44 @@ package com.squareup.leakcanary;
 
 import android.app.Activity;
 import android.app.Application;
-import android.os.Bundle;
+import android.content.Context;
+import android.support.annotation.NonNull;
+import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter;
 
-import static com.squareup.leakcanary.Preconditions.checkNotNull;
-
+/**
+ * @deprecated This was initially part of the LeakCanary API, but should not be any more.
+ * {@link AndroidRefWatcherBuilder#watchActivities} should be used instead.
+ * We will make this class internal in the next major version.
+ */
+@SuppressWarnings("DeprecatedIsStillUsed")
+@Deprecated
 public final class ActivityRefWatcher {
 
-  /** @deprecated Use {@link #install(Application, RefWatcher)}. */
-  @Deprecated
-  public static void installOnIcsPlus(Application application, RefWatcher refWatcher) {
+  public static void installOnIcsPlus(@NonNull Application application,
+      @NonNull RefWatcher refWatcher) {
     install(application, refWatcher);
   }
 
-  public static void install(Application application, RefWatcher refWatcher) {
-    new ActivityRefWatcher(application, refWatcher).watchActivities();
+  public static void install(@NonNull Context context, @NonNull RefWatcher refWatcher) {
+    Application application = (Application) context.getApplicationContext();
+    ActivityRefWatcher activityRefWatcher = new ActivityRefWatcher(application, refWatcher);
+
+    application.registerActivityLifecycleCallbacks(activityRefWatcher.lifecycleCallbacks);
   }
 
   private final Application.ActivityLifecycleCallbacks lifecycleCallbacks =
-      new Application.ActivityLifecycleCallbacks() {
-        @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-        }
-
-        @Override public void onActivityStarted(Activity activity) {
-        }
-
-        @Override public void onActivityResumed(Activity activity) {
-        }
-
-        @Override public void onActivityPaused(Activity activity) {
-        }
-
-        @Override public void onActivityStopped(Activity activity) {
-        }
-
-        @Override public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
-        }
-
+      new ActivityLifecycleCallbacksAdapter() {
         @Override public void onActivityDestroyed(Activity activity) {
-          ActivityRefWatcher.this.onActivityDestroyed(activity);
+          refWatcher.watch(activity);
         }
       };
 
   private final Application application;
   private final RefWatcher refWatcher;
 
-  /**
-   * Constructs an {@link ActivityRefWatcher} that will make sure the activities are not leaking
-   * after they have been destroyed.
-   */
-  public ActivityRefWatcher(Application application, RefWatcher refWatcher) {
-    this.application = checkNotNull(application, "application");
-    this.refWatcher = checkNotNull(refWatcher, "refWatcher");
-  }
-
-  void onActivityDestroyed(Activity activity) {
-    refWatcher.watch(activity);
+  private ActivityRefWatcher(Application application, RefWatcher refWatcher) {
+    this.application = application;
+    this.refWatcher = refWatcher;
   }
 
   public void watchActivities() {

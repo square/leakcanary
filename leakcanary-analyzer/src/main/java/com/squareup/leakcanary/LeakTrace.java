@@ -15,11 +15,9 @@
  */
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
-
-import static java.util.Collections.unmodifiableList;
 
 /**
  * A chain of references that constitute the shortest strong reference path from a leaking instance
@@ -27,10 +25,12 @@ import static java.util.Collections.unmodifiableList;
  */
 public final class LeakTrace implements Serializable {
 
-  public final List<LeakTraceElement> elements;
+  @NonNull public final List<LeakTraceElement> elements;
+  @NonNull public final List<Reachability> expectedReachability;
 
-  LeakTrace(List<LeakTraceElement> elements) {
-    this.elements = unmodifiableList(new ArrayList<>(elements));
+  LeakTrace(List<LeakTraceElement> elements, List<Reachability> expectedReachability) {
+    this.elements = elements;
+    this.expectedReachability = expectedReachability;
   }
 
   @Override public String toString() {
@@ -38,19 +38,29 @@ public final class LeakTrace implements Serializable {
     for (int i = 0; i < elements.size(); i++) {
       LeakTraceElement element = elements.get(i);
       sb.append("* ");
-      if (i == 0) {
-        sb.append("GC ROOT ");
-      } else if (i == elements.size() - 1) {
-        sb.append("leaks ");
-      } else {
-        sb.append("references ");
+      if (i != 0) {
+        sb.append("↳ ");
       }
-      sb.append(element).append("\n");
+      boolean maybeLeakCause = false;
+      Reachability currentReachability = expectedReachability.get(i);
+      if (currentReachability == Reachability.UNKNOWN) {
+        maybeLeakCause = true;
+      } else if (currentReachability == Reachability.REACHABLE) {
+        if (i < elements.size() - 1) {
+          Reachability nextReachability = expectedReachability.get(i + 1);
+          if (nextReachability != Reachability.REACHABLE) {
+            maybeLeakCause = true;
+          }
+        } else {
+          maybeLeakCause = true;
+        }
+      }
+      sb.append(element.toString(maybeLeakCause)).append("\n");
     }
     return sb.toString();
   }
 
-  public String toDetailedString() {
+  public @NonNull String toDetailedString() {
     String string = "";
     for (LeakTraceElement element : elements) {
       string += element.toDetailedString();

@@ -15,6 +15,7 @@
  */
 package com.squareup.leakcanary;
 
+import android.support.annotation.NonNull;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
@@ -25,12 +26,16 @@ import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1;
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
+import static android.os.Build.VERSION_CODES.JELLY_BEAN_MR2;
 import static android.os.Build.VERSION_CODES.KITKAT;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.N;
 import static android.os.Build.VERSION_CODES.N_MR1;
+import static android.os.Build.VERSION_CODES.O;
+import static android.os.Build.VERSION_CODES.O_MR1;
+import static android.os.Build.VERSION_CODES.P;
 import static com.squareup.leakcanary.AndroidWatchExecutor.LEAK_CANARY_THREAD_NAME;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.HUAWEI;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.LENOVO;
@@ -119,9 +124,9 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  BLOCKING_QUEUE(SDK_INT <= LOLLIPOP) {
+  BLOCKING_QUEUE() {
     @Override void add(ExcludedRefs.Builder excluded) {
-      String reason = "Prior to ART, a thread waiting on a blocking queue will leak the last"
+      String reason = "A thread waiting on a blocking queue will leak the last"
           + " dequeued object as a stack local reference. So when a HandlerThread becomes idle, it"
           + " keeps a local reference to the last message it received. That message then gets"
           + " recycled and can be used again. As long as all messages are recycled after being"
@@ -136,14 +141,15 @@ public enum AndroidExcludedRefs {
           + " sleep for a long time."
           + " To fix this, you could post empty messages to the idle handler threads from time to"
           + " time. This won't be easy because you cannot access all handler threads, but a library"
-          + "that is widely used should consider doing this for its own handler threads.";
+          + "that is widely used should consider doing this for its own handler threads. This leaks"
+          + "has been shown to happen in both Dalvik and ART.";
       excluded.instanceField("android.os.Message", "obj").reason(reason);
       excluded.instanceField("android.os.Message", "next").reason(reason);
       excluded.instanceField("android.os.Message", "target").reason(reason);
     }
   },
 
-  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= N_MR1) {
+  INPUT_METHOD_MANAGER__SERVED_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       String reason = "When we detach a view that receives keyboard input, the InputMethodManager"
           + " leaks a reference to it until a new view asks for keyboard input."
@@ -158,7 +164,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  INPUT_METHOD_MANAGER__ROOT_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= M) {
+  INPUT_METHOD_MANAGER__ROOT_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.inputmethod.InputMethodManager", "mCurRootView")
           .reason("The singleton InputMethodManager is holding a reference to mCurRootView long"
@@ -179,12 +185,22 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  SPELL_CHECKER_SESSION((SDK_INT >= JELLY_BEAN && SDK_INT <= LOLLIPOP_MR1) || SDK_INT >= N) {
+  SPELL_CHECKER_SESSION(SDK_INT >= JELLY_BEAN && SDK_INT <= N) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.textservice.SpellCheckerSession$1", "this$0")
           .reason("SpellCheckerSessionListenerImpl.mHandler is leaking destroyed Activity when the"
               + " SpellCheckerSession is closed before the service is connected."
               + " Tracked here: https://code.google.com/p/android/issues/detail?id=172542");
+    }
+  },
+
+  SPELL_CHECKER(SDK_INT == LOLLIPOP_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("android.widget.SpellChecker$1", "this$0")
+          .reason("SpellChecker holds on to a detached view that points to a destroyed activity."
+              + "mSpellRunnable is being enqueued, and that callback should be removed when "
+              + "closeSession() is called. Maybe closeSession() wasn't called, or maybe it was "
+              + "called after the view was detached.");
     }
   },
 
@@ -211,7 +227,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  ACCOUNT_MANAGER(SDK_INT <= LOLLIPOP_MR1) {
+  ACCOUNT_MANAGER(SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.accounts.AccountManager$AmsTask$Response", "this$1")
           .reason("AccountManager$AmsTask$Response is a stub and is held in memory by native code,"
@@ -237,7 +253,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  USER_MANAGER__SINSTANCE(SDK_INT >= JELLY_BEAN && SDK_INT <= M) {
+  USER_MANAGER__SINSTANCE(SDK_INT >= JELLY_BEAN_MR2 && SDK_INT < O) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.os.UserManager", "mContext")
           .reason("UserManager has a static sInstance field that creates an instance and caches it"
@@ -309,13 +325,38 @@ public enum AndroidExcludedRefs {
     }
   },
 
+  ACCESSIBILITY_NODE_INFO__MORIGINALTEXT(SDK_INT >= O && SDK_INT <= O_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("android.view.accessibility.AccessibilityNodeInfo", "mOriginalText")
+          .reason("AccessibilityNodeInfo has a static sPool of AccessibilityNodeInfo. When "
+              + "AccessibilityNodeInfo instances are released back in the pool, "
+              + "AccessibilityNodeInfo.clear() does not clear the mOriginalText field, which "
+              + "causes spans to leak which in turns causes TextView.ChangeWatcher to leak and the "
+              + "whole view hierarchy. Introduced here: https://android.googlesource.com/platform/"
+              + "frameworks/base/+/193520e3dff5248ddcf8435203bf99d2ba667219%5E%21/core/java/"
+              + "android/view/accessibility/AccessibilityNodeInfo.java");
+    }
+  },
+
+  BACKDROP_FRAME_RENDERER__MDECORVIEW(SDK_INT >= N && SDK_INT <= O) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      excluded.instanceField("com.android.internal.policy.BackdropFrameRenderer", "mDecorView")
+          .reason("When BackdropFrameRenderer.releaseRenderer() is called, there's an unknown case "
+              + "where mRenderer becomes null but mChoreographer doesn't and the thread doesn't"
+              + "stop and ends up leaking mDecorView which itself holds on to a destroyed"
+              + "activity");
+    }
+  },
+
   // ######## Manufacturer specific Excluded refs ########
 
-  INSTRUMENTATION_RECOMMEND_ACTIVITY(MEIZU.equals(MANUFACTURER) && SDK_INT >= LOLLIPOP && SDK_INT <= LOLLIPOP_MR1) {
+  INSTRUMENTATION_RECOMMEND_ACTIVITY(
+      MEIZU.equals(MANUFACTURER) && SDK_INT >= LOLLIPOP && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.app.Instrumentation", "mRecommendActivity")
-              .reason("Instrumentation would leak com.android.internal.app.RecommendActivity (in framework.jar)"
-                  + " in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and above");
+          .reason("Instrumentation would leak com.android.internal.app.RecommendActivity (in "
+              + "framework.jar) in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and "
+              + "above");
     }
   },
 
@@ -344,7 +385,17 @@ public enum AndroidExcludedRefs {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.gestureboost.GestureBoostManager", "mContext")
           .reason("GestureBoostManager is a static singleton that leaks an activity context."
-          + "Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756");
+              + "Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756");
+    }
+  },
+
+  INPUT_METHOD_MANAGER__LAST_SERVED_VIEW(
+      HUAWEI.equals(MANUFACTURER) && SDK_INT >= M && SDK_INT <= O_MR1) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      String reason = "HUAWEI added a mLastSrvView field to InputMethodManager"
+          + " that leaks a reference to the last served view.";
+      excluded.instanceField("android.view.inputmethod.InputMethodManager", "mLastSrvView")
+          .reason(reason);
     }
   },
 
@@ -374,7 +425,8 @@ public enum AndroidExcludedRefs {
       SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("com.samsung.android.emergencymode.SemEmergencyManager", "mContext")
-          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext.");
+          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext. "
+              + "Fix: https://gist.github.com/jankovd/a210460b814c04d500eb12025902d60d");
     }
   },
 
@@ -413,7 +465,7 @@ public enum AndroidExcludedRefs {
   },
 
   TEXT_VIEW__MLAST_HOVERED_VIEW(
-      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= LOLLIPOP_MR1) {
+      SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= O) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.widget.TextView", "mLastHoveredView")
           .reason("mLastHoveredView is a static field in TextView that leaks the last hovered"
@@ -524,12 +576,23 @@ public enum AndroidExcludedRefs {
       excluded.instanceField("android.view.Choreographer$FrameDisplayEventReceiver",
           "mMessageQueue").alwaysExclude();
     }
+  },
+
+  VIEWLOCATIONHOLDER_ROOT(SDK_INT == P) {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      //  In Android P, ViewLocationHolder has an mRoot field that is not cleared in its clear()
+      // method.
+      // Introduced in https://github.com/aosp-mirror/platform_frameworks_base/commit/86b326012813f09d8f1de7d6d26c986a909de894
+      // Bug report: https://issuetracker.google.com/issues/112792715
+      excluded.instanceField("android.view.ViewGroup$ViewLocationHolder",
+          "mRoot");
+    }
   };
 
   /**
    * This returns the references in the leak path that should be ignored by all on Android.
    */
-  public static ExcludedRefs.Builder createAndroidDefaults() {
+  public static @NonNull ExcludedRefs.Builder createAndroidDefaults() {
     return createBuilder(
         EnumSet.of(SOFT_REFERENCES, FINALIZER_WATCHDOG_DAEMON, MAIN, LEAK_CANARY_THREAD,
             EVENT_RECEIVER__MMESSAGE_QUEUE));
@@ -541,11 +604,11 @@ public enum AndroidExcludedRefs {
    * in AOSP or manufacturer forks of AOSP. In such cases, there is very little we can do as app
    * developers except by resorting to serious hacks, so we remove the noise caused by those leaks.
    */
-  public static ExcludedRefs.Builder createAppDefaults() {
+  public static @NonNull ExcludedRefs.Builder createAppDefaults() {
     return createBuilder(EnumSet.allOf(AndroidExcludedRefs.class));
   }
 
-  public static ExcludedRefs.Builder createBuilder(EnumSet<AndroidExcludedRefs> refs) {
+  public static @NonNull ExcludedRefs.Builder createBuilder(EnumSet<AndroidExcludedRefs> refs) {
     ExcludedRefs.Builder excluded = ExcludedRefs.builder();
     for (AndroidExcludedRefs ref : refs) {
       if (ref.applies) {

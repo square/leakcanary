@@ -17,6 +17,7 @@ package com.squareup.leakcanary;
 
 import java.io.File;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 
 final class TestUtil {
@@ -46,15 +47,20 @@ final class TestUtil {
 
   static List<TrackedReference> findTrackedReferences(HeapDumpFile heapDumpFile) {
     File file = fileFromName(heapDumpFile.filename);
-    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(NO_EXCLUDED_REFS);
+    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(NO_EXCLUDED_REFS, AnalyzerProgressListener.NONE,
+        Collections.<Class<? extends Reachability.Inspector>>emptyList());
     return heapAnalyzer.findTrackedReferences(file);
   }
 
-  static AnalysisResult analyze(HeapDumpFile heapDumpFile, ExcludedRefs.BuilderWithParams excludedRefs) {
+  static AnalysisResult analyze(HeapDumpFile heapDumpFile,
+      ExcludedRefs.BuilderWithParams excludedRefs) {
     File file = fileFromName(heapDumpFile.filename);
     String referenceKey = heapDumpFile.referenceKey;
-    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(excludedRefs.build());
-    AnalysisResult result = heapAnalyzer.checkForLeak(file, referenceKey);
+    HeapAnalyzer heapAnalyzer =
+        new HeapAnalyzer(excludedRefs.build(), AnalyzerProgressListener.NONE,
+            Collections.<Class<? extends Reachability.Inspector>>emptyList());
+    AnalysisResult result =
+        heapAnalyzer.checkForLeak(file, referenceKey, true);
     if (result.failure != null) {
       result.failure.printStackTrace();
     }

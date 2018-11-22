@@ -81,7 +81,16 @@ afterEvaluate { project ->
     if (plugins.hasPlugin('com.android.application') || plugins.hasPlugin('com.android.library')) {
       task androidJavadocs(type: Javadoc) {
         source = android.sourceSets.main.java.srcDirs
+        exclude "**/internal/**"
         classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+
+        // Append also the classpath and files for release library variants.
+        // This fixes the javadoc warnings.
+        // Copy pasta from https://github.com/novoda/bintray-release/pull/39/files
+        def releaseVariant = project.android.libraryVariants.find { it.name.endsWith("release") }
+
+        classpath += releaseVariant.javaCompile.classpath
+        classpath += releaseVariant.javaCompile.outputs.files
       }
 
       task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {

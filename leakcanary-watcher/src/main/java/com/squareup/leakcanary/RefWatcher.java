@@ -17,6 +17,7 @@ package com.squareup.leakcanary;
 
 import java.io.File;
 import java.lang.ref.ReferenceQueue;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -41,19 +42,19 @@ public final class RefWatcher {
   private final DebuggerControl debuggerControl;
   private final GcTrigger gcTrigger;
   private final HeapDumper heapDumper;
+  private final HeapDump.Listener heapdumpListener;
+  private final HeapDump.Builder heapDumpBuilder;
   private final Set<String> retainedKeys;
   private final ReferenceQueue<Object> queue;
-  private final HeapDump.Listener heapdumpListener;
-  private final ExcludedRefs excludedRefs;
 
   RefWatcher(WatchExecutor watchExecutor, DebuggerControl debuggerControl, GcTrigger gcTrigger,
-      HeapDumper heapDumper, HeapDump.Listener heapdumpListener, ExcludedRefs excludedRefs) {
+      HeapDumper heapDumper, HeapDump.Listener heapdumpListener, HeapDump.Builder heapDumpBuilder) {
     this.watchExecutor = checkNotNull(watchExecutor, "watchExecutor");
     this.debuggerControl = checkNotNull(debuggerControl, "debuggerControl");
     this.gcTrigger = checkNotNull(gcTrigger, "gcTrigger");
     this.heapDumper = checkNotNull(heapDumper, "heapDumper");
     this.heapdumpListener = checkNotNull(heapdumpListener, "heapdumpListener");
-    this.excludedRefs = checkNotNull(excludedRefs, "excludedRefs");
+    this.heapDumpBuilder = heapDumpBuilder;
     retainedKeys = new CopyOnWriteArraySet<>();
     queue = new ReferenceQueue<>();
   }
@@ -87,6 +88,27 @@ public final class RefWatcher {
         new KeyedWeakReference(watchedReference, key, referenceName, queue);
 
     ensureGoneAsync(watchStartNanoTime, reference);
+  }
+
+  /**
+   * LeakCanary will stop watching any references that were passed to {@link #watch(Object, String)}
+   * so far.
+   */
+  public void clearWatchedReferences() {
+    retainedKeys.clear();
+  }
+
+  boolean isEmpty() {
+    removeWeaklyReachableReferences();
+    return retainedKeys.isEmpty();
+  }
+
+  HeapDump.Builder getHeapDumpBuilder() {
+    return heapDumpBuilder;
+  }
+
+  Set<String> getRetainedKeys() {
+    return new HashSet<>(retainedKeys);
   }
 
   private void ensureGoneAsync(final long watchStartNanoTime, final KeyedWeakReference reference) {
@@ -123,9 +145,15 @@ public final class RefWatcher {
         return RETRY;
       }
       long heapDumpDurationMs = NANOSECONDS.toMillis(System.nanoTime() - startDumpHeap);
-      heapdumpListener.analyze(
-          new HeapDump(heapDumpFile, reference.key, reference.name, excludedRefs, watchDurationMs,
-              gcDurationMs, heapDumpDurationMs));
+
+      HeapDump heapDump = heapDumpBuilder.heapDumpFile(heapDumpFile).referenceKey(reference.key)
+          .referenceName(reference.name)
+          .watchDurationMs(watchDurationMs)
+          .gcDurationMs(gcDurationMs)
+          .heapDumpDurationMs(heapDumpDurationMs)
+          .build();
+
+      heapdumpListener.analyze(heapDump);
     }
     return DONE;
   }

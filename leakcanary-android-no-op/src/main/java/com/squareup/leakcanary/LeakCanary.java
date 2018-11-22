@@ -2,17 +2,22 @@ package com.squareup.leakcanary;
 
 import android.app.Application;
 import android.content.Context;
+import android.support.annotation.NonNull;
 
 /**
  * A no-op version of {@link LeakCanary} that can be used in release builds.
  */
 public final class LeakCanary {
 
-  public static RefWatcher install(Application application) {
+  public static @NonNull RefWatcher install(@NonNull Application application) {
     return RefWatcher.DISABLED;
   }
 
-  public static boolean isInAnalyzerProcess(Context context) {
+  public static @NonNull RefWatcher installedRefWatcher() {
+    return RefWatcher.DISABLED;
+  }
+
+  public static boolean isInAnalyzerProcess(@NonNull Context context) {
     return false;
   }
 
