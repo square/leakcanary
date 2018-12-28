@@ -130,19 +130,19 @@ public enum AndroidExcludedRefs {
           + " dequeued object as a stack local reference. So when a HandlerThread becomes idle, it"
           + " keeps a local reference to the last message it received. That message then gets"
           + " recycled and can be used again. As long as all messages are recycled after being"
-          + "used, this won't be a problem, because these references are cleared when being"
-          + "recycled. However, dialogs create template Message instances to be copied when a"
-          + "message needs to be sent. These Message templates holds references to the dialog"
-          + "listeners, which most likely leads to holding a reference onto the activity in some"
-          + "way. Dialogs never recycle their template Message, assuming these Message instances"
+          + " used, this won't be a problem, because these references are cleared when being"
+          + " recycled. However, dialogs create template Message instances to be copied when a"
+          + " message needs to be sent. These Message templates holds references to the dialog"
+          + " listeners, which most likely leads to holding a reference onto the activity in some"
+          + " way. Dialogs never recycle their template Message, assuming these Message instances"
           + " will get GCed when the dialog is GCed."
           + " The combination of these two things creates a high potential for memory leaks as soon"
           + " as you use dialogs. These memory leaks might be temporary, but some handler threads"
           + " sleep for a long time."
           + " To fix this, you could post empty messages to the idle handler threads from time to"
           + " time. This won't be easy because you cannot access all handler threads, but a library"
-          + "that is widely used should consider doing this for its own handler threads. This leaks"
-          + "has been shown to happen in both Dalvik and ART.";
+          + " that is widely used should consider doing this for its own handler threads. This leaks"
+          + " has been shown to happen in both Dalvik and ART.";
       excluded.instanceField("android.os.Message", "obj").reason(reason);
       excluded.instanceField("android.os.Message", "next").reason(reason);
       excluded.instanceField("android.os.Message", "target").reason(reason);
@@ -198,9 +198,9 @@ public enum AndroidExcludedRefs {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.widget.SpellChecker$1", "this$0")
           .reason("SpellChecker holds on to a detached view that points to a destroyed activity."
-              + "mSpellRunnable is being enqueued, and that callback should be removed when "
-              + "closeSession() is called. Maybe closeSession() wasn't called, or maybe it was "
-              + "called after the view was detached.");
+              + " mSpellRunnable is being enqueued, and that callback should be removed when "
+              + " closeSession() is called. Maybe closeSession() wasn't called, or maybe it was "
+              + " called after the view was detached.");
     }
   },
 
@@ -311,11 +311,11 @@ public enum AndroidExcludedRefs {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.net.ConnectivityManager", "sInstance")
           .reason("ConnectivityManager has a sInstance field that is set when the first"
-              + "ConnectivityManager instance is created. ConnectivityManager has a mContext field."
-              + "When calling activity.getSystemService(Context.CONNECTIVITY_SERVICE) , the first"
-              + "ConnectivityManager instance is created with the activity context and stored in"
-              + "sInstance. That activity context then leaks forever."
-              + "Until this is fixed, app developers can prevent this leak by making sure the"
+              + " ConnectivityManager instance is created. ConnectivityManager has a mContext field."
+              + " When calling activity.getSystemService(Context.CONNECTIVITY_SERVICE) , the first"
+              + " ConnectivityManager instance is created with the activity context and stored in"
+              + " sInstance. That activity context then leaks forever."
+              + " Until this is fixed, app developers can prevent this leak by making sure the"
               + " ConnectivityManager is first created with an App Context. E.g. in some static"
               + " init do: context.getApplicationContext()"
               + ".getSystemService(Context.CONNECTIVITY_SERVICE)"
@@ -328,11 +328,11 @@ public enum AndroidExcludedRefs {
   ACCESSIBILITY_NODE_INFO__MORIGINALTEXT(SDK_INT >= O && SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.accessibility.AccessibilityNodeInfo", "mOriginalText")
-          .reason("AccessibilityNodeInfo has a static sPool of AccessibilityNodeInfo. When "
-              + "AccessibilityNodeInfo instances are released back in the pool, "
-              + "AccessibilityNodeInfo.clear() does not clear the mOriginalText field, which "
-              + "causes spans to leak which in turns causes TextView.ChangeWatcher to leak and the "
-              + "whole view hierarchy. Introduced here: https://android.googlesource.com/platform/"
+          .reason("AccessibilityNodeInfo has a static sPool of AccessibilityNodeInfo. When"
+              + " AccessibilityNodeInfo instances are released back in the pool,"
+              + " AccessibilityNodeInfo.clear() does not clear the mOriginalText field, which"
+              + " causes spans to leak which in turns causes TextView.ChangeWatcher to leak and the"
+              + " whole view hierarchy. Introduced here: https://android.googlesource.com/platform/"
               + "frameworks/base/+/193520e3dff5248ddcf8435203bf99d2ba667219%5E%21/core/java/"
               + "android/view/accessibility/AccessibilityNodeInfo.java");
     }
@@ -341,10 +341,10 @@ public enum AndroidExcludedRefs {
   BACKDROP_FRAME_RENDERER__MDECORVIEW(SDK_INT >= N && SDK_INT <= O) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("com.android.internal.policy.BackdropFrameRenderer", "mDecorView")
-          .reason("When BackdropFrameRenderer.releaseRenderer() is called, there's an unknown case "
-              + "where mRenderer becomes null but mChoreographer doesn't and the thread doesn't"
-              + "stop and ends up leaking mDecorView which itself holds on to a destroyed"
-              + "activity");
+          .reason("When BackdropFrameRenderer.releaseRenderer() is called, there's an unknown case"
+              + " where mRenderer becomes null but mChoreographer doesn't and the thread doesn't"
+              + " stop and ends up leaking mDecorView which itself holds on to a destroyed"
+              + " activity");
     }
   },
 
@@ -354,9 +354,9 @@ public enum AndroidExcludedRefs {
       MEIZU.equals(MANUFACTURER) && SDK_INT >= LOLLIPOP && SDK_INT <= LOLLIPOP_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.app.Instrumentation", "mRecommendActivity")
-          .reason("Instrumentation would leak com.android.internal.app.RecommendActivity (in "
-              + "framework.jar) in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and "
-              + "above");
+          .reason("Instrumentation would leak com.android.internal.app.RecommendActivity (in"
+              + " framework.jar) in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and "
+              + " above");
     }
   },
 
@@ -385,7 +385,7 @@ public enum AndroidExcludedRefs {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.gestureboost.GestureBoostManager", "mContext")
           .reason("GestureBoostManager is a static singleton that leaks an activity context."
-              + "Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756");
+              + " Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756");
     }
   },
 
@@ -416,8 +416,8 @@ public enum AndroidExcludedRefs {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("com.samsung.android.content.clipboard.SemClipboardManager",
           "mContext")
-          .reason("SemClipboardManager is held in memory by an anonymous inner class "
-              + "implementation of android.os.Binder, thereby leaking an activity context.");
+          .reason("SemClipboardManager is held in memory by an anonymous inner class"
+              + " implementation of android.os.Binder, thereby leaking an activity context.");
     }
   },
 
@@ -425,8 +425,8 @@ public enum AndroidExcludedRefs {
       SAMSUNG.equals(MANUFACTURER) && SDK_INT >= KITKAT && SDK_INT <= N) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("com.samsung.android.emergencymode.SemEmergencyManager", "mContext")
-          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext. "
-              + "Fix: https://gist.github.com/jankovd/a210460b814c04d500eb12025902d60d");
+          .reason("SemEmergencyManager is a static singleton that leaks a DecorContext."
+              + " Fix: https://gist.github.com/jankovd/a210460b814c04d500eb12025902d60d");
     }
   },
 
@@ -435,7 +435,7 @@ public enum AndroidExcludedRefs {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.widget.BubblePopupHelper", "sHelper")
           .reason("A static helper for EditText bubble popups leaks a reference to the latest"
-              + "focused view.");
+              + " focused view.");
     }
   },
 
@@ -507,9 +507,9 @@ public enum AndroidExcludedRefs {
       || (VIVO.equals(MANUFACTURER) && SDK_INT == LOLLIPOP_MR1)) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.staticField("android.hardware.SystemSensorManager", "mAppContextImpl")
-          .reason("SystemSensorManager stores a reference to context "
-              + "in a static field in its constructor."
-              + "Fix: use application context to get SensorManager");
+          .reason("SystemSensorManager stores a reference to context"
+              + " in a static field in its constructor."
+              + " Fix: use application context to get SensorManager");
     }
   },
 
