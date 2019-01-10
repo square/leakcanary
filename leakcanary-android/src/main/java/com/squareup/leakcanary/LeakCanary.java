@@ -62,9 +62,9 @@ public final class LeakCanary {
 
   /**
    * Blocking inter process call that enables the {@link DisplayLeakActivity}. When you first
-   * install the app, {@link DisplayLeakActivity} is disabled by default and will only be enabled
-   * once a potential leak has been found and the analysis starts. You can call this method to
-   * enable {@link DisplayLeakActivity} before any potential leak has been detected.
+   * install the app, {@link DisplayLeakActivity} is enabled by default if LeakCanary is configured
+   * to use {@link DisplayLeakService}. You can call this method to enable
+   * {@link DisplayLeakActivity} manually.
    */
   public static void enableDisplayLeakActivity(@NonNull Context context) {
     LeakCanaryInternals.setEnabledBlocking(context, DisplayLeakActivity.class, true);

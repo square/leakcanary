@@ -19,6 +19,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   private final Context context;
   private boolean watchActivities = true;
   private boolean watchFragments = true;
+  private boolean enableDisplayLeakActivity = false;
 
   AndroidRefWatcherBuilder(@NonNull Context context) {
     this.context = context.getApplicationContext();
@@ -30,6 +31,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    */
   public @NonNull AndroidRefWatcherBuilder listenerServiceClass(
       @NonNull Class<? extends AbstractAnalysisResultService> listenerServiceClass) {
+    enableDisplayLeakActivity = DisplayLeakService.class.isAssignableFrom(listenerServiceClass);
     return heapDumpListener(new ServiceHeapDumpListener(context, listenerServiceClass));
   }
 
@@ -88,7 +90,9 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
     }
     RefWatcher refWatcher = build();
     if (refWatcher != DISABLED) {
-      LeakCanaryInternals.setEnabledAsync(context, DisplayLeakActivity.class, true);
+      if (enableDisplayLeakActivity) {
+        LeakCanaryInternals.setEnabledAsync(context, DisplayLeakActivity.class, true);
+      }
       if (watchActivities) {
         ActivityRefWatcher.install(context, refWatcher);
       }
