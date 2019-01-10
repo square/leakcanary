@@ -279,50 +279,25 @@ public final class DisplayLeakActivity extends Activity {
 
     if (visibleLeak != null) {
       AnalysisResult result = visibleLeak.result;
-      if (result.failure != null) {
-        listView.setVisibility(GONE);
-        failureView.setVisibility(VISIBLE);
-        String failureMessage = getString(R.string.leak_canary_failure_report)
-            + LIBRARY_VERSION
-            + " "
-            + GIT_SHA
-            + "\n"
-            + Log.getStackTraceString(result.failure);
-        failureView.setText(failureMessage);
-        setTitle(R.string.leak_canary_analysis_failed);
-        invalidateOptionsMenu();
-        setDisplayHomeAsUpEnabled(true);
-        actionButton.setVisibility(VISIBLE);
-        actionButton.setText(R.string.leak_canary_delete);
-        actionButton.setOnClickListener(new View.OnClickListener() {
-          @Override public void onClick(View v) {
-            deleteVisibleLeak();
+      actionButton.setVisibility(VISIBLE);
+      actionButton.setText(R.string.leak_canary_delete);
+      actionButton.setOnClickListener(new View.OnClickListener() {
+        @Override public void onClick(View v) {
+          deleteVisibleLeak();
+        }
+      });
+      invalidateOptionsMenu();
+      setDisplayHomeAsUpEnabled(true);
+
+      if (result.leakFound) {
+        final DisplayLeakAdapter adapter = new DisplayLeakAdapter(getResources());
+        listView.setAdapter(adapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+          @Override
+          public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            adapter.toggleRow(position);
           }
         });
-        listView.setAdapter(null);
-      } else {
-        final DisplayLeakAdapter adapter;
-        if (listAdapter instanceof DisplayLeakAdapter) {
-          adapter = (DisplayLeakAdapter) listAdapter;
-        } else {
-          adapter = new DisplayLeakAdapter(getResources());
-          listView.setAdapter(adapter);
-          listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-              adapter.toggleRow(position);
-            }
-          });
-          invalidateOptionsMenu();
-          setDisplayHomeAsUpEnabled(true);
-          actionButton.setVisibility(VISIBLE);
-          actionButton.setText(R.string.leak_canary_delete);
-          actionButton.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-              deleteVisibleLeak();
-            }
-          });
-        }
         HeapDump heapDump = visibleLeak.heapDump;
         adapter.update(result.leakTrace, heapDump.referenceKey, heapDump.referenceName);
         if (result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
@@ -333,6 +308,28 @@ public final class DisplayLeakActivity extends Activity {
           String className = classSimpleName(result.className);
           setTitle(getString(R.string.leak_canary_class_has_leaked_retaining, className, size));
         }
+      } else {
+        listView.setVisibility(GONE);
+        failureView.setVisibility(VISIBLE);
+        listView.setAdapter(null);
+
+        String failureMessage;
+        if (result.failure != null) {
+          setTitle(R.string.leak_canary_analysis_failed);
+          failureMessage = getString(R.string.leak_canary_failure_report)
+              + LIBRARY_VERSION
+              + " "
+              + GIT_SHA
+              + "\n"
+              + Log.getStackTraceString(result.failure);
+        } else {
+          String className = classSimpleName(result.className);
+          setTitle(getString(R.string.leak_canary_class_no_leak, className));
+          failureMessage = getString(R.string.leak_canary_no_leak_details);
+        }
+        String path = visibleLeak.heapDump.heapDumpFile.getAbsolutePath();
+        failureMessage += "\n\n" + getString(R.string.leak_canary_download_dump, path);
+        failureView.setText(failureMessage);
       }
     } else {
       if (listAdapter instanceof LeakListAdapter) {
@@ -418,23 +415,28 @@ public final class DisplayLeakActivity extends Activity {
       String index = (leaks.size() - position) + ". ";
 
       String title;
-      if (leak.result.failure == null) {
-        String className = classSimpleName(leak.result.className);
-        if (leak.result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
-          title = getString(R.string.leak_canary_class_has_leaked, className);
-        } else {
-          String size = formatShortFileSize(DisplayLeakActivity.this, leak.result.retainedHeapSize);
-          title = getString(R.string.leak_canary_class_has_leaked_retaining, className, size);
-        }
-        if (leak.result.excludedLeak) {
-          title = getString(R.string.leak_canary_excluded_row, title);
-        }
-        title = index + title;
-      } else {
+      if (leak.result.failure != null) {
         title = index
             + leak.result.failure.getClass().getSimpleName()
             + " "
             + leak.result.failure.getMessage();
+      } else {
+        String className = classSimpleName(leak.result.className);
+        if (leak.result.leakFound) {
+          if (leak.result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
+            title = getString(R.string.leak_canary_class_has_leaked, className);
+          } else {
+            String size = formatShortFileSize(DisplayLeakActivity.this,
+                leak.result.retainedHeapSize);
+            title = getString(R.string.leak_canary_class_has_leaked_retaining, className, size);
+          }
+          if (leak.result.excludedLeak) {
+            title = getString(R.string.leak_canary_excluded_row, title);
+          }
+          title = index + title;
+        } else {
+          title = index + getString(R.string.leak_canary_class_no_leak, className);
+        }
       }
       titleView.setText(title);
       String time =

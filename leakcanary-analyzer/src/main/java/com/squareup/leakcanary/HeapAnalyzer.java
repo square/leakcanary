@@ -177,7 +177,8 @@ public final class HeapAnalyzer {
 
       // False alarm, weak reference was cleared in between key check and heap dump.
       if (leakingRef == null) {
-        return noLeak(since(analysisStartNanoTime));
+        String className = leakingRef.getClassObj().getClassName();
+        return noLeak(className, since(analysisStartNanoTime));
       }
       return findLeakTrace(analysisStartNanoTime, snapshot, leakingRef, computeRetainedSize);
     } catch (Throwable e) {
@@ -244,15 +245,15 @@ public final class HeapAnalyzer {
     ShortestPathFinder pathFinder = new ShortestPathFinder(excludedRefs);
     ShortestPathFinder.Result result = pathFinder.findPath(snapshot, leakingRef);
 
+    String className = leakingRef.getClassObj().getClassName();
+
     // False alarm, no strong reference path to GC Roots.
     if (result.leakingNode == null) {
-      return noLeak(since(analysisStartNanoTime));
+      return noLeak(className, since(analysisStartNanoTime));
     }
 
     listener.onProgressUpdate(BUILDING_LEAK_TRACE);
     LeakTrace leakTrace = buildLeakTrace(result.leakingNode);
-
-    String className = leakingRef.getClassObj().getClassName();
 
     long retainedSize;
     if (computeRetainedSize) {
