@@ -2,11 +2,19 @@
 
 ## Future release
 
+## Version 1.6.3 (2019-01-10)
+
 * [#1163](https://github.com/square/leakcanary/issues/1163) Fixed leaks being incorrectly classified as "no leak" due to missed GC Roots.
 * [#1153](https://github.com/square/leakcanary/issues/1153) `LeakCanary.isInAnalyzerProcess` now correctly returns true in the analyzer process prior to any first leak (could be triggered by starting the leak result activity).
 * [#1158](https://github.com/square/leakcanary/issues/1158) Stopped enabling DisplayLeakActivity when not using DisplayLeakService.
 * [#1135](https://github.com/square/leakcanary/issues/1135) Fixed IndexOutOfBoundsException for leak traces of size 1.
 * [#1163](https://github.com/square/leakcanary/issues/1163) Keep "no leak" heap dumps
+
+Many thanks to
+[@KMaragh](https://github.com/KMaragh),
+[@pyricau](https://github.com/pyricau),
+[@SebRut](https://github.com/SebRut)
+for the code contributions!
 
 ## Version 1.6.2 (2018-10-16)
 
