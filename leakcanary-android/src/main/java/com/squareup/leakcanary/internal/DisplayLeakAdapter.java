@@ -215,6 +215,9 @@ final class DisplayLeakAdapter extends BaseAdapter {
     if (position == 1) {
       return DisplayLeakConnectorView.Type.HELP;
     } else if (position == 2) {
+      if (leakTrace.expectedReachability.size() == 1) {
+        return DisplayLeakConnectorView.Type.START_LAST_REACHABLE;
+      }
       Reachability nextReachability =
           leakTrace.expectedReachability.get(elementIndex(position + 1));
       if (nextReachability != Reachability.REACHABLE) {
