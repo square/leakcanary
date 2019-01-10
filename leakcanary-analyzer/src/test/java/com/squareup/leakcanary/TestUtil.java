@@ -16,6 +16,9 @@
 package com.squareup.leakcanary;
 
 import java.io.File;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +30,9 @@ final class TestUtil {
   enum HeapDumpFile {
     ASYNC_TASK_PRE_M("leak_asynctask_pre_m.hprof", "dc983a12-d029-4003-8890-7dd644c664c5"), //
     ASYNC_TASK_M("leak_asynctask_m.hprof", "25ae1778-7c1d-4ec7-ac50-5cce55424069"), //
-    ASYNC_TASK_O("leak_asynctask_o.hprof", "0e8d40d7-8302-4493-93d5-962a4c176089");
+    ASYNC_TASK_O("leak_asynctask_o.hprof", "0e8d40d7-8302-4493-93d5-962a4c176089"),
+    GC_ROOT_IN_NON_PRIMARY_HEAP("gc_root_in_non_primary_heap.hprof",
+        "10a5bc66-e9cb-430c-930a-fc1dc4fc0f85");
 
     public final String filename;
     public final String referenceKey;
@@ -50,6 +55,18 @@ final class TestUtil {
     HeapAnalyzer heapAnalyzer = new HeapAnalyzer(NO_EXCLUDED_REFS, AnalyzerProgressListener.NONE,
         Collections.<Class<? extends Reachability.Inspector>>emptyList());
     return heapAnalyzer.findTrackedReferences(file);
+  }
+
+  static AnalysisResult analyze(HeapDumpFile heapDumpFile) {
+    ExcludedRefs.BuilderWithParams excludedRefs = new ExcludedRefs.BuilderWithParams()
+        .clazz(WeakReference.class.getName()).alwaysExclude()
+        .clazz(SoftReference.class.getName()).alwaysExclude()
+        .clazz(PhantomReference.class.getName()).alwaysExclude()
+        .clazz("java.lang.ref.Finalizer").alwaysExclude()
+        .clazz("java.lang.ref.FinalizerReference").alwaysExclude()
+        .thread("FinalizerWatchdogDaemon").alwaysExclude()
+        .thread("main").alwaysExclude();
+    return analyze(heapDumpFile, excludedRefs);
   }
 
   static AnalysisResult analyze(HeapDumpFile heapDumpFile,

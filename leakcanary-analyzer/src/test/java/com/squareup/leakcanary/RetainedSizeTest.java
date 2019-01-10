@@ -1,9 +1,7 @@
 package com.squareup.leakcanary;
 
-import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Collection;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -30,22 +28,14 @@ public class RetainedSizeTest {
 
   private final TestUtil.HeapDumpFile heapDumpFile;
   private final long expectedRetainedHeapSize;
-  ExcludedRefs.BuilderWithParams excludedRefs;
 
   public RetainedSizeTest(TestUtil.HeapDumpFile heapDumpFile, long expectedRetainedHeapSize) {
     this.heapDumpFile = heapDumpFile;
     this.expectedRetainedHeapSize = expectedRetainedHeapSize;
   }
 
-  @Before public void setUp() {
-    excludedRefs = new ExcludedRefs.BuilderWithParams().clazz(WeakReference.class.getName())
-        .alwaysExclude()
-        .clazz("java.lang.ref.FinalizerReference")
-        .alwaysExclude();
-  }
-
   @Test public void leakFound() {
-    AnalysisResult result = analyze(heapDumpFile, excludedRefs);
+    AnalysisResult result = analyze(heapDumpFile);
     assertEquals(expectedRetainedHeapSize, result.retainedHeapSize);
   }
 }

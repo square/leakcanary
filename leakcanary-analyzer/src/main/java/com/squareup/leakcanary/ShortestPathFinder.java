@@ -129,7 +129,7 @@ final class ShortestPathFinder {
   }
 
   private void enqueueGcRoots(Snapshot snapshot) {
-    for (RootObj rootObj : snapshot.getGCRoots()) {
+    for (RootObj rootObj : HahaSpy.allGcRoots(snapshot)) {
       switch (rootObj.getRootType()) {
         case JAVA_LOCAL:
           Instance thread = HahaSpy.allocatingThread(rootObj);
