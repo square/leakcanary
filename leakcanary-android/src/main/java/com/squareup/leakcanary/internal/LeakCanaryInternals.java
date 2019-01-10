@@ -105,7 +105,7 @@ public final class LeakCanaryInternals {
     ComponentName component = new ComponentName(context, serviceClass);
     ServiceInfo serviceInfo;
     try {
-      serviceInfo = packageManager.getServiceInfo(component, 0);
+      serviceInfo = packageManager.getServiceInfo(component, PackageManager.GET_DISABLED_COMPONENTS);
     } catch (PackageManager.NameNotFoundException ignored) {
       // Service is disabled.
       return false;

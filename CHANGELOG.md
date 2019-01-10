@@ -1,5 +1,10 @@
 # Change Log
 
+## Future release
+
+* [#1153](https://github.com/square/leakcanary/issues/1153) `LeakCanary.isInAnalyzerProcess` now correctly returns true in the analyzer process prior to any first leak (could be triggered by starting the leak result activity).
+
+
 ## Version 1.6.2 (2018-10-16)
 
 * [#1067](https://github.com/square/leakcanary/issues/1067) Fixed TransactionTooLargeException crash (leak analysis would never complete).
