@@ -23,8 +23,8 @@ public final class AnalysisResult implements Serializable {
 
   public static final long RETAINED_HEAP_SKIPPED = -1;
 
-  public static @NonNull AnalysisResult noLeak(long analysisDurationMs) {
-    return new AnalysisResult(false, false, null, null, null, 0, analysisDurationMs);
+  public static @NonNull AnalysisResult noLeak(String className, long analysisDurationMs) {
+    return new AnalysisResult(false, false, className, null, null, 0, analysisDurationMs);
   }
 
   public static @NonNull AnalysisResult leakDetected(boolean excludedLeak,
@@ -49,7 +49,7 @@ public final class AnalysisResult implements Serializable {
   public final boolean excludedLeak;
 
   /**
-   * Class name of the object that leaked if {@link #leakFound} is true, null otherwise.
+   * Class name of the object that leaked, null if {@link #failure} is not null.
    * The class name format is the same as what would be returned by {@link Class#getName()}.
    */
   @Nullable public final String className;

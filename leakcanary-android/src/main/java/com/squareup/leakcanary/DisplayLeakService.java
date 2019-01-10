@@ -46,45 +46,39 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     String leakInfo = leakInfo(this, heapDump, result, true);
     CanaryLog.d("%s", leakInfo);
 
-    boolean resultSaved = false;
-    boolean shouldSaveResult = result.leakFound || result.failure != null;
-    if (shouldSaveResult) {
-      heapDump = renameHeapdump(heapDump);
-      resultSaved = saveResult(heapDump, result);
-    }
+    heapDump = renameHeapdump(heapDump);
+    boolean resultSaved = saveResult(heapDump, result);
 
-    if (!shouldSaveResult) {
-      String contentTitle = getString(R.string.leak_canary_no_leak_title);
-      String contentText = getString(R.string.leak_canary_no_leak_text);
-      showNotification(null, contentTitle, contentText);
-    } else if (resultSaved) {
-      String contentTitle;
-      String contentText;
+    String contentTitle;
+    if (resultSaved) {
       PendingIntent pendingIntent =
           DisplayLeakActivity.createPendingIntent(this, heapDump.referenceKey);
-
-      if (result.failure == null) {
-        if (result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
-          String className = classSimpleName(result.className);
-          if (result.excludedLeak) {
-            contentTitle = getString(R.string.leak_canary_leak_excluded, className);
+      if (result.failure != null) {
+        contentTitle = getString(R.string.leak_canary_analysis_failed);
+      } else {
+        String className = classSimpleName(result.className);
+        if (result.leakFound) {
+          if (result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
+            if (result.excludedLeak) {
+              contentTitle = getString(R.string.leak_canary_leak_excluded, className);
+            } else {
+              contentTitle = getString(R.string.leak_canary_class_has_leaked, className);
+            }
           } else {
-            contentTitle = getString(R.string.leak_canary_class_has_leaked, className);
+            String size = formatShortFileSize(this, result.retainedHeapSize);
+            if (result.excludedLeak) {
+              contentTitle =
+                  getString(R.string.leak_canary_leak_excluded_retaining, className, size);
+            } else {
+              contentTitle =
+                  getString(R.string.leak_canary_class_has_leaked_retaining, className, size);
+            }
           }
         } else {
-          String size = formatShortFileSize(this, result.retainedHeapSize);
-          String className = classSimpleName(result.className);
-          if (result.excludedLeak) {
-            contentTitle = getString(R.string.leak_canary_leak_excluded_retaining, className, size);
-          } else {
-            contentTitle =
-                getString(R.string.leak_canary_class_has_leaked_retaining, className, size);
-          }
+          contentTitle = getString(R.string.leak_canary_class_no_leak, className);
         }
-      } else {
-        contentTitle = getString(R.string.leak_canary_analysis_failed);
       }
-      contentText = getString(R.string.leak_canary_notification_message);
+      String contentText = getString(R.string.leak_canary_notification_message);
       showNotification(pendingIntent, contentTitle, contentText);
     } else {
       onAnalysisResultFailure(getString(R.string.leak_canary_could_not_save_text));

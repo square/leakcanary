@@ -17,6 +17,8 @@
 <resources>
   <string name="leak_canary_class_has_leaked">%1$s leaked</string>
   <string name="leak_canary_class_has_leaked_retaining">%1$s leaked %2$s</string>
+  <string name="leak_canary_class_no_leak">%1$s was never GCed but no leak found</string>
+  <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
   <string name="leak_canary_leak_excluded">[Excluded] %1$s leaked</string>
   <string name="leak_canary_leak_excluded_retaining">[Excluded] %1$s leaked %2$s</string>
   <string name="leak_canary_analysis_failed">Leak analysis failed</string>
@@ -27,6 +29,7 @@
   <string name="leak_canary_notification_foreground_text">LeakCanary is working.</string>
   <string name="leak_canary_notification_message">Click for more details</string>
   <string name="leak_canary_notification_reporting">Reporting LeakCanary result</string>
+  <string name="leak_canary_no_leak_details">LeakCanary could not find a valid path to GC roots. Download the heap dump and investigate with MAT or YourKit.</string>
   <string name="leak_canary_result_failure_no_disk_space">The analysis result could not be saved to disk</string>
   <string name="leak_canary_result_failure_no_file">The analysis result could not be loaded from disk</string>
   <string name="leak_canary_result_failure_title">Analysis result failure</string>
@@ -41,8 +44,6 @@
   <string name="leak_canary_delete_all">Delete all</string>
   <string name="leak_canary_delete_all_leaks_title">Are you sure you want to delete all leaks?</string>
   <string name="leak_canary_could_not_save_text">LeakCanary was unable to save the analysis result.</string>
-  <string name="leak_canary_no_leak_title">No leak found</string>
-  <string name="leak_canary_no_leak_text">The GC was being lazy.</string>
   <string name="leak_canary_excluded_row">[Excluded] %s</string>
   <string name="leak_canary_permission_not_granted">Please grant external storage permission, otherwise memory leaks will not be detected.</string>
   <string name="leak_canary_permission_notification_title">Leak detected, need permission</string>
