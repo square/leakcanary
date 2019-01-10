@@ -72,8 +72,6 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabledBlo
 @SuppressWarnings("ConstantConditions")
 public final class DisplayLeakActivity extends Activity {
 
-  private static LeakDirectoryProvider leakDirectoryProvider = null;
-
   private static final String SHOW_LEAK_EXTRA = "show_latest";
 
   // Public API.
