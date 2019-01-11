@@ -16,6 +16,9 @@ Many thanks to
 [@SebRut](https://github.com/SebRut)
 for the code contributions!
 
+For more details, see the [1.6.3 Milestone](https://github.com/square/leakcanary/milestone/5) and the [full diff](https://github.com/square/leakcanary/compare/v1.6.2...v1.6.3).
+
+
 ## Version 1.6.2 (2018-10-16)
 
 * [#1067](https://github.com/square/leakcanary/issues/1067) Fixed TransactionTooLargeException crash (leak analysis would never complete).
