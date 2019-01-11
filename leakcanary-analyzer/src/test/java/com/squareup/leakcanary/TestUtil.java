@@ -29,6 +29,7 @@ final class TestUtil {
 
   enum HeapDumpFile {
     ASYNC_TASK_PRE_M("leak_asynctask_pre_m.hprof", "dc983a12-d029-4003-8890-7dd644c664c5"), //
+    NOT_FOUND("not_found.hprof", "c644e537-9abd-42e5-994d-032fc150feef"), //
     ASYNC_TASK_M("leak_asynctask_m.hprof", "25ae1778-7c1d-4ec7-ac50-5cce55424069"), //
     ASYNC_TASK_O("leak_asynctask_o.hprof", "0e8d40d7-8302-4493-93d5-962a4c176089"),
     GC_ROOT_IN_NON_PRIMARY_HEAP("gc_root_in_non_primary_heap.hprof",
