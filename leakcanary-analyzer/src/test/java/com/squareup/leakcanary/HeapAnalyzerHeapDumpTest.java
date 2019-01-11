@@ -8,6 +8,7 @@ import org.junit.runners.JUnit4;
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_M;
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.ASYNC_TASK_PRE_M;
 import static com.squareup.leakcanary.TestUtil.HeapDumpFile.GC_ROOT_IN_NON_PRIMARY_HEAP;
+import static com.squareup.leakcanary.TestUtil.HeapDumpFile.MISSING_THREAD;
 import static com.squareup.leakcanary.TestUtil.analyze;
 import static com.squareup.leakcanary.TestUtil.findTrackedReferences;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,6 +31,11 @@ public class HeapAnalyzerHeapDumpTest {
 
   @Test public void leakFoundWithGcRootInNonPrimaryHeap() {
     AnalysisResult result = analyze(GC_ROOT_IN_NON_PRIMARY_HEAP);
+    assertThat(result.leakFound).isTrue();
+  }
+
+  @Test public void heapDumpWithMissingNativeThread() {
+    AnalysisResult result = analyze(MISSING_THREAD);
     assertThat(result.leakFound).isTrue();
   }
 }

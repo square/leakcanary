@@ -18,7 +18,6 @@ public interface AnalyzerProgressListener {
     FINDING_SHORTEST_PATH,
     BUILDING_LEAK_TRACE,
     COMPUTING_DOMINATORS,
-    COMPUTING_BITMAP_SIZE,
   }
 
   void onProgressUpdate(@NonNull Step step);

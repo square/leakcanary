@@ -20,9 +20,9 @@ public class RetainedSizeTest {
 
   @Parameterized.Parameters public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][] {
-        { ASYNC_TASK_PRE_M, 207_407 }, //
-        { ASYNC_TASK_M, 1_870 }, //
-        { ASYNC_TASK_O, 753 }, //
+        { ASYNC_TASK_PRE_M, 33367 }, //
+        { ASYNC_TASK_M, 49584 }, //
+        { ASYNC_TASK_O, 210978 }, //
     });
   }
 

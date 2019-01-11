@@ -16,18 +16,16 @@
 package com.squareup.leakcanary;
 
 import android.support.annotation.NonNull;
+import com.android.tools.perflib.captures.DataBuffer;
+import com.android.tools.perflib.captures.MemoryMappedFileBuffer;
 import com.squareup.haha.perflib.ArrayInstance;
 import com.squareup.haha.perflib.ClassInstance;
 import com.squareup.haha.perflib.ClassObj;
 import com.squareup.haha.perflib.Field;
-import com.squareup.haha.perflib.HprofParser;
 import com.squareup.haha.perflib.Instance;
 import com.squareup.haha.perflib.RootObj;
-import com.squareup.haha.perflib.RootType;
 import com.squareup.haha.perflib.Snapshot;
 import com.squareup.haha.perflib.Type;
-import com.squareup.haha.perflib.io.HprofBuffer;
-import com.squareup.haha.perflib.io.MemoryMappedFileBuffer;
 import gnu.trove.THashMap;
 import gnu.trove.TObjectProcedure;
 import java.io.File;
@@ -38,13 +36,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static android.os.Build.VERSION.SDK_INT;
-import static android.os.Build.VERSION_CODES.N_MR1;
 import static com.squareup.leakcanary.AnalysisResult.failure;
 import static com.squareup.leakcanary.AnalysisResult.leakDetected;
 import static com.squareup.leakcanary.AnalysisResult.noLeak;
 import static com.squareup.leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACE;
-import static com.squareup.leakcanary.AnalyzerProgressListener.Step.COMPUTING_BITMAP_SIZE;
 import static com.squareup.leakcanary.AnalyzerProgressListener.Step.COMPUTING_DOMINATORS;
 import static com.squareup.leakcanary.AnalyzerProgressListener.Step.DEDUPLICATING_GC_ROOTS;
 import static com.squareup.leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REF;
@@ -113,9 +108,9 @@ public final class HeapAnalyzer {
       throw new IllegalArgumentException("File does not exist: " + heapDumpFile);
     }
     try {
-      HprofBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
-      HprofParser parser = new HprofParser(buffer);
-      Snapshot snapshot = parser.parse();
+
+      DataBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
+      Snapshot snapshot = Snapshot.createSnapshot(buffer);
       deduplicateGcRoots(snapshot);
 
       ClassObj refClass = snapshot.findClass(KeyedWeakReference.class.getName());
@@ -165,10 +160,9 @@ public final class HeapAnalyzer {
 
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE);
-      HprofBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
-      HprofParser parser = new HprofParser(buffer);
+      DataBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
       listener.onProgressUpdate(PARSING_HEAP_DUMP);
-      Snapshot snapshot = parser.parse();
+      Snapshot snapshot = Snapshot.createSnapshot(buffer);
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS);
       deduplicateGcRoots(snapshot);
       listener.onProgressUpdate(FINDING_LEAKING_REF);
@@ -263,72 +257,12 @@ public final class HeapAnalyzer {
       Instance leakingInstance = result.leakingNode.instance;
 
       retainedSize = leakingInstance.getTotalRetainedSize();
-
-      // TODO: check O sources and see what happened to android.graphics.Bitmap.mBuffer
-      if (SDK_INT <= N_MR1) {
-        listener.onProgressUpdate(COMPUTING_BITMAP_SIZE);
-        retainedSize += computeIgnoredBitmapRetainedSize(snapshot, leakingInstance);
-      }
     } else {
       retainedSize = AnalysisResult.RETAINED_HEAP_SKIPPED;
     }
 
     return leakDetected(result.excludingKnownLeaks, className, leakTrace, retainedSize,
         since(analysisStartNanoTime));
-  }
-
-  /**
-   * Bitmaps and bitmap byte arrays are sometimes held by native gc roots, so they aren't included
-   * in the retained size because their root dominator is a native gc root.
-   * To fix this, we check if the leaking instance is a dominator for each bitmap instance and then
-   * add the bitmap size.
-   *
-   * From experience, we've found that bitmap created in code (Bitmap.createBitmap()) are correctly
-   * accounted for, however bitmaps set in layouts are not.
-   */
-  private long computeIgnoredBitmapRetainedSize(Snapshot snapshot, Instance leakingInstance) {
-    long bitmapRetainedSize = 0;
-    ClassObj bitmapClass = snapshot.findClass("android.graphics.Bitmap");
-
-    for (Instance bitmapInstance : bitmapClass.getInstancesList()) {
-      if (isIgnoredDominator(leakingInstance, bitmapInstance)) {
-        ArrayInstance mBufferInstance = fieldValue(classInstanceValues(bitmapInstance), "mBuffer");
-        // Native bitmaps have mBuffer set to null. We sadly can't account for them.
-        if (mBufferInstance == null) {
-          continue;
-        }
-        long bufferSize = mBufferInstance.getTotalRetainedSize();
-        long bitmapSize = bitmapInstance.getTotalRetainedSize();
-        // Sometimes the size of the buffer isn't accounted for in the bitmap retained size. Since
-        // the buffer is large, it's easy to detect by checking for bitmap size < buffer size.
-        if (bitmapSize < bufferSize) {
-          bitmapSize += bufferSize;
-        }
-        bitmapRetainedSize += bitmapSize;
-      }
-    }
-    return bitmapRetainedSize;
-  }
-
-  private boolean isIgnoredDominator(Instance dominator, Instance instance) {
-    boolean foundNativeRoot = false;
-    while (true) {
-      Instance immediateDominator = instance.getImmediateDominator();
-      if (immediateDominator instanceof RootObj
-          && ((RootObj) immediateDominator).getRootType() == RootType.UNKNOWN) {
-        // Ignore native roots
-        instance = instance.getNextInstanceToGcRoot();
-        foundNativeRoot = true;
-      } else {
-        instance = immediateDominator;
-      }
-      if (instance == null) {
-        return false;
-      }
-      if (instance == dominator) {
-        return foundNativeRoot;
-      }
-    }
   }
 
   private LeakTrace buildLeakTrace(LeakNode leakingNode) {

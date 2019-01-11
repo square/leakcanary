@@ -32,7 +32,8 @@ final class TestUtil {
     ASYNC_TASK_M("leak_asynctask_m.hprof", "25ae1778-7c1d-4ec7-ac50-5cce55424069"), //
     ASYNC_TASK_O("leak_asynctask_o.hprof", "0e8d40d7-8302-4493-93d5-962a4c176089"),
     GC_ROOT_IN_NON_PRIMARY_HEAP("gc_root_in_non_primary_heap.hprof",
-        "10a5bc66-e9cb-430c-930a-fc1dc4fc0f85");
+        "10a5bc66-e9cb-430c-930a-fc1dc4fc0f85"),
+    MISSING_THREAD("missing_thread.hprof", "c644e537-9abd-42e5-994d-032fc150feef");
 
     public final String filename;
     public final String referenceKey;
