@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <bool name="leak_canary_notify_excluded_leak">false</bool>
+  <bool name="leak_canary_show_toast">true</bool>
+</resources>

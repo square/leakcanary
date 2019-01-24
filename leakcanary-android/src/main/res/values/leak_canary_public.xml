@@ -19,5 +19,8 @@
   <public name="leak_canary_display_activity_label" type="string"/>
   <public name="leak_canary_heap_dump_toast" type="layout"/>
   <public name="leak_canary_icon" type="mipmap"/>
+  <!-- See android.app.NotificationManager.Importance -->
+  <public name="leak_canary_notification_importance" type="integer"/>
+  <public name="leak_canary_notify_excluded_leak" type="boolean"/>
 
 </resources>

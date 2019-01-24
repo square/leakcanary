@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <integer name="leak_canary_notification_importance">3</integer>
+</resources>

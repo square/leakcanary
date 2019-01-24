@@ -75,7 +75,12 @@ public final class AndroidHeapDumper implements HeapDumper {
     }
 
     FutureResult<Toast> waitingForToast = new FutureResult<>();
-    showToast(waitingForToast);
+
+    if (context.getResources().getBoolean(R.bool.leak_canary_show_toast)) {
+      showToast(waitingForToast);
+    } else {
+      waitingForToast.set(null);
+    }
 
     if (!waitingForToast.wait(5, SECONDS)) {
       CanaryLog.d("Did not dump heap, too much time waiting for Toast.");

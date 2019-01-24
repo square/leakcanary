@@ -105,7 +105,8 @@ public final class LeakCanaryInternals {
     ComponentName component = new ComponentName(context, serviceClass);
     ServiceInfo serviceInfo;
     try {
-      serviceInfo = packageManager.getServiceInfo(component, PackageManager.GET_DISABLED_COMPONENTS);
+      serviceInfo =
+          packageManager.getServiceInfo(component, PackageManager.GET_DISABLED_COMPONENTS);
     } catch (PackageManager.NameNotFoundException ignored) {
       // Service is disabled.
       return false;
@@ -172,8 +173,10 @@ public final class LeakCanaryInternals {
           notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID);
       if (notificationChannel == null) {
         String channelName = context.getString(R.string.leak_canary_notification_channel);
-        notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName,
-            NotificationManager.IMPORTANCE_DEFAULT);
+        int channelImportance =
+            context.getResources().getInteger(R.integer.leak_canary_notification_importance);
+        notificationChannel =
+            new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, channelImportance);
         notificationManager.createNotificationChannel(notificationChannel);
       }
       builder.setChannelId(NOTIFICATION_CHANNEL_ID);

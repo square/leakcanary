@@ -66,7 +66,12 @@ public final class HeapAnalyzerService extends ForegroundService
 
     AnalysisResult result = heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey,
         heapDump.computeRetainedHeapSize);
-    AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, heapDump, result);
+
+    boolean notifyExcludedLeak = getResources().getBoolean(R.bool.leak_canary_notify_excluded_leak);
+
+    if (!result.excludedLeak || notifyExcludedLeak) {
+      AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, heapDump, result);
+    }
   }
 
   @Override public void onProgressUpdate(Step step) {
