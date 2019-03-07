@@ -177,8 +177,7 @@ public final class HeapAnalyzer {
 
       // False alarm, weak reference was cleared in between key check and heap dump.
       if (leakingRef == null) {
-        String className = leakingRef.getClassObj().getClassName();
-        return noLeak(className, since(analysisStartNanoTime));
+        return noLeak("UnknownNoKeyedWeakReference", since(analysisStartNanoTime));
       }
       return findLeakTrace(analysisStartNanoTime, snapshot, leakingRef, computeRetainedSize);
     } catch (Throwable e) {
