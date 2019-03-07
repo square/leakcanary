@@ -2,6 +2,8 @@
 
 ## Future release
 
+* [#1186](https://github.com/square/leakcanary/issues/1186) Fix NPE when KeyedWeakReference was not found in heap dump.
+
 ## Version 1.6.3 (2019-01-10)
 
 * [#1163](https://github.com/square/leakcanary/issues/1163) Fixed leaks being incorrectly classified as "no leak" due to missed GC Roots.
