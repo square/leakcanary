@@ -19,6 +19,9 @@ import android.support.annotation.NonNull;
 import java.io.Serializable;
 import java.util.List;
 
+import static com.squareup.leakcanary.Reachability.Status.REACHABLE;
+import static com.squareup.leakcanary.Reachability.Status.UNKNOWN;
+
 /**
  * A chain of references that constitute the shortest strong reference path from a leaking instance
  * to the GC roots. Fixing the leak usually means breaking one of the references in that chain.
@@ -43,12 +46,12 @@ public final class LeakTrace implements Serializable {
       }
       boolean maybeLeakCause = false;
       Reachability currentReachability = expectedReachability.get(i);
-      if (currentReachability == Reachability.UNKNOWN) {
+      if (currentReachability.status == UNKNOWN) {
         maybeLeakCause = true;
-      } else if (currentReachability == Reachability.REACHABLE) {
+      } else if (currentReachability.status == REACHABLE) {
         if (i < elements.size() - 1) {
           Reachability nextReachability = expectedReachability.get(i + 1);
-          if (nextReachability != Reachability.REACHABLE) {
+          if (nextReachability.status != REACHABLE) {
             maybeLeakCause = true;
           }
         } else {

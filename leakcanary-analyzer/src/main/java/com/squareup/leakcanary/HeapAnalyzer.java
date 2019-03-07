@@ -65,9 +65,8 @@ import static com.squareup.leakcanary.LeakTraceElement.Holder.THREAD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.ARRAY_ENTRY;
 import static com.squareup.leakcanary.LeakTraceElement.Type.INSTANCE_FIELD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD;
-import static com.squareup.leakcanary.Reachability.REACHABLE;
-import static com.squareup.leakcanary.Reachability.UNKNOWN;
-import static com.squareup.leakcanary.Reachability.UNREACHABLE;
+import static com.squareup.leakcanary.Reachability.Status.REACHABLE;
+import static com.squareup.leakcanary.Reachability.Status.UNREACHABLE;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
@@ -352,41 +351,62 @@ public final class HeapAnalyzer {
 
   private List<Reachability> computeExpectedReachability(
       List<LeakTraceElement> elements) {
-    int lastReachableElement = 0;
+    int lastReachableElementIndex = 0;
     int lastElementIndex = elements.size() - 1;
-    int firstUnreachableElement = lastElementIndex;
-    // No need to inspect the first and last element. We know the first should be reachable (gc
-    // root) and the last should be unreachable (watched instance).
-    elementLoop:
-    for (int i = 1; i < lastElementIndex; i++) {
-      LeakTraceElement element = elements.get(i);
+    int firstUnreachableElementIndex = lastElementIndex;
 
-      for (Reachability.Inspector reachabilityInspector : reachabilityInspectors) {
-        Reachability reachability = reachabilityInspector.expectedReachability(element);
-        if (reachability == REACHABLE) {
-          lastReachableElement = i;
-          break;
-        } else if (reachability == UNREACHABLE) {
-          firstUnreachableElement = i;
-          break elementLoop;
+    List<Reachability> expectedReachability = new ArrayList<>();
+
+    int index = 0;
+    for (LeakTraceElement element : elements) {
+      Reachability reachability = inspectElementReachability(element);
+      expectedReachability.add(reachability);
+      if (reachability.status == REACHABLE) {
+        lastReachableElementIndex = index;
+      } else if (firstUnreachableElementIndex == lastElementIndex
+          && reachability.status == UNREACHABLE) {
+        firstUnreachableElementIndex = index;
+      }
+      index++;
+    }
+
+    if (expectedReachability.get(0).status == Reachability.Status.UNKNOWN) {
+      expectedReachability.set(0, Reachability.reachable("it's a GC root"));
+    }
+
+    if (expectedReachability.get(lastElementIndex).status == Reachability.Status.UNKNOWN) {
+      expectedReachability.set(lastElementIndex,
+          Reachability.unreachable("it's the leaking instance"));
+    }
+
+    // First and last are always known.
+    for (int i = 1; i < lastElementIndex; i++) {
+      Reachability reachability = expectedReachability.get(i);
+      if (reachability.status == Reachability.Status.UNKNOWN) {
+        if (i <= lastReachableElementIndex) {
+          String lastReachableName = elements.get(lastReachableElementIndex).getSimpleClassName();
+          expectedReachability.set(i, Reachability.reachable(lastReachableName + " is not leaking"));
+        } else if (i >= firstUnreachableElementIndex) {
+          String firstUnreachableName =
+              elements.get(firstUnreachableElementIndex).getSimpleClassName();
+          expectedReachability.set(i,
+              Reachability.unreachable(firstUnreachableName + " is leaking"));
         }
       }
     }
-
-    List<Reachability> expectedReachability = new ArrayList<>();
-    for (int i = 0; i < elements.size(); i++) {
-      Reachability status;
-      if (i <= lastReachableElement) {
-        status = REACHABLE;
-      } else if (i >= firstUnreachableElement) {
-        status = UNREACHABLE;
-      } else {
-        status = UNKNOWN;
-      }
-      expectedReachability.add(status);
-    }
     return expectedReachability;
   }
+
+  private Reachability inspectElementReachability(LeakTraceElement element) {
+    for (Reachability.Inspector reachabilityInspector : reachabilityInspectors) {
+      Reachability reachability = reachabilityInspector.expectedReachability(element);
+      if (reachability.status != Reachability.Status.UNKNOWN) {
+        return reachability;
+      }
+    }
+    return Reachability.unknown();
+  }
+
 
   private LeakTraceElement buildLeakElement(LeakNode node) {
     if (node.parent == null) {

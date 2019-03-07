@@ -15,16 +15,41 @@
  */
 package com.squareup.leakcanary;
 
+import java.io.Serializable;
+
 /** Result returned by {@link Inspector#expectedReachability(LeakTraceElement)}. */
-public enum Reachability {
+public final class Reachability implements Serializable {
+
+  private static final Reachability UNKNOWN_REACHABILITY = new Reachability(Status.UNKNOWN, "");
+
   /** The instance was needed and therefore expected to be reachable. */
-  REACHABLE,
+  public static Reachability reachable(String reason) {
+    return new Reachability(Status.REACHABLE, reason);
+  }
 
   /** The instance was no longer needed and therefore expected to be unreachable. */
-  UNREACHABLE,
+  public static Reachability unreachable(String reason) {
+    return new Reachability(Status.UNREACHABLE, reason);
+  }
 
   /** No decision can be made about the provided instance. */
-  UNKNOWN;
+  public static Reachability unknown() {
+    return UNKNOWN_REACHABILITY;
+  }
+
+  public enum Status {
+    REACHABLE,
+    UNREACHABLE,
+    UNKNOWN
+  }
+
+  public final String reason;
+  public final Status status;
+
+  private Reachability(Status status, String reason) {
+    this.reason = reason;
+    this.status = status;
+  }
 
   /**
    * Evaluates whether a {@link LeakTraceElement} should be reachable or not.
