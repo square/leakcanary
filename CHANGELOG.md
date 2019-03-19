@@ -1,8 +1,10 @@
 # Change Log
 
-## Future release
+## Version 2.0
 
 * [#1186](https://github.com/square/leakcanary/issues/1186) Fix NPE when KeyedWeakReference was not found in heap dump.
+* [#1133](https://github.com/square/leakcanary/issues/1133) Updated to HAHA 2.1 (latest perflib from Android Studio)
+* [#1124](https://github.com/square/leakcanary/issues/1124) Fixed crash when heap dump has missing native threads.
 
 ## Version 1.6.3 (2019-01-10)
 

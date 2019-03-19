@@ -1,12 +1,12 @@
 package com.squareup.leakcanary;
 
+import com.android.tools.perflib.captures.DataBuffer;
 import com.squareup.haha.perflib.ArrayInstance;
 import com.squareup.haha.perflib.ClassInstance;
 import com.squareup.haha.perflib.ClassObj;
 import com.squareup.haha.perflib.Field;
 import com.squareup.haha.perflib.Snapshot;
 import com.squareup.haha.perflib.Type;
-import com.squareup.haha.perflib.io.HprofBuffer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,16 +27,16 @@ public class HahaHelperTest {
   private static final int COUNT_VALUE = 5;
   private static final int OFFSET_VALUE = 1;
 
-  private FakeHprofBuffer buffer;
+  private FakeDataBuffer buffer;
   private Snapshot snapshot;
 
   @Before
   public void setUp() {
-    buffer = new FakeHprofBuffer();
+    buffer = new FakeDataBuffer();
     initSnapshot(buffer);
   }
 
-  private void initSnapshot(HprofBuffer buffer) {
+  private void initSnapshot(DataBuffer buffer) {
     snapshot = new Snapshot(buffer);
     // set HPROF identifier size; required for Object instance field lookups
     // cf. https://java.net/downloads/heap-snapshot/hprof-binary-format.html
@@ -78,7 +78,7 @@ public class HahaHelperTest {
 
   @Test public void readStringAsByteArrayFromHeapDumpInstance_O() {
     // O uses default charset UTF-8
-    buffer = new FakeHprofBuffer("UTF-8");
+    buffer = new FakeDataBuffer("UTF-8");
     initSnapshot(buffer);
 
     buffer.setIntsToRead(COUNT_VALUE, VALUE_ARRAY_INSTANCE_ID);

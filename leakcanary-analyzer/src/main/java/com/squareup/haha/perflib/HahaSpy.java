@@ -16,8 +16,6 @@
 package com.squareup.haha.perflib;
 
 import android.support.annotation.NonNull;
-import java.util.HashSet;
-import java.util.Set;
 
 public final class HahaSpy {
 
@@ -31,18 +29,6 @@ public final class HahaSpy {
     }
     ThreadObj thread = snapshot.getThread(threadSerialNumber);
     return snapshot.findInstance(thread.mId);
-  }
-
-  /**
-   * Returns the GC Roots for all heaps in the Snapshot. Unfortunately,
-   * {@link Snapshot#getGCRoots()} only returns the GC Roots of the first heap.
-   */
-  public static Set<RootObj> allGcRoots(Snapshot snapshot) {
-    Set<RootObj> allRoots = new HashSet<>();
-    for (Heap heap : snapshot.getHeaps()) {
-      allRoots.addAll(heap.mRoots);
-    }
-    return allRoots;
   }
 
   private HahaSpy() {
