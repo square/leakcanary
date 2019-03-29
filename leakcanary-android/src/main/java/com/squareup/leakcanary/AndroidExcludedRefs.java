@@ -226,6 +226,21 @@ public enum AndroidExcludedRefs {
               + " /b37866db469e81aca534ff6186bdafd44352329b");
     }
   },
+  
+  TEXT_TO_SPEECH {
+    @Override void add(ExcludedRefs.Builder excluded) {
+      String reason = "TextToSpeech.shutdown() does not release its references to context objects."
+          + " Furthermore, TextToSpeech instances cannot be garbage collected due to other process"
+          + " keeping the references, resulting the context objects leaked."
+          + " Developers might be able to mitigate the issue by passing application context " 
+          + " to TextToSpeech constructor."
+          + " Tracked at: https://issuetracker.google.com/issues/129250419";
+      excluded.instanceField("android.speech.tts.TextToSpeech", "mContext")
+          .reason(reason);
+      excluded.instanceField("android.speech.tts.TtsEngines", "mContext")
+          .reason(reason);
+    }
+  },
 
   ACCOUNT_MANAGER(SDK_INT <= O_MR1) {
     @Override void add(ExcludedRefs.Builder excluded) {
