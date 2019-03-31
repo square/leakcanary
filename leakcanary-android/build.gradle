@@ -8,7 +8,7 @@ dependencies {
   // necessarily resort to a resolution strategy. This is also the version we use in
   // leakcanary-support-fragment.
   //noinspection GradleDependency
-  implementation 'com.android.support:support-core-utils:26.0.0'
+  implementation 'com.android.support:support-core-utils:28.0.0'
 }
 
 def gitSha() {

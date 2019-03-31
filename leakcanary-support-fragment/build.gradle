@@ -8,7 +8,7 @@ dependencies {
   // For mysterious reasons we get a NoClassDefFoundError (FragmentActivity) if we use a version
   // lower than 26.0.0.
   //noinspection GradleDependency
-  implementation 'com.android.support:support-fragment:26.0.0'
+  implementation 'com.android.support:support-fragment:28.0.0'
 
   androidTestImplementation project(':leakcanary-android-instrumentation')
   androidTestImplementation 'com.android.support.test:runner:1.0.2'
