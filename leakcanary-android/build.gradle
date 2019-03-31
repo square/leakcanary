@@ -2,11 +2,10 @@ apply plugin: 'com.android.library'
 
 dependencies {
   api project(':leakcanary-analyzer')
-  // We don't need the latest version of the support library (there are no bugs that impact what
-  // LeakCanary relies on), we're sticking a bit older because most apps will be using a more
-  // recent version and they'll automatically resolve to higher version without having to
-  // necessarily resort to a resolution strategy. This is also the version we use in
-  // leakcanary-support-fragment.
+  // We don't need the latest version of AndroidX (there are no bugs that impact what LeakCanary
+  // relies on), we're sticking a bit older because most apps will be using a more recent version
+  // and they'll automatically resolve to higher version without having to necessarily resort to a
+  // resolution strategy.
   //noinspection GradleDependency
   implementation 'androidx.core:core:1.0.1'
   implementation 'androidx.annotation:annotation:1.0.2'

@@ -2,11 +2,10 @@ apply plugin: 'com.android.library'
 
 dependencies {
   api project(':leakcanary-android')
-  // 25.1.0 is the version that introduced https://developer.android.com/reference/android/support/v4/app/FragmentManager#registerfragmentlifecyclecallbacks
-  // However, FragmentLifecycleCallbacks wasn't properly usable until 25.2.0 where it became static
-  // https://developer.android.com/topic/libraries/support-library/rev-archive#fixed-issues_12
-  // For mysterious reasons we get a NoClassDefFoundError (FragmentActivity) if we use a version
-  // lower than 26.0.0.
+  // We don't need the latest version of AndroidX (there are no bugs that impact what LeakCanary
+  // relies on), we're sticking a bit older because most apps will be using a more recent version
+  // and they'll automatically resolve to higher version without having to necessarily resort to a
+  // resolution strategy.
   //noinspection GradleDependency
   implementation 'androidx.fragment:fragment:1.0.0'
   implementation 'androidx.annotation:annotation:1.0.2'
