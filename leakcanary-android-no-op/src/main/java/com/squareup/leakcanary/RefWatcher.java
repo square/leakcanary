@@ -1,6 +1,6 @@
 package com.squareup.leakcanary;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * No-op implementation of {@link RefWatcher} for release builds. Please use {@link

@@ -2,7 +2,7 @@ package com.squareup.leakcanary;
 
 import android.app.Application;
 import android.content.Context;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * A no-op version of {@link LeakCanary} that can be used in release builds.

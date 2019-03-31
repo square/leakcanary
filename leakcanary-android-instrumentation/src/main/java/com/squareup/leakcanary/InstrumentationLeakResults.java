@@ -15,7 +15,7 @@
  */
 package com.squareup.leakcanary;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

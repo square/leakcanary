@@ -15,7 +15,7 @@
  */
 package com.squareup.leakcanary;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import java.io.Serializable;
 import java.util.List;
 

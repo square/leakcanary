@@ -17,7 +17,7 @@ package com.squareup.leakcanary.internal;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.support.annotation.ColorRes;
+import androidx.annotation.ColorRes;
 import android.text.Html;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;

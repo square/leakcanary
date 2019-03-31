@@ -1,8 +1,8 @@
 package com.squareup.leakcanary.tests;
 
 import android.os.Bundle;
-import android.support.test.InstrumentationRegistry;
-import android.support.v4.app.Fragment;
+import androidx.test.InstrumentationRegistry;
+import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;

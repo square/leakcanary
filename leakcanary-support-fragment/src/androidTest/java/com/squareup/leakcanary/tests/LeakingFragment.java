@@ -1,7 +1,7 @@
 package com.squareup.leakcanary.tests;
 
-import android.support.test.InstrumentationRegistry;
-import android.support.v4.app.Fragment;
+import androidx.test.InstrumentationRegistry;
+import androidx.fragment.app.Fragment;
 
 public class LeakingFragment extends Fragment {
 

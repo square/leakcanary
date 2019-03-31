@@ -17,7 +17,7 @@ package com.squareup.leakcanary;
 
 import android.app.PendingIntent;
 import android.os.SystemClock;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
