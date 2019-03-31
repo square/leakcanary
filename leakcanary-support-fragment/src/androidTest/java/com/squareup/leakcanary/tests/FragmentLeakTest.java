@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.Bundle;
-import androidx.test.InstrumentationRegistry;
 import androidx.test.rule.ActivityTestRule;
 import android.view.View;
 import com.squareup.leakcanary.InstrumentationLeakDetector;
@@ -18,6 +17,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
 import static com.squareup.leakcanary.tests.Fragments.waitForFragmentDetached;
 import static com.squareup.leakcanary.tests.Fragments.waitForFragmentViewDestroyed;
 
@@ -69,8 +69,7 @@ public class FragmentLeakTest {
 
   private void startActivityAndWaitForCreate() {
     final CountDownLatch waitForActivityOnCreate = new CountDownLatch(1);
-    final Application app =
-        (Application) InstrumentationRegistry.getTargetContext().getApplicationContext();
+    final Application app = getApplicationContext();
     app.registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacksAdapter() {
       @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
         app.unregisterActivityLifecycleCallbacks(this);
@@ -109,7 +108,7 @@ public class FragmentLeakTest {
   }
 
   private String resultsAsString(List<InstrumentationLeakResults.Result> results) {
-    Context context = InstrumentationRegistry.getTargetContext();
+    Context context = getApplicationContext();
     StringBuilder message = new StringBuilder();
     message.append("\nLeaks found:\n##################\n");
     for (InstrumentationLeakResults.Result detectedLeak : results) {

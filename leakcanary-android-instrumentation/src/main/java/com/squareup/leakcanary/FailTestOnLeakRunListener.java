@@ -27,8 +27,8 @@ import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
-import static androidx.test.InstrumentationRegistry.getInstrumentation;
 import static androidx.test.internal.runner.listener.InstrumentationResultPrinter.REPORT_VALUE_RESULT_FAILURE;
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
 
 /**
