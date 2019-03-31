@@ -15,7 +15,7 @@
  */
 package com.squareup.leakcanary;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.android.tools.perflib.captures.DataBuffer;
 import com.android.tools.perflib.captures.MemoryMappedFileBuffer;
 import com.squareup.haha.perflib.ArrayInstance;

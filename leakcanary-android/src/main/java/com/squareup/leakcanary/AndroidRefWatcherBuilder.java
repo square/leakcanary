@@ -1,7 +1,7 @@
 package com.squareup.leakcanary;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.squareup.leakcanary.internal.DisplayLeakActivity;
 import com.squareup.leakcanary.internal.FragmentRefWatcher;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;

@@ -17,7 +17,7 @@ android {
 }
 
 dependencies {
-  implementation 'com.android.support:support-annotations:26.0.0'
+  implementation 'androidx.annotation:annotation:1.0.2'
 }
 
 apply from: rootProject.file('gradle/checkstyle.gradle')

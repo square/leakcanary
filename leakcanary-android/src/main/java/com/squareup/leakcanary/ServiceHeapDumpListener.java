@@ -16,7 +16,7 @@
 package com.squareup.leakcanary;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.squareup.leakcanary.internal.HeapAnalyzerService;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;

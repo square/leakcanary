@@ -1,17 +1,18 @@
 package com.squareup.leakcanary.tests;
 
 import android.os.Bundle;
-import android.support.test.InstrumentationRegistry;
-import android.support.v4.app.Fragment;
+import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import com.squareup.leakcanary.support.fragment.R;
 
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+
 public class ViewLeakingFragment extends Fragment {
 
   public static void addToBackstack(final TestActivity activity) {
-    InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+    getInstrumentation().runOnMainSync(new Runnable() {
       @Override public void run() {
         activity.getSupportFragmentManager()
             .beginTransaction()

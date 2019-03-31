@@ -1,12 +1,13 @@
 package com.squareup.leakcanary.tests;
 
-import android.support.test.InstrumentationRegistry;
-import android.support.v4.app.Fragment;
+import androidx.fragment.app.Fragment;
+
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 
 public class LeakingFragment extends Fragment {
 
   public static void add(final TestActivity activity) {
-    InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+    getInstrumentation().runOnMainSync(new Runnable() {
       @Override public void run() {
         leakingFragment = new LeakingFragment();
         activity.getSupportFragmentManager()

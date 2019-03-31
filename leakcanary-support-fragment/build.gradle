@@ -2,18 +2,19 @@ apply plugin: 'com.android.library'
 
 dependencies {
   api project(':leakcanary-android')
-  // 25.1.0 is the version that introduced https://developer.android.com/reference/android/support/v4/app/FragmentManager#registerfragmentlifecyclecallbacks
-  // However, FragmentLifecycleCallbacks wasn't properly usable until 25.2.0 where it became static
-  // https://developer.android.com/topic/libraries/support-library/rev-archive#fixed-issues_12
-  // For mysterious reasons we get a NoClassDefFoundError (FragmentActivity) if we use a version
-  // lower than 26.0.0.
+  // We don't need the latest version of AndroidX (there are no bugs that impact what LeakCanary
+  // relies on), we're sticking a bit older because most apps will be using a more recent version
+  // and they'll automatically resolve to higher version without having to necessarily resort to a
+  // resolution strategy.
   //noinspection GradleDependency
-  implementation 'com.android.support:support-fragment:26.0.0'
+  implementation 'androidx.fragment:fragment:1.0.0'
+  implementation 'androidx.annotation:annotation:1.0.2'
 
   androidTestImplementation project(':leakcanary-android-instrumentation')
-  androidTestImplementation 'com.android.support.test:runner:1.0.2'
-  androidTestImplementation 'com.android.support.test:rules:1.0.2'
-  androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+  androidTestImplementation 'androidx.test:runner:1.1.1'
+  androidTestImplementation 'androidx.test:rules:1.1.1'
+  androidTestImplementation 'androidx.test:core:1.1.0'
+  androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
 }
 
 android {
@@ -21,7 +22,7 @@ android {
   defaultConfig {
     minSdkVersion versions.minSdk
 
-    testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
