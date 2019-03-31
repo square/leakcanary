@@ -8,7 +8,7 @@ dependencies {
   // necessarily resort to a resolution strategy. This is also the version we use in
   // leakcanary-support-fragment.
   //noinspection GradleDependency
-  implementation 'androidx.legacy:legacy-support-core-utils:1.0.0'
+  implementation 'androidx.core:core:1.0.1'
   implementation 'androidx.annotation:annotation:1.0.2'
 }
 
