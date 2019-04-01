@@ -84,7 +84,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
    *
    * @throws UnsupportedOperationException if called more than once per Android process.
    */
-  public @NonNull RefWatcher buildAndInstall() {
+  public @NonNull void buildAndInstall() {
     if (LeakCanaryInternals.installedRefWatcher != null) {
       throw new UnsupportedOperationException("buildAndInstall() should only be called once.");
     }
@@ -101,7 +101,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
       }
     }
     LeakCanaryInternals.installedRefWatcher = refWatcher;
-    return refWatcher;
+    LeakCanaryInternals.installedHeapDumpBuilder = getHeapDumpBuilder();
   }
 
   @Override protected boolean isDisabled() {

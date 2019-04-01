@@ -37,8 +37,8 @@ public final class LeakCanary {
    * Creates a {@link RefWatcher} that works out of the box, and starts watching activity
    * references (on ICS+).
    */
-  public static @NonNull RefWatcher install(@NonNull Application application) {
-    return refWatcher(application).listenerServiceClass(DisplayLeakService.class)
+  public static @NonNull void install(@NonNull Application application) {
+    refWatcher(application).listenerServiceClass(DisplayLeakService.class)
         .excludedRefs(AndroidExcludedRefs.createAppDefaults().build())
         .buildAndInstall();
   }

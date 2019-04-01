@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 
 dependencies {
   api project(':leakcanary-analyzer')
@@ -9,6 +10,8 @@ dependencies {
   //noinspection GradleDependency
   implementation 'androidx.core:core:1.0.1'
   implementation 'androidx.annotation:annotation:1.0.2'
+  testImplementation 'junit:junit:4.12'
+  api deps.kotlin.stdLib.jdk6
 }
 
 def gitSha() {

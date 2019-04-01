@@ -21,6 +21,7 @@ import android.content.Context;
 import android.os.Debug;
 import android.os.SystemClock;
 import androidx.annotation.NonNull;
+import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -170,7 +171,7 @@ public final class InstrumentationLeakDetector {
       return InstrumentationLeakResults.NONE;
     }
 
-    HeapDump.Builder heapDumpBuilder = refWatcher.getHeapDumpBuilder();
+    HeapDump.Builder heapDumpBuilder = LeakCanaryInternals.installedHeapDumpBuilder;
     HeapAnalyzer heapAnalyzer =
         new HeapAnalyzer(heapDumpBuilder.excludedRefs, AnalyzerProgressListener.NONE,
             heapDumpBuilder.reachabilityInspectorClasses);
