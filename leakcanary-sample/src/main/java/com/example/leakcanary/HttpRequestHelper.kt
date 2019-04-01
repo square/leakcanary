@@ -13,18 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.leakcanary;
+package com.example.leakcanary
 
-import android.view.View;
+import android.view.View
 
 /**
  * Fake class for the purpose of demonstrating a leak.
  */
-public class HttpRequestHelper {
-
-  private final View button;
-
-  HttpRequestHelper(View button) {
-    this.button = button;
-  }
-}
+class HttpRequestHelper internal constructor(private val button: View)

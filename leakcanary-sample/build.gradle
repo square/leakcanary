@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   implementation deps.kotlin.stdLib.jdk8
-  debugImplementation project(':leakcanary-android')
+  implementation project(':leakcanary-android')
 
   testImplementation "junit:junit:4.12"
   testImplementation "org.robolectric:robolectric:4.0-alpha-3"
