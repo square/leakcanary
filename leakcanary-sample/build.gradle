@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 
 dependencies {
   debugImplementation project(':leakcanary-android')
-  releaseImplementation project(':leakcanary-android-no-op')
 
   testImplementation "junit:junit:4.12"
   testImplementation "org.robolectric:robolectric:4.0-alpha-3"
