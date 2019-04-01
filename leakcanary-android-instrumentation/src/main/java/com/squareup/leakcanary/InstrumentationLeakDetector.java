@@ -173,7 +173,7 @@ public final class InstrumentationLeakDetector {
 
     HeapDump.Builder heapDumpBuilder = LeakCanaryInternals.installedHeapDumpBuilder;
     HeapAnalyzer heapAnalyzer =
-        new HeapAnalyzer(heapDumpBuilder.excludedRefs, AnalyzerProgressListener.NONE,
+        new HeapAnalyzer(heapDumpBuilder.excludedRefs, AnalyzerProgressListener.Companion.getNONE(),
             heapDumpBuilder.reachabilityInspectorClasses);
 
     List<TrackedReference> trackedReferences = heapAnalyzer.findTrackedReferences(heapDumpFile);
@@ -184,31 +184,31 @@ public final class InstrumentationLeakDetector {
 
     for (TrackedReference trackedReference : trackedReferences) {
       // Ignore any Weak Reference that this test does not care about.
-      if (!retainedKeys.contains(trackedReference.key)) {
+      if (!retainedKeys.contains(trackedReference.getKey())) {
         continue;
       }
 
       HeapDump heapDump = HeapDump.builder()
           .heapDumpFile(heapDumpFile)
-          .referenceKey(trackedReference.key)
-          .referenceName(trackedReference.name)
+          .referenceKey(trackedReference.getKey())
+          .referenceName(trackedReference.getName())
           .excludedRefs(heapDumpBuilder.excludedRefs)
           .reachabilityInspectorClasses(heapDumpBuilder.reachabilityInspectorClasses)
           .build();
 
       AnalysisResult analysisResult =
-          heapAnalyzer.checkForLeak(heapDumpFile, trackedReference.key, false);
+          heapAnalyzer.checkForLeak(heapDumpFile, trackedReference.getKey(), false);
 
       InstrumentationLeakResults.Result leakResult =
           new InstrumentationLeakResults.Result(heapDump, analysisResult);
 
-      if (analysisResult.leakFound) {
-        if (!analysisResult.excludedLeak) {
+      if (analysisResult.getLeakFound()) {
+        if (!analysisResult.getExcludedLeak()) {
           detectedLeaks.add(leakResult);
         } else {
           excludedLeaks.add(leakResult);
         }
-      } else if (analysisResult.failure != null) {
+      } else if (analysisResult.getFailure() != null) {
         failures.add(leakResult);
       }
     }

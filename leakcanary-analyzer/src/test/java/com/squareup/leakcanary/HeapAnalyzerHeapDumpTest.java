@@ -20,8 +20,8 @@ public class HeapAnalyzerHeapDumpTest {
     List<TrackedReference> trackedReferences = findTrackedReferences(ASYNC_TASK_M);
     assertThat(trackedReferences).hasSize(1);
     TrackedReference firstRef = trackedReferences.get(0);
-    assertThat(firstRef.key).isEqualTo(ASYNC_TASK_M.referenceKey);
-    assertThat(firstRef.className).isEqualTo("com.example.leakcanary.MainActivity");
+    assertThat(firstRef.getKey()).isEqualTo(ASYNC_TASK_M.referenceKey);
+    assertThat(firstRef.getClassName()).isEqualTo("com.example.leakcanary.MainActivity");
   }
 
   @Test public void findsSeveralRefs() {
@@ -31,11 +31,11 @@ public class HeapAnalyzerHeapDumpTest {
 
   @Test public void leakFoundWithGcRootInNonPrimaryHeap() {
     AnalysisResult result = analyze(GC_ROOT_IN_NON_PRIMARY_HEAP);
-    assertThat(result.leakFound).isTrue();
+    assertThat(result.getLeakFound()).isTrue();
   }
 
   @Test public void heapDumpWithMissingNativeThread() {
     AnalysisResult result = analyze(MISSING_THREAD);
-    assertThat(result.leakFound).isTrue();
+    assertThat(result.getLeakFound()).isTrue();
   }
 }

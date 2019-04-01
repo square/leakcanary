@@ -19,7 +19,7 @@ import com.squareup.haha.perflib.ArrayInstance;
 import com.squareup.haha.perflib.ClassInstance;
 import com.squareup.haha.perflib.ClassObj;
 import com.squareup.haha.perflib.Field;
-import com.squareup.haha.perflib.HahaSpy;
+import com.squareup.haha.perflib.HahaSpyKt;
 import com.squareup.haha.perflib.Instance;
 import com.squareup.haha.perflib.RootObj;
 import com.squareup.haha.perflib.RootType;
@@ -89,14 +89,14 @@ final class ShortestPathFinder {
         node = toVisitQueue.poll();
       } else {
         node = toVisitIfNoPathQueue.poll();
-        if (node.exclusion == null) {
+        if (node.getExclusion() == null) {
           throw new IllegalStateException("Expected node to have an exclusion " + node);
         }
         excludingKnownLeaks = true;
       }
 
       // Termination
-      if (node.instance == leakingRef) {
+      if (node.getInstance() == leakingRef) {
         leakingNode = node;
         break;
       }
@@ -105,16 +105,16 @@ final class ShortestPathFinder {
         continue;
       }
 
-      if (node.instance instanceof RootObj) {
+      if (node.getInstance() instanceof RootObj) {
         visitRootObj(node);
-      } else if (node.instance instanceof ClassObj) {
+      } else if (node.getInstance() instanceof ClassObj) {
         visitClassObj(node);
-      } else if (node.instance instanceof ClassInstance) {
+      } else if (node.getInstance() instanceof ClassInstance) {
         visitClassInstance(node);
-      } else if (node.instance instanceof ArrayInstance) {
+      } else if (node.getInstance() instanceof ArrayInstance) {
         visitArrayInstance(node);
       } else {
-        throw new IllegalStateException("Unexpected type for " + node.instance);
+        throw new IllegalStateException("Unexpected type for " + node.getInstance());
       }
     }
     return new Result(leakingNode, excludingKnownLeaks);
@@ -132,7 +132,7 @@ final class ShortestPathFinder {
     for (RootObj rootObj : snapshot.getGCRoots()) {
       switch (rootObj.getRootType()) {
         case JAVA_LOCAL:
-          Instance thread = HahaSpy.allocatingThread(rootObj);
+          Instance thread = HahaSpyKt.allocatingThread(rootObj);
           String threadName = threadName(thread);
           Exclusion params = excludedRefs.threadNames.get(threadName);
           if (params == null || !params.alwaysExclude) {
@@ -174,20 +174,20 @@ final class ShortestPathFinder {
   }
 
   private boolean checkSeen(LeakNode node) {
-    return !visitedSet.add(node.instance);
+    return !visitedSet.add(node.getInstance());
   }
 
   private void visitRootObj(LeakNode node) {
-    RootObj rootObj = (RootObj) node.instance;
+    RootObj rootObj = (RootObj) node.getInstance();
     Instance child = rootObj.getReferredInstance();
 
     if (rootObj.getRootType() == RootType.JAVA_LOCAL) {
-      Instance holder = HahaSpy.allocatingThread(rootObj);
+      Instance holder = HahaSpyKt.allocatingThread(rootObj);
       // We switch the parent node with the thread instance that holds
       // the local reference.
       Exclusion exclusion = null;
-      if (node.exclusion != null) {
-        exclusion = node.exclusion;
+      if (node.getExclusion() != null) {
+        exclusion = node.getExclusion();
       }
       LeakNode parent = new LeakNode(null, holder, null, null);
       enqueue(exclusion, parent, child, new LeakReference(LOCAL, null, null));
@@ -197,7 +197,7 @@ final class ShortestPathFinder {
   }
 
   private void visitClassObj(LeakNode node) {
-    ClassObj classObj = (ClassObj) node.instance;
+    ClassObj classObj = (ClassObj) node.getInstance();
     Map<String, Exclusion> ignoredStaticFields =
         excludedRefs.staticFieldNameByClassName.get(classObj.getClassName());
     for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
@@ -229,7 +229,7 @@ final class ShortestPathFinder {
   }
 
   private void visitClassInstance(LeakNode node) {
-    ClassInstance classInstance = (ClassInstance) node.instance;
+    ClassInstance classInstance = (ClassInstance) node.getInstance();
     Map<String, Exclusion> ignoredFields = new LinkedHashMap<>();
     ClassObj superClassObj = classInstance.getClassObj();
     Exclusion classExclusion = null;
@@ -273,7 +273,7 @@ final class ShortestPathFinder {
   }
 
   private void visitArrayInstance(LeakNode node) {
-    ArrayInstance arrayInstance = (ArrayInstance) node.instance;
+    ArrayInstance arrayInstance = (ArrayInstance) node.getInstance();
     Type arrayType = arrayInstance.getArrayType();
     if (arrayType == Type.OBJECT) {
       Object[] values = arrayInstance.getValues();

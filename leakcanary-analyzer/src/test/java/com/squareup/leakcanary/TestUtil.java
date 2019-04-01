@@ -53,7 +53,7 @@ final class TestUtil {
 
   static List<TrackedReference> findTrackedReferences(HeapDumpFile heapDumpFile) {
     File file = fileFromName(heapDumpFile.filename);
-    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(NO_EXCLUDED_REFS, AnalyzerProgressListener.NONE,
+    HeapAnalyzer heapAnalyzer = new HeapAnalyzer(NO_EXCLUDED_REFS, AnalyzerProgressListener.Companion.getNONE(),
         Collections.<Class<? extends Reachability.Inspector>>emptyList());
     return heapAnalyzer.findTrackedReferences(file);
   }
@@ -75,15 +75,15 @@ final class TestUtil {
     File file = fileFromName(heapDumpFile.filename);
     String referenceKey = heapDumpFile.referenceKey;
     HeapAnalyzer heapAnalyzer =
-        new HeapAnalyzer(excludedRefs.build(), AnalyzerProgressListener.NONE,
+        new HeapAnalyzer(excludedRefs.build(), AnalyzerProgressListener.Companion.getNONE(),
             Collections.<Class<? extends Reachability.Inspector>>emptyList());
     AnalysisResult result =
         heapAnalyzer.checkForLeak(file, referenceKey, true);
-    if (result.failure != null) {
-      result.failure.printStackTrace();
+    if (result.getFailure() != null) {
+      result.getFailure().printStackTrace();
     }
-    if (result.leakTrace != null) {
-      System.out.println(result.leakTrace);
+    if (result.getLeakTrace() != null) {
+      System.out.println(result.getLeakTrace());
     }
     return result;
   }

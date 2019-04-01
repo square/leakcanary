@@ -36,6 +36,6 @@ public class RetainedSizeTest {
 
   @Test public void leakFound() {
     AnalysisResult result = analyze(heapDumpFile);
-    assertEquals(expectedRetainedHeapSize, result.retainedHeapSize);
+    assertEquals(expectedRetainedHeapSize, result.getRetainedHeapSize());
   }
 }

@@ -72,9 +72,9 @@ public class AsyncTaskLeakTest {
 
   @Test public void leakFound() {
     AnalysisResult result = analyze(heapDumpFile, excludedRefs);
-    assertTrue(result.leakFound);
-    assertFalse(result.excludedLeak);
-    LeakTraceElement gcRoot = result.leakTrace.elements.get(0);
+    assertTrue(result.getLeakFound());
+    assertFalse(result.getExcludedLeak());
+    LeakTraceElement gcRoot = result.getLeakTrace().elements.get(0);
     assertEquals(Thread.class.getName(), gcRoot.className);
     assertEquals(THREAD, gcRoot.holder);
     assertThat(gcRoot.extra, containsString(ASYNC_TASK_THREAD));
@@ -83,9 +83,9 @@ public class AsyncTaskLeakTest {
   @Test public void excludeThread() {
     excludedRefs.thread(ASYNC_TASK_THREAD);
     AnalysisResult result = analyze(heapDumpFile, excludedRefs);
-    assertTrue(result.leakFound);
-    assertFalse(result.excludedLeak);
-    LeakTraceElement gcRoot = result.leakTrace.elements.get(0);
+    assertTrue(result.getLeakFound());
+    assertFalse(result.getExcludedLeak());
+    LeakTraceElement gcRoot = result.getLeakTrace().elements.get(0);
     assertEquals(ASYNC_TASK_CLASS, gcRoot.className);
     assertEquals(STATIC_FIELD, gcRoot.type);
     assertTrue(gcRoot.referenceName.equals(EXECUTOR_FIELD_1) || gcRoot.referenceName.equals(
@@ -97,9 +97,9 @@ public class AsyncTaskLeakTest {
     excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_1).named(EXECUTOR_FIELD_1);
     excludedRefs.staticField(ASYNC_TASK_CLASS, EXECUTOR_FIELD_2).named(EXECUTOR_FIELD_2);
     AnalysisResult result = analyze(heapDumpFile, excludedRefs);
-    assertTrue(result.leakFound);
-    assertTrue(result.excludedLeak);
-    LeakTrace leakTrace = result.leakTrace;
+    assertTrue(result.getLeakFound());
+    assertTrue(result.getExcludedLeak());
+    LeakTrace leakTrace = result.getLeakTrace();
     List<LeakTraceElement> elements = leakTrace.elements;
     Exclusion exclusion = elements.get(0).exclusion;
 
