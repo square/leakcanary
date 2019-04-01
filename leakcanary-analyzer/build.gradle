@@ -1,6 +1,8 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 
 dependencies {
+  implementation deps.kotlin.stdLib.jdk8
   implementation 'com.squareup.haha:haha:2.1'
   api project(':leakcanary-watcher')
   testImplementation 'junit:junit:4.12'

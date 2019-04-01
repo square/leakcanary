@@ -35,7 +35,7 @@ public class InstrumentationLeakDetectorTest {
 
     InstrumentationLeakResults.Result firstResult = results.detectedLeaks.get(0);
 
-    String leakingClassName = firstResult.analysisResult.className;
+    String leakingClassName = firstResult.analysisResult.getClassName();
 
     if (!leakingClassName.equals(Date.class.getName())) {
       throw new AssertionError("Expected a leak of Date, not " + leakingClassName);

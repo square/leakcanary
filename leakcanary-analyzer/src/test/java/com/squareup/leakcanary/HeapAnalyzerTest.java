@@ -32,7 +32,7 @@ public class HeapAnalyzerTest {
 
   @Before
   public void setUp() {
-    heapAnalyzer = new HeapAnalyzer(NO_EXCLUDED_REFS, AnalyzerProgressListener.NONE,
+    heapAnalyzer = new HeapAnalyzer(NO_EXCLUDED_REFS, AnalyzerProgressListener.Companion.getNONE(),
         Collections.<Class<? extends Reachability.Inspector>>emptyList());
   }
 

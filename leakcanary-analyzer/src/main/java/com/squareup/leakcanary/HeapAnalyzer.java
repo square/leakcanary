@@ -36,9 +36,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static com.squareup.leakcanary.AnalysisResult.failure;
-import static com.squareup.leakcanary.AnalysisResult.leakDetected;
-import static com.squareup.leakcanary.AnalysisResult.noLeak;
 import static com.squareup.leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACE;
 import static com.squareup.leakcanary.AnalyzerProgressListener.Step.COMPUTING_DOMINATORS;
 import static com.squareup.leakcanary.AnalyzerProgressListener.Step.DEDUPLICATING_GC_ROOTS;
@@ -80,7 +77,7 @@ public final class HeapAnalyzer {
    */
   @Deprecated
   public HeapAnalyzer(@NonNull ExcludedRefs excludedRefs) {
-    this(excludedRefs, AnalyzerProgressListener.NONE,
+    this(excludedRefs, AnalyzerProgressListener.Companion.getNONE(),
         Collections.<Class<? extends Reachability.Inspector>>emptyList());
   }
 
@@ -155,7 +152,7 @@ public final class HeapAnalyzer {
 
     if (!heapDumpFile.exists()) {
       Exception exception = new IllegalArgumentException("File does not exist: " + heapDumpFile);
-      return failure(exception, since(analysisStartNanoTime));
+      return AnalysisResult.Companion.failure(exception, since(analysisStartNanoTime));
     }
 
     try {
@@ -170,11 +167,11 @@ public final class HeapAnalyzer {
 
       // False alarm, weak reference was cleared in between key check and heap dump.
       if (leakingRef == null) {
-        return noLeak("UnknownNoKeyedWeakReference", since(analysisStartNanoTime));
+        return AnalysisResult.Companion.noLeak("UnknownNoKeyedWeakReference", since(analysisStartNanoTime));
       }
       return findLeakTrace(analysisStartNanoTime, snapshot, leakingRef, computeRetainedSize);
     } catch (Throwable e) {
-      return failure(e, since(analysisStartNanoTime));
+      return AnalysisResult.Companion.failure(e, since(analysisStartNanoTime));
     }
   }
 
@@ -241,7 +238,7 @@ public final class HeapAnalyzer {
 
     // False alarm, no strong reference path to GC Roots.
     if (result.leakingNode == null) {
-      return noLeak(className, since(analysisStartNanoTime));
+      return AnalysisResult.Companion.noLeak(className, since(analysisStartNanoTime));
     }
 
     listener.onProgressUpdate(BUILDING_LEAK_TRACE);
@@ -254,14 +251,14 @@ public final class HeapAnalyzer {
       // Side effect: computes retained size.
       snapshot.computeDominators();
 
-      Instance leakingInstance = result.leakingNode.instance;
+      Instance leakingInstance = result.leakingNode.getInstance();
 
       retainedSize = leakingInstance.getTotalRetainedSize();
     } else {
-      retainedSize = AnalysisResult.RETAINED_HEAP_SKIPPED;
+      retainedSize = AnalysisResult.Companion.getRETAINED_HEAP_SKIPPED();
     }
 
-    return leakDetected(result.excludingKnownLeaks, className, leakTrace, retainedSize,
+    return AnalysisResult.Companion.leakDetected(result.excludingKnownLeaks, className, leakTrace, retainedSize,
         since(analysisStartNanoTime));
   }
 
@@ -274,7 +271,7 @@ public final class HeapAnalyzer {
       if (element != null) {
         elements.add(0, element);
       }
-      node = node.parent;
+      node = node.getParent();
     }
 
     List<Reachability> expectedReachability =
@@ -343,11 +340,11 @@ public final class HeapAnalyzer {
 
 
   private LeakTraceElement buildLeakElement(LeakNode node) {
-    if (node.parent == null) {
+    if (node.getParent() == null) {
       // Ignore any root node.
       return null;
     }
-    Instance holder = node.parent.instance;
+    Instance holder = node.getParent().getInstance();
 
     if (holder instanceof RootObj) {
       return null;
@@ -406,8 +403,8 @@ public final class HeapAnalyzer {
         holderType = OBJECT;
       }
     }
-    return new LeakTraceElement(node.leakReference, holderType, classHierarchy, extra,
-        node.exclusion, leakReferences);
+    return new LeakTraceElement(node.getLeakReference(), holderType, classHierarchy, extra,
+        node.getExclusion(), leakReferences);
   }
 
   private List<LeakReference> describeFields(Instance instance) {

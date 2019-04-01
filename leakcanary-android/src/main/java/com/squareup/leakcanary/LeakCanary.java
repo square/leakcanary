@@ -108,26 +108,26 @@ public final class LeakCanary {
     int versionCode = packageInfo.versionCode;
     String info = "In " + packageName + ":" + versionName + ":" + versionCode + ".\n";
     String detailedString = "";
-    if (result.leakFound) {
-      if (result.excludedLeak) {
+    if (result.getLeakFound()) {
+      if (result.getExcludedLeak()) {
         info += "* EXCLUDED LEAK.\n";
       }
-      info += "* " + result.className;
+      info += "* " + result.getClassName();
       if (!heapDump.referenceName.equals("")) {
         info += " (" + heapDump.referenceName + ")";
       }
-      info += " has leaked:\n" + result.leakTrace.toString() + "\n";
-      if (result.retainedHeapSize != AnalysisResult.RETAINED_HEAP_SKIPPED) {
-        info += "* Retaining: " + formatShortFileSize(context, result.retainedHeapSize) + ".\n";
+      info += " has leaked:\n" + result.getLeakTrace().toString() + "\n";
+      if (result.getRetainedHeapSize() != AnalysisResult.Companion.getRETAINED_HEAP_SKIPPED()) {
+        info += "* Retaining: " + formatShortFileSize(context, result.getRetainedHeapSize()) + ".\n";
       }
       if (detailed) {
-        detailedString = "\n* Details:\n" + result.leakTrace.toDetailedString();
+        detailedString = "\n* Details:\n" + result.getLeakTrace().toDetailedString();
       }
-    } else if (result.failure != null) {
+    } else if (result.getFailure() != null) {
       // We duplicate the library version & Sha information because bug reports often only contain
       // the stacktrace.
       info += "* FAILURE in " + LIBRARY_VERSION + " " + GIT_SHA + ":" + Log.getStackTraceString(
-          result.failure) + "\n";
+          result.getFailure()) + "\n";
     } else {
       info += "* NO LEAK FOUND.\n\n";
     }
@@ -163,7 +163,7 @@ public final class LeakCanary {
         + "ms, heap dump="
         + heapDump.heapDumpDurationMs
         + "ms, analysis="
-        + result.analysisDurationMs
+        + result.getAnalysisDurationMs()
         + "ms"
         + "\n"
         + detailedString;

@@ -289,7 +289,7 @@ public final class DisplayLeakActivity extends Activity {
       invalidateOptionsMenu();
       setDisplayHomeAsUpEnabled(true);
 
-      if (result.leakFound) {
+      if (result.getLeakFound()) {
         final DisplayLeakAdapter adapter = new DisplayLeakAdapter(getResources());
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -299,13 +299,13 @@ public final class DisplayLeakActivity extends Activity {
           }
         });
         HeapDump heapDump = visibleLeak.heapDump;
-        adapter.update(result.leakTrace, heapDump.referenceKey, heapDump.referenceName);
-        if (result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
-          String className = classSimpleName(result.className);
+        adapter.update(result.getLeakTrace(), heapDump.referenceKey, heapDump.referenceName);
+        if (result.getRetainedHeapSize() == AnalysisResult.Companion.getRETAINED_HEAP_SKIPPED()) {
+          String className = classSimpleName(result.getClassName());
           setTitle(getString(R.string.leak_canary_class_has_leaked, className));
         } else {
-          String size = formatShortFileSize(this, result.retainedHeapSize);
-          String className = classSimpleName(result.className);
+          String size = formatShortFileSize(this, result.getRetainedHeapSize());
+          String className = classSimpleName(result.getClassName());
           setTitle(getString(R.string.leak_canary_class_has_leaked_retaining, className, size));
         }
       } else {
@@ -314,16 +314,16 @@ public final class DisplayLeakActivity extends Activity {
         listView.setAdapter(null);
 
         String failureMessage;
-        if (result.failure != null) {
+        if (result.getFailure() != null) {
           setTitle(R.string.leak_canary_analysis_failed);
           failureMessage = getString(R.string.leak_canary_failure_report)
               + LIBRARY_VERSION
               + " "
               + GIT_SHA
               + "\n"
-              + Log.getStackTraceString(result.failure);
+              + Log.getStackTraceString(result.getFailure());
         } else {
-          String className = classSimpleName(result.className);
+          String className = classSimpleName(result.getClassName());
           setTitle(getString(R.string.leak_canary_class_no_leak, className));
           failureMessage = getString(R.string.leak_canary_no_leak_details);
         }
@@ -415,22 +415,22 @@ public final class DisplayLeakActivity extends Activity {
       String index = (leaks.size() - position) + ". ";
 
       String title;
-      if (leak.result.failure != null) {
+      if (leak.result.getFailure() != null) {
         title = index
-            + leak.result.failure.getClass().getSimpleName()
+            + leak.result.getFailure().getClass().getSimpleName()
             + " "
-            + leak.result.failure.getMessage();
+            + leak.result.getFailure().getMessage();
       } else {
-        String className = classSimpleName(leak.result.className);
-        if (leak.result.leakFound) {
-          if (leak.result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
+        String className = classSimpleName(leak.result.getClassName());
+        if (leak.result.getLeakFound()) {
+          if (leak.result.getRetainedHeapSize() == AnalysisResult.Companion.getRETAINED_HEAP_SKIPPED()) {
             title = getString(R.string.leak_canary_class_has_leaked, className);
           } else {
             String size = formatShortFileSize(DisplayLeakActivity.this,
-                leak.result.retainedHeapSize);
+                leak.result.getRetainedHeapSize());
             title = getString(R.string.leak_canary_class_has_leaked_retaining, className, size);
           }
-          if (leak.result.excludedLeak) {
+          if (leak.result.getExcludedLeak()) {
             title = getString(R.string.leak_canary_excluded_row, title);
           }
           title = index + title;

@@ -53,20 +53,20 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     if (resultSaved) {
       PendingIntent pendingIntent =
           DisplayLeakActivity.createPendingIntent(this, heapDump.referenceKey);
-      if (result.failure != null) {
+      if (result.getFailure() != null) {
         contentTitle = getString(R.string.leak_canary_analysis_failed);
       } else {
-        String className = classSimpleName(result.className);
-        if (result.leakFound) {
-          if (result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
-            if (result.excludedLeak) {
+        String className = classSimpleName(result.getClassName());
+        if (result.getLeakFound()) {
+          if (result.getRetainedHeapSize() == AnalysisResult.Companion.getRETAINED_HEAP_SKIPPED()) {
+            if (result.getExcludedLeak()) {
               contentTitle = getString(R.string.leak_canary_leak_excluded, className);
             } else {
               contentTitle = getString(R.string.leak_canary_class_has_leaked, className);
             }
           } else {
-            String size = formatShortFileSize(this, result.retainedHeapSize);
-            if (result.excludedLeak) {
+            String size = formatShortFileSize(this, result.getRetainedHeapSize());
+            if (result.getExcludedLeak()) {
               contentTitle =
                   getString(R.string.leak_canary_leak_excluded_retaining, className, size);
             } else {
