@@ -57,9 +57,9 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
   }
 
   /** @see Reachability.Inspector */
-  public final T stethoscopeClasses(
-      List<Class<? extends Reachability.Inspector>> stethoscopeClasses) {
-    heapDumpBuilder.reachabilityInspectorClasses(stethoscopeClasses);
+  public final T reachabilityInspectorClasses(
+      List<Class<? extends Reachability.Inspector>> reachabilityInspectorClasses) {
+    heapDumpBuilder.reachabilityInspectorClasses(reachabilityInspectorClasses);
     return self();
   }
 
