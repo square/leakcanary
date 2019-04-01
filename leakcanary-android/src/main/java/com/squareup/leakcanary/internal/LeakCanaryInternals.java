@@ -111,7 +111,10 @@ public final class LeakCanaryInternals {
       return false;
     }
 
-    if (serviceInfo.processName.equals(mainProcess)) {
+    if (serviceInfo.processName == null) {
+      CanaryLog.d("Did not expect service %s to have a null process name", serviceClass);
+      return false;
+    } else if (serviceInfo.processName.equals(mainProcess)) {
       CanaryLog.d("Did not expect service %s to run in main process %s", serviceClass, mainProcess);
       // Technically we are in the service process, but we're not in the service dedicated process.
       return false;
