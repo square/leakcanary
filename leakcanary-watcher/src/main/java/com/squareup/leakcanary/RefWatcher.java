@@ -15,54 +15,44 @@
  */
 package com.squareup.leakcanary;
 
-import java.io.File;
 import java.lang.ref.ReferenceQueue;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-import static com.squareup.leakcanary.HeapDumper.RETRY_LATER;
-import static com.squareup.leakcanary.Preconditions.checkNotNull;
-import static com.squareup.leakcanary.Retryable.Result.DONE;
-import static com.squareup.leakcanary.Retryable.Result.RETRY;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-
-/**
- * Watches references that should become weakly reachable. When the {@link RefWatcher} detects that
- * a reference might not be weakly reachable when it should, it triggers the {@link HeapDumper}.
- *
- * <p>This class is thread-safe: you can call {@link #watch(Object)} from any thread.
- */
 public final class RefWatcher {
 
-  public static final RefWatcher DISABLED = new RefWatcherBuilder<>().build();
+  // TODO Remove this, there should be a different API for overall on / off.
+  public static final RefWatcher DISABLED = new RefWatcher();
 
-  private final WatchExecutor watchExecutor;
-  private final DebuggerControl debuggerControl;
-  private final GcTrigger gcTrigger;
-  private final HeapDumper heapDumper;
-  private final HeapDump.Listener heapdumpListener;
-  private final HeapDump.Builder heapDumpBuilder;
+  public interface NewRefListener {
+    void onNewKeyedWeakReference(KeyedWeakReference reference);
+  }
+
   private final Set<String> retainedKeys;
   private final ReferenceQueue<Object> queue;
+  // TODO What makes sense for thread safety here?
+  private final List<NewRefListener> newRefListeners;
 
-  RefWatcher(WatchExecutor watchExecutor, DebuggerControl debuggerControl, GcTrigger gcTrigger,
-      HeapDumper heapDumper, HeapDump.Listener heapdumpListener, HeapDump.Builder heapDumpBuilder) {
-    this.watchExecutor = checkNotNull(watchExecutor, "watchExecutor");
-    this.debuggerControl = checkNotNull(debuggerControl, "debuggerControl");
-    this.gcTrigger = checkNotNull(gcTrigger, "gcTrigger");
-    this.heapDumper = checkNotNull(heapDumper, "heapDumper");
-    this.heapdumpListener = checkNotNull(heapdumpListener, "heapdumpListener");
-    this.heapDumpBuilder = heapDumpBuilder;
+  RefWatcher() {
     retainedKeys = new CopyOnWriteArraySet<>();
     queue = new ReferenceQueue<>();
+    newRefListeners = new ArrayList<>();
+  }
+
+  public void addNewRefListener(NewRefListener listener) {
+    newRefListeners.add(listener);
+  }
+
+  public void removeNewRefListener(NewRefListener listener) {
+    newRefListeners.remove(listener);
   }
 
   /**
    * Identical to {@link #watch(Object, String)} with an empty string reference name.
-   *
-   * @see #watch(Object, String)
    */
   public void watch(Object watchedReference) {
     watch(watchedReference, "");
@@ -76,18 +66,14 @@ public final class RefWatcher {
    * @param referenceName An logical identifier for the watched object.
    */
   public void watch(Object watchedReference, String referenceName) {
-    if (this == DISABLED) {
-      return;
-    }
-    checkNotNull(watchedReference, "watchedReference");
-    checkNotNull(referenceName, "referenceName");
-    final long watchStartNanoTime = System.nanoTime();
     String key = UUID.randomUUID().toString();
     retainedKeys.add(key);
-    final KeyedWeakReference reference =
+    KeyedWeakReference reference =
         new KeyedWeakReference(watchedReference, key, referenceName, queue);
 
-    ensureGoneAsync(watchStartNanoTime, reference);
+    for (NewRefListener listener : newRefListeners) {
+      listener.onNewKeyedWeakReference(reference);
+    }
   }
 
   /**
@@ -95,6 +81,9 @@ public final class RefWatcher {
    * so far.
    */
   public void clearWatchedReferences() {
+    // TODO The heap dumper should be able to get the set of watched refs and then tell ref watcher
+    // to remove all of those (and mark them as such in a KeyedWeakRef field).
+    // That way they're clearly identifiable prior as well as after.
     retainedKeys.clear();
   }
 
@@ -103,62 +92,12 @@ public final class RefWatcher {
     return retainedKeys.isEmpty();
   }
 
-  HeapDump.Builder getHeapDumpBuilder() {
-    return heapDumpBuilder;
-  }
-
   Set<String> getRetainedKeys() {
     return new HashSet<>(retainedKeys);
   }
 
-  private void ensureGoneAsync(final long watchStartNanoTime, final KeyedWeakReference reference) {
-    watchExecutor.execute(new Retryable() {
-      @Override public Retryable.Result run() {
-        return ensureGone(reference, watchStartNanoTime);
-      }
-    });
-  }
-
-  @SuppressWarnings("ReferenceEquality") // Explicitly checking for named null.
-  Retryable.Result ensureGone(final KeyedWeakReference reference, final long watchStartNanoTime) {
-    long gcStartNanoTime = System.nanoTime();
-    long watchDurationMs = NANOSECONDS.toMillis(gcStartNanoTime - watchStartNanoTime);
-
+  public boolean gone(KeyedWeakReference reference) {
     removeWeaklyReachableReferences();
-
-    if (debuggerControl.isDebuggerAttached()) {
-      // The debugger can create false leaks.
-      return RETRY;
-    }
-    if (gone(reference)) {
-      return DONE;
-    }
-    gcTrigger.runGc();
-    removeWeaklyReachableReferences();
-    if (!gone(reference)) {
-      long startDumpHeap = System.nanoTime();
-      long gcDurationMs = NANOSECONDS.toMillis(startDumpHeap - gcStartNanoTime);
-
-      File heapDumpFile = heapDumper.dumpHeap();
-      if (heapDumpFile == RETRY_LATER) {
-        // Could not dump the heap.
-        return RETRY;
-      }
-      long heapDumpDurationMs = NANOSECONDS.toMillis(System.nanoTime() - startDumpHeap);
-
-      HeapDump heapDump = heapDumpBuilder.heapDumpFile(heapDumpFile).referenceKey(reference.key)
-          .referenceName(reference.name)
-          .watchDurationMs(watchDurationMs)
-          .gcDurationMs(gcDurationMs)
-          .heapDumpDurationMs(heapDumpDurationMs)
-          .build();
-
-      heapdumpListener.analyze(heapDump);
-    }
-    return DONE;
-  }
-
-  private boolean gone(KeyedWeakReference reference) {
     return !retainedKeys.contains(reference.key);
   }
 

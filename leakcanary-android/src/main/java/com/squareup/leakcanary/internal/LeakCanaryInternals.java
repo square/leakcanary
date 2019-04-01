@@ -29,6 +29,7 @@ import android.content.pm.ServiceInfo;
 import android.os.AsyncTask;
 import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.DefaultLeakDirectoryProvider;
+import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.LeakDirectoryProvider;
 import com.squareup.leakcanary.R;
 import com.squareup.leakcanary.RefWatcher;
@@ -56,6 +57,7 @@ public final class LeakCanaryInternals {
   public static final String VIVO = "vivo";
 
   public static volatile RefWatcher installedRefWatcher;
+  public static volatile HeapDump.Builder installedHeapDumpBuilder;
   private static volatile LeakDirectoryProvider leakDirectoryProvider;
 
   private static final String NOTIFICATION_CHANNEL_ID = "leakcanary";

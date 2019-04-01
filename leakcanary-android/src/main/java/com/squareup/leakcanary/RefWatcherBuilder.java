@@ -111,8 +111,20 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
       heapDumpBuilder.reachabilityInspectorClasses(defaultReachabilityInspectorClasses());
     }
 
-    return new RefWatcher(watchExecutor, debuggerControl, gcTrigger, heapDumper, heapDumpListener,
-        heapDumpBuilder);
+    RefWatcher refWatcher = new RefWatcher();
+
+    RuntimeGlue runtimeGlue =
+        new RuntimeGlue(refWatcher, watchExecutor, debuggerControl, gcTrigger, heapDumper,
+            heapDumpListener,
+            heapDumpBuilder);
+
+    runtimeGlue.watchForLeaks();
+
+    return refWatcher;
+  }
+
+  protected HeapDump.Builder getHeapDumpBuilder() {
+    return heapDumpBuilder;
   }
 
   protected boolean isDisabled() {
