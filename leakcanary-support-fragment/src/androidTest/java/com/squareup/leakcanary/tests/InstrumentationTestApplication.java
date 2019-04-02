@@ -6,7 +6,7 @@ import com.squareup.leakcanary.InstrumentationLeakDetector;
 public class InstrumentationTestApplication extends Application {
   @Override public void onCreate() {
     super.onCreate();
-    InstrumentationLeakDetector.instrumentationRefWatcher(this)
+    InstrumentationLeakDetector.Companion.instrumentationRefWatcher(this)
         .buildAndInstall();
   }
 }
