@@ -6,8 +6,8 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.MessageQueue;
-import androidx.test.rule.ActivityTestRule;
 import android.view.View;
+import androidx.test.rule.ActivityTestRule;
 import com.squareup.leakcanary.InstrumentationLeakDetector;
 import com.squareup.leakcanary.InstrumentationLeakResults;
 import com.squareup.leakcanary.LeakCanary;
@@ -94,20 +94,20 @@ public class FragmentLeakTest {
     InstrumentationLeakDetector leakDetector = new InstrumentationLeakDetector();
     InstrumentationLeakResults results = leakDetector.detectLeaks();
 
-    if (results.detectedLeaks.size() != 1) {
+    if (results.getDetectedLeaks().size() != 1) {
       throw new AssertionError(
-          "Expected exactly one leak, not " + results.detectedLeaks.size() + resultsAsString(
-              results.detectedLeaks));
+          "Expected exactly one leak, not " + results.getDetectedLeaks().size() + resultsAsString(
+              results.getDetectedLeaks()));
     }
 
-    InstrumentationLeakResults.Result firstResult = results.detectedLeaks.get(0);
+    InstrumentationLeakResults.Result firstResult = results.getDetectedLeaks().get(0);
 
-    String leakingClassName = firstResult.analysisResult.getClassName();
+    String leakingClassName = firstResult.getAnalysisResult().getClassName();
 
     if (!leakingClassName.equals(expectedLeakClass.getName())) {
       throw new AssertionError(
           "Expected a leak of " + expectedLeakClass + ", not " + leakingClassName + resultsAsString(
-              results.detectedLeaks));
+              results.getDetectedLeaks()));
     }
   }
 
@@ -117,7 +117,7 @@ public class FragmentLeakTest {
     message.append("\nLeaks found:\n##################\n");
     for (InstrumentationLeakResults.Result detectedLeak : results) {
       message.append(
-          LeakCanary.leakInfo(context, detectedLeak.heapDump, detectedLeak.analysisResult,
+          LeakCanary.leakInfo(context, detectedLeak.getHeapDump(), detectedLeak.getAnalysisResult(),
               false));
     }
     message.append("\n##################\n");

@@ -29,13 +29,13 @@ public class InstrumentationLeakDetectorTest {
     InstrumentationLeakDetector leakDetector = new InstrumentationLeakDetector();
     InstrumentationLeakResults results = leakDetector.detectLeaks();
 
-    if (results.detectedLeaks.size() != 1) {
-      throw new AssertionError("Expected exactly one leak, not " + results.detectedLeaks.size());
+    if (results.getDetectedLeaks().size() != 1) {
+      throw new AssertionError("Expected exactly one leak, not " + results.getDetectedLeaks().size());
     }
 
-    InstrumentationLeakResults.Result firstResult = results.detectedLeaks.get(0);
+    InstrumentationLeakResults.Result firstResult = results.getDetectedLeaks().get(0);
 
-    String leakingClassName = firstResult.analysisResult.getClassName();
+    String leakingClassName = firstResult.getAnalysisResult().getClassName();
 
     if (!leakingClassName.equals(Date.class.getName())) {
       throw new AssertionError("Expected a leak of Date, not " + leakingClassName);
