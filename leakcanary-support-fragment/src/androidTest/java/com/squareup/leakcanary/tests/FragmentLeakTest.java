@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Looper;
+import android.os.MessageQueue;
 import androidx.test.rule.ActivityTestRule;
 import android.view.View;
 import com.squareup.leakcanary.InstrumentationLeakDetector;
@@ -45,8 +47,10 @@ public class FragmentLeakTest {
     LeakingFragment.add(activityRule.getActivity());
 
     CountDownLatch waitForFragmentDetach = waitForFragmentDetached(activityRule.getActivity());
+    CountDownLatch waitForActivityDestroy = waitForActivityDestroy();
     activityRule.finishActivity();
     waitForFragmentDetach.await();
+    waitForActivityDestroy.await();
 
     assertLeak(LeakingFragment.class);
   }
@@ -98,7 +102,7 @@ public class FragmentLeakTest {
 
     InstrumentationLeakResults.Result firstResult = results.detectedLeaks.get(0);
 
-    String leakingClassName = firstResult.analysisResult.className;
+    String leakingClassName = firstResult.analysisResult.getClassName();
 
     if (!leakingClassName.equals(expectedLeakClass.getName())) {
       throw new AssertionError(
@@ -118,5 +122,26 @@ public class FragmentLeakTest {
     }
     message.append("\n##################\n");
     return message.toString();
+  }
+
+  private CountDownLatch waitForActivityDestroy() {
+    final CountDownLatch latch = new CountDownLatch(1);
+    final MessageQueue.IdleHandler countDownOnIdle = new MessageQueue.IdleHandler() {
+      @Override public boolean queueIdle() {
+        latch.countDown();
+        return false;
+      }
+    };
+    final TestActivity testActivity = activityRule.getActivity();
+    testActivity.getApplication().registerActivityLifecycleCallbacks(
+        new ActivityLifecycleCallbacksAdapter() {
+          @Override public void onActivityDestroyed(Activity activity) {
+            if (activity == testActivity) {
+              activity.getApplication().unregisterActivityLifecycleCallbacks(this);
+              Looper.myQueue().addIdleHandler(countDownOnIdle);
+            }
+          }
+        });
+    return latch;
   }
 }
