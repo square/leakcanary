@@ -2,10 +2,9 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 dependencies {
-  api deps.kotlin.stdLib.common
   api project(':leakcanary-android')
   implementation 'androidx.test:runner:1.1.1'
-  implementation deps.kotlin.reflect
+  implementation deps.kotlin.stdlib
 }
 
 android {
