@@ -15,6 +15,7 @@ internal enum class HeapDumpFile constructor(
   ASYNC_TASK_PRE_M("leak_asynctask_pre_m.hprof", "dc983a12-d029-4003-8890-7dd644c664c5"), //
   ASYNC_TASK_M("leak_asynctask_m.hprof", "25ae1778-7c1d-4ec7-ac50-5cce55424069"), //
   ASYNC_TASK_O("leak_asynctask_o.hprof", "0e8d40d7-8302-4493-93d5-962a4c176089"),
+  ASYNC_TASK_P("leak_asynctask_p.hprof", "440d4252-8089-41bd-98b2-d7d050323279"),
   GC_ROOT_IN_NON_PRIMARY_HEAP(
       "gc_root_in_non_primary_heap.hprof",
       "10a5bc66-e9cb-430c-930a-fc1dc4fc0f85"
@@ -29,13 +30,31 @@ internal fun fileFromName(filename: String): File {
   return File(url.path)
 }
 
-internal fun findTrackedReferences(heapDumpFile: HeapDumpFile): List<TrackedReference> {
+internal fun findLeak(heapDumpFile: HeapDumpFile): AnalysisResult? {
+  val results = findAllLeaks(heapDumpFile)
+  for (result in results) {
+    if (heapDumpFile.referenceKey == result.referenceKey) {
+      return result
+    }
+  }
+  return null
+}
+
+internal fun findAllLeaks(heapDumpFile: HeapDumpFile): List<AnalysisResult> {
   val file = fileFromName(heapDumpFile.filename)
   val heapAnalyzer = HeapAnalyzer(
-      NO_EXCLUDED_REFS, AnalyzerProgressListener.NONE,
-      emptyList()
+      defaultExcludedRefs.build(), AnalyzerProgressListener.NONE, emptyList()
   )
-  return heapAnalyzer.findTrackedReferences(file)
+  val results = heapAnalyzer.checkForLeaks(file, true)
+  for (result in results) {
+    val failure = result.failure
+    if (failure != null) {
+      failure.printStackTrace()
+    } else if (result.leakFound) {
+      println(result.leakTrace)
+    }
+  }
+  return results
 }
 
 internal fun analyze(
@@ -45,11 +64,11 @@ internal fun analyze(
   val file = fileFromName(heapDumpFile.filename)
   val referenceKey = heapDumpFile.referenceKey
   val heapAnalyzer =
-    HeapAnalyzer(excludedRefs.build(), AnalyzerProgressListener.NONE, emptyList());
-  val result = heapAnalyzer.checkForLeak(file, referenceKey, true);
+    HeapAnalyzer(excludedRefs.build(), AnalyzerProgressListener.NONE, emptyList())
+  val result = heapAnalyzer.checkForLeak(file, referenceKey, true)
   result.failure?.printStackTrace()
   if (result.leakTrace != null) {
-    System.out.println(result.leakTrace);
+    System.out.println(result.leakTrace)
   }
   return result;
 }
