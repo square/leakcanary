@@ -1,0 +1,11 @@
+package com.squareup.leakcanary
+
+import android.app.Application
+
+class InstrumentationTestApplication : Application() {
+  override fun onCreate() {
+    super.onCreate()
+    InstrumentationLeakDetector.instrumentationRefWatcher(this)
+        .buildAndInstall()
+  }
+}
