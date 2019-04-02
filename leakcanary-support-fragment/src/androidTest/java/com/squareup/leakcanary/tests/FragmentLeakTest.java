@@ -98,7 +98,7 @@ public class FragmentLeakTest {
 
     InstrumentationLeakResults.Result firstResult = results.detectedLeaks.get(0);
 
-    String leakingClassName = firstResult.analysisResult.className;
+    String leakingClassName = firstResult.analysisResult.getClassName();
 
     if (!leakingClassName.equals(expectedLeakClass.getName())) {
       throw new AssertionError(

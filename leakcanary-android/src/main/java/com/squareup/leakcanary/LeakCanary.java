@@ -113,8 +113,8 @@ public final class LeakCanary {
         info += "* EXCLUDED LEAK.\n";
       }
       info += "* " + result.getClassName();
-      if (!heapDump.referenceName.equals("")) {
-        info += " (" + heapDump.referenceName + ")";
+      if (!result.getReferenceName().equals("")) {
+        info += " (" + result.getReferenceName() + ")";
       }
       info += " has leaked:\n" + result.getLeakTrace().toString() + "\n";
       if (result.getRetainedHeapSize() != AnalysisResult.Companion.getRETAINED_HEAP_SKIPPED()) {
@@ -136,7 +136,7 @@ public final class LeakCanary {
     }
 
     info += "* Reference Key: "
-        + heapDump.referenceKey
+        + result.getReferenceKey()
         + "\n"
         + "* Device: "
         + Build.MANUFACTURER
@@ -157,7 +157,7 @@ public final class LeakCanary {
         + GIT_SHA
         + "\n"
         + "* Durations: watch="
-        + heapDump.watchDurationMs
+        + result.getWatchDurationMs()
         + "ms, gc="
         + heapDump.gcDurationMs
         + "ms, heap dump="

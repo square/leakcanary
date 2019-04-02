@@ -14,7 +14,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 /** A {@link RefWatcherBuilder} with appropriate Android defaults. */
 public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRefWatcherBuilder> {
 
-  private static final long DEFAULT_WATCH_DELAY_MILLIS = SECONDS.toMillis(5);
+  public static final long DEFAULT_WATCH_DELAY_MILLIS = SECONDS.toMillis(5);
 
   private final Context context;
   private boolean watchActivities = true;
@@ -111,7 +111,7 @@ public final class AndroidRefWatcherBuilder extends RefWatcherBuilder<AndroidRef
   @Override protected @NonNull HeapDumper defaultHeapDumper() {
     LeakDirectoryProvider leakDirectoryProvider =
         LeakCanaryInternals.getLeakDirectoryProvider(context);
-    return new AndroidHeapDumper(context, leakDirectoryProvider);
+    return new AndroidHeapDumper(context, leakDirectoryProvider, refWatcher);
   }
 
   @Override protected @NonNull DebuggerControl defaultDebuggerControl() {

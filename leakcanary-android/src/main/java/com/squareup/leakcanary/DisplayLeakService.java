@@ -52,7 +52,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     String contentTitle;
     if (resultSaved) {
       PendingIntent pendingIntent =
-          DisplayLeakActivity.createPendingIntent(this, heapDump.referenceKey);
+          DisplayLeakActivity.createPendingIntent(this, result.getReferenceKey());
       if (result.getFailure() != null) {
         contentTitle = getString(R.string.leak_canary_analysis_failed);
       } else {

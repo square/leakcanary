@@ -1,8 +1,24 @@
 package com.squareup.leakcanary
 
 import java.io.Serializable
+import java.util.UUID
 
 data class AnalysisResult(
+
+  /**
+   * Key associated to the [KeyedWeakReference] used to detect the memory leak.
+   * When analyzing a heap dump, search for all [KeyedWeakReference] instances, then open
+   * the one that has its "key" field set to this value. Its "referent" field contains the
+   * leaking object. Computing the shortest path to GC roots on that leaking object should enable
+   * you to figure out the cause of the leak.
+   */
+  val referenceKey: String,
+
+  /**
+   * User defined name to help identify the leaking instance.
+   */
+  val referenceName: String,
+
   /** True if a leak was found in the heap dump.  */
   val leakFound: Boolean,
   /**
@@ -14,7 +30,7 @@ data class AnalysisResult(
    * Class name of the object that leaked, null if [.failure] is not null.
    * The class name format is the same as what would be returned by [Class.getName].
    */
-  val className: String? = null,
+  val className: String?,
   /**
    * Shortest path to GC roots for the leaking object if [.leakFound] is true, null
    * otherwise. This can be used as a unique signature for the leak.
@@ -29,7 +45,11 @@ data class AnalysisResult(
    */
   val retainedHeapSize: Long,
   /** Total time spent analyzing the heap.  */
-  val analysisDurationMs: Long
+  val analysisDurationMs: Long,
+
+  /** Time from the request to watch the reference until the GC was triggered.  */
+  val watchDurationMs: Long
+
 ) : Serializable {
 
   /**
@@ -95,32 +115,42 @@ data class AnalysisResult(
       className: String,
       analysisDurationMs: Long
     ): AnalysisResult {
+      // TODO Here we might be able to fill in referenceKey, referenceName and watchDurationMs
       return AnalysisResult(
+          referenceKey = "Fake-${UUID.randomUUID()}",
+          referenceName = "",
           leakFound = false,
           excludedLeak = false,
           className = className,
           leakTrace = null,
           failure = null,
           retainedHeapSize = 0,
-          analysisDurationMs = analysisDurationMs
+          analysisDurationMs = analysisDurationMs,
+          watchDurationMs = 0
       )
     }
 
     fun leakDetected(
+      referenceKey: String,
+      referenceName: String,
       excludedLeak: Boolean,
       className: String,
       leakTrace: LeakTrace?,
       retainedHeapSize: Long,
-      analysisDurationMs: Long
+      analysisDurationMs: Long,
+      watchDurationMs: Long
     ): AnalysisResult {
       return AnalysisResult(
+          referenceKey = referenceKey,
+          referenceName = referenceName,
           leakFound = true,
           excludedLeak = excludedLeak,
           className = className,
           leakTrace = leakTrace,
           failure = null,
           retainedHeapSize = retainedHeapSize,
-          analysisDurationMs = analysisDurationMs
+          analysisDurationMs = analysisDurationMs,
+          watchDurationMs = watchDurationMs
       )
     }
 
@@ -129,13 +159,16 @@ data class AnalysisResult(
       analysisDurationMs: Long
     ): AnalysisResult {
       return AnalysisResult(
+          referenceKey = "Fake-${UUID.randomUUID()}",
+          referenceName = "",
           leakFound = false,
           excludedLeak = false,
           className = null,
           leakTrace = null,
           failure = failure,
           retainedHeapSize = 0,
-          analysisDurationMs = analysisDurationMs
+          analysisDurationMs = analysisDurationMs,
+          watchDurationMs = 0
       )
     }
   }

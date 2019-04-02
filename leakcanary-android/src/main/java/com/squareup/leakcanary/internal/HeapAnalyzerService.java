@@ -26,6 +26,9 @@ import com.squareup.leakcanary.CanaryLog;
 import com.squareup.leakcanary.HeapAnalyzer;
 import com.squareup.leakcanary.HeapDump;
 import com.squareup.leakcanary.R;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabledBlocking;
 
@@ -64,9 +67,37 @@ public final class HeapAnalyzerService extends ForegroundService
     HeapAnalyzer heapAnalyzer =
         new HeapAnalyzer(heapDump.excludedRefs, this, heapDump.reachabilityInspectorClasses);
 
-    AnalysisResult result = heapAnalyzer.checkForLeak(heapDump.heapDumpFile, heapDump.referenceKey,
-        heapDump.computeRetainedHeapSize);
-    AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, heapDump, result);
+    List<AnalysisResult> analysisResults =
+        heapAnalyzer.checkForLeaks(heapDump.heapDumpFile, heapDump.computeRetainedHeapSize);
+
+    int i = 0;
+    for (AnalysisResult result : analysisResults) {
+      HeapDump fakeFileHeapDump;
+      if (i > 0) {
+        // TODO 1 analysis = many leaks, which is currently unsupported by the rest of the pipeline.
+        // We temporarily ignore this problem by replacing the heapdump file with a fake file for
+        // all heap dumps but the first one.
+        File newFile = new File(heapDump.heapDumpFile.getParentFile(),
+            i + heapDump.heapDumpFile.getName());
+        try {
+          boolean created = newFile.createNewFile();
+          if (!created) {
+            continue;
+          }
+        } catch (IOException e) {
+          continue;
+        }
+        fakeFileHeapDump = heapDump.buildUpon()
+            .heapDumpFile(
+                newFile)
+            .build();
+      } else {
+        fakeFileHeapDump = heapDump;
+      }
+      AbstractAnalysisResultService.sendResultToListener(this, listenerClassName, fakeFileHeapDump,
+          result);
+      i++;
+    }
   }
 
   @Override public void onProgressUpdate(Step step) {
