@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 dependencies {
-  implementation deps.kotlin.stdLib.jdk8
+  implementation deps.kotlin.stdlib
   implementation project(':leakcanary-android')
 
   testImplementation "junit:junit:4.12"

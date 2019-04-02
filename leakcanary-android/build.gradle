@@ -11,7 +11,7 @@ dependencies {
   implementation 'androidx.core:core:1.0.1'
   implementation 'androidx.annotation:annotation:1.0.2'
   testImplementation 'junit:junit:4.12'
-  api deps.kotlin.stdLib.jdk6
+  implementation deps.kotlin.stdlib
 }
 
 def gitSha() {
