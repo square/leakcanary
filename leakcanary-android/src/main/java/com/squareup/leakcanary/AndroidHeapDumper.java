@@ -101,7 +101,7 @@ public final class AndroidHeapDumper implements HeapDumper {
       return RETRY_LATER;
     }
 
-    HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys.toArray(new String[0]));
+    HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys);
     HeapDumpMemoryStore.setHeapDumpUptimeMillis(SystemClock.uptimeMillis());
 
     try {

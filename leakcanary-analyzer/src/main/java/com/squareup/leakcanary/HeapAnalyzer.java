@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.jetbrains.annotations.TestOnly;
 
 import static com.squareup.leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACE;
 import static com.squareup.leakcanary.AnalyzerProgressListener.Step.COMPUTING_DOMINATORS;
@@ -49,7 +50,6 @@ import static com.squareup.leakcanary.HahaHelper.asStringArray;
 import static com.squareup.leakcanary.HahaHelper.classInstanceValues;
 import static com.squareup.leakcanary.HahaHelper.extendsThread;
 import static com.squareup.leakcanary.HahaHelper.fieldValue;
-import static com.squareup.leakcanary.HahaHelper.hasField;
 import static com.squareup.leakcanary.HahaHelper.staticFieldValue;
 import static com.squareup.leakcanary.HahaHelper.threadName;
 import static com.squareup.leakcanary.HahaHelper.valueAsString;
@@ -104,54 +104,14 @@ public final class HeapAnalyzer {
     }
   }
 
-  public @NonNull List<TrackedReference> findTrackedReferences(@NonNull File heapDumpFile) {
-    if (!heapDumpFile.exists()) {
-      throw new IllegalArgumentException("File does not exist: " + heapDumpFile);
-    }
-    try {
-
-      DataBuffer buffer = new MemoryMappedFileBuffer(heapDumpFile);
-      Snapshot snapshot = Snapshot.createSnapshot(buffer);
-      deduplicateGcRoots(snapshot);
-
-      ClassObj refClass = snapshot.findClass(KeyedWeakReference.class.getName());
-      List<TrackedReference> references = new ArrayList<>();
-      for (Instance weakRef : refClass.getInstancesList()) {
-        List<ClassInstance.FieldValue> values = classInstanceValues(weakRef);
-        String key = asString(fieldValue(values, "key"));
-        String name =
-            hasField(values, "name") ? asString(fieldValue(values, "name")) : "(No name field)";
-        Instance instance = fieldValue(values, "referent");
-        if (instance != null) {
-          String className = getClassName(instance);
-          List<LeakReference> fields = describeFields(instance);
-          references.add(new TrackedReference(key, name, className, fields));
-        }
-      }
-      return references;
-    } catch (Throwable e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  /**
-   * Calls {@link #checkForLeak(File, String, boolean)} with computeRetainedSize set to true.
-   *
-   * @deprecated Use {@link #checkForLeaks(File, boolean)} instead.
-   */
-  @Deprecated
-  public @NonNull AnalysisResult checkForLeak(@NonNull File heapDumpFile,
-      @NonNull String referenceKey) {
-    return checkForLeak(heapDumpFile, referenceKey, true);
-  }
-
   /**
    * Searches the heap dump for a {@link KeyedWeakReference} instance with the corresponding key,
    * and then computes the shortest strong reference path from that instance to the GC roots.
    *
-   * @deprecated Use {@link #checkForLeaks(File, boolean)} instead.
+   * @deprecated Use {@link #checkForLeaks(File, boolean)} instead. We're keeping this only because
+   * our tests currently run with older heapdumps.
    */
-  @Deprecated
+  @Deprecated @TestOnly
   public @NonNull AnalysisResult checkForLeak(@NonNull File heapDumpFile,
       @NonNull String referenceKey,
       boolean computeRetainedSize) {

@@ -254,7 +254,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
               return DisplayLeakConnectorView.Type.NODE_UNREACHABLE;
             }
           default:
-            throw new IllegalStateException("Unknown value: " + reachability);
+            throw new IllegalStateException("Unknown value: " + reachability.status);
         }
       }
     }

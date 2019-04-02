@@ -112,7 +112,7 @@ public final class RefWatcher {
     return retainedKeys.isEmpty();
   }
 
-  public synchronized Set<String> getRetainedKeys() {
+  public synchronized Set<String> getAllRetainedKeys() {
     removeWeaklyReachableReferences();
     return new HashSet<>(retainedKeys.keySet());
   }

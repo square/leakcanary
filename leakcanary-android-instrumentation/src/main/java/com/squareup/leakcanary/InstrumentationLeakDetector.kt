@@ -23,7 +23,6 @@ import com.squareup.leakcanary.InstrumentationLeakDetector.Companion.instrumenta
 import com.squareup.leakcanary.internal.LeakCanaryInternals
 import org.junit.runner.notification.RunListener
 import java.io.File
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * [InstrumentationLeakDetector] can be used to detect memory leaks in instrumentation tests.
@@ -101,7 +100,6 @@ class InstrumentationLeakDetector {
     val instrumentation = getInstrumentation()
     val context = instrumentation.targetContext
     val refWatcher = LeakCanary.installedRefWatcher()
-    val retainedKeys = refWatcher.retainedKeys
 
     if (refWatcher.isEmpty) {
       return InstrumentationLeakResults.NONE
@@ -137,6 +135,11 @@ class InstrumentationLeakDetector {
 
     // We're always reusing the same file since we only execute this once at a time.
     val heapDumpFile = File(context.filesDir, "instrumentation_tests_heapdump.hprof")
+
+    val retainedKeys = refWatcher.allRetainedKeys
+    HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
+    HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
+
     try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
     } catch (e: Exception) {
@@ -144,44 +147,39 @@ class InstrumentationLeakDetector {
       return InstrumentationLeakResults.NONE
     }
 
+    refWatcher.removeRetainedKeys(retainedKeys);
+
     val heapDumpBuilder = LeakCanaryInternals.installedHeapDumpBuilder
     val heapAnalyzer = HeapAnalyzer(
         heapDumpBuilder.excludedRefs, AnalyzerProgressListener.NONE,
         heapDumpBuilder.reachabilityInspectorClasses
     )
 
-    val trackedReferences = heapAnalyzer.findTrackedReferences(heapDumpFile)
+    val results = heapAnalyzer.checkForLeaks(heapDumpFile, false)
 
     val detectedLeaks = mutableListOf<InstrumentationLeakResults.Result>()
     val excludedLeaks = mutableListOf<InstrumentationLeakResults.Result>()
     val failures = mutableListOf<InstrumentationLeakResults.Result>()
 
 
-    trackedReferences
-        // Ignore any Weak Reference that this test does not care about.
-        .filter { retainedKeys.contains(it.key) }
-        .forEach { trackedReference ->
-          val heapDump = HeapDump.builder()
-              .heapDumpFile(heapDumpFile)
-              .excludedRefs(heapDumpBuilder.excludedRefs)
-              .reachabilityInspectorClasses(heapDumpBuilder.reachabilityInspectorClasses)
-              .build()
+    results.forEach { analysisResult ->
+      val heapDump = HeapDump.builder()
+          .heapDumpFile(heapDumpFile)
+          .excludedRefs(heapDumpBuilder.excludedRefs)
+          .reachabilityInspectorClasses(heapDumpBuilder.reachabilityInspectorClasses)
+          .build()
+      val leakResult = InstrumentationLeakResults.Result(heapDump, analysisResult)
 
-          val analysisResult =
-            heapAnalyzer.checkForLeak(heapDumpFile, trackedReference.key, false)
-
-          val leakResult = InstrumentationLeakResults.Result(heapDump, analysisResult)
-
-          if (analysisResult.leakFound) {
-            if (!analysisResult.excludedLeak) {
-              detectedLeaks.add(leakResult)
-            } else {
-              excludedLeaks.add(leakResult)
-            }
-          } else if (analysisResult.failure != null) {
-            failures.add(leakResult)
-          }
+      if (analysisResult.leakFound) {
+        if (!analysisResult.excludedLeak) {
+          detectedLeaks.add(leakResult)
+        } else {
+          excludedLeaks.add(leakResult)
         }
+      } else if (analysisResult.failure != null) {
+        failures.add(leakResult)
+      }
+    }
 
     CanaryLog.d(
         "Found %d proper leaks, %d excluded leaks and %d leak analysis failures",
@@ -203,14 +201,9 @@ class InstrumentationLeakDetector {
      */
     fun instrumentationRefWatcher(application: Application): AndroidRefWatcherBuilder {
       return LeakCanary.refWatcher(application)
-          .watchExecutor(object : WatchExecutor {
-            // Storing weak refs to ensure they make it to the queue.
-            val trackedReferences: MutableList<Retryable> = CopyOnWriteArrayList()
-
-            override fun execute(retryable: Retryable) {
-              trackedReferences.add(retryable)
-            }
-          })
+          .watchExecutor {
+            // We never execute so that we never dump the heap.
+          }
     }
   }
 }
