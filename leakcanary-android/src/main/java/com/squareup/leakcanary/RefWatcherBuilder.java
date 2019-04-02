@@ -1,5 +1,6 @@
 package com.squareup.leakcanary;
 
+import android.os.SystemClock;
 import java.util.Collections;
 import java.util.List;
 
@@ -15,6 +16,12 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
   private WatchExecutor watchExecutor;
   private GcTrigger gcTrigger;
   private final HeapDump.Builder heapDumpBuilder;
+
+  protected final RefWatcher refWatcher = new RefWatcher(new Clock() {
+    @Override public long uptimeMillis() {
+      return SystemClock.uptimeMillis();
+    }
+  });
 
   public RefWatcherBuilder() {
     heapDumpBuilder = new HeapDump.Builder();
@@ -110,8 +117,6 @@ public class RefWatcherBuilder<T extends RefWatcherBuilder<T>> {
     if (heapDumpBuilder.reachabilityInspectorClasses == null) {
       heapDumpBuilder.reachabilityInspectorClasses(defaultReachabilityInspectorClasses());
     }
-
-    RefWatcher refWatcher = new RefWatcher();
 
     RuntimeGlue runtimeGlue =
         new RuntimeGlue(refWatcher, watchExecutor, debuggerControl, gcTrigger, heapDumper,

@@ -18,13 +18,16 @@ package com.squareup.leakcanary;
 import com.squareup.haha.perflib.ArrayInstance;
 import com.squareup.haha.perflib.ClassInstance;
 import com.squareup.haha.perflib.ClassObj;
+import com.squareup.haha.perflib.Field;
 import com.squareup.haha.perflib.Instance;
 import com.squareup.haha.perflib.Type;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
@@ -79,6 +82,14 @@ public final class HahaHelper {
       stringValue = value.toString();
     }
     return stringValue;
+  }
+
+  static List<String> asStringArray(ArrayInstance arrayInstance) {
+    List<String> entries = new ArrayList<>();
+    for (Object arrayEntry : arrayInstance.getValues()) {
+      entries.add(asString(arrayEntry));
+    }
+    return entries;
   }
 
   /** Given a string instance from the heap dump, this returns its actual string value. */
@@ -185,6 +196,16 @@ public final class HahaHelper {
       }
     }
     return false;
+  }
+
+  static <T> T staticFieldValue(ClassObj classObj, String fieldName) {
+    for (Map.Entry<Field, Object> staticFieldEntry : classObj.getStaticFieldValues()
+        .entrySet()) {
+      if (staticFieldEntry.getKey().getName().equals(fieldName)) {
+        return (T) staticFieldEntry.getValue();
+      }
+    }
+    throw new IllegalArgumentException("Field " + fieldName + " does not exists");
   }
 
   private HahaHelper() {

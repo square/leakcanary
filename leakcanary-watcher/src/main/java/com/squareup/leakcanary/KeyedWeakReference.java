@@ -20,15 +20,19 @@ import java.lang.ref.WeakReference;
 
 import static com.squareup.leakcanary.Preconditions.checkNotNull;
 
-/** @see {@link HeapDump#referenceKey}. */
 final class KeyedWeakReference extends WeakReference<Object> {
+  /**
+   * Key used to find the retained references in the heap dump.
+   */
   public final String key;
   public final String name;
+  public final long watchUptimeMillis;
 
-  KeyedWeakReference(Object referent, String key, String name,
+  KeyedWeakReference(Object referent, String key, String name, long watchUptimeMillis,
       ReferenceQueue<Object> referenceQueue) {
     super(checkNotNull(referent, "referent"), checkNotNull(referenceQueue, "referenceQueue"));
     this.key = checkNotNull(key, "key");
     this.name = checkNotNull(name, "name");
+    this.watchUptimeMillis = watchUptimeMillis;
   }
 }

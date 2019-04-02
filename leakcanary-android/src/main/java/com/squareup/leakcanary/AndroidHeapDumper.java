@@ -25,30 +25,33 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.MessageQueue;
 import android.os.SystemClock;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter;
 import com.squareup.leakcanary.internal.FutureResult;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
+import java.util.Set;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class AndroidHeapDumper implements HeapDumper {
 
   private final Context context;
+  private final RefWatcher refWatcher;
   private final LeakDirectoryProvider leakDirectoryProvider;
   private final Handler mainHandler;
 
   private Activity resumedActivity;
 
   public AndroidHeapDumper(@NonNull Context context,
-      @NonNull LeakDirectoryProvider leakDirectoryProvider) {
+      @NonNull LeakDirectoryProvider leakDirectoryProvider, RefWatcher refWatcher) {
     this.leakDirectoryProvider = leakDirectoryProvider;
     this.context = context.getApplicationContext();
+    this.refWatcher = refWatcher;
     mainHandler = new Handler(Looper.getMainLooper());
 
     Application application = (Application) context.getApplicationContext();
@@ -68,7 +71,7 @@ public final class AndroidHeapDumper implements HeapDumper {
   @SuppressWarnings("ReferenceEquality") // Explicitly checking for named null.
   @Override @Nullable
   public File dumpHeap() {
-    File heapDumpFile = leakDirectoryProvider.newHeapDumpFile();
+    final File heapDumpFile = leakDirectoryProvider.newHeapDumpFile();
 
     if (heapDumpFile == RETRY_LATER) {
       return RETRY_LATER;
@@ -91,8 +94,19 @@ public final class AndroidHeapDumper implements HeapDumper {
     notificationManager.notify(notificationId, notification);
 
     Toast toast = waitingForToast.get();
+    Set<String> retainedKeys = refWatcher.getRetainedKeysOlderThan(AndroidRefWatcherBuilder.DEFAULT_WATCH_DELAY_MILLIS);
+
+    if (retainedKeys.isEmpty()) {
+      // TODO We shouldn't retry at all.
+      return RETRY_LATER;
+    }
+
+    HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys.toArray(new String[0]));
+    HeapDumpMemoryStore.setHeapDumpUptimeMillis(SystemClock.uptimeMillis());
+
     try {
       Debug.dumpHprofData(heapDumpFile.getAbsolutePath());
+      refWatcher.removeRetainedKeys(retainedKeys);
       cancelToast(toast);
       notificationManager.cancel(notificationId);
       return heapDumpFile;

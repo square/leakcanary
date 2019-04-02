@@ -16,6 +16,7 @@
 package com.squareup.leakcanary;
 
 import java.io.File;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -41,6 +42,7 @@ public class RefWatcherTest {
   }
 
   @SuppressWarnings("FieldCanBeLocal") Object ref;
+  long time;
 
   static class TestExecutor implements WatchExecutor {
     Retryable retryable;
@@ -69,14 +71,25 @@ public class RefWatcherTest {
     RefWatcher refWatcher = defaultWatcher(dumper, executor);
     ref = new Object();
     refWatcher.watch(ref);
+    time = 5000;
     executor.retryable.run();
     assertTrue(dumper.called);
   }
 
   private RefWatcher defaultWatcher(TestDumper dumper, TestExecutor executor) {
-    return new RefWatcherBuilder<>().watchExecutor(executor)
-        .heapDumper(dumper)
-        .heapDumpListener(new TestListener())
-        .build();
+    RefWatcher refWatcher = new RefWatcher(new Clock() {
+      @Override public long uptimeMillis() {
+        return time;
+      }
+    });
+
+    RuntimeGlue runtimeGlue =
+        new RuntimeGlue(refWatcher, executor, DebuggerControl.NONE, GcTrigger.DEFAULT, dumper,
+            new TestListener(),
+            new HeapDump.Builder().excludedRefs(ExcludedRefs.builder().build())
+                .reachabilityInspectorClasses(
+                    Collections.<Class<? extends Reachability.Inspector>>emptyList()));
+    runtimeGlue.watchForLeaks();
+    return refWatcher;
   }
 }

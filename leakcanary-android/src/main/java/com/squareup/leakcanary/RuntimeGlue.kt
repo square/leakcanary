@@ -25,36 +25,31 @@ class RuntimeGlue constructor(
 ) {
 
   fun watchForLeaks() {
-    refWatcher.addNewRefListener { reference ->
-      val watchStartNanoTime = System.nanoTime()
-      ensureGoneAsync(watchStartNanoTime, reference)
+    refWatcher.addNewRefListener {
+      watchExecutor.execute { ensureGone() }
     }
   }
 
-  private fun ensureGoneAsync(
-    watchStartNanoTime: Long,
-    reference: KeyedWeakReference
-  ) {
-    watchExecutor.execute { ensureGone(reference, watchStartNanoTime) }
-  }
-
   private fun ensureGone(
-    reference: KeyedWeakReference,
-    watchStartNanoTime: Long
   ): Retryable.Result {
     val gcStartNanoTime = System.nanoTime()
-    val watchDurationMs = NANOSECONDS.toMillis(gcStartNanoTime - watchStartNanoTime)
 
     if (debuggerControl.isDebuggerAttached) {
       // The debugger can create false leaks.
       return RETRY
     }
 
-    if (refWatcher.gone(reference)) {
+    if (refWatcher.isEmpty) {
       return DONE
     }
+
+    // TODO Configure. Instead of one runnable per weak ref, it shoud be just the one,
+    // scheduled for when the earliest ref was posted.
+    if (!refWatcher.hasReferencesOlderThan(AndroidRefWatcherBuilder.DEFAULT_WATCH_DELAY_MILLIS)) {
+      return RETRY
+    }
     gcTrigger.runGc()
-    if (!refWatcher.gone(reference)) {
+    if (refWatcher.hasReferencesOlderThan(AndroidRefWatcherBuilder.DEFAULT_WATCH_DELAY_MILLIS)) {
       val startDumpHeap = System.nanoTime()
       val gcDurationMs = NANOSECONDS.toMillis(startDumpHeap - gcStartNanoTime)
 
@@ -66,9 +61,6 @@ class RuntimeGlue constructor(
       val heapDumpDurationMs = NANOSECONDS.toMillis(System.nanoTime() - startDumpHeap)
 
       val heapDump = heapDumpBuilder.heapDumpFile(heapDumpFile)
-          .referenceKey(reference.key)
-          .referenceName(reference.name)
-          .watchDurationMs(watchDurationMs)
           .gcDurationMs(gcDurationMs)
           .heapDumpDurationMs(heapDumpDurationMs)
           .build()

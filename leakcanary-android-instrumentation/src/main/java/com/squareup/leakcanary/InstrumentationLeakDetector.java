@@ -190,8 +190,6 @@ public final class InstrumentationLeakDetector {
 
       HeapDump heapDump = HeapDump.builder()
           .heapDumpFile(heapDumpFile)
-          .referenceKey(trackedReference.getKey())
-          .referenceName(trackedReference.getName())
           .excludedRefs(heapDumpBuilder.excludedRefs)
           .reachabilityInspectorClasses(heapDumpBuilder.reachabilityInspectorClasses)
           .build();
