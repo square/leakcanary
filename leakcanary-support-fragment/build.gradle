@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 
 dependencies {
   api project(':leakcanary-android')
@@ -9,6 +10,7 @@ dependencies {
   //noinspection GradleDependency
   implementation 'androidx.fragment:fragment:1.0.0'
   implementation 'androidx.annotation:annotation:1.0.2'
+  implementation deps.kotlin.stdlib
 
   androidTestImplementation project(':leakcanary-android-instrumentation')
   androidTestImplementation 'androidx.test:runner:1.1.1'
