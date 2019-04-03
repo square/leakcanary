@@ -25,12 +25,12 @@ class FragmentLeakTest {
   var activityRule = ActivityTestRule(TestActivity::class.java, !TOUCH_MODE, !LAUNCH_ACTIVITY)
 
   @Before fun setUp() {
-    LeakCanary.installedRefWatcher()
+    LeakCanary.refWatcher
         .clearWatchedReferences()
   }
 
   @After fun tearDown() {
-    LeakCanary.installedRefWatcher()
+    LeakCanary.refWatcher
         .clearWatchedReferences()
   }
 

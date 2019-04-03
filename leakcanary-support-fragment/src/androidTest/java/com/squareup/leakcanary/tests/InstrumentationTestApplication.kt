@@ -6,7 +6,6 @@ import com.squareup.leakcanary.InstrumentationLeakDetector
 class InstrumentationTestApplication : Application() {
   override fun onCreate() {
     super.onCreate()
-    InstrumentationLeakDetector.instrumentationRefWatcher(this)
-        .buildAndInstall()
+    InstrumentationLeakDetector.updateConfig()
   }
 }

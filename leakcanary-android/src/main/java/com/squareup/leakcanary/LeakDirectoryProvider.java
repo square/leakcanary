@@ -23,9 +23,6 @@ import java.util.List;
 
 /**
  * Provides access to where heap dumps and analysis results will be stored.
- * When using your own implementation, you should also call {@link
- * LeakCanary#setDisplayLeakActivityDirectoryProvider(LeakDirectoryProvider)} to ensure the
- * provided activity is able to display the leaks.
  */
 public interface LeakDirectoryProvider {
 
@@ -35,6 +32,8 @@ public interface LeakDirectoryProvider {
    * @return {@link HeapDumper#RETRY_LATER} if a new heap dump file could not be created.
    */
   @Nullable File newHeapDumpFile();
+
+  boolean hasPendingHeapDump();
 
   /**
    * Removes all heap dumps and analysis results, except for heap dumps that haven't been

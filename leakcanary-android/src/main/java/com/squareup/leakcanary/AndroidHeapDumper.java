@@ -34,7 +34,6 @@ import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter;
 import com.squareup.leakcanary.internal.FutureResult;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
-import java.util.Set;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -94,19 +93,9 @@ public final class AndroidHeapDumper implements HeapDumper {
     notificationManager.notify(notificationId, notification);
 
     Toast toast = waitingForToast.get();
-    Set<String> retainedKeys = refWatcher.getRetainedKeysOlderThan(AndroidRefWatcherBuilder.DEFAULT_WATCH_DELAY_MILLIS);
-
-    if (retainedKeys.isEmpty()) {
-      // TODO We shouldn't retry at all.
-      return RETRY_LATER;
-    }
-
-    HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys);
-    HeapDumpMemoryStore.setHeapDumpUptimeMillis(SystemClock.uptimeMillis());
 
     try {
       Debug.dumpHprofData(heapDumpFile.getAbsolutePath());
-      refWatcher.removeRetainedKeys(retainedKeys);
       cancelToast(toast);
       notificationManager.cancel(notificationId);
       return heapDumpFile;

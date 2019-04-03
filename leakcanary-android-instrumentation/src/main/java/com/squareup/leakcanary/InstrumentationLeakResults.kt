@@ -19,7 +19,7 @@ package com.squareup.leakcanary
  * @param detectedLeaks Proper leaks found during instrumentation tests.
  *
  * @param excludedLeaks Excluded leaks found during instrumentation tests,
- *   based on [RefWatcherBuilder.excludedRefs]
+ *   based on [LeakCanary.ConfigSnapshot.excludedRefs]
  *
  * @param failures Leak analysis failures that happened when we tried to detect leaks.
  */

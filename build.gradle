@@ -2,16 +2,20 @@ apply plugin: 'com.github.ben-manes.versions'
 
 buildscript {
   ext.versions = [
-    'minSdk': 14,
-    'compileSdk': 28,
-    'errorProne': '2.3.1',
-    'kotlin': '1.3.21',
+      'minSdk'    : 14,
+      'compileSdk': 28,
+      'errorProne': '2.3.1',
+      'kotlin'    : '1.3.21',
   ]
   ext.deps = [
-    'kotlin': [
-      'gradlePlugin': "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}",
-      'stdlib': "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
-    ]
+      'kotlin'      : [
+          'gradlePlugin': "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}",
+          'stdlib'      : "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
+      ],
+      mockito       : 'org.mockito:mockito-core:2.7.5',
+      mockito_kotlin: 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0',
+      assertj_core: 'org.assertj:assertj-core:3.9.1',
+      junit: 'junit:junit:4.12',
   ]
   repositories {
     google()
@@ -32,10 +36,10 @@ subprojects {
 
   repositories {
     google()
-//    maven {
-//      url 'https://oss.sonatype.org/content/repositories/snapshots/'
-//    }
-//    mavenLocal()
+    //    maven {
+    //      url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    //    }
+    //    mavenLocal()
     jcenter()
   }
 
@@ -43,12 +47,12 @@ subprojects {
 
   tasks.withType(JavaCompile) {
     options.compilerArgs += [
-      '-Xlint:all',
-      '-Xlint:-serial',
-      '-Xlint:-deprecation',
+        '-Xlint:all',
+        '-Xlint:-serial',
+        '-Xlint:-deprecation',
         // espresso-core classes say they're compiled with 51.0 but contain 52.0 attributes.
         // warning: [classfile] MethodParameters attribute introduced in version 52.0 class files is ignored in version 51.0 class files
-      // '-Werror'
+        // '-Werror'
     ]
   }
 
@@ -57,7 +61,7 @@ subprojects {
       eachDependency { details ->
         // Force all the error-prone dependencies to use the same version.
         if (details.requested.group == 'com.google.errorprone' &&
-                details.requested.name.startsWith('error_prone_')) {
+            details.requested.name.startsWith('error_prone_')) {
           details.useVersion versions.errorProne
         }
       }

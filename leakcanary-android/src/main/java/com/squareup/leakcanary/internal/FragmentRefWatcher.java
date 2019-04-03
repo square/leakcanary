@@ -17,12 +17,13 @@ package com.squareup.leakcanary.internal;
 
 import android.app.Activity;
 import android.app.Application;
-import android.content.Context;
 import android.os.Bundle;
+import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
+import kotlin.jvm.functions.Function0;
 
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.O;
@@ -39,19 +40,20 @@ public interface FragmentRefWatcher {
     private static final String SUPPORT_FRAGMENT_REF_WATCHER_CLASS_NAME =
         "com.squareup.leakcanary.internal.SupportFragmentRefWatcher";
 
-    public static void install(Context context, RefWatcher refWatcher) {
+    public static void install(Application application, RefWatcher refWatcher,
+        Function0<LeakCanary.Config> configProvider) {
       List<FragmentRefWatcher> fragmentRefWatchers = new ArrayList<>();
 
       if (SDK_INT >= O) {
-        fragmentRefWatchers.add(new AndroidOFragmentRefWatcher(refWatcher));
+        fragmentRefWatchers.add(new AndroidOFragmentRefWatcher(refWatcher, configProvider));
       }
 
       try {
         Class<?> fragmentRefWatcherClass = Class.forName(SUPPORT_FRAGMENT_REF_WATCHER_CLASS_NAME);
         Constructor<?> constructor =
-            fragmentRefWatcherClass.getDeclaredConstructor(RefWatcher.class);
+            fragmentRefWatcherClass.getDeclaredConstructor(RefWatcher.class, Function0.class);
         FragmentRefWatcher supportFragmentRefWatcher =
-            (FragmentRefWatcher) constructor.newInstance(refWatcher);
+            (FragmentRefWatcher) constructor.newInstance(refWatcher, configProvider);
         fragmentRefWatchers.add(supportFragmentRefWatcher);
       } catch (Exception ignored) {
       }
@@ -62,7 +64,6 @@ public interface FragmentRefWatcher {
 
       Helper helper = new Helper(fragmentRefWatchers);
 
-      Application application = (Application) context.getApplicationContext();
       application.registerActivityLifecycleCallbacks(helper.activityLifecycleCallbacks);
     }
 

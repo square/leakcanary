@@ -85,6 +85,20 @@ public final class DefaultLeakDirectoryProvider implements LeakDirectoryProvider
     return files;
   }
 
+  @Override public boolean hasPendingHeapDump() {
+    List<File> pendingHeapDumps = listFiles(new FilenameFilter() {
+      @Override public boolean accept(File dir, String filename) {
+        return filename.endsWith(PENDING_HEAPDUMP_SUFFIX);
+      }
+    });
+    for (File file : pendingHeapDumps) {
+      if (System.currentTimeMillis() - file.lastModified() < ANALYSIS_MAX_DURATION_MS) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override public @Nullable File newHeapDumpFile() {
     List<File> pendingHeapDumps = listFiles(new FilenameFilter() {
       @Override public boolean accept(File dir, String filename) {

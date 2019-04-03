@@ -5,8 +5,8 @@ import com.squareup.leakcanary.InstrumentationLeakDetector
 
 class InstrumentationExampleApplication : ExampleApplication() {
 
-  override fun setupLeakCanary() {
-    InstrumentationLeakDetector.instrumentationRefWatcher(this)
-        .buildAndInstall()
+  override fun onCreate() {
+    super.onCreate()
+    InstrumentationLeakDetector.updateConfig()
   }
 }

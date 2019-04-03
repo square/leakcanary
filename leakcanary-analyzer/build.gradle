@@ -5,8 +5,8 @@ dependencies {
   implementation deps.kotlin.stdlib
   implementation 'com.squareup.haha:haha:2.1'
   api project(':leakcanary-watcher')
-  testImplementation 'junit:junit:4.12'
-  testImplementation 'org.assertj:assertj-core:3.9.1'
+  testImplementation deps.junit
+  testImplementation deps.assertj_core
   implementation 'androidx.annotation:annotation:1.0.2'
 }
 

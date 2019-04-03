@@ -15,16 +15,15 @@
  */
 package com.squareup.leakcanary
 
-import android.app.Application
 import android.os.Debug
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
-import com.squareup.leakcanary.InstrumentationLeakDetector.Companion.instrumentationRefWatcher
-import com.squareup.leakcanary.internal.LeakCanaryInternals
 import org.junit.runner.notification.RunListener
 import java.io.File
 
 /**
+ * TODO Update this doc to match LeakCanary 2.0
+ *
  * [InstrumentationLeakDetector] can be used to detect memory leaks in instrumentation tests.
  *
  * To use it, you need to:
@@ -99,7 +98,7 @@ class InstrumentationLeakDetector {
   fun detectLeaks(): InstrumentationLeakResults {
     val instrumentation = getInstrumentation()
     val context = instrumentation.targetContext
-    val refWatcher = LeakCanary.installedRefWatcher()
+    val refWatcher = LeakCanary.refWatcher
 
     if (refWatcher.isEmpty) {
       return InstrumentationLeakResults.NONE
@@ -147,12 +146,13 @@ class InstrumentationLeakDetector {
       return InstrumentationLeakResults.NONE
     }
 
-    refWatcher.removeRetainedKeys(retainedKeys);
+    refWatcher.removeRetainedKeys(retainedKeys)
 
-    val heapDumpBuilder = LeakCanaryInternals.installedHeapDumpBuilder
+    val config = LeakCanary.config
+
     val heapAnalyzer = HeapAnalyzer(
-        heapDumpBuilder.excludedRefs, AnalyzerProgressListener.NONE,
-        heapDumpBuilder.reachabilityInspectorClasses
+        config.excludedRefs, AnalyzerProgressListener.NONE,
+        config.reachabilityInspectorClasses
     )
 
     val results = heapAnalyzer.checkForLeaks(heapDumpFile, false)
@@ -165,8 +165,8 @@ class InstrumentationLeakDetector {
     results.forEach { analysisResult ->
       val heapDump = HeapDump.builder()
           .heapDumpFile(heapDumpFile)
-          .excludedRefs(heapDumpBuilder.excludedRefs)
-          .reachabilityInspectorClasses(heapDumpBuilder.reachabilityInspectorClasses)
+          .excludedRefs(config.excludedRefs)
+          .reachabilityInspectorClasses(config.reachabilityInspectorClasses)
           .build()
       val leakResult = InstrumentationLeakResults.Result(heapDump, analysisResult)
 
@@ -192,18 +192,15 @@ class InstrumentationLeakDetector {
   }
 
   companion object {
+
     /**
-     * Returns a new [AndroidRefWatcherBuilder] that will create a [RefWatcher] suitable
-     * for instrumentation tests. This [RefWatcher] will never trigger a heap dump. This should
-     * be installed from the test application class, and should be used in combination with a
-     * [RunListener] that calls [detectLeaks], for instance
-     * [FailTestOnLeakRunListener].
+     * Configures LeakCanary to not dump the heap so that instrumentation tests run smoothly,
+     * and we can look for leaks at the end of a test. This should be called from the test
+     * application class, and should be used in combination with a [RunListener] that
+     * calls [detectLeaks], for instance [FailTestOnLeakRunListener].
      */
-    fun instrumentationRefWatcher(application: Application): AndroidRefWatcherBuilder {
-      return LeakCanary.refWatcher(application)
-          .watchExecutor {
-            // We never execute so that we never dump the heap.
-          }
+    fun updateConfig() {
+      LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
     }
   }
 }

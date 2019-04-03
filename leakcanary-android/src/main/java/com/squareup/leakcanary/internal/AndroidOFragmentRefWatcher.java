@@ -19,18 +19,21 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.os.Build;
-import androidx.annotation.RequiresApi;
 import android.view.View;
-
+import androidx.annotation.RequiresApi;
+import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
+import kotlin.jvm.functions.Function0;
 
 @RequiresApi(Build.VERSION_CODES.O) //
 class AndroidOFragmentRefWatcher implements FragmentRefWatcher {
 
   private final RefWatcher refWatcher;
+  private final Function0<LeakCanary.Config> configProvider;
 
-  AndroidOFragmentRefWatcher(RefWatcher refWatcher) {
+  AndroidOFragmentRefWatcher(RefWatcher refWatcher, Function0<LeakCanary.Config> configProvider) {
     this.refWatcher = refWatcher;
+    this.configProvider = configProvider;
   }
 
   private final FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks =
@@ -38,14 +41,16 @@ class AndroidOFragmentRefWatcher implements FragmentRefWatcher {
 
         @Override public void onFragmentViewDestroyed(FragmentManager fm, Fragment fragment) {
           View view = fragment.getView();
-          if (view != null) {
+          if (view != null && configProvider.invoke().getWatchFragmentViews()) {
             refWatcher.watch(view);
           }
         }
 
         @Override
         public void onFragmentDestroyed(FragmentManager fm, Fragment fragment) {
-          refWatcher.watch(fragment);
+          if (configProvider.invoke().getWatchFragments()) {
+            refWatcher.watch(fragment);
+          }
         }
       };
 
