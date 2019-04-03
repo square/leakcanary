@@ -13,8 +13,6 @@ import com.squareup.leakcanary.InstrumentationLeakDetector
 import com.squareup.leakcanary.InstrumentationLeakResults
 import com.squareup.leakcanary.LeakCanary
 import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter
-import com.squareup.leakcanary.tests.Fragments.Companion.waitForFragmentDetached
-import com.squareup.leakcanary.tests.Fragments.Companion.waitForFragmentViewDestroyed
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -42,7 +40,7 @@ class FragmentLeakTest {
 
     LeakingFragment.add(activityRule.activity)
 
-    val waitForFragmentDetach = waitForFragmentDetached(activityRule.activity)
+    val waitForFragmentDetach = activityRule.activity.waitForFragmentDetached()
     val waitForActivityDestroy = waitForActivityDestroy()
     activityRule.finishActivity()
     waitForFragmentDetach.await()
@@ -56,7 +54,7 @@ class FragmentLeakTest {
     startActivityAndWaitForCreate()
     val activity = activityRule.activity
 
-    val waitForFragmentViewDestroyed = waitForFragmentViewDestroyed(activity)
+    val waitForFragmentViewDestroyed = activity.waitForFragmentViewDestroyed()
     // First, add a new fragment
     ViewLeakingFragment.addToBackstack(activity)
     // Then, add a new fragment again, which destroys the view of the previous fragment and puts

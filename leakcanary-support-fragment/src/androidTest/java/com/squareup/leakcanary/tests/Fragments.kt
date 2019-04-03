@@ -5,45 +5,36 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import java.util.concurrent.CountDownLatch
 
-class Fragments private constructor() {
+internal fun FragmentActivity.waitForFragmentDetached(): CountDownLatch {
+  val latch = CountDownLatch(1)
+  val fragmentManager = supportFragmentManager
+  fragmentManager.registerFragmentLifecycleCallbacks(
+      object : FragmentManager.FragmentLifecycleCallbacks() {
+        override fun onFragmentDetached(
+          fm: FragmentManager,
+          f: Fragment
+        ) {
+          fragmentManager.unregisterFragmentLifecycleCallbacks(this)
+          latch.countDown()
+        }
+      }, false
+  )
+  return latch
+}
 
-  init {
-    throw AssertionError()
-  }
-
-  companion object {
-    fun waitForFragmentDetached(activity: FragmentActivity): CountDownLatch {
-      val latch = CountDownLatch(1)
-      val fragmentManager = activity.supportFragmentManager
-      fragmentManager.registerFragmentLifecycleCallbacks(
-          object : FragmentManager.FragmentLifecycleCallbacks() {
-            override fun onFragmentDetached(
-              fm: FragmentManager,
-              f: Fragment
-            ) {
-              fragmentManager.unregisterFragmentLifecycleCallbacks(this)
-              latch.countDown()
-            }
-          }, false
-      )
-      return latch
-    }
-
-    fun waitForFragmentViewDestroyed(activity: FragmentActivity): CountDownLatch {
-      val latch = CountDownLatch(1)
-      val fragmentManager = activity.supportFragmentManager
-      fragmentManager.registerFragmentLifecycleCallbacks(
-          object : FragmentManager.FragmentLifecycleCallbacks() {
-            override fun onFragmentViewDestroyed(
-              fm: FragmentManager,
-              f: Fragment
-            ) {
-              fragmentManager.unregisterFragmentLifecycleCallbacks(this)
-              latch.countDown()
-            }
-          }, false
-      )
-      return latch
-    }
-  }
+internal fun FragmentActivity.waitForFragmentViewDestroyed(): CountDownLatch {
+  val latch = CountDownLatch(1)
+  val fragmentManager = supportFragmentManager
+  fragmentManager.registerFragmentLifecycleCallbacks(
+      object : FragmentManager.FragmentLifecycleCallbacks() {
+        override fun onFragmentViewDestroyed(
+          fm: FragmentManager,
+          f: Fragment
+        ) {
+          fragmentManager.unregisterFragmentLifecycleCallbacks(this)
+          latch.countDown()
+        }
+      }, false
+  )
+  return latch
 }
