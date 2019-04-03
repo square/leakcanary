@@ -17,7 +17,6 @@ package com.squareup.leakcanary.internal;
 
 import android.content.Context;
 import android.content.res.Resources;
-import androidx.annotation.ColorRes;
 import android.text.Html;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -26,6 +25,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
+import androidx.annotation.ColorRes;
 import com.squareup.leakcanary.Exclusion;
 import com.squareup.leakcanary.LeakTrace;
 import com.squareup.leakcanary.LeakTraceElement;
@@ -109,13 +109,13 @@ final class DisplayLeakAdapter extends BaseAdapter {
         boolean isLeakingInstance = position == getCount() - 1;
         LeakTraceElement element = getItem(position);
 
-        Reachability reachability = leakTrace.expectedReachability.get(elementIndex(position));
+        Reachability reachability = leakTrace.getExpectedReachability().get(elementIndex(position));
         boolean maybeLeakCause;
         if (isLeakingInstance || reachability.status == Reachability.Status.UNREACHABLE) {
           maybeLeakCause = false;
         } else {
           Reachability nextReachability =
-              leakTrace.expectedReachability.get(elementIndex(position + 1));
+              leakTrace.getExpectedReachability().get(elementIndex(position + 1));
           maybeLeakCause = nextReachability.status != Reachability.Status.REACHABLE;
         }
 
@@ -214,11 +214,11 @@ final class DisplayLeakAdapter extends BaseAdapter {
     if (position == 1) {
       return DisplayLeakConnectorView.Type.HELP;
     } else if (position == 2) {
-      if (leakTrace.expectedReachability.size() == 1) {
+      if (leakTrace.getExpectedReachability().size() == 1) {
         return DisplayLeakConnectorView.Type.START_LAST_REACHABLE;
       }
       Reachability nextReachability =
-          leakTrace.expectedReachability.get(elementIndex(position + 1));
+          leakTrace.getExpectedReachability().get(elementIndex(position + 1));
       if (nextReachability.status != Reachability.Status.REACHABLE) {
         return DisplayLeakConnectorView.Type.START_LAST_REACHABLE;
       }
@@ -227,19 +227,19 @@ final class DisplayLeakAdapter extends BaseAdapter {
       boolean isLeakingInstance = position == getCount() - 1;
       if (isLeakingInstance) {
         Reachability previousReachability =
-            leakTrace.expectedReachability.get(elementIndex(position - 1));
+            leakTrace.getExpectedReachability().get(elementIndex(position - 1));
         if (previousReachability.status != Reachability.Status.UNREACHABLE) {
           return DisplayLeakConnectorView.Type.END_FIRST_UNREACHABLE;
         }
         return DisplayLeakConnectorView.Type.END;
       } else {
-        Reachability reachability = leakTrace.expectedReachability.get(elementIndex(position));
+        Reachability reachability = leakTrace.getExpectedReachability().get(elementIndex(position));
         switch (reachability.status) {
           case UNKNOWN:
             return DisplayLeakConnectorView.Type.NODE_UNKNOWN;
           case REACHABLE:
             Reachability nextReachability =
-                leakTrace.expectedReachability.get(elementIndex(position + 1));
+                leakTrace.getExpectedReachability().get(elementIndex(position + 1));
             if (nextReachability.status != Reachability.Status.REACHABLE) {
               return DisplayLeakConnectorView.Type.NODE_LAST_REACHABLE;
             } else {
@@ -247,7 +247,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
             }
           case UNREACHABLE:
             Reachability previousReachability =
-                leakTrace.expectedReachability.get(elementIndex(position - 1));
+                leakTrace.getExpectedReachability().get(elementIndex(position - 1));
             if (previousReachability.status != Reachability.Status.UNREACHABLE) {
               return DisplayLeakConnectorView.Type.NODE_FIRST_UNREACHABLE;
             } else {
@@ -268,7 +268,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
     this.referenceKey = referenceKey;
     this.referenceName = referenceName;
     this.leakTrace = leakTrace;
-    opened = new boolean[2 + leakTrace.elements.size()];
+    opened = new boolean[2 + leakTrace.getElements().size()];
     notifyDataSetChanged();
   }
 
@@ -281,7 +281,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
     if (leakTrace == null) {
       return 2;
     }
-    return 2 + leakTrace.elements.size();
+    return 2 + leakTrace.getElements().size();
   }
 
   @Override public LeakTraceElement getItem(int position) {
@@ -291,7 +291,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
     if (position == 1) {
       return null;
     }
-    return leakTrace.elements.get(elementIndex(position));
+    return leakTrace.getElements().get(elementIndex(position));
   }
 
   private int elementIndex(int position) {
