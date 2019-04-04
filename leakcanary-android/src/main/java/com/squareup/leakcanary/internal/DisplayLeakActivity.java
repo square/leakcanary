@@ -75,6 +75,8 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabledBlo
 public final class DisplayLeakActivity extends Activity {
 
   private static final String SHOW_LEAK_EXTRA = "show_latest";
+  private static final String STACKOVERFLOW_QUESTION_URL =
+      "http://stackoverflow.com/questions/ask?guided=false&tags=leakcanary";
 
   // Public API.
   @SuppressWarnings("unused")
@@ -382,20 +384,20 @@ public final class DisplayLeakActivity extends Activity {
 
   private void shareLeakToStackOverflow() {
     AnalyzedHeap visibleLeak = getVisibleLeak();
-    final String leakInfo = LeakCanary.INSTANCE.leakInfo(this, visibleLeak.heapDump, visibleLeak.result, false);
-    final Toast toast = Toast.makeText(this, R.string.leak_canary_leak_copied, Toast.LENGTH_SHORT);
+    final String leakInfo =
+        LeakCanary.INSTANCE.leakInfo(this, visibleLeak.heapDump, visibleLeak.result, false);
     final ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+    // AsyncTask was needed here due to setPrimaryClip making a disk write which
+    // violated StrictMode if on the main thread
     AsyncTask.execute(new Runnable() {
       public void run() {
         clipboard.setPrimaryClip(
             ClipData.newPlainText(getString(R.string.leak_canary_leak_clipdata_label),
                 "```\n" + leakInfo + "```"));
-        toast.show();
       }
     });
-    Intent browserIntent =
-        new Intent(Intent.ACTION_VIEW,
-            Uri.parse("http://www.stackoverflow.com/questions/ask?guided=false"));
+    Toast.makeText(this, R.string.leak_canary_leak_copied, Toast.LENGTH_LONG).show();
+    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(STACKOVERFLOW_QUESTION_URL));
     startActivity(browserIntent);
   }
 
