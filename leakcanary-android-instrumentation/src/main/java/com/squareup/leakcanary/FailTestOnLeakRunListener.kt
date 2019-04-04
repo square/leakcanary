@@ -20,7 +20,6 @@ import android.os.Bundle
 import androidx.test.internal.runner.listener.InstrumentationResultPrinter
 import androidx.test.internal.runner.listener.InstrumentationResultPrinter.REPORT_VALUE_RESULT_FAILURE
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
-import com.squareup.leakcanary.Preconditions.checkNotNull
 import org.junit.runner.Description
 import org.junit.runner.Result
 import org.junit.runner.notification.Failure
@@ -104,10 +103,7 @@ open class FailTestOnLeakRunListener : RunListener() {
   /** Can be overridden to report leaks in a different way or do additional reporting.  */
   protected open fun reportLeaks(results: InstrumentationLeakResults) {
     if (results.detectedLeaks.isNotEmpty()) {
-      val message =
-        checkNotNull(
-            buildLeakDetectedMessage(results.detectedLeaks), "buildLeakDetectedMessage"
-        )
+      val message = buildLeakDetectedMessage(results.detectedLeaks)
 
       bundle.putString(InstrumentationResultPrinter.REPORT_KEY_STACK, message)
       getInstrumentation().sendStatus(REPORT_VALUE_RESULT_FAILURE, bundle)

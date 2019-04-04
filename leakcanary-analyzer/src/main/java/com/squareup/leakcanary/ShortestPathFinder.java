@@ -33,7 +33,6 @@ import java.util.Map;
 
 import static com.squareup.leakcanary.HahaHelper.isPrimitiveOrWrapperArray;
 import static com.squareup.leakcanary.HahaHelper.isPrimitiveWrapper;
-import static com.squareup.leakcanary.HahaHelper.threadName;
 import static com.squareup.leakcanary.LeakTraceElement.Type.ARRAY_ENTRY;
 import static com.squareup.leakcanary.LeakTraceElement.Type.INSTANCE_FIELD;
 import static com.squareup.leakcanary.LeakTraceElement.Type.LOCAL;
@@ -133,8 +132,8 @@ final class ShortestPathFinder {
       switch (rootObj.getRootType()) {
         case JAVA_LOCAL:
           Instance thread = HahaSpyKt.allocatingThread(rootObj);
-          String threadName = threadName(thread);
-          Exclusion params = excludedRefs.threadNames.get(threadName);
+          String threadName = HahaHelper.threadName(thread);
+          Exclusion params = excludedRefs.getThreadNames().get(threadName);
           if (params == null || !params.alwaysExclude) {
             enqueue(params, null, rootObj, null);
           }
@@ -199,7 +198,7 @@ final class ShortestPathFinder {
   private void visitClassObj(LeakNode node) {
     ClassObj classObj = (ClassObj) node.getInstance();
     Map<String, Exclusion> ignoredStaticFields =
-        excludedRefs.staticFieldNameByClassName.get(classObj.getClassName());
+        excludedRefs.getStaticFieldNameByClassName().get(classObj.getClassName());
     for (Map.Entry<Field, Object> entry : classObj.getStaticFieldValues().entrySet()) {
       Field field = entry.getKey();
       if (field.getType() != Type.OBJECT) {
@@ -234,7 +233,7 @@ final class ShortestPathFinder {
     ClassObj superClassObj = classInstance.getClassObj();
     Exclusion classExclusion = null;
     while (superClassObj != null) {
-      Exclusion params = excludedRefs.classNames.get(superClassObj.getClassName());
+      Exclusion params = excludedRefs.getClassNames().get(superClassObj.getClassName());
       if (params != null) {
         // true overrides null or false.
         if (classExclusion == null || !classExclusion.alwaysExclude) {
@@ -242,7 +241,7 @@ final class ShortestPathFinder {
         }
       }
       Map<String, Exclusion> classIgnoredFields =
-          excludedRefs.fieldNameByClassName.get(superClassObj.getClassName());
+          excludedRefs.getFieldNameByClassName().get(superClassObj.getClassName());
       if (classIgnoredFields != null) {
         ignoredFields.putAll(classIgnoredFields);
       }

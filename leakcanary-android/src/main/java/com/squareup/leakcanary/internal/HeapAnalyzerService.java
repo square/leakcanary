@@ -65,10 +65,12 @@ public final class HeapAnalyzerService extends ForegroundService
     HeapDump heapDump = (HeapDump) intent.getSerializableExtra(HEAPDUMP_EXTRA);
 
     HeapAnalyzer heapAnalyzer =
-        new HeapAnalyzer(heapDump.excludedRefs, this, heapDump.reachabilityInspectorClasses);
+        new HeapAnalyzer(heapDump.getExcludedRefs(), this,
+            heapDump.getReachabilityInspectorClasses());
 
     List<AnalysisResult> analysisResults =
-        heapAnalyzer.checkForLeaks(heapDump.heapDumpFile, heapDump.computeRetainedHeapSize);
+        heapAnalyzer.checkForLeaks(heapDump.getHeapDumpFile(),
+            heapDump.getComputeRetainedHeapSize());
 
     int i = 0;
     for (AnalysisResult result : analysisResults) {
@@ -77,8 +79,8 @@ public final class HeapAnalyzerService extends ForegroundService
         // TODO 1 analysis = many leaks, which is currently unsupported by the rest of the pipeline.
         // We temporarily ignore this problem by replacing the heapdump file with a fake file for
         // all heap dumps but the first one.
-        File newFile = new File(heapDump.heapDumpFile.getParentFile(),
-            i + heapDump.heapDumpFile.getName());
+        File newFile = new File(heapDump.getHeapDumpFile().getParentFile(),
+            i + heapDump.getHeapDumpFile().getName());
         try {
           boolean created = newFile.createNewFile();
           if (!created) {

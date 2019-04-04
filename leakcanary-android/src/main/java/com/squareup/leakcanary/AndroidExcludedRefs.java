@@ -608,7 +608,7 @@ public enum AndroidExcludedRefs {
   }
 
   public static @NonNull ExcludedRefs.Builder createBuilder(EnumSet<AndroidExcludedRefs> refs) {
-    ExcludedRefs.Builder excluded = ExcludedRefs.builder();
+    ExcludedRefs.Builder excluded = ExcludedRefs.Companion.builder();
     for (AndroidExcludedRefs ref : refs) {
       if (ref.applies) {
         ref.add(excluded);

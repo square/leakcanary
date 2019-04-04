@@ -9,9 +9,9 @@ public final class Exclusion implements Serializable {
   public final String matching;
 
   Exclusion(ExcludedRefs.ParamsBuilder builder) {
-    this.name = builder.name;
-    this.reason = builder.reason;
-    this.alwaysExclude = builder.alwaysExclude;
-    this.matching = builder.matching;
+    this.name = builder.getName();
+    this.reason = builder.getReason();
+    this.alwaysExclude = builder.getAlwaysExclude();
+    this.matching = builder.getMatching();
   }
 }
