@@ -32,7 +32,6 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import leaksentry.KeyedWeakReference;
@@ -76,21 +75,21 @@ public final class HeapAnalyzer {
   private final ExcludedRefs excludedRefs;
   private final AnalyzerProgressListener listener;
   private final List<Reachability.Inspector> reachabilityInspectors;
-
-  /**
-   * @deprecated Use {@link #HeapAnalyzer(ExcludedRefs, AnalyzerProgressListener, List)}.
-   */
-  @Deprecated
-  public HeapAnalyzer(@NonNull ExcludedRefs excludedRefs) {
-    this(excludedRefs, AnalyzerProgressListener.Companion.getNONE(),
-        Collections.<Class<? extends Reachability.Inspector>>emptyList());
-  }
+  private final String keyedWeakReferenceClassName;
 
   public HeapAnalyzer(@NonNull ExcludedRefs excludedRefs,
       @NonNull AnalyzerProgressListener listener,
       @NonNull List<Class<? extends Reachability.Inspector>> reachabilityInspectorClasses) {
+    this(excludedRefs, listener, reachabilityInspectorClasses, KeyedWeakReference.class.getName());
+  }
+
+  @TestOnly HeapAnalyzer(@NonNull ExcludedRefs excludedRefs,
+      @NonNull AnalyzerProgressListener listener,
+      @NonNull List<Class<? extends Reachability.Inspector>> reachabilityInspectorClasses,
+      String keyedWeakReferenceClassName) {
     this.excludedRefs = excludedRefs;
     this.listener = listener;
+    this.keyedWeakReferenceClassName = keyedWeakReferenceClassName;
 
     this.reachabilityInspectors = new ArrayList<>();
     for (Class<? extends Reachability.Inspector> reachabilityInspectorClass
@@ -170,7 +169,7 @@ public final class HeapAnalyzer {
 
       ClassObj heapDumpMemoryStoreClass = snapshot.findClass(HeapDumpMemoryStore.class.getName());
       ArrayInstance retainedKeysArray =
-         staticFieldValue(heapDumpMemoryStoreClass, "retainedKeysForHeapDump");
+          staticFieldValue(heapDumpMemoryStoreClass, "retainedKeysForHeapDump");
       List<String> retainedKeys = asStringArray(retainedKeysArray);
       long heapDumpUptimeMillis =
           staticFieldValue(heapDumpMemoryStoreClass, "heapDumpUptimeMillis");
@@ -183,11 +182,11 @@ public final class HeapAnalyzer {
             AnalysisResult.Companion.failure(exception, since(analysisStartNanoTime)));
       }
 
-      ClassObj refClass = snapshot.findClass(KeyedWeakReference.class.getName());
+      ClassObj refClass = snapshot.findClass(keyedWeakReferenceClassName);
       if (refClass == null) {
         throw new IllegalStateException(
             "Could not find the "
-                + KeyedWeakReference.class.getName()
+                + keyedWeakReferenceClassName
                 + " class in the heap dump.");
       }
       List<Instance> leakingWeakRefs = new ArrayList<>();
@@ -259,10 +258,10 @@ public final class HeapAnalyzer {
   }
 
   private Instance findLeakingReference(String key, Snapshot snapshot) {
-    ClassObj refClass = snapshot.findClass(KeyedWeakReference.class.getName());
+    ClassObj refClass = snapshot.findClass(keyedWeakReferenceClassName);
     if (refClass == null) {
       throw new IllegalStateException(
-          "Could not find the " + KeyedWeakReference.class.getName() + " class in the heap dump.");
+          "Could not find the " + keyedWeakReferenceClassName + " class in the heap dump.");
     }
     List<String> keysFound = new ArrayList<>();
     for (Instance instance : refClass.getInstancesList()) {
