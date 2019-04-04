@@ -44,6 +44,7 @@ import android.widget.TextView;
 import com.squareup.leakcanary.AnalysisResult;
 import com.squareup.leakcanary.AnalyzedHeap;
 import com.squareup.leakcanary.CanaryLog;
+import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.LeakDirectoryProvider;
 import com.squareup.leakcanary.R;
 import java.io.File;
@@ -63,7 +64,6 @@ import static android.view.View.VISIBLE;
 import static androidx.core.content.FileProvider.getUriForFile;
 import static com.squareup.leakcanary.BuildConfig.GIT_SHA;
 import static com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION;
-import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.getLeakDirectoryProvider;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.newSingleThreadExecutor;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabledBlocking;
@@ -191,7 +191,8 @@ public final class DisplayLeakActivity extends Activity {
 
   void shareLeak() {
     AnalyzedHeap visibleLeak = getVisibleLeak();
-    String leakInfo = leakInfo(this, visibleLeak.heapDump, visibleLeak.result, true);
+    String leakInfo =
+        LeakCanary.INSTANCE.leakInfo(this, visibleLeak.heapDump, visibleLeak.result, true);
     Intent intent = new Intent(Intent.ACTION_SEND);
     intent.setType("text/plain");
     intent.putExtra(Intent.EXTRA_TEXT, leakInfo);

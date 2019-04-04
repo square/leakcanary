@@ -26,7 +26,6 @@ import java.util.Date;
 import java.util.Locale;
 
 import static android.text.format.Formatter.formatShortFileSize;
-import static com.squareup.leakcanary.LeakCanary.leakInfo;
 import static com.squareup.leakcanary.internal.LeakCanaryInternals.classSimpleName;
 
 /**
@@ -43,7 +42,7 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     HeapDump heapDump = analyzedHeap.heapDump;
     AnalysisResult result = analyzedHeap.result;
 
-    String leakInfo = leakInfo(this, heapDump, result, true);
+    String leakInfo = LeakCanary.INSTANCE.leakInfo(this, heapDump, result, true);
     CanaryLog.d("%s", leakInfo);
 
     heapDump = renameHeapdump(heapDump);

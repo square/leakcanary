@@ -81,8 +81,7 @@ open class FailTestOnLeakRunListener : RunListener() {
 
   override fun testFinished(description: Description) {
     detectLeaks()
-    LeakCanary.installedRefWatcher()
-        .clearWatchedReferences()
+    LeakCanary.refWatcher.clearWatchedReferences()
   }
 
   override fun testRunStarted(description: Description) {}

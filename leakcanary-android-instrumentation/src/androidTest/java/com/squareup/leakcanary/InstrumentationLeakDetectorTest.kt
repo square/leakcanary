@@ -12,18 +12,18 @@ import java.util.Date
 class InstrumentationLeakDetectorTest {
 
   @Before fun setUp() {
-    LeakCanary.installedRefWatcher()
+    LeakCanary.refWatcher
         .clearWatchedReferences()
   }
 
   @After fun tearDown() {
-    LeakCanary.installedRefWatcher()
+    LeakCanary.refWatcher
         .clearWatchedReferences()
   }
 
   @Test fun detectsLeak() {
     leaking = Date()
-    val refWatcher = LeakCanary.installedRefWatcher()
+    val refWatcher = LeakCanary.refWatcher
     refWatcher.watch(leaking)
 
     val leakDetector = InstrumentationLeakDetector()

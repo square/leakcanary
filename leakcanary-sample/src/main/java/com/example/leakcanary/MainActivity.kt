@@ -51,7 +51,7 @@ class MainActivity : Activity() {
     val work = Runnable {
       // Do some slow work in background
       SystemClock.sleep(20000)
-      Log.d("MainActivity", "Leaking $this")
+      Log.d("MainActivity", "Leaked $this")
     }
     Thread(work).start()
   }

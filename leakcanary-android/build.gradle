@@ -10,7 +10,9 @@ dependencies {
   //noinspection GradleDependency
   implementation 'androidx.core:core:1.0.1'
   implementation 'androidx.annotation:annotation:1.0.2'
-  testImplementation 'junit:junit:4.12'
+  testImplementation deps.junit
+  testImplementation deps.mockito
+  testImplementation deps.mockito_kotlin
   implementation deps.kotlin.stdlib
 }
 

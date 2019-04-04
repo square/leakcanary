@@ -19,9 +19,13 @@ import android.app.Activity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
+import com.squareup.leakcanary.LeakCanary.Config
 import com.squareup.leakcanary.RefWatcher
 
-internal class SupportFragmentRefWatcher(private val refWatcher: RefWatcher) : FragmentRefWatcher {
+internal class SupportFragmentRefWatcher(
+  private val refWatcher: RefWatcher,
+  private val configProvider: () -> Config
+) : FragmentRefWatcher {
 
   private val fragmentLifecycleCallbacks = object : FragmentManager.FragmentLifecycleCallbacks() {
 
@@ -29,15 +33,21 @@ internal class SupportFragmentRefWatcher(private val refWatcher: RefWatcher) : F
       fm: FragmentManager,
       fragment: Fragment
     ) {
-      fragment.view?.let {
-        refWatcher.watch(it)
+      if (configProvider().watchFragmentViews) {
+        fragment.view?.let {
+          refWatcher.watch(it)
+        }
       }
     }
 
     override fun onFragmentDestroyed(
       fm: FragmentManager,
       fragment: Fragment
-    ) = refWatcher.watch(fragment)
+    ) {
+      if (configProvider().watchFragments) {
+        refWatcher.watch(fragment)
+      }
+    }
   }
 
   override fun watchFragments(activity: Activity) {

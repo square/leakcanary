@@ -1,10 +1,13 @@
 apply plugin: 'java-library'
+apply plugin: 'kotlin'
 
 sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
 
 dependencies {
-  testImplementation 'junit:junit:4.12'
+  implementation deps.kotlin.stdlib
+  testImplementation deps.junit
+  testImplementation deps.assertj_core
 }
 
 apply from: rootProject.file('gradle/checkstyle.gradle')

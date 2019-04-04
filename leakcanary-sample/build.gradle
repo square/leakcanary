@@ -3,9 +3,9 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   implementation deps.kotlin.stdlib
-  implementation project(':leakcanary-android')
+  debugImplementation project(':leakcanary-android')
 
-  testImplementation "junit:junit:4.12"
+  testImplementation deps.junit
   testImplementation "org.robolectric:robolectric:4.0-alpha-3"
   androidTestImplementation project(':leakcanary-android-instrumentation')
   androidTestImplementation 'androidx.test:runner:1.1.1'
@@ -30,7 +30,8 @@ android {
     versionName "1.0"
 
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    testInstrumentationRunnerArgument "listener", "com.squareup.leakcanary.FailTestOnLeakRunListener"
+    testInstrumentationRunnerArgument "listener",
+        "com.squareup.leakcanary.FailTestOnLeakRunListener"
   }
 
   buildTypes {
