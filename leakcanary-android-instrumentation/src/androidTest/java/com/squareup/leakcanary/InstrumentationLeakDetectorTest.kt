@@ -43,6 +43,6 @@ class InstrumentationLeakDetectorTest {
   }
 
   companion object {
-    private var leaking: Any? = null
+    private lateinit var leaking: Any
   }
 }

@@ -20,6 +20,8 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -41,6 +43,7 @@ import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 import com.squareup.leakcanary.AnalysisResult;
 import com.squareup.leakcanary.AnalyzedHeap;
 import com.squareup.leakcanary.CanaryLog;
@@ -72,6 +75,8 @@ import static com.squareup.leakcanary.internal.LeakCanaryInternals.setEnabledBlo
 public final class DisplayLeakActivity extends Activity {
 
   private static final String SHOW_LEAK_EXTRA = "show_latest";
+  private static final String STACKOVERFLOW_QUESTION_URL =
+      "http://stackoverflow.com/questions/ask?guided=false&tags=leakcanary";
 
   // Public API.
   @SuppressWarnings("unused")
@@ -94,6 +99,7 @@ public final class DisplayLeakActivity extends Activity {
   private ListView listView;
   private TextView failureView;
   private Button actionButton;
+  private Button shareButton;
 
   @SuppressWarnings("unchecked")
   @Override protected void onCreate(Bundle savedInstanceState) {
@@ -115,6 +121,7 @@ public final class DisplayLeakActivity extends Activity {
     listView = findViewById(R.id.leak_canary_display_leak_list);
     failureView = findViewById(R.id.leak_canary_display_leak_failure);
     actionButton = findViewById(R.id.leak_canary_action);
+    shareButton = findViewById(R.id.leak_canary_share);
 
     updateUi();
   }
@@ -286,6 +293,13 @@ public final class DisplayLeakActivity extends Activity {
           deleteVisibleLeak();
         }
       });
+      shareButton.setVisibility(VISIBLE);
+      shareButton.setText(getString(R.string.leak_canary_stackoverflow_share));
+      shareButton.setOnClickListener(new View.OnClickListener() {
+        @Override public void onClick(View v) {
+          shareLeakToStackOverflow();
+        }
+      });
       invalidateOptionsMenu();
       setDisplayHomeAsUpEnabled(true);
 
@@ -364,7 +378,27 @@ public final class DisplayLeakActivity extends Activity {
         });
       }
       actionButton.setVisibility(leaks.size() == 0 ? GONE : VISIBLE);
+      shareButton.setVisibility(GONE);
     }
+  }
+
+  private void shareLeakToStackOverflow() {
+    AnalyzedHeap visibleLeak = getVisibleLeak();
+    final String leakInfo =
+        LeakCanary.INSTANCE.leakInfo(this, visibleLeak.heapDump, visibleLeak.result, false);
+    final ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+    // AsyncTask was needed here due to setPrimaryClip making a disk write which
+    // violated StrictMode if on the main thread
+    AsyncTask.execute(new Runnable() {
+      public void run() {
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText(getString(R.string.leak_canary_leak_clipdata_label),
+                "```\n" + leakInfo + "```"));
+      }
+    });
+    Toast.makeText(this, R.string.leak_canary_leak_copied, Toast.LENGTH_LONG).show();
+    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(STACKOVERFLOW_QUESTION_URL));
+    startActivity(browserIntent);
   }
 
   private void setDisplayHomeAsUpEnabled(boolean enabled) {

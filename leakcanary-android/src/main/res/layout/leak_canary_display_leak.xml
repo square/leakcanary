@@ -42,5 +42,11 @@
       android:layout_height="wrap_content"
       android:visibility="gone"
       />
+  <Button
+      android:id="@+id/leak_canary_share"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:visibility="gone"
+      />
 
 </LinearLayout>
