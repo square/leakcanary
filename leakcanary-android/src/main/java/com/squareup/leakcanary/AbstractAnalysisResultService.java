@@ -70,7 +70,7 @@ public abstract class AbstractAnalysisResultService extends ForegroundService {
       onHeapAnalyzed(analyzedHeap);
     } finally {
       //noinspection ResultOfMethodCallIgnored
-      analyzedHeap.heapDump.heapDumpFile.delete();
+      analyzedHeap.heapDump.getHeapDumpFile().delete();
       //noinspection ResultOfMethodCallIgnored
       analyzedHeap.selfFile.delete();
     }

@@ -15,8 +15,8 @@ import java.io.ObjectOutputStream;
 public final class AnalyzedHeap {
 
   @Nullable public static File save(@NonNull HeapDump heapDump, @NonNull AnalysisResult result) {
-    File analyzedHeapfile = new File(heapDump.heapDumpFile.getParentFile(),
-        heapDump.heapDumpFile.getName() + ".result");
+    File analyzedHeapfile = new File(heapDump.getHeapDumpFile().getParentFile(),
+        heapDump.getHeapDumpFile().getName() + ".result");
     FileOutputStream fos = null;
     try {
       fos = new FileOutputStream(analyzedHeapfile);
@@ -77,7 +77,7 @@ public final class AnalyzedHeap {
     this.heapDump = heapDump;
     this.result = result;
     this.selfFile = analyzedHeapFile;
-    heapDumpFileExists = heapDump.heapDumpFile.exists();
+    heapDumpFileExists = heapDump.getHeapDumpFile().exists();
     selfLastModified = analyzedHeapFile.lastModified();
   }
 }

@@ -13,18 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.leakcanary;
+package com.squareup.leakcanary
 
-/**
- * Gives the opportunity to skip checking if a reference is gone when the debugger is connected.
- * An attached debugger might retain references and create false positives.
- */
-public interface DebuggerControl {
-  DebuggerControl NONE = new DebuggerControl() {
-    @Override public boolean isDebuggerAttached() {
-      return false;
-    }
-  };
+import java.lang.ref.ReferenceQueue
+import java.lang.ref.WeakReference
 
-  boolean isDebuggerAttached();
-}
+@Suppress("unused")
+class KeyedWeakReference(
+  referent: Any,
+  /**
+   * Key used to find the retained references in the heap dump.
+   */
+  val key: String,
+  val name: String,
+  val watchUptimeMillis: Long,
+  referenceQueue: ReferenceQueue<Any>
+) : WeakReference<Any>(
+    referent, referenceQueue
+)

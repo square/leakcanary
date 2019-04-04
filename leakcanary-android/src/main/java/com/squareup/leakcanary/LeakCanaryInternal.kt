@@ -20,7 +20,11 @@ internal object LeakCanaryInternal {
 
   private var installed = false
 
-  private val clock = Clock { SystemClock.uptimeMillis() }
+  private val clock = object : Clock {
+    override fun uptimeMillis(): Long {
+      return SystemClock.uptimeMillis()
+    }
+  }
 
   val refWatcher = RefWatcher(clock)
 
@@ -88,6 +92,7 @@ internal object LeakCanaryInternal {
     }
 
     val versionName = packageInfo.versionName
+    @Suppress("DEPRECATION")
     val versionCode = packageInfo.versionCode
     var info = "In $packageName:$versionName:$versionCode.\n"
     var detailedString = ""

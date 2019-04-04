@@ -109,10 +109,10 @@ public class DisplayLeakService extends AbstractAnalysisResultService {
     String fileName =
         new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(new Date());
 
-    File newFile = new File(heapDump.heapDumpFile.getParent(), fileName);
-    boolean renamed = heapDump.heapDumpFile.renameTo(newFile);
+    File newFile = new File(heapDump.getHeapDumpFile().getParent(), fileName);
+    boolean renamed = heapDump.getHeapDumpFile().renameTo(newFile);
     if (!renamed) {
-      CanaryLog.d("Could not rename heap dump file %s to %s", heapDump.heapDumpFile.getPath(),
+      CanaryLog.d("Could not rename heap dump file %s to %s", heapDump.getHeapDumpFile().getPath(),
           newFile.getPath());
     }
     return heapDump.buildUpon().heapDumpFile(newFile).build();

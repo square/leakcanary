@@ -169,7 +169,7 @@ public final class HeapAnalyzer {
 
       ClassObj heapDumpMemoryStoreClass = snapshot.findClass(HeapDumpMemoryStore.class.getName());
       ArrayInstance retainedKeysArray =
-          staticFieldValue(heapDumpMemoryStoreClass, "retainedKeysForHeapDump");
+         staticFieldValue(heapDumpMemoryStoreClass, "retainedKeysForHeapDump");
       List<String> retainedKeys = asStringArray(retainedKeysArray);
       long heapDumpUptimeMillis =
           staticFieldValue(heapDumpMemoryStoreClass, "heapDumpUptimeMillis");
@@ -214,7 +214,8 @@ public final class HeapAnalyzer {
       for (Instance leakingWeakRef : leakingWeakRefs) {
         List<ClassInstance.FieldValue> values = classInstanceValues(leakingWeakRef);
         Instance referent = fieldValue(values, "referent");
-        String key = asString(fieldValue(values, "key"));
+        String key = asString(
+            fieldValue(values, "key"));
         String name = asString(fieldValue(values, "name"));
         long watchUptimeMillis = fieldValue(values, "watchUptimeMillis");
         long watchDurationMillis = heapDumpUptimeMillis - watchUptimeMillis;

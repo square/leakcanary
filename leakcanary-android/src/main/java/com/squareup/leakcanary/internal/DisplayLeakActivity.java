@@ -202,7 +202,7 @@ public final class DisplayLeakActivity extends Activity {
   @SuppressLint("SetWorldReadable")
   void shareHeapDump() {
     AnalyzedHeap visibleLeak = getVisibleLeak();
-    final File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
+    final File heapDumpFile = visibleLeak.heapDump.getHeapDumpFile();
     AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
       @Override public void run() {
         //noinspection ResultOfMethodCallIgnored
@@ -230,7 +230,7 @@ public final class DisplayLeakActivity extends Activity {
     final AnalyzedHeap visibleLeak = getVisibleLeak();
     AsyncTask.SERIAL_EXECUTOR.execute(new Runnable() {
       @Override public void run() {
-        File heapDumpFile = visibleLeak.heapDump.heapDumpFile;
+        File heapDumpFile = visibleLeak.heapDump.getHeapDumpFile();
         File resultFile = visibleLeak.selfFile;
         boolean resultDeleted = resultFile.delete();
         if (!resultDeleted) {
@@ -326,7 +326,7 @@ public final class DisplayLeakActivity extends Activity {
           setTitle(getString(R.string.leak_canary_class_no_leak, className));
           failureMessage = getString(R.string.leak_canary_no_leak_details);
         }
-        String path = visibleLeak.heapDump.heapDumpFile.getAbsolutePath();
+        String path = visibleLeak.heapDump.getHeapDumpFile().getAbsolutePath();
         failureMessage += "\n\n" + getString(R.string.leak_canary_download_dump, path);
         failureView.setText(failureMessage);
       }

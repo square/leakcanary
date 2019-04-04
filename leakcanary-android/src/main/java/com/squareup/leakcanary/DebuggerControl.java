@@ -15,21 +15,16 @@
  */
 package com.squareup.leakcanary;
 
-import java.io.File;
-
-/** Dumps the heap into a file. */
-public interface HeapDumper {
-  HeapDumper NONE = new HeapDumper() {
-    @Override public File dumpHeap() {
-      return RETRY_LATER;
+/**
+ * Gives the opportunity to skip checking if a reference is gone when the debugger is connected.
+ * An attached debugger might retain references and create false positives.
+ */
+public interface DebuggerControl {
+  DebuggerControl NONE = new DebuggerControl() {
+    @Override public boolean isDebuggerAttached() {
+      return false;
     }
   };
 
-  File RETRY_LATER = null;
-
-  /**
-   * @return a {@link File} referencing the dumped heap, or {@link #RETRY_LATER} if the heap could
-   * not be dumped.
-   */
-  File dumpHeap();
+  boolean isDebuggerAttached();
 }
