@@ -15,9 +15,5 @@
   ~ limitations under the License.
   -->
 <manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.squareup.leakcanary.instrumentation.test">
-
-  <application android:name="com.example.leakcanary.tests.InstrumentationExampleApplication">
-  </application>
 </manifest>

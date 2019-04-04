@@ -163,7 +163,7 @@ public enum AndroidExcludedRefs {
     }
   },
 
-  INPUT_METHOD_MANAGER__ROOT_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= O_MR1) {
+  INPUT_METHOD_MANAGER__ROOT_VIEW(SDK_INT >= ICE_CREAM_SANDWICH_MR1 && SDK_INT <= P) {
     @Override void add(ExcludedRefs.Builder excluded) {
       excluded.instanceField("android.view.inputmethod.InputMethodManager", "mCurRootView")
           .reason("The singleton InputMethodManager is holding a reference to mCurRootView long"

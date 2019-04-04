@@ -18,6 +18,7 @@ package com.squareup.leakcanary
 import android.os.Debug
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import leaksentry.LeakSentry
 import org.junit.runner.notification.RunListener
 import java.io.File
 
@@ -96,21 +97,23 @@ import java.io.File
 class InstrumentationLeakDetector {
 
   fun detectLeaks(): InstrumentationLeakResults {
+    val leakDetectionTime = SystemClock.uptimeMillis()
+    val watchDurationMillis = LeakSentry.config.watchDurationMillis
     val instrumentation = getInstrumentation()
     val context = instrumentation.targetContext
-    val refWatcher = LeakCanary.refWatcher
+    val refWatcher = LeakSentry.refWatcher
 
-    if (refWatcher.isEmpty) {
+    if (!refWatcher.hasWatchedReferences) {
       return InstrumentationLeakResults.NONE
     }
 
     instrumentation.waitForIdleSync()
-    if (refWatcher.isEmpty) {
+    if (!refWatcher.hasWatchedReferences) {
       return InstrumentationLeakResults.NONE
     }
 
     GcTrigger.DEFAULT.runGc()
-    if (refWatcher.isEmpty) {
+    if (!refWatcher.hasWatchedReferences) {
       return InstrumentationLeakResults.NONE
     }
 
@@ -118,7 +121,7 @@ class InstrumentationLeakDetector {
     // Android simply has way too many delayed posts that aren't canceled when views are detached.
     SystemClock.sleep(2000)
 
-    if (refWatcher.isEmpty) {
+    if (!refWatcher.hasWatchedReferences) {
       return InstrumentationLeakResults.NONE
     }
 
@@ -126,16 +129,22 @@ class InstrumentationLeakDetector {
     // 4 seconds (2+2) is greater than the 3 seconds delay for
     // FINISH_TOKEN in android.widget.Filter
     SystemClock.sleep(2000)
+
+    val endOfWatchDelay = watchDurationMillis - (SystemClock.uptimeMillis() - leakDetectionTime)
+    if (endOfWatchDelay > 0) {
+      SystemClock.sleep(endOfWatchDelay)
+    }
+
     GcTrigger.DEFAULT.runGc()
 
-    if (refWatcher.isEmpty) {
+    if (!refWatcher.hasRetainedReferences) {
       return InstrumentationLeakResults.NONE
     }
 
     // We're always reusing the same file since we only execute this once at a time.
     val heapDumpFile = File(context.filesDir, "instrumentation_tests_heapdump.hprof")
 
-    val retainedKeys = refWatcher.allRetainedKeys
+    val retainedKeys = refWatcher.retainedKeys
     HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
     HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
 
@@ -195,9 +204,8 @@ class InstrumentationLeakDetector {
 
     /**
      * Configures LeakCanary to not dump the heap so that instrumentation tests run smoothly,
-     * and we can look for leaks at the end of a test. This should be called from the test
-     * application class, and should be used in combination with a [RunListener] that
-     * calls [detectLeaks], for instance [FailTestOnLeakRunListener].
+     * and we can look for leaks at the end of a test. This is automatically called by
+     * [FailTestOnLeakRunListener] when the tests start running.
      */
     fun updateConfig() {
       LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)

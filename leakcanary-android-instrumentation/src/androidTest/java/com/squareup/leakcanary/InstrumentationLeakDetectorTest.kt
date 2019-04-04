@@ -1,5 +1,6 @@
 package com.squareup.leakcanary
 
+import leaksentry.LeakSentry
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -12,18 +13,18 @@ import java.util.Date
 class InstrumentationLeakDetectorTest {
 
   @Before fun setUp() {
-    LeakCanary.refWatcher
+    LeakSentry.refWatcher
         .clearWatchedReferences()
   }
 
   @After fun tearDown() {
-    LeakCanary.refWatcher
+    LeakSentry.refWatcher
         .clearWatchedReferences()
   }
 
   @Test fun detectsLeak() {
     leaking = Date()
-    val refWatcher = LeakCanary.refWatcher
+    val refWatcher = LeakSentry.refWatcher
     refWatcher.watch(leaking)
 
     val leakDetector = InstrumentationLeakDetector()

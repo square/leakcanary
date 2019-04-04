@@ -20,6 +20,7 @@ import android.os.Bundle
 import androidx.test.internal.runner.listener.InstrumentationResultPrinter
 import androidx.test.internal.runner.listener.InstrumentationResultPrinter.REPORT_VALUE_RESULT_FAILURE
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import leaksentry.LeakSentry
 import org.junit.runner.Description
 import org.junit.runner.Result
 import org.junit.runner.notification.Failure
@@ -80,10 +81,12 @@ open class FailTestOnLeakRunListener : RunListener() {
 
   override fun testFinished(description: Description) {
     detectLeaks()
-    LeakCanary.refWatcher.clearWatchedReferences()
+    LeakSentry.refWatcher.clearWatchedReferences()
   }
 
-  override fun testRunStarted(description: Description) {}
+  override fun testRunStarted(description: Description) {
+    InstrumentationLeakDetector.updateConfig()
+  }
 
   override fun testRunFinished(result: Result) {}
 
@@ -124,7 +127,7 @@ open class FailTestOnLeakRunListener : RunListener() {
     detectedLeaks.forEach { detectedLeak ->
       failureMessage.append(
           LeakCanary.leakInfo(
-              context, detectedLeak.heapDump, detectedLeak.analysisResult, true
+              context, detectedLeak.heapDump, detectedLeak.analysisResult, false
           )
       )
       failureMessage.append(SEPARATOR)

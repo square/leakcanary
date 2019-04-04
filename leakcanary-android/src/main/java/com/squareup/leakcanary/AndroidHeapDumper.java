@@ -30,7 +30,7 @@ import android.view.LayoutInflater;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import com.squareup.leakcanary.internal.ActivityLifecycleCallbacksAdapter;
+import leaksentry.internal.ActivityLifecycleCallbacksAdapter;
 import com.squareup.leakcanary.internal.FutureResult;
 import com.squareup.leakcanary.internal.LeakCanaryInternals;
 import java.io.File;
@@ -40,17 +40,15 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 public final class AndroidHeapDumper implements HeapDumper {
 
   private final Context context;
-  private final RefWatcher refWatcher;
   private final LeakDirectoryProvider leakDirectoryProvider;
   private final Handler mainHandler;
 
   private Activity resumedActivity;
 
   public AndroidHeapDumper(@NonNull Context context,
-      @NonNull LeakDirectoryProvider leakDirectoryProvider, RefWatcher refWatcher) {
+      @NonNull LeakDirectoryProvider leakDirectoryProvider) {
     this.leakDirectoryProvider = leakDirectoryProvider;
     this.context = context.getApplicationContext();
-    this.refWatcher = refWatcher;
     mainHandler = new Handler(Looper.getMainLooper());
 
     Application application = (Application) context.getApplicationContext();

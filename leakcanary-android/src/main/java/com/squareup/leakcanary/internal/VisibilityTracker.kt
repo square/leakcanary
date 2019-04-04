@@ -2,6 +2,7 @@ package com.squareup.leakcanary.internal
 
 import android.app.Activity
 import android.app.Application
+import leaksentry.internal.ActivityLifecycleCallbacksAdapter
 
 internal class VisibilityTracker(
   private val listener: (Boolean) -> Unit
@@ -17,7 +18,7 @@ internal class VisibilityTracker(
    */
   private var hasVisibleActivities: Boolean = false
 
-  override fun onActivityStarted(activity: Activity?) {
+  override fun onActivityStarted(activity: Activity) {
     startedActivityCount++
     if (!hasVisibleActivities && startedActivityCount == 1) {
       hasVisibleActivities = true
@@ -26,7 +27,11 @@ internal class VisibilityTracker(
   }
 
   override fun onActivityStopped(activity: Activity) {
-    startedActivityCount--
+    // This could happen if the callbacks were registered after some activities were already
+    // started. In that case we effectively considers those past activities as not visible.
+    if (startedActivityCount > 0) {
+      startedActivityCount--
+    }
     if (hasVisibleActivities && startedActivityCount == 0 && !activity.isChangingConfigurations) {
       hasVisibleActivities = false
       listener.invoke(false)
