@@ -161,12 +161,13 @@ public final class LeakTraceElement implements Serializable {
 
     string += getSimpleClassName();
 
-    int requiredSpaces = string.length();
+    // +1 for "."
+    int requiredSpaces = string.length() + 1;
 
     if (reference != null) {
       String referenceName = reference.getDisplayName();
       string += "." + referenceName;
-      refNameLen = referenceName.length() + 1;
+      refNameLen = referenceName.length();
     }
 
     if (extra != null) {
