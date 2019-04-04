@@ -70,7 +70,7 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
     val exclusion = elements[0].exclusion
 
     val expectedExclusions = Arrays.asList(ASYNC_TASK_THREAD, EXECUTOR_FIELD_1, EXECUTOR_FIELD_2)
-    assertThat(expectedExclusions.contains(exclusion.name)).isTrue()
+    assertThat(expectedExclusions.contains(exclusion!!.name)).isTrue()
   }
 
   companion object {
