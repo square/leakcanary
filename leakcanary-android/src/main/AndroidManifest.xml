@@ -74,8 +74,13 @@
         android:theme="@style/leak_canary_Theme.Transparent"
         />
 
-    <provider
-        android:name=".LeakCanaryInstaller"
-        android:authorities="${applicationId}.leak-canary-installer"/>
+    <receiver android:name="com.squareup.leakcanary.internal.LeakCanaryReceiver">
+      <intent-filter>
+        <action android:name="leaksentry.LeakSentryReceiver.referenceRetained"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="leaksentry.LeakSentryReceiver.leakSentryInstalled"/>
+      </intent-filter>
+    </receiver>
   </application>
 </manifest>

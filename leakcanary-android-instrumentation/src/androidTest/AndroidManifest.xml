@@ -17,5 +17,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.squareup.leakcanary.instrumentation.test">
   <application android:name="com.squareup.leakcanary.InstrumentationTestApplication">
+    <activity android:name="com.squareup.leakcanary.TestActivity"/>
   </application>
 </manifest>

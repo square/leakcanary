@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.LeakCanary.Config
 import com.squareup.leakcanary.internal.registerVisibilityListener
+import leaksentry.RefWatcher
 
 class HeapDumpTrigger(
   private val application: Application,
@@ -21,16 +22,17 @@ class HeapDumpTrigger(
   @Volatile
   var applicationVisible = false
 
-  fun watchForLeaks() {
+  fun registerToVisibilityChanges() {
     application.registerVisibilityListener { applicationVisible ->
       this.applicationVisible = applicationVisible
       if (!applicationVisible) {
-        backgroundHandler.post(this@HeapDumpTrigger::tick)
+        scheduleTick()
       }
     }
-    refWatcher.addNewRefListener {
-      scheduleTick(WAIT_FOR_LEAKS_MILLIS)
-    }
+  }
+
+  fun onReferenceRetained() {
+    scheduleTick()
   }
 
   private fun tick() {
@@ -41,7 +43,7 @@ class HeapDumpTrigger(
     }
 
     val minLeaks = if (applicationVisible) MIN_LEAKS_WHEN_VISIBLE else MIN_LEAKS_WHEN_NOT_VISIBLE
-    var retainedKeys = refWatcher.getRetainedKeysOlderThan(WAIT_FOR_LEAKS_MILLIS)
+    var retainedKeys = refWatcher.retainedKeys
     if (retainedKeys.size < minLeaks) {
       // No need to scheduleTick, new refs always schedule one.
       CanaryLog.d(
@@ -72,7 +74,7 @@ class HeapDumpTrigger(
     val gcDurationMillis = SystemClock.uptimeMillis() - gcStartUptimeMillis
 
 
-    retainedKeys = refWatcher.getRetainedKeysOlderThan(WAIT_FOR_LEAKS_MILLIS)
+    retainedKeys = refWatcher.retainedKeys
     if (retainedKeys.size < minLeaks) {
       CanaryLog.d(
           "Found %d potential leaks after GC, which is less than the min of %d", retainedKeys.size,
@@ -108,13 +110,16 @@ class HeapDumpTrigger(
     heapdumpListener.analyze(heapDump)
   }
 
+  private fun scheduleTick() {
+    backgroundHandler.post(this@HeapDumpTrigger::tick)
+  }
+
   private fun scheduleTick(delayMillis: Long) {
     backgroundHandler.postDelayed(this@HeapDumpTrigger::tick, delayMillis)
   }
 
   companion object {
     const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"
-    const val WAIT_FOR_LEAKS_MILLIS = 5_000L
     const val WAIT_FOR_PENDING_ANALYSIS_MILLIS = 20_000L
     const val WAIT_FOR_DEBUG_MILLIS = 20_000L
     const val WAIT_FOR_HEAP_DUMPER_MILLIS = 5_000L
