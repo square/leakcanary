@@ -48,6 +48,9 @@
   <string name="leak_canary_permission_not_granted">Please grant external storage permission, otherwise memory leaks will not be detected.</string>
   <string name="leak_canary_permission_notification_title">Leak detected, need permission</string>
   <string name="leak_canary_permission_notification_text">Click to enable storage permission for %s.</string>
+  <string name="leak_canary_stackoverflow_share">Share Leak On Stack Overflow</string>
+  <string name="leak_canary_leak_copied">Leak info copied to clipboard</string>
+  <string name="leak_canary_leak_clipdata_label">LeakCanary Leak Trace</string>
   <string name="leak_canary_help_title">Tap here to learn more</string>
   <string name="leak_canary_help_detail"><![CDATA[A memory leak is a programming error that causes
   your application to keep a reference to an object that is no longer needed. As a result, the
