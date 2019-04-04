@@ -4,7 +4,6 @@ import com.squareup.leakcanary.HeapDumpFile.ASYNC_TASK_P
 import com.squareup.leakcanary.HeapDumpFile.GC_ROOT_IN_NON_PRIMARY_HEAP
 import com.squareup.leakcanary.HeapDumpFile.MISSING_THREAD
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -12,7 +11,7 @@ import org.junit.runners.JUnit4
 @RunWith(JUnit4::class)
 class HeapAnalyzerHeapDumpTest {
 
-  @Test @Ignore("KeyedWeakReference has moved packages, need new heap dumps")
+  @Test
   fun findsExpectedRef() {
     val leak = findLeak(ASYNC_TASK_P)!!
     assertThat(leak.leakFound).isTrue()
@@ -20,19 +19,19 @@ class HeapAnalyzerHeapDumpTest {
     assertThat(leak.className).isEqualTo("com.example.leakcanary.MainActivity")
   }
 
-  @Test @Ignore("KeyedWeakReference has moved packages, need new heap dumps")
+  @Test
   fun findsSeveralRefs() {
     val results = findAllLeaks(ASYNC_TASK_P)
     assertThat(results).hasSize(3)
   }
 
-  @Test @Ignore("KeyedWeakReference has moved packages, need new heap dumps")
+  @Test
   fun leakFoundWithGcRootInNonPrimaryHeap() {
     val result = analyze(GC_ROOT_IN_NON_PRIMARY_HEAP)
     assertThat(result.leakFound).isTrue()
   }
 
-  @Test @Ignore("KeyedWeakReference has moved packages, need new heap dumps")
+  @Test
   fun heapDumpWithMissingNativeThread() {
     val result = analyze(MISSING_THREAD)
     assertThat(result.leakFound).isTrue()

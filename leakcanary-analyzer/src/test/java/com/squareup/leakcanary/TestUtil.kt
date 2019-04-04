@@ -8,6 +8,8 @@ import java.lang.ref.WeakReference
 internal val NO_EXCLUDED_REFS = ExcludedRefs.builder()
     .build()
 
+const val OLD_KEYED_WEAK_REFERENCE_CLASS_NAME = "com.squareup.leakcanary.KeyedWeakReference"
+
 internal enum class HeapDumpFile constructor(
   val filename: String,
   val referenceKey: String
@@ -43,7 +45,8 @@ internal fun findLeak(heapDumpFile: HeapDumpFile): AnalysisResult? {
 internal fun findAllLeaks(heapDumpFile: HeapDumpFile): List<AnalysisResult> {
   val file = fileFromName(heapDumpFile.filename)
   val heapAnalyzer = HeapAnalyzer(
-      defaultExcludedRefs.build(), AnalyzerProgressListener.NONE, emptyList()
+      defaultExcludedRefs.build(), AnalyzerProgressListener.NONE, emptyList(),
+      OLD_KEYED_WEAK_REFERENCE_CLASS_NAME
   )
   val results = heapAnalyzer.checkForLeaks(file, true)
   for (result in results) {
@@ -64,7 +67,10 @@ internal fun analyze(
   val file = fileFromName(heapDumpFile.filename)
   val referenceKey = heapDumpFile.referenceKey
   val heapAnalyzer =
-    HeapAnalyzer(excludedRefs.build(), AnalyzerProgressListener.NONE, emptyList())
+    HeapAnalyzer(
+        excludedRefs.build(), AnalyzerProgressListener.NONE, emptyList(),
+        OLD_KEYED_WEAK_REFERENCE_CLASS_NAME
+    )
   val result = heapAnalyzer.checkForLeak(file, referenceKey, true)
   result.failure?.printStackTrace()
   if (result.leakTrace != null) {

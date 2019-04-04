@@ -7,7 +7,6 @@ import com.squareup.leakcanary.LeakTraceElement.Holder.THREAD
 import com.squareup.leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -31,7 +30,7 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
         .alwaysExclude()
   }
 
-  @Test @Ignore("KeyedWeakReference has moved packages, need new heap dumps")
+  @Test
   fun leakFound() {
     val result = analyze(heapDumpFile, excludedRefs)
     assertThat(result.leakFound).isTrue()
@@ -42,7 +41,7 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
     assertThat(gcRoot.extra).contains(ASYNC_TASK_THREAD)
   }
 
-  @Test @Ignore("KeyedWeakReference has moved packages, need new heap dumps")
+  @Test
   fun excludeThread() {
     excludedRefs.thread(ASYNC_TASK_THREAD)
     val result = analyze(heapDumpFile, excludedRefs)
@@ -56,7 +55,7 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
     ).isTrue()
   }
 
-  @Test @Ignore("KeyedWeakReference has moved packages, need new heap dumps")
+  @Test
   fun excludeStatic() {
     excludedRefs.thread(ASYNC_TASK_THREAD)
         .named(ASYNC_TASK_THREAD)
