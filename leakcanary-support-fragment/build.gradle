@@ -3,20 +3,16 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   api project(':leakcanary-android')
-  // We don't need the latest version of AndroidX (there are no bugs that impact what LeakCanary
-  // relies on), we're sticking a bit older because most apps will be using a more recent version
-  // and they'll automatically resolve to higher version without having to necessarily resort to a
-  // resolution strategy.
-  //noinspection GradleDependency
-  implementation 'androidx.fragment:fragment:1.0.0'
-  implementation 'androidx.annotation:annotation:1.0.2'
+
+  implementation deps.androidx.fragment
+  implementation deps.androidx.annotation
   implementation deps.kotlin.stdlib
 
   androidTestImplementation project(':leakcanary-android-instrumentation')
-  androidTestImplementation 'androidx.test:runner:1.1.1'
-  androidTestImplementation 'androidx.test:rules:1.1.1'
-  androidTestImplementation 'androidx.test:core:1.1.0'
-  androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
+  androidTestImplementation deps.androidx.test.core
+  androidTestImplementation deps.androidx.test.espresso
+  androidTestImplementation deps.androidx.test.rules
+  androidTestImplementation deps.androidx.test.runner
 }
 
 android {

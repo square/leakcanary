@@ -3,7 +3,8 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   api project(':leakcanary-android')
-  implementation 'androidx.test:runner:1.1.1'
+
+  implementation deps.androidx.test.runner
   implementation deps.kotlin.stdlib
 }
 
