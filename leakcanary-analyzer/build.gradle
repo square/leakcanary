@@ -2,12 +2,14 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 dependencies {
-  implementation deps.kotlin.stdlib
-  implementation 'com.squareup.haha:haha:2.1'
   api project(':leakcanary-watcher')
-  testImplementation deps.junit
+
+  implementation deps.androidx.annotation
+  implementation deps.haha
+  implementation deps.kotlin.stdlib
+
   testImplementation deps.assertj_core
-  implementation 'androidx.annotation:annotation:1.0.2'
+  testImplementation deps.junit
 }
 
 android {

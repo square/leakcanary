@@ -2,15 +2,17 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 dependencies {
-  implementation deps.kotlin.stdlib
   debugImplementation project(':leakcanary-android')
 
+  implementation deps.kotlin.stdlib
+
   testImplementation deps.junit
-  testImplementation "org.robolectric:robolectric:4.0-alpha-3"
+  testImplementation deps.robolectric
+
   androidTestImplementation project(':leakcanary-android-instrumentation')
-  androidTestImplementation 'androidx.test:runner:1.1.1'
-  androidTestImplementation 'androidx.test:rules:1.1.1'
-  androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
+  androidTestImplementation deps.androidx.test.espresso
+  androidTestImplementation deps.androidx.test.rules
+  androidTestImplementation deps.androidx.test.runner
 }
 
 android {

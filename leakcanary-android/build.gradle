@@ -3,17 +3,14 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   api project(':leakcanary-analyzer')
-  // We don't need the latest version of AndroidX (there are no bugs that impact what LeakCanary
-  // relies on), we're sticking a bit older because most apps will be using a more recent version
-  // and they'll automatically resolve to higher version without having to necessarily resort to a
-  // resolution strategy.
-  //noinspection GradleDependency
-  implementation 'androidx.core:core:1.0.1'
-  implementation 'androidx.annotation:annotation:1.0.2'
+
+  implementation deps.androidx.annotation
+  implementation deps.androidx.core
+  implementation deps.kotlin.stdlib
+
   testImplementation deps.junit
   testImplementation deps.mockito
   testImplementation deps.mockito_kotlin
-  implementation deps.kotlin.stdlib
 }
 
 def gitSha() {
