@@ -1,5 +1,8 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+apply plugin: 'java-library'
+apply plugin: 'kotlin'
+
+sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7
 
 dependencies {
   api project(':leakcanary-watcher')
@@ -10,24 +13,6 @@ dependencies {
 
   testImplementation deps.assertj_core
   testImplementation deps.junit
-}
-
-android {
-  compileSdkVersion versions.compileSdk
-
-  defaultConfig {
-    minSdkVersion versions.minSdk
-  }
-
-  lintOptions {
-    disable 'GoogleAppIndexingWarning'
-    check 'Interoperability'
-  }
-
-  // TODO replace with https://issuetracker.google.com/issues/72050365 once released.
-  libraryVariants.all {
-    it.generateBuildConfig.enabled = false
-  }
 }
 
 apply from: rootProject.file('gradle/checkstyle.gradle')
