@@ -390,6 +390,7 @@ public final class DisplayLeakActivity extends Activity {
     // AsyncTask was needed here due to setPrimaryClip making a disk write which
     // violated StrictMode if on the main thread
     AsyncTask.execute(new Runnable() {
+      @Override
       public void run() {
         clipboard.setPrimaryClip(
             ClipData.newPlainText(getString(R.string.leak_canary_leak_clipdata_label),

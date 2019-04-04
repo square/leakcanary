@@ -142,8 +142,8 @@ final class DisplayLeakAdapter extends BaseAdapter {
     String styledClassName =
         "<font color='" + classNameColorHexString + "'>" + simpleName + "</font>";
 
-    if (element.reference != null) {
-      String referenceName = element.reference.getDisplayName().replaceAll("<", "&lt;")
+    if (element.getReference() != null) {
+      String referenceName = element.getReference().getDisplayName().replaceAll("<", "&lt;")
           .replaceAll(">", "&gt;");
 
       if (maybeLeakCause) {
@@ -154,7 +154,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
             "<font color='" + referenceColorHexString + "'>" + referenceName + "</font>";
       }
 
-      if (element.reference.type == STATIC_FIELD) {
+      if (element.getReference().type == STATIC_FIELD) {
         referenceName = "<i>" + referenceName + "</i>";
       }
 
@@ -169,7 +169,7 @@ final class DisplayLeakAdapter extends BaseAdapter {
       htmlString += styledClassName;
     }
 
-    Exclusion exclusion = element.exclusion;
+    Exclusion exclusion = element.getExclusion();
     if (exclusion != null) {
       htmlString += " (excluded)";
     }
@@ -183,11 +183,11 @@ final class DisplayLeakAdapter extends BaseAdapter {
 
   private Spanned htmlDetails(boolean isLeakingInstance, LeakTraceElement element) {
     String htmlString = "";
-    if (element.extra != null) {
-      htmlString += " <font color='" + extraColorHexString + "'>" + element.extra + "</font>";
+    if (element.getExtra() != null) {
+      htmlString += " <font color='" + extraColorHexString + "'>" + element.getExtra() + "</font>";
     }
 
-    Exclusion exclusion = element.exclusion;
+    Exclusion exclusion = element.getExclusion();
     if (exclusion != null) {
       htmlString += "<br/><br/>Excluded by rule";
       if (exclusion.name != null) {
