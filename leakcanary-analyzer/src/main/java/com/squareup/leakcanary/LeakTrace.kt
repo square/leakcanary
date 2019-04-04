@@ -15,7 +15,7 @@ data class LeakTrace(
 ) : Serializable {
 
   override fun toString(): String {
-    var leakInfo = THE_T + "\n"
+    var leakInfo = "┬" + "\n"
     val lastElement = elements.last()
     val lastReachability = expectedReachability.last()
     elements.dropLast(1)
@@ -24,13 +24,13 @@ data class LeakTrace(
 
           leakInfo += """
         |├─ ${leakTraceElement.className}
-        |${LINE}${getReachabilityString(currentReachability)}
-        |${LINE}${getPossibleLeakString(currentReachability, leakTraceElement, index)}
+        |│${getReachabilityString(currentReachability)}
+        |│${getPossibleLeakString(currentReachability, leakTraceElement, index)}
         |
         """.trimMargin()
         }
     leakInfo += """╰→ ${lastElement.className}
-      | ${getReachabilityString(lastReachability)}
+      |$ZERO_WIDTH_SPACE${getReachabilityString(lastReachability)}
     """.trimMargin()
 
     return leakInfo
@@ -59,7 +59,7 @@ data class LeakTrace(
       }
       else -> false
     }
-    return DEFAULT_NEWLINE_SPACE + DOWN_ARROW + " ${leakTraceElement.toString(maybeLeakCause)}"
+    return DEFAULT_NEWLINE_SPACE + "↓" + " ${leakTraceElement.toString(maybeLeakCause)}"
   }
 
   private fun getReachabilityString(reachability: Reachability): String {
@@ -72,8 +72,6 @@ data class LeakTrace(
 
   companion object {
     private val DEFAULT_NEWLINE_SPACE = "                 "
-    private val LINE = "│"
-    private val DOWN_ARROW = "↓"
-    private val THE_T = "┬"
+    private val ZERO_WIDTH_SPACE = '\u200b'
   }
 }
