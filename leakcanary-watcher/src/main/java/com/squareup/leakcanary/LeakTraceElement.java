@@ -149,6 +149,7 @@ public final class LeakTraceElement implements Serializable {
 
   public String toString(boolean maybeLeakCause) {
     String string = "";
+    int refNameLen = 0;
 
     if (reference != null && reference.type == STATIC_FIELD) {
       string += "static ";
@@ -160,12 +161,12 @@ public final class LeakTraceElement implements Serializable {
 
     string += getSimpleClassName();
 
+    int requiredSpaces = string.length();
+
     if (reference != null) {
       String referenceName = reference.getDisplayName();
-      if (maybeLeakCause) {
-        referenceName = "!(" + referenceName + ")!";
-      }
       string += "." + referenceName;
+      refNameLen = referenceName.length() + 1;
     }
 
     if (extra != null) {
@@ -174,6 +175,20 @@ public final class LeakTraceElement implements Serializable {
 
     if (exclusion != null) {
       string += " , matching exclusion " + exclusion.matching;
+    }
+
+    if (maybeLeakCause) {
+      string += "\n│                   ";
+      StringBuilder builder = new StringBuilder();
+      for (int i = 0; i < requiredSpaces; i++) {
+        builder.append(" ");
+      }
+      string += builder.toString();
+      builder.setLength(0);
+      for (int i = 0; i < refNameLen; i++) {
+        builder.append("~");
+      }
+      string += builder.toString();
     }
 
     return string;
