@@ -22,12 +22,10 @@ import com.squareup.haha.perflib.Instance
 import com.squareup.haha.perflib.Type
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.Charset
-import java.util.ArrayList
 import java.util.Arrays.asList
 import java.util.HashSet
 
-// TODO @JvmStatic and make internal when all code is kotlin.
-object HahaHelper {
+internal object HahaHelper {
 
   private val WRAPPER_TYPES = HashSet(
       asList(
@@ -37,7 +35,7 @@ object HahaHelper {
       )
   )
 
-  @JvmStatic fun threadName(holder: Instance): String {
+  fun threadName(holder: Instance): String {
     val values = classInstanceValues(holder)
     val nameField = fieldValue<Any>(values, "name")
         ?: // Sometimes we can't find the String at the expected memory address in the heap dump.
@@ -46,7 +44,7 @@ object HahaHelper {
     return asString(nameField)
   }
 
-  @JvmStatic fun extendsThread(clazz: ClassObj): Boolean {
+  fun extendsThread(clazz: ClassObj): Boolean {
     var extendsThread = false
     var parentClass = clazz
     while (parentClass.superClassObj != null) {
@@ -62,7 +60,7 @@ object HahaHelper {
   /**
    * This returns a string representation of any object or value passed in.
    */
-  @JvmStatic fun valueAsString(value: Any?): String {
+  fun valueAsString(value: Any?): String {
     val stringValue: String
     if (value == null) {
       stringValue = "null"
@@ -79,8 +77,8 @@ object HahaHelper {
     return stringValue
   }
 
-  @JvmStatic fun asStringArray(arrayInstance: ArrayInstance): List<String> {
-    val entries = ArrayList<String>()
+  fun asStringArray(arrayInstance: ArrayInstance): MutableList<String> {
+    val entries = mutableListOf<String>()
     for (arrayEntry in arrayInstance.values) {
       entries.add(asString(arrayEntry))
     }
@@ -88,7 +86,7 @@ object HahaHelper {
   }
 
   /** Given a string instance from the heap dump, this returns its actual string value.  */
-  @JvmStatic fun asString(stringObject: Any): String {
+  fun asString(stringObject: Any): String {
     val instance = stringObject as Instance
     val values = classInstanceValues(instance)
 
@@ -140,7 +138,7 @@ object HahaHelper {
     }
   }
 
-  @JvmStatic fun isPrimitiveWrapper(value: Any): Boolean {
+  fun isPrimitiveWrapper(value: Any): Boolean {
     return if (value !is ClassInstance) {
       false
     } else WRAPPER_TYPES.contains(
@@ -148,7 +146,7 @@ object HahaHelper {
     )
   }
 
-  @JvmStatic fun isPrimitiveOrWrapperArray(value: Any): Boolean {
+  fun isPrimitiveOrWrapperArray(value: Any): Boolean {
     if (value !is ArrayInstance) {
       return false
     }
@@ -159,20 +157,20 @@ object HahaHelper {
     )
   }
 
-  @JvmStatic private fun isCharArray(value: Any): Boolean {
+  private fun isCharArray(value: Any): Boolean {
     return value is ArrayInstance && value.arrayType == Type.CHAR
   }
 
-  @JvmStatic private fun isByteArray(value: Any): Boolean {
+  private fun isByteArray(value: Any): Boolean {
     return value is ArrayInstance && value.arrayType == Type.BYTE
   }
 
-  @JvmStatic fun classInstanceValues(instance: Instance): List<ClassInstance.FieldValue> {
+  fun classInstanceValues(instance: Instance): List<ClassInstance.FieldValue> {
     val classInstance = instance as ClassInstance
     return classInstance.values
   }
 
-  @JvmStatic fun <T> fieldValue(
+  fun <T> fieldValue(
     values: List<ClassInstance.FieldValue>,
     fieldName: String
   ): T? {
@@ -185,7 +183,7 @@ object HahaHelper {
     throw IllegalArgumentException("Field $fieldName does not exists")
   }
 
-  @JvmStatic fun hasField(
+  fun hasField(
     values: List<ClassInstance.FieldValue>,
     fieldName: String
   ): Boolean {
@@ -198,7 +196,7 @@ object HahaHelper {
     return false
   }
 
-  @JvmStatic fun <T> staticFieldValue(
+  fun <T> staticFieldValue(
     classObj: ClassObj,
     fieldName: String
   ): T {

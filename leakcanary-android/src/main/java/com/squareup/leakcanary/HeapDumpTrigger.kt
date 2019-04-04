@@ -26,16 +26,17 @@ class HeapDumpTrigger(
     application.registerVisibilityListener { applicationVisible ->
       this.applicationVisible = applicationVisible
       if (!applicationVisible) {
-        scheduleTick()
+        scheduleTick("app became invisible")
       }
     }
   }
 
   fun onReferenceRetained() {
-    scheduleTick()
+    scheduleTick("found new reference retained")
   }
 
-  private fun tick() {
+  private fun tick(reason: String) {
+    CanaryLog.d("Checking retained references because %s", reason)
     val config = configProvider()
     // A tick will be rescheduled when this is turned back on.
     if (!config.dumpHeap) {
@@ -47,13 +48,13 @@ class HeapDumpTrigger(
     if (retainedKeys.size < minLeaks) {
       // No need to scheduleTick, new refs always schedule one.
       CanaryLog.d(
-          "Found %d potential leaks, which is less than the min of %d", retainedKeys.size, minLeaks
+          "Found %d retained references, which is less than the min of %d", retainedKeys.size, minLeaks
       )
       return
     }
 
     if (debuggerControl.isDebuggerAttached) {
-      scheduleTick(WAIT_FOR_DEBUG_MILLIS)
+      scheduleTick("debugger was attached", WAIT_FOR_DEBUG_MILLIS)
       CanaryLog.d(
           "Not checking for leaks while the debugger is attached, will retry in %d ms",
           WAIT_FOR_DEBUG_MILLIS
@@ -66,7 +67,7 @@ class HeapDumpTrigger(
       CanaryLog.d(
           "Leak Analysis in progress, will retry in %d ms", WAIT_FOR_PENDING_ANALYSIS_MILLIS
       )
-      scheduleTick(WAIT_FOR_PENDING_ANALYSIS_MILLIS)
+      scheduleTick("had pending heap dump", WAIT_FOR_PENDING_ANALYSIS_MILLIS)
       return
     }
     val gcStartUptimeMillis = SystemClock.uptimeMillis()
@@ -77,7 +78,7 @@ class HeapDumpTrigger(
     retainedKeys = refWatcher.retainedKeys
     if (retainedKeys.size < minLeaks) {
       CanaryLog.d(
-          "Found %d potential leaks after GC, which is less than the min of %d", retainedKeys.size,
+          "Found %d retained references after GC, which is less than the min of %d", retainedKeys.size,
           minLeaks
       )
       return
@@ -85,6 +86,7 @@ class HeapDumpTrigger(
 
     HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
 
+    CanaryLog.d("Found %d retained references, dumping the heap", retainedKeys.size)
     HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
     val heapDumpFile = heapDumper.dumpHeap()
     val heapDumpDurationMillis =
@@ -94,13 +96,13 @@ class HeapDumpTrigger(
       CanaryLog.d(
           "Failed to dump heap, will retry in %d ms", WAIT_FOR_HEAP_DUMPER_MILLIS
       )
-      scheduleTick(WAIT_FOR_HEAP_DUMPER_MILLIS)
+      scheduleTick("failed to dump heap", WAIT_FOR_HEAP_DUMPER_MILLIS)
       return
     }
     refWatcher.removeRetainedKeys(retainedKeys)
 
     val heapDump = HeapDump.Builder()
-        .heapDumpFile(heapDumpFile)
+        .heapDumpFile(heapDumpFile!!)
         .excludedRefs(config.excludedRefs)
         .gcDurationMs(gcDurationMillis)
         .heapDumpDurationMs(heapDumpDurationMillis)
@@ -110,12 +112,16 @@ class HeapDumpTrigger(
     heapdumpListener.analyze(heapDump)
   }
 
-  private fun scheduleTick() {
-    backgroundHandler.post(this@HeapDumpTrigger::tick)
+  private fun scheduleTick(reason: String) {
+    backgroundHandler.post {
+      tick(reason)
+    }
   }
 
-  private fun scheduleTick(delayMillis: Long) {
-    backgroundHandler.postDelayed(this@HeapDumpTrigger::tick, delayMillis)
+  private fun scheduleTick(reason: String, delayMillis: Long) {
+    backgroundHandler.postDelayed({
+      tick(reason)
+    }, delayMillis)
   }
 
   companion object {

@@ -32,22 +32,7 @@ data class LeakTraceElement(
   val fieldReferences: List<LeakReference>
 ) : Serializable {
 
-  @Deprecated(
-      "Use {@link #reference} and {@link LeakReference#getDisplayName()} instead.\n" +
-          "    Null if this is the last element in the leak trace, ie the leaking object."
-  )
-  val referenceName: String?
-
-  @Deprecated(
-      "Use {@link #reference} and {@link LeakReference#type} instead.\n" +
-          "    Null if this is the last element in the leak trace, ie the leaking object."
-  )
-  val type: Type?
-
-  val className: String
-
-  @Deprecated("Use {@link #fieldReferences} instead.")
-  val fields: List<String>
+  val className: String = classHierarchy[0]
 
   enum class Type {
     INSTANCE_FIELD,
@@ -64,14 +49,10 @@ data class LeakTraceElement(
   }
 
   init {
-    this.referenceName = reference?.displayName
-    this.type = reference?.type
-    this.className = classHierarchy[0]
     val stringFields = mutableListOf<String>()
     fieldReferences.forEach { leakReference ->
       stringFields.add(leakReference.toString())
     }
-    fields = stringFields.toList()
   }
 
   /**

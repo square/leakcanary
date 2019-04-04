@@ -51,7 +51,7 @@ data class LeakTrace(
       UNKNOWN -> true
       REACHABLE -> {
         if (index < elements.lastIndex) {
-          val nextReachability = expectedReachability.get(index + 1);
+          val nextReachability = expectedReachability[index + 1]
           nextReachability.status != REACHABLE
         } else {
           true
@@ -63,7 +63,7 @@ data class LeakTrace(
   }
 
   private fun getReachabilityString(reachability: Reachability): String {
-    return DEFAULT_NEWLINE_SPACE + "Leaking: " + when (reachability.status!!) {
+    return DEFAULT_NEWLINE_SPACE + "Leaking: " + when (reachability.status) {
       UNKNOWN -> "UNKNOWN"
       REACHABLE -> "NO (${reachability.reason})"
       UNREACHABLE -> "YES (${reachability.reason})"

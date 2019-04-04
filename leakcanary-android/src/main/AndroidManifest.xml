@@ -76,10 +76,10 @@
 
     <receiver android:name="com.squareup.leakcanary.internal.LeakCanaryReceiver">
       <intent-filter>
-        <action android:name="leaksentry.LeakSentryReceiver.referenceRetained"/>
+        <action android:name="leaksentry.AbstractLeakSentryReceiver.referenceRetained"/>
       </intent-filter>
       <intent-filter>
-        <action android:name="leaksentry.LeakSentryReceiver.leakSentryInstalled"/>
+        <action android:name="leaksentry.AbstractLeakSentryReceiver.leakSentryInstalled"/>
       </intent-filter>
     </receiver>
   </application>
