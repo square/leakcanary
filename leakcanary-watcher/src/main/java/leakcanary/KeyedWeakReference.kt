@@ -30,4 +30,6 @@ class KeyedWeakReference(
   referenceQueue: ReferenceQueue<Any>
 ) : WeakReference<Any>(
     referent, referenceQueue
-)
+) {
+  val className: String = referent.javaClass.name
+}

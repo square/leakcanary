@@ -30,6 +30,7 @@ import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
+import leakcanary.internal.HasReferent
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -42,13 +43,15 @@ import java.util.LinkedHashSet
  * refs first and then including the ones that are not "always ignorable" as needed if no path is
  * found.
  */
-internal class ShortestPathFinder(private val excludedRefs: ExcludedRefs) {
+internal class ShortestPathFinder(
+  private val excludedRefs: ExcludedRefs,
+  private val ignoreStrings: Boolean
+) {
   private val toVisitQueue: Deque<LeakNode>
   private val toVisitIfNoPathQueue: Deque<LeakNode>
   private val toVisitSet: LinkedHashSet<Instance>
   private val toVisitIfNoPathSet: LinkedHashSet<Instance>
   private val visitedSet: LinkedHashSet<Instance>
-  private var canIgnoreStrings: Boolean = false
 
   init {
     toVisitQueue = ArrayDeque()
@@ -58,22 +61,75 @@ internal class ShortestPathFinder(private val excludedRefs: ExcludedRefs) {
     visitedSet = LinkedHashSet()
   }
 
-  internal class Result(
+  @Deprecated("Kept for tests which still rely on findPath()")
+  internal class OldResult(
     val leakingNode: LeakNode?,
     val excludingKnownLeaks: Boolean
   )
 
-  fun findPath(
+  internal class Result(
+    val leakingNode: LeakNode,
+    val excludingKnownLeaks: Boolean,
+    val weakReference: HasReferent
+  )
+
+  fun findPaths(
     snapshot: Snapshot,
-    leakingRef: Instance
-  ): Result {
+    leakingWeakRefs: List<HasReferent>
+  ): List<Result> {
     clearState()
-    canIgnoreStrings = !isString(leakingRef)
+
+    val referentMap = leakingWeakRefs.associateBy { it.referent }
 
     enqueueGcRoots(snapshot)
 
     var excludingKnownLeaks = false
-    lateinit var leakingNode: LeakNode
+    val results = mutableListOf<Result>()
+    while (!toVisitQueue.isEmpty() || !toVisitIfNoPathQueue.isEmpty()) {
+      val node: LeakNode
+      if (!toVisitQueue.isEmpty()) {
+        node = toVisitQueue.poll()
+      } else {
+        node = toVisitIfNoPathQueue.poll()
+        if (node.exclusion == null) {
+          throw IllegalStateException("Expected node to have an exclusion $node")
+        }
+        excludingKnownLeaks = true
+      }
+
+      if (checkSeen(node)) {
+        continue
+      }
+
+      val weakReference = referentMap[node.instance]
+      if (weakReference != null) {
+        results.add(Result(node, excludingKnownLeaks, weakReference))
+        // Found all refs, stop searching.
+        if (results.size == leakingWeakRefs.size) {
+          break
+        }
+      }
+      when (node.instance) {
+        is RootObj -> visitRootObj(node)
+        is ClassObj -> visitClassObj(node)
+        is ClassInstance -> visitClassInstance(node)
+        is ArrayInstance -> visitArrayInstance(node)
+        else -> throw IllegalStateException("Unexpected type for ${node.instance}")
+      }
+    }
+    return results
+  }
+
+  fun findPath(
+    snapshot: Snapshot,
+    leakingRef: Instance
+  ): OldResult {
+    clearState()
+
+    enqueueGcRoots(snapshot)
+
+    var excludingKnownLeaks = false
+    var leakingNode: LeakNode? = null
     while (!toVisitQueue.isEmpty() || !toVisitIfNoPathQueue.isEmpty()) {
       val node: LeakNode
       if (!toVisitQueue.isEmpty()) {
@@ -104,7 +160,7 @@ internal class ShortestPathFinder(private val excludedRefs: ExcludedRefs) {
         else -> throw IllegalStateException("Unexpected type for " + node.instance!!)
       }
     }
-    return Result(leakingNode, excludingKnownLeaks)
+    return OldResult(leakingNode, excludingKnownLeaks)
   }
 
   private fun clearState() {
@@ -116,7 +172,22 @@ internal class ShortestPathFinder(private val excludedRefs: ExcludedRefs) {
   }
 
   private fun enqueueGcRoots(snapshot: Snapshot) {
-    for (rootObj in snapshot.gcRoots) {
+    val gcRoots = snapshot.gcRoots as MutableList<RootObj>
+    // Sorting GC roots to get stable shortest path
+    gcRoots.sortWith(compareBy({ it.rootType.type }, {
+      val referredInstance = it.referredInstance
+      if (referredInstance == null) {
+        "null"
+      } else {
+        when (referredInstance) {
+          is ClassObj -> referredInstance.className
+          is ClassInstance -> referredInstance.classObj.className
+          is ArrayInstance -> referredInstance.classObj.className
+          else -> throw IllegalStateException("Unexpected type for $referredInstance")
+        }
+      }
+    }))
+    for (rootObj in gcRoots) {
       when (rootObj.rootType) {
         RootType.JAVA_LOCAL -> {
           val thread = rootObj.allocatingThread()
@@ -154,8 +225,8 @@ internal class ShortestPathFinder(private val excludedRefs: ExcludedRefs) {
   }
 
   private fun visitRootObj(node: LeakNode) {
-    val rootObj = node.instance as RootObj?
-    val child = rootObj!!.referredInstance
+    val rootObj = node.instance as RootObj
+    val child = rootObj.referredInstance
 
     if (rootObj.rootType == RootType.JAVA_LOCAL) {
       val holder = rootObj.allocatingThread()
@@ -226,7 +297,9 @@ internal class ShortestPathFinder(private val excludedRefs: ExcludedRefs) {
       return
     }
 
-    for (fieldValue in classInstance.values) {
+    val values = classInstance.values
+    values.sortBy { it.field.name }
+    for (fieldValue in values) {
       var fieldExclusion = classExclusion
       val field = fieldValue.field
       if (field.type != Type.OBJECT) {
@@ -240,16 +313,16 @@ internal class ShortestPathFinder(private val excludedRefs: ExcludedRefs) {
         fieldExclusion = params
       }
       val value = if (fieldValue.value == null) "null" else fieldValue.value.toString()
-      enqueue(fieldExclusion, node, child,
+      enqueue(
+          fieldExclusion, node, child,
           LeakReference(INSTANCE_FIELD, fieldName, value)
       )
     }
   }
 
   private fun visitArrayInstance(node: LeakNode) {
-    val arrayInstance = node.instance as ArrayInstance?
-    val arrayType = arrayInstance!!.arrayType
-    if (arrayType == Type.OBJECT) {
+    val arrayInstance = node.instance as ArrayInstance
+    if (arrayInstance.arrayType == Type.OBJECT) {
       val values = arrayInstance.values
       for (i in values.indices) {
         val child = values[i] as Instance?
@@ -272,15 +345,15 @@ internal class ShortestPathFinder(private val excludedRefs: ExcludedRefs) {
     if (isPrimitiveOrWrapperArray(child) || isPrimitiveWrapper(child)) {
       return
     }
+    if (ignoreStrings && isString(child)) {
+      return
+    }
     // Whether we want to visit now or later, we should skip if this is already to visit.
     if (toVisitSet.contains(child)) {
       return
     }
     val visitNow = exclusion == null
     if (!visitNow && toVisitIfNoPathSet.contains(child)) {
-      return
-    }
-    if (canIgnoreStrings && isString(child)) {
       return
     }
     if (visitedSet.contains(child)) {
