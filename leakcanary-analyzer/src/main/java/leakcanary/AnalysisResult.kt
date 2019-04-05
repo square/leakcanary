@@ -112,6 +112,27 @@ data class AnalysisResult(
     const val RETAINED_HEAP_SKIPPED: Long = -1
 
     fun noLeak(
+      referenceKey: String,
+      referenceName: String,
+      className: String,
+      analysisDurationMs: Long,
+      watchDurationMs: Long
+    ): AnalysisResult {
+      return AnalysisResult(
+          referenceKey = referenceKey,
+          referenceName = referenceName,
+          leakFound = false,
+          excludedLeak = false,
+          className = className,
+          leakTrace = null,
+          failure = null,
+          retainedHeapSize = 0,
+          analysisDurationMs = analysisDurationMs,
+          watchDurationMs = watchDurationMs
+      )
+    }
+
+    fun noLeak(
       className: String,
       analysisDurationMs: Long
     ): AnalysisResult {
