@@ -21,7 +21,7 @@ data class LeakTrace(
     elements.dropLast(1)
         .forEachIndexed { index, leakTraceElement ->
           val currentReachability = expectedReachability[index]
-          val numOfSpaces = leakTraceElement.className.lastIndexOf('.') + 3 // 3 indexes from "├─ " in the first line
+          val numOfSpaces =  "├─ ".length + leakTraceElement.className.lastIndexOf('.')
           leakInfo += """
         #├─ ${leakTraceElement.className}
         #│${getReachabilityString(currentReachability, numOfSpaces)}

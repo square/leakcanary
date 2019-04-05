@@ -90,7 +90,7 @@ data class LeakTraceElement(
   }
 
   fun toString(maybeLeakCause: Boolean): String {
-    val numOfSpaces = className.lastIndexOf('.') + 6 // Accounts for the additional spacing from the down error, space and 3 indexes from "├─ "
+    val numOfSpaces = "├─ ".length + className.lastIndexOf('.') + " ↓ ".length
     val staticString = if (reference != null && reference.type == STATIC_FIELD) "static" else ""
     val holderString =
       if (holder == ARRAY || holder == THREAD) "${holder.name.toLowerCase(US)} " else ""
