@@ -6,7 +6,7 @@
 
   <application>
     <provider
-        android:name="leaksentry.internal.LeakSentryInstaller"
+        android:name="leakcanary.internal.LeakSentryInstaller"
         android:authorities="${applicationId}.leak-sentry-installer"
         android:exported="false"/>
   </application>
