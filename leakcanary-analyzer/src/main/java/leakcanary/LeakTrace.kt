@@ -21,17 +21,17 @@ data class LeakTrace(
     elements.dropLast(1)
         .forEachIndexed { index, leakTraceElement ->
           val currentReachability = expectedReachability[index]
-
+          val numOfSpaces = leakTraceElement.className.lastIndexOf('.') + 3 // 3 indexes from "├─ " in the first line
           leakInfo += """
-        |├─ ${leakTraceElement.className}
-        |│${getReachabilityString(currentReachability)}
-        |│${getPossibleLeakString(currentReachability, leakTraceElement, index)}
-        |
-        """.trimMargin()
+        #├─ ${leakTraceElement.className}
+        #│${getReachabilityString(currentReachability, numOfSpaces)}
+        #│${getPossibleLeakString(currentReachability, leakTraceElement, index, numOfSpaces)}
+        #
+        """.trimMargin("#")
         }
     leakInfo += """╰→ ${lastElement.className}
-      |$ZERO_WIDTH_SPACE${getReachabilityString(lastReachability)}
-    """.trimMargin()
+      #$ZERO_WIDTH_SPACE${getReachabilityString(lastReachability, lastElement.className.lastIndexOf('.') + 3)}
+    """.trimMargin("#")
 
     return leakInfo
   }
@@ -45,7 +45,8 @@ data class LeakTrace(
   private fun getPossibleLeakString(
     reachability: Reachability,
     leakTraceElement: LeakTraceElement,
-    index: Int
+    index: Int,
+    numOfSpaces: Int
   ): String {
     val maybeLeakCause = when (reachability.status) {
       UNKNOWN -> true
@@ -59,11 +60,14 @@ data class LeakTrace(
       }
       else -> false
     }
-    return DEFAULT_NEWLINE_SPACE + "↓" + " ${leakTraceElement.toString(maybeLeakCause)}"
+    return " ".repeat(numOfSpaces) + "↓" + " " + leakTraceElement.toString(maybeLeakCause)
   }
 
-  private fun getReachabilityString(reachability: Reachability): String {
-    return DEFAULT_NEWLINE_SPACE + "Leaking: " + when (reachability.status) {
+  private fun getReachabilityString(
+    reachability: Reachability,
+    numOfSpaces: Int
+  ): String {
+    return " ".repeat(numOfSpaces) + "Leaking: " + when (reachability.status!!) {
       UNKNOWN -> "UNKNOWN"
       REACHABLE -> "NO (${reachability.reason})"
       UNREACHABLE -> "YES (${reachability.reason})"
@@ -71,7 +75,6 @@ data class LeakTrace(
   }
 
   companion object {
-    private val DEFAULT_NEWLINE_SPACE = "                 "
     private val ZERO_WIDTH_SPACE = '\u200b'
   }
 }

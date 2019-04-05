@@ -90,6 +90,7 @@ data class LeakTraceElement(
   }
 
   fun toString(maybeLeakCause: Boolean): String {
+    val numOfSpaces = className.lastIndexOf('.') + 6 // Accounts for the additional spacing from the down error, space and 3 indexes from "├─ "
     val staticString = if (reference != null && reference.type == STATIC_FIELD) "static" else ""
     val holderString =
       if (holder == ARRAY || holder == THREAD) "${holder.name.toLowerCase(US)} " else ""
@@ -98,16 +99,16 @@ data class LeakTraceElement(
     val extraString = if (extra != null) " $extra" else ""
     val exclusionString =
       if (exclusion != null) " , matching exclusion ${exclusion.matching}" else ""
-    val requiredSpaces = staticString.length + holderString.length + simpleClassName.length
+    val requiredSpaces = staticString.length + holderString.length + simpleClassName.length + numOfSpaces
     val leakString = if (maybeLeakCause) {
-      "\n│                   " + " ".repeat(requiredSpaces) + "~".repeat(
-          referenceName.length
+      "\n${ZERO_WIDTH_SPACE}" + "│" + " ".repeat(requiredSpaces) + "~".repeat(
+          referenceName.length - 1
       )
     } else {
       ""
     }
 
-    return staticString + holderString + simpleClassName + referenceName + leakString + extraString + exclusionString
+    return staticString + holderString + simpleClassName + referenceName + extraString + exclusionString + leakString
   }
 
   fun toDetailedString(): String {
@@ -118,7 +119,11 @@ data class LeakTraceElement(
       else -> "Instance of"
     }
     val classNameString = " ${className}\n"
-    val leakReferenceString = fieldReferences.joinToString(separator = "\n", prefix = "|   ")
+    val leakReferenceString = fieldReferences.joinToString(separator = "\n", prefix = "│   ")
     return startingStarString + typeString + classNameString + leakReferenceString
+  }
+
+  companion object {
+    private val ZERO_WIDTH_SPACE = '\u200b'
   }
 }
