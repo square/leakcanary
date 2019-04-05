@@ -3,7 +3,7 @@ package com.squareup.leakcanary
 import com.android.tools.perflib.captures.DataBuffer
 import java.io.UnsupportedEncodingException
 
-class FakeDataBuffer(val stringCharset: String = PRE_O_CHARSET) : DataBuffer {
+class FakeDataBuffer(private val stringCharset: String = PRE_O_CHARSET) : DataBuffer {
 
   private var intsToRead: IntArray? = null
   private var intIndex = -1

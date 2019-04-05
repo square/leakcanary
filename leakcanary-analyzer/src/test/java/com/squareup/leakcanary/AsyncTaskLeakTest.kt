@@ -49,9 +49,9 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
     assertThat(result.excludedLeak).isFalse()
     val gcRoot = result.leakTrace!!.elements[0]
     assertThat(ASYNC_TASK_CLASS).isEqualTo(gcRoot.className)
-    assertThat(STATIC_FIELD).isEqualTo(gcRoot.type)
+    assertThat(STATIC_FIELD).isEqualTo(gcRoot.reference!!.type)
     assertThat(
-        gcRoot.referenceName == EXECUTOR_FIELD_1 || gcRoot.referenceName == EXECUTOR_FIELD_2
+        gcRoot.reference!!.name == EXECUTOR_FIELD_1 || gcRoot.reference!!.name == EXECUTOR_FIELD_2
     ).isTrue()
   }
 
@@ -74,10 +74,10 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
   }
 
   companion object {
-    private val ASYNC_TASK_THREAD = "AsyncTask #1"
-    private val ASYNC_TASK_CLASS = "android.os.AsyncTask"
-    private val EXECUTOR_FIELD_1 = "SERIAL_EXECUTOR"
-    private val EXECUTOR_FIELD_2 = "sDefaultExecutor"
+    private const val ASYNC_TASK_THREAD = "AsyncTask #1"
+    private const val ASYNC_TASK_CLASS = "android.os.AsyncTask"
+    private const val EXECUTOR_FIELD_1 = "SERIAL_EXECUTOR"
+    private const val EXECUTOR_FIELD_2 = "sDefaultExecutor"
     @JvmStatic
     @Parameterized.Parameters
     fun data() = listOf(

@@ -6,8 +6,8 @@ import java.util.UUID
 data class AnalysisResult(
 
   /**
-   * Key associated to the [KeyedWeakReference] used to detect the memory leak.
-   * When analyzing a heap dump, search for all [KeyedWeakReference] instances, then open
+   * Key associated to the [leaksentry.KeyedWeakReference] used to detect the memory leak.
+   * When analyzing a heap dump, search for all [leaksentry.KeyedWeakReference] instances, then open
    * the one that has its "key" field set to this value. Its "referent" field contains the
    * leaking object. Computing the shortest path to GC roots on that leaking object should enable
    * you to figure out the cause of the leak.
@@ -91,11 +91,11 @@ data class AnalysisResult(
     val leakSimpleName = classSimpleName(className!!)
 
     val runtimeException = RuntimeException(
-        "${leakSimpleName} leak from ${rootSimpleName} (holder=${firstElement.holder}, type= ${firstElement.type})"
+        "$leakSimpleName leak from $rootSimpleName (holder=${firstElement.holder}, type= ${firstElement.reference!!.type})"
     )
     val stackTrace = mutableListOf<StackTraceElement>()
     leakTrace.elements.onEach { element ->
-      val methodName = if (element.referenceName != null) element.referenceName else "leaking"
+      val methodName = if (element.reference!!.name != null) element.reference.name else "leaking"
       val file = classSimpleName(element.className) + ".java"
       stackTrace.add(StackTraceElement(element.className, methodName, file, 42))
     }
@@ -109,7 +109,7 @@ data class AnalysisResult(
   }
 
   companion object {
-    val RETAINED_HEAP_SKIPPED: Long = -1
+    const val RETAINED_HEAP_SKIPPED: Long = -1
 
     fun noLeak(
       className: String,
