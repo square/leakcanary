@@ -33,7 +33,7 @@ android {
 
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     testInstrumentationRunnerArgument "listener",
-        "com.squareup.leakcanary.FailTestOnLeakRunListener"
+        "leakcanary.FailTestOnLeakRunListener"
   }
 
   buildTypes {

@@ -14,7 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<com.squareup.leakcanary.internal.RowElementLayout
+<leakcanary.internal.RowElementLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:lib="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -23,13 +23,13 @@
     android:clipChildren="false"
     >
 
-  <com.squareup.leakcanary.internal.DisplayLeakConnectorView
+  <leakcanary.internal.DisplayLeakConnectorView
       android:id="@+id/leak_canary_row_connector"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       />
 
-  <com.squareup.leakcanary.internal.MoreDetailsView
+  <leakcanary.internal.MoreDetailsView
       android:id="@+id/leak_canary_row_more"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
@@ -49,4 +49,4 @@
       android:visibility="gone"
       />
 
-</com.squareup.leakcanary.internal.RowElementLayout>
+</leakcanary.internal.RowElementLayout>

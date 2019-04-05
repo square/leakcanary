@@ -27,18 +27,18 @@
 
   <application>
     <service
-        android:name=".internal.HeapAnalyzerService"
+        android:name="leakcanary.internal.HeapAnalyzerService"
         android:enabled="false"
         android:process=":leakcanary"
         />
     <service
-        android:name=".DisplayLeakService"
+        android:name="leakcanary.DisplayLeakService"
         android:enabled="false"
         android:process=":leakcanary"
         />
 
     <provider
-        android:name="com.squareup.leakcanary.internal.LeakCanaryFileProvider"
+        android:name="leakcanary.internal.LeakCanaryFileProvider"
         android:authorities="com.squareup.leakcanary.fileprovider.${applicationId}"
         android:exported="false"
         android:grantUriPermissions="true"
@@ -49,7 +49,7 @@
     </provider>
 
     <activity
-        android:name=".internal.DisplayLeakActivity"
+        android:name="leakcanary.internal.DisplayLeakActivity"
         android:enabled="false"
         android:icon="@mipmap/leak_canary_icon"
         android:label="@string/leak_canary_display_activity_label"
@@ -63,7 +63,7 @@
       </intent-filter>
     </activity>
     <activity
-        android:name=".internal.RequestStoragePermissionActivity"
+        android:name="leakcanary.internal.RequestStoragePermissionActivity"
         android:enabled="false"
         android:excludeFromRecents="true"
         android:icon="@mipmap/leak_canary_icon"
@@ -74,12 +74,12 @@
         android:theme="@style/leak_canary_Theme.Transparent"
         />
 
-    <receiver android:name="com.squareup.leakcanary.internal.LeakCanaryReceiver">
+    <receiver android:name="leakcanary.internal.LeakCanaryReceiver">
       <intent-filter>
-        <action android:name="leaksentry.AbstractLeakSentryReceiver.referenceRetained"/>
+        <action android:name="leakcanary.AbstractLeakSentryReceiver.referenceRetained"/>
       </intent-filter>
       <intent-filter>
-        <action android:name="leaksentry.AbstractLeakSentryReceiver.leakSentryInstalled"/>
+        <action android:name="leakcanary.AbstractLeakSentryReceiver.leakSentryInstalled"/>
       </intent-filter>
     </receiver>
   </application>
