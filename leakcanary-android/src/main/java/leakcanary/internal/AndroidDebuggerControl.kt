@@ -13,26 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
-import java.io.File
+import android.os.Debug
 
-/** Dumps the heap into a file.  */
-interface HeapDumper {
-
-  /**
-   * @return a [File] referencing the dumped heap, or [.RETRY_LATER] if the heap could
-   * not be dumped.
-   */
-  fun dumpHeap(): File?
-
-  companion object {
-    val NONE: HeapDumper = object : HeapDumper {
-      override fun dumpHeap(): File? {
-        return RETRY_LATER
-      }
-    }
-
-    val RETRY_LATER: File? = null
-  }
+internal class AndroidDebuggerControl : DebuggerControl {
+  override val isDebuggerAttached: Boolean
+    get() = Debug.isDebuggerConnected()
 }

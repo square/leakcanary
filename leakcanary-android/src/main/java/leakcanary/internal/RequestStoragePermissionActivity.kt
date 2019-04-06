@@ -33,7 +33,7 @@ import android.os.Build.VERSION_CODES.M
 import android.widget.Toast.LENGTH_LONG
 
 @TargetApi(M) //
-class RequestStoragePermissionActivity : Activity() {
+internal class RequestStoragePermissionActivity : Activity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -73,7 +73,7 @@ class RequestStoragePermissionActivity : Activity() {
   companion object {
 
     fun createPendingIntent(context: Context): PendingIntent {
-      LeakCanaryInternals.setEnabledBlocking(
+      LeakCanaryUtils.setEnabledBlocking(
           context, RequestStoragePermissionActivity::class.java, true
       )
       val intent = Intent(context, RequestStoragePermissionActivity::class.java)

@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
 import android.app.PendingIntent
 import android.os.SystemClock
 import android.text.format.Formatter.formatShortFileSize
 import com.squareup.leakcanary.R.string
-import leakcanary.internal.DisplayLeakActivity
-import leakcanary.internal.LeakCanaryInternals
-import leakcanary.internal.LeakCanaryInternals.Companion.classSimpleName
+import leakcanary.AnalysisResult
+import leakcanary.CanaryLog
+import leakcanary.HeapDump
+import leakcanary.LeakCanary
+import leakcanary.internal.LeakCanaryUtils.classSimpleName
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -33,7 +35,7 @@ import java.util.Locale
  *
  * You can extend this class and override [.afterDefaultHandling] to add custom behavior, e.g. uploading the heap dump.
  */
-class DisplayLeakService : AbstractAnalysisResultService() {
+internal class DisplayLeakService : AbstractAnalysisResultService() {
 
   override fun onHeapAnalyzed(analyzedHeap: AnalyzedHeap) {
     var heapDump = analyzedHeap.heapDump
@@ -98,7 +100,7 @@ class DisplayLeakService : AbstractAnalysisResultService() {
   ) {
     // New notification id every second.
     val notificationId = (SystemClock.uptimeMillis() / 1000).toInt()
-    LeakCanaryInternals.showNotification(
+    LeakCanaryUtils.showNotification(
         this, contentTitle, contentText, pendingIntent!!,
         notificationId
     )

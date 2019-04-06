@@ -38,7 +38,7 @@ import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.START
 import leakcanary.internal.DisplayLeakConnectorView.Type.START_LAST_REACHABLE
 
-class DisplayLeakConnectorView(
+internal class DisplayLeakConnectorView(
   context: Context,
   attrs: AttributeSet
 ) : View(context, attrs) {

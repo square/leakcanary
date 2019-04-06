@@ -19,7 +19,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
-class FutureResult<T> {
+internal class FutureResult<T> {
 
   private val resultHolder: AtomicReference<T> = AtomicReference()
   private val latch: CountDownLatch = CountDownLatch(1)

@@ -1,8 +1,9 @@
-package leakcanary
+package leakcanary.internal
 
-import leakcanary.HeapDumpFile.ASYNC_TASK_M
-import leakcanary.HeapDumpFile.ASYNC_TASK_O
-import leakcanary.HeapDumpFile.ASYNC_TASK_PRE_M
+import leakcanary.ExcludedRefs.BuilderWithParams
+import leakcanary.internal.HeapDumpFile.ASYNC_TASK_M
+import leakcanary.internal.HeapDumpFile.ASYNC_TASK_O
+import leakcanary.internal.HeapDumpFile.ASYNC_TASK_PRE_M
 import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import org.assertj.core.api.Assertions.assertThat
@@ -17,11 +18,11 @@ import java.util.Arrays
 @RunWith(Parameterized::class)
 internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
 
-  private lateinit var excludedRefs: ExcludedRefs.BuilderWithParams
+  private lateinit var excludedRefs: BuilderWithParams
 
   @Before
   fun setUp() {
-    excludedRefs = ExcludedRefs.BuilderWithParams()
+    excludedRefs = BuilderWithParams()
         .clazz(WeakReference::class.java.name)
         .alwaysExclude()
         .clazz("java.lang.ref.FinalizerReference")
@@ -38,7 +39,9 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
     val gcRoot = result.leakTrace!!.elements[0]
     assertThat(Thread::class.java.name).isEqualTo(gcRoot.className)
     assertThat(THREAD).isEqualTo(gcRoot.holder)
-    assertThat(gcRoot.extra).contains(ASYNC_TASK_THREAD)
+    assertThat(gcRoot.extra).contains(
+        ASYNC_TASK_THREAD
+    )
   }
 
   @Test

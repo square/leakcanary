@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
 import android.app.Activity
 import android.app.Application
@@ -29,13 +29,11 @@ import android.view.LayoutInflater
 import android.widget.Toast
 import com.squareup.leakcanary.R.layout
 import com.squareup.leakcanary.R.string
-import leakcanary.internal.FutureResult
-import leakcanary.internal.LeakCanaryInternals
-import leakcanary.internal.ActivityLifecycleCallbacksAdapter
+import leakcanary.CanaryLog
 import java.io.File
 import java.util.concurrent.TimeUnit.SECONDS
 
-class AndroidHeapDumper(
+internal class AndroidHeapDumper(
   context: Context,
   private val leakDirectoryProvider: LeakDirectoryProvider
 ) : HeapDumper {
@@ -80,7 +78,7 @@ class AndroidHeapDumper(
         .setContentTitle(context.getString(
             string.leak_canary_notification_dumping
         ))
-    val notification = LeakCanaryInternals.buildNotification(context, builder)
+    val notification = LeakCanaryUtils.buildNotification(context, builder)
     val notificationManager =
       context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val notificationId = SystemClock.uptimeMillis()

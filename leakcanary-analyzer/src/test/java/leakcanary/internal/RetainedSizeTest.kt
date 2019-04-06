@@ -1,8 +1,8 @@
-package leakcanary
+package leakcanary.internal
 
-import leakcanary.HeapDumpFile.ASYNC_TASK_M
-import leakcanary.HeapDumpFile.ASYNC_TASK_O
-import leakcanary.HeapDumpFile.ASYNC_TASK_PRE_M
+import leakcanary.internal.HeapDumpFile.ASYNC_TASK_M
+import leakcanary.internal.HeapDumpFile.ASYNC_TASK_O
+import leakcanary.internal.HeapDumpFile.ASYNC_TASK_PRE_M
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith

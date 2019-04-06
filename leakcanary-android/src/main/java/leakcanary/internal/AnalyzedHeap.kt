@@ -1,5 +1,8 @@
-package leakcanary
+package leakcanary.internal
 
+import leakcanary.AnalysisResult
+import leakcanary.CanaryLog
+import leakcanary.HeapDump
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -10,7 +13,7 @@ import java.io.ObjectOutputStream
 /**
  * Wraps a [HeapDump] and corresponding [AnalysisResult].
  */
-class AnalyzedHeap(
+internal class AnalyzedHeap(
   val heapDump: HeapDump,
   val result: AnalysisResult,
   val selfFile: File

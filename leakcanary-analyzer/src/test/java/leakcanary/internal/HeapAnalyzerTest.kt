@@ -1,9 +1,11 @@
-package leakcanary
+package leakcanary.internal
 
 import com.squareup.haha.perflib.RootObj
 import com.squareup.haha.perflib.RootType.NATIVE_STATIC
 import com.squareup.haha.perflib.RootType.SYSTEM_CLASS
 import com.squareup.haha.perflib.Snapshot
+import leakcanary.AnalyzerProgressListener
+import leakcanary.HeapAnalyzer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test

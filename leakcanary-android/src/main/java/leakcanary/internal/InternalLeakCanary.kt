@@ -9,16 +9,11 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.text.format.Formatter
 import android.util.Log
-import leakcanary.AnalysisResult
-import leakcanary.AndroidDebuggerControl
-import leakcanary.AndroidHeapDumper
 import com.squareup.leakcanary.BuildConfig
-import leakcanary.DisplayLeakService
+import leakcanary.AnalysisResult
 import leakcanary.GcTrigger
 import leakcanary.HeapDump
-import leakcanary.HeapDumpTrigger
 import leakcanary.LeakCanary
-import leakcanary.ServiceHeapDumpListener
 import leakcanary.LeakSentry
 
 internal object InternalLeakCanary {
@@ -35,10 +30,10 @@ internal object InternalLeakCanary {
     val debuggerControl = AndroidDebuggerControl()
 
     val leakDirectoryProvider =
-      LeakCanaryInternals.getLeakDirectoryProvider(application)
+      LeakCanaryUtils.getLeakDirectoryProvider(application)
     val heapDumper = AndroidHeapDumper(application, leakDirectoryProvider)
 
-    val gcTrigger = GcTrigger.DEFAULT
+    val gcTrigger = GcTrigger.Default
 
     val configProvider = { LeakCanary.config }
 
@@ -51,7 +46,7 @@ internal object InternalLeakCanary {
         leakDirectoryProvider, gcTrigger, heapDumper, heapDumpListener, configProvider
     )
     heapDumpTrigger.registerToVisibilityChanges()
-    LeakCanaryInternals.setEnabledAsync(
+    LeakCanaryUtils.setEnabledAsync(
         application, DisplayLeakActivity::class.java, true
     )
   }
@@ -155,14 +150,14 @@ internal object InternalLeakCanary {
    */
   fun isInAnalyzerProcess(context: Context): Boolean {
     var isInAnalyzerProcess: Boolean? =
-      LeakCanaryInternals.isInAnalyzerProcess
+      LeakCanaryUtils.isInAnalyzerProcess
     // This only needs to be computed once per process.
     if (isInAnalyzerProcess == null) {
       isInAnalyzerProcess =
-        LeakCanaryInternals.isInServiceProcess(
+        LeakCanaryUtils.isInServiceProcess(
             context, HeapAnalyzerService::class.java
         )
-      LeakCanaryInternals.isInAnalyzerProcess = isInAnalyzerProcess
+      LeakCanaryUtils.isInAnalyzerProcess = isInAnalyzerProcess
     }
     return isInAnalyzerProcess
   }

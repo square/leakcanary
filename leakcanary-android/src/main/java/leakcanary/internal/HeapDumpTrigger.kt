@@ -1,15 +1,17 @@
-package leakcanary
+package leakcanary.internal
 
 import android.app.Application
 import android.os.Handler
 import android.os.SystemClock
+import leakcanary.CanaryLog
+import leakcanary.GcTrigger
+import leakcanary.HeapDumpMemoryStore
 import leakcanary.LeakCanary.Config
-import leakcanary.internal.registerVisibilityListener
+import leakcanary.RefWatcher
 import leakcanary.HeapDump.Builder
 import leakcanary.HeapDump.Listener
-import leakcanary.internal.HeapDumpMemoryStore
 
-class HeapDumpTrigger(
+internal class HeapDumpTrigger(
   private val application: Application,
   private val backgroundHandler: Handler,
   private val debuggerControl: DebuggerControl,

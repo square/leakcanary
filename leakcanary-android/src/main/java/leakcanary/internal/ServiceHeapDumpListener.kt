@@ -13,11 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
-import android.os.Debug
+import android.app.Application
+import leakcanary.HeapDump.Listener
+import leakcanary.HeapDump
 
-class AndroidDebuggerControl : DebuggerControl {
-  override val isDebuggerAttached: Boolean
-    get() = Debug.isDebuggerConnected()
+internal class ServiceHeapDumpListener(
+  private val application: Application,
+  private val listenerServiceClass: Class<out AbstractAnalysisResultService>
+) : Listener {
+
+  override fun analyze(heapDump: HeapDump) {
+    HeapAnalyzerService.runAnalysis(application, heapDump, listenerServiceClass)
+  }
 }

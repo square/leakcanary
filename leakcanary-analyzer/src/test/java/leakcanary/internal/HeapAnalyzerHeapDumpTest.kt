@@ -1,8 +1,8 @@
-package leakcanary
+package leakcanary.internal
 
-import leakcanary.HeapDumpFile.ASYNC_TASK_P
-import leakcanary.HeapDumpFile.GC_ROOT_IN_NON_PRIMARY_HEAP
-import leakcanary.HeapDumpFile.MISSING_THREAD
+import leakcanary.internal.HeapDumpFile.ASYNC_TASK_P
+import leakcanary.internal.HeapDumpFile.GC_ROOT_IN_NON_PRIMARY_HEAP
+import leakcanary.internal.HeapDumpFile.MISSING_THREAD
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Ignore
 import org.junit.Test

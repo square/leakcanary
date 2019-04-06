@@ -18,13 +18,12 @@ package leakcanary.internal
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
-import leakcanary.AbstractAnalysisResultService
+import com.squareup.leakcanary.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
 import leakcanary.HeapAnalyzer
 import leakcanary.HeapDump
-import com.squareup.leakcanary.R
-import leakcanary.internal.LeakCanaryInternals.Companion.setEnabledBlocking
+import leakcanary.internal.LeakCanaryUtils.setEnabledBlocking
 import java.io.File
 import java.io.IOException
 
@@ -32,7 +31,7 @@ import java.io.IOException
  * This service runs in a separate process to avoid slowing down the app process or making it run
  * out of memory.
  */
-class HeapAnalyzerService : ForegroundService(
+internal class HeapAnalyzerService : ForegroundService(
     HeapAnalyzerService::class.java.simpleName, R.string.leak_canary_notification_analysing
 ), AnalyzerProgressListener {
 

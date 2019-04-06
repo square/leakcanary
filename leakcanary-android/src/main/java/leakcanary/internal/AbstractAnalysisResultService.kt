@@ -13,16 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.R.string
-import leakcanary.internal.ForegroundService
+import leakcanary.AnalysisResult
+import leakcanary.CanaryLog
+import leakcanary.HeapDump
 import java.io.File
 
-abstract class AbstractAnalysisResultService : ForegroundService(
+internal abstract class AbstractAnalysisResultService : ForegroundService(
     AbstractAnalysisResultService::class.java.name,
     string.leak_canary_notification_reporting
 ) {
@@ -101,7 +103,8 @@ abstract class AbstractAnalysisResultService : ForegroundService(
 
       val analyzedHeapFile = AnalyzedHeap.save(heapDump, result)
       if (analyzedHeapFile != null) {
-        intent.putExtra(ANALYZED_HEAP_PATH_EXTRA, analyzedHeapFile.absolutePath)
+        intent.putExtra(
+            ANALYZED_HEAP_PATH_EXTRA, analyzedHeapFile.absolutePath)
       }
       ContextCompat.startForegroundService(context, intent)
     }

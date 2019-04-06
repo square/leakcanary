@@ -18,8 +18,8 @@ package leakcanary
 import android.os.Debug
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import leakcanary.GcTrigger.Default.runGc
 import leakcanary.InstrumentationLeakResults.Result
-import leakcanary.internal.HeapDumpMemoryStore
 import org.junit.runner.notification.RunListener
 import java.io.File
 
@@ -113,7 +113,7 @@ class InstrumentationLeakDetector {
       return InstrumentationLeakResults.NONE
     }
 
-    GcTrigger.DEFAULT.runGc()
+    runGc()
     if (!refWatcher.hasWatchedReferences) {
       return InstrumentationLeakResults.NONE
     }
@@ -136,7 +136,7 @@ class InstrumentationLeakDetector {
       SystemClock.sleep(endOfWatchDelay)
     }
 
-    GcTrigger.DEFAULT.runGc()
+    runGc()
 
     if (!refWatcher.hasRetainedReferences) {
       return InstrumentationLeakResults.NONE

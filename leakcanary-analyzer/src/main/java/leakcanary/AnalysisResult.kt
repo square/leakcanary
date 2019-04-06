@@ -136,7 +136,6 @@ data class AnalysisResult(
       className: String,
       analysisDurationMs: Long
     ): AnalysisResult {
-      // TODO Here we might be able to fill in referenceKey, referenceName and watchDurationMs
       return AnalysisResult(
           referenceKey = "Fake-${UUID.randomUUID()}",
           referenceName = "",

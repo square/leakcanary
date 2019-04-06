@@ -1,4 +1,4 @@
-package leakcanary.internal
+package leakcanary
 
 object HeapDumpMemoryStore {
 

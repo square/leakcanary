@@ -35,14 +35,14 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATH
 import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
-import leakcanary.HahaHelper.asString
-import leakcanary.HahaHelper.asStringArray
-import leakcanary.HahaHelper.classInstanceValues
-import leakcanary.HahaHelper.extendsThread
-import leakcanary.HahaHelper.fieldValue
-import leakcanary.HahaHelper.staticFieldValue
-import leakcanary.HahaHelper.threadName
-import leakcanary.HahaHelper.valueAsString
+import leakcanary.internal.HahaHelper.asString
+import leakcanary.internal.HahaHelper.asStringArray
+import leakcanary.internal.HahaHelper.classInstanceValues
+import leakcanary.internal.HahaHelper.extendsThread
+import leakcanary.internal.HahaHelper.fieldValue
+import leakcanary.internal.HahaHelper.staticFieldValue
+import leakcanary.internal.HahaHelper.threadName
+import leakcanary.internal.HahaHelper.valueAsString
 import leakcanary.LeakTraceElement.Holder
 import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
@@ -55,10 +55,11 @@ import leakcanary.Reachability.Inspector
 import leakcanary.Reachability.Status.REACHABLE
 import leakcanary.Reachability.Status.UNKNOWN
 import leakcanary.Reachability.Status.UNREACHABLE
-import leakcanary.ShortestPathFinder.Result
 import leakcanary.internal.HasReferent
-import leakcanary.internal.HeapDumpMemoryStore
 import leakcanary.internal.KeyedWeakReferenceMirror
+import leakcanary.internal.LeakNode
+import leakcanary.internal.ShortestPathFinder
+import leakcanary.internal.ShortestPathFinder.Result
 import org.jetbrains.annotations.TestOnly
 import java.io.File
 import java.util.ArrayList
@@ -246,7 +247,9 @@ class HeapAnalyzer @TestOnly internal constructor(
 
     val leakingWeakRefs = mutableListOf<HasReferent>()
     for (weakRef in refClass.instancesList) {
-      val weakRefMirror = KeyedWeakReferenceMirror.fromInstance(weakRef, heapDumpUptimeMillis)
+      val weakRefMirror = KeyedWeakReferenceMirror.fromInstance(
+          weakRef, heapDumpUptimeMillis
+      )
 
       val wasRetained = retainedKeys.remove(weakRefMirror.key)
       if (wasRetained) {
@@ -415,7 +418,8 @@ class HeapAnalyzer @TestOnly internal constructor(
     val elements = ArrayList<LeakTraceElement>()
     // We iterate from the leak to the GC root
     val ignored = leakingNode.instance
-    var node: LeakNode? = LeakNode(null, ignored, leakingNode, null)
+    var node: LeakNode? =
+      LeakNode(null, ignored, leakingNode, null)
     while (node != null) {
       val element = buildLeakElement(node)
       if (element != null) {
@@ -526,7 +530,8 @@ class HeapAnalyzer @TestOnly internal constructor(
         holderType = THREAD
         val threadName = threadName(holder)
         extra = "(named '$threadName')"
-      } else if (className.matches(ANONYMOUS_CLASS_NAME_PATTERN.toRegex())) {
+      } else if (className.matches(
+              ANONYMOUS_CLASS_NAME_PATTERN.toRegex())) {
         val parentClassName = classObj.superClassObj.className
         if (rootClassName == parentClassName) {
           holderType = OBJECT

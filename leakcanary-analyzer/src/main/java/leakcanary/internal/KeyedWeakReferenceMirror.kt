@@ -2,14 +2,14 @@ package leakcanary.internal
 
 import com.squareup.haha.perflib.ClassInstance
 import com.squareup.haha.perflib.Instance
-import leakcanary.HahaHelper.asString
-import leakcanary.HahaHelper.classInstanceValues
-import leakcanary.HahaHelper.fieldValue
+import leakcanary.internal.HahaHelper.asString
+import leakcanary.internal.HahaHelper.classInstanceValues
+import leakcanary.internal.HahaHelper.fieldValue
 
 /**
  * Represents a [leakcanary.KeyedWeakReference] read from the heap dump.
  */
-sealed class KeyedWeakReferenceMirror(
+internal sealed class KeyedWeakReferenceMirror(
   fields: List<ClassInstance.FieldValue>,
   heapDumpUptimeMillis: Long
 ) {
@@ -35,12 +35,12 @@ sealed class KeyedWeakReferenceMirror(
   }
 }
 
-class Cleared(
+internal class Cleared(
   fields: List<ClassInstance.FieldValue>,
   heapDumpUptimeMillis: Long
 ) : KeyedWeakReferenceMirror(fields, heapDumpUptimeMillis)
 
-class HasReferent(
+internal class HasReferent(
   fields: List<ClassInstance.FieldValue>,
   heapDumpUptimeMillis: Long,
   val referent: Instance
