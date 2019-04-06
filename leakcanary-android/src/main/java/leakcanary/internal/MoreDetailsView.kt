@@ -24,7 +24,7 @@ import android.util.AttributeSet
 import android.view.View
 import com.squareup.leakcanary.R
 
-class MoreDetailsView(
+internal class MoreDetailsView(
   context: Context,
   attrs: AttributeSet
 ) : View(context, attrs) {

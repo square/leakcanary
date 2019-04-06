@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
 import java.io.File
 import java.io.FilenameFilter
@@ -21,7 +21,7 @@ import java.io.FilenameFilter
 /**
  * Provides access to where heap dumps and analysis results will be stored.
  */
-interface LeakDirectoryProvider {
+internal interface LeakDirectoryProvider {
 
   fun listFiles(filter: FilenameFilter): List<File>
 

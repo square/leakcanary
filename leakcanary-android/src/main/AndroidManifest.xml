@@ -31,8 +31,9 @@
         android:enabled="false"
         android:process=":leakcanary"
         />
+
     <service
-        android:name="leakcanary.DisplayLeakService"
+        android:name="leakcanary.internal.DisplayLeakService"
         android:enabled="false"
         android:process=":leakcanary"
         />
@@ -62,6 +63,7 @@
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
+
     <activity
         android:name="leakcanary.internal.RequestStoragePermissionActivity"
         android:enabled="false"
@@ -82,5 +84,6 @@
         <action android:name="leakcanary.AbstractLeakSentryReceiver.leakSentryInstalled"/>
       </intent-filter>
     </receiver>
+
   </application>
 </manifest>

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.annotation.TargetApi
@@ -24,16 +24,15 @@ import android.os.Build.VERSION_CODES.M
 import android.os.Environment
 import android.os.Environment.DIRECTORY_DOWNLOADS
 import com.squareup.leakcanary.R.string
-import leakcanary.HeapDumper.Companion.RETRY_LATER
-import leakcanary.internal.LeakCanaryInternals
-import leakcanary.internal.RequestStoragePermissionActivity
+import leakcanary.CanaryLog
+import leakcanary.internal.HeapDumper.Companion.RETRY_LATER
 import java.io.File
 import java.io.FilenameFilter
 import java.util.ArrayList
 import java.util.Arrays
 import java.util.UUID
 
-class DefaultLeakDirectoryProvider @JvmOverloads constructor(
+internal class DefaultLeakDirectoryProvider @JvmOverloads constructor(
   context: Context,
   private val maxStoredHeapDumps: Int = DEFAULT_MAX_STORED_HEAP_DUMPS
 ) : LeakDirectoryProvider {
@@ -171,7 +170,7 @@ class DefaultLeakDirectoryProvider @JvmOverloads constructor(
     val packageName = context.packageName
     val contentText =
       context.getString(string.leak_canary_permission_notification_text, packageName)
-    LeakCanaryInternals.showNotification(
+    LeakCanaryUtils.showNotification(
         context, contentTitle, contentText, pendingIntent, -0x21504111
     )
   }

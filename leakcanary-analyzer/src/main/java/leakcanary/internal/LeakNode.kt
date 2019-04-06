@@ -1,8 +1,10 @@
-package leakcanary
+package leakcanary.internal
 
 import com.squareup.haha.perflib.Instance
+import leakcanary.Exclusion
+import leakcanary.LeakReference
 
-data class LeakNode(
+internal data class LeakNode(
   val exclusion: Exclusion?,
   val instance: Instance,
   val parent: LeakNode?,

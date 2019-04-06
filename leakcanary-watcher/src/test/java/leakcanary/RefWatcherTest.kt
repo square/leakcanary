@@ -1,5 +1,6 @@
 package leakcanary
 
+import leakcanary.GcTrigger.Default.runGc
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.util.concurrent.Executor
@@ -33,22 +34,6 @@ class RefWatcherTest {
     refWatcher.watch(ref!!)
     runGc()
     assertThat(refWatcher.hasRetainedReferences).isTrue()
-  }
-
-  private fun runGc() {
-    Runtime.getRuntime()
-        .gc()
-    enqueueReferences()
-    System.runFinalization()
-  }
-
-  private fun enqueueReferences() {
-    try {
-      Thread.sleep(100)
-    } catch (e: InterruptedException) {
-      throw AssertionError()
-    }
-
   }
 
 }

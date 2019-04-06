@@ -21,7 +21,7 @@ import android.view.View
 import android.view.ViewGroup
 import com.squareup.leakcanary.R
 
-class RowElementLayout(
+internal class RowElementLayout(
   context: Context,
   attrs: AttributeSet
 ) : ViewGroup(context, attrs) {

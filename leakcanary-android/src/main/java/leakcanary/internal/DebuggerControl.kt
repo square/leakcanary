@@ -13,18 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
-import android.app.Application
-import leakcanary.internal.HeapAnalyzerService
-import leakcanary.HeapDump.Listener
+/**
+ * Gives the opportunity to skip checking if a reference is gone when the debugger is connected.
+ * An attached debugger might retain references and create false positives.
+ */
+internal interface DebuggerControl {
 
-class ServiceHeapDumpListener(
-  private val application: Application,
-  private val listenerServiceClass: Class<out AbstractAnalysisResultService>
-) : Listener {
+  val isDebuggerAttached: Boolean
 
-  override fun analyze(heapDump: HeapDump) {
-    HeapAnalyzerService.runAnalysis(application, heapDump, listenerServiceClass)
+  companion object {
+    val NONE: DebuggerControl = object : DebuggerControl {
+      override val isDebuggerAttached: Boolean
+        get() = false
+    }
   }
 }

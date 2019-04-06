@@ -1,4 +1,4 @@
-package leakcanary
+package leakcanary.internal
 
 import com.android.tools.perflib.captures.DataBuffer
 import com.squareup.haha.perflib.ArrayInstance
@@ -161,7 +161,8 @@ class HahaHelperTest {
   }
 
   private fun createStringInstance(): ClassInstance {
-    val stringInstance = ClassInstance(STRING_INSTANCE_ID.toLong(), null, 100)
+    val stringInstance = ClassInstance(
+        STRING_INSTANCE_ID.toLong(), null, 100)
     stringInstance.setClassId(STRING_CLASS_ID.toLong())
     snapshot.addInstance(0, stringInstance)
     return stringInstance

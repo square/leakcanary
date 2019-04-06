@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
 import com.squareup.haha.perflib.ArrayInstance
 import com.squareup.haha.perflib.ClassInstance

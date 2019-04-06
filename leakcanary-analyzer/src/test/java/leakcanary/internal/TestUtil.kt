@@ -1,5 +1,10 @@
-package leakcanary
+package leakcanary.internal
 
+import leakcanary.AnalysisResult
+import leakcanary.AnalyzerProgressListener
+import leakcanary.ExcludedRefs
+import leakcanary.ExcludedRefs.BuilderWithParams
+import leakcanary.HeapAnalyzer
 import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
@@ -47,7 +52,8 @@ internal fun findAllLeaks(heapDumpFile: HeapDumpFile): List<AnalysisResult> {
   val file = fileFromName(heapDumpFile.filename)
   val heapAnalyzer = HeapAnalyzer(
       defaultExcludedRefs.build(), AnalyzerProgressListener.NONE, emptyList(),
-      OLD_KEYED_WEAK_REFERENCE_CLASS_NAME, OLD_HEAP_DUMP_MEMORY_STORE_CLASS_NAME
+      OLD_KEYED_WEAK_REFERENCE_CLASS_NAME,
+      OLD_HEAP_DUMP_MEMORY_STORE_CLASS_NAME
   )
   val results = heapAnalyzer.checkForLeaks(file, true)
   for (result in results) {
@@ -63,14 +69,15 @@ internal fun findAllLeaks(heapDumpFile: HeapDumpFile): List<AnalysisResult> {
 
 internal fun analyze(
   heapDumpFile: HeapDumpFile,
-  excludedRefs: ExcludedRefs.BuilderWithParams = defaultExcludedRefs
+  excludedRefs: BuilderWithParams = defaultExcludedRefs
 ): AnalysisResult {
   val file = fileFromName(heapDumpFile.filename)
   val referenceKey = heapDumpFile.referenceKey
   val heapAnalyzer =
     HeapAnalyzer(
         excludedRefs.build(), AnalyzerProgressListener.NONE, emptyList(),
-        OLD_KEYED_WEAK_REFERENCE_CLASS_NAME, OLD_HEAP_DUMP_MEMORY_STORE_CLASS_NAME
+        OLD_KEYED_WEAK_REFERENCE_CLASS_NAME,
+        OLD_HEAP_DUMP_MEMORY_STORE_CLASS_NAME
     )
   val result = heapAnalyzer.checkForLeak(file, referenceKey, true)
   result.failure?.printStackTrace()
@@ -80,7 +87,7 @@ internal fun analyze(
   return result;
 }
 
-private val defaultExcludedRefs = ExcludedRefs.BuilderWithParams()
+private val defaultExcludedRefs = BuilderWithParams()
     .clazz(WeakReference::class.java.name)
     .alwaysExclude()
     .clazz(SoftReference::class.java.name)

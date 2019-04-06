@@ -15,6 +15,7 @@
  */
 package leakcanary
 
+import leakcanary.Reachability.Inspector
 import java.io.File
 import java.io.Serializable
 import java.util.ArrayList
@@ -32,18 +33,11 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
   val gcDurationMs: Long
   val heapDumpDurationMs: Long
   val computeRetainedHeapSize: Boolean
-  val reachabilityInspectorClasses: List<Class<out Reachability.Inspector>>
+  val reachabilityInspectorClasses: List<Class<out Inspector>>
 
   /** Receives a heap dump to analyze.  */
-  interface Listener {
-
+  internal interface Listener {
     fun analyze(heapDump: HeapDump)
-
-    companion object {
-      val NONE: Listener = object : Listener {
-        override fun analyze(heapDump: HeapDump) {}
-      }
-    }
   }
 
   init {
@@ -65,7 +59,7 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
     internal var gcDurationMs: Long = 0
     internal var heapDumpDurationMs: Long = 0
     internal var computeRetainedHeapSize: Boolean = false
-    internal var reachabilityInspectorClasses: List<Class<out Reachability.Inspector>>? = null
+    internal var reachabilityInspectorClasses: List<Class<out Inspector>>? = null
 
     internal constructor() {
       this.heapDumpFile = null
@@ -111,10 +105,10 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
     }
 
     fun reachabilityInspectorClasses(
-      reachabilityInspectorClasses: List<Class<out Reachability.Inspector>>
+      reachabilityInspectorClasses: List<Class<out Inspector>>
     ): Builder {
-      this.reachabilityInspectorClasses = unmodifiableList<Class<out Reachability.Inspector>>(
-          ArrayList<Class<out Reachability.Inspector>>(reachabilityInspectorClasses)
+      this.reachabilityInspectorClasses = unmodifiableList<Class<out Inspector>>(
+          ArrayList<Class<out Inspector>>(reachabilityInspectorClasses)
       )
       return this
     }

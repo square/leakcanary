@@ -1,4 +1,4 @@
-package leakcanary
+package leakcanary.internal
 
 import com.android.tools.perflib.captures.DataBuffer
 import java.io.UnsupportedEncodingException

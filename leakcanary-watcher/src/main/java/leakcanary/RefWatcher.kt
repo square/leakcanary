@@ -81,6 +81,17 @@ class RefWatcher constructor(
     val watchUptimeMillis = clock.uptimeMillis()
     val reference =
       KeyedWeakReference(watchedReference, key, referenceName, watchUptimeMillis, queue)
+    if (referenceName != "") {
+      CanaryLog.d(
+          "Watching instance of %s named %s with key %s", reference.className,
+          referenceName, key
+      )
+    } else {
+      CanaryLog.d(
+          "Watching instance of %s with key %s", reference.className, referenceName, key
+      )
+    }
+
     watchedReferences[key] = reference
     checkRetainedExecutor.execute {
       moveToRetained(key)
@@ -105,7 +116,7 @@ class RefWatcher constructor(
     retainedReferences.clear()
   }
 
-  @Synchronized private fun removeWeaklyReachableReferences() {
+  private fun removeWeaklyReachableReferences() {
     // WeakReferences are enqueued as soon as the object to which they point to becomes weakly
     // reachable. This is before finalization or garbage collection has actually happened.
     var ref: KeyedWeakReference?

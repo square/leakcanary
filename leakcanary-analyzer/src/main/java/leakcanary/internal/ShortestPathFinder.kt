@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.internal
 
 import com.squareup.haha.perflib.ArrayInstance
 import com.squareup.haha.perflib.ClassInstance
@@ -24,13 +24,15 @@ import com.squareup.haha.perflib.RootType
 import com.squareup.haha.perflib.Snapshot
 import com.squareup.haha.perflib.Type
 import com.squareup.haha.perflib.allocatingThread
-import leakcanary.HahaHelper.isPrimitiveOrWrapperArray
-import leakcanary.HahaHelper.isPrimitiveWrapper
+import leakcanary.ExcludedRefs
+import leakcanary.Exclusion
+import leakcanary.LeakReference
+import leakcanary.internal.HahaHelper.isPrimitiveOrWrapperArray
+import leakcanary.internal.HahaHelper.isPrimitiveWrapper
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.internal.HasReferent
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -103,7 +105,9 @@ internal class ShortestPathFinder(
 
       val weakReference = referentMap[node.instance]
       if (weakReference != null) {
-        results.add(Result(node, excludingKnownLeaks, weakReference))
+        results.add(
+            Result(node, excludingKnownLeaks, weakReference)
+        )
         // Found all refs, stop searching.
         if (results.size == leakingWeakRefs.size) {
           break

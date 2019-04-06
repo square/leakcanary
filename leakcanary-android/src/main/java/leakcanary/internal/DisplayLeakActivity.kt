@@ -48,23 +48,21 @@ import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.FileProvider.getUriForFile
-import leakcanary.AnalysisResult
-import leakcanary.AnalyzedHeap
 import com.squareup.leakcanary.BuildConfig.GIT_SHA
 import com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION
 import leakcanary.CanaryLog
 import leakcanary.LeakCanary
-import leakcanary.LeakDirectoryProvider
 import com.squareup.leakcanary.R
-import leakcanary.internal.LeakCanaryInternals.Companion.getLeakDirectoryProvider
-import leakcanary.internal.LeakCanaryInternals.Companion.newSingleThreadExecutor
-import leakcanary.internal.LeakCanaryInternals.Companion.setEnabledBlocking
+import leakcanary.AnalysisResult
+import leakcanary.internal.LeakCanaryUtils.getLeakDirectoryProvider
+import leakcanary.internal.LeakCanaryUtils.newSingleThreadExecutor
+import leakcanary.internal.LeakCanaryUtils.setEnabledBlocking
 import java.io.File
 import java.io.FilenameFilter
 import java.util.ArrayList
 import java.util.Comparator
 
-class DisplayLeakActivity : Activity() {
+internal class DisplayLeakActivity : Activity() {
 
   // null until it's been first loaded.
   private var leaks: MutableList<AnalyzedHeap>? = null
@@ -75,7 +73,7 @@ class DisplayLeakActivity : Activity() {
   private lateinit var actionButton: Button
   private lateinit var shareButton: Button
 
-  internal val visibleLeak: AnalyzedHeap?
+  private val visibleLeak: AnalyzedHeap?
     get() {
       if (leaks == null) {
         return null

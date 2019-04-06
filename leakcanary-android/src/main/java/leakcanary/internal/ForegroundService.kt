@@ -22,7 +22,7 @@ import android.os.IBinder
 import android.os.SystemClock
 import com.squareup.leakcanary.R
 
-abstract class ForegroundService(
+internal abstract class ForegroundService(
   name: String,
   private val notificationContentTitleResId: Int
 ) : IntentService(name) {
@@ -48,7 +48,7 @@ abstract class ForegroundService(
         .setContentText(contentText)
         .setProgress(max, progress, indeterminate)
     val notification =
-      LeakCanaryInternals.buildNotification(this, builder)
+      LeakCanaryUtils.buildNotification(this, builder)
     startForeground(notificationId, notification)
   }
 
