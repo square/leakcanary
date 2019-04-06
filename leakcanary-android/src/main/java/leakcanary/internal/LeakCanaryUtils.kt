@@ -63,8 +63,6 @@ internal object LeakCanaryUtils {
 
   private const val NOTIFICATION_CHANNEL_ID = "leakcanary"
 
-  @Volatile var isInAnalyzerProcess: Boolean? = null
-
   /** Extracts the class simple name out of a string containing a fully qualified class name.  */
   fun classSimpleName(className: String): String {
     val separator = className.lastIndexOf('.')

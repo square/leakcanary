@@ -15,22 +15,22 @@ In your `build.gradle`:
 
 ```groovy
 dependencies {
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
 }
 ```
 
-In your `Application` class:
+In your **debug** `Application` class:
 
 ```java
-public class ExampleApplication extends Application {
+class DebugExampleApplication : ExampleApplication() {
 
-  @Override public void onCreate() {
-    super.onCreate();
+  override fun onCreate() {
     if (LeakCanary.isInAnalyzerProcess(this)) {
       // This process is dedicated to LeakCanary for heap analysis.
       // You should not init your app in this process.
-      return;
+      return
     }
+    super.onCreate()
   }
 }
 ```

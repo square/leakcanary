@@ -38,6 +38,7 @@ android {
 
   buildTypes {
     debug
+    release
   }
 
   dexOptions {

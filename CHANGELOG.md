@@ -1,7 +1,79 @@
 # Change Log
 
-## Version 2.0
+## Version 2.0 Alpha 1 (not released yet)
 
+Thanks for testing the alpha, we're counting on you to help us find bugs and improvements!
+
+### New setup
+
+In your `build.gradle`:
+
+```groovy
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
+}
+```
+
+In your **debug** `Application` class:
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    if (LeakCanary.isInAnalyzerProcess(this)) {
+      // This process is dedicated to LeakCanary for heap analysis.
+      // You should not init your app in this process.
+      return
+    }
+    super.onCreate()
+  }
+}
+```
+
+### Configuration options
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    if (LeakCanary.isInAnalyzerProcess(this)) {
+      // This process is dedicated to LeakCanary for heap analysis.
+      // You should not init your app in this process.
+      return
+    }
+    super.onCreate()
+    // LeakSentry is in charge of detecting memory leaks
+    LeakSentry.config = LeakSentry.config.copy(watchDurationMillis = 3000)
+
+    // LeakCanary is in charge of taking heap dumps and analyzing them
+    LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
+  }
+}
+```
+
+### Watching custom objects
+```kotlin
+LeakSentry.refWatcher.watch(destroyedIntentService)
+```
+
+### Using LeakSentry in production
+
+In your `build.gradle`:
+
+```groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:leakcanary-sentry:2.0-alpha-1'
+}
+```
+
+In your leak reporting code:
+```kotlin
+val retainedReferenceCount = LeakSentry.refWatcher.retainedKeys.size
+```
+
+### Changes
+
+* The change log is not up to date yet. All the work is tracked by the [2.0 Milestone](https://github.com/square/leakcanary/milestone/6). 
 * [#1186](https://github.com/square/leakcanary/issues/1186) Fix NPE when KeyedWeakReference was not found in heap dump.
 * [#1133](https://github.com/square/leakcanary/issues/1133) Updated to HAHA 2.1 (latest perflib from Android Studio)
 * [#1124](https://github.com/square/leakcanary/issues/1124) Fixed crash when heap dump has missing native threads.

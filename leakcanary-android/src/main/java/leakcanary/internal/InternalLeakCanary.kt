@@ -20,6 +20,8 @@ internal object InternalLeakCanary {
 
   private lateinit var heapDumpTrigger: HeapDumpTrigger
 
+  @Volatile private var isInAnalyzerProcess: Boolean? = null
+
   fun onLeakSentryInstalled(application: Application) {
     if (isInAnalyzerProcess(application)) {
       return
@@ -57,7 +59,11 @@ internal object InternalLeakCanary {
     }
   }
 
-  /** Returns a string representation of the result of a heap analysis.  */
+  /**
+   * Returns a string representation of the result of a heap analysis.
+   * Context instance needed because [onLeakSentryInstalled] is not called in the leakcanary
+   * process.
+   */
   fun leakInfo(
     context: Context,
     heapDump: HeapDump,
@@ -147,17 +153,19 @@ internal object InternalLeakCanary {
   /**
    * Whether the current process is the process running the [HeapAnalyzerService], which is
    * a different process than the normal app process.
+   *
+   * Note: We can't rely on [Application] being set here as [onLeakSentryInstalled] is called after
+   * [Application.onCreate]
    */
   fun isInAnalyzerProcess(context: Context): Boolean {
-    var isInAnalyzerProcess: Boolean? =
-      LeakCanaryUtils.isInAnalyzerProcess
+    var isInAnalyzerProcess: Boolean? = isInAnalyzerProcess
     // This only needs to be computed once per process.
     if (isInAnalyzerProcess == null) {
       isInAnalyzerProcess =
         LeakCanaryUtils.isInServiceProcess(
             context, HeapAnalyzerService::class.java
         )
-      LeakCanaryUtils.isInAnalyzerProcess = isInAnalyzerProcess
+      this.isInAnalyzerProcess = isInAnalyzerProcess
     }
     return isInAnalyzerProcess
   }

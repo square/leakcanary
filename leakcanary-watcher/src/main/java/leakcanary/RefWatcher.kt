@@ -88,7 +88,7 @@ class RefWatcher constructor(
       )
     } else {
       CanaryLog.d(
-          "Watching instance of %s with key %s", reference.className, referenceName, key
+          "Watching instance of %s with key %s", reference.className, key
       )
     }
 

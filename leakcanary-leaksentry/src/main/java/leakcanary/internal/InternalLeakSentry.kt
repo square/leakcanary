@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import leakcanary.AbstractLeakSentryReceiver
+import leakcanary.CanaryLog
 import leakcanary.Clock
 import leakcanary.LeakSentry
 import leakcanary.RefWatcher
@@ -33,6 +34,7 @@ internal object InternalLeakSentry {
   }
 
   fun install(application: Application) {
+    CanaryLog.d("Installing LeakSentry")
     checkMainThread()
     if (this::application.isInitialized) {
       return
