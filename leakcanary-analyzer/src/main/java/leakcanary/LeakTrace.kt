@@ -21,16 +21,15 @@ data class LeakTrace(
     elements.dropLast(1)
         .forEachIndexed { index, leakTraceElement ->
           val currentReachability = expectedReachability[index]
-          val numOfSpaces = leakTraceElement.className.lastIndexOf('.') + 3 // 3 indexes from "├─ " in the first line
           leakInfo += """
         #├─ ${leakTraceElement.className}
-        #│${getReachabilityString(currentReachability, numOfSpaces)}
-        #│${getPossibleLeakString(currentReachability, leakTraceElement, index, numOfSpaces)}
+        #│${getReachabilityString(currentReachability)}
+        #│${getPossibleLeakString(currentReachability, leakTraceElement, index)}
         #
         """.trimMargin("#")
         }
     leakInfo += """╰→ ${lastElement.className}
-      #$ZERO_WIDTH_SPACE${getReachabilityString(lastReachability, lastElement.className.lastIndexOf('.') + 3)}
+      #$ZERO_WIDTH_SPACE ${getReachabilityString(lastReachability)}
     """.trimMargin("#")
 
     return leakInfo
@@ -45,8 +44,7 @@ data class LeakTrace(
   private fun getPossibleLeakString(
     reachability: Reachability,
     leakTraceElement: LeakTraceElement,
-    index: Int,
-    numOfSpaces: Int
+    index: Int
   ): String {
     val maybeLeakCause = when (reachability.status) {
       UNKNOWN -> true
@@ -60,14 +58,13 @@ data class LeakTrace(
       }
       else -> false
     }
-    return " ".repeat(numOfSpaces) + "↓" + " " + leakTraceElement.toString(maybeLeakCause)
+    return DEFAULT_NEW_LINE_SPACE + "↓" + " " + leakTraceElement.toString(maybeLeakCause)
   }
 
   private fun getReachabilityString(
-    reachability: Reachability,
-    numOfSpaces: Int
+    reachability: Reachability
   ): String {
-    return " ".repeat(numOfSpaces) + "Leaking: " + when (reachability.status!!) {
+    return DEFAULT_NEW_LINE_SPACE + "Leaking: " + when (reachability.status!!) {
       UNKNOWN -> "UNKNOWN"
       REACHABLE -> "NO (${reachability.reason})"
       UNREACHABLE -> "YES (${reachability.reason})"
@@ -75,6 +72,7 @@ data class LeakTrace(
   }
 
   companion object {
+    private val DEFAULT_NEW_LINE_SPACE = "    "
     private val ZERO_WIDTH_SPACE = '\u200b'
   }
 }
