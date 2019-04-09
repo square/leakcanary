@@ -20,4 +20,12 @@ import android.view.View
 /**
  * Fake class for the purpose of demonstrating a leak.
  */
-class HttpRequestHelper internal constructor(private val button: View)
+object FakePlumber {
+
+  private val views = mutableListOf<View>()
+
+  fun createLeak(view: View) {
+    views.add(view)
+  }
+
+}

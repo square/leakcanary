@@ -183,7 +183,7 @@ internal class DisplayLeakActivity : Activity() {
 
   private fun shareLeak() {
     val visibleLeak = visibleLeak
-    val leakInfo = LeakCanary.leakInfo(this, visibleLeak!!.heapDump, visibleLeak.result, true)
+    val leakInfo = LeakCanary.leakInfo(this, visibleLeak!!.heapDump, visibleLeak.result)
     val intent = Intent(Intent.ACTION_SEND)
     intent.type = "text/plain"
     intent.putExtra(Intent.EXTRA_TEXT, leakInfo)
@@ -347,7 +347,7 @@ internal class DisplayLeakActivity : Activity() {
 
   private fun shareLeakToStackOverflow() {
     val visibleLeak = visibleLeak
-    val leakInfo = LeakCanary.leakInfo(this, visibleLeak!!.heapDump, visibleLeak.result, false)
+    val leakInfo = LeakCanary.leakInfo(this, visibleLeak!!.heapDump, visibleLeak.result)
     val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     // AsyncTask was needed here due to setPrimaryClip making a disk write which
     // violated StrictMode if on the main thread

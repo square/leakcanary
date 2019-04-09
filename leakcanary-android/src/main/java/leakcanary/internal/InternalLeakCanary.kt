@@ -67,8 +67,7 @@ internal object InternalLeakCanary {
   fun leakInfo(
     context: Context,
     heapDump: HeapDump,
-    result: AnalysisResult,
-    detailed: Boolean
+    result: AnalysisResult
   ): String {
     val packageManager = context.packageManager
     val packageName = context.packageName
@@ -88,18 +87,15 @@ internal object InternalLeakCanary {
       if (result.excludedLeak) {
         info += "* EXCLUDED LEAK.\n"
       }
-      info += "* " + result.className!!
+      info += "* ${result.className!!}"
       if (result.referenceName != "") {
-        info += " (" + result.referenceName + ")"
+        info += " (${result.referenceName})"
       }
-      info += " has leaked:\n" + result.leakTrace!!.toString() + "\n"
+      info += " has leaked:\n${result.leakTrace!!.renderToString()}\n"
       if (result.retainedHeapSize != AnalysisResult.RETAINED_HEAP_SKIPPED) {
         info += "* Retaining: " + Formatter.formatShortFileSize(
             context, result.retainedHeapSize
         ) + ".\n"
-      }
-      if (detailed) {
-        detailedString = "\n* Details:\n" + result.leakTrace!!.toDetailedString()
       }
     } else if (result.failure != null) {
       // We duplicate the library version & Sha information because bug reports often only contain
@@ -109,9 +105,6 @@ internal object InternalLeakCanary {
       ) + "\n"
     } else {
       info += "* NO LEAK FOUND.\n\n"
-    }
-    if (detailed) {
-      detailedString += "* Excluded Refs:\n" + heapDump.excludedRefs
     }
 
     info += ("* Reference Key: "

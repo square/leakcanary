@@ -20,9 +20,8 @@ object LeakCanary {
   fun leakInfo(
     context: Context,
     heapDump: HeapDump,
-    result: AnalysisResult,
-    detailed: Boolean
-  ): String = InternalLeakCanary.leakInfo(context, heapDump, result, detailed)
+    result: AnalysisResult
+  ): String = InternalLeakCanary.leakInfo(context, heapDump, result)
 
   /**
    * Whether the current process is the process running the [HeapAnalyzerService], which is
