@@ -2,13 +2,13 @@ package leakcanary
 
 import android.app.Activity
 import android.app.Application
-import android.content.Context
 import android.os.Bundle
 import android.os.Looper
 import android.os.MessageQueue
 import android.view.View
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.rule.ActivityTestRule
+import leakcanary.TestUtils.assertLeak
 import leakcanary.internal.ActivityLifecycleCallbacksAdapter
 import org.junit.After
 import org.junit.Before
@@ -84,44 +84,6 @@ class FragmentLeakTest {
     } catch (e: InterruptedException) {
       throw RuntimeException(e)
     }
-  }
-
-  private fun assertLeak(expectedLeakClass: Class<*>) {
-    val leakDetector = InstrumentationLeakDetector()
-    val results = leakDetector.detectLeaks()
-
-    if (results.detectedLeaks.size != 1) {
-      throw AssertionError(
-          "Expected exactly one leak, not ${results.detectedLeaks.size}" + resultsAsString(
-              results.detectedLeaks
-          )
-      )
-    }
-
-    val firstResult = results.detectedLeaks[0]
-
-    val leakingClassName = firstResult.analysisResult.className
-
-    if (leakingClassName != expectedLeakClass.name) {
-      throw AssertionError(
-          "Expected a leak of $expectedLeakClass, not $leakingClassName" + resultsAsString(
-              results.detectedLeaks
-          )
-      )
-    }
-  }
-
-  private fun resultsAsString(results: List<InstrumentationLeakResults.Result>): String {
-    val context = getApplicationContext<Context>()
-    val message = StringBuilder()
-    message.append("\nLeaks found:\n##################\n")
-    results.forEach { detectedLeak ->
-      message.append(
-          LeakCanary.leakInfo(context, detectedLeak.heapDump, detectedLeak.analysisResult, false)
-      )
-    }
-    message.append("\n##################\n")
-    return message.toString()
   }
 
   private fun waitForActivityDestroy(): CountDownLatch {

@@ -19,10 +19,17 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.R
+import leakcanary.AnalysisResult
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
+import leakcanary.HeapAnalysisFailure
+import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapAnalyzer
 import leakcanary.HeapDump
+import leakcanary.LeakingInstance
+import leakcanary.NoPathToInstance
+import leakcanary.WeakReferenceCleared
+import leakcanary.WeakReferenceMissing
 import leakcanary.internal.LeakCanaryUtils.setEnabledBlocking
 import java.io.File
 import java.io.IOException
@@ -47,49 +54,80 @@ internal class HeapAnalyzerService : ForegroundService(
         HEAPDUMP_EXTRA
     ) as HeapDump
 
-    val heapAnalyzer = HeapAnalyzer(
-        heapDump.excludedRefs, this,
-        heapDump.reachabilityInspectorClasses
-    )
+    val heapAnalyzer = HeapAnalyzer(this)
 
-    val analysisResults = heapAnalyzer.checkForLeaks(
-        heapDump.heapDumpFile,
-        heapDump.computeRetainedHeapSize
-    )
+    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
 
-    var i = 0
-    for (result in analysisResults) {
-      val fakeFileHeapDump: HeapDump
-      if (i > 0) {
-        // TODO 1 analysis = many leaks, which is currently unsupported by the rest of the pipeline.
-        // We temporarily ignore this problem by replacing the heapdump file with a fake file for
-        // all heap dumps but the first one.
-        val newFile = File(
-            heapDump.heapDumpFile.parentFile,
-            i.toString() + heapDump.heapDumpFile.name
+    when (heapAnalysis) {
+      is HeapAnalysisFailure -> {
+        val result =
+          AnalysisResult.failure(heapAnalysis.exception, heapAnalysis.analysisDurationMillis)
+        AbstractAnalysisResultService.sendResultToListener(
+            this, listenerClassName, heapAnalysis.heapDump,
+            result
         )
-        try {
-          val created = newFile.createNewFile()
-          if (!created) {
-            continue
-          }
-        } catch (e: IOException) {
-          continue
-        }
-
-        fakeFileHeapDump = heapDump.buildUpon()
-            .heapDumpFile(
-                newFile
-            )
-            .build()
-      } else {
-        fakeFileHeapDump = heapDump
       }
-      AbstractAnalysisResultService.sendResultToListener(
-          this, listenerClassName, fakeFileHeapDump,
-          result
-      )
-      i++
+      is HeapAnalysisSuccess -> {
+        heapAnalysis.retainedInstances.forEachIndexed nextResult@{ index, retainedInstance ->
+          val result = when (retainedInstance) {
+            is WeakReferenceMissing -> {
+              AnalysisResult.noLeak(
+                  retainedInstance.referenceKey, referenceName = "unknown (weak ref gced)",
+                  className = "unknown (weak ref gced)",
+                  analysisDurationMs = heapAnalysis.analysisDurationMillis, watchDurationMs = 0L
+              )
+            }
+            is WeakReferenceCleared -> AnalysisResult.noLeak(
+                retainedInstance.referenceKey, retainedInstance.referenceName,
+                retainedInstance.instanceClassName, heapAnalysis.analysisDurationMillis,
+                retainedInstance.watchDurationMillis
+            )
+            is NoPathToInstance -> AnalysisResult.noLeak(
+                retainedInstance.referenceKey, retainedInstance.referenceName,
+                retainedInstance.instanceClassName, heapAnalysis.analysisDurationMillis,
+                retainedInstance.watchDurationMillis
+            )
+            is LeakingInstance -> AnalysisResult.leakDetected(
+                retainedInstance.referenceKey, retainedInstance.referenceName,
+                retainedInstance.excludedLeak,
+                retainedInstance.instanceClassName, retainedInstance.leakTrace,
+                retainedInstance.retainedHeapSize, heapAnalysis.analysisDurationMillis,
+                retainedInstance.watchDurationMillis
+            )
+          }
+
+          val fakeFileHeapDump: HeapDump
+          if (index > 0) {
+            // TODO 1 analysis = many leaks, which is currently unsupported by the rest of the pipeline.
+            // We temporarily ignore this problem by replacing the heapdump file with a fake file for
+            // all heap dumps but the first one.
+            val newFile = File(
+                heapDump.heapDumpFile.parentFile,
+                index.toString() + heapDump.heapDumpFile.name
+            )
+            try {
+              val created = newFile.createNewFile()
+              if (!created) {
+                return@nextResult
+              }
+            } catch (e: IOException) {
+              return@nextResult
+            }
+
+            fakeFileHeapDump = heapDump.buildUpon()
+                .heapDumpFile(
+                    newFile
+                )
+                .build()
+          } else {
+            fakeFileHeapDump = heapDump
+          }
+          AbstractAnalysisResultService.sendResultToListener(
+              this, listenerClassName, fakeFileHeapDump,
+              result
+          )
+        }
+      }
     }
   }
 

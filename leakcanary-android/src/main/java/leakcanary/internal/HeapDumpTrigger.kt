@@ -5,10 +5,12 @@ import android.os.Handler
 import android.os.SystemClock
 import leakcanary.CanaryLog
 import leakcanary.GcTrigger
+import leakcanary.HeapDump
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.LeakCanary.Config
 import leakcanary.RefWatcher
 import leakcanary.HeapDump.Builder
+import leakcanary.HeapDump.Companion
 import leakcanary.HeapDump.Listener
 
 internal class HeapDumpTrigger(
@@ -117,8 +119,7 @@ internal class HeapDumpTrigger(
     }
     refWatcher.removeRetainedKeys(retainedKeys)
 
-    val heapDump = Builder()
-        .heapDumpFile(heapDumpFile!!)
+    val heapDump = HeapDump.builder(heapDumpFile!!)
         .excludedRefs(config.excludedRefs)
         .gcDurationMs(gcDurationMillis)
         .heapDumpDurationMs(heapDumpDurationMillis)

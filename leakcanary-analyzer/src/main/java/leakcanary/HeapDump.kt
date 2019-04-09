@@ -22,6 +22,7 @@ import java.util.ArrayList
 import java.util.Collections.unmodifiableList
 
 /** Data structure holding information about a heap dump.  */
+// TODO Turn HeapDump into a data class
 class HeapDump internal constructor(builder: Builder) : Serializable {
 
   /** The heap dump file, which you might want to upload somewhere.  */
@@ -36,41 +37,34 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
   val reachabilityInspectorClasses: List<Class<out Inspector>>
 
   /** Receives a heap dump to analyze.  */
-  internal interface Listener {
+  interface Listener {
     fun analyze(heapDump: HeapDump)
   }
 
   init {
-    this.heapDumpFile = builder.heapDumpFile!!
-    this.excludedRefs = builder.excludedRefs!!
+    this.heapDumpFile = builder.heapDumpFile
+    this.excludedRefs = builder.excludedRefs
     this.computeRetainedHeapSize = builder.computeRetainedHeapSize
     this.gcDurationMs = builder.gcDurationMs
     this.heapDumpDurationMs = builder.heapDumpDurationMs
-    this.reachabilityInspectorClasses = builder.reachabilityInspectorClasses!!
+    this.reachabilityInspectorClasses = builder.reachabilityInspectorClasses
   }
 
   fun buildUpon(): Builder {
     return Builder(this)
   }
 
-  class Builder {
-    internal var heapDumpFile: File? = null
-    internal var excludedRefs: ExcludedRefs? = null
+  class Builder(
+    internal var heapDumpFile: File
+  ) {
+    internal var excludedRefs: ExcludedRefs = ExcludedRefs.builder()
+        .build()
     internal var gcDurationMs: Long = 0
     internal var heapDumpDurationMs: Long = 0
     internal var computeRetainedHeapSize: Boolean = false
-    internal var reachabilityInspectorClasses: List<Class<out Inspector>>? = null
+    internal var reachabilityInspectorClasses: List<Class<out Inspector>> = emptyList()
 
-    internal constructor() {
-      this.heapDumpFile = null
-      excludedRefs = null
-      gcDurationMs = 0
-      heapDumpDurationMs = 0
-      computeRetainedHeapSize = false
-      reachabilityInspectorClasses = null
-    }
-
-    internal constructor(heapDump: HeapDump) {
+    internal constructor(heapDump: HeapDump) : this(heapDump.heapDumpFile) {
       this.heapDumpFile = heapDump.heapDumpFile
       this.excludedRefs = heapDump.excludedRefs
       this.computeRetainedHeapSize = heapDump.computeRetainedHeapSize
@@ -119,8 +113,8 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
   }
 
   companion object {
-    fun builder(): Builder {
-      return Builder()
+    fun builder(heapDumpFile: File): Builder {
+      return Builder(heapDumpFile)
     }
   }
 }

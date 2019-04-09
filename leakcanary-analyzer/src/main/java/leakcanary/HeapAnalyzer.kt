@@ -35,14 +35,6 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATH
 import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
-import leakcanary.internal.HahaHelper.asString
-import leakcanary.internal.HahaHelper.asStringArray
-import leakcanary.internal.HahaHelper.classInstanceValues
-import leakcanary.internal.HahaHelper.extendsThread
-import leakcanary.internal.HahaHelper.fieldValue
-import leakcanary.internal.HahaHelper.staticFieldValue
-import leakcanary.internal.HahaHelper.threadName
-import leakcanary.internal.HahaHelper.valueAsString
 import leakcanary.LeakTraceElement.Holder
 import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
@@ -51,17 +43,23 @@ import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.Reachability.Inspector
 import leakcanary.Reachability.Status.REACHABLE
 import leakcanary.Reachability.Status.UNKNOWN
 import leakcanary.Reachability.Status.UNREACHABLE
+import leakcanary.internal.HahaHelper.asString
+import leakcanary.internal.HahaHelper.asStringArray
+import leakcanary.internal.HahaHelper.classInstanceValues
+import leakcanary.internal.HahaHelper.extendsThread
+import leakcanary.internal.HahaHelper.fieldValue
+import leakcanary.internal.HahaHelper.staticFieldValue
+import leakcanary.internal.HahaHelper.threadName
+import leakcanary.internal.HahaHelper.valueAsString
 import leakcanary.internal.HasReferent
 import leakcanary.internal.KeyedWeakReferenceMirror
 import leakcanary.internal.LeakNode
 import leakcanary.internal.ShortestPathFinder
 import leakcanary.internal.ShortestPathFinder.Result
 import org.jetbrains.annotations.TestOnly
-import java.io.File
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
 
@@ -69,33 +67,14 @@ import java.util.concurrent.TimeUnit.NANOSECONDS
  * Analyzes heap dumps to look for leaks.
  */
 class HeapAnalyzer @TestOnly internal constructor(
-  private val excludedRefs: ExcludedRefs,
   private val listener: AnalyzerProgressListener,
-  reachabilityInspectorClasses: List<Class<out Inspector>>,
   private val keyedWeakReferenceClassName: String,
   private val heapDumpMemoryStoreClassName: String
 ) {
-  private val reachabilityInspectors: MutableList<Inspector> = mutableListOf()
 
-  constructor(
-    excludedRefs: ExcludedRefs,
-    listener: AnalyzerProgressListener,
-    reachabilityInspectorClasses: List<Class<out Inspector>>
-  ) : this(
-      excludedRefs, listener, reachabilityInspectorClasses, KeyedWeakReference::class.java.name,
-      HeapDumpMemoryStore::class.java.name
+  constructor(listener: AnalyzerProgressListener) : this(
+      listener, KeyedWeakReference::class.java.name, HeapDumpMemoryStore::class.java.name
   )
-
-  init {
-    for (reachabilityInspectorClass in reachabilityInspectorClasses) {
-      try {
-        val defaultConstructor = reachabilityInspectorClass.getDeclaredConstructor()
-        reachabilityInspectors.add(defaultConstructor.newInstance())
-      } catch (e: Exception) {
-        throw RuntimeException(e)
-      }
-    }
-  }
 
   /**
    * Searches the heap dump for a [KeyedWeakReference] instance with the corresponding key,
@@ -107,20 +86,19 @@ class HeapAnalyzer @TestOnly internal constructor(
           "    our tests currently run with older heapdumps."
   )
   internal fun checkForLeak(
-    heapDumpFile: File,
-    referenceKey: String,
-    computeRetainedSize: Boolean
+    heapDump: HeapDump,
+    referenceKey: String
   ): AnalysisResult {
     val analysisStartNanoTime = System.nanoTime()
 
-    if (!heapDumpFile.exists()) {
-      val exception = IllegalArgumentException("File does not exist: $heapDumpFile")
+    if (!heapDump.heapDumpFile.exists()) {
+      val exception = IllegalArgumentException("File does not exist: $heapDump.heapDumpFile")
       return AnalysisResult.failure(exception, since(analysisStartNanoTime))
     }
 
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
-      val buffer = MemoryMappedFileBuffer(heapDumpFile)
+      val buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
       listener.onProgressUpdate(PARSING_HEAP_DUMP)
       val snapshot = Snapshot.createSnapshot(buffer)
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
@@ -130,11 +108,10 @@ class HeapAnalyzer @TestOnly internal constructor(
           "UnknownNoKeyedWeakReference",
           since(analysisStartNanoTime)
       )
-
-      // False alarm, weak reference was cleared in between key check and heap dump.
       return findLeakTrace(
+          heapDump,
           referenceKey, "NAME_NOT_SUPPORTED", analysisStartNanoTime, snapshot,
-          leakingRef, computeRetainedSize, 0
+          leakingRef, 0
       )
     } catch (e: Throwable) {
       return AnalysisResult.failure(e, since(analysisStartNanoTime))
@@ -147,52 +124,52 @@ class HeapAnalyzer @TestOnly internal constructor(
    * and then computes the shortest strong reference path from that instance to the GC roots.
    */
   fun checkForLeaks(
-    heapDumpFile: File,
-    computeRetainedSize: Boolean
-  ): List<AnalysisResult> {
+    heapDump: HeapDump
+  ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
-    if (!heapDumpFile.exists()) {
-      val exception = IllegalArgumentException("File does not exist: $heapDumpFile")
-      return listOf(
-          AnalysisResult.failure(exception, since(analysisStartNanoTime))
+    if (!heapDump.heapDumpFile.exists()) {
+      val exception = IllegalArgumentException("File does not exist: $heapDump.heapDumpFile")
+      return HeapAnalysisFailure(
+          heapDump, since(analysisStartNanoTime), HeapAnalysisException(exception)
       )
     }
 
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
-      val buffer = MemoryMappedFileBuffer(heapDumpFile)
+      val buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
       listener.onProgressUpdate(PARSING_HEAP_DUMP)
       val snapshot = Snapshot.createSnapshot(buffer)
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
       deduplicateGcRoots(snapshot)
 
-      val analysisResults = mutableMapOf<String, AnalysisResult>()
+      val analysisResults = mutableMapOf<String, RetainedInstance>()
 
       val (retainedKeys, heapDumpUptimeMillis) = readHeapDumpMemoryStore(snapshot)
 
       if (retainedKeys.size == 0) {
         val exception = IllegalStateException("No retained keys found in heap dump")
-        return listOf(
-            AnalysisResult.failure(exception, since(analysisStartNanoTime))
+        return HeapAnalysisFailure(
+            heapDump, since(analysisStartNanoTime), HeapAnalysisException(exception)
         )
       }
 
-      val leakingWeakRefs = findLeakingReferences(
-          snapshot, retainedKeys, analysisResults, heapDumpUptimeMillis, analysisStartNanoTime
+      val leakingWeakRefs =
+        findLeakingReferences(snapshot, retainedKeys, analysisResults, heapDumpUptimeMillis)
+
+      val pathResults = findShortestPaths(heapDump, snapshot, leakingWeakRefs)
+
+      buildLeakTraces(heapDump, pathResults, snapshot, leakingWeakRefs, analysisResults)
+
+      addRemainingInstancesWithNoPath(leakingWeakRefs, analysisResults)
+
+      return HeapAnalysisSuccess(
+          heapDump, since(analysisStartNanoTime), analysisResults.values.toList()
       )
-
-      val pathResults = findShortestPaths(snapshot, leakingWeakRefs)
-
-      buildLeakTraces(
-          computeRetainedSize, pathResults, snapshot, leakingWeakRefs, analysisStartNanoTime,
-          analysisResults
+    } catch (exception: Throwable) {
+      return HeapAnalysisFailure(
+          heapDump, since(analysisStartNanoTime), HeapAnalysisException(exception)
       )
-
-      addRemainingInstancesWithNoPath(leakingWeakRefs, analysisStartNanoTime, analysisResults)
-      return analysisResults.values.toList()
-    } catch (e: Throwable) {
-      return listOf(AnalysisResult.failure(e, since(analysisStartNanoTime)))
     }
   }
 
@@ -233,9 +210,8 @@ class HeapAnalyzer @TestOnly internal constructor(
   private fun findLeakingReferences(
     snapshot: Snapshot,
     retainedKeys: MutableList<String>,
-    analysisResults: MutableMap<String, AnalysisResult>,
-    heapDumpUptimeMillis: Long,
-    analysisStartNanoTime: Long
+    analysisResults: MutableMap<String, RetainedInstance>,
+    heapDumpUptimeMillis: Long
   ): MutableList<HasReferent> {
     listener.onProgressUpdate(FINDING_LEAKING_REFS)
 
@@ -256,9 +232,8 @@ class HeapAnalyzer @TestOnly internal constructor(
         if (weakRefMirror is HasReferent) {
           leakingWeakRefs.add(weakRefMirror)
         } else {
-          val noLeak = AnalysisResult.noLeak(
+          val noLeak = WeakReferenceCleared(
               weakRefMirror.key, weakRefMirror.name, weakRefMirror.className,
-              since(analysisStartNanoTime),
               weakRefMirror.watchDurationMillis
           )
           analysisResults[weakRefMirror.key] = noLeak
@@ -269,34 +244,30 @@ class HeapAnalyzer @TestOnly internal constructor(
     retainedKeys.forEach { referenceKey ->
       // This could happen if RefWatcher removed weakly reachable references after providing
       // the set of retained keys
-      val noLeak = AnalysisResult.noLeak(
-          referenceKey, referenceName = "unknown (weak ref gced)",
-          className = "unknown (weak ref gced)",
-          analysisDurationMs = since(analysisStartNanoTime), watchDurationMs = 0L
-      )
+      val noLeak = WeakReferenceMissing(referenceKey)
       analysisResults[referenceKey] = noLeak
     }
     return leakingWeakRefs
   }
 
   private fun findShortestPaths(
+    heapDump: HeapDump,
     snapshot: Snapshot,
     leakingWeakRefs: MutableList<HasReferent>
   ): List<Result> {
     listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
-    val pathFinder = ShortestPathFinder(excludedRefs, ignoreStrings = true)
+    val pathFinder = ShortestPathFinder(heapDump.excludedRefs, ignoreStrings = true)
     return pathFinder.findPaths(snapshot, leakingWeakRefs)
   }
 
   private fun buildLeakTraces(
-    computeRetainedSize: Boolean,
+    heapDump: HeapDump,
     pathResults: List<Result>,
     snapshot: Snapshot,
     leakingWeakRefs: MutableList<HasReferent>,
-    analysisStartNanoTime: Long,
-    analysisResults: MutableMap<String, AnalysisResult>
+    analysisResults: MutableMap<String, RetainedInstance>
   ) {
-    if (computeRetainedSize && pathResults.isNotEmpty()) {
+    if (heapDump.computeRetainedHeapSize && pathResults.isNotEmpty()) {
       listener.onProgressUpdate(COMPUTING_DOMINATORS)
       // Computing dominators has the side effect of computing retained size.
       snapshot.computeDominators()
@@ -313,18 +284,16 @@ class HeapAnalyzer @TestOnly internal constructor(
         )
       }
 
-      val leakTrace = buildLeakTrace(pathResult.leakingNode)
+      val leakTrace = buildLeakTrace(heapDump, pathResult.leakingNode)
 
-      val retainedSize = if (computeRetainedSize) {
+      val retainedSize = if (heapDump.computeRetainedHeapSize) {
         pathResult.leakingNode.instance.totalRetainedSize
       } else {
         AnalysisResult.RETAINED_HEAP_SKIPPED
       }
-      val leakDetected = AnalysisResult.leakDetected(
-          weakReference.key, weakReference.name,
-          pathResult.excludingKnownLeaks, weakReference.className, leakTrace,
-          retainedSize,
-          since(analysisStartNanoTime), weakReference.watchDurationMillis
+      val leakDetected = LeakingInstance(
+          weakReference.key, weakReference.name, weakReference.className,
+          weakReference.watchDurationMillis, pathResult.excludingKnownLeaks, leakTrace, retainedSize
       )
       analysisResults[weakReference.key] = leakDetected
     }
@@ -332,13 +301,12 @@ class HeapAnalyzer @TestOnly internal constructor(
 
   private fun addRemainingInstancesWithNoPath(
     leakingWeakRefs: MutableList<HasReferent>,
-    analysisStartNanoTime: Long,
-    analysisResults: MutableMap<String, AnalysisResult>
+    analysisResults: MutableMap<String, RetainedInstance>
   ) {
     leakingWeakRefs.forEach { refWithNoPath ->
-      val noLeak = AnalysisResult.noLeak(
+      val noLeak = NoPathToInstance(
           refWithNoPath.key, refWithNoPath.name, refWithNoPath.className,
-          since(analysisStartNanoTime), refWithNoPath.watchDurationMillis
+          refWithNoPath.watchDurationMillis
       )
       analysisResults[refWithNoPath.key] = noLeak
     }
@@ -371,17 +339,17 @@ class HeapAnalyzer @TestOnly internal constructor(
   }
 
   private fun findLeakTrace(
+    heapDump: HeapDump,
     referenceKey: String,
     referenceName: String,
     analysisStartNanoTime: Long,
     snapshot: Snapshot,
     leakingRef: Instance,
-    computeRetainedSize: Boolean,
     watchDurationMs: Long
   ): AnalysisResult {
 
     listener.onProgressUpdate(FINDING_SHORTEST_PATH)
-    val pathFinder = ShortestPathFinder(excludedRefs, ignoreStrings = true)
+    val pathFinder = ShortestPathFinder(heapDump.excludedRefs, ignoreStrings = true)
     val result = pathFinder.findPath(snapshot, leakingRef)
 
     val className = leakingRef.classObj.className
@@ -392,9 +360,9 @@ class HeapAnalyzer @TestOnly internal constructor(
     }
 
     listener.onProgressUpdate(BUILDING_LEAK_TRACE)
-    val leakTrace = buildLeakTrace(result.leakingNode)
+    val leakTrace = buildLeakTrace(heapDump, result.leakingNode)
 
-    val retainedSize = if (computeRetainedSize) {
+    val retainedSize = if (heapDump.computeRetainedHeapSize) {
       listener.onProgressUpdate(COMPUTING_DOMINATORS)
       // Side effect: computes retained size.
       snapshot.computeDominators()
@@ -414,7 +382,10 @@ class HeapAnalyzer @TestOnly internal constructor(
     )
   }
 
-  private fun buildLeakTrace(leakingNode: LeakNode): LeakTrace {
+  private fun buildLeakTrace(
+    heapDump: HeapDump,
+    leakingNode: LeakNode
+  ): LeakTrace {
     val elements = ArrayList<LeakTraceElement>()
     // We iterate from the leak to the GC root
     val ignored = leakingNode.instance
@@ -428,12 +399,13 @@ class HeapAnalyzer @TestOnly internal constructor(
       node = node.parent
     }
 
-    val expectedReachability = computeExpectedReachability(elements)
+    val expectedReachability = computeExpectedReachability(heapDump, elements)
 
     return LeakTrace(elements, expectedReachability)
   }
 
   private fun computeExpectedReachability(
+    heapDump: HeapDump,
     elements: List<LeakTraceElement>
   ): List<Reachability> {
     var lastReachableElementIndex = 0
@@ -442,8 +414,18 @@ class HeapAnalyzer @TestOnly internal constructor(
 
     val expectedReachability = ArrayList<Reachability>()
 
+    val reachabilityInspectors = mutableListOf<Reachability.Inspector>()
+    for (reachabilityInspectorClass in heapDump.reachabilityInspectorClasses) {
+      try {
+        val defaultConstructor = reachabilityInspectorClass.getDeclaredConstructor()
+        reachabilityInspectors.add(defaultConstructor.newInstance())
+      } catch (e: Exception) {
+        throw RuntimeException(e)
+      }
+    }
+
     for ((index, element) in elements.withIndex()) {
-      val reachability = inspectElementReachability(element)
+      val reachability = inspectElementReachability(reachabilityInspectors, element)
       expectedReachability.add(reachability)
       if (reachability.status == REACHABLE) {
         lastReachableElementIndex = index
@@ -479,7 +461,10 @@ class HeapAnalyzer @TestOnly internal constructor(
     return expectedReachability
   }
 
-  private fun inspectElementReachability(element: LeakTraceElement): Reachability {
+  private fun inspectElementReachability(
+    reachabilityInspectors: List<Reachability.Inspector>,
+    element: LeakTraceElement
+  ): Reachability {
     for (reachabilityInspector in reachabilityInspectors) {
       val reachability = reachabilityInspector.expectedReachability(element)
       if (reachability.status != UNKNOWN) {
@@ -531,7 +516,9 @@ class HeapAnalyzer @TestOnly internal constructor(
         val threadName = threadName(holder)
         extra = "(named '$threadName')"
       } else if (className.matches(
-              ANONYMOUS_CLASS_NAME_PATTERN.toRegex())) {
+              ANONYMOUS_CLASS_NAME_PATTERN.toRegex()
+          )
+      ) {
         val parentClassName = classObj.superClassObj.className
         if (rootClassName == parentClassName) {
           holderType = OBJECT
