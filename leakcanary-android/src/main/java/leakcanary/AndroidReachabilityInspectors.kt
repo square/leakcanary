@@ -52,8 +52,6 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
 
   MORTAR_PRESENTER(MortarPresenterInspector::class.java),
 
-  VIEW_ROOT_IMPL(ViewImplInspector::class.java),
-
   MAIN_THEAD(MainThreadInspector::class.java),
 
   WINDOW(WindowInspector::class.java);
@@ -136,14 +134,6 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
       return if ("null" == view) {
         Reachability.unreachable("Presenter#view is null")
       } else Reachability.unknown()
-    }
-  }
-
-  class ViewImplInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      return unreachableWhen(
-          element, "android.view.ViewRootImpl", "mView", "null"
-      )
     }
   }
 
