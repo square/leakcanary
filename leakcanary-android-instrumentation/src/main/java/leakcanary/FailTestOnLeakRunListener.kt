@@ -20,6 +20,7 @@ import android.os.Bundle
 import androidx.test.internal.runner.listener.InstrumentationResultPrinter
 import androidx.test.internal.runner.listener.InstrumentationResultPrinter.REPORT_VALUE_RESULT_FAILURE
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import org.junit.runner.Description
 import org.junit.runner.Result
 import org.junit.runner.notification.Failure
@@ -97,24 +98,31 @@ open class FailTestOnLeakRunListener : RunListener() {
     }
 
     val leakDetector = InstrumentationLeakDetector()
-    val results = leakDetector.detectLeaks()
+    val result = leakDetector.detectLeaks()
 
-    reportLeaks(results)
+    if (result is AnalysisPerformed) {
+      val applicationLeaks = result.heapAnalysis.applicationLeaks()
+      if (applicationLeaks.isNotEmpty()) {
+        reportLeaks(result.heapAnalysis, applicationLeaks)
+      }
+    }
   }
 
   /** Can be overridden to report leaks in a different way or do additional reporting.  */
-  protected open fun reportLeaks(results: InstrumentationLeakResults) {
-    if (results.detectedLeaks.isNotEmpty()) {
-      val message = buildLeakDetectedMessage(results.detectedLeaks)
+  protected open fun reportLeaks(
+    heapAnalysis: HeapAnalysis,
+    applicationLeaks: List<LeakingInstance>
+  ) {
+    val message = buildLeakDetectedMessage(heapAnalysis, applicationLeaks)
 
-      bundle.putString(InstrumentationResultPrinter.REPORT_KEY_STACK, message)
-      getInstrumentation().sendStatus(REPORT_VALUE_RESULT_FAILURE, bundle)
-    }
+    bundle.putString(InstrumentationResultPrinter.REPORT_KEY_STACK, message)
+    getInstrumentation().sendStatus(REPORT_VALUE_RESULT_FAILURE, bundle)
   }
 
   /** Can be overridden to customize the failure string message.  */
   protected open fun buildLeakDetectedMessage(
-    detectedLeaks: List<InstrumentationLeakResults.Result>
+    heapAnalysis: HeapAnalysis,
+    applicationLeaks: List<LeakingInstance>
   ): String {
     val failureMessage = StringBuilder()
     failureMessage.append(
@@ -123,12 +131,17 @@ open class FailTestOnLeakRunListener : RunListener() {
     failureMessage.append(SEPARATOR)
 
     val context = getInstrumentation().context
-    detectedLeaks.forEach { detectedLeak ->
-      failureMessage.append(
-          LeakCanary.leakInfo(
-              context, detectedLeak.heapDump, detectedLeak.analysisResult, false
-          )
+    applicationLeaks.forEach { applicationLeak ->
+
+      val result = AnalysisResult.leakDetected(
+          applicationLeak.referenceKey, applicationLeak.referenceName,
+          applicationLeak.excludedLeak,
+          applicationLeak.instanceClassName, applicationLeak.leakTrace,
+          applicationLeak.retainedHeapSize, heapAnalysis.analysisDurationMillis,
+          applicationLeak.watchDurationMillis
       )
+
+      failureMessage.append(LeakCanary.leakInfo(context, heapAnalysis.heapDump, result, false))
       failureMessage.append(SEPARATOR)
     }
 

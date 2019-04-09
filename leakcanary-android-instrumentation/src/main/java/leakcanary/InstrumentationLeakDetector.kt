@@ -19,7 +19,8 @@ import android.os.Debug
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import leakcanary.GcTrigger.Default.runGc
-import leakcanary.InstrumentationLeakResults.Result
+import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
+import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
 import org.junit.runner.notification.RunListener
 import java.io.File
 
@@ -92,12 +93,16 @@ import java.io.File
  * The approach taken here is to collect all references to watch as you run the test, but not
  * do any heap dump during the test. Then, at the end, if any of the watched objects is still in
  * memory we dump the heap and perform a blocking analysis. There is only one heap dump performed,
- * no matter the number of objects leaking, and then we iterate on the leaking references in the
- * heap dump and provide all result in a [InstrumentationLeakResults].
+ * no matter the number of objects leaking.
  */
 class InstrumentationLeakDetector {
 
-  fun detectLeaks(): InstrumentationLeakResults {
+  sealed class Result {
+    object NoAnalysis : Result()
+    class AnalysisPerformed(val heapAnalysis: HeapAnalysis) : Result()
+  }
+
+  fun detectLeaks(): Result {
     val leakDetectionTime = SystemClock.uptimeMillis()
     val watchDurationMillis = LeakSentry.config.watchDurationMillis
     val instrumentation = getInstrumentation()
@@ -105,17 +110,17 @@ class InstrumentationLeakDetector {
     val refWatcher = LeakSentry.refWatcher
 
     if (!refWatcher.hasWatchedReferences) {
-      return InstrumentationLeakResults.NONE
+      return NoAnalysis
     }
 
     instrumentation.waitForIdleSync()
     if (!refWatcher.hasWatchedReferences) {
-      return InstrumentationLeakResults.NONE
+      return NoAnalysis
     }
 
     runGc()
     if (!refWatcher.hasWatchedReferences) {
-      return InstrumentationLeakResults.NONE
+      return NoAnalysis
     }
 
     // Waiting for any delayed UI post (e.g. scroll) to clear. This shouldn't be needed, but
@@ -123,7 +128,7 @@ class InstrumentationLeakDetector {
     SystemClock.sleep(2000)
 
     if (!refWatcher.hasWatchedReferences) {
-      return InstrumentationLeakResults.NONE
+      return NoAnalysis
     }
 
     // Aaand we wait some more.
@@ -139,66 +144,45 @@ class InstrumentationLeakDetector {
     runGc()
 
     if (!refWatcher.hasRetainedReferences) {
-      return InstrumentationLeakResults.NONE
+      return NoAnalysis
     }
 
     // We're always reusing the same file since we only execute this once at a time.
     val heapDumpFile = File(context.filesDir, "instrumentation_tests_heapdump.hprof")
 
+    val config = LeakCanary.config
+
+    val heapDump = HeapDump.builder(heapDumpFile)
+        .excludedRefs(config.excludedRefs)
+        .reachabilityInspectorClasses(config.reachabilityInspectorClasses)
+        .build()
+
     val retainedKeys = refWatcher.retainedKeys
     HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
     HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
 
+
     try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
-    } catch (e: Exception) {
-      CanaryLog.d(e, "Could not dump heap")
-      return InstrumentationLeakResults.NONE
+    } catch (exception: Exception) {
+      CanaryLog.d(exception, "Could not dump heap")
+      return AnalysisPerformed(
+          HeapAnalysisFailure(
+              heapDump, analysisDurationMillis = 0,
+              exception = HeapAnalysisException(exception)
+          )
+      )
     }
 
     refWatcher.removeRetainedKeys(retainedKeys)
 
-    val config = LeakCanary.config
+    val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
 
-    val heapAnalyzer = HeapAnalyzer(
-        config.excludedRefs, AnalyzerProgressListener.NONE,
-        config.reachabilityInspectorClasses
-    )
+    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
 
-    val results = heapAnalyzer.checkForLeaks(heapDumpFile, false)
+    CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)
 
-    val detectedLeaks = mutableListOf<Result>()
-    val excludedLeaks = mutableListOf<Result>()
-    val failures = mutableListOf<Result>()
-
-
-    results.forEach { analysisResult ->
-      val heapDump = HeapDump.builder()
-          .heapDumpFile(heapDumpFile)
-          .excludedRefs(config.excludedRefs)
-          .reachabilityInspectorClasses(config.reachabilityInspectorClasses)
-          .build()
-      val leakResult = Result(heapDump, analysisResult)
-
-      if (analysisResult.leakFound) {
-        if (!analysisResult.excludedLeak) {
-          detectedLeaks.add(leakResult)
-        } else {
-          excludedLeaks.add(leakResult)
-        }
-      } else if (analysisResult.failure != null) {
-        failures.add(leakResult)
-      }
-    }
-
-    CanaryLog.d(
-        "Found %d proper leaks, %d excluded leaks and %d leak analysis failures",
-        detectedLeaks.size,
-        excludedLeaks.size,
-        failures.size
-    )
-
-    return InstrumentationLeakResults(detectedLeaks, excludedLeaks, failures)
+    return AnalysisPerformed(heapAnalysis)
   }
 
   companion object {

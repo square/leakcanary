@@ -7,7 +7,6 @@ import com.squareup.haha.perflib.Snapshot
 import leakcanary.AnalyzerProgressListener
 import leakcanary.HeapAnalyzer
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -16,15 +15,7 @@ import java.util.Arrays.asList
 @RunWith(JUnit4::class)
 class HeapAnalyzerTest {
 
-  private lateinit var heapAnalyzer: HeapAnalyzer
-
-  @Before
-  fun setUp() {
-    heapAnalyzer = HeapAnalyzer(
-        NO_EXCLUDED_REFS, AnalyzerProgressListener.NONE,
-        emptyList()
-    )
-  }
+  private val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
 
   @Test
   fun ensureUniqueRoots() {

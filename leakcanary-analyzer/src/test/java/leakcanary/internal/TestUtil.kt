@@ -4,7 +4,13 @@ import leakcanary.AnalysisResult
 import leakcanary.AnalyzerProgressListener
 import leakcanary.ExcludedRefs
 import leakcanary.ExcludedRefs.BuilderWithParams
+import leakcanary.HeapAnalysis
+import leakcanary.HeapAnalysisFailure
+import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapAnalyzer
+import leakcanary.HeapDump
+import leakcanary.LeakingInstance
+import leakcanary.RetainedInstance
 import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
@@ -38,33 +44,43 @@ internal fun fileFromName(filename: String): File {
   return File(url.path)
 }
 
-internal fun findLeak(heapDumpFile: HeapDumpFile): AnalysisResult? {
-  val results = findAllLeaks(heapDumpFile)
-  for (result in results) {
-    if (heapDumpFile.referenceKey == result.referenceKey) {
-      return result
+internal fun findLeak(heapDumpFile: HeapDumpFile): RetainedInstance? {
+  val heapAnalysis = findAllLeaks(heapDumpFile)
+  if (heapAnalysis is HeapAnalysisSuccess) {
+    heapAnalysis.retainedInstances.forEach { retainedInstance ->
+      if (retainedInstance.referenceKey == heapDumpFile.referenceKey) {
+        return retainedInstance
+      }
     }
   }
   return null
 }
 
-internal fun findAllLeaks(heapDumpFile: HeapDumpFile): List<AnalysisResult> {
+internal fun findAllLeaks(heapDumpFile: HeapDumpFile): HeapAnalysis {
   val file = fileFromName(heapDumpFile.filename)
   val heapAnalyzer = HeapAnalyzer(
-      defaultExcludedRefs.build(), AnalyzerProgressListener.NONE, emptyList(),
+      AnalyzerProgressListener.NONE,
       OLD_KEYED_WEAK_REFERENCE_CLASS_NAME,
       OLD_HEAP_DUMP_MEMORY_STORE_CLASS_NAME
   )
-  val results = heapAnalyzer.checkForLeaks(file, true)
-  for (result in results) {
-    val failure = result.failure
-    if (failure != null) {
-      failure.printStackTrace()
-    } else if (result.leakFound) {
-      println(result.leakTrace)
+  val heapAnalysis =
+    heapAnalyzer.checkForLeaks(
+        HeapDump.builder(file).excludedRefs(defaultExcludedRefs.build()).computeRetainedHeapSize(
+            true
+        ).build()
+    )
+
+  when (heapAnalysis) {
+    is HeapAnalysisFailure -> heapAnalysis.exception.printStackTrace()
+    is HeapAnalysisSuccess -> {
+      heapAnalysis.retainedInstances.forEach { retainedInstance ->
+        if (retainedInstance is LeakingInstance) {
+          println(retainedInstance.leakTrace)
+        }
+      }
     }
   }
-  return results
+  return heapAnalysis
 }
 
 internal fun analyze(
@@ -75,11 +91,16 @@ internal fun analyze(
   val referenceKey = heapDumpFile.referenceKey
   val heapAnalyzer =
     HeapAnalyzer(
-        excludedRefs.build(), AnalyzerProgressListener.NONE, emptyList(),
-        OLD_KEYED_WEAK_REFERENCE_CLASS_NAME,
+        AnalyzerProgressListener.NONE, OLD_KEYED_WEAK_REFERENCE_CLASS_NAME,
         OLD_HEAP_DUMP_MEMORY_STORE_CLASS_NAME
     )
-  val result = heapAnalyzer.checkForLeak(file, referenceKey, true)
+  val heapDump = HeapDump.builder(file)
+      .computeRetainedHeapSize(true)
+      .excludedRefs(
+          excludedRefs.build()
+      )
+      .build()
+  val result = heapAnalyzer.checkForLeak(heapDump, referenceKey)
   result.failure?.printStackTrace()
   if (result.leakTrace != null) {
     System.out.println(result.leakTrace)
