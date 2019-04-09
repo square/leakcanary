@@ -71,7 +71,6 @@
         android:icon="@mipmap/leak_canary_icon"
         android:label="@string/leak_canary_storage_permission_activity_label"
         android:process=":leakcanary"
-        android:roundIcon="@mipmap/leak_canary_icon"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_Theme.Transparent"
         />
