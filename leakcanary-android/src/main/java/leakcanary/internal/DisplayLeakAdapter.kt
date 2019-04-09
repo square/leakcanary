@@ -235,7 +235,7 @@ internal class DisplayLeakAdapter(resources: Resources) : BaseAdapter() {
     }
     htmlString += ("<br>"
         + "<font color='" + extraColorHexString + "'>"
-        + element.toDetailedString().replace("\n", "<br>")
+        + element.toString().replace("\n", "<br>")
         + "</font>")
 
     if (isLeakingInstance && referenceName != "") {

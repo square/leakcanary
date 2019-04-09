@@ -1,8 +1,6 @@
 package leakcanary
 
-import leakcanary.Reachability.Status.REACHABLE
-import leakcanary.Reachability.Status.UNKNOWN
-import leakcanary.Reachability.Status.UNREACHABLE
+import leakcanary.internal.renderToString
 import java.io.Serializable
 
 /**
@@ -15,64 +13,7 @@ data class LeakTrace(
 ) : Serializable {
 
   override fun toString(): String {
-    var leakInfo = "┬" + "\n"
-    val lastElement = elements.last()
-    val lastReachability = expectedReachability.last()
-    elements.dropLast(1)
-        .forEachIndexed { index, leakTraceElement ->
-          val currentReachability = expectedReachability[index]
-          leakInfo += """
-        #├─ ${leakTraceElement.className}
-        #│${getReachabilityString(currentReachability)}
-        #│${getPossibleLeakString(currentReachability, leakTraceElement, index)}
-        #
-        """.trimMargin("#")
-        }
-    leakInfo += """╰→ ${lastElement.className}
-      #$ZERO_WIDTH_SPACE ${getReachabilityString(lastReachability)}
-    """.trimMargin("#")
-
-    return leakInfo
+    return renderToString()
   }
 
-  fun toDetailedString(): String {
-    return elements.joinToString {
-      it.toDetailedString()
-    }
-  }
-
-  private fun getPossibleLeakString(
-    reachability: Reachability,
-    leakTraceElement: LeakTraceElement,
-    index: Int
-  ): String {
-    val maybeLeakCause = when (reachability.status) {
-      UNKNOWN -> true
-      REACHABLE -> {
-        if (index < elements.lastIndex) {
-          val nextReachability = expectedReachability[index + 1]
-          nextReachability.status != REACHABLE
-        } else {
-          true
-        }
-      }
-      else -> false
-    }
-    return DEFAULT_NEW_LINE_SPACE + "↓" + " " + leakTraceElement.toString(maybeLeakCause)
-  }
-
-  private fun getReachabilityString(
-    reachability: Reachability
-  ): String {
-    return DEFAULT_NEW_LINE_SPACE + "Leaking: " + when (reachability.status!!) {
-      UNKNOWN -> "UNKNOWN"
-      REACHABLE -> "NO (${reachability.reason})"
-      UNREACHABLE -> "YES (${reachability.reason})"
-    }
-  }
-
-  companion object {
-    private val DEFAULT_NEW_LINE_SPACE = "    "
-    private val ZERO_WIDTH_SPACE = '\u200b'
-  }
 }

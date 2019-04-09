@@ -41,7 +41,8 @@ internal class DisplayLeakService : AbstractAnalysisResultService() {
     var heapDump = analyzedHeap.heapDump
     val result = analyzedHeap.result
 
-    val leakInfo = LeakCanary.leakInfo(this, heapDump, result, true)
+    val leakInfo = LeakCanary.leakInfo(this, heapDump, result)
+    // TODO DisplayLeakService runs into the leakcanary process which doesn't install the logger
     CanaryLog.d("%s", leakInfo)
 
     heapDump = renameHeapdump(heapDump)
