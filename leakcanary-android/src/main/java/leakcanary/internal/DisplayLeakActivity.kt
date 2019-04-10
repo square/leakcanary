@@ -50,13 +50,12 @@ import android.widget.Toast
 import androidx.core.content.FileProvider.getUriForFile
 import com.squareup.leakcanary.BuildConfig.GIT_SHA
 import com.squareup.leakcanary.BuildConfig.LIBRARY_VERSION
-import leakcanary.CanaryLog
-import leakcanary.LeakCanary
 import com.squareup.leakcanary.R
 import leakcanary.AnalysisResult
+import leakcanary.CanaryLog
+import leakcanary.LeakCanary
 import leakcanary.internal.LeakCanaryUtils.getLeakDirectoryProvider
 import leakcanary.internal.LeakCanaryUtils.newSingleThreadExecutor
-import leakcanary.internal.LeakCanaryUtils.setEnabledBlocking
 import java.io.File
 import java.io.FilenameFilter
 import java.util.ArrayList
@@ -94,9 +93,7 @@ internal class DisplayLeakActivity : Activity() {
     } else {
       val intent = intent
       if (intent.hasExtra(SHOW_LEAK_EXTRA)) {
-        visibleLeakRefKey = intent.getStringExtra(
-            SHOW_LEAK_EXTRA
-        )
+        visibleLeakRefKey = intent.getStringExtra(SHOW_LEAK_EXTRA)
       }
     }
 
@@ -359,9 +356,7 @@ internal class DisplayLeakActivity : Activity() {
     }
     Toast.makeText(this, R.string.leak_canary_leak_copied, Toast.LENGTH_LONG)
         .show()
-    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(
-        STACKOVERFLOW_QUESTION_URL
-    ))
+    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(STACKOVERFLOW_QUESTION_URL))
     startActivity(browserIntent)
   }
 
@@ -504,20 +499,20 @@ internal class DisplayLeakActivity : Activity() {
     private const val STACKOVERFLOW_QUESTION_URL =
       "http://stackoverflow.com/questions/ask?guided=false&tags=leakcanary"
 
-    // Public API.
-    fun createPendingIntent(context: Context): PendingIntent {
-      return createPendingIntent(context, null)
-    }
-
     fun createPendingIntent(
       context: Context,
       referenceKey: String?
     ): PendingIntent {
-      setEnabledBlocking(context, DisplayLeakActivity::class.java, true)
       val intent = Intent(context, DisplayLeakActivity::class.java)
       intent.putExtra(SHOW_LEAK_EXTRA, referenceKey)
       intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
       return PendingIntent.getActivity(context, 1, intent, FLAG_UPDATE_CURRENT)
+    }
+
+    fun createIntent(context: Context): Intent {
+      val intent = Intent(context, DisplayLeakActivity::class.java)
+      intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+      return intent
     }
 
     internal fun classSimpleName(className: String): String {

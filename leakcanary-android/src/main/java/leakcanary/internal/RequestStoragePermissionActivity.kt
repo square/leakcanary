@@ -15,22 +15,21 @@
  */
 package leakcanary.internal
 
+import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.annotation.TargetApi
 import android.app.Activity
 import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
-import android.widget.Toast
-import com.squareup.leakcanary.R
-
-import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Build.VERSION_CODES.M
+import android.os.Bundle
+import android.widget.Toast
 import android.widget.Toast.LENGTH_LONG
+import com.squareup.leakcanary.R
 
 @TargetApi(M) //
 internal class RequestStoragePermissionActivity : Activity() {
@@ -73,9 +72,6 @@ internal class RequestStoragePermissionActivity : Activity() {
   companion object {
 
     fun createPendingIntent(context: Context): PendingIntent {
-      LeakCanaryUtils.setEnabledBlocking(
-          context, RequestStoragePermissionActivity::class.java, true
-      )
       val intent = Intent(context, RequestStoragePermissionActivity::class.java)
       intent.flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TOP
       return PendingIntent.getActivity(context, 1, intent, FLAG_UPDATE_CURRENT)

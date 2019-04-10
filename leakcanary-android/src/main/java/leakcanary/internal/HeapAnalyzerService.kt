@@ -30,7 +30,6 @@ import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
 import leakcanary.WeakReferenceCleared
 import leakcanary.WeakReferenceMissing
-import leakcanary.internal.LeakCanaryUtils.setEnabledBlocking
 import java.io.File
 import java.io.IOException
 
@@ -150,8 +149,6 @@ internal class HeapAnalyzerService : ForegroundService(
       heapDump: HeapDump,
       listenerServiceClass: Class<out AbstractAnalysisResultService>
     ) {
-      setEnabledBlocking(context, HeapAnalyzerService::class.java, true)
-      setEnabledBlocking(context, listenerServiceClass, true)
       val intent = Intent(context, HeapAnalyzerService::class.java)
       intent.putExtra(LISTENER_CLASS_EXTRA, listenerServiceClass.name)
       intent.putExtra(HEAPDUMP_EXTRA, heapDump)

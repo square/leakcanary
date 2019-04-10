@@ -2,14 +2,21 @@ package leakcanary.internal
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.content.pm.ShortcutInfo.Builder
+import android.content.pm.ShortcutManager
+import android.graphics.drawable.Icon
 import android.os.Build
+import android.os.Build.VERSION
+import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.HandlerThread
 import android.text.format.Formatter
 import android.util.Log
 import com.squareup.leakcanary.BuildConfig
+import com.squareup.leakcanary.R
 import leakcanary.AnalysisResult
 import leakcanary.GcTrigger
 import leakcanary.HeapDump
@@ -17,6 +24,8 @@ import leakcanary.LeakCanary
 import leakcanary.LeakSentry
 
 internal object InternalLeakCanary {
+
+  private const val DYNAMIC_SHORTCUT_ID = "com.squareup.leakcanary.dynamic_shortcut"
 
   private lateinit var heapDumpTrigger: HeapDumpTrigger
 
@@ -48,9 +57,76 @@ internal object InternalLeakCanary {
         leakDirectoryProvider, gcTrigger, heapDumper, heapDumpListener, configProvider
     )
     heapDumpTrigger.registerToVisibilityChanges()
-    LeakCanaryUtils.setEnabledAsync(
-        application, DisplayLeakActivity::class.java, true
-    )
+
+    addDynamicShortcut(application)
+  }
+
+  private fun addDynamicShortcut(application: Application) {
+    if (VERSION.SDK_INT < VERSION_CODES.N_MR1) {
+      return
+    }
+    if (!application.resources.getBoolean(R.bool.leak_canary_add_dynamic_shortcut)) {
+      return
+    }
+
+    val shortcutManager = application.getSystemService(ShortcutManager::class.java)!!
+    val dynamicShortcuts = shortcutManager.dynamicShortcuts
+
+    if (dynamicShortcuts.size >= shortcutManager.maxShortcutCountPerActivity) {
+      return
+    }
+
+    val shortcutInstalled =
+      dynamicShortcuts.any { shortcut -> shortcut.id == DYNAMIC_SHORTCUT_ID }
+
+    if (shortcutInstalled) {
+      return
+    }
+
+    val mainIntent = Intent(Intent.ACTION_MAIN, null)
+    mainIntent.addCategory(Intent.CATEGORY_LAUNCHER)
+    mainIntent.setPackage(application.packageName)
+    val activities = application.packageManager.queryIntentActivities(mainIntent, 0)
+
+    // Displayed on long tap on app icon
+    val longLabel: String
+    // Label when dropping shortcut to launcher
+    val shortLabel: String
+
+    val leakActivityLabel = application.getString(R.string.leak_canary_shortcut_label)
+
+    if (activities.isEmpty()) {
+      longLabel = leakActivityLabel
+      shortLabel = leakActivityLabel
+    } else {
+      val firstLauncherActivityLabel =
+        activities.map { application.getString(it.activityInfo.labelRes) }
+            .first()
+      val fullLengthLabel = "$firstLauncherActivityLabel $leakActivityLabel"
+      // short label should be under 10 and long label under 25
+      if (fullLengthLabel.length > 10) {
+        if (fullLengthLabel.length <= 25) {
+          longLabel = fullLengthLabel
+          shortLabel = leakActivityLabel
+        } else {
+          longLabel = leakActivityLabel
+          shortLabel = leakActivityLabel
+        }
+      } else {
+        longLabel = fullLengthLabel
+        shortLabel = fullLengthLabel
+      }
+    }
+
+    val intent = DisplayLeakActivity.createIntent(application)
+    intent.action = "Dummy Action because Android is stupid"
+    val shortcut = Builder(application, DYNAMIC_SHORTCUT_ID)
+        .setLongLabel(longLabel)
+        .setShortLabel(shortLabel)
+        .setIcon(Icon.createWithResource(application, R.mipmap.leak_canary_icon))
+        .setIntent(intent)
+        .build()
+    shortcutManager.addDynamicShortcuts(listOf(shortcut))
   }
 
   fun onReferenceRetained() {

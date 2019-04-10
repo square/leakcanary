@@ -25,17 +25,13 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-import android.content.pm.PackageManager.DONT_KILL_APP
 import android.content.pm.PackageManager.GET_SERVICES
 import android.content.pm.ServiceInfo
-import android.os.AsyncTask
 import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.JELLY_BEAN
 import android.os.Build.VERSION_CODES.O
-import leakcanary.CanaryLog
 import com.squareup.leakcanary.R
+import leakcanary.CanaryLog
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
@@ -71,32 +67,6 @@ internal object LeakCanaryUtils {
     } else {
       className.substring(separator + 1)
     }
-  }
-
-  fun setEnabledAsync(
-    context: Context,
-    componentClass: Class<*>,
-    enabled: Boolean
-  ) {
-    val appContext = context.applicationContext
-    AsyncTask.THREAD_POOL_EXECUTOR.execute {
-      setEnabledBlocking(
-          appContext, componentClass, enabled
-      )
-    }
-  }
-
-  fun setEnabledBlocking(
-    appContext: Context,
-    componentClass: Class<*>,
-    enabled: Boolean
-  ) {
-    val component = ComponentName(appContext, componentClass)
-    val packageManager = appContext.packageManager
-    val newState =
-      if (enabled) COMPONENT_ENABLED_STATE_ENABLED else COMPONENT_ENABLED_STATE_DISABLED
-    // Blocks on IPC.
-    packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP)
   }
 
   fun isInServiceProcess(
