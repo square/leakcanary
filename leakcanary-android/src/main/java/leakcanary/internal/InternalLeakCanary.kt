@@ -35,8 +35,7 @@ internal object InternalLeakCanary {
     if (isInAnalyzerProcess(application)) {
       return
     }
-    val heapDumpListener =
-      ServiceHeapDumpListener(application, DisplayLeakService::class.java)
+    val heapDumpListener = ServiceHeapDumpListener(application)
 
     val debuggerControl = AndroidDebuggerControl()
 

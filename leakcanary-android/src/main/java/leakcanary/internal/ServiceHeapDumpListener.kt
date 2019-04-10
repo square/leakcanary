@@ -20,11 +20,10 @@ import leakcanary.HeapDump.Listener
 import leakcanary.HeapDump
 
 internal class ServiceHeapDumpListener(
-  private val application: Application,
-  private val listenerServiceClass: Class<out AbstractAnalysisResultService>
+  private val application: Application
 ) : Listener {
 
   override fun analyze(heapDump: HeapDump) {
-    HeapAnalyzerService.runAnalysis(application, heapDump, listenerServiceClass)
+    HeapAnalyzerService.runAnalysis(application, heapDump)
   }
 }

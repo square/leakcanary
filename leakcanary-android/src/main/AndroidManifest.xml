@@ -32,8 +32,7 @@
         />
 
     <service
-        android:name="leakcanary.internal.DisplayLeakService"
-        android:process=":leakcanary"
+        android:name="leakcanary.internal.AnalysisResultService"
         />
 
     <provider

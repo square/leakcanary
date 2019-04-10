@@ -46,9 +46,6 @@ internal class HeapAnalyzerService : ForegroundService(
       CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.")
       return
     }
-    val listenerClassName = intent.getStringExtra(
-        LISTENER_CLASS_EXTRA
-    )
     val heapDump = intent.getSerializableExtra(
         HEAPDUMP_EXTRA
     ) as HeapDump
@@ -61,10 +58,7 @@ internal class HeapAnalyzerService : ForegroundService(
       is HeapAnalysisFailure -> {
         val result =
           AnalysisResult.failure(heapAnalysis.exception, heapAnalysis.analysisDurationMillis)
-        AbstractAnalysisResultService.sendResultToListener(
-            this, listenerClassName, heapAnalysis.heapDump,
-            result
-        )
+        AnalysisResultService.sendResultToListener(this, heapAnalysis.heapDump, result)
       }
       is HeapAnalysisSuccess -> {
         heapAnalysis.retainedInstances.forEachIndexed nextResult@{ index, retainedInstance ->
@@ -121,10 +115,7 @@ internal class HeapAnalyzerService : ForegroundService(
           } else {
             fakeFileHeapDump = heapDump
           }
-          AbstractAnalysisResultService.sendResultToListener(
-              this, listenerClassName, fakeFileHeapDump,
-              result
-          )
+          AnalysisResultService.sendResultToListener(this, fakeFileHeapDump, result)
         }
       }
     }
@@ -141,16 +132,13 @@ internal class HeapAnalyzerService : ForegroundService(
 
   companion object {
 
-    private const val LISTENER_CLASS_EXTRA = "listener_class_extra"
     private const val HEAPDUMP_EXTRA = "heapdump_extra"
 
     fun runAnalysis(
       context: Context,
-      heapDump: HeapDump,
-      listenerServiceClass: Class<out AbstractAnalysisResultService>
+      heapDump: HeapDump
     ) {
       val intent = Intent(context, HeapAnalyzerService::class.java)
-      intent.putExtra(LISTENER_CLASS_EXTRA, listenerServiceClass.name)
       intent.putExtra(HEAPDUMP_EXTRA, heapDump)
       ContextCompat.startForegroundService(context, intent)
     }
