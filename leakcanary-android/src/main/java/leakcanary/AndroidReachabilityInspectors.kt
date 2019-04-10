@@ -54,13 +54,24 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
 
   MAIN_THEAD(MainThreadInspector::class.java),
 
-  WINDOW(WindowInspector::class.java);
+  WINDOW(WindowInspector::class.java),
+
+  TOAST_TN(ToastTnInspector::class.java);
 
   class ViewInspector : Reachability.Inspector {
     override fun expectedReachability(element: LeakTraceElement): Reachability {
       if (!element.isInstanceOf(View::class.java)) {
         return Reachability.unknown()
       }
+
+      val mParent = element.getFieldReferenceValue("mParent") ?: return Reachability.unknown()
+
+      // This skips edge cases like Toast$TN.mNextView holding on to an unattached and uparented
+      // next toast view
+      if (mParent == "null") {
+        return Reachability.unknown()
+      }
+
       return unreachableWhen(
           element, View::class.java.name, "mAttachInfo", "null"
       )
@@ -154,6 +165,14 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
       return unreachableWhen(
           element, "android.view.Window", "mDestroyed", "true"
       )
+    }
+  }
+
+  class ToastTnInspector : Reachability.Inspector {
+    override fun expectedReachability(element: LeakTraceElement): Reachability {
+      return if (element.isInstanceOf("android.widget.Toast\$TN")) {
+        Reachability.reachable("Toast.TN (Transient Notification) is always reachable")
+      } else Reachability.unknown()
     }
   }
 
