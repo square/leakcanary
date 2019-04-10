@@ -14,26 +14,43 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@drawable/leak_canary_toast_background"
-    android:padding="16dp"
     >
-  <ImageView
-      android:layout_width="64dp"
-      android:layout_height="64dp"
+
+  <LinearLayout
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:background="@drawable/leak_canary_toast_background"
+      android:orientation="vertical"
+      android:layout_marginTop="48dp"
+      android:padding="16dp"
+      >
+  <!-- Holds the stop for the image on top-->
+  <View
+      android:layout_width="@dimen/leak_canary_toast_icon_size"
+      android:layout_height="@dimen/leak_canary_toast_icon_size"
       android:layout_gravity="center_horizontal"
-      android:src="@drawable/leak_canary_icon"/>
+      />
 
   <TextView
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:layout_gravity="center_horizontal"
+      android:text="@string/leak_canary_toast_heap_dump"
       android:textColor="#ffffff"
       android:textSize="18sp"
-      android:text="@string/leak_canary_toast_heap_dump"
+      />
+  </LinearLayout>
+
+  <ImageView
+      android:id="@+id/leak_canary_toast_icon"
+      android:layout_marginTop="@dimen/leak_canary_toast_icon_size"
+      android:layout_width="@dimen/leak_canary_toast_icon_size"
+      android:layout_height="@dimen/leak_canary_toast_icon_size"
+      android:layout_gravity="center_horizontal"
+      android:src="@drawable/leak_canary_icon"
       />
 
-</LinearLayout>
+</FrameLayout>
