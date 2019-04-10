@@ -41,34 +41,17 @@ internal class AnalysisResultService : ForegroundService(
 
   override fun onHandleIntentInForeground(intent: Intent?) {
     if (intent == null) {
-      CanaryLog.d(
-          "AnalysisResultService received a null intent, ignoring."
-      )
+      CanaryLog.d("AnalysisResultService received a null intent, ignoring.")
       return
     }
-    if (!intent.hasExtra(
-            ANALYZED_HEAP_PATH_EXTRA
-        )
-    ) {
-      onAnalysisResultFailure(
-          getString(
-              R.string.leak_canary_result_failure_no_disk_space
-          )
-      )
+    if (!intent.hasExtra(ANALYZED_HEAP_PATH_EXTRA)) {
+      onAnalysisResultFailure(getString(R.string.leak_canary_result_failure_no_disk_space));
       return
     }
-    val analyzedHeapFile = File(
-        intent.getStringExtra(
-            ANALYZED_HEAP_PATH_EXTRA
-        )
-    )
+    val analyzedHeapFile = File(intent.getStringExtra(ANALYZED_HEAP_PATH_EXTRA))
     val analyzedHeap = AnalyzedHeap.load(analyzedHeapFile)
     if (analyzedHeap == null) {
-      onAnalysisResultFailure(
-          getString(
-              R.string.leak_canary_result_failure_no_file
-          )
-      )
+      onAnalysisResultFailure(getString(R.string.leak_canary_result_failure_no_file))
       return
     }
     try {
@@ -172,8 +155,7 @@ internal class AnalysisResultService : ForegroundService(
     val renamed = heapDump.heapDumpFile.renameTo(newFile)
     if (!renamed) {
       CanaryLog.d(
-          "Could not rename heap dump file %s to %s", heapDump.heapDumpFile.path,
-          newFile.path
+          "Could not rename heap dump file %s to %s", heapDump.heapDumpFile.path, newFile.path
       )
     }
     return heapDump.buildUpon()
