@@ -22,10 +22,10 @@
     android:padding="16dp"
     >
   <ImageView
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
+      android:layout_width="64dp"
+      android:layout_height="64dp"
       android:layout_gravity="center_horizontal"
-      android:src="@mipmap/leak_canary_icon"/>
+      android:src="@drawable/leak_canary_icon"/>
 
   <TextView
       android:layout_width="wrap_content"
