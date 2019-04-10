@@ -15,6 +15,8 @@
  */
 package leakcanary.internal
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.app.Activity
 import android.app.Application
 import android.app.Notification
@@ -26,8 +28,9 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.Toast
-import com.squareup.leakcanary.R.layout
+import com.squareup.leakcanary.R
 import com.squareup.leakcanary.R.string
 import leakcanary.CanaryLog
 import java.io.File
@@ -74,10 +77,9 @@ internal class AndroidHeapDumper(
       return HeapDumper.RETRY_LATER
     }
 
+    val dumpingHeap = context.getString(string.leak_canary_notification_dumping)
     val builder = Notification.Builder(context)
-        .setContentTitle(context.getString(
-            string.leak_canary_notification_dumping
-        ))
+        .setContentTitle(dumpingHeap)
     val notification = LeakCanaryUtils.buildNotification(context, builder)
     val notificationManager =
       context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -102,22 +104,31 @@ internal class AndroidHeapDumper(
 
   private fun showToast(waitingForToast: FutureResult<Toast?>) {
     mainHandler.post(Runnable {
+      val resumedActivity = resumedActivity
       if (resumedActivity == null) {
         waitingForToast.set(null)
         return@Runnable
       }
       val toast = Toast(resumedActivity)
-      toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0)
+      val iconSize = resumedActivity.resources.getDimensionPixelSize(
+          R.dimen.leak_canary_toast_icon_size
+      )
+      toast.setGravity(Gravity.CENTER_VERTICAL, 0, -iconSize)
       toast.duration = Toast.LENGTH_LONG
       val inflater = LayoutInflater.from(resumedActivity)
-      toast.view = inflater.inflate(layout.leak_canary_heap_dump_toast, null)
+      toast.view = inflater.inflate(R.layout.leak_canary_heap_dump_toast, null)
       toast.show()
-      // Waiting for Idle to make sure Toast gets rendered.
-      Looper.myQueue()
-          .addIdleHandler {
-            waitingForToast.set(toast)
-            false
-          }
+
+      val toastIcon = toast.view.findViewById<View>(R.id.leak_canary_toast_icon)
+      toastIcon.translationY = -iconSize.toFloat()
+      toastIcon
+          .animate()
+          .translationY(0f)
+          .setListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+              waitingForToast.set(toast)
+            }
+          })
     })
   }
 
