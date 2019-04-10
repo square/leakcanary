@@ -141,7 +141,7 @@ open class FailTestOnLeakRunListener : RunListener() {
           applicationLeak.watchDurationMillis
       )
 
-      failureMessage.append(LeakCanary.leakInfo(context, heapAnalysis.heapDump, result, false))
+      failureMessage.append(LeakCanary.leakInfo(context, heapAnalysis.heapDump, result))
       failureMessage.append(SEPARATOR)
     }
 
