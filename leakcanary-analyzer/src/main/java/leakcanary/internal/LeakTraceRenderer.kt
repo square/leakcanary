@@ -66,13 +66,13 @@ private fun getNextElementString(
     } else ""
   val simpleClassName = element.getSimpleClassName()
   val referenceName = if (element.reference != null) ".${element.reference.displayName}" else ""
-  val extraString = if (element.extra != null) " $element.extra" else ""
+  val extraString = if (element.extra != null) " ${element.extra}" else ""
   val exclusionString =
     if (element.exclusion != null) " , matching exclusion ${element.exclusion.matching}" else ""
   val requiredSpaces =
     staticString.length + holderString.length + simpleClassName.length + "├─".length
   val leakString = if (maybeLeakCause) {
-    "\n${ZERO_WIDTH_SPACE}│$ELEMENT_DEFAULT_NEW_LINE_SPACE" + " ".repeat(
+    "\n│$ELEMENT_DEFAULT_NEW_LINE_SPACE" + " ".repeat(
         requiredSpaces
     ) + "~".repeat(referenceName.length - 1)
   } else {

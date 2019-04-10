@@ -1,7 +1,6 @@
 package leakcanary.tests
 
 import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -39,13 +38,11 @@ class TuPeuxPasTest {
   @get:Rule
   var activityRule = ActivityTestRule(MainActivity::class.java)
 
+  /**
+   * A dummy test that fails because MainActivity is leaking
+   */
   @Test
-  fun clickAsyncWork() {
-    onView(withId(R.id.async_work)).perform(click())
-  }
-
-  @Test
-  fun asyncButtonHasStartText() {
-    onView(withId(R.id.async_work)).check(matches(withText(R.string.start_async_work)))
+  fun helperTextHasExpectedContent() {
+    onView(withId(R.id.helper_text)).check(matches(withText(R.string.helper_text)))
   }
 }
