@@ -21,4 +21,5 @@
   <color name="leak_canary_extra">#919191</color>
   <color name="leak_canary_help">#6a98b9</color>
   <color name="leak_canary_background_color">#2b2b2b</color>
+  <color name="leak_canary_icon_background">#FFFFFF</color>
 </resources>

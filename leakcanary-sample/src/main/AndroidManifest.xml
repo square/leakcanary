@@ -19,7 +19,7 @@
     package="com.example.leakcanary"
     >
   <application android:name=".ExampleApplication" android:allowBackup="false"
-      android:icon="@drawable/ic_launcher"
+      android:icon="@mipmap/ic_launcher"
       >
     <activity
         android:label="@string/app_name"
