@@ -15,14 +15,7 @@ object LeakCanary {
 
   @Volatile
   var config: Config = Config()
-
-  /** Returns a string representation of the result of a heap analysis.  */
-  fun leakInfo(
-    context: Context,
-    heapDump: HeapDump,
-    result: AnalysisResult
-  ): String = InternalLeakCanary.leakInfo(context, heapDump, result)
-
+  
   /**
    * Whether the current process is the process running the [HeapAnalyzerService], which is
    * a different process than the normal app process.

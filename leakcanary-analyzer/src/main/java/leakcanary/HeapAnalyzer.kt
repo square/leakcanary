@@ -131,7 +131,8 @@ class HeapAnalyzer @TestOnly internal constructor(
     if (!heapDump.heapDumpFile.exists()) {
       val exception = IllegalArgumentException("File does not exist: $heapDump.heapDumpFile")
       return HeapAnalysisFailure(
-          heapDump, since(analysisStartNanoTime), HeapAnalysisException(exception)
+          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+          HeapAnalysisException(exception)
       )
     }
 
@@ -150,7 +151,8 @@ class HeapAnalyzer @TestOnly internal constructor(
       if (retainedKeys.size == 0) {
         val exception = IllegalStateException("No retained keys found in heap dump")
         return HeapAnalysisFailure(
-            heapDump, since(analysisStartNanoTime), HeapAnalysisException(exception)
+            heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+            HeapAnalysisException(exception)
         )
       }
 
@@ -164,11 +166,13 @@ class HeapAnalyzer @TestOnly internal constructor(
       addRemainingInstancesWithNoPath(leakingWeakRefs, analysisResults)
 
       return HeapAnalysisSuccess(
-          heapDump, since(analysisStartNanoTime), analysisResults.values.toList()
+          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+          analysisResults.values.toList()
       )
     } catch (exception: Throwable) {
       return HeapAnalysisFailure(
-          heapDump, since(analysisStartNanoTime), HeapAnalysisException(exception)
+          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+          HeapAnalysisException(exception)
       )
     }
   }
@@ -289,7 +293,7 @@ class HeapAnalyzer @TestOnly internal constructor(
       val retainedSize = if (heapDump.computeRetainedHeapSize) {
         pathResult.leakingNode.instance.totalRetainedSize
       } else {
-        AnalysisResult.RETAINED_HEAP_SKIPPED
+        null
       }
       val leakDetected = LeakingInstance(
           weakReference.key, weakReference.name, weakReference.className,

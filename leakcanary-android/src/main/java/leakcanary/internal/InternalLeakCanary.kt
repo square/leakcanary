@@ -22,6 +22,7 @@ import leakcanary.GcTrigger
 import leakcanary.HeapDump
 import leakcanary.LeakCanary
 import leakcanary.LeakSentry
+import leakcanary.internal.activity.LeakActivity
 
 internal object InternalLeakCanary {
 
@@ -117,7 +118,7 @@ internal object InternalLeakCanary {
       }
     }
 
-    val intent = DisplayLeakActivity.createIntent(application)
+    val intent = LeakActivity.createIntent(application)
     intent.action = "Dummy Action because Android is stupid"
     val shortcut = Builder(application, DYNAMIC_SHORTCUT_ID)
         .setLongLabel(longLabel)
@@ -139,6 +140,7 @@ internal object InternalLeakCanary {
    * Context instance needed because [onLeakSentryInstalled] is not called in the leakcanary
    * process.
    */
+  @Deprecated("Remove and build better rendering for new data structures.")
   fun leakInfo(
     context: Context,
     heapDump: HeapDump,

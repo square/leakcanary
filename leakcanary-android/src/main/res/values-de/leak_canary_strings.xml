@@ -39,7 +39,7 @@
     <string name="leak_canary_storage_permission_activity_label">Storage Berechtigung</string>
     <string name="leak_canary_toast_heap_dump">LeakCanary is dumping the heap, app will freeze. Brrrr.</string>
     <string name="leak_canary_delete">Löschen</string>
-    <string name="leak_canary_failure_report">"Bitte sende diesen Fehler an http://github.com/square/leakcanary\n"</string>
+    <string name="leak_canary_failure_report">"Bitte sende diesen Fehler an http://github.com/square/leakcanary"</string>
     <string name="leak_canary_delete_all">Alle löschen</string>
     <string name="leak_canary_delete_all_leaks_title">Bist du dir sicher, dass du alle Leaks löschen möchtest?</string>
     <string name="leak_canary_could_not_save_text">LeakCanary konnte das Ergebnis der Analyse nicht speichern.</string>
