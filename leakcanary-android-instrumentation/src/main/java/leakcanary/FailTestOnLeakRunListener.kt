@@ -130,18 +130,10 @@ open class FailTestOnLeakRunListener : RunListener() {
     )
     failureMessage.append(SEPARATOR)
 
-    val context = getInstrumentation().context
     applicationLeaks.forEach { applicationLeak ->
-
-      val result = AnalysisResult.leakDetected(
-          applicationLeak.referenceKey, applicationLeak.referenceName,
-          applicationLeak.excludedLeak,
-          applicationLeak.instanceClassName, applicationLeak.leakTrace,
-          applicationLeak.retainedHeapSize, heapAnalysis.analysisDurationMillis,
-          applicationLeak.watchDurationMillis
-      )
-
-      failureMessage.append(LeakCanary.leakInfo(context, heapAnalysis.heapDump, result))
+      // TODO Improve rendering
+      failureMessage.append(applicationLeak.toString())
+      failureMessage.append("\n ")
       failureMessage.append(SEPARATOR)
     }
 

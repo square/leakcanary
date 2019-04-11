@@ -13,7 +13,7 @@ data class LeakTrace(
 ) : Serializable {
 
   override fun toString(): String {
-    return renderToString()
+    return "\n${renderToString()}\n"
   }
 
 }

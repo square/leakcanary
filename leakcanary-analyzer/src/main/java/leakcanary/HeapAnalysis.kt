@@ -1,22 +1,24 @@
 package leakcanary
 
-import leakcanary.LeakingInstance.Companion.RETAINED_HEAP_SKIPPED
 import java.io.Serializable
 
 sealed class HeapAnalysis : Serializable {
   abstract val heapDump: HeapDump
+  abstract val createdAtTimeMillis: Long
   /** Total time spent analyzing the heap.  */
   abstract val analysisDurationMillis: Long
 }
 
 data class HeapAnalysisFailure(
   override val heapDump: HeapDump,
+  override val createdAtTimeMillis: Long,
   override val analysisDurationMillis: Long,
   val exception: HeapAnalysisException
 ) : HeapAnalysis()
 
 data class HeapAnalysisSuccess(
   override val heapDump: HeapDump,
+  override val createdAtTimeMillis: Long,
   override val analysisDurationMillis: Long,
   val retainedInstances: List<RetainedInstance>
 ) : HeapAnalysis()
@@ -78,15 +80,11 @@ data class LeakingInstance(
   val leakTrace: LeakTrace,
   /**
    * The number of bytes which would be freed if all references to the leaking object were
-   * released. Set to [RETAINED_HEAP_SKIPPED] if the retained heap size was not computed.
+   * released. Null if the retained heap size was not computed.
    */
-  val retainedHeapSize: Long
+  val retainedHeapSize: Long?
 
-) : WeakReferenceFound() {
-  companion object {
-    const val RETAINED_HEAP_SKIPPED: Long = -1
-  }
-}
+) : WeakReferenceFound()
 
 fun HeapAnalysis.leakingInstances(): List<LeakingInstance> {
   if (this is HeapAnalysisFailure) {
@@ -99,5 +97,3 @@ fun HeapAnalysis.leakingInstances(): List<LeakingInstance> {
 
 fun HeapAnalysis.applicationLeaks(): List<LeakingInstance> =
   leakingInstances().filter { !it.excludedLeak }
-
-

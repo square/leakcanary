@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<translate
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fromXDelta="100%" android:toXDelta="0%"
+    android:fromYDelta="0%" android:toYDelta="0%"
+    android:duration="@android:integer/config_mediumAnimTime"/>

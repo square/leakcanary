@@ -19,13 +19,21 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
-import android.text.format.Formatter
 import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.R
-import leakcanary.AnalysisResult
 import leakcanary.CanaryLog
+import leakcanary.HeapAnalysis
+import leakcanary.HeapAnalysisFailure
+import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapDump
-import leakcanary.LeakCanary
+import leakcanary.Serializables
+import leakcanary.internal.activity.HeapAnalysisFailureScreen
+import leakcanary.internal.activity.HeapAnalysisListScreen
+import leakcanary.internal.activity.HeapAnalysisSuccessScreen
+import leakcanary.internal.activity.HeapAnalysisTable
+import leakcanary.internal.activity.LeakActivity
+import leakcanary.internal.activity.LeaksDbHelper
+import leakcanary.save
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,77 +52,57 @@ internal class AnalysisResultService : ForegroundService(
       CanaryLog.d("AnalysisResultService received a null intent, ignoring.")
       return
     }
-    if (!intent.hasExtra(ANALYZED_HEAP_PATH_EXTRA)) {
+    if (!intent.hasExtra(HEAP_ANALYSIS_PATH_EXTRA)) {
       onAnalysisResultFailure(getString(R.string.leak_canary_result_failure_no_disk_space));
       return
     }
-    val analyzedHeapFile = File(intent.getStringExtra(ANALYZED_HEAP_PATH_EXTRA))
-    val analyzedHeap = AnalyzedHeap.load(analyzedHeapFile)
-    if (analyzedHeap == null) {
+    val heapAnalysisFile = File(intent.getStringExtra(HEAP_ANALYSIS_PATH_EXTRA))
+
+    val heapAnalysis = Serializables.load<HeapAnalysis>(heapAnalysisFile)
+    heapAnalysisFile.delete()
+    if (heapAnalysis == null) {
       onAnalysisResultFailure(getString(R.string.leak_canary_result_failure_no_file))
       return
     }
+
     try {
-      onHeapAnalyzed(analyzedHeap)
+      onHeapAnalyzed(heapAnalysis)
     } finally {
-      analyzedHeap.heapDump.heapDumpFile.delete()
-      analyzedHeap.selfFile.delete()
+      heapAnalysis.heapDump.heapDumpFile.delete()
     }
   }
 
-  /**
-   * Called after a heap dump is analyzed, whether or not a leak was found.
-   * In [AnalyzedHeap.result] check [AnalysisResult.leakFound] and [AnalysisResult.excludedLeak] to
-   * see if there was a leak and if it can be ignored.
-   *
-   * This will be called from a background intent service thread.
-   *
-   * It's OK to block here and wait for the heap dump to be uploaded.
-   *
-   * The analyzed heap file and heap dump file will be deleted immediately after this callback
-   * returns.
-   */
-  private fun onHeapAnalyzed(analyzedHeap: AnalyzedHeap) {
-    var heapDump = analyzedHeap.heapDump
-    val result = analyzedHeap.result
+  private fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
+    // TODO better log that include leakcanary version, exclusions, etc.
+    CanaryLog.d("%s", heapAnalysis)
 
-    val leakInfo = LeakCanary.leakInfo(this, heapDump, result)
-    CanaryLog.d("%s", leakInfo)
+    val movedHeapDump = heapAnalysis.heapDump.buildUpon()
+        .heapDumpFile(renameHeapdump(heapAnalysis.heapDump))
+        .build()
 
-    heapDump = renameHeapdump(heapDump)
-    val resultSaved = saveResult(heapDump, result)
-
-    val contentTitle: String
-    if (resultSaved) {
-      val pendingIntent = DisplayLeakActivity.createPendingIntent(this, result.referenceKey)
-      if (result.failure != null) {
-        contentTitle = getString(R.string.leak_canary_analysis_failed)
-      } else {
-        val className = LeakCanaryUtils.classSimpleName(result.className!!)
-        if (result.leakFound) {
-          contentTitle = if (result.retainedHeapSize == AnalysisResult.RETAINED_HEAP_SKIPPED) {
-            if (result.excludedLeak) {
-              getString(R.string.leak_canary_leak_excluded, className)
-            } else {
-              getString(R.string.leak_canary_class_has_leaked, className)
-            }
-          } else {
-            val size = Formatter.formatShortFileSize(this, result.retainedHeapSize)
-            if (result.excludedLeak) {
-              getString(R.string.leak_canary_leak_excluded_retaining, className, size)
-            } else {
-              getString(R.string.leak_canary_class_has_leaked_retaining, className, size)
-            }
-          }
-        } else {
-          contentTitle = getString(R.string.leak_canary_class_no_leak, className)
-        }
-      }
-      val contentText = getString(R.string.leak_canary_notification_message)
-      showNotification(pendingIntent, contentTitle, contentText)
-    } else {
-      onAnalysisResultFailure(getString(R.string.leak_canary_could_not_save_text))
+    val updatedHeapAnalysis = when (heapAnalysis) {
+      is HeapAnalysisFailure -> heapAnalysis.copy(heapDump = movedHeapDump)
+      is HeapAnalysisSuccess -> heapAnalysis.copy(heapDump = movedHeapDump)
     }
+
+    val id = LeaksDbHelper(this).writableDatabase.use { db ->
+      HeapAnalysisTable.insert(db, updatedHeapAnalysis)
+    }
+
+    // TODO better text and res
+    val contentTitle = "Leak analysis done"
+
+    val screenToShow = when (heapAnalysis) {
+      is HeapAnalysisFailure -> HeapAnalysisFailureScreen(id)
+      is HeapAnalysisSuccess -> HeapAnalysisSuccessScreen(id)
+    }
+
+    val pendingIntent = LeakActivity.createPendingIntent(
+        this, arrayListOf(HeapAnalysisListScreen(), screenToShow)
+    )
+
+    val contentText = getString(R.string.leak_canary_notification_message)
+    showNotification(pendingIntent, contentTitle, contentText)
   }
 
   /**
@@ -140,15 +128,7 @@ internal class AnalysisResultService : ForegroundService(
     )
   }
 
-  private fun saveResult(
-    heapDump: HeapDump,
-    result: AnalysisResult
-  ): Boolean {
-    val resultFile = AnalyzedHeap.save(heapDump, result)
-    return resultFile != null
-  }
-
-  private fun renameHeapdump(heapDump: HeapDump): HeapDump {
+  private fun renameHeapdump(heapDump: HeapDump): File {
     val fileName = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(Date())
 
     val newFile = File(heapDump.heapDumpFile.parent, fileName)
@@ -158,25 +138,27 @@ internal class AnalysisResultService : ForegroundService(
           "Could not rename heap dump file %s to %s", heapDump.heapDumpFile.path, newFile.path
       )
     }
-    return heapDump.buildUpon()
-        .heapDumpFile(newFile)
-        .build()
+    return newFile
   }
 
   companion object {
 
-    private const val ANALYZED_HEAP_PATH_EXTRA = "analyzed_heap_path_extra"
+    private const val HEAP_ANALYSIS_PATH_EXTRA = "HEAP_ANALYSIS_PATH_EXTRA"
 
-    fun sendResultToListener(
+    fun sendResult(
       context: Context,
-      heapDump: HeapDump,
-      result: AnalysisResult
+      heapAnalysis: HeapAnalysis
     ) {
       val intent = Intent(context, AnalysisResultService::class.java)
 
-      val analyzedHeapFile = AnalyzedHeap.save(heapDump, result)
-      if (analyzedHeapFile != null) {
-        intent.putExtra(ANALYZED_HEAP_PATH_EXTRA, analyzedHeapFile.absolutePath)
+      val heapAnalysisFile = File(
+          heapAnalysis.heapDump.heapDumpFile.parentFile,
+          heapAnalysis.heapDump.heapDumpFile.name + ".analysis"
+      )
+
+      val saved = heapAnalysis.save(heapAnalysisFile)
+      if (saved) {
+        intent.putExtra(HEAP_ANALYSIS_PATH_EXTRA, heapAnalysisFile.absolutePath)
       }
       ContextCompat.startForegroundService(context, intent)
     }

@@ -3,6 +3,10 @@ package leakcanary
 import java.io.Serializable
 import java.util.UUID
 
+/**
+ * Used only for tests. We should delete this and move the stacktrace feature
+ * (once we have grouping)
+ */
 data class AnalysisResult(
 
   /**
@@ -110,27 +114,6 @@ data class AnalysisResult(
 
   companion object {
     const val RETAINED_HEAP_SKIPPED: Long = -1
-
-    fun noLeak(
-      referenceKey: String,
-      referenceName: String,
-      className: String,
-      analysisDurationMs: Long,
-      watchDurationMs: Long
-    ): AnalysisResult {
-      return AnalysisResult(
-          referenceKey = referenceKey,
-          referenceName = referenceName,
-          leakFound = false,
-          excludedLeak = false,
-          className = className,
-          leakTrace = null,
-          failure = null,
-          retainedHeapSize = 0,
-          analysisDurationMs = analysisDurationMs,
-          watchDurationMs = watchDurationMs
-      )
-    }
 
     fun noLeak(
       className: String,

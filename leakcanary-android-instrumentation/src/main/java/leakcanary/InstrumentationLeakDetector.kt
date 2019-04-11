@@ -169,6 +169,7 @@ class InstrumentationLeakDetector {
       return AnalysisPerformed(
           HeapAnalysisFailure(
               heapDump, analysisDurationMillis = 0,
+              createdAtTimeMillis = System.currentTimeMillis(),
               exception = HeapAnalysisException(exception)
           )
       )

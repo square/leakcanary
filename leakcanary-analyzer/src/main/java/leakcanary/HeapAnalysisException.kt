@@ -7,7 +7,7 @@ class HeapAnalysisException(cause: Throwable) : RuntimeException(cause) {
 
   override fun toString(): String {
     val stringWriter = StringWriter()
-    printStackTrace(PrintWriter(stringWriter))
+    cause!!.printStackTrace(PrintWriter(stringWriter))
     return "\n$stringWriter\n"
   }
 }
