@@ -53,7 +53,6 @@ object HeapAnalysisTable {
     db: SQLiteDatabase,
     id: Long
   ): T? {
-    // TODO Handle when the heap analysis has been removed.
     return db.rawQuery(
         """
           SELECT

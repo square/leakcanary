@@ -24,6 +24,7 @@ class MainActivity : Activity() {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.main_activity)
 
-    FakePlumber.createLeak(findViewById(R.id.helper_text))
+    val app = application as ExampleApplication
+    app.createLeak(findViewById(R.id.helper_text))
   }
 }

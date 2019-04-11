@@ -18,8 +18,16 @@ package com.example.leakcanary
 import android.app.Application
 import android.os.Build
 import android.os.StrictMode
+import android.view.View
 
 open class ExampleApplication : Application() {
+
+  private val views = mutableListOf<View>()
+
+  fun createLeak(view: View) {
+    views.add(view)
+  }
+
   override fun onCreate() {
     super.onCreate()
     enabledStrictMode()
