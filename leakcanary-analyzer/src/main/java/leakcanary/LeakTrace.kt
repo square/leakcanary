@@ -14,6 +14,15 @@ data class LeakTrace(
   val expectedReachability: List<Reachability>
 ) : Serializable {
 
+  val firstElementExclusion
+    get() = elements.first { element ->
+      element.exclusion != null
+    }.exclusion!!
+
+  val leakCauses = elements.filterIndexed { index, _ ->
+    elementMayBeLeakCause(index)
+  }
+
   override fun toString(): String {
     return "\n${renderToString()}\n"
   }

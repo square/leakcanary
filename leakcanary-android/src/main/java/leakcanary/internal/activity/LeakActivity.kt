@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import com.squareup.leakcanary.R
+import leakcanary.internal.activity.db.LeaksDbHelper
+import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
 
@@ -19,7 +21,9 @@ internal class LeakActivity : NavigatingActivity() {
     setContentView(R.layout.leak_canary_leak_activity)
 
     val dbHelperOrNull = lastNonConfigurationInstance
-    dbHelper = dbHelperOrNull as LeaksDbHelper? ?: LeaksDbHelper(this)
+    dbHelper = dbHelperOrNull as LeaksDbHelper? ?: LeaksDbHelper(
+        this
+    )
 
 
     installNavigation(savedInstanceState, findViewById(R.id.main_container))
@@ -30,7 +34,7 @@ internal class LeakActivity : NavigatingActivity() {
   }
 
   override fun getLauncherScreen(): Screen {
-    return HeapAnalysisListScreen()
+    return GroupListScreen()
   }
 
   override fun onDestroy() {

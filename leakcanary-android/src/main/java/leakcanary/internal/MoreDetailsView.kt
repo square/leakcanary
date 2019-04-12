@@ -23,15 +23,23 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 import com.squareup.leakcanary.R
+import leakcanary.internal.MoreDetailsView.Details.CLOSED
+import leakcanary.internal.MoreDetailsView.Details.OPENED
 
 internal class MoreDetailsView(
   context: Context,
   attrs: AttributeSet
 ) : View(context, attrs) {
 
+  enum class Details {
+    OPENED,
+    CLOSED,
+    NONE
+  }
+
   private val iconPaint: Paint
 
-  private var opened: Boolean = false
+  private var details = Details.NONE
 
   init {
     val resources = resources
@@ -56,17 +64,17 @@ internal class MoreDetailsView(
     val halfHeight = height / 2
     val halfWidth = width / 2
 
-    if (opened) {
+    if (details == OPENED) {
       canvas.drawLine(0f, halfHeight.toFloat(), width.toFloat(), halfHeight.toFloat(), iconPaint)
-    } else {
+    } else if (details == CLOSED) {
       canvas.drawLine(0f, halfHeight.toFloat(), width.toFloat(), halfHeight.toFloat(), iconPaint)
       canvas.drawLine(halfWidth.toFloat(), 0f, halfWidth.toFloat(), height.toFloat(), iconPaint)
     }
   }
 
-  fun setOpened(opened: Boolean) {
-    if (opened != this.opened) {
-      this.opened = opened
+  fun setDetails(details: Details) {
+    if (details != this.details) {
+      this.details = details
       invalidate()
     }
   }

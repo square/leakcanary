@@ -30,6 +30,7 @@ import com.squareup.leakcanary.R
 import leakcanary.internal.DisplayLeakConnectorView.Type.END
 import leakcanary.internal.DisplayLeakConnectorView.Type.END_FIRST_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.HELP
+import leakcanary.internal.DisplayLeakConnectorView.Type.HELP_LEAK_GROUP
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_FIRST_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_LAST_REACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_REACHABLE
@@ -44,6 +45,7 @@ internal class DisplayLeakConnectorView(
 ) : View(context, attrs) {
 
   private val classNamePaint: Paint
+  private val leakGroupRootPaint: Paint
   private val leakPaint: Paint
   private val clearPaint: Paint
   private val referencePaint: Paint
@@ -55,6 +57,7 @@ internal class DisplayLeakConnectorView(
 
   enum class Type {
     HELP,
+    HELP_LEAK_GROUP,
     START,
     START_LAST_REACHABLE,
     NODE_UNKNOWN,
@@ -80,12 +83,18 @@ internal class DisplayLeakConnectorView(
     classNamePaint.color = resources.getColor(R.color.leak_canary_class_name)
     classNamePaint.strokeWidth = strokeSize
 
+    leakGroupRootPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    leakGroupRootPaint.color = resources.getColor(R.color.leak_canary_class_name)
+    leakGroupRootPaint.strokeWidth = strokeSize
+    val pathLines = resources.getDimensionPixelSize(R.dimen.leak_canary_connector_leak_dash_line)
+        .toFloat()
+    leakGroupRootPaint.pathEffect = DashPathEffect(floatArrayOf(pathLines, pathLines), 0f)
+
     leakPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     leakPaint.color = resources.getColor(R.color.leak_canary_leak)
     leakPaint.style = Paint.Style.STROKE
     leakPaint.strokeWidth = strokeSize
-    val pathLines = resources.getDimensionPixelSize(R.dimen.leak_canary_connector_leak_dash_line)
-        .toFloat()
+
     val pathGaps = resources.getDimensionPixelSize(R.dimen.leak_canary_connector_leak_dash_gap)
         .toFloat()
     leakPaint.pathEffect = DashPathEffect(floatArrayOf(pathLines, pathGaps), 0f)
@@ -136,7 +145,8 @@ internal class DisplayLeakConnectorView(
         END_FIRST_UNREACHABLE -> drawItems(
             cacheCanvas, leakPaint, null
         )
-        HELP -> drawRoot(cacheCanvas)
+        HELP -> drawRoot(cacheCanvas, false)
+        HELP_LEAK_GROUP -> drawRoot(cacheCanvas, true)
         else -> throw UnsupportedOperationException("Unknown type " + type!!)
       }
     }
@@ -149,7 +159,10 @@ internal class DisplayLeakConnectorView(
     cacheCanvas.drawLine(halfWidth, 0f, halfWidth, circleY, classNamePaint)
   }
 
-  private fun drawRoot(cacheCanvas: Canvas) {
+  private fun drawRoot(
+    cacheCanvas: Canvas,
+    leakGroup: Boolean
+  ) {
     val width = measuredWidth
     val height = measuredHeight
     val halfWidth = width / 2f
@@ -157,7 +170,10 @@ internal class DisplayLeakConnectorView(
     cacheCanvas.drawRect(0f, 0f, width.toFloat(), radiusClear, classNamePaint)
     cacheCanvas.drawCircle(0f, radiusClear, radiusClear, clearPaint)
     cacheCanvas.drawCircle(width.toFloat(), radiusClear, radiusClear, clearPaint)
-    cacheCanvas.drawLine(halfWidth, 0f, halfWidth, height.toFloat(), classNamePaint)
+    cacheCanvas.drawLine(
+        halfWidth, 0f, halfWidth, height.toFloat(),
+        if (leakGroup) leakGroupRootPaint else classNamePaint
+    )
   }
 
   private fun drawItems(

@@ -44,6 +44,8 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
 
   APPLICATION(ApplicationInspector::class.java),
 
+  CLASSLOADER(ClassloaderInspector::class.java),
+
   FRAGMENT(FragmentInspector::class.java),
 
   SUPPORT_FRAGMENT(SupportFragmentInspector::class.java),
@@ -98,6 +100,14 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
     override fun expectedReachability(element: LeakTraceElement): Reachability {
       return if (element.isInstanceOf(Application::class.java)) {
         Reachability.reachable("the application class is a singleton")
+      } else Reachability.unknown()
+    }
+  }
+
+  class ClassloaderInspector : Reachability.Inspector {
+    override fun expectedReachability(element: LeakTraceElement): Reachability {
+      return if (element.isInstanceOf(ClassLoader::class.java)) {
+        Reachability.reachable("a classloader is always reachable")
       } else Reachability.unknown()
     }
   }

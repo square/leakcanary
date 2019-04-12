@@ -85,7 +85,23 @@ data class LeakingInstance(
    */
   val retainedHeapSize: Long?
 
-) : WeakReferenceFound()
+) : WeakReferenceFound() {
+
+  val groupHash = createGroupHash()
+
+  private fun createGroupHash(): String {
+    val uniqueString = if (excludedLeak) {
+      leakTrace.firstElementExclusion.matching
+    } else {
+      leakTrace.leakCauses
+          .joinToString(separator = "") { element ->
+            val referenceName = element.reference!!.groupingName
+            element.className + referenceName
+          }
+    }
+    return uniqueString.createSHA1Hash()
+  }
+}
 
 fun HeapAnalysis.leakingInstances(): List<LeakingInstance> {
   if (this is HeapAnalysisFailure) {
@@ -98,28 +114,3 @@ fun HeapAnalysis.leakingInstances(): List<LeakingInstance> {
 
 fun HeapAnalysis.applicationLeaks(): List<LeakingInstance> =
   leakingInstances().filter { !it.excludedLeak }
-
-fun LeakingInstance.groupHash(): String {
-  val uniqueString = if (excludedLeak) {
-    // For excluded leaks we group based on the first excluded element
-    leakTrace.elements.first { element ->
-      element.exclusion != null
-    }.exclusion!!.matching
-  } else {
-    leakTrace.elements.filterIndexed { index, _ ->
-      leakTrace.elementMayBeLeakCause(index)
-    }
-        .map { element ->
-          val referenceName: String =
-            if (element.reference!!.type === LeakTraceElement.Type.ARRAY_ENTRY) {
-              // The specific array index in a leak rarely matters, this improves grouping.
-              "[x]"
-            } else {
-              element.reference!!.displayName
-            }
-          return element.className + referenceName
-        }
-        .joinToString(separator = "")
-  }
-  return uniqueString.createSHA1Hash()
-}

@@ -99,9 +99,19 @@ internal object InternalLeakCanary {
       longLabel = leakActivityLabel
       shortLabel = leakActivityLabel
     } else {
-      val firstLauncherActivityLabel =
-        activities.map { application.getString(it.activityInfo.labelRes) }
-            .first()
+
+      val activity = activities.first()
+
+      val firstLauncherActivityLabel = if (activity.activityInfo.labelRes != 0) {
+        application.getString(activity.activityInfo.labelRes)
+      } else {
+        val applicationInfo = application.applicationInfo
+        if (applicationInfo.labelRes != 0) {
+          application.getString(applicationInfo.labelRes)
+        } else {
+          applicationInfo.nonLocalizedLabel.toString()
+        }
+      }
       val fullLengthLabel = "$firstLauncherActivityLabel $leakActivityLabel"
       // short label should be under 10 and long label under 25
       if (fullLengthLabel.length > 10) {

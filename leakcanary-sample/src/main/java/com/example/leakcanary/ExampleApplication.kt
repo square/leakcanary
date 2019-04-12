@@ -22,11 +22,7 @@ import android.view.View
 
 open class ExampleApplication : Application() {
 
-  private val views = mutableListOf<View>()
-
-  fun createLeak(view: View) {
-    views.add(view)
-  }
+  val leakedViews = mutableListOf<View>()
 
   override fun onCreate() {
     super.onCreate()

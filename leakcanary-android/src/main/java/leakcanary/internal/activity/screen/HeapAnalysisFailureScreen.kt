@@ -1,4 +1,4 @@
-package leakcanary.internal.activity
+package leakcanary.internal.activity.screen
 
 import android.view.ViewGroup
 import android.widget.TextView
@@ -6,6 +6,10 @@ import com.squareup.leakcanary.BuildConfig
 import com.squareup.leakcanary.R
 import com.squareup.leakcanary.R.string
 import leakcanary.HeapAnalysisFailure
+import leakcanary.internal.activity.db
+import leakcanary.internal.activity.db.HeapAnalysisTable
+import leakcanary.internal.activity.share
+import leakcanary.internal.activity.shareHeapDump
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goBack
@@ -18,12 +22,14 @@ internal class HeapAnalysisFailureScreen(
 
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_heap_analysis_failure_screen).apply {
-      val heapAnalysis = HeapAnalysisTable.retrieve<HeapAnalysisFailure>(db, analysisId)
+      val pair = HeapAnalysisTable.retrieve<HeapAnalysisFailure>(db, analysisId)
 
-      if (heapAnalysis == null) {
+      if (pair == null) {
         activity.title = "Analysis deleted"
         return this
       }
+
+      val (heapAnalysis, _) = pair
 
       activity.title = resources.getString(R.string.leak_canary_analysis_failed)
 

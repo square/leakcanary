@@ -17,6 +17,8 @@ package com.example.leakcanary
 
 import android.app.Activity
 import android.os.Bundle
+import android.view.View
+import kotlin.random.Random
 
 class MainActivity : Activity() {
 
@@ -25,6 +27,12 @@ class MainActivity : Activity() {
     setContentView(R.layout.main_activity)
 
     val app = application as ExampleApplication
-    app.createLeak(findViewById(R.id.helper_text))
+    val leakedView = findViewById<View>(R.id.helper_text)
+
+    when (Random.nextInt(3)) {
+      0 -> app.leakedViews
+      1 -> LeakingSingleton.leakedViews
+      else -> LeakingThread.thread.leakedViews
+    }.add(leakedView)
   }
 }
