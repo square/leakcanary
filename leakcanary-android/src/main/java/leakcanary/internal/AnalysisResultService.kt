@@ -27,12 +27,13 @@ import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapDump
 import leakcanary.Serializables
-import leakcanary.internal.activity.HeapAnalysisFailureScreen
-import leakcanary.internal.activity.HeapAnalysisListScreen
-import leakcanary.internal.activity.HeapAnalysisSuccessScreen
-import leakcanary.internal.activity.HeapAnalysisTable
+import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
+import leakcanary.internal.activity.screen.HeapAnalysisListScreen
+import leakcanary.internal.activity.screen.HeapAnalysisSuccessScreen
+import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.LeakActivity
-import leakcanary.internal.activity.LeaksDbHelper
+import leakcanary.internal.activity.db.LeaksDbHelper
+import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.save
 import java.io.File
 import java.text.SimpleDateFormat
@@ -85,7 +86,8 @@ internal class AnalysisResultService : ForegroundService(
       is HeapAnalysisSuccess -> heapAnalysis.copy(heapDump = movedHeapDump)
     }
 
-    val id = LeaksDbHelper(this).writableDatabase.use { db ->
+    val id = LeaksDbHelper(this)
+        .writableDatabase.use { db ->
       HeapAnalysisTable.insert(db, updatedHeapAnalysis)
     }
 
@@ -98,7 +100,7 @@ internal class AnalysisResultService : ForegroundService(
     }
 
     val pendingIntent = LeakActivity.createPendingIntent(
-        this, arrayListOf(HeapAnalysisListScreen(), screenToShow)
+        this, arrayListOf(GroupListScreen(), HeapAnalysisListScreen(), screenToShow)
     )
 
     val contentText = getString(R.string.leak_canary_notification_message)

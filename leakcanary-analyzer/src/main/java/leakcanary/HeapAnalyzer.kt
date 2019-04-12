@@ -433,6 +433,9 @@ class HeapAnalyzer @TestOnly internal constructor(
       expectedReachability.add(reachability)
       if (reachability.status == REACHABLE) {
         lastReachableElementIndex = index
+        // Reset firstUnreachableElementIndex so that we never have
+        // firstUnreachableElementIndex < lastReachableElementIndex
+        firstUnreachableElementIndex = lastElementIndex
       } else if (firstUnreachableElementIndex == lastElementIndex && reachability.status == UNREACHABLE) {
         firstUnreachableElementIndex = index
       }
@@ -444,21 +447,19 @@ class HeapAnalyzer @TestOnly internal constructor(
 
     if (expectedReachability[lastElementIndex].status == UNKNOWN) {
       expectedReachability[lastElementIndex] =
-        Reachability.unreachable("it's the leaking instance")
+        Reachability.unreachable("RefWatcher was watching this")
     }
 
     // First and last are always known.
     for (i in 1 until lastElementIndex) {
       val reachability = expectedReachability[i]
       if (reachability.status == UNKNOWN) {
-        if (i <= lastReachableElementIndex) {
-          val lastReachableName = elements[lastReachableElementIndex].getSimpleClassName()
-          expectedReachability[i] =
-            Reachability.reachable("$lastReachableName is not leaking")
-        } else if (i >= firstUnreachableElementIndex) {
-          val firstUnreachableName = elements[firstUnreachableElementIndex].getSimpleClassName()
-          expectedReachability[i] =
-            Reachability.unreachable("$firstUnreachableName is leaking")
+        if (i < lastReachableElementIndex) {
+          val nextReachableName = elements[i + 1].getSimpleClassName()
+          expectedReachability[i] = Reachability.reachable("$nextReachableName↓ is not leaking")
+        } else if (i > firstUnreachableElementIndex) {
+          val previousUnreachableName = elements[i - 1].getSimpleClassName()
+          expectedReachability[i] = Reachability.unreachable("$previousUnreachableName↑ is leaking")
         }
       }
     }

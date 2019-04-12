@@ -1,4 +1,4 @@
-package leakcanary.internal.activity
+package leakcanary.internal.activity.db
 
 import android.content.ContentValues
 import android.content.Context
@@ -11,19 +11,20 @@ import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapDump
 import leakcanary.Serializables
 import leakcanary.internal.LeakCanaryUtils
+import leakcanary.internal.activity.db.LeakingInstanceTable.HeapAnalysisGroupProjection
+import leakcanary.leakingInstances
 import leakcanary.toByteArray
 import org.intellij.lang.annotations.Language
-import java.io.File
 
-object HeapAnalysisTable {
+internal object HeapAnalysisTable {
 
   @Language("RoomSql")
   const val create = """CREATE TABLE heap_analysis
         (
         id INTEGER PRIMARY KEY,
-        createdAtTimeMillis INTEGER,
-        retainedInstanceCount INTEGER DEFAULT 0,
-        exceptionSummary TEXT DEFAULT NULL,
+        created_at_time_millis INTEGER,
+        retained_instance_count INTEGER DEFAULT 0,
+        exception_summary TEXT DEFAULT NULL,
         object BLOB
         )"""
 
@@ -32,60 +33,74 @@ object HeapAnalysisTable {
     heapAnalysis: HeapAnalysis
   ): Long {
     val values = ContentValues()
+    values.put("created_at_time_millis", heapAnalysis.createdAtTimeMillis)
     values.put("object", heapAnalysis.toByteArray())
-    values.put("createdAtTimeMillis", heapAnalysis.createdAtTimeMillis)
     when (heapAnalysis) {
       is HeapAnalysisSuccess -> {
-        values.put("retainedInstanceCount", heapAnalysis.retainedInstances.size)
+        values.put("retained_instance_count", heapAnalysis.retainedInstances.size)
       }
       is HeapAnalysisFailure -> {
         val cause = heapAnalysis.exception.cause!!
         val exceptionSummary = "${cause.javaClass.simpleName} ${cause.message}"
-        values.put("exceptionSummary", exceptionSummary)
+        values.put("exception_summary", exceptionSummary)
       }
     }
 
-    val id = db.insertOrThrow("heap_analysis", null, values)
-    return id
+    return db.inTransaction {
+      val heapAnalysisId = db.insertOrThrow("heap_analysis", null, values)
+      heapAnalysis.leakingInstances()
+          .forEach { leakingInstance ->
+            LeakingInstanceTable.insert(
+                db, heapAnalysisId, leakingInstance
+            )
+          }
+      heapAnalysisId
+    }
   }
 
   fun <T : HeapAnalysis> retrieve(
     db: SQLiteDatabase,
     id: Long
-  ): T? {
-    // TODO Handle when the heap analysis has been removed.
-    return db.rawQuery(
-        """
-          SELECT
-          object
-          FROM heap_analysis
-          WHERE id=$id
-          """, null
-    )
-        .use { cursor ->
-          if (cursor.moveToNext())
-            Serializables.fromByteArray(cursor.getBlob(0))
-          else
-            null
-        }
+  ): Pair<T, Map<String, HeapAnalysisGroupProjection>>? {
+    db.inTransaction {
+      val heapAnalysis = db.rawQuery(
+          """
+              SELECT
+              object
+              FROM heap_analysis
+              WHERE id=$id
+              """, null
+      )
+          .use { cursor ->
+            if (cursor.moveToNext())
+              Serializables.fromByteArray<T>(cursor.getBlob(0))
+            else
+              null
+          } ?: return null
+
+      val hashes =
+        LeakingInstanceTable.retrieveAllByHeapAnalysisId(db, id)
+
+      return heapAnalysis to hashes
+    }
   }
 
-  fun retrieveAll(db: SQLiteDatabase): List<Summary> {
+  fun retrieveAll(db: SQLiteDatabase): List<Projection> {
     return db.rawQuery(
         """
           SELECT
           id
-          , createdAtTimeMillis
-          , retainedInstanceCount
-          , exceptionSummary
+          , created_at_time_millis
+          , retained_instance_count
+          , exception_summary
           FROM heap_analysis
-          ORDER BY createdAtTimeMillis DESC
+          ORDER BY created_at_time_millis DESC
           """, null
     )
         .use { cursor ->
-          val all = mutableListOf<Summary>()
+          val all = mutableListOf<Projection>()
           while (cursor.moveToNext()) {
-            val summary = Summary(
+            val summary = Projection(
                 id = cursor.getLong(0),
                 createdAtTimeMillis = cursor.getLong(1),
                 retainedInstanceCount = cursor.getInt(2),
@@ -109,7 +124,10 @@ object HeapAnalysisTable {
       }
     }
 
-    db.delete("heap_analysis", "id=$id", null)
+    db.inTransaction {
+      db.delete("heap_analysis", "id=$id", null)
+      LeakingInstanceTable.deleteByHeapAnalysisId(db, id)
+    }
   }
 
   fun deleteAll(
@@ -118,10 +136,13 @@ object HeapAnalysisTable {
   ) {
     val leakDirectoryProvider = LeakCanaryUtils.getLeakDirectoryProvider(context)
     AsyncTask.SERIAL_EXECUTOR.execute { leakDirectoryProvider.clearLeakDirectory() }
-    db.delete("heap_analysis", null, null)
+    db.inTransaction {
+      db.delete("heap_analysis", null, null)
+      LeakingInstanceTable.deleteAll(db)
+    }
   }
 
-  class Summary(
+  class Projection(
     val id: Long,
     val createdAtTimeMillis: Long,
     val retainedInstanceCount: Int,

@@ -1,15 +1,17 @@
-package leakcanary.internal.activity
+package leakcanary.internal.activity.db
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
+internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     context, "leaks.db", null, 1
 ) {
 
   override fun onCreate(db: SQLiteDatabase) {
     db.execSQL(HeapAnalysisTable.create)
+    db.execSQL(LeakingInstanceTable.create)
+    db.execSQL(LeakingInstanceTable.createGroupHashIndex)
   }
 
   override fun onUpgrade(

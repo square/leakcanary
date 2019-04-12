@@ -25,7 +25,7 @@ import java.io.Serializable
 /**
  * A single field in a [LeakTraceElement].
  */
-class LeakReference(
+data class LeakReference(
   val type: Type,
   val name: String?,
   val value: String?
@@ -35,6 +35,16 @@ class LeakReference(
     get() {
       return when (type) {
         ARRAY_ENTRY -> "[$name]"
+        STATIC_FIELD, INSTANCE_FIELD -> name!!
+        LOCAL -> "<Java Local>"
+      }
+    }
+
+  val groupingName: String
+    get() {
+      return when (type) {
+        // The specific array index in a leak rarely matters, this improves grouping.
+        ARRAY_ENTRY -> "[x]"
         STATIC_FIELD, INSTANCE_FIELD -> name!!
         LOCAL -> "<Java Local>"
       }

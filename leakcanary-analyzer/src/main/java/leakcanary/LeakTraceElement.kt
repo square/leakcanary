@@ -1,5 +1,6 @@
 package leakcanary
 
+import leakcanary.internal.lastSegment
 import java.io.Serializable
 
 data class LeakTraceElement(
@@ -68,8 +69,7 @@ data class LeakTraceElement(
    * Returns {@link #className} without the package.
    */
   fun getSimpleClassName(): String {
-    val separator = className.lastIndexOf('.')
-    return if (separator == -1) className else className.substring(separator + 1)
+    return className.lastSegment('.')
   }
 
 }

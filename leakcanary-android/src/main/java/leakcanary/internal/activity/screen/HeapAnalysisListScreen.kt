@@ -1,4 +1,4 @@
-package leakcanary.internal.activity
+package leakcanary.internal.activity.screen
 
 import android.annotation.SuppressLint
 import android.app.AlertDialog
@@ -9,7 +9,10 @@ import android.widget.BaseAdapter
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.R
-import leakcanary.internal.activity.HeapAnalysisTable.Summary
+import leakcanary.internal.activity.db
+import leakcanary.internal.activity.db.HeapAnalysisTable
+import leakcanary.internal.activity.db.HeapAnalysisTable.Projection
+import leakcanary.internal.activity.ui.SimpleListAdapter
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
@@ -35,7 +38,8 @@ internal class HeapAnalysisListScreen : Screen() {
                   .setMessage(R.string.leak_canary_delete_all_leaks_title)
                   .setPositiveButton(android.R.string.ok) { _, _ ->
                     HeapAnalysisTable.deleteAll(db, context)
-                    listView.adapter = AnalysisListAdapter(emptyList())
+                    listView.adapter =
+                      SimpleListAdapter(R.layout.leak_canary_leak_row, emptyList<Any>()) { _, _ -> }
                   }
                   .setNegativeButton(android.R.string.cancel, null)
                   .show()
@@ -43,49 +47,34 @@ internal class HeapAnalysisListScreen : Screen() {
             }
       }
 
-      val analyses = HeapAnalysisTable.retrieveAll(db)
-
+      val projections = HeapAnalysisTable.retrieveAll(db)
 
       listView.setOnItemClickListener { _, _, position, _ ->
-        val summary = analyses[position]
-        val analysisScreen = if (summary.exceptionSummary != null)
-          HeapAnalysisFailureScreen(summary.id)
+        val projection = projections[position]
+        val analysisScreen = if (projection.exceptionSummary != null)
+          HeapAnalysisFailureScreen(projection.id)
         else
-          HeapAnalysisSuccessScreen(summary.id)
+          HeapAnalysisSuccessScreen(projection.id)
         goTo(analysisScreen)
       }
 
-      listView.adapter = AnalysisListAdapter(analyses)
+      listView.adapter =
+        SimpleListAdapter(R.layout.leak_canary_leak_row, projections) { view, position ->
+          val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
+          val timeView = view.findViewById<TextView>(R.id.leak_canary_row_time)
+          val index = count - position
+
+          val projection = getItem(position)
+
+          timeView.text = DateUtils.formatDateTime(
+              view.context, projection.createdAtTimeMillis,
+              DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
+          )
+
+          titleView.text = "$index. " + (projection.exceptionSummary
+          // TODO Handle singular
+              ?: "${projection.retainedInstanceCount} retained instances")
+        }
     }
 
-  class AnalysisListAdapter(private val analyses: List<Summary>) : BaseAdapter() {
-    override fun getView(
-      position: Int,
-      convertView: View?,
-      parent: ViewGroup
-    ): View {
-      val view = convertView ?: parent.inflate(R.layout.leak_canary_leak_row)
-      val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
-      val timeView = view.findViewById<TextView>(R.id.leak_canary_row_time)
-      val index = analyses.size - position
-
-      val summary = analyses[position]
-
-      timeView.text = DateUtils.formatDateTime(
-          parent.context, summary.createdAtTimeMillis,
-          DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
-      )
-
-      titleView.text = "$index. " + (summary.exceptionSummary
-      // TODO Handle singular
-          ?: "${summary.retainedInstanceCount} retained instances")
-      return view
-    }
-
-    override fun getItem(position: Int) = null
-
-    override fun getItemId(position: Int) = position.toLong()
-
-    override fun getCount() = analyses.size
-  }
 }

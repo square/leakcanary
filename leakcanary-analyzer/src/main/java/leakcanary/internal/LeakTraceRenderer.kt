@@ -21,7 +21,7 @@ fun LeakTrace.renderToString(): String {
         leakInfo += """
         #├─ ${leakTraceElement.className}
         #│    Leaking: ${currentReachability.renderToString()}
-        #│    ↓ ${getNextElementString(this, currentReachability, leakTraceElement, index)}
+        #│    ↓ ${getNextElementString(this, leakTraceElement, index)}
         #""".trimMargin("#")
       }
   leakInfo += """╰→ ${lastElement.className}
@@ -41,22 +41,10 @@ private fun Reachability.renderToString(): String {
 
 private fun getNextElementString(
   leakTrace: LeakTrace,
-  reachability: Reachability,
   element: LeakTraceElement,
   index: Int
 ): String {
-  val maybeLeakCause = when (reachability.status) {
-    UNKNOWN -> true
-    REACHABLE -> {
-      if (index < leakTrace.elements.lastIndex) {
-        val nextReachability = leakTrace.expectedReachability[index + 1]
-        nextReachability.status != REACHABLE
-      } else {
-        true
-      }
-    }
-    else -> false
-  }
+  val maybeLeakCause = leakTrace.elementMayBeLeakCause(index)
 
   val staticString =
     if (element.reference != null && element.reference.type == STATIC_FIELD) "static" else ""
