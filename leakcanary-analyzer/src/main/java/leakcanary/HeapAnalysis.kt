@@ -1,5 +1,6 @@
 package leakcanary
 
+import leakcanary.internal.createSHA1Hash
 import java.io.Serializable
 
 sealed class HeapAnalysis : Serializable {
@@ -97,3 +98,28 @@ fun HeapAnalysis.leakingInstances(): List<LeakingInstance> {
 
 fun HeapAnalysis.applicationLeaks(): List<LeakingInstance> =
   leakingInstances().filter { !it.excludedLeak }
+
+fun LeakingInstance.groupHash(): String {
+  val uniqueString = if (excludedLeak) {
+    // For excluded leaks we group based on the first excluded element
+    leakTrace.elements.first { element ->
+      element.exclusion != null
+    }.exclusion!!.matching
+  } else {
+    leakTrace.elements.filterIndexed { index, _ ->
+      leakTrace.elementMayBeLeakCause(index)
+    }
+        .map { element ->
+          val referenceName: String =
+            if (element.reference!!.type === LeakTraceElement.Type.ARRAY_ENTRY) {
+              // The specific array index in a leak rarely matters, this improves grouping.
+              "[x]"
+            } else {
+              element.reference!!.displayName
+            }
+          return element.className + referenceName
+        }
+        .joinToString(separator = "")
+  }
+  return uniqueString.createSHA1Hash()
+}

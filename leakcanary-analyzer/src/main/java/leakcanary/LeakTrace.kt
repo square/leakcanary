@@ -1,5 +1,7 @@
 package leakcanary
 
+import leakcanary.Reachability.Status.REACHABLE
+import leakcanary.Reachability.Status.UNKNOWN
 import leakcanary.internal.renderToString
 import java.io.Serializable
 
@@ -16,4 +18,15 @@ data class LeakTrace(
     return "\n${renderToString()}\n"
   }
 
+  fun elementMayBeLeakCause(index: Int): Boolean {
+    return when (expectedReachability[index].status) {
+      UNKNOWN -> true
+      REACHABLE -> if (index < elements.lastIndex) {
+        expectedReachability[index + 1].status != REACHABLE
+      } else {
+        true
+      }
+      else -> false
+    }
+  }
 }
