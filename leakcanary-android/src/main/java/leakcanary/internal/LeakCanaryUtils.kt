@@ -150,7 +150,11 @@ internal object LeakCanaryUtils {
       buildNotification(context, builder)
     val notificationManager =
       context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    notificationManager.notify(notificationId, notification)
+    try {
+      notificationManager.notify(notificationId, notification)
+    } catch (ignored: SecurityException) {
+      // https://github.com/square/leakcanary/issues/1197
+    }
   }
 
   fun buildNotification(
