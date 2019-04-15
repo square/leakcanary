@@ -1,6 +1,7 @@
 include ':leakcanary-analyzer'
 include ':leakcanary-android'
 include ':leakcanary-android-instrumentation'
+include ':leakcanary-hprof'
 include ':leakcanary-leaksentry'
 include ':leakcanary-sample'
 include ':leakcanary-watcher'
