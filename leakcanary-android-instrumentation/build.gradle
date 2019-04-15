@@ -7,6 +7,10 @@ dependencies {
   implementation deps.androidx.test.runner
   implementation deps.kotlin.stdlib
 
+  androidTestImplementation deps.haha
+  androidTestImplementation deps.okio
+
+
   androidTestImplementation deps.androidx.test.core
   androidTestImplementation deps.androidx.test.espresso
   androidTestImplementation deps.androidx.test.rules
