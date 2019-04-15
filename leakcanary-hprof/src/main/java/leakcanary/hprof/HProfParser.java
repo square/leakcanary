@@ -13,9 +13,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import javax.swing.JFileChooser;
-import javax.swing.JPanel;
-import javax.swing.filechooser.FileFilter;
 import okio.Buffer;
 import okio.BufferedSource;
 import okio.ByteString;
@@ -128,48 +125,9 @@ public final class HProfParser {
   private static long OBJECT_CLASS_ID = 0;
 
   public static void main(String[] args) throws IOException {
-    // File heapFile = chooseFileFromGUI();
     File heapFile = new File(args[0]);
     HProfParser parser = new HProfParser();
     parser.parse(heapFile);
-
-    //    Scanner stdin = new Scanner(System.in);
-    //
-    //    while(true) {
-    //      System.out.println("What do you want to do?");
-    //      System.out.println("a) Search for a class");
-    //      System.out.println("b) Search for an instance");
-    //      System.out.println();
-    //      System.out.print("$ ");
-    //
-    //      while (stdin.hasNextLine()) {
-    //        String input = stdin.nextLine();
-    //        if (input.equals("exit")) break;
-    //
-    //        System.out.println(input);
-    //      }
-    //    }
-  }
-
-  private static File chooseFileFromGUI() {
-    JFileChooser fileChooser = new JFileChooser();
-    fileChooser.setFileFilter(new FileFilter() {
-      @Override
-      public boolean accept(File f) {
-        return f.getName().endsWith(".hprof");
-      }
-
-      @Override
-      public String getDescription() {
-        return "HPROF files";
-      }
-    });
-    int retValue = fileChooser.showOpenDialog(new JPanel());
-    if (retValue != JFileChooser.APPROVE_OPTION) {
-      System.out.println("Next time select a file.");
-      System.exit(1);
-    }
-    return fileChooser.getSelectedFile();
   }
 
   private void parse(File heapFile) throws IOException {
