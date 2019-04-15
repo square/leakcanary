@@ -1,20 +1,27 @@
 package leakcanary.hprof;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import javax.swing.filechooser.FileFilter;
-
 import okio.Buffer;
 import okio.BufferedSource;
+import okio.ByteString;
 import okio.Okio;
 
-public class HProfParser {
+public final class HProfParser {
   // HPROF tags
   public static final byte UTF8_STRING = 0x01;
   public static final byte LOAD_CLASS = 0x02;
@@ -66,38 +73,38 @@ public class HProfParser {
     percentFormatter.setMinimumFractionDigits(2);
   }
 
-  private static int UTF8_STRING_COUNT = 0;
-  private static int LOAD_CLASS_COUNT = 0;
-  private static int UNLOAD_CLASS_COUNT = 0;
-  private static int STACK_FRAME_COUNT = 0;
-  private static int STACK_TRACE_COUNT = 0;
-  private static int ALLOC_SITES_COUNT = 0;
-  private static int HEAP_SUMMARY_COUNT = 0;
-  private static int START_THREAD_COUNT = 0;
-  private static int END_THREAD_COUNT = 0;
-  private static int HEAP_DUMP_COUNT = 0;
-  private static int HEAP_DUMP_SEGMENT_COUNT = 0;
-  private static int HEAP_DUMP_END_COUNT = 0;
-  private static int CPU_SAMPLES_COUNT = 0;
-  private static int CONTROL_SETTINGS_COUNT = 0;
+  private int utf8StringCount = 0;
+  private int loadClassCount = 0;
+  private int unloadClassCount = 0;
+  private int stackFrameCount = 0;
+  private int stackTraceCount = 0;
+  private int allocSitesCount = 0;
+  private int heapSummaryCount = 0;
+  private int startThreadCount = 0;
+  private int endThreadCount = 0;
+  private int heapDumpCount = 0;
+  private int heapDumpSegmentCount = 0;
+  private int heapDumpEndCount = 0;
+  private int cpuSamplesCount = 0;
+  private int controlSettingsCount = 0;
 
-  private static int ROOT_UNKNOWN_COUNT = 0;
-  private static int ROOT_JNI_GLOBAL_COUNT = 0;
-  private static int ROOT_JNI_LOCAL_COUNT = 0;
-  private static int ROOT_JAVA_FRAME_COUNT = 0;
-  private static int ROOT_NATIVE_STACK_COUNT = 0;
-  private static int ROOT_STICKY_CLASS_COUNT = 0;
-  private static int ROOT_MONITOR_USED_COUNT = 0;
-  private static int ROOT_THREAD_OBJECT_COUNT = 0;
-  private static int CLASS_COUNT = 0;
-  private static int INSTANCE_COUNT = 0;
-  private static int OBJECT_ARRAY_COUNT = 0;
-  private static int PRIMITIVE_ARRAY_COUNT = 0;
+  private int rootUnknownCount = 0;
+  private int rootJniGlobalCount = 0;
+  private int rootJniLocalCount = 0;
+  private int rootJavaFrameCount = 0;
+  private int rootNativeStackCount = 0;
+  private int rootStickyClassCount = 0;
+  private int rootMonitorUsedCount = 0;
+  private int rootThreadObjectCount = 0;
+  private int classCount = 0;
+  private int instanceCount = 0;
+  private int objectArrayCount = 0;
+  private int primitiveArrayCount = 0;
 
-  private static int HEAP_DUMP_INFO_COUNT = 0;
-  private static int ROOT_INTERNED_STRING_COUNT = 0;
-  private static int ROOT_FINALIZING_COUNT = 0;
-  private static int ROOT_DEBUGGER_COUNT = 0;
+  private int heapDumpInfoCount = 0;
+  private int rootInternedStringCount = 0;
+  private int rootFinalizingCount = 0;
+  private int rootDebuggerCount = 0;
 
   private String format;
   private int idSize;
@@ -192,7 +199,7 @@ public class HProfParser {
   private void assembleInstances() throws IOException {
     log("INSTANCES");
     for (Instance instance: instances) {
-      BufferedSource source = Okio.buffer(Okio.source(new ByteArrayInputStream(instance.fieldBytes)));
+      BufferedSource source = new Buffer().write(instance.fieldBytes);
       long classId = instance.classId;
       int classIndent = 1;
       while(classId != OBJECT_CLASS_ID) {
@@ -222,38 +229,38 @@ public class HProfParser {
   private void logTotals() {
     log("======================");
 
-    log("UTF8 String count", UTF8_STRING_COUNT);
-    log("Load Class count", LOAD_CLASS_COUNT);
-    log("Unload Class count", UNLOAD_CLASS_COUNT);
-    log("Stack Frame count", STACK_FRAME_COUNT);
-    log("Stack Trace count", STACK_TRACE_COUNT);
-    log("Alloc Sites count", ALLOC_SITES_COUNT);
-    log("Heap Summary count", HEAP_SUMMARY_COUNT);
-    log("Start Thread count", START_THREAD_COUNT);
-    log("End Thread count", END_THREAD_COUNT);
-    log("Heap Dump count", HEAP_DUMP_COUNT);
-    log("Heap Dump Segment count", HEAP_DUMP_SEGMENT_COUNT);
-    log("Heap Dump End count", HEAP_DUMP_END_COUNT);
-    log("CPU Samples count", CPU_SAMPLES_COUNT);
-    log("Control Settings count", CONTROL_SETTINGS_COUNT);
+    log("UTF8 String count", utf8StringCount);
+    log("Load Class count", loadClassCount);
+    log("Unload Class count", unloadClassCount);
+    log("Stack Frame count", stackFrameCount);
+    log("Stack Trace count", stackTraceCount);
+    log("Alloc Sites count", allocSitesCount);
+    log("Heap Summary count", heapSummaryCount);
+    log("Start Thread count", startThreadCount);
+    log("End Thread count", endThreadCount);
+    log("Heap Dump count", heapDumpCount);
+    log("Heap Dump Segment count", heapDumpSegmentCount);
+    log("Heap Dump End count", heapDumpEndCount);
+    log("CPU Samples count", cpuSamplesCount);
+    log("Control Settings count", controlSettingsCount);
 
-    log("Root Unknown count", ROOT_UNKNOWN_COUNT);
-    log("Root JNI Global count", ROOT_JNI_GLOBAL_COUNT);
-    log("Root JNI Local count", ROOT_JNI_LOCAL_COUNT);
-    log("Root Java Frame count", ROOT_JAVA_FRAME_COUNT);
-    log("Root Native Stack count", ROOT_NATIVE_STACK_COUNT);
-    log("Root Sticky Class count", ROOT_STICKY_CLASS_COUNT);
-    log("Root Monitor Used count", ROOT_MONITOR_USED_COUNT);
-    log("Root Thread Object count", ROOT_THREAD_OBJECT_COUNT);
-    log("Class count", CLASS_COUNT);
-    log("Instance count", INSTANCE_COUNT);
-    log("Object Array count", OBJECT_ARRAY_COUNT);
-    log("Primitive Array count", PRIMITIVE_ARRAY_COUNT);
+    log("Root Unknown count", rootUnknownCount);
+    log("Root JNI Global count", rootJniGlobalCount);
+    log("Root JNI Local count", rootJniLocalCount);
+    log("Root Java Frame count", rootJavaFrameCount);
+    log("Root Native Stack count", rootNativeStackCount);
+    log("Root Sticky Class count", rootStickyClassCount);
+    log("Root Monitor Used count", rootMonitorUsedCount);
+    log("Root Thread Object count", rootThreadObjectCount);
+    log("Class count", classCount);
+    log("Instance count", instanceCount);
+    log("Object Array count", objectArrayCount);
+    log("Primitive Array count", primitiveArrayCount);
 
-    log("Heap Dump Info count", HEAP_DUMP_INFO_COUNT);
-    log("Root Interned String count", ROOT_INTERNED_STRING_COUNT);
-    log("Root Finalizing count", ROOT_FINALIZING_COUNT);
-    log("Root Debugger count", ROOT_DEBUGGER_COUNT);
+    log("Heap Dump Info count", heapDumpInfoCount);
+    log("Root Interned String count", rootInternedStringCount);
+    log("Root Finalizing count", rootFinalizingCount);
+    log("Root Debugger count", rootDebuggerCount);
 
     log("======================");
   }
@@ -302,7 +309,7 @@ public class HProfParser {
 
       switch (tag) {
         case UTF8_STRING: {
-          UTF8_STRING_COUNT++;
+          utf8StringCount++;
 
           long id = readId(hprofSource);
           bodySize -= idSize;
@@ -312,7 +319,7 @@ public class HProfParser {
           break;
         }
         case LOAD_CLASS: {
-          LOAD_CLASS_COUNT++;
+          loadClassCount++;
 
           // class serial numbers only used in stack traces and alloc sites
           // consider removing?
@@ -342,7 +349,7 @@ public class HProfParser {
           break;
         }
         case UNLOAD_CLASS: {
-          UNLOAD_CLASS_COUNT++;
+          unloadClassCount++;
 
           if (bodySize != 4) throw new AssertionError();
 
@@ -354,7 +361,7 @@ public class HProfParser {
           break;
         }
         case STACK_FRAME: {
-          STACK_FRAME_COUNT++;
+          stackFrameCount++;
 
           if (bodySize != 8 + 4 * idSize) throw new AssertionError();
 
@@ -378,7 +385,7 @@ public class HProfParser {
           break;
         }
         case STACK_TRACE: {
-          STACK_TRACE_COUNT++;
+          stackTraceCount++;
 
           readSerialNumber(hprofSource); // stack trace serial #
           int threadSerialNumber = readSerialNumber(hprofSource);
@@ -401,7 +408,7 @@ public class HProfParser {
         }
         case ALLOC_SITES: // ALLOC SITES
         {
-          ALLOC_SITES_COUNT++;
+          allocSitesCount++;
 
           short bitMaskFlags = hprofSource.readShort();
           float cutoffRatio = (float) hprofSource.readInt();
@@ -440,7 +447,7 @@ public class HProfParser {
         }
         case HEAP_SUMMARY: // HEAP SUMMARY
         {
-          HEAP_SUMMARY_COUNT++;
+          heapSummaryCount++;
 
           log(2, "HEAP SUMMARY");
           int totalLiveBytes = hprofSource.readInt();
@@ -454,13 +461,13 @@ public class HProfParser {
           break;
         }
         case START_THREAD: {
-          START_THREAD_COUNT++;
+          startThreadCount++;
 
           log(2, "HEAP_SUMMARY");
           throw new RuntimeException("not yet implemented");
         }
         case HEAP_DUMP: {
-          HEAP_DUMP_COUNT++;
+          heapDumpCount++;
 
           log(2, "HEAP DUMP");
           parseHeapDump(hprofSource, bodySize);
@@ -469,7 +476,7 @@ public class HProfParser {
         }
         case HEAP_DUMP_SEGMENT: // HEAP DUMP SEGMENT
         {
-          HEAP_DUMP_SEGMENT_COUNT++;
+          heapDumpSegmentCount++;
 
           log(2, "HEAP DUMP SEGMENT");
           parseHeapDump(hprofSource, bodySize);
@@ -477,7 +484,7 @@ public class HProfParser {
         }
         case HEAP_DUMP_END: // HEAP DUMP END
         {
-          HEAP_DUMP_END_COUNT++;
+          heapDumpEndCount++;
 
           log(2, "HEAP DUMP END");
           break;
@@ -522,7 +529,7 @@ public class HProfParser {
       numBytes--;
       switch (tag) {
         case ROOT_UNKNOWN: {
-          ROOT_UNKNOWN_COUNT++;
+          rootUnknownCount++;
 
           long objectId = readId(hprofSource);
           numBytes -= idSize;
@@ -533,7 +540,7 @@ public class HProfParser {
           break;
         }
         case ROOT_JNI_GLOBAL: {
-          ROOT_JNI_GLOBAL_COUNT++;
+          rootJniGlobalCount++;
 
           long objectId = readId(hprofSource);
           long jniGlobalRefId = readId(hprofSource);
@@ -547,7 +554,7 @@ public class HProfParser {
           break;
         }
         case ROOT_JNI_LOCAL: {
-          ROOT_JNI_LOCAL_COUNT++;
+          rootJniLocalCount++;
 
           long objectId = readId(hprofSource);
           int threadSerialNumber = readSerialNumber(hprofSource);
@@ -563,7 +570,7 @@ public class HProfParser {
           break;
         }
         case ROOT_JAVA_FRAME: {
-          ROOT_JAVA_FRAME_COUNT++;
+          rootJavaFrameCount++;
 
           long objectId = readId(hprofSource);
           int threadSerialNumber = readSerialNumber(hprofSource);
@@ -579,7 +586,7 @@ public class HProfParser {
           break;
         }
         case ROOT_NATIVE_STACK: {
-          ROOT_NATIVE_STACK_COUNT++;
+          rootNativeStackCount++;
 
           long objectId = readId(hprofSource);
           int threadSerialNumber = readSerialNumber(hprofSource);
@@ -594,7 +601,7 @@ public class HProfParser {
           break;
         }
         case ROOT_STICKY_CLASS: {
-          ROOT_STICKY_CLASS_COUNT++;
+          rootStickyClassCount++;
 
           long objectId = readId(hprofSource);
           numBytes -= idSize;
@@ -607,7 +614,7 @@ public class HProfParser {
           break;
         }
         case ROOT_MONITOR_USED: {
-          ROOT_MONITOR_USED_COUNT++;
+          rootMonitorUsedCount++;
 
           long objectId = readId(hprofSource);
           numBytes -= idSize;
@@ -618,7 +625,7 @@ public class HProfParser {
           break;
         }
         case ROOT_THREAD_OBJECT: {
-          ROOT_THREAD_OBJECT_COUNT++;
+          rootThreadObjectCount++;
 
           long threadObjectId = readId(hprofSource);
           int threadSerialNumber = readSerialNumber(hprofSource);
@@ -633,7 +640,7 @@ public class HProfParser {
           break;
         }
         case CLASS_DUMP: {
-          CLASS_COUNT++;
+          classCount++;
 
           long classObjectId = readId(hprofSource);
           readSerialNumber(hprofSource); // stack trace serial #
@@ -702,15 +709,16 @@ public class HProfParser {
           break;
         }
         case INSTANCE_DUMP: {
-          INSTANCE_COUNT++;
+          instanceCount++;
 
           long objectId = readId(hprofSource);
-          hprofSource.readInt(); // stack trace serial #
+
+          hprofSource.skip(4); // stack trace serial #
           long classObjectId = readId(hprofSource);
           int numInstanceBytes = hprofSource.readInt();
 
           // TODO - process instance values afterward
-          byte[] instanceFieldValueBytes = hprofSource.readByteArray(numInstanceBytes);
+          ByteString instanceFieldValueBytes = hprofSource.readByteString(numInstanceBytes);
           Instance instance = new Instance(objectId, classObjectId, instanceFieldValueBytes);
           instances.add(instance);
 
@@ -726,7 +734,7 @@ public class HProfParser {
           break;
         }
         case OBJECT_ARRAY_DUMP: {
-          OBJECT_ARRAY_COUNT++;
+          objectArrayCount++;
 
           long arrayObjectId = readId(hprofSource);
           readSerialNumber(hprofSource); // stack trace serial #
@@ -744,7 +752,7 @@ public class HProfParser {
           break;
         }
         case PRIMITIVE_ARRAY_DUMP: {
-          PRIMITIVE_ARRAY_COUNT++;
+          primitiveArrayCount++;
 
           long arrayObjectId = readId(hprofSource);
           readSerialNumber(hprofSource); // stack trace serial #
@@ -774,7 +782,7 @@ public class HProfParser {
           break;
         }
         case HEAP_DUMP_INFO: {
-          HEAP_DUMP_INFO_COUNT++;
+          heapDumpInfoCount++;
 
           long objectId = readId(hprofSource);
           long heapNameStringId = readId(hprofSource);
@@ -787,7 +795,7 @@ public class HProfParser {
           break;
         }
         case ROOT_INTERNED_STRING: {
-          ROOT_INTERNED_STRING_COUNT++;
+          rootInternedStringCount++;
 
           long objectId = readId(hprofSource);
           numBytes -= idSize;
@@ -798,7 +806,7 @@ public class HProfParser {
           break;
         }
         case ROOT_FINALIZING: {
-          ROOT_FINALIZING_COUNT++;
+          rootFinalizingCount++;
 
           long objectId = readId(hprofSource);
           numBytes -= idSize;
@@ -809,7 +817,7 @@ public class HProfParser {
           break;
         }
         case ROOT_DEBUGGER: {
-          ROOT_DEBUGGER_COUNT++;
+          rootDebuggerCount++;
 
           long objectId = readId(hprofSource);
           numBytes -= idSize;
@@ -856,11 +864,12 @@ public class HProfParser {
       case BOOLEAN:
         return hprofSource.readByte() == 0;
       case CHAR:
+        // maybe use readString(StandardCharsets.UTF_16).charAt(0) instead?
         return hprofSource.readUtf8(2).charAt(0);
       case FLOAT:
-        return (float) hprofSource.readInt();
+        return Float.intBitsToFloat(hprofSource.readInt());
       case DOUBLE:
-        return (double) hprofSource.readLong();
+        return Double.longBitsToDouble(hprofSource.readLong());
       case BYTE:
         return hprofSource.readByte();
       case SHORT:
@@ -893,7 +902,7 @@ public class HProfParser {
       case CHAR: {
         Character[] a = new Character[numElements];
         for (int i = 0; i < numElements; i++) {
-          String s = hprofSource.readString(2, Charset.forName("UTF-16BE"));
+          String s = hprofSource.readString(2, StandardCharsets.UTF_16BE);
           a[i] = s.charAt(0);
         }
         return Arrays.asList(a);
@@ -1025,15 +1034,11 @@ public class HProfParser {
   }
 
   private String readUntilNull(BufferedSource hprofSource) throws IOException {
-    Buffer buffer = new Buffer();
-    byte b;
-    while ((b = hprofSource.readByte()) != 0) {
-      buffer.writeByte(b);
-      numBytesRead++;
-    }
-    numBytesRead++; // null byte
-
-    return buffer.readUtf8();
+    long nullByteIndex = hprofSource.indexOf((byte) 0);
+    String string = hprofSource.readUtf8(nullByteIndex);
+    hprofSource.skip(1); // discard null byte
+    numBytesRead += nullByteIndex;
+    return string;
   }
 
   private static StringBuilder builder = new StringBuilder();
@@ -1074,9 +1079,9 @@ public class HProfParser {
   private class Instance {
     private final long id;
     private final long classId;
-    private final byte[] fieldBytes;
+    private final ByteString fieldBytes;
 
-    public Instance(long id, long classId, byte[] fieldBytes) {
+    public Instance(long id, long classId, ByteString fieldBytes) {
       this.id = id;
       this.classId = classId;
       this.fieldBytes = fieldBytes;
