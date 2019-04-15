@@ -56,9 +56,9 @@ import java.nio.channels.FileChannel
  */
 class HprofParser private constructor(
   private val channel: FileChannel,
-  private val source: BufferedSource,
+  private var source: BufferedSource,
   private val startPosition: Long,
-  val idSize: Int
+  private val idSize: Int
 ) : Closeable {
 
   class RecordCallbacks {
@@ -129,9 +129,12 @@ class HprofParser private constructor(
   private var position: Long = startPosition
 
   private fun moveTo(newPosition: Long) {
-    channel.position(newPosition)
+    if (position == newPosition) {
+      return
+    }
     source.buffer.clear()
-    position = newPosition
+    channel.position(newPosition)
+    this.position = newPosition
   }
 
   private fun readShort(): Short {
@@ -299,12 +302,7 @@ class HprofParser private constructor(
       throw IllegalStateException("Source closed")
     }
 
-    // TODO This actually does not work, figure it out.
-    if (position != startPosition) {
-      println("$startPosition vs ${channel.position()}")
-      moveTo(startPosition)
-      println("$position vs ${channel.position()}")
-    }
+    moveTo(startPosition)
 
     // heap dump timestamp
     skipLong()
@@ -920,10 +918,12 @@ class HprofParser private constructor(
       val channel = inputStream.channel
       val source = inputStream.source()
           .buffer()
+
       val endOfVersionString = source.indexOf(0)
       source.skip(endOfVersionString + 1)
       val idSize = source.readInt()
-      val startPosition = endOfVersionString + 2
+      val startPosition = endOfVersionString + 1 + 4
+
       return HprofParser(channel, source, startPosition, idSize)
     }
   }

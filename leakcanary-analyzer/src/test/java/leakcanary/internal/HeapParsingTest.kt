@@ -15,8 +15,6 @@ import leakcanary.internal.haha.HprofParser.Value.IntValue
 import leakcanary.internal.haha.HprofParser.Value.LongValue
 import leakcanary.internal.haha.HprofParser.Value.ObjectReference
 import leakcanary.internal.haha.HprofParser.Value.ShortValue
-import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord.FieldRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
@@ -78,7 +76,6 @@ class HeapParsingTest {
 
     var keyedWeakReferenceStringId = -1L
     var keyedWeakReferenceClassId = -1L
-    val allClassesById = mutableMapOf<Long, ClassDumpRecord>()
     val keyedWeakReferenceInstances = mutableListOf<InstanceDumpRecord>()
     val callbacks = RecordCallbacks()
         .on(StringRecord::class.java) {
@@ -91,9 +88,6 @@ class HeapParsingTest {
             keyedWeakReferenceClassId = it.id
           }
         }
-        .on(ClassDumpRecord::class.java) {
-          allClassesById[it.id] = it
-        }
         .on(InstanceDumpRecord::class.java) {
           if (it.classId == keyedWeakReferenceClassId) {
             keyedWeakReferenceInstances.add(it)
@@ -101,26 +95,6 @@ class HeapParsingTest {
         }
     parser.scan(callbacks)
     parser.close()
-
-    keyedWeakReferenceInstances.forEach { instance ->
-      val valuesBuffer = Buffer()
-      valuesBuffer.write(instance.fieldValues)
-
-      var classRecord: ClassDumpRecord? = allClassesById[instance.classId]
-
-      val instanceFields = mutableMapOf<ClassDumpRecord, MutableMap<FieldRecord, Value>>()
-
-      do {
-        instanceFields[classRecord!!] = mutableMapOf()
-
-        classRecord.fields.forEach { field ->
-          val fieldMap = instanceFields[classRecord!!]!!
-          fieldMap[field] = valuesBuffer.readValue(parser.idSize, field.type)
-        }
-        classRecord = allClassesById[classRecord.superClassId]
-      } while (classRecord != null)
-    }
-
 
     val after1 = System.nanoTime()
 
