@@ -1,4 +1,5 @@
 apply plugin: 'java-library'
+apply plugin: 'kotlin'
 
 repositories {
   mavenCentral()
@@ -8,4 +9,6 @@ dependencies {
   implementation 'com.squareup.okio:okio:1.10.0'
   implementation 'com.squareup.haha:haha:2.0.3'
   implementation 'net.sf.trove4j:trove4j:3.0.3'
+
+  implementation deps.kotlin.stdlib
 }

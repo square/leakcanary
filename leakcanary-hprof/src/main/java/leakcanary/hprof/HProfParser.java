@@ -199,28 +199,28 @@ public final class HProfParser {
   private void assembleInstances() throws IOException {
     log("INSTANCES");
     for (Instance instance: instances) {
-      BufferedSource source = new Buffer().write(instance.fieldBytes);
-      long classId = instance.classId;
+      BufferedSource source = new Buffer().write(instance.getFieldBytes());
+      long classId = instance.getClassId();
       int classIndent = 1;
       while(classId != OBJECT_CLASS_ID) {
         log(classIndent, getClassName(classId));
         ClassInfo classInfo = classInfoMap.get(classId);
-        for (InstanceField field: classInfo.instanceFields) {
-          String fieldName = stringMap.get(field.stringId);
-          Object fieldValue = readTypeElement(source, field.type);
+        for (InstanceField field: classInfo.getInstanceFields()) {
+          String fieldName = stringMap.get(field.getStringId());
+          Object fieldValue = readTypeElement(source, field.getType());
 
           String type = null;
-          if (field.type == Type.OBJECT) {
+          if (field.getType() == Type.OBJECT) {
             // ?
             //field.stringId
-            getStringName(instanceMap.get(fieldValue).classId);
+            getStringName(instanceMap.get(fieldValue).getClassId());
           }
           else {
-            type = field.type.name;
+            type = field.getType().getLabel();
           }
           log(classIndent + 1, String.format("%s %s", type, fieldName), fieldValue);
         }
-        classId = classInfo.superClassObjectID;
+        classId = classInfo.getSuperClassObjectID();
         classIndent++;
       }
     }
@@ -503,12 +503,12 @@ public final class HProfParser {
 
   private void processInstances() {
     for (Instance instance : instances) {
-      long superClassId = instance.classId;
+      long superClassId = instance.getClassId();
       while (superClassId != 0) {
         ClassInfo classInfo = classInfoMap.get(superClassId);
-        superClassId = classInfo.superClassObjectID;
-        for (InstanceField field : classInfo.instanceFields) {
-          switch (field.type) {
+        superClassId = classInfo.getSuperClassObjectID();
+        for (InstanceField field : classInfo.getInstanceFields()) {
+          switch (field.getType()) {
             case OBJECT:
           }
         }
@@ -854,7 +854,7 @@ public final class HProfParser {
   }
 
   private int getTypeSize(Type type) {
-    return type == Type.OBJECT ? idSize : type.numBytes;
+    return type == Type.OBJECT ? idSize : type.getNumBytes();
   }
 
   private Object readTypeElement(BufferedSource hprofSource, Type type) throws IOException {
@@ -954,51 +954,6 @@ public final class HProfParser {
     }
   }
 
-  public enum Type {
-    OBJECT(null, -1), // variable
-    BOOLEAN("boolean", 1),
-    CHAR("char", 2),
-    FLOAT("float", 4),
-    DOUBLE("double", 8),
-    BYTE("byte", 1),
-    SHORT("short", 2),
-    INT("int", 4),
-    LONG("long", 8);
-
-    public final String name;
-    public final int numBytes;
-
-    Type(String name, int numBytes) {
-      this.name = name;
-      this.numBytes = numBytes;
-    }
-
-    public static Type getType(byte type) {
-      switch (type) {
-        case 2:
-          return OBJECT;
-        case 4:
-          return BOOLEAN;
-        case 5:
-          return CHAR;
-        case 6:
-          return FLOAT;
-        case 7:
-          return DOUBLE;
-        case 8:
-          return BYTE;
-        case 9:
-          return SHORT;
-        case 10:
-          return INT;
-        case 11:
-          return LONG;
-        default:
-          throw new IllegalArgumentException("Unexpected type in heap dump: " + type);
-      }
-    }
-  }
-
   private String readLineNumber(BufferedSource hprofSource) throws IOException {
     int lineNumber = hprofSource.readInt();
     switch (lineNumber) {
@@ -1069,46 +1024,5 @@ public final class HProfParser {
           .append(value);
     }
     System.out.println(builder);
-  }
-
-  private class Root {
-    public Root() {
-    }
-  }
-
-  private class Instance {
-    private final long id;
-    private final long classId;
-    private final ByteString fieldBytes;
-
-    public Instance(long id, long classId, ByteString fieldBytes) {
-      this.id = id;
-      this.classId = classId;
-      this.fieldBytes = fieldBytes;
-    }
-  }
-
-  private class InstanceField {
-    private final long stringId;
-    private final Type type;
-
-    public InstanceField(long stringId, Type type) {
-      this.stringId = stringId;
-      this.type = type;
-    }
-  }
-
-  private class ClassInfo {
-    private final long classObjectId;
-    private final long superClassObjectID;
-    private final int instanceSize;
-    private final InstanceField[] instanceFields;
-
-    public ClassInfo(long classObjectId, long superClassObjectID, int instanceSize, InstanceField[] instanceFields) {
-      this.classObjectId = classObjectId;
-      this.superClassObjectID = superClassObjectID;
-      this.instanceSize = instanceSize;
-      this.instanceFields = instanceFields;
-    }
   }
 }
