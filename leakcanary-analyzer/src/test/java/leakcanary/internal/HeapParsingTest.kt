@@ -3,6 +3,24 @@ package leakcanary.internal
 import com.android.tools.perflib.captures.DataBuffer
 import com.android.tools.perflib.captures.MemoryMappedFileBuffer
 import com.squareup.haha.perflib.Snapshot
+import leakcanary.internal.haha.HprofParser
+import leakcanary.internal.haha.HprofParser.RecordCallbacks
+import leakcanary.internal.haha.HprofParser.Value
+import leakcanary.internal.haha.HprofParser.Value.BooleanValue
+import leakcanary.internal.haha.HprofParser.Value.ByteValue
+import leakcanary.internal.haha.HprofParser.Value.CharValue
+import leakcanary.internal.haha.HprofParser.Value.DoubleValue
+import leakcanary.internal.haha.HprofParser.Value.FloatValue
+import leakcanary.internal.haha.HprofParser.Value.IntValue
+import leakcanary.internal.haha.HprofParser.Value.LongValue
+import leakcanary.internal.haha.HprofParser.Value.ObjectReference
+import leakcanary.internal.haha.HprofParser.Value.ShortValue
+import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord.FieldRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
+import leakcanary.internal.haha.Record.LoadClassRecord
+import leakcanary.internal.haha.Record.StringRecord
+import okio.Buffer
 import okio.buffer
 import okio.source
 import org.assertj.core.api.Assertions.assertThat
@@ -14,10 +32,8 @@ import java.io.FileInputStream
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
-import java.util.Date
 
 class HeapParsingTest {
-
 
   /*
            * Heap parsing gives us ids and positions
@@ -57,33 +73,95 @@ class HeapParsingTest {
   @Test fun findKeyedWeakReferenceClassInHeapDump() {
     val file = fileFromName(HeapDumpFile.ASYNC_TASK_P.filename)
 
-    val inputStream = file.inputStream()
-    val channel = inputStream.channel
+    val before1 = System.nanoTime()
+    val parser = HprofParser.open(file)
 
-    val keyedWeakReferenceId = inputStream.source()
-        .buffer()
-        .use {
-          val nullIndex = it.indexOf(0)
-          val version = it.readUtf8(nullIndex)
-          // 0
-          it.readByte()
-          val idSize = it.readInt()
-          var startPosition = nullIndex + 2
-          println("$version $idSize")
-          HprofParser(channel, it, startPosition, idSize)
-              .parseHeapdump()
+    var keyedWeakReferenceStringId = -1L
+    var keyedWeakReferenceClassId = -1L
+    val allClassesById = mutableMapOf<Long, ClassDumpRecord>()
+    val keyedWeakReferenceInstances = mutableListOf<InstanceDumpRecord>()
+    val callbacks = RecordCallbacks()
+        .on(StringRecord::class.java) {
+          if (it.string == "com.squareup.leakcanary.KeyedWeakReference") {
+            keyedWeakReferenceStringId = it.id
+          }
         }
+        .on(LoadClassRecord::class.java) {
+          if (it.classNameStringId == keyedWeakReferenceStringId) {
+            keyedWeakReferenceClassId = it.id
+          }
+        }
+        .on(ClassDumpRecord::class.java) {
+          allClassesById[it.id] = it
+        }
+        .on(InstanceDumpRecord::class.java) {
+          if (it.classId == keyedWeakReferenceClassId) {
+            keyedWeakReferenceInstances.add(it)
+          }
+        }
+    parser.scan(callbacks)
+    parser.close()
+
+    keyedWeakReferenceInstances.forEach { instance ->
+      val valuesBuffer = Buffer()
+      valuesBuffer.write(instance.fieldValues)
+
+      var classRecord: ClassDumpRecord? = allClassesById[instance.classId]
+
+      val instanceFields = mutableMapOf<ClassDumpRecord, MutableMap<FieldRecord, Value>>()
+
+      do {
+        instanceFields[classRecord!!] = mutableMapOf()
+
+        classRecord.fields.forEach { field ->
+          val fieldMap = instanceFields[classRecord!!]!!
+          fieldMap[field] = valuesBuffer.readValue(parser.idSize, field.type)
+        }
+        classRecord = allClassesById[classRecord.superClassId]
+      } while (classRecord != null)
+    }
+
+
+    val after1 = System.nanoTime()
+
     val buffer = MemoryMappedFileBuffer(file)
     val snapshot = Snapshot.createSnapshot(buffer)
 
     val keyedWeakReferenceClass = snapshot.findClass("com.squareup.leakcanary.KeyedWeakReference")
-    assertThat(keyedWeakReferenceId).isEqualTo(keyedWeakReferenceClass.id)
+
+    val after2 = System.nanoTime()
+
+    println("First: ${(after1 - before1) / 1000000}ms Second: ${(after2 - after1) / 1000000}ms")
+    assertThat(keyedWeakReferenceClassId).isEqualTo(keyedWeakReferenceClass.id)
   }
 
-  private fun HprofParser.parseHeapdump(): Long {
+  fun Buffer.readValue(
+    idSize: Int,
+    type: Int
+  ): Value {
+    return when (type) {
+      HprofParser.OBJECT_TYPE -> ObjectReference(readId(idSize))
+      HprofParser.BOOLEAN_TYPE -> BooleanValue(readByte() != 0.toByte())
+      HprofParser.CHAR_TYPE -> CharValue(ByteBuffer.wrap(readByteArray(2)).char)
+      HprofParser.FLOAT_TYPE -> FloatValue(Float.fromBits(readInt()))
+      HprofParser.DOUBLE_TYPE -> DoubleValue(Double.fromBits(readLong()))
+      HprofParser.BYTE_TYPE -> ByteValue(readByte())
+      HprofParser.SHORT_TYPE -> ShortValue(readShort())
+      HprofParser.INT_TYPE -> IntValue(readInt())
+      HprofParser.LONG_TYPE -> LongValue(readLong())
+      else -> throw IllegalStateException("Unknown type $type")
+    }
+  }
 
-    val stringId = stringIdByString["com.squareup.leakcanary.KeyedWeakReference"]
-    return classIdByClassNameId[stringId]!!
+  private fun Buffer.readId(idSize: Int): Long {
+    // As long as we don't interpret IDs, reading signed values here is fine.
+    return when (idSize) {
+      1 -> readByte().toLong()
+      2 -> readShort().toLong()
+      4 -> readInt().toLong()
+      8 -> readLong()
+      else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
+    }
   }
 
   @Test fun reset() {
@@ -96,6 +174,7 @@ class HeapParsingTest {
         .buffer()
         .use {
           with(it) {
+            channel.position(0)
             val version1 = readUtf8(indexOf(0))
             buffer.clear()
             channel.position(0)
@@ -235,85 +314,11 @@ class MemoryMappedFileInputStream(
 
     return bytesRead
   }
+
 }
 
-const val INT_MASK = 0xffffffffL
-const val BYTE_MASK = 0xFF
-
-const val STRING_IN_UTF8 = 0x01
-const val LOAD_CLASS = 0x02
-const val UNLOAD_CLASS = 0x03
-const val STACK_FRAME = 0x04
-const val STACK_TRACE = 0x05
-const val ALLOC_SITES = 0x06
-const val HEAP_SUMMARY = 0x07
-const val START_THREAD = 0x0a
-const val END_THREAD = 0x0b
-const val HEAP_DUMP = 0x0c
-const val HEAP_DUMP_SEGMENT = 0x1c
 // Default chunk size is 1 << 30, or 1,073,741,824 bytes.
 const val DEFAULT_MEMORY_MAPPED_BUFFER_SIZE = 1 shl 30
 
 // Eliminate wrapped, multi-byte reads across chunks in most cases.
 const val DEFAULT_MEMORY_MAPPED_PADDING = 1024
-
-const val HEAP_DUMP_END = 0x2c
-
-const val CPU_SAMPLES = 0x0d
-
-const val CONTROL_SETTINGS = 0x0e
-
-const val ROOT_UNKNOWN = 0xff
-
-const val ROOT_JNI_GLOBAL = 0x01
-
-const val ROOT_JNI_LOCAL = 0x02
-
-const val ROOT_JAVA_FRAME = 0x03
-
-const val ROOT_NATIVE_STACK = 0x04
-
-const val ROOT_STICKY_CLASS = 0x05
-
-const val ROOT_THREAD_BLOCK = 0x06
-
-const val ROOT_MONITOR_USED = 0x07
-
-const val ROOT_THREAD_OBJECT = 0x08
-
-const val CLASS_DUMP = 0x20
-
-const val INSTANCE_DUMP = 0x21
-
-const val OBJECT_ARRAY_DUMP = 0x22
-
-const val PRIMITIVE_ARRAY_DUMP = 0x23
-
-/**
- * Android format addition
- *
- * Specifies information about which heap certain objects came from. When a sub-tag of this type
- * appears in a HPROF_HEAP_DUMP or HPROF_HEAP_DUMP_SEGMENT record, entries that follow it will
- * be associated with the specified heap.  The HEAP_DUMP_INFO data is reset at the end of the
- * HEAP_DUMP[_SEGMENT].  Multiple HEAP_DUMP_INFO entries may appear in a single
- * HEAP_DUMP[_SEGMENT].
- *
- * Format: u1: Tag value (0xFE) u4: heap ID ID: heap name string ID
- */
-const val HEAP_DUMP_INFO = 0xfe
-
-const val ROOT_INTERNED_STRING = 0x89
-
-const val ROOT_FINALIZING = 0x8a
-
-const val ROOT_DEBUGGER = 0x8b
-
-const val ROOT_REFERENCE_CLEANUP = 0x8c
-
-const val ROOT_VM_INTERNAL = 0x8d
-
-const val ROOT_JNI_MONITOR = 0x8e
-
-const val ROOT_UNREACHABLE = 0x90
-
-const val PRIMITIVE_ARRAY_NODATA = 0xc3
