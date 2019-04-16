@@ -20,7 +20,7 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StringRecord
-import leakcanary.updated.ShortestPathFinder
+import leakcanary.updated.internal.ShortestPathFinder
 import org.assertj.core.api.Assertions
 import org.junit.Test
 
@@ -40,7 +40,9 @@ class HeapParsingTest {
       findLeakingReferences(parser, classHierarchy, keyedWeakReferenceInstances)
 
     val pathFinder =
-      ShortestPathFinder(defaultExcludedRefs.build(), ignoreStrings = true)
+      ShortestPathFinder(
+          defaultExcludedRefs.build(), ignoreStrings = true
+      )
 
     val paths = pathFinder.findPaths(parser, retainedWeakRefs, gcRootIds)
 

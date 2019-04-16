@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.updated
+package leakcanary.updated.internal
 
 import leakcanary.ExcludedRefs
 import leakcanary.Exclusion
@@ -27,6 +27,8 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.updated.KeyedWeakReferenceMirror
+import leakcanary.updated.LeakReference
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -96,7 +98,9 @@ internal class ShortestPathFinder(
       val weakReference = referentMap[node.instance]
       if (weakReference != null) {
         results.add(
-            Result(node, excludingKnownLeaks, weakReference)
+            Result(
+                node, excludingKnownLeaks, weakReference
+            )
         )
         // Found all refs, stop searching.
         if (results.size == leakingWeakRefs.size) {
