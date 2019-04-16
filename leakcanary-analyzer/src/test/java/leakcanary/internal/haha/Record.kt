@@ -18,94 +18,96 @@ sealed class Record {
       val gcRoot: GcRoot
     ) : HeapDumpRecord()
 
-    data class ClassDumpRecord(
-      val id: Long,
-      val stackTraceSerialNumber: Int,
-      val superClassId: Long,
-      val classLoaderId: Long,
-      val signersId: Long,
-      val protectionDomainId: Long,
-      val instanceSize: Int,
-      val staticFields: List<StaticFieldRecord>,
-      val fields: List<FieldRecord>
-    ) : HeapDumpRecord() {
-      data class StaticFieldRecord(
-        val nameStringId: Long,
-        val type: Int,
-        val value: HeapValue
-      )
+    sealed class ObjectRecord : HeapDumpRecord() {
+      class ClassDumpRecord(
+        val id: Long,
+        val stackTraceSerialNumber: Int,
+        val superClassId: Long,
+        val classLoaderId: Long,
+        val signersId: Long,
+        val protectionDomainId: Long,
+        val instanceSize: Int,
+        val staticFields: List<StaticFieldRecord>,
+        val fields: List<FieldRecord>
+      ) : ObjectRecord() {
+        data class StaticFieldRecord(
+          val nameStringId: Long,
+          val type: Int,
+          val value: HeapValue
+        )
 
-      data class FieldRecord(
-        val nameStringId: Long,
-        val type: Int
-      )
-    }
+        data class FieldRecord(
+          val nameStringId: Long,
+          val type: Int
+        )
+      }
 
-    class InstanceDumpRecord(
-      val id: Long,
-      val stackTraceSerialNumber: Int,
-      val classId: Long,
-      val fieldValues: ByteArray
-    ) : HeapDumpRecord()
+      class InstanceDumpRecord(
+        val id: Long,
+        val stackTraceSerialNumber: Int,
+        val classId: Long,
+        val fieldValues: ByteArray
+      ) : ObjectRecord()
 
-    class ObjectArrayDumpRecord(
-      id: Long,
-      stackTraceSerialNumber: Int,
-      arrayClassId: Long,
-      elementIds: LongArray
-    ) : HeapDumpRecord()
+      class ObjectArrayDumpRecord(
+        id: Long,
+        stackTraceSerialNumber: Int,
+        arrayClassId: Long,
+        elementIds: LongArray
+      ) : ObjectRecord()
 
-    sealed class PrimitiveArrayDumpRecord : HeapDumpRecord() {
-      abstract val id: Long
-      abstract val stackTraceSerialNumber: Int
+      sealed class PrimitiveArrayDumpRecord : ObjectRecord() {
+        abstract val id: Long
+        abstract val stackTraceSerialNumber: Int
 
-      class BooleanArrayDump(
-        override val id: Long,
-        override val stackTraceSerialNumber: Int,
-        val array: BooleanArray
-      ) : PrimitiveArrayDumpRecord()
+        class BooleanArrayDump(
+          override val id: Long,
+          override val stackTraceSerialNumber: Int,
+          val array: BooleanArray
+        ) : PrimitiveArrayDumpRecord()
 
-      class CharArrayDump(
-        override val id: Long,
-        override val stackTraceSerialNumber: Int,
-        val array: CharArray
-      ) : PrimitiveArrayDumpRecord()
+        class CharArrayDump(
+          override val id: Long,
+          override val stackTraceSerialNumber: Int,
+          val array: CharArray
+        ) : PrimitiveArrayDumpRecord()
 
-      class FloatArrayDump(
-        override val id: Long,
-        override val stackTraceSerialNumber: Int,
-        val array: FloatArray
-      ) : PrimitiveArrayDumpRecord()
+        class FloatArrayDump(
+          override val id: Long,
+          override val stackTraceSerialNumber: Int,
+          val array: FloatArray
+        ) : PrimitiveArrayDumpRecord()
 
-      class DoubleArrayDump(
-        override val id: Long,
-        override val stackTraceSerialNumber: Int,
-        val array: DoubleArray
-      ) : PrimitiveArrayDumpRecord()
+        class DoubleArrayDump(
+          override val id: Long,
+          override val stackTraceSerialNumber: Int,
+          val array: DoubleArray
+        ) : PrimitiveArrayDumpRecord()
 
-      class ByteArrayDump(
-        override val id: Long,
-        override val stackTraceSerialNumber: Int,
-        val array: ByteArray
-      ) : PrimitiveArrayDumpRecord()
+        class ByteArrayDump(
+          override val id: Long,
+          override val stackTraceSerialNumber: Int,
+          val array: ByteArray
+        ) : PrimitiveArrayDumpRecord()
 
-      class ShortArrayDump(
-        override val id: Long,
-        override val stackTraceSerialNumber: Int,
-        val array: ShortArray
-      ) : PrimitiveArrayDumpRecord()
+        class ShortArrayDump(
+          override val id: Long,
+          override val stackTraceSerialNumber: Int,
+          val array: ShortArray
+        ) : PrimitiveArrayDumpRecord()
 
-      class IntArrayDump(
-        override val id: Long,
-        override val stackTraceSerialNumber: Int,
-        val array: IntArray
-      ) : PrimitiveArrayDumpRecord()
+        class IntArrayDump(
+          override val id: Long,
+          override val stackTraceSerialNumber: Int,
+          val array: IntArray
+        ) : PrimitiveArrayDumpRecord()
 
-      class LongArrayDump(
-        override val id: Long,
-        override val stackTraceSerialNumber: Int,
-        val array: LongArray
-      ) : PrimitiveArrayDumpRecord()
+        class LongArrayDump(
+          override val id: Long,
+          override val stackTraceSerialNumber: Int,
+          val array: LongArray
+        ) : PrimitiveArrayDumpRecord()
+      }
     }
 
     class HeapDumpInfoRecord(

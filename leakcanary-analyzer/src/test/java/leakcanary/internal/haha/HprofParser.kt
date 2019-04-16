@@ -16,38 +16,29 @@ import leakcanary.internal.haha.GcRoot.ThreadObject
 import leakcanary.internal.haha.GcRoot.Unknown
 import leakcanary.internal.haha.GcRoot.Unreachable
 import leakcanary.internal.haha.GcRoot.VmInternal
-import leakcanary.internal.haha.HprofReader.Companion.BOOLEAN_TYPE
+import leakcanary.internal.haha.HeapValue.IntValue
+import leakcanary.internal.haha.HeapValue.ObjectReference
 import leakcanary.internal.haha.HprofReader.Companion.BYTE_SIZE
-import leakcanary.internal.haha.HprofReader.Companion.BYTE_TYPE
-import leakcanary.internal.haha.HprofReader.Companion.CHAR_TYPE
-import leakcanary.internal.haha.HprofReader.Companion.DOUBLE_TYPE
-import leakcanary.internal.haha.HprofReader.Companion.FLOAT_TYPE
 import leakcanary.internal.haha.HprofReader.Companion.INT_SIZE
-import leakcanary.internal.haha.HprofReader.Companion.INT_TYPE
-import leakcanary.internal.haha.HprofReader.Companion.LONG_TYPE
-import leakcanary.internal.haha.HprofReader.Companion.SHORT_TYPE
-import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord
+import leakcanary.internal.haha.HprofReader.Companion.LONG_SIZE
+import leakcanary.internal.haha.HprofReader.Companion.SHORT_SIZE
 import leakcanary.internal.haha.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.HeapDumpInfoRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectArrayDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.ByteArrayDump
-import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
 import okio.Buffer
-import okio.ByteString.Companion.toByteString
 import okio.buffer
 import okio.source
 import java.io.Closeable
 import java.io.File
+import java.nio.charset.Charset
 
 /**
  * Not thread safe, should be used from a single thread.
@@ -71,13 +62,10 @@ class HprofParser private constructor(
   private val classNames = mutableMapOf<Long, Long>()
 
   /**
-   * class id to class position
+   * Object id to object position. The id can be for classes instances, classes, object arrays
+   * and primitive arrays
    */
-  private val classPositions = mutableMapOf<Long, Long>()
-  /**
-   * instance id to instance position
-   */
-  private val instancePositions = mutableMapOf<Long, Long>()
+  private val objectPositions = mutableMapOf<Long, Long>()
 
   class RecordCallbacks {
     private val callbacks = mutableMapOf<Class<out Record>, Any>()
@@ -122,7 +110,7 @@ class HprofParser private constructor(
     reset()
 
     // heap dump timestamp
-    skipLong()
+    skip(LONG_SIZE)
 
     var heapId = 0
     while (!exhausted()) {
@@ -130,7 +118,7 @@ class HprofParser private constructor(
       val tag = readUnsignedByte()
 
       // number of microseconds since the time stamp in the header
-      skipInt()
+      skip(INT_SIZE)
 
       // number of bytes that follow and belong to this record
       val length = readUnsignedInt()
@@ -314,7 +302,7 @@ class HprofParser private constructor(
                 val callback = callbacks.get<ClassDumpRecord>()
                 val id = readId()
                 if (!indexBuilt) {
-                  classPositions[id] = position
+                  objectPositions[id] = tagPositionAfterReadingId
                 }
                 if (callback != null) {
                   val classDumpRecord = readClassDumpRecord(id)
@@ -328,7 +316,7 @@ class HprofParser private constructor(
                   val constantPoolCount = readUnsignedShort()
                   for (i in 0 until constantPoolCount) {
                     // constant pool index
-                    skipShort()
+                    skip(SHORT_SIZE)
                     skip(typeSize(readUnsignedByte()))
                   }
 
@@ -348,7 +336,7 @@ class HprofParser private constructor(
               INSTANCE_DUMP -> {
                 val id = readId()
                 if (!indexBuilt) {
-                  instancePositions[id] = position
+                  objectPositions[id] = tagPositionAfterReadingId
                 }
                 val callback = callbacks.get<InstanceDumpRecord>()
                 if (callback != null) {
@@ -362,68 +350,30 @@ class HprofParser private constructor(
               }
 
               OBJECT_ARRAY_DUMP -> {
+                val id = readId()
+                if (!indexBuilt) {
+                  objectPositions[id] = tagPositionAfterReadingId
+                }
                 val callback = callbacks.get<ObjectArrayDumpRecord>()
                 if (callback != null) {
-                  val id = readId()
-                  // stack trace serial number
-                  val stackTraceSerialNumber = readInt()
-                  val arrayLength = readInt()
-                  val arrayClassId = readId()
-                  val elementIds = readIdArray(arrayLength)
-                  callback(
-                      ObjectArrayDumpRecord(
-                          id = id,
-                          stackTraceSerialNumber = stackTraceSerialNumber,
-                          arrayClassId = arrayClassId,
-                          elementIds = elementIds
-                      )
-                  )
+                  callback(readObjectArrayDumpRecord(id))
                 } else {
-                  skip(idSize + INT_SIZE)
+                  skip(INT_SIZE)
                   val arrayLength = readInt()
                   skip(idSize + arrayLength * idSize)
                 }
               }
 
               PRIMITIVE_ARRAY_DUMP -> {
+                val id = readId()
+                if (!indexBuilt) {
+                  objectPositions[id] = tagPositionAfterReadingId
+                }
                 val callback = callbacks.get<PrimitiveArrayDumpRecord>()
                 if (callback != null) {
-                  val id = readId()
-                  val stackTraceSerialNumber = readInt()
-                  // length
-                  val arrayLength = readInt()
-                  val type = readUnsignedByte()
-
-                  val primitiveArrayDumpRecord = when (type) {
-                    BOOLEAN_TYPE -> BooleanArrayDump(
-                        id, stackTraceSerialNumber, readBooleanArray(arrayLength)
-                    )
-                    CHAR_TYPE -> CharArrayDump(
-                        id, stackTraceSerialNumber, readCharArray(arrayLength)
-                    )
-                    FLOAT_TYPE -> FloatArrayDump(
-                        id, stackTraceSerialNumber, readFloatArray(arrayLength)
-                    )
-                    DOUBLE_TYPE -> DoubleArrayDump(
-                        id, stackTraceSerialNumber, readDoubleArray(arrayLength)
-                    )
-                    BYTE_TYPE -> ByteArrayDump(
-                        id, stackTraceSerialNumber, readByteArray(arrayLength)
-                    )
-                    SHORT_TYPE -> ShortArrayDump(
-                        id, stackTraceSerialNumber, readShortArray(arrayLength)
-                    )
-                    INT_TYPE -> IntArrayDump(
-                        id, stackTraceSerialNumber, readIntArray(arrayLength)
-                    )
-                    LONG_TYPE -> LongArrayDump(
-                        id, stackTraceSerialNumber, readLongArray(arrayLength)
-                    )
-                    else -> throw IllegalStateException("Unexpected type $type")
-                  }
-                  callback(primitiveArrayDumpRecord)
+                  callback(readPrimitiveArrayDumpRecord(id))
                 } else {
-                  skip(idSize + INT_SIZE)
+                  skip(INT_SIZE)
                   val arrayLength = readInt()
                   val type = readUnsignedByte()
                   skip(arrayLength * typeSize(type))
@@ -569,47 +519,78 @@ class HprofParser private constructor(
     return reader.readUtf8(length)
   }
 
-  fun classDumpRecordById(id: Long): ClassDumpRecord {
-    val position = classPositions[id]
+  fun retrieveString(reference: ObjectReference): String {
+    val instanceRecord = retrieveRecord(reference) as InstanceDumpRecord
+    val instance = hydrateInstance(instanceRecord)
+    return instanceAsString(instance)
+  }
+
+  fun retrieveRecord(reference: ObjectReference): ObjectRecord {
+    return retrieveRecord(reference.value)
+  }
+
+  fun retrieveRecord(objectId: Long): ObjectRecord {
+    val position = objectPositions[objectId]
     require(position != null) {
-      "Unknown class id $id"
+      "Unknown object id $objectId"
     }
     reader.moveTo(position)
-    return reader.readClassDumpRecord(id)
+    val heapDumpTag = reader.readUnsignedByte()
+
+    reader.skip(reader.idSize)
+    return when (heapDumpTag) {
+      CLASS_DUMP -> reader.readClassDumpRecord(objectId)
+      INSTANCE_DUMP -> reader.readInstanceDumpRecord(objectId)
+      OBJECT_ARRAY_DUMP -> reader.readObjectArrayDumpRecord(objectId)
+      PRIMITIVE_ARRAY_DUMP -> reader.readPrimitiveArrayDumpRecord(objectId)
+      else -> {
+        throw IllegalStateException(
+            "Unexpected tag $heapDumpTag for id $objectId at position $position"
+        )
+      }
+    }
   }
 
-  fun instanceDumpRecordById(id: Long): InstanceDumpRecord {
-    val position = instancePositions[id]!!
-    reader.moveTo(position)
-    return reader.readInstanceDumpRecord(id)
-  }
-
-  data class HydradedInstance(
+  data class HydratedInstance(
     val record: InstanceDumpRecord,
-    val classHierarchy: List<HydradedClass>,
+    val classHierarchy: List<HydratedClass>,
     /**
      * One list of field values per class
      */
-    val  fieldValues: List<List<HeapValue>>
-  )
+    val fieldValues: List<List<HeapValue>>
+  ) {
+    fun <T : HeapValue> fieldValue(name: String): T {
+      return fieldValueOrNull(name) ?: throw IllegalArgumentException(
+          "Could not find field $name in instance with id ${record.id}"
+      )
+    }
 
-  data class HydradedClass(
+    fun <T : HeapValue> fieldValueOrNull(name: String): T? {
+      classHierarchy.forEachIndexed { classIndex, hydratedClass ->
+        hydratedClass.fieldNames.forEachIndexed { fieldIndex, fieldName ->
+          if (fieldName == name) {
+            @Suppress("UNCHECKED_CAST")
+            return fieldValues[classIndex][fieldIndex] as T
+          }
+        }
+      }
+      return null
+    }
+  }
+
+  data class HydratedClass(
     val record: ClassDumpRecord,
     val className: String,
     val staticFieldNames: List<String>,
     val fieldNames: List<String>
   )
 
-  fun hydratedInstanceById(id: Long): HydradedInstance {
-    return hydrate(instanceDumpRecordById(id))
-  }
-
-  fun hydrate(instanceRecord: InstanceDumpRecord): HydradedInstance {
+  fun hydrateInstance(instanceRecord: InstanceDumpRecord): HydratedInstance {
     var classId = instanceRecord.classId
 
-    val classHierarchy = mutableListOf<HydradedClass>()
+    val classHierarchy = mutableListOf<HydratedClass>()
     do {
-      val classRecord = classDumpRecordById(classId)
+      val classRecord = retrieveRecord(classId) as ClassDumpRecord
       val className = hprofStringById(classNames[classRecord.id]!!)
 
       val staticFieldNames = classRecord.staticFields.map {
@@ -620,22 +601,55 @@ class HprofParser private constructor(
         hprofStringById(it.nameStringId)
       }
 
-      classHierarchy.add(HydradedClass(classRecord, className, staticFieldNames, fieldNames))
+      classHierarchy.add(HydratedClass(classRecord, className, staticFieldNames, fieldNames))
       classId = classRecord.superClassId
     } while (classId != 0L)
 
-    val valuesByteString =
-      instanceRecord.fieldValues.toByteString(0, instanceRecord.fieldValues.size)
-
     val buffer = Buffer()
-    buffer.write(valuesByteString)
+    buffer.write(instanceRecord.fieldValues)
     val valuesReader = HprofReader(buffer, 0, reader.idSize)
 
     val allFieldValues = classHierarchy.map { hydratedClass ->
       hydratedClass.record.fields.map { field -> valuesReader.readValue(field.type) }
     }
 
-    return HydradedInstance(instanceRecord, classHierarchy, allFieldValues)
+    return HydratedInstance(instanceRecord, classHierarchy, allFieldValues)
+  }
+
+  fun instanceAsString(instance: HydratedInstance): String {
+    val count = instance.fieldValue<IntValue>("count")
+        .value
+
+    if (count == 0) {
+      return ""
+    }
+
+    val value = instance.fieldValue<ObjectReference>("value")
+    val valueRecord = retrieveRecord(value)
+
+    when (valueRecord) {
+      is CharArrayDump -> {
+        var offset = 0
+
+        // < API 23
+        // As of Marshmallow, substrings no longer share their parent strings' char arrays
+        // eliminating the need for String.offset
+        // https://android-review.googlesource.com/#/c/83611/
+        val offsetValue = instance.fieldValueOrNull<IntValue>("offset")
+        if (offsetValue != null) {
+          offset = offsetValue.value
+        }
+
+        val chars = valueRecord.array.copyOfRange(offset, offset + count)
+        return String(chars)
+      }
+      is ByteArrayDump -> {
+        return String(valueRecord.array, Charset.forName("UTF-8"))
+      }
+      else -> throw UnsupportedOperationException(
+          "'value' field was expected to be either a char or byte array in string instance with id ${instance.record.id}"
+      )
+    }
   }
 
   companion object {

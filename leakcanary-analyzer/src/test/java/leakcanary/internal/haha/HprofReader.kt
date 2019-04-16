@@ -9,10 +9,20 @@ import leakcanary.internal.haha.HeapValue.IntValue
 import leakcanary.internal.haha.HeapValue.LongValue
 import leakcanary.internal.haha.HeapValue.ObjectReference
 import leakcanary.internal.haha.HeapValue.ShortValue
-import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord.FieldRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord.StaticFieldRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import okio.BufferedSource
 import java.io.Closeable
 import java.nio.ByteBuffer
@@ -134,18 +144,6 @@ open class HprofReader constructor(
         .array()
   }
 
-  fun skipShort() {
-    skip(SHORT_SIZE)
-  }
-
-  fun skipInt() {
-    skip(INT_SIZE)
-  }
-
-  fun skipLong() {
-    skip(LONG_SIZE)
-  }
-
   fun readLong(): Long {
     position += LONG_SIZE
     return source.readLong()
@@ -265,7 +263,7 @@ open class HprofReader constructor(
     val constantPoolCount = readUnsignedShort()
     for (i in 0 until constantPoolCount) {
       // constant pool index
-      skipShort()
+      skip(SHORT_SIZE)
       skip(typeSize(readUnsignedByte()))
     }
 
@@ -304,6 +302,61 @@ open class HprofReader constructor(
         fields = fields
     )
   }
+
+  fun readObjectArrayDumpRecord(
+    id: Long
+  ): ObjectArrayDumpRecord {
+    // stack trace serial number
+    val stackTraceSerialNumber = readInt()
+    val arrayLength = readInt()
+    val arrayClassId = readId()
+    val elementIds = readIdArray(arrayLength)
+    return ObjectArrayDumpRecord(
+        id = id,
+        stackTraceSerialNumber = stackTraceSerialNumber,
+        arrayClassId = arrayClassId,
+        elementIds = elementIds
+    )
+  }
+
+  fun readPrimitiveArrayDumpRecord(
+    id: Long
+  ): PrimitiveArrayDumpRecord {
+    val stackTraceSerialNumber = readInt()
+    // length
+    val arrayLength = readInt()
+    val type = readUnsignedByte()
+    return when (type) {
+      BOOLEAN_TYPE -> BooleanArrayDump(
+          id, stackTraceSerialNumber, readBooleanArray(arrayLength)
+      )
+      CHAR_TYPE -> CharArrayDump(
+          id, stackTraceSerialNumber, readCharArray(arrayLength)
+      )
+      FLOAT_TYPE -> FloatArrayDump(
+          id, stackTraceSerialNumber, readFloatArray(arrayLength)
+      )
+      DOUBLE_TYPE -> DoubleArrayDump(
+          id, stackTraceSerialNumber, readDoubleArray(arrayLength)
+      )
+      BYTE_TYPE -> ByteArrayDump(
+          id, stackTraceSerialNumber, readByteArray(arrayLength)
+      )
+      SHORT_TYPE -> ShortArrayDump(
+          id, stackTraceSerialNumber, readShortArray(arrayLength)
+      )
+      INT_TYPE -> IntArrayDump(
+          id, stackTraceSerialNumber, readIntArray(arrayLength)
+      )
+      LONG_TYPE -> LongArrayDump(
+          id, stackTraceSerialNumber, readLongArray(arrayLength)
+      )
+      else -> throw IllegalStateException("Unexpected type $type")
+    }
+  }
+
+  val tagPositionAfterReadingId
+    get() = position - (idSize + BYTE_SIZE)
 
   companion object {
     const val BOOLEAN_SIZE = 1

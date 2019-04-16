@@ -2,15 +2,12 @@ package leakcanary.internal
 
 import com.android.tools.perflib.captures.DataBuffer
 import com.android.tools.perflib.captures.MemoryMappedFileBuffer
-import com.squareup.haha.perflib.ArrayInstance
 import com.squareup.haha.perflib.Snapshot
-import leakcanary.internal.haha.HeapValue
-import leakcanary.internal.haha.HeapValue.IntValue
 import leakcanary.internal.haha.HeapValue.ObjectReference
 import leakcanary.internal.haha.HprofParser
-import leakcanary.internal.haha.HprofParser.HydradedInstance
+import leakcanary.internal.haha.HprofParser.HydratedInstance
 import leakcanary.internal.haha.HprofParser.RecordCallbacks
-import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
 import okio.buffer
@@ -22,10 +19,8 @@ import sun.nio.ch.DirectBuffer
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
-import java.lang.reflect.InvocationTargetException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
-import java.nio.charset.Charset
 
 class HeapParsingTest {
 
@@ -65,7 +60,8 @@ class HeapParsingTest {
            */
 
   @Test fun findKeyedWeakReferenceClassInHeapDump() {
-    val file = fileFromName(HeapDumpFile.ASYNC_TASK_P.filename)
+    val heapDump = HeapDumpFile.ASYNC_TASK_P
+    val file = fileFromName(heapDump.filename)
 
     val before1 = System.nanoTime()
     val parser = HprofParser.open(file)
@@ -91,26 +87,14 @@ class HeapParsingTest {
         }
     parser.scan(callbacks)
 
-    keyedWeakReferenceInstances.forEach {
-      val instance = parser.hydrate(it)
-      println("####### Dump for ${instance.record.id} #######")
-      instance.classHierarchy.forEachIndexed { classIndex, hydradedClass ->
-        hydradedClass.fieldNames.forEachIndexed { fieldIndex, name ->
-          val value = instance.fieldValues[classIndex][fieldIndex]
-          println("$name = $value")
+    val targetWeakRef = keyedWeakReferenceInstances.map { parser.hydrateInstance(it) }
+        .first { instance ->
+          val keyString = parser.retrieveString(instance.fieldValue("key"))
+          heapDump.referenceKey == keyString
         }
-      }
-    }
 
-    keyedWeakReferenceInstances.map { parser.hydrate(it) }
-        .firstOrNull { instance ->
-          val keyFieldIndex = instance.classHierarchy[0].fieldNames.indexOfFirst { it == "key" }
-          val keyFieldValue = instance.fieldValues[0][keyFieldIndex] as ObjectReference
-          val keyString = parser.hydratedInstanceById(keyFieldValue.value)
+    val found = parser.retrieveString(targetWeakRef.fieldValue("key"))
 
-
-          true
-        }
 
     parser.close()
 
@@ -127,62 +111,15 @@ class HeapParsingTest {
     assertThat(keyedWeakReferenceClassId).isEqualTo(keyedWeakReferenceClass.id)
   }
 
-  fun HydradedInstance.asString(parser: HprofParser): String {
-    val stringClass = classHierarchy[0]
-    val fieldMap = stringClass.fieldNames.mapIndexed { index, name -> name to index }
-        .toMap()
-
-    fun field(name: String): HeapValue =
-      fieldValues[0][fieldMap.getValue("count")]
-
-    val count = field("count") as IntValue
-
-    if (count.value == 0) {
-      return ""
-    }
-
-    val value = field("value") as ObjectReference
-
-    var offset: Int?
-    val array: ArrayInstance
-
-    if (HahaHelper.isCharArray(value)) {
-      array = value as ArrayInstance
-
-      offset = 0
-      // < API 23
-      // As of Marshmallow, substrings no longer share their parent strings' char arrays
-      // eliminating the need for String.offset
-      // https://android-review.googlesource.com/#/c/83611/
-      if (HahaHelper.hasField(values, "offset")) {
-        offset = HahaHelper.fieldValue<Int>(values, "offset")!!
+  fun HydratedInstance.hasField(name: String): Boolean {
+    classHierarchy.forEach { hydratedClass ->
+      hydratedClass.fieldNames.forEach { fieldName ->
+        if (fieldName == name) {
+          return true
+        }
       }
-
-      val chars = array.asCharArray(offset, count)
-      return String(chars)
-    } else if (HahaHelper.isByteArray(value)) {
-      // In API 26, Strings are now internally represented as byte arrays.
-      array = value as ArrayInstance
-
-      // HACK - remove when HAHA's perflib is updated to https://goo.gl/Oe7ZwO.
-      try {
-        val asRawByteArray = ArrayInstance::class.java.getDeclaredMethod(
-            "asRawByteArray", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType
-        )
-        asRawByteArray.isAccessible = true
-        val rawByteArray = asRawByteArray.invoke(array, 0, count) as ByteArray
-        return String(rawByteArray, Charset.forName("UTF-8"))
-      } catch (e: NoSuchMethodException) {
-        throw RuntimeException(e)
-      } catch (e: IllegalAccessException) {
-        throw RuntimeException(e)
-      } catch (e: InvocationTargetException) {
-        throw RuntimeException(e)
-      }
-
-    } else {
-      throw UnsupportedOperationException("Could not find char array in $this")
     }
+    return false
   }
 
   @Test @Ignore("resetting does not currently work") fun memoryMappedReset() {
