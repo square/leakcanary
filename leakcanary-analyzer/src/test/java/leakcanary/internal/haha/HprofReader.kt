@@ -104,45 +104,56 @@ open class HprofReader constructor(
 
   fun readCharArray(arrayLength: Int): CharArray {
     // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(CHAR_SIZE * arrayLength))
+    val buffer = ByteBuffer.wrap(readByteArray(CHAR_SIZE * arrayLength))
         .asCharBuffer()
-        .array()
+    val array = CharArray(buffer.remaining())
+    buffer.get(array)
+    return array
   }
 
   fun readFloatArray(arrayLength: Int): FloatArray {
     // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(FLOAT_SIZE * arrayLength))
+    val buffer = ByteBuffer.wrap(readByteArray(FLOAT_SIZE * arrayLength))
         .asFloatBuffer()
-        .array()
+    val array = FloatArray(buffer.remaining())
+    buffer.get(array)
+    return array
   }
 
   fun readDoubleArray(arrayLength: Int): DoubleArray {
     // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(DOUBLE_SIZE * arrayLength))
+    val buffer = ByteBuffer.wrap(readByteArray(DOUBLE_SIZE * arrayLength))
         .asDoubleBuffer()
-        .array()
+    val array = DoubleArray(buffer.remaining())
+    buffer.get(array)
+    return array
   }
 
   fun readShortArray(arrayLength: Int): ShortArray {
     // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(SHORT_SIZE * arrayLength))
+    val buffer = ByteBuffer.wrap(readByteArray(SHORT_SIZE * arrayLength))
         .asShortBuffer()
-        .array()
+    val array = ShortArray(buffer.remaining())
+    buffer.get(array)
+    return array
   }
 
   fun readIntArray(arrayLength: Int): IntArray {
-    // TODO Actually this doesn't work.
     // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(INT_SIZE * arrayLength))
+    val buffer = ByteBuffer.wrap(readByteArray(INT_SIZE * arrayLength))
         .asIntBuffer()
-        .array()
+    val array = IntArray(buffer.remaining())
+    buffer.get(array)
+    return array
   }
 
   fun readLongArray(arrayLength: Int): LongArray {
     // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(LONG_SIZE * arrayLength))
+    val buffer = ByteBuffer.wrap(readByteArray(LONG_SIZE * arrayLength))
         .asLongBuffer()
-        .array()
+    val array = LongArray(buffer.remaining())
+    buffer.get(array)
+    return array
   }
 
   fun readLong(): Long {

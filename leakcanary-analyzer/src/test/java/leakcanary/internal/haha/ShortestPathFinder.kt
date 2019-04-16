@@ -250,7 +250,6 @@ internal class ShortestPathFinder(
     val record = hprofParser.retrieveRecordById(child)
 
     if (record is PrimitiveArrayDumpRecord) {
-      println("Skipping primitive array")
       return
     }
 
