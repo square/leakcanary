@@ -16,36 +16,21 @@ import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
 import okio.BufferedSource
 import java.io.Closeable
 import java.nio.ByteBuffer
-import java.nio.channels.FileChannel
 
 /**
  * Not thread safe, should be used from a single thread.
  */
-class HprofReader constructor(
-  private val channel: FileChannel,
-  private var source: BufferedSource,
-  private val startPosition: Long,
+open class HprofReader constructor(
+  protected var source: BufferedSource,
+  protected val startPosition: Long,
   val idSize: Int
 ) : Closeable {
 
   var position: Long = startPosition
-    private set
+    protected set
 
   val isOpen
     get() = source.isOpen
-
-  fun moveTo(newPosition: Long) {
-    if (position == newPosition) {
-      return
-    }
-    source.buffer.clear()
-    channel.position(newPosition)
-    position = newPosition
-  }
-
-  fun reset() {
-    moveTo(startPosition)
-  }
 
   private val typeSizes = mapOf(
       // object
@@ -240,7 +225,6 @@ class HprofReader constructor(
   }
 
   fun readInstanceDumpRecord(
-    heapId: Int,
     id: Long
   ): InstanceDumpRecord {
     val stackTraceSerialNumber = readInt()
@@ -249,7 +233,6 @@ class HprofReader constructor(
     val fieldValues = readByteArray(remainingBytesInInstance)
 
     return InstanceDumpRecord(
-        heapId = heapId,
         id = id,
         stackTraceSerialNumber = stackTraceSerialNumber,
         classId = classId,
@@ -258,7 +241,6 @@ class HprofReader constructor(
   }
 
   fun readClassDumpRecord(
-    heapId: Int,
     id: Long
   ): ClassDumpRecord {
     // stack trace serial number
@@ -311,7 +293,6 @@ class HprofReader constructor(
     }
 
     return ClassDumpRecord(
-        heapId = heapId,
         id = id,
         stackTraceSerialNumber = stackTraceSerialNumber,
         superClassId = superClassId,

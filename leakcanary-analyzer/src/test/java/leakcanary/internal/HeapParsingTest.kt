@@ -2,24 +2,17 @@ package leakcanary.internal
 
 import com.android.tools.perflib.captures.DataBuffer
 import com.android.tools.perflib.captures.MemoryMappedFileBuffer
+import com.squareup.haha.perflib.ArrayInstance
 import com.squareup.haha.perflib.Snapshot
 import leakcanary.internal.haha.HeapValue
-import leakcanary.internal.haha.HeapValue.BooleanValue
-import leakcanary.internal.haha.HeapValue.ByteValue
-import leakcanary.internal.haha.HeapValue.CharValue
-import leakcanary.internal.haha.HeapValue.DoubleValue
-import leakcanary.internal.haha.HeapValue.FloatValue
 import leakcanary.internal.haha.HeapValue.IntValue
-import leakcanary.internal.haha.HeapValue.LongValue
 import leakcanary.internal.haha.HeapValue.ObjectReference
-import leakcanary.internal.haha.HeapValue.ShortValue
 import leakcanary.internal.haha.HprofParser
+import leakcanary.internal.haha.HprofParser.HydradedInstance
 import leakcanary.internal.haha.HprofParser.RecordCallbacks
-import leakcanary.internal.haha.HprofReader
 import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
-import okio.Buffer
 import okio.buffer
 import okio.source
 import org.assertj.core.api.Assertions.assertThat
@@ -29,8 +22,10 @@ import sun.nio.ch.DirectBuffer
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
+import java.lang.reflect.InvocationTargetException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
+import java.nio.charset.Charset
 
 class HeapParsingTest {
 
@@ -96,8 +91,26 @@ class HeapParsingTest {
         }
     parser.scan(callbacks)
 
+    keyedWeakReferenceInstances.forEach {
+      val instance = parser.hydrate(it)
+      println("####### Dump for ${instance.record.id} #######")
+      instance.classHierarchy.forEachIndexed { classIndex, hydradedClass ->
+        hydradedClass.fieldNames.forEachIndexed { fieldIndex, name ->
+          val value = instance.fieldValues[classIndex][fieldIndex]
+          println("$name = $value")
+        }
+      }
+    }
+
+    keyedWeakReferenceInstances.map { parser.hydrate(it) }
+        .firstOrNull { instance ->
+          val keyFieldIndex = instance.classHierarchy[0].fieldNames.indexOfFirst { it == "key" }
+          val keyFieldValue = instance.fieldValues[0][keyFieldIndex] as ObjectReference
+          val keyString = parser.hydratedInstanceById(keyFieldValue.value)
 
 
+          true
+        }
 
     parser.close()
 
@@ -114,58 +127,62 @@ class HeapParsingTest {
     assertThat(keyedWeakReferenceClassId).isEqualTo(keyedWeakReferenceClass.id)
   }
 
-  fun Buffer.readValue(
-    idSize: Int,
-    type: Int
-  ): HeapValue {
-    return when (type) {
-      HprofReader.OBJECT_TYPE -> ObjectReference(readId(idSize))
-      HprofReader.BOOLEAN_TYPE -> BooleanValue(readByte() != 0.toByte())
-      HprofReader.CHAR_TYPE -> CharValue(ByteBuffer.wrap(readByteArray(2)).char)
-      HprofReader.FLOAT_TYPE -> FloatValue(Float.fromBits(readInt()))
-      HprofReader.DOUBLE_TYPE -> DoubleValue(Double.fromBits(readLong()))
-      HprofReader.BYTE_TYPE -> ByteValue(readByte())
-      HprofReader.SHORT_TYPE -> ShortValue(readShort())
-      HprofReader.INT_TYPE -> IntValue(readInt())
-      HprofReader.LONG_TYPE -> LongValue(readLong())
-      else -> throw IllegalStateException("Unknown type $type")
+  fun HydradedInstance.asString(parser: HprofParser): String {
+    val stringClass = classHierarchy[0]
+    val fieldMap = stringClass.fieldNames.mapIndexed { index, name -> name to index }
+        .toMap()
+
+    fun field(name: String): HeapValue =
+      fieldValues[0][fieldMap.getValue("count")]
+
+    val count = field("count") as IntValue
+
+    if (count.value == 0) {
+      return ""
     }
-  }
 
-  private fun Buffer.readId(idSize: Int): Long {
-    // As long as we don't interpret IDs, reading signed values here is fine.
-    return when (idSize) {
-      1 -> readByte().toLong()
-      2 -> readShort().toLong()
-      4 -> readInt().toLong()
-      8 -> readLong()
-      else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
+    val value = field("value") as ObjectReference
+
+    var offset: Int?
+    val array: ArrayInstance
+
+    if (HahaHelper.isCharArray(value)) {
+      array = value as ArrayInstance
+
+      offset = 0
+      // < API 23
+      // As of Marshmallow, substrings no longer share their parent strings' char arrays
+      // eliminating the need for String.offset
+      // https://android-review.googlesource.com/#/c/83611/
+      if (HahaHelper.hasField(values, "offset")) {
+        offset = HahaHelper.fieldValue<Int>(values, "offset")!!
+      }
+
+      val chars = array.asCharArray(offset, count)
+      return String(chars)
+    } else if (HahaHelper.isByteArray(value)) {
+      // In API 26, Strings are now internally represented as byte arrays.
+      array = value as ArrayInstance
+
+      // HACK - remove when HAHA's perflib is updated to https://goo.gl/Oe7ZwO.
+      try {
+        val asRawByteArray = ArrayInstance::class.java.getDeclaredMethod(
+            "asRawByteArray", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType
+        )
+        asRawByteArray.isAccessible = true
+        val rawByteArray = asRawByteArray.invoke(array, 0, count) as ByteArray
+        return String(rawByteArray, Charset.forName("UTF-8"))
+      } catch (e: NoSuchMethodException) {
+        throw RuntimeException(e)
+      } catch (e: IllegalAccessException) {
+        throw RuntimeException(e)
+      } catch (e: InvocationTargetException) {
+        throw RuntimeException(e)
+      }
+
+    } else {
+      throw UnsupportedOperationException("Could not find char array in $this")
     }
-  }
-
-  @Test fun reset() {
-    val file = fileFromName(HeapDumpFile.ASYNC_TASK_P.filename)
-
-    val inputStream = file.inputStream()
-    val channel = inputStream.channel
-
-    inputStream.source()
-        .buffer()
-        .use {
-          with(it) {
-            channel.position(0)
-            val version1 = readUtf8(indexOf(0))
-            buffer.clear()
-            channel.position(0)
-            val version2 = readUtf8(indexOf(0))
-            buffer.clear()
-            channel.position(5)
-            val justProfile = readUtf8(indexOf(0))
-            assertThat(version2).isEqualTo(version1)
-            assertThat(version1).isEqualTo("JAVA PROFILE 1.0.3")
-            assertThat(justProfile).isEqualTo("PROFILE 1.0.3")
-          }
-        }
   }
 
   @Test @Ignore("resetting does not currently work") fun memoryMappedReset() {

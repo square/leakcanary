@@ -42,6 +42,8 @@ import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.L
 import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
+import okio.Buffer
+import okio.ByteString.Companion.toByteString
 import okio.buffer
 import okio.source
 import java.io.Closeable
@@ -51,7 +53,7 @@ import java.io.File
  * Not thread safe, should be used from a single thread.
  */
 class HprofParser private constructor(
-  private val reader: HprofReader
+  private val reader: SeekableHprofReader
 ) : Closeable {
 
   private var scanning = false
@@ -59,16 +61,23 @@ class HprofParser private constructor(
 
   /**
    * string id to (position, length)
+   * TODO Prune any string that's not used as a class name or field name
    */
   private val hprofStringPositions = mutableMapOf<Long, Pair<Long, Long>>()
+
   /**
-   * heap id to class id to class position
+   * class id to string id
    */
-  private val classPositions = mutableMapOf<Int, MutableMap<Long, Long>>()
+  private val classNames = mutableMapOf<Long, Long>()
+
   /**
-   * heap id to instance id to instance position
+   * class id to class position
    */
-  private val instancePositions = mutableMapOf<Int, MutableMap<Long, Long>>()
+  private val classPositions = mutableMapOf<Long, Long>()
+  /**
+   * instance id to instance position
+   */
+  private val instancePositions = mutableMapOf<Long, Long>()
 
   class RecordCallbacks {
     private val callbacks = mutableMapOf<Class<out Record>, Any>()
@@ -99,7 +108,7 @@ class HprofParser private constructor(
     reader.scan(callbacks)
   }
 
-  private fun HprofReader.scan(callbacks: RecordCallbacks) {
+  private fun SeekableHprofReader.scan(callbacks: RecordCallbacks) {
     if (!isOpen) {
       throw IllegalStateException("Reader closed")
     }
@@ -146,22 +155,29 @@ class HprofParser private constructor(
         }
         LOAD_CLASS -> {
           val callback = callbacks.get<LoadClassRecord>()
-          if (callback != null) {
-            callback(
-                LoadClassRecord(
-                    classSerialNumber = readInt(),
-                    id = readId(),
-                    stackTraceSerialNumber = readInt(),
-                    classNameStringId = readId()
-                )
-            )
+          if (callback != null || !indexBuilt) {
+            val classSerialNumber = readInt()
+            val id = readId()
+            val stackTraceSerialNumber = readInt()
+            val classNameStringId = readId()
+            if (!indexBuilt) {
+              classNames[id] = classNameStringId
+            }
+            if (callback != null) {
+              callback(
+                  LoadClassRecord(
+                      classSerialNumber = classSerialNumber,
+                      id = id,
+                      stackTraceSerialNumber = stackTraceSerialNumber,
+                      classNameStringId = classNameStringId
+                  )
+              )
+            }
           } else {
             skip(length)
           }
         }
         HEAP_DUMP, HEAP_DUMP_SEGMENT -> {
-          checkHeapIndex(heapId)
-
           val heapDumpStart = position
           var previousTag = 0
           while (position - heapDumpStart < length) {
@@ -173,7 +189,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = Unknown(id = readId())
                       )
                   )
@@ -187,7 +202,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = JniGlobal(id = readId(), jniGlobalRefId = readId())
                       )
                   )
@@ -201,7 +215,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = JniLocal(
                               id = readId(), threadSerialNumber = readInt(), frameNumber = readInt()
                           )
@@ -217,7 +230,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = JavaFrame(
                               id = readId(), threadSerialNumber = readInt(), frameNumber = readInt()
                           )
@@ -233,7 +245,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = NativeStack(id = readId(), threadSerialNumber = readInt())
                       )
                   )
@@ -247,7 +258,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = StickyClass(id = readId())
                       )
                   )
@@ -262,7 +272,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = ThreadBlock(id = readId(), threadSerialNumber = readInt())
                       )
                   )
@@ -276,7 +285,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = MonitorUsed(id = readId())
                       )
                   )
@@ -290,7 +298,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = ThreadObject(
                               id = readId(),
                               threadSerialNumber = readInt(),
@@ -307,10 +314,10 @@ class HprofParser private constructor(
                 val callback = callbacks.get<ClassDumpRecord>()
                 val id = readId()
                 if (!indexBuilt) {
-                  classPositions[heapId]!![id] = position
+                  classPositions[id] = position
                 }
                 if (callback != null) {
-                  val classDumpRecord = readClassDumpRecord(heapId, id)
+                  val classDumpRecord = readClassDumpRecord(id)
                   callback(classDumpRecord)
                 } else {
                   skip(
@@ -341,11 +348,11 @@ class HprofParser private constructor(
               INSTANCE_DUMP -> {
                 val id = readId()
                 if (!indexBuilt) {
-                  instancePositions[heapId]!![id] = position
+                  instancePositions[id] = position
                 }
                 val callback = callbacks.get<InstanceDumpRecord>()
                 if (callback != null) {
-                  val instanceDumpRecord = readInstanceDumpRecord(heapId, id)
+                  val instanceDumpRecord = readInstanceDumpRecord(id)
                   callback(instanceDumpRecord)
                 } else {
                   skip(INT_SIZE + idSize)
@@ -365,7 +372,6 @@ class HprofParser private constructor(
                   val elementIds = readIdArray(arrayLength)
                   callback(
                       ObjectArrayDumpRecord(
-                          heapId = heapId,
                           id = id,
                           stackTraceSerialNumber = stackTraceSerialNumber,
                           arrayClassId = arrayClassId,
@@ -390,35 +396,27 @@ class HprofParser private constructor(
 
                   val primitiveArrayDumpRecord = when (type) {
                     BOOLEAN_TYPE -> BooleanArrayDump(
-                        heapId,
                         id, stackTraceSerialNumber, readBooleanArray(arrayLength)
                     )
                     CHAR_TYPE -> CharArrayDump(
-                        heapId,
                         id, stackTraceSerialNumber, readCharArray(arrayLength)
                     )
                     FLOAT_TYPE -> FloatArrayDump(
-                        heapId,
                         id, stackTraceSerialNumber, readFloatArray(arrayLength)
                     )
                     DOUBLE_TYPE -> DoubleArrayDump(
-                        heapId,
                         id, stackTraceSerialNumber, readDoubleArray(arrayLength)
                     )
                     BYTE_TYPE -> ByteArrayDump(
-                        heapId,
                         id, stackTraceSerialNumber, readByteArray(arrayLength)
                     )
                     SHORT_TYPE -> ShortArrayDump(
-                        heapId,
                         id, stackTraceSerialNumber, readShortArray(arrayLength)
                     )
                     INT_TYPE -> IntArrayDump(
-                        heapId,
                         id, stackTraceSerialNumber, readIntArray(arrayLength)
                     )
                     LONG_TYPE -> LongArrayDump(
-                        heapId,
                         id, stackTraceSerialNumber, readLongArray(arrayLength)
                     )
                     else -> throw IllegalStateException("Unexpected type $type")
@@ -440,7 +438,6 @@ class HprofParser private constructor(
 
               HEAP_DUMP_INFO -> {
                 heapId = readInt()
-                checkHeapIndex(heapId)
                 val callback = callbacks.get<HeapDumpInfoRecord>()
                 if (callback != null) {
                   val record =
@@ -457,7 +454,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = InternedString(id = readId())
                       )
                   )
@@ -471,7 +467,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = Finalizing(id = readId())
                       )
                   )
@@ -485,7 +480,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = Debugger(id = readId())
                       )
                   )
@@ -499,7 +493,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = ReferenceCleanup(id = readId())
                       )
                   )
@@ -513,7 +506,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = VmInternal(id = readId())
                       )
                   )
@@ -527,7 +519,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = JniMonitor(
                               id = readId(), stackTraceSerialNumber = readInt(),
                               stackDepth = readInt()
@@ -544,7 +535,6 @@ class HprofParser private constructor(
                 if (callback != null) {
                   callback(
                       GcRootRecord(
-                          heapId = heapId,
                           gcRoot = Unreachable(id = readId())
                       )
                   )
@@ -570,15 +560,6 @@ class HprofParser private constructor(
     indexBuilt = true
   }
 
-  private fun checkHeapIndex(heapId: Int) {
-    if (!indexBuilt) {
-      if (classPositions[heapId] == null) {
-        classPositions[heapId] = mutableMapOf()
-        instancePositions[heapId] = mutableMapOf()
-      }
-    }
-  }
-
   /**
    * Those are strings for class names, fields, etc, ie not strings from the application memory.
    */
@@ -588,22 +569,73 @@ class HprofParser private constructor(
     return reader.readUtf8(length)
   }
 
-  fun classDumpRecordById(
-    heapId: Int,
-    id: Long
-  ): ClassDumpRecord {
-    val position = classPositions[heapId]!![id]!!
+  fun classDumpRecordById(id: Long): ClassDumpRecord {
+    val position = classPositions[id]
+    require(position != null) {
+      "Unknown class id $id"
+    }
     reader.moveTo(position)
-    return reader.readClassDumpRecord(heapId, id)
+    return reader.readClassDumpRecord(id)
   }
 
-  fun instanceDumpRecordById(
-    heapId: Int,
-    id: Long
-  ): InstanceDumpRecord {
-    val position = instancePositions[heapId]!![id]!!
+  fun instanceDumpRecordById(id: Long): InstanceDumpRecord {
+    val position = instancePositions[id]!!
     reader.moveTo(position)
-    return reader.readInstanceDumpRecord(heapId, id)
+    return reader.readInstanceDumpRecord(id)
+  }
+
+  data class HydradedInstance(
+    val record: InstanceDumpRecord,
+    val classHierarchy: List<HydradedClass>,
+    /**
+     * One list of field values per class
+     */
+    val  fieldValues: List<List<HeapValue>>
+  )
+
+  data class HydradedClass(
+    val record: ClassDumpRecord,
+    val className: String,
+    val staticFieldNames: List<String>,
+    val fieldNames: List<String>
+  )
+
+  fun hydratedInstanceById(id: Long): HydradedInstance {
+    return hydrate(instanceDumpRecordById(id))
+  }
+
+  fun hydrate(instanceRecord: InstanceDumpRecord): HydradedInstance {
+    var classId = instanceRecord.classId
+
+    val classHierarchy = mutableListOf<HydradedClass>()
+    do {
+      val classRecord = classDumpRecordById(classId)
+      val className = hprofStringById(classNames[classRecord.id]!!)
+
+      val staticFieldNames = classRecord.staticFields.map {
+        hprofStringById(it.nameStringId)
+      }
+
+      val fieldNames = classRecord.fields.map {
+        hprofStringById(it.nameStringId)
+      }
+
+      classHierarchy.add(HydradedClass(classRecord, className, staticFieldNames, fieldNames))
+      classId = classRecord.superClassId
+    } while (classId != 0L)
+
+    val valuesByteString =
+      instanceRecord.fieldValues.toByteString(0, instanceRecord.fieldValues.size)
+
+    val buffer = Buffer()
+    buffer.write(valuesByteString)
+    val valuesReader = HprofReader(buffer, 0, reader.idSize)
+
+    val allFieldValues = classHierarchy.map { hydratedClass ->
+      hydratedClass.record.fields.map { field -> valuesReader.readValue(field.type) }
+    }
+
+    return HydradedInstance(instanceRecord, classHierarchy, allFieldValues)
   }
 
   companion object {
@@ -691,7 +723,7 @@ class HprofParser private constructor(
       val idSize = source.readInt()
       val startPosition = endOfVersionString + 1 + 4
 
-      val hprofReader = HprofReader(channel, source, startPosition, idSize)
+      val hprofReader = SeekableHprofReader(channel, source, startPosition, idSize)
       return HprofParser(hprofReader)
     }
   }

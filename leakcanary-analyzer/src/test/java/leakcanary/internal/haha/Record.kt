@@ -14,15 +14,11 @@ sealed class Record {
   ) : Record()
 
   sealed class HeapDumpRecord : Record() {
-    abstract val heapId: Int
-
     class GcRootRecord(
-      override val heapId: Int,
       val gcRoot: GcRoot
     ) : HeapDumpRecord()
 
     data class ClassDumpRecord(
-      override val heapId: Int,
       val id: Long,
       val stackTraceSerialNumber: Int,
       val superClassId: Long,
@@ -46,7 +42,6 @@ sealed class Record {
     }
 
     class InstanceDumpRecord(
-      override val heapId: Int,
       val id: Long,
       val stackTraceSerialNumber: Int,
       val classId: Long,
@@ -54,7 +49,6 @@ sealed class Record {
     ) : HeapDumpRecord()
 
     class ObjectArrayDumpRecord(
-      override val heapId: Int,
       id: Long,
       stackTraceSerialNumber: Int,
       arrayClassId: Long,
@@ -66,56 +60,48 @@ sealed class Record {
       abstract val stackTraceSerialNumber: Int
 
       class BooleanArrayDump(
-        override val heapId: Int,
         override val id: Long,
         override val stackTraceSerialNumber: Int,
         val array: BooleanArray
       ) : PrimitiveArrayDumpRecord()
 
       class CharArrayDump(
-        override val heapId: Int,
         override val id: Long,
         override val stackTraceSerialNumber: Int,
         val array: CharArray
       ) : PrimitiveArrayDumpRecord()
 
       class FloatArrayDump(
-        override val heapId: Int,
         override val id: Long,
         override val stackTraceSerialNumber: Int,
         val array: FloatArray
       ) : PrimitiveArrayDumpRecord()
 
       class DoubleArrayDump(
-        override val heapId: Int,
         override val id: Long,
         override val stackTraceSerialNumber: Int,
         val array: DoubleArray
       ) : PrimitiveArrayDumpRecord()
 
       class ByteArrayDump(
-        override val heapId: Int,
         override val id: Long,
         override val stackTraceSerialNumber: Int,
         val array: ByteArray
       ) : PrimitiveArrayDumpRecord()
 
       class ShortArrayDump(
-        override val heapId: Int,
         override val id: Long,
         override val stackTraceSerialNumber: Int,
         val array: ShortArray
       ) : PrimitiveArrayDumpRecord()
 
       class IntArrayDump(
-        override val heapId: Int,
         override val id: Long,
         override val stackTraceSerialNumber: Int,
         val array: IntArray
       ) : PrimitiveArrayDumpRecord()
 
       class LongArrayDump(
-        override val heapId: Int,
         override val id: Long,
         override val stackTraceSerialNumber: Int,
         val array: LongArray
@@ -123,7 +109,7 @@ sealed class Record {
     }
 
     class HeapDumpInfoRecord(
-      override val heapId: Int,
+      val heapId: Int,
       val heapNameStringId: Long
     ) : HeapDumpRecord()
   }
