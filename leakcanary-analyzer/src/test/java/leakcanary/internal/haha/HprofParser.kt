@@ -541,10 +541,10 @@ class HprofParser private constructor(
   }
 
   fun retrieveRecord(reference: ObjectReference): ObjectRecord {
-    return retrieveRecord(reference.value)
+    return retrieveRecordById(reference.value)
   }
 
-  fun retrieveRecord(objectId: Long): ObjectRecord {
+  fun retrieveRecordById(objectId: Long): ObjectRecord {
     checkReadyToRead()
     val position = objectPositions[objectId]
     require(position != null) {
@@ -576,13 +576,12 @@ class HprofParser private constructor(
     }
   }
 
-  fun hydrateInstance(instanceRecord: InstanceDumpRecord): HydratedInstance {
+  fun hydrateClassHierarchy(classId: Long): List<HydratedClass> {
     checkReadyToRead()
-    var classId = instanceRecord.classId
-
+    var currentClassId = classId
     val classHierarchy = mutableListOf<HydratedClass>()
     do {
-      val classRecord = retrieveRecord(classId) as ClassDumpRecord
+      val classRecord = retrieveRecordById(currentClassId) as ClassDumpRecord
       val className = hprofStringById(classNames[classRecord.id]!!)
 
       val staticFieldNames = classRecord.staticFields.map {
@@ -598,8 +597,14 @@ class HprofParser private constructor(
               classRecord, className, staticFieldNames, fieldNames
           )
       )
-      classId = classRecord.superClassId
-    } while (classId != 0L)
+      currentClassId = classRecord.superClassId
+    } while (currentClassId != 0L)
+    return classHierarchy
+  }
+
+  fun hydrateInstance(instanceRecord: InstanceDumpRecord): HydratedInstance {
+    checkReadyToRead()
+    val classHierarchy = hydrateClassHierarchy(instanceRecord.classId)
 
     val buffer = Buffer()
     buffer.write(instanceRecord.fieldValues)

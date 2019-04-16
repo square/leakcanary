@@ -1,5 +1,7 @@
 package leakcanary.internal
 
+import leakcanary.HeapDumpMemoryStore
+import leakcanary.KeyedWeakReference
 import leakcanary.internal.haha.GcRoot.JavaFrame
 import leakcanary.internal.haha.GcRoot.JniGlobal
 import leakcanary.internal.haha.GcRoot.JniLocal
@@ -10,11 +12,13 @@ import leakcanary.internal.haha.GcRoot.ReferenceCleanup
 import leakcanary.internal.haha.GcRoot.StickyClass
 import leakcanary.internal.haha.GcRoot.ThreadBlock
 import leakcanary.internal.haha.GcRoot.VmInternal
+import leakcanary.internal.haha.HeapValue.LongValue
 import leakcanary.internal.haha.HeapValue.ObjectReference
 import leakcanary.internal.haha.HprofParser
 import leakcanary.internal.haha.HprofParser.RecordCallbacks
 import leakcanary.internal.haha.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
 import org.assertj.core.api.Assertions
@@ -22,47 +26,65 @@ import org.junit.Test
 
 class HeapParsingTest {
 
-  @Test fun findKeyedWeakReferenceClassInHeapDump() {
-    val heapDump = HeapDumpFile.ASYNC_TASK_P
+  @Test fun findLeaks() {
+    val heapDump = HeapDumpFile.MULTIPLE_LEAKS
     val file = fileFromName(heapDump.filename)
 
     val parser = HprofParser.open(file)
 
-    val (gcRootIds, keyedWeakReferenceInstances) = scan(parser)
+    val (gcRootIds, heapDumpMemoryStoreClassId, keyedWeakReferenceInstances) = scan(parser)
 
-    val targetWeakRef = keyedWeakReferenceInstances.map { parser.hydrateInstance(it) }
-        .first { instance ->
-          heapDump.referenceKey == parser.retrieveString(instance.fieldValue("key"))
-        }
+    val classHierarchy = parser.hydrateClassHierarchy(heapDumpMemoryStoreClassId)
 
-    val referentId = targetWeakRef.fieldValue<ObjectReference>("referent")
+    val retainedKeysForHeapDump = (parser.retrieveRecord(
+        classHierarchy[0].staticFieldValue("retainedKeysForHeapDump")
+    ) as ObjectArrayDumpRecord).elementIds.toSet()
+
+    val heapDumpUptimeMillis = classHierarchy[0].staticFieldValue<LongValue>("heapDumpUptimeMillis")
         .value
 
-    // Not null
-    Assertions.assertThat(referentId)
-        .isNotEqualTo(0)
+    val retainedWeakRefs = keyedWeakReferenceInstances.map {
+      parser.hydrateInstance(it)
+    }
+        .filter {
+          // key was in HeapDumpMemoryStore
+          retainedKeysForHeapDump.contains(it.fieldValue<ObjectReference>("key").value) &&
+              // referent is not null
+              it.fieldValue<ObjectReference>("referent").value != 0L
+        }
+        .map {
+          val record = parser.retrieveRecord(it.fieldValue("referent")) as InstanceDumpRecord
+          parser.hydrateInstance(record)
+        }
 
-
+    Assertions.assertThat(retainedWeakRefs.size)
+        .isEqualTo(5)
 
     // TODO find shorter paths to referentId
 
     parser.close()
   }
 
-  private fun scan(parser: HprofParser): Pair<List<Long>, List<InstanceDumpRecord>> {
+  private fun scan(parser: HprofParser): Triple<List<Long>, Long, List<InstanceDumpRecord>> {
     var keyedWeakReferenceStringId = -1L
+    var heapDumpMemoryStoreStringId = -1L
     var keyedWeakReferenceClassId = -1L
+    var heapDumpMemoryStoreClassId = -1L
     val keyedWeakReferenceInstances = mutableListOf<InstanceDumpRecord>()
     val gcRootIds = mutableListOf<Long>()
     val callbacks = RecordCallbacks()
         .on(StringRecord::class.java) {
-          if (it.string == "com.squareup.leakcanary.KeyedWeakReference") {
+          if (it.string == "leakcanary.KeyedWeakReference") {
             keyedWeakReferenceStringId = it.id
+          } else if (it.string == "leakcanary.HeapDumpMemoryStore") {
+            heapDumpMemoryStoreStringId = it.id
           }
         }
         .on(LoadClassRecord::class.java) {
           if (it.classNameStringId == keyedWeakReferenceStringId) {
             keyedWeakReferenceClassId = it.id
+          } else if (it.classNameStringId == heapDumpMemoryStoreStringId) {
+            heapDumpMemoryStoreClassId = it.id
           }
         }
         .on(InstanceDumpRecord::class.java) {
@@ -90,6 +112,6 @@ class HeapParsingTest {
           }
         }
     parser.scan(callbacks)
-    return gcRootIds to keyedWeakReferenceInstances
+    return Triple(gcRootIds, heapDumpMemoryStoreClassId, keyedWeakReferenceInstances)
   }
 }

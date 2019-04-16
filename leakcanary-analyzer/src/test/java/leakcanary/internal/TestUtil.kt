@@ -30,6 +30,7 @@ internal enum class HeapDumpFile constructor(
   ASYNC_TASK_M("leak_asynctask_m.hprof", "25ae1778-7c1d-4ec7-ac50-5cce55424069"), //
   ASYNC_TASK_O("leak_asynctask_o.hprof", "0e8d40d7-8302-4493-93d5-962a4c176089"),
   ASYNC_TASK_P("leak_asynctask_p.hprof", "440d4252-8089-41bd-98b2-d7d050323279"),
+  MULTIPLE_LEAKS("multiple_leaks.hprof", ""),
   GC_ROOT_IN_NON_PRIMARY_HEAP(
       "gc_root_in_non_primary_heap.hprof",
       "10a5bc66-e9cb-430c-930a-fc1dc4fc0f85"

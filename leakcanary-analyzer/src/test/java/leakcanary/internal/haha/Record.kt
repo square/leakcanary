@@ -50,10 +50,10 @@ sealed class Record {
       ) : ObjectRecord()
 
       class ObjectArrayDumpRecord(
-        id: Long,
-        stackTraceSerialNumber: Int,
-        arrayClassId: Long,
-        elementIds: LongArray
+        val id: Long,
+        val stackTraceSerialNumber: Int,
+        val arrayClassId: Long,
+        val elementIds: LongArray
       ) : ObjectRecord()
 
       sealed class PrimitiveArrayDumpRecord : ObjectRecord() {
