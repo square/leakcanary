@@ -81,6 +81,16 @@ class HprofParser private constructor(
    */
   private val objectPositions = mutableMapOf<Long, Long>()
 
+  /**
+   * Class ids for primitive wrapper types
+   */
+  private val primitiveWrapperTypes = mutableSetOf<Long>()
+
+  /**
+   * String ids for class names of primitive wrapper types
+   */
+  private val primitiveWrapperClassNames = mutableSetOf<Long>()
+
   class RecordCallbacks {
     private val callbacks = mutableMapOf<Class<out Record>, Any>()
 
@@ -137,19 +147,23 @@ class HprofParser private constructor(
       // number of bytes that follow and belong to this record
       val length = readUnsignedInt()
 
+      // primitiveWrapperClassNames
       when (tag) {
         STRING_IN_UTF8 -> {
           val callback = callbacks.get<StringRecord>()
           if (callback != null || !indexBuilt) {
             val id = readId()
+            val stringPosition = position
+            val stringLength = length - idSize
+            val string = readUtf8(stringLength)
             if (!indexBuilt) {
-              hprofStringPositions[id] = position to length - idSize
+              hprofStringPositions[id] = stringPosition to stringLength
+              if (PRIMITIVE_WRAPPER_TYPES.contains(string)) {
+                primitiveWrapperClassNames.add(id)
+              }
             }
             if (callback != null) {
-              val string = readUtf8(length - idSize)
               callback(StringRecord(id, string))
-            } else {
-              skip(length - idSize)
             }
           } else {
             skip(length)
@@ -164,6 +178,9 @@ class HprofParser private constructor(
             val classNameStringId = readId()
             if (!indexBuilt) {
               classNames[id] = classNameStringId
+              if (primitiveWrapperClassNames.contains(classNameStringId)) {
+                primitiveWrapperTypes.add(id)
+              }
             }
             if (callback != null) {
               callback(
@@ -534,6 +551,14 @@ class HprofParser private constructor(
     return reader.readUtf8(length)
   }
 
+  fun isPrimitiveWrapper(classId: Long) = primitiveWrapperTypes.contains(classId)
+
+  fun className(classId: Long): String {
+    // TODO Add an in memory cache for most common JDK classes
+    // String, primitive types
+    return hprofStringById(classNames[classId]!!)
+  }
+
   fun retrieveString(reference: ObjectReference): String {
     val instanceRecord = retrieveRecord(reference) as InstanceDumpRecord
     val instance = hydrateInstance(instanceRecord)
@@ -582,7 +607,6 @@ class HprofParser private constructor(
     val classHierarchy = mutableListOf<HydratedClass>()
     do {
       val classRecord = retrieveRecordById(currentClassId) as ClassDumpRecord
-      val className = hprofStringById(classNames[classRecord.id]!!)
 
       val staticFieldNames = classRecord.staticFields.map {
         hprofStringById(it.nameStringId)
@@ -591,6 +615,8 @@ class HprofParser private constructor(
       val fieldNames = classRecord.fields.map {
         hprofStringById(it.nameStringId)
       }
+
+      val className = className(currentClassId)
 
       classHierarchy.add(
           HydratedClass(
@@ -726,6 +752,12 @@ class HprofParser private constructor(
     const val ROOT_UNREACHABLE = 0x90
 
     const val PRIMITIVE_ARRAY_NODATA = 0xc3
+
+    private val PRIMITIVE_WRAPPER_TYPES = setOf<String>(
+        Boolean::class.java.name, Char::class.java.name, Float::class.java.name,
+        Double::class.java.name, Byte::class.java.name, Short::class.java.name,
+        Int::class.java.name, Long::class.java.name
+    )
 
     fun open(heapDump: File): HprofParser {
       val inputStream = heapDump.inputStream()

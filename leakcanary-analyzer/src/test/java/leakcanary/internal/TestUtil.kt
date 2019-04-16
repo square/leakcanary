@@ -109,7 +109,7 @@ internal fun analyze(
   return result;
 }
 
-private val defaultExcludedRefs = BuilderWithParams()
+val defaultExcludedRefs = BuilderWithParams()
     .clazz(WeakReference::class.java.name)
     .alwaysExclude()
     .clazz(SoftReference::class.java.name)

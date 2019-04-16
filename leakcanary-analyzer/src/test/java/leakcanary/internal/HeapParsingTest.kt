@@ -13,12 +13,14 @@ import leakcanary.internal.haha.GcRoot.VmInternal
 import leakcanary.internal.haha.HeapValue.LongValue
 import leakcanary.internal.haha.HprofParser
 import leakcanary.internal.haha.HprofParser.RecordCallbacks
+import leakcanary.internal.haha.HydratedClass
 import leakcanary.internal.haha.KeyedWeakReferenceMirror
 import leakcanary.internal.haha.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
+import leakcanary.internal.haha.ShortestPathFinder
 import org.assertj.core.api.Assertions
 import org.junit.Test
 
@@ -34,6 +36,27 @@ class HeapParsingTest {
 
     val classHierarchy = parser.hydrateClassHierarchy(heapDumpMemoryStoreClassId)
 
+    val retainedWeakRefs =
+      findLeakingReferences(parser, classHierarchy, keyedWeakReferenceInstances)
+
+    val pathFinder = ShortestPathFinder(defaultExcludedRefs.build(), ignoreStrings = true)
+
+    val paths = pathFinder.findPaths(parser, retainedWeakRefs, gcRootIds)
+
+
+    Assertions.assertThat(paths.size)
+        .isEqualTo(5)
+
+    // TODO find shorter paths to referentId
+
+    parser.close()
+  }
+
+  private fun findLeakingReferences(
+    parser: HprofParser,
+    classHierarchy: List<HydratedClass>,
+    keyedWeakReferenceInstances: List<InstanceDumpRecord>
+  ): List<KeyedWeakReferenceMirror> {
     val retainedKeysForHeapDump = (parser.retrieveRecord(
         classHierarchy[0].staticFieldValue("retainedKeysForHeapDump")
     ) as ObjectArrayDumpRecord).elementIds.toSet()
@@ -41,21 +64,10 @@ class HeapParsingTest {
     val heapDumpUptimeMillis = classHierarchy[0].staticFieldValue<LongValue>("heapDumpUptimeMillis")
         .value
 
-    val retainedWeakRefs = keyedWeakReferenceInstances.map {
-      KeyedWeakReferenceMirror.fromInstance(
-          parser.hydrateInstance(it), heapDumpUptimeMillis
-      )
+    return keyedWeakReferenceInstances.map {
+      KeyedWeakReferenceMirror.fromInstance(parser.hydrateInstance(it), heapDumpUptimeMillis)
     }
         .filter { retainedKeysForHeapDump.contains(it.key.value) && it.hasReferent }
-
-
-
-    Assertions.assertThat(retainedWeakRefs.size)
-        .isEqualTo(5)
-
-    // TODO find shorter paths to referentId
-
-    parser.close()
   }
 
   private fun scan(parser: HprofParser): Triple<List<Long>, Long, List<InstanceDumpRecord>> {

@@ -15,27 +15,16 @@
  */
 package leakcanary.internal.haha
 
-import com.squareup.haha.perflib.ArrayInstance
-import com.squareup.haha.perflib.ClassInstance
-import com.squareup.haha.perflib.ClassObj
-import com.squareup.haha.perflib.Instance
-import com.squareup.haha.perflib.RootObj
-import com.squareup.haha.perflib.RootType
-import com.squareup.haha.perflib.Snapshot
-import com.squareup.haha.perflib.Type
-import com.squareup.haha.perflib.allocatingThread
 import leakcanary.ExcludedRefs
 import leakcanary.Exclusion
-import leakcanary.LeakReference
-import leakcanary.internal.HahaHelper.isPrimitiveOrWrapperArray
-import leakcanary.internal.HahaHelper.isPrimitiveWrapper
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
-import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.internal.HahaHelper
-import leakcanary.internal.HasReferent
-import leakcanary.internal.LeakNode
+import leakcanary.internal.haha.HeapValue.ObjectReference
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -54,9 +43,9 @@ internal class ShortestPathFinder(
 ) {
   private val toVisitQueue: Deque<LeakNode>
   private val toVisitIfNoPathQueue: Deque<LeakNode>
-  private val toVisitSet: LinkedHashSet<Instance>
-  private val toVisitIfNoPathSet: LinkedHashSet<Instance>
-  private val visitedSet: LinkedHashSet<Instance>
+  private val toVisitSet: LinkedHashSet<Long>
+  private val toVisitIfNoPathSet: LinkedHashSet<Long>
+  private val visitedSet: LinkedHashSet<Long>
 
   init {
     toVisitQueue = ArrayDeque()
@@ -69,18 +58,20 @@ internal class ShortestPathFinder(
   internal class Result(
     val leakingNode: LeakNode,
     val excludingKnownLeaks: Boolean,
-    val weakReference: HasReferent
+    val weakReference: KeyedWeakReferenceMirror
   )
 
   fun findPaths(
-    snapshot: Snapshot,
-    leakingWeakRefs: List<HasReferent>
+    parser: HprofParser,
+    leakingWeakRefs: List<KeyedWeakReferenceMirror>,
+    gcRootIds: List<Long>
   ): List<Result> {
     clearState()
 
-    val referentMap = leakingWeakRefs.associateBy { it.referent }
+    // Referent object id to weak ref mirror
+    val referentMap = leakingWeakRefs.associateBy { it.referent.value }
 
-    enqueueGcRoots(snapshot)
+    enqueueGcRoots(parser, gcRootIds)
 
     var excludingKnownLeaks = false
     val results = mutableListOf<Result>()
@@ -110,15 +101,21 @@ internal class ShortestPathFinder(
           break
         }
       }
-      when (node.instance) {
-        is RootObj -> visitRootObj(node)
-        is ClassObj -> visitClassObj(node)
-        is ClassInstance -> visitClassInstance(node)
-        is ArrayInstance -> visitArrayInstance(node)
-        else -> throw IllegalStateException("Unexpected type for ${node.instance}")
+
+      val record = parser.retrieveRecordById(node.instance)
+
+      when (record) {
+        is ClassDumpRecord -> visitClassRecord(parser, record, node)
+        is InstanceDumpRecord -> visitInstanceRecord(parser, record, node)
+        is ObjectArrayDumpRecord -> visitObjectArrayRecord(parser, record, node)
+        else -> throw IllegalStateException("Unexpected type for $record")
       }
     }
     return results
+  }
+
+  private fun checkSeen(node: LeakNode): Boolean {
+    return !visitedSet.add(node.instance)
   }
 
   private fun clearState() {
@@ -129,181 +126,150 @@ internal class ShortestPathFinder(
     visitedSet.clear()
   }
 
-  private fun enqueueGcRoots(snapshot: Snapshot) {
-    val gcRoots = snapshot.gcRoots as MutableList<RootObj>
-    // Sorting GC roots to get stable shortest path
-    gcRoots.sortWith(compareBy({ it.rootType.type }, {
-      val referredInstance = it.referredInstance
-      if (referredInstance == null) {
-        "null"
-      } else {
-        when (referredInstance) {
-          is ClassObj -> referredInstance.className
-          is ClassInstance -> referredInstance.classObj.className
-          is ArrayInstance -> referredInstance.classObj.className
-          else -> throw IllegalStateException("Unexpected type for $referredInstance")
-        }
-      }
-    }))
-    for (rootObj in gcRoots) {
-      when (rootObj.rootType) {
-        RootType.JAVA_LOCAL -> {
-          val thread = rootObj.allocatingThread()
-          val threadName = HahaHelper.threadName(thread)
-          val params = excludedRefs.threadNames[threadName]
-          if (params == null || !params.alwaysExclude) {
-            enqueue(params, null, rootObj, null)
-          }
-        }
-        // Added at https://android.googlesource.com/platform/tools/base/+/c0f0d528c155cab32e372dac77370569a386245c
-        RootType.THREAD_OBJECT, RootType.INTERNED_STRING, RootType.DEBUGGER, RootType.INVALID_TYPE,
-          // An object that is unreachable from any other root, but not a root itself.
-        RootType.UNREACHABLE, RootType.UNKNOWN,
-          // An object that is in a queue, waiting for a finalizer to run.
-        RootType.FINALIZING -> {
-        }
-        RootType.SYSTEM_CLASS, RootType.VM_INTERNAL,
-          // A local variable in native code.
-        RootType.NATIVE_LOCAL,
-          // A global variable in native code.
-        RootType.NATIVE_STATIC,
-          // An object that was referenced from an active thread block.
-        RootType.THREAD_BLOCK,
-          // Everything that called the wait() or notify() methods, or that is synchronized.
-        RootType.BUSY_MONITOR, RootType.NATIVE_MONITOR, RootType.REFERENCE_CLEANUP,
-          // Input or output parameters in native code.
-        RootType.NATIVE_STACK, RootType.JAVA_STATIC -> enqueue(null, null, rootObj, null)
-        else -> throw UnsupportedOperationException("Unknown root type:" + rootObj.rootType)
-      }
+  private fun enqueueGcRoots(
+    hprofParser: HprofParser,
+    gcRootIds: List<Long>
+  ) {
+    // TODO sort GC roots based on type and class name (for class / instance / array)
+    // Goal is to get a stable shortest path
+
+    // TODO Add root type so that for java local we could exclude specific threads.
+    // TODO java local: exclude specific threads,
+    // TODO java local: parent should be set to the allocated thread
+    gcRootIds.forEach {
+      val parent = LeakNode(null, it, null, null)
+      enqueue(hprofParser, null, parent, it, null)
     }
   }
 
-  private fun checkSeen(node: LeakNode): Boolean {
-    return !visitedSet.add(node.instance!!)
-  }
+  private fun visitClassRecord(
+    hprofParser: HprofParser,
+    record: ClassDumpRecord,
+    node: LeakNode
+  ) {
+    val className = hprofParser.className(record.id)
 
-  private fun visitRootObj(node: LeakNode) {
-    val rootObj = node.instance as RootObj
-    val child = rootObj.referredInstance
+    val ignoredStaticFields = excludedRefs.staticFieldNameByClassName[className] ?: emptyMap()
 
-    if (rootObj.rootType == RootType.JAVA_LOCAL) {
-      val holder = rootObj.allocatingThread()
-      // We switch the parent node with the thread instance that holds
-      // the local reference.
-      var exclusion: Exclusion? = null
-      if (node.exclusion != null) {
-        exclusion = node.exclusion
-      }
-      val parent = LeakNode(null, holder, null, null)
-      enqueue(exclusion, parent, child, LeakReference(LOCAL, null, null))
-    } else {
-      enqueue(null, node, child, null)
-    }
-  }
-
-  private fun visitClassObj(node: LeakNode) {
-    val classObj = node.instance as ClassObj?
-    val ignoredStaticFields = excludedRefs.staticFieldNameByClassName[classObj!!.className]
-    for ((field, value) in classObj.staticFieldValues) {
-      if (field.type != Type.OBJECT) {
+    for (staticField in record.staticFields) {
+      if (staticField.value !is ObjectReference) {
         continue
       }
-      val fieldName = field.name
+      val fieldName = hprofParser.hprofStringById(staticField.nameStringId)
       if (fieldName == "\$staticOverhead") {
         continue
       }
-      val child = value as Instance?
-      var visit = true
-      val fieldValue = value?.toString() ?: "null"
-      val leakReference = LeakReference(STATIC_FIELD, fieldName, fieldValue)
-      if (ignoredStaticFields != null) {
-        val params = ignoredStaticFields[fieldName]
-        if (params != null) {
-          visit = false
-          if (!params.alwaysExclude) {
-            enqueue(params, node, child, leakReference)
-          }
-        }
-      }
-      if (visit) {
-        enqueue(null, node, child, leakReference)
+      val value = staticField.value.value
+      val leakReference = LeakReference(STATIC_FIELD, fieldName, value)
+
+      val exclusion = ignoredStaticFields[fieldName]
+
+      if (exclusion == null || !exclusion.alwaysExclude) {
+        enqueue(hprofParser, exclusion, node, value, leakReference)
       }
     }
   }
 
-  private fun visitClassInstance(node: LeakNode) {
-    val classInstance = node.instance as ClassInstance?
-    val ignoredFields = LinkedHashMap<String, Exclusion>()
-    var superClassObj: ClassObj? = classInstance!!.classObj
-    var classExclusion: Exclusion? = null
-    while (superClassObj != null) {
-      val params = excludedRefs.classNames[superClassObj.className]
-      if (params != null) {
-        // true overrides null or false.
-        if (classExclusion == null || !classExclusion.alwaysExclude) {
-          classExclusion = params
-        }
-      }
-      val classIgnoredFields = excludedRefs.fieldNameByClassName[superClassObj.className]
-      if (classIgnoredFields != null) {
-        ignoredFields.putAll(classIgnoredFields)
-      }
-      superClassObj = superClassObj.superClassObj
+  private fun visitInstanceRecord(
+    hprofParser: HprofParser,
+    record: InstanceDumpRecord,
+    parent: LeakNode
+  ) {
+
+    val instance = hprofParser.hydrateInstance(record)
+
+    val exclusions = instance.classHierarchy.map {
+      excludedRefs.classNames[it.className]
     }
 
-    if (classExclusion != null && classExclusion.alwaysExclude) {
+    if (exclusions.firstOrNull {
+          it != null && it.alwaysExclude
+        } != null) {
       return
     }
 
-    val values = classInstance.values
-    values.sortBy { it.field.name }
-    for (fieldValue in values) {
-      var fieldExclusion = classExclusion
-      val field = fieldValue.field
-      if (field.type != Type.OBJECT) {
-        continue
-      }
-      val child = fieldValue.value as Instance?
-      val fieldName = field.name
-      val params = ignoredFields[fieldName]
-      // If we found a field exclusion and it's stronger than a class exclusion
-      if (params != null && (fieldExclusion == null || params.alwaysExclude && !fieldExclusion.alwaysExclude)) {
-        fieldExclusion = params
-      }
-      val value = if (fieldValue.value == null) "null" else fieldValue.value.toString()
-      enqueue(
-          fieldExclusion, node, child,
-          LeakReference(INSTANCE_FIELD, fieldName, value)
-      )
+    val classExclusion = exclusions.firstOrNull { it != null }
+
+    val ignoredFields = LinkedHashMap<String, Exclusion>()
+
+    instance.classHierarchy.forEach {
+      ignoredFields.putAll(excludedRefs.fieldNameByClassName[it.className] ?: emptyMap())
     }
+
+    val fieldNamesAndValues = mutableListOf<Pair<String, HeapValue>>()
+
+    instance.fieldValues.forEachIndexed { classIndex, classFieldValues ->
+      classFieldValues.forEachIndexed { fieldIndex, fieldValue ->
+        val fieldName = instance.classHierarchy[classIndex].fieldNames[fieldIndex]
+        fieldNamesAndValues.add(fieldName to fieldValue)
+      }
+    }
+
+    fieldNamesAndValues.sortBy { (name, _) -> name }
+
+    fieldNamesAndValues.filter { (_, value) -> value is ObjectReference }
+        .map { (name, reference) -> name to (reference as ObjectReference).value }
+        .forEach { (fieldName, objectId) ->
+          val fieldExclusion = ignoredFields[fieldName]
+
+          val exclusion = if (classExclusion != null && classExclusion.alwaysExclude) {
+            classExclusion
+          } else if (fieldExclusion != null && fieldExclusion.alwaysExclude) {
+            fieldExclusion
+          } else classExclusion ?: fieldExclusion
+
+          enqueue(
+              hprofParser, exclusion, parent, objectId,
+              LeakReference(INSTANCE_FIELD, fieldName, objectId)
+          )
+        }
   }
 
-  private fun visitArrayInstance(node: LeakNode) {
-    val arrayInstance = node.instance as ArrayInstance
-    if (arrayInstance.arrayType == Type.OBJECT) {
-      val values = arrayInstance.values
-      for (i in values.indices) {
-        val child = values[i] as Instance?
-        val name = Integer.toString(i)
-        val value = child?.toString() ?: "null"
-        enqueue(null, node, child, LeakReference(ARRAY_ENTRY, name, value))
-      }
+  private fun visitObjectArrayRecord(
+    hprofParser: HprofParser,
+    record: ObjectArrayDumpRecord,
+    parentNode: LeakNode
+  ) {
+    record.elementIds.forEachIndexed { index, elementId ->
+      val name = Integer.toString(index)
+      val reference = LeakReference(ARRAY_ENTRY, name, elementId)
+      enqueue(hprofParser, null, parentNode, elementId, reference)
     }
   }
 
   private fun enqueue(
+    hprofParser: HprofParser,
     exclusion: Exclusion?,
     parent: LeakNode?,
-    child: Instance?,
+    child: Long,
     leakReference: LeakReference?
   ) {
-    if (child == null) {
+    if (child == 0L) {
       return
     }
-    if (isPrimitiveOrWrapperArray(child) || isPrimitiveWrapper(child)) {
+    val record = hprofParser.retrieveRecordById(child)
+
+    if (record is PrimitiveArrayDumpRecord) {
+      println("Skipping primitive array")
       return
     }
-    if (ignoreStrings && isString(child)) {
+
+    if (record is ObjectArrayDumpRecord) {
+      if (hprofParser.isPrimitiveWrapper(record.arrayClassId)) {
+        println("Skipping primitive wrapper array")
+        return
+      }
+    }
+
+    if (record is InstanceDumpRecord && hprofParser.isPrimitiveWrapper(record.classId)) {
+      println("Skipping primitive wrapper")
+      return
+    }
+
+    if (ignoreStrings && record is InstanceDumpRecord && hprofParser.className(
+            record.classId
+        ) == String::class.java.name
+    ) {
       return
     }
     // Whether we want to visit now or later, we should skip if this is already to visit.
@@ -325,10 +291,5 @@ internal class ShortestPathFinder(
       toVisitIfNoPathSet.add(child)
       toVisitIfNoPathQueue.add(childNode)
     }
-  }
-
-  private fun isString(instance: Instance): Boolean {
-    return instance.classObj != null && instance.classObj
-        .className == String::class.java.name
   }
 }

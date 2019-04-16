@@ -131,6 +131,7 @@ open class HprofReader constructor(
   }
 
   fun readIntArray(arrayLength: Int): IntArray {
+    // TODO Actually this doesn't work.
     // TODO Avoid creating a byte array
     return ByteBuffer.wrap(readByteArray(INT_SIZE * arrayLength))
         .asIntBuffer()
