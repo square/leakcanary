@@ -10,7 +10,6 @@ dependencies {
   implementation deps.androidx.annotation
   implementation deps.haha
   implementation deps.kotlin.stdlib
-  implementation deps.okio
 
   testImplementation deps.assertj_core
   testImplementation deps.junit

@@ -8,8 +8,9 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel.MapMode
 
-// TODO THIS DOES NOT WORK AT THE MOMENT
+// THIS IS UNUSED AND DOES NOT WORK AT THE MOMENT
 // TODO Try again when we have a working parser.
+// Goal is to build a seekable okio source on top of memory mapped byte buffers
 class MemoryMappedFileInputStream(
   file: File,
   private val bufferSize: Int,
