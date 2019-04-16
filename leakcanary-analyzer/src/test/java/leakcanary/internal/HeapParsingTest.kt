@@ -42,6 +42,8 @@ class HeapParsingTest {
     Assertions.assertThat(referentId)
         .isNotEqualTo(0)
 
+
+
     // TODO find shorter paths to referentId
 
     parser.close()

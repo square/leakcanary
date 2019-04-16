@@ -41,7 +41,21 @@ import java.io.File
 import java.nio.charset.Charset
 
 /**
- * Not thread safe, should be used from a single thread.
+ * A memory efficient heap dump parser.
+ *
+ * Expected usage: call [scan] once, which will go read through the entire heap dump, build indices,
+ * and let consumers collect non indexed data (e.g. all instances of X, or all gc roots, etc).
+ *
+ * Then navigate on the heap using object ids which [scan] has indexed to file positions.
+ *
+ * This class is not thread safe, should be used from a single thread.
+ *
+ * Binary Dump Format reference: http://hg.openjdk.java.net/jdk6/jdk6/jdk/raw-file/tip/src/share/demo/jvmti/hprof/manual.html#mozTocId848088
+ *
+ * The Android Hprof format differs in some ways from that reference. This parser implementation
+ * is largely adapted from https://android.googlesource.com/platform/tools/base/+/studio-master-dev/perflib/src/main/java/com/android/tools/perflib
+ *
+ * Also some of the ideas come from https://github.com/square/leakcanary/pull/1278
  */
 class HprofParser private constructor(
   private val reader: SeekableHprofReader
