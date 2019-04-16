@@ -3,8 +3,6 @@ package leakcanary.internal
 import com.android.tools.perflib.captures.DataBuffer
 import com.android.tools.perflib.captures.MemoryMappedFileBuffer
 import com.squareup.haha.perflib.Snapshot
-import leakcanary.internal.haha.HprofParser
-import leakcanary.internal.haha.HprofParser.RecordCallbacks
 import leakcanary.internal.haha.HeapValue
 import leakcanary.internal.haha.HeapValue.BooleanValue
 import leakcanary.internal.haha.HeapValue.ByteValue
@@ -15,6 +13,9 @@ import leakcanary.internal.haha.HeapValue.IntValue
 import leakcanary.internal.haha.HeapValue.LongValue
 import leakcanary.internal.haha.HeapValue.ObjectReference
 import leakcanary.internal.haha.HeapValue.ShortValue
+import leakcanary.internal.haha.HprofParser
+import leakcanary.internal.haha.HprofParser.RecordCallbacks
+import leakcanary.internal.haha.HprofReader
 import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
@@ -118,15 +119,15 @@ class HeapParsingTest {
     type: Int
   ): HeapValue {
     return when (type) {
-      HprofParser.OBJECT_TYPE -> ObjectReference(readId(idSize))
-      HprofParser.BOOLEAN_TYPE -> BooleanValue(readByte() != 0.toByte())
-      HprofParser.CHAR_TYPE -> CharValue(ByteBuffer.wrap(readByteArray(2)).char)
-      HprofParser.FLOAT_TYPE -> FloatValue(Float.fromBits(readInt()))
-      HprofParser.DOUBLE_TYPE -> DoubleValue(Double.fromBits(readLong()))
-      HprofParser.BYTE_TYPE -> ByteValue(readByte())
-      HprofParser.SHORT_TYPE -> ShortValue(readShort())
-      HprofParser.INT_TYPE -> IntValue(readInt())
-      HprofParser.LONG_TYPE -> LongValue(readLong())
+      HprofReader.OBJECT_TYPE -> ObjectReference(readId(idSize))
+      HprofReader.BOOLEAN_TYPE -> BooleanValue(readByte() != 0.toByte())
+      HprofReader.CHAR_TYPE -> CharValue(ByteBuffer.wrap(readByteArray(2)).char)
+      HprofReader.FLOAT_TYPE -> FloatValue(Float.fromBits(readInt()))
+      HprofReader.DOUBLE_TYPE -> DoubleValue(Double.fromBits(readLong()))
+      HprofReader.BYTE_TYPE -> ByteValue(readByte())
+      HprofReader.SHORT_TYPE -> ShortValue(readShort())
+      HprofReader.INT_TYPE -> IntValue(readInt())
+      HprofReader.LONG_TYPE -> LongValue(readLong())
       else -> throw IllegalStateException("Unknown type $type")
     }
   }

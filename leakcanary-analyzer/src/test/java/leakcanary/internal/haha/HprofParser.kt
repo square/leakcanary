@@ -16,18 +16,17 @@ import leakcanary.internal.haha.GcRoot.ThreadObject
 import leakcanary.internal.haha.GcRoot.Unknown
 import leakcanary.internal.haha.GcRoot.Unreachable
 import leakcanary.internal.haha.GcRoot.VmInternal
-import leakcanary.internal.haha.HeapValue.BooleanValue
-import leakcanary.internal.haha.HeapValue.ByteValue
-import leakcanary.internal.haha.HeapValue.CharValue
-import leakcanary.internal.haha.HeapValue.DoubleValue
-import leakcanary.internal.haha.HeapValue.FloatValue
-import leakcanary.internal.haha.HeapValue.IntValue
-import leakcanary.internal.haha.HeapValue.LongValue
-import leakcanary.internal.haha.HeapValue.ObjectReference
-import leakcanary.internal.haha.HeapValue.ShortValue
+import leakcanary.internal.haha.HprofReader.Companion.BOOLEAN_TYPE
+import leakcanary.internal.haha.HprofReader.Companion.BYTE_SIZE
+import leakcanary.internal.haha.HprofReader.Companion.BYTE_TYPE
+import leakcanary.internal.haha.HprofReader.Companion.CHAR_TYPE
+import leakcanary.internal.haha.HprofReader.Companion.DOUBLE_TYPE
+import leakcanary.internal.haha.HprofReader.Companion.FLOAT_TYPE
+import leakcanary.internal.haha.HprofReader.Companion.INT_SIZE
+import leakcanary.internal.haha.HprofReader.Companion.INT_TYPE
+import leakcanary.internal.haha.HprofReader.Companion.LONG_TYPE
+import leakcanary.internal.haha.HprofReader.Companion.SHORT_TYPE
 import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord.FieldRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord.StaticFieldRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.HeapDumpInfoRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
@@ -43,22 +42,16 @@ import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.L
 import leakcanary.internal.haha.Record.HeapDumpRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
-import okio.BufferedSource
 import okio.buffer
 import okio.source
 import java.io.Closeable
 import java.io.File
-import java.nio.ByteBuffer
-import java.nio.channels.FileChannel
 
 /**
  * Not thread safe, should be used from a single thread.
  */
 class HprofParser private constructor(
-  private val channel: FileChannel,
-  private var source: BufferedSource,
-  private val startPosition: Long,
-  private val idSize: Int
+  private val reader: HprofReader
 ) : Closeable {
 
   private var scanning = false
@@ -98,212 +91,17 @@ class HprofParser private constructor(
     }
   }
 
-  private val typeSizes = mapOf(
-      // object
-      OBJECT_TYPE to idSize,
-      BOOLEAN_TYPE to BOOLEAN_SIZE,
-      CHAR_TYPE to CHAR_SIZE,
-      FLOAT_TYPE to FLOAT_SIZE,
-      DOUBLE_TYPE to DOUBLE_SIZE,
-      BYTE_TYPE to BYTE_SIZE,
-      SHORT_TYPE to SHORT_SIZE,
-      INT_TYPE to INT_SIZE,
-      LONG_TYPE to LONG_SIZE
-  )
-
-  private fun readValue(type: Int): HeapValue {
-    return when (type) {
-      OBJECT_TYPE -> ObjectReference(readId())
-      BOOLEAN_TYPE -> BooleanValue(readBoolean())
-      CHAR_TYPE -> CharValue(readChar())
-      FLOAT_TYPE -> FloatValue(readFloat())
-      DOUBLE_TYPE -> DoubleValue(readDouble())
-      BYTE_TYPE -> ByteValue(readByte())
-      SHORT_TYPE -> ShortValue(readShort())
-      INT_TYPE -> IntValue(readInt())
-      LONG_TYPE -> LongValue(readLong())
-      else -> throw IllegalStateException("Unknown type $type")
-    }
-  }
-
-  private fun typeSize(type: Int): Int {
-    return typeSizes.getValue(type)
-  }
-
-  private var position: Long = startPosition
-
-  private fun moveTo(newPosition: Long) {
-    if (position == newPosition) {
-      return
-    }
-    source.buffer.clear()
-    channel.position(newPosition)
-    this.position = newPosition
-  }
-
-  private fun readShort(): Short {
-    position += SHORT_SIZE
-    return source.readShort()
-  }
-
-  private fun readInt(): Int {
-    position += INT_SIZE
-    return source.readInt()
-  }
-
-  private fun readIdArray(arrayLength: Int): LongArray {
-    // TODO Read the array at once
-    val array = LongArray(arrayLength)
-    for (i in 0 until arrayLength) {
-      array[i] = readId()
-    }
-    return array
-  }
-
-  private fun readBooleanArray(arrayLength: Int): BooleanArray {
-    // TODO Read the array at once
-    val array = BooleanArray(arrayLength)
-    readByteArray(BOOLEAN_SIZE * arrayLength).forEachIndexed { index, byte ->
-      array[index] = byte != 0.toByte()
-    }
-    return array
-  }
-
-  private fun readCharArray(arrayLength: Int): CharArray {
-    // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(CHAR_SIZE * arrayLength))
-        .asCharBuffer()
-        .array()
-  }
-
-  private fun readFloatArray(arrayLength: Int): FloatArray {
-    // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(FLOAT_SIZE * arrayLength))
-        .asFloatBuffer()
-        .array()
-  }
-
-  private fun readDoubleArray(arrayLength: Int): DoubleArray {
-    // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(DOUBLE_SIZE * arrayLength))
-        .asDoubleBuffer()
-        .array()
-  }
-
-  private fun readShortArray(arrayLength: Int): ShortArray {
-    // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(SHORT_SIZE * arrayLength))
-        .asShortBuffer()
-        .array()
-  }
-
-  private fun readIntArray(arrayLength: Int): IntArray {
-    // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(INT_SIZE * arrayLength))
-        .asIntBuffer()
-        .array()
-  }
-
-  private fun readLongArray(arrayLength: Int): LongArray {
-    // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(LONG_SIZE * arrayLength))
-        .asLongBuffer()
-        .array()
-  }
-
-  private fun skipShort() {
-    skip(SHORT_SIZE)
-  }
-
-  private fun skipInt() {
-    skip(INT_SIZE)
-  }
-
-  private fun skipLong() {
-    skip(LONG_SIZE)
-  }
-
-  private fun readLong(): Long {
-    position += LONG_SIZE
-    return source.readLong()
-  }
-
-  private fun exhausted() = source.exhausted()
-
-  private fun skip(byteCount: Long) {
-    position += byteCount
-    return source.skip(byteCount)
-  }
-
-  private fun readByte(): Byte {
-    position += BYTE_SIZE
-    return source.readByte()
-  }
-
-  private fun readBoolean(): Boolean {
-    position += BOOLEAN_SIZE
-    return source.readByte() != 0.toByte()
-  }
-
-  private fun readByteArray(byteCount: Int): ByteArray {
-    position += byteCount
-    return source.readByteArray(byteCount.toLong())
-  }
-
-  private fun readChar(): Char {
-    // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(CHAR_SIZE))
-        .char
-  }
-
-  private fun readFloat(): Float {
-    return Float.fromBits(readInt())
-  }
-
-  private fun readDouble(): Double {
-    return Double.fromBits(readLong())
-  }
-
-  private fun readId(): Long {
-    // As long as we don't interpret IDs, reading signed values here is fine.
-    return when (idSize) {
-      1 -> readByte().toLong()
-      2 -> readShort().toLong()
-      4 -> readInt().toLong()
-      8 -> readLong()
-      else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
-    }
-  }
-
-  private fun readUtf8(byteCount: Long): String {
-    position += byteCount
-    return source.readUtf8(byteCount)
-  }
-
-  private fun readUnsignedInt(): Long {
-    return readInt().toLong() and INT_MASK
-  }
-
-  private fun readUnsignedByte(): Int {
-    return readByte().toInt() and BYTE_MASK
-  }
-
-  private fun readUnsignedShort(): Int {
-    return readShort().toInt() and 0xFFFF
-  }
-
-  private fun skip(byteCount: Int) {
-    position += byteCount
-    return source.skip(byteCount.toLong())
-  }
-
   override fun close() {
-    source.close()
+    reader.close()
   }
 
   fun scan(callbacks: RecordCallbacks) {
-    if (!source.isOpen) {
-      throw IllegalStateException("Source closed")
+    reader.scan(callbacks)
+  }
+
+  private fun HprofReader.scan(callbacks: RecordCallbacks) {
+    if (!isOpen) {
+      throw IllegalStateException("Reader closed")
     }
 
     if (scanning) {
@@ -312,7 +110,7 @@ class HprofParser private constructor(
 
     scanning = true
 
-    moveTo(startPosition)
+    reset()
 
     // heap dump timestamp
     skipLong()
@@ -772,25 +570,6 @@ class HprofParser private constructor(
     indexBuilt = true
   }
 
-  private fun readInstanceDumpRecord(
-    heapId: Int,
-    id: Long
-  ): InstanceDumpRecord {
-    val stackTraceSerialNumber = readInt()
-    val classId = readId()
-    val remainingBytesInInstance = readInt()
-    val fieldValues = readByteArray(remainingBytesInInstance)
-
-    val instanceDumpRecord = InstanceDumpRecord(
-        heapId = heapId,
-        id = id,
-        stackTraceSerialNumber = stackTraceSerialNumber,
-        classId = classId,
-        fieldValues = fieldValues
-    )
-    return instanceDumpRecord
-  }
-
   private fun checkHeapIndex(heapId: Int) {
     if (!indexBuilt) {
       if (classPositions[heapId] == null) {
@@ -800,80 +579,13 @@ class HprofParser private constructor(
     }
   }
 
-  private fun readClassDumpRecord(
-    heapId: Int,
-    id: Long
-  ): ClassDumpRecord {
-    // stack trace serial number
-    val stackTraceSerialNumber = readInt()
-    val superClassId = readId()
-    // class loader object ID
-    val classLoaderId = readId()
-    // signers object ID
-    val signersId = readId()
-    // protection domain object ID
-    val protectionDomainId = readId()
-    // reserved
-    readId()
-    // reserved
-    readId()
-
-    // instance size (in bytes)
-    // Useful to compute retained size
-    val instanceSize = readInt()
-
-    // Skip over the constant pool
-    val constantPoolCount = readUnsignedShort()
-    for (i in 0 until constantPoolCount) {
-      // constant pool index
-      skipShort()
-      skip(typeSize(readUnsignedByte()))
-    }
-
-    val staticFields = mutableListOf<StaticFieldRecord>()
-    val staticFieldCount = readUnsignedShort()
-    for (i in 0 until staticFieldCount) {
-
-      val nameStringId = readId()
-      val type = readUnsignedByte()
-      val value = readValue(type)
-
-      staticFields.add(
-          StaticFieldRecord(
-              nameStringId = nameStringId,
-              type = type,
-              value = value
-          )
-      )
-    }
-
-    val fields = mutableListOf<FieldRecord>()
-    val fieldCount = readUnsignedShort()
-    for (i in 0 until fieldCount) {
-      fields.add(FieldRecord(nameStringId = readId(), type = readUnsignedByte()))
-    }
-
-    return ClassDumpRecord(
-        heapId = heapId,
-        id = id,
-        stackTraceSerialNumber = stackTraceSerialNumber,
-        superClassId = superClassId,
-        classLoaderId = classLoaderId,
-        signersId = signersId,
-        protectionDomainId = protectionDomainId,
-        instanceSize = instanceSize,
-        staticFields = staticFields,
-        fields = fields
-    )
-  }
-
   /**
    * Those are strings for class names, fields, etc, ie not strings from the application memory.
    */
   fun hprofStringById(id: Long): String {
     val (position, length) = hprofStringPositions[id]!!
-    moveTo(position)
-    return readUtf8(length)
+    reader.moveTo(position)
+    return reader.readUtf8(length)
   }
 
   fun classDumpRecordById(
@@ -881,8 +593,8 @@ class HprofParser private constructor(
     id: Long
   ): ClassDumpRecord {
     val position = classPositions[heapId]!![id]!!
-    moveTo(position)
-    return readClassDumpRecord(heapId, id)
+    reader.moveTo(position)
+    return reader.readClassDumpRecord(heapId, id)
   }
 
   fun instanceDumpRecordById(
@@ -890,34 +602,11 @@ class HprofParser private constructor(
     id: Long
   ): InstanceDumpRecord {
     val position = instancePositions[heapId]!![id]!!
-    moveTo(position)
-    return readInstanceDumpRecord(heapId, id)
+    reader.moveTo(position)
+    return reader.readInstanceDumpRecord(heapId, id)
   }
 
   companion object {
-
-    private const val BOOLEAN_SIZE = 1
-    private const val CHAR_SIZE = 2
-    private const val FLOAT_SIZE = 4
-    private const val DOUBLE_SIZE = 8
-    private const val BYTE_SIZE = 1
-    private const val SHORT_SIZE = 2
-    private const val INT_SIZE = 4
-    private const val LONG_SIZE = 8
-
-    const val OBJECT_TYPE = 2
-    const val BOOLEAN_TYPE = 4
-    const val CHAR_TYPE = 5
-    const val FLOAT_TYPE = 6
-    const val DOUBLE_TYPE = 7
-    const val BYTE_TYPE = 8
-    const val SHORT_TYPE = 9
-    const val INT_TYPE = 10
-    const val LONG_TYPE = 11
-
-    const val INT_MASK = 0xffffffffL
-    const val BYTE_MASK = 0xFF
-
     const val STRING_IN_UTF8 = 0x01
     const val LOAD_CLASS = 0x02
     const val UNLOAD_CLASS = 0x03
@@ -1002,7 +691,8 @@ class HprofParser private constructor(
       val idSize = source.readInt()
       val startPosition = endOfVersionString + 1 + 4
 
-      return HprofParser(channel, source, startPosition, idSize)
+      val hprofReader = HprofReader(channel, source, startPosition, idSize)
+      return HprofParser(hprofReader)
     }
   }
 
