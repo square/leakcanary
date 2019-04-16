@@ -16,15 +16,15 @@ import leakcanary.internal.haha.GcRoot.ThreadObject
 import leakcanary.internal.haha.GcRoot.Unknown
 import leakcanary.internal.haha.GcRoot.Unreachable
 import leakcanary.internal.haha.GcRoot.VmInternal
-import leakcanary.internal.haha.HprofParser.Value.BooleanValue
-import leakcanary.internal.haha.HprofParser.Value.ByteValue
-import leakcanary.internal.haha.HprofParser.Value.CharValue
-import leakcanary.internal.haha.HprofParser.Value.DoubleValue
-import leakcanary.internal.haha.HprofParser.Value.FloatValue
-import leakcanary.internal.haha.HprofParser.Value.IntValue
-import leakcanary.internal.haha.HprofParser.Value.LongValue
-import leakcanary.internal.haha.HprofParser.Value.ObjectReference
-import leakcanary.internal.haha.HprofParser.Value.ShortValue
+import leakcanary.internal.haha.HeapValue.BooleanValue
+import leakcanary.internal.haha.HeapValue.ByteValue
+import leakcanary.internal.haha.HeapValue.CharValue
+import leakcanary.internal.haha.HeapValue.DoubleValue
+import leakcanary.internal.haha.HeapValue.FloatValue
+import leakcanary.internal.haha.HeapValue.IntValue
+import leakcanary.internal.haha.HeapValue.LongValue
+import leakcanary.internal.haha.HeapValue.ObjectReference
+import leakcanary.internal.haha.HeapValue.ShortValue
 import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord.FieldRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.ClassDumpRecord.StaticFieldRecord
@@ -61,6 +61,22 @@ class HprofParser private constructor(
   private val idSize: Int
 ) : Closeable {
 
+  private var scanning = false
+  private var indexBuilt = false
+
+  /**
+   * string id to (position, length)
+   */
+  private val hprofStringPositions = mutableMapOf<Long, Pair<Long, Long>>()
+  /**
+   * heap id to class id to class position
+   */
+  private val classPositions = mutableMapOf<Int, MutableMap<Long, Long>>()
+  /**
+   * heap id to instance id to instance position
+   */
+  private val instancePositions = mutableMapOf<Int, MutableMap<Long, Long>>()
+
   class RecordCallbacks {
     private val callbacks = mutableMapOf<Class<out Record>, Any>()
 
@@ -95,19 +111,7 @@ class HprofParser private constructor(
       LONG_TYPE to LONG_SIZE
   )
 
-  sealed class Value {
-    data class ObjectReference(val value: Long) : Value()
-    data class BooleanValue(val value: Boolean) : Value()
-    data class CharValue(val value: Char) : Value()
-    data class FloatValue(val value: Float) : Value()
-    data class DoubleValue(val value: Double) : Value()
-    data class ByteValue(val value: Byte) : Value()
-    data class ShortValue(val value: Short) : Value()
-    data class IntValue(val value: Int) : Value()
-    data class LongValue(val value: Long) : Value()
-  }
-
-  private fun readValue(type: Int): Value {
+  private fun readValue(type: Int): HeapValue {
     return when (type) {
       OBJECT_TYPE -> ObjectReference(readId())
       BOOLEAN_TYPE -> BooleanValue(readBoolean())
@@ -302,6 +306,12 @@ class HprofParser private constructor(
       throw IllegalStateException("Source closed")
     }
 
+    if (scanning) {
+      throw UnsupportedOperationException("Cannot scan while already scanning.")
+    }
+
+    scanning = true
+
     moveTo(startPosition)
 
     // heap dump timestamp
@@ -321,10 +331,17 @@ class HprofParser private constructor(
       when (tag) {
         STRING_IN_UTF8 -> {
           val callback = callbacks.get<StringRecord>()
-          if (callback != null) {
+          if (callback != null || !indexBuilt) {
             val id = readId()
-            val string = readUtf8(length - idSize)
-            callback(StringRecord(id, string))
+            if (!indexBuilt) {
+              hprofStringPositions[id] = position to length - idSize
+            }
+            if (callback != null) {
+              val string = readUtf8(length - idSize)
+              callback(StringRecord(id, string))
+            } else {
+              skip(length - idSize)
+            }
           } else {
             skip(length)
           }
@@ -345,6 +362,8 @@ class HprofParser private constructor(
           }
         }
         HEAP_DUMP, HEAP_DUMP_SEGMENT -> {
+          checkHeapIndex(heapId)
+
           val heapDumpStart = position
           var previousTag = 0
           while (position - heapDumpStart < length) {
@@ -488,74 +507,16 @@ class HprofParser private constructor(
 
               CLASS_DUMP -> {
                 val callback = callbacks.get<ClassDumpRecord>()
+                val id = readId()
+                if (!indexBuilt) {
+                  classPositions[heapId]!![id] = position
+                }
                 if (callback != null) {
-                  val id = readId()
-                  // stack trace serial number
-                  val stackTraceSerialNumber = readInt()
-                  val superClassId = readId()
-                  // class loader object ID
-                  val classLoaderId = readId()
-                  // signers object ID
-                  val signersId = readId()
-                  // protection domain object ID
-                  val protectionDomainId = readId()
-                  // reserved
-                  readId()
-                  // reserved
-                  readId()
-
-                  // instance size (in bytes)
-                  // Useful to compute retained size
-                  val instanceSize = readInt()
-
-                  // Skip over the constant pool
-                  val constantPoolCount = readUnsignedShort()
-                  for (i in 0 until constantPoolCount) {
-                    // constant pool index
-                    skipShort()
-                    skip(typeSize(readUnsignedByte()))
-                  }
-
-                  val staticFields = mutableListOf<StaticFieldRecord>()
-                  val staticFieldCount = readUnsignedShort()
-                  for (i in 0 until staticFieldCount) {
-
-                    val nameStringId = readId()
-                    val type = readUnsignedByte()
-                    val value = readValue(type)
-
-                    staticFields.add(
-                        StaticFieldRecord(
-                            nameStringId = nameStringId,
-                            type = type,
-                            value = value
-                        )
-                    )
-                  }
-
-                  val fields = mutableListOf<FieldRecord>()
-                  val fieldCount = readUnsignedShort()
-                  for (i in 0 until fieldCount) {
-                    fields.add(FieldRecord(nameStringId = readId(), type = readUnsignedByte()))
-                  }
-
-                  callback(
-                      ClassDumpRecord(
-                          heapId = heapId,
-                          id = id,
-                          stackTraceSerialNumber = stackTraceSerialNumber,
-                          superClassId = superClassId,
-                          classLoaderId = classLoaderId,
-                          signersId = signersId,
-                          protectionDomainId = protectionDomainId,
-                          instanceSize = instanceSize,
-                          staticFields = staticFields,
-                          fields = fields
-                      )
-                  )
+                  val classDumpRecord = readClassDumpRecord(heapId, id)
+                  callback(classDumpRecord)
                 } else {
                   skip(
-                      idSize + INT_SIZE + idSize + idSize + idSize + idSize + idSize + idSize + INT_SIZE
+                      INT_SIZE + idSize + idSize + idSize + idSize + idSize + idSize + INT_SIZE
                   )
 
                   // Skip over the constant pool
@@ -580,25 +541,16 @@ class HprofParser private constructor(
               }
 
               INSTANCE_DUMP -> {
+                val id = readId()
+                if (!indexBuilt) {
+                  instancePositions[heapId]!![id] = position
+                }
                 val callback = callbacks.get<InstanceDumpRecord>()
                 if (callback != null) {
-                  val id = readId()
-                  val stackTraceSerialNumber = readInt()
-                  val classId = readId()
-                  val remainingBytesInInstance = readInt()
-                  val fieldValues = readByteArray(remainingBytesInInstance)
-
-                  callback(
-                      InstanceDumpRecord(
-                          heapId = heapId,
-                          id = id,
-                          stackTraceSerialNumber = stackTraceSerialNumber,
-                          classId = classId,
-                          fieldValues = fieldValues
-                      )
-                  )
+                  val instanceDumpRecord = readInstanceDumpRecord(heapId, id)
+                  callback(instanceDumpRecord)
                 } else {
-                  skip(idSize + INT_SIZE + idSize)
+                  skip(INT_SIZE + idSize)
                   val remainingBytesInInstance = readInt()
                   skip(remainingBytesInInstance)
                 }
@@ -690,6 +642,7 @@ class HprofParser private constructor(
 
               HEAP_DUMP_INFO -> {
                 heapId = readInt()
+                checkHeapIndex(heapId)
                 val callback = callbacks.get<HeapDumpInfoRecord>()
                 if (callback != null) {
                   val record =
@@ -814,6 +767,131 @@ class HprofParser private constructor(
         }
       }
     }
+
+    scanning = false
+    indexBuilt = true
+  }
+
+  private fun readInstanceDumpRecord(
+    heapId: Int,
+    id: Long
+  ): InstanceDumpRecord {
+    val stackTraceSerialNumber = readInt()
+    val classId = readId()
+    val remainingBytesInInstance = readInt()
+    val fieldValues = readByteArray(remainingBytesInInstance)
+
+    val instanceDumpRecord = InstanceDumpRecord(
+        heapId = heapId,
+        id = id,
+        stackTraceSerialNumber = stackTraceSerialNumber,
+        classId = classId,
+        fieldValues = fieldValues
+    )
+    return instanceDumpRecord
+  }
+
+  private fun checkHeapIndex(heapId: Int) {
+    if (!indexBuilt) {
+      if (classPositions[heapId] == null) {
+        classPositions[heapId] = mutableMapOf()
+        instancePositions[heapId] = mutableMapOf()
+      }
+    }
+  }
+
+  private fun readClassDumpRecord(
+    heapId: Int,
+    id: Long
+  ): ClassDumpRecord {
+    // stack trace serial number
+    val stackTraceSerialNumber = readInt()
+    val superClassId = readId()
+    // class loader object ID
+    val classLoaderId = readId()
+    // signers object ID
+    val signersId = readId()
+    // protection domain object ID
+    val protectionDomainId = readId()
+    // reserved
+    readId()
+    // reserved
+    readId()
+
+    // instance size (in bytes)
+    // Useful to compute retained size
+    val instanceSize = readInt()
+
+    // Skip over the constant pool
+    val constantPoolCount = readUnsignedShort()
+    for (i in 0 until constantPoolCount) {
+      // constant pool index
+      skipShort()
+      skip(typeSize(readUnsignedByte()))
+    }
+
+    val staticFields = mutableListOf<StaticFieldRecord>()
+    val staticFieldCount = readUnsignedShort()
+    for (i in 0 until staticFieldCount) {
+
+      val nameStringId = readId()
+      val type = readUnsignedByte()
+      val value = readValue(type)
+
+      staticFields.add(
+          StaticFieldRecord(
+              nameStringId = nameStringId,
+              type = type,
+              value = value
+          )
+      )
+    }
+
+    val fields = mutableListOf<FieldRecord>()
+    val fieldCount = readUnsignedShort()
+    for (i in 0 until fieldCount) {
+      fields.add(FieldRecord(nameStringId = readId(), type = readUnsignedByte()))
+    }
+
+    return ClassDumpRecord(
+        heapId = heapId,
+        id = id,
+        stackTraceSerialNumber = stackTraceSerialNumber,
+        superClassId = superClassId,
+        classLoaderId = classLoaderId,
+        signersId = signersId,
+        protectionDomainId = protectionDomainId,
+        instanceSize = instanceSize,
+        staticFields = staticFields,
+        fields = fields
+    )
+  }
+
+  /**
+   * Those are strings for class names, fields, etc, ie not strings from the application memory.
+   */
+  fun hprofStringById(id: Long): String {
+    val (position, length) = hprofStringPositions[id]!!
+    moveTo(position)
+    return readUtf8(length)
+  }
+
+  fun classDumpRecordById(
+    heapId: Int,
+    id: Long
+  ): ClassDumpRecord {
+    val position = classPositions[heapId]!![id]!!
+    moveTo(position)
+    return readClassDumpRecord(heapId, id)
+  }
+
+  fun instanceDumpRecordById(
+    heapId: Int,
+    id: Long
+  ): InstanceDumpRecord {
+    val position = instancePositions[heapId]!![id]!!
+    moveTo(position)
+    return readInstanceDumpRecord(heapId, id)
   }
 
   companion object {

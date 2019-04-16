@@ -5,16 +5,16 @@ import com.android.tools.perflib.captures.MemoryMappedFileBuffer
 import com.squareup.haha.perflib.Snapshot
 import leakcanary.internal.haha.HprofParser
 import leakcanary.internal.haha.HprofParser.RecordCallbacks
-import leakcanary.internal.haha.HprofParser.Value
-import leakcanary.internal.haha.HprofParser.Value.BooleanValue
-import leakcanary.internal.haha.HprofParser.Value.ByteValue
-import leakcanary.internal.haha.HprofParser.Value.CharValue
-import leakcanary.internal.haha.HprofParser.Value.DoubleValue
-import leakcanary.internal.haha.HprofParser.Value.FloatValue
-import leakcanary.internal.haha.HprofParser.Value.IntValue
-import leakcanary.internal.haha.HprofParser.Value.LongValue
-import leakcanary.internal.haha.HprofParser.Value.ObjectReference
-import leakcanary.internal.haha.HprofParser.Value.ShortValue
+import leakcanary.internal.haha.HeapValue
+import leakcanary.internal.haha.HeapValue.BooleanValue
+import leakcanary.internal.haha.HeapValue.ByteValue
+import leakcanary.internal.haha.HeapValue.CharValue
+import leakcanary.internal.haha.HeapValue.DoubleValue
+import leakcanary.internal.haha.HeapValue.FloatValue
+import leakcanary.internal.haha.HeapValue.IntValue
+import leakcanary.internal.haha.HeapValue.LongValue
+import leakcanary.internal.haha.HeapValue.ObjectReference
+import leakcanary.internal.haha.HeapValue.ShortValue
 import leakcanary.internal.haha.Record.HeapDumpRecord.InstanceDumpRecord
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
@@ -94,6 +94,10 @@ class HeapParsingTest {
           }
         }
     parser.scan(callbacks)
+
+
+
+
     parser.close()
 
     val after1 = System.nanoTime()
@@ -112,7 +116,7 @@ class HeapParsingTest {
   fun Buffer.readValue(
     idSize: Int,
     type: Int
-  ): Value {
+  ): HeapValue {
     return when (type) {
       HprofParser.OBJECT_TYPE -> ObjectReference(readId(idSize))
       HprofParser.BOOLEAN_TYPE -> BooleanValue(readByte() != 0.toByte())

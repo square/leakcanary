@@ -1,10 +1,5 @@
 package leakcanary.internal.haha
 
-import leakcanary.internal.haha.HprofParser.Value
-import okio.Buffer
-import okio.ByteString
-import okio.Okio
-
 sealed class Record {
   class StringRecord(
     val id: Long,
@@ -41,7 +36,7 @@ sealed class Record {
       data class StaticFieldRecord(
         val nameStringId: Long,
         val type: Int,
-        val value: Value
+        val value: HeapValue
       )
 
       data class FieldRecord(
