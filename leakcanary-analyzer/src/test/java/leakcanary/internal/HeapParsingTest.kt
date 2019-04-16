@@ -1,7 +1,5 @@
 package leakcanary.internal
 
-import leakcanary.HeapDumpMemoryStore
-import leakcanary.KeyedWeakReference
 import leakcanary.internal.haha.GcRoot.JavaFrame
 import leakcanary.internal.haha.GcRoot.JniGlobal
 import leakcanary.internal.haha.GcRoot.JniLocal
@@ -13,9 +11,9 @@ import leakcanary.internal.haha.GcRoot.StickyClass
 import leakcanary.internal.haha.GcRoot.ThreadBlock
 import leakcanary.internal.haha.GcRoot.VmInternal
 import leakcanary.internal.haha.HeapValue.LongValue
-import leakcanary.internal.haha.HeapValue.ObjectReference
 import leakcanary.internal.haha.HprofParser
 import leakcanary.internal.haha.HprofParser.RecordCallbacks
+import leakcanary.internal.haha.KeyedWeakReferenceMirror
 import leakcanary.internal.haha.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
@@ -44,18 +42,13 @@ class HeapParsingTest {
         .value
 
     val retainedWeakRefs = keyedWeakReferenceInstances.map {
-      parser.hydrateInstance(it)
+      KeyedWeakReferenceMirror.fromInstance(
+          parser.hydrateInstance(it), heapDumpUptimeMillis
+      )
     }
-        .filter {
-          // key was in HeapDumpMemoryStore
-          retainedKeysForHeapDump.contains(it.fieldValue<ObjectReference>("key").value) &&
-              // referent is not null
-              it.fieldValue<ObjectReference>("referent").value != 0L
-        }
-        .map {
-          val record = parser.retrieveRecord(it.fieldValue("referent")) as InstanceDumpRecord
-          parser.hydrateInstance(record)
-        }
+        .filter { retainedKeysForHeapDump.contains(it.key.value) && it.hasReferent }
+
+
 
     Assertions.assertThat(retainedWeakRefs.size)
         .isEqualTo(5)
