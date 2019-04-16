@@ -1,4 +1,4 @@
-package leakcanary.internal.haha
+package leakcanary.updated
 
 import leakcanary.Exclusion
 

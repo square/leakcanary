@@ -13,18 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.internal.haha
+package leakcanary.updated
 
 import leakcanary.ExcludedRefs
 import leakcanary.Exclusion
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.internal.haha.HeapValue.ObjectReference
-import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.HeapValue
+import leakcanary.HeapValue.ObjectReference
+import leakcanary.HprofParser
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -132,7 +134,6 @@ internal class ShortestPathFinder(
   ) {
     // TODO sort GC roots based on type and class name (for class / instance / array)
     // Goal is to get a stable shortest path
-
     // TODO Add root type so that for java local we could exclude specific threads.
     // TODO java local: exclude specific threads,
     // TODO java local: parent should be set to the allocated thread
@@ -152,20 +153,18 @@ internal class ShortestPathFinder(
     val ignoredStaticFields = excludedRefs.staticFieldNameByClassName[className] ?: emptyMap()
 
     for (staticField in record.staticFields) {
-      if (staticField.value !is ObjectReference) {
-        continue
-      }
+      val objectId = (staticField.value as? ObjectReference)?.value ?: continue
       val fieldName = hprofParser.hprofStringById(staticField.nameStringId)
       if (fieldName == "\$staticOverhead") {
         continue
       }
-      val value = staticField.value.value
-      val leakReference = LeakReference(STATIC_FIELD, fieldName, value)
+
+      val leakReference = LeakReference(STATIC_FIELD, fieldName, objectId)
 
       val exclusion = ignoredStaticFields[fieldName]
 
       if (exclusion == null || !exclusion.alwaysExclude) {
-        enqueue(hprofParser, exclusion, node, value, leakReference)
+        enqueue(hprofParser, exclusion, node, objectId, leakReference)
       }
     }
   }
@@ -255,12 +254,14 @@ internal class ShortestPathFinder(
 
     if (record is ObjectArrayDumpRecord) {
       if (hprofParser.isPrimitiveWrapper(record.arrayClassId)) {
+        // TODO Confirm we run into this
         println("Skipping primitive wrapper array")
         return
       }
     }
 
     if (record is InstanceDumpRecord && hprofParser.isPrimitiveWrapper(record.classId)) {
+      // TODO Confirm we run into this
       println("Skipping primitive wrapper")
       return
     }

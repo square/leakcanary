@@ -1,4 +1,4 @@
-package leakcanary.internal.haha
+package leakcanary
 
 import okio.BufferedSource
 import java.nio.channels.FileChannel

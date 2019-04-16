@@ -1,6 +1,6 @@
-package leakcanary.internal.haha
+package leakcanary
 
-import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 
 class HydratedClass(
   val record: ClassDumpRecord,

@@ -1,7 +1,8 @@
-package leakcanary.internal.haha
+package leakcanary.updated
 
-import leakcanary.internal.haha.HeapValue.LongValue
-import leakcanary.internal.haha.HeapValue.ObjectReference
+import leakcanary.HeapValue.LongValue
+import leakcanary.HeapValue.ObjectReference
+import leakcanary.HydratedInstance
 
 internal class KeyedWeakReferenceMirror(
   val key: ObjectReference,

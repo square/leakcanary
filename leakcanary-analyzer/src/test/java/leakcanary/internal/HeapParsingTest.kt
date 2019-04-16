@@ -1,26 +1,26 @@
 package leakcanary.internal
 
-import leakcanary.internal.haha.GcRoot.JavaFrame
-import leakcanary.internal.haha.GcRoot.JniGlobal
-import leakcanary.internal.haha.GcRoot.JniLocal
-import leakcanary.internal.haha.GcRoot.JniMonitor
-import leakcanary.internal.haha.GcRoot.MonitorUsed
-import leakcanary.internal.haha.GcRoot.NativeStack
-import leakcanary.internal.haha.GcRoot.ReferenceCleanup
-import leakcanary.internal.haha.GcRoot.StickyClass
-import leakcanary.internal.haha.GcRoot.ThreadBlock
-import leakcanary.internal.haha.GcRoot.VmInternal
-import leakcanary.internal.haha.HeapValue.LongValue
-import leakcanary.internal.haha.HprofParser
-import leakcanary.internal.haha.HprofParser.RecordCallbacks
-import leakcanary.internal.haha.HydratedClass
-import leakcanary.internal.haha.KeyedWeakReferenceMirror
-import leakcanary.internal.haha.Record.HeapDumpRecord.GcRootRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.internal.haha.Record.LoadClassRecord
-import leakcanary.internal.haha.Record.StringRecord
-import leakcanary.internal.haha.ShortestPathFinder
+import leakcanary.GcRoot.JavaFrame
+import leakcanary.GcRoot.JniGlobal
+import leakcanary.GcRoot.JniLocal
+import leakcanary.GcRoot.JniMonitor
+import leakcanary.GcRoot.MonitorUsed
+import leakcanary.GcRoot.NativeStack
+import leakcanary.GcRoot.ReferenceCleanup
+import leakcanary.GcRoot.StickyClass
+import leakcanary.GcRoot.ThreadBlock
+import leakcanary.GcRoot.VmInternal
+import leakcanary.HeapValue.LongValue
+import leakcanary.HprofParser
+import leakcanary.HprofParser.RecordCallbacks
+import leakcanary.HydratedClass
+import leakcanary.updated.KeyedWeakReferenceMirror
+import leakcanary.Record.HeapDumpRecord.GcRootRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.Record.LoadClassRecord
+import leakcanary.Record.StringRecord
+import leakcanary.updated.ShortestPathFinder
 import org.assertj.core.api.Assertions
 import org.junit.Test
 
@@ -39,15 +39,14 @@ class HeapParsingTest {
     val retainedWeakRefs =
       findLeakingReferences(parser, classHierarchy, keyedWeakReferenceInstances)
 
-    val pathFinder = ShortestPathFinder(defaultExcludedRefs.build(), ignoreStrings = true)
+    val pathFinder =
+      ShortestPathFinder(defaultExcludedRefs.build(), ignoreStrings = true)
 
     val paths = pathFinder.findPaths(parser, retainedWeakRefs, gcRootIds)
 
 
     Assertions.assertThat(paths.size)
         .isEqualTo(5)
-
-    // TODO find shorter paths to referentId
 
     parser.close()
   }

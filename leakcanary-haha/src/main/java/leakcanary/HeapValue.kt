@@ -1,4 +1,4 @@
-package leakcanary.internal.haha
+package leakcanary
 
 sealed class HeapValue {
   data class ObjectReference(val value: Long) : HeapValue()
