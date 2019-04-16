@@ -1,14 +1,12 @@
 package leakcanary.internal
 
-import com.android.tools.perflib.captures.MemoryMappedFileBuffer
-import com.squareup.haha.perflib.Snapshot
+import leakcanary.internal.haha.HeapValue.ObjectReference
 import leakcanary.internal.haha.HprofParser
-import leakcanary.internal.haha.HprofParser.HydratedInstance
 import leakcanary.internal.haha.HprofParser.RecordCallbacks
 import leakcanary.internal.haha.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.internal.haha.Record.LoadClassRecord
 import leakcanary.internal.haha.Record.StringRecord
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions
 import org.junit.Test
 
 class HeapParsingTest {
@@ -17,9 +15,27 @@ class HeapParsingTest {
     val heapDump = HeapDumpFile.ASYNC_TASK_P
     val file = fileFromName(heapDump.filename)
 
-    val before1 = System.nanoTime()
     val parser = HprofParser.open(file)
 
+    val keyedWeakReferenceInstances = retrieveKeyedWeakReferenceInstances(parser)
+
+    val targetWeakRef = keyedWeakReferenceInstances.map { parser.hydrateInstance(it) }
+        .first { instance ->
+          heapDump.referenceKey == parser.retrieveString(instance.fieldValue("key"))
+        }
+
+    val referentId = targetWeakRef.fieldValue<ObjectReference>("referent")
+        .value
+
+    // Not null
+    Assertions.assertThat(referentId).isNotEqualTo(0)
+
+    // TODO find shorter paths to referentId
+
+    parser.close()
+  }
+
+  private fun retrieveKeyedWeakReferenceInstances(parser: HprofParser): MutableList<InstanceDumpRecord> {
     var keyedWeakReferenceStringId = -1L
     var keyedWeakReferenceClassId = -1L
     val keyedWeakReferenceInstances = mutableListOf<InstanceDumpRecord>()
@@ -40,39 +56,6 @@ class HeapParsingTest {
           }
         }
     parser.scan(callbacks)
-
-    val targetWeakRef = keyedWeakReferenceInstances.map { parser.hydrateInstance(it) }
-        .first { instance ->
-          val keyString = parser.retrieveString(instance.fieldValue("key"))
-          heapDump.referenceKey == keyString
-        }
-
-    val found = parser.retrieveString(targetWeakRef.fieldValue("key"))
-
-    parser.close()
-
-    val after1 = System.nanoTime()
-
-    val buffer = MemoryMappedFileBuffer(file)
-    val snapshot = Snapshot.createSnapshot(buffer)
-
-    val keyedWeakReferenceClass = snapshot.findClass("com.squareup.leakcanary.KeyedWeakReference")
-
-    val after2 = System.nanoTime()
-
-    println("First: ${(after1 - before1) / 1000000}ms Second: ${(after2 - after1) / 1000000}ms")
-    assertThat(keyedWeakReferenceClassId).isEqualTo(keyedWeakReferenceClass.id)
+    return keyedWeakReferenceInstances
   }
-
-  fun HydratedInstance.hasField(name: String): Boolean {
-    classHierarchy.forEach { hydratedClass ->
-      hydratedClass.fieldNames.forEach { fieldName ->
-        if (fieldName == name) {
-          return true
-        }
-      }
-    }
-    return false
-  }
-
 }

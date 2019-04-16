@@ -514,6 +514,7 @@ class HprofParser private constructor(
    * Those are strings for class names, fields, etc, ie not strings from the application memory.
    */
   fun hprofStringById(id: Long): String {
+    checkReadyToRead()
     val (position, length) = hprofStringPositions[id]!!
     reader.moveTo(position)
     return reader.readUtf8(length)
@@ -530,6 +531,7 @@ class HprofParser private constructor(
   }
 
   fun retrieveRecord(objectId: Long): ObjectRecord {
+    checkReadyToRead()
     val position = objectPositions[objectId]
     require(position != null) {
       "Unknown object id $objectId"
@@ -551,41 +553,17 @@ class HprofParser private constructor(
     }
   }
 
-  data class HydratedInstance(
-    val record: InstanceDumpRecord,
-    val classHierarchy: List<HydratedClass>,
-    /**
-     * One list of field values per class
-     */
-    val fieldValues: List<List<HeapValue>>
-  ) {
-    fun <T : HeapValue> fieldValue(name: String): T {
-      return fieldValueOrNull(name) ?: throw IllegalArgumentException(
-          "Could not find field $name in instance with id ${record.id}"
-      )
+  private fun checkReadyToRead() {
+    if (scanning) {
+      throw UnsupportedOperationException("Wait for scan() to finish")
     }
-
-    fun <T : HeapValue> fieldValueOrNull(name: String): T? {
-      classHierarchy.forEachIndexed { classIndex, hydratedClass ->
-        hydratedClass.fieldNames.forEachIndexed { fieldIndex, fieldName ->
-          if (fieldName == name) {
-            @Suppress("UNCHECKED_CAST")
-            return fieldValues[classIndex][fieldIndex] as T
-          }
-        }
-      }
-      return null
+    if (!indexBuilt) {
+      throw UnsupportedOperationException("scan() must be called at least once to build the index")
     }
   }
 
-  data class HydratedClass(
-    val record: ClassDumpRecord,
-    val className: String,
-    val staticFieldNames: List<String>,
-    val fieldNames: List<String>
-  )
-
   fun hydrateInstance(instanceRecord: InstanceDumpRecord): HydratedInstance {
+    checkReadyToRead()
     var classId = instanceRecord.classId
 
     val classHierarchy = mutableListOf<HydratedClass>()
@@ -601,7 +579,11 @@ class HprofParser private constructor(
         hprofStringById(it.nameStringId)
       }
 
-      classHierarchy.add(HydratedClass(classRecord, className, staticFieldNames, fieldNames))
+      classHierarchy.add(
+          HydratedClass(
+              classRecord, className, staticFieldNames, fieldNames
+          )
+      )
       classId = classRecord.superClassId
     } while (classId != 0L)
 
