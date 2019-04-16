@@ -2,7 +2,6 @@ package leakcanary.updated
 
 import leakcanary.Exclusion
 import leakcanary.HeapValue
-import leakcanary.HydratedInstance
 import leakcanary.internal.lastSegment
 import java.io.Serializable
 
@@ -15,7 +14,11 @@ data class LeakTraceElement(
 
   val holder: Holder,
 
-  val instance: HydratedInstance,
+  /**
+   * Class hierarchy for that object. The first element is [.className]. [Object]
+   * is excluded. There is always at least one element.
+   */
+  val classHierarchy: List<String>,
 
   /** Additional information, may be null.  */
   val extra: String?,
@@ -27,7 +30,7 @@ data class LeakTraceElement(
   val fieldReferences: List<LeakReference>
 ) : Serializable {
 
-  val className: String = instance.classHierarchy[0].className
+  val className: String = classHierarchy[0]
 
   enum class Type {
     INSTANCE_FIELD,
@@ -44,7 +47,9 @@ data class LeakTraceElement(
   }
 
   fun <T : HeapValue> getFieldReferenceValue(referenceName: String): T? {
-    return instance.fieldValueOrNull(referenceName)
+    @Suppress("UNCHECKED_CAST")
+    return fieldReferences.find { fieldReference -> fieldReference.name == referenceName }
+        ?.value as T
   }
 
   /** @see [isInstanceOf][] */
@@ -56,7 +61,7 @@ data class LeakTraceElement(
    * Returns true if this element is an instance of the provided class name, false otherwise.
    */
   fun isInstanceOf(expectedClassName: String): Boolean {
-    return instance.classHierarchy.any { it.className == expectedClassName }
+    return classHierarchy.any { it == expectedClassName }
   }
 
   /**

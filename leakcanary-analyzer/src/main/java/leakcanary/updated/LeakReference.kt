@@ -15,6 +15,7 @@
  */
 package leakcanary.updated
 
+import leakcanary.HeapValue
 import leakcanary.LeakTraceElement.Type
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
@@ -28,7 +29,7 @@ import java.io.Serializable
 data class LeakReference(
   val type: Type,
   val name: String,
-  val value: Long
+  val value: HeapValue
 ) : Serializable {
 
   val displayName: String

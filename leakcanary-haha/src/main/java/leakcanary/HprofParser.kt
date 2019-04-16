@@ -560,7 +560,11 @@ class HprofParser private constructor(
   }
 
   fun retrieveString(reference: ObjectReference): String {
-    val instanceRecord = retrieveRecord(reference) as InstanceDumpRecord
+    return retrieveStringById(reference.value)
+  }
+
+  fun retrieveStringById(objectId: Long): String {
+    val instanceRecord = retrieveRecordById(objectId) as InstanceDumpRecord
     val instance = hydrateInstance(instanceRecord)
     return instanceAsString(instance)
   }
@@ -603,6 +607,7 @@ class HprofParser private constructor(
 
   fun hydrateClassHierarchy(classId: Long): List<HydratedClass> {
     checkReadyToRead()
+    // TODO Add cache for common classes (e.g. Object) and maybe LruCache
     var currentClassId = classId
     val classHierarchy = mutableListOf<HydratedClass>()
     do {

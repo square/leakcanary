@@ -33,7 +33,7 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REF
 import leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REFS
 import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATH
 import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
-import leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
+import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
 import leakcanary.LeakTraceElement.Holder
 import leakcanary.LeakTraceElement.Holder.ARRAY
@@ -99,7 +99,7 @@ class HeapAnalyzer @TestOnly internal constructor(
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
       val buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
-      listener.onProgressUpdate(PARSING_HEAP_DUMP)
+      listener.onProgressUpdate(SCANNING_HEAP_DUMP)
       val snapshot = Snapshot.createSnapshot(buffer)
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
       deduplicateGcRoots(snapshot)
@@ -139,7 +139,7 @@ class HeapAnalyzer @TestOnly internal constructor(
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
       val buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
-      listener.onProgressUpdate(PARSING_HEAP_DUMP)
+      listener.onProgressUpdate(SCANNING_HEAP_DUMP)
       val snapshot = Snapshot.createSnapshot(buffer)
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
       deduplicateGcRoots(snapshot)

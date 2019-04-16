@@ -5,7 +5,8 @@ interface AnalyzerProgressListener {
   // These steps should be defined in the order in which they occur.
   enum class Step {
     READING_HEAP_DUMP_FILE,
-    PARSING_HEAP_DUMP,
+    SCANNING_HEAP_DUMP,
+    FINDING_WATCHED_REFERENCES,
     DEDUPLICATING_GC_ROOTS,
     FINDING_LEAKING_REF,
     FINDING_LEAKING_REFS,

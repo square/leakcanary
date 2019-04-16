@@ -17,12 +17,12 @@ package leakcanary.updated.internal
 
 import leakcanary.ExcludedRefs
 import leakcanary.Exclusion
-import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
-import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
-import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.HeapValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofParser
+import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
+import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
+import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
@@ -142,6 +142,8 @@ internal class ShortestPathFinder(
     // TODO java local: exclude specific threads,
     // TODO java local: parent should be set to the allocated thread
     gcRootIds.forEach {
+      // TODO It looks like this empty parent node is ignored on the consuming side, we should get
+      // rid of it.
       val parent = LeakNode(null, it, null, null)
       enqueue(hprofParser, null, parent, it, null)
     }
@@ -163,7 +165,7 @@ internal class ShortestPathFinder(
         continue
       }
 
-      val leakReference = LeakReference(STATIC_FIELD, fieldName, objectId)
+      val leakReference = LeakReference(STATIC_FIELD, fieldName, ObjectReference(objectId))
 
       val exclusion = ignoredStaticFields[fieldName]
 
@@ -223,7 +225,7 @@ internal class ShortestPathFinder(
 
           enqueue(
               hprofParser, exclusion, parent, objectId,
-              LeakReference(INSTANCE_FIELD, fieldName, objectId)
+              LeakReference(INSTANCE_FIELD, fieldName, ObjectReference(objectId))
           )
         }
   }
@@ -235,7 +237,7 @@ internal class ShortestPathFinder(
   ) {
     record.elementIds.forEachIndexed { index, elementId ->
       val name = Integer.toString(index)
-      val reference = LeakReference(ARRAY_ENTRY, name, elementId)
+      val reference = LeakReference(ARRAY_ENTRY, name, ObjectReference(elementId))
       enqueue(hprofParser, null, parentNode, elementId, reference)
     }
   }
