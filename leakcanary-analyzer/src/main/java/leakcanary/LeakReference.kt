@@ -28,8 +28,7 @@ import java.io.Serializable
 data class LeakReference(
   val type: Type,
   val name: String,
-  // TODO Change this to HeapValue previous analyzer isn't around.
-  val value: Any
+  val value: String
 ) : Serializable {
 
   val displayName: String

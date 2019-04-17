@@ -39,8 +39,16 @@ import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapDump
 import leakcanary.HeapDumpMemoryStore
+import leakcanary.HeapValue
+import leakcanary.HeapValue.BooleanValue
+import leakcanary.HeapValue.ByteValue
+import leakcanary.HeapValue.CharValue
+import leakcanary.HeapValue.DoubleValue
+import leakcanary.HeapValue.FloatValue
+import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
+import leakcanary.HeapValue.ShortValue
 import leakcanary.HprofParser
 import leakcanary.HprofParser.RecordCallbacks
 import leakcanary.KeyedWeakReference
@@ -504,22 +512,25 @@ class HeapAnalyzer constructor(
         val classHierarchy = parser.hydrateClassHierarchy(record.id)
         val hydratedClass = classHierarchy[0]
         hydratedClass.staticFieldNames.forEachIndexed { index, fieldName ->
+
+          val heapValue = hydratedClass.record.staticFields[index].value
           leakReferences.add(
-              LeakReference(STATIC_FIELD, fieldName, hydratedClass.record.staticFields[index].value)
+              LeakReference(STATIC_FIELD, fieldName, heapValueAsString(heapValue))
           )
         }
       }
       is ObjectArrayDumpRecord -> record.elementIds.forEachIndexed { index, objectId ->
         val name = Integer.toString(index)
-        leakReferences.add(LeakReference(ARRAY_ENTRY, name, ObjectReference(objectId)))
+        leakReferences.add(LeakReference(ARRAY_ENTRY, name, "object $objectId"))
       }
       else -> {
         val instance = parser.hydrateInstance(record as InstanceDumpRecord)
         instance.classHierarchy[0].staticFieldNames.forEachIndexed { index, fieldName ->
+          val heapValue = instance.classHierarchy[0].record.staticFields[index].value
           leakReferences.add(
               LeakReference(
                   STATIC_FIELD, fieldName,
-                  instance.classHierarchy[0].record.staticFields[index].value
+                  heapValueAsString(heapValue)
               )
           )
         }
@@ -528,7 +539,7 @@ class HeapAnalyzer constructor(
             leakReferences.add(
                 LeakReference(
                     INSTANCE_FIELD, instance.classHierarchy[classIndex].fieldNames[fieldIndex],
-                    heapValue
+                    heapValueAsString(heapValue)
                 )
             )
           }
@@ -536,6 +547,20 @@ class HeapAnalyzer constructor(
       }
     }
     return leakReferences
+  }
+
+  private fun heapValueAsString(heapValue: HeapValue): String {
+    return when (heapValue) {
+      is ObjectReference -> if (heapValue.value == 0L) "null" else "object ${heapValue.value}"
+      is BooleanValue -> heapValue.value.toString()
+      is CharValue -> heapValue.value.toString()
+      is FloatValue -> heapValue.value.toString()
+      is DoubleValue -> heapValue.value.toString()
+      is ByteValue -> heapValue.value.toString()
+      is ShortValue -> heapValue.value.toString()
+      is IntValue -> heapValue.value.toString()
+      is LongValue -> heapValue.value.toString()
+    }
   }
 
   private fun since(analysisStartNanoTime: Long): Long {

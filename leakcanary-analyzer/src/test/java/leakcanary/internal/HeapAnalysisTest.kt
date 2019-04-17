@@ -49,6 +49,8 @@ class HeapAnalysisTest {
     val elapsed = (now - time) / 1000000
     println("Last step done after $elapsed ms")
 
+    println("result: $leaks")
+
     require(leaks is HeapAnalysisSuccess)
     require(leaks.retainedInstances.size == 5)
   }

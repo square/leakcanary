@@ -17,6 +17,7 @@ package leakcanary.internal
 
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.R
 import leakcanary.AnalyzerProgressListener
@@ -39,9 +40,11 @@ internal class HeapAnalyzerService : ForegroundService(
     }
     val heapDump = intent.getSerializableExtra(HEAPDUMP_EXTRA) as HeapDump
 
-    val heapAnalyzer = HeapAnalyzer(this)
-
-    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
+    SystemClock.sleep(15000)
+    val heapAnalysis =
+      if (USE_NEW_HPROF_PARSER) leakcanary.updated.HeapAnalyzer(this).checkForLeaks(
+          heapDump
+      ) else HeapAnalyzer(this).checkForLeaks(heapDump)
 
     AnalysisResultService.sendResult(this, heapAnalysis)
   }
@@ -58,6 +61,7 @@ internal class HeapAnalyzerService : ForegroundService(
   companion object {
 
     private const val HEAPDUMP_EXTRA = "heapdump_extra"
+    var USE_NEW_HPROF_PARSER = true
 
     fun runAnalysis(
       context: Context,

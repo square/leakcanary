@@ -182,7 +182,7 @@ internal class ShortestPathFinder(
         continue
       }
 
-      val leakReference = LeakReference(STATIC_FIELD, fieldName, ObjectReference(objectId))
+      val leakReference = LeakReference(STATIC_FIELD, fieldName, "object $objectId")
 
       val exclusion = ignoredStaticFields[fieldName]
 
@@ -242,7 +242,7 @@ internal class ShortestPathFinder(
 
           enqueue(
               hprofParser, exclusion, parent, objectId,
-              LeakReference(INSTANCE_FIELD, fieldName, ObjectReference(objectId))
+              LeakReference(INSTANCE_FIELD, fieldName,"object $objectId")
           )
         }
   }
@@ -254,7 +254,7 @@ internal class ShortestPathFinder(
   ) {
     record.elementIds.forEachIndexed { index, elementId ->
       val name = Integer.toString(index)
-      val reference = LeakReference(ARRAY_ENTRY, name, ObjectReference(elementId))
+      val reference = LeakReference(ARRAY_ENTRY, name, "object $elementId")
       enqueue(hprofParser, null, parentNode, elementId, reference)
     }
   }
