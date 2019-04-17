@@ -12,7 +12,7 @@ class HeapAnalysisTest {
 
   @Test
   fun theWholeThing() {
-    CanaryLog.setLogger(object : CanaryLog.Logger {
+    CanaryLog.logger = object : CanaryLog.Logger {
       override fun d(
         message: String,
         vararg args: Any?
@@ -28,7 +28,7 @@ class HeapAnalysisTest {
         throwable!!.printStackTrace()
       }
 
-    })
+    }
     var time = System.nanoTime()
     val file = fileFromName(HeapDumpFile.MULTIPLE_LEAKS.filename)
     val heapAnalyzer = HeapAnalyzer(object : AnalyzerProgressListener {

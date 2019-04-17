@@ -33,6 +33,8 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.By
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StringRecord
+import leakcanary.internal.LongToLongSparseArray
+import leakcanary.internal.LongToStringSparseArray
 import leakcanary.internal.LruCache
 import okio.Buffer
 import okio.buffer
@@ -73,18 +75,22 @@ class HprofParser private constructor(
    * - thread names (currently not parsed)
    */
   private val hprofStringPositions = mutableMapOf<Long, Pair<Long, Long>>()
-  private val hprofStringCache = mutableMapOf<Long, String>()
+
+  // TODO Can we estimate the number of classnames + field names?
+  private val hprofStringCache = LongToStringSparseArray(60000)
 
   /**
    * class id to string id
    */
-  private val classNames = mutableMapOf<Long, Long>()
+  // TODO Can we estimate the number of classes?
+  private val classNames = LongToLongSparseArray(10000)
 
   /**
    * Object id to object position. The id can be for classes instances, classes, object arrays
    * and primitive arrays
    */
-  private val objectPositions = mutableMapOf<Long, Long>()
+  // TODO Any way we can estimate the number of objects?
+  private val objectPositions = LongToLongSparseArray(300000)
 
   private val objectCache = LruCache<Long, ObjectRecord>(1000)
 
@@ -124,7 +130,6 @@ class HprofParser private constructor(
         "Object cache hitCount=${objectCache.hitCount}" +
             ", evictionCount=${objectCache.evictionCount}, missCount=${objectCache.missCount}, putCount=${objectCache.putCount}"
     )
-
     reader.close()
   }
 
@@ -353,7 +358,7 @@ class HprofParser private constructor(
                 if (callback != null || !indexBuilt) {
                   val classDumpRecord = readClassDumpRecord(id)
                   if (!indexBuilt) {
-                    val classNameId = classNames[id]!!
+                    val classNameId = classNames[id]
                     val className = allHprofStrings.remove(classNameId)!!
                     hprofStringCache[classNameId] = className
                     hprofStringPositions.remove(classNameId)
@@ -576,7 +581,7 @@ class HprofParser private constructor(
 
     if (!indexBuilt) {
       CanaryLog.d(
-          "Index built, remaining allHprofStrings.size=%d, classNames.size=%d, objectPositions.size=%d, primitiveWrapperTypes.size=%d, primitiveWrapperClassNames.size=%d",
+          "Index built, hprofStringCache.size=${hprofStringCache.size} remaining allHprofStrings.size=%d, classNames.size=%d, objectPositions.size=%d, primitiveWrapperTypes.size=%d, primitiveWrapperClassNames.size=%d",
           allHprofStrings.size, classNames.size, objectPositions.size, primitiveWrapperTypes.size,
           primitiveWrapperClassNames.size
       )
@@ -604,7 +609,7 @@ class HprofParser private constructor(
 
   fun className(classId: Long): String {
     // String, primitive types
-    return hprofStringById(classNames[classId]!!)
+    return hprofStringById(classNames[classId])
   }
 
   fun retrieveString(reference: ObjectReference): String {
@@ -629,7 +634,7 @@ class HprofParser private constructor(
     }
 
     val position = objectPositions[objectId]
-    require(position != null) {
+    require(position != 0L) {
       "Unknown object id $objectId"
     }
     reader.moveTo(position)
