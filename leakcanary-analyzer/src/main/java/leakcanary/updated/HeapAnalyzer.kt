@@ -33,16 +33,34 @@ import leakcanary.GcRoot.ReferenceCleanup
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
 import leakcanary.GcRoot.VmInternal
+import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisException
+import leakcanary.HeapAnalysisFailure
+import leakcanary.HeapAnalysisSuccess
+import leakcanary.HeapDump
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofParser
 import leakcanary.HprofParser.RecordCallbacks
 import leakcanary.KeyedWeakReference
+import leakcanary.LeakReference
+import leakcanary.LeakTrace
+import leakcanary.LeakTraceElement
+import leakcanary.LeakTraceElement.Holder
+import leakcanary.LeakTraceElement.Holder.ARRAY
+import leakcanary.LeakTraceElement.Holder.CLASS
+import leakcanary.LeakTraceElement.Holder.OBJECT
+import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
+import leakcanary.LeakingInstance
+import leakcanary.NoPathToInstance
+import leakcanary.Reachability
+import leakcanary.Reachability.Status.REACHABLE
+import leakcanary.Reachability.Status.UNKNOWN
+import leakcanary.Reachability.Status.UNREACHABLE
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -50,14 +68,9 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StringRecord
-import leakcanary.updated.LeakTraceElement.Holder
-import leakcanary.updated.LeakTraceElement.Holder.ARRAY
-import leakcanary.updated.LeakTraceElement.Holder.CLASS
-import leakcanary.updated.LeakTraceElement.Holder.OBJECT
-import leakcanary.updated.LeakTraceElement.Holder.THREAD
-import leakcanary.updated.Reachability.Status.REACHABLE
-import leakcanary.updated.Reachability.Status.UNKNOWN
-import leakcanary.updated.Reachability.Status.UNREACHABLE
+import leakcanary.RetainedInstance
+import leakcanary.WeakReferenceCleared
+import leakcanary.WeakReferenceMissing
 import leakcanary.updated.internal.LeakNode
 import leakcanary.updated.internal.ShortestPathFinder
 import leakcanary.updated.internal.ShortestPathFinder.Result
@@ -389,7 +402,7 @@ class HeapAnalyzer constructor(
     element: LeakTraceElement
   ): Reachability {
     for (reachabilityInspector in reachabilityInspectors) {
-      val reachability = reachabilityInspector.expectedReachability(parser, element)
+      val reachability = reachabilityInspector.expectedReachability(element)
       if (reachability.status != UNKNOWN) {
         return reachability
       }

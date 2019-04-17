@@ -49,8 +49,8 @@ data class LeakTraceElement(
    * null if no field reference with that name was found.
    */
   fun getFieldReferenceValue(referenceName: String): String? {
-    return fieldReferences.find { fieldReference -> fieldReference.name.equals(referenceName) }
-        ?.value
+    return fieldReferences.find { fieldReference -> fieldReference.name == referenceName }
+        ?.value.toString()
   }
 
   /** @see [isInstanceOf][] */

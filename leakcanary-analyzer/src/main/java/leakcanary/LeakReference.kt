@@ -27,15 +27,16 @@ import java.io.Serializable
  */
 data class LeakReference(
   val type: Type,
-  val name: String?,
-  val value: String?
+  val name: String,
+  // TODO Change this to HeapValue previous analyzer isn't around.
+  val value: Any
 ) : Serializable {
 
   val displayName: String
     get() {
       return when (type) {
         ARRAY_ENTRY -> "[$name]"
-        STATIC_FIELD, INSTANCE_FIELD -> name!!
+        STATIC_FIELD, INSTANCE_FIELD -> name
         LOCAL -> "<Java Local>"
       }
     }
@@ -45,7 +46,7 @@ data class LeakReference(
       return when (type) {
         // The specific array index in a leak rarely matters, this improves grouping.
         ARRAY_ENTRY -> "[x]"
-        STATIC_FIELD, INSTANCE_FIELD -> name!!
+        STATIC_FIELD, INSTANCE_FIELD -> name
         LOCAL -> "<Java Local>"
       }
     }

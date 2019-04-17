@@ -1,7 +1,7 @@
 package leakcanary.updated.internal
 
 import leakcanary.Exclusion
-import leakcanary.updated.LeakReference
+import leakcanary.LeakReference
 
 internal data class LeakNode(
   val exclusion: Exclusion?,

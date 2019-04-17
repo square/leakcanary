@@ -139,36 +139,40 @@ class HeapAnalyzer @TestOnly internal constructor(
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
       val buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
-      listener.onProgressUpdate(SCANNING_HEAP_DUMP)
-      val snapshot = Snapshot.createSnapshot(buffer)
-      listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
-      deduplicateGcRoots(snapshot)
+      try {
+        listener.onProgressUpdate(SCANNING_HEAP_DUMP)
+        val snapshot = Snapshot.createSnapshot(buffer)
+        listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
+        deduplicateGcRoots(snapshot)
 
-      val analysisResults = mutableMapOf<String, RetainedInstance>()
+        val analysisResults = mutableMapOf<String, RetainedInstance>()
 
-      val (retainedKeys, heapDumpUptimeMillis) = readHeapDumpMemoryStore(snapshot)
+        val (retainedKeys, heapDumpUptimeMillis) = readHeapDumpMemoryStore(snapshot)
 
-      if (retainedKeys.size == 0) {
-        val exception = IllegalStateException("No retained keys found in heap dump")
-        return HeapAnalysisFailure(
+        if (retainedKeys.size == 0) {
+          val exception = IllegalStateException("No retained keys found in heap dump")
+          return HeapAnalysisFailure(
+              heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+              HeapAnalysisException(exception)
+          )
+        }
+
+        val leakingWeakRefs =
+          findLeakingReferences(snapshot, retainedKeys, analysisResults, heapDumpUptimeMillis)
+
+        val pathResults = findShortestPaths(heapDump, snapshot, leakingWeakRefs)
+
+        buildLeakTraces(heapDump, pathResults, snapshot, leakingWeakRefs, analysisResults)
+
+        addRemainingInstancesWithNoPath(leakingWeakRefs, analysisResults)
+
+        return HeapAnalysisSuccess(
             heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
-            HeapAnalysisException(exception)
+            analysisResults.values.toList()
         )
+      } finally {
+        buffer.dispose()
       }
-
-      val leakingWeakRefs =
-        findLeakingReferences(snapshot, retainedKeys, analysisResults, heapDumpUptimeMillis)
-
-      val pathResults = findShortestPaths(heapDump, snapshot, leakingWeakRefs)
-
-      buildLeakTraces(heapDump, pathResults, snapshot, leakingWeakRefs, analysisResults)
-
-      addRemainingInstancesWithNoPath(leakingWeakRefs, analysisResults)
-
-      return HeapAnalysisSuccess(
-          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
-          analysisResults.values.toList()
-      )
     } catch (exception: Throwable) {
       return HeapAnalysisFailure(
           heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),

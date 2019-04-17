@@ -2,12 +2,12 @@ package leakcanary.internal
 
 import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step
-import leakcanary.updated.HeapAnalysisSuccess
+import leakcanary.HeapAnalysisSuccess
+import leakcanary.HeapDump
 import leakcanary.updated.HeapAnalyzer
-import leakcanary.updated.HeapDump
 import org.junit.Test
 
-class HeapParsingTest {
+class HeapAnalysisTest {
 
   @Test
   fun theWholeThing() {
