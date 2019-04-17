@@ -252,7 +252,7 @@ class InstrumentationLeakDetector {
         heapAnalysis.analysisDurationMillis
     )
     CanaryLog.d(
-        "Streaming analysis used %d Mb took %d ms", memoryUsedSecondInMb,
+        "Random Access analysis used %d Mb took %d ms", memoryUsedSecondInMb,
         secondAnalysis.analysisDurationMillis
     )
 

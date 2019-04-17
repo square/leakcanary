@@ -77,13 +77,17 @@ class HprofParser private constructor(
   private val hprofStringPositions = mutableMapOf<Long, Pair<Long, Long>>()
 
   // TODO Can we estimate the number of classnames + field names?
+  // Heap dumps show strings represent 3/4 of the memory held. Lots of common prefixes in package
+  // names.
+  // TODO Wondering if a trie might help here but tries typically have the string
+  // as key whereas here it's a value.
   private val hprofStringCache = LongToStringSparseArray(60000)
 
   /**
    * class id to string id
    */
   // TODO Can we estimate the number of classes?
-  private val classNames = LongToLongSparseArray(10000)
+  private val classNames = LongToLongSparseArray(20000)
 
   /**
    * Object id to object position. The id can be for classes instances, classes, object arrays
@@ -92,7 +96,12 @@ class HprofParser private constructor(
   // TODO Any way we can estimate the number of objects?
   private val objectPositions = LongToLongSparseArray(300000)
 
-  private val objectCache = LruCache<Long, ObjectRecord>(1000)
+  /**
+   * LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
+   * This is based on running InstrumentationLeakDetectorTest a bunch of time on a
+   * Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
+   */
+  private val objectCache = LruCache<Long, ObjectRecord>(3000)
 
   /**
    * Class ids for primitive wrapper types
@@ -667,7 +676,6 @@ class HprofParser private constructor(
 
   fun hydrateClassHierarchy(classId: Long): List<HydratedClass> {
     checkReadyToRead()
-    // TODO Add cache for common classes (e.g. Object) and maybe LruCache
     var currentClassId = classId
     val classHierarchy = mutableListOf<HydratedClass>()
     do {

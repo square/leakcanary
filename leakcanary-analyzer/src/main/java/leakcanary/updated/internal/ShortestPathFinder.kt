@@ -73,14 +73,14 @@ internal class ShortestPathFinder(
   fun findPaths(
     parser: HprofParser,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
-    gcRootIds: List<Long>
+    gcRootIds: MutableList<Long>
   ): List<Result> {
     clearState()
-
     // Referent object id to weak ref mirror
     val referentMap = leakingWeakRefs.associateBy { it.referent.value }
 
     enqueueGcRoots(parser, gcRootIds)
+    gcRootIds.clear()
 
     var excludingKnownLeaks = false
     val results = mutableListOf<Result>()
@@ -88,8 +88,10 @@ internal class ShortestPathFinder(
       val node: LeakNode
       if (!toVisitQueue.isEmpty()) {
         node = toVisitQueue.poll()
+        toVisitSet.remove(node.instance)
       } else {
         node = toVisitIfNoPathQueue.poll()
+        toVisitIfNoPathSet.remove(node.instance)
         if (node.exclusion == null) {
           throw IllegalStateException("Expected node to have an exclusion $node")
         }
@@ -159,10 +161,7 @@ internal class ShortestPathFinder(
     // TODO java local: exclude specific threads,
     // TODO java local: parent should be set to the allocated thread
     gcRootIds.forEach {
-      // TODO It looks like this empty parent node is ignored on the consuming side, we should get
-      // rid of it.
-      val parent = LeakNode(null, it, null, null)
-      enqueue(hprofParser, null, parent, it, null)
+      enqueue(hprofParser, null, null, it, null)
     }
   }
 
@@ -197,7 +196,6 @@ internal class ShortestPathFinder(
     record: InstanceDumpRecord,
     parent: LeakNode
   ) {
-
     val instance = hprofParser.hydrateInstance(record)
 
     val exclusions = instance.classHierarchy.map {
@@ -242,7 +240,7 @@ internal class ShortestPathFinder(
 
           enqueue(
               hprofParser, exclusion, parent, objectId,
-              LeakReference(INSTANCE_FIELD, fieldName,"object $objectId")
+              LeakReference(INSTANCE_FIELD, fieldName, "object $objectId")
           )
         }
   }
@@ -269,6 +267,15 @@ internal class ShortestPathFinder(
     if (child == 0L) {
       return
     }
+
+    // Whether we want to visit now or later, we should skip if this is already to visit.
+    if (toVisitSet.contains(child)) {
+      return
+    }
+    if (visitedSet.contains(child)) {
+      return
+    }
+
     val record = hprofParser.retrieveRecordById(child)
 
     if (record is PrimitiveArrayDumpRecord) {
@@ -277,15 +284,11 @@ internal class ShortestPathFinder(
 
     if (record is ObjectArrayDumpRecord) {
       if (hprofParser.isPrimitiveWrapper(record.arrayClassId)) {
-        // TODO Confirm we run into this
-        println("Skipping primitive wrapper array")
         return
       }
     }
 
     if (record is InstanceDumpRecord && hprofParser.isPrimitiveWrapper(record.classId)) {
-      // TODO Confirm we run into this
-      println("Skipping primitive wrapper")
       return
     }
 
@@ -295,15 +298,9 @@ internal class ShortestPathFinder(
     ) {
       return
     }
-    // Whether we want to visit now or later, we should skip if this is already to visit.
-    if (toVisitSet.contains(child)) {
-      return
-    }
+
     val visitNow = exclusion == null
     if (!visitNow && toVisitIfNoPathSet.contains(child)) {
-      return
-    }
-    if (visitedSet.contains(child)) {
       return
     }
     val childNode = LeakNode(exclusion, child, parent, leakReference)

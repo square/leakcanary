@@ -44,11 +44,15 @@ internal class HeapAnalyzerService : ForegroundService(
     }
     val heapDump = intent.getSerializableExtra(HEAPDUMP_EXTRA) as HeapDump
 
-    SystemClock.sleep(15000)
+
     val heapAnalysis =
-      if (USE_NEW_HPROF_PARSER) leakcanary.updated.HeapAnalyzer(this).checkForLeaks(
-          heapDump
-      ) else HeapAnalyzer(this).checkForLeaks(heapDump)
+      if (USE_NEW_HPROF_PARSER) {
+        // TODO Remove (gives us time to plug in profiler)
+        SystemClock.sleep(15000)
+        leakcanary.updated.HeapAnalyzer(this).checkForLeaks(
+            heapDump
+        )
+      } else HeapAnalyzer(this).checkForLeaks(heapDump)
 
     AnalysisResultService.sendResult(this, heapAnalysis)
   }

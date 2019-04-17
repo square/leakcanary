@@ -32,7 +32,6 @@ import leakcanary.GcRoot.NativeStack
 import leakcanary.GcRoot.ReferenceCleanup
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
-import leakcanary.GcRoot.VmInternal
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisException
 import leakcanary.HeapAnalysisFailure
@@ -156,7 +155,7 @@ class HeapAnalyzer constructor(
     }
   }
 
-  private fun scan(parser: HprofParser): Triple<List<Long>, Long, List<InstanceDumpRecord>> {
+  private fun scan(parser: HprofParser): Triple<MutableList<Long>, Long, List<InstanceDumpRecord>> {
     var keyedWeakReferenceStringId = -1L
     var heapDumpMemoryStoreStringId = -1L
     var keyedWeakReferenceClassId = -1L
@@ -185,6 +184,10 @@ class HeapAnalyzer constructor(
         }
         .on(GcRootRecord::class.java) {
           // TODO Why is ThreadObject ignored?
+          // TODO Ignoring VmInternal because we've got 150K of it, but is this the right thing
+          // to do? What's VmInternal exactly? History does not go further than
+          // https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
+          // We should log to figure out what objects VmInternal points to.
           when (it.gcRoot) {
             is JniGlobal,
             is JniLocal,
@@ -195,7 +198,6 @@ class HeapAnalyzer constructor(
             is MonitorUsed,
               // TODO What is this and why do we care about it as a root?
             is ReferenceCleanup,
-            is VmInternal,
             is JniMonitor
             -> {
               gcRootIds.add(it.gcRoot.id)
@@ -261,7 +263,7 @@ class HeapAnalyzer constructor(
     heapDump: HeapDump,
     parser: HprofParser,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
-    gcRootIds: List<Long>
+    gcRootIds: MutableList<Long>
   ): List<ShortestPathFinder.Result> {
     listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
 
@@ -423,14 +425,10 @@ class HeapAnalyzer constructor(
     node: LeakNode
   ): LeakTraceElement? {
     if (node.parent == null) {
-      // Ignore any root node.
       return null
     }
     val objectId = node.parent.instance
 
-    if (node.parent.parent == null) {
-      return null
-    }
     val holderType: Holder
     var extra: String? = null
 
