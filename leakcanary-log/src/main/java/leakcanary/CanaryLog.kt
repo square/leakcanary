@@ -15,11 +15,7 @@ object CanaryLog {
     )
   }
 
-  @Volatile private var logger: Logger? = null
-
-  fun setLogger(logger: Logger?) {
-    this.logger = logger
-  }
+  @Volatile var logger: Logger? = null
 
   fun d(
     message: String,

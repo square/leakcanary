@@ -34,6 +34,10 @@ internal class HeapAnalyzerService : ForegroundService(
 ), AnalyzerProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
+    if (CanaryLog.logger == null) {
+      CanaryLog.logger = DefaultCanaryLog()
+    }
+
     if (intent == null) {
       CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.")
       return
