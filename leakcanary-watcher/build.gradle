@@ -6,6 +6,7 @@ targetCompatibility = JavaVersion.VERSION_1_7
 
 dependencies {
   implementation deps.kotlin.stdlib
+  api project(':leakcanary-log')
 
   testImplementation deps.assertj_core
   testImplementation deps.junit

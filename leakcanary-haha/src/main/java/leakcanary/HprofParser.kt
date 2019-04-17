@@ -537,6 +537,14 @@ class HprofParser private constructor(
       }
     }
 
+    if (!indexBuilt) {
+      CanaryLog.d(
+          "Index built, classNames.size=%d, objectPositions.size=%d, primitiveWrapperTypes.size=%d, primitiveWrapperClassNames.size=%d",
+          classNames.size, objectPositions.size, primitiveWrapperTypes.size,
+          primitiveWrapperClassNames.size
+      )
+    }
+
     scanning = false
     indexBuilt = true
   }
