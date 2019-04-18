@@ -391,7 +391,7 @@ open class HprofReader constructor(
     const val LONG_TYPE = 11
 
     const val INT_MASK = 0xffffffffL
-    const val BYTE_MASK = 0xFF
+    const val BYTE_MASK = 0xff
   }
 
 }
