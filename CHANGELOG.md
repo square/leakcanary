@@ -4,7 +4,7 @@
 
 * **Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements!
 * Check out the [2.0 Readme](https://github.com/square/leakcanary/blob/master/README-2.0.md).
-* New logo!
+* New [logo](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo), thanks [@flickator](https://github.com/flickator)!
 <p align="center">
 <img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
 </p>
@@ -24,7 +24,7 @@
   * Leaks can be shared to Stack Overflow
 * New library: LeakSentry.
   * Detects when objects are leaking and triggers LeakCanary
-  * Can be use separately in production, for instance to report the number of leaking instances after an OutOfMemoryError.
+  * Can be used independently in production, for instance to report the number of leaking instances on an OutOfMemoryError crash.
 * New experimental heap parser
   * Uses 90% less memory and 6 times faster than the prior heap parser.
   * Runs in the same process as the app on a low priority thread.

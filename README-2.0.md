@@ -1,7 +1,7 @@
 
 # LeakCanary
 
-A memory leak detection library for Android and Java.
+A memory leak detection library for Android and Kotlin.
 
 *“A small leak will sink a great ship.”* - Benjamin Franklin
 
@@ -19,7 +19,7 @@ dependencies {
 }
 ```
 
-**You're good to go!** LeakCanary will automatically show a notification when an activity or support fragment memory leak is detected in your debug build.
+**You're good to go!** LeakCanary will automatically show a notification when an activity or fragment memory leak is detected in your debug build.
 
 ## Presentations
 
