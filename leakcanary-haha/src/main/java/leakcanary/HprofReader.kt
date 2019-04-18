@@ -143,7 +143,7 @@ open class HprofReader constructor(
 
   fun readBoolean(): Boolean {
     position += BOOLEAN_SIZE
-    return source.readByte() != 0.toByte()
+    return source.readByte().toInt() != 0
   }
 
   fun readByteArray(byteCount: Int): ByteArray {
