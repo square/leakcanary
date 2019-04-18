@@ -23,17 +23,27 @@ dependencies {
 
 ## Presentations
 
-* A [live investigation](https://www.youtube.com/watch?v=KwArTJHLq5g)
-
+* [LeakCanary, then what? Nuking Nasty Memory Leaks](https://www.youtube.com/watch?v=fhE--eTEW84)
+* [Memory Leak Hunt](https://www.youtube.com/watch?v=KwArTJHLq5g), a live investigation.
 
 ## Recipes
 
 ### Watching custom objects
+
 ```kotlin
-LeakSentry.refWatcher.watch(destroyedIntentService)
+class MyService : Service {
+
+  // ...
+
+  override fun onDestroy() {
+    super.onDestroy()
+    LeakSentry.refWatcher.watch(this)
+  }
+
+}
 ```
 
-### Configuration options
+### Configuring LeakSentry & LeakCanary
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
@@ -41,7 +51,7 @@ class DebugExampleApplication : ExampleApplication() {
   override fun onCreate() {
     super.onCreate()
     // LeakSentry is in charge of detecting memory leaks
-    LeakSentry.config = LeakSentry.config.copy(watchDurationMillis = 3000)
+    LeakSentry.config = LeakSentry.config.copy(watchFragmentViews = false)
 
     // LeakCanary is in charge of taking heap dumps and analyzing them
     LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
@@ -49,7 +59,7 @@ class DebugExampleApplication : ExampleApplication() {
 }
 ```
 
-### Using LeakSentry in production
+### Counting retained instances in production
 
 In your `build.gradle`:
 
@@ -61,10 +71,12 @@ dependencies {
 
 In your leak reporting code:
 ```kotlin
-val retainedReferenceCount = LeakSentry.refWatcher.retainedKeys.size
+val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
 ```
 
-### Setup (with the old perflib heap parser)
+### Alternate setup with the old perflib heap parser
+
+If you want to try LeakCanary 2.0 features with the battle tested perflib heap parser:
 
 ```groovy
 dependencies {
