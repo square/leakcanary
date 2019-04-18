@@ -6,6 +6,7 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
 import leakcanary.AnalyzerProgressListener.Step
+import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 import java.util.Date
@@ -13,8 +14,9 @@ import java.util.concurrent.Executor
 
 /**
  * Instrumentation test that runs the two heap analyzer implementations on the same heap
- * dump and logs how they perform.
+ * dump and logs how they perform. This isn't meant to run as part of the test suite.
  */
+@Ignore
 class HeapAnalyzerComparisonTest {
 
   @Volatile
