@@ -1,15 +1,17 @@
 package leakcanary.internal
 
 import android.app.Application
+import android.content.Context
+import android.content.Intent
 import android.os.Handler
 import android.os.SystemClock
+import androidx.core.content.ContextCompat
 import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.HeapDump
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.LeakCanary.Config
 import leakcanary.RefWatcher
-import leakcanary.experimental.internal.ExperimentalHeapAnalyzerService
 
 internal class HeapDumpTrigger(
   private val application: Application,
@@ -127,11 +129,7 @@ internal class HeapDumpTrigger(
         .reachabilityInspectorClasses(config.reachabilityInspectorClasses)
         .build()
 
-    if (config.useExperimentalHeapParser) {
-      ExperimentalHeapAnalyzerService.runAnalysis(application, heapDump)
-    } else {
-      HeapAnalyzerService.runAnalysis(application, heapDump)
-    }
+    HeapAnalyzers.runAnalysis(application, heapDump)
   }
 
   private fun scheduleTick(reason: String) {

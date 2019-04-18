@@ -27,17 +27,6 @@
 
   <application>
     <service
-        android:name="leakcanary.internal.HeapAnalyzerService"
-        android:exported="false"
-        android:process=":leakcanary"
-        />
-
-    <service
-        android:name="leakcanary.experimental.internal.ExperimentalHeapAnalyzerService"
-        android:exported="false"
-        />
-
-    <service
         android:name="leakcanary.internal.AnalysisResultService"
         android:exported="false"
         />

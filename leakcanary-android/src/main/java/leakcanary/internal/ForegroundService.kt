@@ -22,7 +22,7 @@ import android.os.IBinder
 import android.os.SystemClock
 import com.squareup.leakcanary.R
 
-internal abstract class ForegroundService(
+abstract class ForegroundService(
   name: String,
   private val notificationContentTitleResId: Int
 ) : IntentService(name) {

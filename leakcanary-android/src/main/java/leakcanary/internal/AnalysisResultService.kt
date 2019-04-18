@@ -43,7 +43,7 @@ import java.util.Locale
 /**
  * Runs into the main process and handles the result of an analysis
  */
-internal class AnalysisResultService : ForegroundService(
+class AnalysisResultService : ForegroundService(
     AnalysisResultService::class.java.name,
     R.string.leak_canary_notification_reporting
 ) {
