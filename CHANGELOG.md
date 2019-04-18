@@ -8,10 +8,13 @@
 <p align="center">
 <img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
 </p>
+
 * Entirely rewritten to 100% Kotlin
+
 <p align="center">
 <img src="https://github.com/square/leakcanary/wiki/assets/kanary-200px.png" />
 </p>
+
 * Multiple leaks detected in one analysis
   * The heap is dumped when the app goes in the background, or when a minimum of 5 leaks is reached in the foreground.
 * Leak grouping
