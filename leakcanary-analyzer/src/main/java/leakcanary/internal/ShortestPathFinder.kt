@@ -241,7 +241,7 @@ internal class ShortestPathFinder(
         exclusion = node.exclusion
       }
       val parent = LeakNode(null, holder, null, null)
-      enqueue(exclusion, parent, child, LeakReference(LOCAL, null, null))
+      enqueue(exclusion, parent, child, LeakReference(LOCAL, "", ""))
     } else {
       enqueue(null, node, child, null)
     }

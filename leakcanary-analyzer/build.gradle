@@ -6,6 +6,7 @@ targetCompatibility = JavaVersion.VERSION_1_7
 
 dependencies {
   api project(':leakcanary-watcher')
+  api project(':leakcanary-haha')
 
   implementation deps.androidx.annotation
   implementation deps.haha

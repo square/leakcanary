@@ -177,9 +177,11 @@ class InstrumentationLeakDetector {
 
     refWatcher.removeRetainedKeys(retainedKeys)
 
-    val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
+    val listener = AnalyzerProgressListener.NONE
 
-    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
+    val heapAnalysis = if (config.useExperimentalHeapParser)
+      leakcanary.experimental.ExperimentalHeapAnalyzer(listener).checkForLeaks(heapDump)
+    else HeapAnalyzer(listener).checkForLeaks(heapDump)
 
     CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)
 

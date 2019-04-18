@@ -3,7 +3,7 @@ package leakcanary.internal
 import android.util.Log
 import leakcanary.CanaryLog.Logger
 
-internal class DefaultCanaryLog internal constructor() : Logger {
+class DefaultCanaryLog : Logger {
 
   override fun d(
     message: String,
@@ -26,9 +26,10 @@ internal class DefaultCanaryLog internal constructor() : Logger {
     message: String,
     vararg args: Any?
   ) {
-    d(String.format(message, *args) + '\n'.toString() + Log.getStackTraceString(
-        throwable
-    )
+    d(
+        String.format(message, *args) + '\n'.toString() + Log.getStackTraceString(
+            throwable
+        )
     )
   }
 }

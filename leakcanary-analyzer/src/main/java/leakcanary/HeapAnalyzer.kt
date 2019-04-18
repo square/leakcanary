@@ -35,6 +35,7 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATH
 import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
+import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
 import leakcanary.LeakTraceElement.Holder
 import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
@@ -96,9 +97,10 @@ class HeapAnalyzer @TestOnly internal constructor(
       return AnalysisResult.failure(exception, since(analysisStartNanoTime))
     }
 
+    var buffer: MemoryMappedFileBuffer? = null
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
-      val buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
+      buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
       listener.onProgressUpdate(PARSING_HEAP_DUMP)
       val snapshot = Snapshot.createSnapshot(buffer)
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
@@ -115,6 +117,8 @@ class HeapAnalyzer @TestOnly internal constructor(
       )
     } catch (e: Throwable) {
       return AnalysisResult.failure(e, since(analysisStartNanoTime))
+    } finally {
+      buffer?.dispose()
     }
 
   }
@@ -136,10 +140,11 @@ class HeapAnalyzer @TestOnly internal constructor(
       )
     }
 
+    var buffer: MemoryMappedFileBuffer? = null
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
-      val buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
-      listener.onProgressUpdate(PARSING_HEAP_DUMP)
+      buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
+      listener.onProgressUpdate(SCANNING_HEAP_DUMP)
       val snapshot = Snapshot.createSnapshot(buffer)
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
       deduplicateGcRoots(snapshot)
@@ -174,6 +179,8 @@ class HeapAnalyzer @TestOnly internal constructor(
           heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)
       )
+    } finally {
+      buffer?.dispose()
     }
   }
 

@@ -14,7 +14,7 @@ import leakcanary.CanaryLog
 internal class LeakSentryInstaller : ContentProvider() {
 
   override fun onCreate(): Boolean {
-    CanaryLog.setLogger(DefaultCanaryLog())
+    CanaryLog.logger = DefaultCanaryLog()
     val application = context!!.applicationContext as Application
     InternalLeakSentry.install(application)
     return true

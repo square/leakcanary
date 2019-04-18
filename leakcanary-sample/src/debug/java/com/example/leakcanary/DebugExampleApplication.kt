@@ -10,6 +10,7 @@ class DebugExampleApplication : ExampleApplication() {
       // You should not init your app in this process.
       return
     }
+    LeakCanary.config = LeakCanary.config.copy(useExperimentalHeapParser = true)
     super.onCreate()
   }
 }

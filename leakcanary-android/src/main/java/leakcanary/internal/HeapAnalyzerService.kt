@@ -33,15 +33,22 @@ internal class HeapAnalyzerService : ForegroundService(
 ), AnalyzerProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
+    // TODO This isn't ideal but will disappear once we use a single process.
+    if (CanaryLog.logger == null) {
+      CanaryLog.logger = DefaultCanaryLog()
+    }
+
     if (intent == null) {
       CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.")
       return
     }
     val heapDump = intent.getSerializableExtra(HEAPDUMP_EXTRA) as HeapDump
 
-    val heapAnalyzer = HeapAnalyzer(this)
-
-    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
+    val heapAnalysis =
+      if (heapDump.useExperimentalHeapParser) {
+        leakcanary.experimental.ExperimentalHeapAnalyzer(this)
+            .checkForLeaks(heapDump)
+      } else HeapAnalyzer(this).checkForLeaks(heapDump)
 
     AnalysisResultService.sendResult(this, heapAnalysis)
   }
