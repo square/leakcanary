@@ -180,7 +180,7 @@ class InstrumentationLeakDetector {
     val listener = AnalyzerProgressListener.NONE
 
     val heapAnalysis = if (config.useExperimentalHeapParser)
-      leakcanary.experimental.HeapAnalyzer(listener).checkForLeaks(heapDump)
+      leakcanary.experimental.ExperimentalHeapAnalyzer(listener).checkForLeaks(heapDump)
     else HeapAnalyzer(listener).checkForLeaks(heapDump)
 
     return AnalysisPerformed(heapAnalysis)

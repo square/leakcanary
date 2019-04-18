@@ -107,7 +107,7 @@ class HprofParserComparisonTest {
     }
     countMemory2.run()
 
-    val secondAnalysis = leakcanary.experimental.HeapAnalyzer(listener)
+    val secondAnalysis = leakcanary.experimental.ExperimentalHeapAnalyzer(listener)
         .checkForLeaks(heapDump) as HeapAnalysisSuccess
     val memoryUsedSecondInMb = (secondMaxMemoryUsed - memoryBeforeSecond) / 1048576L
 

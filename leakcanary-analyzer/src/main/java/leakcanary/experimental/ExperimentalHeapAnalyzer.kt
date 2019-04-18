@@ -78,6 +78,7 @@ import leakcanary.Record.StringRecord
 import leakcanary.RetainedInstance
 import leakcanary.WeakReferenceCleared
 import leakcanary.WeakReferenceMissing
+import leakcanary.experimental.internal.KeyedWeakReferenceMirror
 import leakcanary.experimental.internal.LeakNode
 import leakcanary.experimental.internal.ShortestPathFinder
 import leakcanary.experimental.internal.ShortestPathFinder.Result
@@ -87,7 +88,7 @@ import java.util.concurrent.TimeUnit.NANOSECONDS
 /**
  * Analyzes heap dumps to look for leaks.
  */
-class HeapAnalyzer constructor(
+class ExperimentalHeapAnalyzer constructor(
   private val listener: AnalyzerProgressListener
 ) {
 

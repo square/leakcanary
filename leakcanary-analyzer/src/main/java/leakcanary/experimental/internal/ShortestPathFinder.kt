@@ -28,7 +28,6 @@ import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.experimental.KeyedWeakReferenceMirror
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap

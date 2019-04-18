@@ -45,7 +45,7 @@ internal class HeapAnalyzerService : ForegroundService(
 
     val heapAnalysis =
       if (heapDump.useExperimentalHeapParser) {
-        leakcanary.experimental.HeapAnalyzer(this)
+        leakcanary.experimental.ExperimentalHeapAnalyzer(this)
             .checkForLeaks(heapDump)
       } else HeapAnalyzer(this).checkForLeaks(heapDump)
 

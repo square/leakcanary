@@ -1,4 +1,4 @@
-package leakcanary.internal
+package leakcanary.internal.experimental
 
 import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step
@@ -6,13 +6,16 @@ import leakcanary.CanaryLog
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapDump
 import leakcanary.LeakingInstance
-import leakcanary.experimental.HeapAnalyzer
+import leakcanary.experimental.ExperimentalHeapAnalyzer
+import leakcanary.internal.HeapDumpFile.MULTIPLE_LEAKS
+import leakcanary.internal.defaultExcludedRefs
+import leakcanary.internal.fileFromName
 import org.junit.Test
 
-class HeapAnalysisTest {
+class ExperimentalHeapAnalyzerTest {
 
   @Test
-  fun theWholeThing() {
+  fun checkForLeaks() {
     CanaryLog.logger = object : CanaryLog.Logger {
       override fun d(
         message: String,
@@ -31,8 +34,9 @@ class HeapAnalysisTest {
 
     }
     var time = System.nanoTime()
-    val file = fileFromName(HeapDumpFile.MULTIPLE_LEAKS.filename)
-    val heapAnalyzer = HeapAnalyzer(object : AnalyzerProgressListener {
+    val file =
+      fileFromName(MULTIPLE_LEAKS.filename)
+    val heapAnalyzer = ExperimentalHeapAnalyzer(object : AnalyzerProgressListener {
       override fun onProgressUpdate(step: Step) {
         val now = System.nanoTime()
         val elapsed = (now - time) / 1000000

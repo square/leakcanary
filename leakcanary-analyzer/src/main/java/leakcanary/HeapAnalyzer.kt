@@ -33,6 +33,7 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REF
 import leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REFS
 import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATH
 import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
+import leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
 import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
 import leakcanary.LeakTraceElement.Holder
@@ -96,10 +97,11 @@ class HeapAnalyzer @TestOnly internal constructor(
       return AnalysisResult.failure(exception, since(analysisStartNanoTime))
     }
 
+    var buffer: MemoryMappedFileBuffer? = null
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
-      val buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
-      listener.onProgressUpdate(SCANNING_HEAP_DUMP)
+      buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
+      listener.onProgressUpdate(PARSING_HEAP_DUMP)
       val snapshot = Snapshot.createSnapshot(buffer)
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
       deduplicateGcRoots(snapshot)
@@ -115,6 +117,8 @@ class HeapAnalyzer @TestOnly internal constructor(
       )
     } catch (e: Throwable) {
       return AnalysisResult.failure(e, since(analysisStartNanoTime))
+    } finally {
+      buffer?.dispose()
     }
 
   }
@@ -136,48 +140,47 @@ class HeapAnalyzer @TestOnly internal constructor(
       )
     }
 
+    var buffer: MemoryMappedFileBuffer? = null
     try {
       listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
-      val buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
-      try {
-        listener.onProgressUpdate(SCANNING_HEAP_DUMP)
-        val snapshot = Snapshot.createSnapshot(buffer)
-        listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
-        deduplicateGcRoots(snapshot)
+      buffer = MemoryMappedFileBuffer(heapDump.heapDumpFile)
+      listener.onProgressUpdate(SCANNING_HEAP_DUMP)
+      val snapshot = Snapshot.createSnapshot(buffer)
+      listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
+      deduplicateGcRoots(snapshot)
 
-        val analysisResults = mutableMapOf<String, RetainedInstance>()
+      val analysisResults = mutableMapOf<String, RetainedInstance>()
 
-        val (retainedKeys, heapDumpUptimeMillis) = readHeapDumpMemoryStore(snapshot)
+      val (retainedKeys, heapDumpUptimeMillis) = readHeapDumpMemoryStore(snapshot)
 
-        if (retainedKeys.size == 0) {
-          val exception = IllegalStateException("No retained keys found in heap dump")
-          return HeapAnalysisFailure(
-              heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
-              HeapAnalysisException(exception)
-          )
-        }
-
-        val leakingWeakRefs =
-          findLeakingReferences(snapshot, retainedKeys, analysisResults, heapDumpUptimeMillis)
-
-        val pathResults = findShortestPaths(heapDump, snapshot, leakingWeakRefs)
-
-        buildLeakTraces(heapDump, pathResults, snapshot, leakingWeakRefs, analysisResults)
-
-        addRemainingInstancesWithNoPath(leakingWeakRefs, analysisResults)
-
-        return HeapAnalysisSuccess(
+      if (retainedKeys.size == 0) {
+        val exception = IllegalStateException("No retained keys found in heap dump")
+        return HeapAnalysisFailure(
             heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
-            analysisResults.values.toList()
+            HeapAnalysisException(exception)
         )
-      } finally {
-        buffer.dispose()
       }
+
+      val leakingWeakRefs =
+        findLeakingReferences(snapshot, retainedKeys, analysisResults, heapDumpUptimeMillis)
+
+      val pathResults = findShortestPaths(heapDump, snapshot, leakingWeakRefs)
+
+      buildLeakTraces(heapDump, pathResults, snapshot, leakingWeakRefs, analysisResults)
+
+      addRemainingInstancesWithNoPath(leakingWeakRefs, analysisResults)
+
+      return HeapAnalysisSuccess(
+          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+          analysisResults.values.toList()
+      )
     } catch (exception: Throwable) {
       return HeapAnalysisFailure(
           heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)
       )
+    } finally {
+      buffer?.dispose()
     }
   }
 
