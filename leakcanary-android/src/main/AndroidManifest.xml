@@ -27,12 +27,8 @@
 
   <application>
     <service
-        android:name="leakcanary.internal.HeapAnalyzerService"
-        android:process=":leakcanary"
-        />
-
-    <service
         android:name="leakcanary.internal.AnalysisResultService"
+        android:exported="false"
         />
 
     <provider
@@ -50,7 +46,6 @@
         android:name="leakcanary.internal.activity.LeakActivity"
         android:icon="@mipmap/leak_canary_icon"
         android:label="@string/leak_canary_display_activity_label"
-        android:process=":leakcanary"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_LeakCanary.Base"
         />
@@ -60,7 +55,6 @@
         android:enabled="@bool/leak_canary_add_launcher_icon"
         android:icon="@mipmap/leak_canary_icon"
         android:label="@string/leak_canary_display_activity_label"
-        android:process=":leakcanary"
         android:targetActivity="leakcanary.internal.activity.LeakActivity"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_LeakCanary.Base"
@@ -76,7 +70,6 @@
         android:excludeFromRecents="true"
         android:icon="@mipmap/leak_canary_icon"
         android:label="@string/leak_canary_storage_permission_activity_label"
-        android:process=":leakcanary"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_Theme.Transparent"
         />

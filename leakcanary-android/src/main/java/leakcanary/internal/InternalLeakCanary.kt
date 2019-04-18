@@ -1,6 +1,7 @@
 package leakcanary.internal
 
 import android.app.Application
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
@@ -23,6 +24,7 @@ import leakcanary.HeapDump
 import leakcanary.LeakCanary
 import leakcanary.LeakSentry
 import leakcanary.internal.activity.LeakActivity
+import java.lang.Exception
 
 internal object InternalLeakCanary {
 
@@ -36,8 +38,6 @@ internal object InternalLeakCanary {
     if (isInAnalyzerProcess(application)) {
       return
     }
-    val heapDumpListener = ServiceHeapDumpListener(application)
-
     val debuggerControl = AndroidDebuggerControl()
 
     val leakDirectoryProvider =
@@ -54,7 +54,7 @@ internal object InternalLeakCanary {
 
     heapDumpTrigger = HeapDumpTrigger(
         application, backgroundHandler, debuggerControl, LeakSentry.refWatcher,
-        leakDirectoryProvider, gcTrigger, heapDumper, heapDumpListener, configProvider
+        leakDirectoryProvider, gcTrigger, heapDumper, configProvider
     )
     heapDumpTrigger.registerToVisibilityChanges()
 
@@ -238,13 +238,20 @@ internal object InternalLeakCanary {
    * [Application.onCreate]
    */
   fun isInAnalyzerProcess(context: Context): Boolean {
+    val analyzerServiceClass: Class<out Service>
+    @Suppress("UNCHECKED_CAST")
+    try {
+      analyzerServiceClass =
+        Class.forName("leakcanary.internal.HeapAnalyzerService") as Class<out Service>
+    } catch (e: Exception) {
+      return false
+    }
+
     var isInAnalyzerProcess: Boolean? = isInAnalyzerProcess
     // This only needs to be computed once per process.
     if (isInAnalyzerProcess == null) {
       isInAnalyzerProcess =
-        LeakCanaryUtils.isInServiceProcess(
-            context, HeapAnalyzerService::class.java
-        )
+        LeakCanaryUtils.isInServiceProcess(context, analyzerServiceClass)
       this.isInAnalyzerProcess = isInAnalyzerProcess
     }
     return isInAnalyzerProcess

@@ -1,17 +1,17 @@
 package leakcanary.internal
 
 import android.app.Application
+import android.content.Context
+import android.content.Intent
 import android.os.Handler
 import android.os.SystemClock
+import androidx.core.content.ContextCompat
 import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.HeapDump
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.LeakCanary.Config
 import leakcanary.RefWatcher
-import leakcanary.HeapDump.Builder
-import leakcanary.HeapDump.Companion
-import leakcanary.HeapDump.Listener
 
 internal class HeapDumpTrigger(
   private val application: Application,
@@ -21,7 +21,6 @@ internal class HeapDumpTrigger(
   private val leakDirectoryProvider: LeakDirectoryProvider,
   private val gcTrigger: GcTrigger,
   private val heapDumper: HeapDumper,
-  private val heapdumpListener: Listener,
   private val configProvider: () -> Config
 ) {
 
@@ -61,7 +60,8 @@ internal class HeapDumpTrigger(
     }
 
     if (debuggerControl.isDebuggerAttached) {
-      scheduleTick("debugger was attached",
+      scheduleTick(
+          "debugger was attached",
           WAIT_FOR_DEBUG_MILLIS
       )
       CanaryLog.d(
@@ -77,7 +77,8 @@ internal class HeapDumpTrigger(
           "Leak Analysis in progress, will retry in %d ms",
           WAIT_FOR_PENDING_ANALYSIS_MILLIS
       )
-      scheduleTick("had pending heap dump",
+      scheduleTick(
+          "had pending heap dump",
           WAIT_FOR_PENDING_ANALYSIS_MILLIS
       )
       return
@@ -112,7 +113,8 @@ internal class HeapDumpTrigger(
           "Failed to dump heap, will retry in %d ms",
           WAIT_FOR_HEAP_DUMPER_MILLIS
       )
-      scheduleTick("failed to dump heap",
+      scheduleTick(
+          "failed to dump heap",
           WAIT_FOR_HEAP_DUMPER_MILLIS
       )
       return
@@ -124,10 +126,10 @@ internal class HeapDumpTrigger(
         .gcDurationMs(gcDurationMillis)
         .heapDumpDurationMs(heapDumpDurationMillis)
         .computeRetainedHeapSize(config.computeRetainedHeapSize)
-        .useExperimentalHeapParser(config.useExperimentalHeapParser)
         .reachabilityInspectorClasses(config.reachabilityInspectorClasses)
         .build()
-    heapdumpListener.analyze(heapDump)
+
+    HeapAnalyzers.runAnalysis(application, heapDump)
   }
 
   private fun scheduleTick(reason: String) {
@@ -136,7 +138,10 @@ internal class HeapDumpTrigger(
     }
   }
 
-  private fun scheduleTick(reason: String, delayMillis: Long) {
+  private fun scheduleTick(
+    reason: String,
+    delayMillis: Long
+  ) {
     backgroundHandler.postDelayed({
       tick(reason)
     }, delayMillis)
