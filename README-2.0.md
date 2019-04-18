@@ -11,7 +11,7 @@ A memory leak detection library for Android and Java.
 
 ## Getting started
 
-In your `build.gradle`:
+Add LeakCanary to your `build.gradle`:
 
 ```groovy
 dependencies {
@@ -21,7 +21,72 @@ dependencies {
 
 **You're good to go!** LeakCanary will automatically show a notification when an activity or support fragment memory leak is detected in your debug build.
 
-**What's next?** You could watch a [live investigation](https://www.youtube.com/watch?v=KwArTJHLq5g) then [customize LeakCanary](https://github.com/square/leakcanary/wiki/Customizing-LeakCanary) to your needs.
+## Presentations
+
+* A [live investigation](https://www.youtube.com/watch?v=KwArTJHLq5g)
+
+
+## Recipes
+
+### Watching custom objects
+```kotlin
+LeakSentry.refWatcher.watch(destroyedIntentService)
+```
+
+### Configuration options
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+    // LeakSentry is in charge of detecting memory leaks
+    LeakSentry.config = LeakSentry.config.copy(watchDurationMillis = 3000)
+
+    // LeakCanary is in charge of taking heap dumps and analyzing them
+    LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
+  }
+}
+```
+
+### Using LeakSentry in production
+
+In your `build.gradle`:
+
+```groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:leakcanary-sentry:2.0-alpha-1'
+}
+```
+
+In your leak reporting code:
+```kotlin
+val retainedReferenceCount = LeakSentry.refWatcher.retainedKeys.size
+```
+
+### Setup (with the old perflib heap parser)
+
+```groovy
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-perflib:2.0-alpha-1'
+}
+```
+
+In your **debug** `Application` class:
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    if (LeakCanary.isInAnalyzerProcess(this)) {
+      // This process is dedicated to Perflib for heap analysis.
+      // You should not init your app in this process.
+      return
+    }
+    super.onCreate()
+  }
+}
+```
 
 ## FAQ
 

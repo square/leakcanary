@@ -2,32 +2,58 @@
 
 ## Version 2.0 Alpha 1 (not released yet)
 
-Thanks for testing the alpha, we're counting on you to help us find bugs and improvements!
+Thanks for testing the alpha, we're counting on you to help us find bugs and suggest improvements!
 
-### New setup
+Check out the [2.0 Readme](https://github.com/square/leakcanary/blob/master/README-2.0.md).
+
+* New logo!
+* Entirely rewritten to 100% Kotlin
+* Multiple leaks detected in one analysis
+  * The heap is dumped when the app goes in the background, or when a minimum of 5 leaks is reached in the foreground.
+* Leak grouping
+  * Leaks that share similar causes are grouped in the UI.
+  * New screens to see the list of groups and each group.
+  * Improved leaktrace strings to highlight leak causes.
+  * Leaks can be shared to Stack Overflow
+* New library: LeakSentry.
+  * Detects when objects are leaking and triggers LeakCanary
+  * Can be use separately in production, for instance to report the number of leaking instances after an OutOfMemoryError.
+* New experimental heap parser
+  * Uses 90% less memory and 6 times faster than the prior heap parser.
+  * Runs in the same process as the app on a low priority thread.
+  * No more dependency on Perflib and TroveJ. New dependency on Okio.
+  * Available as `leakcanary-android-experimental`. The old parser is still available as `leakcanary-android-perflib` but will be removed after alpha.
+* 0 code setup, just add the one debug dependency.
+* Simpler configuration options
+* Updated from support library to Android X
+
+Many thanks to
+[@BraisGabin](https://github.com/BraisGabin),
+[@colinmarsch](https://github.com/colinmarsch),
+[@jrodbx](https://github.com/jrodbx),
+[@flickator](https://github.com/flickator),
+[@JakeWharton](https://github.com/JakeWharton),
+[@pyricau](https://github.com/pyricau),
+[@WhatsEmo](https://github.com/WhatsEmo),
+for the contributions!
+
+For more details, see the [2.0 Milestone](https://github.com/square/leakcanary/milestone/6) and the [full diff](https://github.com/square/leakcanary/compare/v1.6.3...master).
+
+### Setup (with experimental heap parser)
 
 In your `build.gradle`:
 
 ```groovy
 dependencies {
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-experimental:2.0-alpha-1'
 }
 ```
 
-In your **debug** `Application` class:
+Note: there is no other setup required.
 
+### Watching custom objects
 ```kotlin
-class DebugExampleApplication : ExampleApplication() {
-
-  override fun onCreate() {
-    if (LeakCanary.isInAnalyzerProcess(this)) {
-      // This process is dedicated to LeakCanary for heap analysis.
-      // You should not init your app in this process.
-      return
-    }
-    super.onCreate()
-  }
-}
+LeakSentry.refWatcher.watch(destroyedIntentService)
 ```
 
 ### Configuration options
@@ -36,11 +62,6 @@ class DebugExampleApplication : ExampleApplication() {
 class DebugExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
-    if (LeakCanary.isInAnalyzerProcess(this)) {
-      // This process is dedicated to LeakCanary for heap analysis.
-      // You should not init your app in this process.
-      return
-    }
     super.onCreate()
     // LeakSentry is in charge of detecting memory leaks
     LeakSentry.config = LeakSentry.config.copy(watchDurationMillis = 3000)
@@ -49,11 +70,6 @@ class DebugExampleApplication : ExampleApplication() {
     LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
   }
 }
-```
-
-### Watching custom objects
-```kotlin
-LeakSentry.refWatcher.watch(destroyedIntentService)
 ```
 
 ### Using LeakSentry in production
@@ -71,12 +87,29 @@ In your leak reporting code:
 val retainedReferenceCount = LeakSentry.refWatcher.retainedKeys.size
 ```
 
-### Changes
+### Setup (with old perflib heap parser)
 
-* The change log is not up to date yet. All the work is tracked by the [2.0 Milestone](https://github.com/square/leakcanary/milestone/6). 
-* [#1186](https://github.com/square/leakcanary/issues/1186) Fix NPE when KeyedWeakReference was not found in heap dump.
-* [#1133](https://github.com/square/leakcanary/issues/1133) Updated to HAHA 2.1 (latest perflib from Android Studio)
-* [#1124](https://github.com/square/leakcanary/issues/1124) Fixed crash when heap dump has missing native threads.
+```groovy
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-perflib:2.0-alpha-1'
+}
+```
+
+In your **debug** `Application` class:
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    if (LeakCanary.isInAnalyzerProcess(this)) {
+      // This process is dedicated to Perflib for heap analysis.
+      // You should not init your app in this process.
+      return
+    }
+    super.onCreate()
+  }
+}
+```
 
 ## Version 1.6.3 (2019-01-10)
 
