@@ -34,8 +34,8 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.By
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StringRecord
+import leakcanary.internal.LongToIntSparseArray
 import leakcanary.internal.LongToLongSparseArray
-import leakcanary.internal.LongToPairOfLongByteSparseArray
 import leakcanary.internal.LongToStringSparseArray
 import leakcanary.internal.LruCache
 import okio.Buffer
@@ -44,6 +44,7 @@ import okio.source
 import java.io.Closeable
 import java.io.File
 import java.nio.charset.Charset
+import kotlin.math.pow
 
 /**
  * A memory efficient heap dump parser.
@@ -70,34 +71,29 @@ class HprofParser private constructor(
   private var indexBuilt = false
 
   /**
-   * string id to (position, length)
-   * We cache class names and fields names, so this only points to:
-   * - "zygote" (unclear which tag uses this)
-   * - stack frame method names, signatures and source file (currently not parsed)
-   * - thread names (currently not parsed)
+   * Map of string id to string
+   * This currently keeps all the hprof strings that we could care about: class names,
+   * static field names and instance fields names
    */
-  private val hprofStringPositions = mutableMapOf<Long, Pair<Long, Long>>()
-
-  // TODO Can we estimate the number of classnames + field names?
-  // Heap dumps show strings represent 3/4 of the memory held. Lots of common prefixes in package
-  // names.
-  // TODO Wondering if a trie might help here but tries typically have the string
-  // as key whereas here it's a value.
+  // TODO Replacing with a radix trie reversed into a sparse array of long to trie leaf could save
+  // memory.
+  // Another option is to switch back to reading from the file system as necessary, and keep a much
+  // smaller cache for strings we need during shortest path (those are for exclusions)
   private val hprofStringCache = LongToStringSparseArray(60000)
 
   /**
    * class id to string id
    */
-  // TODO Can we estimate the number of classes?
   private val classNames = LongToLongSparseArray(20000)
 
   /**
-   * Object id to (object position, object id metadata). Metadata is an ordinal byte for
-   * [ObjectIdMetadata]
+   * Object id to ([ObjectIdMetadata], object position). We pack the metadata ordinal and the
+   * position into an int, which gives us 3 bits for the metadata (enum with at most 8 values)
+   * and 29 bits for the position, which means the heap dump file must be at most 512 MiB.
+   *
    * The id can be for classes instances, classes, object arrays and primitive arrays
    */
-  // TODO Any way we can estimate the number of objects?
-  private val objectIndex = LongToPairOfLongByteSparseArray(250000)
+  private val objectIndex = LongToIntSparseArray(250000)
 
   /**
    * LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
@@ -166,6 +162,8 @@ class HprofParser private constructor(
     skip(LONG_SIZE)
 
     val allHprofStrings = mutableMapOf<Long, String>()
+    // String id to (position, length)
+    val hprofStringPositions = mutableMapOf<Long, Pair<Long, Long>>()
 
     var heapId = 0
     while (!exhausted()) {
@@ -365,8 +363,9 @@ class HprofParser private constructor(
                 val callback = callbacks.get<ClassDumpRecord>()
                 val id = readId()
                 if (!indexBuilt) {
+
                   objectIndex[id] =
-                    tagPositionAfterReadingId to ObjectIdMetadata.CLASS.ordinalByte
+                    ObjectIdMetadata.CLASS.packOrdinalWithFilePosition(tagPositionAfterReadingId)
                 }
                 if (callback != null || !indexBuilt) {
                   val classDumpRecord = readClassDumpRecord(id)
@@ -435,7 +434,7 @@ class HprofParser private constructor(
                       instanceDumpRecord.fieldValues.size <= 8 -> SHALLOW_INSTANCE
                       else -> ObjectIdMetadata.INSTANCE
                     }
-                    objectIndex[id] = recordPosition to metadata.ordinalByte
+                    objectIndex[id] = metadata.packOrdinalWithFilePosition(recordPosition)
                   }
                   if (callback != null) {
                     callback(instanceDumpRecord)
@@ -460,7 +459,7 @@ class HprofParser private constructor(
                     } else {
                       ObjectIdMetadata.OBJECT_ARRAY
                     }
-                    objectIndex[id] = recordPosition to metadata.ordinalByte
+                    objectIndex[id] = metadata.packOrdinalWithFilePosition(recordPosition)
                   }
                   if (callback != null) {
                     callback(arrayRecord)
@@ -475,8 +474,9 @@ class HprofParser private constructor(
               PRIMITIVE_ARRAY_DUMP -> {
                 val id = readId()
                 if (!indexBuilt) {
-                  objectIndex[id] =
-                    tagPositionAfterReadingId to ObjectIdMetadata.PRIMITIVE_ARRAY.ordinalByte
+                  objectIndex[id] = ObjectIdMetadata.PRIMITIVE_ARRAY.packOrdinalWithFilePosition(
+                      tagPositionAfterReadingId
+                  )
                 }
                 val callback = callbacks.get<PrimitiveArrayDumpRecord>()
                 if (callback != null) {
@@ -616,6 +616,10 @@ class HprofParser private constructor(
     }
 
     if (!indexBuilt) {
+      objectIndex.compact()
+      classNames.compact()
+      hprofStringCache.compact()
+
       CanaryLog.d(
           "Index built, hprofStringCache.size=${hprofStringCache.size} remaining allHprofStrings.size=%d, classNames.size=%d, objectIndex.size=%d, primitiveWrapperTypes.size=%d, primitiveWrapperClassNames.size=%d",
           allHprofStrings.size, classNames.size, objectIndex.size,
@@ -633,13 +637,7 @@ class HprofParser private constructor(
    */
   fun hprofStringById(id: Long): String {
     checkReadyToRead()
-    val cachedString = hprofStringCache[id]
-    if (cachedString != null) {
-      return cachedString
-    }
-    val (position, length) = hprofStringPositions[id]!!
-    reader.moveTo(position)
-    return reader.readUtf8(length)
+    return hprofStringCache[id] ?: throw IllegalArgumentException("Hprof string $id not in cache")
   }
 
   fun isPrimitiveWrapper(classId: Long) = primitiveWrapperTypes.contains(classId)
@@ -660,8 +658,8 @@ class HprofParser private constructor(
   }
 
   fun objectIdMetadata(objectId: Long): ObjectIdMetadata {
-    val (_, metadataByte) = objectIndex[objectId]
-    return ObjectIdMetadata.fromOrdinalByte(metadataByte)
+    val (metadata, _) = ObjectIdMetadata.unpackMetadataAndPosition(objectIndex[objectId])
+    return metadata
   }
 
   fun retrieveRecord(reference: ObjectReference): ObjectRecord {
@@ -675,7 +673,8 @@ class HprofParser private constructor(
       return objectRecordOrNull
     }
 
-    val position = objectIndex.first(objectId)
+    val (_, position) = ObjectIdMetadata.unpackMetadataAndPosition(objectIndex[objectId])
+
     require(position != 0L) {
       "Unknown object id $objectId"
     }
@@ -861,6 +860,11 @@ class HprofParser private constructor(
 
     const val PRIMITIVE_ARRAY_NODATA = 0xc3
 
+    const val BITS_FOR_FILE_POSITION = 29
+    private val MAX_HEAP_DUMP_SIZE = 2.toFloat()
+        .pow(BITS_FOR_FILE_POSITION)
+        .toInt()
+
     private val PRIMITIVE_WRAPPER_TYPES = setOf<String>(
         Boolean::class.java.name, Char::class.java.name, Float::class.java.name,
         Double::class.java.name, Byte::class.java.name, Short::class.java.name,
@@ -868,6 +872,11 @@ class HprofParser private constructor(
     )
 
     fun open(heapDump: File): HprofParser {
+      if (heapDump.length() > MAX_HEAP_DUMP_SIZE) {
+        throw IllegalArgumentException(
+            "Heap dump file length is ${heapDump.length()} bytes which is more than the max supported $MAX_HEAP_DUMP_SIZE"
+        )
+      }
       val inputStream = heapDump.inputStream()
       val channel = inputStream.channel
       val source = inputStream.source()

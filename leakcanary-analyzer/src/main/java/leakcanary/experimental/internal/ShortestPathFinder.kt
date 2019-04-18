@@ -50,6 +50,10 @@ import java.util.LinkedHashSet
 internal class ShortestPathFinder(
   private val excludedRefs: ExcludedRefs
 ) {
+  /**
+   * TODO If this queue grows large we can optimize it by replacing LeakNode with just (long, long)
+   * and rebuild exclusion and leak reference after the analysis
+   */
   private val toVisitQueue: Deque<LeakNode>
   private val toVisitIfNoPathQueue: Deque<LeakNode>
   private val toVisitSet: LinkedHashSet<Long>

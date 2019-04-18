@@ -26,6 +26,25 @@ object SparseArrayUtils {
     return newArray
   }
 
+  fun insertInt(
+    array: IntArray,
+    currentSize: Int,
+    index: Int,
+    element: Int
+  ): IntArray {
+    if (currentSize + 1 <= array.size) {
+      System.arraycopy(array, index, array, index + 1, currentSize - index)
+      array[index] = element
+      return array
+    }
+
+    val newArray = IntArray(growSize(currentSize))
+    System.arraycopy(array, 0, newArray, 0, index)
+    newArray[index] = element
+    System.arraycopy(array, index, newArray, index + 1, array.size - index)
+    return newArray
+  }
+
   fun insertLong(
     array: LongArray,
     currentSize: Int,
@@ -39,6 +58,25 @@ object SparseArrayUtils {
     }
 
     val newArray = LongArray(growSize(currentSize))
+    System.arraycopy(array, 0, newArray, 0, index)
+    newArray[index] = element
+    System.arraycopy(array, index, newArray, index + 1, array.size - index)
+    return newArray
+  }
+
+  fun insertString(
+    array: Array<String?>,
+    currentSize: Int,
+    index: Int,
+    element: String?
+  ): Array<String?> {
+    if (currentSize + 1 <= array.size) {
+      System.arraycopy(array, index, array, index + 1, currentSize - index)
+      array[index] = element
+      return array
+    }
+
+    val newArray = Array(growSize(currentSize), FILL_WITH_DELETED)
     System.arraycopy(array, 0, newArray, 0, index)
     newArray[index] = element
     System.arraycopy(array, index, newArray, index + 1, array.size - index)
@@ -61,6 +99,21 @@ object SparseArrayUtils {
     return returnedArray
   }
 
+  fun appendInt(
+    array: IntArray,
+    currentSize: Int,
+    element: Int
+  ): IntArray {
+    var returnedArray = array
+    if (currentSize + 1 > returnedArray.size) {
+      val newArray = IntArray(growSize(currentSize))
+      System.arraycopy(returnedArray, 0, newArray, 0, currentSize)
+      returnedArray = newArray
+    }
+    returnedArray[currentSize] = element
+    return returnedArray
+  }
+
   fun appendLong(
     array: LongArray,
     currentSize: Int,
@@ -74,25 +127,6 @@ object SparseArrayUtils {
     }
     returnedArray[currentSize] = element
     return returnedArray
-  }
-
-  fun insertString(
-    array: Array<String?>,
-    currentSize: Int,
-    index: Int,
-    element: String?
-  ): Array<String?> {
-    if (currentSize + 1 <= array.size) {
-      System.arraycopy(array, index, array, index + 1, currentSize - index)
-      array[index] = element
-      return array
-    }
-
-    val newArray = Array(growSize(currentSize), FILL_WITH_DELETED)
-    System.arraycopy(array, 0, newArray, 0, index)
-    newArray[index] = element
-    System.arraycopy(array, index, newArray, index + 1, array.size - index)
-    return newArray
   }
 
   fun appendString(
