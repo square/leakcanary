@@ -183,6 +183,8 @@ class InstrumentationLeakDetector {
       leakcanary.experimental.ExperimentalHeapAnalyzer(listener).checkForLeaks(heapDump)
     else HeapAnalyzer(listener).checkForLeaks(heapDump)
 
+    CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)
+
     return AnalysisPerformed(heapAnalysis)
   }
 

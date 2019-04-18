@@ -12,10 +12,10 @@ import java.util.Date
 import java.util.concurrent.Executor
 
 /**
- * Tests that the [InstrumentationLeakDetector] can detect leaks
- * in instrumentation tests
+ * Instrumentation test that runs the two heap analyzer implementations on the same heap
+ * dump and logs how they perform.
  */
-class HprofParserComparisonTest {
+class HeapAnalyzerComparisonTest {
 
   @Volatile
   var firstMaxMemoryUsed = 0L
@@ -39,7 +39,7 @@ class HprofParserComparisonTest {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     val context = instrumentation.targetContext
 
-    val heapDumpFile = File(context.filesDir, "HprofParserComparisonTest.hprof")
+    val heapDumpFile = File(context.filesDir, "HeapAnalyzerComparisonTest.hprof")
 
     val heapDump = HeapDump.builder(heapDumpFile)
         .excludedRefs(AndroidExcludedRefs.createAppDefaults().build())

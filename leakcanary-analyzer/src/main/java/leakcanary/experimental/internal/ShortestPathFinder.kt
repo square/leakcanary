@@ -15,7 +15,6 @@
  */
 package leakcanary.experimental.internal
 
-import leakcanary.CanaryLog
 import leakcanary.ExcludedRefs
 import leakcanary.Exclusion
 import leakcanary.HeapValue
@@ -51,10 +50,6 @@ internal class ShortestPathFinder(
   private val toVisitSet: LinkedHashSet<Long>
   private val toVisitIfNoPathSet: LinkedHashSet<Long>
   private val visitedSet: LinkedHashSet<Long>
-
-  private var maxToVisitSize = 0
-  private var maxToVisitIfNoPathSize = 0
-  private var maxVisitedSet = 0
 
   init {
     toVisitQueue = ArrayDeque()
@@ -125,25 +120,16 @@ internal class ShortestPathFinder(
       }
     }
 
-    CanaryLog.d(
-        "ShortestPathFinder memory: maxVisitedSet.size=%d, maxToVisitSize.size=%d, maxToVisitIfNoPathSize.size=%d",
-        maxVisitedSet, maxToVisitSize, maxToVisitIfNoPathSize
-    )
-
     clearState()
     return results
   }
 
   private fun checkSeen(node: LeakNode): Boolean {
     val alreadySeen = visitedSet.add(node.instance)
-    maxVisitedSet = Math.max(maxVisitedSet, visitedSet.size)
     return !alreadySeen
   }
 
   private fun clearState() {
-    maxToVisitSize = 0
-    maxToVisitIfNoPathSize = 0
-    maxVisitedSet = 0
     toVisitQueue.clear()
     toVisitIfNoPathQueue.clear()
     toVisitSet.clear()
@@ -289,11 +275,9 @@ internal class ShortestPathFinder(
     if (visitNow) {
       toVisitSet.add(child)
       toVisitQueue.add(childNode)
-      maxToVisitSize = Math.max(maxToVisitSize, toVisitSet.size)
     } else {
       toVisitIfNoPathSet.add(child)
       toVisitIfNoPathQueue.add(childNode)
-      maxToVisitIfNoPathSize = Math.max(maxToVisitIfNoPathSize, toVisitIfNoPathQueue.size)
     }
   }
 }

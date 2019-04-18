@@ -33,6 +33,7 @@ internal class HeapAnalyzerService : ForegroundService(
 ), AnalyzerProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
+    // TODO This isn't ideal but will disappear once we use a single process.
     if (CanaryLog.logger == null) {
       CanaryLog.logger = DefaultCanaryLog()
     }

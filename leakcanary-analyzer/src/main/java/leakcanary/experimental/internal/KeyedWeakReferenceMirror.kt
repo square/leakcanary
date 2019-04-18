@@ -29,7 +29,6 @@ internal class KeyedWeakReferenceMirror(
           referent = weakRef.fieldValue("referent")
       )
     }
-
   }
 }
 
