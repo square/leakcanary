@@ -11,7 +11,7 @@ import leakcanary.internal.SparseArrayUtils.insertLong
  * - No compaction, ever. This object can only keep growing, until it is garbage collected. Note
  * that there is no remove() method.
  */
-class LongToLongSparseArray(initialCapacity: Int) : Cloneable {
+internal class LongToLongSparseArray(initialCapacity: Int) : Cloneable {
   private var keys: LongArray
   private var values: LongArray
 

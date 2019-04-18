@@ -80,6 +80,7 @@ import leakcanary.WeakReferenceCleared
 import leakcanary.WeakReferenceMissing
 import leakcanary.experimental.internal.KeyedWeakReferenceMirror
 import leakcanary.experimental.internal.LeakNode
+import leakcanary.experimental.internal.LeakNode.ChildNode
 import leakcanary.experimental.internal.ShortestPathFinder
 import leakcanary.experimental.internal.ShortestPathFinder.Result
 import java.util.ArrayList
@@ -334,8 +335,8 @@ class ExperimentalHeapAnalyzer constructor(
     // We iterate from the leak to the GC root
     val ignored = leakingNode.instance
     var node: LeakNode? =
-      LeakNode(null, ignored, leakingNode, null)
-    while (node != null) {
+      ChildNode(ignored, null, leakingNode, null)
+    while (node is ChildNode) {
       val element = buildLeakElement(parser, node)
       if (element != null) {
         elements.add(0, element)
@@ -423,11 +424,8 @@ class ExperimentalHeapAnalyzer constructor(
 
   private fun buildLeakElement(
     parser: HprofParser,
-    node: LeakNode
+    node: ChildNode
   ): LeakTraceElement? {
-    if (node.parent == null) {
-      return null
-    }
     val objectId = node.parent.instance
 
     val holderType: Holder

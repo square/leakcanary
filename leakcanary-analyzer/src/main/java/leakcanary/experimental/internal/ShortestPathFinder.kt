@@ -32,6 +32,8 @@ import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.experimental.internal.LeakNode.ChildNode
+import leakcanary.experimental.internal.LeakNode.RootNode
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -96,7 +98,7 @@ internal class ShortestPathFinder(
       } else {
         node = toVisitIfNoPathQueue.poll()
         toVisitIfNoPathSet.remove(node.instance)
-        if (node.exclusion == null) {
+        if (node is RootNode || (node is ChildNode && node.exclusion == null)) {
           throw IllegalStateException("Expected node to have an exclusion $node")
         }
         excludingKnownLeaks = true
@@ -156,13 +158,7 @@ internal class ShortestPathFinder(
     // TODO java local: exclude specific threads,
     // TODO java local: parent should be set to the allocated thread
     gcRootIds.forEach {
-      enqueue(
-          hprofParser = hprofParser,
-          exclusion = null,
-          parent = null,
-          child = it,
-          leakReference = null
-      )
+      enqueue(hprofParser, RootNode(it))
     }
   }
 
@@ -187,13 +183,7 @@ internal class ShortestPathFinder(
       val exclusion = ignoredStaticFields[fieldName]
 
       if (exclusion == null || !exclusion.alwaysExclude) {
-        enqueue(
-            hprofParser = hprofParser,
-            exclusion = exclusion,
-            parent = node,
-            child = objectId,
-            leakReference = leakReference
-        )
+        enqueue(hprofParser, ChildNode(objectId, exclusion, node, leakReference))
       }
     }
   }
@@ -245,11 +235,11 @@ internal class ShortestPathFinder(
             fieldExclusion
           } else classExclusion ?: fieldExclusion
           enqueue(
-              hprofParser = hprofParser,
-              exclusion = exclusion,
-              parent = parent,
-              child = objectId,
-              leakReference = LeakReference(INSTANCE_FIELD, fieldName, "object $objectId")
+              hprofParser, ChildNode(
+              objectId,
+              exclusion, parent,
+              LeakReference(INSTANCE_FIELD, fieldName, "object $objectId")
+          )
           )
         }
   }
@@ -262,52 +252,42 @@ internal class ShortestPathFinder(
     record.elementIds.forEachIndexed { index, elementId ->
       val name = Integer.toString(index)
       val reference = LeakReference(ARRAY_ENTRY, name, "object $elementId")
-      enqueue(
-          hprofParser = hprofParser,
-          exclusion = null,
-          parent = parentNode,
-          child = elementId,
-          leakReference = reference
-      )
+      enqueue(hprofParser, ChildNode(elementId, null, parentNode, reference))
     }
   }
 
   private fun enqueue(
     hprofParser: HprofParser,
-    exclusion: Exclusion?,
-    parent: LeakNode?,
-    child: Long,
-    leakReference: LeakReference?
+    node: LeakNode
   ) {
-    if (child == 0L) {
+    if (node.instance == 0L) {
       return
     }
 
     // Whether we want to visit now or later, we should skip if this is already to visit.
-    if (toVisitSet.contains(child)) {
+    if (toVisitSet.contains(node.instance)) {
       return
     }
-    if (visitedSet.contains(child)) {
-      return
-    }
-
-    val visitNow = exclusion == null
-    if (!visitNow && toVisitIfNoPathSet.contains(child)) {
+    if (visitedSet.contains(node.instance)) {
       return
     }
 
-    val objectIdMetadata = hprofParser.objectIdMetadata(child)
+    val visitNow = node is RootNode || (node is ChildNode && node.exclusion == null)
+    if (!visitNow && toVisitIfNoPathSet.contains(node.instance)) {
+      return
+    }
+
+    val objectIdMetadata = hprofParser.objectIdMetadata(node.instance)
     if (objectIdMetadata in SKIP_ENQUEUE) {
       return
     }
 
-    val childNode = LeakNode(exclusion, child, parent, leakReference)
     if (visitNow) {
-      toVisitSet.add(child)
-      toVisitQueue.add(childNode)
+      toVisitSet.add(node.instance)
+      toVisitQueue.add(node)
     } else {
-      toVisitIfNoPathSet.add(child)
-      toVisitIfNoPathQueue.add(childNode)
+      toVisitIfNoPathSet.add(node.instance)
+      toVisitIfNoPathQueue.add(node)
     }
   }
 

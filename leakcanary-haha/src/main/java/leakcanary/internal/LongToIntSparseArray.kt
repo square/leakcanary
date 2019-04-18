@@ -1,6 +1,5 @@
 package leakcanary.internal
 
-import leakcanary.CanaryLog
 import leakcanary.internal.SparseArrayUtils.appendInt
 import leakcanary.internal.SparseArrayUtils.appendLong
 import leakcanary.internal.SparseArrayUtils.binarySearch
@@ -10,7 +9,7 @@ import leakcanary.internal.SparseArrayUtils.insertLong
 /**
  * Same as [LongToLongSparseArray] but long to int instead.
  */
-class LongToIntSparseArray(initialCapacity: Int) : Cloneable {
+internal class LongToIntSparseArray(initialCapacity: Int) : Cloneable {
   private var keys: LongArray
   private var values: IntArray
 

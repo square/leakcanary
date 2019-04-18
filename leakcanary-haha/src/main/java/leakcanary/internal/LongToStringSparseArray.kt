@@ -11,7 +11,7 @@ import leakcanary.internal.SparseArrayUtils.insertString
 /**
  * Same as [LongToLongSparseArray] but long to string instead.
  */
-class LongToStringSparseArray(initialCapacity: Int) : Cloneable {
+internal class LongToStringSparseArray(initialCapacity: Int) : Cloneable {
   private var keys: LongArray
   private var values: Array<String?>
 

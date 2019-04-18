@@ -7,7 +7,7 @@ import kotlin.collections.MutableMap.MutableEntry
  * API is a simplified version of android.util.LruCache
  * Implementation is inspired from http://chriswu.me/blog/a-lru-cache-in-10-lines-of-java/
  */
-class LruCache<K, V>(
+internal class LruCache<K, V>(
   val maxSize: Int
 ) {
   private val cache: LinkedHashMap<K, V>
