@@ -1,19 +1,19 @@
 package leakcanary.internal
 
-import leakcanary.internal.SparseArrayUtils.appendBoolean
+import leakcanary.internal.SparseArrayUtils.appendByte
 import leakcanary.internal.SparseArrayUtils.appendLong
 import leakcanary.internal.SparseArrayUtils.binarySearch
-import leakcanary.internal.SparseArrayUtils.insertBoolean
+import leakcanary.internal.SparseArrayUtils.insertByte
 import leakcanary.internal.SparseArrayUtils.insertLong
 
 /**
  * Same as [LongToLongSparseArray] but long to pair(long, boolean) instead.
  * Yes, this is weird.
  */
-class LongToPairOfLongBooleanSparseArray(initialCapacity: Int) : Cloneable {
+class LongToPairOfLongByteSparseArray(initialCapacity: Int) : Cloneable {
   private var keys: LongArray
   private var firsts: LongArray
-  private var seconds: BooleanArray
+  private var seconds: ByteArray
 
   var size: Int = 0
     private set
@@ -21,15 +21,15 @@ class LongToPairOfLongBooleanSparseArray(initialCapacity: Int) : Cloneable {
   init {
     keys = LongArray(initialCapacity)
     firsts = LongArray(initialCapacity)
-    seconds = BooleanArray(initialCapacity)
+    seconds = ByteArray(initialCapacity)
     size = 0
   }
 
-  operator fun get(key: Long): Pair<Long, Boolean> {
+  operator fun get(key: Long): Pair<Long, Byte> {
     val i = binarySearch(keys, size, key)
 
     return if (i < 0 || firsts[i] == DELETED_LONG) {
-      DELETED_LONG to false
+      DELETED_LONG to 0
     } else {
       firsts[i] to seconds[i]
     }
@@ -47,28 +47,27 @@ class LongToPairOfLongBooleanSparseArray(initialCapacity: Int) : Cloneable {
 
   operator fun set(
     key: Long,
-    first: Long,
-    second: Boolean
+    value: Pair<Long, Byte>
   ) {
-    require(first != DELETED_LONG) {
+    require(value.first != DELETED_LONG) {
       "$DELETED_LONG is a magic value that indicates a deleted entry"
     }
 
     if (size != 0 && key <= keys[size - 1]) {
-      insert(key, first, second)
+      insert(key, value.first, value.second)
       return
     }
 
     keys = appendLong(keys, size, key)
-    firsts = appendLong(firsts, size, first)
-    seconds = appendBoolean(seconds, size, second)
+    firsts = appendLong(firsts, size, value.first)
+    seconds = appendByte(seconds, size, value.second)
     size++
   }
 
   private fun insert(
     key: Long,
     first: Long,
-    second: Boolean
+    second: Byte
   ) {
     if (first == DELETED_LONG) {
       throw IllegalArgumentException("$DELETED_LONG is a special first")
@@ -90,7 +89,7 @@ class LongToPairOfLongBooleanSparseArray(initialCapacity: Int) : Cloneable {
 
       keys = insertLong(keys, size, i, key)
       firsts = insertLong(firsts, size, i, first)
-      seconds = insertBoolean(seconds, size, i, second)
+      seconds = insertByte(seconds, size, i, second)
       size++
     }
   }

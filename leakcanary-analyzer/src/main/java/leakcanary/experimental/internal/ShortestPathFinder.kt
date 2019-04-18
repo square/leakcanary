@@ -24,6 +24,10 @@ import leakcanary.LeakReference
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
+import leakcanary.ObjectIdMetadata.PRIMITIVE_ARRAY
+import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER
+import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_ARRAY
+import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
@@ -147,7 +151,13 @@ internal class ShortestPathFinder(
     // TODO java local: exclude specific threads,
     // TODO java local: parent should be set to the allocated thread
     gcRootIds.forEach {
-      enqueue(hprofParser, null, null, it, null)
+      enqueue(
+          hprofParser = hprofParser,
+          exclusion = null,
+          parent = null,
+          child = it,
+          leakReference = null
+      )
     }
   }
 
@@ -172,7 +182,13 @@ internal class ShortestPathFinder(
       val exclusion = ignoredStaticFields[fieldName]
 
       if (exclusion == null || !exclusion.alwaysExclude) {
-        enqueue(hprofParser, exclusion, node, objectId, leakReference)
+        enqueue(
+            hprofParser = hprofParser,
+            exclusion = exclusion,
+            parent = node,
+            child = objectId,
+            leakReference = leakReference
+        )
       }
     }
   }
@@ -223,10 +239,12 @@ internal class ShortestPathFinder(
           } else if (fieldExclusion != null && fieldExclusion.alwaysExclude) {
             fieldExclusion
           } else classExclusion ?: fieldExclusion
-
           enqueue(
-              hprofParser, exclusion, parent, objectId,
-              LeakReference(INSTANCE_FIELD, fieldName, "object $objectId")
+              hprofParser = hprofParser,
+              exclusion = exclusion,
+              parent = parent,
+              child = objectId,
+              leakReference = LeakReference(INSTANCE_FIELD, fieldName, "object $objectId")
           )
         }
   }
@@ -239,7 +257,13 @@ internal class ShortestPathFinder(
     record.elementIds.forEachIndexed { index, elementId ->
       val name = Integer.toString(index)
       val reference = LeakReference(ARRAY_ENTRY, name, "object $elementId")
-      enqueue(hprofParser, null, parentNode, elementId, reference)
+      enqueue(
+          hprofParser = hprofParser,
+          exclusion = null,
+          parent = parentNode,
+          child = elementId,
+          leakReference = reference
+      )
     }
   }
 
@@ -267,7 +291,8 @@ internal class ShortestPathFinder(
       return
     }
 
-    if (hprofParser.isBoring(child)) {
+
+    if (hprofParser.objectIdMetadata(child) in SKIP_ENQUEUE) {
       return
     }
 
@@ -279,5 +304,10 @@ internal class ShortestPathFinder(
       toVisitIfNoPathSet.add(child)
       toVisitIfNoPathQueue.add(childNode)
     }
+  }
+
+  companion object {
+    private val SKIP_ENQUEUE =
+      setOf(PRIMITIVE_WRAPPER, PRIMITIVE_WRAPPER_ARRAY, PRIMITIVE_ARRAY, STRING)
   }
 }
