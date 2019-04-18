@@ -25,7 +25,7 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Lo
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import okio.BufferedSource
 import java.io.Closeable
-import java.nio.ByteBuffer
+import java.nio.charset.Charset
 
 /**
  * Not thread safe, should be used from a single thread.
@@ -85,75 +85,43 @@ open class HprofReader constructor(
   }
 
   fun readIdArray(arrayLength: Int): LongArray {
-    // TODO Read the array at once
-    val array = LongArray(arrayLength)
-    for (i in 0 until arrayLength) {
-      array[i] = readId()
-    }
-    return array
+    return LongArray(arrayLength) { readId() }
   }
 
   fun readBooleanArray(arrayLength: Int): BooleanArray {
-    // TODO Read the array at once
-    val array = BooleanArray(arrayLength)
-    readByteArray(BOOLEAN_SIZE * arrayLength).forEachIndexed { index, byte ->
-      array[index] = byte != 0.toByte()
-    }
-    return array
+    return BooleanArray(arrayLength) { readByte().toInt() != 0 }
   }
 
   fun readCharArray(arrayLength: Int): CharArray {
-    // TODO Avoid creating a byte array
-    val buffer = ByteBuffer.wrap(readByteArray(CHAR_SIZE * arrayLength))
-        .asCharBuffer()
-    val array = CharArray(buffer.remaining())
-    buffer.get(array)
-    return array
+    return readString(CHAR_SIZE * arrayLength, Charsets.UTF_16BE).toCharArray()
+  }
+
+  fun readString(
+    byteCount: Int,
+    charset: Charset
+  ): String {
+    position += byteCount
+    return source.readString(byteCount.toLong(), charset)
   }
 
   fun readFloatArray(arrayLength: Int): FloatArray {
-    // TODO Avoid creating a byte array
-    val buffer = ByteBuffer.wrap(readByteArray(FLOAT_SIZE * arrayLength))
-        .asFloatBuffer()
-    val array = FloatArray(buffer.remaining())
-    buffer.get(array)
-    return array
+    return FloatArray(arrayLength) { readFloat() }
   }
 
   fun readDoubleArray(arrayLength: Int): DoubleArray {
-    // TODO Avoid creating a byte array
-    val buffer = ByteBuffer.wrap(readByteArray(DOUBLE_SIZE * arrayLength))
-        .asDoubleBuffer()
-    val array = DoubleArray(buffer.remaining())
-    buffer.get(array)
-    return array
+    return DoubleArray(arrayLength) { readDouble() }
   }
 
   fun readShortArray(arrayLength: Int): ShortArray {
-    // TODO Avoid creating a byte array
-    val buffer = ByteBuffer.wrap(readByteArray(SHORT_SIZE * arrayLength))
-        .asShortBuffer()
-    val array = ShortArray(buffer.remaining())
-    buffer.get(array)
-    return array
+    return ShortArray(arrayLength) { readShort() }
   }
 
   fun readIntArray(arrayLength: Int): IntArray {
-    // TODO Avoid creating a byte array
-    val buffer = ByteBuffer.wrap(readByteArray(INT_SIZE * arrayLength))
-        .asIntBuffer()
-    val array = IntArray(buffer.remaining())
-    buffer.get(array)
-    return array
+    return IntArray(arrayLength) { readInt() }
   }
 
   fun readLongArray(arrayLength: Int): LongArray {
-    // TODO Avoid creating a byte array
-    val buffer = ByteBuffer.wrap(readByteArray(LONG_SIZE * arrayLength))
-        .asLongBuffer()
-    val array = LongArray(buffer.remaining())
-    buffer.get(array)
-    return array
+    return LongArray(arrayLength) { readLong() }
   }
 
   fun readLong(): Long {
@@ -184,9 +152,7 @@ open class HprofReader constructor(
   }
 
   fun readChar(): Char {
-    // TODO Avoid creating a byte array
-    return ByteBuffer.wrap(readByteArray(CHAR_SIZE))
-        .char
+    return readString(CHAR_SIZE, Charsets.UTF_16BE)[0]
   }
 
   fun readFloat(): Float {
@@ -279,8 +245,8 @@ open class HprofReader constructor(
       skip(typeSize(readUnsignedByte()))
     }
 
-    val staticFields = mutableListOf<StaticFieldRecord>()
     val staticFieldCount = readUnsignedShort()
+    val staticFields = ArrayList<StaticFieldRecord>(staticFieldCount)
     for (i in 0 until staticFieldCount) {
 
       val nameStringId = readId()
@@ -296,8 +262,8 @@ open class HprofReader constructor(
       )
     }
 
-    val fields = mutableListOf<FieldRecord>()
     val fieldCount = readUnsignedShort()
+    val fields = ArrayList<FieldRecord>(fieldCount)
     for (i in 0 until fieldCount) {
       fields.add(FieldRecord(nameStringId = readId(), type = readUnsignedByte()))
     }

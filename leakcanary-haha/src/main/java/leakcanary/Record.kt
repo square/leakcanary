@@ -56,6 +56,12 @@ sealed class Record {
         val elementIds: LongArray
       ) : ObjectRecord()
 
+      /**
+       * Note: we could move the arrays to the parent class as a ByteString or ByteArray
+       * and then each subtype can create a new array of the right type if needed.
+       * However, experimenting with live parsing has shown that we never to read arrays except
+       * when we want to display leak trace information, in which case we do need the data.
+       */
       sealed class PrimitiveArrayDumpRecord : ObjectRecord() {
         abstract val id: Long
         abstract val stackTraceSerialNumber: Int
