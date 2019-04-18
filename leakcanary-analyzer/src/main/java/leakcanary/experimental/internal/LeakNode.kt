@@ -1,4 +1,4 @@
-package leakcanary.updated.internal
+package leakcanary.experimental.internal
 
 import leakcanary.Exclusion
 import leakcanary.LeakReference

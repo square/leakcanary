@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.updated.internal
+package leakcanary.experimental.internal
 
 import leakcanary.CanaryLog
 import leakcanary.ExcludedRefs
@@ -28,7 +28,7 @@ import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.updated.KeyedWeakReferenceMirror
+import leakcanary.experimental.KeyedWeakReferenceMirror
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap

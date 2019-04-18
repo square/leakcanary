@@ -47,7 +47,7 @@ private fun getNextElementString(
   val maybeLeakCause = leakTrace.elementMayBeLeakCause(index)
 
   val staticString =
-    if (element.reference != null && element.reference.type == STATIC_FIELD) "static" else ""
+    if (element.reference != null && element.reference.type == STATIC_FIELD) "static " else ""
   val holderString =
     if (element.holder == ARRAY || element.holder == THREAD) {
       "${element.holder.name.toLowerCase(Locale.US)} "

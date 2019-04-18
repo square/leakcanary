@@ -6,7 +6,7 @@ import leakcanary.CanaryLog
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapDump
 import leakcanary.LeakingInstance
-import leakcanary.updated.HeapAnalyzer
+import leakcanary.experimental.HeapAnalyzer
 import org.junit.Test
 
 class HeapAnalysisTest {

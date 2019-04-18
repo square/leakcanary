@@ -16,11 +16,8 @@
 package leakcanary
 
 import android.os.Debug
-import android.os.Handler
-import android.os.Looper
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
-import leakcanary.AnalyzerProgressListener.Step
 import leakcanary.GcTrigger.Default.runGc
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
@@ -99,12 +96,6 @@ import java.io.File
  * no matter the number of objects leaking.
  */
 class InstrumentationLeakDetector {
-
-  @Volatile
-  var firstMaxMemoryUsed = 0L
-
-  @Volatile
-  var secondMaxMemoryUsed = 0L
 
   sealed class Result {
     object NoAnalysis : Result()
@@ -186,75 +177,11 @@ class InstrumentationLeakDetector {
 
     refWatcher.removeRetainedKeys(retainedKeys)
 
-    val mainHandler = Handler(Looper.getMainLooper())
+    val listener = AnalyzerProgressListener.NONE
 
-    val runtime = Runtime.getRuntime()
-
-    val logMemory: Runnable = object : Runnable {
-      override fun run() {
-        val memoryUsed = runtime.totalMemory() - runtime.freeMemory()
-        CanaryLog.d("Memory: %d Mb", memoryUsed / 1048576L)
-        mainHandler.postDelayed(this, 1000)
-      }
-    }
-    logMemory.run()
-
-
-    SystemClock.sleep(2000)
-    GcTrigger.Default.runGc()
-    SystemClock.sleep(2000)
-    val memoryBeforeFirst = runtime.totalMemory() - runtime.freeMemory()
-
-    val countMemory1: Runnable = object : Runnable {
-      override fun run() {
-        val memoryUsed = runtime.totalMemory() - runtime.freeMemory()
-        firstMaxMemoryUsed = Math.max(firstMaxMemoryUsed, memoryUsed)
-        mainHandler.postDelayed(this, 100)
-      }
-    }
-    countMemory1.run()
-
-    val listener = object : AnalyzerProgressListener {
-      override fun onProgressUpdate(step: Step) {
-        CanaryLog.d("Step %s", step)
-      }
-
-    }
-    val heapAnalyzer = HeapAnalyzer(listener)
-    CanaryLog.d("Starting first analysis")
-    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
-    CanaryLog.d("Done with first analysis")
-    val memoryUsedFirstInMb = (firstMaxMemoryUsed - memoryBeforeFirst) / 1048576L
-
-    SystemClock.sleep(2000)
-    GcTrigger.Default.runGc()
-    SystemClock.sleep(2000)
-    val memoryBeforeSecond = runtime.totalMemory() - runtime.freeMemory()
-
-    val countMemory2: Runnable = object : Runnable {
-      override fun run() {
-        val memoryUsed = runtime.totalMemory() - runtime.freeMemory()
-        secondMaxMemoryUsed = Math.max(secondMaxMemoryUsed, memoryUsed)
-        mainHandler.postDelayed(this, 100)
-      }
-    }
-    countMemory2.run()
-
-    val secondAnalysis = leakcanary.updated.HeapAnalyzer(listener)
-        .checkForLeaks(heapDump)
-    val memoryUsedSecondInMb = (secondMaxMemoryUsed - memoryBeforeSecond) / 1048576L
-
-    CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)
-    CanaryLog.d("Heap Analysis 2:\n%s", secondAnalysis)
-
-    CanaryLog.d(
-        "Perflib analysis used %d Mb took %d ms", memoryUsedFirstInMb,
-        heapAnalysis.analysisDurationMillis
-    )
-    CanaryLog.d(
-        "Random Access analysis used %d Mb took %d ms", memoryUsedSecondInMb,
-        secondAnalysis.analysisDurationMillis
-    )
+    val heapAnalysis = if (config.useExperimentalHeapParser)
+      leakcanary.experimental.HeapAnalyzer(listener).checkForLeaks(heapDump)
+    else HeapAnalyzer(listener).checkForLeaks(heapDump)
 
     return AnalysisPerformed(heapAnalysis)
   }

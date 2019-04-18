@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.updated
+package leakcanary.experimental
 
 import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACES
@@ -23,7 +23,6 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.AnalyzerProgressListener.Step.FINDING_WATCHED_REFERENCES
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
 import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
-import leakcanary.CanaryLog
 import leakcanary.GcRoot.JavaFrame
 import leakcanary.GcRoot.JniGlobal
 import leakcanary.GcRoot.JniLocal
@@ -79,9 +78,9 @@ import leakcanary.Record.StringRecord
 import leakcanary.RetainedInstance
 import leakcanary.WeakReferenceCleared
 import leakcanary.WeakReferenceMissing
-import leakcanary.updated.internal.LeakNode
-import leakcanary.updated.internal.ShortestPathFinder
-import leakcanary.updated.internal.ShortestPathFinder.Result
+import leakcanary.experimental.internal.LeakNode
+import leakcanary.experimental.internal.ShortestPathFinder
+import leakcanary.experimental.internal.ShortestPathFinder.Result
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
 

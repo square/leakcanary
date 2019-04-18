@@ -1,4 +1,4 @@
-package leakcanary.updated
+package leakcanary.experimental
 
 import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
