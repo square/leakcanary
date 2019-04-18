@@ -373,6 +373,8 @@ class HprofParser private constructor(
                   if (!indexBuilt) {
                     val classNameId = classNames[id]
                     val className = allHprofStrings.remove(classNameId)!!
+                    // Note: tried to optimize with className.intern() but the class and field names
+                    // don't seem to preexist as an interned string.
                     hprofStringCache[classNameId] = className
                     hprofStringPositions.remove(classNameId)
                     classDumpRecord.staticFields.forEach {
