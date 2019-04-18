@@ -2,10 +2,8 @@
 
 ## Version 2.0 Alpha 1 (not released yet)
 
-Thanks for testing the alpha, we're counting on you to help us find bugs and suggest improvements!
-
-Check out the [2.0 Readme](https://github.com/square/leakcanary/blob/master/README-2.0.md).
-
+* **Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements!
+* Check out the [2.0 Readme](https://github.com/square/leakcanary/blob/master/README-2.0.md).
 * New logo!
 * Entirely rewritten to 100% Kotlin
 * Multiple leaks detected in one analysis
@@ -34,82 +32,10 @@ Many thanks to
 [@flickator](https://github.com/flickator),
 [@JakeWharton](https://github.com/JakeWharton),
 [@pyricau](https://github.com/pyricau),
-[@WhatsEmo](https://github.com/WhatsEmo),
+[@WhatsEmo](https://github.com/WhatsEmo)
 for the contributions!
 
 For more details, see the [2.0 Milestone](https://github.com/square/leakcanary/milestone/6) and the [full diff](https://github.com/square/leakcanary/compare/v1.6.3...master).
-
-### Setup (with experimental heap parser)
-
-In your `build.gradle`:
-
-```groovy
-dependencies {
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android-experimental:2.0-alpha-1'
-}
-```
-
-Note: there is no other setup required.
-
-### Watching custom objects
-```kotlin
-LeakSentry.refWatcher.watch(destroyedIntentService)
-```
-
-### Configuration options
-
-```kotlin
-class DebugExampleApplication : ExampleApplication() {
-
-  override fun onCreate() {
-    super.onCreate()
-    // LeakSentry is in charge of detecting memory leaks
-    LeakSentry.config = LeakSentry.config.copy(watchDurationMillis = 3000)
-
-    // LeakCanary is in charge of taking heap dumps and analyzing them
-    LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
-  }
-}
-```
-
-### Using LeakSentry in production
-
-In your `build.gradle`:
-
-```groovy
-dependencies {
-  implementation 'com.squareup.leakcanary:leakcanary-sentry:2.0-alpha-1'
-}
-```
-
-In your leak reporting code:
-```kotlin
-val retainedReferenceCount = LeakSentry.refWatcher.retainedKeys.size
-```
-
-### Setup (with old perflib heap parser)
-
-```groovy
-dependencies {
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android-perflib:2.0-alpha-1'
-}
-```
-
-In your **debug** `Application` class:
-
-```kotlin
-class DebugExampleApplication : ExampleApplication() {
-
-  override fun onCreate() {
-    if (LeakCanary.isInAnalyzerProcess(this)) {
-      // This process is dedicated to Perflib for heap analysis.
-      // You should not init your app in this process.
-      return
-    }
-    super.onCreate()
-  }
-}
-```
 
 ## Version 1.6.3 (2019-01-10)
 
