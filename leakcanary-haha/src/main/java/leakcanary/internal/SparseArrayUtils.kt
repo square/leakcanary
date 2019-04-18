@@ -19,7 +19,7 @@ object SparseArrayUtils {
       array[index] = element
       return array
     }
-    val newArray = ByteArray(currentSize * 2)
+    val newArray = ByteArray(growSize(currentSize))
     System.arraycopy(array, 0, newArray, 0, index)
     newArray[index] = element
     System.arraycopy(array, index, newArray, index + 1, array.size - index)
@@ -38,7 +38,7 @@ object SparseArrayUtils {
       return array
     }
 
-    val newArray = LongArray(currentSize * 2)
+    val newArray = LongArray(growSize(currentSize))
     System.arraycopy(array, 0, newArray, 0, index)
     newArray[index] = element
     System.arraycopy(array, index, newArray, index + 1, array.size - index)
@@ -53,7 +53,7 @@ object SparseArrayUtils {
     var returnedArray = array
 
     if (currentSize + 1 > returnedArray.size) {
-      val newArray = ByteArray(currentSize * 2)
+      val newArray = ByteArray(growSize(currentSize))
       System.arraycopy(returnedArray, 0, newArray, 0, currentSize)
       returnedArray = newArray
     }
@@ -68,7 +68,7 @@ object SparseArrayUtils {
   ): LongArray {
     var returnedArray = array
     if (currentSize + 1 > returnedArray.size) {
-      val newArray = LongArray(currentSize * 2)
+      val newArray = LongArray(growSize(currentSize))
       System.arraycopy(returnedArray, 0, newArray, 0, currentSize)
       returnedArray = newArray
     }
@@ -88,7 +88,7 @@ object SparseArrayUtils {
       return array
     }
 
-    val newArray = Array(currentSize * 2, FILL_WITH_DELETED)
+    val newArray = Array(growSize(currentSize), FILL_WITH_DELETED)
     System.arraycopy(array, 0, newArray, 0, index)
     newArray[index] = element
     System.arraycopy(array, index, newArray, index + 1, array.size - index)
@@ -103,13 +103,19 @@ object SparseArrayUtils {
     var returnedArray = array
     if (currentSize + 1 > returnedArray.size) {
 
-      val newArray = Array(currentSize * 2, FILL_WITH_DELETED)
+      val newArray = Array(growSize(currentSize), FILL_WITH_DELETED)
       System.arraycopy(returnedArray, 0, newArray, 0, currentSize)
       returnedArray = newArray
     }
     returnedArray[currentSize] = element
     return returnedArray
   }
+
+  /**
+   * Android array helpers use 2. C++ uses 2. ArrayList uses 1.5
+   * We're dealing with large arrays here so being conservative is good for memory.
+   */
+  private fun growSize(currentSize: Int) = (currentSize * 1.5).toInt()
 
   fun binarySearch(
     array: LongArray?,

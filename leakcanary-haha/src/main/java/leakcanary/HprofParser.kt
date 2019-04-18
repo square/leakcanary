@@ -22,6 +22,7 @@ import leakcanary.HprofReader.Companion.BYTE_SIZE
 import leakcanary.HprofReader.Companion.INT_SIZE
 import leakcanary.HprofReader.Companion.LONG_SIZE
 import leakcanary.HprofReader.Companion.SHORT_SIZE
+import leakcanary.ObjectIdMetadata.SHALLOW_INSTANCE
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord
@@ -96,7 +97,7 @@ class HprofParser private constructor(
    * The id can be for classes instances, classes, object arrays and primitive arrays
    */
   // TODO Any way we can estimate the number of objects?
-  private val objectIndex = LongToPairOfLongByteSparseArray(300000)
+  private val objectIndex = LongToPairOfLongByteSparseArray(250000)
 
   /**
    * LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
@@ -429,6 +430,7 @@ class HprofParser private constructor(
                           instanceDumpRecord.classId
                       ) -> ObjectIdMetadata.PRIMITIVE_WRAPPER
                       hprofStringCache[classNames[instanceDumpRecord.classId]] == "java.lang.String" -> ObjectIdMetadata.STRING
+                      instanceDumpRecord.fieldValues.size <= 8 -> SHALLOW_INSTANCE
                       else -> ObjectIdMetadata.INSTANCE
                     }
                     objectIndex[id] = recordPosition to metadata.ordinalByte

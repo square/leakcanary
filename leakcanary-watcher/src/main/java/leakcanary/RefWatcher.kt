@@ -75,9 +75,7 @@ class RefWatcher constructor(
     watchedReference: Any,
     referenceName: String
   ) {
-    require(watchedReference !is String) {
-      "Watching a string is not allowed, LeakCanary shortest path finder ignores strings"
-    }
+    checkWatchedObjectType(watchedReference)
     removeWeaklyReachableReferences()
     val key = UUID.randomUUID()
         .toString()
@@ -98,6 +96,14 @@ class RefWatcher constructor(
     watchedReferences[key] = reference
     checkRetainedExecutor.execute {
       moveToRetained(key)
+    }
+  }
+
+  private fun checkWatchedObjectType(watchedReference: Any) {
+    if (watchedReference is String) {
+      throw IllegalArgumentException(
+          "watchedReference $watchedReference has a type that the LeakCanary shortest path finder will skip"
+      )
     }
   }
 

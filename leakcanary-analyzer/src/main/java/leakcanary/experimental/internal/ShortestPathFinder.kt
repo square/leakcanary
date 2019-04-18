@@ -27,6 +27,7 @@ import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.ObjectIdMetadata.PRIMITIVE_ARRAY
 import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER
 import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_ARRAY
+import leakcanary.ObjectIdMetadata.SHALLOW_INSTANCE
 import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
@@ -291,8 +292,8 @@ internal class ShortestPathFinder(
       return
     }
 
-
-    if (hprofParser.objectIdMetadata(child) in SKIP_ENQUEUE) {
+    val objectIdMetadata = hprofParser.objectIdMetadata(child)
+    if (objectIdMetadata in SKIP_ENQUEUE) {
       return
     }
 
@@ -308,6 +309,6 @@ internal class ShortestPathFinder(
 
   companion object {
     private val SKIP_ENQUEUE =
-      setOf(PRIMITIVE_WRAPPER, PRIMITIVE_WRAPPER_ARRAY, PRIMITIVE_ARRAY, STRING)
+      setOf(PRIMITIVE_WRAPPER, PRIMITIVE_WRAPPER_ARRAY, PRIMITIVE_ARRAY, STRING, SHALLOW_INSTANCE)
   }
 }
