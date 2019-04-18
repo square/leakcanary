@@ -13,25 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.internal
+package leakcanary.experimental.internal
 
 import android.content.Context
 import android.content.Intent
-import android.os.Process
-import android.os.Process.setThreadPriority
 import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
-import leakcanary.HeapAnalyzer
 import leakcanary.HeapDump
+import leakcanary.experimental.ExperimentalHeapAnalyzer
+import leakcanary.internal.AnalysisResultService
+import leakcanary.internal.ForegroundService
 
 /**
- * This service runs in a separate process to avoid slowing down the app process or making it run
- * out of memory.
+ * This service runs in a main app process.
  */
-internal class HeapAnalyzerService : ForegroundService(
-    HeapAnalyzerService::class.java.simpleName, R.string.leak_canary_notification_analysing
+internal class ExperimentalHeapAnalyzerService : ForegroundService(
+    ExperimentalHeapAnalyzerService::class.java.simpleName,
+    R.string.leak_canary_notification_analysing
 ), AnalyzerProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
@@ -39,11 +39,11 @@ internal class HeapAnalyzerService : ForegroundService(
       CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.")
       return
     }
-    // Since we're running in the main process we should be careful not to impact it.
-    setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
-    val heapDump = intent.getSerializableExtra(HEAPDUMP_EXTRA) as HeapDump
+    val heapDump = intent.getSerializableExtra(
+        HEAPDUMP_EXTRA
+    ) as HeapDump
 
-    val heapAnalyzer = HeapAnalyzer(this)
+    val heapAnalyzer = ExperimentalHeapAnalyzer(this)
     val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
 
     AnalysisResultService.sendResult(this, heapAnalysis)
@@ -66,8 +66,9 @@ internal class HeapAnalyzerService : ForegroundService(
       context: Context,
       heapDump: HeapDump
     ) {
-      val intent = Intent(context, HeapAnalyzerService::class.java)
-      intent.putExtra(HEAPDUMP_EXTRA, heapDump)
+      val intent = Intent(context, ExperimentalHeapAnalyzerService::class.java)
+      intent.putExtra(
+          HEAPDUMP_EXTRA, heapDump)
       ContextCompat.startForegroundService(context, intent)
     }
   }

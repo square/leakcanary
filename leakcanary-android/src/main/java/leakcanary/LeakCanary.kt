@@ -15,7 +15,7 @@ object LeakCanary {
      * When true, LeakCanary will use the new heap parser that is faster and uses less memory.
      * Note: [computeRetainedHeapSize] must not be true (not supported yet).
      */
-    val useExperimentalHeapParser: Boolean = false
+    val useExperimentalHeapParser: Boolean = true
   )
 
   @Volatile

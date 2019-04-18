@@ -34,7 +34,6 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
   val gcDurationMs: Long
   val heapDumpDurationMs: Long
   val computeRetainedHeapSize: Boolean
-  val useExperimentalHeapParser: Boolean
   val reachabilityInspectorClasses: List<Class<out Inspector>>
 
   /** Receives a heap dump to analyze.  */
@@ -46,7 +45,6 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
     this.heapDumpFile = builder.heapDumpFile
     this.excludedRefs = builder.excludedRefs
     this.computeRetainedHeapSize = builder.computeRetainedHeapSize
-    this.useExperimentalHeapParser = builder.useExperimentalHeapParser
     this.gcDurationMs = builder.gcDurationMs
     this.heapDumpDurationMs = builder.heapDumpDurationMs
     this.reachabilityInspectorClasses = builder.reachabilityInspectorClasses
@@ -64,14 +62,12 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
     internal var gcDurationMs: Long = 0
     internal var heapDumpDurationMs: Long = 0
     internal var computeRetainedHeapSize: Boolean = false
-    internal var useExperimentalHeapParser: Boolean = false
     internal var reachabilityInspectorClasses: List<Class<out Inspector>> = emptyList()
 
     internal constructor(heapDump: HeapDump) : this(heapDump.heapDumpFile) {
       this.heapDumpFile = heapDump.heapDumpFile
       this.excludedRefs = heapDump.excludedRefs
       this.computeRetainedHeapSize = heapDump.computeRetainedHeapSize
-      this.useExperimentalHeapParser = heapDump.useExperimentalHeapParser
       this.gcDurationMs = heapDump.gcDurationMs
       this.heapDumpDurationMs = heapDump.heapDumpDurationMs
       this.reachabilityInspectorClasses = heapDump.reachabilityInspectorClasses
@@ -99,11 +95,6 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
 
     fun computeRetainedHeapSize(computeRetainedHeapSize: Boolean): Builder {
       this.computeRetainedHeapSize = computeRetainedHeapSize
-      return this
-    }
-
-    fun useExperimentalHeapParser(useExperimentalHeapParser: Boolean): Builder {
-      this.useExperimentalHeapParser = useExperimentalHeapParser
       return this
     }
 

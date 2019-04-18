@@ -36,8 +36,6 @@ internal object InternalLeakCanary {
     if (isInAnalyzerProcess(application)) {
       return
     }
-    val heapDumpListener = ServiceHeapDumpListener(application)
-
     val debuggerControl = AndroidDebuggerControl()
 
     val leakDirectoryProvider =
@@ -54,7 +52,7 @@ internal object InternalLeakCanary {
 
     heapDumpTrigger = HeapDumpTrigger(
         application, backgroundHandler, debuggerControl, LeakSentry.refWatcher,
-        leakDirectoryProvider, gcTrigger, heapDumper, heapDumpListener, configProvider
+        leakDirectoryProvider, gcTrigger, heapDumper, configProvider
     )
     heapDumpTrigger.registerToVisibilityChanges()
 

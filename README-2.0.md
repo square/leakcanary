@@ -19,22 +19,6 @@ dependencies {
 }
 ```
 
-In your **debug** `Application` class:
-
-```java
-class DebugExampleApplication : ExampleApplication() {
-
-  override fun onCreate() {
-    if (LeakCanary.isInAnalyzerProcess(this)) {
-      // This process is dedicated to LeakCanary for heap analysis.
-      // You should not init your app in this process.
-      return
-    }
-    super.onCreate()
-  }
-}
-```
-
 **You're good to go!** LeakCanary will automatically show a notification when an activity or support fragment memory leak is detected in your debug build.
 
 **What's next?** You could watch a [live investigation](https://www.youtube.com/watch?v=KwArTJHLq5g) then [customize LeakCanary](https://github.com/square/leakcanary/wiki/Customizing-LeakCanary) to your needs.
