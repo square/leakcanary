@@ -34,6 +34,7 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Ch
 import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StringRecord
 import leakcanary.internal.LongToLongSparseArray
+import leakcanary.internal.LongToPairOfLongBooleanSparseArray
 import leakcanary.internal.LongToStringSparseArray
 import leakcanary.internal.LruCache
 import okio.Buffer
@@ -94,7 +95,9 @@ class HprofParser private constructor(
    * and primitive arrays
    */
   // TODO Any way we can estimate the number of objects?
-  private val objectPositions = LongToLongSparseArray(300000)
+//  private val objectPositionsAndBoring = LongToLongSparseArray(300000)
+  // Rename to segmented by boring
+  private val objectPositionsAndBoring = LongToPairOfLongBooleanSparseArray(300000)
 
   /**
    * LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
@@ -362,7 +365,7 @@ class HprofParser private constructor(
                 val callback = callbacks.get<ClassDumpRecord>()
                 val id = readId()
                 if (!indexBuilt) {
-                  objectPositions[id] = tagPositionAfterReadingId
+                  objectPositionsAndBoring[id, tagPositionAfterReadingId] = false
                 }
                 if (callback != null || !indexBuilt) {
                   val classDumpRecord = readClassDumpRecord(id)
@@ -393,7 +396,6 @@ class HprofParser private constructor(
                   skip(
                       INT_SIZE + idSize + idSize + idSize + idSize + idSize + idSize + INT_SIZE
                   )
-
                   // Skip over the constant pool
                   val constantPoolCount = readUnsignedShort()
                   for (i in 0 until constantPoolCount) {
@@ -417,13 +419,19 @@ class HprofParser private constructor(
 
               INSTANCE_DUMP -> {
                 val id = readId()
-                if (!indexBuilt) {
-                  objectPositions[id] = tagPositionAfterReadingId
-                }
                 val callback = callbacks.get<InstanceDumpRecord>()
-                if (callback != null) {
+                if (callback != null || !indexBuilt) {
+                  val recordPosition = tagPositionAfterReadingId
                   val instanceDumpRecord = readInstanceDumpRecord(id)
-                  callback(instanceDumpRecord)
+                  if (!indexBuilt) {
+                    val boring = if (primitiveWrapperTypes.contains(instanceDumpRecord.classId)) {
+                      true
+                    } else hprofStringCache[classNames[instanceDumpRecord.classId]] == "java.lang.String"
+                    objectPositionsAndBoring[id, recordPosition] = boring
+                  }
+                  if (callback != null) {
+                    callback(instanceDumpRecord)
+                  }
                 } else {
                   skip(INT_SIZE + idSize)
                   val remainingBytesInInstance = readInt()
@@ -433,12 +441,18 @@ class HprofParser private constructor(
 
               OBJECT_ARRAY_DUMP -> {
                 val id = readId()
-                if (!indexBuilt) {
-                  objectPositions[id] = tagPositionAfterReadingId
-                }
+
                 val callback = callbacks.get<ObjectArrayDumpRecord>()
-                if (callback != null) {
-                  callback(readObjectArrayDumpRecord(id))
+                if (callback != null || !indexBuilt) {
+                  val recordPosition = tagPositionAfterReadingId
+                  val arrayRecord = readObjectArrayDumpRecord(id)
+                  if (!indexBuilt) {
+                    objectPositionsAndBoring[id, recordPosition] =
+                      primitiveWrapperTypes.contains(arrayRecord.arrayClassId)
+                  }
+                  if (callback != null) {
+                    callback(arrayRecord)
+                  }
                 } else {
                   skip(INT_SIZE)
                   val arrayLength = readInt()
@@ -449,7 +463,7 @@ class HprofParser private constructor(
               PRIMITIVE_ARRAY_DUMP -> {
                 val id = readId()
                 if (!indexBuilt) {
-                  objectPositions[id] = tagPositionAfterReadingId
+                  objectPositionsAndBoring[id, tagPositionAfterReadingId] = true
                 }
                 val callback = callbacks.get<PrimitiveArrayDumpRecord>()
                 if (callback != null) {
@@ -590,8 +604,9 @@ class HprofParser private constructor(
 
     if (!indexBuilt) {
       CanaryLog.d(
-          "Index built, hprofStringCache.size=${hprofStringCache.size} remaining allHprofStrings.size=%d, classNames.size=%d, objectPositions.size=%d, primitiveWrapperTypes.size=%d, primitiveWrapperClassNames.size=%d",
-          allHprofStrings.size, classNames.size, objectPositions.size, primitiveWrapperTypes.size,
+          "Index built, hprofStringCache.size=${hprofStringCache.size} remaining allHprofStrings.size=%d, classNames.size=%d, objectPositionsAndBoring.size=%d, primitiveWrapperTypes.size=%d, primitiveWrapperClassNames.size=%d",
+          allHprofStrings.size, classNames.size, objectPositionsAndBoring.size,
+          primitiveWrapperTypes.size,
           primitiveWrapperClassNames.size
       )
     }
@@ -631,6 +646,16 @@ class HprofParser private constructor(
     return instanceAsString(instance)
   }
 
+  /**
+   * An object is boring if it's a primitive array, a primitive wrapper, an array of primitive
+   * wrapper or a string. We find a lot of these objects in the heap but they can't ever
+   * be part of a path to GC roots, so it's worth indexing those to skip reads.
+   */
+  fun isBoring(objectId: Long): Boolean {
+    val (_, boring) = objectPositionsAndBoring[objectId]
+    return boring
+  }
+
   fun retrieveRecord(reference: ObjectReference): ObjectRecord {
     return retrieveRecordById(reference.value)
   }
@@ -642,7 +667,7 @@ class HprofParser private constructor(
       return objectRecordOrNull
     }
 
-    val position = objectPositions[objectId]
+    val position = objectPositionsAndBoring.first(objectId)
     require(position != 0L) {
       "Unknown object id $objectId"
     }

@@ -8,6 +8,25 @@ object SparseArrayUtils {
     null
   }
 
+  fun insertBoolean(
+    array: BooleanArray,
+    currentSize: Int,
+    index: Int,
+    element: Boolean
+  ): BooleanArray {
+    if (currentSize + 1 <= array.size) {
+      System.arraycopy(array, index, array, index + 1, currentSize - index)
+      array[index] = element
+      return array
+    }
+
+    val newArray = BooleanArray(currentSize * 2)
+    System.arraycopy(array, 0, newArray, 0, index)
+    newArray[index] = element
+    System.arraycopy(array, index, newArray, index + 1, array.size - index)
+    return newArray
+  }
+
   fun insertLong(
     array: LongArray,
     currentSize: Int,
@@ -25,6 +44,22 @@ object SparseArrayUtils {
     newArray[index] = element
     System.arraycopy(array, index, newArray, index + 1, array.size - index)
     return newArray
+  }
+
+  fun appendBoolean(
+    array: BooleanArray,
+    currentSize: Int,
+    element: Boolean
+  ): BooleanArray {
+    var returnedArray = array
+
+    if (currentSize + 1 > returnedArray.size) {
+      val newArray = BooleanArray(currentSize * 2)
+      System.arraycopy(returnedArray, 0, newArray, 0, currentSize)
+      returnedArray = newArray
+    }
+    returnedArray[currentSize] = element
+    return returnedArray
   }
 
   fun appendLong(

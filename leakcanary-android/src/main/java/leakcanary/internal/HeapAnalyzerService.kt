@@ -47,8 +47,6 @@ internal class HeapAnalyzerService : ForegroundService(
 
     val heapAnalysis =
       if (USE_NEW_HPROF_PARSER) {
-        // TODO Remove (gives us time to plug in profiler)
-        SystemClock.sleep(15000)
         leakcanary.updated.HeapAnalyzer(this).checkForLeaks(
             heapDump
         )

@@ -23,6 +23,7 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.AnalyzerProgressListener.Step.FINDING_WATCHED_REFERENCES
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
 import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
+import leakcanary.CanaryLog
 import leakcanary.GcRoot.JavaFrame
 import leakcanary.GcRoot.JniGlobal
 import leakcanary.GcRoot.JniLocal
@@ -236,7 +237,7 @@ class HeapAnalyzer constructor(
     keyedWeakReferenceInstances.forEach { record ->
       val weakRef =
         KeyedWeakReferenceMirror.fromInstance(parser.hydrateInstance(record), heapDumpUptimeMillis)
-      val wasRetained = retainedKeys.remove(record.id)
+      val wasRetained = retainedKeys.remove(weakRef.key.value)
       if (wasRetained) {
         if (weakRef.hasReferent) {
           leakingWeakRefs.add(weakRef)
@@ -267,7 +268,7 @@ class HeapAnalyzer constructor(
   ): List<ShortestPathFinder.Result> {
     listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
 
-    val pathFinder = ShortestPathFinder(heapDump.excludedRefs, ignoreStrings = true)
+    val pathFinder = ShortestPathFinder(heapDump.excludedRefs)
     return pathFinder.findPaths(parser, leakingWeakRefs, gcRootIds)
   }
 

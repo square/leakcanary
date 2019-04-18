@@ -22,5 +22,4 @@ class SeekableHprofReader(
   fun reset() {
     moveTo(startPosition)
   }
-
 }

@@ -28,7 +28,6 @@ import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import leakcanary.updated.KeyedWeakReferenceMirror
 import java.util.ArrayDeque
 import java.util.Deque
@@ -41,10 +40,12 @@ import java.util.LinkedHashSet
  * Finds the shortest path from leaking references to a gc root, ignoring excluded
  * refs first and then including the ones that are not "always ignorable" as needed if no path is
  * found.
+ *
+ * Skips enqueuing strings as an optimization, so if the leaking reference is a string then it will
+ * never be found.
  */
 internal class ShortestPathFinder(
-  private val excludedRefs: ExcludedRefs,
-  private val ignoreStrings: Boolean
+  private val excludedRefs: ExcludedRefs
 ) {
   private val toVisitQueue: Deque<LeakNode>
   private val toVisitIfNoPathQueue: Deque<LeakNode>
@@ -276,33 +277,15 @@ internal class ShortestPathFinder(
       return
     }
 
-    val record = hprofParser.retrieveRecordById(child)
-
-    if (record is PrimitiveArrayDumpRecord) {
-      return
-    }
-
-    if (record is ObjectArrayDumpRecord) {
-      if (hprofParser.isPrimitiveWrapper(record.arrayClassId)) {
-        return
-      }
-    }
-
-    if (record is InstanceDumpRecord && hprofParser.isPrimitiveWrapper(record.classId)) {
-      return
-    }
-
-    if (ignoreStrings && record is InstanceDumpRecord && hprofParser.className(
-            record.classId
-        ) == String::class.java.name
-    ) {
-      return
-    }
-
     val visitNow = exclusion == null
     if (!visitNow && toVisitIfNoPathSet.contains(child)) {
       return
     }
+
+    if (hprofParser.isBoring(child)) {
+      return
+    }
+
     val childNode = LeakNode(exclusion, child, parent, leakReference)
     if (visitNow) {
       toVisitSet.add(child)

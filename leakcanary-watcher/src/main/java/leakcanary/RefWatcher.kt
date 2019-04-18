@@ -75,6 +75,9 @@ class RefWatcher constructor(
     watchedReference: Any,
     referenceName: String
   ) {
+    require(watchedReference !is String) {
+      "Watching a string is not allowed, LeakCanary shortest path finder ignores strings"
+    }
     removeWeaklyReachableReferences()
     val key = UUID.randomUUID()
         .toString()

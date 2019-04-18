@@ -163,7 +163,7 @@ open class HprofReader constructor(
 
   fun exhausted() = source.exhausted()
 
-  fun skip(byteCount: Long) {
+  open fun skip(byteCount: Long) {
     position += byteCount
     return source.skip(byteCount)
   }

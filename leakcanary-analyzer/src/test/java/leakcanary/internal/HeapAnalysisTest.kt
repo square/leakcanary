@@ -5,6 +5,7 @@ import leakcanary.AnalyzerProgressListener.Step
 import leakcanary.CanaryLog
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapDump
+import leakcanary.LeakingInstance
 import leakcanary.updated.HeapAnalyzer
 import org.junit.Test
 
@@ -53,5 +54,10 @@ class HeapAnalysisTest {
 
     require(leaks is HeapAnalysisSuccess)
     require(leaks.retainedInstances.size == 5)
+    leaks.retainedInstances.forEach {
+      require(it is LeakingInstance) {
+        "$it was expected to be a LeakingInstance"
+      }
+    }
   }
 }
