@@ -242,7 +242,7 @@ internal object InternalLeakCanary {
     @Suppress("UNCHECKED_CAST")
     try {
       analyzerServiceClass =
-        Class.forName("leakcanary.internal.HeapAnalyzerService") as Class<out Service>
+        Class.forName("leakcanary.internal.perflib.PerflibHeapAnalyzer") as Class<out Service>
     } catch (e: Exception) {
       return false
     }

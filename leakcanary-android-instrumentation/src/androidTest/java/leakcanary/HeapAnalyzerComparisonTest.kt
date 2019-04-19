@@ -6,7 +6,7 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
 import leakcanary.AnalyzerProgressListener.Step
-import leakcanary.perflib.PerflibHeapAnalyzer
+import leakcanary.internal.perflib.PerflibHeapAnalyzer
 import org.junit.Ignore
 import org.junit.Test
 import java.io.File

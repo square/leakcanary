@@ -7,7 +7,7 @@ import leakcanary.ExcludedRefs.BuilderWithParams
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.perflib.PerflibHeapAnalyzer
+import leakcanary.internal.perflib.PerflibHeapAnalyzer
 import leakcanary.HeapDump
 import leakcanary.LeakingInstance
 import leakcanary.RetainedInstance

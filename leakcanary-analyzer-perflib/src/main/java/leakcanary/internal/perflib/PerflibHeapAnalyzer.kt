@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.perflib
+package leakcanary.internal.perflib
 
 import com.android.tools.perflib.captures.MemoryMappedFileBuffer
 import com.squareup.haha.perflib.ArrayInstance
@@ -74,10 +74,6 @@ import leakcanary.internal.perflib.HahaHelper.fieldValue
 import leakcanary.internal.perflib.HahaHelper.staticFieldValue
 import leakcanary.internal.perflib.HahaHelper.threadName
 import leakcanary.internal.perflib.HahaHelper.valueAsString
-import leakcanary.internal.perflib.HasReferent
-import leakcanary.internal.perflib.KeyedWeakReferenceMirror
-import leakcanary.internal.perflib.LeakNode
-import leakcanary.internal.perflib.ShortestPathFinder
 import leakcanary.internal.perflib.ShortestPathFinder.Result
 import org.jetbrains.annotations.TestOnly
 import java.util.ArrayList
