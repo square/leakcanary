@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (C) 2018 Square, Inc.
+  ~ Copyright (C) 2015 Square, Inc.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -14,19 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.squareup.leakcanary.experimental">
-
-  <application>
-    <service
-        android:name="leakcanary.experimental.internal.ExperimentalHeapAnalyzerService"
-        android:exported="false"
-        >
-      <intent-filter>
-        <action android:name="leakcanary.ANALYSIS_ACTION"/>
-      </intent-filter>
-    </service>
-
-  </application>
-
-</manifest>
+<resources>
+  <style name="leak_canary_LeakCanary.Base" parent="android:Theme.Material">
+  </style>
+</resources>
