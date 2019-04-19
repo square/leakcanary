@@ -25,11 +25,11 @@
 * New library: LeakSentry.
   * Detects when objects are leaking and triggers LeakCanary
   * Can be used independently in production, for instance to report the number of leaking instances on an OutOfMemoryError crash.
-* New experimental heap parser
+* New heap parser
   * Uses 90% less memory and 6 times faster than the prior heap parser.
   * Runs in the same process as the app on a low priority thread.
   * No more dependency on Perflib and TroveJ. New dependency on Okio.
-  * Available as `leakcanary-android-experimental`. The old parser is still available as `leakcanary-android-perflib` but will be removed after alpha.
+  * The old parser is still available as `leakcanary-android-perflib` but will be removed after alpha.
 * 0 code setup, just add the one debug dependency.
 * Simpler configuration options
 * Updated from support library to Android X
