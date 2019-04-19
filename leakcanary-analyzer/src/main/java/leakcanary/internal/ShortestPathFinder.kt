@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.experimental.internal
+package leakcanary.internal
 
 import leakcanary.ExcludedRefs
 import leakcanary.Exclusion
@@ -32,8 +32,8 @@ import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.experimental.internal.LeakNode.ChildNode
-import leakcanary.experimental.internal.LeakNode.RootNode
+import leakcanary.internal.LeakNode.ChildNode
+import leakcanary.internal.LeakNode.RootNode
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap

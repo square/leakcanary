@@ -5,7 +5,7 @@ import com.squareup.haha.perflib.RootType.NATIVE_STATIC
 import com.squareup.haha.perflib.RootType.SYSTEM_CLASS
 import com.squareup.haha.perflib.Snapshot
 import leakcanary.AnalyzerProgressListener
-import leakcanary.HeapAnalyzer
+import leakcanary.perflib.PerflibHeapAnalyzer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,9 +13,9 @@ import org.junit.runners.JUnit4
 import java.util.Arrays.asList
 
 @RunWith(JUnit4::class)
-class HeapAnalyzerTest {
+class PerflibHeapAnalyzerTest {
 
-  private val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
+  private val heapAnalyzer = PerflibHeapAnalyzer(AnalyzerProgressListener.NONE)
 
   @Test
   fun ensureUniqueRoots() {

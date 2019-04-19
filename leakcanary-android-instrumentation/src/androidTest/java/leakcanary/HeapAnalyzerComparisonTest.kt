@@ -6,6 +6,7 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
 import leakcanary.AnalyzerProgressListener.Step
+import leakcanary.perflib.PerflibHeapAnalyzer
 import org.junit.Ignore
 import org.junit.Test
 import java.io.File
@@ -91,7 +92,7 @@ class HeapAnalyzerComparisonTest {
 
     }
     CanaryLog.d("Starting first analysis")
-    val firstAnalysis = HeapAnalyzer(listener).checkForLeaks(heapDump) as HeapAnalysisSuccess
+    val firstAnalysis = PerflibHeapAnalyzer(listener).checkForLeaks(heapDump) as HeapAnalysisSuccess
     CanaryLog.d("Done with first analysis")
     val memoryUsedFirstInMb = (firstMaxMemoryUsed - memoryBeforeFirst) / 1048576L
 
@@ -109,7 +110,7 @@ class HeapAnalyzerComparisonTest {
     }
     countMemory2.run()
 
-    val secondAnalysis = leakcanary.experimental.ExperimentalHeapAnalyzer(listener)
+    val secondAnalysis = HeapAnalyzer(listener)
         .checkForLeaks(heapDump) as HeapAnalysisSuccess
     val memoryUsedSecondInMb = (secondMaxMemoryUsed - memoryBeforeSecond) / 1048576L
 

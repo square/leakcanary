@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary
+package leakcanary.perflib
 
 import com.android.tools.perflib.captures.MemoryMappedFileBuffer
 import com.squareup.haha.perflib.ArrayInstance
@@ -25,6 +25,8 @@ import com.squareup.haha.perflib.Snapshot
 import com.squareup.haha.perflib.Type
 import gnu.trove.THashMap
 import gnu.trove.TObjectProcedure
+import leakcanary.AnalysisResult
+import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACE
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACES
 import leakcanary.AnalyzerProgressListener.Step.COMPUTING_DOMINATORS
@@ -36,6 +38,16 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
 import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
+import leakcanary.HeapAnalysis
+import leakcanary.HeapAnalysisException
+import leakcanary.HeapAnalysisFailure
+import leakcanary.HeapAnalysisSuccess
+import leakcanary.HeapDump
+import leakcanary.HeapDumpMemoryStore
+import leakcanary.KeyedWeakReference
+import leakcanary.LeakReference
+import leakcanary.LeakTrace
+import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Holder
 import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
@@ -44,22 +56,29 @@ import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
+import leakcanary.LeakingInstance
+import leakcanary.NoPathToInstance
+import leakcanary.Reachability
+import leakcanary.Reachability.Inspector
 import leakcanary.Reachability.Status.REACHABLE
 import leakcanary.Reachability.Status.UNKNOWN
 import leakcanary.Reachability.Status.UNREACHABLE
-import leakcanary.internal.HahaHelper.asString
-import leakcanary.internal.HahaHelper.asStringArray
-import leakcanary.internal.HahaHelper.classInstanceValues
-import leakcanary.internal.HahaHelper.extendsThread
-import leakcanary.internal.HahaHelper.fieldValue
-import leakcanary.internal.HahaHelper.staticFieldValue
-import leakcanary.internal.HahaHelper.threadName
-import leakcanary.internal.HahaHelper.valueAsString
-import leakcanary.internal.HasReferent
-import leakcanary.internal.KeyedWeakReferenceMirror
-import leakcanary.internal.LeakNode
-import leakcanary.internal.ShortestPathFinder
-import leakcanary.internal.ShortestPathFinder.Result
+import leakcanary.RetainedInstance
+import leakcanary.WeakReferenceCleared
+import leakcanary.WeakReferenceMissing
+import leakcanary.internal.perflib.HahaHelper.asString
+import leakcanary.internal.perflib.HahaHelper.asStringArray
+import leakcanary.internal.perflib.HahaHelper.classInstanceValues
+import leakcanary.internal.perflib.HahaHelper.extendsThread
+import leakcanary.internal.perflib.HahaHelper.fieldValue
+import leakcanary.internal.perflib.HahaHelper.staticFieldValue
+import leakcanary.internal.perflib.HahaHelper.threadName
+import leakcanary.internal.perflib.HahaHelper.valueAsString
+import leakcanary.internal.perflib.HasReferent
+import leakcanary.internal.perflib.KeyedWeakReferenceMirror
+import leakcanary.internal.perflib.LeakNode
+import leakcanary.internal.perflib.ShortestPathFinder
+import leakcanary.internal.perflib.ShortestPathFinder.Result
 import org.jetbrains.annotations.TestOnly
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
@@ -67,7 +86,7 @@ import java.util.concurrent.TimeUnit.NANOSECONDS
 /**
  * Analyzes heap dumps to look for leaks.
  */
-class HeapAnalyzer @TestOnly internal constructor(
+class PerflibHeapAnalyzer @TestOnly internal constructor(
   private val listener: AnalyzerProgressListener,
   private val keyedWeakReferenceClassName: String,
   private val heapDumpMemoryStoreClassName: String
@@ -267,7 +286,8 @@ class HeapAnalyzer @TestOnly internal constructor(
     leakingWeakRefs: MutableList<HasReferent>
   ): List<Result> {
     listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
-    val pathFinder = ShortestPathFinder(heapDump.excludedRefs, ignoreStrings = true)
+    val pathFinder =
+      ShortestPathFinder(heapDump.excludedRefs, ignoreStrings = true)
     return pathFinder.findPaths(snapshot, leakingWeakRefs)
   }
 
@@ -360,7 +380,8 @@ class HeapAnalyzer @TestOnly internal constructor(
   ): AnalysisResult {
 
     listener.onProgressUpdate(FINDING_SHORTEST_PATH)
-    val pathFinder = ShortestPathFinder(heapDump.excludedRefs, ignoreStrings = true)
+    val pathFinder =
+      ShortestPathFinder(heapDump.excludedRefs, ignoreStrings = true)
     val result = pathFinder.findPath(snapshot, leakingRef)
 
     val className = leakingRef.classObj.className
@@ -425,7 +446,7 @@ class HeapAnalyzer @TestOnly internal constructor(
 
     val expectedReachability = ArrayList<Reachability>()
 
-    val reachabilityInspectors = mutableListOf<Reachability.Inspector>()
+    val reachabilityInspectors = mutableListOf<Inspector>()
     for (reachabilityInspectorClass in heapDump.reachabilityInspectorClasses) {
       try {
         val defaultConstructor = reachabilityInspectorClass.getDeclaredConstructor()
@@ -463,10 +484,12 @@ class HeapAnalyzer @TestOnly internal constructor(
       if (reachability.status == UNKNOWN) {
         if (i < lastReachableElementIndex) {
           val nextReachableName = elements[i + 1].getSimpleClassName()
-          expectedReachability[i] = Reachability.reachable("$nextReachableName↓ is not leaking")
+          expectedReachability[i] =
+            Reachability.reachable("$nextReachableName↓ is not leaking")
         } else if (i > firstUnreachableElementIndex) {
           val previousUnreachableName = elements[i - 1].getSimpleClassName()
-          expectedReachability[i] = Reachability.unreachable("$previousUnreachableName↑ is leaking")
+          expectedReachability[i] =
+            Reachability.unreachable("$previousUnreachableName↑ is leaking")
         }
       }
     }
@@ -474,7 +497,7 @@ class HeapAnalyzer @TestOnly internal constructor(
   }
 
   private fun inspectElementReachability(
-    reachabilityInspectors: List<Reachability.Inspector>,
+    reachabilityInspectors: List<Inspector>,
     element: LeakTraceElement
   ): Reachability {
     for (reachabilityInspector in reachabilityInspectors) {

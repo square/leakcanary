@@ -1,10 +1,10 @@
-package leakcanary.internal
+package leakcanary.internal.perflib
 
 import com.squareup.haha.perflib.ClassInstance
 import com.squareup.haha.perflib.Instance
-import leakcanary.internal.HahaHelper.asString
-import leakcanary.internal.HahaHelper.classInstanceValues
-import leakcanary.internal.HahaHelper.fieldValue
+import leakcanary.internal.perflib.HahaHelper.asString
+import leakcanary.internal.perflib.HahaHelper.classInstanceValues
+import leakcanary.internal.perflib.HahaHelper.fieldValue
 
 /**
  * Represents a [leakcanary.KeyedWeakReference] read from the heap dump.

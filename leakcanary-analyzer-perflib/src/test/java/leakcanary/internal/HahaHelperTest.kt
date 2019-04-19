@@ -7,6 +7,7 @@ import com.squareup.haha.perflib.ClassObj
 import com.squareup.haha.perflib.Field
 import com.squareup.haha.perflib.Snapshot
 import com.squareup.haha.perflib.Type
+import leakcanary.internal.perflib.HahaHelper
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before

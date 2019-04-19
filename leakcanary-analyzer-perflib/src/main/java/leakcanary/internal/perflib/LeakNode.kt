@@ -1,4 +1,4 @@
-package leakcanary.internal
+package leakcanary.internal.perflib
 
 import com.squareup.haha.perflib.Instance
 import leakcanary.Exclusion

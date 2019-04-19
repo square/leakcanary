@@ -13,33 +13,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.experimental.internal
+package leakcanary.internal.perflib
 
 import android.content.Intent
+import android.os.Process
+import android.os.Process.setThreadPriority
 import com.squareup.leakcanary.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
+import leakcanary.perflib.PerflibHeapAnalyzer
 import leakcanary.HeapDump
-import leakcanary.experimental.ExperimentalHeapAnalyzer
 import leakcanary.internal.AnalysisResultService
 import leakcanary.internal.ForegroundService
 import leakcanary.internal.HeapAnalyzers
 
 /**
- * This service runs in a main app process.
+ * This service runs in a separate process to avoid slowing down the app process or making it run
+ * out of memory.
  */
-internal class ExperimentalHeapAnalyzerService : ForegroundService(
-    ExperimentalHeapAnalyzerService::class.java.simpleName,
-    R.string.leak_canary_notification_analysing
+internal class PerflibHeapAnalyzerService : ForegroundService(
+    PerflibHeapAnalyzerService::class.java.simpleName, R.string.leak_canary_notification_analysing
 ), AnalyzerProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
     if (intent == null) {
-      CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.")
+      CanaryLog.d("PerflibHeapAnalyzerService received a null intent, ignoring.")
       return
     }
+    // Since we're running in the main process we should be careful not to impact it.
+    setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
     val heapDump = intent.getSerializableExtra(HeapAnalyzers.HEAPDUMP_EXTRA) as HeapDump
-    val heapAnalyzer = ExperimentalHeapAnalyzer(this)
+
+    val heapAnalyzer = PerflibHeapAnalyzer(this)
     val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
 
     AnalysisResultService.sendResult(this, heapAnalysis)

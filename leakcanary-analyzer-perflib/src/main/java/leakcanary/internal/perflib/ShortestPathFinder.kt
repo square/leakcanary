@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.internal
+package leakcanary.internal.perflib
 
 import com.squareup.haha.perflib.ArrayInstance
 import com.squareup.haha.perflib.ClassInstance
@@ -27,8 +27,8 @@ import com.squareup.haha.perflib.allocatingThread
 import leakcanary.ExcludedRefs
 import leakcanary.Exclusion
 import leakcanary.LeakReference
-import leakcanary.internal.HahaHelper.isPrimitiveOrWrapperArray
-import leakcanary.internal.HahaHelper.isPrimitiveWrapper
+import leakcanary.internal.perflib.HahaHelper.isPrimitiveOrWrapperArray
+import leakcanary.internal.perflib.HahaHelper.isPrimitiveWrapper
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.LOCAL
@@ -106,7 +106,9 @@ internal class ShortestPathFinder(
       val weakReference = referentMap[node.instance]
       if (weakReference != null) {
         results.add(
-            Result(node, excludingKnownLeaks, weakReference)
+            Result(
+                node, excludingKnownLeaks, weakReference
+            )
         )
         // Found all refs, stop searching.
         if (results.size == leakingWeakRefs.size) {
@@ -164,7 +166,9 @@ internal class ShortestPathFinder(
         else -> throw IllegalStateException("Unexpected type for " + node.instance!!)
       }
     }
-    return OldResult(leakingNode, excludingKnownLeaks)
+    return OldResult(
+        leakingNode, excludingKnownLeaks
+    )
   }
 
   private fun clearState() {

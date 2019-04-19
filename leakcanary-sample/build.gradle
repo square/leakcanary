@@ -2,12 +2,17 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 dependencies {
-  debugImplementation project(':leakcanary-android')
+  debugImplementation project(':leakcanary-android-perflib')
 
   implementation deps.kotlin.stdlib
 
   testImplementation deps.junit
   testImplementation deps.robolectric
+
+  androidTestImplementation project(':leakcanary-android-instrumentation')
+  androidTestImplementation deps.androidx.test.espresso
+  androidTestImplementation deps.androidx.test.rules
+  androidTestImplementation deps.androidx.test.runner
 }
 
 android {
@@ -25,6 +30,10 @@ android {
 
     versionCode 1
     versionName "1.0"
+
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunnerArgument "listener",
+        "leakcanary.FailTestOnLeakRunListener"
   }
 
   buildTypes {

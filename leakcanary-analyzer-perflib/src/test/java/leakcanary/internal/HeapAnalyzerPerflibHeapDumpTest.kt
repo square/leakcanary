@@ -12,7 +12,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
-class HeapAnalyzerHeapDumpTest {
+class HeapAnalyzerPerflibHeapDumpTest {
 
   @Test @Ignore("Need new heapdump with className in KeyedWeakReference")
   fun findsExpectedRef() {

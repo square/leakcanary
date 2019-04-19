@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.experimental
+package leakcanary
 
-import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACES
 import leakcanary.AnalyzerProgressListener.Step.COMPUTING_DOMINATORS
 import leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REFS
@@ -32,13 +31,6 @@ import leakcanary.GcRoot.NativeStack
 import leakcanary.GcRoot.ReferenceCleanup
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
-import leakcanary.HeapAnalysis
-import leakcanary.HeapAnalysisException
-import leakcanary.HeapAnalysisFailure
-import leakcanary.HeapAnalysisSuccess
-import leakcanary.HeapDump
-import leakcanary.HeapDumpMemoryStore
-import leakcanary.HeapValue
 import leakcanary.HeapValue.BooleanValue
 import leakcanary.HeapValue.ByteValue
 import leakcanary.HeapValue.CharValue
@@ -48,12 +40,7 @@ import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HeapValue.ShortValue
-import leakcanary.HprofParser
 import leakcanary.HprofParser.RecordCallbacks
-import leakcanary.KeyedWeakReference
-import leakcanary.LeakReference
-import leakcanary.LeakTrace
-import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Holder
 import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
@@ -62,9 +49,6 @@ import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.LeakingInstance
-import leakcanary.NoPathToInstance
-import leakcanary.Reachability
 import leakcanary.Reachability.Status.REACHABLE
 import leakcanary.Reachability.Status.UNKNOWN
 import leakcanary.Reachability.Status.UNREACHABLE
@@ -75,21 +59,18 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StringRecord
-import leakcanary.RetainedInstance
-import leakcanary.WeakReferenceCleared
-import leakcanary.WeakReferenceMissing
-import leakcanary.experimental.internal.KeyedWeakReferenceMirror
-import leakcanary.experimental.internal.LeakNode
-import leakcanary.experimental.internal.LeakNode.ChildNode
-import leakcanary.experimental.internal.ShortestPathFinder
-import leakcanary.experimental.internal.ShortestPathFinder.Result
+import leakcanary.internal.KeyedWeakReferenceMirror
+import leakcanary.internal.LeakNode
+import leakcanary.internal.LeakNode.ChildNode
+import leakcanary.internal.ShortestPathFinder
+import leakcanary.internal.ShortestPathFinder.Result
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
 
 /**
  * Analyzes heap dumps to look for leaks.
  */
-class ExperimentalHeapAnalyzer constructor(
+class HeapAnalyzer constructor(
   private val listener: AnalyzerProgressListener
 ) {
 
