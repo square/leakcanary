@@ -81,10 +81,11 @@ val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
 
 ### Alternate setup with the old perflib heap parser
 
-If you want to try LeakCanary 2.0 features with the battle tested perflib heap parser:
+If you want to try LeakCanary 2.0 features with the battle tested perflib heap parser, use a different dependency:
 
 ```groovy
 dependencies {
+  // debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
   debugImplementation 'com.squareup.leakcanary:leakcanary-android-perflib:2.0-alpha-1'
 }
 ```
