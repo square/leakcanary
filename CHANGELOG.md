@@ -5,15 +5,12 @@
 * **Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements!
 * Check out the [2.0 Readme](https://github.com/square/leakcanary/blob/master/README-2.0.md).
 * New [logo](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo), thanks [@flickator](https://github.com/flickator)!
-<p align="center">
-<img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
-</p>
+
+<img  align="right" src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
 
 * Entirely rewritten to 100% Kotlin
 
-<p align="center">
 <img align="right" src="https://github.com/square/leakcanary/wiki/assets/kanary-200px.png" />
-</p>
 
 * Multiple leaks detected in one analysis
   * The heap is dumped when the app goes in the background, or when a minimum of 5 leaks is reached in the foreground.
