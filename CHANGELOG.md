@@ -12,7 +12,7 @@
 * Entirely rewritten to 100% Kotlin
 
 <p align="center">
-<img src="https://github.com/square/leakcanary/wiki/assets/kanary-200px.png" />
+<img align="right" src="https://github.com/square/leakcanary/wiki/assets/kanary-200px.png" />
 </p>
 
 * Multiple leaks detected in one analysis
