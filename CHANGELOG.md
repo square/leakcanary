@@ -8,10 +8,7 @@
 
 <img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
 
-* Entirely rewritten to 100% Kotlin
-
-<img align="right" src="https://github.com/square/leakcanary/wiki/assets/kanary-200px.png" />
-
+* Entirely rewritten to **100% Kotlin**
 * Multiple leaks detected in one analysis
   * The heap is dumped when the app goes in the background, or when a minimum of 5 leaks is reached in the foreground.
 * Leak grouping
@@ -19,11 +16,11 @@
   * New screens to see the list of groups and each group.
   * Improved leaktrace strings to highlight leak causes.
   * Leaks can be shared to Stack Overflow
-* New library: LeakSentry.
+* New library: **LeakSentry**.
   * Detects when objects are leaking and triggers LeakCanary
   * Can be used independently in production, for instance to report the number of leaking instances on an OutOfMemoryError crash.
 * New heap parser
-  * Uses 90% less memory and 6 times faster than the prior heap parser.
+  * Uses **90% less memory and 6 times** faster than the prior heap parser.
   * Runs in the same process as the app on a low priority thread.
   * No more dependency on Perflib and TroveJ. New dependency on Okio.
   * The old parser is still available as `leakcanary-android-perflib` but will be removed after alpha.
