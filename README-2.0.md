@@ -56,7 +56,7 @@ class DebugExampleApplication : ExampleApplication() {
 }
 ```
 
-// LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing `LeakCanary.config`:
+LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing `LeakCanary.config`:
 
 ```
 disableLeakCanaryButton.setOnClickListener {
