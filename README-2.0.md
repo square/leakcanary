@@ -15,7 +15,7 @@ Add LeakCanary to your `build.gradle`:
 
 ```groovy
 dependencies {
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android-experimental:2.0-alpha-1'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
 }
 ```
 
@@ -45,17 +45,22 @@ class MyService : Service {
 
 ### Configuring LeakSentry & LeakCanary
 
+LeakSentry is in charge of detecting memory leaks. Its configuration can be updated at any time by replacing `LeakSentry.config`:
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
     super.onCreate()
-    // LeakSentry is in charge of detecting memory leaks
     LeakSentry.config = LeakSentry.config.copy(watchFragmentViews = false)
-
-    // LeakCanary is in charge of taking heap dumps and analyzing them
-    LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
   }
+}
+```
+
+// LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing `LeakCanary.config`:
+
+```
+disableLeakCanaryButton.setOnClickListener {
+  LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
 }
 ```
 

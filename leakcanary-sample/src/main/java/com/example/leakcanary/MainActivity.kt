@@ -18,6 +18,8 @@ package com.example.leakcanary
 import android.app.Activity
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
+import leakcanary.LeakCanary
 import kotlin.random.Random
 
 class MainActivity : Activity() {
@@ -25,6 +27,12 @@ class MainActivity : Activity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.main_activity)
+
+    val disableLeakCanaryButton: Button = null
+
+    disableLeakCanaryButton.setOnClickListener {
+      LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
+    }
 
     val app = application as ExampleApplication
     val leakedView = findViewById<View>(R.id.helper_text)
