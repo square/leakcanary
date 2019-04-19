@@ -28,12 +28,6 @@ class MainActivity : Activity() {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.main_activity)
 
-    val disableLeakCanaryButton: Button = null
-
-    disableLeakCanaryButton.setOnClickListener {
-      LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
-    }
-
     val app = application as ExampleApplication
     val leakedView = findViewById<View>(R.id.helper_text)
 

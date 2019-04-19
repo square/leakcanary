@@ -264,7 +264,7 @@ class HeapAnalyzer constructor(
     if (heapDump.computeRetainedHeapSize && pathResults.isNotEmpty()) {
       listener.onProgressUpdate(COMPUTING_DOMINATORS)
       // Computing dominators has the side effect of computing retained size.
-      TODO("Dominators is not implemented, cannot compute retained heap size")
+      CanaryLog.d("Cannot compute retained heap size because dominators is not implemented yet")
     }
 
     listener.onProgressUpdate(BUILDING_LEAK_TRACES)
