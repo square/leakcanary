@@ -4,9 +4,8 @@ import leakcanary.HprofParser.Companion.BITS_FOR_FILE_POSITION
 
 enum class ObjectIdMetadata {
   PRIMITIVE_WRAPPER,
-  PRIMITIVE_WRAPPER_ARRAY,
+  PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY,
   OBJECT_ARRAY,
-  PRIMITIVE_ARRAY,
   /**
    * An [INSTANCE] of the String class.
    */
@@ -14,10 +13,18 @@ enum class ObjectIdMetadata {
   INSTANCE,
   CLASS,
   /**
-   * An [INSTANCE] with 8 bytes or less of field values, which therefore has no fields that
+   * An [INSTANCE] with 0 bytes of field values, which therefore has no fields that
    * could reference other instances.
    */
-  SHALLOW_INSTANCE,
+  EMPTY_INSTANCE,
+  /**
+   * An [INSTANCE] with N + 4 bytes of field values, where N is the size of an object id.
+   * Art updated the Object class with two fields: shadow$_klass_ (pointer to a class, N bytes) and
+   * shadow$_monitor_ (Int, 4 bytes). As a empty instances still have at list N + 4 bytes of field
+   * values. The size of the Object class fields is discovered after we've already parsed some
+   * objects so we have to store this separately from [EMPTY_INSTANCE] and check later.
+   */
+  INTERNAL_MAYBE_EMPTY_INSTANCE
   ;
 
   fun packOrdinalWithFilePosition(filePosition: Long): Int {

@@ -24,10 +24,9 @@ import leakcanary.LeakReference
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.ObjectIdMetadata.PRIMITIVE_ARRAY
+import leakcanary.ObjectIdMetadata.EMPTY_INSTANCE
 import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER
-import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_ARRAY
-import leakcanary.ObjectIdMetadata.SHALLOW_INSTANCE
+import leakcanary.ObjectIdMetadata.PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY
 import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
@@ -121,9 +120,7 @@ internal class ShortestPathFinder(
         }
       }
 
-      val record = parser.retrieveRecordById(node.instance)
-
-      when (record) {
+      when (val record = parser.retrieveRecordById(node.instance)) {
         is ClassDumpRecord -> visitClassRecord(parser, record, node)
         is InstanceDumpRecord -> visitInstanceRecord(parser, record, node)
         is ObjectArrayDumpRecord -> visitObjectArrayRecord(parser, record, node)
@@ -293,6 +290,6 @@ internal class ShortestPathFinder(
 
   companion object {
     private val SKIP_ENQUEUE =
-      setOf(PRIMITIVE_WRAPPER, PRIMITIVE_WRAPPER_ARRAY, PRIMITIVE_ARRAY, STRING, SHALLOW_INSTANCE)
+      setOf(PRIMITIVE_WRAPPER, PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY, STRING, EMPTY_INSTANCE)
   }
 }
