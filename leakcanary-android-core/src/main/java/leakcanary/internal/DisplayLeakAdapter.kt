@@ -33,6 +33,7 @@ import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.Reachability
 import leakcanary.Reachability.Status.REACHABLE
+import leakcanary.Reachability.Status.UNKNOWN
 import leakcanary.Reachability.Status.UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type
 import leakcanary.internal.DisplayLeakConnectorView.Type.END
@@ -170,24 +171,20 @@ internal class DisplayLeakAdapter private constructor(
     } else {
       val isLast = position == (TOP_ROW_COUNT + leakTrace.elements.size) - 1
 
-      val element = leakTrace.elements[elementIndex(position)]
+      val elementIndex = elementIndex(position)
+      val element = leakTrace.elements[elementIndex]
 
-      val reachability = leakTrace.expectedReachability[elementIndex(position)]
+      val reachability = leakTrace.expectedReachability[elementIndex]
       val maybeLeakCause = if (isLeakGroup) {
         true
-      } else if (isLast || reachability.status == UNREACHABLE) {
-        false
-      } else {
-        val nextReachability = leakTrace.expectedReachability[elementIndex(position + 1)]
-        nextReachability.status != REACHABLE
-      }
+      } else leakTrace.elementMayBeLeakCause(elementIndex)
 
       val htmlTitle = htmlTitle(element, maybeLeakCause, resources)
 
       titleView.text = htmlTitle
 
       if (opened[position]) {
-        val htmlDetail = htmlDetails(isLast, element)
+        val htmlDetail = htmlDetails(isLast, element, reachability)
         detailView.text = htmlDetail
       }
     }
@@ -263,7 +260,8 @@ internal class DisplayLeakAdapter private constructor(
 
   private fun htmlDetails(
     isLeakingInstance: Boolean,
-    element: LeakTraceElement
+    element: LeakTraceElement,
+    reachability: Reachability
   ): Spanned {
     var htmlString = ""
     if (element.extra != null) {
@@ -281,10 +279,12 @@ internal class DisplayLeakAdapter private constructor(
         htmlString += " because <font color='#f3cf83'>" + exclusion.reason + "</font>"
       }
     }
-    htmlString += ("<br>"
-        + "<font color='" + extraColorHexString + "'>"
-        + element.toString().replace("\n", "<br>")
-        + "</font>")
+    val reachabilityString = when (reachability.status) {
+      UNKNOWN -> "UNKNOWN"
+      REACHABLE -> "NO (${reachability.reason})"
+      UNREACHABLE -> "YES (${reachability.reason})"
+    }
+    htmlString += "<br><font color='$extraColorHexString'>Leaking: $reachabilityString</font>"
 
     if (isLeakingInstance && referenceName != "") {
       htmlString += " <font color='$extraColorHexString'>$referenceName</font>"
