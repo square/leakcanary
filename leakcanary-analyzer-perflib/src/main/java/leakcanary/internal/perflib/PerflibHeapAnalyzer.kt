@@ -133,7 +133,11 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
     } catch (e: Throwable) {
       return AnalysisResult.failure(e, since(analysisStartNanoTime))
     } finally {
-      buffer?.dispose()
+      try {
+        buffer?.dispose()
+      } catch (ignored: NoClassDefFoundError) {
+        // DirectBuffer does not exist on older Android versions.
+      }
     }
 
   }
@@ -195,7 +199,11 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
           HeapAnalysisException(exception)
       )
     } finally {
-      buffer?.dispose()
+      try {
+        buffer?.dispose()
+      } catch (ignored: NoClassDefFoundError) {
+        // DirectBuffer does not exist on older Android versions.
+      }
     }
   }
 

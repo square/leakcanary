@@ -20,9 +20,13 @@ import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofReader.Companion.BYTE_SIZE
 import leakcanary.HprofReader.Companion.INT_SIZE
+import leakcanary.HprofReader.Companion.INT_TYPE
 import leakcanary.HprofReader.Companion.LONG_SIZE
+import leakcanary.HprofReader.Companion.OBJECT_TYPE
 import leakcanary.HprofReader.Companion.SHORT_SIZE
-import leakcanary.ObjectIdMetadata.SHALLOW_INSTANCE
+import leakcanary.ObjectIdMetadata.EMPTY_INSTANCE
+import leakcanary.ObjectIdMetadata.INSTANCE
+import leakcanary.ObjectIdMetadata.INTERNAL_MAYBE_EMPTY_INSTANCE
 import leakcanary.Record.HeapDumpEndRecord
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
@@ -47,6 +51,7 @@ import java.io.Closeable
 import java.io.File
 import java.nio.charset.Charset
 import kotlin.math.pow
+import kotlin.properties.Delegates.notNull
 
 /**
  * A memory efficient heap dump parser.
@@ -117,6 +122,8 @@ class HprofParser private constructor(
    */
   private val primitiveWrapperClassNames = mutableSetOf<Long>()
 
+  private var maybeEmptyInstancesAreEmpty by notNull<Boolean>()
+
   class RecordCallbacks {
     private val callbacks = mutableMapOf<Class<out Record>, Any>()
 
@@ -161,6 +168,9 @@ class HprofParser private constructor(
 
     // heap dump timestamp
     skip(LONG_SIZE)
+
+    // shadow$_klass_ (object id) + shadow$_monitor_ (Int)
+    val maybeEmptySize = typeSize(OBJECT_TYPE) + typeSize(INT_TYPE)
 
     while (!exhausted()) {
       // type of the record
@@ -374,12 +384,30 @@ class HprofParser private constructor(
                 val callback = callbacks.get<ClassDumpRecord>()
                 val id = readId()
                 if (!indexBuilt) {
-
                   objectIndex[id] =
                     ObjectIdMetadata.CLASS.packOrdinalWithFilePosition(tagPositionAfterReadingId)
                 }
-                if (callback != null) {
-                  callback(readClassDumpRecord(id))
+                if (callback != null || !indexBuilt) {
+                  val classDumpRecord = readClassDumpRecord(id)
+                  if (!indexBuilt) {
+                    if (className(id) == "java.lang.Object") {
+                      val objectClassFieldSize = classDumpRecord.fields.sumBy {
+                        typeSize(it.type)
+                      }
+                      maybeEmptyInstancesAreEmpty = when (objectClassFieldSize) {
+                        0 -> false
+                        maybeEmptySize -> true
+                        else ->
+                          // We might need to make this more generic in the future.
+                          TODO(
+                              "Unexpected Object class field size $objectClassFieldSize, fields ${classDumpRecord.fields}"
+                          )
+                      }
+                    }
+                  }
+                  if (callback != null) {
+                    callback(classDumpRecord)
+                  }
                 } else {
                   skip(
                       INT_SIZE + idSize + idSize + idSize + idSize + idSize + idSize + INT_SIZE
@@ -417,7 +445,8 @@ class HprofParser private constructor(
                           instanceDumpRecord.classId
                       ) -> ObjectIdMetadata.PRIMITIVE_WRAPPER
                       hprofStringCache[classNames[instanceDumpRecord.classId]] == "java.lang.String" -> ObjectIdMetadata.STRING
-                      instanceDumpRecord.fieldValues.size <= 8 -> SHALLOW_INSTANCE
+                      instanceDumpRecord.fieldValues.isEmpty() -> EMPTY_INSTANCE
+                      instanceDumpRecord.fieldValues.size <= maybeEmptySize -> INTERNAL_MAYBE_EMPTY_INSTANCE
                       else -> ObjectIdMetadata.INSTANCE
                     }
                     objectIndex[id] = metadata.packOrdinalWithFilePosition(recordPosition)
@@ -441,7 +470,7 @@ class HprofParser private constructor(
                   val arrayRecord = readObjectArrayDumpRecord(id)
                   if (!indexBuilt) {
                     val metadata = if (primitiveWrapperTypes.contains(arrayRecord.arrayClassId)) {
-                      ObjectIdMetadata.PRIMITIVE_WRAPPER_ARRAY
+                      ObjectIdMetadata.PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY
                     } else {
                       ObjectIdMetadata.OBJECT_ARRAY
                     }
@@ -460,9 +489,10 @@ class HprofParser private constructor(
               PRIMITIVE_ARRAY_DUMP -> {
                 val id = readId()
                 if (!indexBuilt) {
-                  objectIndex[id] = ObjectIdMetadata.PRIMITIVE_ARRAY.packOrdinalWithFilePosition(
-                      tagPositionAfterReadingId
-                  )
+                  objectIndex[id] =
+                    ObjectIdMetadata.PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY.packOrdinalWithFilePosition(
+                        tagPositionAfterReadingId
+                    )
                 }
                 val callback = callbacks.get<PrimitiveArrayDumpRecord>()
                 if (callback != null) {
@@ -641,6 +671,13 @@ class HprofParser private constructor(
 
   fun objectIdMetadata(objectId: Long): ObjectIdMetadata {
     val (metadata, _) = ObjectIdMetadata.unpackMetadataAndPosition(objectIndex[objectId])
+    if (metadata == INTERNAL_MAYBE_EMPTY_INSTANCE) {
+      return if (maybeEmptyInstancesAreEmpty) {
+        EMPTY_INSTANCE
+      } else {
+        INSTANCE
+      }
+    }
     return metadata
   }
 
