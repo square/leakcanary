@@ -23,6 +23,7 @@ import leakcanary.HprofReader.Companion.INT_SIZE
 import leakcanary.HprofReader.Companion.LONG_SIZE
 import leakcanary.HprofReader.Companion.SHORT_SIZE
 import leakcanary.ObjectIdMetadata.SHALLOW_INSTANCE
+import leakcanary.Record.HeapDumpEndRecord
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord
@@ -33,6 +34,7 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import leakcanary.Record.LoadClassRecord
+import leakcanary.Record.StackTraceRecord
 import leakcanary.Record.StringRecord
 import leakcanary.internal.LongToIntSparseArray
 import leakcanary.internal.LongToLongSparseArray
@@ -69,6 +71,9 @@ class HprofParser private constructor(
 
   private var scanning = false
   private var indexBuilt = false
+
+  val position
+    get() = reader.position
 
   /**
    * Map of string id to string
@@ -134,10 +139,6 @@ class HprofParser private constructor(
   }
 
   override fun close() {
-    CanaryLog.d(
-        "Object cache hitCount=${objectCache.hitCount}" +
-            ", evictionCount=${objectCache.evictionCount}, missCount=${objectCache.missCount}, putCount=${objectCache.putCount}"
-    )
     reader.close()
   }
 
@@ -161,11 +162,6 @@ class HprofParser private constructor(
     // heap dump timestamp
     skip(LONG_SIZE)
 
-    val allHprofStrings = mutableMapOf<Long, String>()
-    // String id to (position, length)
-    val hprofStringPositions = mutableMapOf<Long, Pair<Long, Long>>()
-
-    var heapId = 0
     while (!exhausted()) {
       // type of the record
       val tag = readUnsignedByte()
@@ -176,21 +172,18 @@ class HprofParser private constructor(
       // number of bytes that follow and belong to this record
       val length = readUnsignedInt()
 
-      // primitiveWrapperClassNames
       when (tag) {
         STRING_IN_UTF8 -> {
           val callback = callbacks.get<StringRecord>()
           if (callback != null || !indexBuilt) {
             val id = readId()
-            val stringPosition = position
             val stringLength = length - idSize
             val string = readUtf8(stringLength)
             if (!indexBuilt) {
-              hprofStringPositions[id] = stringPosition to stringLength
               if (PRIMITIVE_WRAPPER_TYPES.contains(string)) {
                 primitiveWrapperClassNames.add(id)
               }
-              allHprofStrings[id] = string
+              hprofStringCache[id] = string
             }
             if (callback != null) {
               callback(StringRecord(id, string))
@@ -222,6 +215,24 @@ class HprofParser private constructor(
                   )
               )
             }
+          } else {
+            skip(length)
+          }
+        }
+        STACK_TRACE -> {
+          val callback = callbacks.get<StackTraceRecord>()
+          if (callback != null) {
+            val stackTraceSerialNumber = readInt()
+            val threadSerialNumber = readInt()
+            val frameCount = readInt()
+            val stackFrameIds = readIdArray(frameCount)
+            callback(
+                StackTraceRecord(
+                    stackTraceSerialNumber = stackTraceSerialNumber,
+                    threadSerialNumber = threadSerialNumber,
+                    stackFrameIds = stackFrameIds
+                )
+            )
           } else {
             skip(length)
           }
@@ -367,33 +378,8 @@ class HprofParser private constructor(
                   objectIndex[id] =
                     ObjectIdMetadata.CLASS.packOrdinalWithFilePosition(tagPositionAfterReadingId)
                 }
-                if (callback != null || !indexBuilt) {
-                  val classDumpRecord = readClassDumpRecord(id)
-                  if (!indexBuilt) {
-                    val classNameId = classNames[id]
-                    val className = allHprofStrings.remove(classNameId)!!
-                    // Note: tried to optimize with className.intern() but the class and field names
-                    // don't seem to preexist as an interned string.
-                    hprofStringCache[classNameId] = className
-                    hprofStringPositions.remove(classNameId)
-                    classDumpRecord.staticFields.forEach {
-                      val removed = allHprofStrings.remove(it.nameStringId)
-                      if (removed != null) {
-                        hprofStringCache[it.nameStringId] = removed
-                        hprofStringPositions.remove(it.nameStringId)
-                      }
-                    }
-                    classDumpRecord.fields.forEach {
-                      val removed = allHprofStrings.remove(it.nameStringId)
-                      if (removed != null) {
-                        hprofStringCache[it.nameStringId] = removed
-                        hprofStringPositions.remove(it.nameStringId)
-                      }
-                    }
-                  }
-                  if (callback != null) {
-                    callback(classDumpRecord)
-                  }
+                if (callback != null) {
+                  callback(readClassDumpRecord(id))
                 } else {
                   skip(
                       INT_SIZE + idSize + idSize + idSize + idSize + idSize + idSize + INT_SIZE
@@ -496,7 +482,7 @@ class HprofParser private constructor(
               }
 
               HEAP_DUMP_INFO -> {
-                heapId = readInt()
+                val heapId = readInt()
                 val callback = callbacks.get<HeapDumpInfoRecord>()
                 if (callback != null) {
                   val record =
@@ -505,7 +491,6 @@ class HprofParser private constructor(
                 } else {
                   skip(idSize)
                 }
-
               }
 
               ROOT_INTERNED_STRING -> {
@@ -607,7 +592,12 @@ class HprofParser private constructor(
             }
             previousTag = heapDumpTag
           }
-          heapId = 0
+        }
+        HEAP_DUMP_END -> {
+          val callback = callbacks.get<HeapDumpEndRecord>()
+          if (callback != null) {
+            callback(HeapDumpEndRecord)
+          }
         }
         else -> {
           skip(length)
@@ -619,13 +609,6 @@ class HprofParser private constructor(
       objectIndex.compact()
       classNames.compact()
       hprofStringCache.compact()
-
-      CanaryLog.d(
-          "Index built, hprofStringCache.size=${hprofStringCache.size} remaining allHprofStrings.size=%d, classNames.size=%d, objectIndex.size=%d, primitiveWrapperTypes.size=%d, primitiveWrapperClassNames.size=%d",
-          allHprofStrings.size, classNames.size, objectIndex.size,
-          primitiveWrapperTypes.size,
-          primitiveWrapperClassNames.size
-      )
     }
 
     scanning = false
@@ -636,7 +619,6 @@ class HprofParser private constructor(
    * Those are strings for class names, fields, etc, ie not strings from the application memory.
    */
   fun hprofStringById(id: Long): String {
-    checkReadyToRead()
     return hprofStringCache[id] ?: throw IllegalArgumentException("Hprof string $id not in cache")
   }
 
@@ -667,7 +649,6 @@ class HprofParser private constructor(
   }
 
   fun retrieveRecordById(objectId: Long): ObjectRecord {
-    checkReadyToRead()
     val objectRecordOrNull = objectCache[objectId]
     if (objectRecordOrNull != null) {
       return objectRecordOrNull
@@ -697,17 +678,7 @@ class HprofParser private constructor(
     return objectRecord
   }
 
-  private fun checkReadyToRead() {
-    if (scanning) {
-      throw UnsupportedOperationException("Wait for scan() to finish")
-    }
-    if (!indexBuilt) {
-      throw UnsupportedOperationException("scan() must be called at least once to build the index")
-    }
-  }
-
   fun hydrateClassHierarchy(classId: Long): List<HydratedClass> {
-    checkReadyToRead()
     var currentClassId = classId
     val classHierarchy = mutableListOf<HydratedClass>()
     do {
@@ -734,7 +705,6 @@ class HprofParser private constructor(
   }
 
   fun hydrateInstance(instanceRecord: InstanceDumpRecord): HydratedInstance {
-    checkReadyToRead()
     val classHierarchy = hydrateClassHierarchy(instanceRecord.classId)
 
     val buffer = Buffer()
@@ -757,9 +727,11 @@ class HprofParser private constructor(
     }
 
     val value = instance.fieldValue<ObjectReference>("value")
-    val valueRecord = retrieveRecord(value)
 
-    when (valueRecord) {
+    // Prior to API 26 String.value was a char array.
+    // Since API 26 String.value is backed by native code. The vast majority of strings in a
+    // heap dump are backed by a byte array, but we still find a few backed by a char array.
+    when (val valueRecord = retrieveRecord(value)) {
       is CharArrayDump -> {
         var offset = 0
 

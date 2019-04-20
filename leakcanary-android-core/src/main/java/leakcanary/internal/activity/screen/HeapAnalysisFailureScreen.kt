@@ -2,9 +2,9 @@ package leakcanary.internal.activity.screen
 
 import android.view.ViewGroup
 import android.widget.TextView
-import com.squareup.leakcanary.BuildConfig
-import com.squareup.leakcanary.R
-import com.squareup.leakcanary.R.string
+import com.squareup.leakcanary.core.BuildConfig
+import com.squareup.leakcanary.core.R
+import com.squareup.leakcanary.core.R.string
 import leakcanary.HeapAnalysisFailure
 import leakcanary.internal.activity.db
 import leakcanary.internal.activity.db.HeapAnalysisTable

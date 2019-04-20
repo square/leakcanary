@@ -9,7 +9,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils.loadAnimation
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 
 /**
  * A simple backstack navigating activity

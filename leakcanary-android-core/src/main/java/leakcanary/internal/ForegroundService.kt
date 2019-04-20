@@ -20,7 +20,7 @@ import android.app.Notification
 import android.content.Intent
 import android.os.IBinder
 import android.os.SystemClock
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 
 abstract class ForegroundService(
   name: String,

@@ -2,7 +2,7 @@ package leakcanary.internal.activity.screen
 
 import android.view.ViewGroup
 import android.widget.ListView
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.internal.DisplayLeakAdapter
 import leakcanary.internal.activity.db
 import leakcanary.internal.activity.db.LeakingInstanceTable

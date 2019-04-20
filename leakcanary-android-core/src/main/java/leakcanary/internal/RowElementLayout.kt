@@ -19,7 +19,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 
 internal class RowElementLayout(
   context: Context,

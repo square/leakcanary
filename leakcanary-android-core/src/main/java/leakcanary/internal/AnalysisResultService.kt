@@ -20,7 +20,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure

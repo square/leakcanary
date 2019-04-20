@@ -29,7 +29,7 @@ import android.os.Build.VERSION_CODES.M
 import android.os.Bundle
 import android.widget.Toast
 import android.widget.Toast.LENGTH_LONG
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 
 @TargetApi(M) //
 internal class RequestStoragePermissionActivity : Activity() {

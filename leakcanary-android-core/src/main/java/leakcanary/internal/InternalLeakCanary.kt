@@ -16,8 +16,8 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.text.format.Formatter
 import android.util.Log
-import com.squareup.leakcanary.BuildConfig
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.BuildConfig
+import com.squareup.leakcanary.core.R
 import leakcanary.AnalysisResult
 import leakcanary.GcTrigger
 import leakcanary.HeapDump
@@ -231,7 +231,7 @@ internal object InternalLeakCanary {
   }
 
   /**
-   * Whether the current process is the process running the [HeapAnalyzerService], which is
+   * Whether the current process is the process running the perflib heap analyzer, which is
    * a different process than the normal app process.
    *
    * Note: We can't rely on [Application] being set here as [onLeakSentryInstalled] is called after

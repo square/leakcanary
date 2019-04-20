@@ -22,7 +22,7 @@ import android.graphics.Path
 import android.text.SpannableStringBuilder
 import android.text.style.ReplacementSpan
 import android.text.style.UnderlineSpan
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 
 /**
  * Inspired from https://github.com/flavienlaurent/spans and
