@@ -10,7 +10,7 @@ import android.os.AsyncTask
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.HeapDump
 import leakcanary.internal.navigation.activity
 

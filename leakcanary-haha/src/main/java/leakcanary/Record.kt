@@ -13,6 +13,14 @@ sealed class Record {
     val classNameStringId: Long
   ) : Record()
 
+  object HeapDumpEndRecord : Record()
+
+  class StackTraceRecord(
+    val stackTraceSerialNumber: Int,
+    val threadSerialNumber: Int,
+    val stackFrameIds: LongArray
+  ) : Record()
+
   sealed class HeapDumpRecord : Record() {
     class GcRootRecord(
       val gcRoot: GcRoot

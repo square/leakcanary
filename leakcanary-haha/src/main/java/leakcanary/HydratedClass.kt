@@ -10,7 +10,18 @@ class HydratedClass(
 ) {
   fun <T : HeapValue> staticFieldValue(name: String): T {
     return staticFieldValueOrNull(name) ?: throw IllegalArgumentException(
-        "Could not find field $name in class $className with id ${record.id} and static fields $staticFieldNames"
+        "Could not find static field $name in class $className with id ${record.id} and static fields $staticFieldNames"
+    )
+  }
+
+  fun fieldType(name: String): Int {
+    fieldNames.forEachIndexed { index, fieldName ->
+      if (fieldName == name) {
+        return record.fields[index].type
+      }
+    }
+    throw IllegalArgumentException(
+        "Could not find field $name in class $className with id ${record.id} and fields $fieldNames"
     )
   }
 

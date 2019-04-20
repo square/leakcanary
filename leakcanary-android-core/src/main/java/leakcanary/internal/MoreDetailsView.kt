@@ -22,7 +22,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.internal.MoreDetailsView.Details.CLOSED
 import leakcanary.internal.MoreDetailsView.Details.OPENED
 

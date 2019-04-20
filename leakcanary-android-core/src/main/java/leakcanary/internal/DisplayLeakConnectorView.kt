@@ -26,7 +26,7 @@ import android.graphics.PorterDuff.Mode.CLEAR
 import android.graphics.PorterDuffXfermode
 import android.util.AttributeSet
 import android.view.View
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.internal.DisplayLeakConnectorView.Type.END
 import leakcanary.internal.DisplayLeakConnectorView.Type.END_FIRST_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.HELP

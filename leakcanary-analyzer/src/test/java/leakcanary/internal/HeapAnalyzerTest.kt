@@ -1,4 +1,4 @@
-package leakcanary.internal.experimental
+package leakcanary.internal
 
 import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step
@@ -8,8 +8,6 @@ import leakcanary.HeapDump
 import leakcanary.LeakingInstance
 import leakcanary.HeapAnalyzer
 import leakcanary.internal.HeapDumpFile.MULTIPLE_LEAKS
-import leakcanary.internal.defaultExcludedRefs
-import leakcanary.internal.fileFromName
 import org.junit.Test
 
 class HeapAnalyzerTest {

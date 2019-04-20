@@ -18,7 +18,7 @@ package leakcanary.internal.perflib
 import android.content.Intent
 import android.os.Process
 import android.os.Process.setThreadPriority
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
 import leakcanary.HeapDump

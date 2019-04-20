@@ -30,8 +30,8 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
-import com.squareup.leakcanary.R
-import com.squareup.leakcanary.R.string
+import com.squareup.leakcanary.core.R
+import com.squareup.leakcanary.core.R.string
 import leakcanary.CanaryLog
 import java.io.File
 import java.util.concurrent.TimeUnit.SECONDS

@@ -9,7 +9,11 @@ class DefaultCanaryLog : Logger {
     message: String,
     vararg args: Any?
   ) {
-    val formatted = String.format(message, *args)
+    val formatted = if (args.isNotEmpty()) {
+      String.format(message, *args)
+    } else {
+      message
+    }
     if (formatted.length < 4000) {
       Log.d("LeakCanary", formatted)
     } else {

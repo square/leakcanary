@@ -4,7 +4,7 @@ import android.text.format.DateUtils
 import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.internal.activity.db
 import leakcanary.internal.activity.db.LeakingInstanceTable
 import leakcanary.internal.activity.ui.SimpleListAdapter

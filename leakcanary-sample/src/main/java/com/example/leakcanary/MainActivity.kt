@@ -18,8 +18,6 @@ package com.example.leakcanary
 import android.app.Activity
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
-import leakcanary.LeakCanary
 import kotlin.random.Random
 
 class MainActivity : Activity() {

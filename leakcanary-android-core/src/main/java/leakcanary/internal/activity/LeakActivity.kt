@@ -4,7 +4,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.internal.activity.db.LeaksDbHelper
 import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.internal.navigation.NavigatingActivity

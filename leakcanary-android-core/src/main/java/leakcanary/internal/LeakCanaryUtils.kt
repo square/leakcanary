@@ -15,6 +15,7 @@
  */
 package leakcanary.internal
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
@@ -30,7 +31,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.JELLY_BEAN
 import android.os.Build.VERSION_CODES.O
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
@@ -46,13 +47,15 @@ internal object LeakCanaryUtils {
   const val HUAWEI = "HUAWEI"
   const val VIVO = "vivo"
 
+  // Lint is wrong about what constitutes a leak. Ironic.
+  @SuppressLint("StaticFieldLeak")
   @Volatile private var leakDirectoryProvider: LeakDirectoryProvider? = null
 
   fun getLeakDirectoryProvider(context: Context): LeakDirectoryProvider {
     var leakDirectoryProvider =
       leakDirectoryProvider
     if (leakDirectoryProvider == null) {
-      leakDirectoryProvider = DefaultLeakDirectoryProvider(context)
+      leakDirectoryProvider = LeakDirectoryProvider(context)
     }
     return leakDirectoryProvider
   }

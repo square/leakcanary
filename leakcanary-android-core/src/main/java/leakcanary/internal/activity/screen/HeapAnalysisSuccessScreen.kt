@@ -5,7 +5,7 @@ import android.text.format.DateUtils
 import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
@@ -54,6 +54,11 @@ internal class HeapAnalysisSuccessScreen(
           menu.add(R.string.leak_canary_share_heap_dump)
               .setOnMenuItemClickListener {
                 shareHeapDump(heapAnalysis.heapDump)
+                true
+              }
+          menu.add("Render Heap Dump")
+              .setOnMenuItemClickListener {
+                goTo(RenderHeapDumpScreen(heapAnalysis.heapDump.heapDumpFile))
                 true
               }
         }

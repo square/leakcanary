@@ -25,9 +25,9 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import androidx.annotation.ColorRes
-import com.squareup.leakcanary.R
-import com.squareup.leakcanary.R.id
-import com.squareup.leakcanary.R.string
+import com.squareup.leakcanary.core.R
+import com.squareup.leakcanary.core.R.id
+import com.squareup.leakcanary.core.R.string
 import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
