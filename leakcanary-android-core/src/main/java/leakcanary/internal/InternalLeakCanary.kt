@@ -19,6 +19,7 @@ import android.util.Log
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.AnalysisResult
+import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.HeapDump
 import leakcanary.LeakCanary
@@ -26,7 +27,7 @@ import leakcanary.LeakSentry
 import leakcanary.internal.activity.LeakActivity
 import java.lang.Exception
 
-internal object InternalLeakCanary {
+internal object InternalLeakCanary : LeakSentryListener {
 
   private const val DYNAMIC_SHORTCUT_ID = "com.squareup.leakcanary.dynamic_shortcut"
 
@@ -34,7 +35,7 @@ internal object InternalLeakCanary {
 
   @Volatile private var isInAnalyzerProcess: Boolean? = null
 
-  fun onLeakSentryInstalled(application: Application) {
+  override fun onLeakSentryInstalled(application: Application) {
     if (isInAnalyzerProcess(application)) {
       return
     }
@@ -139,7 +140,7 @@ internal object InternalLeakCanary {
     shortcutManager.addDynamicShortcuts(listOf(shortcut))
   }
 
-  fun onReferenceRetained() {
+  override fun onReferenceRetained() {
     if (this::heapDumpTrigger.isInitialized) {
       heapDumpTrigger.onReferenceRetained()
     }

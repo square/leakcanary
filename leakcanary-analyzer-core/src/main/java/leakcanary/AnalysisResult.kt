@@ -99,7 +99,7 @@ data class AnalysisResult(
     )
     val stackTrace = mutableListOf<StackTraceElement>()
     leakTrace.elements.onEach { element ->
-      val methodName = if (element.reference!!.name != null) element.reference.name else "leaking"
+      val methodName = if (element.reference != null) element.reference.name else "leaking"
       val file = classSimpleName(element.className) + ".java"
       stackTrace.add(StackTraceElement(element.className, methodName, file, 42))
     }

@@ -115,7 +115,7 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
   class FragmentInspector : Reachability.Inspector {
     override fun expectedReachability(element: LeakTraceElement): Reachability {
       return unreachableWhen(
-          element, Fragment::class.java.name, "mDetached", "true"
+          element, Fragment::class.java.name, "mFragmentManager", "null"
       )
     }
   }
@@ -123,7 +123,7 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
   class SupportFragmentInspector : Reachability.Inspector {
     override fun expectedReachability(element: LeakTraceElement): Reachability {
       return unreachableWhen(
-          element, "android.support.v4.app.Fragment", "mDetached", "true"
+          element, "android.support.v4.app.Fragment", "mFragmentManager", "null"
       )
     }
   }

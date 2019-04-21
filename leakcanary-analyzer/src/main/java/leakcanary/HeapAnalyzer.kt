@@ -368,6 +368,16 @@ class HeapAnalyzer constructor(
       expectedReachability[0] = Reachability.reachable("it's a GC root")
     }
 
+    when(expectedReachability[lastElementIndex].status) {
+      UNKNOWN, REACHABLE -> {
+        expectedReachability[lastElementIndex] =
+          Reachability.unreachable("RefWatcher was watching this")
+        if (lastReachableElementIndex == lastElementIndex) {
+          lastReachableElementIndex--
+        }
+      }
+    }
+
     if (expectedReachability[lastElementIndex].status == UNKNOWN) {
       expectedReachability[lastElementIndex] =
         Reachability.unreachable("RefWatcher was watching this")
