@@ -95,7 +95,8 @@ data class LeakingInstance(
     } else {
       leakTrace.leakCauses
           .joinToString(separator = "") { element ->
-            val referenceName = element.reference!!.groupingName
+            // Did not expect reference to be null, see https://github.com/square/leakcanary/issues/1287
+            val referenceName = element.reference?.groupingName ?: ""
             element.className + referenceName
           }
     }
