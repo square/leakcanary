@@ -21,9 +21,7 @@ internal class LeakActivity : NavigatingActivity() {
     setContentView(R.layout.leak_canary_leak_activity)
 
     val dbHelperOrNull = lastNonConfigurationInstance
-    dbHelper = dbHelperOrNull as LeaksDbHelper? ?: LeaksDbHelper(
-        this
-    )
+    dbHelper = dbHelperOrNull as LeaksDbHelper? ?: LeaksDbHelper(application)
 
 
     installNavigation(savedInstanceState, findViewById(R.id.main_container))
