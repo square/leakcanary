@@ -15,7 +15,6 @@ import android.os.Looper
 import com.squareup.leakcanary.core.R
 import leakcanary.HprofParser
 import leakcanary.HprofParser.RecordCallbacks
-import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record
 import leakcanary.Record.HeapDumpEndRecord
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
@@ -113,10 +112,10 @@ class RenderHeapDumpTask private constructor(
             currentRecord = newRecord
           }
           localCurrentRecord is InstanceDumpRecord
-              && parser.objectIdMetadata(localCurrentRecord.id) == STRING
-              && (newRecord !is InstanceDumpRecord || parser.objectIdMetadata(
-              newRecord.id
-          ) != STRING)
+              && parser.className(localCurrentRecord.classId) == "java.lang.String"
+              && (newRecord !is InstanceDumpRecord || parser.className(
+              newRecord.classId
+          ) != "java.lang.String")
           -> {
             recordPositions.add(stringColor to parser.position)
             currentRecord = newRecord

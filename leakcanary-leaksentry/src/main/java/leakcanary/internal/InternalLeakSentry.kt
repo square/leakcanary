@@ -4,7 +4,6 @@ import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import leakcanary.AbstractLeakSentryReceiver
 import leakcanary.CanaryLog
 import leakcanary.Clock
 import leakcanary.LeakSentry
@@ -12,6 +11,8 @@ import leakcanary.RefWatcher
 import java.util.concurrent.Executor
 
 internal object InternalLeakSentry {
+
+  private val listener: LeakSentryListener
 
   lateinit var application: Application
 
@@ -23,6 +24,15 @@ internal object InternalLeakSentry {
 
   private val mainHandler = Handler(Looper.getMainLooper())
 
+  init {
+    listener = try {
+      val leakCanaryListener = Class.forName("leakcanary.internal.InternalLeakCanary")
+      leakCanaryListener.getDeclaredField("INSTANCE").get(null) as LeakSentryListener
+    } catch (ignored: Throwable) {
+      LeakSentryListener.None
+    }
+  }
+
   private val checkRetainedExecutor = Executor {
     mainHandler.postDelayed(it, LeakSentry.config.watchDurationMillis)
   }
@@ -30,7 +40,7 @@ internal object InternalLeakSentry {
       clock,
       checkRetainedExecutor
   ) {
-    AbstractLeakSentryReceiver.sendReferenceRetained()
+    listener.onReferenceRetained()
   }
 
   fun install(application: Application) {
@@ -48,7 +58,7 @@ internal object InternalLeakSentry {
     FragmentDestroyWatcher.install(
         application, refWatcher, configProvider
     )
-    AbstractLeakSentryReceiver.sendLeakSentryInstalled()
+    listener.onLeakSentryInstalled(application)
   }
 
   private fun checkMainThread() {

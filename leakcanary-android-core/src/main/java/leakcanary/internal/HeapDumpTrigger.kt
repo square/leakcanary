@@ -1,11 +1,8 @@
 package leakcanary.internal
 
 import android.app.Application
-import android.content.Context
-import android.content.Intent
 import android.os.Handler
 import android.os.SystemClock
-import androidx.core.content.ContextCompat
 import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.HeapDump

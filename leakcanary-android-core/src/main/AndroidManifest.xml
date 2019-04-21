@@ -73,17 +73,5 @@
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_Theme.Transparent"
         />
-
-    <receiver
-        android:name="leakcanary.internal.LeakCanaryReceiver"
-        android:exported="false">
-      <intent-filter>
-        <action android:name="leakcanary.AbstractLeakSentryReceiver.referenceRetained"/>
-      </intent-filter>
-      <intent-filter>
-        <action android:name="leakcanary.AbstractLeakSentryReceiver.leakSentryInstalled"/>
-      </intent-filter>
-    </receiver>
-
   </application>
 </manifest>
