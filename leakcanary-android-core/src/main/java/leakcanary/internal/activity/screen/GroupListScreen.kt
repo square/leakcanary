@@ -1,6 +1,11 @@
 package leakcanary.internal.activity.screen
 
+import android.app.AlertDialog
+import android.graphics.drawable.Drawable
+import android.text.Html
+import android.text.Html.ImageGetter
 import android.text.format.DateUtils
+import android.text.method.LinkMovementMethod
 import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
@@ -49,6 +54,21 @@ internal class GroupListScreen : Screen() {
         menu.add("See analysis list")
             .setOnMenuItemClickListener {
               goTo(HeapAnalysisListScreen())
+              true
+            }
+
+        menu.add(R.string.leak_canary_about_title)
+            .setOnMenuItemClickListener {
+              val dialog = AlertDialog.Builder(context)
+                  .setIcon(resources.getDrawable(R.drawable.leak_canary_icon))
+                  .setTitle(R.string.leak_canary_about_title)
+                  .setMessage(
+                      Html.fromHtml(resources.getString(R.string.leak_canary_about_message))
+                  )
+                  .setPositiveButton(android.R.string.ok, null)
+                  .show()
+              val messageView = dialog.findViewById<TextView>(android.R.id.message)
+              messageView.movementMethod = LinkMovementMethod.getInstance()
               true
             }
       }

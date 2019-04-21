@@ -14,45 +14,51 @@
   ~ limitations under the License.
   -->
 <resources>
-    <string name="leak_canary_class_has_leaked">%1$s hat geleaked</string>
-    <string name="leak_canary_class_has_leaked_retaining">%1$s hat %2$s geleaked</string>
-    <string name="leak_canary_class_no_leak">%1$s was never GCed but no leak found</string>
-    <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
-    <string name="leak_canary_leak_excluded">[Ausgeschlossen] %1$s hat geleaked</string>
-    <string name="leak_canary_leak_excluded_retaining">[Ausgeschlossen] %1$s hat %2$s geleaked</string>
-    <string name="leak_canary_analysis_failed">Leak Analyse fehlgeschlagen</string>
-    <string name="leak_canary_leak_list_title">Leaks in %s</string>
-    <string name="leak_canary_notification_analysing">Analyisere Heap Dump</string>
-    <string name="leak_canary_notification_channel">LeakCanary</string>
-    <string name="leak_canary_notification_dumping">Sichere Heap</string>
-    <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
-    <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>
-    <string name="leak_canary_notification_reporting">Sichere LeakCanary Ergebnis</string>
-    <string name="leak_canary_no_leak_details">LeakCanary could not find a valid path to GC roots. Download the heap dump and investigate with MAT or YourKit.</string>
-    <string name="leak_canary_result_failure_no_disk_space">Das Analyseergebnis konnte nicht gespeichert werden</string>
-    <string name="leak_canary_result_failure_no_file">Das Analyseergebnis konnte nicht aus dem Speicher geladen werden</string>
-    <string name="leak_canary_result_failure_title">Analysis result failure</string>
-    <string name="leak_canary_share_leak">Info teilen</string>
-    <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>
-    <string name="leak_canary_share_with">Teilen mit…</string>
-    <string name="leak_canary_display_activity_label">Leaks</string>
-    <string name="leak_canary_storage_permission_activity_label">Storage Berechtigung</string>
-    <string name="leak_canary_toast_heap_dump">LeakCanary is dumping the heap, app will freeze. Brrrr.</string>
-    <string name="leak_canary_delete">Löschen</string>
-    <string name="leak_canary_failure_report">"Bitte sende diesen Fehler an http://github.com/square/leakcanary"</string>
-    <string name="leak_canary_delete_all">Alle löschen</string>
-    <string name="leak_canary_delete_all_leaks_title">Bist du dir sicher, dass du alle Leaks löschen möchtest?</string>
-    <string name="leak_canary_could_not_save_text">LeakCanary konnte das Ergebnis der Analyse nicht speichern.</string>
-    <string name="leak_canary_excluded_row">[Ausgeschlossen] %s</string>
-    <string name="leak_canary_permission_not_granted">Bitte gewähre die Storage Berechtigung, andernfalls werden Memory Leaks nicht erkannt.</string>
-    <string name="leak_canary_permission_notification_title">Leak erkannt, benötige Berechtigung</string>
-    <string name="leak_canary_permission_notification_text">Hier klicken, um Storage Berechtigung für %s zu aktivieren.</string>
-    <string name="leak_canary_shortcut_label">Leaks</string>
-    <string name="leak_canary_stackoverflow_share">Share Leak On Stack Overflow</string>
-    <string name="leak_canary_leak_copied">Leak info copied to clipboard</string>
-    <string name="leak_canary_leak_clipdata_label">LeakCanary Leak Trace</string>
-    <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
-    <string name="leak_canary_help_detail"><![CDATA[Ein Memory-Leak ist ein Programmierfehler der
+  <string name="leak_canary_about_title">About LeakCanary</string>
+  <string name="leak_canary_about_message"><![CDATA[<a href="https://github.com/square/leakcanary">LeakCanary</a>
+  is a memory leak detection library for Android, created by
+  <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> and open sourced by Square.<br><br>
+  We welcome contributions from the community, please do not hesitate to
+  <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br>]]></string>
+  <string name="leak_canary_class_has_leaked">%1$s hat geleaked</string>
+  <string name="leak_canary_class_has_leaked_retaining">%1$s hat %2$s geleaked</string>
+  <string name="leak_canary_class_no_leak">%1$s was never GCed but no leak found</string>
+  <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
+  <string name="leak_canary_leak_excluded">[Ausgeschlossen] %1$s hat geleaked</string>
+  <string name="leak_canary_leak_excluded_retaining">[Ausgeschlossen] %1$s hat %2$s geleaked</string>
+  <string name="leak_canary_analysis_failed">Leak Analyse fehlgeschlagen</string>
+  <string name="leak_canary_leak_list_title">Leaks in %s</string>
+  <string name="leak_canary_notification_analysing">Analyisere Heap Dump</string>
+  <string name="leak_canary_notification_channel">LeakCanary</string>
+  <string name="leak_canary_notification_dumping">Sichere Heap</string>
+  <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
+  <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>
+  <string name="leak_canary_notification_reporting">Sichere LeakCanary Ergebnis</string>
+  <string name="leak_canary_no_leak_details">LeakCanary could not find a valid path to GC roots. Download the heap dump and investigate with MAT or YourKit.</string>
+  <string name="leak_canary_result_failure_no_disk_space">Das Analyseergebnis konnte nicht gespeichert werden</string>
+  <string name="leak_canary_result_failure_no_file">Das Analyseergebnis konnte nicht aus dem Speicher geladen werden</string>
+  <string name="leak_canary_result_failure_title">Analysis result failure</string>
+  <string name="leak_canary_share_leak">Info teilen</string>
+  <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>
+  <string name="leak_canary_share_with">Teilen mit…</string>
+  <string name="leak_canary_display_activity_label">Leaks</string>
+  <string name="leak_canary_storage_permission_activity_label">Storage Berechtigung</string>
+  <string name="leak_canary_toast_heap_dump">LeakCanary is dumping the heap, app will freeze. Brrrr.</string>
+  <string name="leak_canary_delete">Löschen</string>
+  <string name="leak_canary_failure_report">"Bitte sende diesen Fehler an http://github.com/square/leakcanary"</string>
+  <string name="leak_canary_delete_all">Alle löschen</string>
+  <string name="leak_canary_delete_all_leaks_title">Bist du dir sicher, dass du alle Leaks löschen möchtest?</string>
+  <string name="leak_canary_could_not_save_text">LeakCanary konnte das Ergebnis der Analyse nicht speichern.</string>
+  <string name="leak_canary_excluded_row">[Ausgeschlossen] %s</string>
+  <string name="leak_canary_permission_not_granted">Bitte gewähre die Storage Berechtigung, andernfalls werden Memory Leaks nicht erkannt.</string>
+  <string name="leak_canary_permission_notification_title">Leak erkannt, benötige Berechtigung</string>
+  <string name="leak_canary_permission_notification_text">Hier klicken, um Storage Berechtigung für %s zu aktivieren.</string>
+  <string name="leak_canary_shortcut_label">Leaks</string>
+  <string name="leak_canary_stackoverflow_share">Share Leak On Stack Overflow</string>
+  <string name="leak_canary_leak_copied">Leak info copied to clipboard</string>
+  <string name="leak_canary_leak_clipdata_label">LeakCanary Leak Trace</string>
+  <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
+  <string name="leak_canary_help_detail"><![CDATA[Ein Memory-Leak ist ein Programmierfehler der
     dafür sorgt, dass deine Anwendung eine Referenz auf ein Objekt hält, das nicht länger benötigt
     wird. Daraus folgt, dass der Speicher der dem Objekt zugewiesen wurde nicht wieder freigegeben
     wird, was eventuell zu einem OutOfMemoryError-Absturz führt.<br>
