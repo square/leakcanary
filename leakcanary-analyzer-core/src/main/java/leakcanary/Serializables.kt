@@ -38,9 +38,13 @@ fun Serializable.toByteArray(): ByteArray {
 
 object Serializables {
 
-  fun <T> fromByteArray(byteArray: ByteArray): T {
+  fun <T> fromByteArray(byteArray: ByteArray): T? {
     val inputStream = ByteArrayInputStream(byteArray)
-    return ObjectInputStream(inputStream).readObject() as T
+    return try {
+      ObjectInputStream(inputStream).readObject() as T
+    } catch (ignored: Throwable) {
+      null
+    }
   }
 
   fun <T> load(file: File): T? {
