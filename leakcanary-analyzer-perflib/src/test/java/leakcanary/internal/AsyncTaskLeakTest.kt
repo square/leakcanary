@@ -2,11 +2,11 @@ package leakcanary.internal
 
 import leakcanary.ExcludedRefs
 import leakcanary.ExcludedRefs.BuilderWithParams
+import leakcanary.LeakTraceElement.Holder.THREAD
+import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.internal.HeapDumpFile.ASYNC_TASK_M
 import leakcanary.internal.HeapDumpFile.ASYNC_TASK_O
 import leakcanary.internal.HeapDumpFile.ASYNC_TASK_PRE_M
-import leakcanary.LeakTraceElement.Holder.THREAD
-import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -40,9 +40,6 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
     val gcRoot = result.leakTrace!!.elements[0]
     assertThat(Thread::class.java.name).isEqualTo(gcRoot.className)
     assertThat(THREAD).isEqualTo(gcRoot.holder)
-    assertThat(gcRoot.extra).contains(
-        ASYNC_TASK_THREAD
-    )
   }
 
   @Test

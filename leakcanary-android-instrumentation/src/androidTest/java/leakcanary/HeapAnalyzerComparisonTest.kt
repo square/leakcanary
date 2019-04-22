@@ -111,7 +111,7 @@ class HeapAnalyzerComparisonTest {
     countMemory2.run()
 
     val secondAnalysis = HeapAnalyzer(listener)
-        .checkForLeaks(heapDump) as HeapAnalysisSuccess
+        .checkForLeaks(heapDump, LeakCanary.config.labelers) as HeapAnalysisSuccess
     val memoryUsedSecondInMb = (secondMaxMemoryUsed - memoryBeforeSecond) / 1048576L
 
     CanaryLog.d(

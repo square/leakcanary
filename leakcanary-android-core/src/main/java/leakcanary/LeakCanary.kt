@@ -9,6 +9,9 @@ object LeakCanary {
     val dumpHeap: Boolean = true,
     val excludedRefs: ExcludedRefs = AndroidExcludedRefs.createAppDefaults().build(),
     val reachabilityInspectorClasses: List<Class<out Reachability.Inspector>> = AndroidReachabilityInspectors.defaultAndroidInspectors(),
+    val labelers: List<Labeler> = AndroidLabelers.defaultAndroidLabelers(
+        InternalLeakCanary.application
+    ),
     /**
      * Note: this is currently not implemented in the new heap parser.
      */

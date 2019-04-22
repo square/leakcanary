@@ -38,4 +38,8 @@ class HydratedInstance(
     }
     return false
   }
+
+  fun isInstanceOf(className: String): Boolean {
+    return classHierarchy.any { it.className == className }
+  }
 }

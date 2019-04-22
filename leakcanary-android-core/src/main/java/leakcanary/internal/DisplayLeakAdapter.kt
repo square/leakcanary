@@ -233,8 +233,12 @@ internal class DisplayLeakAdapter private constructor(
       UNREACHABLE -> "YES (${reachability.reason})"
     }
 
-    htmlString += "&nbsp;&nbsp;&nbsp;&nbsp;<font color='$extraColorHexString'>Leaking: $reachabilityString</font><br>"
+    val indentation = "&nbsp;".repeat(4)
+    htmlString += "$indentation<font color='$extraColorHexString'>Leaking: $reachabilityString</font><br>"
 
+    element.labels.forEach { label ->
+      htmlString += "$indentation<font color='$extraColorHexString'>$label</font><br>"
+    }
 
     val reference = element.reference
     if (reference != null) {
@@ -251,7 +255,7 @@ internal class DisplayLeakAdapter private constructor(
         referenceName = "<i>$referenceName</i>"
       }
 
-      htmlString +=  "&nbsp;&nbsp;&nbsp;&nbsp;$styledClassName.${if (maybeLeakCause) "<b>$referenceName</b>" else referenceName}"
+      htmlString +=  "$indentation$styledClassName.${if (maybeLeakCause) "<b>$referenceName</b>" else referenceName}"
     }
 
     val exclusion = element.exclusion
@@ -271,10 +275,6 @@ internal class DisplayLeakAdapter private constructor(
     element: LeakTraceElement
   ): Spanned {
     var htmlString = ""
-    if (element.extra != null) {
-      htmlString += " <font color='" + extraColorHexString + "'>" + element.extra + "</font>"
-    }
-
     val exclusion = element.exclusion
     if (exclusion != null) {
       htmlString += "<br/><br/>Excluded by rule"

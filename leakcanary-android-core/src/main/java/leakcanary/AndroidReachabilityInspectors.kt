@@ -102,7 +102,7 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
   class ApplicationInspector : Reachability.Inspector {
     override fun expectedReachability(element: LeakTraceElement): Reachability {
       return if (element.isInstanceOf(Application::class.java)) {
-        Reachability.reachable("the application class is a singleton")
+        Reachability.reachable("Application is a singleton")
       } else Reachability.unknown()
     }
   }
@@ -110,7 +110,7 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
   class ClassloaderInspector : Reachability.Inspector {
     override fun expectedReachability(element: LeakTraceElement): Reachability {
       return if (element.isInstanceOf(ClassLoader::class.java)) {
-        Reachability.reachable("a classloader is always reachable")
+        Reachability.reachable("Classloader always reachable")
       } else Reachability.unknown()
     }
   }

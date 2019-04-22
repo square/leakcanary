@@ -715,6 +715,10 @@ class HprofParser private constructor(
     return objectRecord
   }
 
+  /**
+   * Note: it's reasonable to call this repeatedly, there will be no disk reads as long as
+   * the classes are in the [objectCache] LruCache
+   */
   fun hydrateClassHierarchy(classId: Long): List<HydratedClass> {
     var currentClassId = classId
     val classHierarchy = mutableListOf<HydratedClass>()
@@ -741,6 +745,10 @@ class HprofParser private constructor(
     return classHierarchy
   }
 
+  /**
+   * Note: it's reasonable to call this repeatedly, there will be no disk reads as long as
+   * the classes are in the [objectCache] LruCache
+   */
   fun hydrateInstance(instanceRecord: InstanceDumpRecord): HydratedInstance {
     val classHierarchy = hydrateClassHierarchy(instanceRecord.classId)
 

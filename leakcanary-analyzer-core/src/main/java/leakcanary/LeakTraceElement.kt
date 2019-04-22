@@ -18,14 +18,18 @@ data class LeakTraceElement(
    */
   val classHierarchy: List<String>,
 
-  /** Additional information, may be null.  */
-  val extra: String?,
-
   /** If not null, there was no path that could exclude this element.  */
   val exclusion: Exclusion?,
 
   /** List of all fields (member and static) for that object.  */
-  val fieldReferences: List<LeakReference>
+  @Deprecated("This field will be replaced with the parser itself")
+  val fieldReferences: List<LeakReference>,
+
+  /**
+   * Ordered labels that were computed during analysis. A label provides
+   * extra information that helps understand the leak trace element.
+   */
+  val labels: List<String>
 ) : Serializable {
 
   val className: String

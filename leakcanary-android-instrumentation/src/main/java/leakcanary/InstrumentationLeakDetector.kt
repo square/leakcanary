@@ -180,7 +180,7 @@ class InstrumentationLeakDetector {
     val listener = AnalyzerProgressListener.NONE
 
     val heapAnalyzer = HeapAnalyzer(listener)
-    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
+    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump, config.labelers)
 
     CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)
 
