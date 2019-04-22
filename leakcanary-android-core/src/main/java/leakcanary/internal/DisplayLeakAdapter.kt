@@ -179,12 +179,12 @@ internal class DisplayLeakAdapter private constructor(
         true
       } else leakTrace.elementMayBeLeakCause(elementIndex)
 
-      val htmlTitle = htmlTitle(element, maybeLeakCause, resources)
+      val htmlTitle = htmlTitle(element, maybeLeakCause, reachability, resources)
 
       titleView.text = htmlTitle
 
       if (opened[position]) {
-        val htmlDetail = htmlDetails(isLast, element, reachability)
+        val htmlDetail = htmlDetails(isLast, element)
         detailView.text = htmlDetail
       }
     }
@@ -211,39 +211,47 @@ internal class DisplayLeakAdapter private constructor(
   private fun htmlTitle(
     element: LeakTraceElement,
     maybeLeakCause: Boolean,
+    reachability: Reachability,
     resources: Resources
   ): Spanned {
-    var htmlString = ""
 
+    val packageEnd = element.className.lastIndexOf('.')
     var simpleName = element.getSimpleClassName()
     simpleName = simpleName.replace("[]", "[ ]")
-
     val styledClassName = "<font color='$classNameColorHexString'>$simpleName</font>"
+
+    var htmlString =
+      if (packageEnd != -1) "<font color='$extraColorHexString'>${element.className.substring(
+          0, packageEnd
+      )}</font>.$styledClassName" else styledClassName
+
+    htmlString += "<br>"
+
+    val reachabilityString = when (reachability.status) {
+      UNKNOWN -> "UNKNOWN"
+      REACHABLE -> "NO (${reachability.reason})"
+      UNREACHABLE -> "YES (${reachability.reason})"
+    }
+
+    htmlString += "&nbsp;&nbsp;&nbsp;&nbsp;<font color='$extraColorHexString'>Leaking: $reachabilityString</font><br>"
+
 
     val reference = element.reference
     if (reference != null) {
       var referenceName = reference.displayName.replace("<".toRegex(), "&lt;")
           .replace(">".toRegex(), "&gt;")
 
-      if (maybeLeakCause) {
-        referenceName = "<u><font color='$leakColorHexString'>$referenceName</font></u>"
+      referenceName = if (maybeLeakCause) {
+        "<u><font color='$leakColorHexString'>$referenceName</font></u>"
       } else {
-        referenceName = "<font color='$referenceColorHexString'>$referenceName</font>"
+        "<font color='$referenceColorHexString'>$referenceName</font>"
       }
 
       if (reference.type == STATIC_FIELD) {
         referenceName = "<i>$referenceName</i>"
       }
 
-      var classAndReference = "$styledClassName.$referenceName"
-
-      if (maybeLeakCause) {
-        classAndReference = "<b>$classAndReference</b>"
-      }
-
-      htmlString += classAndReference
-    } else {
-      htmlString += styledClassName
+      htmlString +=  "&nbsp;&nbsp;&nbsp;&nbsp;$styledClassName.${if (maybeLeakCause) "<b>$referenceName</b>" else referenceName}"
     }
 
     val exclusion = element.exclusion
@@ -260,8 +268,7 @@ internal class DisplayLeakAdapter private constructor(
 
   private fun htmlDetails(
     isLeakingInstance: Boolean,
-    element: LeakTraceElement,
-    reachability: Reachability
+    element: LeakTraceElement
   ): Spanned {
     var htmlString = ""
     if (element.extra != null) {
@@ -279,13 +286,6 @@ internal class DisplayLeakAdapter private constructor(
         htmlString += " because <font color='#f3cf83'>" + exclusion.reason + "</font>"
       }
     }
-    val reachabilityString = when (reachability.status) {
-      UNKNOWN -> "UNKNOWN"
-      REACHABLE -> "NO (${reachability.reason})"
-      UNREACHABLE -> "YES (${reachability.reason})"
-    }
-    htmlString += "<br><font color='$extraColorHexString'>Leaking: $reachabilityString</font>"
-
     if (isLeakingInstance && referenceName != "") {
       htmlString += " <font color='$extraColorHexString'>$referenceName</font>"
     }

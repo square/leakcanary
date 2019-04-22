@@ -64,7 +64,11 @@ internal object LeakingInstanceTable {
           if (cursor.moveToNext()) {
             val heapAnalysisId = cursor.getLong(0)
             val leakingInstance = Serializables.fromByteArray<LeakingInstance>(cursor.getBlob(1))
-            heapAnalysisId to leakingInstance
+            if (leakingInstance == null) {
+              null
+            } else {
+              heapAnalysisId to leakingInstance
+            }
           } else
             null
         }
@@ -175,7 +179,9 @@ internal object LeakingInstanceTable {
     )
         .use { cursor ->
           if (cursor.moveToNext()) {
-            val leakingInstance = Serializables.fromByteArray<LeakingInstance>(cursor.getBlob(0))
+            // TODO This may crash if we can't deserialize the first entry we find.
+            // We need to either prune early, or have a better deserialization story.
+            val leakingInstance = Serializables.fromByteArray<LeakingInstance>(cursor.getBlob(0))!!
             val leakTrace = leakingInstance.leakTrace
 
             val groupLeakTrace = if (leakingInstance.excludedLeak) {

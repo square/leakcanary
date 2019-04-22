@@ -28,7 +28,8 @@ data class LeakTraceElement(
   val fieldReferences: List<LeakReference>
 ) : Serializable {
 
-  val className: String = classHierarchy[0]
+  val className: String
+    get() = classHierarchy[0]
 
   enum class Type {
     INSTANCE_FIELD,

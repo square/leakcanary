@@ -72,9 +72,13 @@ internal object HeapAnalysisTable {
               """, null
       )
           .use { cursor ->
-            if (cursor.moveToNext())
-              Serializables.fromByteArray<T>(cursor.getBlob(0))
-            else
+            if (cursor.moveToNext()) {
+              val analysis = Serializables.fromByteArray<T>(cursor.getBlob(0))
+              if (analysis == null) {
+                delete(db, id, null)
+              }
+              analysis
+            } else
               null
           } ?: return null
 
@@ -115,12 +119,14 @@ internal object HeapAnalysisTable {
   fun delete(
     db: SQLiteDatabase,
     id: Long,
-    heapDump: HeapDump
+    heapDump: HeapDump?
   ) {
-    AsyncTask.SERIAL_EXECUTOR.execute {
-      val heapDumpDeleted = heapDump.heapDumpFile.delete()
-      if (!heapDumpDeleted) {
-        CanaryLog.d("Could not delete heap dump file %s", heapDump.heapDumpFile.path)
+    if (heapDump != null) {
+      AsyncTask.SERIAL_EXECUTOR.execute {
+        val heapDumpDeleted = heapDump.heapDumpFile.delete()
+        if (!heapDumpDeleted) {
+          CanaryLog.d("Could not delete heap dump file %s", heapDump.heapDumpFile.path)
+        }
       }
     }
 
