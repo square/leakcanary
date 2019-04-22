@@ -1,7 +1,11 @@
 package leakcanary
 
 sealed class HeapValue {
-  data class ObjectReference(val value: Long) : HeapValue()
+  data class ObjectReference(val value: Long) : HeapValue() {
+    val isNull
+      get() = value == 0L
+  }
+
   data class BooleanValue(val value: Boolean) : HeapValue()
   data class CharValue(val value: Char) : HeapValue()
   data class FloatValue(val value: Float) : HeapValue()

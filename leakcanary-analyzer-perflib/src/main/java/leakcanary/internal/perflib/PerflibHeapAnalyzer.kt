@@ -585,9 +585,9 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
         holderType = OBJECT
       }
     }
+    val labels = if (extra == null) emptyList<String>() else mutableListOf(extra)
     return LeakTraceElement(
-        node.leakReference, holderType, classHierarchy, extra,
-        node.exclusion, leakReferences
+        node.leakReference, holderType, classHierarchy, node.exclusion, leakReferences, labels
     )
   }
 

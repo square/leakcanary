@@ -41,7 +41,7 @@ import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HeapValue.ShortValue
 import leakcanary.HprofParser.RecordCallbacks
-import leakcanary.LeakTraceElement.Holder
+import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
 import leakcanary.LeakTraceElement.Holder.OBJECT
@@ -60,8 +60,6 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StringRecord
 import leakcanary.internal.KeyedWeakReferenceMirror
-import leakcanary.internal.LeakNode
-import leakcanary.internal.LeakNode.ChildNode
 import leakcanary.internal.ShortestPathFinder
 import leakcanary.internal.ShortestPathFinder.Result
 import java.util.ArrayList
@@ -79,7 +77,8 @@ class HeapAnalyzer constructor(
    * and then computes the shortest strong reference path from that instance to the GC roots.
    */
   fun checkForLeaks(
-    heapDump: HeapDump
+    heapDump: HeapDump,
+    labelers: List<Labeler>
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -121,7 +120,9 @@ class HeapAnalyzer constructor(
 
             val pathResults = findShortestPaths(heapDump, parser, leakingWeakRefs, gcRootIds)
 
-            buildLeakTraces(heapDump, pathResults, parser, leakingWeakRefs, analysisResults)
+            buildLeakTraces(
+                heapDump, labelers, pathResults, parser, leakingWeakRefs, analysisResults
+            )
 
             addRemainingInstancesWithNoPath(parser, leakingWeakRefs, analysisResults)
 
@@ -247,7 +248,7 @@ class HeapAnalyzer constructor(
     parser: HprofParser,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
     gcRootIds: MutableList<Long>
-  ): List<ShortestPathFinder.Result> {
+  ): List<Result> {
     listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
 
     val pathFinder = ShortestPathFinder(heapDump.excludedRefs)
@@ -256,6 +257,7 @@ class HeapAnalyzer constructor(
 
   private fun buildLeakTraces(
     heapDump: HeapDump,
+    labelers: List<Labeler>,
     pathResults: List<Result>,
     parser: HprofParser,
     leakingWeakRefs: MutableList<KeyedWeakReferenceMirror>,
@@ -278,7 +280,7 @@ class HeapAnalyzer constructor(
         )
       }
 
-      val leakTrace = buildLeakTrace(parser, heapDump, pathResult.leakingNode)
+      val leakTrace = buildLeakTrace(parser, heapDump, pathResult.leakingNode, labelers)
 
       // TODO Compute retained heap size
       val retainedSize = null
@@ -310,7 +312,8 @@ class HeapAnalyzer constructor(
   private fun buildLeakTrace(
     parser: HprofParser,
     heapDump: HeapDump,
-    leakingNode: LeakNode
+    leakingNode: LeakNode,
+    labelers: List<Labeler>
   ): LeakTrace {
     val elements = ArrayList<LeakTraceElement>()
     // We iterate from the leak to the GC root
@@ -318,10 +321,11 @@ class HeapAnalyzer constructor(
     var node: LeakNode? =
       ChildNode(ignored, null, leakingNode, null)
     while (node is ChildNode) {
-      val element = buildLeakElement(parser, node)
-      if (element != null) {
-        elements.add(0, element)
+      val labels = mutableListOf<String>()
+      for (labeler in labelers) {
+        labels.addAll(labeler.computeLabels(parser, node))
       }
+      elements.add(0, buildLeakElement(parser, node, labels))
       node = node.parent
     }
 
@@ -368,7 +372,7 @@ class HeapAnalyzer constructor(
       expectedReachability[0] = Reachability.reachable("it's a GC root")
     }
 
-    when(expectedReachability[lastElementIndex].status) {
+    when (expectedReachability[lastElementIndex].status) {
       UNKNOWN, REACHABLE -> {
         expectedReachability[lastElementIndex] =
           Reachability.unreachable("RefWatcher was watching this")
@@ -415,12 +419,10 @@ class HeapAnalyzer constructor(
 
   private fun buildLeakElement(
     parser: HprofParser,
-    node: ChildNode
-  ): LeakTraceElement? {
+    node: ChildNode,
+    labels: List<String>
+  ): LeakTraceElement {
     val objectId = node.parent.instance
-
-    val holderType: Holder
-    var extra: String? = null
 
     val record = parser.retrieveRecordById(objectId)
 
@@ -436,55 +438,19 @@ class HeapAnalyzer constructor(
       else -> throw IllegalStateException("Unexpected record type for $record")
     }
 
-    val className = classHierarchy[0]
-
-    if (record is ClassDumpRecord) {
-      holderType = CLASS
+    val holderType = if (record is ClassDumpRecord) {
+      CLASS
     } else if (record is ObjectArrayDumpRecord) {
-      holderType = ARRAY
+      ARRAY
     } else {
-
-      val instance = parser.hydrateInstance(record as InstanceDumpRecord)
-
-      if (instance.classHierarchy.any { it.className == Thread::class.java.name }) {
-        holderType = THREAD
-        val nameField = instance.fieldValueOrNull<ObjectReference>("name")
-        // Sometimes we can't find the String at the expected memory address in the heap dump.
-        // See https://github.com/square/leakcanary/issues/417
-        val threadName =
-          if (nameField != null) parser.retrieveString(nameField) else "Thread name not available"
-        extra = "(named '$threadName')"
-      } else if (className.matches(ANONYMOUS_CLASS_NAME_PATTERN.toRegex())) {
-
-        val parentClassName = instance.classHierarchy[1].className
-        if (parentClassName == "java.lang.Object") {
-          holderType = OBJECT
-          try {
-            // This is an anonymous class implementing an interface. The API does not give access
-            // to the interfaces implemented by the class. We check if it's in the class path and
-            // use that instead.
-            val actualClass = Class.forName(instance.classHierarchy[0].className)
-            val interfaces = actualClass.interfaces
-            extra = if (interfaces.isNotEmpty()) {
-              val implementedInterface = interfaces[0]
-              "(anonymous implementation of " + implementedInterface.name + ")"
-            } else {
-              "(anonymous subclass of java.lang.Object)"
-            }
-          } catch (ignored: ClassNotFoundException) {
-          }
-        } else {
-          holderType = OBJECT
-          // Makes it easier to figure out which anonymous class we're looking at.
-          extra = "(anonymous subclass of $parentClassName)"
-        }
+      if (classHierarchy.any { it == Thread::class.java.name }) {
+        THREAD
       } else {
-        holderType = OBJECT
+        OBJECT
       }
     }
     return LeakTraceElement(
-        node.leakReference, holderType, classHierarchy, extra,
-        node.exclusion, leakReferences
+        node.leakReference, holderType, classHierarchy, node.exclusion, leakReferences, labels
     )
   }
 
@@ -556,7 +522,7 @@ class HeapAnalyzer constructor(
   }
 
   companion object {
-
-    private const val ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$"
+    internal const val ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$"
+    internal val ANONYMOUS_CLASS_NAME_PATTERN_REGEX = ANONYMOUS_CLASS_NAME_PATTERN.toRegex()
   }
 }

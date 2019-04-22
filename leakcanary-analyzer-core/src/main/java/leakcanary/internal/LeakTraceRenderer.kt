@@ -20,7 +20,9 @@ fun LeakTrace.renderToString(): String {
         val currentReachability = expectedReachability[index]
         leakInfo += """
         #├─ ${leakTraceElement.className}
-        #│    Leaking: ${currentReachability.renderToString()}
+        #│    Leaking: ${currentReachability.renderToString()}${if (leakTraceElement.labels.isNotEmpty()) leakTraceElement.labels.joinToString(
+            "\n│    ", prefix = "\n│    "
+        ) else ""}
         #│    ↓ ${getNextElementString(this, leakTraceElement, index)}
         #""".trimMargin("#")
       }
@@ -54,7 +56,6 @@ private fun getNextElementString(
     } else ""
   val simpleClassName = element.getSimpleClassName()
   val referenceName = if (element.reference != null) ".${element.reference.displayName}" else ""
-  val extraString = if (element.extra != null) " ${element.extra}" else ""
   val exclusionString =
     if (element.exclusion != null) " , matching exclusion ${element.exclusion.matching}" else ""
   val requiredSpaces =
@@ -67,7 +68,7 @@ private fun getNextElementString(
     ""
   }
 
-  return staticString + holderString + simpleClassName + referenceName + extraString + exclusionString + leakString
+  return staticString + holderString + simpleClassName + referenceName + exclusionString + leakString
 }
 
 private const val ZERO_WIDTH_SPACE = '\u200b'

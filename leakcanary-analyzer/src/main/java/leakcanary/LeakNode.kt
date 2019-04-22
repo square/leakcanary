@@ -1,9 +1,6 @@
-package leakcanary.internal
+package leakcanary
 
-import leakcanary.Exclusion
-import leakcanary.LeakReference
-
-internal sealed class LeakNode {
+sealed class LeakNode {
   abstract val instance: Long
 
   class RootNode(

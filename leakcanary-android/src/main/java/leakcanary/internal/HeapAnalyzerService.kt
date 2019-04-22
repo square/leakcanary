@@ -19,8 +19,9 @@ import android.content.Intent
 import com.squareup.leakcanary.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
-import leakcanary.HeapDump
 import leakcanary.HeapAnalyzer
+import leakcanary.HeapDump
+import leakcanary.LeakCanary
 
 /**
  * This service runs in a main app process.
@@ -37,7 +38,7 @@ internal class HeapAnalyzerService : ForegroundService(
     }
     val heapDump = intent.getSerializableExtra(HeapAnalyzers.HEAPDUMP_EXTRA) as HeapDump
     val heapAnalyzer = HeapAnalyzer(this)
-    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
+    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump, LeakCanary.config.labelers)
 
     AnalysisResultService.sendResult(this, heapAnalysis)
   }

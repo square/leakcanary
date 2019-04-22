@@ -20,6 +20,7 @@ import leakcanary.Exclusion
 import leakcanary.HeapValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofParser
+import leakcanary.LeakNode
 import leakcanary.LeakReference
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
@@ -31,8 +32,8 @@ import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.internal.LeakNode.ChildNode
-import leakcanary.internal.LeakNode.RootNode
+import leakcanary.LeakNode.ChildNode
+import leakcanary.LeakNode.RootNode
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap

@@ -19,13 +19,11 @@ import android.util.Log
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.AnalysisResult
-import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.HeapDump
 import leakcanary.LeakCanary
 import leakcanary.LeakSentry
 import leakcanary.internal.activity.LeakActivity
-import java.lang.Exception
 
 internal object InternalLeakCanary : LeakSentryListener {
 
@@ -33,9 +31,12 @@ internal object InternalLeakCanary : LeakSentryListener {
 
   private lateinit var heapDumpTrigger: HeapDumpTrigger
 
+  lateinit var application: Application
+
   @Volatile private var isInAnalyzerProcess: Boolean? = null
 
   override fun onLeakSentryInstalled(application: Application) {
+    this.application = application
     if (isInAnalyzerProcess(application)) {
       return
     }
