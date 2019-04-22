@@ -21,7 +21,6 @@ import android.app.Dialog
 import android.app.Fragment
 import android.os.MessageQueue
 import android.view.View
-import leakcanary.LeakTraceElement.Holder.CLASS
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import java.util.ArrayList
 
@@ -119,12 +118,11 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
   class ClassInspector : Reachability.Inspector {
     override fun expectedReachability(element: LeakTraceElement): Reachability {
       val reference = element.reference
-      return if (reference !=null && reference.type == STATIC_FIELD) {
+      return if (reference != null && reference.type == STATIC_FIELD) {
         Reachability.reachable("a class is always reachable")
       } else Reachability.unknown()
     }
   }
-
 
   class FragmentInspector : Reachability.Inspector {
     override fun expectedReachability(element: LeakTraceElement): Reachability {
