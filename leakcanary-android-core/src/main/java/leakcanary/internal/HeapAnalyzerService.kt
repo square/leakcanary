@@ -17,7 +17,7 @@ package leakcanary.internal
 
 import android.content.Intent
 import android.os.Process
-import com.squareup.leakcanary.R
+import com.squareup.leakcanary.core.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
 import leakcanary.HeapAnalyzer
