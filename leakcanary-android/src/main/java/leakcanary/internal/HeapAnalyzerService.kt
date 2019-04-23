@@ -16,6 +16,7 @@
 package leakcanary.internal
 
 import android.content.Intent
+import android.os.Process
 import com.squareup.leakcanary.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
@@ -36,6 +37,8 @@ internal class HeapAnalyzerService : ForegroundService(
       CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.")
       return
     }
+    // Since we're running in the main process we should be careful not to impact it.
+    Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
     val heapDump = intent.getSerializableExtra(HeapAnalyzers.HEAPDUMP_EXTRA) as HeapDump
     val heapAnalyzer = HeapAnalyzer(this)
     val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump, LeakCanary.config.labelers)
