@@ -140,7 +140,7 @@ internal object LeakCanaryUtils {
     context: Context,
     contentTitle: CharSequence,
     contentText: CharSequence,
-    pendingIntent: PendingIntent,
+    pendingIntent: PendingIntent?,
     notificationId: Int
   ) {
     val builder = Notification.Builder(context)
@@ -193,11 +193,5 @@ internal object LeakCanaryUtils {
     } else {
       builder.build()
     }
-  }
-
-  fun newSingleThreadExecutor(threadName: String): Executor {
-    return Executors.newSingleThreadExecutor(
-        LeakCanarySingleThreadFactory(threadName)
-    )
   }
 }

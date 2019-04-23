@@ -122,11 +122,9 @@ class AnalysisResultService : ForegroundService(
     contentTitle: String,
     contentText: String
   ) {
-    // New notification id every second.
-    val notificationId = (SystemClock.uptimeMillis() / 1000).toInt()
+    val notificationId = 0x00F06D
     LeakCanaryUtils.showNotification(
-        this, contentTitle, contentText, pendingIntent!!,
-        notificationId
+        this, contentTitle, contentText, pendingIntent, notificationId
     )
   }
 

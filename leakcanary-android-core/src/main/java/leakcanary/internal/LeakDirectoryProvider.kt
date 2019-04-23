@@ -179,8 +179,9 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
     val packageName = context.packageName
     val contentText =
       context.getString(string.leak_canary_permission_notification_text, packageName)
+
     LeakCanaryUtils.showNotification(
-        context, contentTitle, contentText, pendingIntent, -0x21504111
+        context, contentTitle, contentText, pendingIntent, 0x00DABEEF
     )
   }
 
