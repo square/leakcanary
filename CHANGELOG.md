@@ -1,6 +1,6 @@
 # Change Log
 
-## Version 2.0 Alpha 1 (not released yet)
+## Version 2.0 Alpha 1 (2019-04-23)
 
 **Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements!
 
@@ -24,6 +24,7 @@
   * Runs in the same process as the app on a low priority thread.
   * No more dependency on Perflib and TroveJ. New dependency on Okio.
   * The old parser is still available as `leakcanary-android-perflib` but will be removed after alpha.
+* Labelers can add any string content to leak elements
 * 0 code setup, just add the one debug dependency.
 * Simpler configuration options
 * Updated from support library to Android X
