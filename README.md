@@ -1,50 +1,115 @@
-
 # LeakCanary
 
-A memory leak detection library for Android and Java.
+A memory leak detection library for Android and Kotlin.
 
 *“A small leak will sink a great ship.”* - Benjamin Franklin
 
 <p align="center">
-<img src="https://github.com/square/leakcanary/wiki/assets/screenshot.png"/>
+<img src="https://github.com/square/leakcanary/wiki/assets/screenshot-2.0.png"/>
 </p>
 
 ## Getting started
+
+Add LeakCanary to your `build.gradle`:
+
+```groovy
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
+}
+```
+
+**You're good to go!** LeakCanary will automatically show a notification when an activity or fragment memory leak is detected in your debug build.
+
+Note: LeakCanary 2 is in alpha. To set up LeakCanary 1.6, go to the [1.6 Readme](https://github.com/square/leakcanary/blob/master/README-1.6.md).
+
+## Presentations
+
+* [LeakCanary, then what? Nuking Nasty Memory Leaks](https://www.youtube.com/watch?v=fhE--eTEW84)
+* [Memory Leak Hunt](https://www.youtube.com/watch?v=KwArTJHLq5g), a live investigation.
+
+## Recipes
+
+### Watching custom objects
+
+```kotlin
+class MyService : Service {
+
+  // ...
+
+  override fun onDestroy() {
+    super.onDestroy()
+    LeakSentry.refWatcher.watch(this)
+  }
+
+}
+```
+
+### Configuring LeakSentry & LeakCanary
+
+LeakSentry is in charge of detecting memory leaks. Its configuration can be updated at any time by replacing `LeakSentry.config`:
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+    LeakSentry.config = LeakSentry.config.copy(watchFragmentViews = false)
+  }
+}
+```
+
+LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing `LeakCanary.config`:
+
+```
+disableLeakCanaryButton.setOnClickListener {
+  LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
+}
+```
+
+### Counting retained instances in production
 
 In your `build.gradle`:
 
 ```groovy
 dependencies {
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.3'
-  releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.3'
-  // Optional, if you use support library fragments:
-  debugImplementation 'com.squareup.leakcanary:leakcanary-support-fragment:1.6.3'
+  implementation 'com.squareup.leakcanary:leakcanary-sentry:2.0-alpha-1'
 }
 ```
 
-In your `Application` class:
+In your leak reporting code:
+```kotlin
+val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
+```
 
-```java
-public class ExampleApplication extends Application {
+### Alternate setup with the old perflib heap parser
 
-  @Override public void onCreate() {
-    super.onCreate();
+If you want to try LeakCanary 2.0 features with the battle tested perflib heap parser, use a different dependency:
+
+```groovy
+dependencies {
+  // debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-perflib:2.0-alpha-1'
+}
+```
+
+In your **debug** `Application` class:
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
     if (LeakCanary.isInAnalyzerProcess(this)) {
-      // This process is dedicated to LeakCanary for heap analysis.
+      // This process is dedicated to Perflib for heap analysis.
       // You should not init your app in this process.
-      return;
+      return
     }
-    LeakCanary.install(this);
-    // Normal app init code...
+    super.onCreate()
   }
 }
 ```
 
-**You're good to go!** LeakCanary will automatically show a notification when an activity or support fragment memory leak is detected in your debug build.
-
-**What's next?** You could watch a [live investigation](https://www.youtube.com/watch?v=KwArTJHLq5g) then [customize LeakCanary](https://github.com/square/leakcanary/wiki/Customizing-LeakCanary) to your needs.
-
 ## FAQ
+
+Note: the entries in this FAQ have not been updated for LeakCanary 2 yet.
 
 * [Why should I use LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#why-should-i-use-leakcanary)
 * [How does it work?](https://github.com/square/leakcanary/wiki/FAQ#how-does-it-work)
@@ -66,7 +131,7 @@ public class ExampleApplication extends Application {
 * [I know I have a leak. Why doesn't the notification show?](https://github.com/square/leakcanary/wiki/FAQ#i-know-i-have-a-leak-why-doesnt-the-notification-show)
 
 <p align="center">
-<img src="https://github.com/square/leakcanary/wiki/assets/icon_512.png" width="250"/>
+<img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0.png" />
 </p>
 
 ## License

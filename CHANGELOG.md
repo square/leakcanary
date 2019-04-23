@@ -6,7 +6,6 @@
 
 <img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
 
-* Check out the [2.0 Readme](https://github.com/square/leakcanary/blob/master/README-2.0.md).
 * New [logo](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo), thanks [@flickator](https://github.com/flickator)!
 * Entirely rewritten to **100% Kotlin**
 * Multiple leaks detected in one analysis
