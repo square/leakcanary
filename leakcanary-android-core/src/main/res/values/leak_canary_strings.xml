@@ -18,12 +18,12 @@
   <string name="leak_canary_about_title">About LeakCanary</string>
   <string name="leak_canary_about_message"><![CDATA[<a href="https://github.com/square/leakcanary">LeakCanary</a>
   is a memory leak detection library for Android, created by
-  <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> and open sourced by Square.<br><br>
+  <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> and open sourced by <a href="https://square.github.io">Square</a>.<br><br>
   We welcome contributions from the community, please do not hesitate to
   <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br>]]></string>
-  <string name="leak_canary_class_has_leaked">%1$s leaked</string>
+  <string name="leak_canary_class_has_leaked">%1$s Leaked</string>
   <string name="leak_canary_class_has_leaked_retaining">%1$s leaked %2$s</string>
-  <string name="leak_canary_class_no_leak">%1$s was never GCed but no leak found</string>
+  <string name="leak_canary_class_no_leak">%1$s was never GCed but no leak was found</string>
   <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
   <string name="leak_canary_leak_excluded">[Excluded] %1$s leaked</string>
   <string name="leak_canary_leak_excluded_retaining">[Excluded] %1$s leaked %2$s</string>
@@ -39,8 +39,8 @@
   <string name="leak_canary_result_failure_no_disk_space">The analysis result could not be saved to disk</string>
   <string name="leak_canary_result_failure_no_file">The analysis result could not be loaded from disk</string>
   <string name="leak_canary_result_failure_title">Analysis result failure</string>
-  <string name="leak_canary_share_leak">Share info</string>
-  <string name="leak_canary_share_heap_dump">Share heap dump</string>
+  <string name="leak_canary_share_leak">Share Info</string>
+  <string name="leak_canary_share_heap_dump">Share Heap Dump</string>
   <string name="leak_canary_share_with">Share with…</string>
   <string name="leak_canary_display_activity_label">Leaks</string>
   <string name="leak_canary_storage_permission_activity_label">Storage permission</string>
@@ -58,6 +58,36 @@
   <string name="leak_canary_stackoverflow_share">Share Leak On Stack Overflow</string>
   <string name="leak_canary_leak_copied">Leak info copied to clipboard</string>
   <string name="leak_canary_leak_clipdata_label">LeakCanary Leak Trace</string>
+  <string name="leak_canary_options_menu_generate_hq_bitmap">Generate HQ Bitmap</string>
+  <string name="leak_canary_options_menu_permission_toast">Please grant the External Storage Permission first, see notification…</string>
+  <string name="leak_canary_generating_hq_bitmap_toast_notice">Rendering HQ Bitmap, this may take a while…</string>
+  <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Rendering HQ Bitmap, this may take a while…</string>
+  <plurals name="leak_canary_heap_analysis_list_retained_instances">
+    <item quantity="one">%d Retained Instance</item>
+    <item quantity="other">%d Retained Instances</item>
+  </plurals>
+  <string name="leak_canary_share_heap_dump_bitmap_screen_title">Share Heap Dump Bitmap</string>
+  <string name="leak_canary_heap_dump_screen_title">Heap Dump %s</string>
+  <string name="leak_canary_analysis_deleted_title">Analysis Deleted</string>
+  <string name="leak_canary_go_to_heap_analysis">Go to Heap Analysis</string>
+  <string name="leak_canary_heap_analysis_success_screen_title">Heap Analysis (%d Retained Instances)</string>
+  <string name="leak_canary_heap_analysis_success_screen_row_title">(%1$d / %2$d Total) %3$s</string>
+  <string name="leak_canary_heap_analysis_success_screen_row_time_format">Latest: %s</string>
+  <string name="leak_canary_heap_analysis_list_screen_title">All Analysis</string>
+  <plurals name="leak_canary_group_screen_title">
+    <item quantity="one">%1$d leak in %2$s</item>
+    <item quantity="other">%1$d leaks in %2$s</item>
+  </plurals>
+  <string name="leak_canary_group_list_screen_title">%d Leak Groups</string>
+  <string name="leak_canary_group_list_title_information">(%1$d) %2$s</string>
+  <string name="leak_canary_group_list_time_label">Latest: %s</string>
+  <string name="leak_canary_import_from_title">Import From…</string>
+  <string name="leak_canary_options_menu_import_hprof_file">Import &amp; Analyze Hprof File</string>
+  <string name="leak_canary_options_menu_see_analysis_list">See Analysis List</string>
+  <string name="leak_canary_options_menu_render_heap_dump">Render Heap Dump</string>
+  <string name="leak_canary_heap_analysis_success_screen_weak_reference_cleared_count">%d already cleared weak references</string>
+  <string name="leak_canary_heap_analysis_success_screen_no_path_to_instance_count">%d non leaking retained instances</string>
+  <string name="leak_canary_heap_analysis_success_screen_garbage_collected_weak_references">%d garbage collected weak references</string>
   <string name="leak_canary_help_title">Tap here to learn more</string>
   <string name="leak_canary_help_detail"><![CDATA[A memory leak is a programming error that causes
   your application to keep a reference to an object that is no longer needed. As a result, the

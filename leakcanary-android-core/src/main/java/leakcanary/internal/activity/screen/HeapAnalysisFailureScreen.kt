@@ -25,13 +25,13 @@ internal class HeapAnalysisFailureScreen(
       val pair = HeapAnalysisTable.retrieve<HeapAnalysisFailure>(db, analysisId)
 
       if (pair == null) {
-        activity.title = "Analysis deleted"
+        activity.title = resources.getString(string.leak_canary_analysis_deleted_title)
         return this
       }
 
       val (heapAnalysis, _) = pair
 
-      activity.title = resources.getString(R.string.leak_canary_analysis_failed)
+      activity.title = resources.getString(string.leak_canary_analysis_failed)
 
       val failureTextView = findViewById<TextView>(R.id.leak_canary_failure)
       val path = heapAnalysis.heapDump.heapDumpFile.absolutePath

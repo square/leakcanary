@@ -50,8 +50,9 @@ internal class LeakActivity : NavigatingActivity() {
       addCategory(Intent.CATEGORY_OPENABLE)
     }
 
-    // TODO String res
-    val chooserIntent = Intent.createChooser(requestFileIntent, "Import from")
+    val chooserIntent = Intent.createChooser(
+        requestFileIntent, resources.getString(R.string.leak_canary_import_from_title)
+    )
     startActivityForResult(chooserIntent, FILE_REQUEST_CODE)
   }
 

@@ -50,8 +50,7 @@ internal class LeakingInstanceScreen private constructor(
       }
 
       if (pair == null) {
-        // TODO String res
-        activity.title = "Analysis deleted"
+        activity.title = resources.getString(string.leak_canary_analysis_deleted_title)
         return this
       }
 
@@ -71,8 +70,7 @@ internal class LeakingInstanceScreen private constructor(
       }
 
       onCreateOptionsMenu { menu ->
-        // TODO String res
-        menu.add("Go to heap analysis")
+        menu.add(R.string.leak_canary_go_to_heap_analysis)
             .setOnMenuItemClickListener {
               goTo(HeapAnalysisSuccessScreen(heapAnalysisId))
               true
