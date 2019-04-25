@@ -1,15 +1,14 @@
 package leakcanary.internal.activity.screen
 
 import android.app.AlertDialog
-import android.graphics.drawable.Drawable
 import android.text.Html
-import android.text.Html.ImageGetter
 import android.text.format.DateUtils
 import android.text.method.LinkMovementMethod
 import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
+import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db
 import leakcanary.internal.activity.db.LeakingInstanceTable
 import leakcanary.internal.activity.ui.SimpleListAdapter
@@ -69,6 +68,13 @@ internal class GroupListScreen : Screen() {
                   .show()
               val messageView = dialog.findViewById<TextView>(android.R.id.message)
               messageView.movementMethod = LinkMovementMethod.getInstance()
+              true
+            }
+
+        // TODO String res
+        menu.add("Import and analyze Hprof file")
+            .setOnMenuItemClickListener {
+              activity<LeakActivity>().requestImportHprof()
               true
             }
       }

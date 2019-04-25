@@ -33,8 +33,6 @@ import android.os.Build.VERSION_CODES.JELLY_BEAN
 import android.os.Build.VERSION_CODES.O
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
 
 internal object LeakCanaryUtils {
 

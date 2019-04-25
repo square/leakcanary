@@ -86,25 +86,6 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
   }
 
   fun newHeapDumpFile(): File? {
-    val pendingHeapDumps =
-      listFiles(FilenameFilter { _, filename ->
-        filename.endsWith(
-            PENDING_HEAPDUMP_SUFFIX
-        )
-      })
-
-    // If a new heap dump file has been created recently and hasn't been processed yet, we skip.
-    // Otherwise we move forward and assume that the analyzer process crashes. The file will
-    // eventually be removed with heap dump file rotation.
-    for (file in pendingHeapDumps) {
-      if (System.currentTimeMillis() - file.lastModified() < ANALYSIS_MAX_DURATION_MS) {
-        CanaryLog.d(
-            "Could not dump heap, previous analysis still is in progress."
-        )
-        return RETRY_LATER
-      }
-    }
-
     cleanupOldHeapDumps()
 
     var storageDirectory = externalStorageDirectory()
