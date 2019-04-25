@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 dependencies {
-  api project(':leakcanary-analyzer-core')
+  api project(':leakcanary-analyzer')
   api project(':leakcanary-leaksentry')
   api project(':leakcanary-analyzer')
 

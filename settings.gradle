@@ -1,4 +1,3 @@
-include ':leakcanary-analyzer-core'
 include ':leakcanary-analyzer'
 include ':leakcanary-analyzer-perflib'
 include ':leakcanary-android'
