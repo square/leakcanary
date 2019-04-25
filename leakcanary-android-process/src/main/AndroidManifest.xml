@@ -15,11 +15,11 @@
   ~ limitations under the License.
   -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.squareup.leakcanary.perflib">
+    package="com.squareup.leakcanary">
 
   <application>
     <service
-        android:name="leakcanary.internal.perflib.PerflibHeapAnalyzerService"
+        android:name="leakcanary.internal.HeapAnalyzerService"
         android:exported="false"
         android:process=":leakcanary"
         >
@@ -29,4 +29,5 @@
     </service>
 
   </application>
+
 </manifest>

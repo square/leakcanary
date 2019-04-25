@@ -3,7 +3,6 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   api project(':leakcanary-android-core')
-  api project(':leakcanary-analyzer')
 
   implementation deps.kotlin.stdlib
 }

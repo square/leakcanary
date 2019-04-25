@@ -13,38 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.internal.perflib
+package leakcanary.internal
 
 import android.content.Intent
 import android.os.Process
-import android.os.Process.setThreadPriority
 import com.squareup.leakcanary.core.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
+import leakcanary.HeapAnalyzer
 import leakcanary.HeapDump
-import leakcanary.internal.AnalysisResultService
-import leakcanary.internal.ForegroundService
-import leakcanary.internal.HeapAnalyzers
+import leakcanary.LeakCanary
 
 /**
- * This service runs in a separate process to avoid slowing down the app process or making it run
- * out of memory.
+ * This service runs in a main app process.
  */
-internal class PerflibHeapAnalyzerService : ForegroundService(
-    PerflibHeapAnalyzerService::class.java.simpleName, R.string.leak_canary_notification_analysing
+internal class HeapAnalyzerService : ForegroundService(
+    HeapAnalyzerService::class.java.simpleName,
+    R.string.leak_canary_notification_analysing
 ), AnalyzerProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
     if (intent == null) {
-      CanaryLog.d("PerflibHeapAnalyzerService received a null intent, ignoring.")
+      CanaryLog.d("HeapAnalyzerService received a null intent, ignoring.")
       return
     }
     // Since we're running in the main process we should be careful not to impact it.
-    setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+    Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
     val heapDump = intent.getSerializableExtra(HeapAnalyzers.HEAPDUMP_EXTRA) as HeapDump
-
-    val heapAnalyzer = PerflibHeapAnalyzer(this)
-    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump)
+    val heapAnalyzer = HeapAnalyzer(this)
+    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump, LeakCanary.config.labelers)
 
     AnalysisResultService.sendResult(this, heapAnalysis)
   }
