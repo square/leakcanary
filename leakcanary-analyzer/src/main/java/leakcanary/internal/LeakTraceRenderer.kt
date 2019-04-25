@@ -54,7 +54,7 @@ private fun getNextElementString(
     if (element.holder == ARRAY || element.holder == THREAD) {
       "${element.holder.name.toLowerCase(Locale.US)} "
     } else ""
-  val simpleClassName = element.getSimpleClassName()
+  val simpleClassName = element.simpleClassName
   val referenceName = if (element.reference != null) ".${element.reference.displayName}" else ""
   val exclusionString =
     if (element.exclusion != null) " , matching exclusion ${element.exclusion.matching}" else ""

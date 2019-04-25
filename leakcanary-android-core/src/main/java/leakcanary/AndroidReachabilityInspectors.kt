@@ -21,8 +21,10 @@ import android.app.Dialog
 import android.app.Fragment
 import android.os.MessageQueue
 import android.view.View
-import leakcanary.LeakTraceElement.Type.STATIC_FIELD
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import java.util.ArrayList
+import kotlin.reflect.KClass
 
 /**
  * A set of default [Reachability.Inspector]s that knows about common AOSP and library
@@ -64,135 +66,152 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
   TOAST_TN(ToastTnInspector::class.java);
 
   class ViewInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      if (!element.isInstanceOf(View::class.java)) {
-        return Reachability.unknown()
-      }
-
-      val mParent = element.getFieldReferenceValue("mParent") ?: return Reachability.unknown()
-
-      // This skips edge cases like Toast$TN.mNextView holding on to an unattached and uparented
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = (parser to node).instanceOfOrUnknown(View::class) { instance ->
+      // This skips edge cases like Toast$TN.mNextView holding on to an unattached and unparented
       // next toast view
-      if (mParent == "null") {
-        return Reachability.unknown()
+      if (instance["mParent"].reference == null) {
+        Reachability.unknown()
+      } else if (!instance.hasField("mAttachInfo")) {
+        Reachability.unknown()
+      } else if (instance["mAttachInfo"].reference == null) {
+        Reachability.unreachable("View#mAttachInfo is null")
+      } else {
+        Reachability.reachable("View#mAttachInfo is not null")
       }
-
-      return unreachableWhen(
-          element, View::class.java.name, "mAttachInfo", "null"
-      )
     }
   }
 
   class ActivityInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      return unreachableWhen(
-          element, Activity::class.java.name, "mDestroyed", "true"
-      )
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = (parser to node).instanceOfOrUnknown(Activity::class) { instance ->
+      instance.unreachableWhenTrue("mDestroyed")
     }
   }
 
   class DialogInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      return unreachableWhen(
-          element, Dialog::class.java.name, "mDecor", "null"
-      )
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = (parser to node).instanceOfOrUnknown(Dialog::class) { instance ->
+      instance.unreachableWhenNull("mDecor")
     }
   }
 
   class ApplicationInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      return if (element.isInstanceOf(Application::class.java)) {
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = with(parser) {
+      return if (node.instance.objectRecord.isInstanceOf(Application::class)) {
         Reachability.reachable("Application is a singleton")
       } else Reachability.unknown()
     }
   }
 
   class ClassloaderInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      return if (element.isInstanceOf(ClassLoader::class.java)) {
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = with(parser) {
+      return if (node.instance.objectRecord.isInstanceOf(ClassLoader::class)) {
         Reachability.reachable("Classloader always reachable")
       } else Reachability.unknown()
     }
   }
 
   class ClassInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      val reference = element.reference
-      return if (reference != null && reference.type == STATIC_FIELD) {
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = with(parser) {
+      return if (node.instance.objectRecord is ClassDumpRecord) {
         Reachability.reachable("a class is always reachable")
       } else Reachability.unknown()
     }
   }
 
   class FragmentInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      return unreachableWhen(
-          element, Fragment::class.java.name, "mFragmentManager", "null"
-      )
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = (parser to node).instanceOfOrUnknown(Fragment::class) { instance ->
+      instance.unreachableWhenNull("mFragmentManager")
     }
   }
 
   class SupportFragmentInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      return unreachableWhen(
-          element, "android.support.v4.app.Fragment", "mFragmentManager", "null"
-      )
-    }
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability =
+      (parser to node).instanceOfOrUnknown("android.support.v4.app.Fragment") { instance ->
+        instance.unreachableWhenNull("mFragmentManager")
+      }
   }
 
   class MessageQueueInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      if (!element.isInstanceOf(MessageQueue::class.java)) {
-        return Reachability.unknown()
-      }
-      val mQuitting = element.getFieldReferenceValue("mQuitting")
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = (parser to node).instanceOfOrUnknown(MessageQueue::class) { instance ->
       // If the queue is not quitting, maybe it should actually have been, we don't know.
       // However, if it's quitting, it is very likely that's not a bug.
-      return if ("true" == mQuitting) {
-        Reachability.unreachable("MessageQueue#mQuitting is true")
-      } else Reachability.unknown()
+      when (instance["mQuitting"].boolean) {
+        true -> Reachability.unreachable("MessageQueue#mQuitting is true")
+        else -> Reachability.unknown()
+      }
     }
   }
 
   class MortarPresenterInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      if (!element.isInstanceOf("mortar.Presenter")) {
-        return Reachability.unknown()
-      }
-      val view = element.getFieldReferenceValue("view")
-
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = (parser to node).instanceOfOrUnknown("mortar.Presenter") { instance ->
       // Bugs in view code tends to cause Mortar presenters to still have a view when they actually
       // should be a unreachable, so in that case we don't know their reachability status. However,
       // when the view is null, we're pretty sure they should be unreachable.
-      return if ("null" == view) {
+      if (instance["view"].isNullReference) {
         Reachability.unreachable("Presenter#view is null")
-      } else Reachability.unknown()
+      } else {
+        Reachability.unknown()
+      }
     }
   }
 
   class MainThreadInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      if (!element.isInstanceOf(Thread::class.java)) {
-        return Reachability.unknown()
-      }
-      val name = element.getFieldReferenceValue("name")
-      return if ("main" == name) {
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = (parser to node).instanceOfOrUnknown(Thread::class) { instance ->
+      if (instance["name"].reference.stringOrNull == "main") {
         Reachability.reachable("the main thread always runs")
-      } else Reachability.unknown()
+      } else {
+        Reachability.unknown()
+      }
     }
   }
 
   class WindowInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      return unreachableWhen(
-          element, "android.view.Window", "mDestroyed", "true"
-      )
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = (parser to node).instanceOfOrUnknown("android.view.Window") { instance ->
+      instance.unreachableWhenTrue("mDestroyed")
     }
   }
 
   class ToastTnInspector : Reachability.Inspector {
-    override fun expectedReachability(element: LeakTraceElement): Reachability {
-      return if (element.isInstanceOf("android.widget.Toast\$TN")) {
+    override fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability = with(parser) {
+      return if (node.instance.objectRecord.isInstanceOf("android.widget.Toast\$TN")) {
         Reachability.reachable("Toast.TN (Transient Notification) is always reachable")
       } else Reachability.unknown()
     }
@@ -207,36 +226,63 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
       }
       return inspectorClasses
     }
-
-    private fun unreachableWhen(
-      element: LeakTraceElement,
-      className: String,
-      fieldName: String,
-      unreachableValue: String
-    ): Reachability {
-      if (!element.isInstanceOf(className)) {
-        return Reachability.unknown()
-      }
-      val fieldValue = element.getFieldReferenceValue(fieldName) ?: return Reachability.unknown()
-      return if (fieldValue == unreachableValue) {
-        Reachability.unreachable(
-            simpleClassName(className) + "#" + fieldName + " is " + unreachableValue
-        )
-      } else {
-        Reachability.reachable(
-            simpleClassName(className) + "#" + fieldName + " is not " + unreachableValue
-        )
-      }
-    }
-
-    private fun simpleClassName(className: String): String {
-      val separator = className.lastIndexOf('.')
-      return if (separator == -1) {
-        className
-      } else {
-        className.substring(separator + 1)
-      }
-    }
   }
+}
 
+inline fun Pair<HprofParser, LeakNode>.instanceOfOrUnknown(
+  expectedClass: KClass<out Any>,
+  block: HprofParser.(HydratedInstance) -> Reachability
+): Reachability = instanceOfOrUnknown(expectedClass.java.name, block)
+
+inline fun Pair<HprofParser, LeakNode>.instanceOfOrUnknown(
+  className: String,
+  block: HprofParser.(HydratedInstance) -> Reachability
+): Reachability = this.instanceOf(className)?.let { first.block(it) } ?: Reachability.unknown()
+
+fun Pair<HprofParser, LeakNode>.instanceOf(expectedClass: KClass<out Any>) =
+  instanceOf(expectedClass.java.name)
+
+fun Pair<HprofParser, LeakNode>.instanceOf(className: String): HydratedInstance? = with(first) {
+  val record = second.instance.objectRecord
+  if (!record.isInstanceOf(className)) {
+    null
+  } else {
+    hydrateInstance(record as InstanceDumpRecord)
+  }
+}
+
+fun HydratedInstance.unreachableWhenNull(
+  fieldName: String
+): Reachability {
+  val className = classHierarchy[0].simpleClassName
+  if (!hasField(fieldName)) {
+    return Reachability.unknown()
+  }
+  val value = this[fieldName].reference
+
+  return if (value == null) {
+    Reachability.unreachable(
+        "$className#$fieldName is null"
+    )
+  } else {
+    Reachability.reachable(
+        "$className#$fieldName is not null"
+    )
+  }
+}
+
+fun HydratedInstance.unreachableWhenTrue(
+  fieldName: String
+): Reachability {
+  val className = classHierarchy[0].simpleClassName
+
+  return when (this[fieldName].boolean) {
+    null -> Reachability.unknown()
+    true -> Reachability.unreachable(
+        "$className#$fieldName is true"
+    )
+    false -> Reachability.reachable(
+        "$className#$fieldName is false"
+    )
+  }
 }

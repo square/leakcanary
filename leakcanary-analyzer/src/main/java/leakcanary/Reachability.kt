@@ -41,7 +41,10 @@ class Reachability private constructor(
    */
   interface Inspector {
 
-    fun expectedReachability(element: LeakTraceElement): Reachability
+    fun expectedReachability(
+      parser: HprofParser,
+      node: LeakNode
+    ): Reachability
   }
 
   companion object {

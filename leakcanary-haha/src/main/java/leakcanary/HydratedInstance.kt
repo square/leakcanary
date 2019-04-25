@@ -21,14 +21,16 @@ class HydratedInstance(
       hydratedClass.fieldNames.forEachIndexed { fieldIndex, fieldName ->
         if (fieldName == name) {
           val fieldValue = fieldValues[classIndex][fieldIndex]
-          if (fieldValue is T) {
-            return fieldValue
-          } else return null
+          return if (fieldValue is T) {
+            fieldValue
+          } else null
         }
       }
     }
     return null
   }
+
+  operator fun get(name: String): HeapValue? = fieldValueOrNull(name)
 
   fun hasField(name: String): Boolean {
     classHierarchy.forEach { hydratedClass ->

@@ -28,6 +28,9 @@ internal object HeapAnalysisTable {
         object BLOB
         )"""
 
+  @Language("RoomSql")
+  const val drop = "DROP TABLE IF EXISTS heap_analysis"
+
   fun insert(
     db: SQLiteDatabase,
     heapAnalysis: HeapAnalysis

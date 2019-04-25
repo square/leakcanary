@@ -33,6 +33,9 @@ internal object LeakingInstanceTable {
         on leaking_instance (group_hash)
     """
 
+  @Language("RoomSql")
+  const val drop = "DROP TABLE IF EXISTS leaking_instance"
+
   fun insert(
     db: SQLiteDatabase,
     heapAnalysisId: Long,
@@ -261,7 +264,7 @@ internal object LeakingInstanceTable {
     } else {
       val element = leakTrace.leakCauses.first()
       val referenceName = element.reference!!.groupingName
-      element.getSimpleClassName() + "." + referenceName
+      element.simpleClassName + "." + referenceName
     }
   }
 

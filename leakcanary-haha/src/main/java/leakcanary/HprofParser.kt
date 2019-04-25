@@ -27,6 +27,7 @@ import leakcanary.HprofReader.Companion.SHORT_SIZE
 import leakcanary.ObjectIdMetadata.EMPTY_INSTANCE
 import leakcanary.ObjectIdMetadata.INSTANCE
 import leakcanary.ObjectIdMetadata.INTERNAL_MAYBE_EMPTY_INSTANCE
+import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpEndRecord
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
@@ -50,8 +51,8 @@ import okio.source
 import java.io.Closeable
 import java.io.File
 import java.nio.charset.Charset
-import kotlin.math.pow
 import kotlin.properties.Delegates.notNull
+import kotlin.reflect.KClass
 
 /**
  * A memory efficient heap dump parser.
@@ -805,6 +806,30 @@ class HprofParser private constructor(
           "'value' field was expected to be either a char or byte array in string instance with id ${instance.record.id}"
       )
     }
+  }
+
+  val Long.objectRecord: ObjectRecord get() = retrieveRecordById(this)
+
+  val Long?.stringOrNull: String?
+    get() = if (this == null) {
+      null
+    } else {
+      val record = retrieveRecordById(this)
+      if (record is InstanceDumpRecord && objectIdMetadata(record.classId) == STRING) {
+        val instance = hydrateInstance(record)
+        instanceAsString(instance)
+      } else {
+        null
+      }
+    }
+
+  fun ObjectRecord.isInstanceOf(expectedClass: KClass<out Any>) =
+    isInstanceOf(expectedClass.java.name)
+
+  fun ObjectRecord.isInstanceOf(className: String): Boolean {
+    return if (this is InstanceDumpRecord) {
+      hydrateClassHierarchy(this.classId).any { it.className == className }
+    } else false
   }
 
   companion object {

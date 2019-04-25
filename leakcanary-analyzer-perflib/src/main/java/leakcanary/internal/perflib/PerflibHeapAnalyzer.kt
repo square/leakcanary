@@ -17,12 +17,10 @@ package leakcanary.internal.perflib
 
 import com.android.tools.perflib.captures.MemoryMappedFileBuffer
 import com.squareup.haha.perflib.ArrayInstance
-import com.squareup.haha.perflib.ClassInstance
 import com.squareup.haha.perflib.ClassObj
 import com.squareup.haha.perflib.Instance
 import com.squareup.haha.perflib.RootObj
 import com.squareup.haha.perflib.Snapshot
-import com.squareup.haha.perflib.Type
 import gnu.trove.THashMap
 import gnu.trove.TObjectProcedure
 import leakcanary.AnalysisResult
@@ -45,7 +43,6 @@ import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapDump
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.KeyedWeakReference
-import leakcanary.LeakReference
 import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Holder
@@ -53,9 +50,6 @@ import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
 import leakcanary.LeakTraceElement.Holder.OBJECT
 import leakcanary.LeakTraceElement.Holder.THREAD
-import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
-import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
-import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
 import leakcanary.Reachability
@@ -73,7 +67,6 @@ import leakcanary.internal.perflib.HahaHelper.extendsThread
 import leakcanary.internal.perflib.HahaHelper.fieldValue
 import leakcanary.internal.perflib.HahaHelper.staticFieldValue
 import leakcanary.internal.perflib.HahaHelper.threadName
-import leakcanary.internal.perflib.HahaHelper.valueAsString
 import leakcanary.internal.perflib.ShortestPathFinder.Result
 import org.jetbrains.annotations.TestOnly
 import java.util.ArrayList
@@ -460,8 +453,8 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       }
     }
 
-    for ((index, element) in elements.withIndex()) {
-      val reachability = inspectElementReachability(reachabilityInspectors, element)
+    for ((index, _) in elements.withIndex()) {
+      val reachability = Reachability.unknown()
       expectedReachability.add(reachability)
       if (reachability.status == REACHABLE) {
         lastReachableElementIndex = index
@@ -487,30 +480,17 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       val reachability = expectedReachability[i]
       if (reachability.status == UNKNOWN) {
         if (i < lastReachableElementIndex) {
-          val nextReachableName = elements[i + 1].getSimpleClassName()
+          val nextReachableName = elements[i + 1].simpleClassName
           expectedReachability[i] =
             Reachability.reachable("$nextReachableName↓ is not leaking")
         } else if (i > firstUnreachableElementIndex) {
-          val previousUnreachableName = elements[i - 1].getSimpleClassName()
+          val previousUnreachableName = elements[i - 1].simpleClassName
           expectedReachability[i] =
             Reachability.unreachable("$previousUnreachableName↑ is leaking")
         }
       }
     }
     return expectedReachability
-  }
-
-  private fun inspectElementReachability(
-    reachabilityInspectors: List<Inspector>,
-    element: LeakTraceElement
-  ): Reachability {
-    for (reachabilityInspector in reachabilityInspectors) {
-      val reachability = reachabilityInspector.expectedReachability(element)
-      if (reachability.status != UNKNOWN) {
-        return reachability
-      }
-    }
-    return Reachability.unknown()
   }
 
   private fun buildLeakElement(node: LeakNode): LeakTraceElement? {
@@ -526,24 +506,10 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
     val holderType: Holder
     val className: String
     var extra: String? = null
-    val leakReferences = describeFields(holder)
 
     className = getClassName(holder)
 
-    val classHierarchy = ArrayList<String>()
-    classHierarchy.add(className)
     val rootClassName = Any::class.java.name
-    if (holder is ClassInstance) {
-      var classObj = holder.classObj
-
-      do {
-        classObj = classObj.superClassObj
-        if (classObj.className != rootClassName) {
-          classHierarchy.add(classObj.className)
-        }
-      } while (classObj.className != rootClassName)
-    }
-
     if (holder is ClassObj) {
       holderType = CLASS
     } else if (holder is ArrayInstance) {
@@ -587,44 +553,8 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
     }
     val labels = if (extra == null) emptyList<String>() else mutableListOf(extra)
     return LeakTraceElement(
-        node.leakReference, holderType, classHierarchy, node.exclusion, leakReferences, labels
+        node.leakReference, holderType, className, node.exclusion, labels
     )
-  }
-
-  private fun describeFields(instance: Instance?): List<LeakReference> {
-    val leakReferences = ArrayList<LeakReference>()
-    if (instance is ClassObj) {
-      val classObj = instance as ClassObj?
-      for ((key, value) in classObj!!.staticFieldValues) {
-        val name = key.name
-        val stringValue = valueAsString(value)
-        leakReferences.add(LeakReference(STATIC_FIELD, name, stringValue))
-      }
-    } else if (instance is ArrayInstance) {
-      val arrayInstance = instance as ArrayInstance?
-      if (arrayInstance!!.arrayType == Type.OBJECT) {
-        val values = arrayInstance.values
-        for (i in values.indices) {
-          val name = Integer.toString(i)
-          val stringValue = valueAsString(values[i])
-          leakReferences.add(LeakReference(ARRAY_ENTRY, name, stringValue))
-        }
-      }
-    } else {
-      val classObj = instance!!.classObj
-      for ((key, value) in classObj.staticFieldValues) {
-        val name = key.name
-        val stringValue = valueAsString(value)
-        leakReferences.add(LeakReference(STATIC_FIELD, name, stringValue))
-      }
-      val classInstance = instance as ClassInstance?
-      for (field in classInstance!!.values) {
-        val name = field.field.name
-        val stringValue = valueAsString(field.value)
-        leakReferences.add(LeakReference(INSTANCE_FIELD, name, stringValue))
-      }
-    }
-    return leakReferences
   }
 
   private fun getClassName(instance: Instance): String = when (instance) {
