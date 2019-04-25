@@ -6,25 +6,25 @@ import org.junit.Test
 import org.junit.runner.Description
 
 /**
- * Tests that the [FailTestOnLeakRunListener] can detect (or not) leaks
+ * Tests that the [FailAnnotatedTestOnLeakRunListenerTest] only detect leaks
  * in instrumentation tests when the correct annotation is used
  */
-class FailTestOnLeakRunListenerTest {
+class FailAnnotatedTestOnLeakRunListenerTest {
 
-  @LeakTest
+  @FailTestOnLeak
   @Test
   fun detectsLeak() {
     val annotation =
-      javaClass.getMethod("detectsLeak").getAnnotation(LeakTest::class.java)
+      javaClass.getMethod("detectsLeak").getAnnotation(FailTestOnLeak::class.java)
     val description = Description.createTestDescription("test", "Test mechanism", annotation)
-    val listener = FailTestOnLeakRunListener()
+    val listener = FailAnnotatedTestOnLeakRunListener()
     assertNull(listener.skipLeakDetectionReason(description))
   }
 
   @Test
   fun skipsLeakDetectionWithoutAnnotation() {
     val description = Description.createTestDescription("test", "Test mechanism")
-    val listener = FailTestOnLeakRunListener()
+    val listener = FailAnnotatedTestOnLeakRunListener()
     assertEquals("skipped leak detection", listener.skipLeakDetectionReason(description))
   }
 }
