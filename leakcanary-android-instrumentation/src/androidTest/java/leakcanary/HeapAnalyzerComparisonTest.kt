@@ -46,7 +46,6 @@ class HeapAnalyzerComparisonTest {
 
     val heapDump = HeapDump.builder(heapDumpFile)
         .excludedRefs(AndroidExcludedRefs.createAppDefaults().build())
-        .reachabilityInspectorClasses(AndroidReachabilityInspectors.defaultAndroidInspectors())
         .build()
 
     SystemClock.sleep(2000)
@@ -110,8 +109,11 @@ class HeapAnalyzerComparisonTest {
     }
     countMemory2.run()
 
+    val config = LeakCanary.config
     val secondAnalysis = HeapAnalyzer(listener)
-        .checkForLeaks(heapDump, LeakCanary.config.labelers) as HeapAnalysisSuccess
+        .checkForLeaks(
+            heapDump, config.reachabilityInspectors, config.labelers
+        ) as HeapAnalysisSuccess
     val memoryUsedSecondInMb = (secondMaxMemoryUsed - memoryBeforeSecond) / 1048576L
 
     CanaryLog.d(

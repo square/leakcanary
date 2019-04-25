@@ -67,6 +67,7 @@ class HeapAnalyzer constructor(
    */
   fun checkForLeaks(
     heapDump: HeapDump,
+    reachabilityInspectors: List<Reachability.Inspector>,
     labelers: List<Labeler>
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
@@ -110,7 +111,8 @@ class HeapAnalyzer constructor(
             val pathResults = findShortestPaths(heapDump, parser, leakingWeakRefs, gcRootIds)
 
             buildLeakTraces(
-                heapDump, labelers, pathResults, parser, leakingWeakRefs, analysisResults
+                heapDump, reachabilityInspectors, labelers, pathResults, parser, leakingWeakRefs,
+                analysisResults
             )
 
             addRemainingInstancesWithNoPath(parser, leakingWeakRefs, analysisResults)
@@ -246,6 +248,7 @@ class HeapAnalyzer constructor(
 
   private fun buildLeakTraces(
     heapDump: HeapDump,
+    reachabilityInspectors: List<Reachability.Inspector>,
     labelers: List<Labeler>,
     pathResults: List<Result>,
     parser: HprofParser,
@@ -269,7 +272,8 @@ class HeapAnalyzer constructor(
         )
       }
 
-      val leakTrace = buildLeakTrace(parser, heapDump, pathResult.leakingNode, labelers)
+      val leakTrace =
+        buildLeakTrace(parser, reachabilityInspectors, pathResult.leakingNode, labelers)
 
       // TODO Compute retained heap size
       val retainedSize = null
@@ -300,7 +304,7 @@ class HeapAnalyzer constructor(
 
   private fun buildLeakTrace(
     parser: HprofParser,
-    heapDump: HeapDump,
+    reachabilityInspectors: List<Reachability.Inspector>,
     leakingNode: LeakNode,
     labelers: List<Labeler>
   ): LeakTrace {
@@ -321,14 +325,14 @@ class HeapAnalyzer constructor(
       node = node.parent
     }
     // TODO Move reachability into leak element
-    val expectedReachability = computeExpectedReachability(parser, heapDump, nodes)
+    val expectedReachability = computeExpectedReachability(parser, reachabilityInspectors, nodes)
 
     return LeakTrace(elements, expectedReachability)
   }
 
   private fun computeExpectedReachability(
     parser: HprofParser,
-    heapDump: HeapDump,
+    reachabilityInspectors: List<Reachability.Inspector>,
     nodes: List<LeakNode>
   ): List<Reachability> {
     var lastReachableElementIndex = 0
@@ -336,16 +340,6 @@ class HeapAnalyzer constructor(
     var firstUnreachableElementIndex = lastElementIndex
 
     val expectedReachability = ArrayList<Reachability>()
-
-    val reachabilityInspectors = mutableListOf<Reachability.Inspector>()
-    for (reachabilityInspectorClass in heapDump.reachabilityInspectorClasses) {
-      try {
-        val defaultConstructor = reachabilityInspectorClass.getDeclaredConstructor()
-        reachabilityInspectors.add(defaultConstructor.newInstance())
-      } catch (e: Exception) {
-        throw RuntimeException(e)
-      }
-    }
 
     for ((index, node) in nodes.withIndex()) {
       val reachability = inspectElementReachability(reachabilityInspectors, parser, node)

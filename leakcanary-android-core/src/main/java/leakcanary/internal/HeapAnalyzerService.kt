@@ -41,7 +41,9 @@ internal class HeapAnalyzerService : ForegroundService(
     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
     val heapDump = intent.getSerializableExtra(HeapAnalyzers.HEAPDUMP_EXTRA) as HeapDump
     val heapAnalyzer = HeapAnalyzer(this)
-    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump, LeakCanary.config.labelers)
+    val config = LeakCanary.config
+    val heapAnalysis =
+      heapAnalyzer.checkForLeaks(heapDump, config.reachabilityInspectors, config.labelers)
 
     AnalysisResultService.sendResult(this, heapAnalysis)
   }

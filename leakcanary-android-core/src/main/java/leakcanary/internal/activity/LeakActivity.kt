@@ -90,7 +90,6 @@ internal class LeakActivity : NavigatingActivity() {
               val heapDump = HeapDump.builder(target)
                   .excludedRefs(config.excludedRefs)
                   .computeRetainedHeapSize(config.computeRetainedHeapSize)
-                  .reachabilityInspectorClasses(config.reachabilityInspectorClasses)
                   .build()
               HeapAnalyzers.runAnalysis(this, heapDump)
             }

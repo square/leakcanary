@@ -123,7 +123,6 @@ internal class HeapDumpTrigger(
         .gcDurationMs(gcDurationMillis)
         .heapDumpDurationMs(heapDumpDurationMillis)
         .computeRetainedHeapSize(config.computeRetainedHeapSize)
-        .reachabilityInspectorClasses(config.reachabilityInspectorClasses)
         .build()
 
     HeapAnalyzers.runAnalysis(application, heapDump)
