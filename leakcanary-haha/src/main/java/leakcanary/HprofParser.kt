@@ -659,6 +659,12 @@ class HprofParser private constructor(
     return hprofStringById(classNames[classId])
   }
 
+  fun classId(className: String): Long? {
+    // Note: this performs two linear scans over arrays
+    return hprofStringCache.getKey(className)
+        ?.let { stringId -> classNames.getKey(stringId) }
+  }
+
   fun retrieveString(reference: ObjectReference): String {
     return retrieveStringById(reference.value)
   }
@@ -878,9 +884,7 @@ class HprofParser private constructor(
     const val PRIMITIVE_ARRAY_NODATA = 0xc3
 
     const val BITS_FOR_FILE_POSITION = 29
-    private val MAX_HEAP_DUMP_SIZE = 2.toFloat()
-        .pow(BITS_FOR_FILE_POSITION)
-        .toInt()
+    private val MAX_HEAP_DUMP_SIZE = 1 shl BITS_FOR_FILE_POSITION
 
     private val PRIMITIVE_WRAPPER_TYPES = setOf<String>(
         Boolean::class.java.name, Char::class.java.name, Float::class.java.name,

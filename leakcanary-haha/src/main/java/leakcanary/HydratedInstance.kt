@@ -10,18 +10,20 @@ class HydratedInstance(
    */
   val fieldValues: List<List<HeapValue>>
 ) {
-  fun <T : HeapValue> fieldValue(name: String): T {
+  inline fun <reified T : HeapValue> fieldValue(name: String): T {
     return fieldValueOrNull(name) ?: throw IllegalArgumentException(
         "Could not find field $name in instance with id ${record.id}"
     )
   }
 
-  fun <T : HeapValue> fieldValueOrNull(name: String): T? {
+  inline fun <reified T : HeapValue> fieldValueOrNull(name: String): T? {
     classHierarchy.forEachIndexed { classIndex, hydratedClass ->
       hydratedClass.fieldNames.forEachIndexed { fieldIndex, fieldName ->
         if (fieldName == name) {
-          @Suppress("UNCHECKED_CAST")
-          return fieldValues[classIndex][fieldIndex] as T
+          val fieldValue = fieldValues[classIndex][fieldIndex]
+          if (fieldValue is T) {
+            return fieldValue
+          } else return null
         }
       }
     }

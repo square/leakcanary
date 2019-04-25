@@ -33,6 +33,10 @@ enum class ObjectIdMetadata {
   }
 
   companion object {
+
+    private const val POSITION_MASK = (1 shl BITS_FOR_FILE_POSITION) - 1
+    private const val ORDINAL_MASK = 0x7
+
     init {
       require(values().size <= 8) {
         "ObjectIdMetadata is packed as 3 bits in an int, it can only have up to 8 values, not ${values().size}"
@@ -40,10 +44,8 @@ enum class ObjectIdMetadata {
     }
 
     fun unpackMetadataAndPosition(packedInt: Int): Pair<ObjectIdMetadata, Long> {
-      val unpackedOrdinal = (packedInt shr BITS_FOR_FILE_POSITION) and 7
-      // 2^BITS_FOR_FILE_POSITION - 1
-      val unpackedPosition = packedInt and 536870911
-
+      val unpackedOrdinal = (packedInt shr BITS_FOR_FILE_POSITION) and ORDINAL_MASK
+      val unpackedPosition = packedInt and POSITION_MASK
       return values()[unpackedOrdinal] to unpackedPosition.toLong()
     }
   }
