@@ -34,6 +34,15 @@ internal class LongToLongSparseArray(initialCapacity: Int) : Cloneable {
     }
   }
 
+  fun getKey(value: Long): Long? {
+    for (i in 0 until size) {
+      if (values[i] == value) {
+        return keys[i]
+      }
+    }
+    return null
+  }
+
   operator fun set(
     key: Long,
     value: Long

@@ -181,7 +181,7 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
       context.getString(string.leak_canary_permission_notification_text, packageName)
 
     LeakCanaryUtils.showNotification(
-        context, contentTitle, contentText, pendingIntent, 0x00DABEEF
+        context, contentTitle, contentText, pendingIntent, 0x00_DA_BEEF
     )
   }
 

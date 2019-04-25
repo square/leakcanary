@@ -2,12 +2,6 @@ package leakcanary.internal
 
 internal object SparseArrayUtils {
 
-  val DELETED_STRING: String? = null
-
-  val FILL_WITH_DELETED: (Int) -> String? = {
-    null
-  }
-
   fun insertInt(
     array: IntArray,
     currentSize: Int,
@@ -58,27 +52,11 @@ internal object SparseArrayUtils {
       return array
     }
 
-    val newArray = Array(growSize(currentSize), FILL_WITH_DELETED)
+    val newArray = arrayOfNulls<String>(growSize(currentSize))
     System.arraycopy(array, 0, newArray, 0, index)
     newArray[index] = element
     System.arraycopy(array, index, newArray, index + 1, array.size - index)
     return newArray
-  }
-
-  fun appendByte(
-    array: ByteArray,
-    currentSize: Int,
-    element: Byte
-  ): ByteArray {
-    var returnedArray = array
-
-    if (currentSize + 1 > returnedArray.size) {
-      val newArray = ByteArray(growSize(currentSize))
-      System.arraycopy(returnedArray, 0, newArray, 0, currentSize)
-      returnedArray = newArray
-    }
-    returnedArray[currentSize] = element
-    return returnedArray
   }
 
   fun appendInt(
@@ -119,7 +97,7 @@ internal object SparseArrayUtils {
     var returnedArray = array
     if (currentSize + 1 > returnedArray.size) {
 
-      val newArray = Array(growSize(currentSize), FILL_WITH_DELETED)
+      val newArray = arrayOfNulls<String>(growSize(currentSize))
       System.arraycopy(returnedArray, 0, newArray, 0, currentSize)
       returnedArray = newArray
     }
