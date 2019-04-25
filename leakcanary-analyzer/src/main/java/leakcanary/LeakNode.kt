@@ -11,6 +11,9 @@ sealed class LeakNode {
     override val instance: Long,
     val exclusion: Exclusion?,
     val parent: LeakNode,
+    /**
+     * The reference from the parent to this node
+     */
     val leakReference: LeakReference?
   ) : LeakNode()
 }

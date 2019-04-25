@@ -31,29 +31,17 @@ import leakcanary.GcRoot.NativeStack
 import leakcanary.GcRoot.ReferenceCleanup
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
-import leakcanary.HeapValue.BooleanValue
-import leakcanary.HeapValue.ByteValue
-import leakcanary.HeapValue.CharValue
-import leakcanary.HeapValue.DoubleValue
-import leakcanary.HeapValue.FloatValue
-import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.LongValue
-import leakcanary.HeapValue.ObjectReference
-import leakcanary.HeapValue.ShortValue
 import leakcanary.HprofParser.RecordCallbacks
 import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
 import leakcanary.LeakTraceElement.Holder.OBJECT
 import leakcanary.LeakTraceElement.Holder.THREAD
-import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
-import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
-import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.Reachability.Status.REACHABLE
 import leakcanary.Reachability.Status.UNKNOWN
 import leakcanary.Reachability.Status.UNREACHABLE
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
@@ -62,6 +50,7 @@ import leakcanary.Record.StringRecord
 import leakcanary.internal.KeyedWeakReferenceMirror
 import leakcanary.internal.ShortestPathFinder
 import leakcanary.internal.ShortestPathFinder.Result
+import leakcanary.internal.lastSegment
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
 
@@ -318,18 +307,21 @@ class HeapAnalyzer constructor(
     val elements = ArrayList<LeakTraceElement>()
     // We iterate from the leak to the GC root
     val ignored = leakingNode.instance
-    var node: LeakNode? =
-      ChildNode(ignored, null, leakingNode, null)
+
+    val leafNode = ChildNode(ignored, null, leakingNode, null)
+    var node: LeakNode = leafNode
+    val nodes = mutableListOf<LeakNode>()
     while (node is ChildNode) {
       val labels = mutableListOf<String>()
       for (labeler in labelers) {
         labels.addAll(labeler.computeLabels(parser, node.parent))
       }
       elements.add(0, buildLeakElement(parser, node, labels))
+      nodes.add(0, node.parent)
       node = node.parent
     }
-
-    val expectedReachability = computeExpectedReachability(parser, heapDump, elements)
+    // TODO Move reachability into leak element
+    val expectedReachability = computeExpectedReachability(parser, heapDump, nodes)
 
     return LeakTrace(elements, expectedReachability)
   }
@@ -337,10 +329,10 @@ class HeapAnalyzer constructor(
   private fun computeExpectedReachability(
     parser: HprofParser,
     heapDump: HeapDump,
-    elements: List<LeakTraceElement>
+    nodes: List<LeakNode>
   ): List<Reachability> {
     var lastReachableElementIndex = 0
-    val lastElementIndex = elements.size - 1
+    val lastElementIndex = nodes.size - 1
     var firstUnreachableElementIndex = lastElementIndex
 
     val expectedReachability = ArrayList<Reachability>()
@@ -355,8 +347,8 @@ class HeapAnalyzer constructor(
       }
     }
 
-    for ((index, element) in elements.withIndex()) {
-      val reachability = inspectElementReachability(parser, reachabilityInspectors, element)
+    for ((index, node) in nodes.withIndex()) {
+      val reachability = inspectElementReachability(reachabilityInspectors, parser, node)
       expectedReachability.add(reachability)
       if (reachability.status == REACHABLE) {
         lastReachableElementIndex = index
@@ -382,9 +374,16 @@ class HeapAnalyzer constructor(
       }
     }
 
-    if (expectedReachability[lastElementIndex].status == UNKNOWN) {
-      expectedReachability[lastElementIndex] =
-        Reachability.unreachable("RefWatcher was watching this")
+    val simpleClassNames = nodes.map { node ->
+      val record = parser.retrieveRecordById(node.instance)
+      val classId = when (record) {
+        is ClassDumpRecord -> record.id
+        is InstanceDumpRecord -> record.classId
+        is ObjectArrayDumpRecord -> record.arrayClassId
+        else -> throw IllegalStateException("Unexpected record type for $record")
+      }
+      parser.className(classId)
+          .lastSegment('.')
     }
 
     // First and last are always known.
@@ -392,10 +391,10 @@ class HeapAnalyzer constructor(
       val reachability = expectedReachability[i]
       if (reachability.status == UNKNOWN) {
         if (i < lastReachableElementIndex) {
-          val nextReachableName = elements[i + 1].getSimpleClassName()
+          val nextReachableName = simpleClassNames[i + 1]
           expectedReachability[i] = Reachability.reachable("$nextReachableName↓ is not leaking")
         } else if (i > firstUnreachableElementIndex) {
-          val previousUnreachableName = elements[i - 1].getSimpleClassName()
+          val previousUnreachableName = simpleClassNames[i - 1]
           expectedReachability[i] = Reachability.unreachable("$previousUnreachableName↑ is leaking")
         }
       }
@@ -404,12 +403,12 @@ class HeapAnalyzer constructor(
   }
 
   private fun inspectElementReachability(
-    parser: HprofParser,
     reachabilityInspectors: List<Reachability.Inspector>,
-    element: LeakTraceElement
+    parser: HprofParser,
+    node: LeakNode
   ): Reachability {
     for (reachabilityInspector in reachabilityInspectors) {
-      val reachability = reachabilityInspector.expectedReachability(element)
+      val reachability = reachabilityInspector.expectedReachability(parser, node)
       if (reachability.status != UNKNOWN) {
         return reachability
       }
@@ -426,95 +425,28 @@ class HeapAnalyzer constructor(
 
     val record = parser.retrieveRecordById(objectId)
 
-    val leakReferences = describeFields(parser, record)
-
-    val classHierarchy = when (record) {
-      is ClassDumpRecord -> listOf(parser.className(record.id))
-      is InstanceDumpRecord -> {
-        val instance = parser.hydrateInstance(record)
-        instance.classHierarchy.map { it.className }
-      }
-      is ObjectArrayDumpRecord -> listOf(parser.className(record.arrayClassId))
+    val classId = when (record) {
+      is ClassDumpRecord -> record.id
+      is InstanceDumpRecord -> record.classId
+      is ObjectArrayDumpRecord -> record.arrayClassId
       else -> throw IllegalStateException("Unexpected record type for $record")
     }
+    val className = parser.className(classId)
 
     val holderType = if (record is ClassDumpRecord) {
       CLASS
     } else if (record is ObjectArrayDumpRecord) {
       ARRAY
     } else {
-      if (classHierarchy.any { it == Thread::class.java.name }) {
+      record as InstanceDumpRecord
+      val classHierarchy = parser.hydrateClassHierarchy(record.classId)
+      if (classHierarchy.any { it.className == Thread::class.java.name }) {
         THREAD
       } else {
         OBJECT
       }
     }
-    return LeakTraceElement(
-        node.leakReference, holderType, classHierarchy, node.exclusion, leakReferences, labels
-    )
-  }
-
-  private fun describeFields(
-    parser: HprofParser,
-    record: ObjectRecord
-  ): List<LeakReference> {
-    val leakReferences = ArrayList<LeakReference>()
-    when (record) {
-      is ClassDumpRecord -> {
-        // TODO We're loading all classes but reading only one. All this should be removed
-        // it's only used by inspectors which should ask the parser for their needs.
-        val classHierarchy = parser.hydrateClassHierarchy(record.id)
-        val hydratedClass = classHierarchy[0]
-        hydratedClass.staticFieldNames.forEachIndexed { index, fieldName ->
-
-          val heapValue = hydratedClass.record.staticFields[index].value
-          leakReferences.add(
-              LeakReference(STATIC_FIELD, fieldName, heapValueAsString(heapValue))
-          )
-        }
-      }
-      is ObjectArrayDumpRecord -> record.elementIds.forEachIndexed { index, objectId ->
-        val name = Integer.toString(index)
-        leakReferences.add(LeakReference(ARRAY_ENTRY, name, "object $objectId"))
-      }
-      else -> {
-        val instance = parser.hydrateInstance(record as InstanceDumpRecord)
-        instance.classHierarchy[0].staticFieldNames.forEachIndexed { index, fieldName ->
-          val heapValue = instance.classHierarchy[0].record.staticFields[index].value
-          leakReferences.add(
-              LeakReference(
-                  STATIC_FIELD, fieldName,
-                  heapValueAsString(heapValue)
-              )
-          )
-        }
-        instance.fieldValues.forEachIndexed { classIndex, fieldValues ->
-          fieldValues.forEachIndexed { fieldIndex, heapValue ->
-            leakReferences.add(
-                LeakReference(
-                    INSTANCE_FIELD, instance.classHierarchy[classIndex].fieldNames[fieldIndex],
-                    heapValueAsString(heapValue)
-                )
-            )
-          }
-        }
-      }
-    }
-    return leakReferences
-  }
-
-  private fun heapValueAsString(heapValue: HeapValue): String {
-    return when (heapValue) {
-      is ObjectReference -> if (heapValue.value == 0L) "null" else "object ${heapValue.value}"
-      is BooleanValue -> heapValue.value.toString()
-      is CharValue -> heapValue.value.toString()
-      is FloatValue -> heapValue.value.toString()
-      is DoubleValue -> heapValue.value.toString()
-      is ByteValue -> heapValue.value.toString()
-      is ShortValue -> heapValue.value.toString()
-      is IntValue -> heapValue.value.toString()
-      is LongValue -> heapValue.value.toString()
-    }
+    return LeakTraceElement(node.leakReference, holderType, className, node.exclusion, labels)
   }
 
   private fun since(analysisStartNanoTime: Long): Long {

@@ -12,18 +12,10 @@ data class LeakTraceElement(
 
   val holder: Holder,
 
-  /**
-   * Class hierarchy for that object. The first element is [.className]. [Object]
-   * is excluded. There is always at least one element.
-   */
-  val classHierarchy: List<String>,
+  val className: String,
 
   /** If not null, there was no path that could exclude this element.  */
   val exclusion: Exclusion?,
-
-  /** List of all fields (member and static) for that object.  */
-  @Deprecated("This field will be replaced with the parser itself")
-  val fieldReferences: List<LeakReference>,
 
   /**
    * Ordered labels that were computed during analysis. A label provides
@@ -32,8 +24,10 @@ data class LeakTraceElement(
   val labels: List<String>
 ) : Serializable {
 
-  val className: String
-    get() = classHierarchy[0]
+  /**
+   * Returns {@link #className} without the package.
+   */
+  val simpleClassName: String get() = className.lastSegment('.')
 
   enum class Type {
     INSTANCE_FIELD,
@@ -48,33 +42,4 @@ data class LeakTraceElement(
     THREAD,
     ARRAY
   }
-
-  /**
-   * Returns the string value of the first field reference that has the provided referenceName, or
-   * null if no field reference with that name was found.
-   */
-  fun getFieldReferenceValue(referenceName: String): String? {
-    return fieldReferences.find { fieldReference -> fieldReference.name == referenceName }
-        ?.value
-  }
-
-  /** @see [isInstanceOf][] */
-  fun isInstanceOf(expectedClass: Class<out Any>): Boolean {
-    return isInstanceOf(expectedClass.name)
-  }
-
-  /**
-   * Returns true if this element is an instance of the provided class name, false otherwise.
-   */
-  fun isInstanceOf(expectedClassName: String): Boolean {
-    return classHierarchy.contains(expectedClassName)
-  }
-
-  /**
-   * Returns {@link #className} without the package.
-   */
-  fun getSimpleClassName(): String {
-    return className.lastSegment('.')
-  }
-
 }

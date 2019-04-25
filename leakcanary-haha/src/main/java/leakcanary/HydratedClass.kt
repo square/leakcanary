@@ -43,4 +43,14 @@ class HydratedClass(
     }
     return false
   }
+
+  val simpleClassName: String
+    get() {
+      val separator = className.lastIndexOf('.')
+      return if (separator == -1) {
+        className
+      } else {
+        className.substring(separator + 1)
+      }
+    }
 }

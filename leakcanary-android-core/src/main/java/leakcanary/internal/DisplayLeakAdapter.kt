@@ -216,7 +216,7 @@ internal class DisplayLeakAdapter private constructor(
   ): Spanned {
 
     val packageEnd = element.className.lastIndexOf('.')
-    var simpleName = element.getSimpleClassName()
+    var simpleName = element.simpleClassName
     simpleName = simpleName.replace("[]", "[ ]")
     val styledClassName = "<font color='$classNameColorHexString'>$simpleName</font>"
 
@@ -255,7 +255,7 @@ internal class DisplayLeakAdapter private constructor(
         referenceName = "<i>$referenceName</i>"
       }
 
-      htmlString +=  "$indentation$styledClassName.${if (maybeLeakCause) "<b>$referenceName</b>" else referenceName}"
+      htmlString += "$indentation$styledClassName.${if (maybeLeakCause) "<b>$referenceName</b>" else referenceName}"
     }
 
     val exclusion = element.exclusion

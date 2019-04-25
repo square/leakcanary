@@ -5,7 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
-    context, "leaks.db", null, 1
+    context, "leaks.db", null, VERSION
 ) {
 
   override fun onCreate(db: SQLiteDatabase) {
@@ -19,6 +19,13 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     oldVersion: Int,
     newVersion: Int
   ) {
-    TODO("Upgrade not needed yet")
+    db.execSQL(HeapAnalysisTable.drop)
+    db.execSQL(LeakingInstanceTable.drop)
+    onCreate(db)
+  }
+
+  companion object {
+    // Last updated for 2.0-alpha-2
+    private const val VERSION = 2
   }
 }
