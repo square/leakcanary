@@ -26,17 +26,6 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
   <application>
-
-    <service
-        android:name="leakcanary.internal.HeapAnalyzerService"
-        android:exported="false"
-        >
-      <intent-filter>
-        <action android:name="leakcanary.ANALYSIS_ACTION"/>
-      </intent-filter>
-    </service>
-
-
     <service
         android:name="leakcanary.internal.AnalysisResultService"
         android:exported="false"
