@@ -53,10 +53,7 @@ import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
 import leakcanary.Reachability
-import leakcanary.Reachability.Inspector
-import leakcanary.Reachability.Status.REACHABLE
-import leakcanary.Reachability.Status.UNKNOWN
-import leakcanary.Reachability.Status.UNREACHABLE
+import leakcanary.Reachability.Companion
 import leakcanary.RetainedInstance
 import leakcanary.WeakReferenceCleared
 import leakcanary.WeakReferenceMissing
@@ -312,7 +309,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
         )
       }
 
-      val leakTrace = buildLeakTrace(heapDump, pathResult.leakingNode)
+      val leakTrace = buildLeakTrace(pathResult.leakingNode)
 
       val retainedSize = if (heapDump.computeRetainedHeapSize) {
         pathResult.leakingNode.instance.totalRetainedSize
@@ -389,7 +386,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
     }
 
     listener.onProgressUpdate(BUILDING_LEAK_TRACE)
-    val leakTrace = buildLeakTrace(heapDump, result.leakingNode)
+    val leakTrace = buildLeakTrace(result.leakingNode)
 
     val retainedSize = if (heapDump.computeRetainedHeapSize) {
       listener.onProgressUpdate(COMPUTING_DOMINATORS)
@@ -412,7 +409,6 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
   }
 
   private fun buildLeakTrace(
-    heapDump: HeapDump,
     leakingNode: LeakNode
   ): LeakTrace {
     val elements = ArrayList<LeakTraceElement>()
@@ -428,69 +424,13 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       node = node.parent
     }
 
-    val expectedReachability = computeExpectedReachability(heapDump, elements)
+    val expectedReachability = elements.map { Reachability.unknown() }
+        .toMutableList()
+    expectedReachability[0] = Reachability.reachable("gc root")
+    expectedReachability[expectedReachability.lastIndex] =
+      Reachability.unreachable("leaking instance")
 
     return LeakTrace(elements, expectedReachability)
-  }
-
-  private fun computeExpectedReachability(
-    heapDump: HeapDump,
-    elements: List<LeakTraceElement>
-  ): List<Reachability> {
-    var lastReachableElementIndex = 0
-    val lastElementIndex = elements.size - 1
-    var firstUnreachableElementIndex = lastElementIndex
-
-    val expectedReachability = ArrayList<Reachability>()
-
-    val reachabilityInspectors = mutableListOf<Inspector>()
-    for (reachabilityInspectorClass in heapDump.reachabilityInspectorClasses) {
-      try {
-        val defaultConstructor = reachabilityInspectorClass.getDeclaredConstructor()
-        reachabilityInspectors.add(defaultConstructor.newInstance())
-      } catch (e: Exception) {
-        throw RuntimeException(e)
-      }
-    }
-
-    for ((index, _) in elements.withIndex()) {
-      val reachability = Reachability.unknown()
-      expectedReachability.add(reachability)
-      if (reachability.status == REACHABLE) {
-        lastReachableElementIndex = index
-        // Reset firstUnreachableElementIndex so that we never have
-        // firstUnreachableElementIndex < lastReachableElementIndex
-        firstUnreachableElementIndex = lastElementIndex
-      } else if (firstUnreachableElementIndex == lastElementIndex && reachability.status == UNREACHABLE) {
-        firstUnreachableElementIndex = index
-      }
-    }
-
-    if (expectedReachability[0].status == UNKNOWN) {
-      expectedReachability[0] = Reachability.reachable("it's a GC root")
-    }
-
-    if (expectedReachability[lastElementIndex].status == UNKNOWN) {
-      expectedReachability[lastElementIndex] =
-        Reachability.unreachable("RefWatcher was watching this")
-    }
-
-    // First and last are always known.
-    for (i in 1 until lastElementIndex) {
-      val reachability = expectedReachability[i]
-      if (reachability.status == UNKNOWN) {
-        if (i < lastReachableElementIndex) {
-          val nextReachableName = elements[i + 1].simpleClassName
-          expectedReachability[i] =
-            Reachability.reachable("$nextReachableName↓ is not leaking")
-        } else if (i > firstUnreachableElementIndex) {
-          val previousUnreachableName = elements[i - 1].simpleClassName
-          expectedReachability[i] =
-            Reachability.unreachable("$previousUnreachableName↑ is leaking")
-        }
-      }
-    }
-    return expectedReachability
   }
 
   private fun buildLeakElement(node: LeakNode): LeakTraceElement? {

@@ -18,8 +18,6 @@ package leakcanary
 import leakcanary.Reachability.Inspector
 import java.io.File
 import java.io.Serializable
-import java.util.ArrayList
-import java.util.Collections.unmodifiableList
 
 /** Data structure holding information about a heap dump.  */
 // TODO Turn HeapDump into a data class
@@ -34,7 +32,6 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
   val gcDurationMs: Long
   val heapDumpDurationMs: Long
   val computeRetainedHeapSize: Boolean
-  val reachabilityInspectorClasses: List<Class<out Inspector>>
 
   /** Receives a heap dump to analyze.  */
   interface Listener {
@@ -47,7 +44,6 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
     this.computeRetainedHeapSize = builder.computeRetainedHeapSize
     this.gcDurationMs = builder.gcDurationMs
     this.heapDumpDurationMs = builder.heapDumpDurationMs
-    this.reachabilityInspectorClasses = builder.reachabilityInspectorClasses
   }
 
   fun buildUpon(): Builder {
@@ -70,7 +66,6 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
       this.computeRetainedHeapSize = heapDump.computeRetainedHeapSize
       this.gcDurationMs = heapDump.gcDurationMs
       this.heapDumpDurationMs = heapDump.heapDumpDurationMs
-      this.reachabilityInspectorClasses = heapDump.reachabilityInspectorClasses
     }
 
     fun heapDumpFile(heapDumpFile: File): Builder {
@@ -95,15 +90,6 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
 
     fun computeRetainedHeapSize(computeRetainedHeapSize: Boolean): Builder {
       this.computeRetainedHeapSize = computeRetainedHeapSize
-      return this
-    }
-
-    fun reachabilityInspectorClasses(
-      reachabilityInspectorClasses: List<Class<out Inspector>>
-    ): Builder {
-      this.reachabilityInspectorClasses = unmodifiableList<Class<out Inspector>>(
-          ArrayList<Class<out Inspector>>(reachabilityInspectorClasses)
-      )
       return this
     }
 

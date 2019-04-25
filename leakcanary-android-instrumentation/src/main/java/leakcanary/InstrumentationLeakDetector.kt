@@ -154,7 +154,6 @@ class InstrumentationLeakDetector {
 
     val heapDump = HeapDump.builder(heapDumpFile)
         .excludedRefs(config.excludedRefs)
-        .reachabilityInspectorClasses(config.reachabilityInspectorClasses)
         .build()
 
     val retainedKeys = refWatcher.retainedKeys
@@ -180,7 +179,9 @@ class InstrumentationLeakDetector {
     val listener = AnalyzerProgressListener.NONE
 
     val heapAnalyzer = HeapAnalyzer(listener)
-    val heapAnalysis = heapAnalyzer.checkForLeaks(heapDump, config.labelers)
+    val heapAnalysis = heapAnalyzer.checkForLeaks(
+        heapDump, config.reachabilityInspectors, config.labelers
+    )
 
     CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)
 

@@ -23,7 +23,6 @@ import android.os.MessageQueue
 import android.view.View
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import java.util.ArrayList
 import kotlin.reflect.KClass
 
 /**
@@ -37,35 +36,9 @@ import kotlin.reflect.KClass
  * For example, no matter how many mistakes we make in our code, the value of Activity.mDestroy
  * will not be influenced by those mistakes.
  */
-enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out Reachability.Inspector>) {
+enum class AndroidReachabilityInspectors : Reachability.Inspector {
 
-  VIEW(ViewInspector::class.java),
-
-  ACTIVITY(ActivityInspector::class.java),
-
-  DIALOG(DialogInspector::class.java),
-
-  APPLICATION(ApplicationInspector::class.java),
-
-  CLASSLOADER(ClassloaderInspector::class.java),
-
-  CLASS(ClassInspector::class.java),
-
-  FRAGMENT(FragmentInspector::class.java),
-
-  SUPPORT_FRAGMENT(SupportFragmentInspector::class.java),
-
-  MESSAGE_QUEUE(MessageQueueInspector::class.java),
-
-  MORTAR_PRESENTER(MortarPresenterInspector::class.java),
-
-  MAIN_THEAD(MainThreadInspector::class.java),
-
-  WINDOW(WindowInspector::class.java),
-
-  TOAST_TN(ToastTnInspector::class.java);
-
-  class ViewInspector : Reachability.Inspector {
+  VIEW {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
@@ -82,27 +55,27 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
         Reachability.reachable("View#mAttachInfo is not null")
       }
     }
-  }
+  },
 
-  class ActivityInspector : Reachability.Inspector {
+  ACTIVITY {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
     ): Reachability = (parser to node).instanceOfOrUnknown(Activity::class) { instance ->
       instance.unreachableWhenTrue("mDestroyed")
     }
-  }
+  },
 
-  class DialogInspector : Reachability.Inspector {
+  DIALOG {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
     ): Reachability = (parser to node).instanceOfOrUnknown(Dialog::class) { instance ->
       instance.unreachableWhenNull("mDecor")
     }
-  }
+  },
 
-  class ApplicationInspector : Reachability.Inspector {
+  APPLICATION {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
@@ -111,9 +84,9 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
         Reachability.reachable("Application is a singleton")
       } else Reachability.unknown()
     }
-  }
+  },
 
-  class ClassloaderInspector : Reachability.Inspector {
+  CLASSLOADER {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
@@ -122,9 +95,9 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
         Reachability.reachable("Classloader always reachable")
       } else Reachability.unknown()
     }
-  }
+  },
 
-  class ClassInspector : Reachability.Inspector {
+  CLASS {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
@@ -133,18 +106,18 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
         Reachability.reachable("a class is always reachable")
       } else Reachability.unknown()
     }
-  }
+  },
 
-  class FragmentInspector : Reachability.Inspector {
+  FRAGMENT {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
     ): Reachability = (parser to node).instanceOfOrUnknown(Fragment::class) { instance ->
       instance.unreachableWhenNull("mFragmentManager")
     }
-  }
+  },
 
-  class SupportFragmentInspector : Reachability.Inspector {
+  SUPPORT_FRAGMENT {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
@@ -152,9 +125,9 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
       (parser to node).instanceOfOrUnknown("android.support.v4.app.Fragment") { instance ->
         instance.unreachableWhenNull("mFragmentManager")
       }
-  }
+  },
 
-  class MessageQueueInspector : Reachability.Inspector {
+  MESSAGE_QUEUE {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
@@ -166,9 +139,9 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
         else -> Reachability.unknown()
       }
     }
-  }
+  },
 
-  class MortarPresenterInspector : Reachability.Inspector {
+  MORTAR_PRESENTER {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
@@ -182,9 +155,9 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
         Reachability.unknown()
       }
     }
-  }
+  },
 
-  class MainThreadInspector : Reachability.Inspector {
+  MAIN_THEAD {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
@@ -195,18 +168,18 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
         Reachability.unknown()
       }
     }
-  }
+  },
 
-  class WindowInspector : Reachability.Inspector {
+  WINDOW {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
     ): Reachability = (parser to node).instanceOfOrUnknown("android.view.Window") { instance ->
       instance.unreachableWhenTrue("mDestroyed")
     }
-  }
+  },
 
-  class ToastTnInspector : Reachability.Inspector {
+  TOAST_TN {
     override fun expectedReachability(
       parser: HprofParser,
       node: LeakNode
@@ -215,14 +188,14 @@ enum class AndroidReachabilityInspectors(private val inspectorClass: Class<out R
         Reachability.reachable("Toast.TN (Transient Notification) is always reachable")
       } else Reachability.unknown()
     }
-  }
+  };
 
   companion object {
 
-    fun defaultAndroidInspectors(): List<Class<out Reachability.Inspector>> {
-      val inspectorClasses = ArrayList<Class<out Reachability.Inspector>>()
-      for (enumValue in AndroidReachabilityInspectors.values()) {
-        inspectorClasses.add(enumValue.inspectorClass)
+    fun defaultAndroidInspectors(): List<Reachability.Inspector> {
+      val inspectorClasses = mutableListOf<Reachability.Inspector>()
+      for (enumValue in values()) {
+        inspectorClasses.add(enumValue)
       }
       return inspectorClasses
     }
@@ -238,9 +211,6 @@ inline fun Pair<HprofParser, LeakNode>.instanceOfOrUnknown(
   className: String,
   block: HprofParser.(HydratedInstance) -> Reachability
 ): Reachability = this.instanceOf(className)?.let { first.block(it) } ?: Reachability.unknown()
-
-fun Pair<HprofParser, LeakNode>.instanceOf(expectedClass: KClass<out Any>) =
-  instanceOf(expectedClass.java.name)
 
 fun Pair<HprofParser, LeakNode>.instanceOf(className: String): HydratedInstance? = with(first) {
   val record = second.instance.objectRecord

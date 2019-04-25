@@ -7,7 +7,7 @@ object LeakCanary {
   data class Config(
     val dumpHeap: Boolean = true,
     val excludedRefs: ExcludedRefs = AndroidExcludedRefs.createAppDefaults().build(),
-    val reachabilityInspectorClasses: List<Class<out Reachability.Inspector>> = AndroidReachabilityInspectors.defaultAndroidInspectors(),
+    val reachabilityInspectors: List<Reachability.Inspector> = AndroidReachabilityInspectors.defaultAndroidInspectors(),
     val labelers: List<Labeler> = AndroidLabelers.defaultAndroidLabelers(
         InternalLeakCanary.application
     ),

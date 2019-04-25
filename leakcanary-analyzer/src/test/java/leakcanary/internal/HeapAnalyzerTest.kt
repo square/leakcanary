@@ -46,7 +46,7 @@ class HeapAnalyzerTest {
     val heapDump = HeapDump.builder(file)
         .excludedRefs(defaultExcludedRefs.build())
         .build()
-    val leaks = heapAnalyzer.checkForLeaks(heapDump, emptyList())
+    val leaks = heapAnalyzer.checkForLeaks(heapDump, emptyList(), emptyList())
 
     val now = System.nanoTime()
     val elapsed = (now - time) / 1000000
