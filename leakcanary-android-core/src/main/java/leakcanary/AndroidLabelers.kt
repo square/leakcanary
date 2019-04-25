@@ -14,9 +14,9 @@ enum class AndroidLabelers : Labeler {
   FRAGMENT_LABELER {
     override fun computeLabels(
       parser: HprofParser,
-      node: ChildNode
+      node: LeakNode
     ): List<String> {
-      val objectId = node.parent.instance
+      val objectId = node.instance
       val record = parser.retrieveRecordById(objectId)
       if (record is InstanceDumpRecord) {
         val className = parser.className(record.classId)
@@ -40,9 +40,9 @@ enum class AndroidLabelers : Labeler {
   ) : Labeler {
     override fun computeLabels(
       parser: HprofParser,
-      node: ChildNode
+      node: LeakNode
     ): List<String> {
-      val objectId = node.parent.instance
+      val objectId = node.instance
       val record = parser.retrieveRecordById(objectId)
       if (record is InstanceDumpRecord) {
         val instance = parser.hydrateInstance(record)

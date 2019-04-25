@@ -323,7 +323,7 @@ class HeapAnalyzer constructor(
     while (node is ChildNode) {
       val labels = mutableListOf<String>()
       for (labeler in labelers) {
-        labels.addAll(labeler.computeLabels(parser, node))
+        labels.addAll(labeler.computeLabels(parser, node.parent))
       }
       elements.add(0, buildLeakElement(parser, node, labels))
       node = node.parent

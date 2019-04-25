@@ -1,27 +1,21 @@
 package leakcanary
 
 import leakcanary.HeapValue.ObjectReference
-import leakcanary.LeakNode.ChildNode
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 
 interface Labeler {
 
-  /**
-   * Note: this is a bit confusing but for a given node you should really be printing attributes
-   * of node.parent.instance
-   * TODO Make this less confusing.
-   */
   fun computeLabels(
     parser: HprofParser,
-    node: ChildNode
+    node: LeakNode
   ): List<String>
 
   object InstanceDefaultLabeler : Labeler {
     override fun computeLabels(
       parser: HprofParser,
-      node: ChildNode
+      node: LeakNode
     ): List<String> {
-      val objectId = node.parent.instance
+      val objectId = node.instance
       val record = parser.retrieveRecordById(objectId)
       if (record is InstanceDumpRecord) {
         val labels = mutableListOf<String>()
