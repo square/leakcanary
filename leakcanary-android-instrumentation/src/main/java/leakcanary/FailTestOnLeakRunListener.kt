@@ -63,8 +63,11 @@ open class FailTestOnLeakRunListener : RunListener() {
    * is started. Returns null to continue leak detection, or a string describing the reason for
    * skipping otherwise.
    */
-  protected open fun skipLeakDetectionReason(description: Description): String? {
-    return null
+  internal open fun skipLeakDetectionReason(description: Description): String? {
+    return if (description.getAnnotation(LeakTest::class.java) != null)
+      null
+    else
+      "skipped leak detection"
   }
 
   override fun testFailure(failure: Failure) {
