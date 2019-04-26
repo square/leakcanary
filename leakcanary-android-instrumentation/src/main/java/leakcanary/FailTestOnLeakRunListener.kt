@@ -63,7 +63,7 @@ open class FailTestOnLeakRunListener : RunListener() {
    * is started. Returns null to continue leak detection, or a string describing the reason for
    * skipping otherwise.
    */
-  internal open fun skipLeakDetectionReason(description: Description): String? {
+  protected open fun skipLeakDetectionReason(description: Description): String? {
     return null
   }
 
