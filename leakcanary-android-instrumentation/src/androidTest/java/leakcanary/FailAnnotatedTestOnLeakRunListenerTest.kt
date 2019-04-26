@@ -28,6 +28,3 @@ class FailAnnotatedTestOnLeakRunListenerTest {
     assertEquals("skipped leak detection", listener.skipLeakDetectionReason(description))
   }
 }
-
-
-
