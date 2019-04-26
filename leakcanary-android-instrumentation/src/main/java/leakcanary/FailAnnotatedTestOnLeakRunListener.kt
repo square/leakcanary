@@ -1,0 +1,22 @@
+package leakcanary
+
+import org.junit.runner.Description
+import org.junit.runner.notification.RunListener
+
+/**
+ *
+ * A JUnit [RunListener] subclassing [FailTestOnLeakRunListener] for detecting memory
+ * leaks in Android instrumentation tests only when the [FailTestOnLeak] annotation
+ * is used.
+ *
+ * @see FailTestOnLeak
+ */
+class FailAnnotatedTestOnLeakRunListener: FailTestOnLeakRunListener() {
+
+  override fun skipLeakDetectionReason(description: Description): String? {
+    return if (description.getAnnotation(FailTestOnLeak::class.java) != null)
+          null
+      else
+          "test is not annotated with @FailTestOnLeak"
+  }
+}
