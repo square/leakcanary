@@ -12,7 +12,7 @@ A memory leak detection library for Android and Kotlin.
 
 Add LeakCanary to your `build.gradle`:
 
-```groovy
+```gradle
 dependencies {
   debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
 }
@@ -20,7 +20,9 @@ dependencies {
 
 **You're good to go!** LeakCanary will automatically show a notification when an activity or fragment memory leak is detected in your debug build.
 
-Note: LeakCanary 2 is in alpha. To set up LeakCanary 1.6, go to the [1.6 Readme](https://github.com/square/leakcanary/blob/master/README-1.6.md).
+Note: **LeakCanary 2 is in alpha**.
+* Here is the [migration guide](https://github.com/square/leakcanary/wiki/Migration-to-LeakCanary-2.0).
+* To set up LeakCanary 1.6, go to the [1.6 Readme](https://github.com/square/leakcanary/blob/master/README-1.6.md).
 
 ## Presentations
 
