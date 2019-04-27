@@ -61,7 +61,7 @@ class DebugExampleApplication : ExampleApplication() {
 
 LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing `LeakCanary.config`:
 
-```
+```kotlin
 disableLeakCanaryButton.setOnClickListener {
   LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
 }
@@ -71,7 +71,7 @@ disableLeakCanaryButton.setOnClickListener {
 
 In your `build.gradle`:
 
-```groovy
+```gradle
 dependencies {
   implementation 'com.squareup.leakcanary:leakcanary-sentry:2.0-alpha-1'
 }
@@ -86,7 +86,7 @@ val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
 
 If you want to try LeakCanary 2.0 features with the battle tested perflib heap parser, use a different dependency:
 
-```groovy
+```gradle
 dependencies {
   // debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
   debugImplementation 'com.squareup.leakcanary:leakcanary-android-perflib:2.0-alpha-1'
@@ -111,7 +111,7 @@ class DebugExampleApplication : ExampleApplication() {
 
 ## FAQ
 
-Note: the entries in this FAQ have not been updated for LeakCanary 2 yet.
+Note: the entries in this FAQ have **not been updated for LeakCanary 2 yet**.
 
 * [Why should I use LeakCanary?](https://github.com/square/leakcanary/wiki/FAQ#why-should-i-use-leakcanary)
 * [How does it work?](https://github.com/square/leakcanary/wiki/FAQ#how-does-it-work)
