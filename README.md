@@ -74,7 +74,7 @@ In your `build.gradle`:
 
 ```gradle
 dependencies {
-  implementation 'com.squareup.leakcanary:leakcanary-sentry:2.0-alpha-1'
+  implementation 'com.squareup.leakcanary:leaksentry:2.0-alpha-1'
 }
 ```
 
