@@ -21,7 +21,8 @@ dependencies {
 **You're good to go!** LeakCanary will automatically show a notification when an activity or fragment memory leak is detected in your debug build.
 
 Note: **LeakCanary 2 is in alpha**.
-* Here is the [migration guide](https://github.com/square/leakcanary/wiki/Migration-to-LeakCanary-2.0).
+* Check out the [migration guide](https://github.com/square/leakcanary/wiki/Migration-to-LeakCanary-2.0).
+* Here is the [change log](https://github.com/square/leakcanary/blob/master/CHANGELOG.md#version-20-alpha-1-2019-04-23).
 * To set up LeakCanary 1.6, go to the [1.6 Readme](https://github.com/square/leakcanary/blob/master/README-1.6.md).
 
 ## Presentations
