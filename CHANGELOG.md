@@ -2,11 +2,10 @@
 
 ## Version 2.0 Alpha 1 (2019-04-23)
 
-**Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements!
+**Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://github.com/square/leakcanary#getting-started) instructions and the [migration guide](https://github.com/square/leakcanary/wiki/Migration-to-LeakCanary-2.0). This change log is also available as a [Twitter thread](https://twitter.com/Piwai/status/1120681920835276800)
 
 <img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
 
-* This change log is also available as a [Twitter thread](https://twitter.com/Piwai/status/1120681920835276800)
 * New [logo](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo), thanks [@flickator](https://github.com/flickator)!
 * Entirely rewritten to **100% Kotlin**
 * Multiple leaks detected in one analysis
