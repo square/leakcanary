@@ -152,10 +152,6 @@ class InstrumentationLeakDetector {
 
     val config = LeakCanary.config
 
-    val heapDump = HeapDump.builder(heapDumpFile)
-        .excludedRefs(config.excludedRefs)
-        .build()
-
     val retainedKeys = refWatcher.retainedKeys
     HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
     HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
@@ -167,7 +163,7 @@ class InstrumentationLeakDetector {
       CanaryLog.d(exception, "Could not dump heap")
       return AnalysisPerformed(
           HeapAnalysisFailure(
-              heapDump, analysisDurationMillis = 0,
+              heapDumpFile, analysisDurationMillis = 0,
               createdAtTimeMillis = System.currentTimeMillis(),
               exception = HeapAnalysisException(exception)
           )
@@ -180,7 +176,8 @@ class InstrumentationLeakDetector {
 
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.checkForLeaks(
-        heapDump, config.reachabilityInspectors, config.labelers
+        heapDumpFile, config.exclusionsFactory, config.computeRetainedHeapSize,
+        config.reachabilityInspectors, config.labelers
     )
 
     CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)

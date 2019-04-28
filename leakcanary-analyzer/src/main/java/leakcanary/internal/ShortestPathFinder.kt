@@ -15,25 +15,28 @@
  */
 package leakcanary.internal
 
-import leakcanary.ExcludedRefs
 import leakcanary.Exclusion
+import leakcanary.Exclusion.ExclusionType.ClassExclusion
+import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
+import leakcanary.Exclusion.ExclusionType.StaticFieldExclusion
+import leakcanary.Exclusion.ExclusionType.ThreadExclusion
 import leakcanary.HeapValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofParser
 import leakcanary.LeakNode
+import leakcanary.LeakNode.ChildNode
+import leakcanary.LeakNode.RootNode
 import leakcanary.LeakReference
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.ObjectIdMetadata.EMPTY_INSTANCE
-import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER
 import leakcanary.ObjectIdMetadata.PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY
+import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER
 import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.LeakNode.ChildNode
-import leakcanary.LeakNode.RootNode
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -49,9 +52,7 @@ import java.util.LinkedHashSet
  * Skips enqueuing strings as an optimization, so if the leaking reference is a string then it will
  * never be found.
  */
-internal class ShortestPathFinder(
-  private val excludedRefs: ExcludedRefs
-) {
+internal class ShortestPathFinder {
   /**
    * TODO If this queue grows large we can optimize it by replacing LeakNode with just (long, long)
    * and rebuild exclusion and leak reference after the analysis
@@ -78,10 +79,49 @@ internal class ShortestPathFinder(
 
   fun findPaths(
     parser: HprofParser,
+    exclusionsFactory: (HprofParser) -> List<Exclusion>,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
     gcRootIds: MutableList<Long>
   ): List<Result> {
     clearState()
+
+    val fieldNameByClassName = mutableMapOf<String, MutableMap<String, Exclusion>>()
+    val staticFieldNameByClassName = mutableMapOf<String, MutableMap<String, Exclusion>>()
+    // TODO Use thread name exclusions
+    val threadNames = mutableMapOf<String, Exclusion>()
+    val classNames = mutableMapOf<String, Exclusion>()
+
+    exclusionsFactory(parser)
+        .forEach { exclusion ->
+
+          when (exclusion.type) {
+            is ClassExclusion -> {
+              classNames[exclusion.type.className] = exclusion
+            }
+            is ThreadExclusion -> {
+              threadNames[exclusion.type.threadName] = exclusion
+            }
+            is StaticFieldExclusion -> {
+              val mapOrNull = staticFieldNameByClassName[exclusion.type.className]
+              val map = if (mapOrNull != null) mapOrNull else {
+                val newMap = mutableMapOf<String, Exclusion>()
+                staticFieldNameByClassName[exclusion.type.className] = newMap
+                newMap
+              }
+              map[exclusion.type.fieldName] = exclusion
+            }
+            is InstanceFieldExclusion -> {
+              val mapOrNull = fieldNameByClassName[exclusion.type.className]
+              val map = if (mapOrNull != null) mapOrNull else {
+                val newMap = mutableMapOf<String, Exclusion>()
+                fieldNameByClassName[exclusion.type.className] = newMap
+                newMap
+              }
+              map[exclusion.type.fieldName] = exclusion
+            }
+          }
+        }
+
     // Referent object id to weak ref mirror
     val referentMap = leakingWeakRefs.associateBy { it.referent.value }
 
@@ -122,8 +162,10 @@ internal class ShortestPathFinder(
       }
 
       when (val record = parser.retrieveRecordById(node.instance)) {
-        is ClassDumpRecord -> visitClassRecord(parser, record, node)
-        is InstanceDumpRecord -> visitInstanceRecord(parser, record, node)
+        is ClassDumpRecord -> visitClassRecord(parser, record, node, staticFieldNameByClassName)
+        is InstanceDumpRecord -> visitInstanceRecord(
+            parser, record, node, classNames, fieldNameByClassName
+        )
         is ObjectArrayDumpRecord -> visitObjectArrayRecord(parser, record, node)
         else -> throw IllegalStateException("Unexpected type for $record")
       }
@@ -163,11 +205,12 @@ internal class ShortestPathFinder(
   private fun visitClassRecord(
     hprofParser: HprofParser,
     record: ClassDumpRecord,
-    node: LeakNode
+    node: LeakNode,
+    staticFieldNameByClassName: Map<String, Map<String, Exclusion>>
   ) {
     val className = hprofParser.className(record.id)
 
-    val ignoredStaticFields = excludedRefs.staticFieldNameByClassName[className] ?: emptyMap()
+    val ignoredStaticFields = staticFieldNameByClassName[className] ?: emptyMap()
 
     for (staticField in record.staticFields) {
       val objectId = (staticField.value as? ObjectReference)?.value ?: continue
@@ -181,7 +224,7 @@ internal class ShortestPathFinder(
       val exclusion = ignoredStaticFields[fieldName]
 
       if (exclusion == null || !exclusion.alwaysExclude) {
-        enqueue(hprofParser, ChildNode(objectId, exclusion, node, leakReference))
+        enqueue(hprofParser, ChildNode(objectId, exclusion?.description, node, leakReference))
       }
     }
   }
@@ -189,12 +232,14 @@ internal class ShortestPathFinder(
   private fun visitInstanceRecord(
     hprofParser: HprofParser,
     record: InstanceDumpRecord,
-    parent: LeakNode
+    parent: LeakNode,
+    classNames: Map<String, Exclusion>,
+    fieldNameByClassName: Map<String, Map<String, Exclusion>>
   ) {
     val instance = hprofParser.hydrateInstance(record)
 
     val exclusions = instance.classHierarchy.map {
-      excludedRefs.classNames[it.className]
+      classNames[it.className]
     }
 
     if (exclusions.firstOrNull {
@@ -208,7 +253,7 @@ internal class ShortestPathFinder(
     val ignoredFields = LinkedHashMap<String, Exclusion>()
 
     instance.classHierarchy.forEach {
-      ignoredFields.putAll(excludedRefs.fieldNameByClassName[it.className] ?: emptyMap())
+      ignoredFields.putAll(fieldNameByClassName[it.className] ?: emptyMap())
     }
 
     val fieldNamesAndValues = mutableListOf<Pair<String, HeapValue>>()
@@ -235,7 +280,7 @@ internal class ShortestPathFinder(
           enqueue(
               hprofParser, ChildNode(
               objectId,
-              exclusion, parent,
+              exclusion?.description, parent,
               LeakReference(INSTANCE_FIELD, fieldName, "object $objectId")
           )
           )

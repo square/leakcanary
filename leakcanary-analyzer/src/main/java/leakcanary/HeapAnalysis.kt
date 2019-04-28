@@ -1,24 +1,25 @@
 package leakcanary
 
 import leakcanary.internal.createSHA1Hash
+import java.io.File
 import java.io.Serializable
 
 sealed class HeapAnalysis : Serializable {
-  abstract val heapDump: HeapDump
+  abstract val heapDumpFile: File
   abstract val createdAtTimeMillis: Long
   /** Total time spent analyzing the heap.  */
   abstract val analysisDurationMillis: Long
 }
 
 data class HeapAnalysisFailure(
-  override val heapDump: HeapDump,
+  override val heapDumpFile: File,
   override val createdAtTimeMillis: Long,
   override val analysisDurationMillis: Long,
   val exception: HeapAnalysisException
 ) : HeapAnalysis()
 
 data class HeapAnalysisSuccess(
-  override val heapDump: HeapDump,
+  override val heapDumpFile: File,
   override val createdAtTimeMillis: Long,
   override val analysisDurationMillis: Long,
   val retainedInstances: List<RetainedInstance>

@@ -51,6 +51,7 @@ import leakcanary.internal.KeyedWeakReferenceMirror
 import leakcanary.internal.ShortestPathFinder
 import leakcanary.internal.ShortestPathFinder.Result
 import leakcanary.internal.lastSegment
+import java.io.File
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
 
@@ -66,16 +67,18 @@ class HeapAnalyzer constructor(
    * and then computes the shortest strong reference path from that instance to the GC roots.
    */
   fun checkForLeaks(
-    heapDump: HeapDump,
-    reachabilityInspectors: List<Reachability.Inspector>,
-    labelers: List<Labeler>
+    heapDumpFile: File,
+    exclusionsFactory: (HprofParser) -> List<Exclusion> = { emptyList() },
+    computeRetainedHeapSize: Boolean = false,
+    reachabilityInspectors: List<Reachability.Inspector> = emptyList(),
+    labelers: List<Labeler> = emptyList()
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
-    if (!heapDump.heapDumpFile.exists()) {
-      val exception = IllegalArgumentException("File does not exist: $heapDump.heapDumpFile")
+    if (!heapDumpFile.exists()) {
+      val exception = IllegalArgumentException("File does not exist: $heapDumpFile")
       return HeapAnalysisFailure(
-          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)
       )
     }
@@ -84,7 +87,7 @@ class HeapAnalyzer constructor(
 
 
     try {
-      HprofParser.open(heapDump.heapDumpFile)
+      HprofParser.open(heapDumpFile)
           .use { parser ->
             listener.onProgressUpdate(SCANNING_HEAP_DUMP)
             val (gcRootIds, heapDumpMemoryStoreClassId, keyedWeakReferenceInstances) = scan(parser)
@@ -97,7 +100,7 @@ class HeapAnalyzer constructor(
             if (retainedKeys.isEmpty()) {
               val exception = IllegalStateException("No retained keys found in heap dump")
               return HeapAnalysisFailure(
-                  heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+                  heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
                   HeapAnalysisException(exception)
               )
             }
@@ -108,23 +111,23 @@ class HeapAnalyzer constructor(
                   heapDumpUptimeMillis
               )
 
-            val pathResults = findShortestPaths(heapDump, parser, leakingWeakRefs, gcRootIds)
+            val pathResults = findShortestPaths(parser, exclusionsFactory, leakingWeakRefs, gcRootIds)
 
             buildLeakTraces(
-                heapDump, reachabilityInspectors, labelers, pathResults, parser, leakingWeakRefs,
-                analysisResults
+                computeRetainedHeapSize, reachabilityInspectors, labelers, pathResults, parser,
+                leakingWeakRefs, analysisResults
             )
 
             addRemainingInstancesWithNoPath(parser, leakingWeakRefs, analysisResults)
 
             return HeapAnalysisSuccess(
-                heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+                heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
                 analysisResults.values.toList()
             )
           }
     } catch (exception: Throwable) {
       return HeapAnalysisFailure(
-          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)
       )
     }
@@ -235,19 +238,19 @@ class HeapAnalyzer constructor(
   }
 
   private fun findShortestPaths(
-    heapDump: HeapDump,
     parser: HprofParser,
+    exclusionsFactory: (HprofParser) -> List<Exclusion>,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
     gcRootIds: MutableList<Long>
   ): List<Result> {
     listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
 
-    val pathFinder = ShortestPathFinder(heapDump.excludedRefs)
-    return pathFinder.findPaths(parser, leakingWeakRefs, gcRootIds)
+    val pathFinder = ShortestPathFinder()
+    return pathFinder.findPaths(parser, exclusionsFactory, leakingWeakRefs, gcRootIds)
   }
 
   private fun buildLeakTraces(
-    heapDump: HeapDump,
+    computeRetainedHeapSize: Boolean,
     reachabilityInspectors: List<Reachability.Inspector>,
     labelers: List<Labeler>,
     pathResults: List<Result>,
@@ -255,7 +258,7 @@ class HeapAnalyzer constructor(
     leakingWeakRefs: MutableList<KeyedWeakReferenceMirror>,
     analysisResults: MutableMap<String, RetainedInstance>
   ) {
-    if (heapDump.computeRetainedHeapSize && pathResults.isNotEmpty()) {
+    if (computeRetainedHeapSize && pathResults.isNotEmpty()) {
       listener.onProgressUpdate(COMPUTING_DOMINATORS)
       // Computing dominators has the side effect of computing retained size.
       CanaryLog.d("Cannot compute retained heap size because dominators is not implemented yet")

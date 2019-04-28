@@ -11,8 +11,8 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.squareup.leakcanary.core.R
-import leakcanary.HeapDump
 import leakcanary.internal.navigation.activity
+import java.io.File
 
 internal val View.db
   get() = activity<LeakActivity>().db
@@ -27,8 +27,7 @@ internal fun View.share(content: String) {
 }
 
 @SuppressLint("SetWorldReadable")
-internal fun View.shareHeapDump(heapDump: HeapDump) {
-  val heapDumpFile = heapDump.heapDumpFile
+internal fun View.shareHeapDump(heapDumpFile: File) {
   AsyncTask.SERIAL_EXECUTOR.execute {
     heapDumpFile.setReadable(true, false)
     val heapDumpUri = FileProvider.getUriForFile(

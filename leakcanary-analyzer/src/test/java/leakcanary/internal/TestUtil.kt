@@ -1,6 +1,9 @@
 package leakcanary.internal
 
-import leakcanary.ExcludedRefs
+import leakcanary.Exclusion
+import leakcanary.Exclusion.ExclusionType.ClassExclusion
+import leakcanary.Exclusion.ExclusionType.ThreadExclusion
+import leakcanary.HprofParser
 import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
@@ -19,18 +22,35 @@ internal fun fileFromName(filename: String): File {
   return File(url.path)
 }
 
-val defaultExcludedRefs = ExcludedRefs.builder()
-    .clazz(WeakReference::class.java.name)
-    .alwaysExclude()
-    .clazz(SoftReference::class.java.name)
-    .alwaysExclude()
-    .clazz(PhantomReference::class.java.name)
-    .alwaysExclude()
-    .clazz("java.lang.ref.Finalizer")
-    .alwaysExclude()
-    .clazz("java.lang.ref.FinalizerReference")
-    .alwaysExclude()
-    .thread("FinalizerWatchdogDaemon")
-    .alwaysExclude()
-    .thread("main")
-    .alwaysExclude()
+val defaultExclusionFactory: (HprofParser) -> List<Exclusion> = {
+  listOf(
+      Exclusion(
+          type = ClassExclusion(WeakReference::class.java.name),
+          alwaysExclude = true
+      ),
+      Exclusion(
+          type = ClassExclusion(SoftReference::class.java.name),
+          alwaysExclude = true
+      ),
+      Exclusion(
+          type = ClassExclusion(PhantomReference::class.java.name),
+          alwaysExclude = true
+      ),
+      Exclusion(
+          type = ClassExclusion("java.lang.ref.Finalizer"),
+          alwaysExclude = true
+      ),
+      Exclusion(
+          type = ClassExclusion("java.lang.ref.FinalizerReference"),
+          alwaysExclude = true
+      ),
+      Exclusion(
+          type = ThreadExclusion("FinalizerWatchdogDaemon"),
+          alwaysExclude = true
+      ),
+      Exclusion(
+          type = ThreadExclusion("main"),
+          alwaysExclude = true
+      )
+  )
+}

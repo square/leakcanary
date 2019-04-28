@@ -5,7 +5,6 @@ import android.content.res.Resources.NotFoundException
 import android.view.View
 import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.ObjectReference
-import leakcanary.LeakNode.ChildNode
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import java.util.ArrayList
 
@@ -22,9 +21,9 @@ enum class AndroidLabelers : Labeler {
         val className = parser.className(record.classId)
         if (className == "androidx.fragment.app.Fragment" || className == "android.app.Fragment") {
           val instance = parser.hydrateInstance(record)
-          val mTag = instance.fieldValueOrNull<HeapValue>("mTag")
-          if (mTag is ObjectReference && !mTag.isNull) {
-            val mTag = parser.retrieveString(mTag)
+          val mTagId = instance.fieldValueOrNull<HeapValue>("mTag")
+          if (mTagId is ObjectReference && !mTagId.isNull) {
+            val mTag = parser.retrieveString(mTagId)
             if (mTag.isNotEmpty()) {
               return listOf("Fragment.mTag=$mTag")
             }

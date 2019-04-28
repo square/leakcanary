@@ -36,11 +36,12 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
 import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
+import leakcanary.ExclusionDescription
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisException
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HeapDump
+import leakcanary.PerflibHeapDump
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakTrace
@@ -52,8 +53,8 @@ import leakcanary.LeakTraceElement.Holder.OBJECT
 import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
+import leakcanary.PerflibExcludedRefs
 import leakcanary.Reachability
-import leakcanary.Reachability.Companion
 import leakcanary.RetainedInstance
 import leakcanary.WeakReferenceCleared
 import leakcanary.WeakReferenceMissing
@@ -92,7 +93,8 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
           "    our tests currently run with older heapdumps."
   )
   internal fun checkForLeak(
-    heapDump: HeapDump,
+    heapDump: PerflibHeapDump,
+    excludedRefs: PerflibExcludedRefs,
     referenceKey: String
   ): AnalysisResult {
     val analysisStartNanoTime = System.nanoTime()
@@ -117,6 +119,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       )
       return findLeakTrace(
           heapDump,
+          excludedRefs,
           referenceKey, "NAME_NOT_SUPPORTED", analysisStartNanoTime, snapshot,
           leakingRef, 0
       )
@@ -137,14 +140,15 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
    * and then computes the shortest strong reference path from that instance to the GC roots.
    */
   fun checkForLeaks(
-    heapDump: HeapDump
+    heapDump: PerflibHeapDump,
+    excludedRefs: PerflibExcludedRefs
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
     if (!heapDump.heapDumpFile.exists()) {
       val exception = IllegalArgumentException("File does not exist: $heapDump.heapDumpFile")
       return HeapAnalysisFailure(
-          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+          heapDump.heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)
       )
     }
@@ -165,7 +169,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       if (retainedKeys.size == 0) {
         val exception = IllegalStateException("No retained keys found in heap dump")
         return HeapAnalysisFailure(
-            heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+            heapDump.heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
             HeapAnalysisException(exception)
         )
       }
@@ -173,19 +177,19 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       val leakingWeakRefs =
         findLeakingReferences(snapshot, retainedKeys, analysisResults, heapDumpUptimeMillis)
 
-      val pathResults = findShortestPaths(heapDump, snapshot, leakingWeakRefs)
+      val pathResults = findShortestPaths(excludedRefs, snapshot, leakingWeakRefs)
 
       buildLeakTraces(heapDump, pathResults, snapshot, leakingWeakRefs, analysisResults)
 
       addRemainingInstancesWithNoPath(leakingWeakRefs, analysisResults)
 
       return HeapAnalysisSuccess(
-          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+          heapDump.heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
           analysisResults.values.toList()
       )
     } catch (exception: Throwable) {
       return HeapAnalysisFailure(
-          heapDump, System.currentTimeMillis(), since(analysisStartNanoTime),
+          heapDump.heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)
       )
     } finally {
@@ -275,18 +279,18 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
   }
 
   private fun findShortestPaths(
-    heapDump: HeapDump,
+    excludedRefs: PerflibExcludedRefs,
     snapshot: Snapshot,
     leakingWeakRefs: MutableList<HasReferent>
   ): List<Result> {
     listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
     val pathFinder =
-      ShortestPathFinder(heapDump.excludedRefs, ignoreStrings = true)
+      ShortestPathFinder(excludedRefs, ignoreStrings = true)
     return pathFinder.findPaths(snapshot, leakingWeakRefs)
   }
 
   private fun buildLeakTraces(
-    heapDump: HeapDump,
+    heapDump: PerflibHeapDump,
     pathResults: List<Result>,
     snapshot: Snapshot,
     leakingWeakRefs: MutableList<HasReferent>,
@@ -364,7 +368,8 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
   }
 
   private fun findLeakTrace(
-    heapDump: HeapDump,
+    heapDump: PerflibHeapDump,
+    excludedRefs: PerflibExcludedRefs,
     referenceKey: String,
     referenceName: String,
     analysisStartNanoTime: Long,
@@ -375,7 +380,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
 
     listener.onProgressUpdate(FINDING_SHORTEST_PATH)
     val pathFinder =
-      ShortestPathFinder(heapDump.excludedRefs, ignoreStrings = true)
+      ShortestPathFinder(excludedRefs, ignoreStrings = true)
     val result = pathFinder.findPath(snapshot, leakingRef)
 
     val className = leakingRef.classObj.className
@@ -492,8 +497,13 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       }
     }
     val labels = if (extra == null) emptyList<String>() else mutableListOf(extra)
+
+    val exclusionDescription = node.exclusion?.let {
+      ExclusionDescription(node.exclusion.matching, node.exclusion.reason)
+    }
+
     return LeakTraceElement(
-        node.leakReference, holderType, className, node.exclusion, labels
+        node.leakReference, holderType, className, exclusionDescription, labels
     )
   }
 

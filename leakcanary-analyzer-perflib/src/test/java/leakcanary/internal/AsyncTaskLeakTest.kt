@@ -1,7 +1,7 @@
 package leakcanary.internal
 
-import leakcanary.ExcludedRefs
-import leakcanary.ExcludedRefs.BuilderWithParams
+import leakcanary.PerflibExcludedRefs
+import leakcanary.PerflibExcludedRefs.BuilderWithParams
 import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.internal.HeapDumpFile.ASYNC_TASK_M
@@ -23,7 +23,7 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
 
   @Before
   fun setUp() {
-    excludedRefs = ExcludedRefs.builder()
+    excludedRefs = PerflibExcludedRefs.builder()
         .clazz(WeakReference::class.java.name)
         .alwaysExclude()
         .clazz("java.lang.ref.FinalizerReference")
@@ -59,17 +59,14 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
   @Test
   fun excludeStatic() {
     excludedRefs.thread(ASYNC_TASK_THREAD)
-        .named(ASYNC_TASK_THREAD)
     excludedRefs.staticField(
         ASYNC_TASK_CLASS,
         EXECUTOR_FIELD_1
     )
-        .named(EXECUTOR_FIELD_1)
     excludedRefs.staticField(
         ASYNC_TASK_CLASS,
         EXECUTOR_FIELD_2
     )
-        .named(EXECUTOR_FIELD_2)
     val result = analyze(heapDumpFile, excludedRefs)
     assertThat(result.leakFound).isTrue()
     assertThat(result.excludedLeak).isTrue()
@@ -77,11 +74,11 @@ internal class AsyncTaskLeakTest(private val heapDumpFile: HeapDumpFile) {
     val exclusion = elements[0].exclusion
 
     val expectedExclusions = Arrays.asList(
-        ASYNC_TASK_THREAD,
-        EXECUTOR_FIELD_1,
-        EXECUTOR_FIELD_2
+        "any threads named $ASYNC_TASK_THREAD",
+        "static field $ASYNC_TASK_CLASS#$EXECUTOR_FIELD_1",
+        "static field $ASYNC_TASK_CLASS#$EXECUTOR_FIELD_2"
     )
-    assertThat(expectedExclusions.contains(exclusion!!.name)).isTrue()
+    assertThat(expectedExclusions.contains(exclusion!!.matching)).isTrue()
   }
 
   companion object {

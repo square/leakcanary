@@ -15,7 +15,7 @@ data class LeakTraceElement(
   val className: String,
 
   /** If not null, there was no path that could exclude this element.  */
-  val exclusion: Exclusion?,
+  val exclusion: ExclusionDescription?,
 
   /**
    * Ordered labels that were computed during analysis. A label provides

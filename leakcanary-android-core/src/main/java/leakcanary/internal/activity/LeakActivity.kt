@@ -8,8 +8,6 @@ import android.os.AsyncTask
 import android.os.Bundle
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
-import leakcanary.HeapDump
-import leakcanary.LeakCanary
 import leakcanary.internal.HeapAnalyzers
 import leakcanary.internal.LeakCanaryUtils
 import leakcanary.internal.activity.db.LeaksDbHelper
@@ -86,12 +84,7 @@ internal class LeakActivity : NavigatingActivity() {
                       input.copyTo(output, DEFAULT_BUFFER_SIZE)
                     }
               }
-              val config = LeakCanary.config
-              val heapDump = HeapDump.builder(target)
-                  .excludedRefs(config.excludedRefs)
-                  .computeRetainedHeapSize(config.computeRetainedHeapSize)
-                  .build()
-              HeapAnalyzers.runAnalysis(this, heapDump)
+              HeapAnalyzers.runAnalysis(this, target)
             }
       }
     } catch (e: IOException) {

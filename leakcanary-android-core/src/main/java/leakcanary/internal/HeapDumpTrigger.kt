@@ -5,7 +5,6 @@ import android.os.Handler
 import android.os.SystemClock
 import leakcanary.CanaryLog
 import leakcanary.GcTrigger
-import leakcanary.HeapDump
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.LeakCanary.Config
 import leakcanary.RefWatcher
@@ -80,10 +79,7 @@ internal class HeapDumpTrigger(
       )
       return
     }
-    val gcStartUptimeMillis = SystemClock.uptimeMillis()
     gcTrigger.runGc()
-    val gcDurationMillis = SystemClock.uptimeMillis() - gcStartUptimeMillis
-
 
     retainedKeys = refWatcher.retainedKeys
     if (retainedKeys.size < minLeaks) {
@@ -102,8 +98,6 @@ internal class HeapDumpTrigger(
     )
     HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
     val heapDumpFile = heapDumper.dumpHeap()
-    val heapDumpDurationMillis =
-      SystemClock.uptimeMillis() - HeapDumpMemoryStore.heapDumpUptimeMillis
 
     if (heapDumpFile === HeapDumper.RETRY_LATER) {
       CanaryLog.d(
@@ -118,14 +112,7 @@ internal class HeapDumpTrigger(
     }
     refWatcher.removeRetainedKeys(retainedKeys)
 
-    val heapDump = HeapDump.builder(heapDumpFile!!)
-        .excludedRefs(config.excludedRefs)
-        .gcDurationMs(gcDurationMillis)
-        .heapDumpDurationMs(heapDumpDurationMillis)
-        .computeRetainedHeapSize(config.computeRetainedHeapSize)
-        .build()
-
-    HeapAnalyzers.runAnalysis(application, heapDump)
+    HeapAnalyzers.runAnalysis(application, heapDumpFile!!)
   }
 
   private fun scheduleTick(reason: String) {

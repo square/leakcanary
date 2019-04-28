@@ -8,7 +8,7 @@ class HydratedClass(
   val staticFieldNames: List<String>,
   val fieldNames: List<String>
 ) {
-  fun <T : HeapValue> staticFieldValue(name: String): T {
+  inline fun <reified T : HeapValue> staticFieldValue(name: String): T {
     return staticFieldValueOrNull(name) ?: throw IllegalArgumentException(
         "Could not find static field $name in class $className with id ${record.id} and static fields $staticFieldNames"
     )
@@ -25,15 +25,19 @@ class HydratedClass(
     )
   }
 
-  fun <T : HeapValue> staticFieldValueOrNull(name: String): T? {
+  inline fun <reified T : HeapValue> staticFieldValueOrNull(name: String): T? {
     staticFieldNames.forEachIndexed { fieldIndex, fieldName ->
       if (fieldName == name) {
-        @Suppress("UNCHECKED_CAST")
-        return record.staticFields[fieldIndex].value as T
+        val fieldValue = record.staticFields[fieldIndex].value
+        return if (fieldValue is T) {
+          fieldValue
+        } else null
       }
     }
     return null
   }
+
+  operator fun get(name: String): HeapValue? = staticFieldValueOrNull(name)
 
   fun hasStaticField(name: String): Boolean {
     staticFieldNames.forEach { fieldName ->

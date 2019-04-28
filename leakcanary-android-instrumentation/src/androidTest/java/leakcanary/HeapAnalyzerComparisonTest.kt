@@ -44,8 +44,7 @@ class HeapAnalyzerComparisonTest {
 
     val heapDumpFile = File(context.filesDir, "HeapAnalyzerComparisonTest.hprof")
 
-    val heapDump = HeapDump.builder(heapDumpFile)
-        .excludedRefs(AndroidExcludedRefs.createAppDefaults().build())
+    val heapDump = PerflibHeapDump.builder(heapDumpFile)
         .build()
 
     SystemClock.sleep(2000)
@@ -91,7 +90,9 @@ class HeapAnalyzerComparisonTest {
 
     }
     CanaryLog.d("Starting first analysis")
-    val firstAnalysis = PerflibHeapAnalyzer(listener).checkForLeaks(heapDump) as HeapAnalysisSuccess
+    val firstAnalysis = PerflibHeapAnalyzer(listener).checkForLeaks(
+        heapDump, PerflibAndroidExcludedRefs.createAppDefaults().build()
+    ) as HeapAnalysisSuccess
     CanaryLog.d("Done with first analysis")
     val memoryUsedFirstInMb = (firstMaxMemoryUsed - memoryBeforeFirst) / 1048576L
 
@@ -112,7 +113,8 @@ class HeapAnalyzerComparisonTest {
     val config = LeakCanary.config
     val secondAnalysis = HeapAnalyzer(listener)
         .checkForLeaks(
-            heapDump, config.reachabilityInspectors, config.labelers
+            heapDumpFile, config.exclusionsFactory, config.computeRetainedHeapSize,
+            config.reachabilityInspectors, config.labelers
         ) as HeapAnalysisSuccess
     val memoryUsedSecondInMb = (secondMaxMemoryUsed - memoryBeforeSecond) / 1048576L
 

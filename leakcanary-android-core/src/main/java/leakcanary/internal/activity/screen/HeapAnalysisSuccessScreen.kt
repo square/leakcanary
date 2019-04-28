@@ -46,19 +46,19 @@ internal class HeapAnalysisSuccessScreen(
       onCreateOptionsMenu { menu ->
         menu.add(R.string.leak_canary_delete)
             .setOnMenuItemClickListener {
-              HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDump)
+              HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
               goBack()
               true
             }
-        if (heapAnalysis.heapDump.heapDumpFile.exists()) {
+        if (heapAnalysis.heapDumpFile.exists()) {
           menu.add(R.string.leak_canary_share_heap_dump)
               .setOnMenuItemClickListener {
-                shareHeapDump(heapAnalysis.heapDump)
+                shareHeapDump(heapAnalysis.heapDumpFile)
                 true
               }
           menu.add("Render Heap Dump")
               .setOnMenuItemClickListener {
-                goTo(RenderHeapDumpScreen(heapAnalysis.heapDump.heapDumpFile))
+                goTo(RenderHeapDumpScreen(heapAnalysis.heapDumpFile))
                 true
               }
         }

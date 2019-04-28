@@ -15,32 +15,21 @@
  */
 package leakcanary
 
-import leakcanary.Reachability.Inspector
 import java.io.File
 import java.io.Serializable
 
 /** Data structure holding information about a heap dump.  */
-// TODO Turn HeapDump into a data class
-class HeapDump internal constructor(builder: Builder) : Serializable {
+class PerflibHeapDump internal constructor(builder: Builder) : Serializable {
 
   /** The heap dump file, which you might want to upload somewhere.  */
   val heapDumpFile: File
-
-  /** References that should be ignored when analyzing this heap dump.  */
-  val excludedRefs: ExcludedRefs
 
   val gcDurationMs: Long
   val heapDumpDurationMs: Long
   val computeRetainedHeapSize: Boolean
 
-  /** Receives a heap dump to analyze.  */
-  interface Listener {
-    fun analyze(heapDump: HeapDump)
-  }
-
   init {
     this.heapDumpFile = builder.heapDumpFile
-    this.excludedRefs = builder.excludedRefs
     this.computeRetainedHeapSize = builder.computeRetainedHeapSize
     this.gcDurationMs = builder.gcDurationMs
     this.heapDumpDurationMs = builder.heapDumpDurationMs
@@ -53,16 +42,12 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
   class Builder(
     internal var heapDumpFile: File
   ) {
-    internal var excludedRefs: ExcludedRefs = ExcludedRefs.builder()
-        .build()
     internal var gcDurationMs: Long = 0
     internal var heapDumpDurationMs: Long = 0
     internal var computeRetainedHeapSize: Boolean = false
-    internal var reachabilityInspectorClasses: List<Class<out Inspector>> = emptyList()
 
-    internal constructor(heapDump: HeapDump) : this(heapDump.heapDumpFile) {
+    internal constructor(heapDump: PerflibHeapDump) : this(heapDump.heapDumpFile) {
       this.heapDumpFile = heapDump.heapDumpFile
-      this.excludedRefs = heapDump.excludedRefs
       this.computeRetainedHeapSize = heapDump.computeRetainedHeapSize
       this.gcDurationMs = heapDump.gcDurationMs
       this.heapDumpDurationMs = heapDump.heapDumpDurationMs
@@ -70,11 +55,6 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
 
     fun heapDumpFile(heapDumpFile: File): Builder {
       this.heapDumpFile = heapDumpFile
-      return this
-    }
-
-    fun excludedRefs(excludedRefs: ExcludedRefs): Builder {
-      this.excludedRefs = excludedRefs
       return this
     }
 
@@ -93,8 +73,8 @@ class HeapDump internal constructor(builder: Builder) : Serializable {
       return this
     }
 
-    fun build(): HeapDump {
-      return HeapDump(this)
+    fun build(): PerflibHeapDump {
+      return PerflibHeapDump(this)
     }
   }
 

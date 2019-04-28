@@ -4,9 +4,8 @@ import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step
 import leakcanary.CanaryLog
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HeapDump
-import leakcanary.LeakingInstance
 import leakcanary.HeapAnalyzer
+import leakcanary.LeakingInstance
 import leakcanary.internal.HeapDumpFile.MULTIPLE_LEAKS
 import org.junit.Test
 
@@ -43,10 +42,8 @@ class HeapAnalyzerTest {
       }
     })
 
-    val heapDump = HeapDump.builder(file)
-        .excludedRefs(defaultExcludedRefs.build())
-        .build()
-    val leaks = heapAnalyzer.checkForLeaks(heapDump, emptyList(), emptyList())
+    val leaks =
+      heapAnalyzer.checkForLeaks(file, defaultExclusionFactory, false, emptyList(), emptyList())
 
     val now = System.nanoTime()
     val elapsed = (now - time) / 1000000

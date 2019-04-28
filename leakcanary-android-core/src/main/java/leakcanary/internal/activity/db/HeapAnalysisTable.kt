@@ -8,13 +8,13 @@ import leakcanary.CanaryLog
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HeapDump
 import leakcanary.Serializables
 import leakcanary.internal.LeakCanaryUtils
 import leakcanary.internal.activity.db.LeakingInstanceTable.HeapAnalysisGroupProjection
 import leakcanary.leakingInstances
 import leakcanary.toByteArray
 import org.intellij.lang.annotations.Language
+import java.io.File
 
 internal object HeapAnalysisTable {
 
@@ -122,13 +122,13 @@ internal object HeapAnalysisTable {
   fun delete(
     db: SQLiteDatabase,
     id: Long,
-    heapDump: HeapDump?
+    heapDumpFile: File?
   ) {
-    if (heapDump != null) {
+    if (heapDumpFile != null) {
       AsyncTask.SERIAL_EXECUTOR.execute {
-        val heapDumpDeleted = heapDump.heapDumpFile.delete()
+        val heapDumpDeleted = heapDumpFile.delete()
         if (!heapDumpDeleted) {
-          CanaryLog.d("Could not delete heap dump file %s", heapDump.heapDumpFile.path)
+          CanaryLog.d("Could not delete heap dump file %s", heapDumpFile.path)
         }
       }
     }

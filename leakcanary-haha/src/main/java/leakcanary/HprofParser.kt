@@ -815,10 +815,11 @@ class HprofParser private constructor(
       null
     } else {
       val record = retrieveRecordById(this)
-      if (record is InstanceDumpRecord && objectIdMetadata(record.classId) == STRING) {
+      if (record is InstanceDumpRecord && objectIdMetadata(record.id) == STRING) {
         val instance = hydrateInstance(record)
         instanceAsString(instance)
       } else {
+        record as InstanceDumpRecord
         null
       }
     }
