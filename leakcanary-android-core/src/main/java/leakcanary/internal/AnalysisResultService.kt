@@ -18,22 +18,20 @@ package leakcanary.internal
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HeapDump
 import leakcanary.Serializables
+import leakcanary.internal.activity.LeakActivity
+import leakcanary.internal.activity.db.HeapAnalysisTable
+import leakcanary.internal.activity.db.LeaksDbHelper
+import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
 import leakcanary.internal.activity.screen.HeapAnalysisListScreen
 import leakcanary.internal.activity.screen.HeapAnalysisSuccessScreen
-import leakcanary.internal.activity.db.HeapAnalysisTable
-import leakcanary.internal.activity.LeakActivity
-import leakcanary.internal.activity.db.LeaksDbHelper
-import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.save
 import java.io.File
 import java.text.SimpleDateFormat
@@ -69,7 +67,7 @@ class AnalysisResultService : ForegroundService(
     try {
       onHeapAnalyzed(heapAnalysis)
     } finally {
-      heapAnalysis.heapDump.heapDumpFile.delete()
+      heapAnalysis.heapDumpFile.delete()
     }
   }
 
@@ -77,13 +75,11 @@ class AnalysisResultService : ForegroundService(
     // TODO better log that include leakcanary version, exclusions, etc.
     CanaryLog.d("%s", heapAnalysis)
 
-    val movedHeapDump = heapAnalysis.heapDump.buildUpon()
-        .heapDumpFile(renameHeapdump(heapAnalysis.heapDump))
-        .build()
+    val movedHeapDump = renameHeapdump(heapAnalysis.heapDumpFile)
 
     val updatedHeapAnalysis = when (heapAnalysis) {
-      is HeapAnalysisFailure -> heapAnalysis.copy(heapDump = movedHeapDump)
-      is HeapAnalysisSuccess -> heapAnalysis.copy(heapDump = movedHeapDump)
+      is HeapAnalysisFailure -> heapAnalysis.copy(heapDumpFile = movedHeapDump)
+      is HeapAnalysisSuccess -> heapAnalysis.copy(heapDumpFile = movedHeapDump)
     }
 
     val id = LeaksDbHelper(this)
@@ -128,14 +124,14 @@ class AnalysisResultService : ForegroundService(
     )
   }
 
-  private fun renameHeapdump(heapDump: HeapDump): File {
+  private fun renameHeapdump(heapDumpFile: File): File {
     val fileName = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(Date())
 
-    val newFile = File(heapDump.heapDumpFile.parent, fileName)
-    val renamed = heapDump.heapDumpFile.renameTo(newFile)
+    val newFile = File(heapDumpFile.parent, fileName)
+    val renamed = heapDumpFile.renameTo(newFile)
     if (!renamed) {
       CanaryLog.d(
-          "Could not rename heap dump file %s to %s", heapDump.heapDumpFile.path, newFile.path
+          "Could not rename heap dump file %s to %s", heapDumpFile.path, newFile.path
       )
     }
     return newFile
@@ -152,8 +148,8 @@ class AnalysisResultService : ForegroundService(
       val intent = Intent(context, AnalysisResultService::class.java)
 
       val heapAnalysisFile = File(
-          heapAnalysis.heapDump.heapDumpFile.parentFile,
-          heapAnalysis.heapDump.heapDumpFile.name + ".analysis"
+          heapAnalysis.heapDumpFile.parentFile,
+          heapAnalysis.heapDumpFile.name + ".analysis"
       )
 
       val saved = heapAnalysis.save(heapAnalysisFile)

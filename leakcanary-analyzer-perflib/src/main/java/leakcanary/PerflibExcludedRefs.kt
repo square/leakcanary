@@ -24,15 +24,15 @@ import java.util.LinkedHashMap
  * reference path from a suspected leaking instance to the GC roots.
  *
  * This class lets you ignore known memory leaks that you known about. If the shortest path
- * matches [ExcludedRefs], than the heap analyzer should look for a longer path with nothing
- * matching in [ExcludedRefs].
+ * matches [PerflibExcludedRefs], than the heap analyzer should look for a longer path with nothing
+ * matching in [PerflibExcludedRefs].
  */
-class ExcludedRefs internal constructor(builder: BuilderWithParams) : Serializable {
+class PerflibExcludedRefs internal constructor(builder: BuilderWithParams) : Serializable {
 
-  val fieldNameByClassName: Map<String, Map<String, Exclusion>>
-  val staticFieldNameByClassName: Map<String, Map<String, Exclusion>>
-  val threadNames: Map<String, Exclusion>
-  val classNames: Map<String, Exclusion>
+  val fieldNameByClassName: Map<String, Map<String, PerflibExclusion>>
+  val staticFieldNameByClassName: Map<String, Map<String, PerflibExclusion>>
+  val threadNames: Map<String, PerflibExclusion>
+  val classNames: Map<String, PerflibExclusion>
 
   init {
     this.fieldNameByClassName = unmodifiableRefStringMap(builder.fieldNameByClassName)
@@ -43,18 +43,18 @@ class ExcludedRefs internal constructor(builder: BuilderWithParams) : Serializab
 
   private fun unmodifiableRefStringMap(
     mapmap: Map<String, Map<String, ParamsBuilder>>
-  ): Map<String, Map<String, Exclusion>> {
-    val fieldNameByClassName = LinkedHashMap<String, Map<String, Exclusion>>()
+  ): Map<String, Map<String, PerflibExclusion>> {
+    val fieldNameByClassName = LinkedHashMap<String, Map<String, PerflibExclusion>>()
     for ((key, value) in mapmap) {
       fieldNameByClassName[key] = unmodifiableRefMap(value)
     }
     return unmodifiableMap(fieldNameByClassName)
   }
 
-  private fun unmodifiableRefMap(fieldBuilderMap: Map<String, ParamsBuilder>): Map<String, Exclusion> {
-    val fieldMap = LinkedHashMap<String, Exclusion>()
+  private fun unmodifiableRefMap(fieldBuilderMap: Map<String, ParamsBuilder>): Map<String, PerflibExclusion> {
+    val fieldMap = LinkedHashMap<String, PerflibExclusion>()
     for ((key, value) in fieldBuilderMap) {
-      fieldMap[key] = Exclusion(value)
+      fieldMap[key] = PerflibExclusion(value)
     }
     return unmodifiableMap(fieldMap)
   }
@@ -106,7 +106,7 @@ class ExcludedRefs internal constructor(builder: BuilderWithParams) : Serializab
 
     fun clazz(className: String): BuilderWithParams
 
-    fun build(): ExcludedRefs
+    fun build(): PerflibExcludedRefs
   }
 
   class BuilderWithParams internal constructor() : Builder {
@@ -142,7 +142,8 @@ class ExcludedRefs internal constructor(builder: BuilderWithParams) : Serializab
         excludedFields = LinkedHashMap()
         staticFieldNameByClassName[className] = excludedFields
       }
-      lastParams = ParamsBuilder("static field $className#$fieldName")
+      lastParams =
+        ParamsBuilder("static field $className#$fieldName")
       excludedFields[fieldName] = lastParams!!
       return this
     }
@@ -175,8 +176,8 @@ class ExcludedRefs internal constructor(builder: BuilderWithParams) : Serializab
       return this
     }
 
-    override fun build(): ExcludedRefs {
-      return ExcludedRefs(this)
+    override fun build(): PerflibExcludedRefs {
+      return PerflibExcludedRefs(this)
     }
   }
 

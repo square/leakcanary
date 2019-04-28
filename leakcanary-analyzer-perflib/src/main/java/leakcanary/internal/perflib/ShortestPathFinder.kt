@@ -24,8 +24,8 @@ import com.squareup.haha.perflib.RootType
 import com.squareup.haha.perflib.Snapshot
 import com.squareup.haha.perflib.Type
 import com.squareup.haha.perflib.allocatingThread
-import leakcanary.ExcludedRefs
-import leakcanary.Exclusion
+import leakcanary.PerflibExcludedRefs
+import leakcanary.PerflibExclusion
 import leakcanary.LeakReference
 import leakcanary.internal.perflib.HahaHelper.isPrimitiveOrWrapperArray
 import leakcanary.internal.perflib.HahaHelper.isPrimitiveWrapper
@@ -46,7 +46,7 @@ import java.util.LinkedHashSet
  * found.
  */
 internal class ShortestPathFinder(
-  private val excludedRefs: ExcludedRefs,
+  private val excludedRefs: PerflibExcludedRefs,
   private val ignoreStrings: Boolean
 ) {
   private val toVisitQueue: Deque<LeakNode>
@@ -240,7 +240,7 @@ internal class ShortestPathFinder(
       val holder = rootObj.allocatingThread()
       // We switch the parent node with the thread instance that holds
       // the local reference.
-      var exclusion: Exclusion? = null
+      var exclusion: PerflibExclusion? = null
       if (node.exclusion != null) {
         exclusion = node.exclusion
       }
@@ -283,9 +283,9 @@ internal class ShortestPathFinder(
 
   private fun visitClassInstance(node: LeakNode) {
     val classInstance = node.instance as ClassInstance?
-    val ignoredFields = LinkedHashMap<String, Exclusion>()
+    val ignoredFields = LinkedHashMap<String, PerflibExclusion>()
     var superClassObj: ClassObj? = classInstance!!.classObj
-    var classExclusion: Exclusion? = null
+    var classExclusion: PerflibExclusion? = null
     while (superClassObj != null) {
       val params = excludedRefs.classNames[superClassObj.className]
       if (params != null) {
@@ -342,7 +342,7 @@ internal class ShortestPathFinder(
   }
 
   private fun enqueue(
-    exclusion: Exclusion?,
+    exclusion: PerflibExclusion?,
     parent: LeakNode?,
     child: Instance?,
     leakReference: LeakReference?

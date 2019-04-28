@@ -278,9 +278,6 @@ internal class DisplayLeakAdapter private constructor(
     val exclusion = element.exclusion
     if (exclusion != null) {
       htmlString += "<br/><br/>Excluded by rule"
-      if (exclusion.name != null) {
-        htmlString += " <font color='#ffffff'>" + exclusion.name + "</font>"
-      }
       htmlString += " matching <font color='#f3cf83'>" + exclusion.matching + "</font>"
       if (exclusion.reason != null) {
         htmlString += " because <font color='#f3cf83'>" + exclusion.reason + "</font>"

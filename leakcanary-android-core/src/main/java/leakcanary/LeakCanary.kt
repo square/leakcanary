@@ -1,12 +1,15 @@
 package leakcanary
 
+import leakcanary.AndroidExcludedRefs.Companion.exclusionsFactory
 import leakcanary.internal.InternalLeakCanary
 
 object LeakCanary {
 
   data class Config(
     val dumpHeap: Boolean = true,
-    val excludedRefs: ExcludedRefs = AndroidExcludedRefs.createAppDefaults().build(),
+    val exclusionsFactory: (HprofParser) -> List<Exclusion> = exclusionsFactory(
+        AndroidExcludedRefs.appDefaults
+    ),
     val reachabilityInspectors: List<Reachability.Inspector> = AndroidReachabilityInspectors.defaultAndroidInspectors(),
     val labelers: List<Labeler> = AndroidLabelers.defaultAndroidLabelers(
         InternalLeakCanary.application

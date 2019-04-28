@@ -2,22 +2,19 @@ package leakcanary.internal
 
 import leakcanary.AnalysisResult
 import leakcanary.AnalyzerProgressListener
-import leakcanary.ExcludedRefs
-import leakcanary.ExcludedRefs.BuilderWithParams
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.internal.perflib.PerflibHeapAnalyzer
-import leakcanary.HeapDump
 import leakcanary.LeakingInstance
+import leakcanary.PerflibExcludedRefs
+import leakcanary.PerflibExcludedRefs.BuilderWithParams
+import leakcanary.PerflibHeapDump
 import leakcanary.RetainedInstance
+import leakcanary.internal.perflib.PerflibHeapAnalyzer
 import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
 import java.lang.ref.WeakReference
-
-internal val NO_EXCLUDED_REFS = ExcludedRefs.builder()
-    .build()
 
 const val OLD_KEYED_WEAK_REFERENCE_CLASS_NAME = "com.squareup.leakcanary.KeyedWeakReference"
 const val OLD_HEAP_DUMP_MEMORY_STORE_CLASS_NAME = "com.squareup.leakcanary.HeapDumpMemoryStore"
@@ -65,9 +62,9 @@ internal fun findAllLeaks(heapDumpFile: HeapDumpFile): HeapAnalysis {
   )
   val heapAnalysis =
     heapAnalyzer.checkForLeaks(
-        HeapDump.builder(file).excludedRefs(defaultExcludedRefs.build()).computeRetainedHeapSize(
+        PerflibHeapDump.builder(file).computeRetainedHeapSize(
             true
-        ).build()
+        ).build(), defaultExcludedRefs.build()
     )
 
   when (heapAnalysis) {
@@ -94,13 +91,10 @@ internal fun analyze(
         AnalyzerProgressListener.NONE, OLD_KEYED_WEAK_REFERENCE_CLASS_NAME,
         OLD_HEAP_DUMP_MEMORY_STORE_CLASS_NAME
     )
-  val heapDump = HeapDump.builder(file)
+  val heapDump = PerflibHeapDump.builder(file)
       .computeRetainedHeapSize(true)
-      .excludedRefs(
-          excludedRefs.build()
-      )
       .build()
-  val result = heapAnalyzer.checkForLeak(heapDump, referenceKey)
+  val result = heapAnalyzer.checkForLeak(heapDump, excludedRefs.build(), referenceKey)
   result.failure?.printStackTrace()
   if (result.leakTrace != null) {
     System.out.println(result.leakTrace)
@@ -108,7 +102,7 @@ internal fun analyze(
   return result
 }
 
-private val defaultExcludedRefs = ExcludedRefs.builder()
+private val defaultExcludedRefs = PerflibExcludedRefs.builder()
     .clazz(WeakReference::class.java.name)
     .alwaysExclude()
     .clazz(SoftReference::class.java.name)
