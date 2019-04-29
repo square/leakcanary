@@ -63,18 +63,14 @@ internal class AndroidHeapDumper(
 
   override// Explicitly checking for named null.
   fun dumpHeap(): File? {
-    val heapDumpFile = leakDirectoryProvider.newHeapDumpFile()
-
-    if (heapDumpFile === HeapDumper.RETRY_LATER) {
-      return HeapDumper.RETRY_LATER
-    }
+    val heapDumpFile = leakDirectoryProvider.newHeapDumpFile() ?: return null
 
     val waitingForToast = FutureResult<Toast?>()
     showToast(waitingForToast)
 
     if (!waitingForToast.wait(5, SECONDS)) {
       CanaryLog.d("Did not dump heap, too much time waiting for Toast.")
-      return HeapDumper.RETRY_LATER
+      return null
     }
 
     val dumpingHeap = context.getString(string.leak_canary_notification_dumping)
@@ -97,7 +93,7 @@ internal class AndroidHeapDumper(
     } catch (e: Exception) {
       CanaryLog.d(e, "Could not dump heap")
       // Abort heap dump
-      return HeapDumper.RETRY_LATER
+      return null
     }
 
   }

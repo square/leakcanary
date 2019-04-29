@@ -26,11 +26,6 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
   <application>
-    <service
-        android:name="leakcanary.internal.AnalysisResultService"
-        android:exported="false"
-        />
-
     <provider
         android:name="leakcanary.internal.LeakCanaryFileProvider"
         android:authorities="com.squareup.leakcanary.fileprovider.${applicationId}"

@@ -26,7 +26,4 @@ internal interface HeapDumper {
    */
   fun dumpHeap(): File?
 
-  companion object {
-    val RETRY_LATER: File? = null
-  }
 }

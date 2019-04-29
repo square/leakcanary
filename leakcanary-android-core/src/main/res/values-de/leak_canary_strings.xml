@@ -33,10 +33,7 @@
   <string name="leak_canary_notification_dumping">Sichere Heap</string>
   <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
   <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>
-  <string name="leak_canary_notification_reporting">Sichere LeakCanary Ergebnis</string>
   <string name="leak_canary_no_leak_details">LeakCanary could not find a valid path to GC roots. Download the heap dump and investigate with MAT or YourKit.</string>
-  <string name="leak_canary_result_failure_no_disk_space">Das Analyseergebnis konnte nicht gespeichert werden</string>
-  <string name="leak_canary_result_failure_no_file">Das Analyseergebnis konnte nicht aus dem Speicher geladen werden</string>
   <string name="leak_canary_result_failure_title">Analysis result failure</string>
   <string name="leak_canary_share_leak">Info teilen</string>
   <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>

@@ -99,7 +99,7 @@ internal class HeapDumpTrigger(
     HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
     val heapDumpFile = heapDumper.dumpHeap()
 
-    if (heapDumpFile === HeapDumper.RETRY_LATER) {
+    if (heapDumpFile == null) {
       CanaryLog.d(
           "Failed to dump heap, will retry in %d ms",
           WAIT_FOR_HEAP_DUMPER_MILLIS
@@ -112,7 +112,7 @@ internal class HeapDumpTrigger(
     }
     refWatcher.removeRetainedKeys(retainedKeys)
 
-    HeapAnalyzers.runAnalysis(application, heapDumpFile!!)
+    HeapAnalyzerService.runAnalysis(application, heapDumpFile)
   }
 
   private fun scheduleTick(reason: String) {

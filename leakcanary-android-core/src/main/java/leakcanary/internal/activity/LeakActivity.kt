@@ -8,7 +8,7 @@ import android.os.AsyncTask
 import android.os.Bundle
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
-import leakcanary.internal.HeapAnalyzers
+import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.LeakCanaryUtils
 import leakcanary.internal.activity.db.LeaksDbHelper
 import leakcanary.internal.activity.screen.GroupListScreen
@@ -84,7 +84,7 @@ internal class LeakActivity : NavigatingActivity() {
                       input.copyTo(output, DEFAULT_BUFFER_SIZE)
                     }
               }
-              HeapAnalyzers.runAnalysis(this, target)
+              HeapAnalyzerService.runAnalysis(this, target)
             }
       }
     } catch (e: IOException) {
