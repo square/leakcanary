@@ -15,6 +15,7 @@
  */
 package leakcanary.internal
 
+import android.content.Context
 import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -22,13 +23,14 @@ import android.graphics.Path
 import android.text.SpannableStringBuilder
 import android.text.style.ReplacementSpan
 import android.text.style.UnderlineSpan
+import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.core.R
 
 /**
  * Inspired from https://github.com/flavienlaurent/spans and
  * https://github.com/andyxialm/WavyLineView
  */
-internal class SquigglySpan(resources: Resources) : ReplacementSpan() {
+internal class SquigglySpan(context: Context, resources: Resources) : ReplacementSpan() {
 
   private val squigglyPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG)
   private val path: Path
@@ -42,7 +44,7 @@ internal class SquigglySpan(resources: Resources) : ReplacementSpan() {
 
   init {
     squigglyPaint.style = Paint.Style.STROKE
-    squigglyPaint.color = resources.getColor(R.color.leak_canary_leak)
+    squigglyPaint.color = ContextCompat.getColor(context, R.color.leak_canary_leak)
     val strokeWidth =
       resources.getDimensionPixelSize(R.dimen.leak_canary_squiggly_span_stroke_width)
           .toFloat()
@@ -57,7 +59,7 @@ internal class SquigglySpan(resources: Resources) : ReplacementSpan() {
     path = Path()
     val waveHeight = 2 * amplitude + strokeWidth
     halfWaveHeight = waveHeight / 2
-    referenceColor = resources.getColor(R.color.leak_canary_reference)
+    referenceColor = ContextCompat.getColor(context, R.color.leak_canary_reference)
   }
 
   override fun getSize(
@@ -100,6 +102,7 @@ internal class SquigglySpan(resources: Resources) : ReplacementSpan() {
 
     fun replaceUnderlineSpans(
       builder: SpannableStringBuilder,
+      context: Context,
       resources: Resources
     ) {
       val underlineSpans = builder.getSpans(0, builder.length, UnderlineSpan::class.java)
@@ -107,7 +110,7 @@ internal class SquigglySpan(resources: Resources) : ReplacementSpan() {
         val start = builder.getSpanStart(span)
         val end = builder.getSpanEnd(span)
         builder.removeSpan(span)
-        builder.setSpan(SquigglySpan(resources), start, end, 0)
+        builder.setSpan(SquigglySpan(context, resources), start, end, 0)
       }
     }
 

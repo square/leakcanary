@@ -38,6 +38,7 @@ fun Serializable.toByteArray(): ByteArray {
 
 object Serializables {
 
+  @Suppress("UNCHECKED_CAST")
   fun <T> fromByteArray(byteArray: ByteArray): T? {
     val inputStream = ByteArrayInputStream(byteArray)
     return try {
@@ -47,6 +48,7 @@ object Serializables {
     }
   }
 
+  @Suppress("UNCHECKED_CAST")
   fun <T> load(file: File): T? {
 
     val fileInputStream = try {

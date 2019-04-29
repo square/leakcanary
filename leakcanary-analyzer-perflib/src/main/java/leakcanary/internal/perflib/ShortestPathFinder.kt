@@ -163,7 +163,7 @@ internal class ShortestPathFinder(
         node.instance is ClassObj -> visitClassObj(node)
         node.instance is ClassInstance -> visitClassInstance(node)
         node.instance is ArrayInstance -> visitArrayInstance(node)
-        else -> throw IllegalStateException("Unexpected type for " + node.instance!!)
+        else -> throw IllegalStateException("Unexpected type for " + node.instance)
       }
     }
     return OldResult(
@@ -229,7 +229,7 @@ internal class ShortestPathFinder(
   }
 
   private fun checkSeen(node: LeakNode): Boolean {
-    return !visitedSet.add(node.instance!!)
+    return !visitedSet.add(node.instance)
   }
 
   private fun visitRootObj(node: LeakNode) {

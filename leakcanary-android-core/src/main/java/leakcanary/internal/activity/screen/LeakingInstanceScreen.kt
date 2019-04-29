@@ -70,7 +70,7 @@ internal class LeakingInstanceScreen private constructor(
     val listView = findViewById<ListView>(R.id.leak_canary_list)
 
     val adapter =
-      DisplayLeakAdapter(resources, leakingInstance.leakTrace, leakingInstance.referenceName)
+      DisplayLeakAdapter(context, leakingInstance.leakTrace, leakingInstance.referenceName)
     listView.adapter = adapter
 
     listView.setOnItemClickListener { _, _, position, _ ->
