@@ -67,18 +67,6 @@ internal class HeapDumpTrigger(
       return
     }
 
-
-    if (leakDirectoryProvider.hasPendingHeapDump()) {
-      CanaryLog.d(
-          "Leak Analysis in progress, will retry in %d ms",
-          WAIT_FOR_PENDING_ANALYSIS_MILLIS
-      )
-      scheduleTick(
-          "had pending heap dump",
-          WAIT_FOR_PENDING_ANALYSIS_MILLIS
-      )
-      return
-    }
     gcTrigger.runGc()
 
     retainedKeys = refWatcher.retainedKeys
@@ -132,7 +120,6 @@ internal class HeapDumpTrigger(
 
   companion object {
     const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"
-    const val WAIT_FOR_PENDING_ANALYSIS_MILLIS = 20_000L
     const val WAIT_FOR_DEBUG_MILLIS = 20_000L
     const val WAIT_FOR_HEAP_DUMPER_MILLIS = 5_000L
     const val MIN_LEAKS_WHEN_VISIBLE = 5

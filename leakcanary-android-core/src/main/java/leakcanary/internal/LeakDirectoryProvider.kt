@@ -69,21 +69,6 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
     return files
   }
 
-  fun hasPendingHeapDump(): Boolean {
-    val pendingHeapDumps =
-      listFiles(FilenameFilter { _, filename ->
-        filename.endsWith(
-            PENDING_HEAPDUMP_SUFFIX
-        )
-      })
-    for (file in pendingHeapDumps) {
-      if (System.currentTimeMillis() - file.lastModified() < ANALYSIS_MAX_DURATION_MS) {
-        return true
-      }
-    }
-    return false
-  }
-
   fun newHeapDumpFile(): File? {
     cleanupOldHeapDumps()
 
@@ -209,8 +194,5 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
 
     private const val HPROF_SUFFIX = ".hprof"
     private const val PENDING_HEAPDUMP_SUFFIX = "_pending$HPROF_SUFFIX"
-
-    /** 10 minutes  */
-    private const val ANALYSIS_MAX_DURATION_MS = 10 * 60 * 1000
   }
 }
