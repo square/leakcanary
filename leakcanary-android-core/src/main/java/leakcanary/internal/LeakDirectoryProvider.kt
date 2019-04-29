@@ -25,7 +25,6 @@ import android.os.Environment
 import android.os.Environment.DIRECTORY_DOWNLOADS
 import com.squareup.leakcanary.core.R.string
 import leakcanary.CanaryLog
-import leakcanary.internal.HeapDumper.Companion.RETRY_LATER
 import java.io.File
 import java.io.FilenameFilter
 import java.util.ArrayList
@@ -111,7 +110,7 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
             "Could not create heap dump directory in app storage: [%s]",
             storageDirectory.absolutePath
         )
-        return RETRY_LATER
+        return null
       }
     }
     // If two processes from the same app get to this step at the same time, they could both

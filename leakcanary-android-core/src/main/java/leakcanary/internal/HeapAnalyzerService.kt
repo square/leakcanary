@@ -15,8 +15,10 @@
  */
 package leakcanary.internal
 
+import android.content.Context
 import android.content.Intent
 import android.os.Process
+import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.core.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.CanaryLog
@@ -39,7 +41,7 @@ internal class HeapAnalyzerService : ForegroundService(
     }
     // Since we're running in the main process we should be careful not to impact it.
     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
-    val heapDumpFile = intent.getSerializableExtra(HeapAnalyzers.HEAPDUMP_FILE_EXTRA) as File
+    val heapDumpFile = intent.getSerializableExtra(HEAPDUMP_FILE_EXTRA) as File
     val heapAnalyzer = HeapAnalyzer(this)
     val config = LeakCanary.config
     val heapAnalysis =
@@ -48,7 +50,11 @@ internal class HeapAnalyzerService : ForegroundService(
           config.reachabilityInspectors, config.labelers
       )
 
-    AnalysisResultService.sendResult(this, heapAnalysis)
+    try {
+      config.analysisResultListener(application, heapAnalysis)
+    } finally {
+      heapAnalysis.heapDumpFile.delete()
+    }
   }
 
   override fun onProgressUpdate(step: AnalyzerProgressListener.Step) {
@@ -58,5 +64,18 @@ internal class HeapAnalyzerService : ForegroundService(
         .toLowerCase()
     val message = lowercase.substring(0, 1).toUpperCase() + lowercase.substring(1)
     showForegroundNotification(100, percent, false, message)
+  }
+
+  companion object {
+    private const val HEAPDUMP_FILE_EXTRA = "HEAPDUMP_FILE_EXTRA"
+
+    fun runAnalysis(
+      context: Context,
+      heapDumpFile: File
+    ) {
+      val intent = Intent(context, HeapAnalyzerService::class.java)
+      intent.putExtra(HEAPDUMP_FILE_EXTRA, heapDumpFile)
+      ContextCompat.startForegroundService(context, intent)
+    }
   }
 }
