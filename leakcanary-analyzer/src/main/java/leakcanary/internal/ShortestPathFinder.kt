@@ -306,7 +306,6 @@ internal class ShortestPathFinder {
     if (node.instance == 0L) {
       return
     }
-
     // Whether we want to visit now or later, we should skip if this is already to visit.
     if (toVisitSet.contains(node.instance)) {
       return

@@ -23,7 +23,7 @@ import com.squareup.haha.perflib.RootObj
 import com.squareup.haha.perflib.Snapshot
 import gnu.trove.THashMap
 import gnu.trove.TObjectProcedure
-import leakcanary.AnalysisResult
+import leakcanary.PerflibAnalysisResult
 import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACE
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACES
@@ -96,12 +96,12 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
     heapDump: PerflibHeapDump,
     excludedRefs: PerflibExcludedRefs,
     referenceKey: String
-  ): AnalysisResult {
+  ): PerflibAnalysisResult {
     val analysisStartNanoTime = System.nanoTime()
 
     if (!heapDump.heapDumpFile.exists()) {
       val exception = IllegalArgumentException("File does not exist: $heapDump.heapDumpFile")
-      return AnalysisResult.failure(exception, since(analysisStartNanoTime))
+      return PerflibAnalysisResult.failure(exception, since(analysisStartNanoTime))
     }
 
     var buffer: MemoryMappedFileBuffer? = null
@@ -113,7 +113,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
       deduplicateGcRoots(snapshot)
       listener.onProgressUpdate(FINDING_LEAKING_REF)
-      val leakingRef = findLeakingReference(referenceKey, snapshot) ?: return AnalysisResult.noLeak(
+      val leakingRef = findLeakingReference(referenceKey, snapshot) ?: return PerflibAnalysisResult.noLeak(
           "UnknownNoKeyedWeakReference",
           since(analysisStartNanoTime)
       )
@@ -124,7 +124,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
           leakingRef, 0
       )
     } catch (e: Throwable) {
-      return AnalysisResult.failure(e, since(analysisStartNanoTime))
+      return PerflibAnalysisResult.failure(e, since(analysisStartNanoTime))
     } finally {
       try {
         buffer?.dispose()
@@ -376,7 +376,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
     snapshot: Snapshot,
     leakingRef: Instance,
     watchDurationMs: Long
-  ): AnalysisResult {
+  ): PerflibAnalysisResult {
 
     listener.onProgressUpdate(FINDING_SHORTEST_PATH)
     val pathFinder =
@@ -387,7 +387,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
 
     // False alarm, no strong reference path to GC Roots.
     if (result.leakingNode == null) {
-      return AnalysisResult.noLeak(className, since(analysisStartNanoTime))
+      return PerflibAnalysisResult.noLeak(className, since(analysisStartNanoTime))
     }
 
     listener.onProgressUpdate(BUILDING_LEAK_TRACE)
@@ -402,10 +402,10 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
 
       leakingInstance.totalRetainedSize
     } else {
-      AnalysisResult.RETAINED_HEAP_SKIPPED
+      PerflibAnalysisResult.RETAINED_HEAP_SKIPPED
     }
 
-    return AnalysisResult.leakDetected(
+    return PerflibAnalysisResult.leakDetected(
         referenceKey, referenceName,
         result.excludingKnownLeaks, className, leakTrace,
         retainedSize,
