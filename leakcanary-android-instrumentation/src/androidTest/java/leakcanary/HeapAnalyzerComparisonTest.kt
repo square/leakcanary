@@ -17,7 +17,7 @@ import java.util.concurrent.Executor
  * Instrumentation test that runs the two heap analyzer implementations on the same heap
  * dump and logs how they perform. This isn't meant to run as part of the test suite.
  */
-@Ignore
+//@Ignore
 class HeapAnalyzerComparisonTest {
 
   @Volatile

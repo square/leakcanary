@@ -1,5 +1,6 @@
 package leakcanary
 
+import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import leakcanary.internal.createSHA1Hash
 import java.io.File
 import java.io.Serializable
@@ -75,7 +76,7 @@ data class LeakingInstance(
    * True if the only path to the leaking reference is through excluded references. Usually, that
    * means you can safely ignore this report.
    */
-  val excludedLeak: Boolean,
+  val exclusionStatus: Exclusion.Status?,
   /**
    * Shortest path to GC roots for the leaking instance.
    */
@@ -91,7 +92,7 @@ data class LeakingInstance(
   val groupHash = createGroupHash()
 
   private fun createGroupHash(): String {
-    val uniqueString = if (excludedLeak) {
+    val uniqueString = if (exclusionStatus == WONT_FIX_LEAK) {
       leakTrace.firstElementExclusion.matching
     } else {
       leakTrace.leakCauses
@@ -114,4 +115,4 @@ fun HeapAnalysis.leakingInstances(): List<LeakingInstance> {
 }
 
 fun HeapAnalysis.applicationLeaks(): List<LeakingInstance> =
-  leakingInstances().filter { !it.excludedLeak }
+  leakingInstances().filter { it.exclusionStatus == null }

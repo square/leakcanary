@@ -19,7 +19,7 @@ class HeapAnalyzerPerflibHeapDumpTest {
     val retainedInstance = findLeak(ASYNC_TASK_P)!!
     assertThat(retainedInstance).isInstanceOf(LeakingInstance::class.java)
     val leak = retainedInstance as LeakingInstance
-    assertThat(leak.excludedLeak).isFalse()
+    assertThat(leak.exclusionStatus).isNull()
     assertThat(leak.instanceClassName).isEqualTo("com.example.leakcanary.MainActivity")
   }
 

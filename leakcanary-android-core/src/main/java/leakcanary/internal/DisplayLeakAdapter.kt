@@ -26,8 +26,6 @@ import android.widget.BaseAdapter
 import android.widget.TextView
 import androidx.annotation.ColorRes
 import com.squareup.leakcanary.core.R
-import com.squareup.leakcanary.core.R.id
-import com.squareup.leakcanary.core.R.string
 import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
@@ -115,7 +113,7 @@ internal class DisplayLeakAdapter private constructor(
   }
 
   private fun bindTopRow(view: View) {
-    val textView = view.findViewById<TextView>(id.leak_canary_row_text)
+    val textView = view.findViewById<TextView>(R.id.leak_canary_row_text)
     textView.text = view.context.packageName
   }
 
@@ -158,13 +156,13 @@ internal class DisplayLeakAdapter private constructor(
         Html.fromHtml(
             """
               <font color='$helpColorHexString'>
-                <b>${resources.getString(string.leak_canary_help_title)}</b>
+                <b>${resources.getString(R.string.leak_canary_help_title)}</b>
               </font>
             """
         )
       }
       val detailText = Html.fromHtml(
-          resources.getString(string.leak_canary_help_detail)
+          resources.getString(R.string.leak_canary_help_detail)
       ) as SpannableStringBuilder
       SquigglySpan.replaceUnderlineSpans(detailText, resources)
       detailView.text = detailText
@@ -194,13 +192,13 @@ internal class DisplayLeakAdapter private constructor(
     view: View,
     position: Int
   ) {
-    val titleView = view.findViewById<TextView>(id.leak_canary_row_text)
-    val timeView = view.findViewById<TextView>(id.leak_canary_row_time)
+    val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
+    val timeView = view.findViewById<TextView>(R.id.leak_canary_row_time)
 
     val projection = instanceProjections[position - TOP_ROW_COUNT - leakTrace.elements.size]
 
     titleView.text =
-      view.resources.getString(string.leak_canary_class_has_leaked, projection.classSimpleName)
+      view.resources.getString(R.string.leak_canary_class_has_leaked, projection.classSimpleName)
 
     timeView.text = DateUtils.formatDateTime(
         view.context, projection.createdAtTimeMillis,
@@ -298,31 +296,31 @@ internal class DisplayLeakAdapter private constructor(
         return START_LAST_REACHABLE
       }
       val nextReachability = leakTrace.expectedReachability[elementIndex(position + 1)]
-      return if (nextReachability.status != Reachability.Status.REACHABLE) {
+      return if (nextReachability.status != REACHABLE) {
         START_LAST_REACHABLE
       } else START
     } else {
       val isLeakingInstance = position == count - 1
       if (isLeakingInstance) {
         val previousReachability = leakTrace.expectedReachability[elementIndex(position - 1)]
-        return if (previousReachability.status != Reachability.Status.UNREACHABLE) {
+        return if (previousReachability.status != UNREACHABLE) {
           END_FIRST_UNREACHABLE
         } else END
       } else {
         val reachability = leakTrace.expectedReachability[elementIndex(position)]
         when (reachability.status) {
           Reachability.Status.UNKNOWN -> return NODE_UNKNOWN
-          Reachability.Status.REACHABLE -> {
+          REACHABLE -> {
             val nextReachability = leakTrace.expectedReachability[elementIndex(position + 1)]
-            return if (nextReachability.status != Reachability.Status.REACHABLE) {
+            return if (nextReachability.status != REACHABLE) {
               NODE_LAST_REACHABLE
             } else {
               NODE_REACHABLE
             }
           }
-          Reachability.Status.UNREACHABLE -> {
+          UNREACHABLE -> {
             val previousReachability = leakTrace.expectedReachability[elementIndex(position - 1)]
-            return if (previousReachability.status != Reachability.Status.UNREACHABLE) {
+            return if (previousReachability.status != UNREACHABLE) {
               NODE_FIRST_UNREACHABLE
             } else {
               NODE_UNREACHABLE

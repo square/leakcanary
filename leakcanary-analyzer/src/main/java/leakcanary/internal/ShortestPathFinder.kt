@@ -16,10 +16,11 @@
 package leakcanary.internal
 
 import leakcanary.Exclusion
-import leakcanary.Exclusion.ExclusionType.ClassExclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.StaticFieldExclusion
 import leakcanary.Exclusion.ExclusionType.ThreadExclusion
+import leakcanary.Exclusion.Status
+import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.HeapValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofParser
@@ -37,10 +38,9 @@ import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import java.util.ArrayDeque
-import java.util.Deque
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
+import java.util.PriorityQueue
 
 /**
  * Not thread safe.
@@ -53,27 +53,27 @@ import java.util.LinkedHashSet
  * never be found.
  */
 internal class ShortestPathFinder {
-  /**
-   * TODO If this queue grows large we can optimize it by replacing LeakNode with just (long, long)
-   * and rebuild exclusion and leak reference after the analysis
-   */
-  private val toVisitQueue: Deque<LeakNode>
-  private val toVisitIfNoPathQueue: Deque<LeakNode>
-  private val toVisitSet: LinkedHashSet<Long>
-  private val toVisitIfNoPathSet: LinkedHashSet<Long>
-  private val visitedSet: LinkedHashSet<Long>
 
-  init {
-    toVisitQueue = ArrayDeque()
-    toVisitIfNoPathQueue = ArrayDeque()
-    toVisitSet = LinkedHashSet()
-    toVisitIfNoPathSet = LinkedHashSet()
-    visitedSet = LinkedHashSet()
-  }
+  /**
+   * A segmented FIFO queue. The queue is segmented by [Status]. Within each segment the elements
+   * are ordered FIFO.
+   */
+  private val toVisitQueue = PriorityQueue<LeakNode>(1024, Comparator { node1, node2 ->
+    val priorityComparison = toVisitMap[node1.instance]!!.compareTo(toVisitMap[node2.instance]!!)
+    if (priorityComparison != 0) {
+      priorityComparison
+    } else {
+      node1.visitOrder.compareTo(node2.visitOrder)
+    }
+  })
+  /** Set of instances to visit */
+  private val toVisitMap = LinkedHashMap<Long, Status>()
+  private val visitedSet = LinkedHashSet<Long>()
+  private var visitOrder = 0
 
   internal class Result(
     val leakingNode: LeakNode,
-    val excludingKnownLeaks: Boolean,
+    val exclusionStatus: Status?,
     val weakReference: KeyedWeakReferenceMirror
   )
 
@@ -89,15 +89,11 @@ internal class ShortestPathFinder {
     val staticFieldNameByClassName = mutableMapOf<String, MutableMap<String, Exclusion>>()
     // TODO Use thread name exclusions
     val threadNames = mutableMapOf<String, Exclusion>()
-    val classNames = mutableMapOf<String, Exclusion>()
 
     exclusionsFactory(parser)
         .forEach { exclusion ->
 
           when (exclusion.type) {
-            is ClassExclusion -> {
-              classNames[exclusion.type.className] = exclusion
-            }
             is ThreadExclusion -> {
               threadNames[exclusion.type.threadName] = exclusion
             }
@@ -128,21 +124,17 @@ internal class ShortestPathFinder {
     enqueueGcRoots(parser, gcRootIds)
     gcRootIds.clear()
 
-    var excludingKnownLeaks = false
+    var lowestPriority = ALWAYS_REACHABLE
     val results = mutableListOf<Result>()
-    while (!toVisitQueue.isEmpty() || !toVisitIfNoPathQueue.isEmpty()) {
-      val node: LeakNode
-      if (!toVisitQueue.isEmpty()) {
-        node = toVisitQueue.poll()
-        toVisitSet.remove(node.instance)
-      } else {
-        node = toVisitIfNoPathQueue.poll()
-        toVisitIfNoPathSet.remove(node.instance)
-        if (node is RootNode || (node is ChildNode && node.exclusion == null)) {
-          throw IllegalStateException("Expected node to have an exclusion $node")
-        }
-        excludingKnownLeaks = true
+    while (!toVisitQueue.isEmpty()) {
+      val node = toVisitQueue.poll()!!
+      val priority = toVisitMap[node.instance]!!
+      // Lowest priority has the highest value
+      if (priority > lowestPriority) {
+        lowestPriority = priority
       }
+
+      toVisitMap.remove(node.instance)
 
       if (checkSeen(node)) {
         continue
@@ -150,11 +142,8 @@ internal class ShortestPathFinder {
 
       val weakReference = referentMap[node.instance]
       if (weakReference != null) {
-        results.add(
-            Result(
-                node, excludingKnownLeaks, weakReference
-            )
-        )
+        val exclusionPriority = if (lowestPriority == ALWAYS_REACHABLE) null else lowestPriority
+        results.add(Result(node, exclusionPriority, weakReference))
         // Found all refs, stop searching.
         if (results.size == leakingWeakRefs.size) {
           break
@@ -163,9 +152,7 @@ internal class ShortestPathFinder {
 
       when (val record = parser.retrieveRecordById(node.instance)) {
         is ClassDumpRecord -> visitClassRecord(parser, record, node, staticFieldNameByClassName)
-        is InstanceDumpRecord -> visitInstanceRecord(
-            parser, record, node, classNames, fieldNameByClassName
-        )
+        is InstanceDumpRecord -> visitInstanceRecord(parser, record, node, fieldNameByClassName)
         is ObjectArrayDumpRecord -> visitObjectArrayRecord(parser, record, node)
         else -> throw IllegalStateException("Unexpected type for $record")
       }
@@ -176,16 +163,15 @@ internal class ShortestPathFinder {
   }
 
   private fun checkSeen(node: LeakNode): Boolean {
-    val alreadySeen = visitedSet.add(node.instance)
-    return !alreadySeen
+    val neverSeen = visitedSet.add(node.instance)
+    return !neverSeen
   }
 
   private fun clearState() {
     toVisitQueue.clear()
-    toVisitIfNoPathQueue.clear()
-    toVisitSet.clear()
-    toVisitIfNoPathSet.clear()
+    toVisitMap.clear()
     visitedSet.clear()
+    visitOrder = 0
   }
 
   private fun enqueueGcRoots(
@@ -198,7 +184,7 @@ internal class ShortestPathFinder {
     // TODO java local: exclude specific threads,
     // TODO java local: parent should be set to the allocated thread
     gcRootIds.forEach {
-      enqueue(hprofParser, RootNode(it))
+      enqueue(hprofParser, RootNode(it), exclusionPriority = null)
     }
   }
 
@@ -223,9 +209,11 @@ internal class ShortestPathFinder {
 
       val exclusion = ignoredStaticFields[fieldName]
 
-      if (exclusion == null || !exclusion.alwaysExclude) {
-        enqueue(hprofParser, ChildNode(objectId, exclusion?.description, node, leakReference))
-      }
+      enqueue(
+          hprofParser,
+          ChildNode(objectId, visitOrder++, exclusion?.description, node, leakReference),
+          exclusion?.status
+      )
     }
   }
 
@@ -233,22 +221,9 @@ internal class ShortestPathFinder {
     hprofParser: HprofParser,
     record: InstanceDumpRecord,
     parent: LeakNode,
-    classNames: Map<String, Exclusion>,
     fieldNameByClassName: Map<String, Map<String, Exclusion>>
   ) {
     val instance = hprofParser.hydrateInstance(record)
-
-    val exclusions = instance.classHierarchy.map {
-      classNames[it.className]
-    }
-
-    if (exclusions.firstOrNull {
-          it != null && it.alwaysExclude
-        } != null) {
-      return
-    }
-
-    val classExclusion = exclusions.firstOrNull { it != null }
 
     val ignoredFields = LinkedHashMap<String, Exclusion>()
 
@@ -270,19 +245,13 @@ internal class ShortestPathFinder {
     fieldNamesAndValues.filter { (_, value) -> value is ObjectReference }
         .map { (name, reference) -> name to (reference as ObjectReference).value }
         .forEach { (fieldName, objectId) ->
-          val fieldExclusion = ignoredFields[fieldName]
-
-          val exclusion = if (classExclusion != null && classExclusion.alwaysExclude) {
-            classExclusion
-          } else if (fieldExclusion != null && fieldExclusion.alwaysExclude) {
-            fieldExclusion
-          } else classExclusion ?: fieldExclusion
+          val exclusion = ignoredFields[fieldName]
           enqueue(
               hprofParser, ChildNode(
               objectId,
-              exclusion?.description, parent,
+              visitOrder++, exclusion?.description, parent,
               LeakReference(INSTANCE_FIELD, fieldName, "object $objectId")
-          )
+          ), exclusion?.status
           )
         }
   }
@@ -295,27 +264,32 @@ internal class ShortestPathFinder {
     record.elementIds.forEachIndexed { index, elementId ->
       val name = Integer.toString(index)
       val reference = LeakReference(ARRAY_ENTRY, name, "object $elementId")
-      enqueue(hprofParser, ChildNode(elementId, null, parentNode, reference))
+      enqueue(hprofParser, ChildNode(elementId, visitOrder++, null, parentNode, reference), null)
     }
   }
 
   private fun enqueue(
     hprofParser: HprofParser,
-    node: LeakNode
+    node: LeakNode,
+    exclusionPriority: Status?
   ) {
+    // 0L is null
     if (node.instance == 0L) {
-      return
-    }
-    // Whether we want to visit now or later, we should skip if this is already to visit.
-    if (toVisitSet.contains(node.instance)) {
       return
     }
     if (visitedSet.contains(node.instance)) {
       return
     }
+    if (exclusionPriority == NEVER_REACHABLE) {
+      return
+    }
 
-    val visitNow = node is RootNode || (node is ChildNode && node.exclusion == null)
-    if (!visitNow && toVisitIfNoPathSet.contains(node.instance)) {
+    val nodePriority = exclusionPriority ?: ALWAYS_REACHABLE
+
+    // Whether we want to visit now or later, we should skip if this is already to visit.
+    val existingPriority = toVisitMap[node.instance]
+
+    if (existingPriority != null && existingPriority <= nodePriority) {
       return
     }
 
@@ -324,17 +298,19 @@ internal class ShortestPathFinder {
       return
     }
 
-    if (visitNow) {
-      toVisitSet.add(node.instance)
-      toVisitQueue.add(node)
-    } else {
-      toVisitIfNoPathSet.add(node.instance)
-      toVisitIfNoPathQueue.add(node)
+    if (existingPriority != null) {
+      toVisitQueue.removeAll { it.instance == node.instance }
     }
+    toVisitMap[node.instance] = nodePriority
+    toVisitQueue.add(node)
   }
 
   companion object {
     private val SKIP_ENQUEUE =
       setOf(PRIMITIVE_WRAPPER, PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY, STRING, EMPTY_INSTANCE)
+
+    // Since NEVER_REACHABLE never ends up in the queue, we use its value to mean "ALWAYS_REACHABLE"
+    // For this to work we need NEVER_REACHABLE to be declared as the first enum value.
+    private val ALWAYS_REACHABLE = NEVER_REACHABLE
   }
 }

@@ -29,10 +29,11 @@ import android.os.Build.VERSION_CODES.O
 import android.os.Build.VERSION_CODES.O_MR1
 import android.os.Build.VERSION_CODES.P
 import leakcanary.AndroidExcludedRefs.Companion.exclusionsFactory
-import leakcanary.Exclusion.ExclusionType.ClassExclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.StaticFieldExclusion
 import leakcanary.Exclusion.ExclusionType.ThreadExclusion
+import leakcanary.Exclusion.Status.NEVER_REACHABLE
+import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.internal.HeapDumpTrigger
 import leakcanary.internal.LeakCanaryUtils.HUAWEI
 import leakcanary.internal.LeakCanaryUtils.LENOVO
@@ -605,6 +606,28 @@ enum class AndroidExcludedRefs {
     }
   },
 
+  VIEWLOCATIONHOLDER_ROOT {
+    override fun add(
+      exclusions: MutableList<Exclusion>,
+      build: BuildMirror
+    ) {
+      if (build.sdkInt == P) {
+        exclusions.add(
+            Exclusion(
+                type = InstanceFieldExclusion(
+                    "android.view.ViewGroup\$ViewLocationHolder",
+                    "mRoot"
+                ),
+                reason = "In Android P, ViewLocationHolder has an mRoot field that is not cleared" +
+                    "in its clear() method. Introduced in https://github.com/aosp-mirror" +
+                    "/platform_frameworks_base/commit/86b326012813f09d8f1de7d6d26c986a909d Bug " +
+                    "report: https://issuetracker.google.com/issues/112792715"
+            )
+        )
+      }
+    }
+  },
+
   // ######## Manufacturer specific Excluded refs ########
 
   INSTRUMENTATION_RECOMMEND_ACTIVITY {
@@ -978,27 +1001,82 @@ enum class AndroidExcludedRefs {
     }
   },
 
-  // ######## General Excluded refs ########
+  // ######## General exclusions ########
 
-  SOFT_REFERENCES {
+  REFERENCES {
     override fun add(
       exclusions: MutableList<Exclusion>,
       build: BuildMirror
     ) {
       exclusions.add(
-          Exclusion(type = ClassExclusion(WeakReference::class.java.name), alwaysExclude = true)
+          Exclusion(
+              type = InstanceFieldExclusion(WeakReference::class.java.name, "referent"),
+              status = WEAKLY_REACHABLE
+          )
       )
       exclusions.add(
-          Exclusion(type = ClassExclusion(SoftReference::class.java.name), alwaysExclude = true)
+          Exclusion(
+              type = InstanceFieldExclusion(KeyedWeakReference::class.java.name, "referent"),
+              status = NEVER_REACHABLE
+          )
       )
       exclusions.add(
-          Exclusion(type = ClassExclusion(PhantomReference::class.java.name), alwaysExclude = true)
+          Exclusion(
+              type = InstanceFieldExclusion(SoftReference::class.java.name, "referent"),
+              status = NEVER_REACHABLE
+          )
       )
       exclusions.add(
-          Exclusion(type = ClassExclusion("java.lang.ref.Finalizer"), alwaysExclude = true)
+          Exclusion(
+              type = InstanceFieldExclusion(PhantomReference::class.java.name, "referent"),
+              status = NEVER_REACHABLE
+          )
       )
       exclusions.add(
-          Exclusion(type = ClassExclusion("java.lang.ref.FinalizerReference"), alwaysExclude = true)
+          Exclusion(
+              type = InstanceFieldExclusion("java.lang.ref.Finalizer", "prev"),
+              status = NEVER_REACHABLE
+          )
+      )
+      exclusions.add(
+          Exclusion(
+              type = InstanceFieldExclusion("java.lang.ref.Finalizer", "element"),
+              status = NEVER_REACHABLE
+          )
+      )
+      exclusions.add(
+          Exclusion(
+              type = InstanceFieldExclusion("java.lang.ref.Finalizer", "next"),
+              status = NEVER_REACHABLE
+          )
+      )
+      exclusions.add(
+          Exclusion(
+              type = InstanceFieldExclusion("java.lang.ref.FinalizerReference", "prev"),
+              status = NEVER_REACHABLE
+          )
+      )
+      exclusions.add(
+          Exclusion(
+              type = InstanceFieldExclusion("java.lang.ref.FinalizerReference", "element"),
+              status = NEVER_REACHABLE
+          )
+      )
+      exclusions.add(
+          Exclusion(
+              type = InstanceFieldExclusion("java.lang.ref.FinalizerReference", "next"),
+              status = NEVER_REACHABLE
+          )
+      )
+      exclusions.add(
+          Exclusion(
+              type = InstanceFieldExclusion("sun.misc.Cleaner", "prev"), status = NEVER_REACHABLE
+          )
+      )
+      exclusions.add(
+          Exclusion(
+              type = InstanceFieldExclusion("sun.misc.Cleaner", "next"), status = NEVER_REACHABLE
+          )
       )
     }
   },
@@ -1013,7 +1091,7 @@ enum class AndroidExcludedRefs {
       exclusions.add(
           Exclusion(
               type = ThreadExclusion("FinalizerWatchdogDaemon"),
-              alwaysExclude = true
+              status = NEVER_REACHABLE
           )
       )
     }
@@ -1030,7 +1108,7 @@ enum class AndroidExcludedRefs {
       exclusions.add(
           Exclusion(
               type = ThreadExclusion("main"),
-              alwaysExclude = true
+              status = NEVER_REACHABLE
           )
       )
     }
@@ -1044,7 +1122,7 @@ enum class AndroidExcludedRefs {
       exclusions.add(
           Exclusion(
               type = ThreadExclusion(HeapDumpTrigger.LEAK_CANARY_THREAD_NAME),
-              alwaysExclude = true
+              status = NEVER_REACHABLE
           )
       )
     }
@@ -1065,34 +1143,12 @@ enum class AndroidExcludedRefs {
                   "android.view.Choreographer\$FrameDisplayEventReceiver",
                   "mMessageQueue"
               ),
-              alwaysExclude = true
+              status = NEVER_REACHABLE
           )
       )
     }
   },
 
-  // TODO This should move to the top
-  // TODO Should also have a "reason" set.
-  VIEWLOCATIONHOLDER_ROOT {
-    override fun add(
-      exclusions: MutableList<Exclusion>,
-      build: BuildMirror
-    ) {
-      // In Android P, ViewLocationHolder has an mRoot field that is not cleared in its clear()
-      // method.
-      // Introduced in https://github.com/aosp-mirror/platform_frameworks_base/commit/86b326012813f09d8f1de7d6d26c986a909de894
-      // Bug report: https://issuetracker.google.com/issues/112792715
-      if (build.sdkInt == P) exclusions.add(
-          Exclusion(
-              type = InstanceFieldExclusion(
-                  "android.view.ViewGroup\$ViewLocationHolder",
-                  "mRoot"
-              ),
-              alwaysExclude = true
-          )
-      )
-    }
-  }
   ;
 
   protected abstract fun add(
@@ -1107,7 +1163,7 @@ enum class AndroidExcludedRefs {
      */
     val androidDefaults: EnumSet<AndroidExcludedRefs>
       get() = EnumSet.of(
-          SOFT_REFERENCES,
+          REFERENCES,
           FINALIZER_WATCHDOG_DAEMON,
           MAIN,
           LEAK_CANARY_THREAD,

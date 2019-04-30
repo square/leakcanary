@@ -810,6 +810,16 @@ class HprofParser private constructor(
 
   val Long.objectRecord: ObjectRecord get() = retrieveRecordById(this)
 
+  val ObjectRecord.hydratedInstance: HydratedInstance
+    get() = hydrateInstance(
+        this as InstanceDumpRecord
+    )
+
+  val Long.hydratedInstance: HydratedInstance
+    get() = hydrateInstance(
+        retrieveRecordById(this) as InstanceDumpRecord
+    )
+
   val Long?.stringOrNull: String?
     get() = if (this == null) {
       null
