@@ -315,7 +315,7 @@ class HeapAnalyzer constructor(
     // We iterate from the leak to the GC root
     val ignored = leakingNode.instance
 
-    val leafNode = ChildNode(ignored, null, leakingNode, null)
+    val leafNode = ChildNode(ignored, Int.MAX_VALUE, null, leakingNode, null)
     var node: LeakNode = leafNode
     val nodes = mutableListOf<LeakNode>()
     while (node is ChildNode) {
