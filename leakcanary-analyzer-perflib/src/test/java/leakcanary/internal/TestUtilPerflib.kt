@@ -1,6 +1,6 @@
 package leakcanary.internal
 
-import leakcanary.AnalysisResult
+import leakcanary.PerflibAnalysisResult
 import leakcanary.AnalyzerProgressListener
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure
@@ -83,7 +83,7 @@ internal fun findAllLeaks(heapDumpFile: HeapDumpFile): HeapAnalysis {
 internal fun analyze(
   heapDumpFile: HeapDumpFile,
   excludedRefs: BuilderWithParams = defaultExcludedRefs
-): AnalysisResult {
+): PerflibAnalysisResult {
   val file = fileFromName(heapDumpFile.filename)
   val referenceKey = heapDumpFile.referenceKey
   val heapAnalyzer =

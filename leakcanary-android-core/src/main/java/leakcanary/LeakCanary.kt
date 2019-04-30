@@ -25,7 +25,7 @@ object LeakCanary {
      * If you want leaks to be added to the activity that lists leaks, make sure to delegate
      * calls to [DefaultAnalysisResultListener].
      */
-    val analysisResultListener: (Application, HeapAnalysis) -> Unit = DefaultAnalysisResultListener()
+    val analysisResultListener: (Application, HeapAnalysis) -> Unit = DefaultAnalysisResultListener
   )
 
   @Volatile

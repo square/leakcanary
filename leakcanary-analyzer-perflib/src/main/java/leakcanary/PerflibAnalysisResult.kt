@@ -7,7 +7,7 @@ import java.util.UUID
  * Used only for tests. We should delete this and move the stacktrace feature
  * (once we have grouping)
  */
-data class AnalysisResult(
+data class PerflibAnalysisResult(
 
   /**
    * Key associated to the [leaksentry.KeyedWeakReference] used to detect the memory leak.
@@ -99,7 +99,8 @@ data class AnalysisResult(
     )
     val stackTrace = mutableListOf<StackTraceElement>()
     leakTrace.elements.onEach { element ->
-      val methodName = if (element.reference != null) element.reference.name else "leaking"
+      val ref = element.reference
+      val methodName = ref?.name ?: "leaking"
       val file = classSimpleName(element.className) + ".java"
       stackTrace.add(StackTraceElement(element.className, methodName, file, 42))
     }
@@ -118,8 +119,8 @@ data class AnalysisResult(
     fun noLeak(
       className: String,
       analysisDurationMs: Long
-    ): AnalysisResult {
-      return AnalysisResult(
+    ): PerflibAnalysisResult {
+      return PerflibAnalysisResult(
           referenceKey = "Fake-${UUID.randomUUID()}",
           referenceName = "",
           leakFound = false,
@@ -142,8 +143,8 @@ data class AnalysisResult(
       retainedHeapSize: Long,
       analysisDurationMs: Long,
       watchDurationMs: Long
-    ): AnalysisResult {
-      return AnalysisResult(
+    ): PerflibAnalysisResult {
+      return PerflibAnalysisResult(
           referenceKey = referenceKey,
           referenceName = referenceName,
           leakFound = true,
@@ -160,8 +161,8 @@ data class AnalysisResult(
     fun failure(
       failure: Throwable,
       analysisDurationMs: Long
-    ): AnalysisResult {
-      return AnalysisResult(
+    ): PerflibAnalysisResult {
+      return PerflibAnalysisResult(
           referenceKey = "Fake-${UUID.randomUUID()}",
           referenceName = "",
           leakFound = false,
