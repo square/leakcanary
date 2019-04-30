@@ -92,20 +92,17 @@ interface Labeler {
     override fun computeLabels(
       parser: HprofParser,
       node: LeakNode
-    ): List<String> {
-      val objectId = node.instance
-      val record = parser.retrieveRecordById(objectId)
+    ): List<String> = with(parser) {
+      val record = node.instance.objectRecord
       if (record is InstanceDumpRecord) {
         val labels = mutableListOf<String>()
-        val instance = parser.hydrateInstance(record)
+        val instance = record.hydratedInstance
         val className = instance.classHierarchy[0].className
 
         if (instance.classHierarchy.any { it.className == Thread::class.java.name }) {
-          val nameField = instance.fieldValueOrNull<ObjectReference>("name")
           // Sometimes we can't find the String at the expected memory address in the heap dump.
           // See https://github.com/square/leakcanary/issues/417
-          val threadName =
-            if (nameField != null) parser.retrieveString(nameField) else "not available"
+          val threadName = instance["name"].reference.stringOrNull ?: "not available"
           labels.add("Thread name: '$threadName'")
         } else if (className.matches(HeapAnalyzer.ANONYMOUS_CLASS_NAME_PATTERN_REGEX)) {
           val parentClassName = instance.classHierarchy[1].className

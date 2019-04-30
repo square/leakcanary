@@ -285,7 +285,7 @@ class HeapAnalyzer constructor(
           key,
           parser.retrieveString(weakReference.name),
           parser.retrieveString(weakReference.className),
-          weakReference.watchDurationMillis, pathResult.excludingKnownLeaks, leakTrace, retainedSize
+          weakReference.watchDurationMillis, pathResult.exclusionStatus, leakTrace, retainedSize
       )
       analysisResults[key] = leakDetected
     }

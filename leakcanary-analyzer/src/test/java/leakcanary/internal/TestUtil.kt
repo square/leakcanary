@@ -1,9 +1,12 @@
 package leakcanary.internal
 
 import leakcanary.Exclusion
-import leakcanary.Exclusion.ExclusionType.ClassExclusion
+import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.ThreadExclusion
+import leakcanary.Exclusion.Status.NEVER_REACHABLE
+import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.HprofParser
+import leakcanary.KeyedWeakReference
 import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
@@ -25,32 +28,71 @@ internal fun fileFromName(filename: String): File {
 val defaultExclusionFactory: (HprofParser) -> List<Exclusion> = {
   listOf(
       Exclusion(
-          type = ClassExclusion(WeakReference::class.java.name),
-          alwaysExclude = true
-      ),
+          type = InstanceFieldExclusion(WeakReference::class.java.name, "referent"),
+          status = WEAKLY_REACHABLE
+      )
+      ,
       Exclusion(
-          type = ClassExclusion(SoftReference::class.java.name),
-          alwaysExclude = true
-      ),
+          type = InstanceFieldExclusion(KeyedWeakReference::class.java.name, "referent"),
+          status = NEVER_REACHABLE
+      )
+      ,
       Exclusion(
-          type = ClassExclusion(PhantomReference::class.java.name),
-          alwaysExclude = true
-      ),
+          type = InstanceFieldExclusion(SoftReference::class.java.name, "referent"),
+          status = NEVER_REACHABLE
+      )
+      ,
       Exclusion(
-          type = ClassExclusion("java.lang.ref.Finalizer"),
-          alwaysExclude = true
-      ),
+          type = InstanceFieldExclusion(PhantomReference::class.java.name, "referent"),
+          status = NEVER_REACHABLE
+      )
+      ,
       Exclusion(
-          type = ClassExclusion("java.lang.ref.FinalizerReference"),
-          alwaysExclude = true
-      ),
+          type = InstanceFieldExclusion("java.lang.ref.Finalizer", "prev"),
+          status = NEVER_REACHABLE
+      )
+      ,
+      Exclusion(
+          type = InstanceFieldExclusion("java.lang.ref.Finalizer", "element"),
+          status = NEVER_REACHABLE
+      )
+      ,
+      Exclusion(
+          type = InstanceFieldExclusion("java.lang.ref.Finalizer", "next"),
+          status = NEVER_REACHABLE
+      )
+      ,
+      Exclusion(
+          type = InstanceFieldExclusion("java.lang.ref.FinalizerReference", "prev"),
+          status = NEVER_REACHABLE
+      )
+      ,
+      Exclusion(
+          type = InstanceFieldExclusion("java.lang.ref.FinalizerReference", "element"),
+          status = NEVER_REACHABLE
+      )
+      ,
+      Exclusion(
+          type = InstanceFieldExclusion("java.lang.ref.FinalizerReference", "next"),
+          status = NEVER_REACHABLE
+      )
+      ,
+      Exclusion(
+          type = InstanceFieldExclusion("sun.misc.Cleaner", "prev"), status = NEVER_REACHABLE
+      )
+      ,
+      Exclusion(
+          type = InstanceFieldExclusion("sun.misc.Cleaner", "next"), status = NEVER_REACHABLE
+      )
+      ,
+
       Exclusion(
           type = ThreadExclusion("FinalizerWatchdogDaemon"),
-          alwaysExclude = true
+          status = NEVER_REACHABLE
       ),
       Exclusion(
           type = ThreadExclusion("main"),
-          alwaysExclude = true
+          status = NEVER_REACHABLE
       )
   )
 }

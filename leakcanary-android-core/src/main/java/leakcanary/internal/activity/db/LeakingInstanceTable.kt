@@ -2,6 +2,8 @@ package leakcanary.internal.activity.db
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
+import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
+import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
@@ -187,7 +189,7 @@ internal object LeakingInstanceTable {
             val leakingInstance = Serializables.fromByteArray<LeakingInstance>(cursor.getBlob(0))!!
             val leakTrace = leakingInstance.leakTrace
 
-            val groupLeakTrace = if (leakingInstance.excludedLeak) {
+            val groupLeakTrace = if (leakingInstance.exclusionStatus == WONT_FIX_LEAK) {
               val index = leakTrace.elements.indexOfFirst { element -> element.exclusion != null }
               LeakTrace(
                   elements = listOf(leakTrace.elements[index]),
@@ -259,12 +261,17 @@ internal object LeakingInstanceTable {
   }
 
   private fun LeakingInstance.createGroupDescription(): String {
-    return if (excludedLeak) {
-      "[Excluded] " + leakTrace.firstElementExclusion.matching
+    return if (exclusionStatus == WONT_FIX_LEAK) {
+      "[Won't Fix] ${leakTrace.firstElementExclusion.matching}"
     } else {
       val element = leakTrace.leakCauses.first()
       val referenceName = element.reference!!.groupingName
-      element.simpleClassName + "." + referenceName
+      val refDescription = element.simpleClassName + "." + referenceName
+      if (exclusionStatus == WEAKLY_REACHABLE) {
+        "[Weakly Reachable] $refDescription"
+      } else {
+        refDescription
+      }
     }
   }
 

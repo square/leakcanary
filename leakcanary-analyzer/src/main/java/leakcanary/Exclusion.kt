@@ -1,5 +1,6 @@
 package leakcanary
 
+import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import java.io.Serializable
 
 /**
@@ -18,20 +19,33 @@ import java.io.Serializable
 data class Exclusion(
   val type: ExclusionType,
   val reason: String? = null,
-  val alwaysExclude: Boolean = false
+  val status: Status = WONT_FIX_LEAK
 ) {
   val description
     get() = ExclusionDescription(type.matching, reason)
 
+  // Note: the enum order matters for shortest paths, do not reorder
+  enum class Status {
+    /**
+     * References matching this cannot create leaks.
+     * The shortest path finder will never go through references that match this exclusion.
+     */
+    NEVER_REACHABLE,
+    /**
+     * References matching this are known to create leaks, but those leaks will not be fixed.
+     * The shortest path finder will only go through references that match this exclusion after it
+     * has exhausted references that don't match any exclusion.
+     */
+    WONT_FIX_LEAK,
+    /**
+     * The shortest path finder will only go through references that match this exclusion after it
+     * has exhausted references that match known leak exclusions.
+     */
+    WEAKLY_REACHABLE
+  }
+
   sealed class ExclusionType {
     abstract val matching: String
-
-    class ClassExclusion(
-      val className: String
-    ) : ExclusionType() {
-      override val matching: String
-        get() = "any subclass of $className"
-    }
 
     class ThreadExclusion(
       val threadName: String

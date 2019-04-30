@@ -36,6 +36,7 @@ import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
 import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
+import leakcanary.Exclusion
 import leakcanary.ExclusionDescription
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisException
@@ -113,10 +114,11 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       listener.onProgressUpdate(DEDUPLICATING_GC_ROOTS)
       deduplicateGcRoots(snapshot)
       listener.onProgressUpdate(FINDING_LEAKING_REF)
-      val leakingRef = findLeakingReference(referenceKey, snapshot) ?: return PerflibAnalysisResult.noLeak(
-          "UnknownNoKeyedWeakReference",
-          since(analysisStartNanoTime)
-      )
+      val leakingRef =
+        findLeakingReference(referenceKey, snapshot) ?: return PerflibAnalysisResult.noLeak(
+            "UnknownNoKeyedWeakReference",
+            since(analysisStartNanoTime)
+        )
       return findLeakTrace(
           heapDump,
           excludedRefs,
@@ -322,7 +324,9 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       }
       val leakDetected = LeakingInstance(
           weakReference.key, weakReference.name, weakReference.className,
-          weakReference.watchDurationMillis, pathResult.excludingKnownLeaks, leakTrace, retainedSize
+          weakReference.watchDurationMillis,
+          if (pathResult.excludingKnownLeaks) Exclusion.Status.WONT_FIX_LEAK else null, leakTrace,
+          retainedSize
       )
       analysisResults[weakReference.key] = leakDetected
     }
