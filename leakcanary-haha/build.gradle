@@ -9,6 +9,9 @@ dependencies {
 
   implementation deps.kotlin.stdlib
   implementation deps.okio
+
+  testImplementation deps.assertj_core
+  testImplementation deps.junit
 }
 
 apply from: rootProject.file('gradle/checkstyle.gradle')
