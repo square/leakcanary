@@ -1,12 +1,13 @@
 package leakcanary.internal.activity.screen
 
+import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.HeapAnalysisFailure
-import leakcanary.internal.activity.db
 import leakcanary.internal.activity.db.HeapAnalysisTable
+import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.share
 import leakcanary.internal.activity.shareHeapDump
 import leakcanary.internal.navigation.Screen
@@ -21,50 +22,62 @@ internal class HeapAnalysisFailureScreen(
 
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_heap_analysis_failure_screen).apply {
-      val pair = HeapAnalysisTable.retrieve<HeapAnalysisFailure>(db, analysisId)
-
-      if (pair == null) {
-        activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
-        return this
+      activity.title = resources.getString(R.string.leak_canary_loading_title)
+      executeOnDb {
+        val pair = HeapAnalysisTable.retrieve<HeapAnalysisFailure>(db, analysisId)
+        if (pair == null) {
+          updateUi {
+            activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
+          }
+        } else {
+          val (heapAnalysis, _) = pair
+          val heapDumpFileExist = heapAnalysis.heapDumpFile.exists()
+          updateUi { onFailureRetrieved(heapAnalysis, heapDumpFileExist) }
+        }
       }
+    }
 
-      val (heapAnalysis, _) = pair
+  private fun View.onFailureRetrieved(
+    heapAnalysis: HeapAnalysisFailure,
+    heapDumpFileExist: Boolean
+  ) {
+    activity.title = resources.getString(R.string.leak_canary_analysis_failed)
 
-      activity.title = resources.getString(R.string.leak_canary_analysis_failed)
+    val failureTextView = findViewById<TextView>(R.id.leak_canary_failure)
+    val path = heapAnalysis.heapDumpFile.absolutePath
 
-      val failureTextView = findViewById<TextView>(R.id.leak_canary_failure)
-      val path = heapAnalysis.heapDumpFile.absolutePath
-
-      val failureText = """
+    val failureText = """
           |${resources.getString(R.string.leak_canary_failure_report)}
           |LeakCanary ${BuildConfig.LIBRARY_VERSION} ${BuildConfig.GIT_SHA}
           |${heapAnalysis.exception}
           |${resources.getString(R.string.leak_canary_download_dump, path)}
           """.trimMargin()
-      failureTextView.text = failureText
+    failureTextView.text = failureText
 
-      onCreateOptionsMenu { menu ->
-        menu.add(R.string.leak_canary_share_leak)
-            .setOnMenuItemClickListener {
-              // TODO Add version information
-              share(heapAnalysis.exception.toString())
-              true
-            }
-        menu.add(R.string.leak_canary_delete)
-            .setOnMenuItemClickListener {
+    onCreateOptionsMenu { menu ->
+      menu.add(R.string.leak_canary_share_leak)
+          .setOnMenuItemClickListener {
+            // TODO Add version information
+            share(heapAnalysis.exception.toString())
+            true
+          }
+      menu.add(R.string.leak_canary_delete)
+          .setOnMenuItemClickListener {
+            executeOnDb {
               HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
-              goBack()
+              updateUi {
+                goBack()
+              }
+            }
+            true
+          }
+      if (heapDumpFileExist) {
+        menu.add(R.string.leak_canary_share_heap_dump)
+            .setOnMenuItemClickListener {
+              shareHeapDump(heapAnalysis.heapDumpFile)
               true
             }
-        if (heapAnalysis.heapDumpFile.exists()) {
-          menu.add(R.string.leak_canary_share_heap_dump)
-              .setOnMenuItemClickListener {
-                shareHeapDump(heapAnalysis.heapDumpFile)
-                true
-              }
-        }
-
       }
     }
-
+  }
 }

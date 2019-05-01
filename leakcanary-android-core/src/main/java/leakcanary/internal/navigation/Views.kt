@@ -18,6 +18,7 @@ internal fun <T : Activity> View.activity() = context as T
 
 internal fun View.onCreateOptionsMenu(onCreateOptionsMenu: (Menu) -> Unit) {
   activity<NavigatingActivity>().onCreateOptionsMenu = onCreateOptionsMenu
+  activity.invalidateOptionsMenu()
 }
 
 internal fun View.goTo(screen: Screen) {

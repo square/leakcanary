@@ -14,9 +14,6 @@ import com.squareup.leakcanary.core.R
 import leakcanary.internal.navigation.activity
 import java.io.File
 
-internal val View.db
-  get() = activity<LeakActivity>().db
-
 internal fun View.share(content: String) {
   val intent = Intent(Intent.ACTION_SEND)
   intent.type = "text/plain"
