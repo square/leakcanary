@@ -19,7 +19,6 @@
     xmlns:lib="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:id="@+id/leak_canary_row_layout"
     android:clipChildren="false"
     >
 

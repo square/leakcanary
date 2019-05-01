@@ -21,20 +21,13 @@
   We welcome contributions from the community, please do not hesitate to
   <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br>]]></string>
   <string name="leak_canary_class_has_leaked">%1$s hat geleaked</string>
-  <string name="leak_canary_class_has_leaked_retaining">%1$s hat %2$s geleaked</string>
-  <string name="leak_canary_class_no_leak">%1$s was never GCed but no leak found</string>
   <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
-  <string name="leak_canary_leak_excluded">[Ausgeschlossen] %1$s hat geleaked</string>
-  <string name="leak_canary_leak_excluded_retaining">[Ausgeschlossen] %1$s hat %2$s geleaked</string>
   <string name="leak_canary_analysis_failed">Leak Analyse fehlgeschlagen</string>
-  <string name="leak_canary_leak_list_title">Leaks in %s</string>
   <string name="leak_canary_notification_analysing">Analysiere Heap Dump</string>
   <string name="leak_canary_notification_channel">LeakCanary</string>
   <string name="leak_canary_notification_dumping">Sichere Heap</string>
   <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
   <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>
-  <string name="leak_canary_no_leak_details">LeakCanary could not find a valid path to GC roots. Download the heap dump and investigate with MAT or YourKit.</string>
-  <string name="leak_canary_result_failure_title">Analysis result failure</string>
   <string name="leak_canary_share_leak">Info teilen</string>
   <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>
   <string name="leak_canary_share_with">Teilen mit…</string>
@@ -45,8 +38,6 @@
   <string name="leak_canary_failure_report">"Bitte sende diesen Fehler an http://github.com/square/leakcanary"</string>
   <string name="leak_canary_delete_all">Alle löschen</string>
   <string name="leak_canary_delete_all_leaks_title">Bist du dir sicher, dass du alle Leaks löschen möchtest?</string>
-  <string name="leak_canary_could_not_save_text">LeakCanary konnte das Ergebnis der Analyse nicht speichern.</string>
-  <string name="leak_canary_excluded_row">[Ausgeschlossen] %s</string>
   <string name="leak_canary_permission_not_granted">Bitte gewähre die Storage Berechtigung, andernfalls werden Memory Leaks nicht erkannt.</string>
   <string name="leak_canary_permission_notification_title">Leak erkannt, benötige Berechtigung</string>
   <string name="leak_canary_permission_notification_text">Hier klicken, um Storage Berechtigung für %s zu aktivieren.</string>
