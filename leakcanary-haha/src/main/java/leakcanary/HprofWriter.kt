@@ -281,7 +281,7 @@ class HprofWriter private constructor(
     }
   }
 
-  private fun BufferedSink.writeValue(wrapper: HeapValue) {
+  fun BufferedSink.writeValue(wrapper: HeapValue) {
     when (wrapper) {
       is ObjectReference -> writeId(wrapper.value)
       is BooleanValue -> writeBoolean(wrapper.value)
