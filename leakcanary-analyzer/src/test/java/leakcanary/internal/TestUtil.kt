@@ -5,24 +5,46 @@ import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.ThreadExclusion
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
+import leakcanary.HeapValue.BooleanValue
+import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofParser
+import leakcanary.HprofWriter
 import leakcanary.KeyedWeakReference
 import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
 import java.lang.ref.WeakReference
 
-internal enum class HeapDumpFile constructor(
-  val filename: String
-) {
-  MULTIPLE_LEAKS("multiple_leaks.hprof"),
-}
+fun File.dumpMultipleActivityLeaks(leakCount: Int) {
+  HprofWriter.open(this)
+      .helper {
+        val activityClassId = clazz(
+            className = "android.app.Activity",
+            fields = listOf("mDestroyed" to BooleanValue::class)
+        )
+        val exampleActivityClassId = clazz(
+            superClassId = activityClassId,
+            className = "com.example.ExampleActivity"
+        )
+        val activityArrayClassId = arrayClass("com.example.ExampleActivity")
 
-internal fun fileFromName(filename: String): File {
-  val classLoader = Thread.currentThread()
-      .contextClassLoader
-  val url = classLoader.getResource(filename)
-  return File(url.path)
+        val destroyedActivities = mutableListOf<Long>()
+        for (i in 1..leakCount) {
+          destroyedActivities.add(instance(exampleActivityClassId, listOf(BooleanValue(true))))
+        }
+
+        clazz(
+            className = "com.example.ActivityHolder",
+            staticFields = listOf(
+                "activities" to ObjectReference(
+                    objectArray(activityArrayClassId, destroyedActivities.toLongArray())
+                )
+            )
+        )
+        destroyedActivities.forEach { instanceId ->
+          keyedWeakReference("com.example.ExampleActivity", instanceId)
+        }
+      }
 }
 
 val defaultExclusionFactory: (HprofParser) -> List<Exclusion> = {
