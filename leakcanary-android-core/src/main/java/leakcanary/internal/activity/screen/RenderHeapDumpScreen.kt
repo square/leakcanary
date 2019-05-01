@@ -28,9 +28,10 @@ internal class RenderHeapDumpScreen(
 
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_heap_render).apply {
-      // TODO String res
-      container.activity.title =
-        "Heap Dump (${humanReadableByteCount(heapDumpFile.length(), false)})"
+      container.activity.title = resources.getString(
+          R.string.leak_canary_heap_dump_screen_title,
+          humanReadableByteCount(heapDumpFile.length(), false)
+      )
 
       val loadingView = findViewById<View>(R.id.leak_canary_loading)
       val imageView = findViewById<ImageView>(R.id.leak_canary_heap_rendering)
@@ -51,23 +52,23 @@ internal class RenderHeapDumpScreen(
       })
 
       onCreateOptionsMenu { menu ->
-        menu.add("Generate HQ Bitmap")
+        menu.add(R.string.leak_canary_options_menu_generate_hq_bitmap)
             .setOnMenuItemClickListener {
 
               val leakDirectoryProvider = LeakCanaryUtils.getLeakDirectoryProvider(activity)
               if (!leakDirectoryProvider.hasStoragePermission()) {
-                // TODO String res
                 Toast.makeText(
                     context,
-                    "Please grant the external storage permission first, see notification.",
+                    R.string.leak_canary_options_menu_permission_toast,
                     Toast.LENGTH_LONG
                 )
                     .show()
                 leakDirectoryProvider.requestWritePermissionNotification()
               } else {
-                // TODO String res
                 Toast.makeText(
-                    context, "Rendering HQ bitmap, this may take a while", Toast.LENGTH_LONG
+                    context,
+                    R.string.leak_canary_generating_hq_bitmap_toast_notice,
+                    Toast.LENGTH_LONG
                 )
                     .show()
                 RenderHeapDumpTask.renderAsync(
@@ -95,18 +96,23 @@ internal class RenderHeapDumpScreen(
                         intent.type = "image/png"
                         intent.putExtra(Intent.EXTRA_STREAM, imageUri)
                         activity.startActivity(
-                            Intent.createChooser(intent, "Share heap dump bitmap")
+                            Intent.createChooser(
+                                intent,
+                                resources.getString(
+                                    R.string.leak_canary_share_heap_dump_bitmap_screen_title
+                                )
+                            )
                         )
                       }
                     } else {
                       activity.runOnUiThread {
-                        // TODO String res
                         Toast.makeText(
-                            context, "Could not save HQ bitmap", Toast.LENGTH_LONG
+                            context,
+                            R.string.leak_canary_generating_hq_bitmap_toast_failure_notice,
+                            Toast.LENGTH_LONG
                         )
                             .show()
                       }
-
                     }
                   }
                 }

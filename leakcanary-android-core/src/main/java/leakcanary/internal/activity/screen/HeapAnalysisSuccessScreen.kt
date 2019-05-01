@@ -1,6 +1,5 @@
 package leakcanary.internal.activity.screen
 
-import android.annotation.SuppressLint
 import android.text.format.DateUtils
 import android.view.ViewGroup
 import android.widget.ListView
@@ -22,8 +21,6 @@ import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
 
-// TODO Remove
-@SuppressLint("SetTextI18n")
 internal class HeapAnalysisSuccessScreen(
   private val analysisId: Long
 ) : Screen() {
@@ -33,15 +30,17 @@ internal class HeapAnalysisSuccessScreen(
       val pair = HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, analysisId)
 
       if (pair == null) {
-        // TODO String res
-        activity.title = "Analysis deleted"
+        activity.title =
+          resources.getString(R.string.leak_canary_analysis_deleted_title)
         return this
       }
 
       val (heapAnalysis, leakGroupByHash) = pair
 
-      // TODO String res
-      activity.title = "Heap Analysis (${heapAnalysis.retainedInstances.size} retained instances)"
+      activity.title = resources.getString(
+          R.string.leak_canary_heap_analysis_success_screen_title,
+          heapAnalysis.retainedInstances.size
+      )
 
       onCreateOptionsMenu { menu ->
         menu.add(R.string.leak_canary_delete)
@@ -56,7 +55,7 @@ internal class HeapAnalysisSuccessScreen(
                 shareHeapDump(heapAnalysis.heapDumpFile)
                 true
               }
-          menu.add("Render Heap Dump")
+          menu.add(R.string.leak_canary_options_menu_render_heap_dump)
               .setOnMenuItemClickListener {
                 goTo(RenderHeapDumpScreen(heapAnalysis.heapDumpFile))
                 true
@@ -99,25 +98,45 @@ internal class HeapAnalysisSuccessScreen(
       val leakGroups = leakGroupByHash.values.toList()
 
       rowList.addAll(leakGroups.map { projection ->
-        val titleText =
-          "(${projection.leakCount} / ${projection.totalLeakCount} total) ${projection.description}"
-        val timeText = "Latest: " + DateUtils.formatDateTime(
-            context, projection.createdAtTimeMillis,
-            DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
+        val titleText = resources.getString(
+            R.string.leak_canary_heap_analysis_success_screen_row_title, projection.leakCount,
+            projection.totalLeakCount, projection.description
+        )
+        val timeText = resources.getString(
+            R.string.leak_canary_heap_analysis_success_screen_row_time_format,
+            DateUtils.formatDateTime(
+                context, projection.createdAtTimeMillis,
+                DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
+            )
         )
         titleText to timeText
       })
 
       if (weakReferenceClearedCount > 0) {
-        rowList.add("$weakReferenceClearedCount already cleared weak references" to "")
+        rowList.add(
+            resources.getString(
+                R.string.leak_canary_heap_analysis_success_screen_weak_reference_cleared_count,
+                weakReferenceClearedCount
+            ) to ""
+        )
       }
 
       if (noPathToInstanceCount > 0) {
-        rowList.add("$noPathToInstanceCount non leaking retained instances" to "")
+        rowList.add(
+            resources.getString(
+                R.string.leak_canary_heap_analysis_success_screen_no_path_to_instance_count,
+                noPathToInstanceCount
+            ) to ""
+        )
       }
 
       if (weakReferenceMissingCount > 0) {
-        rowList.add("$weakReferenceMissingCount garbage collected weak references" to "")
+        rowList.add(
+            resources.getString(
+                R.string.leak_canary_heap_analysis_success_screen_garbage_collected_weak_references,
+                weakReferenceMissingCount
+            ) to ""
+        )
       }
 
 

@@ -1,12 +1,13 @@
 package leakcanary.internal.activity.screen
 
 import android.app.AlertDialog
-import android.text.Html
 import android.text.format.DateUtils
 import android.text.method.LinkMovementMethod
 import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.core.text.HtmlCompat
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db
@@ -23,8 +24,8 @@ internal class GroupListScreen : Screen() {
     container.inflate(R.layout.leak_canary_list).apply {
       val projections = LeakingInstanceTable.retrieveAllGroups(db)
 
-      // TODO String res
-      activity.title = "${projections.size} leak groups"
+      activity.title =
+        resources.getString(R.string.leak_canary_group_list_screen_title, projections.size)
 
       val listView = findViewById<ListView>(R.id.leak_canary_list)
 
@@ -35,14 +36,17 @@ internal class GroupListScreen : Screen() {
 
           val projection = projections[position]
 
-          // TODO String res
-          titleView.text = "(${projection.leakCount}) ${projection.description}"
+          titleView.text = resources.getString(
+              R.string.leak_canary_group_list_title_information, projection.leakCount,
+              projection.description
+          )
 
-          // TODO String res
-          timeView.text = "Latest: " + DateUtils.formatDateTime(
+          val formattedDate = DateUtils.formatDateTime(
               view.context, projection.createdAtTimeMillis,
               DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
           )
+          timeView.text =
+            resources.getString(R.string.leak_canary_group_list_time_label, formattedDate)
         }
 
       listView.setOnItemClickListener { _, _, position, _ ->
@@ -50,7 +54,7 @@ internal class GroupListScreen : Screen() {
       }
 
       onCreateOptionsMenu { menu ->
-        menu.add("See analysis list")
+        menu.add(R.string.leak_canary_options_menu_see_analysis_list)
             .setOnMenuItemClickListener {
               goTo(HeapAnalysisListScreen())
               true
@@ -59,10 +63,11 @@ internal class GroupListScreen : Screen() {
         menu.add(R.string.leak_canary_about_title)
             .setOnMenuItemClickListener {
               val dialog = AlertDialog.Builder(context)
-                  .setIcon(resources.getDrawable(R.drawable.leak_canary_icon))
+                  .setIcon(ContextCompat.getDrawable(context, R.drawable.leak_canary_icon))
                   .setTitle(R.string.leak_canary_about_title)
                   .setMessage(
-                      Html.fromHtml(resources.getString(R.string.leak_canary_about_message))
+                      HtmlCompat.fromHtml(resources.getString(R.string.leak_canary_about_message),
+                          HtmlCompat.FROM_HTML_MODE_LEGACY)
                   )
                   .setPositiveButton(android.R.string.ok, null)
                   .show()
@@ -71,8 +76,7 @@ internal class GroupListScreen : Screen() {
               true
             }
 
-        // TODO String res
-        menu.add("Import and analyze Hprof file")
+        menu.add(R.string.leak_canary_options_menu_import_hprof_file)
             .setOnMenuItemClickListener {
               activity<LeakActivity>().requestImportHprof()
               true

@@ -18,16 +18,18 @@ internal class GroupScreen(private val groupHash: String) : Screen() {
       val triple = LeakingInstanceTable.retrieveGroup(db, groupHash)
 
       if (triple == null) {
-        // TODO String res
-        activity.title = "Analysis deleted"
+        activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
         return this
       }
 
       // TODO add projects to list.
       val (leakTrace, groupDescription, projections) = triple
 
-      // TODO String res
-      activity.title = "${projections.size} leaks in $groupDescription"
+      activity.title = String.format(
+          resources.getQuantityText(
+              R.plurals.leak_canary_group_screen_title, projections.size
+          ).toString(), projections.size, groupDescription
+      )
 
       val listView = findViewById<ListView>(R.id.leak_canary_list)
 
