@@ -21,14 +21,15 @@
   <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> and open sourced by <a href="https://square.github.io">Square</a>.<br><br>
   We welcome contributions from the community, please do not hesitate to
   <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br>]]></string>
+  <string name="leak_canary_analysis_failed">Leak analysis failed</string>
   <string name="leak_canary_class_has_leaked">%1$s Leaked</string>
   <string name="leak_canary_class_has_leaked_retaining">%1$s leaked %2$s</string>
   <string name="leak_canary_class_no_leak">%1$s was never GCed but no leak was found</string>
   <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
   <string name="leak_canary_leak_excluded">[Excluded] %1$s leaked</string>
   <string name="leak_canary_leak_excluded_retaining">[Excluded] %1$s leaked %2$s</string>
-  <string name="leak_canary_analysis_failed">Leak analysis failed</string>
   <string name="leak_canary_leak_list_title">Leaks in %s</string>
+  <string name="leak_canary_loading_title">Loading…</string>
   <string name="leak_canary_notification_analysing">Analyzing Heap Dump</string>
   <string name="leak_canary_notification_channel">LeakCanary</string>
   <string name="leak_canary_notification_dumping">Dumping Heap</string>

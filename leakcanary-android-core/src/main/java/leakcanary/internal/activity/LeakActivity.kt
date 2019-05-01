@@ -10,7 +10,7 @@ import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
 import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.LeakCanaryUtils
-import leakcanary.internal.activity.db.LeaksDbHelper
+import leakcanary.internal.activity.db.Db
 import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
@@ -19,23 +19,11 @@ import java.io.IOException
 
 internal class LeakActivity : NavigatingActivity() {
 
-  private lateinit var dbHelper: LeaksDbHelper
-
-  val db get() = dbHelper.writableDatabase!!
-
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.leak_canary_leak_activity)
 
-    val dbHelperOrNull = lastNonConfigurationInstance
-    dbHelper = dbHelperOrNull as LeaksDbHelper? ?: LeaksDbHelper(application)
-
-
     installNavigation(savedInstanceState, findViewById(R.id.main_container))
-  }
-
-  override fun onRetainNonConfigurationInstance(): Any {
-    return dbHelper
   }
 
   override fun getLauncherScreen(): Screen {
@@ -96,7 +84,7 @@ internal class LeakActivity : NavigatingActivity() {
   override fun onDestroy() {
     super.onDestroy()
     if (!isChangingConfigurations) {
-      dbHelper.close()
+      Db.closeDatabase()
     }
   }
 

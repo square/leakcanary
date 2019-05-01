@@ -9,9 +9,6 @@ import android.graphics.Paint
 import android.graphics.Paint.Style.FILL
 import android.graphics.Paint.Style.STROKE
 import android.graphics.Rect
-import android.os.AsyncTask
-import android.os.Handler
-import android.os.Looper
 import com.squareup.leakcanary.core.R
 import leakcanary.HprofParser
 import leakcanary.HprofParser.RecordCallbacks
@@ -35,18 +32,28 @@ import leakcanary.Record.StackTraceRecord
 import leakcanary.Record.StringRecord
 import java.io.File
 
-class RenderHeapDumpTask private constructor(
-  private val resources: Resources,
-  private val heapDumpFile: File,
-  private val width: Int,
-  private val height: Int,
-  private val bytesPerPixel: Int,
-  private var resultCallback: ((Bitmap) -> Unit)?
-) {
+object HeapDumpRenderer {
 
-  private val uiHandler = Handler(Looper.getMainLooper())
+  private class HasDensity(resources: Resources) {
+    val density = resources.displayMetrics.density
 
-  private val runnable = Runnable {
+    val Int.dp
+      get() = this * density
+
+    val Float.dp
+      get() = this * density
+  }
+
+  fun render(
+    resources: Resources,
+    heapDumpFile: File,
+    sourceWidth: Int,
+    sourceHeight: Int,
+    /**
+     * If [bytesPerPixel] > 0 then height will be ignored.
+     */
+    sourceBytesPerPixel: Int
+  ): Bitmap = with(HasDensity(resources)) {
     val parser = HprofParser.open(heapDumpFile)
 
     val recordPositions = mutableListOf<Pair<Int, Long>>()
@@ -147,17 +154,16 @@ class RenderHeapDumpTask private constructor(
     val heapLength = parser.position
     parser.close()
 
-    val width = width
-
+    val width = sourceWidth
     var height: Int
     val bytesPerPixel: Double
 
-    if (this.bytesPerPixel > 0) {
-      bytesPerPixel = this.bytesPerPixel.toDouble()
+    if (sourceBytesPerPixel > 0) {
+      bytesPerPixel = sourceBytesPerPixel.toDouble()
       height = Math.ceil((heapLength / bytesPerPixel) / width)
           .toInt()
     } else {
-      height = this.height
+      height = sourceHeight
       bytesPerPixel = heapLength * 1.0 / (width * height)
     }
 
@@ -267,37 +273,7 @@ class RenderHeapDumpTask private constructor(
         canvas.drawPoint(x.toFloat(), y.toFloat(), pixelPaint)
       }
     }
-    uiHandler.post {
-      resultCallback?.invoke(bitmap)
-    }
+    return bitmap
   }
 
-  private val Int.dp
-    get() = this * resources.displayMetrics.density
-
-  private val Float.dp
-    get() = this * resources.displayMetrics.density
-
-  fun cancel() {
-    resultCallback = null
-  }
-
-  companion object {
-    fun renderAsync(
-      resources: Resources,
-      heapDumpFile: File,
-      width: Int,
-      height: Int,
-      /**
-       * If [bytesPerPixel] > 0 then height will be ignored.
-       */
-      bytesPerPixel: Int,
-      resultCallback: ((Bitmap) -> Unit)?
-    ): RenderHeapDumpTask {
-      val renderTask =
-        RenderHeapDumpTask(resources, heapDumpFile, width, height, bytesPerPixel, resultCallback)
-      AsyncTask.THREAD_POOL_EXECUTOR.execute(renderTask.runnable)
-      return renderTask
-    }
-  }
 }
