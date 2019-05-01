@@ -36,10 +36,7 @@ internal class GroupListScreen : Screen() {
 
           val projection = projections[position]
 
-          titleView.text = resources.getString(
-              R.string.leak_canary_group_list_title_information, projection.leakCount,
-              projection.description
-          )
+          titleView.text = "(${projection.leakCount}) ${projection.description}"
 
           val formattedDate = DateUtils.formatDateTime(
               view.context, projection.createdAtTimeMillis,

@@ -4,7 +4,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
-import com.squareup.leakcanary.core.R.string
 import leakcanary.HeapAnalysisFailure
 import leakcanary.internal.activity.db
 import leakcanary.internal.activity.db.HeapAnalysisTable
@@ -25,22 +24,22 @@ internal class HeapAnalysisFailureScreen(
       val pair = HeapAnalysisTable.retrieve<HeapAnalysisFailure>(db, analysisId)
 
       if (pair == null) {
-        activity.title = resources.getString(string.leak_canary_analysis_deleted_title)
+        activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
         return this
       }
 
       val (heapAnalysis, _) = pair
 
-      activity.title = resources.getString(string.leak_canary_analysis_failed)
+      activity.title = resources.getString(R.string.leak_canary_analysis_failed)
 
       val failureTextView = findViewById<TextView>(R.id.leak_canary_failure)
       val path = heapAnalysis.heapDumpFile.absolutePath
 
       val failureText = """
-          |${resources.getString(string.leak_canary_failure_report)}
+          |${resources.getString(R.string.leak_canary_failure_report)}
           |LeakCanary ${BuildConfig.LIBRARY_VERSION} ${BuildConfig.GIT_SHA}
           |${heapAnalysis.exception}
-          |${resources.getString(string.leak_canary_download_dump, path)}
+          |${resources.getString(R.string.leak_canary_download_dump, path)}
           """.trimMargin()
       failureTextView.text = failureText
 
