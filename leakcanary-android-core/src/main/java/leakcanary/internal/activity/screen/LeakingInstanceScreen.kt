@@ -3,7 +3,6 @@ package leakcanary.internal.activity.screen
 import android.view.ViewGroup
 import android.widget.ListView
 import com.squareup.leakcanary.core.R
-import com.squareup.leakcanary.core.R.string
 import leakcanary.LeakingInstance
 import leakcanary.internal.DisplayLeakAdapter
 import leakcanary.internal.activity.db
@@ -20,17 +19,11 @@ import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
 import java.io.Serializable
 
-// TODO Store leaktraces in db and pass an id here (needed for grouping)
 internal class LeakingInstanceScreen private constructor(
   private val instanceOrId: InstanceOrId
 ) : Screen() {
 
   constructor(id: Long) : this(Id(id))
-
-  constructor(
-    heapAnalysisId: Long,
-    instance: LeakingInstance
-  ) : this(Instance(heapAnalysisId, instance))
 
   sealed class InstanceOrId : Serializable {
     class Instance(
@@ -50,14 +43,14 @@ internal class LeakingInstanceScreen private constructor(
       }
 
       if (pair == null) {
-        activity.title = resources.getString(string.leak_canary_analysis_deleted_title)
+        activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
         return this
       }
 
       val (heapAnalysisId, leakingInstance) = pair
 
       val classSimpleName = leakingInstance.instanceClassName.lastSegment('.')
-      activity.title = resources.getString(string.leak_canary_class_has_leaked, classSimpleName)
+      activity.title = resources.getString(R.string.leak_canary_class_has_leaked, classSimpleName)
 
       val listView = findViewById<ListView>(R.id.leak_canary_list)
 

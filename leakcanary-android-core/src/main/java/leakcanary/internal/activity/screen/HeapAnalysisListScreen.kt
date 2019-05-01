@@ -57,7 +57,9 @@ internal class HeapAnalysisListScreen : Screen() {
         SimpleListAdapter(R.layout.leak_canary_leak_row, projections) { view, position ->
           val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
           val timeView = view.findViewById<TextView>(R.id.leak_canary_row_time)
-          val index = position + 1
+          // Results are sorted by timestamp DESC so the top item of the list is the last
+          // occurrence, hence the reversed index.
+          val index = count - position
 
           val projection = getItem(position)
 
@@ -66,21 +68,11 @@ internal class HeapAnalysisListScreen : Screen() {
               DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
           )
 
-          val title =
-            when {
-              projection.exceptionSummary != null -> projection.exceptionSummary
-              else -> {
-                val quantityFormat = resources.getQuantityString(
-                    R.plurals.leak_canary_heap_analysis_list_retained_instances,
-                    projection.retainedInstanceCount
-                )
-                String.format(
-                    quantityFormat,
-                    projection.retainedInstanceCount
-                )
-              }
-            }
-          titleView.text = String.format("$index. %s", title)
+          val title = projection.exceptionSummary ?: resources.getQuantityString(
+              R.plurals.leak_canary_heap_analysis_list_retained_instances,
+              projection.retainedInstanceCount, projection.retainedInstanceCount
+          )
+          titleView.text = "$index. $title"
         }
     }
 

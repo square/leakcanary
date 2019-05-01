@@ -23,7 +23,7 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.M
 import android.os.Environment
 import android.os.Environment.DIRECTORY_DOWNLOADS
-import com.squareup.leakcanary.core.R.string
+import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
 import java.io.File
 import java.io.FilenameFilter
@@ -139,11 +139,11 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
 
     val pendingIntent = RequestStoragePermissionActivity.createPendingIntent(context)
     val contentTitle = context.getString(
-        string.leak_canary_permission_notification_title
+        R.string.leak_canary_permission_notification_title
     )
     val packageName = context.packageName
     val contentText =
-      context.getString(string.leak_canary_permission_notification_text, packageName)
+      context.getString(R.string.leak_canary_permission_notification_text, packageName)
 
     LeakCanaryUtils.showNotification(
         context, contentTitle, contentText, pendingIntent, 0x00_DA_BEEF

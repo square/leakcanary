@@ -31,7 +31,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
-import com.squareup.leakcanary.core.R.string
 import leakcanary.CanaryLog
 import java.io.File
 import java.util.concurrent.TimeUnit.SECONDS
@@ -73,7 +72,7 @@ internal class AndroidHeapDumper(
       return null
     }
 
-    val dumpingHeap = context.getString(string.leak_canary_notification_dumping)
+    val dumpingHeap = context.getString(R.string.leak_canary_notification_dumping)
     val builder = Notification.Builder(context)
         .setContentTitle(dumpingHeap)
     val notification = LeakCanaryUtils.buildNotification(context, builder)
