@@ -16,7 +16,6 @@
 package leakcanary.internal
 
 import android.content.Context
-import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
@@ -30,7 +29,7 @@ import com.squareup.leakcanary.core.R
  * Inspired from https://github.com/flavienlaurent/spans and
  * https://github.com/andyxialm/WavyLineView
  */
-internal class SquigglySpan(context: Context, resources: Resources) : ReplacementSpan() {
+internal class SquigglySpan(context: Context) : ReplacementSpan() {
 
   private val squigglyPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG)
   private val path: Path
@@ -43,6 +42,7 @@ internal class SquigglySpan(context: Context, resources: Resources) : Replacemen
   private var width: Int = 0
 
   init {
+    val resources = context.resources
     squigglyPaint.style = Paint.Style.STROKE
     squigglyPaint.color = ContextCompat.getColor(context, R.color.leak_canary_leak)
     val strokeWidth =
@@ -102,15 +102,14 @@ internal class SquigglySpan(context: Context, resources: Resources) : Replacemen
 
     fun replaceUnderlineSpans(
       builder: SpannableStringBuilder,
-      context: Context,
-      resources: Resources
+      context: Context
     ) {
       val underlineSpans = builder.getSpans(0, builder.length, UnderlineSpan::class.java)
       for (span in underlineSpans) {
         val start = builder.getSpanStart(span)
         val end = builder.getSpanEnd(span)
         builder.removeSpan(span)
-        builder.setSpan(SquigglySpan(context, resources), start, end, 0)
+        builder.setSpan(SquigglySpan(context), start, end, 0)
       }
     }
 

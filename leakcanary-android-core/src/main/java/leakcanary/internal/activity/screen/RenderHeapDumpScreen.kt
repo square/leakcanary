@@ -48,7 +48,7 @@ internal class RenderHeapDumpScreen(
 
           executeOnIo {
             val bitmap = HeapDumpRenderer.render(
-                context, resources, heapDumpFile, measuredWidth, measuredHeight, 0
+                context, heapDumpFile, measuredWidth, measuredHeight, 0
             )
             updateUi {
               imageView.setImageBitmap(bitmap)
@@ -84,7 +84,7 @@ internal class RenderHeapDumpScreen(
                 )
                     .show()
                 executeOnIo {
-                  val bitmap = HeapDumpRenderer.render(context, resources, heapDumpFile, 2048, 0, 4)
+                  val bitmap = HeapDumpRenderer.render(context, heapDumpFile, 2048, 0, 4)
                   val storageDir =
                     Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS)
 

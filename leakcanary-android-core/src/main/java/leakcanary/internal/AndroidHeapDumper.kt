@@ -86,15 +86,15 @@ internal class AndroidHeapDumper(
 
     return try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
-      cancelToast(toast)
-      notificationManager.cancel(notificationId)
       heapDumpFile
     } catch (e: Exception) {
       CanaryLog.d(e, "Could not dump heap")
       // Abort heap dump
       null
+    } finally {
+      cancelToast(toast)
+      notificationManager.cancel(notificationId)
     }
-
   }
 
   private fun showToast(waitingForToast: FutureResult<Toast?>) {

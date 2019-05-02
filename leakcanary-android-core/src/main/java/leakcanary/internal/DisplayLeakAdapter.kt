@@ -16,7 +16,6 @@
 package leakcanary.internal
 
 import android.content.Context
-import android.content.res.Resources
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.format.DateUtils
@@ -168,7 +167,7 @@ internal class DisplayLeakAdapter private constructor(
       val detailText = HtmlCompat.fromHtml(
           resources.getString(R.string.leak_canary_help_detail), HtmlCompat.FROM_HTML_MODE_LEGACY
       ) as SpannableStringBuilder
-      SquigglySpan.replaceUnderlineSpans(detailText, view.context, resources)
+      SquigglySpan.replaceUnderlineSpans(detailText, view.context)
       detailView.text = detailText
     } else {
       val isLast = position == (TOP_ROW_COUNT + leakTrace.elements.size) - 1
@@ -181,7 +180,7 @@ internal class DisplayLeakAdapter private constructor(
         true
       } else leakTrace.elementMayBeLeakCause(elementIndex)
 
-      val htmlTitle = htmlTitle(element, maybeLeakCause, reachability, view.context, resources)
+      val htmlTitle = htmlTitle(element, maybeLeakCause, reachability, view.context)
 
       titleView.text = htmlTitle
 
@@ -214,8 +213,7 @@ internal class DisplayLeakAdapter private constructor(
     element: LeakTraceElement,
     maybeLeakCause: Boolean,
     reachability: Reachability,
-    context: Context,
-    resources: Resources
+    context: Context
   ): Spanned {
 
     val packageEnd = element.className.lastIndexOf('.')
@@ -268,7 +266,7 @@ internal class DisplayLeakAdapter private constructor(
     val builder =
       HtmlCompat.fromHtml(htmlString, HtmlCompat.FROM_HTML_MODE_LEGACY) as SpannableStringBuilder
     if (maybeLeakCause) {
-      SquigglySpan.replaceUnderlineSpans(builder, context, resources)
+      SquigglySpan.replaceUnderlineSpans(builder, context)
     }
 
     return builder

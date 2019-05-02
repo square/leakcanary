@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@file:Suppress("DEPRECATION")
-
 package leakcanary
 
 import android.app.Activity
@@ -110,6 +108,7 @@ enum class AndroidReachabilityInspectors : Reachability.Inspector {
     }
   },
 
+  @Suppress("DEPRECATION")
   FRAGMENT {
     override fun expectedReachability(
       parser: HprofParser,
