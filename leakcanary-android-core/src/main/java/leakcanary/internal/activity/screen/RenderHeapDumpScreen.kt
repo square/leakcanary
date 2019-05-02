@@ -2,6 +2,8 @@ package leakcanary.internal.activity.screen
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build.VERSION
+import android.os.Build.VERSION_CODES
 import android.os.Environment
 import android.os.Environment.DIRECTORY_DOWNLOADS
 import android.view.View
@@ -46,8 +48,7 @@ internal class RenderHeapDumpScreen(
 
           executeOnIo {
             val bitmap = HeapDumpRenderer.render(
-                resources,
-                heapDumpFile, measuredWidth, measuredHeight, 0
+                context, resources, heapDumpFile, measuredWidth, measuredHeight, 0
             )
             updateUi {
               imageView.setImageBitmap(bitmap)
@@ -55,7 +56,11 @@ internal class RenderHeapDumpScreen(
               imageView.visibility = View.VISIBLE
             }
           }
-          viewTreeObserver.removeGlobalOnLayoutListener(this)
+          if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
+            viewTreeObserver.removeOnGlobalLayoutListener(this)
+          } else {
+            viewTreeObserver.removeGlobalOnLayoutListener(this)
+          }
         }
       })
 
@@ -79,10 +84,7 @@ internal class RenderHeapDumpScreen(
                 )
                     .show()
                 executeOnIo {
-                  val bitmap = HeapDumpRenderer.render(
-                      resources,
-                      heapDumpFile, 2048, 0, 4
-                  )
+                  val bitmap = HeapDumpRenderer.render(context, resources, heapDumpFile, 2048, 0, 4)
                   val storageDir =
                     Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS)
 

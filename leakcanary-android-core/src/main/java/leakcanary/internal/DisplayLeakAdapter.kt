@@ -15,8 +15,8 @@
  */
 package leakcanary.internal
 
+import android.content.Context
 import android.content.res.Resources
-import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.format.DateUtils
@@ -25,6 +25,8 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import androidx.annotation.ColorRes
+import androidx.core.content.ContextCompat
+import androidx.core.text.HtmlCompat
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
@@ -52,7 +54,7 @@ import leakcanary.internal.activity.db.LeakingInstanceTable.InstanceProjection
 import leakcanary.internal.navigation.inflate
 
 internal class DisplayLeakAdapter private constructor(
-  resources: Resources,
+  context: Context,
   private val leakTrace: LeakTrace,
   private val referenceName: String,
   private val instanceProjections: List<InstanceProjection>
@@ -61,16 +63,16 @@ internal class DisplayLeakAdapter private constructor(
   private val isLeakGroup = instanceProjections.isNotEmpty()
 
   constructor(
-    resources: Resources,
+    context: Context,
     leakTrace: LeakTrace,
     referenceName: String
-  ) : this(resources, leakTrace, referenceName, emptyList())
+  ) : this(context, leakTrace, referenceName, emptyList())
 
   constructor(
-    resources: Resources,
+    context: Context,
     leakTrace: LeakTrace,
     instanceProjections: List<InstanceProjection>
-  ) : this(resources, leakTrace, "", instanceProjections)
+  ) : this(context, leakTrace, "", instanceProjections)
 
   private val opened = BooleanArray(TOP_ROW_COUNT + leakTrace.elements.size)
 
@@ -81,11 +83,11 @@ internal class DisplayLeakAdapter private constructor(
   private val helpColorHexString: String
 
   init {
-    classNameColorHexString = hexStringColor(resources, R.color.leak_canary_class_name)
-    leakColorHexString = hexStringColor(resources, R.color.leak_canary_leak)
-    referenceColorHexString = hexStringColor(resources, R.color.leak_canary_reference)
-    extraColorHexString = hexStringColor(resources, R.color.leak_canary_extra)
-    helpColorHexString = hexStringColor(resources, R.color.leak_canary_help)
+    classNameColorHexString = hexStringColor(context, R.color.leak_canary_class_name)
+    leakColorHexString = hexStringColor(context, R.color.leak_canary_leak)
+    referenceColorHexString = hexStringColor(context, R.color.leak_canary_reference)
+    extraColorHexString = hexStringColor(context, R.color.leak_canary_extra)
+    helpColorHexString = hexStringColor(context, R.color.leak_canary_help)
   }
 
   override fun getView(
@@ -145,26 +147,28 @@ internal class DisplayLeakAdapter private constructor(
     val resources = view.resources
     if (position == TOP_ROW_COUNT - 1) {
       titleView.text = if (isLeakGroup) {
-        Html.fromHtml(
+        HtmlCompat.fromHtml(
             """
               <font color='$helpColorHexString'>
                 <b>Known likely causes of leak group</b>
               </font>
-            """
+            """,
+            HtmlCompat.FROM_HTML_MODE_LEGACY
         )
       } else {
-        Html.fromHtml(
+        HtmlCompat.fromHtml(
             """
               <font color='$helpColorHexString'>
                 <b>${resources.getString(R.string.leak_canary_help_title)}</b>
               </font>
-            """
+            """,
+            HtmlCompat.FROM_HTML_MODE_LEGACY
         )
       }
-      val detailText = Html.fromHtml(
-          resources.getString(R.string.leak_canary_help_detail)
+      val detailText = HtmlCompat.fromHtml(
+          resources.getString(R.string.leak_canary_help_detail), HtmlCompat.FROM_HTML_MODE_LEGACY
       ) as SpannableStringBuilder
-      SquigglySpan.replaceUnderlineSpans(detailText, resources)
+      SquigglySpan.replaceUnderlineSpans(detailText, view.context, resources)
       detailView.text = detailText
     } else {
       val isLast = position == (TOP_ROW_COUNT + leakTrace.elements.size) - 1
@@ -177,7 +181,7 @@ internal class DisplayLeakAdapter private constructor(
         true
       } else leakTrace.elementMayBeLeakCause(elementIndex)
 
-      val htmlTitle = htmlTitle(element, maybeLeakCause, reachability, resources)
+      val htmlTitle = htmlTitle(element, maybeLeakCause, reachability, view.context, resources)
 
       titleView.text = htmlTitle
 
@@ -210,6 +214,7 @@ internal class DisplayLeakAdapter private constructor(
     element: LeakTraceElement,
     maybeLeakCause: Boolean,
     reachability: Reachability,
+    context: Context,
     resources: Resources
   ): Spanned {
 
@@ -260,9 +265,10 @@ internal class DisplayLeakAdapter private constructor(
     if (exclusion != null) {
       htmlString += " (excluded)"
     }
-    val builder = Html.fromHtml(htmlString) as SpannableStringBuilder
+    val builder =
+      HtmlCompat.fromHtml(htmlString, HtmlCompat.FROM_HTML_MODE_LEGACY) as SpannableStringBuilder
     if (maybeLeakCause) {
-      SquigglySpan.replaceUnderlineSpans(builder, resources)
+      SquigglySpan.replaceUnderlineSpans(builder, context, resources)
     }
 
     return builder
@@ -285,7 +291,7 @@ internal class DisplayLeakAdapter private constructor(
       htmlString += " <font color='$extraColorHexString'>$referenceName</font>"
     }
 
-    return Html.fromHtml(htmlString)
+    return HtmlCompat.fromHtml(htmlString, HtmlCompat.FROM_HTML_MODE_LEGACY)
   }
 
   private fun getConnectorType(position: Int): Type {
@@ -309,7 +315,7 @@ internal class DisplayLeakAdapter private constructor(
       } else {
         val reachability = leakTrace.expectedReachability[elementIndex(position)]
         when (reachability.status) {
-          Reachability.Status.UNKNOWN -> return NODE_UNKNOWN
+          UNKNOWN -> return NODE_UNKNOWN
           REACHABLE -> {
             val nextReachability = leakTrace.expectedReachability[elementIndex(position + 1)]
             return if (nextReachability.status != REACHABLE) {
@@ -363,8 +369,8 @@ internal class DisplayLeakAdapter private constructor(
     private const val TOP_ROW_COUNT = 2
 
     // https://stackoverflow.com/a/6540378/703646
-    private fun hexStringColor(resources: Resources, @ColorRes colorResId: Int): String {
-      return String.format("#%06X", 0xFFFFFF and resources.getColor(colorResId))
+    private fun hexStringColor(context: Context, @ColorRes colorResId: Int): String {
+      return String.format("#%06X", 0xFFFFFF and ContextCompat.getColor(context, colorResId))
     }
   }
 }
