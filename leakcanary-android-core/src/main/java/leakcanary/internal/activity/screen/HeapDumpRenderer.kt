@@ -48,15 +48,14 @@ object HeapDumpRenderer {
 
   fun render(
     context: Context,
-    resources: Resources,
     heapDumpFile: File,
     sourceWidth: Int,
     sourceHeight: Int,
     /**
-     * If [bytesPerPixel] > 0 then height will be ignored.
+     * If [sourceBytesPerPixel] > 0 then [sourceHeight] will be ignored.
      */
     sourceBytesPerPixel: Int
-  ): Bitmap = with(HasDensity(resources)) {
+  ): Bitmap = with(HasDensity(context.resources)) {
     val parser = HprofParser.open(heapDumpFile)
 
     val recordPositions = mutableListOf<Pair<Int, Long>>()

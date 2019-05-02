@@ -61,7 +61,7 @@ internal object HeapAnalysisTable {
     }
   }
 
-  fun <T : HeapAnalysis> retrieve(
+  inline fun <reified T : HeapAnalysis> retrieve(
     db: SQLiteDatabase,
     id: Long
   ): Pair<T, Map<String, HeapAnalysisGroupProjection>>? {
