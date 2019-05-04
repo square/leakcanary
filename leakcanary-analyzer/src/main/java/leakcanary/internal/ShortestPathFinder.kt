@@ -69,6 +69,7 @@ internal class ShortestPathFinder {
   /** Set of instances to visit */
   private val toVisitMap = LinkedHashMap<Long, Status>()
   private val visitedSet = LinkedHashSet<Long>()
+  private lateinit var referentMap: Map<Long, KeyedWeakReferenceMirror>
   private var visitOrder = 0
 
   internal class Result(
@@ -119,7 +120,7 @@ internal class ShortestPathFinder {
         }
 
     // Referent object id to weak ref mirror
-    val referentMap = leakingWeakRefs.associateBy { it.referent.value }
+    referentMap = leakingWeakRefs.associateBy { it.referent.value }
 
     enqueueGcRoots(parser, gcRootIds)
     gcRootIds.clear()
@@ -154,7 +155,6 @@ internal class ShortestPathFinder {
         is ClassDumpRecord -> visitClassRecord(parser, record, node, staticFieldNameByClassName)
         is InstanceDumpRecord -> visitInstanceRecord(parser, record, node, fieldNameByClassName)
         is ObjectArrayDumpRecord -> visitObjectArrayRecord(parser, record, node)
-        else -> throw IllegalStateException("Unexpected type for $record")
       }
     }
 
@@ -172,6 +172,7 @@ internal class ShortestPathFinder {
     toVisitMap.clear()
     visitedSet.clear()
     visitOrder = 0
+    referentMap = emptyMap()
   }
 
   private fun enqueueGcRoots(
@@ -293,8 +294,10 @@ internal class ShortestPathFinder {
       return
     }
 
+    val isLeakingInstance = referentMap[node.instance] != null
+
     val objectIdMetadata = hprofParser.objectIdMetadata(node.instance)
-    if (objectIdMetadata in SKIP_ENQUEUE) {
+    if (!isLeakingInstance && objectIdMetadata in SKIP_ENQUEUE) {
       return
     }
 

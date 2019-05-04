@@ -67,7 +67,7 @@ class RefWatcher constructor(
   }
 
   /**
-   * Watches the provided references and notifies registered [NewRefListener]s.
+   * Watches the provided references.
    *
    * @param referenceName An logical identifier for the watched object.
    */
@@ -75,7 +75,6 @@ class RefWatcher constructor(
     watchedReference: Any,
     referenceName: String
   ) {
-    checkWatchedObjectType(watchedReference)
     removeWeaklyReachableReferences()
     val key = UUID.randomUUID()
         .toString()
@@ -96,14 +95,6 @@ class RefWatcher constructor(
     watchedReferences[key] = reference
     checkRetainedExecutor.execute {
       moveToRetained(key)
-    }
-  }
-
-  private fun checkWatchedObjectType(watchedReference: Any) {
-    if (watchedReference is String) {
-      throw IllegalArgumentException(
-          "watchedReference $watchedReference has a type that the LeakCanary shortest path finder will skip"
-      )
     }
   }
 

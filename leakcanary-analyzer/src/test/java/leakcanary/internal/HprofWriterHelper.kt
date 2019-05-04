@@ -63,8 +63,8 @@ class HprofWriterHelper constructor(
   )
 
   fun clazz(
-    superClassId: Long = -1L, // -1 defaults to java.lang.Object
     className: String,
+    superClassId: Long = -1L, // -1 defaults to java.lang.Object
     staticFields: List<Pair<String, HeapValue>> = emptyList(),
     fields: List<Pair<String, KClass<out HeapValue>>> = emptyList()
   ): Long {

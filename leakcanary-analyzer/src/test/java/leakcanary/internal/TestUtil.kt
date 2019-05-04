@@ -1,50 +1,32 @@
 package leakcanary.internal
 
+import leakcanary.AnalyzerProgressListener
 import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.ThreadExclusion
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
-import leakcanary.HeapValue.BooleanValue
-import leakcanary.HeapValue.ObjectReference
+import leakcanary.HeapAnalysis
+import leakcanary.HeapAnalyzer
 import leakcanary.HprofParser
-import leakcanary.HprofWriter
 import leakcanary.KeyedWeakReference
+import leakcanary.Labeler
+import leakcanary.Reachability
 import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
 import java.lang.ref.WeakReference
 
-fun File.dumpMultipleActivityLeaks(leakCount: Int) {
-  HprofWriter.open(this)
-      .helper {
-        val activityClassId = clazz(
-            className = "android.app.Activity",
-            fields = listOf("mDestroyed" to BooleanValue::class)
-        )
-        val exampleActivityClassId = clazz(
-            superClassId = activityClassId,
-            className = "com.example.ExampleActivity"
-        )
-        val activityArrayClassId = arrayClass("com.example.ExampleActivity")
-
-        val destroyedActivities = mutableListOf<Long>()
-        for (i in 1..leakCount) {
-          destroyedActivities.add(instance(exampleActivityClassId, listOf(BooleanValue(true))))
-        }
-
-        clazz(
-            className = "com.example.ActivityHolder",
-            staticFields = listOf(
-                "activities" to ObjectReference(
-                    objectArray(activityArrayClassId, destroyedActivities.toLongArray())
-                )
-            )
-        )
-        destroyedActivities.forEach { instanceId ->
-          keyedWeakReference("com.example.ExampleActivity", instanceId)
-        }
-      }
+@Suppress("UNCHECKED_CAST")
+fun <T : HeapAnalysis> File.checkForLeaks(
+  labelers: List<Labeler> = emptyList(),
+  reachabilityInspectors: List<Reachability.Inspector> = emptyList(),
+  exclusionsFactory: (HprofParser) -> List<Exclusion> = defaultExclusionFactory
+): T {
+  val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
+  return heapAnalyzer.checkForLeaks(
+      this, exclusionsFactory, false, reachabilityInspectors, labelers
+  ) as T
 }
 
 val defaultExclusionFactory: (HprofParser) -> List<Exclusion> = {

@@ -42,9 +42,19 @@ import leakcanary.Reachability.Status.REACHABLE
 import leakcanary.Reachability.Status.UNKNOWN
 import leakcanary.Reachability.Status.UNREACHABLE
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StringRecord
 import leakcanary.internal.KeyedWeakReferenceMirror
@@ -111,7 +121,8 @@ class HeapAnalyzer constructor(
                   heapDumpUptimeMillis
               )
 
-            val pathResults = findShortestPaths(parser, exclusionsFactory, leakingWeakRefs, gcRootIds)
+            val pathResults =
+              findShortestPaths(parser, exclusionsFactory, leakingWeakRefs, gcRootIds)
 
             buildLeakTraces(
                 computeRetainedHeapSize, reachabilityInspectors, labelers, pathResults, parser,
@@ -278,14 +289,21 @@ class HeapAnalyzer constructor(
       val leakTrace =
         buildLeakTrace(parser, reachabilityInspectors, pathResult.leakingNode, labelers)
 
+      // We get the class name from the heap dump rather than the weak reference because primitive
+      // arrays are more readable that way, e.g. "[C" at runtime vs "char[]" in the heap dump.
+      val instanceClassName =
+        recordClassName(parser.retrieveRecordById(pathResult.leakingNode.instance), parser)
+
       // TODO Compute retained heap size
       val retainedSize = null
       val key = parser.retrieveString(weakReference.key)
       val leakDetected = LeakingInstance(
-          key,
-          parser.retrieveString(weakReference.name),
-          parser.retrieveString(weakReference.className),
-          weakReference.watchDurationMillis, pathResult.exclusionStatus, leakTrace, retainedSize
+          referenceKey = key,
+          referenceName = parser.retrieveString(weakReference.name),
+          instanceClassName = instanceClassName,
+          watchDurationMillis = weakReference.watchDurationMillis,
+          exclusionStatus = pathResult.exclusionStatus, leakTrace = leakTrace,
+          retainedHeapSize = retainedSize
       )
       analysisResults[key] = leakDetected
     }
@@ -372,28 +390,18 @@ class HeapAnalyzer constructor(
     }
 
     val simpleClassNames = nodes.map { node ->
-      val record = parser.retrieveRecordById(node.instance)
-      val classId = when (record) {
-        is ClassDumpRecord -> record.id
-        is InstanceDumpRecord -> record.classId
-        is ObjectArrayDumpRecord -> record.arrayClassId
-        else -> throw IllegalStateException("Unexpected record type for $record")
-      }
-      parser.className(classId)
-          .lastSegment('.')
+      recordClassName(parser.retrieveRecordById(node.instance), parser).lastSegment('.')
     }
 
     // First and last are always known.
     for (i in 1 until lastElementIndex) {
       val reachability = expectedReachability[i]
-      if (reachability.status == UNKNOWN) {
-        if (i < lastReachableElementIndex) {
-          val nextReachableName = simpleClassNames[i + 1]
-          expectedReachability[i] = Reachability.reachable("$nextReachableName↓ is not leaking")
-        } else if (i > firstUnreachableElementIndex) {
-          val previousUnreachableName = simpleClassNames[i - 1]
-          expectedReachability[i] = Reachability.unreachable("$previousUnreachableName↑ is leaking")
-        }
+      if (i < lastReachableElementIndex && reachability.status != REACHABLE) {
+        val nextReachableName = simpleClassNames[i + 1]
+        expectedReachability[i] = Reachability.reachable("$nextReachableName↓ is not leaking")
+      } else if (i > firstUnreachableElementIndex && reachability.status == UNKNOWN) {
+        val previousUnreachableName = simpleClassNames[i - 1]
+        expectedReachability[i] = Reachability.unreachable("$previousUnreachableName↑ is leaking")
       }
     }
     return expectedReachability
@@ -422,17 +430,11 @@ class HeapAnalyzer constructor(
 
     val record = parser.retrieveRecordById(objectId)
 
-    val classId = when (record) {
-      is ClassDumpRecord -> record.id
-      is InstanceDumpRecord -> record.classId
-      is ObjectArrayDumpRecord -> record.arrayClassId
-      else -> throw IllegalStateException("Unexpected record type for $record")
-    }
-    val className = parser.className(classId)
+    val className = recordClassName(record, parser)
 
     val holderType = if (record is ClassDumpRecord) {
       CLASS
-    } else if (record is ObjectArrayDumpRecord) {
+    } else if (record is ObjectArrayDumpRecord || record is PrimitiveArrayDumpRecord) {
       ARRAY
     } else {
       record as InstanceDumpRecord
@@ -446,12 +448,32 @@ class HeapAnalyzer constructor(
     return LeakTraceElement(node.leakReference, holderType, className, node.exclusion, labels)
   }
 
+  private fun recordClassName(
+    record: ObjectRecord,
+    parser: HprofParser
+  ): String {
+    return when (record) {
+      is ClassDumpRecord -> parser.className(record.id)
+      is InstanceDumpRecord -> parser.className(record.classId)
+      is ObjectArrayDumpRecord -> parser.className(record.arrayClassId)
+      is BooleanArrayDump -> "boolean[]"
+      is CharArrayDump -> "char[]"
+      is FloatArrayDump -> "float[]"
+      is DoubleArrayDump -> "double[]"
+      is ByteArrayDump -> "byte[]"
+      is ShortArrayDump -> "short[]"
+      is IntArrayDump -> "int[]"
+      is LongArrayDump -> "long[]"
+      else -> throw IllegalStateException("Unexpected record type for $record")
+    }
+  }
+
   private fun since(analysisStartNanoTime: Long): Long {
     return NANOSECONDS.toMillis(System.nanoTime() - analysisStartNanoTime)
   }
 
   companion object {
-    internal const val ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$"
+    private const val ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$"
     internal val ANONYMOUS_CLASS_NAME_PATTERN_REGEX = ANONYMOUS_CLASS_NAME_PATTERN.toRegex()
   }
 }
