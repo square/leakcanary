@@ -18,15 +18,19 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.leakcanary"
     >
-  <application android:name=".ExampleApplication" android:allowBackup="false"
-      android:icon="@drawable/ic_launcher"
+
+  <application
+      android:name=".ExampleApplication"
+      android:allowBackup="false"
+      android:icon="@mipmap/ic_launcher"
+      android:label="@string/app_name"
       >
     <activity
-        android:label="@string/app_name"
         android:name=".MainActivity"
         >
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
+
         <category android:name="android.intent.category.LAUNCHER"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>

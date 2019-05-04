@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (C) 2015 Square, Inc.
+  ~ Copyright (C) 2018 Square, Inc.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -14,63 +14,19 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.squareup.leakcanary"
-    >
-
-  <!-- To store the heap dumps and leak analysis results. -->
-  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-  <!-- To allow starting foreground services on Android P+ - https://developer.android.com/preview/behavior-changes#fg-svc -->
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.squareup.leakcanary">
 
   <application>
     <service
-        android:name=".internal.HeapAnalyzerService"
-        android:process=":leakcanary"
-        android:enabled="false"
-        />
-    <service
-        android:name=".DisplayLeakService"
-        android:process=":leakcanary"
-        android:enabled="false"
-        />
-    <provider
-        android:name="com.squareup.leakcanary.internal.LeakCanaryFileProvider"
-        android:authorities="com.squareup.leakcanary.fileprovider.${applicationId}"
+        android:name="leakcanary.internal.HeapAnalyzerService"
         android:exported="false"
-        android:grantUriPermissions="true"
-        >
-      <meta-data
-          android:name="android.support.FILE_PROVIDER_PATHS"
-          android:resource="@xml/leak_canary_file_paths"/>
-    </provider>
-    <activity
-        android:theme="@style/leak_canary_LeakCanary.Base"
-        android:name=".internal.DisplayLeakActivity"
-        android:process=":leakcanary"
-        android:enabled="false"
-        android:label="@string/leak_canary_display_activity_label"
-        android:icon="@mipmap/leak_canary_icon"
-        android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         >
       <intent-filter>
-        <action android:name="android.intent.action.MAIN"/>
-        <category android:name="android.intent.category.LAUNCHER"/>
+        <action android:name="leakcanary.ANALYSIS_ACTION"/>
       </intent-filter>
-    </activity>
-    <activity
-        android:theme="@style/leak_canary_Theme.Transparent"
-        android:name=".internal.RequestStoragePermissionActivity"
-        android:process=":leakcanary"
-        android:taskAffinity="com.squareup.leakcanary.${applicationId}"
-        android:enabled="false"
-        android:excludeFromRecents="true"
-        android:icon="@mipmap/leak_canary_icon"
-        android:roundIcon="@mipmap/leak_canary_icon"
-        android:label="@string/leak_canary_storage_permission_activity_label"
-        />
+    </service>
 
   </application>
+
 </manifest>

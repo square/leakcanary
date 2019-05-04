@@ -1,0 +1,12 @@
+apply plugin: 'java-library'
+apply plugin: 'kotlin'
+
+sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7
+
+dependencies {
+  implementation deps.kotlin.stdlib
+}
+
+apply from: rootProject.file('gradle/checkstyle.gradle')
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

@@ -1,15 +1,25 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 
 dependencies {
-  api project(':leakcanary-android')
-  implementation 'com.android.support.test:runner:1.0.2'
+  api project(':leakcanary-analyzer-perflib')
+  api project(':leakcanary-android-core')
+
+  implementation deps.androidx.test.runner
+  implementation deps.kotlin.stdlib
+
+  androidTestImplementation deps.androidx.test.core
+  androidTestImplementation deps.androidx.test.espresso
+  androidTestImplementation deps.androidx.test.rules
+  androidTestImplementation deps.androidx.test.runner
+  androidTestImplementation deps.androidx.fragment
 }
 
 android {
   compileSdkVersion versions.compileSdk
   defaultConfig {
     minSdkVersion versions.minSdk
-    testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'

@@ -1,0 +1,39 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+dependencies {
+  api project(':leakcanary-analyzer')
+  api project(':leakcanary-leaksentry')
+  api project(':leakcanary-analyzer')
+
+  implementation deps.androidx.annotation
+  implementation deps.androidx.core
+  implementation deps.kotlin.stdlib
+
+  testImplementation deps.junit
+  testImplementation deps.mockito
+  testImplementation deps.mockito_kotlin
+}
+
+def gitSha() {
+  return 'git rev-parse --short HEAD'.execute().text.trim()
+}
+
+android {
+  resourcePrefix 'leak_canary_'
+  compileSdkVersion versions.compileSdk
+  defaultConfig {
+    minSdkVersion versions.minSdk
+    buildConfigField "String", "LIBRARY_VERSION", "\"${rootProject.ext.VERSION_NAME}\""
+    buildConfigField "String", "GIT_SHA", "\"${gitSha()}\""
+    consumerProguardFiles 'consumer-proguard-rules.pro'
+  }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    error 'ObsoleteSdkInt'
+    check 'Interoperability'
+  }
+}
+
+apply from: rootProject.file('gradle/checkstyle.gradle')
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

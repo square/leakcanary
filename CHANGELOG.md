@@ -1,10 +1,44 @@
 # Change Log
 
-## Version 2.0
+## Version 2.0 Alpha 1 (2019-04-23)
 
-* [#1186](https://github.com/square/leakcanary/issues/1186) Fix NPE when KeyedWeakReference was not found in heap dump.
-* [#1133](https://github.com/square/leakcanary/issues/1133) Updated to HAHA 2.1 (latest perflib from Android Studio)
-* [#1124](https://github.com/square/leakcanary/issues/1124) Fixed crash when heap dump has missing native threads.
+**Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://github.com/square/leakcanary#getting-started) instructions and the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0). This change log is also available as a [Twitter thread](https://twitter.com/Piwai/status/1120681920835276800).
+
+<img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
+
+* New [logo](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo), thanks [@flickator](https://github.com/flickator)!
+* Entirely rewritten to **100% Kotlin**
+* Multiple leaks detected in one analysis
+  * The heap is dumped when the app goes in the background, or when a minimum of 5 leaks is reached in the foreground.
+* Leak grouping
+  * Leaks that share similar causes are grouped in the UI.
+  * New screens to see the list of groups and each group.
+  * Improved leaktrace strings to highlight leak causes.
+  * Leaks can be shared to Stack Overflow
+* New library: **LeakSentry**.
+  * Detects when objects are leaking and triggers LeakCanary
+  * Can be used independently in production, for instance to report the number of leaking instances on an OutOfMemoryError crash.
+* New heap parser
+  * Uses **90% less memory and 6 times** faster than the prior heap parser.
+  * Runs in the same process as the app on a low priority thread.
+  * No more dependency on Perflib and TroveJ. New dependency on Okio.
+  * The old parser is still available as `leakcanary-android-perflib` but will be removed after alpha.
+* Labelers can add any string content to leak elements
+* 0 code setup, just add the one debug dependency.
+* Simpler configuration options
+* Updated from support library to Android X
+
+Many thanks to
+[@BraisGabin](https://github.com/BraisGabin),
+[@colinmarsch](https://github.com/colinmarsch),
+[@jrodbx](https://github.com/jrodbx),
+[@flickator](https://github.com/flickator),
+[@JakeWharton](https://github.com/JakeWharton),
+[@pyricau](https://github.com/pyricau),
+[@WhatsEmo](https://github.com/WhatsEmo)
+for the contributions!
+
+For more details, see the [2.0 Milestone](https://github.com/square/leakcanary/milestone/6) and the [full diff](https://github.com/square/leakcanary/compare/v1.6.3...master).
 
 ## Version 1.6.3 (2019-01-10)
 
