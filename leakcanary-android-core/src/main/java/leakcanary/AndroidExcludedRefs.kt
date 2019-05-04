@@ -618,10 +618,40 @@ enum class AndroidExcludedRefs {
                     "android.view.ViewGroup\$ViewLocationHolder",
                     "mRoot"
                 ),
-                reason = "In Android P, ViewLocationHolder has an mRoot field that is not cleared" +
+                reason = "In Android P, ViewLocationHolder has an mRoot field that is not cleared " +
                     "in its clear() method. Introduced in https://github.com/aosp-mirror" +
                     "/platform_frameworks_base/commit/86b326012813f09d8f1de7d6d26c986a909d Bug " +
                     "report: https://issuetracker.google.com/issues/112792715"
+            )
+        )
+      }
+    }
+  },
+
+  TEXT_TO_SPEECH {
+    override fun add(
+      exclusions: MutableList<Exclusion>,
+      build: BuildMirror
+    ) {
+      if (build.sdkInt == N) {
+        val reason =
+          ("TextToSpeech.shutdown() does not release its references to context objects." +
+              " Furthermore, TextToSpeech instances cannot be garbage collected due to other process" +
+              " keeping the references, resulting the context objects leaked." +
+              " Developers might be able to mitigate the issue by passing application context" +
+              " to TextToSpeech constructor." +
+              " Tracked at: https://github.com/square/leakcanary/issues/1210 and" +
+              " https://issuetracker.google.com/issues/129250419")
+        exclusions.add(
+            Exclusion(
+                type = InstanceFieldExclusion("android.speech.tts.TextToSpeech", "mContext"),
+                reason = reason
+            )
+        )
+        exclusions.add(
+            Exclusion(
+                type = InstanceFieldExclusion("android.speech.tts.TtsEngines", "mContext"),
+                reason = reason
             )
         )
       }
