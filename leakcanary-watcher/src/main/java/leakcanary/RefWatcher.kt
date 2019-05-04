@@ -27,7 +27,11 @@ import java.util.concurrent.Executor
 class RefWatcher constructor(
   private val clock: Clock,
   private val checkRetainedExecutor: Executor,
-  private val onReferenceRetained: () -> Unit
+  private val onReferenceRetained: () -> Unit,
+  /**
+   * Calls to [watch] will be ignored when [isEnabled] returns false
+   */
+  private val isEnabled: () -> Boolean = { true }
 ) {
 
   /**
@@ -44,13 +48,13 @@ class RefWatcher constructor(
   val hasRetainedReferences: Boolean
     @Synchronized get() {
       removeWeaklyReachableReferences()
-      return !retainedReferences.isEmpty()
+      return retainedReferences.isNotEmpty()
     }
 
   val hasWatchedReferences: Boolean
     @Synchronized get() {
       removeWeaklyReachableReferences()
-      return !retainedReferences.isEmpty() || !watchedReferences.isEmpty()
+      return retainedReferences.isNotEmpty() || watchedReferences.isNotEmpty()
     }
 
   val retainedKeys: Set<String>
@@ -75,6 +79,9 @@ class RefWatcher constructor(
     watchedReference: Any,
     referenceName: String
   ) {
+    if (!isEnabled()) {
+      return
+    }
     removeWeaklyReachableReferences()
     val key = UUID.randomUUID()
         .toString()

@@ -1,6 +1,7 @@
 package leakcanary.internal
 
 import android.app.Application
+import android.content.pm.ApplicationInfo
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -13,6 +14,10 @@ import java.util.concurrent.Executor
 internal object InternalLeakSentry {
 
   private val listener: LeakSentryListener
+
+  val isDebuggableBuild by lazy {
+    (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+  }
 
   lateinit var application: Application
 
@@ -37,11 +42,11 @@ internal object InternalLeakSentry {
     mainHandler.postDelayed(it, LeakSentry.config.watchDurationMillis)
   }
   val refWatcher = RefWatcher(
-      clock,
-      checkRetainedExecutor
-  ) {
-    listener.onReferenceRetained()
-  }
+      clock = clock,
+      checkRetainedExecutor = checkRetainedExecutor,
+      onReferenceRetained = { listener.onReferenceRetained() },
+      isEnabled = { LeakSentry.config.enabled }
+  )
 
   fun install(application: Application) {
     CanaryLog.d("Installing LeakSentry")
