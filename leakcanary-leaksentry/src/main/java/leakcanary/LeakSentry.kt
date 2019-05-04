@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 object LeakSentry {
 
   data class Config(
+    val enabled: Boolean = InternalLeakSentry.isDebuggableBuild,
     val watchActivities: Boolean = true,
     val watchFragments: Boolean = true,
     val watchFragmentViews: Boolean = true,
