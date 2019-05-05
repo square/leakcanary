@@ -113,33 +113,6 @@ In your leak reporting code:
 val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
 ```
 
-### Alternate setup with the old perflib heap parser
-
-If you want to try LeakCanary 2.0 features with the battle tested perflib heap parser, use a different dependency:
-
-```gradle
-dependencies {
-  // debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android-perflib:2.0-alpha-1'
-}
-```
-
-In your **debug** `Application` class:
-
-```kotlin
-class DebugExampleApplication : ExampleApplication() {
-
-  override fun onCreate() {
-    if (LeakCanary.isInAnalyzerProcess(this)) {
-      // This process is dedicated to Perflib for heap analysis.
-      // You should not init your app in this process.
-      return
-    }
-    super.onCreate()
-  }
-}
-```
-
 ## FAQ
 
 ### Can a leak be caused by the Android SDK?
