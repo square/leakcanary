@@ -41,7 +41,7 @@ When we first enabled LeakCanary in the Square Point Of Sale app, we were able t
 
 ### How does LeakCanary work?
 
-* The library watches destroyed activities and destroyed fragments using weak references. You can also pass any instance that is no longer needed to watch, e.g. a detached view.
+* A library called LeakSentry watches destroyed activities and destroyed fragments using weak references. You can also pass any instance that is no longer needed to watch, e.g. a detached view.
 * If the weak references aren't cleared, after waiting 5 seconds and running the GC, the watched instances are considered *retained*, and potentially leaking.
 * When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored on the file system. The default threshold is 5 retained instances when the app is visible, 1 otherwise.
 * LeakCanary parses the `.hprof` file and finds the chain of references that prevents retained instances from being garbage collected (**leak trace**). A leak trace is technically the *shortest strong reference path from GC Roots to retained instances*, but that's a mouthful.
