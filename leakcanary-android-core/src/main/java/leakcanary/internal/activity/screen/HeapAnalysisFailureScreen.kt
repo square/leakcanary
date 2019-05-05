@@ -24,13 +24,12 @@ internal class HeapAnalysisFailureScreen(
     container.inflate(R.layout.leak_canary_heap_analysis_failure_screen).apply {
       activity.title = resources.getString(R.string.leak_canary_loading_title)
       executeOnDb {
-        val pair = HeapAnalysisTable.retrieve<HeapAnalysisFailure>(db, analysisId)
-        if (pair == null) {
+        val heapAnalysis = HeapAnalysisTable.retrieve<HeapAnalysisFailure>(db, analysisId)
+        if (heapAnalysis == null) {
           updateUi {
             activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
           }
         } else {
-          val (heapAnalysis, _) = pair
           val heapDumpFileExist = heapAnalysis.heapDumpFile.exists()
           updateUi { onFailureRetrieved(heapAnalysis, heapDumpFileExist) }
         }

@@ -2,7 +2,7 @@ package leakcanary.internal.activity.db
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
-import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
+import leakcanary.Exclusion
 import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
@@ -26,6 +26,7 @@ internal object LeakingInstanceTable {
         group_hash TEXT,
         group_description TEXT,
         class_simple_name TEXT,
+        exclusion_status INTEGER,
         object BLOB
         )"""
 
@@ -49,6 +50,7 @@ internal object LeakingInstanceTable {
     values.put("group_description", leakingInstance.createGroupDescription())
     values.put("class_simple_name", leakingInstance.instanceClassName.lastSegment('.'))
     values.put("object", leakingInstance.toByteArray())
+    values.put("exclusion_status", leakingInstance.exclusionStatus?.ordinal ?: -1)
     return db.insertOrThrow("leaking_instance", null, values)
   }
 
@@ -84,13 +86,21 @@ internal object LeakingInstanceTable {
     val description: String,
     val createdAtTimeMillis: Long,
     val leakCount: Int,
-    val totalLeakCount: Int
+    val totalLeakCount: Int,
+    val isNew: Boolean,
+    val exclusionStatus: Exclusion.Status?
   )
 
   fun retrieveAllByHeapAnalysisId(
     db: SQLiteDatabase,
     heapAnalysisId: Long
   ): Map<String, HeapAnalysisGroupProjection> {
+
+    val isLatestHeapAnalysis = db.rawQuery("SELECT MAX(id) FROM heap_analysis", null)
+        .use { cursor ->
+          cursor.moveToNext()
+          cursor.getLong(0) == heapAnalysisId
+        }
 
     return db.rawQuery(
         """
@@ -100,6 +110,7 @@ internal object LeakingInstanceTable {
           , MAX(created_at_time_millis) as created_at_time_millis
           , SUM(CASE WHEN heap_analysis_id=$heapAnalysisId THEN 1 ELSE 0 END) as leak_count
           , COUNT(*) as total_leak_count
+          , MIN(exclusion_status) as exclusion_status
           FROM leaking_instance l
           LEFT JOIN heap_analysis h ON l.heap_analysis_id = h.id
           GROUP BY 1, 2
@@ -111,12 +122,17 @@ internal object LeakingInstanceTable {
           val projectionsByHash = linkedMapOf<String, HeapAnalysisGroupProjection>()
           while (cursor.moveToNext()) {
             val hash = cursor.getString(0)
+            val description = cursor.getString(1)
+            val createdAtTimeMillis = cursor.getLong(2)
+            val leakCount = cursor.getInt(3)
+            val totalLeakCount = cursor.getInt(4)
+            val isNew = isLatestHeapAnalysis && leakCount == totalLeakCount
+            val exclusionStatusOrdinal = cursor.getInt(5)
+            val exclusionStatus =
+              if (exclusionStatusOrdinal == -1) null else Exclusion.Status.values()[exclusionStatusOrdinal]
             val group = HeapAnalysisGroupProjection(
-                hash = hash,
-                description = cursor.getString(1),
-                createdAtTimeMillis = cursor.getLong(2),
-                leakCount = cursor.getInt(3),
-                totalLeakCount = cursor.getInt(4)
+                hash, description, createdAtTimeMillis, leakCount, totalLeakCount, isNew,
+                exclusionStatus
             )
             projectionsByHash[hash] = group
           }
@@ -184,8 +200,6 @@ internal object LeakingInstanceTable {
     )
         .use { cursor ->
           if (cursor.moveToNext()) {
-            // TODO This may crash if we can't deserialize the first entry we find.
-            // We need to either prune early, or have a better deserialization story.
             val leakingInstance = Serializables.fromByteArray<LeakingInstance>(cursor.getBlob(0))!!
             val leakTrace = leakingInstance.leakTrace
 
@@ -262,16 +276,12 @@ internal object LeakingInstanceTable {
 
   private fun LeakingInstance.createGroupDescription(): String {
     return if (exclusionStatus == WONT_FIX_LEAK) {
-      "[Won't Fix] ${leakTrace.firstElementExclusion.matching}"
+      leakTrace.firstElementExclusion.matching
     } else {
       val element = leakTrace.leakCauses.first()
       val referenceName = element.reference!!.groupingName
       val refDescription = element.simpleClassName + "." + referenceName
-      if (exclusionStatus == WEAKLY_REACHABLE) {
-        "[Weakly Reachable] $refDescription"
-      } else {
-        refDescription
-      }
+      refDescription
     }
   }
 

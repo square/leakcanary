@@ -6,12 +6,16 @@ import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
+import leakcanary.Exclusion
+import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
+import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
 import leakcanary.WeakReferenceCleared
 import leakcanary.WeakReferenceMissing
 import leakcanary.internal.activity.db.HeapAnalysisTable
+import leakcanary.internal.activity.db.LeakingInstanceTable
 import leakcanary.internal.activity.db.LeakingInstanceTable.HeapAnalysisGroupProjection
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.shareHeapDump
@@ -32,13 +36,14 @@ internal class HeapAnalysisSuccessScreen(
       activity.title = resources.getString(R.string.leak_canary_loading_title)
 
       executeOnDb {
-        val pair = HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, analysisId)
-        if (pair == null) {
+        val heapAnalysis = HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, analysisId)
+        if (heapAnalysis == null) {
           updateUi {
             activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
           }
         } else {
-          val (heapAnalysis, leakGroupByHash) = pair
+          val leakGroupByHash =
+            LeakingInstanceTable.retrieveAllByHeapAnalysisId(db, analysisId)
           val heapDumpFileExist = heapAnalysis.heapDumpFile.exists()
           updateUi { onSuccessRetrieved(heapAnalysis, leakGroupByHash, heapDumpFileExist) }
         }
@@ -88,14 +93,12 @@ internal class HeapAnalysisSuccessScreen(
     var noPathToInstanceCount = 0
     var weakReferenceMissingCount = 0
     retainedInstances.forEach { retainedInstance ->
-      // if a leak, add to a map of groupSha -> (description, count, total count, time)
-      // => instead of list of shas we can get the list of projections that already exists
-      // TODO If the sha doesn't exist in the map then this is a removed group. Can't happen
-      // right now as we don't allow removing groups
       when (retainedInstance) {
         is LeakingInstance -> {
           if (leakGroupByHash[retainedInstance.groupHash] == null) {
-            TODO("Removing groups is not supported yet, this should not happen yet.")
+            throw IllegalStateException(
+                "Removing groups is not supported, this should never happen."
+            )
           }
         }
         is WeakReferenceCleared -> {
@@ -115,10 +118,29 @@ internal class HeapAnalysisSuccessScreen(
     val leakGroups = leakGroupByHash.values.toList()
 
     rowList.addAll(leakGroups.map { projection ->
-      val titleText = resources.getString(
-          R.string.leak_canary_heap_analysis_success_screen_row_title, projection.leakCount,
-          projection.totalLeakCount, projection.description
-      )
+      val description = when (projection.exclusionStatus) {
+        WONT_FIX_LEAK -> {
+          "[Won't Fix] ${projection.description}"
+        }
+        WEAKLY_REACHABLE -> {
+          "[Weakly Reachable] ${projection.description}"
+        }
+        else -> {
+          projection.description
+        }
+      }
+
+      val titleText = if (projection.isNew && projection.exclusionStatus == null) {
+        resources.getString(
+            R.string.leak_canary_heap_analysis_success_screen_row_title_new, projection.leakCount,
+            description
+        )
+      } else {
+        resources.getString(
+            R.string.leak_canary_heap_analysis_success_screen_row_title, projection.leakCount,
+            projection.totalLeakCount, description
+        )
+      }
       val timeText = resources.getString(
           R.string.leak_canary_heap_analysis_success_screen_row_time_format,
           DateUtils.formatDateTime(
