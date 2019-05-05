@@ -25,13 +25,13 @@ import android.content.Context
 import android.os.Debug
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
+import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import java.io.File
 import java.util.concurrent.TimeUnit.SECONDS
 
@@ -60,8 +60,7 @@ internal class AndroidHeapDumper(
     })
   }
 
-  override// Explicitly checking for named null.
-  fun dumpHeap(): File? {
+  override fun dumpHeap(): File? {
     val heapDumpFile = leakDirectoryProvider.newHeapDumpFile() ?: return null
 
     val waitingForToast = FutureResult<Toast?>()
@@ -72,15 +71,15 @@ internal class AndroidHeapDumper(
       return null
     }
 
-    val dumpingHeap = context.getString(R.string.leak_canary_notification_dumping)
-    val builder = Notification.Builder(context)
-        .setContentTitle(dumpingHeap)
-    val notification = LeakCanaryUtils.buildNotification(context, builder)
     val notificationManager =
       context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    val notificationId = SystemClock.uptimeMillis()
-        .toInt()
-    notificationManager.notify(notificationId, notification)
+    if (Notifications.canShowNotification) {
+      val dumpingHeap = context.getString(R.string.leak_canary_notification_dumping)
+      val builder = Notification.Builder(context)
+          .setContentTitle(dumpingHeap)
+      val notification = Notifications.buildNotification(context, builder, LEAKCANARY_LOW)
+      notificationManager.notify(R.id.leak_canary_notification_dumping_heap, notification)
+    }
 
     val toast = waitingForToast.get()
 
@@ -93,7 +92,7 @@ internal class AndroidHeapDumper(
       null
     } finally {
       cancelToast(toast)
-      notificationManager.cancel(notificationId)
+      notificationManager.cancel(R.id.leak_canary_notification_dumping_heap)
     }
   }
 

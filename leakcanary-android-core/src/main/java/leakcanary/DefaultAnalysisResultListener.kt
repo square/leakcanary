@@ -1,11 +1,11 @@
 package leakcanary
 
 import android.app.Application
-import android.app.PendingIntent
 import com.squareup.leakcanary.core.R
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.Exclusion.Status.WONT_FIX_LEAK
-import leakcanary.internal.LeakCanaryUtils
+import leakcanary.internal.Notifications
+import leakcanary.internal.NotificationType.LEAKCANARY_RESULT
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakingInstanceTable
@@ -74,18 +74,11 @@ object DefaultAnalysisResultListener : (Application, HeapAnalysis) -> Unit {
     )
 
     val contentText = application.getString(R.string.leak_canary_notification_message)
-    showNotification(application, pendingIntent, contentTitle, contentText)
-  }
 
-  private fun showNotification(
-    application: Application,
-    pendingIntent: PendingIntent?,
-    contentTitle: String,
-    contentText: String
-  ) {
-    val notificationId = 0x00F06D
-    LeakCanaryUtils.showNotification(
-        application, contentTitle, contentText, pendingIntent, notificationId
+    Notifications.showNotification(
+        application, contentTitle, contentText, pendingIntent,
+        R.id.leak_canary_notification_analysis_result,
+        LEAKCANARY_RESULT
     )
   }
 

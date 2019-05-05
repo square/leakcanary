@@ -31,7 +31,8 @@ import java.io.File
  */
 internal class HeapAnalyzerService : ForegroundService(
     HeapAnalyzerService::class.java.simpleName,
-    R.string.leak_canary_notification_analysing
+    R.string.leak_canary_notification_analysing,
+    R.id.leak_canary_notification_analyzing_heap
 ), AnalyzerProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {

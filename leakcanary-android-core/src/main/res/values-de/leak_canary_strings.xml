@@ -24,7 +24,6 @@
   <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
   <string name="leak_canary_analysis_failed">Leak Analyse fehlgeschlagen</string>
   <string name="leak_canary_notification_analysing">Analysiere Heap Dump</string>
-  <string name="leak_canary_notification_channel">LeakCanary</string>
   <string name="leak_canary_notification_dumping">Sichere Heap</string>
   <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
   <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>

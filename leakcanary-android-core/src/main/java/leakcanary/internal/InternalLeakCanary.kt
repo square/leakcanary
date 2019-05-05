@@ -24,13 +24,17 @@ internal object InternalLeakCanary : LeakSentryListener {
   private lateinit var heapDumpTrigger: HeapDumpTrigger
 
   lateinit var application: Application
+  @Volatile
+  var applicationVisible = false
+    private set
+
+  val leakDirectoryProvider: LeakDirectoryProvider by lazy {
+    LeakDirectoryProvider(application)
+  }
 
   override fun onLeakSentryInstalled(application: Application) {
     this.application = application
-    val debuggerControl = AndroidDebuggerControl()
 
-    val leakDirectoryProvider =
-      LeakCanaryUtils.getLeakDirectoryProvider(application)
     val heapDumper = AndroidHeapDumper(application, leakDirectoryProvider)
 
     val gcTrigger = GcTrigger.Default
@@ -42,11 +46,12 @@ internal object InternalLeakCanary : LeakSentryListener {
     val backgroundHandler = Handler(handlerThread.looper)
 
     heapDumpTrigger = HeapDumpTrigger(
-        application, backgroundHandler, debuggerControl, LeakSentry.refWatcher,
-        leakDirectoryProvider, gcTrigger, heapDumper, configProvider
+        application, backgroundHandler, LeakSentry.refWatcher, gcTrigger, heapDumper, configProvider
     )
-    heapDumpTrigger.registerToVisibilityChanges()
-
+    application.registerVisibilityListener { applicationVisible ->
+      this.applicationVisible = applicationVisible
+      heapDumpTrigger.onApplicationVisibilityChanged(applicationVisible)
+    }
     addDynamicShortcut(application)
   }
 
@@ -158,6 +163,12 @@ internal object InternalLeakCanary : LeakSentryListener {
   override fun onReferenceRetained() {
     if (this::heapDumpTrigger.isInitialized) {
       heapDumpTrigger.onReferenceRetained()
+    }
+  }
+
+  fun onDumpHeapReceived() {
+    if (this::heapDumpTrigger.isInitialized) {
+      heapDumpTrigger.onDumpHeapReceived()
     }
   }
 }
