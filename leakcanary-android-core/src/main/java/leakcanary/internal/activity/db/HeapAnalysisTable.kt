@@ -10,7 +10,6 @@ import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.Serializables
 import leakcanary.internal.LeakCanaryUtils
-import leakcanary.internal.activity.db.LeakingInstanceTable.HeapAnalysisGroupProjection
 import leakcanary.leakingInstances
 import leakcanary.toByteArray
 import org.intellij.lang.annotations.Language
@@ -21,7 +20,7 @@ internal object HeapAnalysisTable {
   @Language("RoomSql")
   const val create = """CREATE TABLE heap_analysis
         (
-        id INTEGER PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         created_at_time_millis INTEGER,
         retained_instance_count INTEGER DEFAULT 0,
         exception_summary TEXT DEFAULT NULL,
@@ -64,9 +63,9 @@ internal object HeapAnalysisTable {
   inline fun <reified T : HeapAnalysis> retrieve(
     db: SQLiteDatabase,
     id: Long
-  ): Pair<T, Map<String, HeapAnalysisGroupProjection>>? {
+  ): T? {
     db.inTransaction {
-      val heapAnalysis = db.rawQuery(
+      return db.rawQuery(
           """
               SELECT
               object
@@ -84,11 +83,6 @@ internal object HeapAnalysisTable {
             } else
               null
           } ?: return null
-
-      val hashes =
-        LeakingInstanceTable.retrieveAllByHeapAnalysisId(db, id)
-
-      return heapAnalysis to hashes
     }
   }
 

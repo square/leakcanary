@@ -22,6 +22,7 @@
   We welcome contributions from the community, please do not hesitate to
   <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br>]]></string>
   <string name="leak_canary_analysis_failed">Leak analysis failed</string>
+  <string name="leak_canary_analysis_success_notification">Analysis done: %1$d leaks (%2$d new, %3$d known, %4$d won\'t fix)</string>
   <string name="leak_canary_class_has_leaked">%1$s Leaked</string>
   <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
   <string name="leak_canary_loading_title">Loading…</string>
@@ -61,6 +62,7 @@
   <string name="leak_canary_go_to_heap_analysis">Go to Heap Analysis</string>
   <string name="leak_canary_heap_analysis_success_screen_title">Heap Analysis (%d Retained Instances)</string>
   <string name="leak_canary_heap_analysis_success_screen_row_title">(%1$d / %2$d Total) %3$s</string>
+  <string name="leak_canary_heap_analysis_success_screen_row_title_new">[NEW] (%1$d) %2$s</string>
   <string name="leak_canary_heap_analysis_success_screen_row_time_format">Latest: %s</string>
   <string name="leak_canary_heap_analysis_list_screen_title">All Analysis</string>
   <plurals name="leak_canary_group_screen_title">
