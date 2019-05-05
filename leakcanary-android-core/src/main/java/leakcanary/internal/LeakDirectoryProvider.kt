@@ -25,6 +25,7 @@ import android.os.Environment
 import android.os.Environment.DIRECTORY_DOWNLOADS
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
+import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import java.io.File
 import java.io.FilenameFilter
 import java.util.ArrayList
@@ -145,8 +146,9 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
     val contentText =
       context.getString(R.string.leak_canary_permission_notification_text, packageName)
 
-    LeakCanaryUtils.showNotification(
-        context, contentTitle, contentText, pendingIntent, 0x00_DA_BEEF
+    Notifications.showNotification(
+        context, contentTitle, contentText, pendingIntent,
+        R.id.leak_canary_notification_write_permission, LEAKCANARY_LOW
     )
   }
 

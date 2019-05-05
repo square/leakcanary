@@ -9,7 +9,7 @@ import android.os.Bundle
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
 import leakcanary.internal.HeapAnalyzerService
-import leakcanary.internal.LeakCanaryUtils
+import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db
 import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.internal.navigation.NavigatingActivity
@@ -64,7 +64,7 @@ internal class LeakActivity : NavigatingActivity() {
       contentResolver.openFileDescriptor(fileUri, "r")
           ?.fileDescriptor?.let { fileDescriptor ->
         val inputStream = FileInputStream(fileDescriptor)
-        LeakCanaryUtils.getLeakDirectoryProvider(this)
+        InternalLeakCanary.leakDirectoryProvider
             .newHeapDumpFile()
             ?.let { target ->
               inputStream.use { input ->

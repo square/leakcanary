@@ -68,5 +68,8 @@
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_Theme.Transparent"
         />
+
+    <receiver android:name="leakcanary.internal.NotificationReceiver" />
+
   </application>
 </manifest>

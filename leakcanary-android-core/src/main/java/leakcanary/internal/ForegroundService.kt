@@ -19,15 +19,14 @@ import android.app.IntentService
 import android.app.Notification
 import android.content.Intent
 import android.os.IBinder
-import android.os.SystemClock
 import com.squareup.leakcanary.core.R
+import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 
 abstract class ForegroundService(
   name: String,
-  private val notificationContentTitleResId: Int
+  private val notificationContentTitleResId: Int,
+  private val notificationId: Int
 ) : IntentService(name) {
-  private val notificationId: Int = SystemClock.uptimeMillis()
-      .toInt()
 
   override fun onCreate() {
     super.onCreate()
@@ -48,7 +47,7 @@ abstract class ForegroundService(
         .setContentText(contentText)
         .setProgress(max, progress, indeterminate)
     val notification =
-      LeakCanaryUtils.buildNotification(this, builder)
+      Notifications.buildNotification(this, builder, LEAKCANARY_LOW)
     startForeground(notificationId, notification)
   }
 

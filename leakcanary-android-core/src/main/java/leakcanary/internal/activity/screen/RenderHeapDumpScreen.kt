@@ -14,7 +14,7 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
-import leakcanary.internal.LeakCanaryUtils
+import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.executeOnIo
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
@@ -67,7 +67,7 @@ internal class RenderHeapDumpScreen(
       onCreateOptionsMenu { menu ->
         menu.add(R.string.leak_canary_options_menu_generate_hq_bitmap)
             .setOnMenuItemClickListener {
-              val leakDirectoryProvider = LeakCanaryUtils.getLeakDirectoryProvider(activity)
+              val leakDirectoryProvider = InternalLeakCanary.leakDirectoryProvider
               if (!leakDirectoryProvider.hasStoragePermission()) {
                 Toast.makeText(
                     context,

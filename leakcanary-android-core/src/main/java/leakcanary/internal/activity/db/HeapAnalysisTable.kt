@@ -9,7 +9,7 @@ import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.Serializables
-import leakcanary.internal.LeakCanaryUtils
+import leakcanary.internal.InternalLeakCanary
 import leakcanary.leakingInstances
 import leakcanary.toByteArray
 import org.intellij.lang.annotations.Language
@@ -137,7 +137,7 @@ internal object HeapAnalysisTable {
     db: SQLiteDatabase,
     context: Context
   ) {
-    val leakDirectoryProvider = LeakCanaryUtils.getLeakDirectoryProvider(context)
+    val leakDirectoryProvider = InternalLeakCanary.leakDirectoryProvider
     AsyncTask.SERIAL_EXECUTOR.execute { leakDirectoryProvider.clearLeakDirectory() }
     db.inTransaction {
       db.delete("heap_analysis", null, null)

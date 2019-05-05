@@ -15,18 +15,15 @@
  */
 package leakcanary.internal
 
+import android.os.Debug
+
 /**
  * Gives the opportunity to skip checking if a reference is gone when the debugger is connected.
  * An attached debugger might retain references and create false positives.
  */
-internal interface DebuggerControl {
+internal object DebuggerControl {
 
   val isDebuggerAttached: Boolean
+    get() = Debug.isDebuggerConnected()
 
-  companion object {
-    val NONE: DebuggerControl = object : DebuggerControl {
-      override val isDebuggerAttached: Boolean
-        get() = false
-    }
-  }
 }

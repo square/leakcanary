@@ -1,65 +1,80 @@
 package leakcanary.internal
 
 import android.app.Application
+import android.app.Notification
+import android.app.NotificationManager
+import android.content.Context
 import android.os.Handler
 import android.os.SystemClock
+import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.LeakCanary.Config
+import leakcanary.LeakSentry
 import leakcanary.RefWatcher
+import leakcanary.internal.NotificationReceiver.Action.CANCEL_NOTIFICATION
+import leakcanary.internal.NotificationReceiver.Action.DUMP_HEAP
+import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 
 internal class HeapDumpTrigger(
   private val application: Application,
   private val backgroundHandler: Handler,
-  private val debuggerControl: DebuggerControl,
   private val refWatcher: RefWatcher,
-  private val leakDirectoryProvider: LeakDirectoryProvider,
   private val gcTrigger: GcTrigger,
   private val heapDumper: HeapDumper,
   private val configProvider: () -> Config
 ) {
 
-  @Volatile
-  var applicationVisible = false
+  private val notificationManager
+    get() =
+      application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-  fun registerToVisibilityChanges() {
-    application.registerVisibilityListener { applicationVisible ->
-      this.applicationVisible = applicationVisible
-      if (!applicationVisible) {
-        scheduleTick("app became invisible")
-      }
+  private val applicationVisible
+    get() = applicationInvisibleAt == -1L
+
+  /**
+   * When the app becomes invisible, we don't dump the heap immediately. Instead we wait in case
+   * the app came back to the foreground, but also to wait for new leaks that typically occur on
+   * back press (activity destroy).
+   */
+  private val applicationInvisibleLessThanWatchPeriod: Boolean
+    get() {
+      val applicationInvisibleAt = applicationInvisibleAt
+      return applicationInvisibleAt != -1L && SystemClock.uptimeMillis() - applicationInvisibleAt < LeakSentry.config.watchDurationMillis
+    }
+
+  @Volatile
+  private var applicationInvisibleAt = -1L
+
+  fun onApplicationVisibilityChanged(applicationVisible: Boolean) {
+    if (applicationVisible) {
+      applicationInvisibleAt = -1L
+    } else {
+      applicationInvisibleAt = SystemClock.uptimeMillis()
+      scheduleRetainedInstanceCheck("app became invisible", LeakSentry.config.watchDurationMillis)
     }
   }
 
   fun onReferenceRetained() {
-    scheduleTick("found new reference retained")
+    scheduleRetainedInstanceCheck("found new instance retained")
   }
 
-  private fun tick(reason: String) {
-    CanaryLog.d("Checking retained references because %s", reason)
+  private fun checkRetainedInstances(reason: String) {
+    CanaryLog.d("Checking retained instances because %s", reason)
     val config = configProvider()
     // A tick will be rescheduled when this is turned back on.
     if (!config.dumpHeap) {
       return
     }
 
-    val minLeaks = if (applicationVisible) MIN_LEAKS_WHEN_VISIBLE else MIN_LEAKS_WHEN_NOT_VISIBLE
     var retainedKeys = refWatcher.retainedKeys
-    if (retainedKeys.size < minLeaks) {
-      // No need to scheduleTick, new refs always schedule one.
-      CanaryLog.d(
-          "Found %d retained references, which is less than the min of %d", retainedKeys.size,
-          minLeaks
-      )
-      return
-    }
 
-    if (debuggerControl.isDebuggerAttached) {
-      scheduleTick(
-          "debugger was attached",
-          WAIT_FOR_DEBUG_MILLIS
-      )
+    if (checkRetainedCount(retainedKeys, config.retainedVisibleThreshold)) return
+
+    if (!config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached) {
+      showRetainedCountWithDebuggerAttached(retainedKeys.size)
+      scheduleRetainedInstanceCheck("debugger was attached", WAIT_FOR_DEBUG_MILLIS)
       CanaryLog.d(
           "Not checking for leaks while the debugger is attached, will retry in %d ms",
           WAIT_FOR_DEBUG_MILLIS
@@ -70,60 +85,163 @@ internal class HeapDumpTrigger(
     gcTrigger.runGc()
 
     retainedKeys = refWatcher.retainedKeys
-    if (retainedKeys.size < minLeaks) {
-      CanaryLog.d(
-          "Found %d retained references after GC, which is less than the min of %d",
-          retainedKeys.size,
-          minLeaks
-      )
-      return
-    }
+
+    if (checkRetainedCount(retainedKeys, config.retainedVisibleThreshold)) return
 
     HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
 
-    CanaryLog.d(
-        "Found %d retained references, dumping the heap", retainedKeys.size
-    )
+    CanaryLog.d("Found %d retained references, dumping the heap", retainedKeys.size)
     HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
+    dismissNotification()
     val heapDumpFile = heapDumper.dumpHeap()
-
     if (heapDumpFile == null) {
-      CanaryLog.d(
-          "Failed to dump heap, will retry in %d ms",
-          WAIT_FOR_HEAP_DUMPER_MILLIS
-      )
-      scheduleTick(
-          "failed to dump heap",
-          WAIT_FOR_HEAP_DUMPER_MILLIS
-      )
+      CanaryLog.d("Failed to dump heap, will retry in %d ms", WAIT_AFTER_DUMP_FAILED_MILLIS)
+      scheduleRetainedInstanceCheck("failed to dump heap", WAIT_AFTER_DUMP_FAILED_MILLIS)
+      showRetainedCountWithHeapDumpFailed(retainedKeys.size)
       return
     }
+
     refWatcher.removeRetainedKeys(retainedKeys)
 
     HeapAnalyzerService.runAnalysis(application, heapDumpFile)
   }
 
-  private fun scheduleTick(reason: String) {
+  fun onDumpHeapReceived() {
     backgroundHandler.post {
-      tick(reason)
+      gcTrigger.runGc()
+      val retainedKeys = refWatcher.retainedKeys
+      if (retainedKeys.isEmpty()) {
+        CanaryLog.d("No retained instances after GC")
+        val builder = Notification.Builder(application)
+            .setContentTitle(
+                application.getString(R.string.leak_canary_notification_no_retained_instance_title)
+            )
+            .setContentText(
+                application.getString(
+                    R.string.leak_canary_notification_no_retained_instance_content
+                )
+            )
+            .setAutoCancel(true)
+            .setContentIntent(NotificationReceiver.pendingIntent(application, CANCEL_NOTIFICATION))
+        val notification =
+          Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
+        notificationManager.notify(R.id.leak_canary_notification_retained_instances, notification)
+        return@post
+      }
+
+      HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
+
+      CanaryLog.d("Dumping the heap because user tapped notification")
+
+      val heapDumpFile = heapDumper.dumpHeap()
+      if (heapDumpFile == null) {
+        CanaryLog.d("Failed to dump heap")
+        showRetainedCountWithHeapDumpFailed(retainedKeys.size)
+        return@post
+      }
+
+      refWatcher.removeRetainedKeys(retainedKeys)
+      HeapAnalyzerService.runAnalysis(application, heapDumpFile)
     }
   }
 
-  private fun scheduleTick(
+  private fun checkRetainedCount(
+    retainedKeys: Set<String>,
+    retainedVisibleThreshold: Int
+  ): Boolean {
+    if (retainedKeys.isEmpty()) {
+      CanaryLog.d("No retained instances")
+      dismissNotification()
+      return true
+    }
+
+    if (retainedKeys.size < retainedVisibleThreshold) {
+      if (applicationVisible || applicationInvisibleLessThanWatchPeriod) {
+        CanaryLog.d(
+            "Found %d retained instances, which is less than the visible threshold of %d",
+            retainedKeys.size,
+            retainedVisibleThreshold
+        )
+        showRetainedCountBelowThresholdNotification(retainedKeys.size, retainedVisibleThreshold)
+        // If the application just because invisible, a check is already scheduled.
+        if (applicationVisible) {
+          scheduleRetainedInstanceCheck(
+              "Showing retained instance notification", WAIT_FOR_INSTANCE_THRESHOLD_MILLIS
+          )
+        }
+        return true
+      }
+    }
+    return false
+  }
+
+  private fun scheduleRetainedInstanceCheck(reason: String) {
+    backgroundHandler.post {
+      checkRetainedInstances(reason)
+    }
+  }
+
+  private fun scheduleRetainedInstanceCheck(
     reason: String,
     delayMillis: Long
   ) {
     backgroundHandler.postDelayed({
-      tick(reason)
+      checkRetainedInstances(reason)
     }, delayMillis)
+  }
+
+  private fun showRetainedCountBelowThresholdNotification(
+    instanceCount: Int,
+    retainedVisibleThreshold: Int
+  ) {
+    showRetainedCountNotification(
+        instanceCount, application.getString(
+        R.string.leak_canary_notification_retained_visible, retainedVisibleThreshold
+    )
+    )
+  }
+
+  private fun showRetainedCountWithDebuggerAttached(instanceCount: Int) {
+    showRetainedCountNotification(
+        instanceCount,
+        application.getString(R.string.leak_canary_notification_retained_debugger_attached)
+    )
+  }
+
+  private fun showRetainedCountWithHeapDumpFailed(instanceCount: Int) {
+    showRetainedCountNotification(
+        instanceCount, application.getString(R.string.leak_canary_notification_retained_dump_failed)
+    )
+  }
+
+  private fun showRetainedCountNotification(
+    instanceCount: Int,
+    contentText: String
+  ) {
+    if (!Notifications.canShowNotification) {
+      return
+    }
+    val builder = Notification.Builder(application)
+        .setContentTitle(
+            application.getString(R.string.leak_canary_notification_retained_title, instanceCount)
+        )
+        .setContentText(contentText)
+        .setAutoCancel(true)
+        .setContentIntent(NotificationReceiver.pendingIntent(application, DUMP_HEAP))
+    val notification =
+      Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
+    notificationManager.notify(R.id.leak_canary_notification_retained_instances, notification)
+  }
+
+  private fun dismissNotification() {
+    notificationManager.cancel(R.id.leak_canary_notification_retained_instances)
   }
 
   companion object {
     const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"
-    const val WAIT_FOR_DEBUG_MILLIS = 20_000L
-    const val WAIT_FOR_HEAP_DUMPER_MILLIS = 5_000L
-    const val MIN_LEAKS_WHEN_VISIBLE = 5
-    const val MIN_LEAKS_WHEN_NOT_VISIBLE = 1
+    private const val WAIT_FOR_DEBUG_MILLIS = 20_000L
+    private const val WAIT_AFTER_DUMP_FAILED_MILLIS = 5_000L
+    private const val WAIT_FOR_INSTANCE_THRESHOLD_MILLIS = 5_000L
   }
 
 }

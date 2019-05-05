@@ -35,14 +35,6 @@ import leakcanary.Exclusion.ExclusionType.ThreadExclusion
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.internal.HeapDumpTrigger
-import leakcanary.internal.LeakCanaryUtils.HUAWEI
-import leakcanary.internal.LeakCanaryUtils.LENOVO
-import leakcanary.internal.LeakCanaryUtils.LG
-import leakcanary.internal.LeakCanaryUtils.MEIZU
-import leakcanary.internal.LeakCanaryUtils.MOTOROLA
-import leakcanary.internal.LeakCanaryUtils.NVIDIA
-import leakcanary.internal.LeakCanaryUtils.SAMSUNG
-import leakcanary.internal.LeakCanaryUtils.VIVO
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
 import java.lang.ref.WeakReference
@@ -1228,3 +1220,12 @@ enum class AndroidExcludedRefs {
 
   }
 }
+
+private const val SAMSUNG = "samsung"
+private const val MOTOROLA = "motorola"
+private const val LENOVO = "LENOVO"
+private const val LG = "LGE"
+private const val NVIDIA = "NVIDIA"
+private const val MEIZU = "Meizu"
+private const val HUAWEI = "HUAWEI"
+private const val VIVO = "vivo"
