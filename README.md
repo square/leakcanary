@@ -18,7 +18,7 @@ dependencies {
 }
 ```
 
-**You're good to go!** LeakCanary will automatically show a notification when an activity or fragment memory leak is detected in your debug build.
+**That's it!** LeakCanary will automatically show a notification when an activity or fragment memory leak is detected in your debug builds.
 
 Note: **LeakCanary 2 is in alpha**.
 * Check out the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0).
@@ -30,9 +30,39 @@ Note: **LeakCanary 2 is in alpha**.
 * [LeakCanary, then what? Nuking Nasty Memory Leaks](https://www.youtube.com/watch?v=fhE--eTEW84)
 * [Memory Leak Hunt](https://www.youtube.com/watch?v=KwArTJHLq5g), a live investigation.
 
+## Fundamentals
+
+### What is a Java memory leak?
+
+A memory leak is a programming error that causes your application to keep a reference to an object that is no longer needed. As a result, the memory allocated for that object cannot be reclaimed, eventually leading to an OutOfMemoryError crash.
+
+For instance, an Android activity instance is no longer needed after its `onDestroy()` method is called, and storing a reference to that activity in a static field would prevent it from being garbage collected.
+
+### Why should I use LeakCanary?
+
+Memory leaks are very common in Android apps. OutOfMemoryError is the top crasher for most apps on the play store, however that's usually not counted correctly. When memory is low the OutOfMemoryError can be thrown from anywhere in your code, which means every OOM has a different stacktrace and they're counted as different crashes.
+
+When we first enabled LeakCanary in the Square Point Of Sale app, we were able to find and fix several leaks and reduced the OutOfMemoryError crash rate by **94%**.
+
+### How does LeakCanary work?
+
+* LeakSentry watches destroyed activities and destroyed fragments using weak references. You can also pass any instance that is no longer needed, e.g. a detached view.
+* If the weak references aren't cleared, after waiting 5 seconds and running the GC, the activity and fragment instances are considered *retained*, and potentially leaking.
+* When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored on the file system. The default threshold is 5 retained instances when the app is visible, 1 otherwise.
+* LeakCanary parses the `.hprof` file and finds the chain of references that prevents retained instances from being garbage collected (**leak trace**). A leak trace is technically the *shortest strong reference path from GC Roots to retained instances*, but that's a mouthful.
+* Once the leak trace is determined, LeakCanary uses its built in knowledge of the Android framework to deduct which instances in the leaktrace should be reachable vs not reachable. You can help LeakCanary by providing **Reachability inspectors** tailored to your own app.
+* Using the reachability information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks are grouped by identical sub chain.
+
+### How do I fix a memory leak?
+To fix a memory leak, you need to look at the sub chain of possible leak causes and find which reference is causing the leak, i.e. which reference should have been cleared at the time of the leak. LeakCanary highlights with a red underline wave the references that are the possible causes of the leak.
+
+If you cannot figure out a leak, **please do not file an issue**. Instead, create a [Stack Overflow question](http://stackoverflow.com/questions/tagged/leakcanary) using the *leakcanary* tag.
+
 ## Recipes
 
-### Watching custom objects
+If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new). Your feedback help us make LeakCanary better for the entire community.
+
+### Watching any instance
 
 ```kotlin
 class MyService : Service {
@@ -49,7 +79,7 @@ class MyService : Service {
 
 ### Configuring LeakSentry & LeakCanary
 
-LeakSentry is in charge of detecting memory leaks. Its configuration can be updated at any time by replacing `LeakSentry.config`:
+LeakSentry is in charge of detecting retained instances. Its configuration can be updated at any time by replacing `LeakSentry.config`:
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
 
@@ -60,7 +90,7 @@ class DebugExampleApplication : ExampleApplication() {
 }
 ```
 
-LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing `LeakCanary.config`:
+LeakCanary is in charge of dumping the heap and analyzing it. Its configuration can be updated at any time by replacing `LeakCanary.config`:
 
 ```kotlin
 disableLeakCanaryButton.setOnClickListener {
