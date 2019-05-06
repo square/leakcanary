@@ -10,7 +10,7 @@ A memory leak detection library for Android.
 
 ## Getting started
 
-Add LeakCanary to your `build.gradle`:
+Add LeakCanary to `build.gradle`:
 
 ```gradle
 dependencies {
@@ -18,7 +18,7 @@ dependencies {
 }
 ```
 
-**That's it!** LeakCanary will automatically show a notification when an activity or fragment memory leak is detected in your debug builds.
+**That's it!** LeakCanary will automatically show a notification when an activity or fragment memory leak is detected in debug builds.
 
 Note: **LeakCanary 2 is in alpha**.
 * Check out the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0).
@@ -41,7 +41,7 @@ When we first enabled LeakCanary in the Square Point Of Sale app, we were able t
 
 ### How does LeakCanary work?
 
-* The library automatically watches destroyed activities and destroyed fragments using weak references. You can also pass any instance that is no longer needed to watch, e.g. a detached view.
+* The library automatically watches destroyed activities and destroyed fragments using weak references. You can also watch any instance that is no longer needed, e.g. a detached view.
 * If the weak references aren't cleared, after waiting 5 seconds and running the GC, the watched instances are considered *retained*, and potentially leaking.
 * When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored on the file system. The default threshold is 5 retained instances when the app is visible, 1 otherwise.
 * LeakCanary parses the `.hprof` file and finds the chain of references that prevents retained instances from being garbage collected (**leak trace**). A leak trace is technically the *shortest strong reference path from GC Roots to retained instances*, but that's a mouthful.
