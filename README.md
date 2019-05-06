@@ -45,7 +45,7 @@ When we first enabled LeakCanary in the Square Point Of Sale app, we were able t
 * If the weak references aren't cleared, after waiting 5 seconds and running the GC, the watched instances are considered *retained*, and potentially leaking.
 * When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored on the file system. The default threshold is 5 retained instances when the app is visible, 1 otherwise.
 * LeakCanary parses the `.hprof` file and finds the chain of references that prevents retained instances from being garbage collected (**leak trace**). A leak trace is technically the *shortest strong reference path from GC Roots to retained instances*, but that's a mouthful.
-* Once the leak trace is adetermined, LeakCanary uses its built in knowledge of the Android framework to deduct which instances in the leak trace should be reachable vs not reachable. You can help LeakCanary by providing **Reachability inspectors** tailored to your own app.
+* Once the leak trace is determined, LeakCanary uses its built in knowledge of the Android framework to deduct which instances in the leak trace should be reachable vs not reachable. You can help LeakCanary by providing **Reachability inspectors** tailored to your own app.
 * Using the reachability information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks are grouped by identical sub chain.
 
 ### How do I fix a memory leak?
