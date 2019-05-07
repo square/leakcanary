@@ -113,6 +113,35 @@ In your leak reporting code:
 val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
 ```
 
+## Running LeakCanary in instrumentation tests
+
+Add the `leakcanary-android-instrumentation` dependency to your instrumentation tests:
+
+```
+androidTestImplementation "com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}"
+```
+
+Add the dedicated run listener to `defaultConfig` in your `build.gradle`:
+
+```
+android {
+  defaultConfig {
+    // ...
+
+    testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunnerArgument "listener", "com.squareup.leakcanary.FailTestOnLeakRunListener"
+  }
+}
+```
+
+Run the instrumentation tests:
+
+```
+./gradlew leakcanary-sample:connectedCheck
+```
+
+You can extend `FailTestOnLeakRunListener` to customize the behavior.
+
 ## FAQ
 
 ### Can a leak be caused by the Android SDK?
