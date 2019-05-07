@@ -113,7 +113,7 @@ In your leak reporting code:
 val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
 ```
 
-## Running LeakCanary in instrumentation tests
+### Running LeakCanary in instrumentation tests
 
 Add the `leakcanary-android-instrumentation` dependency to your instrumentation tests:
 
