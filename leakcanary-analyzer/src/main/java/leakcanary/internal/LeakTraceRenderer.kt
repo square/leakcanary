@@ -1,23 +1,23 @@
 package leakcanary.internal
 
+import leakcanary.LeakNodeStatus.LEAKING
+import leakcanary.LeakNodeStatus.NOT_LEAKING
+import leakcanary.LeakNodeStatus.UNKNOWN
+import leakcanary.LeakNodeStatusAndReason
 import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.Reachability
-import leakcanary.Reachability.Status.REACHABLE
-import leakcanary.Reachability.Status.UNKNOWN
-import leakcanary.Reachability.Status.UNREACHABLE
 import java.util.Locale
 
 fun LeakTrace.renderToString(): String {
   var leakInfo = "┬\n"
   val lastElement = elements.last()
-  val lastReachability = expectedReachability.last()
+  val lastReachability = lastElement.leakStatusAndReason
   elements.dropLast(1)
       .forEachIndexed { index, leakTraceElement ->
-        val currentReachability = expectedReachability[index]
+        val currentReachability = elements[index].leakStatusAndReason
         leakInfo += """
         #├─ ${leakTraceElement.className}
         #│    Leaking: ${currentReachability.renderToString()}${if (leakTraceElement.labels.isNotEmpty()) leakTraceElement.labels.joinToString(
@@ -33,11 +33,11 @@ fun LeakTrace.renderToString(): String {
   return leakInfo
 }
 
-private fun Reachability.renderToString(): String {
+private fun LeakNodeStatusAndReason.renderToString(): String {
   return when (status) {
     UNKNOWN -> "UNKNOWN"
-    REACHABLE -> "NO ($reason)"
-    UNREACHABLE -> "YES ($reason)"
+    NOT_LEAKING -> "NO ($reason)"
+    LEAKING -> "YES ($reason)"
   }
 }
 

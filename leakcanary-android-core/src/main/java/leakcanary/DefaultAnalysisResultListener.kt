@@ -19,7 +19,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-object DefaultAnalysisResultListener : (Application, HeapAnalysis) -> Unit {
+object DefaultAnalysisResultListener : AnalysisResultListener {
   override fun invoke(
     application: Application,
     heapAnalysis: HeapAnalysis

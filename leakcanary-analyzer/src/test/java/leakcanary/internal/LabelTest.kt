@@ -2,7 +2,6 @@ package leakcanary.internal
 
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HprofParser
-import leakcanary.Labeler
 import leakcanary.LeakNode
 import leakcanary.LeakingInstance
 import leakcanary.ObjectIdMetadata.STRING
@@ -24,15 +23,13 @@ class LabelTest {
     hprofFile = testFolder.newFile("temp.hprof")
   }
 
-
   @Test fun stringContentAsLabel() {
     hprofFile.writeSinglePathToString("World")
 
-    val labeler = object : Labeler {
-      override fun computeLabels(
-        parser: HprofParser,
-        node: LeakNode
-      ) = if (parser.objectIdMetadata(node.instance) == STRING) {
+    val labeler = { parser: HprofParser,
+      node: LeakNode
+      ->
+      if (parser.objectIdMetadata(node.instance) == STRING) {
         listOf("Hello ${parser.retrieveStringById(node.instance)}")
       } else emptyList()
 

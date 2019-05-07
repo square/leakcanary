@@ -23,7 +23,6 @@ import com.squareup.haha.perflib.RootObj
 import com.squareup.haha.perflib.Snapshot
 import gnu.trove.THashMap
 import gnu.trove.TObjectProcedure
-import leakcanary.PerflibAnalysisResult
 import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACE
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACES
@@ -42,9 +41,10 @@ import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisException
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.PerflibHeapDump
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.KeyedWeakReference
+import leakcanary.LeakNodeStatus
+import leakcanary.LeakNodeStatusAndReason
 import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Holder
@@ -54,8 +54,9 @@ import leakcanary.LeakTraceElement.Holder.OBJECT
 import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
+import leakcanary.PerflibAnalysisResult
 import leakcanary.PerflibExcludedRefs
-import leakcanary.Reachability
+import leakcanary.PerflibHeapDump
 import leakcanary.RetainedInstance
 import leakcanary.WeakReferenceCleared
 import leakcanary.WeakReferenceMissing
@@ -425,24 +426,26 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
     val ignored = leakingNode.instance
     var node: LeakNode? =
       LeakNode(null, ignored, leakingNode, null)
+    var leakStatusAndReason = LeakNodeStatus.leaking("It's the leaking instance")
     while (node != null) {
-      val element = buildLeakElement(node)
+      val element = buildLeakElement(node, leakStatusAndReason)
       if (element != null) {
         elements.add(0, element)
+        leakStatusAndReason = if (node.parent?.parent != null) {
+          LeakNodeStatus.notLeaking("It's the GC root")
+        } else {
+          LeakNodeStatus.unknown()
+        }
       }
       node = node.parent
     }
-
-    val expectedReachability = elements.map { Reachability.unknown() }
-        .toMutableList()
-    expectedReachability[0] = Reachability.reachable("gc root")
-    expectedReachability[expectedReachability.lastIndex] =
-      Reachability.unreachable("leaking instance")
-
-    return LeakTrace(elements, expectedReachability)
+    return LeakTrace(elements)
   }
 
-  private fun buildLeakElement(node: LeakNode): LeakTraceElement? {
+  private fun buildLeakElement(
+    node: LeakNode,
+    leakStatusAndReason: LeakNodeStatusAndReason
+  ): LeakTraceElement? {
     if (node.parent == null) {
       // Ignore any root node.
       return null
@@ -507,7 +510,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
     }
 
     return LeakTraceElement(
-        node.leakReference, holderType, className, exclusionDescription, labels
+        node.leakReference, holderType, className, exclusionDescription, labels, leakStatusAndReason
     )
   }
 

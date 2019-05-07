@@ -1203,7 +1203,7 @@ enum class AndroidExcludedRefs {
           AndroidExcludedRefs::class.java
       )
 
-    fun exclusionsFactory(refs: EnumSet<AndroidExcludedRefs>): (HprofParser) -> List<Exclusion> =
+    fun exclusionsFactory(refs: EnumSet<AndroidExcludedRefs>): ExclusionsFactory =
       { parser ->
         val build = BuildMirror.readFromHprof(parser)
         exclusionsMatchingBuild(refs, build)

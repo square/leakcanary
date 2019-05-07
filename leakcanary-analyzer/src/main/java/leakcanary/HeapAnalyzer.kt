@@ -34,13 +34,13 @@ import leakcanary.GcRoot.ThreadBlock
 import leakcanary.HeapValue.LongValue
 import leakcanary.HprofParser.RecordCallbacks
 import leakcanary.LeakNode.ChildNode
+import leakcanary.LeakNodeStatus.LEAKING
+import leakcanary.LeakNodeStatus.NOT_LEAKING
+import leakcanary.LeakNodeStatus.UNKNOWN
 import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
 import leakcanary.LeakTraceElement.Holder.OBJECT
 import leakcanary.LeakTraceElement.Holder.THREAD
-import leakcanary.Reachability.Status.REACHABLE
-import leakcanary.Reachability.Status.UNKNOWN
-import leakcanary.Reachability.Status.UNREACHABLE
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -78,9 +78,9 @@ class HeapAnalyzer constructor(
    */
   fun checkForLeaks(
     heapDumpFile: File,
-    exclusionsFactory: (HprofParser) -> List<Exclusion> = { emptyList() },
+    exclusionsFactory: ExclusionsFactory = { emptyList() },
     computeRetainedHeapSize: Boolean = false,
-    reachabilityInspectors: List<Reachability.Inspector> = emptyList(),
+    reachabilityInspectors: List<LeakInspector> = emptyList(),
     labelers: List<Labeler> = emptyList()
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
@@ -250,7 +250,7 @@ class HeapAnalyzer constructor(
 
   private fun findShortestPaths(
     parser: HprofParser,
-    exclusionsFactory: (HprofParser) -> List<Exclusion>,
+    exclusionsFactory: ExclusionsFactory,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
     gcRootIds: MutableList<Long>
   ): List<Result> {
@@ -262,7 +262,7 @@ class HeapAnalyzer constructor(
 
   private fun buildLeakTraces(
     computeRetainedHeapSize: Boolean,
-    reachabilityInspectors: List<Reachability.Inspector>,
+    leakInspectors: List<LeakInspector>,
     labelers: List<Labeler>,
     pathResults: List<Result>,
     parser: HprofParser,
@@ -287,7 +287,7 @@ class HeapAnalyzer constructor(
       }
 
       val leakTrace =
-        buildLeakTrace(parser, reachabilityInspectors, pathResult.leakingNode, labelers)
+        buildLeakTrace(parser, leakInspectors, pathResult.leakingNode, labelers)
 
       // We get the class name from the heap dump rather than the weak reference because primitive
       // arrays are more readable that way, e.g. "[C" at runtime vs "char[]" in the heap dump.
@@ -325,7 +325,7 @@ class HeapAnalyzer constructor(
 
   private fun buildLeakTrace(
     parser: HprofParser,
-    reachabilityInspectors: List<Reachability.Inspector>,
+    leakInspectors: List<LeakInspector>,
     leakingNode: LeakNode,
     labelers: List<Labeler>
   ): LeakTrace {
@@ -334,59 +334,71 @@ class HeapAnalyzer constructor(
     val ignored = leakingNode.instance
 
     val leafNode = ChildNode(ignored, Int.MAX_VALUE, null, leakingNode, null)
+
     var node: LeakNode = leafNode
     val nodes = mutableListOf<LeakNode>()
     while (node is ChildNode) {
-      val labels = mutableListOf<String>()
-      for (labeler in labelers) {
-        labels.addAll(labeler.computeLabels(parser, node.parent))
-      }
-      elements.add(0, buildLeakElement(parser, node, labels))
       nodes.add(0, node.parent)
       node = node.parent
     }
-    // TODO Move reachability into leak element
-    val expectedReachability = computeExpectedReachability(parser, reachabilityInspectors, nodes)
+    val leakStatuses = computeLeakStatuses(parser, leakInspectors, nodes)
 
-    return LeakTrace(elements, expectedReachability)
+    node = leafNode
+    while (node is ChildNode) {
+      val labels = mutableListOf<String>()
+      for (labeler in labelers) {
+        labels.addAll(labeler(parser, node.parent))
+      }
+      val index = (nodes.size - elements.size) - 1
+      val leakStatus = leakStatuses[index]
+      elements.add(0, buildLeakElement(parser, node, labels, leakStatus))
+      node = node.parent
+    }
+    return LeakTrace(elements)
   }
 
-  private fun computeExpectedReachability(
+  private fun computeLeakStatuses(
     parser: HprofParser,
-    reachabilityInspectors: List<Reachability.Inspector>,
+    leakInspectors: List<LeakInspector>,
     nodes: List<LeakNode>
-  ): List<Reachability> {
-    var lastReachableElementIndex = 0
+  ): List<LeakNodeStatusAndReason> {
+    var lastNotLeakingElementIndex = 0
     val lastElementIndex = nodes.size - 1
-    var firstUnreachableElementIndex = lastElementIndex
+    var firstLeakingElementIndex = lastElementIndex
 
-    val expectedReachability = ArrayList<Reachability>()
+    val leakStatuses = ArrayList<LeakNodeStatusAndReason>()
 
     for ((index, node) in nodes.withIndex()) {
-      val reachability = inspectElementReachability(reachabilityInspectors, parser, node)
-      expectedReachability.add(reachability)
-      if (reachability.status == REACHABLE) {
-        lastReachableElementIndex = index
-        // Reset firstUnreachableElementIndex so that we never have
-        // firstUnreachableElementIndex < lastReachableElementIndex
-        firstUnreachableElementIndex = lastElementIndex
-      } else if (firstUnreachableElementIndex == lastElementIndex && reachability.status == UNREACHABLE) {
-        firstUnreachableElementIndex = index
+      val leakStatus = inspectElementLeakStatus(leakInspectors, parser, node)
+      leakStatuses.add(leakStatus)
+      if (leakStatus.status == NOT_LEAKING) {
+        lastNotLeakingElementIndex = index
+        // Reset firstLeakingElementIndex so that we never have
+        // firstLeakingElementIndex < lastNotLeakingElementIndex
+        firstLeakingElementIndex = lastElementIndex
+      } else if (firstLeakingElementIndex == lastElementIndex && leakStatus.status == LEAKING) {
+        firstLeakingElementIndex = index
       }
     }
 
-    if (expectedReachability[0].status == UNKNOWN) {
-      expectedReachability[0] = Reachability.reachable("it's a GC root")
+    leakStatuses[0] = when (leakStatuses[0].status) {
+      UNKNOWN -> LeakNodeStatus.notLeaking("it's a GC root")
+      NOT_LEAKING -> LeakNodeStatus.notLeaking(
+          "it's a GC root and ${leakStatuses[0].reason}"
+      )
+      LEAKING -> LeakNodeStatus.notLeaking(
+          "it's a GC root. Conflicts with ${leakStatuses[0].reason}"
+      )
     }
 
-    when (expectedReachability[lastElementIndex].status) {
-      UNKNOWN, REACHABLE -> {
-        expectedReachability[lastElementIndex] =
-          Reachability.unreachable("RefWatcher was watching this")
-        if (lastReachableElementIndex == lastElementIndex) {
-          lastReachableElementIndex--
-        }
-      }
+    leakStatuses[lastElementIndex] = when (leakStatuses[lastElementIndex].status) {
+      UNKNOWN -> LeakNodeStatus.leaking("RefWatcher was watching this")
+      LEAKING -> LeakNodeStatus.leaking(
+          "RefWatcher was watching this and ${leakStatuses[lastElementIndex].reason}"
+      )
+      NOT_LEAKING -> LeakNodeStatus.leaking(
+          "RefWatcher was watching this. Conflicts with ${leakStatuses[lastElementIndex].reason}"
+      )
     }
 
     val simpleClassNames = nodes.map { node ->
@@ -395,36 +407,75 @@ class HeapAnalyzer constructor(
 
     // First and last are always known.
     for (i in 1 until lastElementIndex) {
-      val reachability = expectedReachability[i]
-      if (i < lastReachableElementIndex && reachability.status != REACHABLE) {
-        val nextReachableName = simpleClassNames[i + 1]
-        expectedReachability[i] = Reachability.reachable("$nextReachableName↓ is not leaking")
-      } else if (i > firstUnreachableElementIndex && reachability.status == UNKNOWN) {
-        val previousUnreachableName = simpleClassNames[i - 1]
-        expectedReachability[i] = Reachability.unreachable("$previousUnreachableName↑ is leaking")
+      val leakStatus = leakStatuses[i]
+      if (i < lastNotLeakingElementIndex) {
+        val nextNotLeakingName = simpleClassNames[i + 1]
+        leakStatuses[i] = when (leakStatus.status) {
+          UNKNOWN -> LeakNodeStatus.notLeaking("$nextNotLeakingName↓ is not leaking")
+          NOT_LEAKING -> LeakNodeStatus.notLeaking(
+              "$nextNotLeakingName↓ is not leaking and ${leakStatus.reason}"
+          )
+          LEAKING -> LeakNodeStatus.notLeaking(
+              "$nextNotLeakingName↓ is not leaking. Conflicts with ${leakStatus.reason}"
+          )
+        }
+      } else if (i > firstLeakingElementIndex) {
+        val previousLeakingName = simpleClassNames[i - 1]
+        leakStatuses[i] = LeakNodeStatus.leaking("$previousLeakingName↑ is leaking")
+
+        leakStatuses[i] = when (leakStatus.status) {
+          UNKNOWN -> LeakNodeStatus.leaking("$previousLeakingName↑ is leaking")
+          LEAKING -> LeakNodeStatus.leaking(
+              "$previousLeakingName↑ is leaking and ${leakStatus.reason}"
+          )
+          NOT_LEAKING -> throw IllegalStateException("Should never happen")
+        }
       }
     }
-    return expectedReachability
+    return leakStatuses
   }
 
-  private fun inspectElementReachability(
-    reachabilityInspectors: List<Reachability.Inspector>,
+  private fun inspectElementLeakStatus(
+    leakInspectors: List<LeakInspector>,
     parser: HprofParser,
     node: LeakNode
-  ): Reachability {
-    for (reachabilityInspector in reachabilityInspectors) {
-      val reachability = reachabilityInspector.expectedReachability(parser, node)
-      if (reachability.status != UNKNOWN) {
-        return reachability
+  ): LeakNodeStatusAndReason {
+    var current = LeakNodeStatus.unknown()
+    for (leakInspector in leakInspectors) {
+      val statusAndReason = leakInspector(parser, node)
+      if (statusAndReason.status != UNKNOWN) {
+        current = when {
+          current.status == UNKNOWN -> statusAndReason
+          current.status == LEAKING && statusAndReason.status == LEAKING -> {
+            LeakNodeStatus.leaking("${current.reason} and ${statusAndReason.reason}")
+          }
+          current.status == NOT_LEAKING && statusAndReason.status == NOT_LEAKING -> {
+            LeakNodeStatus.notLeaking("${current.reason} and ${statusAndReason.reason}")
+          }
+          current.status == NOT_LEAKING && statusAndReason.status == LEAKING -> {
+            LeakNodeStatus.notLeaking(
+                "${current.reason}. Conflicts with ${statusAndReason.reason}"
+            )
+          }
+          current.status == LEAKING && statusAndReason.status == NOT_LEAKING -> {
+            LeakNodeStatus.notLeaking(
+                "${statusAndReason.reason}. Conflicts with ${current.reason}"
+            )
+          }
+          else -> throw IllegalStateException(
+              "Should never happen ${current.status} ${statusAndReason.reason}"
+          )
+        }
       }
     }
-    return Reachability.unknown()
+    return current
   }
 
   private fun buildLeakElement(
     parser: HprofParser,
     node: ChildNode,
-    labels: List<String>
+    labels: List<String>,
+    leakStatus: LeakNodeStatusAndReason
   ): LeakTraceElement {
     val objectId = node.parent.instance
 
@@ -445,7 +496,9 @@ class HeapAnalyzer constructor(
         OBJECT
       }
     }
-    return LeakTraceElement(node.leakReference, holderType, className, node.exclusion, labels)
+    return LeakTraceElement(
+        node.leakReference, holderType, className, node.exclusion, labels, leakStatus
+    )
   }
 
   private fun recordClassName(

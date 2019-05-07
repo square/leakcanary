@@ -11,7 +11,7 @@ import java.util.ArrayList
 enum class AndroidLabelers : Labeler {
 
   FRAGMENT_LABELER {
-    override fun computeLabels(
+    override fun invoke(
       parser: HprofParser,
       node: LeakNode
     ): List<String> {
@@ -37,7 +37,7 @@ enum class AndroidLabelers : Labeler {
   class ViewLabeler(
     private val application: Application
   ) : Labeler {
-    override fun computeLabels(
+    override fun invoke(
       parser: HprofParser,
       node: LeakNode
     ): List<String> {
@@ -47,6 +47,20 @@ enum class AndroidLabelers : Labeler {
         val instance = parser.hydrateInstance(record)
         if (instance.isInstanceOf(View::class.java.name)) {
           val viewLabels = mutableListOf<String>()
+
+          if (instance.hasField("mAttachInfo")) {
+            if (instance["mAttachInfo"].reference == null) {
+              viewLabels.add("View#mAttachInfo is null (view detached)")
+            } else {
+              viewLabels.add("View#mAttachInfo is not null (view attached)")
+            }
+          }
+          if (instance["mParent"].reference == null) {
+            viewLabels.add("View#mParent is null")
+          } else {
+            viewLabels.add("View#mParent is set")
+          }
+
           val mID = instance.fieldValueOrNull<HeapValue>("mID")
           if (mID is IntValue) {
             if (mID.value != 0) {
@@ -74,7 +88,7 @@ enum class AndroidLabelers : Labeler {
   companion object {
     fun defaultAndroidLabelers(application: Application): List<Labeler> {
       val labelers = ArrayList<Labeler>()
-      labelers.add(Labeler.InstanceDefaultLabeler)
+      labelers.add(InstanceDefaultLabeler)
       labelers.add(
           ViewLabeler(
               application
