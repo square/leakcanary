@@ -4,6 +4,8 @@ import android.app.Application
 import leakcanary.AndroidExcludedRefs.Companion.exclusionsFactory
 import leakcanary.internal.InternalLeakCanary
 
+typealias AnalysisResultListener = (Application, HeapAnalysis) -> Unit
+
 object LeakCanary {
 
   data class Config(
@@ -26,14 +28,14 @@ object LeakCanary {
      * bothering developers as much but it could miss some leaks.
      */
     val retainedVisibleThreshold: Int = 5,
-    val exclusionsFactory: (HprofParser) -> List<Exclusion> = exclusionsFactory(
+    val exclusionsFactory: ExclusionsFactory = exclusionsFactory(
         AndroidExcludedRefs.appDefaults
     ),
     /**
      * Note: this is currently not implemented in the new heap parser.
      */
     val computeRetainedHeapSize: Boolean = false,
-    val reachabilityInspectors: List<Reachability.Inspector> = AndroidReachabilityInspectors.defaultAndroidInspectors(),
+    val leakInspectors: List<LeakInspector> = AndroidLeakInspectors.defaultAndroidInspectors(),
     val labelers: List<Labeler> = AndroidLabelers.defaultAndroidLabelers(
         InternalLeakCanary.application
     ),
@@ -43,7 +45,7 @@ object LeakCanary {
      * If you want leaks to be added to the activity that lists leaks, make sure to delegate
      * calls to [DefaultAnalysisResultListener].
      */
-    val analysisResultListener: (Application, HeapAnalysis) -> Unit = DefaultAnalysisResultListener
+    val analysisResultListener: AnalysisResultListener = DefaultAnalysisResultListener
   )
 
   @Volatile

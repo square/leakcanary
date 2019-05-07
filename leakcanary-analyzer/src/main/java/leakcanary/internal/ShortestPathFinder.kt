@@ -21,6 +21,7 @@ import leakcanary.Exclusion.ExclusionType.StaticFieldExclusion
 import leakcanary.Exclusion.ExclusionType.ThreadExclusion
 import leakcanary.Exclusion.Status
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
+import leakcanary.ExclusionsFactory
 import leakcanary.HeapValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofParser
@@ -80,7 +81,7 @@ internal class ShortestPathFinder {
 
   fun findPaths(
     parser: HprofParser,
-    exclusionsFactory: (HprofParser) -> List<Exclusion>,
+    exclusionsFactory: ExclusionsFactory,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
     gcRootIds: MutableList<Long>
   ): List<Result> {

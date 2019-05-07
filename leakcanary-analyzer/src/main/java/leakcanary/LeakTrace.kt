@@ -1,7 +1,7 @@
 package leakcanary
 
-import leakcanary.Reachability.Status.REACHABLE
-import leakcanary.Reachability.Status.UNKNOWN
+import leakcanary.LeakNodeStatus.NOT_LEAKING
+import leakcanary.LeakNodeStatus.UNKNOWN
 import leakcanary.internal.renderToString
 import java.io.Serializable
 
@@ -10,8 +10,7 @@ import java.io.Serializable
  * to the GC roots. Fixing the leak usually means breaking one of the references in that chain.
  */
 data class LeakTrace(
-  val elements: List<LeakTraceElement>,
-  val expectedReachability: List<Reachability>
+  val elements: List<LeakTraceElement>
 ) : Serializable {
 
   val firstElementExclusion
@@ -28,10 +27,10 @@ data class LeakTrace(
   }
 
   fun elementMayBeLeakCause(index: Int): Boolean {
-    return when (expectedReachability[index].status) {
+    return when (elements[index].leakStatusAndReason.status) {
       UNKNOWN -> true
-      REACHABLE -> if (index < elements.lastIndex) {
-        expectedReachability[index + 1].status != REACHABLE
+      NOT_LEAKING -> if (index < elements.lastIndex) {
+        elements[index + 1].leakStatusAndReason.status != NOT_LEAKING
       } else {
         true
       }

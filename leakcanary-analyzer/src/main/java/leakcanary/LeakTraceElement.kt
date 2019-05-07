@@ -21,7 +21,8 @@ data class LeakTraceElement(
    * Ordered labels that were computed during analysis. A label provides
    * extra information that helps understand the leak trace element.
    */
-  val labels: List<String>
+  val labels: List<String>,
+  val leakStatusAndReason: LeakNodeStatusAndReason
 ) : Serializable {
 
   /**

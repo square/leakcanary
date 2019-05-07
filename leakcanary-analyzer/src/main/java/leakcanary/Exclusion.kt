@@ -76,3 +76,5 @@ class ExclusionDescription(
   val matching: String,
   val reason: String? = null
 ) : Serializable
+
+typealias ExclusionsFactory = (HprofParser) -> List<Exclusion>

@@ -27,13 +27,12 @@ import androidx.annotation.ColorRes
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import com.squareup.leakcanary.core.R
+import leakcanary.LeakNodeStatus.LEAKING
+import leakcanary.LeakNodeStatus.NOT_LEAKING
+import leakcanary.LeakNodeStatus.UNKNOWN
 import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.Reachability
-import leakcanary.Reachability.Status.REACHABLE
-import leakcanary.Reachability.Status.UNKNOWN
-import leakcanary.Reachability.Status.UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type
 import leakcanary.internal.DisplayLeakConnectorView.Type.END
 import leakcanary.internal.DisplayLeakConnectorView.Type.END_FIRST_UNREACHABLE
@@ -175,12 +174,11 @@ internal class DisplayLeakAdapter private constructor(
       val elementIndex = elementIndex(position)
       val element = leakTrace.elements[elementIndex]
 
-      val reachability = leakTrace.expectedReachability[elementIndex]
       val maybeLeakCause = if (isLeakGroup) {
         true
       } else leakTrace.elementMayBeLeakCause(elementIndex)
 
-      val htmlTitle = htmlTitle(element, maybeLeakCause, reachability, view.context)
+      val htmlTitle = htmlTitle(element, maybeLeakCause, view.context)
 
       titleView.text = htmlTitle
 
@@ -212,7 +210,6 @@ internal class DisplayLeakAdapter private constructor(
   private fun htmlTitle(
     element: LeakTraceElement,
     maybeLeakCause: Boolean,
-    reachability: Reachability,
     context: Context
   ): Spanned {
 
@@ -228,10 +225,10 @@ internal class DisplayLeakAdapter private constructor(
 
     htmlString += "<br>"
 
-    val reachabilityString = when (reachability.status) {
+    val reachabilityString = when (element.leakStatusAndReason.status) {
       UNKNOWN -> "UNKNOWN"
-      REACHABLE -> "NO (${reachability.reason})"
-      UNREACHABLE -> "YES (${reachability.reason})"
+      NOT_LEAKING -> "NO (${element.leakStatusAndReason.reason})"
+      LEAKING -> "YES (${element.leakStatusAndReason.reason})"
     }
 
     val indentation = "&nbsp;".repeat(4)
@@ -296,41 +293,41 @@ internal class DisplayLeakAdapter private constructor(
     if (position == TOP_ROW_COUNT - 1) {
       return if (isLeakGroup) HELP_LEAK_GROUP else HELP
     } else if (position == TOP_ROW_COUNT) {
-      if (leakTrace.expectedReachability.size == 1) {
+      if (leakTrace.elements.size == 1) {
         return START_LAST_REACHABLE
       }
-      val nextReachability = leakTrace.expectedReachability[elementIndex(position + 1)]
-      return if (nextReachability.status != REACHABLE) {
+      val nextReachability = leakTrace.elements[elementIndex(position + 1)]
+      return if (nextReachability.leakStatusAndReason.status != NOT_LEAKING) {
         START_LAST_REACHABLE
       } else START
     } else {
       val isLeakingInstance = position == count - 1
       if (isLeakingInstance) {
-        val previousReachability = leakTrace.expectedReachability[elementIndex(position - 1)]
-        return if (previousReachability.status != UNREACHABLE) {
+        val previousReachability = leakTrace.elements[elementIndex(position - 1)]
+        return if (previousReachability.leakStatusAndReason.status != LEAKING) {
           END_FIRST_UNREACHABLE
         } else END
       } else {
-        val reachability = leakTrace.expectedReachability[elementIndex(position)]
-        when (reachability.status) {
+        val reachability = leakTrace.elements[elementIndex(position)]
+        when (reachability.leakStatusAndReason.status) {
           UNKNOWN -> return NODE_UNKNOWN
-          REACHABLE -> {
-            val nextReachability = leakTrace.expectedReachability[elementIndex(position + 1)]
-            return if (nextReachability.status != REACHABLE) {
+          NOT_LEAKING -> {
+            val nextReachability = leakTrace.elements[elementIndex(position + 1)]
+            return if (nextReachability.leakStatusAndReason.status != NOT_LEAKING) {
               NODE_LAST_REACHABLE
             } else {
               NODE_REACHABLE
             }
           }
-          UNREACHABLE -> {
-            val previousReachability = leakTrace.expectedReachability[elementIndex(position - 1)]
-            return if (previousReachability.status != UNREACHABLE) {
+          LEAKING -> {
+            val previousReachability = leakTrace.elements[elementIndex(position - 1)]
+            return if (previousReachability.leakStatusAndReason.status != LEAKING) {
               NODE_FIRST_UNREACHABLE
             } else {
               NODE_UNREACHABLE
             }
           }
-          else -> throw IllegalStateException("Unknown value: " + reachability.status)
+          else -> throw IllegalStateException("Unknown value: " + reachability.leakStatusAndReason.status)
         }
       }
     }

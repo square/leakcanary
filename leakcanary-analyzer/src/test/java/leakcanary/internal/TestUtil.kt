@@ -6,12 +6,13 @@ import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.ThreadExclusion
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
+import leakcanary.ExclusionsFactory
+import leakcanary.LeakInspector
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalyzer
 import leakcanary.HprofParser
 import leakcanary.KeyedWeakReference
 import leakcanary.Labeler
-import leakcanary.Reachability
 import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
@@ -20,16 +21,16 @@ import java.lang.ref.WeakReference
 @Suppress("UNCHECKED_CAST")
 fun <T : HeapAnalysis> File.checkForLeaks(
   labelers: List<Labeler> = emptyList(),
-  reachabilityInspectors: List<Reachability.Inspector> = emptyList(),
-  exclusionsFactory: (HprofParser) -> List<Exclusion> = defaultExclusionFactory
+  leakInspectors: List<LeakInspector> = emptyList(),
+  exclusionsFactory: ExclusionsFactory = defaultExclusionsFactory
 ): T {
   val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
   return heapAnalyzer.checkForLeaks(
-      this, exclusionsFactory, false, reachabilityInspectors, labelers
+      this, exclusionsFactory, false, leakInspectors, labelers
   ) as T
 }
 
-val defaultExclusionFactory: (HprofParser) -> List<Exclusion> = {
+val defaultExclusionsFactory: ExclusionsFactory = {
   listOf(
       Exclusion(
           type = InstanceFieldExclusion(WeakReference::class.java.name, "referent"),

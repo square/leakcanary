@@ -8,7 +8,6 @@ import leakcanary.LeakTrace
 import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakingInstance
-import leakcanary.Reachability
 import leakcanary.Serializables
 import leakcanary.internal.lastSegment
 import leakcanary.internal.utils.to
@@ -206,12 +205,10 @@ internal object LeakingInstanceTable {
             val groupLeakTrace = if (leakingInstance.exclusionStatus == WONT_FIX_LEAK) {
               val index = leakTrace.elements.indexOfFirst { element -> element.exclusion != null }
               LeakTrace(
-                  elements = listOf(leakTrace.elements[index]),
-                  expectedReachability = listOf(leakTrace.expectedReachability[index])
+                  elements = listOf(leakTrace.elements[index])
               )
             } else {
               val elements = mutableListOf<LeakTraceElement>()
-              val expectedReachability = mutableListOf<Reachability>()
               for (index in 0 until leakTrace.elements.size) {
                 if (leakTrace.elementMayBeLeakCause(index)) {
                   var element = leakTrace.elements[index]
@@ -223,10 +220,9 @@ internal object LeakingInstanceTable {
                   }
 
                   elements.add(element)
-                  expectedReachability.add(leakTrace.expectedReachability[index])
                 }
               }
-              LeakTrace(elements, expectedReachability)
+              LeakTrace(elements)
             }
             val groupDescription = cursor.getString(1)!!
             groupLeakTrace to groupDescription
