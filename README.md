@@ -52,7 +52,7 @@ When we first enabled LeakCanary in the Square Point Of Sale app, we were able t
 * If the weak references aren't cleared, after waiting 5 seconds and running the GC, the watched instances are considered *retained*, and potentially leaking.
 * When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored on the file system. The default threshold is 5 retained instances when the app is visible, 1 otherwise.
 * LeakCanary parses the `.hprof` file and finds the chain of references that prevents retained instances from being garbage collected (**leak trace**). A leak trace is technically the *shortest strong reference path from GC Roots to retained instances*, but that's a mouthful.
-* Once the leak trace is determined, LeakCanary uses its built in knowledge of the Android framework to deduct which instances in the leak trace should be reachable vs not reachable. You can help LeakCanary by providing **Reachability inspectors** tailored to your own app.
+* Once the leak trace is determined, LeakCanary uses its built in knowledge of the Android framework to deduct which instances in the leak trace are leaking. You can help LeakCanary by providing **Reachability inspectors** tailored to your own app.
 * Using the reachability information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks are grouped by identical sub chain.
 
 ### How do I fix a memory leak?
@@ -70,7 +70,9 @@ If you cannot figure out a leak, **please do not file an issue**. Instead, creat
 
 If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new). Your feedback help us make LeakCanary better for the entire community.
 
-### Watching any instance
+### Watching objects with a lifecycle
+
+In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use `LeakSentry.refWatcher` to watch instances that should be garbage collected:
 
 ```kotlin
 class MyService : Service {
@@ -81,7 +83,6 @@ class MyService : Service {
     super.onDestroy()
     LeakSentry.refWatcher.watch(this)
   }
-
 }
 ```
 
@@ -149,6 +150,47 @@ Run the instrumentation tests:
 ```
 
 You can extend `FailTestOnLeakRunListener` to customize the behavior.
+
+### Icon and label
+
+The activity that displays leaks comes with a default icon and label, which you can change by providing `R.mipmap.leak_canary_icon` and `R.string.leak_canary_display_activity_label` in your app:
+
+```
+res/
+  mipmap-hdpi/
+    leak_canary_icon.png
+  mipmap-mdpi/
+    leak_canary_icon.png
+  mipmap-xhdpi/
+    leak_canary_icon.png
+  mipmap-xxhdpi/
+    leak_canary_icon.png
+  mipmap-xxxhdpi/
+    leak_canary_icon.png
+   mipmap-anydpi-v26/
+     leak_canary_icon.xml
+```
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="leak_canary_display_activity_label">MyLeaks</string>
+</resources>
+```
+
+### Uploading to a server
+
+You can change the default behavior to upload the leak trace and heap dump to a server of your choosing.
+
+**TODO Document this**
+
+### Identifying AOSP leaks as "won't fix"
+
+**TODO Document this**
+
+### Identifying leaking instances and labeling instances
+
+**TODO Document this**
 
 ## FAQ
 
