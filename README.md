@@ -70,23 +70,9 @@ If you cannot figure out a leak, **please do not file an issue**. Instead, creat
 
 If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new). Your feedback help us make LeakCanary better for the entire community.
 
-### Watching objects with a lifecycle
-
-In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use `LeakSentry.refWatcher` to watch instances that should be garbage collected:
-
-```kotlin
-class MyService : Service {
-
-  // ...
-
-  override fun onDestroy() {
-    super.onDestroy()
-    LeakSentry.refWatcher.watch(this)
-  }
-}
-```
-
 ### Configuring LeakSentry & LeakCanary
+
+LeakCanary actually ships two distinct libraries `com.squareup.leakcanary:leaksentry` and `com.squareup.leakcanary:leakcanary-android` which depends on `leaksentry`.
 
 LeakSentry is in charge of detecting retained instances. Its configuration can be updated at any time by replacing `LeakSentry.config`:
 ```kotlin
@@ -107,7 +93,25 @@ disableLeakCanaryButton.setOnClickListener {
 }
 ```
 
+### Watching objects with a lifecycle
+
+In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use `LeakSentry.refWatcher` to watch instances that should be garbage collected:
+
+```kotlin
+class MyService : Service {
+
+  // ...
+
+  override fun onDestroy() {
+    super.onDestroy()
+    LeakSentry.refWatcher.watch(this)
+  }
+}
+```
+
 ### Counting retained instances in production
+
+`com.squareup.leakcanary:leakcanary-android` should only be used in debug builds. It depends on `com.squareup.leakcanary:leaksentry` which you can use in production to track and count retained instances.
 
 In your `build.gradle`:
 
