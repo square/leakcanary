@@ -72,7 +72,7 @@ If you think a recipe might be missing or you're not sure that what you're tryin
 
 ### Configuring LeakSentry & LeakCanary
 
-LeakCanary actually ships two distinct libraries `com.squareup.leakcanary:leaksentry` and `com.squareup.leakcanary:leakcanary-android` which depends on `leaksentry`.
+LeakCanary is released as two distinct libraries: `com.squareup.leakcanary:leaksentry` and `com.squareup.leakcanary:leakcanary-android` which depends on `leaksentry`.
 
 LeakSentry is in charge of detecting retained instances. Its configuration can be updated at any time by replacing `LeakSentry.config`:
 ```kotlin
