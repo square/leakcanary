@@ -18,7 +18,14 @@ dependencies {
 }
 ```
 
-**That's it!** LeakCanary will automatically show a notification when an activity or fragment memory leak is detected in debug builds.
+**That's it!** LeakCanary will automatically show a notification when a memory leak is detected in debug builds.
+
+What's next?
+* Read the [Fundamentals](#Fundamentals)
+* Watch recorded [presentations](#Presentations)
+* Try LeakCanary code [recipes](#Recipes)
+* Read the [FAQ](#FAQ)
+
 
 Note: **LeakCanary 2 is in alpha**.
 * Check out the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0).
@@ -55,6 +62,7 @@ If you cannot figure out a leak, **please do not file an issue**. Instead, creat
 
 ## Presentations
 
+* [LeakCanary 2: Leaner, Better, Faster, Kotliner!](https://www.youtube.com/watch?v=LEX8dn4BLUw)
 * [LeakCanary, then what? Nuking Nasty Memory Leaks](https://www.youtube.com/watch?v=fhE--eTEW84)
 * [Memory Leak Hunt](https://www.youtube.com/watch?v=KwArTJHLq5g), a live investigation.
 
