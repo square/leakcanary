@@ -15,7 +15,6 @@ import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakSentry
-import leakcanary.internal.activity.LeakActivity
 
 internal object InternalLeakCanary : LeakSentryListener {
 
@@ -138,7 +137,7 @@ internal object InternalLeakCanary : LeakSentryListener {
       return
     }
 
-    val intent = LeakActivity.createIntent(application)
+    val intent = LeakCanary.createLeakDisplayActivityIntent(application)
     intent.action = "Dummy Action because Android is stupid"
     val shortcut = Builder(application, DYNAMIC_SHORTCUT_ID)
         .setLongLabel(longLabel)

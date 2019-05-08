@@ -1,8 +1,11 @@
 package leakcanary
 
 import android.app.Application
+import android.content.Context
+import android.content.Intent
 import leakcanary.AndroidExcludedRefs.Companion.exclusionsFactory
 import leakcanary.internal.InternalLeakCanary
+import leakcanary.internal.activity.LeakActivity
 
 typealias AnalysisResultListener = (Application, HeapAnalysis) -> Unit
 
@@ -50,4 +53,11 @@ object LeakCanary {
 
   @Volatile
   var config: Config = Config()
+
+  /**
+   * @return a new [Intent] that can be used to programmatically launch the leak display activity.
+   */
+  fun createLeakDisplayActivityIntent(context: Context): Intent {
+    return LeakActivity.createIntent(context)
+  }
 }
