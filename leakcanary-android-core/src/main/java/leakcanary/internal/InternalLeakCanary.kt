@@ -15,6 +15,7 @@ import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakSentry
+import leakcanary.internal.activity.LeakActivity
 
 internal object InternalLeakCanary : LeakSentryListener {
 
@@ -30,6 +31,9 @@ internal object InternalLeakCanary : LeakSentryListener {
   val leakDirectoryProvider: LeakDirectoryProvider by lazy {
     LeakDirectoryProvider(application)
   }
+
+  val leakDisplayActivityIntent: Intent
+    get() = LeakActivity.createIntent(application)
 
   override fun onLeakSentryInstalled(application: Application) {
     this.application = application
@@ -137,7 +141,7 @@ internal object InternalLeakCanary : LeakSentryListener {
       return
     }
 
-    val intent = LeakCanary.createLeakDisplayActivityIntent(application)
+    val intent = leakDisplayActivityIntent
     intent.action = "Dummy Action because Android is stupid"
     val shortcut = Builder(application, DYNAMIC_SHORTCUT_ID)
         .setLongLabel(longLabel)
