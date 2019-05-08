@@ -4,7 +4,6 @@ apply plugin: 'kotlin-android'
 dependencies {
   api project(':leakcanary-analyzer')
   api project(':leakcanary-leaksentry')
-  api project(':leakcanary-analyzer')
 
   implementation deps.androidx.annotation
   implementation deps.androidx.core
