@@ -29,8 +29,8 @@ import kotlin.reflect.KClass
  * A set of default [LeakInspector]s that knows about common AOSP and library
  * classes.
  *
- * These are heuristics based on our experience and knownledge of AOSP and various library
- * internals. We only make a reachability decision if we're reasonably sure such reachability is
+ * These are heuristics based on our experience and knowledge of AOSP and various library
+ * internals. We only make a decision if we're reasonably sure the state of an object is
  * unlikely to be the result of a programmer mistake.
  *
  * For example, no matter how many mistakes we make in our code, the value of Activity.mDestroy
