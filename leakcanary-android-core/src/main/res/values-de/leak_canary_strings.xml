@@ -16,12 +16,12 @@
 <resources>
   <string name="leak_canary_about_title">About LeakCanary</string>
   <string name="leak_canary_about_message"><![CDATA[<a href="https://github.com/square/leakcanary">LeakCanary</a>
-  is a memory leak detection library for Android, created by
-  <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> and open sourced by Square.<br><br>
-  We welcome contributions from the community, please do not hesitate to
-  <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br>]]></string>
+  ist eine Memory-Leak-Detection Bibliothek für Android, erstellt von
+  <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> und open-sourced von <a href="https://square.github.io">Square</a>.<br><br>
+  Wir begrüßen Contributions aus der Community, bitte zögert nicht
+  <a href="https://github.com/square/leakcanary/issues">Fehler zu reporten</a> oder ein Pull Request zu erstellen!<br>]]></string>
   <string name="leak_canary_class_has_leaked">%1$s hat geleaked</string>
-  <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
+  <string name="leak_canary_download_dump">Du kannst den Heap Dump unter \"Menu > Heap Dump teilen\" oder \"adb pull $1$s\" herunterladen</string>
   <string name="leak_canary_analysis_failed">Leak Analyse fehlgeschlagen</string>
   <string name="leak_canary_notification_analysing">Analysiere Heap Dump</string>
   <string name="leak_canary_notification_dumping">Sichere Heap</string>
@@ -32,7 +32,7 @@
   <string name="leak_canary_share_with">Teilen mit…</string>
   <string name="leak_canary_display_activity_label">Leaks</string>
   <string name="leak_canary_storage_permission_activity_label">Storage Berechtigung</string>
-  <string name="leak_canary_toast_heap_dump">LeakCanary is dumping the heap, app will freeze. Brrrr.</string>
+  <string name="leak_canary_toast_heap_dump">LeakCanary erstellt einen Heap Dump, die App wird einfrieren. Brrrr.</string>
   <string name="leak_canary_delete">Löschen</string>
   <string name="leak_canary_failure_report">"Bitte sende diesen Fehler an http://github.com/square/leakcanary"</string>
   <string name="leak_canary_delete_all">Alle löschen</string>
@@ -41,9 +41,39 @@
   <string name="leak_canary_permission_notification_title">Leak erkannt, benötige Berechtigung</string>
   <string name="leak_canary_permission_notification_text">Hier klicken, um Storage Berechtigung für %s zu aktivieren.</string>
   <string name="leak_canary_shortcut_label">Leaks</string>
-  <string name="leak_canary_stackoverflow_share">Share Leak On Stack Overflow</string>
-  <string name="leak_canary_leak_copied">Leak info copied to clipboard</string>
+  <string name="leak_canary_stackoverflow_share">Leak auf Stack Overflow teilen</string>
+  <string name="leak_canary_leak_copied">Leak Info in Zwischenablage kopiert</string>
   <string name="leak_canary_leak_clipdata_label">LeakCanary Leak Trace</string>
+  <string name="leak_canary_options_menu_generate_hq_bitmap">HQ Bitmap generieren</string>
+  <string name="leak_canary_options_menu_permission_toast">Bitte erlaube zunächst die Speicher-Berechtigung, siehe Benachrichtigung…</string>
+  <string name="leak_canary_generating_hq_bitmap_toast_notice">Rendere HQ Bitmap, das könnte eine Weile dauern…</string>
+  <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Rendere HQ Bitmap, das könnte eine Weile dauern…</string>
+  <plurals name="leak_canary_heap_analysis_list_retained_instances">
+    <item quantity="one">%d erhaltene Instanz</item>
+    <item quantity="other">%d erhaltene Instanzen</item>
+  </plurals>
+  <string name="leak_canary_share_heap_dump_bitmap_screen_title">Heap Dump Bitmap teilen</string>
+  <string name="leak_canary_heap_dump_screen_title">Heap Dump %s</string>
+  <string name="leak_canary_analysis_deleted_title">Analyse gelöscht</string>
+  <string name="leak_canary_go_to_heap_analysis">Zur Heap Analyse</string>
+  <string name="leak_canary_heap_analysis_success_screen_title">Heap Analyse (%d erhaltene Instanzen)</string>
+  <string name="leak_canary_heap_analysis_success_screen_row_title">(%1$d / %2$d Gesamt) %3$s</string>
+  <string name="leak_canary_heap_analysis_success_screen_row_time_format">Neueste: %s</string>
+  <string name="leak_canary_heap_analysis_list_screen_title">Alle Analysen</string>
+  <plurals name="leak_canary_group_screen_title">
+    <item quantity="one">%1$d Leak in %2$s</item>
+    <item quantity="other">%1$d Leaks in %2$s</item>
+  </plurals>
+  <string name="leak_canary_group_list_screen_title">%d Leak Gruppen</string>
+  <string name="leak_canary_group_list_title_information">(%1$d) %2$s</string>
+  <string name="leak_canary_group_list_time_label">Neueste: %s</string>
+  <string name="leak_canary_import_from_title">Importieren von…</string>
+  <string name="leak_canary_options_menu_import_hprof_file">Hprof Datei importieren &amp; analysieren</string>
+  <string name="leak_canary_options_menu_see_analysis_list">Siehe Analyse-Liste</string>
+  <string name="leak_canary_options_menu_render_heap_dump">Heap Dump rendern</string>
+  <string name="leak_canary_heap_analysis_success_screen_weak_reference_cleared_count">%d bereits aufgelöste schwache Referenzen</string>
+  <string name="leak_canary_heap_analysis_success_screen_no_path_to_instance_count">%d erhaltene Instanzen ohne Leaks</string>
+  <string name="leak_canary_heap_analysis_success_screen_garbage_collected_weak_references">%d aufgeräumte schwache Referenzen</string>
   <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
   <string name="leak_canary_help_detail"><![CDATA[Ein Memory-Leak ist ein Programmierfehler der
     dafür sorgt, dass deine Anwendung eine Referenz auf ein Objekt hält, das nicht länger benötigt
@@ -54,7 +84,7 @@
   speichern, dann wird der durch die Activity genutzte Speicher nicht mehr durch den Garbage
   Collector freigegeben.<br>
   <br>
-  LeakCanary identifiziert ein Objekt, dass nicht länger benötigt wird und findet die Kette an
+  LeakCanary identifiziert ein Objekt, das nicht länger benötigt wird und findet die Kette an
   <font color=\'#9976a8\'>Referenzen</font> die es davon abhält seinen Speicher freizugeben.<br>
   <br>
   Um ein Memory-Leak zu beheben, musst du anhand der Kette herausfinden, welche Referenz für das
