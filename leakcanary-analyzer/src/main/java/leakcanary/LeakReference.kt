@@ -27,8 +27,7 @@ import java.io.Serializable
  */
 data class LeakReference(
   val type: Type,
-  val name: String,
-  val value: String
+  val name: String
 ) : Serializable {
 
   val displayName: String
@@ -49,12 +48,4 @@ data class LeakReference(
         LOCAL -> "<Java Local>"
       }
     }
-
-  override fun toString(): String {
-    return when (type) {
-      ARRAY_ENTRY, INSTANCE_FIELD -> "$displayName = $value"
-      STATIC_FIELD -> "static $displayName = $value"
-      LOCAL -> displayName
-    }
-  }
 }

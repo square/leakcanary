@@ -41,7 +41,7 @@ class HeapAnalyzerTest {
   }
 
   @Test fun pathToCharArray() {
-    hprofFile.writeSinglePathsToCharArrays(listOf("Hello".toCharArray()))
+    hprofFile.writeSinglePathsToCharArrays(listOf("Hello"))
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
     val leak = analysis.retainedInstances[0] as LeakingInstance
     assertThat(leak.instanceClassName).isEqualTo("char[]")
@@ -49,7 +49,7 @@ class HeapAnalyzerTest {
 
   // Two char arrays to ensure we keep going after finding the first one
   @Test fun pathToTwoCharArrays() {
-    hprofFile.writeSinglePathsToCharArrays(listOf("Hello".toCharArray(), "World".toCharArray()))
+    hprofFile.writeSinglePathsToCharArrays(listOf("Hello", "World"))
     val analysis = hprofFile.checkForLeaks<HeapAnalysis>()
     assertThat(analysis).isInstanceOf(HeapAnalysisSuccess::class.java)
   }

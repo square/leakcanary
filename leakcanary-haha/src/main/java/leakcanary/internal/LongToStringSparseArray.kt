@@ -42,31 +42,6 @@ internal class LongToStringSparseArray(initialCapacity: Int) : Cloneable {
     return null
   }
 
-  fun compact() {
-    val initialSize = size
-    var compactedSize = 0
-    val keys = keys
-    val values = values
-    for (i in 0 until initialSize) {
-      val value = values[i]
-      if (value != null) {
-        if (i != compactedSize) {
-          keys[compactedSize] = keys[i]
-          values[compactedSize] = value
-          values[i] = null
-        }
-        compactedSize++
-      }
-    }
-    if (compactedSize != initialSize) {
-      size = compactedSize
-      this.keys = LongArray(compactedSize)
-      System.arraycopy(keys, 0, this.keys, 0, compactedSize)
-      this.values = arrayOfNulls(compactedSize)
-      System.arraycopy(values, 0, this.values, 0, compactedSize)
-    }
-  }
-
   operator fun set(
     key: Long,
     value: String

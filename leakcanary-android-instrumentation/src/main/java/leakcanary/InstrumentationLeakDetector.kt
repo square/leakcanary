@@ -194,6 +194,7 @@ class InstrumentationLeakDetector {
      */
     fun updateConfig() {
       LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
+      LeakSentry.config = LeakSentry.config.copy(enabled = true)
     }
   }
 }

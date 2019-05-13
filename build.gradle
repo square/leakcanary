@@ -22,7 +22,8 @@ buildscript {
               espresso: 'androidx.test.espresso:espresso-core:3.1.1',
               rules   : 'androidx.test:rules:1.1.1',
               runner  : 'androidx.test:runner:1.1.1',
-          ]
+          ],
+          benchmark : 'androidx.benchmark:benchmark:1.0.0-alpha01'
       ],
       haha          : 'com.squareup.haha:haha:2.1',
       junit         : 'junit:junit:4.12',

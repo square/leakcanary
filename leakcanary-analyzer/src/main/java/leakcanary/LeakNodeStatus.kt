@@ -1,5 +1,7 @@
 package leakcanary
 
+import java.io.Serializable
+
 /**
  * Evaluates whether a [LeakNode] is leaking or not, and provides a reason for that decision.
  */
@@ -34,4 +36,4 @@ enum class LeakNodeStatus {
 class LeakNodeStatusAndReason internal constructor(
   val status: LeakNodeStatus,
   val reason: String
-)
+) : Serializable

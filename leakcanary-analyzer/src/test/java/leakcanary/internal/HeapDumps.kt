@@ -4,11 +4,12 @@ import leakcanary.HeapValue.BooleanValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofWriter
 import java.io.File
+import kotlin.jvm.internal.Ref.ObjectRef
 
 fun File.writeWeakReferenceCleared() {
   HprofWriter.open(this)
       .helper {
-        keyedWeakReference("Leaking", 0)
+        keyedWeakReference("Leaking", ObjectReference(0))
       }
 }
 
@@ -22,13 +23,11 @@ fun File.writeNoPathToInstance() {
 fun File.writeSinglePathToInstance() {
   HprofWriter.open(this)
       .helper {
-        val leaking = instance(
-            clazz("Leaking")
-        )
+        val leaking = instance(clazz("Leaking"))
         keyedWeakReference("Leaking", leaking)
         clazz(
             "GcRoot", staticFields = listOf(
-            "shortestPath" to ObjectReference(leaking)
+            "shortestPath" to leaking
         )
         )
       }
@@ -41,20 +40,20 @@ fun File.writeSinglePathToString(value: String = "Hi") {
         keyedWeakReference("java.lang.String", leaking)
         clazz(
             "GcRoot", staticFields = listOf(
-            "shortestPath" to ObjectReference(leaking)
+            "shortestPath" to leaking
         )
         )
       }
 }
 
-fun File.writeSinglePathsToCharArrays(values: List<CharArray>) {
+fun File.writeSinglePathsToCharArrays(values: List<String>) {
   HprofWriter.open(this)
       .helper {
         val arrays = mutableListOf<Long>()
         values.forEach {
-          val leaking = array(it)
+          val leaking = it.charArrayDump
           keyedWeakReference("char[]", leaking)
-          arrays.add(leaking)
+          arrays.add(leaking.value)
         }
         clazz(
             className = "GcRoot",
@@ -68,30 +67,6 @@ fun File.writeSinglePathsToCharArrays(values: List<CharArray>) {
       }
 }
 
-fun File.writeCustomPathToInstance(path: List<Pair<String, String>>) {
-  HprofWriter.open(this)
-      .helper {
-        val leaking = instance(
-            clazz("Leaking")
-        )
-        keyedWeakReference("Leaking", leaking)
-        var previousInstance = leaking
-        for (index in path.lastIndex downTo 1) {
-          val (className, fieldName) = path[index]
-          previousInstance = instance(
-              clazz(className, fields = listOf(fieldName to ObjectReference::class)),
-              fields = listOf(ObjectReference(previousInstance))
-          )
-        }
-        val root = path.first()
-        clazz(
-            root.first, staticFields = listOf(
-            root.second to ObjectReference(previousInstance)
-        )
-        )
-      }
-}
-
 fun File.writeTwoPathsToInstance() {
   HprofWriter.open(this)
       .helper {
@@ -99,12 +74,12 @@ fun File.writeTwoPathsToInstance() {
         keyedWeakReference("Leaking", leaking)
         val hasLeaking = instance(
             clazz("HasLeaking", fields = listOf("leaking" to ObjectReference::class)),
-            fields = listOf(ObjectReference(leaking))
+            fields = listOf(leaking)
         )
         clazz(
             "GcRoot", staticFields = listOf(
-            "shortestPath" to ObjectReference(leaking),
-            "longestPath" to ObjectReference(hasLeaking)
+            "shortestPath" to leaking,
+            "longestPath" to hasLeaking
         )
         )
       }
@@ -123,7 +98,7 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
         )
         val activityArrayClassId = arrayClass("com.example.ExampleActivity")
 
-        val destroyedActivities = mutableListOf<Long>()
+        val destroyedActivities = mutableListOf<ObjectReference>()
         for (i in 1..leakCount) {
           destroyedActivities.add(instance(exampleActivityClassId, listOf(BooleanValue(true))))
         }
@@ -131,9 +106,10 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
         clazz(
             className = "com.example.ActivityHolder",
             staticFields = listOf(
-                "activities" to ObjectReference(
-                    objectArray(activityArrayClassId, destroyedActivities.toLongArray())
-                )
+                "activities" to
+                    objectArrayOf(
+                        activityArrayClassId, *destroyedActivities.toTypedArray()
+                    )
             )
         )
         destroyedActivities.forEach { instanceId ->

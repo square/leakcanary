@@ -85,7 +85,7 @@ data class LeakingInstance(
    * The number of bytes which would be freed if all references to the leaking object were
    * released. Null if the retained heap size was not computed.
    */
-  val retainedHeapSize: Long?
+  val retainedHeapSize: Int?
 
 ) : WeakReferenceFound() {
 

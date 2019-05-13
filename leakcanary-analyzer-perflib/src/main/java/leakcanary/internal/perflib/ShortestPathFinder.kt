@@ -245,7 +245,7 @@ internal class ShortestPathFinder(
         exclusion = node.exclusion
       }
       val parent = LeakNode(null, holder, null, null)
-      enqueue(exclusion, parent, child, LeakReference(LOCAL, "", ""))
+      enqueue(exclusion, parent, child, LeakReference(LOCAL, ""))
     } else {
       enqueue(null, node, child, null)
     }
@@ -264,8 +264,7 @@ internal class ShortestPathFinder(
       }
       val child = value as Instance?
       var visit = true
-      val fieldValue = value?.toString() ?: "null"
-      val leakReference = LeakReference(STATIC_FIELD, fieldName, fieldValue)
+      val leakReference = LeakReference(STATIC_FIELD, fieldName)
       if (ignoredStaticFields != null) {
         val params = ignoredStaticFields[fieldName]
         if (params != null) {
@@ -320,10 +319,9 @@ internal class ShortestPathFinder(
       if (params != null && (fieldExclusion == null || params.alwaysExclude && !fieldExclusion.alwaysExclude)) {
         fieldExclusion = params
       }
-      val value = if (fieldValue.value == null) "null" else fieldValue.value.toString()
       enqueue(
           fieldExclusion, node, child,
-          LeakReference(INSTANCE_FIELD, fieldName, value)
+          LeakReference(INSTANCE_FIELD, fieldName)
       )
     }
   }
@@ -335,8 +333,7 @@ internal class ShortestPathFinder(
       for (i in values.indices) {
         val child = values[i] as Instance?
         val name = Integer.toString(i)
-        val value = child?.toString() ?: "null"
-        enqueue(null, node, child, LeakReference(ARRAY_ENTRY, name, value))
+        enqueue(null, node, child, LeakReference(ARRAY_ENTRY, name))
       }
     }
   }

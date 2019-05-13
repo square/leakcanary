@@ -319,7 +319,7 @@ class PerflibHeapAnalyzer @TestOnly internal constructor(
       val leakTrace = buildLeakTrace(pathResult.leakingNode)
 
       val retainedSize = if (heapDump.computeRetainedHeapSize) {
-        pathResult.leakingNode.instance.totalRetainedSize
+        pathResult.leakingNode.instance.totalRetainedSize.toInt()
       } else {
         null
       }

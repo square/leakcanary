@@ -13,6 +13,7 @@ dependencies {
   androidTestImplementation deps.androidx.test.rules
   androidTestImplementation deps.androidx.test.runner
   androidTestImplementation deps.androidx.fragment
+  androidTestImplementation deps.androidx.benchmark
 }
 
 android {

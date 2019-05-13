@@ -52,7 +52,7 @@ import java.io.File
 
 class HprofWriter private constructor(
   private val sink: BufferedSink,
-  private val idSize: Int
+  val idSize: Int
 ) : Closeable {
 
   private val workBuffer = Buffer()
