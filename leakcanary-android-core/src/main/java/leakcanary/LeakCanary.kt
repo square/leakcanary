@@ -50,7 +50,7 @@ object LeakCanary {
   )
 
   @Volatile
-  var config: Config = Config()
+  var config: Config = if (LeakSentry.isInstalled) Config() else InternalLeakCanary.noInstallConfig
 
   /** [Intent] that can be used to programmatically launch the leak display activity. */
   val leakDisplayActivityIntent

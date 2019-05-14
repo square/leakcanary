@@ -15,16 +15,21 @@ object LeakSentry {
   )
 
   @Volatile
-  var config: Config = Config()
+  var config: Config = if (isInstalled) Config() else Config(enabled = false)
 
   val refWatcher
     get() = InternalLeakSentry.refWatcher
 
+  /** @see [manualInstall] */
+  val isInstalled
+    get() = InternalLeakSentry.isInstalled
+
   /**
-   * [LeakSentry] is automatically installed on process start by
-   * [leaksentry.internal.LeakSentryInstaller] which is registered in the AndroidManifest.xml of
-   * your app. If you disabled [leaksentry.internal.LeakSentryInstaller] then you can call this
-   * method to install [LeakSentry].
+   * [LeakSentry] is automatically installed on main process start by
+   * [leakcanary.internal.LeakSentryInstaller] which is registered in the AndroidManifest.xml of
+   * your app. If you disabled [leakcanary.internal.LeakSentryInstaller] or you need LeakSentry
+   * or LeakCanary to run outside of the main process then you can call this method to install
+   * [LeakSentry].
    */
   fun manualInstall(application: Application) = InternalLeakSentry.install(application)
 
