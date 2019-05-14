@@ -14,6 +14,7 @@ import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
+import leakcanary.LeakCanary.Config
 import leakcanary.LeakSentry
 import leakcanary.internal.activity.LeakActivity
 
@@ -34,6 +35,12 @@ internal object InternalLeakCanary : LeakSentryListener {
 
   val leakDisplayActivityIntent: Intent
     get() = LeakActivity.createIntent(application)
+
+  val noInstallConfig: Config
+    get() = Config(
+        dumpHeap = false, exclusionsFactory = { emptyList() }, leakInspectors = emptyList(),
+        labelers = emptyList()
+    )
 
   override fun onLeakSentryInstalled(application: Application) {
     this.application = application

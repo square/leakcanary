@@ -13,6 +13,9 @@ import java.util.concurrent.Executor
 
 internal object InternalLeakSentry {
 
+  val isInstalled
+    get() = ::application.isInitialized
+
   private val listener: LeakSentryListener
 
   val isDebuggableBuild by lazy {
