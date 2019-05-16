@@ -3,8 +3,8 @@ package leakcanary
 import leakcanary.HprofParser.Companion.BITS_FOR_FILE_POSITION
 
 enum class ObjectIdMetadata {
-  PRIMITIVE_WRAPPER,
-  PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY,
+  PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY,
+  PRIMITIVE_WRAPPER_ARRAY,
   OBJECT_ARRAY,
   /**
    * An [INSTANCE] of the String class.

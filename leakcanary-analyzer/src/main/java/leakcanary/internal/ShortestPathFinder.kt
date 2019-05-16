@@ -15,12 +15,16 @@
  */
 package leakcanary.internal
 
+import leakcanary.AnalyzerProgressListener
+import leakcanary.AnalyzerProgressListener.Step.FINDING_DOMINATORS
+import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.StaticFieldExclusion
 import leakcanary.Exclusion.ExclusionType.ThreadExclusion
 import leakcanary.Exclusion.Status
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
+import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.ExclusionsFactory
 import leakcanary.HeapValue
 import leakcanary.HeapValue.ObjectReference
@@ -32,15 +36,18 @@ import leakcanary.LeakReference
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
+import leakcanary.ObjectIdMetadata.CLASS
 import leakcanary.ObjectIdMetadata.EMPTY_INSTANCE
-import leakcanary.ObjectIdMetadata.PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY
-import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER
+import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_ARRAY
+import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY
 import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.internal.hppc.LongLongScatterMap
+import leakcanary.internal.hppc.LongScatterSet
+import leakcanary.reference
 import java.util.LinkedHashMap
-import java.util.LinkedHashSet
 import java.util.PriorityQueue
 
 /**
@@ -69,22 +76,41 @@ internal class ShortestPathFinder {
   })
   /** Set of instances to visit */
   private val toVisitMap = LinkedHashMap<Long, Status>()
-  private val visitedSet = LinkedHashSet<Long>()
+  private val visitedSet = LongScatterSet()
   private lateinit var referentMap: Map<Long, KeyedWeakReferenceMirror>
   private var visitOrder = 0
 
-  internal class Result(
+  /**
+   * Map of instances to their leaking dominator.
+   * var because the instance will be returned by [findPaths] and replaced with a new empty map
+   * here (copying it could be expensive).
+   *
+   * If an instance has been added to [toVisitMap] or [visitedSet] and is missing from
+   * [dominatedInstances] then it's considered "undomitable" ie it is dominated by gc roots
+   * and cannot be dominated by a leaking instance.
+   */
+  private var dominatedInstances = LongLongScatterMap()
+
+  class Result(
     val leakingNode: LeakNode,
     val exclusionStatus: Status?,
     val weakReference: KeyedWeakReferenceMirror
+  )
+
+  data class Results(
+    val results: List<Result>,
+    val dominatedInstances: LongLongScatterMap
   )
 
   fun findPaths(
     parser: HprofParser,
     exclusionsFactory: ExclusionsFactory,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
-    gcRootIds: MutableList<Long>
-  ): List<Result> {
+    gcRootIds: MutableList<Long>,
+    computeDominators: Boolean,
+    listener: AnalyzerProgressListener
+  ): Results {
+    listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
     clearState()
 
     val fieldNameByClassName = mutableMapOf<String, MutableMap<String, Exclusion>>()
@@ -123,12 +149,12 @@ internal class ShortestPathFinder {
     // Referent object id to weak ref mirror
     referentMap = leakingWeakRefs.associateBy { it.referent.value }
 
-    enqueueGcRoots(parser, gcRootIds)
+    enqueueGcRoots(parser, gcRootIds, computeDominators)
     gcRootIds.clear()
 
     var lowestPriority = ALWAYS_REACHABLE
     val results = mutableListOf<Result>()
-    while (!toVisitQueue.isEmpty()) {
+    visitingQueue@ while (!toVisitQueue.isEmpty()) {
       val node = toVisitQueue.poll()!!
       val priority = toVisitMap[node.instance]!!
       // Lowest priority has the highest value
@@ -146,21 +172,38 @@ internal class ShortestPathFinder {
       if (weakReference != null) {
         val exclusionPriority = if (lowestPriority == ALWAYS_REACHABLE) null else lowestPriority
         results.add(Result(node, exclusionPriority, weakReference))
-        // Found all refs, stop searching.
+        // Found all refs, stop searching (unless computing retained size which stops on weak reachables)
         if (results.size == leakingWeakRefs.size) {
-          break
+          if (computeDominators && lowestPriority < WEAKLY_REACHABLE) {
+            listener.onProgressUpdate(FINDING_DOMINATORS)
+          } else {
+            break@visitingQueue
+          }
         }
       }
 
+      if (results.size == leakingWeakRefs.size && computeDominators && lowestPriority >= WEAKLY_REACHABLE) {
+        break@visitingQueue
+      }
+
       when (val record = parser.retrieveRecordById(node.instance)) {
-        is ClassDumpRecord -> visitClassRecord(parser, record, node, staticFieldNameByClassName)
-        is InstanceDumpRecord -> visitInstanceRecord(parser, record, node, fieldNameByClassName)
-        is ObjectArrayDumpRecord -> visitObjectArrayRecord(parser, record, node)
+        is ClassDumpRecord -> visitClassRecord(
+            parser, record, node, staticFieldNameByClassName, computeDominators
+        )
+        is InstanceDumpRecord -> visitInstanceRecord(
+            parser, record, node, fieldNameByClassName, computeDominators
+        )
+        is ObjectArrayDumpRecord -> visitObjectArrayRecord(
+            parser, record, node, computeDominators
+        )
       }
     }
 
+    val dominatedInstances = this.dominatedInstances
+
     clearState()
-    return results
+
+    return Results(results, dominatedInstances)
   }
 
   private fun checkSeen(node: LeakNode): Boolean {
@@ -171,14 +214,16 @@ internal class ShortestPathFinder {
   private fun clearState() {
     toVisitQueue.clear()
     toVisitMap.clear()
-    visitedSet.clear()
+    visitedSet.release()
     visitOrder = 0
     referentMap = emptyMap()
+    dominatedInstances = LongLongScatterMap()
   }
 
   private fun enqueueGcRoots(
     hprofParser: HprofParser,
-    gcRootIds: List<Long>
+    gcRootIds: List<Long>,
+    computeDominators: Boolean
   ) {
     // TODO sort GC roots based on type and class name (for class / instance / array)
     // Goal is to get a stable shortest path
@@ -186,6 +231,9 @@ internal class ShortestPathFinder {
     // TODO java local: exclude specific threads,
     // TODO java local: parent should be set to the allocated thread
     gcRootIds.forEach {
+      if (computeDominators) {
+        undominateWithSkips(hprofParser, it)
+      }
       enqueue(hprofParser, RootNode(it), exclusionPriority = null)
     }
   }
@@ -194,7 +242,8 @@ internal class ShortestPathFinder {
     hprofParser: HprofParser,
     record: ClassDumpRecord,
     node: LeakNode,
-    staticFieldNameByClassName: Map<String, Map<String, Exclusion>>
+    staticFieldNameByClassName: Map<String, Map<String, Exclusion>>,
+    computeRetainedHeapSize: Boolean
   ) {
     val className = hprofParser.className(record.id)
 
@@ -207,7 +256,11 @@ internal class ShortestPathFinder {
         continue
       }
 
-      val leakReference = LeakReference(STATIC_FIELD, fieldName, "object $objectId")
+      if (computeRetainedHeapSize) {
+        undominateWithSkips(hprofParser, objectId)
+      }
+
+      val leakReference = LeakReference(STATIC_FIELD, fieldName)
 
       val exclusion = ignoredStaticFields[fieldName]
 
@@ -223,7 +276,8 @@ internal class ShortestPathFinder {
     hprofParser: HprofParser,
     record: InstanceDumpRecord,
     parent: LeakNode,
-    fieldNameByClassName: Map<String, Map<String, Exclusion>>
+    fieldNameByClassName: Map<String, Map<String, Exclusion>>,
+    computeRetainedHeapSize: Boolean
   ) {
     val instance = hprofParser.hydrateInstance(record)
 
@@ -247,12 +301,16 @@ internal class ShortestPathFinder {
     fieldNamesAndValues.filter { (_, value) -> value is ObjectReference }
         .map { (name, reference) -> name to (reference as ObjectReference).value }
         .forEach { (fieldName, objectId) ->
+          if (computeRetainedHeapSize) {
+            updateDominatorWithSkips(hprofParser, parent.instance, objectId)
+          }
+
           val exclusion = ignoredFields[fieldName]
           enqueue(
               hprofParser, ChildNode(
               objectId,
               visitOrder++, exclusion?.description, parent,
-              LeakReference(INSTANCE_FIELD, fieldName, "object $objectId")
+              LeakReference(INSTANCE_FIELD, fieldName)
           ), exclusion?.status
           )
         }
@@ -261,11 +319,15 @@ internal class ShortestPathFinder {
   private fun visitObjectArrayRecord(
     hprofParser: HprofParser,
     record: ObjectArrayDumpRecord,
-    parentNode: LeakNode
+    parentNode: LeakNode,
+    computeRetainedHeapSize: Boolean
   ) {
     record.elementIds.forEachIndexed { index, elementId ->
+      if (computeRetainedHeapSize) {
+        updateDominatorWithSkips(hprofParser, parentNode.instance, elementId)
+      }
       val name = Integer.toString(index)
-      val reference = LeakReference(ARRAY_ENTRY, name, "object $elementId")
+      val reference = LeakReference(ARRAY_ENTRY, name)
       enqueue(hprofParser, ChildNode(elementId, visitOrder++, null, parentNode, reference), null)
     }
   }
@@ -309,9 +371,147 @@ internal class ShortestPathFinder {
     toVisitQueue.add(node)
   }
 
+  private fun updateDominatorWithSkips(
+    hprofParser: HprofParser,
+    parentObjectId: Long,
+    objectId: Long
+  ) {
+    when (hprofParser.objectIdMetadata(objectId)) {
+      CLASS -> {
+        undominate(objectId, false)
+      }
+      // String internal array is never enqueued
+      STRING -> {
+        updateDominator(parentObjectId, objectId, true)
+        val stringRecord = hprofParser.retrieveRecordById(objectId) as InstanceDumpRecord
+        val stringInstance = hprofParser.hydrateInstance(stringRecord)
+        val valueId = stringInstance["value"].reference
+        if (valueId != null) {
+          updateDominator(parentObjectId, valueId, true)
+        }
+      }
+      // Primitive wrapper array elements are never enqueued
+      PRIMITIVE_WRAPPER_ARRAY -> {
+        updateDominator(parentObjectId, objectId, true)
+        val arrayRecord = hprofParser.retrieveRecordById(objectId) as ObjectArrayDumpRecord
+        for (wrapperId in arrayRecord.elementIds) {
+          updateDominator(parentObjectId, wrapperId, true)
+        }
+      }
+      else -> {
+        updateDominator(parentObjectId, objectId, false)
+      }
+    }
+  }
+
+  private fun updateDominator(
+    parent: Long,
+    instance: Long,
+    neverEnqueued: Boolean
+  ) {
+    val currentDominator = dominatedInstances[instance]
+    if (currentDominator == null && (instance in visitedSet || instance in toVisitMap)) {
+      return
+    }
+    val parentDominator = dominatedInstances[parent]
+
+    val parentIsRetainedInstance = referentMap.containsKey(parent)
+
+    val nextDominator = if (parentIsRetainedInstance) parent else parentDominator
+
+    if (nextDominator == null) {
+      // parent is not a retained instance and parent has no dominator, but it must have been
+      // visited therefore we know parent belongs to undominated.
+      if (neverEnqueued) {
+        visitedSet.add(instance)
+      }
+
+      if (currentDominator != null) {
+        dominatedInstances.remove(instance)
+      }
+      return
+    }
+    if (currentDominator == null) {
+      dominatedInstances[instance] = nextDominator
+    } else {
+      val parentDominators = mutableListOf<Long>()
+      val currentDominators = mutableListOf<Long>()
+      var dominator: Long? = nextDominator
+      while (dominator != null) {
+        parentDominators.add(dominator)
+        dominator = dominatedInstances[dominator]
+      }
+      dominator = currentDominator
+      while (dominator != null) {
+        currentDominators.add(dominator)
+        dominator = dominatedInstances[dominator]
+      }
+
+      var sharedDominator: Long? = null
+      exit@ for (parentD in parentDominators) {
+        for (currentD in currentDominators) {
+          if (currentD == parentD) {
+            sharedDominator = currentD
+            break@exit
+          }
+        }
+      }
+      if (sharedDominator == null) {
+        dominatedInstances.remove(instance)
+        if (neverEnqueued) {
+          visitedSet.add(instance)
+        }
+      } else {
+        dominatedInstances[instance] = sharedDominator
+      }
+    }
+  }
+
+  private fun undominateWithSkips(
+    hprofParser: HprofParser,
+    objectId: Long
+  ) {
+    when (hprofParser.objectIdMetadata(objectId)) {
+      CLASS -> {
+        undominate(objectId, false)
+      }
+      // String internal array is never enqueued
+      STRING -> {
+        undominate(objectId, true)
+        val stringRecord = hprofParser.retrieveRecordById(objectId) as InstanceDumpRecord
+        val stringInstance = hprofParser.hydrateInstance(stringRecord)
+        val valueId = stringInstance["value"].reference
+        if (valueId != null) {
+          undominate(valueId, true)
+        }
+      }
+      // Primitive wrapper array elements are never enqueued
+      PRIMITIVE_WRAPPER_ARRAY -> {
+        undominate(objectId, true)
+        val arrayRecord = hprofParser.retrieveRecordById(objectId) as ObjectArrayDumpRecord
+        for (wrapperId in arrayRecord.elementIds) {
+          undominate(wrapperId, true)
+        }
+      }
+      else -> {
+        undominate(objectId, false)
+      }
+    }
+  }
+
+  private fun undominate(
+    instance: Long,
+    neverEnqueued: Boolean
+  ) {
+    dominatedInstances.remove(instance)
+    if (neverEnqueued) {
+      visitedSet.add(instance)
+    }
+  }
+
   companion object {
     private val SKIP_ENQUEUE =
-      setOf(PRIMITIVE_WRAPPER, PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY, STRING, EMPTY_INSTANCE)
+      setOf(PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY, PRIMITIVE_WRAPPER_ARRAY, STRING, EMPTY_INSTANCE)
 
     // Since NEVER_REACHABLE never ends up in the queue, we use its value to mean "ALWAYS_REACHABLE"
     // For this to work we need NEVER_REACHABLE to be declared as the first enum value.

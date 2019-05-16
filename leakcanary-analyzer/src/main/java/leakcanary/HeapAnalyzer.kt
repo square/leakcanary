@@ -16,9 +16,9 @@
 package leakcanary
 
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACES
-import leakcanary.AnalyzerProgressListener.Step.COMPUTING_DOMINATORS
+import leakcanary.AnalyzerProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
+import leakcanary.AnalyzerProgressListener.Step.COMPUTING_RETAINED_SIZE
 import leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REFS
-import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.AnalyzerProgressListener.Step.FINDING_WATCHED_REFERENCES
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
 import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
@@ -31,7 +31,6 @@ import leakcanary.GcRoot.NativeStack
 import leakcanary.GcRoot.ReferenceCleanup
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
-import leakcanary.HeapValue.LongValue
 import leakcanary.HprofParser.RecordCallbacks
 import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakNodeStatus.LEAKING
@@ -55,14 +54,15 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import leakcanary.Record.LoadClassRecord
-import leakcanary.Record.StringRecord
 import leakcanary.internal.KeyedWeakReferenceMirror
 import leakcanary.internal.ShortestPathFinder
 import leakcanary.internal.ShortestPathFinder.Result
+import leakcanary.internal.ShortestPathFinder.Results
+import leakcanary.internal.hppc.LongLongScatterMap
 import leakcanary.internal.lastSegment
 import java.io.File
 import java.util.ArrayList
+import java.util.LinkedHashMap
 import java.util.concurrent.TimeUnit.NANOSECONDS
 
 /**
@@ -95,17 +95,16 @@ class HeapAnalyzer constructor(
 
     listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
 
-
     try {
       HprofParser.open(heapDumpFile)
           .use { parser ->
             listener.onProgressUpdate(SCANNING_HEAP_DUMP)
-            val (gcRootIds, heapDumpMemoryStoreClassId, keyedWeakReferenceInstances) = scan(parser)
+            val (gcRootIds, keyedWeakReferenceInstances, cleaners) = scan(
+                parser, computeRetainedHeapSize
+            )
             val analysisResults = mutableMapOf<String, RetainedInstance>()
             listener.onProgressUpdate(FINDING_WATCHED_REFERENCES)
-            val (retainedKeys, heapDumpUptimeMillis) = readHeapDumpMemoryStore(
-                parser, heapDumpMemoryStoreClassId
-            )
+            val (retainedKeys, heapDumpUptimeMillis) = readHeapDumpMemoryStore(parser)
 
             if (retainedKeys.isEmpty()) {
               val exception = IllegalStateException("No retained keys found in heap dump")
@@ -121,12 +120,21 @@ class HeapAnalyzer constructor(
                   heapDumpUptimeMillis
               )
 
-            val pathResults =
-              findShortestPaths(parser, exclusionsFactory, leakingWeakRefs, gcRootIds)
+            val (pathResults, dominatedInstances) =
+              findShortestPaths(
+                  parser, exclusionsFactory, leakingWeakRefs, gcRootIds,
+                  computeRetainedHeapSize
+              )
+
+            val retainedSizes = if (computeRetainedHeapSize) {
+              computeRetainedSizes(parser, pathResults, dominatedInstances, cleaners)
+            } else {
+              null
+            }
 
             buildLeakTraces(
-                computeRetainedHeapSize, reachabilityInspectors, labelers, pathResults, parser,
-                leakingWeakRefs, analysisResults
+                reachabilityInspectors, labelers, pathResults, parser,
+                leakingWeakRefs, analysisResults, retainedSizes
             )
 
             addRemainingInstancesWithNoPath(parser, leakingWeakRefs, analysisResults)
@@ -144,31 +152,24 @@ class HeapAnalyzer constructor(
     }
   }
 
-  private fun scan(parser: HprofParser): Triple<MutableList<Long>, Long, List<InstanceDumpRecord>> {
-    var keyedWeakReferenceStringId = -1L
-    var heapDumpMemoryStoreStringId = -1L
-    var keyedWeakReferenceClassId = -1L
-    var heapDumpMemoryStoreClassId = -1L
+  private data class ScanResult(
+    val gcRootIds: MutableList<Long>,
+    val keyedWeakReferenceInstances: List<InstanceDumpRecord>,
+    val cleaners: MutableList<Long>
+  )
+
+  private fun scan(
+    parser: HprofParser,
+    computeRetainedSize: Boolean
+  ): ScanResult {
     val keyedWeakReferenceInstances = mutableListOf<InstanceDumpRecord>()
     val gcRootIds = mutableListOf<Long>()
+    val cleaners = mutableListOf<Long>()
     val callbacks = RecordCallbacks()
-        .on(StringRecord::class.java) {
-          if (it.string == KeyedWeakReference::class.java.name) {
-            keyedWeakReferenceStringId = it.id
-          } else if (it.string == HeapDumpMemoryStore::class.java.name) {
-            heapDumpMemoryStoreStringId = it.id
-          }
-        }
-        .on(LoadClassRecord::class.java) {
-          if (it.classNameStringId == keyedWeakReferenceStringId) {
-            keyedWeakReferenceClassId = it.id
-          } else if (it.classNameStringId == heapDumpMemoryStoreStringId) {
-            heapDumpMemoryStoreClassId = it.id
-          }
-        }
-        .on(InstanceDumpRecord::class.java) {
-          if (it.classId == keyedWeakReferenceClassId) {
-            keyedWeakReferenceInstances.add(it)
+        .on(InstanceDumpRecord::class.java) { record ->
+          when (parser.className(record.classId)) {
+            KeyedWeakReference::class.java.name -> keyedWeakReferenceInstances.add(record)
+            "sun.misc.Cleaner" -> if (computeRetainedSize) cleaners.add(record.id)
           }
         }
         .on(GcRootRecord::class.java) {
@@ -194,20 +195,19 @@ class HeapAnalyzer constructor(
           }
         }
     parser.scan(callbacks)
-    return Triple(gcRootIds, heapDumpMemoryStoreClassId, keyedWeakReferenceInstances)
+    return ScanResult(gcRootIds, keyedWeakReferenceInstances, cleaners)
   }
 
   private fun readHeapDumpMemoryStore(
-    parser: HprofParser,
-    heapDumpMemoryStoreClassId: Long
-  ): Pair<MutableSet<Long>, Long> {
+    parser: HprofParser
+  ): Pair<MutableSet<Long>, Long> = with(parser) {
+    val heapDumpMemoryStoreClassId = parser.classId(HeapDumpMemoryStore::class.java.name)!!
     val storeClass = parser.hydrateClassHierarchy(heapDumpMemoryStoreClassId)[0]
-    val retainedKeysForHeapDump = (parser.retrieveRecord(
-        storeClass.staticFieldValue("retainedKeysForHeapDump")
-    ) as ObjectArrayDumpRecord).elementIds.toMutableSet()
-    val heapDumpUptimeMillis =
-      storeClass.staticFieldValue<LongValue>("heapDumpUptimeMillis")
-          .value
+    val retainedKeysRecord =
+      storeClass["retainedKeysForHeapDump"].reference!!.objectRecord as ObjectArrayDumpRecord
+
+    val retainedKeysForHeapDump = retainedKeysRecord.elementIds.toMutableSet()
+    val heapDumpUptimeMillis = storeClass["heapDumpUptimeMillis"].long!!
     return retainedKeysForHeapDump to heapDumpUptimeMillis
   }
 
@@ -252,32 +252,145 @@ class HeapAnalyzer constructor(
     parser: HprofParser,
     exclusionsFactory: ExclusionsFactory,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
-    gcRootIds: MutableList<Long>
-  ): List<Result> {
-    listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
-
+    gcRootIds: MutableList<Long>,
+    computeDominators: Boolean
+  ): Results {
     val pathFinder = ShortestPathFinder()
-    return pathFinder.findPaths(parser, exclusionsFactory, leakingWeakRefs, gcRootIds)
+    return pathFinder.findPaths(
+        parser, exclusionsFactory, leakingWeakRefs, gcRootIds, computeDominators, listener
+    )
+  }
+
+  private fun computeRetainedSizes(
+    parser: HprofParser,
+    results: List<Result>,
+    dominatedInstances: LongLongScatterMap,
+    cleaners: MutableList<Long>
+  ): List<Int> {
+    listener.onProgressUpdate(COMPUTING_NATIVE_RETAINED_SIZE)
+
+    // Map of Object id to native size as tracked by NativeAllocationRegistry$CleanerThunk
+    val nativeSizes = mutableMapOf<Long, Int>().withDefault { 0 }
+    // Doc from perflib:
+    // Native allocations can be identified by looking at instances of
+    // libcore.util.NativeAllocationRegistry$CleanerThunk. The "owning" Java object is the
+    // "referent" field of the "sun.misc.Cleaner" instance with a hard reference to the
+    // CleanerThunk.
+    //
+    // The size is in the 'size' field of the libcore.util.NativeAllocationRegistry instance
+    // that the CleanerThunk has a pointer to. The native pointer is in the 'nativePtr' field of
+    // the CleanerThunk. The hprof does not include the native bytes pointed to.
+
+    with(parser) {
+      cleaners.forEach {
+        val cleaner = it.hydratedInstance
+        val thunkId = cleaner["thunk"].reference
+        val referentId = cleaner["referent"].reference
+        if (thunkId != null && referentId != null) {
+          val thunkRecord = thunkId.objectRecord
+          if (thunkRecord instanceOf "libcore.util.NativeAllocationRegistry\$CleanerThunk") {
+            val thunkRunnable = thunkRecord.hydratedInstance
+            val allocationRegistryId = thunkRunnable["this\$0"].reference
+            if (allocationRegistryId != null) {
+              val allocationRegistryRecord = allocationRegistryId.objectRecord
+              if (allocationRegistryRecord instanceOf "libcore.util.NativeAllocationRegistry") {
+                val allocationRegistry = allocationRegistryRecord.hydratedInstance
+                var nativeSize = nativeSizes.getValue(referentId)
+                nativeSize += allocationRegistry["size"].long?.toInt() ?: 0
+                nativeSizes[referentId] = nativeSize
+              }
+            }
+          }
+        }
+      }
+    }
+
+    listener.onProgressUpdate(COMPUTING_RETAINED_SIZE)
+
+    val sizeByDominator = LinkedHashMap<Long, Int>().withDefault { 0 }
+
+    // Include self size for leaking instances
+    val leakingInstanceIds = mutableSetOf<Long>()
+    results.forEach { result ->
+      val leakingInstanceId = result.weakReference.referent.value
+      leakingInstanceIds.add(leakingInstanceId)
+      val instanceRecord =
+        parser.retrieveRecordById(leakingInstanceId) as InstanceDumpRecord
+      val classRecord =
+        parser.retrieveRecordById(instanceRecord.classId) as ClassDumpRecord
+      var retainedSize = sizeByDominator.getValue(leakingInstanceId)
+
+      retainedSize += classRecord.instanceSize
+      sizeByDominator[leakingInstanceId] = retainedSize
+    }
+
+    // Compute the size of each dominated instance and add to dominator
+    dominatedInstances.forEach { instanceId, dominatorId ->
+      // Avoid double reporting as those sizes will move up to the root dominator
+      if (instanceId !in leakingInstanceIds) {
+        val currentSize = sizeByDominator.getValue(dominatorId)
+        val record = parser.retrieveRecordById(instanceId)
+        val nativeSize = nativeSizes.getValue(instanceId)
+        val shallowSize = when (record) {
+          is InstanceDumpRecord -> {
+            val classRecord = parser.retrieveRecordById(record.classId) as ClassDumpRecord
+            // Note: instanceSize is the sum of shallow size through the class hierarchy
+            classRecord.instanceSize
+          }
+          is ObjectArrayDumpRecord -> record.elementIds.size * parser.idSize
+          is BooleanArrayDump -> record.array.size * HprofReader.BOOLEAN_SIZE
+          is CharArrayDump -> record.array.size * HprofReader.CHAR_SIZE
+          is FloatArrayDump -> record.array.size * HprofReader.FLOAT_SIZE
+          is DoubleArrayDump -> record.array.size * HprofReader.DOUBLE_SIZE
+          is ByteArrayDump -> record.array.size * HprofReader.BYTE_SIZE
+          is ShortArrayDump -> record.array.size * HprofReader.SHORT_SIZE
+          is IntArrayDump -> record.array.size * HprofReader.INT_SIZE
+          is LongArrayDump -> record.array.size * HprofReader.LONG_SIZE
+          else -> {
+            throw IllegalStateException("Unexpected record $record")
+          }
+        }
+        sizeByDominator[dominatorId] = currentSize + nativeSize + shallowSize
+      }
+    }
+
+    // Move retained sizes from dominated leaking instance to dominators leaking instances.
+    // Keep doing this until nothing moves.
+    var sizedMoved: Boolean
+    do {
+      sizedMoved = false
+      results.map { it.weakReference.referent.value }
+          .forEach { leakingInstanceId ->
+            val dominator = dominatedInstances[leakingInstanceId]
+            if (dominator != null) {
+              val retainedSize = sizeByDominator.getValue(leakingInstanceId)
+              if (retainedSize > 0) {
+                sizeByDominator[leakingInstanceId] = 0
+                val dominatorRetainedSize = sizeByDominator.getValue(dominator)
+                sizeByDominator[dominator] = retainedSize + dominatorRetainedSize
+                sizedMoved = true
+              }
+            }
+          }
+    } while (sizedMoved)
+    dominatedInstances.release()
+    return results.map { result ->
+      sizeByDominator[result.weakReference.referent.value]!!
+    }
   }
 
   private fun buildLeakTraces(
-    computeRetainedHeapSize: Boolean,
     leakInspectors: List<LeakInspector>,
     labelers: List<Labeler>,
     pathResults: List<Result>,
     parser: HprofParser,
     leakingWeakRefs: MutableList<KeyedWeakReferenceMirror>,
-    analysisResults: MutableMap<String, RetainedInstance>
+    analysisResults: MutableMap<String, RetainedInstance>,
+    retainedSizes: List<Int>?
   ) {
-    if (computeRetainedHeapSize && pathResults.isNotEmpty()) {
-      listener.onProgressUpdate(COMPUTING_DOMINATORS)
-      // Computing dominators has the side effect of computing retained size.
-      CanaryLog.d("Cannot compute retained heap size because dominators is not implemented yet")
-    }
-
     listener.onProgressUpdate(BUILDING_LEAK_TRACES)
 
-    pathResults.forEach { pathResult ->
+    pathResults.forEachIndexed { index, pathResult ->
       val weakReference = pathResult.weakReference
       val removed = leakingWeakRefs.remove(weakReference)
       if (!removed) {
@@ -294,8 +407,6 @@ class HeapAnalyzer constructor(
       val instanceClassName =
         recordClassName(parser.retrieveRecordById(pathResult.leakingNode.instance), parser)
 
-      // TODO Compute retained heap size
-      val retainedSize = null
       val key = parser.retrieveString(weakReference.key)
       val leakDetected = LeakingInstance(
           referenceKey = key,
@@ -303,7 +414,7 @@ class HeapAnalyzer constructor(
           instanceClassName = instanceClassName,
           watchDurationMillis = weakReference.watchDurationMillis,
           exclusionStatus = pathResult.exclusionStatus, leakTrace = leakTrace,
-          retainedHeapSize = retainedSize
+          retainedHeapSize = retainedSizes?.get(index)
       )
       analysisResults[key] = leakDetected
     }

@@ -48,7 +48,13 @@ class LeakStatusTest {
   }
 
   @Test fun defaultsToUnknown() {
-    hprofFile.writeCustomPathToInstance(listOf("GcRoot" to "staticField1", "Class1" to "field1"))
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Leaking" watchedInstance {}
+        }
+      }
+    }
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
@@ -58,7 +64,13 @@ class LeakStatusTest {
   }
 
   @Test fun inspectorNotLeaking() {
-    hprofFile.writeCustomPathToInstance(listOf("GcRoot" to "staticField1", "Class1" to "field1"))
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Leaking" watchedInstance {}
+        }
+      }
+    }
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
         leakInspectors = listOf(notLeaking("Class1"))
@@ -69,7 +81,13 @@ class LeakStatusTest {
   }
 
   @Test fun inspectorLeaking() {
-    hprofFile.writeCustomPathToInstance(listOf("GcRoot" to "staticField1", "Class1" to "field1"))
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Leaking" watchedInstance {}
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -81,7 +99,13 @@ class LeakStatusTest {
   }
 
   @Test fun leakingWinsUnknown() {
-    hprofFile.writeCustomPathToInstance(listOf("GcRoot" to "staticField1", "Class1" to "field1"))
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Leaking" watchedInstance {}
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -93,14 +117,17 @@ class LeakStatusTest {
   }
 
   @Test fun notLeakingWhenNextIsNotLeaking() {
-    hprofFile.writeCustomPathToInstance(
-        listOf(
-            "GcRoot" to "staticField1",
-            "Class1" to "field1",
-            "Class2" to "field2",
-            "Class3" to "field3"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -112,14 +139,17 @@ class LeakStatusTest {
   }
 
   @Test fun leakingWhenPreviousIsLeaking() {
-    hprofFile.writeCustomPathToInstance(
-        listOf(
-            "GcRoot" to "staticField1",
-            "Class1" to "field1",
-            "Class2" to "field2",
-            "Class3" to "field3"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -131,14 +161,17 @@ class LeakStatusTest {
   }
 
   @Test fun notLeakingWinsConflicts() {
-    hprofFile.writeCustomPathToInstance(
-        listOf(
-            "GcRoot" to "staticField1",
-            "Class1" to "field1",
-            "Class2" to "field2",
-            "Class3" to "field3"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -165,14 +198,17 @@ class LeakStatusTest {
   }
 
   @Test fun middleUnknown() {
-    hprofFile.writeCustomPathToInstance(
-        listOf(
-            "GcRoot" to "staticField1",
-            "Class1" to "field1",
-            "Class2" to "field2",
-            "Class3" to "field3"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -246,12 +282,13 @@ class LeakStatusTest {
   }
 
   @Test fun conflictNotLeakingWins() {
-    hprofFile.writeCustomPathToInstance(
-        listOf(
-            "GcRoot" to "staticField1",
-            "Class1" to "field1"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Leaking" watchedInstance {}
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -268,12 +305,13 @@ class LeakStatusTest {
   }
 
   @Test fun twoInspectorsAgreeNotLeaking() {
-    hprofFile.writeCustomPathToInstance(
-        listOf(
-            "GcRoot" to "staticField1",
-            "Class1" to "field1"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Leaking" watchedInstance {}
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -290,12 +328,13 @@ class LeakStatusTest {
   }
 
   @Test fun twoInspectorsAgreeLeaking() {
-    hprofFile.writeCustomPathToInstance(
-        listOf(
-            "GcRoot" to "staticField1",
-            "Class1" to "field1"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Leaking" watchedInstance {}
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -310,14 +349,17 @@ class LeakStatusTest {
   }
 
   @Test fun leakCausesAreLastNotLeakingAndUnknown() {
-    hprofFile.writeCustomPathToInstance(
-        listOf(
-            "GcRoot" to "staticField1",
-            "Class1" to "field1",
-            "Class2" to "field2",
-            "Class3" to "field3"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
@@ -334,69 +376,88 @@ class LeakStatusTest {
   }
 
   @Test fun sameLeakTraceSameGroup() {
-    assertThat(
-        computeGroupHash(
-            path = listOf(
-                "GcRoot" to "staticField1",
-                "Class1" to "field1",
-                "Class2" to "field2",
-                "Class3" to "field3"
-            ), notLeaking = "Class1", leaking = "Class3"
-        )
-    ).isEqualTo(
-        computeGroupHash(
-            path = listOf(
-                "GcRoot" to "staticField1",
-                "Class1" to "field1",
-                "Class2" to "field2",
-                "Class3" to "field3"
-            ), notLeaking = "Class1", leaking = "Class3"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
+    val hash1 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
+    val hash2 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    assertThat(hash1).isEqualTo(hash2)
   }
 
   @Test fun differentLeakTraceDifferentGroup() {
-    assertThat(
-        computeGroupHash(
-            path = listOf(
-                "GcRoot" to "staticField1",
-                "Class1" to "field1a",
-                "Class2" to "field2",
-                "Class3" to "field3"
-            ), notLeaking = "Class1", leaking = "Class3"
-        )
-    ).isNotEqualTo(
-        computeGroupHash(
-            path = listOf(
-                "GcRoot" to "staticField1",
-                "Class1" to "field1b",
-                "Class2" to "field2",
-                "Class3" to "field3"
-            ), notLeaking = "Class1", leaking = "Class3"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1a"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
+    val hash1 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1b"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
+    val hash2 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    assertThat(hash1).isNotEqualTo(hash2)
   }
 
   @Test fun sameCausesSameGroup() {
-    assertThat(
-        computeGroupHash(
-            path = listOf(
-                "GcRoot" to "staticField1",
-                "Class1" to "field1",
-                "Class2" to "field2",
-                "Class3" to "field3a"
-            ), notLeaking = "Class1", leaking = "Class3"
-        )
-    ).isEqualTo(
-        computeGroupHash(
-            path = listOf(
-                "GcRoot" to "staticField1",
-                "Class1" to "field1",
-                "Class2" to "field2",
-                "Class3" to "field3b"
-            ), notLeaking = "Class1", leaking = "Class3"
-        )
-    )
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3a"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
+    val hash1 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3b"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
+    val hash2 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    assertThat(hash1).isEqualTo(hash2)
   }
 
   private fun unknownInstance(): LeakInspector {
@@ -440,12 +501,9 @@ class LeakStatusTest {
   }
 
   private fun computeGroupHash(
-    path: List<Pair<String, String>>,
     notLeaking: String,
     leaking: String
   ): String {
-    hprofFile.writeCustomPathToInstance(path)
-
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
           leakInspectors = listOf(notLeaking(notLeaking), leaking(leaking))

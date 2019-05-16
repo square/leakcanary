@@ -16,7 +16,6 @@ import leakcanary.GcRoot.ThreadObject
 import leakcanary.GcRoot.Unknown
 import leakcanary.GcRoot.Unreachable
 import leakcanary.GcRoot.VmInternal
-import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofReader.Companion.BYTE_SIZE
 import leakcanary.HprofReader.Companion.INT_SIZE
@@ -80,6 +79,9 @@ class HprofParser private constructor(
 
   val position
     get() = reader.position
+
+  val idSize
+    get() = reader.idSize
 
   /**
    * Map of string id to string
@@ -388,22 +390,19 @@ class HprofParser private constructor(
                   objectIndex[id] =
                     ObjectIdMetadata.CLASS.packOrdinalWithFilePosition(tagPositionAfterReadingId)
                 }
-                if (callback != null || !indexBuilt) {
+
+                val computeObjectClassSize = !indexBuilt && className(id) == "java.lang.Object"
+                if (callback != null || computeObjectClassSize) {
                   val classDumpRecord = readClassDumpRecord(id)
-                  if (!indexBuilt) {
-                    if (className(id) == "java.lang.Object") {
-                      val objectClassFieldSize = classDumpRecord.fields.sumBy {
-                        typeSize(it.type)
-                      }
-                      maybeEmptyInstancesAreEmpty = when (objectClassFieldSize) {
-                        0 -> false
-                        maybeEmptySize -> true
-                        else ->
-                          // We might need to make this more generic in the future.
-                          TODO(
-                              "Unexpected Object class field size $objectClassFieldSize, fields ${classDumpRecord.fields}"
-                          )
-                      }
+                  if (computeObjectClassSize) {
+                    maybeEmptyInstancesAreEmpty = when (classDumpRecord.instanceSize) {
+                      0 -> false
+                      maybeEmptySize -> true
+                      else ->
+                        // We might need to make this more generic in the future.
+                        TODO(
+                            "Unexpected Object class field size ${classDumpRecord.instanceSize}, fields ${classDumpRecord.fields}"
+                        )
                     }
                   }
                   if (callback != null) {
@@ -444,7 +443,7 @@ class HprofParser private constructor(
                     val metadata = when {
                       primitiveWrapperTypes.contains(
                           instanceDumpRecord.classId
-                      ) -> ObjectIdMetadata.PRIMITIVE_WRAPPER
+                      ) -> ObjectIdMetadata.PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY
                       hprofStringCache[classNames[instanceDumpRecord.classId]] == "java.lang.String" -> ObjectIdMetadata.STRING
                       instanceDumpRecord.fieldValues.isEmpty() -> EMPTY_INSTANCE
                       instanceDumpRecord.fieldValues.size <= maybeEmptySize -> INTERNAL_MAYBE_EMPTY_INSTANCE
@@ -471,7 +470,7 @@ class HprofParser private constructor(
                   val arrayRecord = readObjectArrayDumpRecord(id)
                   if (!indexBuilt) {
                     val metadata = if (primitiveWrapperTypes.contains(arrayRecord.arrayClassId)) {
-                      ObjectIdMetadata.PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY
+                      ObjectIdMetadata.PRIMITIVE_WRAPPER_ARRAY
                     } else {
                       ObjectIdMetadata.OBJECT_ARRAY
                     }
@@ -491,7 +490,7 @@ class HprofParser private constructor(
                 val id = readId()
                 if (!indexBuilt) {
                   objectIndex[id] =
-                    ObjectIdMetadata.PRIMITIVE_ARRAY_OR_WRAPPER_ARRAY.packOrdinalWithFilePosition(
+                    ObjectIdMetadata.PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY.packOrdinalWithFilePosition(
                         tagPositionAfterReadingId
                     )
                 }
@@ -636,12 +635,6 @@ class HprofParser private constructor(
       }
     }
 
-    if (!indexBuilt) {
-      objectIndex.compact()
-      classNames.compact()
-      hprofStringCache.compact()
-    }
-
     scanning = false
     indexBuilt = true
   }
@@ -771,30 +764,22 @@ class HprofParser private constructor(
   }
 
   fun instanceAsString(instance: HydratedInstance): String {
-    val count = instance.fieldValue<IntValue>("count")
-        .value
+    val count = instance["count"].int!!
 
     if (count == 0) {
       return ""
     }
 
-    val value = instance.fieldValue<ObjectReference>("value")
-
     // Prior to API 26 String.value was a char array.
     // Since API 26 String.value is backed by native code. The vast majority of strings in a
     // heap dump are backed by a byte array, but we still find a few backed by a char array.
-    when (val valueRecord = retrieveRecord(value)) {
+    when (val valueRecord = instance["value"].reference!!.objectRecord) {
       is CharArrayDump -> {
-        var offset = 0
-
         // < API 23
         // As of Marshmallow, substrings no longer share their parent strings' char arrays
         // eliminating the need for String.offset
         // https://android-review.googlesource.com/#/c/83611/
-        val offsetValue = instance.fieldValueOrNull<IntValue>("offset")
-        if (offsetValue != null) {
-          offset = offsetValue.value
-        }
+        val offset = instance["offset"].int ?: 0
 
         val chars = valueRecord.array.copyOfRange(offset, offset + count)
         return String(chars)
@@ -814,6 +799,14 @@ class HprofParser private constructor(
     get() = hydrateInstance(
         this as InstanceDumpRecord
     )
+
+  /**
+   * Returns true if [this] is an [InstanceDumpRecord] and its class name is [className].
+   * Note: this does not return true if this is an instance of a subclass of [className].
+   */
+  infix fun ObjectRecord.instanceOf(className: String): Boolean {
+    return this is InstanceDumpRecord && className(this.classId) == className
+  }
 
   val Long.hydratedInstance: HydratedInstance
     get() = hydrateInstance(

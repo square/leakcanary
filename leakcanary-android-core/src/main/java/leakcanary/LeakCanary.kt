@@ -33,7 +33,10 @@ object LeakCanary {
         AndroidExcludedRefs.appDefaults
     ),
     /**
-     * Note: this is currently not implemented in the new heap parser.
+     * Whether to compute the total number of bytes in memory that would be reclaimed if the
+     * detected leaks didn't happen. This includes native memory associated to Java objects
+     * (e.g. bitmaps).
+     * Computing the retained heap size can slow down the leak analysis and is off by default.
      */
     val computeRetainedHeapSize: Boolean = false,
     val leakInspectors: List<LeakInspector> = AndroidLeakInspectors.defaultAndroidInspectors(),

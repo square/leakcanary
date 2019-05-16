@@ -1,6 +1,7 @@
 package leakcanary.internal
 
 import leakcanary.AnalyzerProgressListener
+import leakcanary.CanaryLog
 import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.ThreadExclusion
@@ -9,6 +10,7 @@ import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.ExclusionsFactory
 import leakcanary.LeakInspector
 import leakcanary.HeapAnalysis
+import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalyzer
 import leakcanary.HprofParser
 import leakcanary.KeyedWeakReference
@@ -22,11 +24,12 @@ import java.lang.ref.WeakReference
 fun <T : HeapAnalysis> File.checkForLeaks(
   labelers: List<Labeler> = emptyList(),
   leakInspectors: List<LeakInspector> = emptyList(),
+  computeRetainedHeapSize: Boolean = false,
   exclusionsFactory: ExclusionsFactory = defaultExclusionsFactory
 ): T {
   val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
   return heapAnalyzer.checkForLeaks(
-      this, exclusionsFactory, false, leakInspectors, labelers
+      this, exclusionsFactory, computeRetainedHeapSize, leakInspectors, labelers
   ) as T
 }
 
