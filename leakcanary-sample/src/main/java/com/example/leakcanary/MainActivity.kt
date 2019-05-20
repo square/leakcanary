@@ -17,7 +17,9 @@ package com.example.leakcanary
 
 import android.app.Activity
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.View
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
 
 class MainActivity : Activity() {
@@ -29,10 +31,27 @@ class MainActivity : Activity() {
     val app = application as ExampleApplication
     val leakedView = findViewById<View>(R.id.helper_text)
 
-    when (Random.nextInt(3)) {
-      0 -> app.leakedViews
-      1 -> LeakingSingleton.leakedViews
-      else -> LeakingThread.thread.leakedViews
-    }.add(leakedView)
+    when (Random.nextInt(4)) {
+      // Leak from application class
+      0 -> app.leakedViews.add(leakedView)
+      // Leak from Kotlin object singleton
+      1 -> LeakingSingleton.leakedViews.add(leakedView)
+      2 -> {
+        // Leak from local variable on thread
+        val ref = AtomicReference(this)
+        val thread = Thread {
+          val activity = ref.get()
+          ref.set(null)
+          while (true) {
+            print(activity)
+            SystemClock.sleep(1000)
+          }
+        }
+        thread.name = "Leaking local variables"
+        thread.start()
+      }
+      // Leak from thread fields
+      else -> LeakingThread.thread.leakedViews.add(leakedView)
+    }
   }
 }

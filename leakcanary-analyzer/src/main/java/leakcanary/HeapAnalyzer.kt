@@ -31,6 +31,7 @@ import leakcanary.GcRoot.NativeStack
 import leakcanary.GcRoot.ReferenceCleanup
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
+import leakcanary.GcRoot.ThreadObject
 import leakcanary.HprofParser.RecordCallbacks
 import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakNodeStatus.LEAKING
@@ -153,7 +154,7 @@ class HeapAnalyzer constructor(
   }
 
   private data class ScanResult(
-    val gcRootIds: MutableList<Long>,
+    val gcRootIds: MutableList<GcRoot>,
     val keyedWeakReferenceInstances: List<InstanceDumpRecord>,
     val cleaners: MutableList<Long>
   )
@@ -163,7 +164,7 @@ class HeapAnalyzer constructor(
     computeRetainedSize: Boolean
   ): ScanResult {
     val keyedWeakReferenceInstances = mutableListOf<InstanceDumpRecord>()
-    val gcRootIds = mutableListOf<Long>()
+    val gcRoot = mutableListOf<GcRoot>()
     val cleaners = mutableListOf<Long>()
     val callbacks = RecordCallbacks()
         .on(InstanceDumpRecord::class.java) { record ->
@@ -173,12 +174,14 @@ class HeapAnalyzer constructor(
           }
         }
         .on(GcRootRecord::class.java) {
-          // TODO Why is ThreadObject ignored?
           // TODO Ignoring VmInternal because we've got 150K of it, but is this the right thing
           // to do? What's VmInternal exactly? History does not go further than
           // https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
           // We should log to figure out what objects VmInternal points to.
           when (it.gcRoot) {
+            // ThreadObject points to threads, which we need to find the thread that a JavaLocalExclusion
+            // belongs to
+            is ThreadObject,
             is JniGlobal,
             is JniLocal,
             is JavaFrame,
@@ -190,12 +193,12 @@ class HeapAnalyzer constructor(
             is ReferenceCleanup,
             is JniMonitor
             -> {
-              gcRootIds.add(it.gcRoot.id)
+              gcRoot.add(it.gcRoot)
             }
           }
         }
     parser.scan(callbacks)
-    return ScanResult(gcRootIds, keyedWeakReferenceInstances, cleaners)
+    return ScanResult(gcRoot, keyedWeakReferenceInstances, cleaners)
   }
 
   private fun readHeapDumpMemoryStore(
@@ -252,7 +255,7 @@ class HeapAnalyzer constructor(
     parser: HprofParser,
     exclusionsFactory: ExclusionsFactory,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
-    gcRootIds: MutableList<Long>,
+    gcRootIds: MutableList<GcRoot>,
     computeDominators: Boolean
   ): Results {
     val pathFinder = ShortestPathFinder()

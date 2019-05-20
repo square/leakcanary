@@ -47,11 +47,14 @@ data class Exclusion(
   sealed class ExclusionType {
     abstract val matching: String
 
-    class ThreadExclusion(
+    /**
+     * Local references held in the stack of frames of a given thread.
+     */
+    class JavaLocalExclusion(
       val threadName: String
     ) : ExclusionType() {
       override val matching: String
-        get() = "any threads named $threadName"
+        get() = "local variable on thread $threadName"
     }
 
     class StaticFieldExclusion(
@@ -62,6 +65,12 @@ data class Exclusion(
         get() = "static field $className#$fieldName"
     }
 
+    /**
+     * Excludes a member field of an instance of a class. [fieldName] can belong to a superclass
+     * and will still match for subclasses. This is to support overriding of rules for specific
+     * cases. If two exclusions for the same field name but different classname match in a class
+     * hierarchy, then the closest class in the hierarchy wins.
+     */
     class InstanceFieldExclusion(
       val className: String,
       val fieldName: String

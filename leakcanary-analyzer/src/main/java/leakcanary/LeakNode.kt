@@ -6,11 +6,9 @@ sealed class LeakNode {
   abstract val visitOrder: Int
 
   class RootNode(
-    override val instance: Long
-  ) : LeakNode() {
-    override val visitOrder
-      get() = 0
-  }
+    override val instance: Long,
+    override val visitOrder: Int
+  ) : LeakNode()
 
   class ChildNode(
     override val instance: Long,

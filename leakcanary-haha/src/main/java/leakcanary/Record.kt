@@ -15,6 +15,22 @@ sealed class Record {
 
   object HeapDumpEndRecord : Record()
 
+  class StackFrameRecord(
+    val id: Long,
+    val methodNameStringId: Long,
+    val methodSignatureStringId: Long,
+    val sourceFileNameStringId: Long,
+    val classSerialNumber: Int,
+    /**
+     * >0 line number
+     * 0 no line information available
+     * -1 unknown location
+     * -2 compiled method (Not implemented)
+     * -3 native method (Not implemented)
+     */
+    val lineNumber: Int
+  ) : Record()
+
   class StackTraceRecord(
     val stackTraceSerialNumber: Int,
     val threadSerialNumber: Int,

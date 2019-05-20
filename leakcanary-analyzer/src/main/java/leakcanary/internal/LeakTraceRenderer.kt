@@ -57,7 +57,7 @@ private fun getNextElementString(
   val simpleClassName = element.simpleClassName
   val referenceName = if (element.reference != null) ".${element.reference.displayName}" else ""
   val exclusionString =
-    if (element.exclusion != null) " , matching exclusion ${element.exclusion.matching}" else ""
+    if (element.exclusion != null) ", matching exclusion ${element.exclusion.matching}" else ""
   val requiredSpaces =
     staticString.length + holderString.length + simpleClassName.length + "├─".length
   val leakString = if (maybeLeakCause) {

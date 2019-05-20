@@ -31,7 +31,7 @@ import android.os.Build.VERSION_CODES.P
 import leakcanary.AndroidExcludedRefs.Companion.exclusionsFactory
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.StaticFieldExclusion
-import leakcanary.Exclusion.ExclusionType.ThreadExclusion
+import leakcanary.Exclusion.ExclusionType.JavaLocalExclusion
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.internal.HeapDumpTrigger
@@ -1112,7 +1112,7 @@ enum class AndroidExcludedRefs {
       // reference to the object and it was about to be GCed.
       exclusions.add(
           Exclusion(
-              type = ThreadExclusion("FinalizerWatchdogDaemon"),
+              type = JavaLocalExclusion("FinalizerWatchdogDaemon"),
               status = NEVER_REACHABLE
           )
       )
@@ -1129,7 +1129,7 @@ enum class AndroidExcludedRefs {
       // a real leak.
       exclusions.add(
           Exclusion(
-              type = ThreadExclusion("main"),
+              type = JavaLocalExclusion("main"),
               status = NEVER_REACHABLE
           )
       )
@@ -1143,7 +1143,7 @@ enum class AndroidExcludedRefs {
     ) {
       exclusions.add(
           Exclusion(
-              type = ThreadExclusion(HeapDumpTrigger.LEAK_CANARY_THREAD_NAME),
+              type = JavaLocalExclusion(HeapDumpTrigger.LEAK_CANARY_THREAD_NAME),
               status = NEVER_REACHABLE
           )
       )
