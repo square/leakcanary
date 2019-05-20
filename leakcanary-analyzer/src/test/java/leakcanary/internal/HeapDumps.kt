@@ -1,10 +1,11 @@
 package leakcanary.internal
 
+import leakcanary.GcRoot.JavaFrame
+import leakcanary.GcRoot.ThreadObject
 import leakcanary.HeapValue.BooleanValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofWriter
 import java.io.File
-import kotlin.jvm.internal.Ref.ObjectRef
 
 fun File.writeWeakReferenceCleared() {
   HprofWriter.open(this)
@@ -116,4 +117,24 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
           keyedWeakReference("com.example.ExampleActivity", instanceId)
         }
       }
+}
+
+fun File.writeJavaLocalLeak(
+  threadClass: String,
+  threadName: String
+) {
+  dump {
+    val threadClassId =
+      clazz(className = "java.lang.Thread", fields = listOf("name" to ObjectReference::class))
+    val myThreadClassId = clazz(className = threadClass, superClassId = threadClassId)
+    val threadInstance = instance(myThreadClassId, listOf(string(threadName)))
+    gcRoot(
+        ThreadObject(
+            id = threadInstance.value, threadSerialNumber = 42, stackTraceSerialNumber = 0
+        )
+    )
+
+    val leaking = "Leaking" watchedInstance {}
+    gcRoot(JavaFrame(id = leaking.value, threadSerialNumber = 42, frameNumber = 0))
+  }
 }

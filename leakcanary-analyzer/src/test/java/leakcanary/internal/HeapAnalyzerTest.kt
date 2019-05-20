@@ -1,8 +1,11 @@
 package leakcanary.internal
 
+import leakcanary.GcRoot.ThreadObject
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
+import leakcanary.HeapValue.ObjectReference
+import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
 import leakcanary.WeakReferenceCleared
@@ -90,8 +93,7 @@ class HeapAnalyzerTest {
     assertThat(analysis).isInstanceOf(HeapAnalysisFailure::class.java)
   }
 
-  @Test
-  fun findMultipleLeaks() {
+  @Test fun findMultipleLeaks() {
     hprofFile.writeMultipleActivityLeaks(5)
 
     val leaks = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
@@ -99,4 +101,43 @@ class HeapAnalyzerTest {
     assertThat(leaks.retainedInstances).hasSize(5)
         .hasOnlyElementsOfType(LeakingInstance::class.java)
   }
+
+  @Test fun localVariableLeak() {
+    hprofFile.writeJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+
+    val leak = analysis.retainedInstances[0] as LeakingInstance
+    assertThat(leak.leakTrace.elements).hasSize(2)
+    assertThat(leak.leakTrace.elements[0].className).isEqualTo("MyThread")
+    assertThat(leak.leakTrace.elements[0].reference!!.type).isEqualTo(LOCAL)
+    assertThat(leak.leakTrace.elements[1].className).isEqualTo("Leaking")
+  }
+
+  @Test fun threadFieldLeak() {
+    hprofFile.dump {
+      val threadClassId =
+        clazz(className = "java.lang.Thread", fields = listOf("name" to ObjectReference::class))
+      val myThreadClassId = clazz(
+          className = "MyThread", superClassId = threadClassId,
+          fields = listOf("leaking" to ObjectReference::class)
+      )
+      val threadInstance =
+        instance(myThreadClassId, listOf("Leaking" watchedInstance {}, string("Thread Name")))
+      gcRoot(
+          ThreadObject(
+              id = threadInstance.value, threadSerialNumber = 42, stackTraceSerialNumber = 0
+          )
+      )
+    }
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+
+    val leak = analysis.retainedInstances[0] as LeakingInstance
+    assertThat(leak.leakTrace.elements).hasSize(2)
+    assertThat(leak.leakTrace.elements[0].className).isEqualTo("MyThread")
+    assertThat(leak.leakTrace.elements[0].reference!!.name).isEqualTo("leaking")
+    assertThat(leak.leakTrace.elements[1].className).isEqualTo("Leaking")
+  }
+
 }

@@ -19,13 +19,16 @@ import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step.FINDING_DOMINATORS
 import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
 import leakcanary.Exclusion
+import leakcanary.Exclusion.ExclusionType
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.StaticFieldExclusion
-import leakcanary.Exclusion.ExclusionType.ThreadExclusion
 import leakcanary.Exclusion.Status
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.ExclusionsFactory
+import leakcanary.GcRoot
+import leakcanary.GcRoot.JavaFrame
+import leakcanary.GcRoot.ThreadObject
 import leakcanary.HeapValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofParser
@@ -35,9 +38,12 @@ import leakcanary.LeakNode.RootNode
 import leakcanary.LeakReference
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
+import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.ObjectIdMetadata.CLASS
 import leakcanary.ObjectIdMetadata.EMPTY_INSTANCE
+import leakcanary.ObjectIdMetadata.INSTANCE
+import leakcanary.ObjectIdMetadata.OBJECT_ARRAY
 import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_ARRAY
 import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY
 import leakcanary.ObjectIdMetadata.STRING
@@ -106,7 +112,7 @@ internal class ShortestPathFinder {
     parser: HprofParser,
     exclusionsFactory: ExclusionsFactory,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
-    gcRootIds: MutableList<Long>,
+    gcRootIds: MutableList<GcRoot>,
     computeDominators: Boolean,
     listener: AnalyzerProgressListener
   ): Results {
@@ -115,14 +121,13 @@ internal class ShortestPathFinder {
 
     val fieldNameByClassName = mutableMapOf<String, MutableMap<String, Exclusion>>()
     val staticFieldNameByClassName = mutableMapOf<String, MutableMap<String, Exclusion>>()
-    // TODO Use thread name exclusions
     val threadNames = mutableMapOf<String, Exclusion>()
 
     exclusionsFactory(parser)
         .forEach { exclusion ->
 
           when (exclusion.type) {
-            is ThreadExclusion -> {
+            is ExclusionType.JavaLocalExclusion -> {
               threadNames[exclusion.type.threadName] = exclusion
             }
             is StaticFieldExclusion -> {
@@ -149,8 +154,7 @@ internal class ShortestPathFinder {
     // Referent object id to weak ref mirror
     referentMap = leakingWeakRefs.associateBy { it.referent.value }
 
-    enqueueGcRoots(parser, gcRootIds, computeDominators)
-    gcRootIds.clear()
+    enqueueGcRoots(parser, gcRootIds, threadNames, computeDominators)
 
     var lowestPriority = ALWAYS_REACHABLE
     val results = mutableListOf<Result>()
@@ -221,21 +225,83 @@ internal class ShortestPathFinder {
   }
 
   private fun enqueueGcRoots(
-    hprofParser: HprofParser,
-    gcRootIds: List<Long>,
+    parser: HprofParser,
+    gcRoots: MutableList<GcRoot>,
+    threadNameExclusions: Map<String, Exclusion>,
     computeDominators: Boolean
   ) {
-    // TODO sort GC roots based on type and class name (for class / instance / array)
-    // Goal is to get a stable shortest path
-    // TODO Add root type so that for java local we could exclude specific threads.
-    // TODO java local: exclude specific threads,
-    // TODO java local: parent should be set to the allocated thread
-    gcRootIds.forEach {
+    gcRoots.removeAll { it.id == 0L }
+
+    // Sorting GC roots to get stable shortest path
+    // Once sorted all ThreadObject Gc Roots are located before JavaLocalExclusion Gc Roots.
+    // This ensures ThreadObjects are visited before JavaFrames, and threadsBySerialNumber can be
+    // built before JavaFrames.
+    sortGcRoots(parser, gcRoots)
+
+    val threadsBySerialNumber = mutableMapOf<Int, ThreadObject>()
+    gcRoots.forEach { gcRoot ->
       if (computeDominators) {
-        undominateWithSkips(hprofParser, it)
+        undominateWithSkips(parser, gcRoot.id)
       }
-      enqueue(hprofParser, RootNode(it), exclusionPriority = null)
+      when (gcRoot) {
+        is ThreadObject -> {
+          threadsBySerialNumber[gcRoot.threadSerialNumber] = gcRoot
+          enqueue(parser, RootNode(gcRoot.id, visitOrder++), exclusionPriority = null)
+        }
+        is JavaFrame -> with(parser) {
+          val threadRoot = threadsBySerialNumber.getValue(gcRoot.threadSerialNumber)
+          val threadInstance = threadRoot.id.objectRecord.hydratedInstance
+          val threadName = threadInstance["name"].reference.stringOrNull
+          val exclusion = threadNameExclusions[threadName]
+
+          if (exclusion == null || exclusion.status != NEVER_REACHABLE) {
+            // visitOrder is unused as this root node isn't enqueued.
+            val rootNode = RootNode(threadRoot.id, visitOrder = 0)
+            // TODO #1352 Instead of <Java Local>, it should be <local variable in Foo.bar()>
+            // We should also add the full stacktrace as a label of thread objects
+            val leakReference = LeakReference(LOCAL, "")
+            enqueue(
+                parser,
+                ChildNode(gcRoot.id, visitOrder++, exclusion?.description, rootNode, leakReference),
+                exclusionPriority = exclusion?.status
+            )
+          }
+        }
+        else -> enqueue(parser, RootNode(gcRoot.id, visitOrder++), exclusionPriority = null)
+      }
     }
+    gcRoots.clear()
+  }
+
+  private fun sortGcRoots(
+    parser: HprofParser,
+    gcRoots: MutableList<GcRoot>
+  ) {
+    val rootClassName: (GcRoot) -> String = {
+      when (val metadata = parser.objectIdMetadata(it.id)) {
+        PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY, PRIMITIVE_WRAPPER_ARRAY, EMPTY_INSTANCE -> metadata.name
+        STRING -> "java.lang.String"
+        OBJECT_ARRAY -> {
+          val record = parser.retrieveRecordById(it.id) as ObjectArrayDumpRecord
+          parser.className(record.arrayClassId)
+        }
+        INSTANCE -> {
+          val record = parser.retrieveRecordById(it.id) as InstanceDumpRecord
+          parser.className(record.classId)
+        }
+        CLASS -> parser.className(it.id)
+        else -> throw IllegalStateException("Unexpected type $metadata")
+      }
+    }
+    gcRoots.sortWith(Comparator { root1, root2 ->
+      // Sorting based on type name first. In reverse order so that ThreadObject is before JavaLocalExclusion
+      val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
+      if (gcRootTypeComparison != 0) {
+        gcRootTypeComparison
+      } else {
+        rootClassName(root1).compareTo(rootClassName(root2))
+      }
+    })
   }
 
   private fun visitClassRecord(
@@ -284,7 +350,14 @@ internal class ShortestPathFinder {
     val ignoredFields = LinkedHashMap<String, Exclusion>()
 
     instance.classHierarchy.forEach {
-      ignoredFields.putAll(fieldNameByClassName[it.className] ?: emptyMap())
+      val classExclusions = fieldNameByClassName[it.className]
+      if (classExclusions != null) {
+        for ((fieldName, exclusion) in classExclusions) {
+          if (!ignoredFields.containsKey(fieldName)) {
+            ignoredFields[fieldName] = exclusion
+          }
+        }
+      }
     }
 
     val fieldNamesAndValues = mutableListOf<Pair<String, HeapValue>>()
@@ -333,7 +406,7 @@ internal class ShortestPathFinder {
   }
 
   private fun enqueue(
-    hprofParser: HprofParser,
+    parser: HprofParser,
     node: LeakNode,
     exclusionPriority: Status?
   ) {
@@ -359,7 +432,7 @@ internal class ShortestPathFinder {
 
     val isLeakingInstance = referentMap[node.instance] != null
 
-    val objectIdMetadata = hprofParser.objectIdMetadata(node.instance)
+    val objectIdMetadata = parser.objectIdMetadata(node.instance)
     if (!isLeakingInstance && objectIdMetadata in SKIP_ENQUEUE) {
       return
     }

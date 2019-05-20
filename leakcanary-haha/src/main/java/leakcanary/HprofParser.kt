@@ -38,6 +38,7 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import leakcanary.Record.LoadClassRecord
+import leakcanary.Record.StackFrameRecord
 import leakcanary.Record.StackTraceRecord
 import leakcanary.Record.StringRecord
 import leakcanary.internal.LongToIntSparseArray
@@ -228,6 +229,23 @@ class HprofParser private constructor(
                   )
               )
             }
+          } else {
+            skip(length)
+          }
+        }
+        STACK_FRAME -> {
+          val callback = callbacks.get<StackFrameRecord>()
+          if (callback != null) {
+            callback(
+                StackFrameRecord(
+                    id = readId(),
+                    methodNameStringId = readId(),
+                    methodSignatureStringId = readId(),
+                    sourceFileNameStringId = readId(),
+                    classSerialNumber = readInt(),
+                    lineNumber = readInt()
+                )
+            )
           } else {
             skip(length)
           }
@@ -444,10 +462,10 @@ class HprofParser private constructor(
                       primitiveWrapperTypes.contains(
                           instanceDumpRecord.classId
                       ) -> ObjectIdMetadata.PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY
-                      hprofStringCache[classNames[instanceDumpRecord.classId]] == "java.lang.String" -> ObjectIdMetadata.STRING
+                      hprofStringCache[classNames[instanceDumpRecord.classId]] == "java.lang.String" -> STRING
                       instanceDumpRecord.fieldValues.isEmpty() -> EMPTY_INSTANCE
                       instanceDumpRecord.fieldValues.size <= maybeEmptySize -> INTERNAL_MAYBE_EMPTY_INSTANCE
-                      else -> ObjectIdMetadata.INSTANCE
+                      else -> INSTANCE
                     }
                     objectIndex[id] = metadata.packOrdinalWithFilePosition(recordPosition)
                   }
@@ -840,7 +858,6 @@ class HprofParser private constructor(
     const val STRING_IN_UTF8 = 0x01
     const val LOAD_CLASS = 0x02
     const val UNLOAD_CLASS = 0x03
-    // TODO Maybe parse this?
     const val STACK_FRAME = 0x04
     const val STACK_TRACE = 0x05
     const val ALLOC_SITES = 0x06

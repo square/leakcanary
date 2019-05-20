@@ -1,18 +1,15 @@
 package leakcanary.internal
 
 import leakcanary.AnalyzerProgressListener
-import leakcanary.CanaryLog
 import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
-import leakcanary.Exclusion.ExclusionType.ThreadExclusion
+import leakcanary.Exclusion.ExclusionType.JavaLocalExclusion
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.ExclusionsFactory
 import leakcanary.LeakInspector
 import leakcanary.HeapAnalysis
-import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalyzer
-import leakcanary.HprofParser
 import leakcanary.KeyedWeakReference
 import leakcanary.Labeler
 import java.io.File
@@ -95,11 +92,11 @@ val defaultExclusionsFactory: ExclusionsFactory = {
       ,
 
       Exclusion(
-          type = ThreadExclusion("FinalizerWatchdogDaemon"),
+          type = JavaLocalExclusion("FinalizerWatchdogDaemon"),
           status = NEVER_REACHABLE
       ),
       Exclusion(
-          type = ThreadExclusion("main"),
+          type = JavaLocalExclusion("main"),
           status = NEVER_REACHABLE
       )
   )

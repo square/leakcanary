@@ -1,5 +1,6 @@
 package leakcanary.internal
 
+import leakcanary.GcRoot
 import leakcanary.GcRoot.StickyClass
 import leakcanary.HeapDumpMemoryStore
 import leakcanary.HeapValue
@@ -126,9 +127,14 @@ class HprofWriterHelper constructor(
     )
     classDumps[loadClass.id] = classDump
     writer.write(classDump)
-    val gcRootRecord = GcRootRecord(gcRoot = StickyClass(classDump.id))
-    writer.write(gcRootRecord)
+    val gcRoot = StickyClass(classDump.id)
+    gcRoot(gcRoot)
     return classDump.id
+  }
+
+  fun gcRoot(gcRoot: GcRoot) {
+    val gcRootRecord = GcRootRecord(gcRoot = gcRoot)
+    writer.write(gcRootRecord)
   }
 
   fun arrayClass(className: String): Long {
