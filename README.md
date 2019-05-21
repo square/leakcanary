@@ -276,7 +276,7 @@ The name **LeakCanary** is a reference to the expression [canary in a coal mine]
 * [LeakCanary, then what? Nuking Nasty Memory Leaks](https://www.youtube.com/watch?v=fhE--eTEW84)
 * [Memory Leak Hunt](https://www.youtube.com/watch?v=KwArTJHLq5g), a live investigation.
 
-Your presentation should be here, please update this list. Any technical level welcome.
+Your presentation should be here, please update this list! Any technical level welcome.
 
 ## Articles
 
