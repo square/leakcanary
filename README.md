@@ -21,9 +21,10 @@ dependencies {
 **That's it, there is no code change needed!** LeakCanary will automatically show a notification when a memory leak is detected in debug builds.
 
 What's next?
-* Read the [Fundamentals](#Fundamentals)
+* Learn the [Fundamentals](#Fundamentals)
 * Watch recorded [presentations](#Presentations)
-* Try LeakCanary code [recipes](#Recipes)
+* Read [articles](#Articles)
+* Try the [code recipes](#Code_Recipes)
 * Read the [FAQ](#FAQ)
 
 
@@ -60,13 +61,7 @@ To fix a memory leak, you need to look at the sub chain of possible leak causes 
 
 If you cannot figure out a leak, **please do not file an issue**. Instead, create a [Stack Overflow question](http://stackoverflow.com/questions/tagged/leakcanary) using the *leakcanary* tag.
 
-## Presentations
-
-* [LeakCanary 2: Leaner, Better, Faster, Kotliner!](https://www.youtube.com/watch?v=LEX8dn4BLUw)
-* [LeakCanary, then what? Nuking Nasty Memory Leaks](https://www.youtube.com/watch?v=fhE--eTEW84)
-* [Memory Leak Hunt](https://www.youtube.com/watch?v=KwArTJHLq5g), a live investigation.
-
-## Recipes
+## Code Recipes
 
 If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new). Your feedback help us make LeakCanary better for the entire community.
 
@@ -274,6 +269,18 @@ The name **LeakCanary** is a reference to the expression [canary in a coal mine]
 <p align="center">
 <img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0.png" />
 </p>
+
+## Presentations
+
+* [LeakCanary 2: Leaner, Better, Faster, Kotliner!](https://www.youtube.com/watch?v=LEX8dn4BLUw)
+* [LeakCanary, then what? Nuking Nasty Memory Leaks](https://www.youtube.com/watch?v=fhE--eTEW84)
+* [Memory Leak Hunt](https://www.youtube.com/watch?v=KwArTJHLq5g), a live investigation.
+
+Your presentation should be here, please update this list. Any technical level welcome.
+
+## Articles
+
+Your article should be here, please update this list! Any technical level welcome.
 
 ## License
 
