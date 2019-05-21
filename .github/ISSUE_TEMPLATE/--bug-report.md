@@ -1,6 +1,6 @@
 ---
 name: "\U0001F41BBug report"
-about: Build error or runtime crash. Not for leaks.
+about: 'Not for leaks: only build errors, bugs and runtime crashes in version 2.0'
 title: ''
 labels: 'type: bug'
 assignees: ''
@@ -13,7 +13,7 @@ assignees: ''
 
 ### Steps to Reproduce
 
-[Provide a sample project or a .hprof file]
+[Provide a sample project, a .hprof file or a failing test]
 
 1. [First Step]
 2. [Second Step]
