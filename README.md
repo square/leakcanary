@@ -21,11 +21,11 @@ dependencies {
 **That's it, there is no code change needed!** LeakCanary will automatically show a notification when a memory leak is detected in debug builds.
 
 What's next?
-* Learn the [Fundamentals](#Fundamentals)
-* Watch recorded [presentations](#Presentations)
-* Read [articles](#Articles)
-* Try the [code recipes](#Code_Recipes)
-* Read the [FAQ](#FAQ)
+* Learn the [Fundamentals](#fundamentals)
+* Watch recorded [presentations](#presentations)
+* Read [articles](#articles)
+* Try the [code recipes](#code-recipes)
+* Read the [FAQ](#faq)
 
 
 Note: **LeakCanary 2 is in alpha**.
