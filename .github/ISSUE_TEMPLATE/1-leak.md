@@ -1,6 +1,6 @@
 ---
 name: "\U0001F424Leak in your app"
-about: Use Stack Overflow instead.
+about: Use Stack Overflow instead
 title: "\U0001F649 [This issue will be immediately closed]"
 labels: 'type: leak'
 assignees: ''

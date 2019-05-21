@@ -1,6 +1,6 @@
 ---
 name: "\U0001F41BBug report"
-about: 'Not for leaks: only build errors, bugs and runtime crashes in version 2.0'
+about: 'Build errors, bugs and runtime crashes in version 2.0'
 title: ''
 labels: 'type: bug'
 assignees: ''
