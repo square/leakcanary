@@ -7,7 +7,14 @@
 TODO Describe changes
 
 Many thanks to
-TODO
+[@forrestbice]https://github.com/forrestbice),
+[@Foso]https://github.com/Foso),
+[@Goddchen]https://github.com/Goddchen),
+[@marcosholgado]https://github.com/marcosholgado),
+[@orionlee]https://github.com/orionlee),
+[@pyricau]https://github.com/pyricau),
+[@satoshun]https://github.com/satoshun),
+[@ZacSweers]https://github.com/ZacSweers)
 for the contributions!
 
 For more details, see the [2.0-alpha-2 Milestone](https://github.com/square/leakcanary/milestone/7) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-alpha-1...v2.0-alpha-2).
