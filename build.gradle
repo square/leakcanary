@@ -25,7 +25,6 @@ buildscript {
           ],
           benchmark : 'androidx.benchmark:benchmark:1.0.0-alpha01'
       ],
-      haha          : 'com.squareup.haha:haha:2.1',
       junit         : 'junit:junit:4.12',
       kotlin        : [
           gradlePlugin: "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}",
