@@ -14,7 +14,7 @@ Add LeakCanary to `build.gradle`:
 
 ```gradle
 dependencies {
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-1'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-2'
 }
 ```
 
@@ -30,7 +30,7 @@ What's next?
 
 Note: **LeakCanary 2 is in alpha**.
 * Check out the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0).
-* Here is the [change log](https://github.com/square/leakcanary/blob/master/CHANGELOG.md#version-20-alpha-1-2019-04-23).
+* Here is the [change log](https://github.com/square/leakcanary/blob/master/CHANGELOG.md#version-20-alpha-2-2019-05-21).
 * To set up LeakCanary 1.6, go to the [1.6 Readme](https://github.com/square/leakcanary/blob/master/README-1.6.md).
 
 ## Fundamentals
@@ -112,7 +112,7 @@ In your `build.gradle`:
 
 ```gradle
 dependencies {
-  implementation 'com.squareup.leakcanary:leaksentry:2.0-alpha-1'
+  implementation 'com.squareup.leakcanary:leaksentry:2.0-alpha-2'
 }
 ```
 
