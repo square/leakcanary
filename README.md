@@ -22,10 +22,10 @@ dependencies {
 
 What's next?
 * Learn the [Fundamentals](#fundamentals)
-* Watch recorded [presentations](#presentations)
-* Read [articles](#articles)
 * Try the [code recipes](#code-recipes)
 * Read the [FAQ](#faq)
+* Watch recorded [presentations](#presentations)
+* Read [articles](#articles)
 
 
 Note: **LeakCanary 2 is in alpha**.
