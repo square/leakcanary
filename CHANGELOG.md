@@ -2,11 +2,19 @@
 
 ## Version 2.0 Alpha 2 (2019-05-21)
 
+**Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://github.com/square/leakcanary#getting-started) instructions and the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0). 
+
 TODO Describe changes
+
+Many thanks to
+TODO
+for the contributions!
+
+For more details, see the [2.0-alpha-2 Milestone](https://github.com/square/leakcanary/milestone/7) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-alpha-1...v2.0-alpha-2).
 
 ## Version 2.0 Alpha 1 (2019-04-23)
 
-**Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://github.com/square/leakcanary#getting-started) instructions and the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0). This change log is also available as a [Twitter thread](https://twitter.com/Piwai/status/1120681920835276800).
+This change log is also available as a [Twitter thread](https://twitter.com/Piwai/status/1120681920835276800).
 
 <img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
 
@@ -42,7 +50,7 @@ Many thanks to
 [@WhatsEmo](https://github.com/WhatsEmo)
 for the contributions!
 
-For more details, see the [2.0 Milestone](https://github.com/square/leakcanary/milestone/6) and the [full diff](https://github.com/square/leakcanary/compare/v1.6.3...master).
+For more details, see the [2.0-alpha-1 Milestone](https://github.com/square/leakcanary/milestone/6) and the [full diff](https://github.com/square/leakcanary/compare/v1.6.3...v2.0-alpha-1).
 
 ## Version 1.6.3 (2019-01-10)
 
