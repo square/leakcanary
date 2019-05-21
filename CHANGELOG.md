@@ -4,7 +4,17 @@
 
 **Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://github.com/square/leakcanary#getting-started) instructions and the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0). 
 
-TODO Describe changes
+* [#1339](https://github.com/square/leakcanary/pull/1339) Readded support for Thread name based exclusions
+* [#1344](https://github.com/square/leakcanary/pull/1344) Computing retained size
+* [#1325](https://github.com/square/leakcanary/pull/1325) New notification showing current count of retained instances
+* [#1079](https://github.com/square/leakcanary/pull/1079) "Excluded" leaks have been renamed to "Won't fix" leaks to clarify meaning.
+* [#1328](https://github.com/square/leakcanary/pull/1328) New leaks are called out in the UI. 
+* [#1327](https://github.com/square/leakcanary/pull/1327) LeakSentry can be enabled / disabled and is automatically disabled in non debuggable builds.
+* [#1173](https://github.com/square/leakcanary/pull/#1173) Experimental: now reporting leaks that only go through weak references (previously reported as "no path to instance")
+* [#1312](https://github.com/square/leakcanary/pull/1312) Fixed bug causing LeakCanary to stop detecting leaks after the app is killed.
+* [#1310](https://github.com/square/leakcanary/pull/1310) [#1313](https://github.com/square/leakcanary/pull/1313) [#1314](https://github.com/square/leakcanary/pull/1314) [#1340](https://github.com/square/leakcanary/pull/1340) [#1337](https://github.com/square/leakcanary/pull/1337) Several API changes
+* [#1040](https://github.com/square/leakcanary/pull/1040) Import and analyze hprof files from other devices
+* [#1296](https://github.com/square/leakcanary/pull/1296) [#1293](https://github.com/square/leakcanary/pull/1293) [#1306](https://github.com/square/leakcanary/pull/1306) [#1336](https://github.com/square/leakcanary/pull/1336) Fixed several crashes. 
 
 Many thanks to
 [@forrestbice](https://github.com/forrestbice),
