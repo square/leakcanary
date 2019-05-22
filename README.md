@@ -63,7 +63,7 @@ If you cannot figure out a leak, **please do not file an issue**. Instead, creat
 
 ## Code Recipes
 
-If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new). Your feedback help us make LeakCanary better for the entire community.
+If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new/choose). Your feedback help us make LeakCanary better for the entire community.
 
 ### Configuring LeakSentry & LeakCanary
 
@@ -265,7 +265,7 @@ class DebugExampleApplication : ExampleApplication() {
 
 Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: [AndroidExcludedRefs.kt](https://github.com/square/leakcanary/blob/master/leakcanary-android-core/src/main/java/leakcanary/AndroidExcludedRefs.kt).
 
-If you find a new one, please [create an issue](https://github.com/square/leakcanary/issues/new) and follow these steps:
+If you find a new one, please [create an issue](https://github.com/square/leakcanary/issues/new/choose) and follow these steps:
 
 1. Provide the entire leak trace information (reference key, device, etc), and use backticks (`) for formatting.
 2. Read the AOSP source for that version of Android, and try to figure out why it happens. You can easily navigate through SDK versions [android/platform_frameworks_base](https://github.com/android/platform_frameworks_base).
