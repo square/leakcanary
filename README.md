@@ -179,9 +179,36 @@ res/
 
 ### Uploading to a server
 
-You can change the default behavior to upload the leak trace and heap dump to a server of your choosing.
+You can change the default behavior to upload the analysis result to a server of your choosing.
 
-**TODO Document this**
+Create a custom AnalysisResultListener that delegates to the default: 
+
+```kotlin
+class LeakUploader : AnalysisResultListener {
+  override fun invoke(
+    application: Application,
+    heapAnalysis: HeapAnalysis
+  ) {
+    TODO("Upload heap analysis to server")
+
+    // Delegate to default behavior (notification and saving result)
+    DefaultAnalysisResultListener(application, heapAnalysis)
+  }
+}
+```
+
+Set analysisResultListener on the LeakCanary config:
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+    LeakCanary.config = LeakCanary.config.copy(analysisResultListener = LeakUploader())
+  }
+}
+```
+
 
 ### Identifying 3rd party leaks as "won't fix"
 
