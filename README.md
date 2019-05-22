@@ -70,12 +70,14 @@ If you think a recipe might be missing or you're not sure that what you're tryin
 LeakCanary is released as two distinct libraries:
 
 * LeakSentry
-  * Detects retained instances
-  * Artifact id: `com.squareup.leakcanary:leaksentry`\
+  * Detects retained instances.
+  * Suitable for release builds.
+  * Artifact id: `com.squareup.leakcanary:leaksentry`.
 * LeakCanary
   * Dumps the heap and analyzes it.
-  * Depends on LeakSentry
-  * Artifact id: `com.squareup.leakcanary:leakcanary-android`
+  * Currently only suitable for debug builds.
+  * Depends on LeakSentry.
+  * Artifact id: `com.squareup.leakcanary:leakcanary-android`.
 
 LeakSentry can be configured by replacing `LeakSentry.config`:
 ```kotlin
