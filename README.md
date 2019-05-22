@@ -181,7 +181,7 @@ res/
 
 You can change the default behavior to upload the analysis result to a server of your choosing.
 
-Create a custom AnalysisResultListener that delegates to the default: 
+Create a custom `AnalysisResultListener` that delegates to the default: 
 
 ```kotlin
 class LeakUploader : AnalysisResultListener {
@@ -197,7 +197,7 @@ class LeakUploader : AnalysisResultListener {
 }
 ```
 
-Set analysisResultListener on the LeakCanary config:
+Set `analysisResultListener` on the LeakCanary config:
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
@@ -212,7 +212,7 @@ class DebugExampleApplication : ExampleApplication() {
 
 ### Identifying 3rd party leaks as "won't fix"
 
-Replace the default exclusion factory with a custom one and add custom exclusions:
+Set `exclusionsFactory` on the LeakCanary config to a `ExclusionsFactory` that delegates to the default one and then and add custom exclusions:
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
@@ -235,7 +235,6 @@ class DebugExampleApplication : ExampleApplication() {
 
 ### Identifying leaking instances and labeling instances
 
-**TODO Document this**
 
 ## FAQ
 
