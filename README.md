@@ -183,9 +183,28 @@ You can change the default behavior to upload the leak trace and heap dump to a 
 
 **TODO Document this**
 
-### Identifying AOSP leaks as "won't fix"
+### Identifying 3rd party leaks as "won't fix"
 
-**TODO Document this**
+Replace the default exclusion factory with a custom one and add custom exclusions:
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+    LeakCanary.config = LeakCanary.config.copy(exclusionsFactory = { hprofParser ->
+      val defaultFactory = AndroidExcludedRefs.exclusionsFactory(AndroidExcludedRefs.appDefaults)
+      val appDefaults = defaultFactory(hprofParser)
+      val customExclusion = Exclusion(
+          type = StaticFieldExclusion("com.thirdparty.SomeSingleton", "sContext"),
+          status = Exclusion.Status.WONT_FIX_LEAK,
+          reason = "SomeSingleton in library X has a static field leaking a context."
+      )
+      appDefaults + customExclusion
+    })
+  }
+}
+```
 
 ### Identifying leaking instances and labeling instances
 
