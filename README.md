@@ -235,6 +235,29 @@ class DebugExampleApplication : ExampleApplication() {
 
 ### Identifying leaking instances and labeling instances
 
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+    val customLabeler: Labeler = { parser, node ->
+      listOf("Heap dump object id is ${node.instance}")
+    }
+    val labelers = AndroidLabelers.defaultAndroidLabelers(this) + customLabeler
+
+    val customInspector: LeakInspector = { parser, node ->
+      with(parser) {
+        if (node.instance.objectRecord.isInstanceOf("com.example.MySingleton")) {
+          LeakNodeStatus.notLeaking("MySingleton is a singleton")
+        } else LeakNodeStatus.unknown()
+      }
+    }
+    val leakInspectors = AndroidLeakInspectors.defaultAndroidInspectors() + customInspector
+
+    LeakCanary.config = LeakCanary.config.copy(labelers = labelers, leakInspectors = leakInspectors)
+  }
+}
+```
 
 ## FAQ
 
