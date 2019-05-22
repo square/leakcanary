@@ -1,6 +1,6 @@
-# LeakCanary
+# 🐤LeakCanary
 
-🐤 A memory leak detection library for Android.
+A memory leak detection library for Android.
 
 *“A small leak will sink a great ship.”* - Benjamin Franklin
 
