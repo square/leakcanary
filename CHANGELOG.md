@@ -10,7 +10,7 @@
 * [#1079](https://github.com/square/leakcanary/pull/1079) "Excluded" leaks have been renamed to "Won't fix" leaks to clarify meaning.
 * [#1328](https://github.com/square/leakcanary/pull/1328) New leaks are called out in the UI. 
 * [#1327](https://github.com/square/leakcanary/pull/1327) LeakSentry can be enabled / disabled and is automatically disabled in non debuggable builds.
-* [#1173](https://github.com/square/leakcanary/pull/#1173) Experimental: now reporting leaks that only go through weak references (previously reported as "no path to instance")
+* [#1173](https://github.com/square/leakcanary/pull/1173) Experimental: now reporting leaks that only go through weak references (previously reported as "no path to instance")
 * [#1339](https://github.com/square/leakcanary/pull/1339) Readded support for Thread name based exclusions
 * [#1312](https://github.com/square/leakcanary/pull/1312) Fixed bug causing LeakCanary to stop detecting leaks after the app is killed.
 * [#1310](https://github.com/square/leakcanary/pull/1310) [#1313](https://github.com/square/leakcanary/pull/1313) [#1314](https://github.com/square/leakcanary/pull/1314) [#1340](https://github.com/square/leakcanary/pull/1340) [#1337](https://github.com/square/leakcanary/pull/1337) Many API changes
