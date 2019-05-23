@@ -147,7 +147,7 @@ android {
     // ...
 
     testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-    testInstrumentationRunnerArgument "listener", "com.squareup.leakcanary.FailTestOnLeakRunListener"
+    testInstrumentationRunnerArgument "listener", "leakcanary.FailTestOnLeakRunListener"
   }
 }
 ```
