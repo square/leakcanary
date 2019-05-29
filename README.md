@@ -14,7 +14,7 @@ Add LeakCanary to `build.gradle`:
 
 ```gradle
 dependencies {
-  # debugImplementation because LeakCanary should only run in debug builds.
+  // debugImplementation because LeakCanary should only run in debug builds.
   debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-2'
 }
 ```
