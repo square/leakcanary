@@ -61,13 +61,9 @@ To fix a memory leak, you need to look at the sub chain of possible leak causes 
 
 If you cannot figure out a leak, **please do not file an issue**. Instead, create a [Stack Overflow question](http://stackoverflow.com/questions/tagged/leakcanary) using the *leakcanary* tag.
 
-## Code Recipes
+### LeakCanary artifacts
 
-If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new/choose). Your feedback help us make LeakCanary better for the entire community.
-
-### Configuring LeakSentry & LeakCanary
-
-LeakCanary is released as two distinct libraries:
+LeakCanary is released as several distinct libraries:
 
 * LeakSentry
   * Detects retained instances.
@@ -78,6 +74,17 @@ LeakCanary is released as two distinct libraries:
   * Currently only suitable for debug builds.
   * Depends on LeakSentry.
   * Artifact id: `com.squareup.leakcanary:leakcanary-android`.
+* LeakCanary for Instrumentation tests
+  * When an instance is retained, waits for the end of UI tests before dumping the heap.
+  * Fails tests if a leak is detected
+  * Artifact id: `com.squareup.leakcanary:leakcanary-android-instrumentation`.
+  * See [Running LeakCanary in instrumentation tests](#running-leakcanary-in-instrumentation-tests)
+
+## Code Recipes
+
+If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new/choose). Your feedback help us make LeakCanary better for the entire community.
+
+### Configuring LeakSentry
 
 LeakSentry can be configured by replacing `LeakSentry.config`:
 ```kotlin
@@ -89,6 +96,8 @@ class DebugExampleApplication : ExampleApplication() {
   }
 }
 ```
+
+### Configuring LeakCanary
 
 LeakCanary can be configured by replacing `LeakCanary.config`:
 
