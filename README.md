@@ -14,6 +14,7 @@ Add LeakCanary to `build.gradle`:
 
 ```gradle
 dependencies {
+  # debugImplementation because LeakCanary should only run in debug builds.
   debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-2'
 }
 ```
@@ -24,9 +25,8 @@ What's next?
 * Learn the [Fundamentals](#fundamentals)
 * Try the [code recipes](#code-recipes)
 * Read the [FAQ](#faq)
-* Watch recorded [presentations](#presentations)
-* Read [articles](#articles)
-
+* Watch [recorded presentations](https://github.com/square/leakcanary/wiki/Recorded-Presentations)
+* Read [blog articles](https://github.com/square/leakcanary/wiki/Blog-Articles)
 
 Note: **LeakCanary 2 is in alpha**.
 * Check out the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0).
@@ -347,18 +347,6 @@ The name **LeakCanary** is a reference to the expression [canary in a coal mine]
 <p align="center">
 <img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0.png" />
 </p>
-
-## Presentations
-
-* [LeakCanary 2: Leaner, Better, Faster, Kotliner!](https://www.youtube.com/watch?v=LEX8dn4BLUw)
-* [LeakCanary, then what? Nuking Nasty Memory Leaks](https://www.youtube.com/watch?v=fhE--eTEW84)
-* [Memory Leak Hunt](https://www.youtube.com/watch?v=KwArTJHLq5g), a live investigation.
-
-Your presentation should be here, please update this list! Any technical level welcome.
-
-## Articles
-
-Your article should be here, please update this list! Any technical level welcome.
 
 ## License
 
