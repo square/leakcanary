@@ -85,7 +85,12 @@ internal class AndroidHeapDumper(
 
     return try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
-      heapDumpFile
+      if (heapDumpFile.length() == 0L) {
+        CanaryLog.d("Dumped heap file is 0 byte length")
+        null
+      } else {
+        heapDumpFile
+      }
     } catch (e: Exception) {
       CanaryLog.d(e, "Could not dump heap")
       // Abort heap dump
