@@ -270,15 +270,12 @@ internal object LeakingInstanceTable {
     db.delete("leaking_instance", null, null)
   }
 
-  private fun LeakingInstance.createGroupDescription(): String {
-    return if (exclusionStatus == WONT_FIX_LEAK) {
-      leakTrace.firstElementExclusion.matching
-    } else {
-      val element = leakTrace.leakCauses.first()
-      val referenceName = element.reference!!.groupingName
-      val refDescription = element.simpleClassName + "." + referenceName
-      refDescription
+    private fun LeakingInstance.createGroupDescription() = leakTrace.leakCauses.firstOrNull().run {
+        when {
+            exclusionStatus == WONT_FIX_LEAK -> leakTrace.firstElementExclusion.matching
+            this != null -> "$simpleClassName.$referenceName"
+            else -> "UNKNOWN_CLASS_NAME.$referenceName"
+        }
     }
-  }
 
 }
