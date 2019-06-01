@@ -945,10 +945,14 @@ class HprofParser private constructor(
     )
 
     fun open(heapDump: File): HprofParser {
-      if (heapDump.length() > MAX_HEAP_DUMP_SIZE) {
+      val fileLength = heapDump.length()
+      if (fileLength > MAX_HEAP_DUMP_SIZE) {
         throw IllegalArgumentException(
-            "Heap dump file length is ${heapDump.length()} bytes which is more than the max supported $MAX_HEAP_DUMP_SIZE"
+            "Heap dump file length is $fileLength bytes which is more than the max supported $MAX_HEAP_DUMP_SIZE"
         )
+      }
+      if (fileLength == 0L) {
+        throw IllegalArgumentException("Heap dump file is 0 byte length")
       }
       val inputStream = heapDump.inputStream()
       val channel = inputStream.channel
