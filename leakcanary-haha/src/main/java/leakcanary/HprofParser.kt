@@ -413,7 +413,13 @@ class HprofParser private constructor(
                 if (callback != null || computeObjectClassSize) {
                   val classDumpRecord = readClassDumpRecord(id)
                   if (computeObjectClassSize) {
-                    maybeEmptyInstancesAreEmpty = when (classDumpRecord.instanceSize) {
+                    // In Android 16 classDumpRecord.instanceSize can be 8 yet there are 0 fields.
+                    // Better rely on our own computation of instance size.
+                    // See #1374
+                    val objectClassFieldSize = classDumpRecord.fields.sumBy {
+                      typeSize(it.type)
+                    }
+                    maybeEmptyInstancesAreEmpty = when (objectClassFieldSize) {
                       0 -> false
                       maybeEmptySize -> true
                       else ->
