@@ -56,6 +56,7 @@ class HprofWriterHelper constructor(
   private val classDumps = mutableMapOf<Long, ClassDumpRecord>()
 
   private val objectClassId = clazz(superClassId = 0, className = "java.lang.Object")
+  private val objectArrayClassId = arrayClass("java.lang.Object")
   private val stringClassId = clazz(
       className = "java.lang.String", fields = listOf(
       "value" to ObjectReference::class,
@@ -236,7 +237,7 @@ class HprofWriterHelper constructor(
   fun objectArray(
     vararg elements: ObjectReference
   ): ObjectReference {
-    return objectArrayOf(objectClassId, *elements)
+    return objectArrayOf(objectArrayClassId, *elements)
   }
 
   fun objectArrayOf(

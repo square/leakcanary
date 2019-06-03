@@ -12,25 +12,40 @@ import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import java.util.Locale
 
 fun LeakTrace.renderToString(): String {
-  var leakInfo = "┬\n"
-  val lastElement = elements.last()
-  val lastReachability = lastElement.leakStatusAndReason
-  elements.dropLast(1)
-      .forEachIndexed { index, leakTraceElement ->
-        val currentReachability = elements[index].leakStatusAndReason
-        leakInfo += """
-        #├─ ${leakTraceElement.className}
-        #│    Leaking: ${currentReachability.renderToString()}${if (leakTraceElement.labels.isNotEmpty()) leakTraceElement.labels.joinToString(
-            "\n│    ", prefix = "\n│    "
-        ) else ""}
-        #│    ↓ ${getNextElementString(this, leakTraceElement, index)}
-        #""".trimMargin("#")
-      }
-  leakInfo += """╰→ ${lastElement.className}
-      #$ZERO_WIDTH_SPACE     Leaking: ${lastReachability.renderToString()}
-    """.trimMargin("#")
+  var result = "┬"
 
-  return leakInfo
+  elements.forEachIndexed { index, element ->
+    val isLast = index == elements.lastIndex
+    val nodePrefix = if (!isLast) {
+      "├─ "
+    } else {
+      "╰→ "
+    }
+    result += "\n" + nodePrefix + element.className
+
+    val contentPrefix = if (!isLast) {
+      "│    "
+    } else {
+      "$ZERO_WIDTH_SPACE     "
+    }
+
+    val currentReachability = elements[index].leakStatusAndReason
+    result += "\n" + contentPrefix + "Leaking: " + currentReachability.renderToString()
+
+    if (element.exclusion != null) {
+      result += "\n" + contentPrefix + "Matches exclusion ${element.exclusion.matching}"
+    }
+
+    for (label in element.labels) {
+      result += "\n" + contentPrefix + label
+    }
+
+    if (!isLast) {
+      result += "\n" + contentPrefix + "↓ " + getNextElementString(this, element, index)
+    }
+
+  }
+  return result
 }
 
 private fun LeakNodeStatusAndReason.renderToString(): String {
@@ -56,8 +71,6 @@ private fun getNextElementString(
     } else ""
   val simpleClassName = element.simpleClassName
   val referenceName = if (element.reference != null) ".${element.reference.displayName}" else ""
-  val exclusionString =
-    if (element.exclusion != null) ", matching exclusion ${element.exclusion.matching}" else ""
   val requiredSpaces =
     staticString.length + holderString.length + simpleClassName.length + "├─".length
   val leakString = if (maybeLeakCause) {
@@ -68,7 +81,7 @@ private fun getNextElementString(
     ""
   }
 
-  return staticString + holderString + simpleClassName + referenceName + exclusionString + leakString
+  return staticString + holderString + simpleClassName + referenceName + leakString
 }
 
 private const val ZERO_WIDTH_SPACE = '\u200b'
