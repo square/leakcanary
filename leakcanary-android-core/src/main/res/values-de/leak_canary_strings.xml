@@ -65,7 +65,6 @@
     <item quantity="other">%1$d Leaks in %2$s</item>
   </plurals>
   <string name="leak_canary_group_list_screen_title">%d Leak Gruppen</string>
-  <string name="leak_canary_group_list_title_information">(%1$d) %2$s</string>
   <string name="leak_canary_group_list_time_label">Neueste: %s</string>
   <string name="leak_canary_import_from_title">Importieren von…</string>
   <string name="leak_canary_options_menu_import_hprof_file">Hprof Datei importieren &amp; analysieren</string>
