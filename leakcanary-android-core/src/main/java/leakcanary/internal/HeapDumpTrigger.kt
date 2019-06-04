@@ -33,6 +33,9 @@ internal class HeapDumpTrigger(
   private val applicationVisible
     get() = applicationInvisibleAt == -1L
 
+  @Volatile
+  private var checkScheduled: Boolean = false
+
   /**
    * When the app becomes invisible, we don't dump the heap immediately. Instead we wait in case
    * the app came back to the foreground, but also to wait for new leaks that typically occur on
@@ -163,12 +166,9 @@ internal class HeapDumpTrigger(
             retainedVisibleThreshold
         )
         showRetainedCountBelowThresholdNotification(retainedKeys.size, retainedVisibleThreshold)
-        // If the application just because invisible, a check is already scheduled.
-        if (applicationVisible) {
-          scheduleRetainedInstanceCheck(
-              "Showing retained instance notification", WAIT_FOR_INSTANCE_THRESHOLD_MILLIS
-          )
-        }
+        scheduleRetainedInstanceCheck(
+            "Showing retained instance notification", WAIT_FOR_INSTANCE_THRESHOLD_MILLIS
+        )
         return true
       }
     }
@@ -176,7 +176,12 @@ internal class HeapDumpTrigger(
   }
 
   private fun scheduleRetainedInstanceCheck(reason: String) {
+    if (checkScheduled) {
+      return
+    }
+    checkScheduled = true
     backgroundHandler.post {
+      checkScheduled = false
       checkRetainedInstances(reason)
     }
   }
@@ -185,7 +190,12 @@ internal class HeapDumpTrigger(
     reason: String,
     delayMillis: Long
   ) {
+    if (checkScheduled) {
+      return
+    }
+    checkScheduled = true
     backgroundHandler.postDelayed({
+      checkScheduled = false
       checkRetainedInstances(reason)
     }, delayMillis)
   }
