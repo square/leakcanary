@@ -846,7 +846,6 @@ class HprofParser private constructor(
         val instance = hydrateInstance(record)
         instanceAsString(instance)
       } else {
-        record as InstanceDumpRecord
         null
       }
     }

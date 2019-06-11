@@ -1,5 +1,7 @@
 package leakcanary
 
+import leakcanary.HeapValue.ObjectReference
+
 sealed class Record {
   class StringRecord(
     val id: Long,
