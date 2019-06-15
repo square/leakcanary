@@ -17,41 +17,59 @@ package com.example.leakcanary
 
 import android.app.Activity
 import android.os.Bundle
-import android.os.SystemClock
-import android.view.View
-import java.util.concurrent.atomic.AtomicReference
-import kotlin.random.Random
+import android.util.Log
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.FrameLayout
+import leakcanary.LeakSentry
 
 class MainActivity : Activity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    setContentView(R.layout.main_activity)
 
-    val app = application as ExampleApplication
-    val leakedView = findViewById<View>(R.id.helper_text)
-
-    when (Random.nextInt(4)) {
-      // Leak from application class
-      0 -> app.leakedViews.add(leakedView)
-      // Leak from Kotlin object singleton
-      1 -> LeakingSingleton.leakedViews.add(leakedView)
-      2 -> {
-        // Leak from local variable on thread
-        val ref = AtomicReference(this)
-        val thread = Thread {
-          val activity = ref.get()
-          ref.set(null)
-          while (true) {
-            print(activity)
-            SystemClock.sleep(1000)
-          }
-        }
-        thread.name = "Leaking local variables"
-        thread.start()
+    val container = object : FrameLayout(this) {
+      override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        Log.d("MainActivity", "Container attached")
+        // Calling removeAllViews() on the parent synchronously triggers a
+        // call to onDetachedFromWindow() on this FrameLayout and
+        // recursively its children (which haven't been attached yet).
+        // Then as soon as this method (onAttachedToWindow()) is exited
+        // then ViewGroup.dispatchAttachedToWindow() dispatches to its
+        // children (the button). As a result, the button is receiving its
+        // onDetachedFromWindow() first and then its onAttachedToWindow().
+        //
+        // On Android Q Beta this creates a leak because
+        // android.view.View#onAttachedToWindow calls
+        // AccessibilityNodeIdManager.registerViewWithId(); and then that
+        // view is never detached.
+        (parent as ViewGroup).removeAllViews()
       }
-      // Leak from thread fields
-      else -> LeakingThread.thread.leakedViews.add(leakedView)
+
+      override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        Log.d("MainActivity", "Container detached")
+        // This tells LeakCanary to ensure the button gets GCed within 5
+        // seconds.
+        // Which it won't, ever, because at this point it's held forever
+        // by AccessibilityNodeIdManager
+        LeakSentry.refWatcher.watch(getChildAt(0))
+      }
     }
+
+    container.addView(object : Button(this) {
+      override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        Log.d("MainActivity", "Button attached")
+      }
+
+      override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        Log.d("MainActivity", "Button detached")
+      }
+    })
+
+    setContentView(container)
   }
 }

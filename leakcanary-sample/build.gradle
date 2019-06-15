@@ -3,16 +3,16 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   debugImplementation project(':leakcanary-android')
-
   implementation deps.kotlin.stdlib
-
   testImplementation deps.junit
   testImplementation deps.robolectric
-
   androidTestImplementation project(':leakcanary-android-instrumentation')
   androidTestImplementation deps.androidx.test.espresso
   androidTestImplementation deps.androidx.test.rules
   androidTestImplementation deps.androidx.test.runner
+  implementation files('ff/classes2-dex2jar.jar')
+  implementation files('ff/classes3-dex2jar.jar')
+  implementation files('ff/classes-dex2jar.jar')
 }
 
 android {

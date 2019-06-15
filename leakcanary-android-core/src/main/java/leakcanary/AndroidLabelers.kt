@@ -67,7 +67,7 @@ enum class AndroidLabelers : Labeler {
               try {
                 val name = application.resources.getResourceEntryName(mID.value)
                 viewLabels.add("View.mID=R.id.$name (${mID.value})")
-              } catch (ignored: NotFoundException) {
+              } catch (ignored: Throwable) {
                 viewLabels.add("View.mID=${mID.value} (name not found)")
               }
             } else {
