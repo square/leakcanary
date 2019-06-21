@@ -51,7 +51,7 @@ internal object InternalLeakCanary : LeakSentryListener {
 
     val configProvider = { LeakCanary.config }
 
-    val handlerThread = HandlerThread(HeapDumpTrigger.LEAK_CANARY_THREAD_NAME)
+    val handlerThread = HandlerThread(LEAK_CANARY_THREAD_NAME)
     handlerThread.start()
     val backgroundHandler = Handler(handlerThread.looper)
 
@@ -181,4 +181,6 @@ internal object InternalLeakCanary : LeakSentryListener {
       heapDumpTrigger.onDumpHeapReceived()
     }
   }
+
+  const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"
 }

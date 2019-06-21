@@ -248,7 +248,6 @@ internal class HeapDumpTrigger(
   }
 
   companion object {
-    const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"
     private const val WAIT_FOR_DEBUG_MILLIS = 20_000L
     private const val WAIT_AFTER_DUMP_FAILED_MILLIS = 5_000L
     private const val WAIT_FOR_INSTANCE_THRESHOLD_MILLIS = 5_000L

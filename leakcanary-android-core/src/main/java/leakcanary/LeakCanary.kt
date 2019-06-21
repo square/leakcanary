@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import leakcanary.AndroidExcludedRefs.Companion.exclusionsFactory
 import leakcanary.internal.InternalLeakCanary
+import java.util.ArrayList
 
 typealias AnalysisResultListener = (Application, HeapAnalysis) -> Unit
 
@@ -40,7 +41,7 @@ object LeakCanary {
      */
     val computeRetainedHeapSize: Boolean = false,
     val leakInspectors: List<LeakInspector> = AndroidLeakInspectors.defaultAndroidInspectors(),
-    val labelers: List<Labeler> = AndroidLabelers.defaultAndroidLabelers(
+    val labelers: List<Labeler> = defaultAndroidLabelers(
         InternalLeakCanary.application
     ),
     /**
@@ -58,4 +59,16 @@ object LeakCanary {
   /** [Intent] that can be used to programmatically launch the leak display activity. */
   val leakDisplayActivityIntent
     get() = InternalLeakCanary.leakDisplayActivityIntent
+
+  fun defaultAndroidLabelers(application: Application): List<Labeler> {
+    val labelers = ArrayList<Labeler>()
+    labelers.add(InstanceDefaultLabeler)
+    labelers.add(
+        ViewLabeler(
+            application
+        )
+    )
+    labelers.addAll(AndroidLabelers.values())
+    return labelers
+  }
 }
