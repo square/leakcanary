@@ -205,7 +205,7 @@ internal object LeakingInstanceTable {
             val groupLeakTrace = if (leakingInstance.exclusionStatus == WONT_FIX_LEAK) {
               val index = leakTrace.elements.indexOfFirst { element -> element.exclusion != null }
               LeakTrace(
-                  elements = listOf(leakTrace.elements[index])
+                  elements = listOf(leakTrace.elements[index].copy(labels = emptyList()))
               )
             } else {
               val elements = mutableListOf<LeakTraceElement>()
@@ -216,7 +216,9 @@ internal object LeakingInstanceTable {
                   val reference = element.reference!!
                   if (reference.type == ARRAY_ENTRY) {
                     // No array index in groups
-                    element = element.copy(reference = reference.copy(name = "x"))
+                    element = element.copy(reference = reference.copy(name = "x"), labels = emptyList())
+                  } else {
+                    element = element.copy(labels = emptyList())
                   }
 
                   elements.add(element)
