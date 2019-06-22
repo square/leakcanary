@@ -6,8 +6,10 @@ import leakcanary.HydratedInstance
 
 internal class KeyedWeakReferenceMirror(
   val key: ObjectReference,
-  val name: ObjectReference,
-  val className: ObjectReference,
+    // The className field does not exist in pre 1.0 heap dumps.
+  val name: ObjectReference?,
+    // The className field does not exist in pre 2.0 heap dumps.
+  val className: ObjectReference?,
   val watchDurationMillis: Long,
   val referent: ObjectReference
 ) {
@@ -19,13 +21,16 @@ internal class KeyedWeakReferenceMirror(
       weakRef: HydratedInstance,
       heapDumpUptimeMillis: Long
     ): KeyedWeakReferenceMirror {
+      // The watchUptimeMillis field does not exist in pre 2.0 heap dumps.
+      val watchUptimeMillis = weakRef.fieldValueOrNull<LongValue>(
+          "watchUptimeMillis"
+      )
+          ?.value ?: 0
       return KeyedWeakReferenceMirror(
           key = weakRef.fieldValue("key"),
-          name = weakRef.fieldValue("name"),
-          className = weakRef.fieldValue("className"),
-          watchDurationMillis = heapDumpUptimeMillis - weakRef.fieldValue<LongValue>(
-              "watchUptimeMillis"
-          ).value,
+          name = weakRef.fieldValueOrNull("name"),
+          className = weakRef.fieldValueOrNull("className"),
+          watchDurationMillis = heapDumpUptimeMillis - watchUptimeMillis,
           referent = weakRef.fieldValue("referent")
       )
     }
