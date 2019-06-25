@@ -1,0 +1,56 @@
+# pip install mkdocs mkdocs-material
+# mkdocs serve
+# mkdocs gh-deploy
+
+site_name: LeakCanary
+repo_name: LeakCanary
+repo_url: https://github.com/square/leakcanary
+site_description: "A memory leak detection library for Android"
+site_author: Square, Inc.
+remote_branch: gh-pages
+
+copyright: 'Copyright &copy; 2015 Square, Inc.'
+
+theme:
+  name: 'material'
+  logo: 'images/logo.png'
+  favicon: 'images/logo.png'
+  palette:
+    primary: 'deep-orange'
+    accent: 'red'
+
+
+# extra_css:
+#  - 'css/app.css'
+
+markdown_extensions:
+  - smarty
+  - codehilite:
+      guess_lang: false
+  - footnotes
+  - meta
+  - toc:
+      permalink: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.emoji
+  - tables
+  - admonition
+
+nav:
+  - 'Overview': index.md
+  - 'Getting Started': getting_started.md
+  - 'Fundamentals': fundamentals.md
+  - 'Code recipes': recipes.md
+  - 'FAQ': faq.md
+  - 'Stack Overflow ⏏': https://stackoverflow.com/questions/tagged/leakcanary?sort=active
+  - 'Change Log': changelog.md
+  - 'Support': support.md
+  - 'Upgrading to LeakCanary 2': Migrating-to-LeakCanary-2.0.md
+  - 'Contributing': contributing.md
+  - 'Code of Conduct': code_of_conduct.md
