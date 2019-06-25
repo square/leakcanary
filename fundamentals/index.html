@@ -284,6 +284,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#common-causes-for-memory-leaks" title="Common causes for memory leaks" class="md-nav__link">
+    Common causes for memory leaks
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#why-should-i-use-leakcanary" title="Why should I use LeakCanary?" class="md-nav__link">
     Why should I use LeakCanary?
   </a>
@@ -559,6 +566,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#common-causes-for-memory-leaks" title="Common causes for memory leaks" class="md-nav__link">
+    Common causes for memory leaks
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#why-should-i-use-leakcanary" title="Why should I use LeakCanary?" class="md-nav__link">
     Why should I use LeakCanary?
   </a>
@@ -698,6 +712,13 @@
 <h2 id="what-is-a-memory-leak">What is a memory leak?<a class="headerlink" href="#what-is-a-memory-leak" title="Permanent link">&para;</a></h2>
 <p>In a Java based runtime, a memory leak is a programming error that causes an application to keep a reference to an object that is no longer needed. As a result, the memory allocated for that object cannot be reclaimed, eventually leading to an OutOfMemoryError crash.</p>
 <p>For example, an Android activity instance is no longer needed after its <code>onDestroy()</code> method is called, and storing a reference to that activity in a static field would prevent it from being garbage collected.</p>
+<h2 id="common-causes-for-memory-leaks">Common causes for memory leaks<a class="headerlink" href="#common-causes-for-memory-leaks" title="Permanent link">&para;</a></h2>
+<p>Most memory leaks are caused by bugs related to the lifecycle of objects. Here are a few common Android mistakes:</p>
+<ul>
+<li>Storing an Activity context as a field in an object that survives activity recreation configuration changes.</li>
+<li>Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister when the lifecycle reaches its end.</li>
+<li>Storing a view in a static field, and not clearing that field when the view is detached.</li>
+</ul>
 <h2 id="why-should-i-use-leakcanary">Why should I use LeakCanary?<a class="headerlink" href="#why-should-i-use-leakcanary" title="Permanent link">&para;</a></h2>
 <p>Memory leaks are very common in Android apps. OutOfMemoryError (OOM) is the top crash for most apps on the play store, however that&rsquo;s usually not counted correctly. When memory is low the OOM can be thrown from anywhere in your code, which means every OOM has a different stacktrace and they&rsquo;re counted as different crashes.</p>
 <p>When we first enabled LeakCanary in the Square Point Of Sale app, we were able to find and fix several leaks and reduced the OutOfMemoryError crash rate by <strong>94%</strong>.</p>
