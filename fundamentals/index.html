@@ -306,8 +306,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dumping-the-heaep" title="Dumping the heaep" class="md-nav__link">
-    Dumping the heaep
+  <a href="#dumping-the-heap" title="Dumping the heap" class="md-nav__link">
+    Dumping the heap
   </a>
   
 </li>
@@ -581,8 +581,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dumping-the-heaep" title="Dumping the heaep" class="md-nav__link">
-    Dumping the heaep
+  <a href="#dumping-the-heap" title="Dumping the heap" class="md-nav__link">
+    Dumping the heap
   </a>
   
 </li>
@@ -705,7 +705,7 @@
 <h3 id="detecting-retained-instances">Detecting retained instances<a class="headerlink" href="#detecting-retained-instances" title="Permanent link">&para;</a></h3>
 <p>The foundation of LeakCanary is a library called LeakSentry. LeakSentry hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed instances are passed to a <code>RefWatcher</code>, which holds weak references to them. You can also watch any instance that is no longer needed, e.g. a detached view, a destroyed presenter, etc.</p>
 <p>If the weak references aren&rsquo;t cleared after waiting 5 seconds and running the GC, the watched instances are considered <em>retained</em>, and potentially leaking.</p>
-<h3 id="dumping-the-heaep">Dumping the heaep<a class="headerlink" href="#dumping-the-heaep" title="Permanent link">&para;</a></h3>
+<h3 id="dumping-the-heap">Dumping the heap<a class="headerlink" href="#dumping-the-heap" title="Permanent link">&para;</a></h3>
 <p>When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a <code>.hprof</code> file stored onto the Android file system. The default threshold is 5 retained instances when the app is visible, 1 otherwise.</p>
 <h3 id="analyzing-the-heap">Analyzing the heap<a class="headerlink" href="#analyzing-the-heap" title="Permanent link">&para;</a></h3>
 <p>LeakCanary parses the <code>.hprof</code> file and finds the chain of references that prevents retained instances from being garbage collected (<strong>leak trace</strong>). A leak trace is also knonwn as the <em>shortest strong reference path from GC Roots to retained instances</em>. Once the leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which instances in the leak trace are leaking (see below <a href="#how-do-i-fix-a-memory-leak">How do I fix a memory leak?</a>).</p>
