@@ -20,7 +20,7 @@ The foundation of LeakCanary is a library called LeakSentry. LeakSentry hooks in
 
 If the weak references aren't cleared after waiting 5 seconds and running the GC, the watched instances are considered *retained*, and potentially leaking.
 
-### Dumping the heaep
+### Dumping the heap
 
 When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored onto the Android file system. The default threshold is 5 retained instances when the app is visible, 1 otherwise.
 
