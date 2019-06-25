@@ -51,6 +51,8 @@ nav:
   - 'Stack Overflow ⏏': https://stackoverflow.com/questions/tagged/leakcanary?sort=active
   - 'Change Log': changelog.md
   - 'Support': support.md
-  - 'Upgrading to LeakCanary 2': Migrating-to-LeakCanary-2.0.md
+  - 'Upgrading to LeakCanary 2': upgrading-to-leakcanary-2.0.md
+  - 'Blog Articles': blog-articles.md
+  - 'Recorded Presentations': recorded-presentations.md
   - 'Contributing': contributing.md
   - 'Code of Conduct': code_of_conduct.md

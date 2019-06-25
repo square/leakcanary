@@ -1,1 +1,1 @@
-docs/code_of_conduct.md
+See https://square.github.io/leakcanary/code_of_conduct

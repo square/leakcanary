@@ -1,1 +1,1 @@
-docs/support.md
+See https://square.github.io/leakcanary/support

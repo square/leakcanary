@@ -2,7 +2,7 @@
 
 ## Version 2.0 Alpha 2 (2019-05-21)
 
-**Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://github.com/square/leakcanary#getting-started) instructions and the [migration guide](https://github.com/square/leakcanary/wiki/Migrating-to-LeakCanary-2.0). 
+**Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/Upgrading-to-LeakCanary-2.0). 
 
 * [#1040](https://github.com/square/leakcanary/pull/1040) Import and analyze hprof files from other devices
 * [#1344](https://github.com/square/leakcanary/pull/1344) Computing retained size
@@ -30,8 +30,6 @@ for the contributions!
 For more details, see the [2.0-alpha-2 Milestone](https://github.com/square/leakcanary/milestone/7) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-alpha-1...v2.0-alpha-2).
 
 ## Version 2.0 Alpha 1 (2019-04-23)
-
-This change log is also available as a [Twitter thread](https://twitter.com/Piwai/status/1120681920835276800).
 
 <img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
 

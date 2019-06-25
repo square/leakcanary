@@ -1,1 +1,1 @@
-docs/contributing.md
+See https://square.github.io/leakcanary/contributing
