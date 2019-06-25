@@ -41,9 +41,7 @@ class HprofGraph(private val parser: HprofParser) {
 
     var currentClassId = classId
     while (currentClassId != 0L) {
-      val wut = parser.className(currentClassId)
-      CanaryLog.d("Found $wut looking for $className: ${wut == className}")
-      if (wut == className) {
+      if (parser.className(currentClassId) == className) {
         return true
       }
       val currentClassRecord = parser.retrieveRecordById(currentClassId) as ClassDumpRecord
