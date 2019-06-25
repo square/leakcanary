@@ -18,7 +18,7 @@ When we first enabled LeakCanary in the Square Point Of Sale app, we were able t
 
 The foundation of LeakCanary is a library called LeakSentry. LeakSentry hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed instances are passed to a `RefWatcher`, which holds weak references to them. You can also watch any instance that is no longer needed, e.g. a detached view, a destroyed presenter, etc.
 
-If the weak references aren't cleared after waiting 5 seconds and running the GC, the watched instances are considered *retained*, and potentially leaking.
+If the weak references aren't cleared after waiting 5 seconds and running the garbage collector, the watched instances are considered *retained*, and potentially leaking.
 
 ### Dumping the heap
 
@@ -26,11 +26,11 @@ When the number of retained instances reaches a threshold, LeakCanary dumps the 
 
 ### Analyzing the heap
 
-LeakCanary parses the `.hprof` file and finds the chain of references that prevents retained instances from being garbage collected (**leak trace**). A leak trace is also knonwn as the *shortest strong reference path from GC Roots to retained instances*. Once the leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which instances in the leak trace are leaking (see below [How do I fix a memory leak?](#how-do-i-fix-a-memory-leak)).
+LeakCanary parses the `.hprof` file and finds the chain of references that prevents retained instances from being garbage collected: the **leak trace**. Leak trace is another name for the *shortest strong reference path from garbage collection roots to retained instances*. Once the leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which instances in the leak trace are leaking (see below [How do I fix a memory leak?](#how-do-i-fix-a-memory-leak)).
 
 ### Grouping leaks
 
-Using the leak status information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks that have the same causal chain then they're likely the same leak, so Leaks are then grouped by identical sub chain.
+Using the leak status information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks that have the same causal chain are considered to be the same leak, so leaks are grouped by identical sub chain.
 
 ## How do I fix a memory leak?
 
@@ -64,7 +64,8 @@ The leak trace is also logged to Logcat:
     │    View.mWindowAttachCount=1
     │    ↓ TextView.mContext
     ╰→ com.example.leakcanary.MainActivity
-    ​     Leaking: YES (RefWatcher was watching this and MainActivity#mDestroyed is true)
+    ​     Leaking: YES (RefWatcher was watching this and MainActivity#mDestroyed
+is true)
 ```
 
 ### Objects and references
@@ -100,7 +101,8 @@ At the top of the leak trace is a garbage-collection (GC) root. GC roots are spe
 
 ```
     ╰→ com.example.leakcanary.MainActivity
-    ​     Leaking: YES (RefWatcher was watching this and MainActivity#mDestroyed is true)
+    ​     Leaking: YES (RefWatcher was watching this and MainActivity#mDestroyed
+is true)
 ```
 
 At the bottom of the leak trace is the leaking instance. This instance was passed to `RefWatcher.watch()` to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.
@@ -168,7 +170,7 @@ LeakCanary can also surface extra information about the state of a node, e.g. `V
 
 If a node is not leaking, then any prior reference that points to it is not the source of the leak, and also not leaking. Similarly, if a node is leaking then any node down the leak trace is also leaking. From that, we can deduce that the leak is caused by a reference that is after the last `Leaking: NO`	and before the first `Leaking: YES`.
 
-LeakCanary highlights those references with a **<span style="text-decoration: underline; text-decoration-color: red; text-decoration-style: wavy;">red underline</span>** in the UI, or a **series of ~** in the Logcat representation. These are the **only possible causes of the leak**. These are the reference you should spend time investigating.
+LeakCanary highlights those references with a **<span style="text-decoration: underline; text-decoration-color: red; text-decoration-style: wavy;">red underline</span>** in the UI, or a **~~~~** underline in the Logcat representation. These highlighted references are the **only possible causes of the leak**. These are the references you should spend time investigating.
 
 In this example, the last `Leaking: NO` is on `com.example.leakcanary.ExampleApplication` and the first `Leaking: YES` is on `android.widget.TextView`, so the leak is caused by one of the 3 references in between:
 

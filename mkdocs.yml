@@ -17,7 +17,7 @@ theme:
   favicon: 'images/logo.png'
   palette:
     primary: 'deep-orange'
-    accent: 'red'
+    accent: 'deep-purple'
 
 
 # extra_css:
