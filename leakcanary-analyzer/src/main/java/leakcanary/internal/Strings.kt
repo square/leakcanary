@@ -5,14 +5,14 @@ import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
 @JvmField
-val UTF_8: Charset = Charset.forName("UTF-8")
+internal val UTF_8: Charset = Charset.forName("UTF-8")
 
-fun String.lastSegment(segmentingChar: Char): String {
+internal fun String.lastSegment(segmentingChar: Char): String {
   val separator = lastIndexOf(segmentingChar)
   return if (separator == -1) this else this.substring(separator + 1)
 }
 
-fun String.createSHA1Hash(): String = createHash(this, "SHA-1")
+internal fun String.createSHA1Hash(): String = createHash(this, "SHA-1")
 
 /**
  * Derived from
@@ -40,4 +40,4 @@ private fun createHash(
 }
 
 /** Gets the string as an array of UTF-8 bytes. */
-fun String.getBytes(): ByteArray = toByteArray(UTF_8)
+internal fun String.getBytes(): ByteArray = toByteArray(UTF_8)
