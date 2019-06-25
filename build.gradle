@@ -18,12 +18,11 @@ buildscript {
           core: 'androidx.core:core:1.0.1',
           fragment  : 'androidx.fragment:fragment:1.0.0',
           test      : [
-              core    : 'androidx.test:core:1.1.0',
-              espresso: 'androidx.test.espresso:espresso-core:3.1.1',
-              rules   : 'androidx.test:rules:1.1.1',
-              runner  : 'androidx.test:runner:1.1.1',
+              core    : 'androidx.test:core:1.0.0',
+              espresso: 'androidx.test.espresso:espresso-core:3.1.0',
+              rules   : 'androidx.test:rules:1.1.0',
+              runner  : 'androidx.test:runner:1.1.0',
           ],
-          benchmark : 'androidx.benchmark:benchmark:1.0.0-alpha01'
       ],
       junit         : 'junit:junit:4.12',
       kotlin        : [
