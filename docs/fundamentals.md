@@ -6,6 +6,14 @@ In a Java based runtime, a memory leak is a programming error that causes an app
 
 For example, an Android activity instance is no longer needed after its `onDestroy()` method is called, and storing a reference to that activity in a static field would prevent it from being garbage collected.
 
+## Common causes for memory leaks
+
+Most memory leaks are caused by bugs related to the lifecycle of objects. Here are a few common Android mistakes:
+
+* Storing an Activity context as a field in an object that survives activity recreation configuration changes.
+* Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister when the lifecycle reaches its end.
+* Storing a view in a static field, and not clearing that field when the view is detached.
+
 ## Why should I use LeakCanary?
 
 Memory leaks are very common in Android apps. OutOfMemoryError (OOM) is the top crash for most apps on the play store, however that's usually not counted correctly. When memory is low the OOM can be thrown from anywhere in your code, which means every OOM has a different stacktrace and they're counted as different crashes.
