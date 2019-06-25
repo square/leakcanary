@@ -560,7 +560,7 @@
                 
                 <h1 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">&para;</a></h1>
 <h2 id="can-a-leak-be-caused-by-the-android-sdk">Can a leak be caused by the Android SDK?<a class="headerlink" href="#can-a-leak-be-caused-by-the-android-sdk" title="Permanent link">&para;</a></h2>
-<p>Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: <a href="https://github.com/square/leakcanary/blob/master/leakcanary-android-core/src/main/java/leakcanary/AndroidExcludedRefs.kt">AndroidExcludedRefs.kt</a>.</p>
+<p>Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: <a href="https://github.com/square/leakcanary/blob/master/leakcanary-analyzer/src/main/java/leakcanary/AndroidExcludedRefs.kt">AndroidExcludedRefs.kt</a>.</p>
 <p>If you find a new one, please <a href="https://github.com/square/leakcanary/issues/new/choose">create an issue</a> and follow these steps:</p>
 <ol>
 <li>Provide the entire leak trace information (reference key, device, etc), and use backticks (`) for formatting.</li>
