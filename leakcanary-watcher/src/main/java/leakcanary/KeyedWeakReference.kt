@@ -21,9 +21,6 @@ import java.lang.ref.WeakReference
 @Suppress("unused")
 class KeyedWeakReference(
   referent: Any,
-  /**
-   * Key used to find the retained references in the heap dump.
-   */
   val key: String,
   val name: String,
   val watchUptimeMillis: Long,
@@ -32,4 +29,17 @@ class KeyedWeakReference(
     referent, referenceQueue
 ) {
   val className: String = referent.javaClass.name
+
+  /**
+   * Compared against [heapDumpUptimeMillis] so that the Hprof Parser knows only to look at
+   * instances that were moved to retained, then used to remove weak references post heap dump.
+   **/
+  @Volatile
+  var retainedUptimeMillis = -1L
+
+  companion object {
+    @Volatile
+    @JvmStatic var heapDumpUptimeMillis = 0L
+  }
+
 }

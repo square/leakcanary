@@ -82,9 +82,7 @@
   <string name="leak_canary_options_menu_import_hprof_file">Import &amp; Analyze Hprof File</string>
   <string name="leak_canary_options_menu_see_analysis_list">See Analysis List</string>
   <string name="leak_canary_options_menu_render_heap_dump">Render Heap Dump</string>
-  <string name="leak_canary_heap_analysis_success_screen_weak_reference_cleared_count">%d already cleared weak references</string>
   <string name="leak_canary_heap_analysis_success_screen_no_path_to_instance_count">%d non leaking retained instances</string>
-  <string name="leak_canary_heap_analysis_success_screen_garbage_collected_weak_references">%d garbage collected weak references</string>
   <string name="leak_canary_help_title">Tap here to learn more</string>
   <string name="leak_canary_help_detail"><![CDATA[A memory leak is a programming error that causes
   your application to keep a reference to an object that is no longer needed. As a result, the

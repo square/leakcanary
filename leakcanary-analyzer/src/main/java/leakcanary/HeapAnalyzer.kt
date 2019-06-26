@@ -18,7 +18,6 @@ package leakcanary
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACES
 import leakcanary.AnalyzerProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import leakcanary.AnalyzerProgressListener.Step.COMPUTING_RETAINED_SIZE
-import leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_REFS
 import leakcanary.AnalyzerProgressListener.Step.FINDING_WATCHED_REFERENCES
 import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
 import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
@@ -32,7 +31,6 @@ import leakcanary.GcRoot.ReferenceCleanup
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
 import leakcanary.GcRoot.ThreadObject
-import leakcanary.HeapValue.ObjectReference
 import leakcanary.HprofParser.RecordCallbacks
 import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakNodeStatus.LEAKING
@@ -42,7 +40,6 @@ import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
 import leakcanary.LeakTraceElement.Holder.OBJECT
 import leakcanary.LeakTraceElement.Holder.THREAD
-import leakcanary.ObjectIdMetadata.STRING
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -107,27 +104,20 @@ class HeapAnalyzer constructor(
             )
             val analysisResults = mutableMapOf<String, RetainedInstance>()
             listener.onProgressUpdate(FINDING_WATCHED_REFERENCES)
-            val (retainedKeys, heapDumpUptimeMillis) = readHeapDumpMemoryStore(
-                parser, keyedWeakReferenceInstances
-            )
 
-            if (retainedKeys.isEmpty()) {
-              val exception = IllegalStateException("No retained keys found in heap dump")
+            val retainedWeakRefs = findLeakingReferences(parser, keyedWeakReferenceInstances)
+
+            if (retainedWeakRefs.isEmpty()) {
+              val exception = IllegalStateException("No retained instances found in heap dump")
               return HeapAnalysisFailure(
                   heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
                   HeapAnalysisException(exception)
               )
             }
 
-            val leakingWeakRefs =
-              findLeakingReferences(
-                  parser, retainedKeys, analysisResults, keyedWeakReferenceInstances,
-                  heapDumpUptimeMillis
-              )
-
             val (pathResults, dominatedInstances) =
               findShortestPaths(
-                  parser, exclusionsFactory, leakingWeakRefs, gcRootIds,
+                  parser, exclusionsFactory, retainedWeakRefs, gcRootIds,
                   computeRetainedHeapSize
               )
 
@@ -139,10 +129,10 @@ class HeapAnalyzer constructor(
 
             buildLeakTraces(
                 reachabilityInspectors, labelers, pathResults, parser,
-                leakingWeakRefs, analysisResults, retainedSizes
+                retainedWeakRefs, analysisResults, retainedSizes
             )
 
-            addRemainingInstancesWithNoPath(parser, leakingWeakRefs, analysisResults)
+            addRemainingInstancesWithNoPath(retainedWeakRefs, analysisResults)
 
             return HeapAnalysisSuccess(
                 heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
@@ -207,77 +197,38 @@ class HeapAnalyzer constructor(
     return ScanResult(gcRoot, keyedWeakReferenceInstances, cleaners)
   }
 
-  private fun readHeapDumpMemoryStore(
-    parser: HprofParser,
-    keyedWeakReferenceInstances: List<InstanceDumpRecord>
-  ): Pair<MutableSet<Long>, Long> = with(parser) {
-    val heapDumpMemoryStoreClassId = parser.classId(HeapDumpMemoryStore::class.java.name)
-
-    // Pre 2.0 had no HeapDumpMemoryStore, so instead we look for all KeyedWeakReference instances
-    if (heapDumpMemoryStoreClassId == null) {
-      val leakingWeakRefs = mutableListOf<KeyedWeakReferenceMirror>()
-      keyedWeakReferenceInstances.forEach { record ->
-        val weakRef =
-          KeyedWeakReferenceMirror.fromInstance(parser.hydrateInstance(record), 0)
-        if (weakRef.hasReferent) {
-          leakingWeakRefs.add(weakRef)
-        }
-      }
-
-      val retainedKeysForHeapDump = leakingWeakRefs.map { it.key.value }
-          .toMutableSet()
-      val heapDumpUptimeMillis = 0L
-      return retainedKeysForHeapDump to heapDumpUptimeMillis
-    } else {
-      val storeClass = parser.hydrateClassHierarchy(heapDumpMemoryStoreClassId)[0]
-      val retainedKeysRecord =
-        storeClass["retainedKeysForHeapDump"].reference!!.objectRecord as ObjectArrayDumpRecord
-
-      val retainedKeysForHeapDump = retainedKeysRecord.elementIds.toMutableSet()
-      val heapDumpUptimeMillis = storeClass["heapDumpUptimeMillis"].long!!
-      return retainedKeysForHeapDump to heapDumpUptimeMillis
-    }
-  }
-
   private fun findLeakingReferences(
     parser: HprofParser,
-    retainedKeys: MutableSet<Long>,
-    analysisResults: MutableMap<String, RetainedInstance>,
-    keyedWeakReferenceInstances: List<InstanceDumpRecord>,
-    heapDumpUptimeMillis: Long
+    keyedWeakReferenceInstances: List<InstanceDumpRecord>
   ): MutableList<KeyedWeakReferenceMirror> {
-    listener.onProgressUpdate(FINDING_LEAKING_REFS)
 
-    val leakingWeakRefs = mutableListOf<KeyedWeakReferenceMirror>()
+    val keyedWeakReferenceClassId = parser.classId(KeyedWeakReference::class.java.name)
 
+    val heapDumpUptimeMillis = if (keyedWeakReferenceClassId == null) {
+      null
+    } else {
+      val keyedWeakReferenceClass = parser.hydrateClassHierarchy(keyedWeakReferenceClassId)[0]
+      keyedWeakReferenceClass["heapDumpUptimeMillis"].long
+    }
+
+    if (heapDumpUptimeMillis == null) {
+      CanaryLog.d(
+          "${KeyedWeakReference::class.java.name}.heapDumpUptimeMillis field not found, " +
+              "this must be a heap dump from an older version of LeakCanary."
+      )
+    }
+
+    val retainedInstances = mutableListOf<KeyedWeakReferenceMirror>()
     keyedWeakReferenceInstances.forEach { record ->
       val weakRef =
-        KeyedWeakReferenceMirror.fromInstance(parser.hydrateInstance(record), heapDumpUptimeMillis)
-      val wasRetained = retainedKeys.remove(weakRef.key.value)
-      if (wasRetained) {
-        if (weakRef.hasReferent) {
-          leakingWeakRefs.add(weakRef)
-        } else {
-          val key = parser.retrieveString(weakRef.key)
-          val name =
-            if (weakRef.name != null) parser.retrieveString(weakRef.name) else UNKNOWN_LEGACY
-          val className =
-            if (weakRef.className != null) parser.retrieveString(
-                weakRef.className
-            ) else UNKNOWN_LEGACY
-          val noLeak = WeakReferenceCleared(key, name, className, weakRef.watchDurationMillis)
-          analysisResults[key] = noLeak
-        }
+        KeyedWeakReferenceMirror.fromInstance(
+            parser, parser.hydrateInstance(record), heapDumpUptimeMillis
+        )
+      if (weakRef.isRetained && weakRef.hasReferent) {
+        retainedInstances.add(weakRef)
       }
     }
-    retainedKeys.forEach { referenceKeyId ->
-      // This could happen if RefWatcher removed weakly reachable references after providing
-      // the set of retained keys
-      val referenceKey = parser.retrieveStringById(referenceKeyId)
-      val noLeak = WeakReferenceMissing(referenceKey)
-      analysisResults[referenceKey] = noLeak
-    }
-    return leakingWeakRefs
+    return retainedInstances
   }
 
   private fun findShortestPaths(
@@ -439,35 +390,31 @@ class HeapAnalyzer constructor(
       val instanceClassName =
         recordClassName(parser.retrieveRecordById(pathResult.leakingNode.instance), parser)
 
-      val key = parser.retrieveString(weakReference.key)
       val leakDetected = LeakingInstance(
-          referenceKey = key,
-          referenceName = if (weakReference.name != null) parser.retrieveString(
-              weakReference.name
-          ) else UNKNOWN_LEGACY,
+          referenceKey = weakReference.key,
+          referenceName = weakReference.name,
           instanceClassName = instanceClassName,
           watchDurationMillis = weakReference.watchDurationMillis,
+          retainedDurationMillis = weakReference.retainedDurationMillis ?: 0,
           exclusionStatus = pathResult.exclusionStatus, leakTrace = leakTrace,
           retainedHeapSize = retainedSizes?.get(index)
       )
-      analysisResults[key] = leakDetected
+      analysisResults[weakReference.key] = leakDetected
     }
   }
 
   private fun addRemainingInstancesWithNoPath(
-    parser: HprofParser,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
     analysisResults: MutableMap<String, RetainedInstance>
   ) {
     leakingWeakRefs.forEach { refWithNoPath ->
-      val key = parser.retrieveString(refWithNoPath.key)
-      val name = if (refWithNoPath.name != null) parser.retrieveString(
-          refWithNoPath.name
-      ) else UNKNOWN_LEGACY
-      val className = if (refWithNoPath.className != null) parser.retrieveString(
-          refWithNoPath.className
-      ) else UNKNOWN_LEGACY
-      val noLeak = NoPathToInstance(key, name, className, refWithNoPath.watchDurationMillis)
+      val key = refWithNoPath.key
+      val name = refWithNoPath.name
+      val className = refWithNoPath.className
+      val noLeak = NoPathToInstance(
+          key, name, className, refWithNoPath.watchDurationMillis,
+          refWithNoPath.retainedDurationMillis ?: 0
+      )
       analysisResults[key] = noLeak
     }
   }
@@ -675,7 +622,6 @@ class HeapAnalyzer constructor(
   }
 
   companion object {
-    private const val UNKNOWN_LEGACY = "Unknown (legacy)"
     private const val ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$"
     internal val ANONYMOUS_CLASS_NAME_PATTERN_REGEX = ANONYMOUS_CLASS_NAME_PATTERN.toRegex()
   }

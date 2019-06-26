@@ -152,10 +152,8 @@ class InstrumentationLeakDetector {
 
     val config = LeakCanary.config
 
-    val retainedKeys = refWatcher.retainedKeys
-    HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
-    HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
-
+    val heapDumpUptimeMillis = SystemClock.uptimeMillis()
+    KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
 
     try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
@@ -170,7 +168,7 @@ class InstrumentationLeakDetector {
       )
     }
 
-    refWatcher.removeRetainedKeys(retainedKeys)
+    refWatcher.removeKeysRetainedBeforeHeapDump(heapDumpUptimeMillis)
 
     val listener = AnalyzerProgressListener.NONE
 

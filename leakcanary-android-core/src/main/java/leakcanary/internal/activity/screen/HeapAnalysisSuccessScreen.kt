@@ -6,14 +6,11 @@ import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
-import leakcanary.Exclusion
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
-import leakcanary.WeakReferenceCleared
-import leakcanary.WeakReferenceMissing
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakingInstanceTable
 import leakcanary.internal.activity.db.LeakingInstanceTable.HeapAnalysisGroupProjection
@@ -89,9 +86,7 @@ internal class HeapAnalysisSuccessScreen(
 
     val retainedInstances = heapAnalysis.retainedInstances
 
-    var weakReferenceClearedCount = 0
     var noPathToInstanceCount = 0
-    var weakReferenceMissingCount = 0
     retainedInstances.forEach { retainedInstance ->
       when (retainedInstance) {
         is LeakingInstance -> {
@@ -101,14 +96,8 @@ internal class HeapAnalysisSuccessScreen(
             )
           }
         }
-        is WeakReferenceCleared -> {
-          weakReferenceClearedCount++
-        }
         is NoPathToInstance -> {
           noPathToInstanceCount++
-        }
-        is WeakReferenceMissing -> {
-          weakReferenceMissingCount++
         }
       }
     }
@@ -151,15 +140,6 @@ internal class HeapAnalysisSuccessScreen(
       titleText to timeText
     })
 
-    if (weakReferenceClearedCount > 0) {
-      rowList.add(
-          resources.getString(
-              R.string.leak_canary_heap_analysis_success_screen_weak_reference_cleared_count,
-              weakReferenceClearedCount
-          ) to ""
-      )
-    }
-
     if (noPathToInstanceCount > 0) {
       rowList.add(
           resources.getString(
@@ -168,16 +148,6 @@ internal class HeapAnalysisSuccessScreen(
           ) to ""
       )
     }
-
-    if (weakReferenceMissingCount > 0) {
-      rowList.add(
-          resources.getString(
-              R.string.leak_canary_heap_analysis_success_screen_garbage_collected_weak_references,
-              weakReferenceMissingCount
-          ) to ""
-      )
-    }
-
 
     listView.adapter =
       SimpleListAdapter(R.layout.leak_canary_leak_row, rowList) { view, position ->

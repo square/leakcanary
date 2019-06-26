@@ -2,7 +2,6 @@ package leakcanary.internal
 
 import leakcanary.GcRoot
 import leakcanary.GcRoot.StickyClass
-import leakcanary.HeapDumpMemoryStore
 import leakcanary.HeapValue
 import leakcanary.HeapValue.BooleanValue
 import leakcanary.HeapValue.ByteValue
@@ -51,8 +50,6 @@ class HprofWriterHelper constructor(
       HprofReader.LONG_TYPE to HprofReader.LONG_SIZE
   )
 
-  private val weakRefKeys = mutableSetOf<Long>()
-
   private val classDumps = mutableMapOf<Long, ClassDumpRecord>()
 
   private val objectClassId = clazz(superClassId = 0, className = "java.lang.Object")
@@ -72,11 +69,13 @@ class HprofWriterHelper constructor(
   private val keyedWeakReferenceClassId = clazz(
       superClassId = weakReferenceClassId,
       className = "leakcanary.KeyedWeakReference",
+      staticFields = listOf("heapDumpUptimeMillis" to LongValue(Long.MAX_VALUE)),
       fields = listOf(
           "key" to ObjectReference::class,
           "name" to ObjectReference::class,
           "className" to ObjectReference::class,
-          "watchUptimeMillis" to LongValue::class
+          "watchUptimeMillis" to LongValue::class,
+          "retainedUptimeMillis" to LongValue::class
       )
   )
 
@@ -156,13 +155,13 @@ class HprofWriterHelper constructor(
     referentInstanceId: ObjectReference
   ): ObjectReference {
     val referenceKey = string(UUID.randomUUID().toString())
-    weakRefKeys.add(referenceKey.value)
     return instance(
         classId = keyedWeakReferenceClassId,
         fields = listOf(
             referenceKey,
             string(""),
             string(className),
+            LongValue(System.currentTimeMillis()),
             LongValue(System.currentTimeMillis()),
             ObjectReference(referentInstanceId.value)
         )
@@ -286,16 +285,6 @@ class HprofWriterHelper constructor(
   }
 
   override fun close() {
-    val elementIds = weakRefKeys.toLongArray()
-    val weakRefKeysArray = ObjectArrayDumpRecord(id, 1, stringClassId, elementIds)
-    writer.write(weakRefKeysArray)
-    clazz(
-        className = HeapDumpMemoryStore::class.java.name,
-        staticFields = listOf(
-            "retainedKeysForHeapDump" to ObjectReference(weakRefKeysArray.id),
-            "heapDumpUptimeMillis" to LongValue(System.currentTimeMillis())
-        )
-    )
     writer.close()
   }
 }

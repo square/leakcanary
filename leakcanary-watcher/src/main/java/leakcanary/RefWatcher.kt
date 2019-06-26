@@ -16,7 +16,6 @@
 package leakcanary
 
 import java.lang.ref.ReferenceQueue
-import java.util.HashSet
 import java.util.UUID
 import java.util.concurrent.Executor
 
@@ -35,32 +34,56 @@ class RefWatcher constructor(
 ) {
 
   /**
-   * References passed to [watch] that haven't made it to [retainedReferences] yet.
+   * References passed to [watch].
    */
   private val watchedReferences = mutableMapOf<String, KeyedWeakReference>()
-  /**
-   * References passed to [watch] that we have determined to be retained longer than they should
-   * have been.
-   */
-  private val retainedReferences = mutableMapOf<String, KeyedWeakReference>()
+
   private val queue = ReferenceQueue<Any>()
 
+  /**
+   * Returns true if there are watched instances that aren't weakly reachable, and
+   * have been watched for long enough to be considered retained.
+   */
   val hasRetainedReferences: Boolean
     @Synchronized get() {
       removeWeaklyReachableReferences()
-      return retainedReferences.isNotEmpty()
+      return watchedReferences.any { it.value.retainedUptimeMillis != -1L }
     }
 
+  val retainedReferenceCount: Int
+    @Synchronized get() {
+      removeWeaklyReachableReferences()
+      return watchedReferences.count { it.value.retainedUptimeMillis != -1L }
+    }
+
+  /**
+   * Returns true if there are watched instances that aren't weakly reachable, even
+   * if they haven't been watched for long enough to be considered retained.
+   */
   val hasWatchedReferences: Boolean
     @Synchronized get() {
       removeWeaklyReachableReferences()
-      return retainedReferences.isNotEmpty() || watchedReferences.isNotEmpty()
+      return watchedReferences.isNotEmpty()
     }
 
-  val retainedKeys: Set<String>
+  /**
+   * Returns the instances that are currently considered retained. Useful for logging purposes.
+   * Be careful with those instances and release them ASAP as you may creating longer lived leaks
+   * then the one that are already there.
+   */
+  val retainedInstances: List<Any>
     @Synchronized get() {
       removeWeaklyReachableReferences()
-      return HashSet(retainedReferences.keys)
+      val instances = mutableListOf<Any>()
+      for (reference in watchedReferences.values) {
+        if (reference.retainedUptimeMillis != -1L) {
+          val instance = reference.get()
+          if (instance != null) {
+            instances.add(instance)
+          }
+        }
+      }
+      return instances
     }
 
   /**
@@ -107,20 +130,22 @@ class RefWatcher constructor(
 
   @Synchronized private fun moveToRetained(key: String) {
     removeWeaklyReachableReferences()
-    val retainedRef = watchedReferences.remove(key)
+    val retainedRef = watchedReferences[key]
     if (retainedRef != null) {
-      retainedReferences[key] = retainedRef
+      retainedRef.retainedUptimeMillis = clock.uptimeMillis()
       onReferenceRetained()
     }
   }
 
-  @Synchronized fun removeRetainedKeys(keysToRemove: Set<String>) {
-    retainedReferences.keys.removeAll(keysToRemove)
+  @Synchronized fun removeKeysRetainedBeforeHeapDump(heapDumpUptimeMillis: Long) {
+    val retainedBeforeHeapdump =
+      watchedReferences.filter { it.value.retainedUptimeMillis in 0..heapDumpUptimeMillis }
+          .keys
+    watchedReferences.keys.removeAll(retainedBeforeHeapdump)
   }
 
   @Synchronized fun clearWatchedReferences() {
     watchedReferences.clear()
-    retainedReferences.clear()
   }
 
   private fun removeWeaklyReachableReferences() {
@@ -130,10 +155,7 @@ class RefWatcher constructor(
     do {
       ref = queue.poll() as KeyedWeakReference?
       if (ref != null) {
-        val removedRef = watchedReferences.remove(ref.key)
-        if (removedRef == null) {
-          retainedReferences.remove(ref.key)
-        }
+        watchedReferences.remove(ref.key)
       }
     } while (ref != null)
   }
