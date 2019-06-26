@@ -8,7 +8,6 @@ import leakcanary.HeapValue.ObjectReference
 import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakingInstance
 import leakcanary.NoPathToInstance
-import leakcanary.WeakReferenceCleared
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -80,9 +79,9 @@ class HeapAnalyzerTest {
   @Test fun weakRefCleared() {
     hprofFile.writeWeakReferenceCleared()
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
-
-    assertThat(analysis.retainedInstances[0]).isInstanceOf(WeakReferenceCleared::class.java)
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisFailure>()
+    assertThat(analysis.exception.cause).isInstanceOf(IllegalStateException::class.java)
+        .hasMessage("No retained instances found in heap dump")
   }
 
   @Test fun failsNoRetainedKeys() {

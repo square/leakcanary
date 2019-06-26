@@ -70,9 +70,7 @@
   <string name="leak_canary_options_menu_import_hprof_file">Hprof Datei importieren &amp; analysieren</string>
   <string name="leak_canary_options_menu_see_analysis_list">Siehe Analyse-Liste</string>
   <string name="leak_canary_options_menu_render_heap_dump">Heap Dump rendern</string>
-  <string name="leak_canary_heap_analysis_success_screen_weak_reference_cleared_count">%d bereits aufgelöste schwache Referenzen</string>
   <string name="leak_canary_heap_analysis_success_screen_no_path_to_instance_count">%d erhaltene Instanzen ohne Leaks</string>
-  <string name="leak_canary_heap_analysis_success_screen_garbage_collected_weak_references">%d aufgeräumte schwache Referenzen</string>
   <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
   <string name="leak_canary_help_detail"><![CDATA[Ein Memory-Leak ist ein Programmierfehler der
     dafür sorgt, dass deine Anwendung eine Referenz auf ein Objekt hält, das nicht länger benötigt

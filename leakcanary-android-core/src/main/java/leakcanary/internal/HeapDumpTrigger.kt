@@ -9,7 +9,7 @@ import android.os.SystemClock
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
 import leakcanary.GcTrigger
-import leakcanary.HeapDumpMemoryStore
+import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
 import leakcanary.LeakSentry
 import leakcanary.RefWatcher
@@ -71,12 +71,12 @@ internal class HeapDumpTrigger(
       return
     }
 
-    var retainedKeys = refWatcher.retainedKeys
+    var retainedReferenceCount = refWatcher.retainedReferenceCount
 
-    if (checkRetainedCount(retainedKeys, config.retainedVisibleThreshold)) return
+    if (checkRetainedCount(retainedReferenceCount, config.retainedVisibleThreshold)) return
 
     if (!config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached) {
-      showRetainedCountWithDebuggerAttached(retainedKeys.size)
+      showRetainedCountWithDebuggerAttached(retainedReferenceCount)
       scheduleRetainedInstanceCheck("debugger was attached", WAIT_FOR_DEBUG_MILLIS)
       CanaryLog.d(
           "Not checking for leaks while the debugger is attached, will retry in %d ms",
@@ -87,24 +87,23 @@ internal class HeapDumpTrigger(
 
     gcTrigger.runGc()
 
-    retainedKeys = refWatcher.retainedKeys
+    retainedReferenceCount = refWatcher.retainedReferenceCount
 
-    if (checkRetainedCount(retainedKeys, config.retainedVisibleThreshold)) return
+    if (checkRetainedCount(retainedReferenceCount, config.retainedVisibleThreshold)) return
 
-    HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
-
-    CanaryLog.d("Found %d retained references, dumping the heap", retainedKeys.size)
-    HeapDumpMemoryStore.heapDumpUptimeMillis = SystemClock.uptimeMillis()
+    CanaryLog.d("Found %d retained references, dumping the heap", retainedReferenceCount)
+    val heapDumpUptimeMillis = SystemClock.uptimeMillis()
+    KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
     dismissNotification()
     val heapDumpFile = heapDumper.dumpHeap()
     if (heapDumpFile == null) {
       CanaryLog.d("Failed to dump heap, will retry in %d ms", WAIT_AFTER_DUMP_FAILED_MILLIS)
       scheduleRetainedInstanceCheck("failed to dump heap", WAIT_AFTER_DUMP_FAILED_MILLIS)
-      showRetainedCountWithHeapDumpFailed(retainedKeys.size)
+      showRetainedCountWithHeapDumpFailed(retainedReferenceCount)
       return
     }
 
-    refWatcher.removeRetainedKeys(retainedKeys)
+    refWatcher.removeKeysRetainedBeforeHeapDump(heapDumpUptimeMillis)
 
     HeapAnalyzerService.runAnalysis(application, heapDumpFile)
   }
@@ -112,8 +111,8 @@ internal class HeapDumpTrigger(
   fun onDumpHeapReceived() {
     backgroundHandler.post {
       gcTrigger.runGc()
-      val retainedKeys = refWatcher.retainedKeys
-      if (retainedKeys.isEmpty()) {
+      val retainedReferenceCount = refWatcher.retainedReferenceCount
+      if (retainedReferenceCount == 0) {
         CanaryLog.d("No retained instances after GC")
         val builder = Notification.Builder(application)
             .setContentTitle(
@@ -132,40 +131,40 @@ internal class HeapDumpTrigger(
         return@post
       }
 
-      HeapDumpMemoryStore.setRetainedKeysForHeapDump(retainedKeys)
-
+      val heapDumpUptimeMillis = SystemClock.uptimeMillis()
+      KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
       CanaryLog.d("Dumping the heap because user tapped notification")
 
       val heapDumpFile = heapDumper.dumpHeap()
       if (heapDumpFile == null) {
         CanaryLog.d("Failed to dump heap")
-        showRetainedCountWithHeapDumpFailed(retainedKeys.size)
+        showRetainedCountWithHeapDumpFailed(retainedReferenceCount)
         return@post
       }
 
-      refWatcher.removeRetainedKeys(retainedKeys)
+      refWatcher.removeKeysRetainedBeforeHeapDump(heapDumpUptimeMillis)
       HeapAnalyzerService.runAnalysis(application, heapDumpFile)
     }
   }
 
   private fun checkRetainedCount(
-    retainedKeys: Set<String>,
+    retainedKeysCount: Int,
     retainedVisibleThreshold: Int
   ): Boolean {
-    if (retainedKeys.isEmpty()) {
+    if (retainedKeysCount == 0) {
       CanaryLog.d("No retained instances")
       dismissNotification()
       return true
     }
 
-    if (retainedKeys.size < retainedVisibleThreshold) {
+    if (retainedKeysCount < retainedVisibleThreshold) {
       if (applicationVisible || applicationInvisibleLessThanWatchPeriod) {
         CanaryLog.d(
             "Found %d retained instances, which is less than the visible threshold of %d",
-            retainedKeys.size,
+            retainedKeysCount,
             retainedVisibleThreshold
         )
-        showRetainedCountBelowThresholdNotification(retainedKeys.size, retainedVisibleThreshold)
+        showRetainedCountBelowThresholdNotification(retainedKeysCount, retainedVisibleThreshold)
         scheduleRetainedInstanceCheck(
             "Showing retained instance notification", WAIT_FOR_INSTANCE_THRESHOLD_MILLIS
         )
