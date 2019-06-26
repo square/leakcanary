@@ -19,10 +19,6 @@ theme:
     primary: 'deep-orange'
     accent: 'deep-purple'
 
-
-# extra_css:
-#  - 'css/app.css'
-
 markdown_extensions:
   - smarty
   - codehilite:
@@ -56,3 +52,8 @@ nav:
   - 'Recorded Presentations': recorded-presentations.md
   - 'Contributing': contributing.md
   - 'Code of Conduct': code_of_conduct.md
+
+# Google Analytics. Add export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-XXXXXXXXX-X" to your ~/.bashrc
+google_analytics:
+  - !!python/object/apply:os.getenv ["LEAKCANARY_GOOGLE_ANALYTICS_KEY"]
+  - auto
