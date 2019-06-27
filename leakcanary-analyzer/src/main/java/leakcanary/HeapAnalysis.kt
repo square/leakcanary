@@ -88,6 +88,12 @@ data class LeakingInstance(
 
   val groupHash = createGroupHash()
 
+  val instanceClassSimpleName: String
+    get() {
+      val separator = instanceClassName.lastIndexOf('.')
+      return if (separator == -1) instanceClassName else instanceClassName.substring(separator + 1)
+    }
+
   private fun createGroupHash(): String {
     val uniqueString = if (exclusionStatus == WONT_FIX_LEAK) {
       leakTrace.firstElementExclusion.matching

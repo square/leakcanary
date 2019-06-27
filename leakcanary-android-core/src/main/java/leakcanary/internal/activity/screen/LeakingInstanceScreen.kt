@@ -12,7 +12,6 @@ import leakcanary.internal.activity.screen.LeakingInstanceScreen.InstanceOrId.Id
 import leakcanary.internal.activity.screen.LeakingInstanceScreen.InstanceOrId.Instance
 import leakcanary.internal.activity.share
 import leakcanary.internal.activity.shareToStackOverflow
-import leakcanary.internal.lastSegment
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
@@ -63,7 +62,7 @@ internal class LeakingInstanceScreen private constructor(
     heapAnalysisId: Long,
     leakingInstance: LeakingInstance
   ) {
-    val classSimpleName = leakingInstance.instanceClassName.lastSegment('.')
+    val classSimpleName = leakingInstance.instanceClassSimpleName
     activity.title =
       resources.getString(R.string.leak_canary_class_has_leaked, classSimpleName)
 

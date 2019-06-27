@@ -9,7 +9,6 @@ import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakingInstance
 import leakcanary.Serializables
-import leakcanary.internal.lastSegment
 import leakcanary.internal.utils.to
 import leakcanary.toByteArray
 import org.intellij.lang.annotations.Language
@@ -47,7 +46,7 @@ internal object LeakingInstanceTable {
     values.put("heap_analysis_id", heapAnalysisId)
     values.put("group_hash", leakingInstance.groupHash)
     values.put("group_description", leakingInstance.createGroupDescription())
-    values.put("class_simple_name", leakingInstance.instanceClassName.lastSegment('.'))
+    values.put("class_simple_name", leakingInstance.instanceClassSimpleName)
     values.put("object", leakingInstance.toByteArray())
     values.put("exclusion_status", leakingInstance.exclusionStatus?.ordinal ?: -1)
     return db.insertOrThrow("leaking_instance", null, values)
