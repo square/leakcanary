@@ -2,12 +2,12 @@ package leakcanary.internal
 
 import android.app.Activity
 import android.app.Application
-import leakcanary.CanaryLog
+import leakcanary.internal.InternalHelper.noOpDelegate
 
 internal class VisibilityTracker(
   private val listener: (Boolean) -> Unit
 ) :
-    ActivityLifecycleCallbacksAdapter() {
+    Application.ActivityLifecycleCallbacks by noOpDelegate() {
 
   private var startedActivityCount = 0
 
