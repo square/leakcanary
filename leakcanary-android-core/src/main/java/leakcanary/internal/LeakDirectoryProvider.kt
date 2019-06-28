@@ -28,9 +28,11 @@ import leakcanary.CanaryLog
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import java.io.File
 import java.io.FilenameFilter
+import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Arrays
-import java.util.UUID
+import java.util.Date
+import java.util.Locale
 
 /**
  * Provides access to where heap dumps and analysis results will be stored.
@@ -97,17 +99,15 @@ internal class LeakDirectoryProvider constructor(
         return null
       }
     }
-    // If two processes from the same app get to this step at the same time, they could both
-    // create a heap dump. This is an edge case we ignore.
-    return File(storageDirectory, UUID.randomUUID().toString() + PENDING_HEAPDUMP_SUFFIX)
+
+    val fileName = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(Date())
+    return File(storageDirectory, fileName)
   }
 
   fun clearLeakDirectory() {
     val allFilesExceptPending =
       listFiles(FilenameFilter { _, filename ->
-        !filename.endsWith(
-            PENDING_HEAPDUMP_SUFFIX
-        )
+        true
       })
     for (file in allFilesExceptPending) {
       val path = file.absolutePath
@@ -205,11 +205,8 @@ internal class LeakDirectoryProvider constructor(
     private val filesDeletedTooOld = mutableListOf<String>()
     private val filesDeletedClearDirectory = mutableListOf<String>()
     val filesDeletedRemoveLeak = mutableListOf<String>()
-    val filesDeletedEndOfHeapAnalyzer = mutableListOf<String>()
-    val filesRenamedEndOfHeapAnalyzer = mutableListOf<String>()
 
     private const val HPROF_SUFFIX = ".hprof"
-    private const val PENDING_HEAPDUMP_SUFFIX = "_pending$HPROF_SUFFIX"
 
     fun hprofDeleteReason(file: File): String {
       val path = file.absolutePath
@@ -217,8 +214,6 @@ internal class LeakDirectoryProvider constructor(
         filesDeletedTooOld.contains(path) -> "Older than all other hprof files"
         filesDeletedClearDirectory.contains(path) -> "Hprof directory cleared"
         filesDeletedRemoveLeak.contains(path) -> "Leak manually removed"
-        filesDeletedEndOfHeapAnalyzer.contains(path) -> "Heap Analysis done & leak reported"
-        filesRenamedEndOfHeapAnalyzer.contains(path) -> "Heap Analysis done & hprof moved"
         else -> "Unknown"
       }
     }
