@@ -33,13 +33,6 @@ object LeakCanary {
     val exclusionsFactory: ExclusionsFactory = exclusionsFactory(
         AndroidExcludedRefs.appDefaults
     ),
-    /**
-     * Whether to compute the total number of bytes in memory that would be reclaimed if the
-     * detected leaks didn't happen. This includes native memory associated to Java objects
-     * (e.g. bitmaps).
-     * Computing the retained heap size can slow down the leak analysis and is off by default.
-     */
-    val computeRetainedHeapSize: Boolean = false,
     val leakInspectors: List<LeakInspector> = AndroidLeakInspectors.defaultAndroidInspectors(),
     val labelers: List<Labeler> = defaultAndroidLabelers(
         InternalLeakCanary.application
@@ -50,7 +43,14 @@ object LeakCanary {
      * If you want leaks to be added to the activity that lists leaks, make sure to delegate
      * calls to [DefaultAnalysisResultListener].
      */
-    val analysisResultListener: AnalysisResultListener = DefaultAnalysisResultListener
+    val analysisResultListener: AnalysisResultListener = DefaultAnalysisResultListener,
+    /**
+     * Whether to compute the total number of bytes in memory that would be reclaimed if the
+     * detected leaks didn't happen. This includes native memory associated to Java objects
+     * (e.g. bitmaps).
+     * Computing the retained heap size can slow down the leak analysis and is off by default.
+     */
+    val computeRetainedHeapSize: Boolean = false
   )
 
   @Volatile
