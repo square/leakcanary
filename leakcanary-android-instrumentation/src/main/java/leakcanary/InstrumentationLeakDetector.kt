@@ -109,17 +109,17 @@ class InstrumentationLeakDetector {
     val context = instrumentation.targetContext
     val refWatcher = LeakSentry.refWatcher
 
-    if (!refWatcher.hasWatchedReferences) {
+    if (!refWatcher.hasWatchedInstances) {
       return NoAnalysis
     }
 
     instrumentation.waitForIdleSync()
-    if (!refWatcher.hasWatchedReferences) {
+    if (!refWatcher.hasWatchedInstances) {
       return NoAnalysis
     }
 
     runGc()
-    if (!refWatcher.hasWatchedReferences) {
+    if (!refWatcher.hasWatchedInstances) {
       return NoAnalysis
     }
 
@@ -127,7 +127,7 @@ class InstrumentationLeakDetector {
     // Android simply has way too many delayed posts that aren't canceled when views are detached.
     SystemClock.sleep(2000)
 
-    if (!refWatcher.hasWatchedReferences) {
+    if (!refWatcher.hasWatchedInstances) {
       return NoAnalysis
     }
 
@@ -143,7 +143,7 @@ class InstrumentationLeakDetector {
 
     runGc()
 
-    if (!refWatcher.hasRetainedReferences) {
+    if (!refWatcher.hasRetainedInstances) {
       return NoAnalysis
     }
 
@@ -168,7 +168,7 @@ class InstrumentationLeakDetector {
       )
     }
 
-    refWatcher.removeKeysRetainedBeforeHeapDump(heapDumpUptimeMillis)
+    refWatcher.removeInstancesRetainedBeforeHeapDump(heapDumpUptimeMillis)
 
     val listener = AnalyzerProgressListener.NONE
 
