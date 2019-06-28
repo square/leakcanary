@@ -9,7 +9,7 @@ import android.view.View
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.rule.ActivityTestRule
 import leakcanary.TestUtils.assertLeak
-import leakcanary.internal.ActivityLifecycleCallbacksAdapter
+import leakcanary.internal.InternalHelper.noOpDelegate
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -67,7 +67,7 @@ class FragmentLeakTest {
   private fun startActivityAndWaitForCreate() {
     val waitForActivityOnCreate = CountDownLatch(1)
     val app = getApplicationContext<Application>()
-    app.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacksAdapter() {
+    app.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
       override fun onActivityCreated(
         activity: Activity,
         savedInstanceState: Bundle?
@@ -94,7 +94,7 @@ class FragmentLeakTest {
     }
     val testActivity = activityRule.activity
     testActivity.application.registerActivityLifecycleCallbacks(
-        object : ActivityLifecycleCallbacksAdapter() {
+        object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
           override fun onActivityDestroyed(activity: Activity) {
             if (activity == testActivity) {
               activity.application.unregisterActivityLifecycleCallbacks(this)

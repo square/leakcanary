@@ -31,6 +31,7 @@ import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.CanaryLog
+import leakcanary.internal.InternalHelper.noOpDelegate
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import java.io.File
 import java.util.concurrent.TimeUnit.SECONDS
@@ -47,7 +48,7 @@ internal class AndroidHeapDumper(
 
   init {
     val application = context.applicationContext as Application
-    application.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacksAdapter() {
+    application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks by noOpDelegate()  {
       override fun onActivityResumed(activity: Activity) {
         resumedActivity = activity
       }

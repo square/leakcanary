@@ -20,8 +20,9 @@ import android.app.Application
 import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.O
 import android.os.Bundle
-import leakcanary.RefWatcher
 import leakcanary.LeakSentry
+import leakcanary.RefWatcher
+import leakcanary.internal.InternalHelper.noOpDelegate
 
 /**
  * Internal class used to watch for fragments leaks.
@@ -60,7 +61,7 @@ internal interface FragmentDestroyWatcher {
         return
       }
 
-      application.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacksAdapter() {
+      application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
         override fun onActivityCreated(
           activity: Activity,
           savedInstanceState: Bundle?
