@@ -35,25 +35,19 @@ import java.util.UUID
 /**
  * Provides access to where heap dumps and analysis results will be stored.
  */
-internal class LeakDirectoryProvider @JvmOverloads constructor(
+internal class LeakDirectoryProvider constructor(
   context: Context,
-  private val maxStoredHeapDumps: Int = DEFAULT_MAX_STORED_HEAP_DUMPS
+  private val maxStoredHeapDumps: () -> Int,
+  private val requestExternalStoragePermission: () -> Boolean
 ) {
 
-  private val context: Context
+  private val context: Context = context.applicationContext
 
   @Volatile private var writeExternalStorageGranted: Boolean = false
   @Volatile private var permissionNotificationDisplayed: Boolean = false
 
-  init {
-    if (maxStoredHeapDumps < 1) {
-      throw IllegalArgumentException("maxStoredHeapDumps must be at least 1")
-    }
-    this.context = context.applicationContext
-  }
-
   fun listFiles(filter: FilenameFilter): MutableList<File> {
-    if (!hasStoragePermission()) {
+    if (!hasStoragePermission() && requestExternalStoragePermission()) {
       requestWritePermissionNotification()
     }
     val files = ArrayList<File>()
@@ -76,8 +70,12 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
     var storageDirectory = externalStorageDirectory()
     if (!directoryWritableAfterMkdirs(storageDirectory)) {
       if (!hasStoragePermission()) {
-        CanaryLog.d("WRITE_EXTERNAL_STORAGE permission not granted")
-        requestWritePermissionNotification()
+        if (requestExternalStoragePermission()) {
+          CanaryLog.d("WRITE_EXTERNAL_STORAGE permission not granted, requesting")
+          requestWritePermissionNotification()
+        } else {
+          CanaryLog.d("WRITE_EXTERNAL_STORAGE permission not granted, ignoring")
+        }
       } else {
         val state = Environment.getExternalStorageState()
         if (Environment.MEDIA_MOUNTED != state) {
@@ -112,7 +110,11 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
         )
       })
     for (file in allFilesExceptPending) {
+      val path = file.absolutePath
       val deleted = file.delete()
+      if (deleted) {
+        filesDeletedClearDirectory += path
+      }
       if (!deleted) {
         CanaryLog.d("Could not delete file %s", file.path)
       }
@@ -173,6 +175,11 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
           HPROF_SUFFIX
       )
     })
+    val maxStoredHeapDumps = maxStoredHeapDumps()
+    if (maxStoredHeapDumps < 1) {
+      throw IllegalArgumentException("maxStoredHeapDumps must be at least 1")
+    }
+
     val filesToRemove = hprofFiles.size - maxStoredHeapDumps
     if (filesToRemove > 0) {
       CanaryLog.d("Removing %d heap dumps", filesToRemove)
@@ -182,8 +189,11 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
             .compareTo(rhs.lastModified())
       })
       for (i in 0 until filesToRemove) {
+        val path = hprofFiles[i].absolutePath
         val deleted = hprofFiles[i].delete()
-        if (!deleted) {
+        if (deleted) {
+          filesDeletedTooOld += path
+        } else {
           CanaryLog.d("Could not delete old hprof file %s", hprofFiles[i].path)
         }
       }
@@ -192,9 +202,25 @@ internal class LeakDirectoryProvider @JvmOverloads constructor(
 
   companion object {
 
-    private const val DEFAULT_MAX_STORED_HEAP_DUMPS = 7
+    private val filesDeletedTooOld = mutableListOf<String>()
+    private val filesDeletedClearDirectory = mutableListOf<String>()
+    val filesDeletedRemoveLeak = mutableListOf<String>()
+    val filesDeletedEndOfHeapAnalyzer = mutableListOf<String>()
+    val filesRenamedEndOfHeapAnalyzer = mutableListOf<String>()
 
     private const val HPROF_SUFFIX = ".hprof"
     private const val PENDING_HEAPDUMP_SUFFIX = "_pending$HPROF_SUFFIX"
+
+    fun hprofDeleteReason(file: File): String {
+      val path = file.absolutePath
+      return when {
+        filesDeletedTooOld.contains(path) -> "Older than all other hprof files"
+        filesDeletedClearDirectory.contains(path) -> "Hprof directory cleared"
+        filesDeletedRemoveLeak.contains(path) -> "Leak manually removed"
+        filesDeletedEndOfHeapAnalyzer.contains(path) -> "Heap Analysis done & leak reported"
+        filesRenamedEndOfHeapAnalyzer.contains(path) -> "Heap Analysis done & hprof moved"
+        else -> "Unknown"
+      }
+    }
   }
 }

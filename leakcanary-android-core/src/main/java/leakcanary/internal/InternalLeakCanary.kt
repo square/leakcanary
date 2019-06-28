@@ -30,7 +30,11 @@ internal object InternalLeakCanary : LeakSentryListener {
     private set
 
   val leakDirectoryProvider: LeakDirectoryProvider by lazy {
-    LeakDirectoryProvider(application)
+    LeakDirectoryProvider(application, {
+      LeakCanary.config.maxStoredHeapDumps
+    }, {
+      LeakCanary.config.requestWriteExternalStoragePermission
+    })
   }
 
   val leakDisplayActivityIntent: Intent

@@ -10,6 +10,7 @@ import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.Serializables
 import leakcanary.internal.InternalLeakCanary
+import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.leakingInstances
 import leakcanary.toByteArray
 import org.intellij.lang.annotations.Language
@@ -120,8 +121,11 @@ internal object HeapAnalysisTable {
   ) {
     if (heapDumpFile != null) {
       AsyncTask.SERIAL_EXECUTOR.execute {
+        val path = heapDumpFile.absolutePath
         val heapDumpDeleted = heapDumpFile.delete()
-        if (!heapDumpDeleted) {
+        if (heapDumpDeleted) {
+          LeakDirectoryProvider.filesDeletedRemoveLeak += path
+        } else {
           CanaryLog.d("Could not delete heap dump file %s", heapDumpFile.path)
         }
       }
