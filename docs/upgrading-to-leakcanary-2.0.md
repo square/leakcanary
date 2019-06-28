@@ -88,7 +88,7 @@ dependencies {
 * You can use it to count how many instances are retained, for instance to add metadata to OutOfMemoryError crashes:
 
 ```kotlin
-val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
+val retainedInstanceCount = LeakSentry.refWatcher.retainedInstanceCount
 ```
 
 ### Option 2: Make your own `RefWatcher` interface
@@ -96,18 +96,18 @@ val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
 ```kotlin
 // In shared code
 interface MaybeRefWatcher {
-  fun watch(watchedReference: Any)
+  fun watch(watchedInstance: Any)
 
   object None : MaybeRefWatcher {
-    override fun watch(watchedReference: Any) {
+    override fun watch(watchedInstance: Any) {
     }
   }
 }
 
 // In debug code
 class RealRefWatcher : MaybeRefWatcher {
-  override fun watch(watchedReference: Any) {
-    LeakSentry.refWatcher.watch(watchedReference)
+  override fun watch(watchedInstance: Any) {
+    LeakSentry.refWatcher.watch(watchedInstance)
   }
 }
 ```
@@ -202,6 +202,78 @@ android {
 ```
 
 No code is necessary.
+
+## Analysis listener / uploading to a server
+
+### Before
+
+
+```java
+public class LeakUploadService extends DisplayLeakService {
+  @Override protected void afterDefaultHandling(HeapDump heapDump, AnalysisResult result, String leakInfo) {
+    // TODO Upload result to server
+  }
+}
+```
+
+```java
+RefWatcher refWatcher = LeakCanary.refWatcher(this)
+  .listenerServiceClass(LeakUploadService.class);
+  .buildAndInstall();
+```
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    >
+  <application android:name="com.example.DebugExampleApplication">
+    <service android:name="com.example.LeakUploadService" />
+  </application>
+</manifest>
+```
+
+### Now
+
+```Kotlin
+LeakCanary.config = LeakCanary.config.copy(
+    analysisResultListener = { application, heapAnalysis ->
+      // TODO Upload result to server
+      DefaultAnalysisResultListener(application, heapAnalysis)
+    }
+)
+```
+
+### Marking known framework leaks as won't fix
+
+### Before
+
+```java
+ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults()
+    .instanceField("com.example.ExampleClass", "exampleField")
+    .build();
+RefWatcher refWatcher = LeakCanary.refWatcher(this)
+  .excludedRefs(excludedRefs)
+  .buildAndInstall();
+}
+```
+
+### Now
+
+```kotlin
+LeakCanary.config = LeakCanary.config.copy(
+  exclusionsFactory = { parser ->
+    val build = BuildMirror.readFromHprof(parser)
+    val exclusions =
+      AndroidExcludedRefs.exclusionsMatchingBuild(AndroidExcludedRefs.appDefaults, build)
+          .toMutableList()
+    exclusions += Exclusion(
+        type = InstanceFieldExclusion("com.example.ExampleClass", "exampleField")
+    )
+    exclusions
+  }
+)
+```
 
 ## Public API packages
 
