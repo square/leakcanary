@@ -4,6 +4,7 @@ import android.app.Application
 import com.squareup.leakcanary.core.R
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.Exclusion.Status.WONT_FIX_LEAK
+import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.internal.Notifications
 import leakcanary.internal.NotificationType.LEAKCANARY_RESULT
 import leakcanary.internal.activity.LeakActivity
@@ -85,10 +86,13 @@ object DefaultAnalysisResultListener : AnalysisResultListener {
   private fun renameHeapdump(heapDumpFile: File): File {
     val fileName = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(Date())
 
+    val path = heapDumpFile.absolutePath
     val newFile = File(heapDumpFile.parent, fileName)
     val lastModified = heapDumpFile.lastModified()
     val renamed = heapDumpFile.renameTo(newFile)
-    if (!renamed) {
+    if (renamed) {
+     LeakDirectoryProvider.filesRenamedEndOfHeapAnalyzer += path
+    } else {
       CanaryLog.d(
           "Could not rename heap dump file %s to %s", heapDumpFile.path, newFile.path
       )

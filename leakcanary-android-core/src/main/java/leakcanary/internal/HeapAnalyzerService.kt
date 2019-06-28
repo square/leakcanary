@@ -25,6 +25,7 @@ import leakcanary.CanaryLog
 import leakcanary.HeapAnalyzer
 import leakcanary.LeakCanary
 import java.io.File
+import java.lang.IllegalStateException
 
 /**
  * This service runs in a main app process.
@@ -43,6 +44,15 @@ internal class HeapAnalyzerService : ForegroundService(
     // Since we're running in the main process we should be careful not to impact it.
     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
     val heapDumpFile = intent.getSerializableExtra(HEAPDUMP_FILE_EXTRA) as File
+
+    if (!heapDumpFile.exists()) {
+      throw IllegalStateException(
+          "Hprof file missing due to: [${LeakDirectoryProvider.hprofDeleteReason(
+              heapDumpFile
+          )}] $heapDumpFile"
+      )
+    }
+
     val heapAnalyzer = HeapAnalyzer(this)
     val config = LeakCanary.config
     val heapAnalysis =
@@ -54,7 +64,11 @@ internal class HeapAnalyzerService : ForegroundService(
     try {
       config.analysisResultListener(application, heapAnalysis)
     } finally {
-      heapAnalysis.heapDumpFile.delete()
+      val path = heapAnalysis.heapDumpFile.absolutePath
+      val deleted = heapAnalysis.heapDumpFile.delete()
+      if (deleted) {
+        LeakDirectoryProvider.filesDeletedEndOfHeapAnalyzer += path
+      }
     }
   }
 
