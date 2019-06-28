@@ -86,12 +86,14 @@ object DefaultAnalysisResultListener : AnalysisResultListener {
     val fileName = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(Date())
 
     val newFile = File(heapDumpFile.parent, fileName)
+    val lastModified = heapDumpFile.lastModified()
     val renamed = heapDumpFile.renameTo(newFile)
     if (!renamed) {
       CanaryLog.d(
           "Could not rename heap dump file %s to %s", heapDumpFile.path, newFile.path
       )
     }
+    newFile.setLastModified(lastModified)
     return newFile
   }
 }
