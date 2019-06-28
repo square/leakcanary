@@ -546,8 +546,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#public-api-packages" title="Public API packages" class="md-nav__link">
-    Public API packages
+  <a href="#analysis-listener-uploading-to-a-server" title="Analysis listener / uploading to a server" class="md-nav__link">
+    Analysis listener / uploading to a server
   </a>
   
     <nav class="md-nav">
@@ -562,6 +562,54 @@
         
           <li class="md-nav__item">
   <a href="#now_5" title="Now" class="md-nav__link">
+    Now
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#marking-known-framework-leaks-as-wont-fix" title="Marking known framework leaks as won't fix" class="md-nav__link">
+    Marking known framework leaks as won't fix
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#before_6" title="Before" class="md-nav__link">
+    Before
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#now_6" title="Now" class="md-nav__link">
+    Now
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#public-api-packages" title="Public API packages" class="md-nav__link">
+    Public API packages
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#before_7" title="Before" class="md-nav__link">
+    Before
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#now_7" title="Now" class="md-nav__link">
     Now
   </a>
   
@@ -826,8 +874,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#public-api-packages" title="Public API packages" class="md-nav__link">
-    Public API packages
+  <a href="#analysis-listener-uploading-to-a-server" title="Analysis listener / uploading to a server" class="md-nav__link">
+    Analysis listener / uploading to a server
   </a>
   
     <nav class="md-nav">
@@ -842,6 +890,54 @@
         
           <li class="md-nav__item">
   <a href="#now_5" title="Now" class="md-nav__link">
+    Now
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#marking-known-framework-leaks-as-wont-fix" title="Marking known framework leaks as won't fix" class="md-nav__link">
+    Marking known framework leaks as won't fix
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#before_6" title="Before" class="md-nav__link">
+    Before
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#now_6" title="Now" class="md-nav__link">
+    Now
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#public-api-packages" title="Public API packages" class="md-nav__link">
+    Public API packages
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#before_7" title="Before" class="md-nav__link">
+    Before
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#now_7" title="Now" class="md-nav__link">
     Now
   </a>
   
@@ -944,24 +1040,24 @@
 <li>It&rsquo;s very little code and should have a no impact on your release app.</li>
 <li>You can use it to count how many instances are retained, for instance to add metadata to OutOfMemoryError crashes:</li>
 </ul>
-<div class="codehilite"><pre><span></span><span class="k">val</span> <span class="py">retainedInstanceCount</span> <span class="p">=</span> <span class="n">LeakSentry</span><span class="p">.</span><span class="n">refWatcher</span><span class="p">.</span><span class="n">retainedKeys</span><span class="p">.</span><span class="n">size</span>
+<div class="codehilite"><pre><span></span><span class="k">val</span> <span class="py">retainedInstanceCount</span> <span class="p">=</span> <span class="n">LeakSentry</span><span class="p">.</span><span class="n">refWatcher</span><span class="p">.</span><span class="n">retainedInstanceCount</span>
 </pre></div>
 
 <h3 id="option-2-make-your-own-refwatcher-interface">Option 2: Make your own <code>RefWatcher</code> interface<a class="headerlink" href="#option-2-make-your-own-refwatcher-interface" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span><span class="c1">// In shared code</span>
 <span class="k">interface</span> <span class="nc">MaybeRefWatcher</span> <span class="p">{</span>
-  <span class="k">fun</span> <span class="nf">watch</span><span class="p">(</span><span class="n">watchedReference</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span>
+  <span class="k">fun</span> <span class="nf">watch</span><span class="p">(</span><span class="n">watchedInstance</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span>
 
   <span class="k">object</span> <span class="nc">None</span> <span class="p">:</span> <span class="n">MaybeRefWatcher</span> <span class="p">{</span>
-    <span class="k">override</span> <span class="k">fun</span> <span class="nf">watch</span><span class="p">(</span><span class="n">watchedReference</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">override</span> <span class="k">fun</span> <span class="nf">watch</span><span class="p">(</span><span class="n">watchedInstance</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="p">{</span>
     <span class="p">}</span>
   <span class="p">}</span>
 <span class="p">}</span>
 
 <span class="c1">// In debug code</span>
 <span class="k">class</span> <span class="nc">RealRefWatcher</span> <span class="p">:</span> <span class="n">MaybeRefWatcher</span> <span class="p">{</span>
-  <span class="k">override</span> <span class="k">fun</span> <span class="nf">watch</span><span class="p">(</span><span class="n">watchedReference</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">LeakSentry</span><span class="p">.</span><span class="n">refWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span><span class="n">watchedReference</span><span class="p">)</span>
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">watch</span><span class="p">(</span><span class="n">watchedInstance</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">LeakSentry</span><span class="p">.</span><span class="n">refWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span><span class="n">watchedInstance</span><span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1038,10 +1134,69 @@
 </pre></div>
 
 <p>No code is necessary.</p>
-<h2 id="public-api-packages">Public API packages<a class="headerlink" href="#public-api-packages" title="Permanent link">&para;</a></h2>
+<h2 id="analysis-listener-uploading-to-a-server">Analysis listener / uploading to a server<a class="headerlink" href="#analysis-listener-uploading-to-a-server" title="Permanent link">&para;</a></h2>
 <h3 id="before_5">Before<a class="headerlink" href="#before_5" title="Permanent link">&para;</a></h3>
-<p>All public APIs were in <code>com.squareup.leakcanary.*</code></p>
+<div class="codehilite"><pre><span></span><span class="kd">public</span> <span class="kd">class</span> <span class="nc">LeakUploadService</span> <span class="kd">extends</span> <span class="n">DisplayLeakService</span> <span class="o">{</span>
+  <span class="nd">@Override</span> <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">afterDefaultHandling</span><span class="o">(</span><span class="n">HeapDump</span> <span class="n">heapDump</span><span class="o">,</span> <span class="n">AnalysisResult</span> <span class="n">result</span><span class="o">,</span> <span class="n">String</span> <span class="n">leakInfo</span><span class="o">)</span> <span class="o">{</span>
+    <span class="c1">// TODO Upload result to server</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span><span class="n">RefWatcher</span> <span class="n">refWatcher</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="o">.</span><span class="na">refWatcher</span><span class="o">(</span><span class="k">this</span><span class="o">)</span>
+  <span class="o">.</span><span class="na">listenerServiceClass</span><span class="o">(</span><span class="n">LeakUploadService</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+  <span class="o">.</span><span class="na">buildAndInstall</span><span class="o">();</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+<span class="nt">&lt;manifest</span> <span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span>
+    <span class="na">xmlns:tools=</span><span class="s">&quot;http://schemas.android.com/tools&quot;</span>
+    <span class="nt">&gt;</span>
+  <span class="nt">&lt;application</span> <span class="na">android:name=</span><span class="s">&quot;com.example.DebugExampleApplication&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;service</span> <span class="na">android:name=</span><span class="s">&quot;com.example.LeakUploadService&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/application&gt;</span>
+<span class="nt">&lt;/manifest&gt;</span>
+</pre></div>
+
 <h3 id="now_5">Now<a class="headerlink" href="#now_5" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span>
+    <span class="n">analysisResultListener</span> <span class="p">=</span> <span class="p">{</span> <span class="n">application</span><span class="p">,</span> <span class="n">heapAnalysis</span> <span class="p">-&gt;</span>
+      <span class="c1">// TODO Upload result to server</span>
+      <span class="n">DefaultAnalysisResultListener</span><span class="p">(</span><span class="n">application</span><span class="p">,</span> <span class="n">heapAnalysis</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+
+<h3 id="marking-known-framework-leaks-as-wont-fix">Marking known framework leaks as won&rsquo;t fix<a class="headerlink" href="#marking-known-framework-leaks-as-wont-fix" title="Permanent link">&para;</a></h3>
+<h3 id="before_6">Before<a class="headerlink" href="#before_6" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><span class="n">ExcludedRefs</span> <span class="n">excludedRefs</span> <span class="o">=</span> <span class="n">AndroidExcludedRefs</span><span class="o">.</span><span class="na">createAppDefaults</span><span class="o">()</span>
+    <span class="o">.</span><span class="na">instanceField</span><span class="o">(</span><span class="s">&quot;com.example.ExampleClass&quot;</span><span class="o">,</span> <span class="s">&quot;exampleField&quot;</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">build</span><span class="o">();</span>
+<span class="n">RefWatcher</span> <span class="n">refWatcher</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="o">.</span><span class="na">refWatcher</span><span class="o">(</span><span class="k">this</span><span class="o">)</span>
+  <span class="o">.</span><span class="na">excludedRefs</span><span class="o">(</span><span class="n">excludedRefs</span><span class="o">)</span>
+  <span class="o">.</span><span class="na">buildAndInstall</span><span class="o">();</span>
+<span class="o">}</span>
+</pre></div>
+
+<h3 id="now_6">Now<a class="headerlink" href="#now_6" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span>
+  <span class="n">exclusionsFactory</span> <span class="p">=</span> <span class="p">{</span> <span class="n">parser</span> <span class="p">-&gt;</span>
+    <span class="k">val</span> <span class="py">build</span> <span class="p">=</span> <span class="n">BuildMirror</span><span class="p">.</span><span class="n">readFromHprof</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+    <span class="k">val</span> <span class="py">exclusions</span> <span class="p">=</span>
+      <span class="n">AndroidExcludedRefs</span><span class="p">.</span><span class="n">exclusionsMatchingBuild</span><span class="p">(</span><span class="n">AndroidExcludedRefs</span><span class="p">.</span><span class="n">appDefaults</span><span class="p">,</span> <span class="n">build</span><span class="p">)</span>
+          <span class="p">.</span><span class="n">toMutableList</span><span class="p">()</span>
+    <span class="n">exclusions</span> <span class="p">+=</span> <span class="n">Exclusion</span><span class="p">(</span>
+        <span class="n">type</span> <span class="p">=</span> <span class="n">InstanceFieldExclusion</span><span class="p">(</span><span class="s">&quot;com.example.ExampleClass&quot;</span><span class="p">,</span> <span class="s">&quot;exampleField&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">exclusions</span>
+  <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+
+<h2 id="public-api-packages">Public API packages<a class="headerlink" href="#public-api-packages" title="Permanent link">&para;</a></h2>
+<h3 id="before_7">Before<a class="headerlink" href="#before_7" title="Permanent link">&para;</a></h3>
+<p>All public APIs were in <code>com.squareup.leakcanary.*</code></p>
+<h3 id="now_7">Now<a class="headerlink" href="#now_7" title="Permanent link">&para;</a></h3>
 <p>All public APIs are in <code>leakcanary.*</code></p>
                 
                   
