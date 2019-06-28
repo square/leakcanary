@@ -275,10 +275,16 @@ internal object LeakingInstanceTable {
     return if (exclusionStatus == WONT_FIX_LEAK) {
       leakTrace.firstElementExclusion.matching
     } else {
-      val element = leakTrace.leakCauses.first()
-      val referenceName = element.reference!!.groupingName
-      val refDescription = element.simpleClassName + "." + referenceName
-      refDescription
+      val leakCauses = leakTrace.leakCauses
+      if (leakCauses.isEmpty()) {
+        // Should rarely happen, don't expect to see 0 unknown and 100% leaking or 100% not leaking
+        instanceClassName
+      } else {
+        val element = leakCauses.first()
+        val referenceName = element.reference!!.groupingName
+        val refDescription = element.simpleClassName + "." + referenceName
+        refDescription
+      }
     }
   }
 
