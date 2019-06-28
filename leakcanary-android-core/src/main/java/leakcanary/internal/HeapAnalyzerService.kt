@@ -25,7 +25,6 @@ import leakcanary.CanaryLog
 import leakcanary.HeapAnalyzer
 import leakcanary.LeakCanary
 import java.io.File
-import java.lang.IllegalStateException
 
 /**
  * This service runs in a main app process.
@@ -61,15 +60,7 @@ internal class HeapAnalyzerService : ForegroundService(
           config.leakInspectors, config.labelers
       )
 
-    try {
-      config.analysisResultListener(application, heapAnalysis)
-    } finally {
-      val path = heapAnalysis.heapDumpFile.absolutePath
-      val deleted = heapAnalysis.heapDumpFile.delete()
-      if (deleted) {
-        LeakDirectoryProvider.filesDeletedEndOfHeapAnalyzer += path
-      }
-    }
+    config.analysisResultListener(application, heapAnalysis)
   }
 
   override fun onProgressUpdate(step: AnalyzerProgressListener.Step) {
