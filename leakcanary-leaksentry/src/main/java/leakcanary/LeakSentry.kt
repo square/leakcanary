@@ -7,10 +7,26 @@ import java.util.concurrent.TimeUnit
 object LeakSentry {
 
   data class Config(
+    /**
+     * Whether LeakSentry should watch instances (by keeping weak references to them). Default is
+     * true in debuggable builds and false is non debuggable builds.
+     */
     val enabled: Boolean = InternalLeakSentry.isDebuggableBuild,
+    /**
+     * Whether LeakCanary should automatically watch destroyed activities.
+     */
     val watchActivities: Boolean = true,
+    /**
+     * Whether LeakCanary should automatically watch destroyed fragments.
+     */
     val watchFragments: Boolean = true,
+    /**
+     * Whether LeakCanary should automatically watch destroyed fragment views.
+     */
     val watchFragmentViews: Boolean = true,
+    /**
+     * How long to wait before reporting a watched instance as retained. Default is 5 seconds.
+     */
     val watchDurationMillis: Long = TimeUnit.SECONDS.toMillis(5)
   )
 
