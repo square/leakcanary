@@ -31,6 +31,7 @@ import leakcanary.GcRoot.ReferenceCleanup
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
 import leakcanary.GcRoot.ThreadObject
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.HprofParser.RecordCallbacks
 import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakNodeStatus.LEAKING
@@ -98,14 +99,16 @@ class HeapAnalyzer constructor(
     try {
       HprofParser.open(heapDumpFile)
           .use { parser ->
+            val graph = HprofGraph(parser)
             listener.onProgressUpdate(SCANNING_HEAP_DUMP)
             val (gcRootIds, keyedWeakReferenceInstances, cleaners) = scan(
+                graph,
                 parser, computeRetainedHeapSize
             )
             val analysisResults = mutableMapOf<String, RetainedInstance>()
             listener.onProgressUpdate(FINDING_WATCHED_REFERENCES)
 
-            val retainedWeakRefs = findLeakingReferences(parser, keyedWeakReferenceInstances)
+            val retainedWeakRefs = findLeakingReferences(graph, keyedWeakReferenceInstances)
 
             if (retainedWeakRefs.isEmpty()) {
               val exception = IllegalStateException("No retained instances found in heap dump")
@@ -149,23 +152,28 @@ class HeapAnalyzer constructor(
 
   private data class ScanResult(
     val gcRootIds: MutableList<GcRoot>,
-    val keyedWeakReferenceInstances: List<InstanceDumpRecord>,
+    val keyedWeakReferenceInstances: List<GraphInstanceRecord>,
     val cleaners: MutableList<Long>
   )
 
   private fun scan(
+    graph: HprofGraph,
     parser: HprofParser,
     computeRetainedSize: Boolean
   ): ScanResult {
-    val keyedWeakReferenceInstances = mutableListOf<InstanceDumpRecord>()
+    val keyedWeakReferenceInstances = mutableListOf<GraphInstanceRecord>()
     val gcRoot = mutableListOf<GcRoot>()
     val cleaners = mutableListOf<Long>()
     val callbacks = RecordCallbacks()
         .on(InstanceDumpRecord::class.java) { record ->
           when (parser.className(record.classId)) {
-            KeyedWeakReference::class.java.name -> keyedWeakReferenceInstances.add(record)
+            KeyedWeakReference::class.java.name -> keyedWeakReferenceInstances.add(
+                GraphInstanceRecord(graph, record)
+            )
             // Pre 2.0 KeyedWeakReference
-            "com.squareup.leakcanary.KeyedWeakReference" -> keyedWeakReferenceInstances.add(record)
+            "com.squareup.leakcanary.KeyedWeakReference" -> keyedWeakReferenceInstances.add(
+                GraphInstanceRecord(graph, record)
+            )
             "sun.misc.Cleaner" -> if (computeRetainedSize) cleaners.add(record.id)
           }
         }
@@ -198,17 +206,16 @@ class HeapAnalyzer constructor(
   }
 
   private fun findLeakingReferences(
-    parser: HprofParser,
-    keyedWeakReferenceInstances: List<InstanceDumpRecord>
+    graph: HprofGraph,
+    keyedWeakReferenceInstances: List<GraphInstanceRecord>
   ): MutableList<KeyedWeakReferenceMirror> {
 
-    val keyedWeakReferenceClassId = parser.classId(KeyedWeakReference::class.java.name)
+    val keyedWeakReferenceClass = graph.readClass(KeyedWeakReference::class.java.name)
 
-    val heapDumpUptimeMillis = if (keyedWeakReferenceClassId == null) {
+    val heapDumpUptimeMillis = if (keyedWeakReferenceClass == null) {
       null
     } else {
-      val keyedWeakReferenceClass = parser.hydrateClassHierarchy(keyedWeakReferenceClassId)[0]
-      keyedWeakReferenceClass["heapDumpUptimeMillis"].long
+      keyedWeakReferenceClass["heapDumpUptimeMillis"]?.value?.asLong
     }
 
     if (heapDumpUptimeMillis == null) {
@@ -221,9 +228,7 @@ class HeapAnalyzer constructor(
     val retainedInstances = mutableListOf<KeyedWeakReferenceMirror>()
     keyedWeakReferenceInstances.forEach { record ->
       val weakRef =
-        KeyedWeakReferenceMirror.fromInstance(
-            parser, parser.hydrateInstance(record), heapDumpUptimeMillis
-        )
+        KeyedWeakReferenceMirror.fromInstance(record, heapDumpUptimeMillis)
       if (weakRef.isRetained && weakRef.hasReferent) {
         retainedInstances.add(weakRef)
       }

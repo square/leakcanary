@@ -1,9 +1,7 @@
 package leakcanary.internal
 
-import leakcanary.HeapValue.LongValue
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.HeapValue.ObjectReference
-import leakcanary.HprofParser
-import leakcanary.HydratedInstance
 
 internal class KeyedWeakReferenceMirror(
   val referent: ObjectReference,
@@ -27,38 +25,31 @@ internal class KeyedWeakReferenceMirror(
     private const val UNKNOWN_LEGACY = "Unknown (legacy)"
 
     fun fromInstance(
-      parser: HprofParser,
-      weakRef: HydratedInstance,
+      weakRef: GraphInstanceRecord,
       // Null for pre 2.0 alpha 3 heap dumps
       heapDumpUptimeMillis: Long?
     ): KeyedWeakReferenceMirror {
 
       val watchDurationMillis = if (heapDumpUptimeMillis != null)
-        heapDumpUptimeMillis - weakRef.fieldValue<LongValue>("watchUptimeMillis").value
+        heapDumpUptimeMillis - weakRef["watchUptimeMillis"]!!.value.asLong!!
       else 0L
 
       val retainedDurationMillis = if (heapDumpUptimeMillis != null) {
-        val retainedUptimeMillis = weakRef.fieldValue<LongValue>("retainedUptimeMillis")
-            .value
+        val retainedUptimeMillis = weakRef["retainedUptimeMillis"]!!.value.asLong!!
         if (retainedUptimeMillis == -1L) -1L else heapDumpUptimeMillis - retainedUptimeMillis
       } else null
 
-      val key = weakRef.fieldValue<ObjectReference>("key")
-      val keyString = parser.retrieveString(key)
+      val keyString = weakRef["key"]!!.value.readAsJavaString()!!
 
-      val name = weakRef.fieldValueOrNull<ObjectReference>("name")
-      val nameString = if (name != null) parser.retrieveString(name) else UNKNOWN_LEGACY
-      val className = weakRef.fieldValueOrNull<ObjectReference>("className")
-      val classNameString =
-        if (className != null) parser.retrieveString(className) else UNKNOWN_LEGACY
-
+      val name = weakRef["name"]?.value?.readAsJavaString() ?: UNKNOWN_LEGACY
+      val className = weakRef["className"]?.value?.readAsJavaString() ?: UNKNOWN_LEGACY
       return KeyedWeakReferenceMirror(
           watchDurationMillis = watchDurationMillis,
           retainedDurationMillis = retainedDurationMillis,
-          referent = weakRef.fieldValue("referent"),
+          referent = weakRef["referent"]!!.value.actual as ObjectReference,
           key = keyString,
-          name = nameString,
-          className = classNameString
+          name = name,
+          className = className
       )
     }
   }

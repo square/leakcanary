@@ -1,7 +1,7 @@
 package leakcanary
 
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.HeapValue.ObjectReference
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 
 enum class AndroidLabelers : Labeler {
 
@@ -9,18 +9,23 @@ enum class AndroidLabelers : Labeler {
     override fun invoke(
       parser: HprofParser,
       node: LeakNode
-    ): List<String> = with(HprofGraph(parser)) {
-      val record = ObjectReference(node.instance)
-          .record
-      if (record instanceOf "androidx.fragment.app.Fragment" || record instanceOf "android.app.Fragment") {
-        record as InstanceDumpRecord
-        val mTag = record["mTag"].record.string
+    ): List<String> {
+      val heapValue = GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance))
+      val record = heapValue.readObjectRecord()!!
+
+      if (record is GraphInstanceRecord && (
+              record instanceOf "androidx.fragment.app.Fragment" ||
+                  record instanceOf "android.app.Fragment")
+      ) {
+        val mTag = record["mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
           return listOf("Fragment.mTag=$mTag")
         }
       }
+
       return emptyList()
     }
-  };
+  }
+  ;
 
 }

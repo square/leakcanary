@@ -2,9 +2,8 @@ package leakcanary
 
 import android.app.Application
 import android.content.res.Resources.NotFoundException
-import leakcanary.HeapValue.IntValue
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.HeapValue.ObjectReference
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 
 class ViewLabeler(
   private val application: Application
@@ -12,14 +11,13 @@ class ViewLabeler(
   override fun invoke(
     parser: HprofParser,
     node: LeakNode
-  ): List<String> = with(HprofGraph(parser)) {
-    val record = ObjectReference(node.instance)
-        .record
+  ): List<String> {
+    val heapValue = GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance))
+    val record = heapValue.readObjectRecord()
 
-    if (record instanceOf "android.view.View") {
+    if (record is GraphInstanceRecord && record instanceOf "android.view.View") {
       val viewLabels = mutableListOf<String>()
-      record as InstanceDumpRecord
-      val mAttachInfo = record["mAttachInfo"]
+      val mAttachInfo = record["mAttachInfo"]?.value
       if (mAttachInfo != null) {
         if (mAttachInfo.isNullReference) {
           viewLabels.add("View#mAttachInfo is null (view detached)")
@@ -28,7 +26,7 @@ class ViewLabeler(
         }
       }
 
-      val mParent = record["mParent"]
+      val mParent = record["mParent"]?.value
       if (mParent != null) {
         if (mParent.isNullReference) {
           viewLabels.add("View#mParent is null")
@@ -37,24 +35,24 @@ class ViewLabeler(
         }
       }
 
-      val mID = record["mId"]
-      if (mID is IntValue) {
-        if (mID.value != 0) {
+      val mID = record["mId"]?.value?.asInt
+      if (mID != null) {
+        if (mID != 0) {
           try {
-            val name = application.resources.getResourceEntryName(mID.value)
-            viewLabels.add("View.mID=R.id.$name (${mID.value})")
+            val name = application.resources.getResourceEntryName(mID)
+            viewLabels.add("View.mID=R.id.$name ($mID)")
           } catch (ignored: NotFoundException) {
-            viewLabels.add("View.mID=${mID.value} (name not found)")
+            viewLabels.add("View.mID=$mID (name not found)")
           }
         } else {
           viewLabels.add("View.mID=0")
         }
       }
 
-      val mWindowAttachCount = record["mWindowAttachCount"]
+      val mWindowAttachCount = record["mWindowAttachCount"]?.value?.asInt
 
-      if (mWindowAttachCount is IntValue) {
-        viewLabels.add("View.mWindowAttachCount=${mWindowAttachCount.value}")
+      if (mWindowAttachCount != null) {
+        viewLabels.add("View.mWindowAttachCount=$mWindowAttachCount")
       }
       return viewLabels
     }
