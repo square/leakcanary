@@ -71,7 +71,7 @@ internal class HeapDumpTrigger(
       return
     }
 
-    var retainedReferenceCount = refWatcher.retainedReferenceCount
+    var retainedReferenceCount = refWatcher.retainedInstanceCount
 
     if (checkRetainedCount(retainedReferenceCount, config.retainedVisibleThreshold)) return
 
@@ -87,7 +87,7 @@ internal class HeapDumpTrigger(
 
     gcTrigger.runGc()
 
-    retainedReferenceCount = refWatcher.retainedReferenceCount
+    retainedReferenceCount = refWatcher.retainedInstanceCount
 
     if (checkRetainedCount(retainedReferenceCount, config.retainedVisibleThreshold)) return
 
@@ -103,7 +103,7 @@ internal class HeapDumpTrigger(
       return
     }
 
-    refWatcher.removeKeysRetainedBeforeHeapDump(heapDumpUptimeMillis)
+    refWatcher.removeInstancesRetainedBeforeHeapDump(heapDumpUptimeMillis)
 
     HeapAnalyzerService.runAnalysis(application, heapDumpFile)
   }
@@ -111,7 +111,7 @@ internal class HeapDumpTrigger(
   fun onDumpHeapReceived() {
     backgroundHandler.post {
       gcTrigger.runGc()
-      val retainedReferenceCount = refWatcher.retainedReferenceCount
+      val retainedReferenceCount = refWatcher.retainedInstanceCount
       if (retainedReferenceCount == 0) {
         CanaryLog.d("No retained instances after GC")
         val builder = Notification.Builder(application)
@@ -142,7 +142,7 @@ internal class HeapDumpTrigger(
         return@post
       }
 
-      refWatcher.removeKeysRetainedBeforeHeapDump(heapDumpUptimeMillis)
+      refWatcher.removeInstancesRetainedBeforeHeapDump(heapDumpUptimeMillis)
       HeapAnalyzerService.runAnalysis(application, heapDumpFile)
     }
   }

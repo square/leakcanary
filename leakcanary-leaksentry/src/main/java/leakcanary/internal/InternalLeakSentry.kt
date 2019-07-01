@@ -47,7 +47,7 @@ internal object InternalLeakSentry {
   val refWatcher = RefWatcher(
       clock = clock,
       checkRetainedExecutor = checkRetainedExecutor,
-      onReferenceRetained = { listener.onReferenceRetained() },
+      onInstanceRetained = { listener.onReferenceRetained() },
       isEnabled = { LeakSentry.config.enabled }
   )
 

@@ -27,13 +27,13 @@ class RefWatcherTest {
     refWatcher.watch(ref!!)
     ref = null
     runGc()
-    assertThat(refWatcher.hasRetainedReferences).isFalse()
+    assertThat(refWatcher.hasRetainedInstances).isFalse()
   }
 
   @Test fun `reachable object retained`() {
     refWatcher.watch(ref!!)
     runGc()
-    assertThat(refWatcher.hasRetainedReferences).isTrue()
+    assertThat(refWatcher.hasRetainedInstances).isTrue()
   }
 
 }
