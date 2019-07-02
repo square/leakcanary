@@ -1,12 +1,10 @@
 package leakcanary.internal
 
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HprofParser
 import leakcanary.InstanceDefaultLabeler
-import leakcanary.LeakNode
-import leakcanary.LeakTraceElement.Type.LOCAL
+import leakcanary.Labeler
 import leakcanary.LeakingInstance
-import leakcanary.ObjectIdMetadata.STRING
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -28,11 +26,10 @@ class LabelerTest {
   @Test fun stringContentAsLabel() {
     hprofFile.writeSinglePathToString("World")
 
-    val labeler = { parser: HprofParser,
-      node: LeakNode
+    val labeler: Labeler = { record
       ->
-      if (parser.objectIdMetadata(node.instance) == STRING) {
-        listOf("Hello ${parser.retrieveStringById(node.instance)}")
+      if (record is GraphInstanceRecord && record.className == "java.lang.String") {
+        listOf("Hello ${record.readAsJavaString()}")
       } else emptyList()
 
     }

@@ -33,9 +33,9 @@ class ExclusionTest {
   @Test fun shortestPathExcluded() {
     hprofFile.writeTwoPathsToInstance()
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess> {
-      listOf(Exclusion(StaticFieldExclusion("GcRoot", "shortestPath")))
-    }
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        exclusions = listOf(Exclusion(StaticFieldExclusion("GcRoot", "shortestPath")))
+    )
 
     val leak = analysis.retainedInstances[0] as LeakingInstance
     assertThat(leak.leakTrace.elements).hasSize(3)
@@ -49,12 +49,12 @@ class ExclusionTest {
   @Test fun allPathsExcluded_ShortestWins() {
     hprofFile.writeTwoPathsToInstance()
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess> {
-      listOf(
-          Exclusion(StaticFieldExclusion("GcRoot", "shortestPath")),
-          Exclusion(InstanceFieldExclusion("HasLeaking", "leaking"))
-      )
-    }
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        exclusions = listOf(
+            Exclusion(StaticFieldExclusion("GcRoot", "shortestPath")),
+            Exclusion(InstanceFieldExclusion("HasLeaking", "leaking"))
+        )
+    )
 
     val leak = analysis.retainedInstances[0] as LeakingInstance
     assertThat(leak.exclusionStatus).isEqualTo(WONT_FIX_LEAK)
@@ -67,21 +67,21 @@ class ExclusionTest {
   @Test fun noPathToInstanceNeverReachable() {
     hprofFile.writeTwoPathsToInstance()
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess> {
-      listOf(
-          Exclusion(StaticFieldExclusion("GcRoot", "shortestPath"), status = NEVER_REACHABLE),
-          Exclusion(InstanceFieldExclusion("HasLeaking", "leaking"), status = NEVER_REACHABLE)
-      )
-    }
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        exclusions = listOf(
+            Exclusion(StaticFieldExclusion("GcRoot", "shortestPath"), status = NEVER_REACHABLE),
+            Exclusion(InstanceFieldExclusion("HasLeaking", "leaking"), status = NEVER_REACHABLE)
+        )
+    )
     assertThat(analysis.retainedInstances[0]).isInstanceOf(NoPathToInstance::class.java)
   }
 
   @Test fun excludedThread() {
     hprofFile.writeJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess> {
-      listOf(Exclusion(JavaLocalExclusion("kroutine"), status = WONT_FIX_LEAK))
-    }
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        exclusions = listOf(Exclusion(JavaLocalExclusion("kroutine"), status = WONT_FIX_LEAK))
+    )
 
     val leak = analysis.retainedInstances[0] as LeakingInstance
     assertThat(leak.exclusionStatus).isEqualTo(WONT_FIX_LEAK)
@@ -95,14 +95,14 @@ class ExclusionTest {
       }
     }
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess> {
-      listOf(
-          Exclusion(
-              type = InstanceFieldExclusion(WeakReference::class.java.name, "referent"),
-              status = WEAKLY_REACHABLE
-          )
-      )
-    }
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        exclusions = listOf(
+            Exclusion(
+                type = InstanceFieldExclusion(WeakReference::class.java.name, "referent"),
+                status = WEAKLY_REACHABLE
+            )
+        )
+    )
 
     val leak = analysis.retainedInstances[0] as LeakingInstance
     assertThat(leak.exclusionStatus).isEqualTo(WEAKLY_REACHABLE)
@@ -116,17 +116,17 @@ class ExclusionTest {
       }
     }
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess> {
-      listOf(
-          Exclusion(
-              type = InstanceFieldExclusion(WeakReference::class.java.name, "referent"),
-              status = WEAKLY_REACHABLE
-          ), Exclusion(
-          type = InstanceFieldExclusion(KeyedWeakReference::class.java.name, "referent"),
-          status = NEVER_REACHABLE
-      )
-      )
-    }
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        exclusions = listOf(
+            Exclusion(
+                type = InstanceFieldExclusion(WeakReference::class.java.name, "referent"),
+                status = WEAKLY_REACHABLE
+            ), Exclusion(
+            type = InstanceFieldExclusion(KeyedWeakReference::class.java.name, "referent"),
+            status = NEVER_REACHABLE
+        )
+        )
+    )
     assertThat(analysis.retainedInstances[0]).isInstanceOf(NoPathToInstance::class.java)
   }
 

@@ -2,6 +2,7 @@ package leakcanary.internal
 
 import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.LeakNodeStatus
 import leakcanary.LeakingInstance
@@ -57,14 +58,11 @@ class LeakTraceRendererTest {
     }
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>(leakInspectors = listOf { parser, node ->
-        with(parser) {
-          val record = node.instance.objectRecord
-          if (record is InstanceDumpRecord && className(record.classId) == "ClassB") {
-            LeakNodeStatus.leaking("because reasons")
-          } else {
-            LeakNodeStatus.unknown()
-          }
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(leakInspectors = listOf { record ->
+        if (record is GraphInstanceRecord && record.className == "ClassB") {
+          LeakNodeStatus.leaking("because reasons")
+        } else {
+          LeakNodeStatus.unknown()
         }
       })
 
@@ -93,7 +91,7 @@ class LeakTraceRendererTest {
       }
     }
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(labelers = listOf { _, _ ->
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(labelers = listOf { _ ->
       listOf("¯\\_(ツ)_/¯")
     })
 
@@ -120,9 +118,9 @@ class LeakTraceRendererTest {
     }
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>(exclusionsFactory = {
-        listOf(Exclusion(type = InstanceFieldExclusion("ClassA", "leak")))
-      })
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          exclusions = listOf(Exclusion(type = InstanceFieldExclusion("ClassA", "leak")))
+      )
 
     analysis renders """
     ┬

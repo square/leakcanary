@@ -1,5 +1,7 @@
 package leakcanary.internal
 
+import leakcanary.GraphObjectRecord.GraphClassRecord
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.LeakInspector
 import leakcanary.LeakNodeStatus
@@ -7,8 +9,6 @@ import leakcanary.LeakNodeStatus.LEAKING
 import leakcanary.LeakNodeStatus.NOT_LEAKING
 import leakcanary.LeakNodeStatus.UNKNOWN
 import leakcanary.LeakingInstance
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -461,43 +461,37 @@ class LeakStatusTest {
   }
 
   private fun unknownInstance(): LeakInspector {
-    return { _, _ -> LeakNodeStatus.unknown() }
+    return { _-> LeakNodeStatus.unknown() }
   }
 
   private fun notLeaking(className: String): LeakInspector {
-    return { parser, node ->
-      with(parser) result@{
-        val record = node.instance.objectRecord
-        if (record is InstanceDumpRecord) {
-          if (className(record.classId) == className) {
+    return result@{ record ->
+        if (record is GraphInstanceRecord) {
+          if (record.className == className) {
             return@result LeakNodeStatus.notLeaking("$className is not leaking")
           }
-        } else if (record is ClassDumpRecord) {
-          if (className(record.id) == className) {
+        } else if (record is GraphClassRecord) {
+          if (record.name == className) {
             return@result LeakNodeStatus.notLeaking("$className is not leaking")
           }
         }
         return@result LeakNodeStatus.unknown()
-      }
     }
   }
 
   private fun leaking(className: String): LeakInspector {
-    return { parser, node ->
-      with(parser) result@{
-        val record = node.instance.objectRecord
-        if (record is InstanceDumpRecord) {
-          if (className(record.classId) == className) {
+    return result@{ record ->
+        if (record is GraphInstanceRecord) {
+          if (record.className == className) {
             return@result LeakNodeStatus.leaking("$className is leaking")
           }
-        } else if (record is ClassDumpRecord) {
-          if (className(record.id) == className) {
+        } else if (record is GraphClassRecord) {
+          if (record.name == className) {
             return@result LeakNodeStatus.leaking("$className is leaking")
           }
         }
         return@result LeakNodeStatus.unknown()
       }
-    }
   }
 
   private fun computeGroupHash(

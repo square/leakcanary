@@ -50,6 +50,9 @@ sealed class GraphObjectRecord {
       return GraphClassRecord(graph, superClassRecord)
     }
 
+    fun readClassHierarchy(): Sequence<GraphClassRecord> =
+      generateSequence(this) { it.readSuperClass() }
+
     val staticFields
       get(): List<GraphField> {
         val fields = mutableListOf<GraphField>()
@@ -94,26 +97,15 @@ sealed class GraphObjectRecord {
     infix fun instanceOf(expectedClass: KClass<*>) =
       this instanceOf expectedClass.java.name
 
+    operator fun get(
+      className: String,
+      fieldName: String
+    ): GraphField? {
+      return readFields().firstOrNull { field -> field.classRecord.name == className && field.name == fieldName }
+    }
+
     operator fun get(fieldName: String): GraphField? {
-      val fieldReader = graph.createFieldValuesReader(record)
-
-      var currentClassId = record.classId
-
-      do {
-        val classRecord = graph.readObjectRecord(currentClassId) as ClassDumpRecord
-
-        for (fieldRecord in classRecord.fields) {
-          val fieldValue = fieldReader.readValue(fieldRecord)
-
-          if (graph.fieldName(fieldRecord) == fieldName) {
-            return GraphField(
-                GraphClassRecord(graph, classRecord), fieldName, GraphHeapValue(graph, fieldValue)
-            )
-          }
-        }
-        currentClassId = classRecord.superClassId
-      } while (currentClassId != 0L)
-      return null
+      return readFields().firstOrNull { field -> field.name == fieldName }
     }
 
     val className: String
@@ -135,27 +127,20 @@ sealed class GraphObjectRecord {
       return GraphClassRecord(graph, classRecord)
     }
 
-    fun readFields(): List<List<GraphField>> {
-      val allFields = mutableListOf<List<GraphField>>()
-      val fieldReader = graph.createFieldValuesReader(record)
-
-      var currentClassId = record.classId
-      do {
-        val classFields = mutableListOf<GraphField>()
-        allFields += classFields
-
-        val classRecord = graph.readObjectRecord(currentClassId) as ClassDumpRecord
-
-        for (fieldRecord in classRecord.fields) {
-          val fieldName = graph.fieldName(fieldRecord)
-          val fieldValue = fieldReader.readValue(fieldRecord)
-          classFields += GraphField(
-              GraphClassRecord(graph, classRecord), fieldName, GraphHeapValue(graph, fieldValue)
-          )
-        }
-        currentClassId = classRecord.superClassId
-      } while (currentClassId != 0L)
-      return allFields
+    fun readFields(): Sequence<GraphField> {
+      val fieldReader by lazy {
+        graph.createFieldValuesReader(record)
+      }
+      return readClass().readClassHierarchy()
+          .map { classRecord ->
+            classRecord.record.fields.asSequence()
+                .map { fieldRecord ->
+                  val fieldName = graph.fieldName(fieldRecord)
+                  val fieldValue = fieldReader.readValue(fieldRecord)
+                  GraphField(classRecord, fieldName, GraphHeapValue(graph, fieldValue))
+                }
+          }
+          .flatten()
     }
 
     fun readAsJavaString(): String? {
@@ -195,6 +180,9 @@ sealed class GraphObjectRecord {
     private val graph: HprofGraph,
     override val record: ObjectArrayDumpRecord
   ) : GraphObjectRecord() {
+
+    val arrayClassName: String
+      get() = graph.className(record.arrayClassId)
   }
 
   class GraphPrimitiveArrayRecord(

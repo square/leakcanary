@@ -17,7 +17,6 @@ package leakcanary
 
 import leakcanary.GraphObjectRecord.GraphClassRecord
 import leakcanary.GraphObjectRecord.GraphInstanceRecord
-import leakcanary.HeapValue.ObjectReference
 import kotlin.reflect.KClass
 
 /**
@@ -32,13 +31,12 @@ import kotlin.reflect.KClass
  * will not be influenced by those mistakes.
  */
 enum class AndroidLeakInspectors : LeakInspector {
-
+  //GraphObjectRecord
   VIEW {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason =
-      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+      record.instanceOfOrUnknown(
           "android.view.View"
       ) { instance ->
         when {
@@ -55,10 +53,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   ACTIVITY {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason =
-      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+      record.instanceOfOrUnknown(
           "android.app.Activity"
       ) { instance ->
         val field = instance["mDestroyed"]
@@ -79,10 +76,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   DIALOG {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason =
-      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+      record.instanceOfOrUnknown(
           "android.app.Dialog"
       ) { instance ->
         val field = instance["mDecor"]!!
@@ -96,12 +92,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   APPLICATION {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason {
-      val record =
-        GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).readObjectRecord()
-      return if (record?.asInstance?.instanceOf("android.app.Application") == true) {
+      return if (record.asInstance?.instanceOf("android.app.Application") == true) {
         LeakNodeStatus.notLeaking("Application is a singleton")
       } else {
         LeakNodeStatus.unknown()
@@ -111,12 +104,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   CLASSLOADER {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason {
-      val record =
-        GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).readObjectRecord()
-      return if (record?.asInstance?.instanceOf(ClassLoader::class) == true) {
+      return if (record.asInstance?.instanceOf(ClassLoader::class) == true) {
         LeakNodeStatus.notLeaking("A ClassLoader is never leaking")
       } else {
         LeakNodeStatus.unknown()
@@ -126,11 +116,8 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   CLASS {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason {
-      val record =
-        GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).readObjectRecord()
       return if (record is GraphClassRecord) {
         LeakNodeStatus.notLeaking("a class is never leaking")
       } else LeakNodeStatus.unknown()
@@ -140,10 +127,9 @@ enum class AndroidLeakInspectors : LeakInspector {
   @Suppress("DEPRECATION")
   FRAGMENT {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason =
-      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+      record.instanceOfOrUnknown(
           "android.app.Fragment"
       ) { instance ->
         val field = instance["mFragmentManager"]!!
@@ -157,10 +143,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   SUPPORT_FRAGMENT {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason =
-      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+      record.instanceOfOrUnknown(
           "android.support.v4.app.Fragment"
       ) { instance ->
         val field = instance["mFragmentManager"]!!
@@ -174,10 +159,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   MESSAGE_QUEUE {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason =
-      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+      record.instanceOfOrUnknown(
           "android.os.MessageQueue"
       ) { instance ->
         // If the queue is not quitting, maybe it should actually have been, we don't know.
@@ -193,10 +177,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   MORTAR_PRESENTER {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason =
-      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+      record.instanceOfOrUnknown(
           "mortar.Presenter"
       ) { instance ->
         // Bugs in view code tends to cause Mortar presenters to still have a view when they actually
@@ -213,10 +196,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   MAIN_THEAD {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason =
-      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+      record.instanceOfOrUnknown(
           Thread::class
       ) { instance ->
         if (instance["name"]!!.value.readAsJavaString() == "main") {
@@ -229,10 +211,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   WINDOW {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason =
-      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+      record.instanceOfOrUnknown(
           "android.view.Window"
       ) { instance ->
         val field = instance["mDestroyed"]!!
@@ -247,13 +228,9 @@ enum class AndroidLeakInspectors : LeakInspector {
 
   TOAST_TN {
     override fun invoke(
-      parser: HprofParser,
-      node: LeakNode
+      record: GraphObjectRecord
     ): LeakNodeStatusAndReason {
-      val heapValue = GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance))
-
-
-      return if (heapValue.readObjectRecord()?.asInstance?.instanceOf(
+      return if (record.asInstance?.instanceOf(
               "android.widget.Toast\$TN"
           ) == true
       ) {
@@ -276,16 +253,16 @@ enum class AndroidLeakInspectors : LeakInspector {
   }
 }
 
-fun GraphHeapValue.instanceOfOrUnknown(
+fun GraphObjectRecord.instanceOfOrUnknown(
   expectedClass: KClass<out Any>,
   block: (GraphInstanceRecord) -> LeakNodeStatusAndReason
 ): LeakNodeStatusAndReason = instanceOfOrUnknown(expectedClass.java.name, block)
 
-fun GraphHeapValue.instanceOfOrUnknown(
+fun GraphObjectRecord.instanceOfOrUnknown(
   expectedClass: String,
   block: (GraphInstanceRecord) -> LeakNodeStatusAndReason
 ): LeakNodeStatusAndReason {
-  val record = readObjectRecord()?.asInstance
+  val record = this.asInstance
   return if (record != null && record instanceOf expectedClass) {
     block(record)
   } else LeakNodeStatus.unknown()

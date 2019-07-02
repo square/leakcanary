@@ -2,7 +2,6 @@ package leakcanary
 
 import android.app.Application
 import android.content.Intent
-import leakcanary.AndroidExcludedRefs.Companion.exclusionsFactory
 import leakcanary.internal.InternalLeakCanary
 import java.util.ArrayList
 
@@ -30,10 +29,11 @@ object LeakCanary {
      * bothering developers as much but it could miss some leaks.
      */
     val retainedVisibleThreshold: Int = 5,
-    val exclusionsFactory: ExclusionsFactory = exclusionsFactory(
-        AndroidExcludedRefs.appDefaults
-    ),
+
+    val knownReferences: Set<AndroidKnownReference> = AndroidKnownReference.appDefaults,
+
     val leakInspectors: List<LeakInspector> = AndroidLeakInspectors.defaultAndroidInspectors(),
+
     val labelers: List<Labeler> = defaultAndroidLabelers(
         InternalLeakCanary.application
     ),

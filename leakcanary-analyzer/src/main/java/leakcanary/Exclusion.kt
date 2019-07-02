@@ -19,7 +19,8 @@ import java.io.Serializable
 data class Exclusion(
   val type: ExclusionType,
   val reason: String? = null,
-  val status: Status = WONT_FIX_LEAK
+  val status: Status = WONT_FIX_LEAK,
+  val filter: (HprofGraph) -> Boolean = {true}
 ) {
   val description
     get() = ExclusionDescription(type.matching, reason)
@@ -79,11 +80,10 @@ data class Exclusion(
         get() = "field $className#$fieldName"
     }
   }
+
 }
 
 class ExclusionDescription(
   val matching: String,
   val reason: String? = null
 ) : Serializable
-
-typealias ExclusionsFactory = (HprofParser) -> List<Exclusion>

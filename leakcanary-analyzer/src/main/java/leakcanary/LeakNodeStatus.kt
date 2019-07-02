@@ -5,7 +5,7 @@ import java.io.Serializable
 /**
  * Evaluates whether a [LeakNode] is leaking or not, and provides a reason for that decision.
  */
-typealias LeakInspector = (HprofParser, LeakNode) -> LeakNodeStatusAndReason
+typealias LeakInspector = (GraphObjectRecord) -> LeakNodeStatusAndReason
 
 enum class LeakNodeStatus {
   NOT_LEAKING,
