@@ -15,8 +15,9 @@
  */
 package leakcanary
 
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.GraphObjectRecord.GraphClassRecord
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
+import leakcanary.HeapValue.ObjectReference
 import kotlin.reflect.KClass
 
 /**
@@ -37,17 +38,17 @@ enum class AndroidLeakInspectors : LeakInspector {
       parser: HprofParser,
       node: LeakNode
     ): LeakNodeStatusAndReason =
-      (parser to node).instanceOfOrUnknown("android.view.View") { instance ->
-        // This skips edge cases like Toast$TN.mNextView holding on to an unattached and unparented
-        // next toast view
-        if (instance["mParent"].reference == null) {
-          LeakNodeStatus.unknown()
-        } else if (!instance.hasField("mAttachInfo")) {
-          LeakNodeStatus.unknown()
-        } else if (instance["mAttachInfo"].reference == null) {
-          LeakNodeStatus.leaking("View detached and has parent")
-        } else {
-          LeakNodeStatus.notLeaking("View attached")
+      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+          "android.view.View"
+      ) { instance ->
+        when {
+          // This skips edge cases like Toast$TN.mNextView holding on to an unattached and unparented
+          // next toast view
+          instance["mParent"]!!.value.isNullReference -> LeakNodeStatus.unknown()
+          instance["mAttachInfo"]!!.value.isNullReference -> LeakNodeStatus.leaking(
+              "View detached and has parent"
+          )
+          else -> LeakNodeStatus.notLeaking("View attached")
         }
       }
   },
@@ -57,8 +58,22 @@ enum class AndroidLeakInspectors : LeakInspector {
       parser: HprofParser,
       node: LeakNode
     ): LeakNodeStatusAndReason =
-      (parser to node).instanceOfOrUnknown("android.app.Activity") { instance ->
-        instance.leakingWhenTrue("mDestroyed")
+      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+          "android.app.Activity"
+      ) { instance ->
+        val field = instance["mDestroyed"]
+        // Activity.mDestroyed was introduced in 17.
+        // https://android.googlesource.com/platform/frameworks/base/+
+        // /6d9dcbccec126d9b87ab6587e686e28b87e5a04d
+        if (field == null) {
+          return@instanceOfOrUnknown LeakNodeStatus.unknown()
+        }
+
+        if (field.value.asBoolean!!) {
+          LeakNodeStatus.leaking(field describedWithValue "true")
+        } else {
+          LeakNodeStatus.notLeaking(field describedWithValue "false")
+        }
       }
   },
 
@@ -67,8 +82,15 @@ enum class AndroidLeakInspectors : LeakInspector {
       parser: HprofParser,
       node: LeakNode
     ): LeakNodeStatusAndReason =
-      (parser to node).instanceOfOrUnknown("android.app.Dialog") { instance ->
-        instance.leakingWhenNull("mDecor")
+      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+          "android.app.Dialog"
+      ) { instance ->
+        val field = instance["mDecor"]!!
+        if (field.value.isNullReference) {
+          LeakNodeStatus.leaking(field describedWithValue "null")
+        } else {
+          LeakNodeStatus.notLeaking(field describedWithValue "not null")
+        }
       }
   },
 
@@ -76,10 +98,14 @@ enum class AndroidLeakInspectors : LeakInspector {
     override fun invoke(
       parser: HprofParser,
       node: LeakNode
-    ): LeakNodeStatusAndReason = with(parser) {
-      return if (node.instance.objectRecord.isInstanceOf("android.app.Application")) {
+    ): LeakNodeStatusAndReason {
+      val record =
+        GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).readObjectRecord()
+      return if (record?.asInstance?.instanceOf("android.app.Application") == true) {
         LeakNodeStatus.notLeaking("Application is a singleton")
-      } else LeakNodeStatus.unknown()
+      } else {
+        LeakNodeStatus.unknown()
+      }
     }
   },
 
@@ -87,10 +113,14 @@ enum class AndroidLeakInspectors : LeakInspector {
     override fun invoke(
       parser: HprofParser,
       node: LeakNode
-    ): LeakNodeStatusAndReason = with(parser) {
-      return if (node.instance.objectRecord.isInstanceOf(ClassLoader::class)) {
-        LeakNodeStatus.notLeaking("Classloader never leaking")
-      } else LeakNodeStatus.unknown()
+    ): LeakNodeStatusAndReason {
+      val record =
+        GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).readObjectRecord()
+      return if (record?.asInstance?.instanceOf(ClassLoader::class) == true) {
+        LeakNodeStatus.notLeaking("A ClassLoader is never leaking")
+      } else {
+        LeakNodeStatus.unknown()
+      }
     }
   },
 
@@ -98,8 +128,10 @@ enum class AndroidLeakInspectors : LeakInspector {
     override fun invoke(
       parser: HprofParser,
       node: LeakNode
-    ): LeakNodeStatusAndReason = with(parser) {
-      return if (node.instance.objectRecord is ClassDumpRecord) {
+    ): LeakNodeStatusAndReason {
+      val record =
+        GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).readObjectRecord()
+      return if (record is GraphClassRecord) {
         LeakNodeStatus.notLeaking("a class is never leaking")
       } else LeakNodeStatus.unknown()
     }
@@ -111,8 +143,15 @@ enum class AndroidLeakInspectors : LeakInspector {
       parser: HprofParser,
       node: LeakNode
     ): LeakNodeStatusAndReason =
-      (parser to node).instanceOfOrUnknown("android.app.Fragment") { instance ->
-        instance.leakingWhenNull("mFragmentManager")
+      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+          "android.app.Fragment"
+      ) { instance ->
+        val field = instance["mFragmentManager"]!!
+        if (field.value.isNullReference) {
+          LeakNodeStatus.leaking(field describedWithValue "null")
+        } else {
+          LeakNodeStatus.notLeaking(field describedWithValue "not null")
+        }
       }
   },
 
@@ -121,8 +160,15 @@ enum class AndroidLeakInspectors : LeakInspector {
       parser: HprofParser,
       node: LeakNode
     ): LeakNodeStatusAndReason =
-      (parser to node).instanceOfOrUnknown("android.support.v4.app.Fragment") { instance ->
-        instance.leakingWhenNull("mFragmentManager")
+      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+          "android.support.v4.app.Fragment"
+      ) { instance ->
+        val field = instance["mFragmentManager"]!!
+        if (field.value.isNullReference) {
+          LeakNodeStatus.leaking(field describedWithValue "null")
+        } else {
+          LeakNodeStatus.notLeaking(field describedWithValue "not null")
+        }
       }
   },
 
@@ -131,12 +177,16 @@ enum class AndroidLeakInspectors : LeakInspector {
       parser: HprofParser,
       node: LeakNode
     ): LeakNodeStatusAndReason =
-      (parser to node).instanceOfOrUnknown("android.os.MessageQueue") { instance ->
+      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+          "android.os.MessageQueue"
+      ) { instance ->
         // If the queue is not quitting, maybe it should actually have been, we don't know.
         // However, if it's quitting, it is very likely that's not a bug.
-        when (instance["mQuitting"].boolean) {
-          true -> LeakNodeStatus.leaking("MessageQueue#mQuitting is true")
-          else -> LeakNodeStatus.unknown()
+        val field = instance["mQuitting"]!!
+        if (field.value.asBoolean == true) {
+          LeakNodeStatus.leaking(field describedWithValue "true")
+        } else {
+          LeakNodeStatus.unknown()
         }
       }
   },
@@ -146,12 +196,15 @@ enum class AndroidLeakInspectors : LeakInspector {
       parser: HprofParser,
       node: LeakNode
     ): LeakNodeStatusAndReason =
-      (parser to node).instanceOfOrUnknown("mortar.Presenter") { instance ->
+      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+          "mortar.Presenter"
+      ) { instance ->
         // Bugs in view code tends to cause Mortar presenters to still have a view when they actually
         // should be unreachable, so in that case we don't know their reachability status. However,
         // when the view is null, we're pretty sure they  never leaking.
-        if (instance["view"].isNullReference) {
-          LeakNodeStatus.leaking("Presenter#view is null")
+        val field = instance["view"]!!
+        if (field.value.isNullReference) {
+          LeakNodeStatus.leaking(field describedWithValue "null")
         } else {
           LeakNodeStatus.unknown()
         }
@@ -163,8 +216,10 @@ enum class AndroidLeakInspectors : LeakInspector {
       parser: HprofParser,
       node: LeakNode
     ): LeakNodeStatusAndReason =
-      (parser to node).instanceOfOrUnknown(Thread::class) { instance ->
-        if (instance["name"].reference.stringOrNull == "main") {
+      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+          Thread::class
+      ) { instance ->
+        if (instance["name"]!!.value.readAsJavaString() == "main") {
           LeakNodeStatus.notLeaking("the main thread always runs")
         } else {
           LeakNodeStatus.unknown()
@@ -177,8 +232,16 @@ enum class AndroidLeakInspectors : LeakInspector {
       parser: HprofParser,
       node: LeakNode
     ): LeakNodeStatusAndReason =
-      (parser to node).instanceOfOrUnknown("android.view.Window") { instance ->
-        instance.leakingWhenTrue("mDestroyed")
+      GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance)).instanceOfOrUnknown(
+          "android.view.Window"
+      ) { instance ->
+        val field = instance["mDestroyed"]!!
+
+        if (field.value.asBoolean!!) {
+          LeakNodeStatus.leaking(field describedWithValue "true")
+        } else {
+          LeakNodeStatus.notLeaking(field describedWithValue "false")
+        }
       }
   },
 
@@ -186,8 +249,14 @@ enum class AndroidLeakInspectors : LeakInspector {
     override fun invoke(
       parser: HprofParser,
       node: LeakNode
-    ): LeakNodeStatusAndReason = with(parser) {
-      return if (node.instance.objectRecord.isInstanceOf("android.widget.Toast\$TN")) {
+    ): LeakNodeStatusAndReason {
+      val heapValue = GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance))
+
+
+      return if (heapValue.readObjectRecord()?.asInstance?.instanceOf(
+              "android.widget.Toast\$TN"
+          ) == true
+      ) {
         LeakNodeStatus.notLeaking(
             "Toast.TN (Transient Notification) is never leaking"
         )
@@ -207,58 +276,21 @@ enum class AndroidLeakInspectors : LeakInspector {
   }
 }
 
-inline fun Pair<HprofParser, LeakNode>.instanceOfOrUnknown(
+fun GraphHeapValue.instanceOfOrUnknown(
   expectedClass: KClass<out Any>,
-  block: HprofParser.(HydratedInstance) -> LeakNodeStatusAndReason
+  block: (GraphInstanceRecord) -> LeakNodeStatusAndReason
 ): LeakNodeStatusAndReason = instanceOfOrUnknown(expectedClass.java.name, block)
 
-inline fun Pair<HprofParser, LeakNode>.instanceOfOrUnknown(
-  className: String,
-  block: HprofParser.(HydratedInstance) -> LeakNodeStatusAndReason
-): LeakNodeStatusAndReason =
-  this.instanceOf(className)?.let { first.block(it) } ?: LeakNodeStatus.unknown()
-
-fun Pair<HprofParser, LeakNode>.instanceOf(className: String): HydratedInstance? = with(first) {
-  val record = second.instance.objectRecord
-  if (!record.isInstanceOf(className)) {
-    null
-  } else {
-    hydrateInstance(record as InstanceDumpRecord)
-  }
+fun GraphHeapValue.instanceOfOrUnknown(
+  expectedClass: String,
+  block: (GraphInstanceRecord) -> LeakNodeStatusAndReason
+): LeakNodeStatusAndReason {
+  val record = readObjectRecord()?.asInstance
+  return if (record != null && record instanceOf expectedClass) {
+    block(record)
+  } else LeakNodeStatus.unknown()
 }
 
-fun HydratedInstance.leakingWhenNull(
-  fieldName: String
-): LeakNodeStatusAndReason {
-  val className = classHierarchy[0].simpleClassName
-  if (!hasField(fieldName)) {
-    return LeakNodeStatus.unknown()
-  }
-  val value = this[fieldName].reference
-
-  return if (value == null) {
-    LeakNodeStatus.leaking(
-        "$className#$fieldName is null"
-    )
-  } else {
-    LeakNodeStatus.notLeaking(
-        "$className#$fieldName is not null"
-    )
-  }
-}
-
-fun HydratedInstance.leakingWhenTrue(
-  fieldName: String
-): LeakNodeStatusAndReason {
-  val className = classHierarchy[0].simpleClassName
-
-  return when (this[fieldName].boolean) {
-    null -> LeakNodeStatus.unknown()
-    true -> LeakNodeStatus.leaking(
-        "$className#$fieldName is true"
-    )
-    false -> LeakNodeStatus.notLeaking(
-        "$className#$fieldName is false"
-    )
-  }
+private infix fun GraphField.describedWithValue(valueDescription: String): String {
+  return "${classRecord.simpleName}#$name is $valueDescription"
 }

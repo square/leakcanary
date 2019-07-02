@@ -1,5 +1,6 @@
 package leakcanary
 
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.HeapValue.BooleanValue
 import leakcanary.HeapValue.ByteValue
 import leakcanary.HeapValue.CharValue
@@ -9,8 +10,6 @@ import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HeapValue.ShortValue
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 
 typealias Labeler = (HprofParser, LeakNode) -> List<String>
 
@@ -22,61 +21,64 @@ typealias Labeler = (HprofParser, LeakNode) -> List<String>
 class AllFieldsLabeler(
   private val labelStaticFields: Boolean = false
 ) : Labeler {
+
   override fun invoke(
     parser: HprofParser,
     node: LeakNode
-  ): List<String> = with(HprofGraph(parser)) {
+  ): List<String> {
+    val heapValue = GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance))
     val labels = mutableListOf<String>()
 
-    val record = ObjectReference(node.instance).record
-    if (record is InstanceDumpRecord) {
-      var classRecord = record.classRecord
+    val record = heapValue.readObjectRecord()
+    if (record is GraphInstanceRecord) {
+      var classRecord = record.readClass()
 
-      val allFields = record.fields
+      val instanceField = record.readFields()
 
       var classIndex = 0
       while (classRecord.name != "java.lang.Object") {
-        val fields = allFields[classIndex]
+        val fields = instanceField[classIndex]
 
         labels.add("Class ${classRecord.name}")
         if (labelStaticFields) {
-          classRecord.staticFieldNames.forEachIndexed { index, name ->
-            val valueString = heapValueAsString(classRecord.staticFields[index].value)
-            labels.add("  static $name=$valueString")
+
+          for (field in classRecord.staticFields) {
+            val valueString = heapValueAsString(field.value)
+            labels.add("  static ${field.name}=$valueString")
           }
         }
 
-        for ((name, value) in fields) {
-          labels.add("  $name=${heapValueAsString(value)}")
+        for (field in fields) {
+          labels.add("  ${field.name}=${heapValueAsString(field.value)}")
         }
         classIndex++
-        classRecord = classRecord.superClassRecord!!
+        classRecord = classRecord.readSuperClass()!!
       }
     }
     return labels
   }
 
-  private fun HprofGraph.heapValueAsString(heapValue: HeapValue): String {
-    return when (heapValue) {
+  private fun heapValueAsString(heapValue: GraphHeapValue): String {
+    return when (val actualValue = heapValue.actual) {
       is ObjectReference -> {
-        if (heapValue.isNull) {
+        if (heapValue.isNullReference) {
           "null"
         } else {
           when {
-            heapValue.isString -> "\"${heapValue.record.string}\""
-            heapValue.isClass -> (heapValue.record as ClassDumpRecord).name
-            else -> "@${heapValue.value}"
+            heapValue.referencesJavaString -> "\"${heapValue.readAsJavaString()!!}\""
+            heapValue.referencesClass -> heapValue.readObjectRecord()!!.asClass!!.name
+            else -> "@${actualValue.value}"
           }
         }
       }
-      is BooleanValue -> heapValue.value.toString()
-      is CharValue -> heapValue.value.toString()
-      is FloatValue -> heapValue.value.toString()
-      is DoubleValue -> heapValue.value.toString()
-      is ByteValue -> heapValue.value.toString()
-      is ShortValue -> heapValue.value.toString()
-      is IntValue -> heapValue.value.toString()
-      is LongValue -> heapValue.value.toString()
+      is BooleanValue -> actualValue.value.toString()
+      is CharValue -> actualValue.value.toString()
+      is FloatValue -> actualValue.value.toString()
+      is DoubleValue -> actualValue.value.toString()
+      is ByteValue -> actualValue.value.toString()
+      is ShortValue -> actualValue.value.toString()
+      is IntValue -> actualValue.value.toString()
+      is LongValue -> actualValue.value.toString()
     }
   }
 }
@@ -85,19 +87,19 @@ object InstanceDefaultLabeler : Labeler {
   override fun invoke(
     parser: HprofParser,
     node: LeakNode
-  ): List<String> = with(HprofGraph(parser)) {
-    val record = ObjectReference(node.instance).record
-    if (record is InstanceDumpRecord) {
+  ): List<String> {
+    val heapValue = GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance))
+
+    val record = heapValue.readObjectRecord()!!
+    if (record is GraphInstanceRecord) {
       val labels = mutableListOf<String>()
       if (record instanceOf Thread::class) {
-        // Sometimes we can't find the String at the expected memory address in the heap dump.
-        // See https://github.com/square/leakcanary/issues/417
-        val threadName = record["name"].record.string ?: "not available"
+        val threadName = record["name"]!!.value.readAsJavaString()
         labels.add("Thread name: '$threadName'")
       } else {
-        val classRecord = record.classRecord
+        val classRecord = record.readClass()
         if (classRecord.name.matches(HeapAnalyzer.ANONYMOUS_CLASS_NAME_PATTERN_REGEX)) {
-          val parentClassRecord = classRecord.superClassRecord!!
+          val parentClassRecord = classRecord.readSuperClass()!!
           if (parentClassRecord.name == "java.lang.Object") {
             try {
               // This is an anonymous class implementing an interface. The API does not give access

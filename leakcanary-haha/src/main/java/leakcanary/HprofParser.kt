@@ -32,6 +32,7 @@ import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
@@ -703,10 +704,6 @@ class HprofParser private constructor(
       }
     }
     return metadata
-  }
-
-  fun retrieveRecord(reference: ObjectReference): ObjectRecord {
-    return retrieveRecordById(reference.value)
   }
 
   fun retrieveRecordById(objectId: Long): ObjectRecord {
