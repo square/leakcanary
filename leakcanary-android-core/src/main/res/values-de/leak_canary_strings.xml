@@ -72,24 +72,4 @@
   <string name="leak_canary_options_menu_render_heap_dump">Heap Dump rendern</string>
   <string name="leak_canary_heap_analysis_success_screen_no_path_to_instance_count">%d erhaltene Instanzen ohne Leaks</string>
   <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
-  <string name="leak_canary_help_detail"><![CDATA[Ein Memory-Leak ist ein Programmierfehler der
-    dafür sorgt, dass deine Anwendung eine Referenz auf ein Objekt hält, das nicht länger benötigt
-    wird. Daraus folgt, dass der Speicher der dem Objekt zugewiesen wurde nicht wieder freigegeben
-    wird, was eventuell zu einem OutOfMemoryError-Absturz führt.<br>
-  <br>Eine Instanz einer Android-Activity wird nicht mehr benötigt, nachdem ihre <i>onDestroy()</i>
-  Methode aufgerufen wurde. Würde man eine Referenz auf diese Activity in einem statischen Feld
-  speichern, dann wird der durch die Activity genutzte Speicher nicht mehr durch den Garbage
-  Collector freigegeben.<br>
-  <br>
-  LeakCanary identifiziert ein Objekt, das nicht länger benötigt wird und findet die Kette an
-  <font color=\'#9976a8\'>Referenzen</font> die es davon abhält seinen Speicher freizugeben.<br>
-  <br>
-  Um ein Memory-Leak zu beheben, musst du anhand der Kette herausfinden, welche Referenz für das
-  Leak verantwortlich ist, d.h. welche Referenz beim Auftreten des Leaks bereinigt sein soll.
-  LeakCanary hebt <b><u><font color=\'#9976a8\'>Referenzen</font></u></b> die mögliche Ursachen
-  für das Memory-Leak sein könnten mit einer roten Wellenlinie hervor.<br>
-  <br>
-  Tippe auf eine Zeile mit einer Referenz um mehr Details anzuzeigen, tippe noch einmal um die
-  Details zu schließen.
-]]></string>
 </resources>

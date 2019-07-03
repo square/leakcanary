@@ -57,7 +57,7 @@ internal fun View.shareToStackOverflow(content: String) {
   }
   Toast.makeText(context, R.string.leak_canary_leak_copied, Toast.LENGTH_LONG)
       .show()
-  val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(STACKOVERFLOW_QUESTION_URL));
+  val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(STACKOVERFLOW_QUESTION_URL))
   activity.startActivity(browserIntent)
 }
 
