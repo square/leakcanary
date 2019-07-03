@@ -115,7 +115,8 @@ internal class AndroidHeapDumper(
       )
       toast.setGravity(Gravity.CENTER_VERTICAL, 0, -iconSize)
       toast.duration = Toast.LENGTH_LONG
-      val inflater = LayoutInflater.from(resumedActivity)
+      // Inflating with application context: https://github.com/square/leakcanary/issues/1385
+      val inflater = LayoutInflater.from(resumedActivity.application)
       toast.view = inflater.inflate(R.layout.leak_canary_heap_dump_toast, null)
       toast.show()
 
