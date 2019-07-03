@@ -1,5 +1,7 @@
 package leakcanary.internal.activity.screen
 
+import android.content.Intent
+import android.net.Uri
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ListView
@@ -73,7 +75,12 @@ internal class LeakingInstanceScreen private constructor(
     listView.adapter = adapter
 
     listView.setOnItemClickListener { _, _, position, _ ->
-      adapter.toggleRow(position)
+      if (adapter.isLearnMoreRow(position)) {
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(LEARN_MORE_URL))
+        activity.startActivity(browserIntent)
+      } else {
+        adapter.toggleRow(position)
+      }
     }
 
     onCreateOptionsMenu { menu ->
@@ -95,5 +102,9 @@ internal class LeakingInstanceScreen private constructor(
             true
           }
     }
+  }
+  companion object {
+    private const val LEARN_MORE_URL =
+      "https://square.github.io/leakcanary/fundamentals/"
   }
 }

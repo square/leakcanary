@@ -84,22 +84,4 @@
   <string name="leak_canary_options_menu_render_heap_dump">Render Heap Dump</string>
   <string name="leak_canary_heap_analysis_success_screen_no_path_to_instance_count">%d non leaking retained instances</string>
   <string name="leak_canary_help_title">Tap here to learn more</string>
-  <string name="leak_canary_help_detail"><![CDATA[A memory leak is a programming error that causes
-  your application to keep a reference to an object that is no longer needed. As a result, the
-  memory allocated for that object cannot be reclaimed, eventually leading to an OutOfMemoryError
-  crash.<br>
-  <br>For instance, an Android activity instance is no longer needed after its <i>onDestroy()</i>
-  method is called, and storing a reference to that activity in a static field would prevent it from
-  being garbage collected.<br>
-  <br>
-  LeakCanary identifies an object that is no longer needed and finds the chain of
-  <font color=\'#9976a8\'>references</font> that prevents it from being garbage collected.<br>
-  <br>
-  To fix a memory leak, you need to look at that chain and find which reference is causing the
-  leak, i.e. which reference should have been cleared at the time of the leak. LeakCanary highlights
-  with a red underline wave the <b><u><font color=\'#9976a8\'>references</font></u></b> that are the
-  possible causes of the leak.<br>
-  <br>
-  Tap on each reference row for more details, tap again to close.
-]]></string>
 </resources>

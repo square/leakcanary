@@ -131,6 +131,8 @@ internal class DisplayLeakAdapter private constructor(
     moreDetailsView.setDetails(
         when {
           isLeakGroup -> NONE
+          // Learn more row
+          isFirstConnectorRow(position) -> NONE
           opened[position] -> OPENED
           else -> CLOSED
         }
@@ -143,7 +145,7 @@ internal class DisplayLeakAdapter private constructor(
     }
 
     val resources = view.resources
-    if (position == TOP_ROW_COUNT - 1) {
+    if (isFirstConnectorRow(position)) {
       titleView.text = if (isLeakGroup) {
         HtmlCompat.fromHtml(
             """
@@ -163,11 +165,6 @@ internal class DisplayLeakAdapter private constructor(
             HtmlCompat.FROM_HTML_MODE_LEGACY
         )
       }
-      val detailText = HtmlCompat.fromHtml(
-          resources.getString(R.string.leak_canary_help_detail), HtmlCompat.FROM_HTML_MODE_LEGACY
-      ) as SpannableStringBuilder
-      SquigglySpan.replaceUnderlineSpans(detailText, view.context)
-      detailView.text = detailText
     } else {
       val isLast = position == (TOP_ROW_COUNT + leakTrace.elements.size) - 1
 
@@ -290,7 +287,7 @@ internal class DisplayLeakAdapter private constructor(
   }
 
   private fun getConnectorType(position: Int): Type {
-    if (position == TOP_ROW_COUNT - 1) {
+    if (isFirstConnectorRow(position)) {
       return if (isLeakGroup) HELP_LEAK_GROUP else HELP
     } else if (position == TOP_ROW_COUNT) {
       if (leakTrace.elements.size == 1) {
@@ -332,6 +329,10 @@ internal class DisplayLeakAdapter private constructor(
       }
     }
   }
+
+  fun isLearnMoreRow(position: Int) = isFirstConnectorRow(position) && !isLeakGroup
+
+  fun isFirstConnectorRow(position: Int) = position == TOP_ROW_COUNT - 1
 
   fun toggleRow(position: Int) {
     opened[position] = !opened[position]
