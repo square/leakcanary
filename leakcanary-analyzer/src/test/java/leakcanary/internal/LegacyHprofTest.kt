@@ -1,8 +1,7 @@
 package leakcanary.internal
 
 import leakcanary.AndroidKnownReference
-import leakcanary.AndroidLabelers
-import leakcanary.AndroidLeakInspectors
+import leakcanary.AndroidLeakTraceInspectors
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
@@ -54,8 +53,7 @@ class LegacyHprofTest {
     val hprofFile = File(url.path)
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysis>(
-        labelers = AndroidLabelers.values().toList(),
-        leakInspectors = AndroidLeakInspectors.defaultAndroidInspectors(),
+        leakTraceInspectors = AndroidLeakTraceInspectors.defaultInspectors(),
         exclusions = AndroidKnownReference.mapToExclusions(AndroidKnownReference.appDefaults)
     )
     if (analysis is HeapAnalysisFailure) {
