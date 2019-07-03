@@ -28,7 +28,7 @@ data class LeakTraceElement(
   /**
    * Returns {@link #className} without the package.
    */
-  val simpleClassName: String get() = className.lastSegment('.')
+  val classSimpleName: String get() = className.lastSegment('.')
 
   enum class Type {
     INSTANCE_FIELD,

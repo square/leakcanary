@@ -211,7 +211,7 @@ internal class DisplayLeakAdapter private constructor(
   ): Spanned {
 
     val packageEnd = element.className.lastIndexOf('.')
-    var simpleName = element.simpleClassName
+    var simpleName = element.classSimpleName
     simpleName = simpleName.replace("[]", "[ ]")
     val styledClassName = "<font color='$classNameColorHexString'>$simpleName</font>"
 

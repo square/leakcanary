@@ -30,23 +30,24 @@ internal class KeyedWeakReferenceMirror(
       heapDumpUptimeMillis: Long?
     ): KeyedWeakReferenceMirror {
 
+      val keyWeakRefClassName = weakRef.className
       val watchDurationMillis = if (heapDumpUptimeMillis != null)
-        heapDumpUptimeMillis - weakRef["watchUptimeMillis"]!!.value.asLong!!
+        heapDumpUptimeMillis - weakRef[keyWeakRefClassName, "watchUptimeMillis"]!!.value.asLong!!
       else 0L
 
       val retainedDurationMillis = if (heapDumpUptimeMillis != null) {
-        val retainedUptimeMillis = weakRef["retainedUptimeMillis"]!!.value.asLong!!
+        val retainedUptimeMillis = weakRef[keyWeakRefClassName, "retainedUptimeMillis"]!!.value.asLong!!
         if (retainedUptimeMillis == -1L) -1L else heapDumpUptimeMillis - retainedUptimeMillis
       } else null
 
-      val keyString = weakRef["key"]!!.value.readAsJavaString()!!
+      val keyString = weakRef[keyWeakRefClassName, "key"]!!.value.readAsJavaString()!!
 
-      val name = weakRef["name"]?.value?.readAsJavaString() ?: UNKNOWN_LEGACY
-      val className = weakRef["className"]?.value?.readAsJavaString() ?: UNKNOWN_LEGACY
+      val name = weakRef[keyWeakRefClassName, "name"]?.value?.readAsJavaString() ?: UNKNOWN_LEGACY
+      val className = weakRef[keyWeakRefClassName, "className"]?.value?.readAsJavaString() ?: UNKNOWN_LEGACY
       return KeyedWeakReferenceMirror(
           watchDurationMillis = watchDurationMillis,
           retainedDurationMillis = retainedDurationMillis,
-          referent = weakRef["referent"]!!.value.actual as ObjectReference,
+          referent = weakRef["java.lang.ref.Reference", "referent"]!!.value.actual as ObjectReference,
           key = keyString,
           name = name,
           className = className

@@ -425,7 +425,7 @@ class HeapAnalyzer constructor(
 
     leakTraceInspectors.forEach { it.inspect(graph, leakReporters) }
 
-    val leakStatuses = computeLeakStatuses(graph, leakReporters)
+    val leakStatuses = computeLeakStatuses(leakReporters)
 
     node = leafNode
     while (node is ChildNode) {
@@ -439,7 +439,6 @@ class HeapAnalyzer constructor(
   }
 
   private fun computeLeakStatuses(
-    graph: HprofGraph,
     leakReporters: List<LeakTraceElementReporter>
   ): List<LeakNodeStatusAndReason> {
     var lastNotLeakingElementIndex = 0

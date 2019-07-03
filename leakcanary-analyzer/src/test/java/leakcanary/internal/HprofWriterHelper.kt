@@ -60,11 +60,17 @@ class HprofWriterHelper constructor(
       "count" to IntValue::class
   )
   )
-  private val weakReferenceClassId = clazz(
-      className = "java.lang.ref.WeakReference",
+
+  private val referenceClassId  = clazz(
+      className = "java.lang.ref.Reference",
       fields = listOf(
           "referent" to ObjectReference::class
       )
+  )
+
+  private val weakReferenceClassId = clazz(
+      className = "java.lang.ref.WeakReference",
+      superClassId = referenceClassId
   )
   private val keyedWeakReferenceClassId = clazz(
       superClassId = weakReferenceClassId,

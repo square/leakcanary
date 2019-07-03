@@ -69,7 +69,7 @@ private fun getNextElementString(
     if (element.holder == ARRAY || element.holder == THREAD) {
       "${element.holder.name.toLowerCase(Locale.US)} "
     } else ""
-  val simpleClassName = element.simpleClassName
+  val simpleClassName = element.classSimpleName
   val referenceName = if (element.reference != null) ".${element.reference.displayName}" else ""
   val requiredSpaces =
     staticString.length + holderString.length + simpleClassName.length + "├─".length

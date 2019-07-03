@@ -282,7 +282,7 @@ internal object LeakingInstanceTable {
       } else {
         val element = leakCauses.first()
         val referenceName = element.reference!!.groupingName
-        val refDescription = element.simpleClassName + "." + referenceName
+        val refDescription = element.classSimpleName + "." + referenceName
         refDescription
       }
     }
