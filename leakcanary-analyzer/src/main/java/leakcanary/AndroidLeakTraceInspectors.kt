@@ -102,6 +102,51 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
     }
   },
 
+  CONTEXT_WRAPPER {
+    override fun inspect(
+      graph: HprofGraph,
+      leakTrace: List<LeakTraceElementReporter>
+    ) {
+      leakTrace.forEachInstanceOf("android.content.ContextWrapper") { instance ->
+        // Activity is already taken care of
+        if (!(instance instanceOf "android.app.Activity")) {
+          var context = instance
+
+          val visitedInstances = mutableListOf<Long>()
+          var keepUnwrapping = true
+          while (keepUnwrapping) {
+            visitedInstances += context.record.id
+            keepUnwrapping = false
+            val mBase = context["android.content.ContextWrapper", "mBase"]!!.value
+
+            if (mBase.isNonNullReference) {
+              context = mBase.readObjectRecord()!!.asInstance!!
+              if (context instanceOf "android.app.Activity") {
+                val mDestroyed = instance["android.app.Activity", "mDestroyed"]
+                if (mDestroyed != null) {
+                  if (mDestroyed.value.asBoolean!!) {
+                    reportLeaking(
+                        "${instance.simpleClassName} wraps an Activity with Activity.mDestroyed true"
+                    )
+                  } else {
+                    // We can't assume it's not leaking, because this context might have a shorter lifecycle
+                    // than the activity. So we'll just add a label.
+                    addLabel("${instance.simpleClassName} wraps an Activity with Activity.mDestroyed false")
+                  }
+                }
+              } else if (context instanceOf "android.content.ContextWrapper" &&
+                  // Avoids infinite loops
+                  context.record.id !in visitedInstances
+              ) {
+                keepUnwrapping = true
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
   DIALOG {
     override fun inspect(
       graph: HprofGraph,
