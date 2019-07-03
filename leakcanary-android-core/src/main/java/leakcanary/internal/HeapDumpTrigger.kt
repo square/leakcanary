@@ -74,12 +74,13 @@ internal class HeapDumpTrigger(
   }
 
   private fun checkRetainedInstances(reason: String) {
-    CanaryLog.d("Checking retained instances because %s", reason)
     val config = configProvider()
     // A tick will be rescheduled when this is turned back on.
     if (!config.dumpHeap) {
+      CanaryLog.d("No checking for retained instance: LeakCanary.Config.dumpHeap is false")
       return
     }
+    CanaryLog.d("Checking retained instances because %s", reason)
 
     var retainedReferenceCount = refWatcher.retainedInstanceCount
 

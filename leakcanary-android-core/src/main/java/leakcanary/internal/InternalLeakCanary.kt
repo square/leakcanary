@@ -1,6 +1,7 @@
 package leakcanary.internal
 
 import android.app.Application
+import android.app.Instrumentation
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ShortcutInfo.Builder
@@ -17,6 +18,7 @@ import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.LeakSentry
 import leakcanary.internal.activity.LeakActivity
+import java.util.concurrent.atomic.AtomicReference
 
 internal object InternalLeakCanary : LeakSentryListener {
 
@@ -66,6 +68,36 @@ internal object InternalLeakCanary : LeakSentryListener {
       heapDumpTrigger.onApplicationVisibilityChanged(applicationVisible)
     }
     addDynamicShortcut(application)
+
+    disableDumpHeapInInstrumentationTests()
+  }
+
+  private fun disableDumpHeapInInstrumentationTests() {
+    // This is called before Application.onCreate(), so InstrumentationRegistry has no reference to
+    // the instrumentation yet. That happens immediately after the content providers are created,
+    // in the same main thread message, so by posting to the end of the main thread queue we're
+    // guaranteed that the instrumentation will be in place.
+    Handler().post {
+      val runningInInstrumentationTests = try {
+        // This is assuming all UI tests rely on InstrumentationRegistry. Should be mostly true
+        // these days (especially since we force the Android X dependency on consumers).
+        val registryClass = Class.forName("androidx.test.platform.app.InstrumentationRegistry")
+        val instrumentationRefField = registryClass.getDeclaredField("instrumentationRef")
+        instrumentationRefField.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
+        val instrumentationRef = instrumentationRefField.get(
+            null
+        ) as AtomicReference<Instrumentation>
+        instrumentationRef.get() != null
+      } catch (ignored: Throwable) {
+        false
+      }
+
+      if (runningInInstrumentationTests) {
+        CanaryLog.d("Instrumentation test detected, setting LeakCanary.Config.dumpHeap to false")
+        LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
+      }
+    }
   }
 
   private fun addDynamicShortcut(application: Application) {
