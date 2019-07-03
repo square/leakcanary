@@ -36,6 +36,16 @@ internal class HeapDumpTrigger(
   @Volatile
   private var checkScheduled: Boolean = false
 
+  private var lastDisplayedRetainedInstanceCount = 0
+
+  private val scheduleDismissRetainedCountNotification = {
+    dismissRetainedCountNotification()
+  }
+
+  private val scheduleDismissNoRetainedOnTapNotification = {
+    dismissNoRetainedOnTapNotification()
+  }
+
   /**
    * When the app becomes invisible, we don't dump the heap immediately. Instead we wait in case
    * the app came back to the foreground, but also to wait for new leaks that typically occur on
@@ -73,6 +83,11 @@ internal class HeapDumpTrigger(
 
     var retainedReferenceCount = refWatcher.retainedInstanceCount
 
+    if (retainedReferenceCount > 0) {
+      gcTrigger.runGc()
+      retainedReferenceCount = refWatcher.retainedInstanceCount
+    }
+
     if (checkRetainedCount(retainedReferenceCount, config.retainedVisibleThreshold)) return
 
     if (!config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached) {
@@ -85,16 +100,10 @@ internal class HeapDumpTrigger(
       return
     }
 
-    gcTrigger.runGc()
-
-    retainedReferenceCount = refWatcher.retainedInstanceCount
-
-    if (checkRetainedCount(retainedReferenceCount, config.retainedVisibleThreshold)) return
-
     CanaryLog.d("Found %d retained references, dumping the heap", retainedReferenceCount)
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-    dismissNotification()
+    dismissRetainedCountNotification()
     val heapDumpFile = heapDumper.dumpHeap()
     if (heapDumpFile == null) {
       CanaryLog.d("Failed to dump heap, will retry in %d ms", WAIT_AFTER_DUMP_FAILED_MILLIS)
@@ -102,7 +111,7 @@ internal class HeapDumpTrigger(
       showRetainedCountWithHeapDumpFailed(retainedReferenceCount)
       return
     }
-
+    lastDisplayedRetainedInstanceCount = 0
     refWatcher.removeInstancesRetainedBeforeHeapDump(heapDumpUptimeMillis)
 
     HeapAnalyzerService.runAnalysis(application, heapDumpFile)
@@ -110,6 +119,7 @@ internal class HeapDumpTrigger(
 
   fun onDumpHeapReceived() {
     backgroundHandler.post {
+      dismissNoRetainedOnTapNotification()
       gcTrigger.runGc()
       val retainedReferenceCount = refWatcher.retainedInstanceCount
       if (retainedReferenceCount == 0) {
@@ -127,7 +137,14 @@ internal class HeapDumpTrigger(
             .setContentIntent(NotificationReceiver.pendingIntent(application, CANCEL_NOTIFICATION))
         val notification =
           Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
-        notificationManager.notify(R.id.leak_canary_notification_retained_instances, notification)
+        notificationManager.notify(
+            R.id.leak_canary_notification_no_retained_instance_on_tap, notification
+        )
+        backgroundHandler.postDelayed(
+            scheduleDismissNoRetainedOnTapNotification,
+            DISMISS_NO_RETAINED_INSTANCE_NOTIFICATION_MILLIS
+        )
+        lastDisplayedRetainedInstanceCount = 0
         return@post
       }
 
@@ -141,7 +158,7 @@ internal class HeapDumpTrigger(
         showRetainedCountWithHeapDumpFailed(retainedReferenceCount)
         return@post
       }
-
+      lastDisplayedRetainedInstanceCount = 0
       refWatcher.removeInstancesRetainedBeforeHeapDump(heapDumpUptimeMillis)
       HeapAnalyzerService.runAnalysis(application, heapDumpFile)
     }
@@ -151,9 +168,13 @@ internal class HeapDumpTrigger(
     retainedKeysCount: Int,
     retainedVisibleThreshold: Int
   ): Boolean {
+    val countChanged = lastDisplayedRetainedInstanceCount != retainedKeysCount
+    lastDisplayedRetainedInstanceCount = retainedKeysCount
     if (retainedKeysCount == 0) {
       CanaryLog.d("No retained instances")
-      dismissNotification()
+      if (countChanged) {
+        showNoMoreRetainedInstanceNotification()
+      }
       return true
     }
 
@@ -176,6 +197,7 @@ internal class HeapDumpTrigger(
 
   private fun scheduleRetainedInstanceCheck(reason: String) {
     if (checkScheduled) {
+      CanaryLog.d("Already scheduled retained check, ignoring ($reason)")
       return
     }
     checkScheduled = true
@@ -190,6 +212,7 @@ internal class HeapDumpTrigger(
     delayMillis: Long
   ) {
     if (checkScheduled) {
+      CanaryLog.d("Already scheduled retained check, ignoring ($reason)")
       return
     }
     checkScheduled = true
@@ -223,10 +246,35 @@ internal class HeapDumpTrigger(
     )
   }
 
+  private fun showNoMoreRetainedInstanceNotification() {
+    backgroundHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
+    if (!Notifications.canShowNotification) {
+      return
+    }
+    val builder = Notification.Builder(application)
+        .setContentTitle(
+            application.getString(R.string.leak_canary_notification_no_retained_instance_title)
+        )
+        .setContentText(
+            application.getString(
+                R.string.leak_canary_notification_no_retained_instance_content
+            )
+        )
+        .setAutoCancel(true)
+        .setContentIntent(NotificationReceiver.pendingIntent(application, CANCEL_NOTIFICATION))
+    val notification =
+      Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
+    notificationManager.notify(R.id.leak_canary_notification_retained_instances, notification)
+    backgroundHandler.postDelayed(
+        scheduleDismissRetainedCountNotification, DISMISS_NO_RETAINED_INSTANCE_NOTIFICATION_MILLIS
+    )
+  }
+
   private fun showRetainedCountNotification(
     instanceCount: Int,
     contentText: String
   ) {
+    backgroundHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
     if (!Notifications.canShowNotification) {
       return
     }
@@ -242,14 +290,21 @@ internal class HeapDumpTrigger(
     notificationManager.notify(R.id.leak_canary_notification_retained_instances, notification)
   }
 
-  private fun dismissNotification() {
+  private fun dismissRetainedCountNotification() {
+    backgroundHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
     notificationManager.cancel(R.id.leak_canary_notification_retained_instances)
+  }
+
+  private fun dismissNoRetainedOnTapNotification() {
+    backgroundHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
+    notificationManager.cancel(R.id.leak_canary_notification_no_retained_instance_on_tap)
   }
 
   companion object {
     private const val WAIT_FOR_DEBUG_MILLIS = 20_000L
     private const val WAIT_AFTER_DUMP_FAILED_MILLIS = 5_000L
-    private const val WAIT_FOR_INSTANCE_THRESHOLD_MILLIS = 5_000L
+    private const val WAIT_FOR_INSTANCE_THRESHOLD_MILLIS = 2_000L
+    private const val DISMISS_NO_RETAINED_INSTANCE_NOTIFICATION_MILLIS = 30_000L
   }
 
 }
