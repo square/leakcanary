@@ -3,7 +3,7 @@ apply plugin: 'com.github.ben-manes.versions'
 buildscript {
   ext.versions = [
       'minSdk'    : 14,
-      'compileSdk': 28,
+      'compileSdk': 29,
       'errorProne': '2.3.1',
       'kotlin'    : '1.3.21',
   ]
