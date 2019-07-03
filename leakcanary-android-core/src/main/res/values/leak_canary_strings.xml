@@ -32,8 +32,8 @@
   <string name="leak_canary_notification_dumping">Dumping Heap</string>
   <string name="leak_canary_notification_foreground_text">LeakCanary is working.</string>
   <string name="leak_canary_notification_message">Click for more details</string>
-  <string name="leak_canary_notification_no_retained_instance_title">No retained instances</string>
-  <string name="leak_canary_notification_no_retained_instance_content">All instances cleared after LeakCanary ran GC</string>
+  <string name="leak_canary_notification_no_retained_instance_title">All retained instances were garbage collected</string>
+  <string name="leak_canary_notification_no_retained_instance_content">Tap to dismiss</string>
   <string name="leak_canary_notification_retained_debugger_attached">Waiting for debugger to detach</string>
   <string name="leak_canary_notification_retained_dump_failed">Failed to dump heap</string>
   <string name="leak_canary_notification_retained_title">%d retained instances, tap to dump heap</string>

@@ -20,5 +20,5 @@
   <item type="id" name="leak_canary_notification_dumping_heap" />
   <item type="id" name="leak_canary_notification_analyzing_heap" />
   <item type="id" name="leak_canary_notification_retained_instances" />
-  <item type="id" name="leak_canary_notification_no_retained_instance" />
+  <item type="id" name="leak_canary_notification_no_retained_instance_on_tap" />
 </resources>
