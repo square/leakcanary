@@ -83,8 +83,7 @@ class HeapAnalyzer constructor(
     heapDumpFile: File,
     exclusions: List<Exclusion> = emptyList(),
     computeRetainedHeapSize: Boolean = false,
-    reachabilityInspectors: List<LeakInspector> = emptyList(),
-    labelers: List<Labeler> = emptyList()
+    leakTraceInspectors: List<LeakTraceInspector> = emptyList()
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -132,7 +131,7 @@ class HeapAnalyzer constructor(
             }
 
             buildLeakTraces(
-                reachabilityInspectors, labelers, pathResults, graph,
+                leakTraceInspectors, pathResults, graph,
                 retainedWeakRefs, analysisResults, retainedSizes
             )
 
@@ -349,8 +348,7 @@ class HeapAnalyzer constructor(
   }
 
   private fun buildLeakTraces(
-    leakInspectors: List<LeakInspector>,
-    labelers: List<Labeler>,
+    leakTraceInspectors: List<LeakTraceInspector>,
     pathResults: List<Result>,
     graph: HprofGraph,
     leakingWeakRefs: MutableList<KeyedWeakReferenceMirror>,
@@ -369,7 +367,7 @@ class HeapAnalyzer constructor(
       }
 
       val leakTrace =
-        buildLeakTrace(graph, leakInspectors, pathResult.leakingNode, labelers)
+        buildLeakTrace(graph, leakTraceInspectors, pathResult.leakingNode)
 
       // We get the class name from the heap dump rather than the weak reference because primitive
       // arrays are more readable that way, e.g. "[C" at runtime vs "char[]" in the heap dump.
@@ -407,9 +405,8 @@ class HeapAnalyzer constructor(
 
   private fun buildLeakTrace(
     graph: HprofGraph,
-    leakInspectors: List<LeakInspector>,
-    leakingNode: LeakNode,
-    labelers: List<Labeler>
+    leakTraceInspectors: List<LeakTraceInspector>,
+    leakingNode: LeakNode
   ): LeakTrace {
     val elements = ArrayList<LeakTraceElement>()
     // We iterate from the leak to the GC root
@@ -419,21 +416,23 @@ class HeapAnalyzer constructor(
 
     var node: LeakNode = leafNode
     val nodes = mutableListOf<LeakNode>()
+    val leakReporters = mutableListOf<LeakTraceElementReporter>()
     while (node is ChildNode) {
       nodes.add(0, node.parent)
+      leakReporters.add(0, LeakTraceElementReporter(graph.readGraphObjectRecord(node.parent.instance)))
       node = node.parent
     }
-    val leakStatuses = computeLeakStatuses(graph, leakInspectors, nodes)
+
+    leakTraceInspectors.forEach { it.inspect(graph, leakReporters) }
+
+    val leakStatuses = computeLeakStatuses(graph, leakReporters)
 
     node = leafNode
     while (node is ChildNode) {
-      val labels = mutableListOf<String>()
-      for (labeler in labelers) {
-        labels.addAll(labeler(graph.readGraphObjectRecord(node.parent.instance)))
-      }
       val index = (nodes.size - elements.size) - 1
+      val leakReporter = leakReporters[index]
       val leakStatus = leakStatuses[index]
-      elements.add(0, buildLeakElement(graph, node, labels, leakStatus))
+      elements.add(0, buildLeakElement(graph, node, leakReporter.labels, leakStatus))
       node = node.parent
     }
     return LeakTrace(elements)
@@ -441,17 +440,16 @@ class HeapAnalyzer constructor(
 
   private fun computeLeakStatuses(
     graph: HprofGraph,
-    leakInspectors: List<LeakInspector>,
-    nodes: List<LeakNode>
+    leakReporters: List<LeakTraceElementReporter>
   ): List<LeakNodeStatusAndReason> {
     var lastNotLeakingElementIndex = 0
-    val lastElementIndex = nodes.size - 1
+    val lastElementIndex = leakReporters.size - 1
     var firstLeakingElementIndex = lastElementIndex
 
     val leakStatuses = ArrayList<LeakNodeStatusAndReason>()
 
-    for ((index, node) in nodes.withIndex()) {
-      val leakStatus = inspectElementLeakStatus(leakInspectors, graph, node)
+    for ((index, reporter) in leakReporters.withIndex()) {
+      val leakStatus = inspectElementLeakStatus(reporter)
       leakStatuses.add(leakStatus)
       if (leakStatus.status == NOT_LEAKING) {
         lastNotLeakingElementIndex = index
@@ -483,8 +481,8 @@ class HeapAnalyzer constructor(
       )
     }
 
-    val simpleClassNames = nodes.map { node ->
-      recordClassName(graph.readGraphObjectRecord(node.instance)).lastSegment('.')
+    val simpleClassNames = leakReporters.map { reporter ->
+      recordClassName(reporter.objectRecord).lastSegment('.')
     }
 
     // First and last are always known.
@@ -518,36 +516,31 @@ class HeapAnalyzer constructor(
   }
 
   private fun inspectElementLeakStatus(
-    leakInspectors: List<LeakInspector>,
-    graph: HprofGraph,
-    node: LeakNode
+    reporter: LeakTraceElementReporter
   ): LeakNodeStatusAndReason {
     var current = LeakNodeStatus.unknown()
-    for (leakInspector in leakInspectors) {
-      val statusAndReason = leakInspector(graph.readGraphObjectRecord(node.instance))
-      if (statusAndReason.status != UNKNOWN) {
-        current = when {
-          current.status == UNKNOWN -> statusAndReason
-          current.status == LEAKING && statusAndReason.status == LEAKING -> {
-            LeakNodeStatus.leaking("${current.reason} and ${statusAndReason.reason}")
-          }
-          current.status == NOT_LEAKING && statusAndReason.status == NOT_LEAKING -> {
-            LeakNodeStatus.notLeaking("${current.reason} and ${statusAndReason.reason}")
-          }
-          current.status == NOT_LEAKING && statusAndReason.status == LEAKING -> {
-            LeakNodeStatus.notLeaking(
-                "${current.reason}. Conflicts with ${statusAndReason.reason}"
-            )
-          }
-          current.status == LEAKING && statusAndReason.status == NOT_LEAKING -> {
-            LeakNodeStatus.notLeaking(
-                "${statusAndReason.reason}. Conflicts with ${current.reason}"
-            )
-          }
-          else -> throw IllegalStateException(
-              "Should never happen ${current.status} ${statusAndReason.reason}"
+    for (statusAndReason in reporter.leakNodeStatuses) {
+      current = when {
+        current.status == UNKNOWN -> statusAndReason
+        current.status == LEAKING && statusAndReason.status == LEAKING -> {
+          LeakNodeStatus.leaking("${current.reason} and ${statusAndReason.reason}")
+        }
+        current.status == NOT_LEAKING && statusAndReason.status == NOT_LEAKING -> {
+          LeakNodeStatus.notLeaking("${current.reason} and ${statusAndReason.reason}")
+        }
+        current.status == NOT_LEAKING && statusAndReason.status == LEAKING -> {
+          LeakNodeStatus.notLeaking(
+              "${current.reason}. Conflicts with ${statusAndReason.reason}"
           )
         }
+        current.status == LEAKING && statusAndReason.status == NOT_LEAKING -> {
+          LeakNodeStatus.notLeaking(
+              "${statusAndReason.reason}. Conflicts with ${current.reason}"
+          )
+        }
+        else -> throw IllegalStateException(
+            "Should never happen ${current.status} ${statusAndReason.reason}"
+        )
       }
     }
     return current

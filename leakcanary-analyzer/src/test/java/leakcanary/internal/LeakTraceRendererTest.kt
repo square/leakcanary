@@ -2,14 +2,14 @@ package leakcanary.internal
 
 import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
-import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.LeakNodeStatus
+import leakcanary.HprofGraph
+import leakcanary.LeakTraceElementReporter
+import leakcanary.LeakTraceInspector
 import leakcanary.LeakingInstance
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.forEachInstanceOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -58,13 +58,18 @@ class LeakTraceRendererTest {
     }
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>(leakInspectors = listOf { record ->
-        if (record is GraphInstanceRecord && record.className == "ClassB") {
-          LeakNodeStatus.leaking("because reasons")
-        } else {
-          LeakNodeStatus.unknown()
-        }
-      })
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          leakTraceInspectors = listOf(object : LeakTraceInspector {
+            override fun inspect(
+              graph: HprofGraph,
+              leakTrace: List<LeakTraceElementReporter>
+            ) {
+              leakTrace.forEachInstanceOf("ClassB") {
+                reportLeaking("because reasons")
+              }
+            }
+          })
+      )
 
     analysis renders """
     ┬
@@ -91,9 +96,19 @@ class LeakTraceRendererTest {
       }
     }
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(labelers = listOf { _ ->
-      listOf("¯\\_(ツ)_/¯")
-    })
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        leakTraceInspectors = listOf(object : LeakTraceInspector {
+          override fun inspect(
+            graph: HprofGraph,
+            leakTrace: List<LeakTraceElementReporter>
+          ) {
+            leakTrace.forEach { reporter ->
+              reporter.addLabel("¯\\_(ツ)_/¯")
+            }
+          }
+
+        })
+    )
 
     analysis renders """
     ┬

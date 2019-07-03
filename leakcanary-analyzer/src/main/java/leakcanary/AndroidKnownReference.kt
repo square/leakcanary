@@ -28,6 +28,11 @@ import java.lang.ref.SoftReference
 import java.lang.ref.WeakReference
 import java.util.EnumSet
 
+/**
+ * The first parameter is the value of android.os.Build.MANUFACTURER and the second
+ * parameter is the value of android.os.Build.VERSION.SDK_INT. Returns true if the known
+ * reference should be applied on the provided manufacturer / sdk int.
+ */
 typealias BuildFilter = (String, Int) -> Boolean
 
 /**
@@ -38,9 +43,9 @@ typealias BuildFilter = (String, Int) -> Boolean
  * manufacturer implementation, they usually share their builds across multiple models, and the
  * leaks eventually get fixed in newer versions.
  *
- * Most app developers should use [.createAppDefaults]. However, you can also pick the
+ * Most app developers should use [appDefaults]. However, you can also pick the
  * leaks you want to ignore by creating an [EnumSet] that matches your needs and calling
- * [exclusionsFactory]
+ * [buildKnownReferences]
  */
 class AndroidKnownReference private constructor(
   val type: ExclusionType,

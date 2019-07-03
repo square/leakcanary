@@ -2,18 +2,12 @@ package leakcanary
 
 import java.io.Serializable
 
-/**
- * Evaluates whether a [LeakNode] is leaking or not, and provides a reason for that decision.
- */
-typealias LeakInspector = (GraphObjectRecord) -> LeakNodeStatusAndReason
-
 enum class LeakNodeStatus {
   NOT_LEAKING,
   LEAKING,
   UNKNOWN;
 
   companion object {
-
     private val UNKNOWN_REACHABILITY = LeakNodeStatusAndReason(UNKNOWN, "")
 
     /** The instance was needed and therefore expected to be reachable.  */
