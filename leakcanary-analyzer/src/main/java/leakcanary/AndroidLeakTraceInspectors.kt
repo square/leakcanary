@@ -40,14 +40,20 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
       leakTrace.forEachInstanceOf("android.view.View") { instance ->
         // This skips edge cases like Toast$TN.mNextView holding on to an unattached and unparented
         // next toast view
-        val mParentSet = instance["mParent"]!!.value.isNonNullReference
+        val mParentRef = instance["mParent"]!!.value
+        val mParentSet = mParentRef.isNonNullReference
         val viewDetached = instance["mAttachInfo"]!!.value.isNullReference
 
         if (mParentSet) {
           if (viewDetached) {
             reportLeaking("View detached and has parent")
           } else {
-            reportNotLeaking("View attached")
+            val viewParent = mParentRef.readObjectRecord()!!.asInstance!!
+            if (viewParent instanceOf "android.view.View" && viewParent["mAttachInfo"]!!.value.isNullReference) {
+              reportLeaking("View attached but parent detached (attach disorder)")
+            } else {
+              reportNotLeaking("View attached")
+            }
           }
         }
 
@@ -240,6 +246,22 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
     }
   },
 
+  COORDINATOR {
+    override fun inspect(
+      graph: HprofGraph,
+      leakTrace: List<LeakTraceElementReporter>
+    ) {
+      leakTrace.forEachInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
+        val attached = instance["attached"]
+        if (attached!!.value.asBoolean!!) {
+          reportNotLeaking(attached describedWithValue "true")
+        } else {
+          reportLeaking(attached describedWithValue "false")
+        }
+      }
+    }
+  },
+
   ANONYMOUS_CLASS {
     override fun inspect(
       graph: HprofGraph,
@@ -304,6 +326,31 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
           reportLeaking(mDestroyed describedWithValue "true")
         } else {
           reportNotLeaking(mDestroyed describedWithValue "false")
+        }
+      }
+    }
+  },
+
+  TOAST {
+    override fun inspect(
+      graph: HprofGraph,
+      leakTrace: List<LeakTraceElementReporter>
+    ) {
+      leakTrace.forEachInstanceOf("android.widget.Toast") { instance ->
+        val tnInstance = instance["mTN"]!!.value.readObjectRecord()!!.asInstance!!
+        // mWM is set in android.widget.Toast.TN#handleShow and never unset, so this toast was never
+        // shown, we don't know if it's leaking.
+        if (tnInstance["mWM"]!!.value.isNonNullReference) {
+          // mView is reset to null in android.widget.Toast.TN#handleHide
+          if (tnInstance["mView"]!!.value.isNullReference) {
+            reportLeaking(
+                "This toast is done showing (Toast.mTN.mWM != null && Toast.mTN.mView == null)"
+            )
+          } else {
+            reportNotLeaking(
+                "This toast is showing (Toast.mTN.mWM != null && Toast.mTN.mView != null)"
+            )
+          }
         }
       }
     }
