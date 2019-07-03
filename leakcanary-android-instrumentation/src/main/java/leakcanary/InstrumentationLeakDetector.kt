@@ -191,7 +191,6 @@ class InstrumentationLeakDetector {
      * [FailTestOnLeakRunListener] when the tests start running.
      */
     fun updateConfig() {
-      LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
       LeakSentry.config = LeakSentry.config.copy(enabled = true)
     }
   }
