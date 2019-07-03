@@ -25,13 +25,13 @@ import leakcanary.Exclusion.ExclusionType.StaticFieldExclusion
 import leakcanary.Exclusion.Status
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
-import leakcanary.ExclusionsFactory
 import leakcanary.GcRoot
 import leakcanary.GcRoot.JavaFrame
 import leakcanary.GcRoot.ThreadObject
-import leakcanary.HeapValue
-import leakcanary.HeapValue.ObjectReference
-import leakcanary.HprofParser
+import leakcanary.GraphObjectRecord.GraphClassRecord
+import leakcanary.GraphObjectRecord.GraphInstanceRecord
+import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
+import leakcanary.HprofGraph
 import leakcanary.LeakNode
 import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakNode.RootNode
@@ -47,12 +47,10 @@ import leakcanary.ObjectIdMetadata.OBJECT_ARRAY
 import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_ARRAY
 import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY
 import leakcanary.ObjectIdMetadata.STRING
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.internal.hppc.LongLongScatterMap
 import leakcanary.internal.hppc.LongScatterSet
-import leakcanary.reference
 import java.util.LinkedHashMap
 import java.util.PriorityQueue
 
@@ -109,8 +107,8 @@ internal class ShortestPathFinder {
   )
 
   fun findPaths(
-    parser: HprofParser,
-    exclusionsFactory: ExclusionsFactory,
+    graph: HprofGraph,
+    exclusions: List<Exclusion>,
     leakingWeakRefs: List<KeyedWeakReferenceMirror>,
     gcRootIds: MutableList<GcRoot>,
     computeDominators: Boolean,
@@ -123,9 +121,8 @@ internal class ShortestPathFinder {
     val staticFieldNameByClassName = mutableMapOf<String, MutableMap<String, Exclusion>>()
     val threadNames = mutableMapOf<String, Exclusion>()
 
-    exclusionsFactory(parser)
+    exclusions.filter { it.filter(graph) }
         .forEach { exclusion ->
-
           when (exclusion.type) {
             is ExclusionType.JavaLocalExclusion -> {
               threadNames[exclusion.type.threadName] = exclusion
@@ -154,7 +151,7 @@ internal class ShortestPathFinder {
     // Referent object id to weak ref mirror
     referentMap = leakingWeakRefs.associateBy { it.referent.value }
 
-    enqueueGcRoots(parser, gcRootIds, threadNames, computeDominators)
+    enqueueGcRoots(graph, gcRootIds, threadNames, computeDominators)
 
     var lowestPriority = ALWAYS_REACHABLE
     val results = mutableListOf<Result>()
@@ -190,15 +187,15 @@ internal class ShortestPathFinder {
         break@visitingQueue
       }
 
-      when (val record = parser.retrieveRecordById(node.instance)) {
-        is ClassDumpRecord -> visitClassRecord(
-            parser, record, node, staticFieldNameByClassName, computeDominators
+      when (val graphRecord = graph.readGraphObjectRecord(node.instance)) {
+        is GraphClassRecord -> visitClassRecord(
+            graph, graphRecord, node, staticFieldNameByClassName, computeDominators
         )
-        is InstanceDumpRecord -> visitInstanceRecord(
-            parser, record, node, fieldNameByClassName, computeDominators
+        is GraphInstanceRecord -> visitInstanceRecord(
+            graph, graphRecord, node, fieldNameByClassName, computeDominators
         )
-        is ObjectArrayDumpRecord -> visitObjectArrayRecord(
-            parser, record, node, computeDominators
+        is GraphObjectArrayRecord -> visitObjectArrayRecord(
+            graph, graphRecord.record, node, computeDominators
         )
       }
     }
@@ -225,7 +222,7 @@ internal class ShortestPathFinder {
   }
 
   private fun enqueueGcRoots(
-    parser: HprofParser,
+    graph: HprofGraph,
     gcRoots: MutableList<GcRoot>,
     threadNameExclusions: Map<String, Exclusion>,
     computeDominators: Boolean
@@ -236,22 +233,22 @@ internal class ShortestPathFinder {
     // Once sorted all ThreadObject Gc Roots are located before JavaLocalExclusion Gc Roots.
     // This ensures ThreadObjects are visited before JavaFrames, and threadsBySerialNumber can be
     // built before JavaFrames.
-    sortGcRoots(parser, gcRoots)
+    sortGcRoots(graph, gcRoots)
 
     val threadsBySerialNumber = mutableMapOf<Int, ThreadObject>()
     gcRoots.forEach { gcRoot ->
       if (computeDominators) {
-        undominateWithSkips(parser, gcRoot.id)
+        undominateWithSkips(graph, gcRoot.id)
       }
       when (gcRoot) {
         is ThreadObject -> {
           threadsBySerialNumber[gcRoot.threadSerialNumber] = gcRoot
-          enqueue(parser, RootNode(gcRoot.id, visitOrder++), exclusionPriority = null)
+          enqueue(graph, RootNode(gcRoot.id, visitOrder++), exclusionPriority = null)
         }
-        is JavaFrame -> with(parser) {
+        is JavaFrame -> {
           val threadRoot = threadsBySerialNumber.getValue(gcRoot.threadSerialNumber)
-          val threadInstance = threadRoot.id.objectRecord.hydratedInstance
-          val threadName = threadInstance["name"].reference.stringOrNull
+          val threadInstance = graph.readGraphObjectRecord(threadRoot.id).asInstance!!
+          val threadName = threadInstance["name"]?.value?.readAsJavaString()
           val exclusion = threadNameExclusions[threadName]
 
           if (exclusion == null || exclusion.status != NEVER_REACHABLE) {
@@ -261,35 +258,35 @@ internal class ShortestPathFinder {
             // We should also add the full stacktrace as a label of thread objects
             val leakReference = LeakReference(LOCAL, "")
             enqueue(
-                parser,
+                graph,
                 ChildNode(gcRoot.id, visitOrder++, exclusion?.description, rootNode, leakReference),
                 exclusionPriority = exclusion?.status
             )
           }
         }
-        else -> enqueue(parser, RootNode(gcRoot.id, visitOrder++), exclusionPriority = null)
+        else -> enqueue(graph, RootNode(gcRoot.id, visitOrder++), exclusionPriority = null)
       }
     }
     gcRoots.clear()
   }
 
   private fun sortGcRoots(
-    parser: HprofParser,
+    graph: HprofGraph,
     gcRoots: MutableList<GcRoot>
   ) {
     val rootClassName: (GcRoot) -> String = {
-      when (val metadata = parser.objectIdMetadata(it.id)) {
+      when (val metadata = graph.objectIdMetadata(it.id)) {
         PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY, PRIMITIVE_WRAPPER_ARRAY, EMPTY_INSTANCE -> metadata.name
         STRING -> "java.lang.String"
         OBJECT_ARRAY -> {
-          val record = parser.retrieveRecordById(it.id) as ObjectArrayDumpRecord
-          parser.className(record.arrayClassId)
+          val record = graph.readObjectRecord(it.id) as ObjectArrayDumpRecord
+          graph.className(record.arrayClassId)
         }
         INSTANCE -> {
-          val record = parser.retrieveRecordById(it.id) as InstanceDumpRecord
-          parser.className(record.classId)
+          val record = graph.readObjectRecord(it.id) as InstanceDumpRecord
+          graph.className(record.classId)
         }
-        CLASS -> parser.className(it.id)
+        CLASS -> graph.className(it.id)
         else -> throw IllegalStateException("Unexpected type $metadata")
       }
     }
@@ -305,25 +302,28 @@ internal class ShortestPathFinder {
   }
 
   private fun visitClassRecord(
-    hprofParser: HprofParser,
-    record: ClassDumpRecord,
+    graph: HprofGraph,
+    classRecord: GraphClassRecord,
     node: LeakNode,
     staticFieldNameByClassName: Map<String, Map<String, Exclusion>>,
     computeRetainedHeapSize: Boolean
   ) {
-    val className = hprofParser.className(record.id)
+    val ignoredStaticFields = staticFieldNameByClassName[classRecord.name] ?: emptyMap()
 
-    val ignoredStaticFields = staticFieldNameByClassName[className] ?: emptyMap()
+    for (staticField in classRecord.staticFields) {
+      if (!staticField.value.isNonNullReference) {
+        continue
+      }
 
-    for (staticField in record.staticFields) {
-      val objectId = (staticField.value as? ObjectReference)?.value ?: continue
-      val fieldName = hprofParser.hprofStringById(staticField.nameStringId)
+      val fieldName = staticField.name
       if (fieldName == "\$staticOverhead") {
         continue
       }
 
+      val objectId = staticField.value.asObjectIdReference!!
+
       if (computeRetainedHeapSize) {
-        undominateWithSkips(hprofParser, objectId)
+        undominateWithSkips(graph, objectId)
       }
 
       val leakReference = LeakReference(STATIC_FIELD, fieldName)
@@ -331,7 +331,7 @@ internal class ShortestPathFinder {
       val exclusion = ignoredStaticFields[fieldName]
 
       enqueue(
-          hprofParser,
+          graph,
           ChildNode(objectId, visitOrder++, exclusion?.description, node, leakReference),
           exclusion?.status
       )
@@ -339,18 +339,16 @@ internal class ShortestPathFinder {
   }
 
   private fun visitInstanceRecord(
-    hprofParser: HprofParser,
-    record: InstanceDumpRecord,
+    graph: HprofGraph,
+    instanceRecord: GraphInstanceRecord,
     parent: LeakNode,
     fieldNameByClassName: Map<String, Map<String, Exclusion>>,
     computeRetainedHeapSize: Boolean
   ) {
-    val instance = hprofParser.hydrateInstance(record)
-
     val ignoredFields = LinkedHashMap<String, Exclusion>()
 
-    instance.classHierarchy.forEach {
-      val classExclusions = fieldNameByClassName[it.className]
+    instanceRecord.readClass().readClassHierarchy().forEach {
+      val classExclusions = fieldNameByClassName[it.name]
       if (classExclusions != null) {
         for ((fieldName, exclusion) in classExclusions) {
           if (!ignoredFields.containsKey(fieldName)) {
@@ -360,53 +358,47 @@ internal class ShortestPathFinder {
       }
     }
 
-    val fieldNamesAndValues = mutableListOf<Pair<String, HeapValue>>()
+    val fieldNamesAndValues = instanceRecord.readFields()
+        .toMutableList()
 
-    instance.fieldValues.forEachIndexed { classIndex, classFieldValues ->
-      classFieldValues.forEachIndexed { fieldIndex, fieldValue ->
-        val fieldName = instance.classHierarchy[classIndex].fieldNames[fieldIndex]
-        fieldNamesAndValues.add(fieldName to fieldValue)
-      }
-    }
+    fieldNamesAndValues.sortBy { it.name }
 
-    fieldNamesAndValues.sortBy { (name, _) -> name }
-
-    fieldNamesAndValues.filter { (_, value) -> value is ObjectReference }
-        .map { (name, reference) -> name to (reference as ObjectReference).value }
-        .forEach { (fieldName, objectId) ->
+    fieldNamesAndValues.filter { it.value.isNonNullReference }
+        .forEach { field ->
+          val objectId = field.value.asObjectIdReference!!
           if (computeRetainedHeapSize) {
-            updateDominatorWithSkips(hprofParser, parent.instance, objectId)
+            updateDominatorWithSkips(graph, parent.instance, objectId)
           }
 
-          val exclusion = ignoredFields[fieldName]
+          val exclusion = ignoredFields[field.name]
           enqueue(
-              hprofParser, ChildNode(
+              graph, ChildNode(
               objectId,
               visitOrder++, exclusion?.description, parent,
-              LeakReference(INSTANCE_FIELD, fieldName)
+              LeakReference(INSTANCE_FIELD, field.name)
           ), exclusion?.status
           )
         }
   }
 
   private fun visitObjectArrayRecord(
-    hprofParser: HprofParser,
+    graph: HprofGraph,
     record: ObjectArrayDumpRecord,
     parentNode: LeakNode,
     computeRetainedHeapSize: Boolean
   ) {
     record.elementIds.forEachIndexed { index, elementId ->
       if (computeRetainedHeapSize) {
-        updateDominatorWithSkips(hprofParser, parentNode.instance, elementId)
+        updateDominatorWithSkips(graph, parentNode.instance, elementId)
       }
       val name = Integer.toString(index)
       val reference = LeakReference(ARRAY_ENTRY, name)
-      enqueue(hprofParser, ChildNode(elementId, visitOrder++, null, parentNode, reference), null)
+      enqueue(graph, ChildNode(elementId, visitOrder++, null, parentNode, reference), null)
     }
   }
 
   private fun enqueue(
-    parser: HprofParser,
+    graph: HprofGraph,
     node: LeakNode,
     exclusionPriority: Status?
   ) {
@@ -432,7 +424,7 @@ internal class ShortestPathFinder {
 
     val isLeakingInstance = referentMap[node.instance] != null
 
-    val objectIdMetadata = parser.objectIdMetadata(node.instance)
+    val objectIdMetadata = graph.objectIdMetadata(node.instance)
     if (!isLeakingInstance && objectIdMetadata in SKIP_ENQUEUE) {
       return
     }
@@ -445,20 +437,19 @@ internal class ShortestPathFinder {
   }
 
   private fun updateDominatorWithSkips(
-    hprofParser: HprofParser,
+    graph: HprofGraph,
     parentObjectId: Long,
     objectId: Long
   ) {
-    when (hprofParser.objectIdMetadata(objectId)) {
+    when (graph.objectIdMetadata(objectId)) {
       CLASS -> {
         undominate(objectId, false)
       }
       // String internal array is never enqueued
       STRING -> {
         updateDominator(parentObjectId, objectId, true)
-        val stringRecord = hprofParser.retrieveRecordById(objectId) as InstanceDumpRecord
-        val stringInstance = hprofParser.hydrateInstance(stringRecord)
-        val valueId = stringInstance["value"].reference
+        val stringInstance = graph.readGraphObjectRecord(objectId).asInstance!!
+        val valueId = stringInstance["value"]?.value?.asNonNullObjectIdReference
         if (valueId != null) {
           updateDominator(parentObjectId, valueId, true)
         }
@@ -466,7 +457,7 @@ internal class ShortestPathFinder {
       // Primitive wrapper array elements are never enqueued
       PRIMITIVE_WRAPPER_ARRAY -> {
         updateDominator(parentObjectId, objectId, true)
-        val arrayRecord = hprofParser.retrieveRecordById(objectId) as ObjectArrayDumpRecord
+        val arrayRecord = graph.readObjectRecord(objectId) as ObjectArrayDumpRecord
         for (wrapperId in arrayRecord.elementIds) {
           updateDominator(parentObjectId, wrapperId, true)
         }
@@ -541,19 +532,19 @@ internal class ShortestPathFinder {
   }
 
   private fun undominateWithSkips(
-    hprofParser: HprofParser,
+    graph: HprofGraph,
     objectId: Long
   ) {
-    when (hprofParser.objectIdMetadata(objectId)) {
+    when (graph.objectIdMetadata(objectId)) {
       CLASS -> {
         undominate(objectId, false)
       }
       // String internal array is never enqueued
       STRING -> {
         undominate(objectId, true)
-        val stringRecord = hprofParser.retrieveRecordById(objectId) as InstanceDumpRecord
-        val stringInstance = hprofParser.hydrateInstance(stringRecord)
-        val valueId = stringInstance["value"].reference
+        val stringRecord = graph.readGraphObjectRecord(objectId)
+        val stringInstance = stringRecord.asInstance!!
+        val valueId = stringInstance["value"]?.value?.asObjectIdReference
         if (valueId != null) {
           undominate(valueId, true)
         }
@@ -561,7 +552,8 @@ internal class ShortestPathFinder {
       // Primitive wrapper array elements are never enqueued
       PRIMITIVE_WRAPPER_ARRAY -> {
         undominate(objectId, true)
-        val arrayRecord = hprofParser.retrieveRecordById(objectId) as ObjectArrayDumpRecord
+        val arrayRecord =
+          graph.readObjectRecord(objectId) as ObjectArrayDumpRecord
         for (wrapperId in arrayRecord.elementIds) {
           undominate(wrapperId, true)
         }

@@ -5,6 +5,7 @@ import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapValue
 import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.LongValue
+import leakcanary.HeapValue.ObjectReference
 import leakcanary.HeapValue.ShortValue
 import leakcanary.LeakingInstance
 import org.assertj.core.api.Assertions.assertThat
@@ -281,14 +282,21 @@ class RetainedSizeTest {
         field["mHeight"] = IntValue(height)
       }
 
-      "sun.misc.Cleaner" instance {
-        field["referent"] = bitmap
-        field["thunk"] = "libcore.util.NativeAllocationRegistry\$CleanerThunk" instance {
-          field["this\$0"] = "libcore.util.NativeAllocationRegistry" instance {
-            field["size"] = LongValue(nativeBitmapSize.toLong())
-          }
-        }
-      }
+      val referenceClass =
+        clazz("java.lang.ref.Reference", fields = listOf("referent" to ObjectReference::class))
+      val cleanerClass = clazz(
+          "sun.misc.Cleaner", clazz("java.lang.ref.PhantomReference", referenceClass),
+          fields = listOf("thunk" to ObjectReference::class)
+      )
+
+      instance(
+          cleanerClass,
+          fields = listOf("libcore.util.NativeAllocationRegistry\$CleanerThunk" instance {
+            field["this\$0"] = "libcore.util.NativeAllocationRegistry" instance {
+              field["size"] = LongValue(nativeBitmapSize.toLong())
+            }
+          }, bitmap)
+      )
 
       "GcRoot" clazz {
         staticField["shortestPath"] = "Leaking" watchedInstance {

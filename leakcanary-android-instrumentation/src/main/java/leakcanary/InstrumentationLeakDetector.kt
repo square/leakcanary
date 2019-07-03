@@ -174,7 +174,7 @@ class InstrumentationLeakDetector {
 
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.checkForLeaks(
-        heapDumpFile, config.exclusionsFactory, config.computeRetainedHeapSize,
+        heapDumpFile, AndroidKnownReference.mapToExclusions(config.knownReferences), config.computeRetainedHeapSize,
         config.leakInspectors, config.labelers
     )
 

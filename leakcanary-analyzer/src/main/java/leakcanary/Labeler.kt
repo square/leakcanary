@@ -11,7 +11,7 @@ import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HeapValue.ShortValue
 
-typealias Labeler = (HprofParser, LeakNode) -> List<String>
+typealias Labeler = (GraphObjectRecord) -> List<String>
 
 /**
  * Optional labeler that adds a label for each field of each instance in the leak trace.
@@ -22,37 +22,25 @@ class AllFieldsLabeler(
   private val labelStaticFields: Boolean = false
 ) : Labeler {
 
-  override fun invoke(
-    parser: HprofParser,
-    node: LeakNode
-  ): List<String> {
-    val heapValue = GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance))
+  override fun invoke(record: GraphObjectRecord): List<String> {
     val labels = mutableListOf<String>()
-
-    val record = heapValue.readObjectRecord()
     if (record is GraphInstanceRecord) {
-      var classRecord = record.readClass()
-
-      val instanceField = record.readFields()
-
-      var classIndex = 0
-      while (classRecord.name != "java.lang.Object") {
-        val fields = instanceField[classIndex]
-
-        labels.add("Class ${classRecord.name}")
-        if (labelStaticFields) {
-
-          for (field in classRecord.staticFields) {
-            val valueString = heapValueAsString(field.value)
-            labels.add("  static ${field.name}=$valueString")
+      var currentClassName = ""
+      for (field in record.readFields()) {
+        if (field.classRecord.name != currentClassName) {
+          currentClassName = field.classRecord.name
+          if (currentClassName == "java.lang.Object") {
+            break
+          }
+          labels.add("Class ${field.classRecord.name}")
+          if (labelStaticFields) {
+            for (staticField in field.classRecord.staticFields) {
+              val valueString = heapValueAsString(staticField.value)
+              labels.add("  static ${staticField.name}=$valueString")
+            }
           }
         }
-
-        for (field in fields) {
-          labels.add("  ${field.name}=${heapValueAsString(field.value)}")
-        }
-        classIndex++
-        classRecord = classRecord.readSuperClass()!!
+        labels.add("  ${field.name}=${heapValueAsString(field.value)}")
       }
     }
     return labels
@@ -84,13 +72,7 @@ class AllFieldsLabeler(
 }
 
 object InstanceDefaultLabeler : Labeler {
-  override fun invoke(
-    parser: HprofParser,
-    node: LeakNode
-  ): List<String> {
-    val heapValue = GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance))
-
-    val record = heapValue.readObjectRecord()!!
+  override fun invoke(record: GraphObjectRecord): List<String> {
     if (record is GraphInstanceRecord) {
       val labels = mutableListOf<String>()
       if (record instanceOf Thread::class) {

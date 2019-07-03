@@ -6,12 +6,11 @@ import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.JavaLocalExclusion
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
-import leakcanary.ExclusionsFactory
-import leakcanary.LeakInspector
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalyzer
 import leakcanary.KeyedWeakReference
 import leakcanary.Labeler
+import leakcanary.LeakInspector
 import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
@@ -22,15 +21,15 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   labelers: List<Labeler> = emptyList(),
   leakInspectors: List<LeakInspector> = emptyList(),
   computeRetainedHeapSize: Boolean = false,
-  exclusionsFactory: ExclusionsFactory = defaultExclusionsFactory
+  exclusions: List<Exclusion> = defaultExclusionsFactory
 ): T {
   val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
   return heapAnalyzer.checkForLeaks(
-      this, exclusionsFactory, computeRetainedHeapSize, leakInspectors, labelers
+      this, exclusions, computeRetainedHeapSize, leakInspectors, labelers
   ) as T
 }
 
-val defaultExclusionsFactory: ExclusionsFactory = {
+val defaultExclusionsFactory: List<Exclusion> =
   listOf(
       Exclusion(
           type = InstanceFieldExclusion(WeakReference::class.java.name, "referent"),
@@ -100,4 +99,3 @@ val defaultExclusionsFactory: ExclusionsFactory = {
           status = NEVER_REACHABLE
       )
   )
-}

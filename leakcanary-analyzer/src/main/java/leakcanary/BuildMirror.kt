@@ -1,23 +1,24 @@
 package leakcanary
 
-class BuildMirror(
-  val manufacturer: String,
-  val sdkInt: Int
-) {
-  companion object {
-    fun readFromHprof(parser: HprofParser) = with(parser) {
-      val manufacturer = parser.classId("android.os.Build")
-          ?.let {
-            val buildClass = parser.hydrateClassHierarchy(it)[0]
-            buildClass["MANUFACTURER"].reference.stringOrNull
-          } ?: ""
+import kotlin.properties.Delegates.notNull
 
-      val sdkInt = parser.classId("android.os.Build\$VERSION")
-          ?.let {
-            val versionClass = parser.hydrateClassHierarchy(it)[0]
-            versionClass["SDK_INT"].int
-          } ?: 0
-      BuildMirror(manufacturer, sdkInt)
+/**
+ * Turns BuildFilter into exclusion filters that HeapAnalyzer understand. Since retrieving from
+ * the Hprof is not free, [BuildMirror] provides a caching mechanism. Make sure to use different
+ * [BuildMirror] and set of filters for every hprof parsing.
+ */
+class BuildMirror {
+
+  lateinit var manufacturer: String
+  var sdkInt: Int by notNull()
+
+  fun wrapFilter(filter: BuildFilter): (HprofGraph) -> Boolean = { graph ->
+    if (!::manufacturer.isInitialized) {
+      val buildClass = graph.readClass("android.os.Build")!!
+      val versionClass = graph.readClass("android.os.Build\$VERSION")!!
+      manufacturer = buildClass["MANUFACTURER"]!!.value.readAsJavaString()!!
+      sdkInt = versionClass["SDK_INT"]!!.value.asInt!!
     }
+    filter(manufacturer, sdkInt)
   }
 }

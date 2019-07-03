@@ -30,13 +30,12 @@ class HprofWriterTest {
 
     hprofFile.writeRecords(records)
 
-    hprofFile.readHprof {
-      val treasureChestClass = hydrateClassHierarchy(classId(TREASURE_CHEST_CLASS_NAME)!!)[0]
+    hprofFile.readHprof { graph ->
+      val treasureChestClass = graph.readClass(TREASURE_CHEST_CLASS_NAME)!!
       val baguetteInstance =
-        treasureChestClass[CONTENT_FIELD_NAME].reference!!.hydratedInstance
+        treasureChestClass[CONTENT_FIELD_NAME]!!.value.readObjectRecord()!!.asInstance!!
 
-      assertThat(baguetteInstance[ANSWER_FIELD_NAME].int)
-          .isEqualTo(42)
+      assertThat(baguetteInstance[ANSWER_FIELD_NAME]!!.value.asInt!!).isEqualTo(42)
     }
   }
 
@@ -115,11 +114,11 @@ class HprofWriterTest {
         }
   }
 
-  fun File.readHprof(block: HprofParser.() -> Unit) {
+  fun File.readHprof(block: (HprofGraph) -> Unit) {
     HprofParser.open(this)
         .use { parser ->
           parser.scan(RecordCallbacks())
-          parser.block()
+          block(HprofGraph(parser))
         }
   }
 

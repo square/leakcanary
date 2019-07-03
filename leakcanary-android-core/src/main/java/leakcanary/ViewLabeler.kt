@@ -3,18 +3,11 @@ package leakcanary
 import android.app.Application
 import android.content.res.Resources.NotFoundException
 import leakcanary.GraphObjectRecord.GraphInstanceRecord
-import leakcanary.HeapValue.ObjectReference
 
 class ViewLabeler(
   private val application: Application
 ) : Labeler {
-  override fun invoke(
-    parser: HprofParser,
-    node: LeakNode
-  ): List<String> {
-    val heapValue = GraphHeapValue(HprofGraph(parser), ObjectReference(node.instance))
-    val record = heapValue.readObjectRecord()
-
+  override fun invoke(record: GraphObjectRecord): List<String> {
     if (record is GraphInstanceRecord && record instanceOf "android.view.View") {
       val viewLabels = mutableListOf<String>()
       val mAttachInfo = record["mAttachInfo"]?.value

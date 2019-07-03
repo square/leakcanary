@@ -42,7 +42,7 @@ internal object InternalLeakCanary : LeakSentryListener {
 
   val noInstallConfig: Config
     get() = Config(
-        dumpHeap = false, exclusionsFactory = { emptyList() }, leakInspectors = emptyList(),
+        dumpHeap = false, knownReferences = emptySet(), leakInspectors = emptyList(),
         labelers = emptyList()
     )
 
@@ -186,5 +186,5 @@ internal object InternalLeakCanary : LeakSentryListener {
     }
   }
 
-  const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"
+  private const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"
 }
