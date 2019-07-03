@@ -96,7 +96,7 @@ class AndroidKnownReference private constructor(
       return resultSet
     }
 
-    val NO_FILTER: BuildFilter = { _, _ ->
+    private val NO_FILTER: BuildFilter = { _, _ ->
       true
     }
 
@@ -140,7 +140,7 @@ class AndroidKnownReference private constructor(
   }
 
   enum class Defaults {
-    // ######## Android SDK Excluded refs ########
+    // ######## Android Framework known leaks ########
 
     ACTIVITY_CLIENT_RECORD__NEXT_IDLE {
       override fun add(
@@ -152,7 +152,7 @@ class AndroidKnownReference private constructor(
                 + " nextIdle client record in the android.app.ActivityThread.mActivities map."
                 + " Not sure what's going on there, input welcome."
         ) { _, sdkInt ->
-          sdkInt in 19..21
+          sdkInt in 19..27
         }
       }
     },
@@ -261,7 +261,7 @@ class AndroidKnownReference private constructor(
       }
     },
 
-    INPUT_METHOD_MANAGER__SERVED_VIEW {
+    INPUT_METHOD_MANAGER_IS_TERRIBLE {
       override fun add(
         references: MutableSet<AndroidKnownReference>
       ) {
@@ -287,13 +287,16 @@ class AndroidKnownReference private constructor(
         ) { _, sdkInt ->
           sdkInt in 15..27
         }
-      }
-    },
 
-    INPUT_METHOD_MANAGER__ROOT_VIEW {
-      override fun add(
-        references: MutableSet<AndroidKnownReference>
-      ) {
+        references += instanceField(
+            "android.view.inputmethod.InputMethodManager", "mLastSrvView"
+            ,
+            reason =
+            "HUAWEI added a mLastSrvView field to InputMethodManager" + " that leaks a reference to the last served view."
+        ) { manufacturer, sdkInt ->
+          manufacturer == HUAWEI && sdkInt in 23..27
+        }
+
         references += instanceField(
             "android.view.inputmethod.InputMethodManager", "mCurRootView",
             reason = "The singleton InputMethodManager is holding a reference to mCurRootView long"
@@ -303,6 +306,26 @@ class AndroidKnownReference private constructor(
                 + " Hack: https://gist.github.com/pyricau/4df64341cc978a7de414"
         ) { _, sdkInt ->
           sdkInt in 15..28
+        }
+
+        references += instanceField(
+            "android.view.inputmethod.InputMethodManager", "mImeInsetsConsumer",
+            reason = """
+              Android Q Beta has a leak where InputMethodManager.mImeInsetsConsumer isn't set to
+              null when the activity is destroyed.
+            """.trimIndent()
+        ) { _, sdkInt ->
+          sdkInt == 28
+        }
+
+        references += instanceField(
+            "android.view.inputmethod.InputMethodManager", "mCurrentInputConnection",
+            reason = """
+              In Android Q Beta InputMethodManager keeps its EditableInputConnection after the
+              activity has been destroyed.
+            """.trimIndent()
+        ) { _, sdkInt ->
+          sdkInt == 28
         }
       }
     },
@@ -377,6 +400,19 @@ class AndroidKnownReference private constructor(
             reason = reason
         )
       }
+    },
+
+    MEDIA_PROJECTION_CALLBACK {
+      override fun add(references: MutableSet<AndroidKnownReference>) {
+        references += instanceField("android.media.projection.MediaProjection\$MediaProjectionCallback",
+            "this$0", reason = """
+              MediaProjectionCallback is held by another process, and holds on to MediaProjection
+              which has an activity as its context.
+            """.trimIndent()) { _, sdkInt ->
+          sdkInt in 22..28
+        }
+      }
+
     },
 
     SPEECH_RECOGNIZER {
@@ -603,6 +639,25 @@ class AndroidKnownReference private constructor(
       }
     },
 
+    ACCESSIBILITY_NODE_ID_MANAGER {
+      override fun add(references: MutableSet<AndroidKnownReference>) {
+        references += instanceField(
+            "android.view.accessibility.AccessibilityNodeIdManager", "mIdsToViews"
+            ,
+            reason = """
+              Android Q Beta added AccessibilityNodeIdManager which stores all views from their
+              onAttachedToWindow() call, until detached. Unfortunately it's possible to trigger
+              the view framework to call detach before attach (by having a view removing itself
+              from its parent in onAttach, which then causes AccessibilityNodeIdManager to keep
+              children view forever. Future releases of Q will hold weak references.
+            """.trimIndent()
+        ) { _, sdkInt ->
+          sdkInt == 28
+        }
+      }
+
+    },
+
     TEXT_TO_SPEECH {
       override fun add(
         references: MutableSet<AndroidKnownReference>
@@ -631,41 +686,9 @@ class AndroidKnownReference private constructor(
       }
     },
 
-    // ######## Manufacturer specific Excluded refs ########
+    // ######## Manufacturer specific known leaks ########
 
-    INSTRUMENTATION_RECOMMEND_ACTIVITY {
-      override fun add(
-        references: MutableSet<AndroidKnownReference>
-      ) {
-        references += staticField(
-            "android.app.Instrumentation", "mRecommendActivity",
-            reason =
-            "Instrumentation would leak com.android.internal.app.RecommendActivity (in"
-                + " framework.jar) in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and "
-                + " above"
-        ) { manufacturer, sdkInt ->
-          manufacturer == MEIZU && sdkInt in 21..22
-        }
-      }
-    },
-
-    DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER {
-      override fun add(
-        references: MutableSet<AndroidKnownReference>
-      ) {
-        references += instanceField(
-            "android.app.admin.DevicePolicyManager\$SettingsObserver", "this$0"
-            ,
-            reason =
-            "DevicePolicyManager keeps a reference to the context it has been created with"
-                + " instead of extracting the application context. In this Motorola build,"
-                + " DevicePolicyManager has an inner SettingsObserver class that is a content"
-                + " observer, which is held into memory by a binder transport object."
-        ) { manufacturer, sdkInt ->
-          manufacturer == MOTOROLA && sdkInt in 19..22
-        }
-      }
-    },
+    // SAMSUNG
 
     SPEN_GESTURE_MANAGER {
       override fun add(
@@ -678,36 +701,6 @@ class AndroidKnownReference private constructor(
             "SpenGestureManager has a static mContext field that leaks a reference to the" + " activity. Yes, a STATIC mContext field."
         ) { manufacturer, sdkInt ->
           manufacturer == SAMSUNG && sdkInt == 19
-        }
-      }
-    },
-
-    GESTURE_BOOST_MANAGER {
-      override fun add(
-        references: MutableSet<AndroidKnownReference>
-      ) {
-        references += staticField(
-            "android.gestureboost.GestureBoostManager", "mContext"
-            ,
-            reason =
-            "GestureBoostManager is a static singleton that leaks an activity context." + " Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756"
-        ) { manufacturer, sdkInt ->
-          manufacturer == HUAWEI && sdkInt in 24..25
-        }
-      }
-    },
-
-    INPUT_METHOD_MANAGER__LAST_SERVED_VIEW {
-      override fun add(
-        references: MutableSet<AndroidKnownReference>
-      ) {
-        references += instanceField(
-            "android.view.inputmethod.InputMethodManager", "mLastSrvView"
-            ,
-            reason =
-            "HUAWEI added a mLastSrvView field to InputMethodManager" + " that leaks a reference to the last served view."
-        ) { manufacturer, sdkInt ->
-          manufacturer == HUAWEI && sdkInt in 23..27
         }
       }
     },
@@ -744,6 +737,15 @@ class AndroidKnownReference private constructor(
         ) { manufacturer, sdkInt ->
           manufacturer == SAMSUNG && sdkInt in 19..24
         }
+        references += instanceField(
+            "com.samsung.android.content.clipboard.SemClipboardManager$3",
+            "this$0"
+            ,
+            reason =
+            "SemClipboardManager is held in memory by an anonymous inner class" + " implementation of android.os.Binder, thereby leaking an activity context."
+        ) { manufacturer, sdkInt ->
+          manufacturer == SAMSUNG && sdkInt in 22..28
+        }
       }
     },
 
@@ -762,29 +764,22 @@ class AndroidKnownReference private constructor(
       }
     },
 
-    BUBBLE_POPUP_HELPER__SHELPER {
-      override fun add(
-        references: MutableSet<AndroidKnownReference>
-      ) {
-        references += staticField(
-            "android.widget.BubblePopupHelper", "sHelper",
-            reason =
-            "A static helper for EditText bubble popups leaks a reference to the latest" + " focused view."
+    SEM_PERSONA_MANAGER {
+      override fun add(references: MutableSet<AndroidKnownReference>) {
+        references += instanceField(
+            "com.samsung.android.knox.SemPersonaManager", "mContext"
         ) { manufacturer, sdkInt ->
-          manufacturer == LG && sdkInt in 19..21
+          manufacturer == SAMSUNG && sdkInt == 24
         }
       }
     },
 
-    LGCONTEXT__MCONTEXT {
-      override fun add(
-        references: MutableSet<AndroidKnownReference>
-      ) {
+    SEM_APP_ICON_SOLUTION {
+      override fun add(references: MutableSet<AndroidKnownReference>) {
         references += instanceField(
-            "com.lge.systemservice.core.LGContext", "mContext",
-            reason = "LGContext is a static singleton that leaks an activity context."
+            "android.app.SemAppIconSolution", "mContext"
         ) { manufacturer, sdkInt ->
-          manufacturer == LG && sdkInt == 21
+          manufacturer == SAMSUNG && sdkInt == 28
         }
       }
     },
@@ -804,23 +799,6 @@ class AndroidKnownReference private constructor(
       }
     },
 
-    MAPPER_CLIENT {
-      override fun add(
-        references: MutableSet<AndroidKnownReference>
-      ) {
-        references += instanceField(
-            "com.nvidia.ControllerMapper.MapperClient\$ServiceClient", "this$0"
-            ,
-            reason =
-            "Not sure exactly what ControllerMapper is about, but there is an anonymous"
-                + " Handler in ControllerMapper.MapperClient.ServiceClient, which leaks"
-                + " ControllerMapper.MapperClient which leaks the activity context."
-        ) { manufacturer, sdkInt ->
-          manufacturer == NVIDIA && sdkInt == 19
-        }
-      }
-    },
-
     TEXT_VIEW__MLAST_HOVERED_VIEW {
       override fun add(
         references: MutableSet<AndroidKnownReference>
@@ -830,7 +808,7 @@ class AndroidKnownReference private constructor(
             reason =
             "mLastHoveredView is a static field in TextView that leaks the last hovered" + " view."
         ) { manufacturer, sdkInt ->
-          manufacturer == SAMSUNG && sdkInt in 19..26
+          manufacturer == SAMSUNG && sdkInt in 19..28
         }
       }
     },
@@ -886,23 +864,6 @@ class AndroidKnownReference private constructor(
       }
     },
 
-    SYSTEM_SENSOR_MANAGER__MAPPCONTEXTIMPL {
-      override fun add(
-        references: MutableSet<AndroidKnownReference>
-      ) {
-        references += staticField(
-            "android.hardware.SystemSensorManager", "mAppContextImpl"
-            ,
-            reason =
-            "SystemSensorManager stores a reference to context"
-                + " in a static field in its constructor."
-                + " Fix: use application context to get SensorManager"
-        ) { manufacturer, sdkInt ->
-          (manufacturer == LENOVO && sdkInt == 19) || (manufacturer == VIVO && sdkInt == 22)
-        }
-      }
-    },
-
     AUDIO_MANAGER__MCONTEXT_STATIC {
       override fun add(
         references: MutableSet<AndroidKnownReference>
@@ -931,12 +892,125 @@ class AndroidKnownReference private constructor(
                 + " Observed here: https://github.com/square/leakcanary/issues/177 Fix in comment:"
                 + " https://github.com/square/leakcanary/issues/177#issuecomment-222724283"
         ) { manufacturer, sdkInt ->
-          manufacturer == SAMSUNG && sdkInt == 22
+          manufacturer == SAMSUNG && sdkInt in 22..23
         }
       }
     },
 
-    // ######## General exclusions ########
+    // OTHER MANUFACTURERS
+
+    GESTURE_BOOST_MANAGER {
+      override fun add(
+        references: MutableSet<AndroidKnownReference>
+      ) {
+        references += staticField(
+            "android.gestureboost.GestureBoostManager", "mContext"
+            ,
+            reason =
+            "GestureBoostManager is a static singleton that leaks an activity context." + " Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756"
+        ) { manufacturer, sdkInt ->
+          manufacturer == HUAWEI && sdkInt in 24..25
+        }
+      }
+    },
+
+    BUBBLE_POPUP_HELPER__SHELPER {
+      override fun add(
+        references: MutableSet<AndroidKnownReference>
+      ) {
+        references += staticField(
+            "android.widget.BubblePopupHelper", "sHelper",
+            reason =
+            "A static helper for EditText bubble popups leaks a reference to the latest" + " focused view."
+        ) { manufacturer, sdkInt ->
+          manufacturer == LG && sdkInt in 19..22
+        }
+      }
+    },
+
+    LGCONTEXT__MCONTEXT {
+      override fun add(
+        references: MutableSet<AndroidKnownReference>
+      ) {
+        references += instanceField(
+            "com.lge.systemservice.core.LGContext", "mContext",
+            reason = "LGContext is a static singleton that leaks an activity context."
+        ) { manufacturer, sdkInt ->
+          manufacturer == LG && sdkInt == 21
+        }
+      }
+    },
+
+    MAPPER_CLIENT {
+      override fun add(
+        references: MutableSet<AndroidKnownReference>
+      ) {
+        references += instanceField(
+            "com.nvidia.ControllerMapper.MapperClient\$ServiceClient", "this$0"
+            ,
+            reason =
+            "Not sure exactly what ControllerMapper is about, but there is an anonymous"
+                + " Handler in ControllerMapper.MapperClient.ServiceClient, which leaks"
+                + " ControllerMapper.MapperClient which leaks the activity context."
+        ) { manufacturer, sdkInt ->
+          manufacturer == NVIDIA && sdkInt == 19
+        }
+      }
+    },
+
+    SYSTEM_SENSOR_MANAGER__MAPPCONTEXTIMPL {
+      override fun add(
+        references: MutableSet<AndroidKnownReference>
+      ) {
+        references += staticField(
+            "android.hardware.SystemSensorManager", "mAppContextImpl"
+            ,
+            reason =
+            "SystemSensorManager stores a reference to context"
+                + " in a static field in its constructor."
+                + " Fix: use application context to get SensorManager"
+        ) { manufacturer, sdkInt ->
+          (manufacturer == LENOVO && sdkInt == 19) || (manufacturer == VIVO && sdkInt == 22)
+        }
+      }
+    },
+
+    INSTRUMENTATION_RECOMMEND_ACTIVITY {
+      override fun add(
+        references: MutableSet<AndroidKnownReference>
+      ) {
+        references += staticField(
+            "android.app.Instrumentation", "mRecommendActivity",
+            reason =
+            "Instrumentation would leak com.android.internal.app.RecommendActivity (in"
+                + " framework.jar) in Meizu FlymeOS 4.5 and above, which is based on Android 5.0 and "
+                + " above"
+        ) { manufacturer, sdkInt ->
+          manufacturer == MEIZU && sdkInt in 21..22
+        }
+      }
+    },
+
+    DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER {
+      override fun add(
+        references: MutableSet<AndroidKnownReference>
+      ) {
+        references += instanceField(
+            "android.app.admin.DevicePolicyManager\$SettingsObserver", "this$0"
+            ,
+            reason =
+            "DevicePolicyManager keeps a reference to the context it has been created with"
+                + " instead of extracting the application context. In this Motorola build,"
+                + " DevicePolicyManager has an inner SettingsObserver class that is a content"
+                + " observer, which is held into memory by a binder transport object."
+        ) { manufacturer, sdkInt ->
+          manufacturer == MOTOROLA && sdkInt in 19..22
+        }
+      }
+    },
+
+
+    // ######## General known references (not leaks) ########
 
     REFERENCES {
       override fun add(
