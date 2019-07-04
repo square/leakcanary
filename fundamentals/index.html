@@ -835,15 +835,12 @@ is true)
 <h3 id="heuristics-and-labels">Heuristics and labels<a class="headerlink" href="#heuristics-and-labels" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span>    ├─ android.widget.TextView
     │    Leaking: YES (View detached and has parent)
-</pre></div>
-
-<p>LeakCanary runs heuristics to determine the lifecycle state of the nodes of the leak trace, and therefore whether they are leaking or not. For example, if a view has <code>View#mAttachInfo = null</code> and <code>mParent != null</code> then it is detached yet has a parent, so that view is probably leaking. In the leak trace, for each node you&rsquo;ll see <code>Leaking: YES / NO / UNKNOWN</code> with an explanation in parenthesis. You can customize this behavior and add your own heuristics.</p>
-<div class="codehilite"><pre><span></span>    │    View#mAttachInfo is null (view detached)
+    │    View#mAttachInfo is null (view detached)
     │    View#mParent is set
     │    View.mWindowAttachCount=1
 </pre></div>
 
-<p>LeakCanary can also surface extra information about the state of a node, e.g. <code>View.mWindowAttachCount=1</code>. You can add your own labels.</p>
+<p>LeakCanary runs heuristics to determine the lifecycle state of the nodes of the leak trace, and therefore whether they are leaking or not. For example, if a view has <code>View#mAttachInfo = null</code> and <code>mParent != null</code> then it is detached yet has a parent, so that view is probably leaking. In the leak trace, for each node you&rsquo;ll see <code>Leaking: YES / NO / UNKNOWN</code> with an explanation in parenthesis. LeakCanary can also surface extra information about the state of a node, e.g. <code>View.mWindowAttachCount=1</code>. You can customize this behavior and add your own heuristics by updating <code>LeakCanary.Config.leakTraceInspectors</code>.</p>
 <h3 id="narrowing-down-the-cause-of-a-leak">Narrowing down the cause of a leak<a class="headerlink" href="#narrowing-down-the-cause-of-a-leak" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span>    ┬
     ├─ leakcanary.internal.InternalLeakCanary
