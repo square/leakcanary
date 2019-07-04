@@ -2,7 +2,7 @@
 
 ## Version 2.0 Alpha 3 (2019-07-04)
 
-**Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/Upgrading-to-LeakCanary-2.0). 
+**Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/). 
 
 * [#1401](https://github.com/square/leakcanary/pull/1401) LeakCanary can now import all hprof files created from prior LeakCanary versions.
 * [#1414](https://github.com/square/leakcanary/pull/1414) New API: `RefWatcher.retainedInstances` which returns the instances that are currently considered retained.
