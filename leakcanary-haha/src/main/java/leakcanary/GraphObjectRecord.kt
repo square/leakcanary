@@ -98,20 +98,23 @@ sealed class GraphObjectRecord {
       this instanceOf expectedClass.java.name
 
     operator fun get(
-      className: String,
+      declaringClass: KClass<out Any>,
       fieldName: String
     ): GraphField? {
-      return readFields().firstOrNull { field -> field.classRecord.name == className && field.name == fieldName }
+      return get(declaringClass.java.name, fieldName)
     }
 
-    operator fun get(fieldName: String): GraphField? {
-      return readFields().firstOrNull { field -> field.name == fieldName }
+    operator fun get(
+      declaringClassName: String,
+      fieldName: String
+    ): GraphField? {
+      return readFields().firstOrNull { field -> field.classRecord.name == declaringClassName && field.name == fieldName }
     }
 
     val className: String
       get() = graph.className(record.classId)
 
-    val simpleClassName: String
+    val classSimpleName: String
       get() {
         val className = this.className
         val separator = className.lastIndexOf('.')
@@ -147,7 +150,7 @@ sealed class GraphObjectRecord {
       if (!graph.isJavaString(record)) {
         return null
       }
-      val count = this["count"]!!.value.asInt!!
+      val count = this["java.lang.String", "count"]!!.value.asInt!!
       if (count == 0) {
         return ""
       }
@@ -155,13 +158,14 @@ sealed class GraphObjectRecord {
       // Prior to API 26 String.value was a char array.
       // Since API 26 String.value is backed by native code. The vast majority of strings in a
       // heap dump are backed by a byte array, but we still find a few backed by a char array.
-      when (val valueRecord = this["value"]!!.value.readObjectRecord()!!.record) {
+      when (val valueRecord =
+        this["java.lang.String", "value"]!!.value.readObjectRecord()!!.record) {
         is CharArrayDump -> {
           // < API 23
           // As of Marshmallow, substrings no longer share their parent strings' char arrays
           // eliminating the need for String.offset
           // https://android-review.googlesource.com/#/c/83611/
-          val offset = this["offset"]?.value?.asInt ?: 0
+          val offset = this["java.lang.String", "offset"]?.value?.asInt ?: 0
 
           val chars = valueRecord.array.copyOfRange(offset, offset + count)
           return String(chars)
@@ -170,7 +174,8 @@ sealed class GraphObjectRecord {
           return String(valueRecord.array, Charset.forName("UTF-8"))
         }
         else -> throw UnsupportedOperationException(
-            "'value' field ${this["value"]!!.value} was expected to be either a char or byte array in string instance with id ${record.id}"
+            "'value' field ${this["java.lang.String", "value"]!!.value} was expected to be either" +
+                " a char or byte array in string instance with id ${record.id}"
         )
       }
     }

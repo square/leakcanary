@@ -248,7 +248,7 @@ internal class ShortestPathFinder {
         is JavaFrame -> {
           val threadRoot = threadsBySerialNumber.getValue(gcRoot.threadSerialNumber)
           val threadInstance = graph.readGraphObjectRecord(threadRoot.id).asInstance!!
-          val threadName = threadInstance["name"]?.value?.readAsJavaString()
+          val threadName = threadInstance[Thread::class, "name"]?.value?.readAsJavaString()
           val exclusion = threadNameExclusions[threadName]
 
           if (exclusion == null || exclusion.status != NEVER_REACHABLE) {
@@ -449,7 +449,7 @@ internal class ShortestPathFinder {
       STRING -> {
         updateDominator(parentObjectId, objectId, true)
         val stringInstance = graph.readGraphObjectRecord(objectId).asInstance!!
-        val valueId = stringInstance["value"]?.value?.asNonNullObjectIdReference
+        val valueId = stringInstance["java.lang.String", "value"]?.value?.asNonNullObjectIdReference
         if (valueId != null) {
           updateDominator(parentObjectId, valueId, true)
         }
@@ -544,7 +544,7 @@ internal class ShortestPathFinder {
         undominate(objectId, true)
         val stringRecord = graph.readGraphObjectRecord(objectId)
         val stringInstance = stringRecord.asInstance!!
-        val valueId = stringInstance["value"]?.value?.asObjectIdReference
+        val valueId = stringInstance["java.lang.String", "value"]?.value?.asObjectIdReference
         if (valueId != null) {
           undominate(valueId, true)
         }

@@ -35,7 +35,7 @@ class HprofWriterTest {
       val baguetteInstance =
         treasureChestClass[CONTENT_FIELD_NAME]!!.value.readObjectRecord()!!.asInstance!!
 
-      assertThat(baguetteInstance[ANSWER_FIELD_NAME]!!.value.asInt!!).isEqualTo(42)
+      assertThat(baguetteInstance[BAGUETTE_CLASS_NAME, ANSWER_FIELD_NAME]!!.value.asInt!!).isEqualTo(42)
     }
   }
 
