@@ -350,6 +350,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-20-alpha-3-2019-07-04" title="Version 2.0 Alpha 3 (2019-07-04)" class="md-nav__link">
+    Version 2.0 Alpha 3 (2019-07-04)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-20-alpha-2-2019-05-21" title="Version 2.0 Alpha 2 (2019-05-21)" class="md-nav__link">
     Version 2.0 Alpha 2 (2019-05-21)
   </a>
@@ -636,6 +643,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-20-alpha-3-2019-07-04" title="Version 2.0 Alpha 3 (2019-07-04)" class="md-nav__link">
+    Version 2.0 Alpha 3 (2019-07-04)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-20-alpha-2-2019-05-21" title="Version 2.0 Alpha 2 (2019-05-21)" class="md-nav__link">
     Version 2.0 Alpha 2 (2019-05-21)
   </a>
@@ -838,8 +852,33 @@
                 
                 
                 <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
-<h2 id="version-20-alpha-2-2019-05-21">Version 2.0 Alpha 2 (2019-05-21)<a class="headerlink" href="#version-20-alpha-2-2019-05-21" title="Permanent link">&para;</a></h2>
+<h2 id="version-20-alpha-3-2019-07-04">Version 2.0 Alpha 3 (2019-07-04)<a class="headerlink" href="#version-20-alpha-3-2019-07-04" title="Permanent link">&para;</a></h2>
 <p><strong>Thanks for testing the alpha</strong>, we&rsquo;re counting on you to help us find bugs and suggest improvements! Check out the new <a href="https://square.github.io/leakcanary/getting_started">Getting Started</a> instructions and the <a href="https://square.github.io/leakcanary/Upgrading-to-LeakCanary-2.0">migration guide</a>. </p>
+<ul>
+<li><a href="https://github.com/square/leakcanary/pull/1401">#1401</a> LeakCanary can now import all hprof files created from prior LeakCanary versions.</li>
+<li><a href="https://github.com/square/leakcanary/pull/1414">#1414</a> New API: <code>RefWatcher.retainedInstances</code> which returns the instances that are currently considered retained.</li>
+<li><a href="https://github.com/square/leakcanary/pull/1419">#1419</a> New APIs: <code>LeakCanary.Config.maxStoredHeapDumps</code> (default 7) and <code>LeakCanary.Config.requestWriteExternalStoragePermission</code> (default false). LeakCanary won&rsquo;t ask for the external storage permission anymore by default.</li>
+<li><a href="https://github.com/square/leakcanary/issues/1338">#1338</a> API change: <code>LeakCanary.Config.exclusionsFactory</code> replaced with <code>LeakCanary.Config.knownReferences</code> (simpler use), <code>LeakCanary.Config.leakInspectors</code> and <code>LeakCanary.Config.labelers</code> merged into <code>LeakCanary.Config.leakTraceInspectors</code> which provides access to the entire leak trace as well as a new graph oriented API that replaces the low level hprof parser API.</li>
+<li><a href="https://github.com/square/leakcanary/issues/1382">#1382</a> LeakCanary now disables automatic heap dumping when running in AndroidX UI tests.</li>
+<li><a href="https://github.com/square/leakcanary/pull/1424">#1424</a> API rename: <code>RefWatcher.hasRetainedReferences</code> =&gt; <code>RefWatcher.hasRetainedInstances</code>, <code>RefWatcher.retainedReferenceCount</code> =&gt; <code>RefWatcher.retainedInstanceCount</code>, <code>RefWatcher.hasWatchedReferences</code> =&gt; <code>RefWatcher.hasWatchedInstances</code>, <code>RefWatcher.removeKeysRetainedBeforeHeapDump</code> =&gt; <code>RefWatcher.removeInstancesRetainedBeforeHeapDump</code>, <code>RefWatcher.clearWatchedReferences</code> =&gt; <code>RefWatcher.clearWatchedInstances</code>.</li>
+<li><a href="https://github.com/square/leakcanary/pull/1432">#1432</a> <a href="https://github.com/square/leakcanary/pull/1438">#1438</a> <a href="https://github.com/square/leakcanary/pull/1440">#1440</a> New &ldquo;won&rsquo;t fix&rdquo; leaks and leak trace inspectors</li>
+<li><a href="https://github.com/square/leakcanary/issues/1374">#1374</a> <a href="https://github.com/square/leakcanary/issues/1364">#1364</a> <a href="https://github.com/square/leakcanary/issues/1366">#1366</a> <a href="https://github.com/square/leakcanary/issues/1417">#1417</a> <a href="https://github.com/square/leakcanary/issues/#1399">#1399</a> <a href="https://github.com/square/leakcanary/issues/1416">#1416</a> <a href="https://github.com/square/leakcanary/issues/1407">#1407</a> <a href="https://github.com/square/leakcanary/issues/1427">#1427</a> <a href="https://github.com/square/leakcanary/issues/1385">#1385</a> Bug and crash fixes</li>
+</ul>
+<p>Many thanks to
+<a href="https://github.com/1step2hell">@1step2hell</a>,
+<a href="https://github.com/afollestad">@afollestad</a>,
+<a href="https://github.com/ansman">@ansman</a>,
+<a href="https://github.com/bjdodson">@bjdodson</a>,
+<a href="https://github.com/BraisGabin">@BraisGabin</a>,
+<a href="https://github.com/EBfVince">@EBfVince</a>,
+<a href="https://github.com/jaredsburrows">@jaredsburrows</a>,
+<a href="https://github.com/pforhan">@pforhan</a>,
+<a href="https://github.com/pyricau">@pyricau</a>,
+<a href="https://github.com/tellypresence">@tellypresence</a>,
+<a href="https://github.com/wiyarmir">@wiyarmir</a>
+for the contributions, bug reports and feature requests.</p>
+<p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/8">2.0-alpha-3 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.0-alpha-2...v2.0-alpha-3">full diff</a>.</p>
+<h2 id="version-20-alpha-2-2019-05-21">Version 2.0 Alpha 2 (2019-05-21)<a class="headerlink" href="#version-20-alpha-2-2019-05-21" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="https://github.com/square/leakcanary/pull/1040">#1040</a> Import and analyze hprof files from other devices</li>
 <li><a href="https://github.com/square/leakcanary/pull/1344">#1344</a> Computing retained size</li>
