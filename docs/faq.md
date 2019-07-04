@@ -42,7 +42,7 @@ Update your dependencies to the latest SNAPSHOT (see [build.gradle](https://gith
 
 ```gradle
  dependencies {
-   debugCompile 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-3-SNAPSHOT'
+   debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-4-SNAPSHOT'
  }
 ```
 
