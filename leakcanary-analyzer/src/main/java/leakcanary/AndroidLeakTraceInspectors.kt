@@ -174,6 +174,17 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
     }
   },
 
+  INPUT_METHOD_MANAGER {
+    override fun inspect(
+      graph: HprofGraph,
+      leakTrace: List<LeakTraceElementReporter>
+    ) {
+      leakTrace.forEachInstanceOf("android.view.inputmethod.InputMethodManager") {
+        reportNotLeaking("InputMethodManager is a singleton")
+      }
+    }
+  },
+
   CLASSLOADER {
     override fun inspect(
       graph: HprofGraph,
