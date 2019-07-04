@@ -1,8 +1,35 @@
 # Change Log
 
-## Version 2.0 Alpha 2 (2019-05-21)
+## Version 2.0 Alpha 3 (2019-07-04)
 
 **Thanks for testing the alpha**, we're counting on you to help us find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/Upgrading-to-LeakCanary-2.0). 
+
+* [#1401](https://github.com/square/leakcanary/pull/1401) LeakCanary can now import all hprof files created from prior LeakCanary versions.
+* [#1414](https://github.com/square/leakcanary/pull/1414) New API: `RefWatcher.retainedInstances` which returns the instances that are currently considered retained.
+* [#1419](https://github.com/square/leakcanary/pull/1419) New APIs: `LeakCanary.Config.maxStoredHeapDumps` (default 7) and `LeakCanary.Config.requestWriteExternalStoragePermission` (default false). LeakCanary won't ask for the external storage permission anymore by default.
+* [#1338](https://github.com/square/leakcanary/issues/1338) API change: `LeakCanary.Config.exclusionsFactory` replaced with `LeakCanary.Config.knownReferences` (simpler use), `LeakCanary.Config.leakInspectors` and `LeakCanary.Config.labelers` merged into `LeakCanary.Config.leakTraceInspectors` which provides access to the entire leak trace as well as a new graph oriented API that replaces the low level hprof parser API.
+* [#1382](https://github.com/square/leakcanary/issues/1382) LeakCanary now disables automatic heap dumping when running in AndroidX UI tests.
+* [#1424](https://github.com/square/leakcanary/pull/1424) API rename: `RefWatcher.hasRetainedReferences` => `RefWatcher.hasRetainedInstances`, `RefWatcher.retainedReferenceCount` => `RefWatcher.retainedInstanceCount`, `RefWatcher.hasWatchedReferences` => `RefWatcher.hasWatchedInstances`, `RefWatcher.removeKeysRetainedBeforeHeapDump` => `RefWatcher.removeInstancesRetainedBeforeHeapDump`, `RefWatcher.clearWatchedReferences` => `RefWatcher.clearWatchedInstances`.
+* [#1432](https://github.com/square/leakcanary/pull/1432) [#1438](https://github.com/square/leakcanary/pull/1438) [#1440](https://github.com/square/leakcanary/pull/1440) New "won't fix" leaks and leak trace inspectors
+* [#1374](https://github.com/square/leakcanary/issues/1374) [#1364](https://github.com/square/leakcanary/issues/1364) [#1366](https://github.com/square/leakcanary/issues/1366) [#1417](https://github.com/square/leakcanary/issues/1417) [#1399](https://github.com/square/leakcanary/issues/#1399) [#1416](https://github.com/square/leakcanary/issues/1416) [#1407](https://github.com/square/leakcanary/issues/1407) [#1427](https://github.com/square/leakcanary/issues/1427) [#1385](https://github.com/square/leakcanary/issues/1385) Bug and crash fixes
+
+Many thanks to
+[@1step2hell](https://github.com/1step2hell),
+[@afollestad](https://github.com/afollestad),
+[@ansman](https://github.com/ansman),
+[@bjdodson](https://github.com/bjdodson),
+[@BraisGabin](https://github.com/BraisGabin),
+[@EBfVince](https://github.com/EBfVince),
+[@jaredsburrows](https://github.com/jaredsburrows),
+[@pforhan](https://github.com/pforhan),
+[@pyricau](https://github.com/pyricau),
+[@tellypresence](https://github.com/tellypresence),
+[@wiyarmir](https://github.com/wiyarmir)
+for the contributions, bug reports and feature requests.
+
+For more details, see the [2.0-alpha-3 Milestone](https://github.com/square/leakcanary/milestone/8) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-alpha-2...v2.0-alpha-3).
+
+## Version 2.0 Alpha 2 (2019-05-21)
 
 * [#1040](https://github.com/square/leakcanary/pull/1040) Import and analyze hprof files from other devices
 * [#1344](https://github.com/square/leakcanary/pull/1344) Computing retained size
