@@ -218,8 +218,8 @@ LeakCanary is released as several distinct libraries:
     * Depends on LeakSentry.
     * Artifact id: `com.squareup.leakcanary:leakcanary-android`.
 * LeakCanary for Instrumentation tests
-    * Fails tests if a leak is detected
-    * Only suitable for Instrumentation tests
+    * Fails tests if a leak is detected.
+    * Only suitable for Instrumentation tests.
     * Configures LeakCanary to wait for the end of tests before dumping the heap.
     * Artifact id: `com.squareup.leakcanary:leakcanary-android-instrumentation`.
-    * See [Running LeakCanary in instrumentation tests](recipes.md#running-leakcanary-in-instrumentation-tests)
+    * See [Running LeakCanary in instrumentation tests](recipes.md#running-leakcanary-in-instrumentation-tests).
