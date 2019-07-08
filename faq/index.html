@@ -591,8 +591,8 @@
 <li>Provide the entire leak trace information (reference key, device, etc), and use backticks (`) for formatting.</li>
 <li>Read the AOSP source for that version of Android, and try to figure out why it happens. You can easily navigate through SDK versions <a href="https://github.com/android/platform_frameworks_base">android/platform_frameworks_base</a>.</li>
 <li>Check if it happens on the latest version of Android, and otherwise use blame to find when it was fixed.</li>
-<li>If it&rsquo;s still happening, build a simple repro case</li>
-<li>File an issue on <a href="http://b.android.com">b.android.com</a> with the leak trace and the repro case</li>
+<li>If it&rsquo;s still happening, build a simple repro case.</li>
+<li>File an issue on <a href="http://b.android.com">b.android.com</a> with the leak trace and the repro case.</li>
 <li>Create a PR in LeakCanary to update <code>AndroidExcludedRefs.kt</code>. Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.</li>
 </ol>
 <h2 id="how-do-i-share-a-leak-trace">How do I share a leak trace?<a class="headerlink" href="#how-do-i-share-a-leak-trace" title="Permanent link">&para;</a></h2>
@@ -607,7 +607,7 @@
 </ul>
 <p>Here&rsquo;s how you can find the leaking instance in the heap dump:</p>
 <ol>
-<li>Look for all instances of <code>leakcanary.KeyedWeakReference</code></li>
+<li>Look for all instances of <code>leakcanary.KeyedWeakReference</code>.</li>
 <li>For each of these, look at the <code>key</code> field.</li>
 <li>Find the <code>KeyedWeakReference</code> that has a <code>key</code> field equal to the reference key reported by LeakCanary.</li>
 <li>The <code>referent</code> field of that <code>KeyedWeakReference</code> is your leaking object.</li>
