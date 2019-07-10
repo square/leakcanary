@@ -1,7 +1,5 @@
 package leakcanary
 
-import leakcanary.HeapValue.ObjectReference
-
 sealed class Record {
   class StringRecord(
     val id: Long,
@@ -91,54 +89,79 @@ sealed class Record {
       sealed class PrimitiveArrayDumpRecord : ObjectRecord() {
         abstract val id: Long
         abstract val stackTraceSerialNumber: Int
+        abstract val size: Int
 
         class BooleanArrayDump(
           override val id: Long,
           override val stackTraceSerialNumber: Int,
           val array: BooleanArray
-        ) : PrimitiveArrayDumpRecord()
+        ) : PrimitiveArrayDumpRecord() {
+          override val size: Int
+            get() = array.size
+        }
 
         class CharArrayDump(
           override val id: Long,
           override val stackTraceSerialNumber: Int,
           val array: CharArray
-        ) : PrimitiveArrayDumpRecord()
+        ) : PrimitiveArrayDumpRecord() {
+          override val size: Int
+            get() = array.size
+        }
 
         class FloatArrayDump(
           override val id: Long,
           override val stackTraceSerialNumber: Int,
           val array: FloatArray
-        ) : PrimitiveArrayDumpRecord()
+        ) : PrimitiveArrayDumpRecord() {
+          override val size: Int
+            get() = array.size
+        }
 
         class DoubleArrayDump(
           override val id: Long,
           override val stackTraceSerialNumber: Int,
           val array: DoubleArray
-        ) : PrimitiveArrayDumpRecord()
+        ) : PrimitiveArrayDumpRecord() {
+          override val size: Int
+            get() = array.size
+        }
 
         class ByteArrayDump(
           override val id: Long,
           override val stackTraceSerialNumber: Int,
           val array: ByteArray
-        ) : PrimitiveArrayDumpRecord()
+        ) : PrimitiveArrayDumpRecord() {
+          override val size: Int
+            get() = array.size
+        }
 
         class ShortArrayDump(
           override val id: Long,
           override val stackTraceSerialNumber: Int,
           val array: ShortArray
-        ) : PrimitiveArrayDumpRecord()
+        ) : PrimitiveArrayDumpRecord() {
+          override val size: Int
+            get() = array.size
+        }
 
         class IntArrayDump(
           override val id: Long,
           override val stackTraceSerialNumber: Int,
           val array: IntArray
-        ) : PrimitiveArrayDumpRecord()
+        ) : PrimitiveArrayDumpRecord() {
+          override val size: Int
+            get() = array.size
+        }
 
         class LongArrayDump(
           override val id: Long,
           override val stackTraceSerialNumber: Int,
           val array: LongArray
-        ) : PrimitiveArrayDumpRecord()
+        ) : PrimitiveArrayDumpRecord() {
+          override val size: Int
+            get() = array.size
+        }
       }
     }
 

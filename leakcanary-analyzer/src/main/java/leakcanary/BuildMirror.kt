@@ -14,8 +14,8 @@ class BuildMirror {
 
   fun wrapFilter(filter: BuildFilter): (HprofGraph) -> Boolean = { graph ->
     if (!::manufacturer.isInitialized) {
-      val buildClass = graph.readClass("android.os.Build")!!
-      val versionClass = graph.readClass("android.os.Build\$VERSION")!!
+      val buildClass = graph.indexedClass("android.os.Build")!!
+      val versionClass = graph.indexedClass("android.os.Build\$VERSION")!!
       manufacturer = buildClass["MANUFACTURER"]!!.value.readAsJavaString()!!
       sdkInt = versionClass["SDK_INT"]!!.value.asInt!!
     }

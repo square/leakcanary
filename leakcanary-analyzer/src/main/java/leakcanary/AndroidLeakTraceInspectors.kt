@@ -48,7 +48,7 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
           if (viewDetached) {
             reportLeaking("View detached and has parent")
           } else {
-            val viewParent = mParentRef.readObjectRecord()!!.asInstance!!
+            val viewParent = mParentRef.asObject!!.asInstance!!
             if (viewParent instanceOf "android.view.View" &&
                 viewParent["android.view.View", "mAttachInfo"]!!.value.isNullReference) {
               reportLeaking("View attached but parent detached (attach disorder)")
@@ -116,12 +116,12 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
           val visitedInstances = mutableListOf<Long>()
           var keepUnwrapping = true
           while (keepUnwrapping) {
-            visitedInstances += context.record.id
+            visitedInstances += context.objectId
             keepUnwrapping = false
             val mBase = context["android.content.ContextWrapper", "mBase"]!!.value
 
             if (mBase.isNonNullReference) {
-              context = mBase.readObjectRecord()!!.asInstance!!
+              context = mBase.asObject!!.asInstance!!
               if (context instanceOf "android.app.Activity") {
                 val mDestroyed = instance["android.app.Activity", "mDestroyed"]
                 if (mDestroyed != null) {
@@ -137,7 +137,7 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
                 }
               } else if (context instanceOf "android.content.ContextWrapper" &&
                   // Avoids infinite loops
-                  context.record.id !in visitedInstances
+                  context.objectId !in visitedInstances
               ) {
                 keepUnwrapping = true
               }
@@ -326,9 +326,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
     ) {
       leakTrace.forEach { reporter ->
         if (reporter.objectRecord is GraphInstanceRecord) {
-          val classRecord = reporter.objectRecord.readClass()
+          val classRecord = reporter.objectRecord.instanceClass
           if (classRecord.name.matches(HeapAnalyzer.ANONYMOUS_CLASS_NAME_PATTERN_REGEX)) {
-            val parentClassRecord = classRecord.readSuperClass()!!
+            val parentClassRecord = classRecord.superClass!!
             if (parentClassRecord.name == "java.lang.Object") {
               try {
                 // This is an anonymous class implementing an interface. The API does not give access
@@ -395,7 +395,7 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
     ) {
       leakTrace.forEachInstanceOf("android.widget.Toast") { instance ->
         val tnInstance =
-          instance["android.widget.Toast", "mTN"]!!.value.readObjectRecord()!!.asInstance!!
+          instance["android.widget.Toast", "mTN"]!!.value.asObject!!.asInstance!!
         // mWM is set in android.widget.Toast.TN#handleShow and never unset, so this toast was never
         // shown, we don't know if it's leaking.
         if (tnInstance["android.widget.Toast\$TN", "mWM"]!!.value.isNonNullReference) {

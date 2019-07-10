@@ -31,7 +31,9 @@ import leakcanary.GcRoot.ThreadObject
 import leakcanary.GraphObjectRecord.GraphClassRecord
 import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
+import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
 import leakcanary.HprofGraph
+import leakcanary.HprofReader
 import leakcanary.LeakNode
 import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakNode.RootNode
@@ -40,14 +42,6 @@ import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.ObjectIdMetadata.CLASS
-import leakcanary.ObjectIdMetadata.EMPTY_INSTANCE
-import leakcanary.ObjectIdMetadata.INSTANCE
-import leakcanary.ObjectIdMetadata.OBJECT_ARRAY
-import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_ARRAY
-import leakcanary.ObjectIdMetadata.PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY
-import leakcanary.ObjectIdMetadata.STRING
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.internal.hppc.LongLongScatterMap
 import leakcanary.internal.hppc.LongScatterSet
@@ -94,6 +88,7 @@ internal class ShortestPathFinder {
    * and cannot be dominated by a leaking instance.
    */
   private var dominatedInstances = LongLongScatterMap()
+  private var sizeOfObjectInstances = 0
 
   class Result(
     val leakingNode: LeakNode,
@@ -116,6 +111,28 @@ internal class ShortestPathFinder {
   ): Results {
     listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
     clearState()
+
+    val objectClass = graph.indexedClass("java.lang.Object")
+    sizeOfObjectInstances = if (objectClass != null) {
+      // In Android 16 ClassDumpRecord.instanceSize can be 8 yet there are 0 fields.
+      // Better rely on our own computation of instance size.
+      // See #1374
+      val objectClassFieldSize = objectClass.readRecord()
+          .fields.sumBy {
+        graph.sizeOfFieldType(it.type)
+      }
+
+      // shadow$_klass_ (object id) + shadow$_monitor_ (Int)
+      val sizeOfObjectOnArt =
+        graph.sizeOfFieldType(HprofReader.OBJECT_TYPE) + graph.sizeOfFieldType(HprofReader.INT_TYPE)
+      if (objectClassFieldSize == sizeOfObjectOnArt) {
+        sizeOfObjectOnArt
+      } else {
+        0
+      }
+    } else {
+      0
+    }
 
     val fieldNameByClassName = mutableMapOf<String, MutableMap<String, Exclusion>>()
     val staticFieldNameByClassName = mutableMapOf<String, MutableMap<String, Exclusion>>()
@@ -187,7 +204,7 @@ internal class ShortestPathFinder {
         break@visitingQueue
       }
 
-      when (val graphRecord = graph.readGraphObjectRecord(node.instance)) {
+      when (val graphRecord = graph.indexedObject(node.instance)) {
         is GraphClassRecord -> visitClassRecord(
             graph, graphRecord, node, staticFieldNameByClassName, computeDominators
         )
@@ -195,7 +212,7 @@ internal class ShortestPathFinder {
             graph, graphRecord, node, fieldNameByClassName, computeDominators
         )
         is GraphObjectArrayRecord -> visitObjectArrayRecord(
-            graph, graphRecord.record, node, computeDominators
+            graph, graphRecord.readRecord(), node, computeDominators
         )
       }
     }
@@ -219,6 +236,7 @@ internal class ShortestPathFinder {
     visitOrder = 0
     referentMap = emptyMap()
     dominatedInstances = LongLongScatterMap()
+    sizeOfObjectInstances = 0
   }
 
   private fun enqueueGcRoots(
@@ -247,7 +265,7 @@ internal class ShortestPathFinder {
         }
         is JavaFrame -> {
           val threadRoot = threadsBySerialNumber.getValue(gcRoot.threadSerialNumber)
-          val threadInstance = graph.readGraphObjectRecord(threadRoot.id).asInstance!!
+          val threadInstance = graph.indexedObject(threadRoot.id).asInstance!!
           val threadName = threadInstance[Thread::class, "name"]?.value?.readAsJavaString()
           val exclusion = threadNameExclusions[threadName]
 
@@ -275,19 +293,19 @@ internal class ShortestPathFinder {
     gcRoots: MutableList<GcRoot>
   ) {
     val rootClassName: (GcRoot) -> String = {
-      when (val metadata = graph.objectIdMetadata(it.id)) {
-        PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY, PRIMITIVE_WRAPPER_ARRAY, EMPTY_INSTANCE -> metadata.name
-        STRING -> "java.lang.String"
-        OBJECT_ARRAY -> {
-          val record = graph.readObjectRecord(it.id) as ObjectArrayDumpRecord
-          graph.className(record.arrayClassId)
+      when (val graphObject = graph.indexedObject(it.id)) {
+        is GraphClassRecord -> {
+          graphObject.name
         }
-        INSTANCE -> {
-          val record = graph.readObjectRecord(it.id) as InstanceDumpRecord
-          graph.className(record.classId)
+        is GraphInstanceRecord -> {
+          graphObject.className
         }
-        CLASS -> graph.className(it.id)
-        else -> throw IllegalStateException("Unexpected type $metadata")
+        is GraphObjectArrayRecord -> {
+          graphObject.arrayClassName
+        }
+        is GraphPrimitiveArrayRecord -> {
+          graphObject.primitiveType.name
+        }
       }
     }
     gcRoots.sortWith(Comparator { root1, root2 ->
@@ -310,7 +328,7 @@ internal class ShortestPathFinder {
   ) {
     val ignoredStaticFields = staticFieldNameByClassName[classRecord.name] ?: emptyMap()
 
-    for (staticField in classRecord.staticFields) {
+    for (staticField in classRecord.readStaticFields()) {
       if (!staticField.value.isNonNullReference) {
         continue
       }
@@ -347,7 +365,7 @@ internal class ShortestPathFinder {
   ) {
     val ignoredFields = LinkedHashMap<String, Exclusion>()
 
-    instanceRecord.readClass().readClassHierarchy().forEach {
+    instanceRecord.instanceClass.classHierarchy.forEach {
       val classExclusions = fieldNameByClassName[it.name]
       if (classExclusions != null) {
         for ((fieldName, exclusion) in classExclusions) {
@@ -424,9 +442,25 @@ internal class ShortestPathFinder {
 
     val isLeakingInstance = referentMap[node.instance] != null
 
-    val objectIdMetadata = graph.objectIdMetadata(node.instance)
-    if (!isLeakingInstance && objectIdMetadata in SKIP_ENQUEUE) {
-      return
+    if (!isLeakingInstance) {
+      val skip = when (val graphObject = graph.indexedObject(node.instance)) {
+        is GraphClassRecord -> false
+        is GraphInstanceRecord ->
+          when {
+            graphObject.isPrimitiveWrapper -> true
+            graphObject.className == "java.lang.String" -> true
+            graphObject.instanceClass.instanceSize <= sizeOfObjectInstances -> true
+            else -> false
+          }
+        is GraphObjectArrayRecord -> when {
+          graphObject.isPrimitiveWrapperArray -> true
+          else -> false
+        }
+        is GraphPrimitiveArrayRecord -> true
+      }
+      if (skip) {
+        return
+      }
     }
 
     if (existingPriority != null) {
@@ -441,25 +475,32 @@ internal class ShortestPathFinder {
     parentObjectId: Long,
     objectId: Long
   ) {
-    when (graph.objectIdMetadata(objectId)) {
-      CLASS -> {
+
+    when (val graphObject = graph.indexedObject(objectId)) {
+      is GraphClassRecord -> {
         undominate(objectId, false)
       }
-      // String internal array is never enqueued
-      STRING -> {
-        updateDominator(parentObjectId, objectId, true)
-        val stringInstance = graph.readGraphObjectRecord(objectId).asInstance!!
-        val valueId = stringInstance["java.lang.String", "value"]?.value?.asNonNullObjectIdReference
-        if (valueId != null) {
-          updateDominator(parentObjectId, valueId, true)
+      is GraphInstanceRecord -> {
+        // String internal array is never enqueued
+        if (graphObject.className == "java.lang.String") {
+          updateDominator(parentObjectId, objectId, true)
+          val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectIdReference
+          if (valueId != null) {
+            updateDominator(parentObjectId, valueId, true)
+          }
+        } else {
+          updateDominator(parentObjectId, objectId, false)
         }
       }
-      // Primitive wrapper array elements are never enqueued
-      PRIMITIVE_WRAPPER_ARRAY -> {
-        updateDominator(parentObjectId, objectId, true)
-        val arrayRecord = graph.readObjectRecord(objectId) as ObjectArrayDumpRecord
-        for (wrapperId in arrayRecord.elementIds) {
-          updateDominator(parentObjectId, wrapperId, true)
+      is GraphObjectArrayRecord -> {
+        // Primitive wrapper array elements are never enqueued
+        if (graphObject.isPrimitiveWrapperArray) {
+          updateDominator(parentObjectId, objectId, true)
+          for (wrapperId in graphObject.readRecord().elementIds) {
+            updateDominator(parentObjectId, wrapperId, true)
+          }
+        } else {
+          updateDominator(parentObjectId, objectId, false)
         }
       }
       else -> {
@@ -535,27 +576,31 @@ internal class ShortestPathFinder {
     graph: HprofGraph,
     objectId: Long
   ) {
-    when (graph.objectIdMetadata(objectId)) {
-      CLASS -> {
+    when (val graphObject = graph.indexedObject(objectId)) {
+      is GraphClassRecord -> {
         undominate(objectId, false)
       }
-      // String internal array is never enqueued
-      STRING -> {
-        undominate(objectId, true)
-        val stringRecord = graph.readGraphObjectRecord(objectId)
-        val stringInstance = stringRecord.asInstance!!
-        val valueId = stringInstance["java.lang.String", "value"]?.value?.asObjectIdReference
-        if (valueId != null) {
-          undominate(valueId, true)
+      is GraphInstanceRecord -> {
+        // String internal array is never enqueued
+        if (graphObject.className == "java.lang.String") {
+          undominate(objectId, true)
+          val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectIdReference
+          if (valueId != null) {
+            undominate(valueId, true)
+          }
+        } else {
+          undominate(objectId, false)
         }
       }
-      // Primitive wrapper array elements are never enqueued
-      PRIMITIVE_WRAPPER_ARRAY -> {
-        undominate(objectId, true)
-        val arrayRecord =
-          graph.readObjectRecord(objectId) as ObjectArrayDumpRecord
-        for (wrapperId in arrayRecord.elementIds) {
-          undominate(wrapperId, true)
+      is GraphObjectArrayRecord -> {
+        // Primitive wrapper array elements are never enqueued
+        if (graphObject.isPrimitiveWrapperArray) {
+          undominate(objectId, true)
+          for (wrapperId in graphObject.readRecord().elementIds) {
+            undominate(wrapperId, true)
+          }
+        } else {
+          undominate(objectId, false)
         }
       }
       else -> {
@@ -575,9 +620,6 @@ internal class ShortestPathFinder {
   }
 
   companion object {
-    private val SKIP_ENQUEUE =
-      setOf(PRIMITIVE_WRAPPER_OR_PRIMITIVE_ARRAY, PRIMITIVE_WRAPPER_ARRAY, STRING, EMPTY_INSTANCE)
-
     // Since NEVER_REACHABLE never ends up in the queue, we use its value to mean "ALWAYS_REACHABLE"
     // For this to work we need NEVER_REACHABLE to be declared as the first enum value.
     private val ALWAYS_REACHABLE = NEVER_REACHABLE

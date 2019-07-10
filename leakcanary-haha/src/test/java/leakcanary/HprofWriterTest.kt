@@ -1,7 +1,6 @@
 package leakcanary
 
 import leakcanary.HeapValue.ObjectReference
-import leakcanary.HprofParser.RecordCallbacks
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
@@ -31,11 +30,13 @@ class HprofWriterTest {
     hprofFile.writeRecords(records)
 
     hprofFile.readHprof { graph ->
-      val treasureChestClass = graph.readClass(TREASURE_CHEST_CLASS_NAME)!!
+      val treasureChestClass = graph.indexedClass(TREASURE_CHEST_CLASS_NAME)!!
       val baguetteInstance =
-        treasureChestClass[CONTENT_FIELD_NAME]!!.value.readObjectRecord()!!.asInstance!!
+        treasureChestClass[CONTENT_FIELD_NAME]!!.value.asObject!!.asInstance!!
 
-      assertThat(baguetteInstance[BAGUETTE_CLASS_NAME, ANSWER_FIELD_NAME]!!.value.asInt!!).isEqualTo(42)
+      assertThat(
+          baguetteInstance[BAGUETTE_CLASS_NAME, ANSWER_FIELD_NAME]!!.value.asInt!!
+      ).isEqualTo(42)
     }
   }
 
@@ -115,11 +116,10 @@ class HprofWriterTest {
   }
 
   fun File.readHprof(block: (HprofGraph) -> Unit) {
-    HprofParser.open(this)
-        .use { parser ->
-          parser.scan(RecordCallbacks())
-          block(HprofGraph(parser))
-        }
+    val (graph, closeable) = HprofGraph.readHprof(this)
+    closeable.use {
+      block(graph)
+    }
   }
 
   companion object {

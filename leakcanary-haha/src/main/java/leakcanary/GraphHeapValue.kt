@@ -50,21 +50,16 @@ class GraphHeapValue(
   val isNonNullReference: Boolean
     get() = actual is ObjectReference && !actual.isNull
 
-  val referencesJavaString: Boolean
-    get() = actual is ObjectReference && graph.referencesJavaString(actual)
-
-  val referencesClass: Boolean
-    get() = actual is ObjectReference && graph.referencesClass(actual)
+  val asObject: GraphObjectRecord?
+    get() {
+      return if (actual is ObjectReference && !actual.isNull) {
+        return graph.indexedObject(actual.value)
+      } else {
+        null
+      }
+    }
 
   fun readAsJavaString(): String? {
-    return readObjectRecord()?.asInstance?.readAsJavaString()
-  }
-
-  fun readObjectRecord(): GraphObjectRecord? {
-    return if (actual is ObjectReference && !actual.isNull) {
-      return graph.readGraphObjectRecord(actual.value)
-    } else {
-      null
-    }
+    return asObject?.asInstance?.readAsJavaString()
   }
 }

@@ -9,6 +9,7 @@ import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HeapValue.ShortValue
+import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
@@ -34,7 +35,10 @@ open class HprofReader constructor(
   protected var source: BufferedSource,
   protected val startPosition: Long,
   val idSize: Int
-) : Closeable {
+): Closeable {
+  override fun close() {
+    source.close()
+  }
 
   var position: Long = startPosition
     protected set
@@ -42,7 +46,7 @@ open class HprofReader constructor(
   val isOpen
     get() = source.isOpen
 
-  private val typeSizes = mapOf(
+  val typeSizes = mapOf(
       // object
       OBJECT_TYPE to idSize,
       BOOLEAN_TYPE to BOOLEAN_SIZE,
@@ -196,18 +200,12 @@ open class HprofReader constructor(
     return source.skip(byteCount.toLong())
   }
 
-  override fun close() {
-    source.close()
-  }
-
-  fun readInstanceDumpRecord(
-    id: Long
-  ): InstanceDumpRecord {
+  fun readInstanceDumpRecord(): InstanceDumpRecord {
+    val id = readId()
     val stackTraceSerialNumber = readInt()
     val classId = readId()
     val remainingBytesInInstance = readInt()
     val fieldValues = readByteArray(remainingBytesInInstance)
-
     return InstanceDumpRecord(
         id = id,
         stackTraceSerialNumber = stackTraceSerialNumber,
@@ -216,9 +214,8 @@ open class HprofReader constructor(
     )
   }
 
-  fun readClassDumpRecord(
-    id: Long
-  ): ClassDumpRecord {
+  fun readClassDumpRecord(): ClassDumpRecord {
+    val id = readId()
     // stack trace serial number
     val stackTraceSerialNumber = readInt()
     val superClassId = readId()
@@ -281,9 +278,39 @@ open class HprofReader constructor(
     )
   }
 
+  fun skipInstanceDumpRecord() {
+    skip(idSize + INT_SIZE + idSize)
+    val remainingBytesInInstance = readInt()
+    skip(remainingBytesInInstance)
+  }
+
+  fun skipClassDumpRecord() {
+    skip(
+        idSize + INT_SIZE + idSize + idSize + idSize + idSize + idSize + idSize + INT_SIZE
+    )
+    // Skip over the constant pool
+    val constantPoolCount = readUnsignedShort()
+    for (i in 0 until constantPoolCount) {
+      // constant pool index
+      skip(SHORT_SIZE)
+      skip(typeSize(readUnsignedByte()))
+    }
+
+    val staticFieldCount = readUnsignedShort()
+
+    for (i in 0 until staticFieldCount) {
+      skip(idSize)
+      val type = readUnsignedByte()
+      skip(typeSize(type))
+    }
+
+    val fieldCount = readUnsignedShort()
+    skip(fieldCount * (idSize + BYTE_SIZE))
+  }
+
   fun readObjectArrayDumpRecord(
-    id: Long
   ): ObjectArrayDumpRecord {
+    val id = readId()
     // stack trace serial number
     val stackTraceSerialNumber = readInt()
     val arrayLength = readInt()
@@ -297,9 +324,14 @@ open class HprofReader constructor(
     )
   }
 
-  fun readPrimitiveArrayDumpRecord(
-    id: Long
-  ): PrimitiveArrayDumpRecord {
+  fun skipObjectArrayDumpRecord() {
+    skip(idSize + INT_SIZE)
+    val arrayLength = readInt()
+    skip(idSize + arrayLength * idSize)
+  }
+
+  fun readPrimitiveArrayDumpRecord(): PrimitiveArrayDumpRecord {
+    val id = readId()
     val stackTraceSerialNumber = readInt()
     // length
     val arrayLength = readInt()
@@ -331,6 +363,22 @@ open class HprofReader constructor(
       )
       else -> throw IllegalStateException("Unexpected type $type")
     }
+  }
+
+  fun skipPrimitiveArrayDumpRecord() {
+    skip(idSize + INT_SIZE)
+    val arrayLength = readInt()
+    val type = readUnsignedByte()
+    skip(idSize + arrayLength * typeSize(type))
+  }
+
+  fun readHeapDumpInfoRecord(): HeapDumpInfoRecord {
+    val heapId = readInt()
+    return HeapDumpInfoRecord(heapId = heapId, heapNameStringId = readId())
+  }
+
+  fun skipHeapDumpInfoRecord() {
+    skip(idSize + idSize)
   }
 
   val tagPositionAfterReadingId
