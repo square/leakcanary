@@ -7,6 +7,7 @@ import leakcanary.Exclusion.ExclusionType.JavaLocalExclusion
 import leakcanary.Exclusion.Status.NEVER_REACHABLE
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.HeapAnalysis
+import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalyzer
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakTraceInspector
@@ -22,9 +23,13 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   exclusions: List<Exclusion> = defaultExclusionsFactory
 ): T {
   val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
-  return heapAnalyzer.checkForLeaks(
+  val result = heapAnalyzer.checkForLeaks(
       this, exclusions, computeRetainedHeapSize, leakTraceInspectors
-  ) as T
+  )
+  if (result is HeapAnalysisFailure) {
+    println(result)
+  }
+  return result as T
 }
 
 val defaultExclusionsFactory: List<Exclusion> =

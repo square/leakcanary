@@ -13,8 +13,8 @@ class AppSingletonInspector(private vararg val singletonClasses: String) : LeakT
   ) {
     leakTrace.forEach { reporter ->
       if (reporter.objectRecord is GraphInstanceRecord) {
-        reporter.objectRecord.readClass()
-            .readClassHierarchy()
+        reporter.objectRecord.instanceClass
+            .classHierarchy
             .forEach { classRecord ->
               if (classRecord.name in singletonClasses) {
                 reporter.reportNotLeaking("${classRecord.name} is an app singleton")

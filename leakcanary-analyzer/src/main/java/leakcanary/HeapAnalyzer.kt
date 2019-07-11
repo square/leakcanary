@@ -35,7 +35,7 @@ import leakcanary.GraphObjectRecord.GraphClassRecord
 import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
 import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
-import leakcanary.HprofParser.RecordCallbacks
+import leakcanary.HprofPushRecordsParser.OnRecordListener
 import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakNodeStatus.LEAKING
 import leakcanary.LeakNodeStatus.NOT_LEAKING
@@ -44,29 +44,27 @@ import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
 import leakcanary.LeakTraceElement.Holder.OBJECT
 import leakcanary.LeakTraceElement.Holder.THREAD
+import leakcanary.PrimitiveType.BOOLEAN
+import leakcanary.PrimitiveType.BYTE
+import leakcanary.PrimitiveType.CHAR
+import leakcanary.PrimitiveType.DOUBLE
+import leakcanary.PrimitiveType.FLOAT
+import leakcanary.PrimitiveType.INT
+import leakcanary.PrimitiveType.LONG
+import leakcanary.PrimitiveType.SHORT
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import leakcanary.internal.KeyedWeakReferenceMirror
 import leakcanary.internal.ShortestPathFinder
 import leakcanary.internal.ShortestPathFinder.Result
 import leakcanary.internal.ShortestPathFinder.Results
 import leakcanary.internal.hppc.LongLongScatterMap
 import leakcanary.internal.lastSegment
+import java.io.Closeable
 import java.io.File
 import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.concurrent.TimeUnit.NANOSECONDS
+import kotlin.reflect.KClass
 
 /**
  * Analyzes heap dumps to look for leaks.
@@ -98,50 +96,48 @@ class HeapAnalyzer constructor(
     listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
 
     try {
-      HprofParser.open(heapDumpFile)
-          .use { parser ->
-            val graph = HprofGraph(parser)
-            listener.onProgressUpdate(SCANNING_HEAP_DUMP)
-            val (gcRootIds, keyedWeakReferenceInstances, cleaners) = scan(
-                parser, graph, computeRetainedHeapSize
-            )
-            val analysisResults = mutableMapOf<String, RetainedInstance>()
-            listener.onProgressUpdate(FINDING_WATCHED_REFERENCES)
+      listener.onProgressUpdate(SCANNING_HEAP_DUMP)
+      val (graph, hprofCloseable, gcRootIds, keyedWeakReferenceInstances, cleaners) = scan(
+          heapDumpFile, computeRetainedHeapSize
+      )
+      hprofCloseable.use {
+        val analysisResults = mutableMapOf<String, RetainedInstance>()
+        listener.onProgressUpdate(FINDING_WATCHED_REFERENCES)
 
-            val retainedWeakRefs = findLeakingReferences(graph, keyedWeakReferenceInstances)
+        val retainedWeakRefs = findLeakingReferences(graph, keyedWeakReferenceInstances)
 
-            if (retainedWeakRefs.isEmpty()) {
-              val exception = IllegalStateException("No retained instances found in heap dump")
-              return HeapAnalysisFailure(
-                  heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-                  HeapAnalysisException(exception)
-              )
-            }
+        if (retainedWeakRefs.isEmpty()) {
+          val exception = IllegalStateException("No retained instances found in heap dump")
+          return HeapAnalysisFailure(
+              heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
+              HeapAnalysisException(exception)
+          )
+        }
 
-            val (pathResults, dominatedInstances) =
-              findShortestPaths(
-                  graph, exclusions, retainedWeakRefs, gcRootIds,
-                  computeRetainedHeapSize
-              )
+        val (pathResults, dominatedInstances) =
+          findShortestPaths(
+              graph, exclusions, retainedWeakRefs, gcRootIds,
+              computeRetainedHeapSize
+          )
 
-            val retainedSizes = if (computeRetainedHeapSize) {
-              computeRetainedSizes(graph, pathResults, dominatedInstances, cleaners)
-            } else {
-              null
-            }
+        val retainedSizes = if (computeRetainedHeapSize) {
+          computeRetainedSizes(graph, pathResults, dominatedInstances, cleaners)
+        } else {
+          null
+        }
 
-            buildLeakTraces(
-                leakTraceInspectors, pathResults, graph,
-                retainedWeakRefs, analysisResults, retainedSizes
-            )
+        buildLeakTraces(
+            leakTraceInspectors, pathResults, graph,
+            retainedWeakRefs, analysisResults, retainedSizes
+        )
 
-            addRemainingInstancesWithNoPath(retainedWeakRefs, analysisResults)
+        addRemainingInstancesWithNoPath(retainedWeakRefs, analysisResults)
 
-            return HeapAnalysisSuccess(
-                heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-                analysisResults.values.toList()
-            )
-          }
+        return HeapAnalysisSuccess(
+            heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
+            analysisResults.values.toList()
+        )
+      }
     } catch (exception: Throwable) {
       return HeapAnalysisFailure(
           heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
@@ -151,58 +147,74 @@ class HeapAnalyzer constructor(
   }
 
   private data class ScanResult(
+    val graph: HprofGraph,
+    val hprofCloseable: Closeable,
     val gcRootIds: MutableList<GcRoot>,
     val keyedWeakReferenceInstances: List<GraphInstanceRecord>,
     val cleaners: MutableList<Long>
   )
 
   private fun scan(
-    parser: HprofParser,
-    graph: HprofGraph,
+    hprofFile: File,
     computeRetainedSize: Boolean
   ): ScanResult {
-    val keyedWeakReferenceInstances = mutableListOf<GraphInstanceRecord>()
     val gcRoot = mutableListOf<GcRoot>()
     val cleaners = mutableListOf<Long>()
-    val callbacks = RecordCallbacks()
-        .on(InstanceDumpRecord::class.java) { record ->
-          when (parser.className(record.classId)) {
-            KeyedWeakReference::class.java.name -> keyedWeakReferenceInstances.add(
-                GraphInstanceRecord(graph, record)
-            )
-            // Pre 2.0 KeyedWeakReference
-            "com.squareup.leakcanary.KeyedWeakReference" -> keyedWeakReferenceInstances.add(
-                GraphInstanceRecord(graph, record)
-            )
-            "sun.misc.Cleaner" -> if (computeRetainedSize) cleaners.add(record.id)
-          }
-        }
-        .on(GcRootRecord::class.java) {
-          // TODO Ignoring VmInternal because we've got 150K of it, but is this the right thing
-          // to do? What's VmInternal exactly? History does not go further than
-          // https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
-          // We should log to figure out what objects VmInternal points to.
-          when (it.gcRoot) {
-            // ThreadObject points to threads, which we need to find the thread that a JavaLocalExclusion
-            // belongs to
-            is ThreadObject,
-            is JniGlobal,
-            is JniLocal,
-            is JavaFrame,
-            is NativeStack,
-            is StickyClass,
-            is ThreadBlock,
-            is MonitorUsed,
-              // TODO What is this and why do we care about it as a root?
-            is ReferenceCleanup,
-            is JniMonitor
-            -> {
-              gcRoot.add(it.gcRoot)
+
+    val recordListener = object : OnRecordListener {
+      override fun recordTypes(): Set<KClass<out Record>> = setOf(GcRootRecord::class)
+
+      override fun onTypeSizesAvailable(typeSizes: Map<Int, Int>) {
+      }
+
+      override fun onRecord(
+        position: Long,
+        record: Record
+      ) {
+        when (record) {
+          is GcRootRecord -> {
+            // TODO Ignoring VmInternal because we've got 150K of it, but is this the right thing
+            // to do? What's VmInternal exactly? History does not go further than
+            // https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
+            // We should log to figure out what objects VmInternal points to.
+            when (record.gcRoot) {
+              // ThreadObject points to threads, which we need to find the thread that a JavaLocalExclusion
+              // belongs to
+              is ThreadObject,
+              is JniGlobal,
+              is JniLocal,
+              is JavaFrame,
+              is NativeStack,
+              is StickyClass,
+              is ThreadBlock,
+              is MonitorUsed,
+                // TODO What is this and why do we care about it as a root?
+              is ReferenceCleanup,
+              is JniMonitor
+              -> {
+                gcRoot.add(record.gcRoot)
+              }
             }
           }
+          else -> {
+            throw IllegalArgumentException("Unexpected record $record")
+          }
         }
-    parser.scan(callbacks)
-    return ScanResult(gcRoot, keyedWeakReferenceInstances, cleaners)
+      }
+    }
+    val (graph, hprofCloseable) = HprofGraph.readHprof(hprofFile, recordListener)
+
+    val keyedWeakReferenceInstances = mutableListOf<GraphInstanceRecord>()
+    graph.instanceSequence()
+        .forEach { instance ->
+          val className = instance.className
+          if (className == "leakcanary.KeyedWeakReference" || className == "com.squareup.leakcanary.KeyedWeakReference") {
+            keyedWeakReferenceInstances.add(instance)
+          } else if (computeRetainedSize && className == "sun.misc.Cleaner") {
+            cleaners.add(instance.objectId)
+          }
+        }
+    return ScanResult(graph, hprofCloseable, gcRoot, keyedWeakReferenceInstances, cleaners)
   }
 
   private fun findLeakingReferences(
@@ -210,7 +222,7 @@ class HeapAnalyzer constructor(
     keyedWeakReferenceInstances: List<GraphInstanceRecord>
   ): MutableList<KeyedWeakReferenceMirror> {
 
-    val keyedWeakReferenceClass = graph.readClass(KeyedWeakReference::class.java.name)
+    val keyedWeakReferenceClass = graph.indexedClass(KeyedWeakReference::class.java.name)
 
     val heapDumpUptimeMillis = if (keyedWeakReferenceClass == null) {
       null
@@ -270,18 +282,18 @@ class HeapAnalyzer constructor(
     // the CleanerThunk. The hprof does not include the native bytes pointed to.
 
     cleaners.forEach { objectId ->
-      val cleaner = graph.readGraphObjectRecord(objectId).asInstance!!
+      val cleaner = graph.indexedObject(objectId).asInstance!!
       val thunkField = cleaner["sun.misc.Cleaner", "thunk"]
       val thunkId = thunkField?.value?.asNonNullObjectIdReference
       val referentId =
         cleaner["java.lang.ref.Reference", "referent"]?.value?.asNonNullObjectIdReference
       if (thunkId != null && referentId != null) {
-        val thunkRecord = thunkField.value.readObjectRecord()
+        val thunkRecord = thunkField.value.asObject
         if (thunkRecord is GraphInstanceRecord && thunkRecord instanceOf "libcore.util.NativeAllocationRegistry\$CleanerThunk") {
           val allocationRegistryIdField =
             thunkRecord["libcore.util.NativeAllocationRegistry\$CleanerThunk", "this\$0"]
           if (allocationRegistryIdField != null && allocationRegistryIdField.value.isNonNullReference) {
-            val allocationRegistryRecord = allocationRegistryIdField.value.readObjectRecord()
+            val allocationRegistryRecord = allocationRegistryIdField.value.asObject
             if (allocationRegistryRecord is GraphInstanceRecord && allocationRegistryRecord instanceOf "libcore.util.NativeAllocationRegistry") {
               var nativeSize = nativeSizes.getValue(referentId)
               nativeSize += allocationRegistryRecord["libcore.util.NativeAllocationRegistry", "size"]?.value?.asLong?.toInt()
@@ -302,11 +314,12 @@ class HeapAnalyzer constructor(
     results.forEach { result ->
       val leakingInstanceId = result.weakReference.referent.value
       leakingInstanceIds.add(leakingInstanceId)
-      val instanceRecord = graph.readGraphObjectRecord(leakingInstanceId).asInstance!!
-      val classRecord = instanceRecord.readClass()
+      val instanceRecord = graph.indexedObject(leakingInstanceId).asInstance!!
+      val classRecord = instanceRecord.instanceClass
       var retainedSize = sizeByDominator.getValue(leakingInstanceId)
 
-      retainedSize += classRecord.record.instanceSize
+      retainedSize += classRecord.readRecord()
+          .instanceSize
       sizeByDominator[leakingInstanceId] = retainedSize
     }
 
@@ -316,8 +329,7 @@ class HeapAnalyzer constructor(
       if (instanceId !in leakingInstanceIds) {
         val currentSize = sizeByDominator.getValue(dominatorId)
         val nativeSize = nativeSizes.getValue(instanceId)
-        val record = graph.readObjectRecord(instanceId)
-        val shallowSize = graph.computeShallowSize(record)
+        val shallowSize = graph.computeShallowSize(graph.indexedObject(instanceId))
         sizeByDominator[dominatorId] = currentSize + nativeSize + shallowSize
       }
     }
@@ -372,7 +384,7 @@ class HeapAnalyzer constructor(
       // We get the class name from the heap dump rather than the weak reference because primitive
       // arrays are more readable that way, e.g. "[C" at runtime vs "char[]" in the heap dump.
       val instanceClassName =
-        recordClassName(graph.readGraphObjectRecord(pathResult.leakingNode.instance))
+        recordClassName(graph.indexedObject(pathResult.leakingNode.instance))
 
       val leakDetected = LeakingInstance(
           referenceKey = weakReference.key,
@@ -419,7 +431,9 @@ class HeapAnalyzer constructor(
     val leakReporters = mutableListOf<LeakTraceElementReporter>()
     while (node is ChildNode) {
       nodes.add(0, node.parent)
-      leakReporters.add(0, LeakTraceElementReporter(graph.readGraphObjectRecord(node.parent.instance)))
+      leakReporters.add(
+          0, LeakTraceElementReporter(graph.indexedObject(node.parent.instance))
+      )
       node = node.parent
     }
 
@@ -553,17 +567,17 @@ class HeapAnalyzer constructor(
   ): LeakTraceElement {
     val objectId = node.parent.instance
 
-    val graphRecord = graph.readGraphObjectRecord(objectId)
+    val graphRecord = graph.indexedObject(objectId)
 
     val className = recordClassName(graphRecord)
 
-    val holderType = if (graphRecord.record is ClassDumpRecord) {
+    val holderType = if (graphRecord is GraphClassRecord) {
       CLASS
-    } else if (graphRecord.record is ObjectArrayDumpRecord || graphRecord.record is PrimitiveArrayDumpRecord) {
+    } else if (graphRecord is GraphObjectArrayRecord || graphRecord is GraphPrimitiveArrayRecord) {
       ARRAY
     } else {
       val instanceRecord = graphRecord.asInstance!!
-      if (instanceRecord.readClass().readClassHierarchy().any { it.name == Thread::class.java.name }) {
+      if (instanceRecord.instanceClass.classHierarchy.any { it.name == Thread::class.java.name }) {
         THREAD
       } else {
         OBJECT
@@ -581,15 +595,15 @@ class HeapAnalyzer constructor(
       is GraphClassRecord -> graphRecord.name
       is GraphInstanceRecord -> graphRecord.className
       is GraphObjectArrayRecord -> graphRecord.arrayClassName
-      is GraphPrimitiveArrayRecord -> when (graphRecord.record) {
-        is BooleanArrayDump -> "boolean[]"
-        is CharArrayDump -> "char[]"
-        is FloatArrayDump -> "float[]"
-        is DoubleArrayDump -> "double[]"
-        is ByteArrayDump -> "byte[]"
-        is ShortArrayDump -> "short[]"
-        is IntArrayDump -> "int[]"
-        is LongArrayDump -> "long[]"
+      is GraphPrimitiveArrayRecord -> when (graphRecord.primitiveType) {
+        BOOLEAN -> "boolean[]"
+        CHAR -> "char[]"
+        FLOAT -> "float[]"
+        DOUBLE -> "double[]"
+        BYTE -> "byte[]"
+        SHORT -> "short[]"
+        INT -> "int[]"
+        LONG -> "long[]"
       }
     }
   }

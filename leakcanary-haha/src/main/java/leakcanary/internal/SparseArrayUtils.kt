@@ -21,6 +21,26 @@ internal object SparseArrayUtils {
     return newArray
   }
 
+  fun <T> insertObject(
+    array: Array<T?>,
+    currentSize: Int,
+    index: Int,
+    element: T
+  ): Array<T?> {
+    if (currentSize + 1 <= array.size) {
+      System.arraycopy(array, index, array, index + 1, currentSize - index)
+      array[index] = element
+      return array
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    val newArray = arrayOfNulls<Any?>(growSize(currentSize)) as Array<T?>
+    System.arraycopy(array, 0, newArray, 0, index)
+    newArray[index] = element
+    System.arraycopy(array, index, newArray, index + 1, array.size - index)
+    return newArray
+  }
+
   fun insertLong(
     array: LongArray,
     currentSize: Int,
@@ -82,6 +102,22 @@ internal object SparseArrayUtils {
     var returnedArray = array
     if (currentSize + 1 > returnedArray.size) {
       val newArray = LongArray(growSize(currentSize))
+      System.arraycopy(returnedArray, 0, newArray, 0, currentSize)
+      returnedArray = newArray
+    }
+    returnedArray[currentSize] = element
+    return returnedArray
+  }
+
+  fun <T> appendObject(
+    array: Array<T?>,
+    currentSize: Int,
+    element: T
+  ): Array<T?> {
+    var returnedArray = array
+    if (currentSize + 1 > returnedArray.size) {
+      @Suppress("UNCHECKED_CAST")
+      val newArray = arrayOfNulls<Any?>(growSize(currentSize)) as Array<T?>
       System.arraycopy(returnedArray, 0, newArray, 0, currentSize)
       returnedArray = newArray
     }

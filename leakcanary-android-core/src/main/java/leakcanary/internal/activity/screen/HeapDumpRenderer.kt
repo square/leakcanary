@@ -12,15 +12,15 @@ import android.graphics.Paint.Style.STROKE
 import android.graphics.Rect
 import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.core.R
-import leakcanary.HprofParser
-import leakcanary.HprofParser.RecordCallbacks
+import leakcanary.HprofPushRecordsParser
+import leakcanary.HprofPushRecordsParser.OnRecordListener
 import leakcanary.Record
 import leakcanary.Record.HeapDumpEndRecord
+import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
@@ -33,6 +33,7 @@ import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StackTraceRecord
 import leakcanary.Record.StringRecord
 import java.io.File
+import kotlin.reflect.KClass
 
 object HeapDumpRenderer {
 
@@ -56,8 +57,6 @@ object HeapDumpRenderer {
      */
     sourceBytesPerPixel: Int
   ): Bitmap = with(HasDensity(context.resources)) {
-    val parser = HprofParser.open(heapDumpFile)
-
     val recordPositions = mutableListOf<Pair<Int, Long>>()
     var currentRecord: Record? = null
 
@@ -91,7 +90,8 @@ object HeapDumpRenderer {
         IntArrayDump::class to intArrayColor,
         LongArrayDump::class to longArrayColor,
         StackTraceRecord::class to stackTraceColor,
-        HeapDumpEndRecord::class to otherColor
+        HeapDumpEndRecord::class to otherColor,
+        GcRootRecord::class to otherColor
     )
 
     val appHeapColor = ContextCompat.getColor(context, R.color.leak_canary_heap_app)
@@ -99,13 +99,33 @@ object HeapDumpRenderer {
     val zygoteHeapColor = ContextCompat.getColor(context, R.color.leak_canary_heap_zygote)
     val stringColor = ContextCompat.getColor(context, R.color.leak_canary_heap_instance_string)
 
-    val updatePosition: (Record) -> Unit =
-      { newRecord ->
+    val parser = HprofPushRecordsParser()
+    val reader = parser.readHprofRecords(heapDumpFile, setOf(object : OnRecordListener {
+      override fun recordTypes(): Set<KClass<out Record>> = setOf(Record::class)
+
+      val hprofStringCache = mutableMapOf<Long, String>()
+      val classNames = mutableMapOf<Long, Long>()
+
+      override fun onTypeSizesAvailable(typeSizes: Map<Int, Int>) {
+      }
+
+      override fun onRecord(
+        position: Long,
+        record: Record
+      ) {
+        when (record) {
+          is StringRecord -> {
+            hprofStringCache[record.id] = record.string
+          }
+          is LoadClassRecord -> {
+            classNames[record.id] = record.classNameStringId
+          }
+        }
         val localCurrentRecord = currentRecord
         when {
           localCurrentRecord is HeapDumpInfoRecord -> {
             val colorForHeapInfo =
-              when (parser.hprofStringById(localCurrentRecord.heapNameStringId)) {
+              when (hprofStringCache[localCurrentRecord.heapNameStringId]) {
                 // The primary heap on which your app allocates memory.
                 "app" -> appHeapColor
                 // The system boot image, containing classes that are preloaded during boot time.
@@ -117,44 +137,30 @@ object HeapDumpRenderer {
                 // default heap: When no heap is specified by the system
                 else -> otherColor
               }
-            recordPositions.add(colorForHeapInfo to parser.position)
-            currentRecord = newRecord
+            recordPositions.add(colorForHeapInfo to position)
+            currentRecord = record
           }
           localCurrentRecord is InstanceDumpRecord
-              && parser.className(localCurrentRecord.classId) == "java.lang.String"
-              && (newRecord !is InstanceDumpRecord || parser.className(
-              newRecord.classId
-          ) != "java.lang.String")
+              && hprofStringCache[classNames[localCurrentRecord.classId]] == "java.lang.String"
+              && (record !is InstanceDumpRecord || hprofStringCache[classNames[record.classId]]
+              != "java.lang.String")
           -> {
-            recordPositions.add(stringColor to parser.position)
-            currentRecord = newRecord
+            recordPositions.add(stringColor to position)
+            currentRecord = record
           }
           currentRecord == null -> {
-            recordPositions.add(otherColor to parser.position)
-            currentRecord = newRecord
+            recordPositions.add(otherColor to position)
+            currentRecord = record
           }
-          currentRecord!!::class != newRecord::class -> {
-            recordPositions.add(colors.getValue(currentRecord!!::class) to parser.position)
-            currentRecord = newRecord
+          currentRecord!!::class != record::class -> {
+            recordPositions.add(colors.getValue(currentRecord!!::class) to position)
+            currentRecord = record
           }
         }
       }
-
-    parser.scan(
-        RecordCallbacks()
-            .on(StringRecord::class.java, updatePosition)
-            .on(LoadClassRecord::class.java, updatePosition)
-            .on(ClassDumpRecord::class.java, updatePosition)
-            .on(InstanceDumpRecord::class.java, updatePosition)
-            .on(ObjectArrayDumpRecord::class.java, updatePosition)
-            .on(PrimitiveArrayDumpRecord::class.java, updatePosition)
-            .on(HeapDumpInfoRecord::class.java, updatePosition)
-            .on(HeapDumpEndRecord::class.java, updatePosition)
-            .on(StackTraceRecord::class.java, updatePosition)
-    )
-
-    val heapLength = parser.position
-    parser.close()
+    }))
+    val heapLength = reader.position
+    reader.close()
 
     val width = sourceWidth
     var height: Int
