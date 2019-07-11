@@ -1,6 +1,6 @@
 package leakcanary
 
-class LeakTraceElementReporter(val objectRecord: GraphObjectRecord) {
+class ObjectReporter(val objectRecord: GraphObjectRecord) {
 
   private val mutableLabels = mutableListOf<String>()
   private val mutableLeakNodeStatuses = mutableListOf<LeakNodeStatusAndReason>()

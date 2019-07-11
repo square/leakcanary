@@ -20,7 +20,7 @@ import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import kotlin.reflect.KClass
 
 /**
- * A set of default [LeakInspector]s that knows about common AOSP and library
+ * A set of default [ObjectInspector]s that knows about common AOSP and library
  * classes.
  *
  * These are heuristics based on our experience and knowledge of AOSP and various library
@@ -30,14 +30,14 @@ import kotlin.reflect.KClass
  * For example, no matter how many mistakes we make in our code, the value of Activity.mDestroy
  * will not be influenced by those mistakes.
  */
-enum class AndroidLeakTraceInspectors : LeakTraceInspector {
+enum class AndroidObjectInspectors : ObjectInspector {
 
   VIEW {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.view.View") { instance ->
+      reporter.asInstance("android.view.View") { instance ->
         // This skips edge cases like Toast$TN.mNextView holding on to an unattached and unparented
         // next toast view
         val mParentRef = instance["android.view.View", "mParent"]!!.value
@@ -50,7 +50,8 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
           } else {
             val viewParent = mParentRef.asObject!!.asInstance!!
             if (viewParent instanceOf "android.view.View" &&
-                viewParent["android.view.View", "mAttachInfo"]!!.value.isNullReference) {
+                viewParent["android.view.View", "mAttachInfo"]!!.value.isNullReference
+            ) {
               reportLeaking("View attached but parent detached (attach disorder)")
             } else {
               reportNotLeaking("View attached")
@@ -84,9 +85,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   ACTIVITY {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.app.Activity") { instance ->
+      reporter.asInstance("android.app.Activity") { instance ->
         // Activity.mDestroyed was introduced in 17.
         // https://android.googlesource.com/platform/frameworks/base/+
         // /6d9dcbccec126d9b87ab6587e686e28b87e5a04d
@@ -106,9 +107,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   CONTEXT_WRAPPER {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.content.ContextWrapper") { instance ->
+      reporter.asInstance("android.content.ContextWrapper") { instance ->
         // Activity is already taken care of
         if (!(instance instanceOf "android.app.Activity")) {
           var context = instance
@@ -132,7 +133,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
                   } else {
                     // We can't assume it's not leaking, because this context might have a shorter lifecycle
                     // than the activity. So we'll just add a label.
-                    addLabel("${instance.classSimpleName} wraps an Activity with Activity.mDestroyed false")
+                    addLabel(
+                        "${instance.classSimpleName} wraps an Activity with Activity.mDestroyed false"
+                    )
                   }
                 }
               } else if (context instanceOf "android.content.ContextWrapper" &&
@@ -151,9 +154,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   DIALOG {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.app.Dialog") { instance ->
+      reporter.asInstance("android.app.Dialog") { instance ->
         val mDecor = instance["android.app.Dialog", "mDecor"]!!
         if (mDecor.value.isNullReference) {
           reportLeaking(mDecor describedWithValue "null")
@@ -167,9 +170,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   APPLICATION {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.app.Application") {
+      reporter.asInstance("android.app.Application") {
         reportNotLeaking("Application is a singleton")
       }
     }
@@ -178,9 +181,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   INPUT_METHOD_MANAGER {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.view.inputmethod.InputMethodManager") {
+      reporter.asInstance("android.view.inputmethod.InputMethodManager") {
         reportNotLeaking("InputMethodManager is a singleton")
       }
     }
@@ -189,9 +192,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   CLASSLOADER {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf(ClassLoader::class) {
+      reporter.asInstance(ClassLoader::class) {
         reportNotLeaking("A ClassLoader is never leaking")
       }
     }
@@ -200,12 +203,10 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   CLASS {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEach { reporter ->
-        if (reporter.objectRecord is GraphClassRecord) {
-          reporter.reportNotLeaking("a class is never leaking")
-        }
+      if (reporter.objectRecord is GraphClassRecord) {
+        reporter.reportNotLeaking("a class is never leaking")
       }
     }
   },
@@ -213,9 +214,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   FRAGMENT {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.app.Fragment") { instance ->
+      reporter.asInstance("android.app.Fragment") { instance ->
         val fragmentManager = instance["android.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
           reportLeaking(fragmentManager describedWithValue "null")
@@ -233,9 +234,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   SUPPORT_FRAGMENT {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.support.v4.app.Fragment") { instance ->
+      reporter.asInstance("android.support.v4.app.Fragment") { instance ->
         val fragmentManager = instance["android.support.v4.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
           reportLeaking(fragmentManager describedWithValue "null")
@@ -253,9 +254,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   ANDROIDX_FRAGMENT {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("androidx.fragment.app.Fragment") { instance ->
+      reporter.asInstance("androidx.fragment.app.Fragment") { instance ->
         val fragmentManager = instance["androidx.fragment.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
           reportLeaking(fragmentManager describedWithValue "null")
@@ -273,9 +274,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   MESSAGE_QUEUE {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.os.MessageQueue") { instance ->
+      reporter.asInstance("android.os.MessageQueue") { instance ->
         val mQuitting = instance["android.os.MessageQueue", "mQuitting"]!!
         if (mQuitting.value.asBoolean!!) {
           reportLeaking(mQuitting describedWithValue "true")
@@ -289,9 +290,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   MORTAR_PRESENTER {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("mortar.Presenter") { instance ->
+      reporter.asInstance("mortar.Presenter") { instance ->
         // Bugs in view code tends to cause Mortar presenters to still have a view when they actually
         // should be unreachable, so in that case we don't know their reachability status. However,
         // when the view is null, we're pretty sure they  never leaking.
@@ -306,9 +307,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   COORDINATOR {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
+      reporter.asInstance("com.squareup.coordinators.Coordinator") { instance ->
         val attached = instance["com.squareup.coordinators.Coordinator", "attached"]
         if (attached!!.value.asBoolean!!) {
           reportNotLeaking(attached describedWithValue "true")
@@ -322,34 +323,32 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   ANONYMOUS_CLASS {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEach { reporter ->
-        if (reporter.objectRecord is GraphInstanceRecord) {
-          val classRecord = reporter.objectRecord.instanceClass
-          if (classRecord.name.matches(HeapAnalyzer.ANONYMOUS_CLASS_NAME_PATTERN_REGEX)) {
-            val parentClassRecord = classRecord.superClass!!
-            if (parentClassRecord.name == "java.lang.Object") {
-              try {
-                // This is an anonymous class implementing an interface. The API does not give access
-                // to the interfaces implemented by the class. We check if it's in the class path and
-                // use that instead.
-                val actualClass = Class.forName(classRecord.name)
-                val interfaces = actualClass.interfaces
-                reporter.addLabel(
-                    if (interfaces.isNotEmpty()) {
-                      val implementedInterface = interfaces[0]
-                      "Anonymous class implementing ${implementedInterface.name}"
-                    } else {
-                      "Anonymous subclass of java.lang.Object"
-                    }
-                )
-              } catch (ignored: ClassNotFoundException) {
-              }
-            } else {
-              // Makes it easier to figure out which anonymous class we're looking at.
-              reporter.addLabel("Anonymous subclass of ${parentClassRecord.name}")
+      if (reporter.objectRecord is GraphInstanceRecord) {
+        val classRecord = reporter.objectRecord.instanceClass
+        if (classRecord.name.matches(HeapAnalyzer.ANONYMOUS_CLASS_NAME_PATTERN_REGEX)) {
+          val parentClassRecord = classRecord.superClass!!
+          if (parentClassRecord.name == "java.lang.Object") {
+            try {
+              // This is an anonymous class implementing an interface. The API does not give access
+              // to the interfaces implemented by the class. We check if it's in the class path and
+              // use that instead.
+              val actualClass = Class.forName(classRecord.name)
+              val interfaces = actualClass.interfaces
+              reporter.addLabel(
+                  if (interfaces.isNotEmpty()) {
+                    val implementedInterface = interfaces[0]
+                    "Anonymous class implementing ${implementedInterface.name}"
+                  } else {
+                    "Anonymous subclass of java.lang.Object"
+                  }
+              )
+            } catch (ignored: ClassNotFoundException) {
             }
+          } else {
+            // Makes it easier to figure out which anonymous class we're looking at.
+            reporter.addLabel("Anonymous subclass of ${parentClassRecord.name}")
           }
         }
       }
@@ -359,9 +358,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   THREAD {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf(Thread::class) { instance ->
+      reporter.asInstance(Thread::class) { instance ->
         val threadName = instance[Thread::class, "name"]!!.value.readAsJavaString()
         if (threadName == "main") {
           reportNotLeaking("the main thread always runs")
@@ -374,9 +373,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   WINDOW {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.view.Window") { instance ->
+      reporter.asInstance("android.view.Window") { instance ->
         val mDestroyed = instance["android.view.Window", "mDestroyed"]!!
 
         if (mDestroyed.value.asBoolean!!) {
@@ -391,9 +390,9 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   TOAST {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.widget.Toast") { instance ->
+      reporter.asInstance("android.widget.Toast") { instance ->
         val tnInstance =
           instance["android.widget.Toast", "mTN"]!!.value.asObject!!.asInstance!!
         // mWM is set in android.widget.Toast.TN#handleShow and never unset, so this toast was never
@@ -417,16 +416,16 @@ enum class AndroidLeakTraceInspectors : LeakTraceInspector {
   TOAST_TN {
     override fun inspect(
       graph: HprofGraph,
-      leakTrace: List<LeakTraceElementReporter>
+      reporter: ObjectReporter
     ) {
-      leakTrace.forEachInstanceOf("android.widget.Toast\$TN") {
+      reporter.asInstance("android.widget.Toast\$TN") {
         reportNotLeaking("Toast.TN (Transient Notification) is never leaking")
       }
     }
   };
 
   companion object {
-    fun defaultInspectors(): List<LeakTraceInspector> {
+    fun defaultInspectors(): List<ObjectInspector> {
       return values().toList()
     }
   }
@@ -436,20 +435,18 @@ private infix fun GraphField.describedWithValue(valueDescription: String): Strin
   return "${classRecord.simpleName}#$name is $valueDescription"
 }
 
-inline fun List<LeakTraceElementReporter>.forEachInstanceOf(
+inline fun ObjectReporter.asInstance(
   expectedClass: KClass<out Any>,
-  action: LeakTraceElementReporter.(GraphInstanceRecord) -> Unit
+  action: ObjectReporter.(GraphInstanceRecord) -> Unit
 ) {
-  forEachInstanceOf(expectedClass.java.name, action)
+  asInstance(expectedClass.java.name, action)
 }
 
-inline fun List<LeakTraceElementReporter>.forEachInstanceOf(
+inline fun ObjectReporter.asInstance(
   className: String,
-  action: LeakTraceElementReporter.(GraphInstanceRecord) -> Unit
+  block: ObjectReporter.(GraphInstanceRecord) -> Unit
 ) {
-  for (reporter in this) {
-    if (reporter.objectRecord is GraphInstanceRecord && reporter.objectRecord instanceOf className) {
-      reporter.action(reporter.objectRecord)
-    }
+  if (objectRecord is GraphInstanceRecord && objectRecord instanceOf className) {
+    block(objectRecord)
   }
 }
