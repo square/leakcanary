@@ -405,14 +405,15 @@ internal class ShortestPathFinder {
     parentNode: LeakNode,
     computeRetainedHeapSize: Boolean
   ) {
-    record.elementIds.forEachIndexed { index, elementId ->
-      if (computeRetainedHeapSize) {
-        updateDominatorWithSkips(graph, parentNode.instance, elementId)
-      }
-      val name = Integer.toString(index)
-      val reference = LeakReference(ARRAY_ENTRY, name)
-      enqueue(graph, ChildNode(elementId, visitOrder++, null, parentNode, reference), null)
-    }
+    record.elementIds.filter { it != 0L }
+        .forEachIndexed { index, elementId ->
+          if (computeRetainedHeapSize) {
+            updateDominatorWithSkips(graph, parentNode.instance, elementId)
+          }
+          val name = Integer.toString(index)
+          val reference = LeakReference(ARRAY_ENTRY, name)
+          enqueue(graph, ChildNode(elementId, visitOrder++, null, parentNode, reference), null)
+        }
   }
 
   private fun enqueue(
