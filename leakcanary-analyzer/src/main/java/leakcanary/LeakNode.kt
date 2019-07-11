@@ -6,6 +6,7 @@ sealed class LeakNode {
   abstract val visitOrder: Int
 
   class RootNode(
+    val gcRoot: GcRoot,
     override val instance: Long,
     override val visitOrder: Int
   ) : LeakNode()

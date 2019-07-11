@@ -261,7 +261,7 @@ internal class ShortestPathFinder {
       when (gcRoot) {
         is ThreadObject -> {
           threadsBySerialNumber[gcRoot.threadSerialNumber] = gcRoot
-          enqueue(graph, RootNode(gcRoot.id, visitOrder++), exclusionPriority = null)
+          enqueue(graph, RootNode(gcRoot, gcRoot.id, visitOrder++), exclusionPriority = null)
         }
         is JavaFrame -> {
           val threadRoot = threadsBySerialNumber.getValue(gcRoot.threadSerialNumber)
@@ -271,7 +271,7 @@ internal class ShortestPathFinder {
 
           if (exclusion == null || exclusion.status != NEVER_REACHABLE) {
             // visitOrder is unused as this root node isn't enqueued.
-            val rootNode = RootNode(threadRoot.id, visitOrder = 0)
+            val rootNode = RootNode(gcRoot, threadRoot.id, visitOrder = 0)
             // TODO #1352 Instead of <Java Local>, it should be <local variable in Foo.bar()>
             // We should also add the full stacktrace as a label of thread objects
             val leakReference = LeakReference(LOCAL, "")
@@ -282,7 +282,7 @@ internal class ShortestPathFinder {
             )
           }
         }
-        else -> enqueue(graph, RootNode(gcRoot.id, visitOrder++), exclusionPriority = null)
+        else -> enqueue(graph, RootNode(gcRoot, gcRoot.id, visitOrder++), exclusionPriority = null)
       }
     }
     gcRoots.clear()

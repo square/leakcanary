@@ -32,7 +32,7 @@ data class LeakTrace(
       NOT_LEAKING -> if (index < elements.lastIndex) {
         elements[index + 1].leakStatusAndReason.status != NOT_LEAKING
       } else {
-        true
+        false
       }
       else -> false
     }
