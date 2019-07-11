@@ -37,6 +37,7 @@ import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
 import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
 import leakcanary.HprofPushRecordsParser.OnRecordListener
 import leakcanary.LeakNode.ChildNode
+import leakcanary.LeakNode.RootNode
 import leakcanary.LeakNodeStatus.LEAKING
 import leakcanary.LeakNodeStatus.NOT_LEAKING
 import leakcanary.LeakNodeStatus.UNKNOWN
@@ -436,10 +437,11 @@ class HeapAnalyzer constructor(
       )
       node = node.parent
     }
+    val rootNode = node as RootNode
 
     leakTraceInspectors.forEach { it.inspect(graph, leakReporters) }
 
-    val leakStatuses = computeLeakStatuses(leakReporters)
+    val leakStatuses = computeLeakStatuses(rootNode, leakReporters)
 
     node = leafNode
     while (node is ChildNode) {
@@ -453,16 +455,42 @@ class HeapAnalyzer constructor(
   }
 
   private fun computeLeakStatuses(
+    rootNode: RootNode,
     leakReporters: List<LeakTraceElementReporter>
   ): List<LeakNodeStatusAndReason> {
-    var lastNotLeakingElementIndex = 0
     val lastElementIndex = leakReporters.size - 1
+
+    val rootNodeReporter = leakReporters[0]
+
+    rootNodeReporter.addLabel(
+        "GC Root: " + when (rootNode.gcRoot) {
+          is ThreadObject -> "Thread object"
+          is JniGlobal -> "Global variable in native code"
+          is JniLocal -> "Local variable in native code"
+          is JavaFrame -> "Java local variable"
+          is NativeStack -> "Input or output parameters in native code"
+          is StickyClass -> "System class"
+          is ThreadBlock -> "Thread block"
+          is MonitorUsed -> "Monitor (anything that called the wait() or notify() methods, or that is synchronized.)"
+          is ReferenceCleanup -> "Reference cleanup"
+          is JniMonitor -> "Root JNI monitor"
+          else -> throw IllegalStateException("Unexpected gc root ${rootNode.gcRoot}")
+        }
+    )
+
+    when (rootNode.gcRoot) {
+      is StickyClass -> rootNodeReporter.reportNotLeaking("a system class never leaks")
+    }
+
+    leakReporters[lastElementIndex].reportLeaking("RefWatcher was watching this")
+
+    var lastNotLeakingElementIndex = 0
     var firstLeakingElementIndex = lastElementIndex
 
     val leakStatuses = ArrayList<LeakNodeStatusAndReason>()
 
     for ((index, reporter) in leakReporters.withIndex()) {
-      val leakStatus = inspectElementLeakStatus(reporter)
+      val leakStatus = resolveStatus(reporter)
       leakStatuses.add(leakStatus)
       if (leakStatus.status == NOT_LEAKING) {
         lastNotLeakingElementIndex = index
@@ -474,32 +502,12 @@ class HeapAnalyzer constructor(
       }
     }
 
-    leakStatuses[0] = when (leakStatuses[0].status) {
-      UNKNOWN -> LeakNodeStatus.notLeaking("it's a GC root")
-      NOT_LEAKING -> LeakNodeStatus.notLeaking(
-          "it's a GC root and ${leakStatuses[0].reason}"
-      )
-      LEAKING -> LeakNodeStatus.notLeaking(
-          "it's a GC root. Conflicts with ${leakStatuses[0].reason}"
-      )
-    }
-
-    leakStatuses[lastElementIndex] = when (leakStatuses[lastElementIndex].status) {
-      UNKNOWN -> LeakNodeStatus.leaking("RefWatcher was watching this")
-      LEAKING -> LeakNodeStatus.leaking(
-          "RefWatcher was watching this and ${leakStatuses[lastElementIndex].reason}"
-      )
-      NOT_LEAKING -> LeakNodeStatus.leaking(
-          "RefWatcher was watching this. Conflicts with ${leakStatuses[lastElementIndex].reason}"
-      )
-    }
-
     val simpleClassNames = leakReporters.map { reporter ->
       recordClassName(reporter.objectRecord).lastSegment('.')
     }
 
     // First and last are always known.
-    for (i in 1 until lastElementIndex) {
+    for (i in 0 ..lastElementIndex) {
       val leakStatus = leakStatuses[i]
       if (i < lastNotLeakingElementIndex) {
         val nextNotLeakingName = simpleClassNames[i + 1]
@@ -528,9 +536,10 @@ class HeapAnalyzer constructor(
     return leakStatuses
   }
 
-  private fun inspectElementLeakStatus(
+  private fun resolveStatus(
     reporter: LeakTraceElementReporter
   ): LeakNodeStatusAndReason {
+    // NOT_LEAKING always wins over LEAKING
     var current = LeakNodeStatus.unknown()
     for (statusAndReason in reporter.leakNodeStatuses) {
       current = when {

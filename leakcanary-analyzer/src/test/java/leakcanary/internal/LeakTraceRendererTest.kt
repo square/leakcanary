@@ -38,7 +38,8 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (it's a GC root)
+    │    Leaking: NO (a system class never leaks)
+    │    GC Root: System class
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking
@@ -74,7 +75,8 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (it's a GC root)
+    │    Leaking: NO (a system class never leaks)
+    │    GC Root: System class
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
     ├─ ClassA
@@ -85,7 +87,7 @@ class LeakTraceRendererTest {
     │    Leaking: YES (because reasons)
     │    ↓ ClassB.leak
     ╰→ Leaking
-    ​     Leaking: YES (RefWatcher was watching this)
+    ​     Leaking: YES (ClassB↑ is leaking and RefWatcher was watching this)
     """
   }
 
@@ -113,8 +115,9 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (it's a GC root)
+    │    Leaking: NO (a system class never leaks)
     │    ¯\_(ツ)_/¯
+    │    GC Root: System class
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking
@@ -140,7 +143,8 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (it's a GC root)
+    │    Leaking: NO (a system class never leaks)
+    │    GC Root: System class
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
     ├─ ClassA
@@ -166,7 +170,8 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (it's a GC root)
+    │    Leaking: NO (a system class never leaks)
+    │    GC Root: System class
     │    ↓ static GcRoot.array
     │                    ~~~~~
     ├─ java.lang.Object[]
@@ -187,7 +192,8 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ MyThread
-    │    Leaking: NO (it's a GC root)
+    │    Leaking: UNKNOWN
+    │    GC Root: Java local variable
     │    ↓ thread MyThread.<Java Local>
     │                      ~~~~~~~~~~~~
     ╰→ Leaking

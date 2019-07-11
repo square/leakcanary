@@ -183,7 +183,7 @@ class LeakStatusTest {
 
     val leak = analysis.retainedInstances[0] as LeakingInstance
     assertThat(leak.leakTrace.elements[0].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements[0].leakStatusAndReason.reason).isEqualTo("it's a GC root")
+    assertThat(leak.leakTrace.elements[0].leakStatusAndReason.reason).isEqualTo("Class1↓ is not leaking and a system class never leaks")
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.reason).isEqualTo(
         "Class2↓ is not leaking. Conflicts with Class1 is leaking"
@@ -234,7 +234,7 @@ class LeakStatusTest {
 
     assertThat(leak.leakTrace.elements.first().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements.first().leakStatusAndReason.reason).isEqualTo(
-        "it's a GC root. Conflicts with GcRoot is leaking"
+        "a system class never leaks. Conflicts with GcRoot is leaking"
     )
   }
 
@@ -250,7 +250,7 @@ class LeakStatusTest {
 
     assertThat(leak.leakTrace.elements.first().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements.first().leakStatusAndReason.reason).isEqualTo(
-        "it's a GC root and GcRoot is not leaking"
+        "GcRoot is not leaking and a system class never leaks"
     )
   }
 
@@ -262,9 +262,9 @@ class LeakStatusTest {
       )
 
     val leak = analysis.retainedInstances[0] as LeakingInstance
-    assertThat(leak.leakTrace.elements.last().leakStatusAndReason.status).isEqualTo(LEAKING)
+    assertThat(leak.leakTrace.elements.last().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements.last().leakStatusAndReason.reason).isEqualTo(
-        "RefWatcher was watching this. Conflicts with Leaking is not leaking"
+        "Leaking is not leaking. Conflicts with RefWatcher was watching this"
     )
   }
 
@@ -278,7 +278,7 @@ class LeakStatusTest {
     val leak = analysis.retainedInstances[0] as LeakingInstance
     assertThat(leak.leakTrace.elements.last().leakStatusAndReason.status).isEqualTo(LEAKING)
     assertThat(leak.leakTrace.elements.last().leakStatusAndReason.reason).isEqualTo(
-        "RefWatcher was watching this and Leaking is leaking"
+        "Leaking is leaking and RefWatcher was watching this"
     )
   }
 
