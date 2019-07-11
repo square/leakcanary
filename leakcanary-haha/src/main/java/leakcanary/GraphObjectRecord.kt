@@ -1,5 +1,6 @@
 package leakcanary
 
+import leakcanary.HeapValue.ObjectReference
 import leakcanary.Record.HeapDumpRecord.ObjectRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
@@ -67,14 +68,16 @@ sealed class GraphObjectRecord {
     val classHierarchy: Sequence<GraphClassRecord>
       get() = generateSequence(this) { it.superClass }
 
-    fun readStaticFields(): List<GraphField> {
-      val fields = mutableListOf<GraphField>()
-      for (fieldRecord in readRecord().staticFields) {
-        fields += GraphField(
-            this, graph.staticFieldName(fieldRecord), GraphHeapValue(graph, fieldRecord.value)
-        )
-      }
-      return fields
+    val directInstances: Sequence<GraphInstanceRecord>
+      get() = graph.instanceSequence().filter { it.indexedObject.classId == objectId }
+
+    fun readStaticFields(): Sequence<GraphField> {
+      return readRecord().staticFields.asSequence()
+          .map { fieldRecord ->
+            GraphField(
+                this, graph.staticFieldName(fieldRecord), GraphHeapValue(graph, fieldRecord.value)
+            )
+          }
     }
 
     operator fun get(fieldName: String): GraphField? {
@@ -91,7 +94,7 @@ sealed class GraphObjectRecord {
 
   class GraphInstanceRecord internal constructor(
     private val graph: HprofGraph,
-    private val indexedObject: IndexedInstance,
+    internal val indexedObject: IndexedInstance,
     override val objectId: Long,
     val isPrimitiveWrapper: Boolean
   ) : GraphObjectRecord() {
@@ -214,6 +217,10 @@ sealed class GraphObjectRecord {
       return graph.readObjectArrayDumpRecord(objectId, indexedObject)
     }
 
+    fun readElements(): Sequence<GraphHeapValue> {
+      return readRecord().elementIds.asSequence()
+          .map { GraphHeapValue(graph, ObjectReference(it)) }
+    }
   }
 
   class GraphPrimitiveArrayRecord internal constructor(

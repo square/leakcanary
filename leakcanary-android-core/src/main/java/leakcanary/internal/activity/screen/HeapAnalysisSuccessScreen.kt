@@ -79,6 +79,11 @@ internal class HeapAnalysisSuccessScreen(
               goTo(RenderHeapDumpScreen(heapAnalysis.heapDumpFile))
               true
             }
+        menu.add(R.string.leak_canary_options_menu_explore_heap_dump)
+            .setOnMenuItemClickListener {
+              goTo(HprofExplorerScreen(heapAnalysis.heapDumpFile))
+              true
+            }
       }
     }
 
