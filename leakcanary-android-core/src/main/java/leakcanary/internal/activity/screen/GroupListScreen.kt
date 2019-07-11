@@ -9,6 +9,7 @@ import android.widget.ListView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
+import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.LeakingInstanceTable
@@ -37,11 +38,11 @@ internal class GroupListScreen : Screen() {
               true
             }
 
-        menu.add(R.string.leak_canary_about_title)
+        menu.add(R.string.leak_canary_about_menu)
             .setOnMenuItemClickListener {
               val dialog = AlertDialog.Builder(context)
                   .setIcon(ContextCompat.getDrawable(context, R.drawable.leak_canary_icon))
-                  .setTitle(R.string.leak_canary_about_title)
+                  .setTitle(resources.getString(R.string.leak_canary_about_title, BuildConfig.LIBRARY_VERSION))
                   .setMessage(
                       HtmlCompat.fromHtml(
                           resources.getString(R.string.leak_canary_about_message),

@@ -15,7 +15,8 @@
   ~ limitations under the License.
   -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
-  <string name="leak_canary_about_title">About LeakCanary</string>
+  <string name="leak_canary_about_menu">About LeakCanary</string>
+  <string name="leak_canary_about_title">About LeakCanary %s</string>
   <string name="leak_canary_about_message"><![CDATA[<a href="https://github.com/square/leakcanary">LeakCanary</a>
   is a memory leak detection library for Android, created by
   <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> and open sourced by <a href="https://square.github.io">Square</a>.<br><br>
