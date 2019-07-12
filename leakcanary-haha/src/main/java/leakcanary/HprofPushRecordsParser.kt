@@ -579,7 +579,6 @@ class HprofPushRecordsParser {
                   skipHeapDumpInfoRecord()
                 }
               }
-
               else -> throw IllegalStateException(
                   "Unknown tag $heapDumpTag after $previousTag"
               )

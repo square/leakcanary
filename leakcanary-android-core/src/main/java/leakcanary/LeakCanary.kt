@@ -60,8 +60,15 @@ object LeakCanary {
      * WRITE_EXTERNAL_STORAGE permission is not granted and [requestWriteExternalStoragePermission]
      * is true, then LeakCanary will display a notification to ask for that permission.
      */
-    val requestWriteExternalStoragePermission: Boolean = false
+    val requestWriteExternalStoragePermission: Boolean = false,
 
+    /**
+     * When true, [objectInspectors] are used to find leaks instead of only checking instances
+     * tracked by [KeyedWeakReference]. This leads to finding more leaks and shorter leak traces.
+     * However this also means the same leaking instances will be found in every heap dump for a
+     * given process life.
+     */
+    val useExperimentalLeakFinders: Boolean = false
   )
 
   @Volatile

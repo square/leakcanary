@@ -168,14 +168,18 @@ class InstrumentationLeakDetector {
       )
     }
 
-    refWatcher.removeInstancesRetainedBeforeHeapDump(heapDumpUptimeMillis)
+    refWatcher.removeInstancesWatchedBeforeHeapDump(heapDumpUptimeMillis)
 
     val listener = AnalyzerProgressListener.NONE
 
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.checkForLeaks(
-        heapDumpFile, AndroidKnownReference.mapToExclusions(config.knownReferences), config.computeRetainedHeapSize,
-        config.objectInspectors
+        heapDumpFile, AndroidKnownReference.mapToExclusions(config.knownReferences),
+        config.computeRetainedHeapSize,
+        config.objectInspectors,
+        if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
+            AndroidObjectInspectors.KEYED_WEAK_REFERENCE
+        )
     )
 
     CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)

@@ -35,7 +35,8 @@ import leakcanary.GraphObjectRecord.GraphClassRecord
 import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
 import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
-import leakcanary.HprofPushRecordsParser.OnRecordListener
+import leakcanary.HeapAnalyzer.TrieNode.LeafNode
+import leakcanary.HeapAnalyzer.TrieNode.ParentNode
 import leakcanary.LeakNode.ChildNode
 import leakcanary.LeakNode.RootNode
 import leakcanary.LeakNodeStatus.LEAKING
@@ -45,27 +46,16 @@ import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
 import leakcanary.LeakTraceElement.Holder.OBJECT
 import leakcanary.LeakTraceElement.Holder.THREAD
-import leakcanary.PrimitiveType.BOOLEAN
-import leakcanary.PrimitiveType.BYTE
-import leakcanary.PrimitiveType.CHAR
-import leakcanary.PrimitiveType.DOUBLE
-import leakcanary.PrimitiveType.FLOAT
-import leakcanary.PrimitiveType.INT
-import leakcanary.PrimitiveType.LONG
-import leakcanary.PrimitiveType.SHORT
-import leakcanary.Record.HeapDumpRecord.GcRootRecord
-import leakcanary.internal.KeyedWeakReferenceMirror
+import leakcanary.internal.GcRootRecordListener
 import leakcanary.internal.ShortestPathFinder
 import leakcanary.internal.ShortestPathFinder.Result
 import leakcanary.internal.ShortestPathFinder.Results
 import leakcanary.internal.hppc.LongLongScatterMap
 import leakcanary.internal.lastSegment
-import java.io.Closeable
 import java.io.File
 import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.concurrent.TimeUnit.NANOSECONDS
-import kotlin.reflect.KClass
 
 /**
  * Analyzes heap dumps to look for leaks.
@@ -82,7 +72,8 @@ class HeapAnalyzer constructor(
     heapDumpFile: File,
     exclusions: List<Exclusion> = emptyList(),
     computeRetainedHeapSize: Boolean = false,
-    objectInspectors: List<ObjectInspector> = emptyList()
+    objectInspectors: List<ObjectInspector> = emptyList(),
+    leakFinders: List<ObjectInspector> = objectInspectors
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -98,45 +89,33 @@ class HeapAnalyzer constructor(
 
     try {
       listener.onProgressUpdate(SCANNING_HEAP_DUMP)
-      val (graph, hprofCloseable, gcRootIds, keyedWeakReferenceInstances, cleaners) = scan(
-          heapDumpFile, computeRetainedHeapSize
-      )
+
+      val gcRootRecordListener = GcRootRecordListener()
+      val (graph, hprofCloseable) = HprofGraph.readHprof(heapDumpFile, gcRootRecordListener)
+
       hprofCloseable.use {
-        val analysisResults = mutableMapOf<String, RetainedInstance>()
+        val analysisResults = mutableListOf<LeakingInstance>()
         listener.onProgressUpdate(FINDING_WATCHED_REFERENCES)
 
-        val retainedWeakRefs = findLeakingReferences(graph, keyedWeakReferenceInstances)
-
-        if (retainedWeakRefs.isEmpty()) {
-          val exception = IllegalStateException("No retained instances found in heap dump")
-          return HeapAnalysisFailure(
-              heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-              HeapAnalysisException(exception)
-          )
-        }
+        val leakingInstanceObjectIds = findLeakingInstances(graph, leakFinders)
 
         val (pathResults, dominatedInstances) =
           findShortestPaths(
-              graph, exclusions, retainedWeakRefs, gcRootIds,
+              graph, exclusions, leakingInstanceObjectIds, gcRootRecordListener.gcRoots,
               computeRetainedHeapSize
           )
 
         val retainedSizes = if (computeRetainedHeapSize) {
-          computeRetainedSizes(graph, pathResults, dominatedInstances, cleaners)
+          computeRetainedSizes(graph, pathResults, dominatedInstances)
         } else {
           null
         }
 
-        buildLeakTraces(
-            objectInspectors, pathResults, graph,
-            retainedWeakRefs, analysisResults, retainedSizes
-        )
-
-        addRemainingInstancesWithNoPath(retainedWeakRefs, analysisResults)
+        buildLeakTraces(objectInspectors, pathResults, graph, analysisResults, retainedSizes)
 
         return HeapAnalysisSuccess(
             heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-            analysisResults.values.toList()
+            analysisResults
         )
       }
     } catch (exception: Throwable) {
@@ -147,126 +126,112 @@ class HeapAnalyzer constructor(
     }
   }
 
-  private data class ScanResult(
-    val graph: HprofGraph,
-    val hprofCloseable: Closeable,
-    val gcRootIds: MutableList<GcRoot>,
-    val keyedWeakReferenceInstances: List<GraphInstanceRecord>,
-    val cleaners: MutableList<Long>
-  )
-
-  private fun scan(
-    hprofFile: File,
-    computeRetainedSize: Boolean
-  ): ScanResult {
-    val gcRoot = mutableListOf<GcRoot>()
-    val cleaners = mutableListOf<Long>()
-
-    val recordListener = object : OnRecordListener {
-      override fun recordTypes(): Set<KClass<out Record>> = setOf(GcRootRecord::class)
-
-      override fun onTypeSizesAvailable(typeSizes: Map<Int, Int>) {
-      }
-
-      override fun onRecord(
-        position: Long,
-        record: Record
-      ) {
-        when (record) {
-          is GcRootRecord -> {
-            // TODO Ignoring VmInternal because we've got 150K of it, but is this the right thing
-            // to do? What's VmInternal exactly? History does not go further than
-            // https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
-            // We should log to figure out what objects VmInternal points to.
-            when (record.gcRoot) {
-              // ThreadObject points to threads, which we need to find the thread that a JavaLocalExclusion
-              // belongs to
-              is ThreadObject,
-              is JniGlobal,
-              is JniLocal,
-              is JavaFrame,
-              is NativeStack,
-              is StickyClass,
-              is ThreadBlock,
-              is MonitorUsed,
-                // TODO What is this and why do we care about it as a root?
-              is ReferenceCleanup,
-              is JniMonitor
-              -> {
-                gcRoot.add(record.gcRoot)
-              }
-            }
-          }
-          else -> {
-            throw IllegalArgumentException("Unexpected record $record")
-          }
-        }
-      }
-    }
-    val (graph, hprofCloseable) = HprofGraph.readHprof(hprofFile, recordListener)
-
-    val keyedWeakReferenceInstances = mutableListOf<GraphInstanceRecord>()
-    graph.instanceSequence()
-        .forEach { instance ->
-          val className = instance.className
-          if (className == "leakcanary.KeyedWeakReference" || className == "com.squareup.leakcanary.KeyedWeakReference") {
-            keyedWeakReferenceInstances.add(instance)
-          } else if (computeRetainedSize && className == "sun.misc.Cleaner") {
-            cleaners.add(instance.objectId)
-          }
-        }
-    return ScanResult(graph, hprofCloseable, gcRoot, keyedWeakReferenceInstances, cleaners)
-  }
-
-  private fun findLeakingReferences(
+  private fun findLeakingInstances(
     graph: HprofGraph,
-    keyedWeakReferenceInstances: List<GraphInstanceRecord>
-  ): MutableList<KeyedWeakReferenceMirror> {
-
-    val keyedWeakReferenceClass = graph.indexedClass(KeyedWeakReference::class.java.name)
-
-    val heapDumpUptimeMillis = if (keyedWeakReferenceClass == null) {
-      null
-    } else {
-      keyedWeakReferenceClass["heapDumpUptimeMillis"]?.value?.asLong
-    }
-
-    if (heapDumpUptimeMillis == null) {
-      CanaryLog.d(
-          "${KeyedWeakReference::class.java.name}.heapDumpUptimeMillis field not found, " +
-              "this must be a heap dump from an older version of LeakCanary."
-      )
-    }
-
-    val retainedInstances = mutableListOf<KeyedWeakReferenceMirror>()
-    keyedWeakReferenceInstances.forEach { record ->
-      val weakRef =
-        KeyedWeakReferenceMirror.fromInstance(record, heapDumpUptimeMillis)
-      if (weakRef.isRetained && weakRef.hasReferent) {
-        retainedInstances.add(weakRef)
-      }
-    }
-    return retainedInstances
+    objectInspectors: List<ObjectInspector>
+  ): Set<Long> {
+    return graph.objectSequence()
+        .filter { objectRecord ->
+          val reporter = ObjectReporter(objectRecord)
+          objectInspectors.forEach { inspector ->
+            inspector.inspect(graph, reporter)
+          }
+          reporter.leakingStatuses.isNotEmpty()
+        }
+        .map { it.objectId }
+        .toSet()
   }
 
   private fun findShortestPaths(
     graph: HprofGraph,
     exclusions: List<Exclusion>,
-    leakingWeakRefs: List<KeyedWeakReferenceMirror>,
+    leakingInstanceObjectIds: Set<Long>,
     gcRootIds: MutableList<GcRoot>,
     computeDominators: Boolean
   ): Results {
     val pathFinder = ShortestPathFinder()
     return pathFinder.findPaths(
-        graph, exclusions, leakingWeakRefs, gcRootIds, computeDominators, listener
+        graph, exclusions, leakingInstanceObjectIds, gcRootIds, computeDominators, listener
     )
+  }
+
+  internal sealed class TrieNode {
+    abstract val objectId: Long
+
+    class ParentNode(override val objectId: Long) : TrieNode() {
+      val children = mutableMapOf<Long, TrieNode>()
+    }
+
+    class LeafNode(
+      override val objectId: Long,
+      val result: Result
+    ) : TrieNode()
+
+  }
+
+  private fun deduplicateResults(inputPathResults: List<Result>): List<Result> {
+    val rootTrieNode = ParentNode(0)
+
+    for (result in inputPathResults) {
+      // Go through the linked list of nodes and build the reverse list of instances from
+      // root to leaking.
+      val path = mutableListOf<Long>()
+      var leakNode: LeakNode = result.leakingNode
+      while (leakNode is ChildNode) {
+        path.add(0, leakNode.instance)
+        leakNode = leakNode.parent
+      }
+      path.add(0, leakNode.instance)
+      updateTrie(result, path, 0, rootTrieNode)
+    }
+
+    val outputPathResults = mutableListOf<Result>()
+    findResultsInTrie(rootTrieNode, outputPathResults)
+    return outputPathResults
+  }
+
+  private fun updateTrie(
+    result: Result,
+    path: List<Long>,
+    pathIndex: Int,
+    parentNode: ParentNode
+  ) {
+    val objectId = path[pathIndex]
+    if (pathIndex == path.lastIndex) {
+      // Replace any preexisting children, this is shorter.
+      parentNode.children[objectId] = LeafNode(objectId, result)
+    } else {
+      val childNode = parentNode.children[objectId] ?: {
+        val newChildNode = ParentNode(objectId)
+        parentNode.children[objectId] = newChildNode
+        newChildNode
+      }()
+      if (childNode is ParentNode) {
+        updateTrie(result, path, pathIndex + 1, childNode)
+      }
+    }
+  }
+
+  private fun findResultsInTrie(
+    parentNode: ParentNode,
+    outputPathResults: MutableList<Result>
+  ) {
+    parentNode.children.values.forEach { childNode ->
+      when (childNode) {
+        is ParentNode -> {
+          findResultsInTrie(childNode, outputPathResults)
+        }
+        is LeafNode -> {
+          outputPathResults += childNode.result
+        }
+      }
+    }
   }
 
   private fun computeRetainedSizes(
     graph: HprofGraph,
     results: List<Result>,
-    dominatedInstances: LongLongScatterMap,
-    cleaners: MutableList<Long>
+    dominatedInstances: LongLongScatterMap
   ): List<Int> {
     listener.onProgressUpdate(COMPUTING_NATIVE_RETAINED_SIZE)
 
@@ -282,29 +247,30 @@ class HeapAnalyzer constructor(
     // that the CleanerThunk has a pointer to. The native pointer is in the 'nativePtr' field of
     // the CleanerThunk. The hprof does not include the native bytes pointed to.
 
-    cleaners.forEach { objectId ->
-      val cleaner = graph.indexedObject(objectId).asInstance!!
-      val thunkField = cleaner["sun.misc.Cleaner", "thunk"]
-      val thunkId = thunkField?.value?.asNonNullObjectIdReference
-      val referentId =
-        cleaner["java.lang.ref.Reference", "referent"]?.value?.asNonNullObjectIdReference
-      if (thunkId != null && referentId != null) {
-        val thunkRecord = thunkField.value.asObject
-        if (thunkRecord is GraphInstanceRecord && thunkRecord instanceOf "libcore.util.NativeAllocationRegistry\$CleanerThunk") {
-          val allocationRegistryIdField =
-            thunkRecord["libcore.util.NativeAllocationRegistry\$CleanerThunk", "this\$0"]
-          if (allocationRegistryIdField != null && allocationRegistryIdField.value.isNonNullReference) {
-            val allocationRegistryRecord = allocationRegistryIdField.value.asObject
-            if (allocationRegistryRecord is GraphInstanceRecord && allocationRegistryRecord instanceOf "libcore.util.NativeAllocationRegistry") {
-              var nativeSize = nativeSizes.getValue(referentId)
-              nativeSize += allocationRegistryRecord["libcore.util.NativeAllocationRegistry", "size"]?.value?.asLong?.toInt()
-                  ?: 0
-              nativeSizes[referentId] = nativeSize
+    graph.instanceSequence()
+        .filter { it.className == "sun.misc.Cleaner" }
+        .forEach { cleaner ->
+          val thunkField = cleaner["sun.misc.Cleaner", "thunk"]
+          val thunkId = thunkField?.value?.asNonNullObjectIdReference
+          val referentId =
+            cleaner["java.lang.ref.Reference", "referent"]?.value?.asNonNullObjectIdReference
+          if (thunkId != null && referentId != null) {
+            val thunkRecord = thunkField.value.asObject
+            if (thunkRecord is GraphInstanceRecord && thunkRecord instanceOf "libcore.util.NativeAllocationRegistry\$CleanerThunk") {
+              val allocationRegistryIdField =
+                thunkRecord["libcore.util.NativeAllocationRegistry\$CleanerThunk", "this\$0"]
+              if (allocationRegistryIdField != null && allocationRegistryIdField.value.isNonNullReference) {
+                val allocationRegistryRecord = allocationRegistryIdField.value.asObject
+                if (allocationRegistryRecord is GraphInstanceRecord && allocationRegistryRecord instanceOf "libcore.util.NativeAllocationRegistry") {
+                  var nativeSize = nativeSizes.getValue(referentId)
+                  nativeSize += allocationRegistryRecord["libcore.util.NativeAllocationRegistry", "size"]?.value?.asLong?.toInt()
+                      ?: 0
+                  nativeSizes[referentId] = nativeSize
+                }
+              }
             }
           }
         }
-      }
-    }
 
     listener.onProgressUpdate(COMPUTING_RETAINED_SIZE)
 
@@ -313,15 +279,15 @@ class HeapAnalyzer constructor(
     // Include self size for leaking instances
     val leakingInstanceIds = mutableSetOf<Long>()
     results.forEach { result ->
-      val leakingInstanceId = result.weakReference.referent.value
-      leakingInstanceIds.add(leakingInstanceId)
-      val instanceRecord = graph.indexedObject(leakingInstanceId).asInstance!!
+      val leakingInstanceObjectId = result.leakingNode.instance
+      leakingInstanceIds.add(leakingInstanceObjectId)
+      val instanceRecord = graph.indexedObject(leakingInstanceObjectId).asInstance!!
       val classRecord = instanceRecord.instanceClass
-      var retainedSize = sizeByDominator.getValue(leakingInstanceId)
+      var retainedSize = sizeByDominator.getValue(leakingInstanceObjectId)
 
       retainedSize += classRecord.readRecord()
           .instanceSize
-      sizeByDominator[leakingInstanceId] = retainedSize
+      sizeByDominator[leakingInstanceObjectId] = retainedSize
     }
 
     // Compute the size of each dominated instance and add to dominator
@@ -340,7 +306,7 @@ class HeapAnalyzer constructor(
     var sizedMoved: Boolean
     do {
       sizedMoved = false
-      results.map { it.weakReference.referent.value }
+      results.map { it.leakingNode.instance }
           .forEach { leakingInstanceId ->
             val dominator = dominatedInstances[leakingInstanceId]
             if (dominator != null) {
@@ -356,7 +322,7 @@ class HeapAnalyzer constructor(
     } while (sizedMoved)
     dominatedInstances.release()
     return results.map { result ->
-      sizeByDominator[result.weakReference.referent.value]!!
+      sizeByDominator[result.leakingNode.instance]!!
     }
   }
 
@@ -364,21 +330,14 @@ class HeapAnalyzer constructor(
     objectInspectors: List<ObjectInspector>,
     pathResults: List<Result>,
     graph: HprofGraph,
-    leakingWeakRefs: MutableList<KeyedWeakReferenceMirror>,
-    analysisResults: MutableMap<String, RetainedInstance>,
+    analysisResults: MutableList<LeakingInstance>,
     retainedSizes: List<Int>?
   ) {
     listener.onProgressUpdate(BUILDING_LEAK_TRACES)
 
-    pathResults.forEachIndexed { index, pathResult ->
-      val weakReference = pathResult.weakReference
-      val removed = leakingWeakRefs.remove(weakReference)
-      if (!removed) {
-        throw IllegalStateException(
-            "ShortestPathFinder found an instance we didn't ask it to find: $pathResult"
-        )
-      }
+    val deduplicatedResults = deduplicateResults(pathResults)
 
+    deduplicatedResults.forEachIndexed { index, pathResult ->
       val leakTrace =
         buildLeakTrace(graph, objectInspectors, pathResult.leakingNode)
 
@@ -388,31 +347,11 @@ class HeapAnalyzer constructor(
         recordClassName(graph.indexedObject(pathResult.leakingNode.instance))
 
       val leakDetected = LeakingInstance(
-          referenceKey = weakReference.key,
-          referenceName = weakReference.name,
           instanceClassName = instanceClassName,
-          watchDurationMillis = weakReference.watchDurationMillis,
-          retainedDurationMillis = weakReference.retainedDurationMillis ?: 0,
           exclusionStatus = pathResult.exclusionStatus, leakTrace = leakTrace,
           retainedHeapSize = retainedSizes?.get(index)
       )
-      analysisResults[weakReference.key] = leakDetected
-    }
-  }
-
-  private fun addRemainingInstancesWithNoPath(
-    leakingWeakRefs: List<KeyedWeakReferenceMirror>,
-    analysisResults: MutableMap<String, RetainedInstance>
-  ) {
-    leakingWeakRefs.forEach { refWithNoPath ->
-      val key = refWithNoPath.key
-      val name = refWithNoPath.name
-      val className = refWithNoPath.className
-      val noLeak = NoPathToInstance(
-          key, name, className, refWithNoPath.watchDurationMillis,
-          refWithNoPath.retainedDurationMillis ?: 0
-      )
-      analysisResults[key] = noLeak
+      analysisResults += leakDetected
     }
   }
 
@@ -440,7 +379,7 @@ class HeapAnalyzer constructor(
     val rootNode = node as RootNode
 
     // Looping on inspectors first to get more cache hits.
-    objectInspectors.forEach {inspector ->
+    objectInspectors.forEach { inspector ->
       leakReporters.forEach { reporter ->
         inspector.inspect(graph, reporter)
       }
@@ -483,12 +422,6 @@ class HeapAnalyzer constructor(
         }
     )
 
-    when (rootNode.gcRoot) {
-      is StickyClass -> rootNodeReporter.reportNotLeaking("a system class never leaks")
-    }
-
-    leakReporters[lastElementIndex].reportLeaking("RefWatcher was watching this")
-
     var lastNotLeakingElementIndex = 0
     var firstLeakingElementIndex = lastElementIndex
 
@@ -512,7 +445,7 @@ class HeapAnalyzer constructor(
     }
 
     // First and last are always known.
-    for (i in 0 ..lastElementIndex) {
+    for (i in 0..lastElementIndex) {
       val leakStatus = leakStatuses[i]
       if (i < lastNotLeakingElementIndex) {
         val nextNotLeakingName = simpleClassNames[i + 1]
@@ -609,16 +542,7 @@ class HeapAnalyzer constructor(
       is GraphClassRecord -> graphRecord.name
       is GraphInstanceRecord -> graphRecord.className
       is GraphObjectArrayRecord -> graphRecord.arrayClassName
-      is GraphPrimitiveArrayRecord -> when (graphRecord.primitiveType) {
-        BOOLEAN -> "boolean[]"
-        CHAR -> "char[]"
-        FLOAT -> "float[]"
-        DOUBLE -> "double[]"
-        BYTE -> "byte[]"
-        SHORT -> "short[]"
-        INT -> "int[]"
-        LONG -> "long[]"
-      }
+      is GraphPrimitiveArrayRecord -> graphRecord.arrayClassName
     }
   }
 

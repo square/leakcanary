@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.core.R
 import leakcanary.AnalyzerProgressListener
 import leakcanary.AndroidKnownReference
+import leakcanary.AndroidObjectInspectors
 import leakcanary.CanaryLog
 import leakcanary.HeapAnalyzer
 import leakcanary.LeakCanary
@@ -60,7 +61,10 @@ internal class HeapAnalyzerService : ForegroundService(
 
     val heapAnalysis =
       heapAnalyzer.checkForLeaks(
-          heapDumpFile, exclusions, config.computeRetainedHeapSize, config.objectInspectors
+          heapDumpFile, exclusions, config.computeRetainedHeapSize, config.objectInspectors,
+          if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
+              AndroidObjectInspectors.KEYED_WEAK_REFERENCE
+          )
       )
 
     config.analysisResultListener(application, heapAnalysis)

@@ -51,10 +51,9 @@ import leakcanary.internal.MoreDetailsView.Details.OPENED
 import leakcanary.internal.activity.db.LeakingInstanceTable.InstanceProjection
 import leakcanary.internal.navigation.inflate
 
-internal class DisplayLeakAdapter private constructor(
+internal class DisplayLeakAdapter constructor(
   context: Context,
   private val leakTrace: LeakTrace,
-  private val referenceName: String,
   private val instanceProjections: List<InstanceProjection>
 ) : BaseAdapter() {
 
@@ -62,15 +61,8 @@ internal class DisplayLeakAdapter private constructor(
 
   constructor(
     context: Context,
-    leakTrace: LeakTrace,
-    referenceName: String
-  ) : this(context, leakTrace, referenceName, emptyList())
-
-  constructor(
-    context: Context,
-    leakTrace: LeakTrace,
-    instanceProjections: List<InstanceProjection>
-  ) : this(context, leakTrace, "", instanceProjections)
+    leakTrace: LeakTrace
+  ) : this(context, leakTrace, emptyList())
 
   private val opened = BooleanArray(TOP_ROW_COUNT + leakTrace.elements.size)
 
@@ -279,10 +271,6 @@ internal class DisplayLeakAdapter private constructor(
         htmlString += " because <font color='#f3cf83'>" + exclusion.reason + "</font>"
       }
     }
-    if (isLeakingInstance && referenceName != "") {
-      htmlString += " <font color='$extraColorHexString'>$referenceName</font>"
-    }
-
     return HtmlCompat.fromHtml(htmlString, HtmlCompat.FROM_HTML_MODE_LEGACY)
   }
 

@@ -303,16 +303,7 @@ internal class HprofExplorerScreen(
             is GraphObjectArrayRecord -> {
               objectRecord.arrayClassName
             }
-            is GraphPrimitiveArrayRecord -> when (objectRecord.primitiveType) {
-              BOOLEAN -> "boolean[]"
-              CHAR -> "char[]"
-              FLOAT -> "float[]"
-              DOUBLE -> "double[]"
-              BYTE -> "byte[]"
-              SHORT -> "short[]"
-              INT -> "int[]"
-              LONG -> "long[]"
-            }
+            is GraphPrimitiveArrayRecord -> objectRecord.arrayClassName
           }
         }
       }

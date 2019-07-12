@@ -23,52 +23,15 @@ data class HeapAnalysisSuccess(
   override val heapDumpFile: File,
   override val createdAtTimeMillis: Long,
   override val analysisDurationMillis: Long,
-  val retainedInstances: List<RetainedInstance>
+  val leakingInstances: List<LeakingInstance>
 ) : HeapAnalysis()
 
-sealed class RetainedInstance : Serializable {
+data class LeakingInstance(
   /**
-   * Key associated to the [leakcanary.KeyedWeakReference] used to detect the memory leak.
-   * When analyzing a heap dump manually, search for all [leakcanary.KeyedWeakReference] instances,
-   * then open the one that has its "key" field set to this value. Its "referent" field contains the
-   * retained instance. Computing the shortest path to GC roots on that retained instance should
-   * enable you to figure out the cause of the leak, if any.
-   */
-  abstract val referenceKey: String
-  /**
-   * User defined name to help identify the retained instance.
-   */
-  abstract val referenceName: String
-  /**
-   * Class name of the retained instance.
+   * Class name of the leaking instance.
    * The class name format is the same as what would be returned by [Class.getName].
    */
-  abstract val instanceClassName: String
-  /**
-   * Time from the request to watch the reference until the heap was dumped.
-   */
-  abstract val watchDurationMillis: Long
-  /**
-   * Time from when the instance was considered retained until the heap was dumped.
-   */
-  abstract val retainedDurationMillis: Long
-}
-
-data class NoPathToInstance(
-  override val referenceKey: String,
-  override val referenceName: String,
-  override val instanceClassName: String,
-  override val watchDurationMillis: Long,
-  override val retainedDurationMillis: Long
-) : RetainedInstance()
-
-data class LeakingInstance(
-  override val referenceKey: String,
-  override val referenceName: String,
-  override val instanceClassName: String,
-  override val watchDurationMillis: Long,
-  override val retainedDurationMillis: Long,
-
+  val instanceClassName: String,
   /**
    * True if the only path to the leaking reference is through excluded references. Usually, that
    * means you can safely ignore this report.
@@ -84,7 +47,7 @@ data class LeakingInstance(
    */
   val retainedHeapSize: Int?
 
-) : RetainedInstance() {
+) : Serializable {
 
   val groupHash = createGroupHash()
 
@@ -109,12 +72,10 @@ data class LeakingInstance(
 }
 
 fun HeapAnalysis.leakingInstances(): List<LeakingInstance> {
-  if (this is HeapAnalysisFailure) {
-    return emptyList()
+  return when (this) {
+    is HeapAnalysisFailure -> emptyList()
+    is HeapAnalysisSuccess -> leakingInstances
   }
-  val success = this as HeapAnalysisSuccess
-  return success.retainedInstances.filter { it is LeakingInstance }
-      .map { it as LeakingInstance }
 }
 
 fun HeapAnalysis.applicationLeaks(): List<LeakingInstance> =

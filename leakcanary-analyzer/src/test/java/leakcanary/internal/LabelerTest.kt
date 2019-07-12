@@ -3,10 +3,9 @@ package leakcanary.internal
 import leakcanary.AndroidObjectInspectors
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HprofGraph
-import leakcanary.LeakingInstance
 import leakcanary.ObjectInspector
 import leakcanary.ObjectReporter
-import leakcanary.asInstance
+import leakcanary.whenInstanceOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -33,7 +32,7 @@ class LabelerTest {
         graph: HprofGraph,
         reporter: ObjectReporter
       ) {
-        reporter.asInstance("java.lang.String")  { instance ->
+        reporter.whenInstanceOf("java.lang.String")  { instance ->
           addLabel("Hello ${instance.readAsJavaString()}")
         }
       }
@@ -41,9 +40,9 @@ class LabelerTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(objectInspectors = listOf(labeler))
 
-    val leak = analysis.retainedInstances[0] as LeakingInstance
+    val leak = analysis.leakingInstances[0]
 
-    assertThat(leak.leakTrace.elements.last().labels).isEqualTo(listOf("Hello World"))
+    assertThat(leak.leakTrace.elements.last().labels).contains("Hello World")
   }
 
   @Test fun threadNameLabel() {
@@ -52,7 +51,7 @@ class LabelerTest {
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(objectInspectors = listOf(AndroidObjectInspectors.THREAD))
 
-    val leak = analysis.retainedInstances[0] as LeakingInstance
+    val leak = analysis.leakingInstances[0]
 
     assertThat(leak.leakTrace.elements.first().labels).contains("Thread name: 'kroutine'")
   }

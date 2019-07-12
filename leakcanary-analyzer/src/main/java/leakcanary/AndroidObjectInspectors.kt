@@ -17,6 +17,7 @@ package leakcanary
 
 import leakcanary.GraphObjectRecord.GraphClassRecord
 import leakcanary.GraphObjectRecord.GraphInstanceRecord
+import leakcanary.internal.KeyedWeakReferenceMirror
 import kotlin.reflect.KClass
 
 /**
@@ -32,29 +33,106 @@ import kotlin.reflect.KClass
  */
 enum class AndroidObjectInspectors : ObjectInspector {
 
+  KEYED_WEAK_REFERENCE {
+    override fun inspect(
+      graph: HprofGraph,
+      reporter: ObjectReporter
+    ) {
+      val references: List<KeyedWeakReferenceMirror> = graph.context[KEYED_WEAK_REFERENCE.name] ?: {
+        val keyedWeakReferenceClass = graph.indexedClass("leakcanary.KeyedWeakReference")
+
+        val heapDumpUptimeMillis = if (keyedWeakReferenceClass == null) {
+          null
+        } else {
+          keyedWeakReferenceClass["heapDumpUptimeMillis"]?.value?.asLong
+        }
+
+        if (heapDumpUptimeMillis == null) {
+          CanaryLog.d(
+              "${KeyedWeakReference::class.java.name}.heapDumpUptimeMillis field not found, " +
+                  "this must be a heap dump from an older version of LeakCanary."
+          )
+        }
+
+        val addedToContext: List<KeyedWeakReferenceMirror> = graph.instanceSequence()
+            .filter { instance ->
+              val className = instance.className
+              className == "leakcanary.KeyedWeakReference" || className == "com.squareup.leakcanary.KeyedWeakReference"
+            }
+            .map { KeyedWeakReferenceMirror.fromInstance(it, heapDumpUptimeMillis) }
+            .filter { it.hasReferent }
+            .toList()
+        graph.context[KEYED_WEAK_REFERENCE.name] = addedToContext
+        addedToContext
+      }()
+
+      val objectId = reporter.objectRecord.objectId
+      references.forEach { ref ->
+        if (ref.referent.value == objectId) {
+          reporter.reportLeaking("RefWatcher was watching this")
+          reporter.addLabel("key = ${ref.key}")
+          if (ref.name.isNotEmpty()) {
+            reporter.addLabel("name = ${ref.name}")
+          }
+          if (ref.watchDurationMillis != null) {
+            reporter.addLabel("watchDurationMillis = ${ref.watchDurationMillis}")
+          }
+          if (ref.retainedDurationMillis != null) {
+            reporter.addLabel("retainedDurationMillis = ${ref.retainedDurationMillis}")
+          }
+        }
+      }
+    }
+  },
+
   VIEW {
     override fun inspect(
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.view.View") { instance ->
+      reporter.whenInstanceOf("android.view.View") { instance ->
         // This skips edge cases like Toast$TN.mNextView holding on to an unattached and unparented
         // next toast view
         val mParentRef = instance["android.view.View", "mParent"]!!.value
         val mParentSet = mParentRef.isNonNullReference
+        val mWindowAttachCount =
+          instance["android.view.View", "mWindowAttachCount"]?.value!!.asInt!!
         val viewDetached = instance["android.view.View", "mAttachInfo"]!!.value.isNullReference
+        val mContext = instance["android.view.View", "mContext"]!!.value.asObject!!.asInstance!!
 
-        if (mParentSet) {
-          if (viewDetached) {
-            reportLeaking("View detached and has parent")
+        val activityContext = mContext.unwrapActivityContext()
+        if (activityContext == null) {
+          addLabel("mContext instance of ${mContext.className}, not wrapping activity")
+        } else {
+          val activityDescription =
+            " with mDestroyed = " + (activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
+                ?: "UNKNOWN")
+          if (activityContext == mContext) {
+            addLabel("mContext instance of ${activityContext.className} $activityDescription")
           } else {
-            val viewParent = mParentRef.asObject!!.asInstance!!
-            if (viewParent instanceOf "android.view.View" &&
-                viewParent["android.view.View", "mAttachInfo"]!!.value.isNullReference
-            ) {
-              reportLeaking("View attached but parent detached (attach disorder)")
+            addLabel(
+                "mContext instance of ${mContext.className}, wrapping activity ${activityContext.className} $activityDescription"
+            )
+          }
+        }
+
+        addLabel("mContext = ${mContext.className}")
+
+        if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
+          reportLeaking("View.mContext references a destroyed activity")
+        } else {
+          if (mParentSet && mWindowAttachCount > 0) {
+            if (viewDetached) {
+              reportLikelyLeaking("View detached and has parent")
             } else {
-              reportNotLeaking("View attached")
+              val viewParent = mParentRef.asObject!!.asInstance!!
+              if (viewParent instanceOf "android.view.View" &&
+                  viewParent["android.view.View", "mAttachInfo"]!!.value.isNullReference
+              ) {
+                reportLikelyLeaking("View attached but parent detached (attach disorder)")
+              } else {
+                reportNotLeaking("View attached")
+              }
             }
           }
         }
@@ -73,11 +151,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         // TODO Add back support for view id labels, see https://github.com/square/leakcanary/issues/1297
 
-        val mWindowAttachCount = instance["android.view.View", "mWindowAttachCount"]?.value?.asInt
-
-        if (mWindowAttachCount != null) {
-          addLabel("View.mWindowAttachCount=$mWindowAttachCount")
-        }
+        addLabel("View.mWindowAttachCount = $mWindowAttachCount")
       }
     }
   },
@@ -87,7 +161,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.app.Activity") { instance ->
+      reporter.whenInstanceOf("android.app.Activity") { instance ->
         // Activity.mDestroyed was introduced in 17.
         // https://android.googlesource.com/platform/frameworks/base/+
         // /6d9dcbccec126d9b87ab6587e686e28b87e5a04d
@@ -109,40 +183,23 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.content.ContextWrapper") { instance ->
+      reporter.whenInstanceOf("android.content.ContextWrapper") { instance ->
         // Activity is already taken care of
         if (!(instance instanceOf "android.app.Activity")) {
-          var context = instance
-
-          val visitedInstances = mutableListOf<Long>()
-          var keepUnwrapping = true
-          while (keepUnwrapping) {
-            visitedInstances += context.objectId
-            keepUnwrapping = false
-            val mBase = context["android.content.ContextWrapper", "mBase"]!!.value
-
-            if (mBase.isNonNullReference) {
-              context = mBase.asObject!!.asInstance!!
-              if (context instanceOf "android.app.Activity") {
-                val mDestroyed = instance["android.app.Activity", "mDestroyed"]
-                if (mDestroyed != null) {
-                  if (mDestroyed.value.asBoolean!!) {
-                    reportLeaking(
-                        "${instance.classSimpleName} wraps an Activity with Activity.mDestroyed true"
-                    )
-                  } else {
-                    // We can't assume it's not leaking, because this context might have a shorter lifecycle
-                    // than the activity. So we'll just add a label.
-                    addLabel(
-                        "${instance.classSimpleName} wraps an Activity with Activity.mDestroyed false"
-                    )
-                  }
-                }
-              } else if (context instanceOf "android.content.ContextWrapper" &&
-                  // Avoids infinite loops
-                  context.objectId !in visitedInstances
-              ) {
-                keepUnwrapping = true
+          val activityContext = instance.unwrapActivityContext()
+          if (activityContext != null) {
+            val mDestroyed = instance["android.app.Activity", "mDestroyed"]
+            if (mDestroyed != null) {
+              if (mDestroyed.value.asBoolean!!) {
+                reportLeaking(
+                    "${instance.classSimpleName} wraps an Activity with Activity.mDestroyed true"
+                )
+              } else {
+                // We can't assume it's not leaking, because this context might have a shorter lifecycle
+                // than the activity. So we'll just add a label.
+                addLabel(
+                    "${instance.classSimpleName} wraps an Activity with Activity.mDestroyed false"
+                )
               }
             }
           }
@@ -156,7 +213,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.app.Dialog") { instance ->
+      reporter.whenInstanceOf("android.app.Dialog") { instance ->
         val mDecor = instance["android.app.Dialog", "mDecor"]!!
         if (mDecor.value.isNullReference) {
           reportLeaking(mDecor describedWithValue "null")
@@ -172,7 +229,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.app.Application") {
+      reporter.whenInstanceOf("android.app.Application") {
         reportNotLeaking("Application is a singleton")
       }
     }
@@ -183,7 +240,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.view.inputmethod.InputMethodManager") {
+      reporter.whenInstanceOf("android.view.inputmethod.InputMethodManager") {
         reportNotLeaking("InputMethodManager is a singleton")
       }
     }
@@ -194,7 +251,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance(ClassLoader::class) {
+      reporter.whenInstanceOf(ClassLoader::class) {
         reportNotLeaking("A ClassLoader is never leaking")
       }
     }
@@ -216,7 +273,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.app.Fragment") { instance ->
+      reporter.whenInstanceOf("android.app.Fragment") { instance ->
         val fragmentManager = instance["android.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
           reportLeaking(fragmentManager describedWithValue "null")
@@ -236,7 +293,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.support.v4.app.Fragment") { instance ->
+      reporter.whenInstanceOf("android.support.v4.app.Fragment") { instance ->
         val fragmentManager = instance["android.support.v4.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
           reportLeaking(fragmentManager describedWithValue "null")
@@ -256,7 +313,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("androidx.fragment.app.Fragment") { instance ->
+      reporter.whenInstanceOf("androidx.fragment.app.Fragment") { instance ->
         val fragmentManager = instance["androidx.fragment.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
           reportLeaking(fragmentManager describedWithValue "null")
@@ -276,8 +333,11 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.os.MessageQueue") { instance ->
-        val mQuitting = instance["android.os.MessageQueue", "mQuitting"]!!
+      reporter.whenInstanceOf("android.os.MessageQueue") { instance ->
+        // mQuiting had a typo and was renamed to mQuitting
+        // https://android.googlesource.com/platform/frameworks/base/+/013cf847bcfd2828d34dced60adf2d3dd98021dc
+        val mQuitting = instance["android.os.MessageQueue", "mQuitting"]
+            ?: instance["android.os.MessageQueue", "mQuiting"]!!
         if (mQuitting.value.asBoolean!!) {
           reportLeaking(mQuitting describedWithValue "true")
         } else {
@@ -292,7 +352,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("mortar.Presenter") { instance ->
+      reporter.whenInstanceOf("mortar.Presenter") { instance ->
         // Bugs in view code tends to cause Mortar presenters to still have a view when they actually
         // should be unreachable, so in that case we don't know their reachability status. However,
         // when the view is null, we're pretty sure they  never leaking.
@@ -309,7 +369,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("com.squareup.coordinators.Coordinator") { instance ->
+      reporter.whenInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
         val attached = instance["com.squareup.coordinators.Coordinator", "attached"]
         if (attached!!.value.asBoolean!!) {
           reportNotLeaking(attached describedWithValue "true")
@@ -360,7 +420,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance(Thread::class) { instance ->
+      reporter.whenInstanceOf(Thread::class) { instance ->
         val threadName = instance[Thread::class, "name"]!!.value.readAsJavaString()
         if (threadName == "main") {
           reportNotLeaking("the main thread always runs")
@@ -375,7 +435,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.view.Window") { instance ->
+      reporter.whenInstanceOf("android.view.Window") { instance ->
         val mDestroyed = instance["android.view.Window", "mDestroyed"]!!
 
         if (mDestroyed.value.asBoolean!!) {
@@ -392,7 +452,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      reporter.asInstance("android.widget.Toast") { instance ->
+      reporter.whenInstanceOf("android.widget.Toast") { instance ->
         val tnInstance =
           instance["android.widget.Toast", "mTN"]!!.value.asObject!!.asInstance!!
         // mWM is set in android.widget.Toast.TN#handleShow and never unset, so this toast was never
@@ -411,17 +471,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
       }
     }
-  },
-
-  TOAST_TN {
-    override fun inspect(
-      graph: HprofGraph,
-      reporter: ObjectReporter
-    ) {
-      reporter.asInstance("android.widget.Toast\$TN") {
-        reportNotLeaking("Toast.TN (Transient Notification) is never leaking")
-      }
-    }
   };
 
   companion object {
@@ -435,18 +484,47 @@ private infix fun GraphField.describedWithValue(valueDescription: String): Strin
   return "${classRecord.simpleName}#$name is $valueDescription"
 }
 
-inline fun ObjectReporter.asInstance(
+inline fun ObjectReporter.whenInstanceOf(
   expectedClass: KClass<out Any>,
   action: ObjectReporter.(GraphInstanceRecord) -> Unit
 ) {
-  asInstance(expectedClass.java.name, action)
+  whenInstanceOf(expectedClass.java.name, action)
 }
 
-inline fun ObjectReporter.asInstance(
+inline fun ObjectReporter.whenInstanceOf(
   className: String,
   block: ObjectReporter.(GraphInstanceRecord) -> Unit
 ) {
   if (objectRecord is GraphInstanceRecord && objectRecord instanceOf className) {
     block(objectRecord)
   }
+}
+
+fun GraphInstanceRecord.unwrapActivityContext(): GraphInstanceRecord? {
+  if (this instanceOf "android.app.Activity") {
+    return this
+  }
+  if (this instanceOf "android.content.ContextWrapper") {
+    var context = this
+    val visitedInstances = mutableListOf<Long>()
+    var keepUnwrapping = true
+    while (keepUnwrapping) {
+      visitedInstances += context.objectId
+      keepUnwrapping = false
+      val mBase = context["android.content.ContextWrapper", "mBase"]!!.value
+
+      if (mBase.isNonNullReference) {
+        context = mBase.asObject!!.asInstance!!
+        if (context instanceOf "android.app.Activity") {
+          return context
+        } else if (context instanceOf "android.content.ContextWrapper" &&
+            // Avoids infinite loops
+            context.objectId !in visitedInstances
+        ) {
+          keepUnwrapping = true
+        }
+      }
+    }
+  }
+  return null
 }

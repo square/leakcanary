@@ -4,10 +4,9 @@ import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HprofGraph
-import leakcanary.ObjectReporter
-import leakcanary.LeakingInstance
 import leakcanary.ObjectInspector
-import leakcanary.asInstance
+import leakcanary.ObjectReporter
+import leakcanary.whenInstanceOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -38,12 +37,15 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (a system class never leaks)
+    │    Leaking: UNKNOWN
     │    GC Root: System class
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking
     ​     Leaking: YES (RefWatcher was watching this)
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
     """
   }
 
@@ -65,7 +67,7 @@ class LeakTraceRendererTest {
               graph: HprofGraph,
               reporter: ObjectReporter
             ) {
-              reporter.asInstance("ClassB") {
+              reporter.whenInstanceOf("ClassB") {
                 reportLeaking("because reasons")
               }
             }
@@ -75,7 +77,7 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (a system class never leaks)
+    │    Leaking: UNKNOWN
     │    GC Root: System class
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
@@ -83,11 +85,8 @@ class LeakTraceRendererTest {
     │    Leaking: UNKNOWN
     │    ↓ ClassA.instanceB
     │             ~~~~~~~~~
-    ├─ ClassB
-    │    Leaking: YES (because reasons)
-    │    ↓ ClassB.leak
-    ╰→ Leaking
-    ​     Leaking: YES (ClassB↑ is leaking and RefWatcher was watching this)
+    ╰→ ClassB
+    ​     Leaking: YES (because reasons)
     """
   }
 
@@ -113,7 +112,7 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (a system class never leaks)
+    │    Leaking: UNKNOWN
     │    ¯\_(ツ)_/¯
     │    GC Root: System class
     │    ↓ static GcRoot.leak
@@ -121,6 +120,9 @@ class LeakTraceRendererTest {
     ╰→ Leaking
     ​     Leaking: YES (RefWatcher was watching this)
     ​     ¯\_(ツ)_/¯
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
     """
   }
 
@@ -141,7 +143,7 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (a system class never leaks)
+    │    Leaking: UNKNOWN
     │    GC Root: System class
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
@@ -152,6 +154,9 @@ class LeakTraceRendererTest {
     │             ~~~~
     ╰→ Leaking
     ​     Leaking: YES (RefWatcher was watching this)
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
     """
   }
 
@@ -168,7 +173,7 @@ class LeakTraceRendererTest {
     analysis renders """
     ┬
     ├─ GcRoot
-    │    Leaking: NO (a system class never leaks)
+    │    Leaking: UNKNOWN
     │    GC Root: System class
     │    ↓ static GcRoot.array
     │                    ~~~~~
@@ -178,6 +183,9 @@ class LeakTraceRendererTest {
     │                     ~~~
     ╰→ Leaking
     ​     Leaking: YES (RefWatcher was watching this)
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
     """
   }
 
@@ -196,11 +204,14 @@ class LeakTraceRendererTest {
     │                      ~~~~~~~~~~~~
     ╰→ Leaking
     ​     Leaking: YES (RefWatcher was watching this)
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
     """
   }
 
   private infix fun HeapAnalysisSuccess.renders(expectedString: String) {
-    val leak = retainedInstances[0] as LeakingInstance
+    val leak = leakingInstances[0]
     assertThat(leak.leakTrace.renderToString()).isEqualTo(
         expectedString.trimIndent()
     )

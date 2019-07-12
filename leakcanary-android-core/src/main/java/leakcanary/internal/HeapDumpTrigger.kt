@@ -113,7 +113,7 @@ internal class HeapDumpTrigger(
       return
     }
     lastDisplayedRetainedInstanceCount = 0
-    refWatcher.removeInstancesRetainedBeforeHeapDump(heapDumpUptimeMillis)
+    refWatcher.removeInstancesWatchedBeforeHeapDump(heapDumpUptimeMillis)
 
     HeapAnalyzerService.runAnalysis(application, heapDumpFile)
   }
@@ -160,7 +160,7 @@ internal class HeapDumpTrigger(
         return@post
       }
       lastDisplayedRetainedInstanceCount = 0
-      refWatcher.removeInstancesRetainedBeforeHeapDump(heapDumpUptimeMillis)
+      refWatcher.removeInstancesWatchedBeforeHeapDump(heapDumpUptimeMillis)
       HeapAnalyzerService.runAnalysis(application, heapDumpFile)
     }
   }

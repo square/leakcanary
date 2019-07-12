@@ -9,8 +9,6 @@ import com.squareup.leakcanary.core.R
 import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.LeakingInstance
-import leakcanary.NoPathToInstance
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakingInstanceTable
 import leakcanary.internal.activity.db.LeakingInstanceTable.HeapAnalysisGroupProjection
@@ -54,7 +52,7 @@ internal class HeapAnalysisSuccessScreen(
   ) {
     activity.title = resources.getString(
         R.string.leak_canary_heap_analysis_success_screen_title,
-        heapAnalysis.retainedInstances.size
+        heapAnalysis.leakingInstances.size
     )
 
     onCreateOptionsMenu { menu ->
@@ -89,21 +87,13 @@ internal class HeapAnalysisSuccessScreen(
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)
 
-    val retainedInstances = heapAnalysis.retainedInstances
+    val retainedInstances = heapAnalysis.leakingInstances
 
-    var noPathToInstanceCount = 0
     retainedInstances.forEach { retainedInstance ->
-      when (retainedInstance) {
-        is LeakingInstance -> {
-          if (leakGroupByHash[retainedInstance.groupHash] == null) {
-            throw IllegalStateException(
-                "Removing groups is not supported, this should never happen."
-            )
-          }
-        }
-        is NoPathToInstance -> {
-          noPathToInstanceCount++
-        }
+      if (leakGroupByHash[retainedInstance.groupHash] == null) {
+        throw IllegalStateException(
+            "Removing groups is not supported, this should never happen."
+        )
       }
     }
 
@@ -144,15 +134,6 @@ internal class HeapAnalysisSuccessScreen(
       )
       titleText to timeText
     })
-
-    if (noPathToInstanceCount > 0) {
-      rowList.add(
-          resources.getString(
-              R.string.leak_canary_heap_analysis_success_screen_no_path_to_instance_count,
-              noPathToInstanceCount
-          ) to ""
-      )
-    }
 
     listView.adapter =
       SimpleListAdapter(R.layout.leak_canary_leak_row, rowList) { view, position ->

@@ -1,6 +1,14 @@
 package leakcanary
 
 import leakcanary.HeapValue.ObjectReference
+import leakcanary.PrimitiveType.BOOLEAN
+import leakcanary.PrimitiveType.BYTE
+import leakcanary.PrimitiveType.CHAR
+import leakcanary.PrimitiveType.DOUBLE
+import leakcanary.PrimitiveType.FLOAT
+import leakcanary.PrimitiveType.INT
+import leakcanary.PrimitiveType.LONG
+import leakcanary.PrimitiveType.SHORT
 import leakcanary.Record.HeapDumpRecord.ObjectRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
@@ -89,6 +97,10 @@ sealed class GraphObjectRecord {
         }
       }
       return null
+    }
+
+    override fun toString(): String {
+      return "record of class $name"
     }
   }
 
@@ -201,6 +213,10 @@ sealed class GraphObjectRecord {
         )
       }
     }
+
+    override fun toString(): String {
+      return "instance @$objectId of $className"
+    }
   }
 
   class GraphObjectArrayRecord internal constructor(
@@ -221,6 +237,10 @@ sealed class GraphObjectRecord {
       return readRecord().elementIds.asSequence()
           .map { GraphHeapValue(graph, ObjectReference(it)) }
     }
+
+    override fun toString(): String {
+      return "object array @$objectId of $arrayClassName"
+    }
   }
 
   class GraphPrimitiveArrayRecord internal constructor(
@@ -231,8 +251,24 @@ sealed class GraphObjectRecord {
     val primitiveType: PrimitiveType
       get() = indexedObject.primitiveType
 
+    val arrayClassName: String
+      get() = when (primitiveType) {
+        BOOLEAN -> "boolean[]"
+        CHAR -> "char[]"
+        FLOAT -> "float[]"
+        DOUBLE -> "double[]"
+        BYTE -> "byte[]"
+        SHORT -> "short[]"
+        INT -> "int[]"
+        LONG -> "long[]"
+      }
+
     override fun readRecord(): PrimitiveArrayDumpRecord {
       return graph.readPrimitiveArrayDumpRecord(objectId, indexedObject)
+    }
+
+    override fun toString(): String {
+      return "primitive array @$objectId of $arrayClassName"
     }
   }
 
