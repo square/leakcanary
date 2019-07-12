@@ -60,7 +60,7 @@ internal class HeapAnalyzerService : ForegroundService(
 
     val heapAnalysis =
       heapAnalyzer.checkForLeaks(
-          heapDumpFile, exclusions, config.computeRetainedHeapSize, config.leakTraceInspectors
+          heapDumpFile, exclusions, config.computeRetainedHeapSize, config.objectInspectors
       )
 
     config.analysisResultListener(application, heapAnalysis)

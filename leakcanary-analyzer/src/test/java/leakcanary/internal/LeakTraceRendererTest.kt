@@ -4,10 +4,10 @@ import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HprofGraph
-import leakcanary.LeakTraceElementReporter
-import leakcanary.LeakTraceInspector
+import leakcanary.ObjectReporter
 import leakcanary.LeakingInstance
-import leakcanary.forEachInstanceOf
+import leakcanary.ObjectInspector
+import leakcanary.asInstance
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -60,12 +60,12 @@ class LeakTraceRendererTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          leakTraceInspectors = listOf(object : LeakTraceInspector {
+          objectInspectors = listOf(object : ObjectInspector {
             override fun inspect(
               graph: HprofGraph,
-              leakTrace: List<LeakTraceElementReporter>
+              reporter: ObjectReporter
             ) {
-              leakTrace.forEachInstanceOf("ClassB") {
+              reporter.asInstance("ClassB") {
                 reportLeaking("because reasons")
               }
             }
@@ -99,14 +99,12 @@ class LeakTraceRendererTest {
     }
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        leakTraceInspectors = listOf(object : LeakTraceInspector {
+        objectInspectors = listOf(object : ObjectInspector {
           override fun inspect(
             graph: HprofGraph,
-            leakTrace: List<LeakTraceElementReporter>
+            reporter: ObjectReporter
           ) {
-            leakTrace.forEach { reporter ->
-              reporter.addLabel("¯\\_(ツ)_/¯")
-            }
+            reporter.addLabel("¯\\_(ツ)_/¯")
           }
 
         })

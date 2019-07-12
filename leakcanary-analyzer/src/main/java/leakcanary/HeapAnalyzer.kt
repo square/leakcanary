@@ -82,7 +82,7 @@ class HeapAnalyzer constructor(
     heapDumpFile: File,
     exclusions: List<Exclusion> = emptyList(),
     computeRetainedHeapSize: Boolean = false,
-    leakTraceInspectors: List<LeakTraceInspector> = emptyList()
+    objectInspectors: List<ObjectInspector> = emptyList()
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -128,7 +128,7 @@ class HeapAnalyzer constructor(
         }
 
         buildLeakTraces(
-            leakTraceInspectors, pathResults, graph,
+            objectInspectors, pathResults, graph,
             retainedWeakRefs, analysisResults, retainedSizes
         )
 
@@ -361,7 +361,7 @@ class HeapAnalyzer constructor(
   }
 
   private fun buildLeakTraces(
-    leakTraceInspectors: List<LeakTraceInspector>,
+    objectInspectors: List<ObjectInspector>,
     pathResults: List<Result>,
     graph: HprofGraph,
     leakingWeakRefs: MutableList<KeyedWeakReferenceMirror>,
@@ -380,7 +380,7 @@ class HeapAnalyzer constructor(
       }
 
       val leakTrace =
-        buildLeakTrace(graph, leakTraceInspectors, pathResult.leakingNode)
+        buildLeakTrace(graph, objectInspectors, pathResult.leakingNode)
 
       // We get the class name from the heap dump rather than the weak reference because primitive
       // arrays are more readable that way, e.g. "[C" at runtime vs "char[]" in the heap dump.
@@ -418,7 +418,7 @@ class HeapAnalyzer constructor(
 
   private fun buildLeakTrace(
     graph: HprofGraph,
-    leakTraceInspectors: List<LeakTraceInspector>,
+    objectInspectors: List<ObjectInspector>,
     leakingNode: LeakNode
   ): LeakTrace {
     val elements = ArrayList<LeakTraceElement>()
@@ -429,17 +429,22 @@ class HeapAnalyzer constructor(
 
     var node: LeakNode = leafNode
     val nodes = mutableListOf<LeakNode>()
-    val leakReporters = mutableListOf<LeakTraceElementReporter>()
+    val leakReporters = mutableListOf<ObjectReporter>()
     while (node is ChildNode) {
       nodes.add(0, node.parent)
       leakReporters.add(
-          0, LeakTraceElementReporter(graph.indexedObject(node.parent.instance))
+          0, ObjectReporter(graph.indexedObject(node.parent.instance))
       )
       node = node.parent
     }
     val rootNode = node as RootNode
 
-    leakTraceInspectors.forEach { it.inspect(graph, leakReporters) }
+    // Looping on inspectors first to get more cache hits.
+    objectInspectors.forEach {inspector ->
+      leakReporters.forEach { reporter ->
+        inspector.inspect(graph, reporter)
+      }
+    }
 
     val leakStatuses = computeLeakStatuses(rootNode, leakReporters)
 
@@ -456,7 +461,7 @@ class HeapAnalyzer constructor(
 
   private fun computeLeakStatuses(
     rootNode: RootNode,
-    leakReporters: List<LeakTraceElementReporter>
+    leakReporters: List<ObjectReporter>
   ): List<LeakNodeStatusAndReason> {
     val lastElementIndex = leakReporters.size - 1
 
@@ -537,7 +542,7 @@ class HeapAnalyzer constructor(
   }
 
   private fun resolveStatus(
-    reporter: LeakTraceElementReporter
+    reporter: ObjectReporter
   ): LeakNodeStatusAndReason {
     // NOT_LEAKING always wins over LEAKING
     var current = LeakNodeStatus.unknown()

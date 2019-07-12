@@ -31,7 +31,7 @@ object LeakCanary {
 
     val knownReferences: Set<AndroidKnownReference> = AndroidKnownReference.appDefaults,
 
-    val leakTraceInspectors: List<LeakTraceInspector> = AndroidLeakTraceInspectors.defaultInspectors(),
+    val objectInspectors: List<ObjectInspector> = AndroidObjectInspectors.defaultInspectors(),
 
     /**
      * Called with the heap analysis result from a background thread.

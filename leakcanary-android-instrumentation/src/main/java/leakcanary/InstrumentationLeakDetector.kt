@@ -175,7 +175,7 @@ class InstrumentationLeakDetector {
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.checkForLeaks(
         heapDumpFile, AndroidKnownReference.mapToExclusions(config.knownReferences), config.computeRetainedHeapSize,
-        config.leakTraceInspectors
+        config.objectInspectors
     )
 
     CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)
