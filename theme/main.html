@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+                {% if page.edit_url %}
+				<span style="float: right">🤔Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20{{ page.url }}%20page">Report</a> or <a href="{{ page.edit_url }}">edit</a> </span>
+                {% endif %}
+                {% if not "\x3ch1" in page.content %}
+                  <h1>{{ page.title | default(config.site_name, true)}}</h1>
+                {% endif %}
+                {{ page.content }}
+                {% block source %}
+                  {% if page and page.meta and page.meta.source %}
+                    <h2 id="__source">{{ lang.t("meta.source") }}</h2>
+                    {% set repo = config.repo_url %}
+                    {% if repo | last == "/" %}
+                      {% set repo = repo[:-1] %}
+                    {% endif %}
+                    {% set path = page.meta.path | default([""]) %}
+                    {% set file = page.meta.source %}
+                    <a href="{{ [repo, path, file] | join('/') }}" title="{{ file }}" class="md-source-file">
+                      {{ file }}
+                    </a>
+                  {% endif %}
+                {% endblock %}
+{% endblock %}
