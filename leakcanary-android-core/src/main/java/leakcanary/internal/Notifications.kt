@@ -83,6 +83,7 @@ internal object Notifications {
     }
 
     return if (SDK_INT < JELLY_BEAN) {
+      @Suppress("DEPRECATION")
       builder.notification
     } else {
       builder.build()

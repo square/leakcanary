@@ -1,9 +1,8 @@
 package leakcanary.internal
 
-import androidx.annotation.StringRes
 import com.squareup.leakcanary.core.R
 
-enum class NotificationType(@StringRes val nameResId: Int, val importance: Int) {
+enum class NotificationType(val nameResId: Int, val importance: Int) {
   LEAKCANARY_LOW(
       R.string.leak_canary_notification_channel_low, IMPORTANCE_LOW
   ),

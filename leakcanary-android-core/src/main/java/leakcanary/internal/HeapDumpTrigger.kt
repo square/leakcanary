@@ -125,6 +125,7 @@ internal class HeapDumpTrigger(
       val retainedReferenceCount = refWatcher.retainedInstanceCount
       if (retainedReferenceCount == 0) {
         CanaryLog.d("No retained instances after GC")
+        @Suppress("DEPRECATION")
         val builder = Notification.Builder(application)
             .setContentTitle(
                 application.getString(R.string.leak_canary_notification_no_retained_instance_title)
@@ -279,6 +280,7 @@ internal class HeapDumpTrigger(
     if (!Notifications.canShowNotification) {
       return
     }
+    @Suppress("DEPRECATION")
     val builder = Notification.Builder(application)
         .setContentTitle(
             application.getString(R.string.leak_canary_notification_retained_title, instanceCount)

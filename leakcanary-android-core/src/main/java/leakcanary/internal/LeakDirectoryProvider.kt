@@ -154,6 +154,7 @@ internal class LeakDirectoryProvider constructor(
     )
   }
 
+  @Suppress("DEPRECATION")
   private fun externalStorageDirectory(): File {
     val downloadsDirectory = Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS)
     return File(downloadsDirectory, "leakcanary-" + context.packageName)

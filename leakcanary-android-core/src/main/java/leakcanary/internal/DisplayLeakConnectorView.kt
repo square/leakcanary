@@ -26,7 +26,6 @@ import android.graphics.PorterDuff.Mode.CLEAR
 import android.graphics.PorterDuffXfermode
 import android.util.AttributeSet
 import android.view.View
-import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.DisplayLeakConnectorView.Type.END
 import leakcanary.internal.DisplayLeakConnectorView.Type.END_FIRST_UNREACHABLE
@@ -39,6 +38,7 @@ import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_UNKNOWN
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.START
 import leakcanary.internal.DisplayLeakConnectorView.Type.START_LAST_REACHABLE
+import leakcanary.internal.navigation.getColorCompat
 
 internal class DisplayLeakConnectorView(
   context: Context,
@@ -81,18 +81,18 @@ internal class DisplayLeakConnectorView(
         .toFloat()
 
     classNamePaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    classNamePaint.color = ContextCompat.getColor(context, R.color.leak_canary_class_name)
+    classNamePaint.color = context.getColorCompat(R.color.leak_canary_class_name)
     classNamePaint.strokeWidth = strokeSize
 
     leakGroupRootPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    leakGroupRootPaint.color = ContextCompat.getColor(context, R.color.leak_canary_class_name)
+    leakGroupRootPaint.color = context.getColorCompat(R.color.leak_canary_class_name)
     leakGroupRootPaint.strokeWidth = strokeSize
     val pathLines = resources.getDimensionPixelSize(R.dimen.leak_canary_connector_leak_dash_line)
         .toFloat()
     leakGroupRootPaint.pathEffect = DashPathEffect(floatArrayOf(pathLines, pathLines), 0f)
 
     leakPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    leakPaint.color = ContextCompat.getColor(context, R.color.leak_canary_leak)
+    leakPaint.color = context.getColorCompat(R.color.leak_canary_leak)
     leakPaint.style = Paint.Style.STROKE
     leakPaint.strokeWidth = strokeSize
 
@@ -105,7 +105,7 @@ internal class DisplayLeakConnectorView(
     clearPaint.xfermode = CLEAR_XFER_MODE
 
     referencePaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    referencePaint.color = ContextCompat.getColor(context, R.color.leak_canary_reference)
+    referencePaint.color = context.getColorCompat(R.color.leak_canary_reference)
     referencePaint.strokeWidth = strokeSize
   }
 

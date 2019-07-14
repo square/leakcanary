@@ -1,14 +1,16 @@
 package leakcanary.internal.activity.screen
 
 import android.app.AlertDialog
+import android.content.Context
+import android.graphics.drawable.Drawable
+import android.os.Build.VERSION.SDK_INT
+import android.text.Html
 import android.text.format.DateUtils
 import android.text.method.LinkMovementMethod
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
-import androidx.core.text.HtmlCompat
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.activity.LeakActivity
@@ -40,14 +42,12 @@ internal class GroupListScreen : Screen() {
 
         menu.add(R.string.leak_canary_about_menu)
             .setOnMenuItemClickListener {
+              @Suppress("DEPRECATION")
               val dialog = AlertDialog.Builder(context)
-                  .setIcon(ContextCompat.getDrawable(context, R.drawable.leak_canary_icon))
+                  .setIcon(context.getDrawableCompat(R.drawable.leak_canary_icon))
                   .setTitle(resources.getString(R.string.leak_canary_about_title, BuildConfig.LIBRARY_VERSION))
                   .setMessage(
-                      HtmlCompat.fromHtml(
-                          resources.getString(R.string.leak_canary_about_message),
-                          HtmlCompat.FROM_HTML_MODE_LEGACY
-                      )
+                      Html.fromHtml(resources.getString(R.string.leak_canary_about_message))
                   )
                   .setPositiveButton(android.R.string.ok, null)
                   .show()
@@ -64,6 +64,15 @@ internal class GroupListScreen : Screen() {
       }
 
     }
+
+  private fun Context.getDrawableCompat(id: Int): Drawable {
+    if (SDK_INT >= 21) {
+      return getDrawable(id)!!
+    } else  {
+      @Suppress("DEPRECATION")
+      return resources.getDrawable(id)
+    }
+  }
 
   private fun View.onGroupsRetrieved(projections: List<GroupProjection>) {
     activity.title =
