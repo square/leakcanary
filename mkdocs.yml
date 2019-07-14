@@ -13,6 +13,7 @@ copyright: 'Copyright &copy; 2015 Square, Inc.'
 
 theme:
   name: 'material'
+  custom_dir: 'docs/theme'
   logo: 'images/logo.png'
   favicon: 'images/logo.png'
   palette:
