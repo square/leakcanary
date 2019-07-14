@@ -8,7 +8,6 @@ targetCompatibility = JavaVersion.VERSION_1_7
 dependencies {
   api project(':leakcanary-analyzer')
 
-  implementation deps.androidx.annotation
   implementation deps.kotlin.stdlib
 }
 

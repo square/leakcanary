@@ -8,7 +8,6 @@ dependencies {
   api project(':leakcanary-watcher')
   api project(':leakcanary-haha')
 
-  implementation deps.androidx.annotation
   implementation deps.kotlin.stdlib
 
   testImplementation deps.assertj_core

@@ -17,15 +17,14 @@
 
 package leakcanary.internal
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Fragment
 import android.app.FragmentManager
-import android.os.Build
-import androidx.annotation.RequiresApi
-import leakcanary.RefWatcher
 import leakcanary.LeakSentry.Config
+import leakcanary.RefWatcher
 
-@RequiresApi(Build.VERSION_CODES.O) //
+@SuppressLint("NewApi")
 internal class AndroidOFragmentDestroyWatcher(
   private val refWatcher: RefWatcher,
   private val configProvider: () -> Config

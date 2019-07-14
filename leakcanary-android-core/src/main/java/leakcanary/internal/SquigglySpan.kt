@@ -22,8 +22,8 @@ import android.graphics.Path
 import android.text.SpannableStringBuilder
 import android.text.style.ReplacementSpan
 import android.text.style.UnderlineSpan
-import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.core.R
+import leakcanary.internal.navigation.getColorCompat
 
 /**
  * Inspired from https://github.com/flavienlaurent/spans and
@@ -44,7 +44,7 @@ internal class SquigglySpan(context: Context) : ReplacementSpan() {
   init {
     val resources = context.resources
     squigglyPaint.style = Paint.Style.STROKE
-    squigglyPaint.color = ContextCompat.getColor(context, R.color.leak_canary_leak)
+    squigglyPaint.color = context.getColorCompat(R.color.leak_canary_leak)
     val strokeWidth =
       resources.getDimensionPixelSize(R.dimen.leak_canary_squiggly_span_stroke_width)
           .toFloat()
@@ -59,7 +59,7 @@ internal class SquigglySpan(context: Context) : ReplacementSpan() {
     path = Path()
     val waveHeight = 2 * amplitude + strokeWidth
     halfWaveHeight = waveHeight / 2
-    referenceColor = ContextCompat.getColor(context, R.color.leak_canary_reference)
+    referenceColor = context.getColorCompat(R.color.leak_canary_reference)
   }
 
   override fun getSize(

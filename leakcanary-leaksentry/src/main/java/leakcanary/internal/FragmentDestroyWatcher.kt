@@ -27,13 +27,15 @@ import leakcanary.internal.InternalHelper.noOpDelegate
 /**
  * Internal class used to watch for fragments leaks.
  */
-internal interface FragmentDestroyWatcher {
+interface FragmentDestroyWatcher {
 
   fun watchFragments(activity: Activity)
 
   companion object {
 
-    private const val SUPPORT_FRAGMENT_CLASS_NAME = "androidx.fragment.app.Fragment"
+    private const val ANDROIDX_FRAGMENT_CLASS_NAME = "androidx.fragment.app.Fragment"
+    private const val ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME =
+      "leakcanary.internal.AndroidXFragmentDestroyWatcher"
 
     fun install(
       application: Application,
@@ -48,12 +50,13 @@ internal interface FragmentDestroyWatcher {
         )
       }
 
-      if (classAvailable(
-              SUPPORT_FRAGMENT_CLASS_NAME
-          )
+      if (classAvailable(ANDROIDX_FRAGMENT_CLASS_NAME) &&
+          classAvailable(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
       ) {
+        val watcherConstructor = Class.forName(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
+            .getDeclaredConstructor(RefWatcher::class.java, Function0::class.java)
         fragmentDestroyWatchers.add(
-            SupportFragmentDestroyWatcher(refWatcher, configProvider)
+            watcherConstructor.newInstance(refWatcher, configProvider) as FragmentDestroyWatcher
         )
       }
 

@@ -10,7 +10,6 @@ import android.graphics.Paint
 import android.graphics.Paint.Style.FILL
 import android.graphics.Paint.Style.STROKE
 import android.graphics.Rect
-import androidx.core.content.ContextCompat
 import com.squareup.leakcanary.core.R
 import leakcanary.HprofPushRecordsParser
 import leakcanary.HprofPushRecordsParser.OnRecordListener
@@ -32,6 +31,7 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import leakcanary.Record.LoadClassRecord
 import leakcanary.Record.StackTraceRecord
 import leakcanary.Record.StringRecord
+import leakcanary.internal.navigation.getColorCompat
 import java.io.File
 import kotlin.reflect.KClass
 
@@ -60,21 +60,21 @@ object HeapDumpRenderer {
     val recordPositions = mutableListOf<Pair<Int, Long>>()
     var currentRecord: Record? = null
 
-    val otherColor = ContextCompat.getColor(context, R.color.leak_canary_heap_other)
-    val stackTraceColor = ContextCompat.getColor(context, R.color.leak_canary_heap_stack_trace)
-    val hprofStringColor = ContextCompat.getColor(context, R.color.leak_canary_heap_hprof_string)
-    val loadClassColor = ContextCompat.getColor(context, R.color.leak_canary_heap_load_class)
-    val classDumpColor = ContextCompat.getColor(context, R.color.leak_canary_heap_class_dump)
-    val instanceColor = ContextCompat.getColor(context, R.color.leak_canary_heap_instance)
-    val objectArrayColor = ContextCompat.getColor(context, R.color.leak_canary_heap_object_array)
-    val booleanArrayColor = ContextCompat.getColor(context, R.color.leak_canary_heap_boolean_array)
-    val charArrayColor = ContextCompat.getColor(context, R.color.leak_canary_heap_char_array)
-    val floatArrayColor = ContextCompat.getColor(context, R.color.leak_canary_heap_float_array)
-    val doubleArrayColor = ContextCompat.getColor(context, R.color.leak_canary_heap_double_array)
-    val byteArrayColor = ContextCompat.getColor(context, R.color.leak_canary_heap_byte_array)
-    val shortArrayColor = ContextCompat.getColor(context, R.color.leak_canary_heap_short_array)
-    val intArrayColor = ContextCompat.getColor(context, R.color.leak_canary_heap_int_array)
-    val longArrayColor = ContextCompat.getColor(context, R.color.leak_canary_heap_long_array)
+    val otherColor = context.getColorCompat(R.color.leak_canary_heap_other)
+    val stackTraceColor = context.getColorCompat(R.color.leak_canary_heap_stack_trace)
+    val hprofStringColor = context.getColorCompat(R.color.leak_canary_heap_hprof_string)
+    val loadClassColor = context.getColorCompat(R.color.leak_canary_heap_load_class)
+    val classDumpColor = context.getColorCompat(R.color.leak_canary_heap_class_dump)
+    val instanceColor = context.getColorCompat(R.color.leak_canary_heap_instance)
+    val objectArrayColor = context.getColorCompat(R.color.leak_canary_heap_object_array)
+    val booleanArrayColor = context.getColorCompat(R.color.leak_canary_heap_boolean_array)
+    val charArrayColor = context.getColorCompat(R.color.leak_canary_heap_char_array)
+    val floatArrayColor = context.getColorCompat(R.color.leak_canary_heap_float_array)
+    val doubleArrayColor = context.getColorCompat(R.color.leak_canary_heap_double_array)
+    val byteArrayColor = context.getColorCompat(R.color.leak_canary_heap_byte_array)
+    val shortArrayColor = context.getColorCompat(R.color.leak_canary_heap_short_array)
+    val intArrayColor = context.getColorCompat(R.color.leak_canary_heap_int_array)
+    val longArrayColor = context.getColorCompat(R.color.leak_canary_heap_long_array)
     val colors = mapOf(
         StringRecord::class to hprofStringColor,
         LoadClassRecord::class to loadClassColor,
@@ -94,10 +94,10 @@ object HeapDumpRenderer {
         GcRootRecord::class to otherColor
     )
 
-    val appHeapColor = ContextCompat.getColor(context, R.color.leak_canary_heap_app)
-    val imageHeapColor = ContextCompat.getColor(context, R.color.leak_canary_heap_image)
-    val zygoteHeapColor = ContextCompat.getColor(context, R.color.leak_canary_heap_zygote)
-    val stringColor = ContextCompat.getColor(context, R.color.leak_canary_heap_instance_string)
+    val appHeapColor = context.getColorCompat(R.color.leak_canary_heap_app)
+    val imageHeapColor = context.getColorCompat(R.color.leak_canary_heap_image)
+    val zygoteHeapColor = context.getColorCompat(R.color.leak_canary_heap_zygote)
+    val stringColor = context.getColorCompat(R.color.leak_canary_heap_instance_string)
 
     val parser = HprofPushRecordsParser()
     val reader = parser.readHprofRecords(heapDumpFile, setOf(object : OnRecordListener {

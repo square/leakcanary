@@ -3,11 +3,9 @@ package leakcanary.internal.activity.ui
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
-import androidx.annotation.LayoutRes
 import leakcanary.internal.navigation.inflate
 
 class SimpleListAdapter<T>(
-  @LayoutRes
   private val rowResId: Int,
   private val items: List<T>,
   private val bindView: SimpleListAdapter<T>.(View, Int) -> Unit

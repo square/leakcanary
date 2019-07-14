@@ -1,13 +1,14 @@
 package leakcanary.internal.navigation
 
 import android.app.Activity
+import android.content.Context
+import android.os.Build.VERSION
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.LayoutRes
 
-internal fun ViewGroup.inflate(@LayoutRes layoutResId: Int) = LayoutInflater.from(context)
+internal fun ViewGroup.inflate(layoutResId: Int) = LayoutInflater.from(context)
     .inflate(layoutResId, this, false)!!
 
 internal val View.activity
@@ -27,4 +28,12 @@ internal fun View.goTo(screen: Screen) {
 
 internal fun View.goBack() {
   activity<NavigatingActivity>().goBack()
+}
+
+internal fun Context.getColorCompat(id: Int): Int {
+  return if (VERSION.SDK_INT >= 23) {
+    getColor(id)
+  } else {
+    resources.getColor(id)
+  }
 }

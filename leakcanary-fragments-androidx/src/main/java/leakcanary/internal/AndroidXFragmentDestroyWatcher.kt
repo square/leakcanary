@@ -22,7 +22,7 @@ import androidx.fragment.app.FragmentManager
 import leakcanary.RefWatcher
 import leakcanary.LeakSentry.Config
 
-internal class SupportFragmentDestroyWatcher(
+internal class AndroidXFragmentDestroyWatcher(
   private val refWatcher: RefWatcher,
   private val configProvider: () -> Config
 ) : FragmentDestroyWatcher {
