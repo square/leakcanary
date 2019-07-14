@@ -18,6 +18,7 @@ package leakcanary.internal
 import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step.FINDING_DOMINATORS
 import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
+import leakcanary.CanaryLog
 import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
@@ -75,7 +76,7 @@ internal class ShortestPathFinder {
   /** Set of instances to visit */
   private val toVisitMap = LinkedHashMap<Long, Status>()
   private val visitedSet = LongScatterSet()
-  private lateinit var referentMap: Map<Long, KeyedWeakReferenceMirror>
+  private lateinit var leakingInstanceObjectIds: Set<Long>
   private var visitOrder = 0
 
   /**
@@ -92,8 +93,7 @@ internal class ShortestPathFinder {
 
   class Result(
     val leakingNode: LeakNode,
-    val exclusionStatus: Status?,
-    val weakReference: KeyedWeakReferenceMirror
+    val exclusionStatus: Status?
   )
 
   data class Results(
@@ -104,13 +104,14 @@ internal class ShortestPathFinder {
   fun findPaths(
     graph: HprofGraph,
     exclusions: List<Exclusion>,
-    leakingWeakRefs: List<KeyedWeakReferenceMirror>,
+    leakingInstanceObjectIds: Set<Long>,
     gcRootIds: MutableList<GcRoot>,
     computeDominators: Boolean,
     listener: AnalyzerProgressListener
   ): Results {
     listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
     clearState()
+    this.leakingInstanceObjectIds = leakingInstanceObjectIds
 
     val objectClass = graph.indexedClass("java.lang.Object")
     sizeOfObjectInstances = if (objectClass != null) {
@@ -165,9 +166,6 @@ internal class ShortestPathFinder {
           }
         }
 
-    // Referent object id to weak ref mirror
-    referentMap = leakingWeakRefs.associateBy { it.referent.value }
-
     enqueueGcRoots(graph, gcRootIds, threadNames, computeDominators)
 
     var lowestPriority = ALWAYS_REACHABLE
@@ -186,12 +184,11 @@ internal class ShortestPathFinder {
         continue
       }
 
-      val weakReference = referentMap[node.instance]
-      if (weakReference != null) {
+      if (node.instance in leakingInstanceObjectIds) {
         val exclusionPriority = if (lowestPriority == ALWAYS_REACHABLE) null else lowestPriority
-        results.add(Result(node, exclusionPriority, weakReference))
+        results.add(Result(node, exclusionPriority))
         // Found all refs, stop searching (unless computing retained size which stops on weak reachables)
-        if (results.size == leakingWeakRefs.size) {
+        if (results.size == leakingInstanceObjectIds.size) {
           if (computeDominators && lowestPriority < WEAKLY_REACHABLE) {
             listener.onProgressUpdate(FINDING_DOMINATORS)
           } else {
@@ -200,7 +197,7 @@ internal class ShortestPathFinder {
         }
       }
 
-      if (results.size == leakingWeakRefs.size && computeDominators && lowestPriority >= WEAKLY_REACHABLE) {
+      if (results.size == leakingInstanceObjectIds.size && computeDominators && lowestPriority >= WEAKLY_REACHABLE) {
         break@visitingQueue
       }
 
@@ -234,8 +231,8 @@ internal class ShortestPathFinder {
     toVisitMap.clear()
     visitedSet.release()
     visitOrder = 0
-    referentMap = emptyMap()
     dominatedInstances = LongLongScatterMap()
+    leakingInstanceObjectIds = emptySet()
     sizeOfObjectInstances = 0
   }
 
@@ -304,7 +301,7 @@ internal class ShortestPathFinder {
           graphObject.arrayClassName
         }
         is GraphPrimitiveArrayRecord -> {
-          graphObject.primitiveType.name
+          graphObject.arrayClassName
         }
       }
     }
@@ -405,7 +402,15 @@ internal class ShortestPathFinder {
     parentNode: LeakNode,
     computeRetainedHeapSize: Boolean
   ) {
-    record.elementIds.filter { it != 0L }
+    record.elementIds.filter {objectId ->
+      objectId != 0L && graph.objectIdExists(objectId).apply {
+        if (!this) {
+          // dalvik.system.PathClassLoader.runtimeInternalObjects references objects which don't
+          // otherwise exist in the heap dump.
+          CanaryLog.d("Invalid Hprof? Found unknown object id $objectId")
+        }
+      }
+    }
         .forEachIndexed { index, elementId ->
           if (computeRetainedHeapSize) {
             updateDominatorWithSkips(graph, parentNode.instance, elementId)
@@ -441,7 +446,7 @@ internal class ShortestPathFinder {
       return
     }
 
-    val isLeakingInstance = referentMap[node.instance] != null
+    val isLeakingInstance = node.instance in leakingInstanceObjectIds
 
     if (!isLeakingInstance) {
       val skip = when (val graphObject = graph.indexedObject(node.instance)) {
@@ -521,7 +526,7 @@ internal class ShortestPathFinder {
     }
     val parentDominator = dominatedInstances[parent]
 
-    val parentIsRetainedInstance = referentMap.containsKey(parent)
+    val parentIsRetainedInstance = parent in leakingInstanceObjectIds
 
     val nextDominator = if (parentIsRetainedInstance) parent else parentDominator
 

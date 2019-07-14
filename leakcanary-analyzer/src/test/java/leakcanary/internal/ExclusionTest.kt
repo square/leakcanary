@@ -9,8 +9,6 @@ import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
 import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.KeyedWeakReference
-import leakcanary.LeakingInstance
-import leakcanary.NoPathToInstance
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -37,7 +35,7 @@ class ExclusionTest {
         exclusions = listOf(Exclusion(StaticFieldExclusion("GcRoot", "shortestPath")))
     )
 
-    val leak = analysis.retainedInstances[0] as LeakingInstance
+    val leak = analysis.leakingInstances[0]
     assertThat(leak.leakTrace.elements).hasSize(3)
     assertThat(leak.leakTrace.elements[0].className).isEqualTo("GcRoot")
     assertThat(leak.leakTrace.elements[0].reference!!.name).isEqualTo("longestPath")
@@ -56,7 +54,7 @@ class ExclusionTest {
         )
     )
 
-    val leak = analysis.retainedInstances[0] as LeakingInstance
+    val leak = analysis.leakingInstances[0]
     assertThat(leak.exclusionStatus).isEqualTo(WONT_FIX_LEAK)
     assertThat(leak.leakTrace.elements).hasSize(2)
     assertThat(leak.leakTrace.elements[0].className).isEqualTo("GcRoot")
@@ -73,7 +71,7 @@ class ExclusionTest {
             Exclusion(InstanceFieldExclusion("HasLeaking", "leaking"), status = NEVER_REACHABLE)
         )
     )
-    assertThat(analysis.retainedInstances[0]).isInstanceOf(NoPathToInstance::class.java)
+    assertThat(analysis.leakingInstances).isEmpty()
   }
 
   @Test fun excludedThread() {
@@ -83,7 +81,7 @@ class ExclusionTest {
         exclusions = listOf(Exclusion(JavaLocalExclusion("kroutine"), status = WONT_FIX_LEAK))
     )
 
-    val leak = analysis.retainedInstances[0] as LeakingInstance
+    val leak = analysis.leakingInstances[0]
     assertThat(leak.exclusionStatus).isEqualTo(WONT_FIX_LEAK)
   }
 
@@ -91,7 +89,7 @@ class ExclusionTest {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["ref"] =
-          keyedWeakReference(className = "Leaking", referentInstanceId = "Leaking" instance {})
+          keyedWeakReference(referentInstanceId = "Leaking" instance {})
       }
     }
 
@@ -104,7 +102,7 @@ class ExclusionTest {
         )
     )
 
-    val leak = analysis.retainedInstances[0] as LeakingInstance
+    val leak = analysis.leakingInstances[0]
     assertThat(leak.exclusionStatus).isEqualTo(WEAKLY_REACHABLE)
   }
 
@@ -112,7 +110,7 @@ class ExclusionTest {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["ref"] =
-          keyedWeakReference(className = "Leaking", referentInstanceId = "Leaking" instance {})
+          keyedWeakReference(referentInstanceId = "Leaking" instance {})
       }
     }
 
@@ -127,7 +125,7 @@ class ExclusionTest {
         )
         )
     )
-    assertThat(analysis.retainedInstances[0]).isInstanceOf(NoPathToInstance::class.java)
+    assertThat(analysis.leakingInstances).isEmpty()
   }
 
 }

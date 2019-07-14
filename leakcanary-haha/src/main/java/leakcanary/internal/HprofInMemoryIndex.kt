@@ -1,9 +1,11 @@
 package leakcanary.internal
 
+import leakcanary.GcRoot.JniGlobal
 import leakcanary.HprofPushRecordsParser.OnRecordListener
 import leakcanary.HprofReader
 import leakcanary.PrimitiveType
 import leakcanary.Record
+import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
@@ -17,6 +19,8 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.In
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import leakcanary.Record.LoadClassRecord
+import leakcanary.Record.StackFrameRecord
+import leakcanary.Record.StackTraceRecord
 import leakcanary.Record.StringRecord
 import leakcanary.internal.IndexedObject.IndexedClass
 import leakcanary.internal.IndexedObject.IndexedInstance
@@ -66,8 +70,16 @@ internal class HprofInMemoryIndex private constructor(
         .map { it.first to it.second as IndexedInstance }
   }
 
+  fun indexedObjectSequence(): Sequence<Pair<Long, IndexedObject>> {
+    return objectIndex.entrySequence()
+  }
+
   fun indexedObject(objectId: Long): IndexedObject {
-    return objectIndex[objectId]
+    return objectIndex[objectId]!!
+  }
+
+  fun objectIdIsIndexed(objectId: Long): Boolean {
+    return objectIndex[objectId] != null
   }
 
   class Builder : OnRecordListener {

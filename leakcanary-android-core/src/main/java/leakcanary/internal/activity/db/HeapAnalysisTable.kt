@@ -40,7 +40,7 @@ internal object HeapAnalysisTable {
     values.put("object", heapAnalysis.toByteArray())
     when (heapAnalysis) {
       is HeapAnalysisSuccess -> {
-        values.put("retained_instance_count", heapAnalysis.retainedInstances.size)
+        values.put("retained_instance_count", heapAnalysis.leakingInstances.size)
       }
       is HeapAnalysisFailure -> {
         val cause = heapAnalysis.exception.cause!!

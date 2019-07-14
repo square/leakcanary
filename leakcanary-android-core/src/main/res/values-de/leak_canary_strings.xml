@@ -70,6 +70,5 @@
   <string name="leak_canary_options_menu_import_hprof_file">Hprof Datei importieren &amp; analysieren</string>
   <string name="leak_canary_options_menu_see_analysis_list">Siehe Analyse-Liste</string>
   <string name="leak_canary_options_menu_render_heap_dump">Heap Dump rendern</string>
-  <string name="leak_canary_heap_analysis_success_screen_no_path_to_instance_count">%d erhaltene Instanzen ohne Leaks</string>
   <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
 </resources>

@@ -230,20 +230,13 @@ class RetainedSizeTest {
     }
 
     val retainedInstances = retainedInstances()
-    require(retainedInstances.size == 3)
+    require(retainedInstances.size == 1)
 
-    retainedInstances.forEach { instance ->
-      when (instance.instanceClassName) {
-        "GrandParentLeaking" -> {
-          // 4 bytes per ref * 2 + short + int + long
-          assertThat(instance.retainedHeapSize).isEqualTo(22)
-        }
-        "ParentLeaking", "ChildLeaking" -> {
-          assertThat(instance.retainedHeapSize).isEqualTo(0)
-        }
-        else -> throw IllegalStateException("Unexpected ${instance.instanceClassName}")
-      }
-    }
+    val instance = retainedInstances[0]
+
+    assertThat(instance.instanceClassName).isEqualTo("GrandParentLeaking")
+    // 4 bytes per ref * 2 + short + int + long
+    assertThat(instance.retainedHeapSize).isEqualTo(22)
   }
 
   @Test fun crossDominatedIsNotDominated() {
@@ -315,7 +308,7 @@ class RetainedSizeTest {
     val analysis = hprofFile.checkForLeaks<HeapAnalysis>(computeRetainedHeapSize = true)
     println(analysis.toString())
     analysis as HeapAnalysisSuccess
-    return analysis.retainedInstances.map { it as LeakingInstance }
+    return analysis.leakingInstances.map { it }
   }
 
   private fun firstRetainedSize(): Int {

@@ -111,16 +111,10 @@ class RefWatcher constructor(
     val watchUptimeMillis = clock.uptimeMillis()
     val reference =
       KeyedWeakReference(watchedInstance, key, name, watchUptimeMillis, queue)
-    if (name != "") {
-      CanaryLog.d(
-          "Watching instance of %s named %s with key %s", reference.className,
-          name, key
-      )
-    } else {
-      CanaryLog.d(
-          "Watching instance of %s with key %s", reference.className, key
-      )
-    }
+    CanaryLog.d(
+        "Watching %s with key %s",
+        ((if (watchedInstance is Class<*>) watchedInstance.toString() else "instance of ${watchedInstance.javaClass.name}") + if (name.isNotEmpty()) " named $name" else ""), key
+    )
 
     watchedInstances[key] = reference
     checkRetainedExecutor.execute {
@@ -137,11 +131,10 @@ class RefWatcher constructor(
     }
   }
 
-  @Synchronized fun removeInstancesRetainedBeforeHeapDump(heapDumpUptimeMillis: Long) {
-    val retainedBeforeHeapdump =
-      watchedInstances.filter { it.value.retainedUptimeMillis in 0..heapDumpUptimeMillis }
-          .keys
-    watchedInstances.keys.removeAll(retainedBeforeHeapdump)
+  @Synchronized fun removeInstancesWatchedBeforeHeapDump(heapDumpUptimeMillis: Long) {
+    val weakRefsToRemove = watchedInstances.filter { it.value.watchUptimeMillis <= heapDumpUptimeMillis }
+    weakRefsToRemove.values.forEach { it.clear() }
+    watchedInstances.keys.removeAll(weakRefsToRemove.keys)
   }
 
   @Synchronized fun clearWatchedInstances() {

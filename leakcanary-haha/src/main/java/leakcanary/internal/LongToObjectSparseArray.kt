@@ -23,11 +23,11 @@ internal class LongToObjectSparseArray<T>(initialCapacity: Int) : Cloneable {
     size = 0
   }
 
-  operator fun get(key: Long): T {
+  operator fun get(key: Long): T? {
     val i = binarySearch(keys, size, key)
 
     return if (i < 0 || values[i] == null) {
-      throw NullPointerException("Key $key not set")
+      null
     } else {
       values[i]!!
     }

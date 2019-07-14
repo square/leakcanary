@@ -27,6 +27,7 @@ import okio.Buffer
 import java.io.Closeable
 import java.io.File
 import java.util.UUID
+import kotlin.random.Random
 import kotlin.reflect.KClass
 
 class HprofWriterHelper constructor(
@@ -36,6 +37,13 @@ class HprofWriterHelper constructor(
   private var lastId = 0L
   private val id: Long
     get() = ++lastId
+
+  private val weakRefKeyRandom = Random(42)
+
+  // Sequence identical for every test run
+  private val weakRefKey: String
+    get() =
+      UUID(weakRefKeyRandom.nextLong(), weakRefKeyRandom.nextLong()).toString()
 
   private val typeSizes = mapOf(
       // object
@@ -61,7 +69,7 @@ class HprofWriterHelper constructor(
   )
   )
 
-  private val referenceClassId  = clazz(
+  private val referenceClassId = clazz(
       className = "java.lang.ref.Reference",
       fields = listOf(
           "referent" to ObjectReference::class
@@ -75,11 +83,10 @@ class HprofWriterHelper constructor(
   private val keyedWeakReferenceClassId = clazz(
       superClassId = weakReferenceClassId,
       className = "leakcanary.KeyedWeakReference",
-      staticFields = listOf("heapDumpUptimeMillis" to LongValue(Long.MAX_VALUE)),
+      staticFields = listOf("heapDumpUptimeMillis" to LongValue(30000)),
       fields = listOf(
           "key" to ObjectReference::class,
           "name" to ObjectReference::class,
-          "className" to ObjectReference::class,
           "watchUptimeMillis" to LongValue::class,
           "retainedUptimeMillis" to LongValue::class
       )
@@ -157,18 +164,16 @@ class HprofWriterHelper constructor(
   }
 
   fun keyedWeakReference(
-    className: String,
     referentInstanceId: ObjectReference
   ): ObjectReference {
-    val referenceKey = string(UUID.randomUUID().toString())
+    val referenceKey = string(weakRefKey)
     return instance(
         classId = keyedWeakReferenceClassId,
         fields = listOf(
             referenceKey,
             string(""),
-            string(className),
-            LongValue(System.currentTimeMillis()),
-            LongValue(System.currentTimeMillis()),
+            LongValue(5000),
+            LongValue(20000),
             ObjectReference(referentInstanceId.value)
         )
     )
@@ -205,7 +210,7 @@ class HprofWriterHelper constructor(
 
   infix fun String.watchedInstance(block: InstanceAndClassDefinition.() -> Unit): ObjectReference {
     val instance = this.instance(block)
-    keyedWeakReference("DummyClassName", instance)
+    keyedWeakReference(instance)
     return instance
   }
 

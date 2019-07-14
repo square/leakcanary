@@ -28,8 +28,6 @@ class KeyedWeakReference(
 ) : WeakReference<Any>(
     referent, referenceQueue
 ) {
-  val className: String = referent.javaClass.name
-
   /**
    * Compared against [heapDumpUptimeMillis] so that the Hprof Parser knows only to look at
    * instances that were moved to retained, then used to remove weak references post heap dump.

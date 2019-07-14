@@ -1,6 +1,7 @@
 package leakcanary.internal
 
 import leakcanary.AnalyzerProgressListener
+import leakcanary.AndroidObjectInspectors
 import leakcanary.Exclusion
 import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.Exclusion.ExclusionType.JavaLocalExclusion
@@ -22,9 +23,14 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   computeRetainedHeapSize: Boolean = false,
   exclusions: List<Exclusion> = defaultExclusionsFactory
 ): T {
+  val inspectors = if (AndroidObjectInspectors.KEYED_WEAK_REFERENCE !in objectInspectors) {
+    objectInspectors + AndroidObjectInspectors.KEYED_WEAK_REFERENCE
+  } else {
+    objectInspectors
+  }
   val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
   val result = heapAnalyzer.checkForLeaks(
-      this, exclusions, computeRetainedHeapSize, objectInspectors
+      this, exclusions, computeRetainedHeapSize, inspectors
   )
   if (result is HeapAnalysisFailure) {
     println(result)

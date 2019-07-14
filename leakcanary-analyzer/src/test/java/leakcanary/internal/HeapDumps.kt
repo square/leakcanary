@@ -10,14 +10,14 @@ import java.io.File
 fun File.writeWeakReferenceCleared() {
   HprofWriter.open(this)
       .helper {
-        keyedWeakReference("Leaking", ObjectReference(0))
+        keyedWeakReference(ObjectReference(0))
       }
 }
 
 fun File.writeNoPathToInstance() {
   HprofWriter.open(this)
       .helper {
-        keyedWeakReference("Leaking", instance(clazz("Leaking")))
+        keyedWeakReference(instance(clazz("Leaking")))
       }
 }
 
@@ -25,7 +25,7 @@ fun File.writeSinglePathToInstance() {
   HprofWriter.open(this)
       .helper {
         val leaking = instance(clazz("Leaking"))
-        keyedWeakReference("Leaking", leaking)
+        keyedWeakReference(leaking)
         clazz(
             "GcRoot", staticFields = listOf(
             "shortestPath" to leaking
@@ -38,7 +38,7 @@ fun File.writeSinglePathToString(value: String = "Hi") {
   HprofWriter.open(this)
       .helper {
         val leaking = string(value)
-        keyedWeakReference("java.lang.String", leaking)
+        keyedWeakReference(leaking)
         clazz(
             "GcRoot", staticFields = listOf(
             "shortestPath" to leaking
@@ -53,7 +53,7 @@ fun File.writeSinglePathsToCharArrays(values: List<String>) {
         val arrays = mutableListOf<Long>()
         values.forEach {
           val leaking = it.charArrayDump
-          keyedWeakReference("char[]", leaking)
+          keyedWeakReference(leaking)
           arrays.add(leaking.value)
         }
         clazz(
@@ -72,7 +72,7 @@ fun File.writeTwoPathsToInstance() {
   HprofWriter.open(this)
       .helper {
         val leaking = instance(clazz("Leaking"))
-        keyedWeakReference("Leaking", leaking)
+        keyedWeakReference(leaking)
         val hasLeaking = instance(
             clazz("HasLeaking", fields = listOf("leaking" to ObjectReference::class)),
             fields = listOf(leaking)
@@ -114,7 +114,7 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
             )
         )
         destroyedActivities.forEach { instanceId ->
-          keyedWeakReference("com.example.ExampleActivity", instanceId)
+          keyedWeakReference(instanceId)
         }
       }
 }

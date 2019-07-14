@@ -39,6 +39,8 @@ class HprofGraph internal constructor(
   private val index: HprofInMemoryIndex
 ) {
 
+  val context = GraphContext()
+
   /**
    * LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
    * This is based on running InstrumentationLeakDetectorTest a bunch of time on a
@@ -65,19 +67,11 @@ class HprofGraph internal constructor(
   }
 
   fun indexedObject(objectId: Long): GraphObjectRecord {
-    return when (val indexedObject = index.indexedObject(objectId)) {
-      is IndexedClass -> GraphClassRecord(this, indexedObject, objectId)
-      is IndexedInstance -> {
-        val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
-        GraphInstanceRecord(this, indexedObject, objectId, isPrimitiveWrapper)
-      }
-      is IndexedObjectArray -> {
-        val isPrimitiveWrapperArray =
-          index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
-        GraphObjectArrayRecord(this, indexedObject, objectId, isPrimitiveWrapperArray)
-      }
-      is IndexedPrimitiveArray -> GraphPrimitiveArrayRecord(this, indexedObject, objectId)
-    }
+    return wrapIndexedObject(index.indexedObject(objectId), objectId)
+  }
+
+  fun objectIdExists(objectId: Long): Boolean {
+    return index.objectIdIsIndexed(objectId)
   }
 
   fun computeShallowSize(graphObject: GraphObjectRecord): Int {
@@ -107,6 +101,13 @@ class HprofGraph internal constructor(
           val indexedObject = it.second
           val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
           GraphInstanceRecord(this, indexedObject, objectId, isPrimitiveWrapper)
+        }
+  }
+
+  fun objectSequence(): Sequence<GraphObjectRecord> {
+    return index.indexedObjectSequence()
+        .map {
+          wrapIndexedObject(it.second, it.first)
         }
   }
 
@@ -194,6 +195,25 @@ class HprofGraph internal constructor(
     }
     reader.moveTo(indexedObject.position)
     return readBlock().apply { objectCache.put(objectId, this) }
+  }
+
+  private fun wrapIndexedObject(
+    indexedObject: IndexedObject,
+    objectId: Long
+  ): GraphObjectRecord {
+    return when (indexedObject) {
+      is IndexedClass -> GraphClassRecord(this, indexedObject, objectId)
+      is IndexedInstance -> {
+        val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
+        GraphInstanceRecord(this, indexedObject, objectId, isPrimitiveWrapper)
+      }
+      is IndexedObjectArray -> {
+        val isPrimitiveWrapperArray =
+          index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
+        GraphObjectArrayRecord(this, indexedObject, objectId, isPrimitiveWrapperArray)
+      }
+      is IndexedPrimitiveArray -> GraphPrimitiveArrayRecord(this, indexedObject, objectId)
+    }
   }
 
   companion object {
