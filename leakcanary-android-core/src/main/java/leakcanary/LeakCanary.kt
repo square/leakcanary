@@ -29,7 +29,7 @@ object LeakCanary {
      */
     val retainedVisibleThreshold: Int = 5,
 
-    val knownReferences: Set<AndroidKnownReference> = AndroidKnownReference.appDefaults,
+    val referenceMatchers: List<ReferenceMatcher> = AndroidReferenceMatchers.appDefaults,
 
     val objectInspectors: List<ObjectInspector> = AndroidObjectInspectors.defaultInspectors(),
 

@@ -11,7 +11,6 @@ import leakcanary.HeapAnalysisSuccess
 import leakcanary.Serializables
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.LeakDirectoryProvider
-import leakcanary.leakingInstances
 import leakcanary.toByteArray
 import org.intellij.lang.annotations.Language
 import java.io.File
@@ -40,7 +39,7 @@ internal object HeapAnalysisTable {
     values.put("object", heapAnalysis.toByteArray())
     when (heapAnalysis) {
       is HeapAnalysisSuccess -> {
-        values.put("retained_instance_count", heapAnalysis.leakingInstances.size)
+        values.put("retained_instance_count", heapAnalysis.allLeaks.size)
       }
       is HeapAnalysisFailure -> {
         val cause = heapAnalysis.exception.cause!!
@@ -51,12 +50,14 @@ internal object HeapAnalysisTable {
 
     return db.inTransaction {
       val heapAnalysisId = db.insertOrThrow("heap_analysis", null, values)
-      heapAnalysis.leakingInstances()
-          .forEach { leakingInstance ->
-            LeakingInstanceTable.insert(
-                db, heapAnalysisId, leakingInstance
-            )
-          }
+      if (heapAnalysis is HeapAnalysisSuccess) {
+        heapAnalysis.allLeaks
+            .forEach { leakingInstance ->
+              LeakingInstanceTable.insert(
+                  db, heapAnalysisId, leakingInstance
+              )
+            }
+      }
       heapAnalysisId
     }
   }

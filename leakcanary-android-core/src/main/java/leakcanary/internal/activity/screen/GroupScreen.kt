@@ -46,7 +46,7 @@ internal class GroupScreen(private val groupHash: String) : Screen() {
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)
 
-    val adapter = DisplayLeakAdapter(context, leakTrace, projections)
+    val adapter = DisplayLeakAdapter(context, leakTrace, groupDescription, projections)
     listView.adapter = adapter
 
     listView.setOnItemClickListener { _, _, position, _ ->

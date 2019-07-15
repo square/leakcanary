@@ -7,7 +7,7 @@ import leakcanary.HeapValue.IntValue
 import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HeapValue.ShortValue
-import leakcanary.LeakingInstance
+import leakcanary.Leak
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -234,7 +234,7 @@ class RetainedSizeTest {
 
     val instance = retainedInstances[0]
 
-    assertThat(instance.instanceClassName).isEqualTo("GrandParentLeaking")
+    assertThat(instance.className).isEqualTo("GrandParentLeaking")
     // 4 bytes per ref * 2 + short + int + long
     assertThat(instance.retainedHeapSize).isEqualTo(22)
   }
@@ -304,11 +304,11 @@ class RetainedSizeTest {
     assertThat(retainedSize).isEqualTo(12 + nativeBitmapSize)
   }
 
-  private fun retainedInstances(): List<LeakingInstance> {
+  private fun retainedInstances(): List<Leak> {
     val analysis = hprofFile.checkForLeaks<HeapAnalysis>(computeRetainedHeapSize = true)
     println(analysis.toString())
     analysis as HeapAnalysisSuccess
-    return analysis.leakingInstances.map { it }
+    return analysis.applicationLeaks.map { it }
   }
 
   private fun firstRetainedSize(): Int {

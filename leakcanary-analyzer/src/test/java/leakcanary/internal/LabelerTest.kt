@@ -40,7 +40,7 @@ class LabelerTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(objectInspectors = listOf(labeler))
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
 
     assertThat(leak.leakTrace.elements.last().labels).contains("Hello World")
   }
@@ -51,7 +51,7 @@ class LabelerTest {
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(objectInspectors = listOf(AndroidObjectInspectors.THREAD))
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
 
     assertThat(leak.leakTrace.elements.first().labels).contains("Thread name: 'kroutine'")
   }

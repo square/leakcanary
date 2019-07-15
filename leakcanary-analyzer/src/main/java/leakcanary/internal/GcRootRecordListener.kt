@@ -36,7 +36,7 @@ internal class GcRootRecordListener : OnRecordListener {
         // https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
         // We should log to figure out what objects VmInternal points to.
         when (record.gcRoot) {
-          // ThreadObject points to threads, which we need to find the thread that a JavaLocalExclusion
+          // ThreadObject points to threads, which we need to find the thread that a JavaLocalPattern
           // belongs to
           is ThreadObject,
           is JniGlobal,

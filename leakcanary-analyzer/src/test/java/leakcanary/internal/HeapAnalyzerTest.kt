@@ -5,7 +5,7 @@ import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.LeakTraceElement.Type.LOCAL
-import leakcanary.LeakingInstance
+import leakcanary.Leak
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -28,23 +28,23 @@ class HeapAnalyzerTest {
     hprofFile.writeSinglePathToInstance()
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    assertThat(analysis.leakingInstances[0]).isInstanceOf(LeakingInstance::class.java)
+    assertThat(analysis.applicationLeaks[0]).isInstanceOf(Leak::class.java)
   }
 
   @Test fun pathToString() {
     hprofFile.writeSinglePathToString()
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
 
-    assertThat(leak.instanceClassName).isEqualTo("java.lang.String")
+    assertThat(leak.className).isEqualTo("java.lang.String")
   }
 
   @Test fun pathToCharArray() {
     hprofFile.writeSinglePathsToCharArrays(listOf("Hello"))
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
-    val leak = analysis.leakingInstances[0]
-    assertThat(leak.instanceClassName).isEqualTo("char[]")
+    val leak = analysis.applicationLeaks[0]
+    assertThat(leak.className).isEqualTo("char[]")
   }
 
   // Two char arrays to ensure we keep going after finding the first one
@@ -59,7 +59,7 @@ class HeapAnalyzerTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements).hasSize(2)
     assertThat(leak.leakTrace.elements[0].className).isEqualTo("GcRoot")
     assertThat(leak.leakTrace.elements[0].reference!!.name).isEqualTo("shortestPath")
@@ -71,14 +71,14 @@ class HeapAnalyzerTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    assertThat(analysis.leakingInstances).isEmpty()
+    assertThat(analysis.applicationLeaks).isEmpty()
   }
 
   @Test fun weakRefCleared() {
     hprofFile.writeWeakReferenceCleared()
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
-    assertThat(analysis.leakingInstances).isEmpty()
+    assertThat(analysis.applicationLeaks).isEmpty()
   }
 
   @Test fun failsNoRetainedKeys() {
@@ -86,7 +86,7 @@ class HeapAnalyzerTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    assertThat(analysis.leakingInstances).isEmpty()
+    assertThat(analysis.applicationLeaks).isEmpty()
   }
 
   @Test fun findMultipleLeaks() {
@@ -94,8 +94,8 @@ class HeapAnalyzerTest {
 
     val leaks = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    assertThat(leaks.leakingInstances).hasSize(5)
-        .hasOnlyElementsOfType(LeakingInstance::class.java)
+    assertThat(leaks.applicationLeaks).hasSize(5)
+        .hasOnlyElementsOfType(Leak::class.java)
   }
 
   @Test fun localVariableLeak() {
@@ -103,7 +103,7 @@ class HeapAnalyzerTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements).hasSize(2)
     assertThat(leak.leakTrace.elements[0].className).isEqualTo("MyThread")
     assertThat(leak.leakTrace.elements[0].reference!!.type).isEqualTo(LOCAL)
@@ -129,7 +129,7 @@ class HeapAnalyzerTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements).hasSize(2)
     assertThat(leak.leakTrace.elements[0].className).isEqualTo("MyThread")
     assertThat(leak.leakTrace.elements[0].reference!!.name).isEqualTo("leaking")
