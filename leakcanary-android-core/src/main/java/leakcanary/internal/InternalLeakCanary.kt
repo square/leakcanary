@@ -44,7 +44,7 @@ internal object InternalLeakCanary : LeakSentryListener {
 
   val noInstallConfig: Config
     get() = Config(
-        dumpHeap = false, knownReferences = emptySet(), objectInspectors = emptyList()
+        dumpHeap = false, referenceMatchers = emptyList(), objectInspectors = emptyList()
     )
 
   override fun onLeakSentryInstalled(application: Application) {

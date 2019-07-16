@@ -12,12 +12,6 @@ import java.io.Serializable
 data class LeakTrace(
   val elements: List<LeakTraceElement>
 ) : Serializable {
-
-  val firstElementExclusion
-    get() = elements.first { element ->
-      element.exclusion != null
-    }.exclusion!!
-
   val leakCauses = elements.filterIndexed { index, _ ->
     elementMayBeLeakCause(index)
   }

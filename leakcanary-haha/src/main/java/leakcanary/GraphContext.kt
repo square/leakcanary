@@ -7,6 +7,16 @@ class GraphContext {
     return store[key] as T?
   }
 
+  fun <T> getOrPut(
+    key: String,
+    defaultValue: () -> T
+  ): T {
+    @Suppress("UNCHECKED_CAST")
+    return store.getOrPut(key, {
+      defaultValue() as Any
+    }) as T
+  }
+
   operator fun <T> set(
     key: String,
     value: T

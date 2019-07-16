@@ -43,29 +43,19 @@ import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_UNKNOWN
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.START
 import leakcanary.internal.DisplayLeakConnectorView.Type.START_LAST_REACHABLE
-import leakcanary.internal.MoreDetailsView.Details.CLOSED
-import leakcanary.internal.MoreDetailsView.Details.NONE
-import leakcanary.internal.MoreDetailsView.Details.OPENED
 import leakcanary.internal.activity.db.LeakingInstanceTable.InstanceProjection
-import leakcanary.internal.navigation.inflate
-import android.os.Build.VERSION.SDK_INT
 import leakcanary.internal.navigation.getColorCompat
+import leakcanary.internal.navigation.inflate
 
 @Suppress("DEPRECATION")
 internal class DisplayLeakAdapter constructor(
   context: Context,
   private val leakTrace: LeakTrace,
-  private val instanceProjections: List<InstanceProjection>
+  private val groupDescription: String = "",
+  private val instanceProjections: List<InstanceProjection> = emptyList()
 ) : BaseAdapter() {
 
   private val isLeakGroup = instanceProjections.isNotEmpty()
-
-  constructor(
-    context: Context,
-    leakTrace: LeakTrace
-  ) : this(context, leakTrace, emptyList())
-
-  private val opened = BooleanArray(TOP_ROW_COUNT + leakTrace.elements.size)
 
   private val classNameColorHexString: String
   private val leakColorHexString: String
@@ -107,7 +97,7 @@ internal class DisplayLeakAdapter constructor(
 
   private fun bindTopRow(view: View) {
     val textView = view.findViewById<TextView>(R.id.leak_canary_row_text)
-    textView.text = view.context.packageName
+    textView.text = groupDescription
   }
 
   private fun bindConnectorRow(
@@ -115,27 +105,9 @@ internal class DisplayLeakAdapter constructor(
     position: Int
   ) {
     val titleView = view.findViewById<TextView>(R.id.leak_canary_row_title)
-    val detailView = view.findViewById<TextView>(R.id.leak_canary_row_details)
     val connector = view.findViewById<DisplayLeakConnectorView>(R.id.leak_canary_row_connector)
-    val moreDetailsView = view.findViewById<MoreDetailsView>(R.id.leak_canary_row_more)
 
     connector.setType(getConnectorType(position))
-
-    moreDetailsView.setDetails(
-        when {
-          isLeakGroup -> NONE
-          // Learn more row
-          isFirstConnectorRow(position) -> NONE
-          opened[position] -> OPENED
-          else -> CLOSED
-        }
-    )
-
-    if (opened[position]) {
-      detailView.visibility = View.VISIBLE
-    } else {
-      detailView.visibility = View.GONE
-    }
 
     val resources = view.resources
     if (isFirstConnectorRow(position)) {
@@ -167,11 +139,6 @@ internal class DisplayLeakAdapter constructor(
       val htmlTitle = htmlTitle(element, maybeLeakCause, view.context)
 
       titleView.text = htmlTitle
-
-      if (opened[position]) {
-        val htmlDetail = htmlDetails(element)
-        detailView.text = htmlDetail
-      }
     }
   }
 
@@ -241,30 +208,12 @@ internal class DisplayLeakAdapter constructor(
 
       htmlString += "$indentation$styledClassName.${if (maybeLeakCause) "<b>$referenceName</b>" else referenceName}"
     }
-
-    val exclusion = element.exclusion
-    if (exclusion != null) {
-      htmlString += " (excluded)"
-    }
     val builder = Html.fromHtml(htmlString) as SpannableStringBuilder
     if (maybeLeakCause) {
       SquigglySpan.replaceUnderlineSpans(builder, context)
     }
 
     return builder
-  }
-
-  private fun htmlDetails(element: LeakTraceElement): Spanned {
-    var htmlString = ""
-    val exclusion = element.exclusion
-    if (exclusion != null) {
-      htmlString += "<br/><br/>Excluded by rule"
-      htmlString += " matching <font color='#f3cf83'>" + exclusion.matching + "</font>"
-      if (exclusion.reason != null) {
-        htmlString += " because <font color='#f3cf83'>" + exclusion.reason + "</font>"
-      }
-    }
-    return Html.fromHtml(htmlString)
   }
 
   private fun getConnectorType(position: Int): Type {
@@ -305,7 +254,9 @@ internal class DisplayLeakAdapter constructor(
               NODE_UNREACHABLE
             }
           }
-          else -> throw IllegalStateException("Unknown value: " + reachability.leakStatusAndReason.status)
+          else -> throw IllegalStateException(
+              "Unknown value: " + reachability.leakStatusAndReason.status
+          )
         }
       }
     }
@@ -314,11 +265,6 @@ internal class DisplayLeakAdapter constructor(
   fun isLearnMoreRow(position: Int) = isFirstConnectorRow(position) && !isLeakGroup
 
   fun isFirstConnectorRow(position: Int) = position == TOP_ROW_COUNT - 1
-
-  fun toggleRow(position: Int) {
-    opened[position] = !opened[position]
-    notifyDataSetChanged()
-  }
 
   override fun getCount() = TOP_ROW_COUNT + leakTrace.elements.size + instanceProjections.size
 
@@ -346,7 +292,10 @@ internal class DisplayLeakAdapter constructor(
     private const val TOP_ROW_COUNT = 2
 
     // https://stackoverflow.com/a/6540378/703646
-    private fun hexStringColor(context: Context, colorResId: Int): String {
+    private fun hexStringColor(
+      context: Context,
+      colorResId: Int
+    ): String {
       return String.format("#%06X", 0xFFFFFF and context.getColorCompat(colorResId))
     }
   }

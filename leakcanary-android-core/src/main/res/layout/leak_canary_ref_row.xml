@@ -16,7 +16,6 @@
   -->
 <leakcanary.internal.RowElementLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:lib="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:clipChildren="false"
@@ -28,24 +27,9 @@
       android:layout_height="wrap_content"
       />
 
-  <leakcanary.internal.MoreDetailsView
-      android:id="@+id/leak_canary_row_more"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      lib:leak_canary_plus_color="@color/leak_canary_class_name"
-      />
-
   <TextView
       android:id="@+id/leak_canary_row_title"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       />
-
-  <TextView
-      android:id="@+id/leak_canary_row_details"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:visibility="gone"
-      />
-
 </leakcanary.internal.RowElementLayout>

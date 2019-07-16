@@ -1,6 +1,8 @@
 package leakcanary
 
-import leakcanary.Exclusion.Status.WONT_FIX_LEAK
+import leakcanary.Leak.ApplicationLeak
+import leakcanary.Leak.LibraryLeak
+import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
 import leakcanary.internal.createSHA1Hash
 import java.io.File
 import java.io.Serializable
@@ -23,60 +25,63 @@ data class HeapAnalysisSuccess(
   override val heapDumpFile: File,
   override val createdAtTimeMillis: Long,
   override val analysisDurationMillis: Long,
-  val leakingInstances: List<LeakingInstance>
-) : HeapAnalysis()
+  val applicationLeaks: List<ApplicationLeak>,
+  val libraryLeaks: List<LibraryLeak>
+) : HeapAnalysis() {
+  val allLeaks: List<Leak>
+    get() = applicationLeaks + libraryLeaks
+}
 
-data class LeakingInstance(
+sealed class Leak : Serializable {
   /**
    * Class name of the leaking instance.
    * The class name format is the same as what would be returned by [Class.getName].
    */
-  val instanceClassName: String,
+  abstract val className: String
+
   /**
-   * True if the only path to the leaking reference is through excluded references. Usually, that
-   * means you can safely ignore this report.
+   * Shortest path from GC roots to the leaking object.
    */
-  val exclusionStatus: Exclusion.Status?,
-  /**
-   * Shortest path to GC roots for the leaking instance.
-   */
-  val leakTrace: LeakTrace,
+  abstract val leakTrace: LeakTrace
   /**
    * The number of bytes which would be freed if all references to the leaking object were
    * released. Null if the retained heap size was not computed.
    */
-  val retainedHeapSize: Int?
+  abstract val retainedHeapSize: Int?
 
-) : Serializable {
+  val groupHash
+    get() = createGroupHash()
 
-  val groupHash = createGroupHash()
-
-  val instanceClassSimpleName: String
+  val classSimpleName: String
     get() {
-      val separator = instanceClassName.lastIndexOf('.')
-      return if (separator == -1) instanceClassName else instanceClassName.substring(separator + 1)
+      val separator = className.lastIndexOf('.')
+      return if (separator == -1) className else className.substring(separator + 1)
     }
 
-  private fun createGroupHash(): String {
-    val uniqueString = if (exclusionStatus == WONT_FIX_LEAK) {
-      leakTrace.firstElementExclusion.matching
-    } else {
-      leakTrace.leakCauses
+  abstract fun createGroupHash(): String
+
+  data class LibraryLeak(
+    override val className: String,
+    override val leakTrace: LeakTrace,
+    override val retainedHeapSize: Int?,
+    val pattern: ReferencePattern,
+    val description: String
+  ) : Leak() {
+    override fun createGroupHash() = pattern.toString().createSHA1Hash()
+  }
+
+  data class ApplicationLeak(
+    override val className: String,
+    override val leakTrace: LeakTrace,
+    override val retainedHeapSize: Int?
+  ) : Leak() {
+    override fun createGroupHash(): String {
+      return leakTrace.leakCauses
           .joinToString(separator = "") { element ->
             val referenceName = element.reference!!.groupingName
             element.className + referenceName
           }
+          .createSHA1Hash()
     }
-    return uniqueString.createSHA1Hash()
   }
 }
-
-fun HeapAnalysis.leakingInstances(): List<LeakingInstance> {
-  return when (this) {
-    is HeapAnalysisFailure -> emptyList()
-    is HeapAnalysisSuccess -> leakingInstances
-  }
-}
-
-fun HeapAnalysis.applicationLeaks(): List<LeakingInstance> =
-  leakingInstances().filter { it.exclusionStatus == null }

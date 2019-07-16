@@ -32,10 +32,6 @@ fun LeakTrace.renderToString(): String {
     val currentReachability = elements[index].leakStatusAndReason
     result += "\n" + contentPrefix + "Leaking: " + currentReachability.renderToString()
 
-    if (element.exclusion != null) {
-      result += "\n" + contentPrefix + "Matches exclusion ${element.exclusion.matching}"
-    }
-
     for (label in element.labels) {
       result += "\n" + contentPrefix + label
     }

@@ -1,11 +1,11 @@
 package leakcanary.internal
 
-import leakcanary.Exclusion
-import leakcanary.Exclusion.ExclusionType.InstanceFieldExclusion
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.HprofGraph
 import leakcanary.ObjectInspector
 import leakcanary.ObjectReporter
+import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
+import leakcanary.ReferencePattern.InstanceFieldPattern
 import leakcanary.whenInstanceOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -137,10 +137,12 @@ class LeakTraceRendererTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          exclusions = listOf(Exclusion(type = InstanceFieldExclusion("ClassA", "leak")))
+          referenceMatchers = listOf(
+              LibraryLeakReferenceMatcher(pattern = InstanceFieldPattern("ClassA", "leak"))
+          )
       )
 
-    analysis renders """
+    analysis rendersLibraryLeak """
     ┬
     ├─ GcRoot
     │    Leaking: UNKNOWN
@@ -149,7 +151,6 @@ class LeakTraceRendererTest {
     │                    ~~~~~~~~~
     ├─ ClassA
     │    Leaking: UNKNOWN
-    │    Matches exclusion field ClassA#leak
     │    ↓ ClassA.leak
     │             ~~~~
     ╰→ Leaking
@@ -211,9 +212,12 @@ class LeakTraceRendererTest {
   }
 
   private infix fun HeapAnalysisSuccess.renders(expectedString: String) {
-    val leak = leakingInstances[0]
-    assertThat(leak.leakTrace.renderToString()).isEqualTo(
-        expectedString.trimIndent()
+    assertThat(applicationLeaks[0].leakTrace.renderToString()).isEqualTo(expectedString.trimIndent()
+    )
+  }
+
+  private infix fun HeapAnalysisSuccess.rendersLibraryLeak(expectedString: String) {
+    assertThat(libraryLeaks[0].leakTrace.renderToString()).isEqualTo(expectedString.trimIndent()
     )
   }
 }

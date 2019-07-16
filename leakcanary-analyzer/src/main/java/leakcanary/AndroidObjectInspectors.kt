@@ -38,7 +38,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      val references: List<KeyedWeakReferenceMirror> = graph.context[KEYED_WEAK_REFERENCE.name] ?: {
+      val references: List<KeyedWeakReferenceMirror> = graph.context.getOrPut(KEYED_WEAK_REFERENCE.name) {
         val keyedWeakReferenceClass = graph.indexedClass("leakcanary.KeyedWeakReference")
 
         val heapDumpUptimeMillis = if (keyedWeakReferenceClass == null) {
@@ -64,7 +64,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
             .toList()
         graph.context[KEYED_WEAK_REFERENCE.name] = addedToContext
         addedToContext
-      }()
+      }
 
       val objectId = reporter.objectRecord.objectId
       references.forEach { ref ->

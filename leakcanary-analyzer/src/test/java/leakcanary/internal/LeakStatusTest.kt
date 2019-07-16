@@ -35,7 +35,7 @@ class LeakStatusTest {
         objectInspectors = listOf(AndroidObjectInspectors.CLASS)
     )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
 
     assertThat(leak.leakTrace.elements.first().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
   }
@@ -45,7 +45,7 @@ class LeakStatusTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
 
     assertThat(leak.leakTrace.elements.last().leakStatusAndReason.status).isEqualTo(LEAKING)
   }
@@ -61,7 +61,7 @@ class LeakStatusTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
 
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(UNKNOWN)
   }
@@ -79,7 +79,7 @@ class LeakStatusTest {
         objectInspectors = listOf(notLeakingInstance("Class1"))
     )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
   }
 
@@ -97,7 +97,7 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingInstance("Class1"))
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(LEAKING)
   }
 
@@ -115,7 +115,7 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingInstance("Class1"))
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(LEAKING)
   }
 
@@ -137,7 +137,7 @@ class LeakStatusTest {
           objectInspectors = listOf(notLeakingInstance("Class3"))
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
   }
 
@@ -159,7 +159,7 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingInstance("Class1"))
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements).hasSize(2)
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(LEAKING)
   }
@@ -184,7 +184,7 @@ class LeakStatusTest {
           )
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements[2].leakStatusAndReason.status).isEqualTo(UNKNOWN)
   }
 
@@ -196,7 +196,7 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingClass("GcRoot"), AndroidObjectInspectors.CLASS)
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
 
     assertThat(leak.leakTrace.elements.first().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements.first().leakStatusAndReason.reason).isEqualTo(
@@ -214,7 +214,7 @@ class LeakStatusTest {
 
     println(analysis)
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
 
     assertThat(leak.leakTrace.elements.first().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements.first().leakStatusAndReason.reason).isEqualTo(
@@ -229,7 +229,7 @@ class LeakStatusTest {
           objectInspectors = listOf(notLeakingInstance("Leaking"))
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements.last().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements.last().leakStatusAndReason.reason).isEqualTo(
         "Leaking is not leaking. Conflicts with RefWatcher was watching this"
@@ -243,7 +243,7 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingInstance("Leaking"))
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements.last().leakStatusAndReason.status).isEqualTo(LEAKING)
     assertThat(leak.leakTrace.elements.last().leakStatusAndReason.reason).isEqualTo(
         "Leaking is leaking and RefWatcher was watching this"
@@ -266,7 +266,7 @@ class LeakStatusTest {
           )
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.reason).isEqualTo(
         "Class1 is not leaking. Conflicts with Class1 is leaking"
@@ -289,7 +289,7 @@ class LeakStatusTest {
           )
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.reason).isEqualTo(
         "Class1 is not leaking and Class1 is not leaking"
@@ -310,7 +310,7 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingInstance("Class1"), leakingInstance("Class1"))
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(LEAKING)
     assertThat(leak.leakTrace.elements[1].leakStatusAndReason.reason).isEqualTo(
         "Class1 is leaking and Class1 is leaking"
@@ -337,7 +337,7 @@ class LeakStatusTest {
           )
       )
 
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elementMayBeLeakCause(0)).isFalse()
     assertThat(leak.leakTrace.elementMayBeLeakCause(1)).isTrue()
     assertThat(leak.leakTrace.elementMayBeLeakCause(2)).isTrue()
@@ -493,10 +493,10 @@ class LeakStatusTest {
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
           objectInspectors = listOf(notLeakingInstance(notLeaking), leakingInstance(leaking))
       )
-    require(analysis.leakingInstances.size == 1) {
-      "Expecting 1 retained instance in ${analysis.leakingInstances}"
+    require(analysis.applicationLeaks.size == 1) {
+      "Expecting 1 retained instance in ${analysis.applicationLeaks}"
     }
-    val leak = analysis.leakingInstances[0]
+    val leak = analysis.applicationLeaks[0]
     return leak.groupHash
   }
 }

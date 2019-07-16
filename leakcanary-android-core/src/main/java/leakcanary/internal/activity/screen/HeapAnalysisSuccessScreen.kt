@@ -6,8 +6,6 @@ import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
-import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
-import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import leakcanary.HeapAnalysisSuccess
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakingInstanceTable
@@ -52,7 +50,7 @@ internal class HeapAnalysisSuccessScreen(
   ) {
     activity.title = resources.getString(
         R.string.leak_canary_heap_analysis_success_screen_title,
-        heapAnalysis.leakingInstances.size
+        heapAnalysis.allLeaks.size
     )
 
     onCreateOptionsMenu { menu ->
@@ -87,7 +85,7 @@ internal class HeapAnalysisSuccessScreen(
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)
 
-    val retainedInstances = heapAnalysis.leakingInstances
+    val retainedInstances = heapAnalysis.allLeaks
 
     retainedInstances.forEach { retainedInstance ->
       if (leakGroupByHash[retainedInstance.groupHash] == null) {
@@ -102,19 +100,9 @@ internal class HeapAnalysisSuccessScreen(
     val leakGroups = leakGroupByHash.values.toList()
 
     rowList.addAll(leakGroups.map { projection ->
-      val description = when (projection.exclusionStatus) {
-        WONT_FIX_LEAK -> {
-          "[Won't Fix] ${projection.description}"
-        }
-        WEAKLY_REACHABLE -> {
-          "[Weakly Reachable] ${projection.description}"
-        }
-        else -> {
-          projection.description
-        }
-      }
+      val description = projection.description
 
-      val titleText = if (projection.isNew && projection.exclusionStatus == null) {
+      val titleText = if (projection.isNew && !projection.isLibraryLeak) {
         resources.getString(
             R.string.leak_canary_heap_analysis_success_screen_row_title_new, projection.leakCount,
             description

@@ -34,9 +34,7 @@ internal class RowElementLayout(
   private val moreMarginTop: Int
 
   private var connector: View? = null
-  private var moreButton: View? = null
   private var title: View? = null
-  private var details: View? = null
 
   init {
     val resources = resources
@@ -51,9 +49,7 @@ internal class RowElementLayout(
   override fun onFinishInflate() {
     super.onFinishInflate()
     connector = findViewById(R.id.leak_canary_row_connector)
-    moreButton = findViewById(R.id.leak_canary_row_more)
     title = findViewById(R.id.leak_canary_row_title)
-    details = findViewById(R.id.leak_canary_row_details)
   }
 
   override fun onMeasure(
@@ -66,18 +62,7 @@ internal class RowElementLayout(
     val titleHeightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
     title!!.measure(titleWidthSpec, titleHeightSpec)
 
-    val moreSizeSpec = View.MeasureSpec.makeMeasureSpec(moreSize, View.MeasureSpec.EXACTLY)
-    moreButton!!.measure(moreSizeSpec, moreSizeSpec)
-
     var totalHeight = titleMarginTop + title!!.measuredHeight
-
-    val detailsWidth = availableWidth - connectorWidth - 3 * rowMargins
-    val detailsWidthSpec = View.MeasureSpec.makeMeasureSpec(detailsWidth, View.MeasureSpec.AT_MOST)
-    val detailsHeightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-    details!!.measure(detailsWidthSpec, detailsHeightSpec)
-    if (details!!.visibility != View.GONE) {
-      totalHeight += details!!.measuredHeight
-    }
     totalHeight = Math.max(totalHeight, minHeight)
 
     val connectorWidthSpec =
@@ -96,24 +81,11 @@ internal class RowElementLayout(
     r: Int,
     b: Int
   ) {
-    val width = measuredWidth
     val connectorRight = rowMargins + connector!!.measuredWidth
     connector!!.layout(rowMargins, 0, connectorRight, connector!!.measuredHeight)
-
-    moreButton!!.layout(
-        width - rowMargins - moreSize, moreMarginTop, width - rowMargins,
-        moreMarginTop + moreSize
-    )
 
     val titleLeft = connectorRight + rowMargins
     val titleBottom = titleMarginTop + title!!.measuredHeight
     title!!.layout(titleLeft, titleMarginTop, titleLeft + title!!.measuredWidth, titleBottom)
-
-    if (details!!.visibility != View.GONE) {
-      details!!.layout(
-          titleLeft, titleBottom, width - rowMargins,
-          titleBottom + details!!.measuredHeight
-      )
-    }
   }
 }

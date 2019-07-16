@@ -2,8 +2,6 @@ package leakcanary
 
 import android.app.Application
 import com.squareup.leakcanary.core.R
-import leakcanary.Exclusion.Status.WEAKLY_REACHABLE
-import leakcanary.Exclusion.Status.WONT_FIX_LEAK
 import leakcanary.internal.NotificationType.LEAKCANARY_RESULT
 import leakcanary.internal.Notifications
 import leakcanary.internal.activity.LeakActivity
@@ -38,22 +36,20 @@ object DefaultAnalysisResultListener : AnalysisResultListener {
         var leakCount = 0
         var newLeakCount = 0
         var knownLeakCount = 0
-        var wontFixLeakCount = 0
+        var libraryLeakCount = 0
 
         for ((_, projection) in groupProjections) {
-          if (projection.exclusionStatus != WEAKLY_REACHABLE) {
             leakCount += projection.leakCount
             when {
-              projection.exclusionStatus == WONT_FIX_LEAK -> wontFixLeakCount += projection.leakCount
+              projection.isLibraryLeak -> libraryLeakCount += projection.leakCount
               projection.isNew -> newLeakCount += projection.leakCount
               else -> knownLeakCount += projection.leakCount
             }
-          }
         }
 
         application.getString(
             R.string.leak_canary_analysis_success_notification, leakCount, newLeakCount,
-            knownLeakCount, wontFixLeakCount
+            knownLeakCount, libraryLeakCount
         ) to HeapAnalysisSuccessScreen(id)
       }
     }

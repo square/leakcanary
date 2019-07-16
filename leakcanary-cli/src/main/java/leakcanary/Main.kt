@@ -23,7 +23,8 @@ fun main(args: Array<String>) {
 fun printHelp() {
   val workingDirectory = File(System.getProperty("user.dir"))
 
-  CanaryLog.d("""
+  CanaryLog.d(
+      """
     LeakCanary CLI
     Running in directory $workingDirectory
 
@@ -37,7 +38,8 @@ fun printHelp() {
 
     analyze-file: Analyzes the provided hprof file.
       USAGE: analyze-file HPROF_FILE_PATH
-  """.trimIndent())
+  """.trimIndent()
+  )
 }
 
 private fun dumpHeap(packageName: String): File {
@@ -127,7 +129,7 @@ private fun analyze(heapDumpFile: File) {
   val heapAnalyzer = HeapAnalyzer(listener)
   CanaryLog.d("Analyzing heap dump $heapDumpFile")
   val heapAnalysis = heapAnalyzer.checkForLeaks(
-      heapDumpFile, AndroidKnownReference.mapToExclusions(AndroidKnownReference.appDefaults), true,
+      heapDumpFile, AndroidReferenceMatchers.appDefaults, true,
       AndroidObjectInspectors.defaultInspectors()
   )
 
