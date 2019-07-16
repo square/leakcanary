@@ -4,6 +4,7 @@ import leakcanary.AndroidReferenceMatchers
 import leakcanary.AndroidObjectInspectors
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisSuccess
+import leakcanary.HprofPrimitiveArrayStripper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.io.File
@@ -25,6 +26,20 @@ class LegacyHprofTest {
     assertThat(analysis.applicationLeaks).hasSize(1)
     val leak = analysis.applicationLeaks[0]
     assertThat(leak.className).isEqualTo("com.example.leakcanary.MainActivity")
+    assertThat(leak.leakTrace.elements[0].labels).contains("Thread name: 'AsyncTask #1'")
+  }
+
+  @Test fun androidMStripped() {
+    val stripper = HprofPrimitiveArrayStripper()
+    val strippedHprof =
+      stripper.stripPrimitiveArrays(fileFromResources("leak_asynctask_m.hprof"))
+
+    val analysis = analyzeHprof(strippedHprof)
+
+    assertThat(analysis.applicationLeaks).hasSize(1)
+    val leak = analysis.applicationLeaks[0]
+    assertThat(leak.className).isEqualTo("com.example.leakcanary.MainActivity")
+    assertThat(leak.leakTrace.elements[0].labels).contains("Thread name: ''")
   }
 
   @Test fun androidO() {
@@ -44,11 +59,18 @@ class LegacyHprofTest {
   }
 
   private fun analyzeHprof(fileName: String): HeapAnalysisSuccess {
+    return analyzeHprof(fileFromResources(fileName))
+  }
+
+  private fun fileFromResources(fileName: String): File {
     val classLoader = Thread.currentThread()
         .contextClassLoader
     val url = classLoader.getResource(fileName)
     val hprofFile = File(url.path)
+    return hprofFile
+  }
 
+  private fun analyzeHprof(hprofFile: File): HeapAnalysisSuccess {
     val analysis = hprofFile.checkForLeaks<HeapAnalysis>(
         objectInspectors = AndroidObjectInspectors.defaultInspectors(),
         referenceMatchers = AndroidReferenceMatchers.appDefaults
