@@ -201,7 +201,12 @@ sealed class GraphObjectRecord {
           // https://android-review.googlesource.com/#/c/83611/
           val offset = this["java.lang.String", "offset"]?.value?.asInt ?: 0
 
-          val chars = valueRecord.array.copyOfRange(offset, offset + count)
+          // Handle heap dumps where all primitive arrays have been replaced with empty arrays,
+          // e.g. with HprofPrimitiveArrayStripper
+          val toIndex = if (offset + count > valueRecord.array.size) {
+            valueRecord.array.size
+          } else offset + count
+          val chars = valueRecord.array.copyOfRange(offset, toIndex)
           return String(chars)
         }
         is ByteArrayDump -> {

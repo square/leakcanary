@@ -15,7 +15,8 @@ fun main(args: Array<String>) {
       analyze(heapDumpFile)
     }
     args.size == 2 && args[0] == "dump-process" -> dumpHeap(args[1])
-    args.size == 2 && args[0] == "analyze-file" -> analyze(File(args[1]))
+    args.size == 2 && args[0] == "analyze-hprof" -> analyze(File(args[1]))
+    args.size == 2 && args[0] == "strip-hprof" -> stripHprof(File(args[1]))
     else -> printHelp()
   }
 }
@@ -28,7 +29,7 @@ fun printHelp() {
     LeakCanary CLI
     Running in directory $workingDirectory
 
-    Commands: [analyze-process, dump-process, analyze-file]
+    Commands: [analyze-process, dump-process, analyze-hprof, strip-hprof]
 
     analyze-process: Dumps the heap for the provided process name, pulls the hprof file and analyzes it.
       USAGE: analyze-process PROCESS_PACKAGE_NAME
@@ -36,8 +37,11 @@ fun printHelp() {
     dump-process: Dumps the heap for the provided process name and pulls the hprof file.
       USAGE: dump-process PROCESS_PACKAGE_NAME
 
-    analyze-file: Analyzes the provided hprof file.
-      USAGE: analyze-file HPROF_FILE_PATH
+    analyze-hprof: Analyzes the provided hprof file.
+      USAGE: analyze-hprof HPROF_FILE_PATH
+
+    strip-hprof: Removes all primitive arrays from the provided hprof file and generates a new "-stripped" hprof file.
+      USAGE: strip-hprof HPROF_FILE_PATH
   """.trimIndent()
   )
 }
@@ -135,3 +139,11 @@ private fun analyze(heapDumpFile: File) {
 
   CanaryLog.d(heapAnalysis.toString())
 }
+
+private fun stripHprof(heapDumpFile: File) {
+  CanaryLog.d("Stripping primitive arrays in heap dump $heapDumpFile")
+  val stripper = HprofPrimitiveArrayStripper()
+  val outputFile = stripper.stripPrimitiveArrays(heapDumpFile)
+  CanaryLog.d("Stripped primitive arrays to $outputFile")
+}
+
