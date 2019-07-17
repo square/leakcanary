@@ -184,7 +184,9 @@ sealed class GraphObjectRecord {
       if (className != "java.lang.String") {
         return null
       }
-      val count = this["java.lang.String", "count"]!!.value.asInt!!
+
+      // JVM strings don't have a count field.
+      val count = this["java.lang.String", "count"]?.value?.asInt
       if (count == 0) {
         return ""
       }
@@ -199,14 +201,18 @@ sealed class GraphObjectRecord {
           // As of Marshmallow, substrings no longer share their parent strings' char arrays
           // eliminating the need for String.offset
           // https://android-review.googlesource.com/#/c/83611/
-          val offset = this["java.lang.String", "offset"]?.value?.asInt ?: 0
+          val offset = this["java.lang.String", "offset"]?.value?.asInt
 
-          // Handle heap dumps where all primitive arrays have been replaced with empty arrays,
-          // e.g. with HprofPrimitiveArrayStripper
-          val toIndex = if (offset + count > valueRecord.array.size) {
-            valueRecord.array.size
-          } else offset + count
-          val chars = valueRecord.array.copyOfRange(offset, toIndex)
+          val chars = if (count != null && offset != null) {
+            // Handle heap dumps where all primitive arrays have been replaced with empty arrays,
+            // e.g. with HprofPrimitiveArrayStripper
+            val toIndex = if (offset + count > valueRecord.array.size) {
+              valueRecord.array.size
+            } else offset + count
+             valueRecord.array.copyOfRange(offset, toIndex)
+          } else {
+            valueRecord.array
+          }
           return String(chars)
         }
         is ByteArrayDump -> {

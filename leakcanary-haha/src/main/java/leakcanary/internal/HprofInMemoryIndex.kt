@@ -1,11 +1,9 @@
 package leakcanary.internal
 
-import leakcanary.GcRoot.JniGlobal
 import leakcanary.HprofPushRecordsParser.OnRecordListener
 import leakcanary.HprofReader
 import leakcanary.PrimitiveType
 import leakcanary.Record
-import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
@@ -19,8 +17,6 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.In
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import leakcanary.Record.LoadClassRecord
-import leakcanary.Record.StackFrameRecord
-import leakcanary.Record.StackTraceRecord
 import leakcanary.Record.StringRecord
 import leakcanary.internal.IndexedObject.IndexedClass
 import leakcanary.internal.IndexedObject.IndexedInstance
@@ -143,7 +139,8 @@ internal class HprofInMemoryIndex private constructor(
           if (PRIMITIVE_WRAPPER_TYPES.contains(record.string)) {
             primitiveWrapperClassNames.add(record.id)
           }
-          hprofStringCache[record.id] = record.string
+          // JVM heap dumps use "/" for package separators (vs "." for Android heap dumps)
+          hprofStringCache[record.id] = record.string.replace('/', '.')
         }
         is LoadClassRecord -> {
           classNames[record.id] = record.classNameStringId

@@ -75,7 +75,12 @@ class HprofPushRecordsParser {
         .buffer()
 
     val endOfVersionString = source.indexOf(0)
-    source.skip(endOfVersionString + 1)
+    val version = source.readUtf8(endOfVersionString)
+    require(version in supportedVersions) {
+      "Unsupported Hprof version [$version] not in supported list $supportedVersions"
+    }
+    // Skip the 0 at the end of the version string.
+    source.skip(1)
     val idSize = source.readInt()
     val startPosition = endOfVersionString + 1 + 4
 
@@ -602,7 +607,18 @@ class HprofPushRecordsParser {
     }
   }
 
+  enum class HprofVersion(val versionString: String) {
+    JDK1_2_BETA3("JAVA PROFILE 1.0"),
+    JDK1_2_BETA4("JAVA PROFILE 1.0.1"),
+    JDK_6("JAVA PROFILE 1.0.2"),
+    ANDROID("JAVA PROFILE 1.0.3")
+  }
+
   companion object {
+
+    private val supportedVersions = HprofVersion.values()
+        .map { it.versionString }
+
     internal const val STRING_IN_UTF8 = 0x01
     internal const val LOAD_CLASS = 0x02
     internal const val UNLOAD_CLASS = 0x03
