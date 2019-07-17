@@ -49,7 +49,6 @@ import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.ReferencePathNode.ChildNode
 import leakcanary.ReferencePathNode.ChildNode.LibraryLeakNode
 import leakcanary.ReferencePathNode.RootNode
-import leakcanary.internal.GcRootRecordListener
 import leakcanary.internal.ShortestPathFinder
 import leakcanary.internal.ShortestPathFinder.Results
 import leakcanary.internal.hppc.LongLongScatterMap
@@ -92,8 +91,7 @@ class HeapAnalyzer constructor(
     try {
       listener.onProgressUpdate(SCANNING_HEAP_DUMP)
 
-      val gcRootRecordListener = GcRootRecordListener()
-      val (graph, hprofCloseable) = HprofGraph.readHprof(heapDumpFile, gcRootRecordListener)
+      val (graph, hprofCloseable) = HprofGraph.readHprof(heapDumpFile)
 
       hprofCloseable.use {
         listener.onProgressUpdate(FINDING_WATCHED_REFERENCES)
@@ -102,8 +100,7 @@ class HeapAnalyzer constructor(
 
         val (shortestPathsToLeakingInstances, dominatedInstances) =
           findShortestPaths(
-              graph, referenceMatchers, leakingInstanceObjectIds, gcRootRecordListener.gcRoots,
-              computeRetainedHeapSize
+              graph, referenceMatchers, leakingInstanceObjectIds, computeRetainedHeapSize
           )
 
         val retainedSizes = if (computeRetainedHeapSize) {
@@ -149,12 +146,11 @@ class HeapAnalyzer constructor(
     graph: HprofGraph,
     referenceMatchers: List<ReferenceMatcher>,
     leakingInstanceObjectIds: Set<Long>,
-    gcRootIds: MutableList<GcRoot>,
     computeDominators: Boolean
   ): Results {
     val pathFinder = ShortestPathFinder()
     return pathFinder.findPaths(
-        graph, referenceMatchers, leakingInstanceObjectIds, gcRootIds, computeDominators, listener
+        graph, referenceMatchers, leakingInstanceObjectIds, computeDominators, listener
     )
   }
 
