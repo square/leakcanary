@@ -111,6 +111,10 @@ class HprofGraph internal constructor(
         }
   }
 
+  fun gcRoots(): List<GcRoot> {
+    return index.gcRoots()
+  }
+
   fun classSequence(): Sequence<GraphClassRecord> {
     return index.indexedClassSequence()
         .map {

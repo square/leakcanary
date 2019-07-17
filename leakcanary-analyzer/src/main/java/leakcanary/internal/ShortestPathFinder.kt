@@ -22,6 +22,7 @@ import leakcanary.CanaryLog
 import leakcanary.GcRoot
 import leakcanary.GcRoot.JavaFrame
 import leakcanary.GcRoot.ThreadObject
+import leakcanary.GraphObjectRecord
 import leakcanary.GraphObjectRecord.GraphClassRecord
 import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
@@ -92,7 +93,6 @@ internal class ShortestPathFinder {
     graph: HprofGraph,
     referenceMatchers: List<ReferenceMatcher>,
     leakingInstanceObjectIds: Set<Long>,
-    gcRootIds: MutableList<GcRoot>,
     computeDominators: Boolean,
     listener: AnalyzerProgressListener
   ): Results {
@@ -158,7 +158,7 @@ internal class ShortestPathFinder {
           }
         }
 
-    enqueueGcRoots(graph, gcRootIds, threadNames, computeDominators)
+    enqueueGcRoots(graph, threadNames, computeDominators)
 
     val shortestPathsToLeakingInstances = mutableListOf<ReferencePathNode>()
     visitingQueue@ while (!toVisitQueue.isEmpty() || !toVisitLastQueue.isEmpty()) {
@@ -228,31 +228,25 @@ internal class ShortestPathFinder {
 
   private fun enqueueGcRoots(
     graph: HprofGraph,
-    gcRoots: MutableList<GcRoot>,
     threadNameReferenceMatchers: Map<String, ReferenceMatcher>,
     computeDominators: Boolean
   ) {
-    gcRoots.removeAll { it.id == 0L }
+    val gcRoots = sortedGcRoots(graph)
 
-    // Sorting GC roots to get stable shortest path
-    // Once sorted all ThreadObject Gc Roots are located before JavaLocalPattern Gc Roots.
-    // This ensures ThreadObjects are visited before JavaFrames, and threadsBySerialNumber can be
-    // built before JavaFrames.
-    sortGcRoots(graph, gcRoots)
-
-    val threadsBySerialNumber = mutableMapOf<Int, ThreadObject>()
-    gcRoots.forEach { gcRoot ->
+    val threadsBySerialNumber = mutableMapOf<Int, Pair<GraphInstanceRecord, ThreadObject>>()
+    gcRoots.forEach { (objectRecord, gcRoot) ->
       if (computeDominators) {
         undominateWithSkips(graph, gcRoot.id)
       }
       when (gcRoot) {
         is ThreadObject -> {
-          threadsBySerialNumber[gcRoot.threadSerialNumber] = gcRoot
+          threadsBySerialNumber[gcRoot.threadSerialNumber] = objectRecord.asInstance!! to gcRoot
           enqueue(graph, RootNode(gcRoot, gcRoot.id))
         }
         is JavaFrame -> {
-          val threadRoot = threadsBySerialNumber.getValue(gcRoot.threadSerialNumber)
-          val threadInstance = graph.indexedObject(threadRoot.id).asInstance!!
+          val (threadInstance, threadRoot) = threadsBySerialNumber.getValue(
+              gcRoot.threadSerialNumber
+          )
           val threadName = threadInstance[Thread::class, "name"]?.value?.readAsJavaString()
           val referenceMatcher = threadNameReferenceMatchers[threadName]
 
@@ -268,22 +262,25 @@ internal class ShortestPathFinder {
             } else {
               NormalNode(gcRoot.id, rootNode, leakReference)
             }
-
             enqueue(graph, childNode)
           }
         }
         else -> enqueue(graph, RootNode(gcRoot, gcRoot.id))
       }
     }
-    gcRoots.clear()
   }
 
-  private fun sortGcRoots(
-    graph: HprofGraph,
-    gcRoots: MutableList<GcRoot>
-  ) {
-    val rootClassName: (GcRoot) -> String = {
-      when (val graphObject = graph.indexedObject(it.id)) {
+  /**
+   * Sorting GC roots to get stable shortest path
+   * Once sorted all ThreadObject Gc Roots are located before JavaLocalPattern Gc Roots.
+   * This ensures ThreadObjects are visited before JavaFrames, and threadsBySerialNumber can be
+   * built before JavaFrames.
+   */
+  private fun sortedGcRoots(
+    graph: HprofGraph
+  ): List<Pair<GraphObjectRecord, GcRoot>> {
+    val rootClassName: (GraphObjectRecord) -> String = { graphObject ->
+      when (graphObject) {
         is GraphClassRecord -> {
           graphObject.name
         }
@@ -298,15 +295,18 @@ internal class ShortestPathFinder {
         }
       }
     }
-    gcRoots.sortWith(Comparator { root1, root2 ->
-      // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
-      val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
-      if (gcRootTypeComparison != 0) {
-        gcRootTypeComparison
-      } else {
-        rootClassName(root1).compareTo(rootClassName(root2))
-      }
-    })
+
+    return graph.gcRoots()
+        .map { graph.indexedObject(it.id) to it }
+        .sortedWith(Comparator { (graphObject1, root1), (graphObject2, root2) ->
+          // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
+          val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
+          if (gcRootTypeComparison != 0) {
+            gcRootTypeComparison
+          } else {
+            rootClassName(graphObject1).compareTo(rootClassName(graphObject2))
+          }
+        })
   }
 
   private fun visitClassRecord(
@@ -430,8 +430,7 @@ internal class ShortestPathFinder {
         }
   }
 
-  private fun
-      enqueue(
+  private fun enqueue(
     graph: HprofGraph,
     node: ReferencePathNode
   ) {
