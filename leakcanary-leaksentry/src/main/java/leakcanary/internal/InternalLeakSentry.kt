@@ -8,7 +8,10 @@ import android.os.SystemClock
 import leakcanary.CanaryLog
 import leakcanary.Clock
 import leakcanary.LeakSentry
+import leakcanary.OnInstanceRetainedListener
 import leakcanary.RefWatcher
+import java.lang.reflect.InvocationHandler
+import java.lang.reflect.Proxy
 import java.util.concurrent.Executor
 
 internal object InternalLeakSentry {
@@ -16,7 +19,8 @@ internal object InternalLeakSentry {
   val isInstalled
     get() = ::application.isInitialized
 
-  private val listener: LeakSentryListener
+  private val onLeakSentryInstalled: (Application) -> Unit
+  private val onInstanceRetainedListener: OnInstanceRetainedListener
 
   val isDebuggableBuild by lazy {
     (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
@@ -33,12 +37,16 @@ internal object InternalLeakSentry {
   private val mainHandler = Handler(Looper.getMainLooper())
 
   init {
-    listener = try {
+    val internalLeakCanary = try {
       val leakCanaryListener = Class.forName("leakcanary.internal.InternalLeakCanary")
-      leakCanaryListener.getDeclaredField("INSTANCE").get(null) as LeakSentryListener
+      leakCanaryListener.getDeclaredField("INSTANCE")
+          .get(null)
     } catch (ignored: Throwable) {
-      LeakSentryListener.None
+      NoLeakCanary
     }
+    @kotlin.Suppress("UNCHECKED_CAST")
+    onLeakSentryInstalled = internalLeakCanary as (Application) -> Unit
+    onInstanceRetainedListener = internalLeakCanary as OnInstanceRetainedListener
   }
 
   private val checkRetainedExecutor = Executor {
@@ -47,7 +55,7 @@ internal object InternalLeakSentry {
   val refWatcher = RefWatcher(
       clock = clock,
       checkRetainedExecutor = checkRetainedExecutor,
-      onInstanceRetained = { listener.onReferenceRetained() },
+      onInstanceRetainedListener = onInstanceRetainedListener,
       isEnabled = { LeakSentry.config.enabled }
   )
 
@@ -60,13 +68,19 @@ internal object InternalLeakSentry {
     InternalLeakSentry.application = application
 
     val configProvider = { LeakSentry.config }
-    ActivityDestroyWatcher.install(
-        application, refWatcher, configProvider
-    )
-    FragmentDestroyWatcher.install(
-        application, refWatcher, configProvider
-    )
-    listener.onLeakSentryInstalled(application)
+    ActivityDestroyWatcher.install(application, refWatcher, configProvider)
+    FragmentDestroyWatcher.install(application, refWatcher, configProvider)
+    onLeakSentryInstalled(application)
+  }
+
+  inline fun <reified T : Any> noOpDelegate(): T {
+    val javaClass = T::class.java
+    val noOpHandler = InvocationHandler { _, _, _ ->
+      // no op
+    }
+    return Proxy.newProxyInstance(
+        javaClass.classLoader, arrayOf(javaClass), noOpHandler
+    ) as T
   }
 
   private fun checkMainThread() {
@@ -74,6 +88,14 @@ internal object InternalLeakSentry {
       throw UnsupportedOperationException(
           "Should be called from the main thread, not ${Thread.currentThread()}"
       )
+    }
+  }
+
+  object NoLeakCanary : (Application) -> Unit, OnInstanceRetainedListener {
+    override fun invoke(application: Application) {
+    }
+
+    override fun onReferenceRetained() {
     }
   }
 }

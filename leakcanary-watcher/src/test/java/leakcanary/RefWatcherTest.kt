@@ -7,7 +7,8 @@ import java.util.concurrent.Executor
 
 class RefWatcherTest {
 
-  private val onRefRetained: () -> Unit = {
+  private val onInstanceRetained = object: OnInstanceRetainedListener {
+    override fun onReferenceRetained() {}
   }
 
   private val checkRetainedExecutor: Executor = Executor {
@@ -18,7 +19,7 @@ class RefWatcherTest {
     override fun uptimeMillis(): Long {
       return time
     }
-  }, checkRetainedExecutor, onRefRetained)
+  }, checkRetainedExecutor, onInstanceRetained)
   var time: Long = 0
 
   var ref: Any? = Any()

@@ -28,8 +28,7 @@ import leakcanary.RefWatcher
 internal class AndroidOFragmentDestroyWatcher(
   private val refWatcher: RefWatcher,
   private val configProvider: () -> Config
-) : FragmentDestroyWatcher {
-
+) : (Activity) -> Unit {
   private val fragmentLifecycleCallbacks = object : FragmentManager.FragmentLifecycleCallbacks() {
 
     override fun onFragmentViewDestroyed(
@@ -52,7 +51,7 @@ internal class AndroidOFragmentDestroyWatcher(
     }
   }
 
-  override fun watchFragments(activity: Activity) {
+  override fun invoke(activity: Activity) {
     val fragmentManager = activity.fragmentManager
     fragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, true)
   }

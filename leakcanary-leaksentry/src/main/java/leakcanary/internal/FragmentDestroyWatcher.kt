@@ -22,67 +22,63 @@ import android.os.Build.VERSION_CODES.O
 import android.os.Bundle
 import leakcanary.LeakSentry
 import leakcanary.RefWatcher
-import leakcanary.internal.InternalHelper.noOpDelegate
+import leakcanary.internal.InternalLeakSentry.noOpDelegate
 
 /**
  * Internal class used to watch for fragments leaks.
  */
-interface FragmentDestroyWatcher {
+internal object FragmentDestroyWatcher {
 
-  fun watchFragments(activity: Activity)
+  private const val ANDROIDX_FRAGMENT_CLASS_NAME = "androidx.fragment.app.Fragment"
+  private const val ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME =
+    "leakcanary.internal.AndroidXFragmentDestroyWatcher"
 
-  companion object {
+  fun install(
+    application: Application,
+    refWatcher: RefWatcher,
+    configProvider: () -> LeakSentry.Config
+  ) {
+    val fragmentDestroyWatchers = mutableListOf<(Activity) -> Unit>()
 
-    private const val ANDROIDX_FRAGMENT_CLASS_NAME = "androidx.fragment.app.Fragment"
-    private const val ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME =
-      "leakcanary.internal.AndroidXFragmentDestroyWatcher"
-
-    fun install(
-      application: Application,
-      refWatcher: RefWatcher,
-      configProvider: () -> LeakSentry.Config
-    ) {
-      val fragmentDestroyWatchers = mutableListOf<FragmentDestroyWatcher>()
-
-      if (SDK_INT >= O) {
-        fragmentDestroyWatchers.add(
-            AndroidOFragmentDestroyWatcher(refWatcher, configProvider)
-        )
-      }
-
-      if (classAvailable(ANDROIDX_FRAGMENT_CLASS_NAME) &&
-          classAvailable(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
-      ) {
-        val watcherConstructor = Class.forName(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
-            .getDeclaredConstructor(RefWatcher::class.java, Function0::class.java)
-        fragmentDestroyWatchers.add(
-            watcherConstructor.newInstance(refWatcher, configProvider) as FragmentDestroyWatcher
-        )
-      }
-
-      if (fragmentDestroyWatchers.size == 0) {
-        return
-      }
-
-      application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
-        override fun onActivityCreated(
-          activity: Activity,
-          savedInstanceState: Bundle?
-        ) {
-          for (watcher in fragmentDestroyWatchers) {
-            watcher.watchFragments(activity)
-          }
-        }
-      })
+    if (SDK_INT >= O) {
+      fragmentDestroyWatchers.add(
+          AndroidOFragmentDestroyWatcher(refWatcher, configProvider)
+      )
     }
 
-    private fun classAvailable(className: String): Boolean {
-      return try {
-        Class.forName(className)
-        true
-      } catch (e: ClassNotFoundException) {
-        false
+    if (classAvailable(ANDROIDX_FRAGMENT_CLASS_NAME) &&
+        classAvailable(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
+    ) {
+      val watcherConstructor = Class.forName(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
+          .getDeclaredConstructor(RefWatcher::class.java, Function0::class.java)
+      @kotlin.Suppress("UNCHECKED_CAST")
+      fragmentDestroyWatchers.add(
+          watcherConstructor.newInstance(refWatcher, configProvider) as (Activity) -> Unit
+      )
+    }
+
+    if (fragmentDestroyWatchers.size == 0) {
+      return
+    }
+
+    application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
+      override fun onActivityCreated(
+        activity: Activity,
+        savedInstanceState: Bundle?
+      ) {
+        for (watcher in fragmentDestroyWatchers) {
+          watcher(activity)
+        }
       }
+    })
+  }
+
+  private fun classAvailable(className: String): Boolean {
+    return try {
+      Class.forName(className)
+      true
+    } catch (e: ClassNotFoundException) {
+      false
     }
   }
 }
