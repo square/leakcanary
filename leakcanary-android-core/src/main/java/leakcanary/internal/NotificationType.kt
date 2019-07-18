@@ -2,7 +2,7 @@ package leakcanary.internal
 
 import com.squareup.leakcanary.core.R
 
-enum class NotificationType(val nameResId: Int, val importance: Int) {
+internal enum class NotificationType(val nameResId: Int, val importance: Int) {
   LEAKCANARY_LOW(
       R.string.leak_canary_notification_channel_low, IMPORTANCE_LOW
   ),

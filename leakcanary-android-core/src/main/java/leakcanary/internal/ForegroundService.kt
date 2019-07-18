@@ -22,7 +22,7 @@ import android.os.IBinder
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 
-abstract class ForegroundService(
+internal abstract class ForegroundService(
   name: String,
   private val notificationContentTitleResId: Int,
   private val notificationId: Int

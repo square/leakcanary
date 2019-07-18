@@ -11,7 +11,7 @@ import leakcanary.LeakTraceElement.Holder.THREAD
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import java.util.Locale
 
-fun LeakTrace.renderToString(): String {
+internal fun LeakTrace.renderToString(): String {
   var result = "┬"
 
   elements.forEachIndexed { index, element ->
