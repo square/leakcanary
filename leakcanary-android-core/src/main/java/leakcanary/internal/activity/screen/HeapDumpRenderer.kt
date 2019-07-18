@@ -35,7 +35,7 @@ import leakcanary.internal.navigation.getColorCompat
 import java.io.File
 import kotlin.reflect.KClass
 
-object HeapDumpRenderer {
+internal object HeapDumpRenderer {
 
   private class HasDensity(resources: Resources) {
     val density = resources.displayMetrics.density

@@ -44,6 +44,7 @@ buildscript {
     classpath 'com.android.tools.build:gradle:3.4.0'
     classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.16'
     classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
+    classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
   }
 }
 
@@ -61,6 +62,22 @@ subprojects {
   }
 
   apply plugin: 'net.ltgt.errorprone'
+  apply plugin: 'org.jetbrains.dokka'
+
+  dokka {
+    reportUndocumented = false
+    packageOptions {
+      prefix = "leakcanary.internal"
+      suppress = true
+    }
+    // BuildConfig files
+    packageOptions {
+      prefix = "com.squareup.leakcanary"
+      suppress = true
+    }
+    outputFormat = 'gfm'
+    outputDirectory = "$rootDir/docs/api"
+  }
 
   tasks.withType(JavaCompile) {
     options.compilerArgs += [

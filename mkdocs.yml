@@ -46,6 +46,15 @@ nav:
   - 'Code recipes': recipes.md
   - 'FAQ': faq.md
   - 'Stack Overflow ⏏': https://stackoverflow.com/questions/tagged/leakcanary?sort=active
+  - 'API reference':
+    - 'LeakCanary': api/leakcanary-android-core/leakcanary/index.md
+    - 'LeakSentry': api/leakcanary-leaksentry/leakcanary/index.md
+    - 'Extension: Instrumentation tests': api/leakcanary-android-instrumentation/leakcanary/index.md
+    - 'Extension: Separate process': api/leakcanary-android-process/leakcanary/index.md
+    - 'Core: RefWatcher': api/leakcanary-watcher/leakcanary/index.md
+    - 'Core: Heap Analyzer': api/leakcanary-analyzer/leakcanary/index.md
+    - 'Core: Hprof Parser': api/leakcanary-haha/leakcanary/index.md
+    - 'Core: Logs': api/leakcanary-log/leakcanary/index.md
   - 'Change Log': changelog.md
   - 'Support': support.md
   - 'Upgrading to LeakCanary 2': upgrading-to-leakcanary-2.0.md
