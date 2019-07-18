@@ -9,11 +9,12 @@ import android.view.View
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.rule.ActivityTestRule
 import leakcanary.TestUtils.assertLeak
-import leakcanary.internal.InternalHelper.noOpDelegate
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import java.lang.reflect.InvocationHandler
+import java.lang.reflect.Proxy
 import java.util.concurrent.CountDownLatch
 
 class FragmentLeakTest {
@@ -109,5 +110,15 @@ class FragmentLeakTest {
   companion object {
     private const val TOUCH_MODE = true
     private const val LAUNCH_ACTIVITY = true
+
+    inline fun <reified T : Any> noOpDelegate(): T {
+      val javaClass = T::class.java
+      val noOpHandler = InvocationHandler { _, _, _ ->
+        // no op
+      }
+      return Proxy.newProxyInstance(
+          javaClass.classLoader, arrayOf(javaClass), noOpHandler
+      ) as T
+    }
   }
 }

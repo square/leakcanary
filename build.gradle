@@ -66,10 +66,6 @@ subprojects {
 
   dokka {
     reportUndocumented = false
-    packageOptions {
-      prefix = "leakcanary.internal"
-      suppress = true
-    }
     // BuildConfig files
     packageOptions {
       prefix = "com.squareup.leakcanary"

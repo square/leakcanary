@@ -19,7 +19,7 @@ import android.app.Activity
 import android.app.Application
 import leakcanary.LeakSentry.Config
 import leakcanary.RefWatcher
-import leakcanary.internal.InternalHelper.noOpDelegate
+import leakcanary.internal.InternalLeakSentry.noOpDelegate
 
 internal class ActivityDestroyWatcher private constructor(
   private val refWatcher: RefWatcher,

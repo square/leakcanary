@@ -26,7 +26,7 @@ import java.util.concurrent.Executor
 class RefWatcher constructor(
   private val clock: Clock,
   private val checkRetainedExecutor: Executor,
-  private val onInstanceRetained: () -> Unit,
+  private val onInstanceRetainedListener: OnInstanceRetainedListener,
   /**
    * Calls to [watch] will be ignored when [isEnabled] returns false
    */
@@ -127,7 +127,7 @@ class RefWatcher constructor(
     val retainedRef = watchedInstances[key]
     if (retainedRef != null) {
       retainedRef.retainedUptimeMillis = clock.uptimeMillis()
-      onInstanceRetained()
+      onInstanceRetainedListener.onReferenceRetained()
     }
   }
 

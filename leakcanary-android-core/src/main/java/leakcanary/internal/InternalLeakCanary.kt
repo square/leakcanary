@@ -17,10 +17,13 @@ import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.LeakSentry
+import leakcanary.OnInstanceRetainedListener
 import leakcanary.internal.activity.LeakActivity
+import java.lang.reflect.InvocationHandler
+import java.lang.reflect.Proxy
 import java.util.concurrent.atomic.AtomicReference
 
-internal object InternalLeakCanary : LeakSentryListener {
+internal object InternalLeakCanary : (Application) -> Unit, OnInstanceRetainedListener {
 
   private const val DYNAMIC_SHORTCUT_ID = "com.squareup.leakcanary.dynamic_shortcut"
 
@@ -47,7 +50,7 @@ internal object InternalLeakCanary : LeakSentryListener {
         dumpHeap = false, referenceMatchers = emptyList(), objectInspectors = emptyList()
     )
 
-  override fun onLeakSentryInstalled(application: Application) {
+  override fun invoke(application: Application) {
     this.application = application
 
     val heapDumper = AndroidHeapDumper(application, leakDirectoryProvider)
@@ -215,6 +218,16 @@ internal object InternalLeakCanary : LeakSentryListener {
     if (this::heapDumpTrigger.isInitialized) {
       heapDumpTrigger.onDumpHeapReceived()
     }
+  }
+
+  inline fun <reified T : Any> noOpDelegate(): T {
+    val javaClass = T::class.java
+    val noOpHandler = InvocationHandler { _, _, _ ->
+      // no op
+    }
+    return Proxy.newProxyInstance(
+        javaClass.classLoader, arrayOf(javaClass), noOpHandler
+    ) as T
   }
 
   private const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"

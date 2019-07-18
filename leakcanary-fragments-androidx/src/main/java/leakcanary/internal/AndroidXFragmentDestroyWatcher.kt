@@ -19,13 +19,13 @@ import android.app.Activity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
-import leakcanary.RefWatcher
 import leakcanary.LeakSentry.Config
+import leakcanary.RefWatcher
 
 internal class AndroidXFragmentDestroyWatcher(
   private val refWatcher: RefWatcher,
   private val configProvider: () -> Config
-) : FragmentDestroyWatcher {
+) : (Activity) -> Unit {
 
   private val fragmentLifecycleCallbacks = object : FragmentManager.FragmentLifecycleCallbacks() {
 
@@ -49,7 +49,7 @@ internal class AndroidXFragmentDestroyWatcher(
     }
   }
 
-  override fun watchFragments(activity: Activity) {
+  override fun invoke(activity: Activity) {
     if (activity is FragmentActivity) {
       val supportFragmentManager = activity.supportFragmentManager
       supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, true)
