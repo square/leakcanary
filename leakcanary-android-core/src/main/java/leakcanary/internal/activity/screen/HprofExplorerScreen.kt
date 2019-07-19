@@ -26,14 +26,6 @@ import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HeapValue.ShortValue
 import leakcanary.HprofGraph
-import leakcanary.PrimitiveType.BOOLEAN
-import leakcanary.PrimitiveType.BYTE
-import leakcanary.PrimitiveType.CHAR
-import leakcanary.PrimitiveType.DOUBLE
-import leakcanary.PrimitiveType.FLOAT
-import leakcanary.PrimitiveType.INT
-import leakcanary.PrimitiveType.LONG
-import leakcanary.PrimitiveType.SHORT
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
@@ -93,7 +85,7 @@ internal class HprofExplorerScreen(
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                   executeOnIo {
                     val partialClassName = input.text.toString()
-                    val matchingClasses = graph.classSequence()
+                    val matchingClasses = graph.classes
                         .filter { partialClassName in it.name }
                         .toList()
 

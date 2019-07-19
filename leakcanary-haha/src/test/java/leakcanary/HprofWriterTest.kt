@@ -30,7 +30,7 @@ class HprofWriterTest {
     hprofFile.writeRecords(records)
 
     hprofFile.readHprof { graph ->
-      val treasureChestClass = graph.indexedClass(TREASURE_CHEST_CLASS_NAME)!!
+      val treasureChestClass = graph.findClassByClassName(TREASURE_CHEST_CLASS_NAME)!!
       val baguetteInstance =
         treasureChestClass[CONTENT_FIELD_NAME]!!.value.asObject!!.asInstance!!
 

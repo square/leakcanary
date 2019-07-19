@@ -13,6 +13,9 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import java.io.File
 import kotlin.reflect.KClass
 
+/**
+ * Transforms a Hprof to all primitive arrays, which can be useful to remove PII.
+ */
 class HprofPrimitiveArrayStripper {
 
   fun stripPrimitiveArrays(
@@ -77,7 +80,7 @@ class HprofPrimitiveArrayStripper {
             }
         )
       }
-    }))
+    })).close()
     writer.close()
     return outputHprofFile
   }

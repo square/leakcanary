@@ -25,13 +25,13 @@ class FragmentLeakTest {
   )
 
   @Before fun setUp() {
-    LeakSentry.refWatcher
-        .clearWatchedInstances()
+    LeakSentry.objectWatcher
+        .clearWatchedObjects()
   }
 
   @After fun tearDown() {
-    LeakSentry.refWatcher
-        .clearWatchedInstances()
+    LeakSentry.objectWatcher
+        .clearWatchedObjects()
   }
 
   @Test

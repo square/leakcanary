@@ -15,9 +15,18 @@
  */
 package leakcanary
 
+import leakcanary.KeyedWeakReference.Companion.heapDumpUptimeMillis
 import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
 
+/**
+ * A weak reference used by [ObjectWatcher] to determine which objects become weakly reachable
+ * and which don't. [ObjectWatcher] uses [key] to keep track of [KeyedWeakReference] instances that
+ * haven't made it into the associated [ReferenceQueue] yet.
+ *
+ * [heapDumpUptimeMillis] should be set with the current time from [Clock.uptimeMillis] right
+ * before dumping the heap, so that we can later determine how long an object was retained.
+ */
 @Suppress("unused")
 class KeyedWeakReference(
   referent: Any,
@@ -29,9 +38,9 @@ class KeyedWeakReference(
     referent, referenceQueue
 ) {
   /**
-   * Compared against [heapDumpUptimeMillis] so that the Hprof Parser knows only to look at
-   * instances that were moved to retained, then used to remove weak references post heap dump.
-   **/
+   * Time at which the associated object ([referent]) was considered retained, or -1 if it hasn't
+   * been yet.
+   */
   @Volatile
   var retainedUptimeMillis = -1L
 

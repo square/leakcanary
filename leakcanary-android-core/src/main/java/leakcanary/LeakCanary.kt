@@ -1,18 +1,39 @@
 package leakcanary
 
-import android.app.Application
 import android.content.Intent
+import leakcanary.ReferenceMatcher.IgnoredReferenceMatcher
+import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
 import leakcanary.internal.InternalLeakCanary
 
-typealias AnalysisResultListener = (Application, HeapAnalysis) -> Unit
-
+/**
+ * The entry point API for LeakCanary. LeakCanary builds on top of [LeakSentry]. LeakSentry
+ * notifies LeakCanary of retained instances, which in turns dumps the heap, analyses it and
+ * publishes the results.
+ *
+ * LeakCanary can be configured by updating [config].
+ */
 object LeakCanary {
 
+  /**
+   * LeakCanary configuration data class. Properties can be updated via [copy].
+   *
+   * @see [config]
+   */
   data class Config(
+    /**
+     * Whether LeakCanary should dump the heap when enough retained instances are found. This needs
+     * to be true for LeakCanary to work, but sometimes you may want to temporarily disable
+     * LeakCanary (e.g. for a product demo).
+     *
+     * Defaults to true.
+     */
     val dumpHeap: Boolean = true,
     /**
-     * The debugger can create temporary memory leaks (for instance if a thread is blocked on a
-     * breakpoint) so by default LeakCanary does not dump the heap when the debugger is attached.
+     * If [dumpHeapWhenDebugging] is false then LeakCanary will not dump the heap
+     * when the debugger is attached. The debugger can create temporary memory leaks (for instance
+     * if a thread is blocked on a breakpoint).
+     *
+     * Defaults to false.
      */
     val dumpHeapWhenDebugging: Boolean = false,
     /**
@@ -22,43 +43,81 @@ object LeakCanary {
      * especially frustrating as the Android Framework has a number of leaks that cannot easily
      * be fixed.
      *
-     * When the app becomes invisible, LeakCanary dumps the heap immediately.
+     * When the app becomes invisible, LeakCanary dumps the heap after
+     * [LeakSentry.Config.watchDurationMillis] ms.
+     *
+     * The app is considered visible if it has at least one activity in started state.
      *
      * A higher threshold means LeakCanary will dump the heap less often, therefore it won't be
      * bothering developers as much but it could miss some leaks.
+     *
+     * Defaults to 5.
      */
     val retainedVisibleThreshold: Int = 5,
 
+    /**
+     * Known patterns of references in the heap, lister here either to ignore them
+     * ([IgnoredReferenceMatcher]) or to mark them as library leaks ([LibraryLeakReferenceMatcher]).
+     *
+     * When adding your own custom [LibraryLeakReferenceMatcher] instances, you'll most
+     * likely want to set [LibraryLeakReferenceMatcher.patternApplies] with a filter that checks
+     * for the Android OS version and manufacturer. The build information can be obtained by calling
+     * [HprofGraph.androidBuildMirror].
+     *
+     * Defaults to [AndroidReferenceMatchers.appDefaults]
+     */
     val referenceMatchers: List<ReferenceMatcher> = AndroidReferenceMatchers.appDefaults,
 
-    val objectInspectors: List<ObjectInspector> = AndroidObjectInspectors.defaultInspectors(),
+    /**
+     * List of [ObjectInspector] that provide LeakCanary with insights about objects found in the
+     * heap. You can create your own [ObjectInspector] implementations, and also add
+     * a [AppSingletonInspector] instance created with the list of internal singletons.
+     *
+     * Defaults to [AndroidObjectInspectors.appDefaults]
+     */
+    val objectInspectors: List<ObjectInspector> = AndroidObjectInspectors.appDefaults,
 
     /**
-     * Called with the heap analysis result from a background thread.
-     * The heap dump file will be removed immediately after this function is invoked.
+     * Called on a background thread when the heap analysis is complete.
      * If you want leaks to be added to the activity that lists leaks, make sure to delegate
-     * calls to [DefaultAnalysisResultListener].
+     * calls to a [DefaultOnHeapAnalyzedListener].
+     *
+     * Defaults to [DefaultOnHeapAnalyzedListener]
      */
-    val analysisResultListener: AnalysisResultListener = DefaultAnalysisResultListener,
-    /**
-     * Whether to compute the total number of bytes in memory that would be reclaimed if the
-     * detected leaks didn't happen. This includes native memory associated to Java objects
-     * (e.g. bitmaps).
-     * Computing the retained heap size can slow down the leak analysis and is off by default.
-     */
-    val computeRetainedHeapSize: Boolean = false,
+    val onHeapAnalyzedListener: OnHeapAnalyzedListener = DefaultOnHeapAnalyzedListener(
+        InternalLeakCanary.application
+    ),
 
     /**
-     * How many heap dumps are kept locally. When this threshold is reached LeakCanary starts
-     * deleting the older heap dumps. As several heap dumps may be enqueued you should avoid
-     * going down to 1 or 2.
+     * Whether to compute the retained heap size, which is the total number of bytes in memory that
+     * would be reclaimed if the detected leaks didn't happen. This includes native memory
+     * associated to Java objects (e.g. Android bitmaps).
+     *
+     * Computing the retained heap size can slow down the analysis because it requires navigating
+     * from GC roots through the entire object graph, whereas [HeapAnalyzer] would otherwise stop
+     * as soon as all leaking instances are found.
+     *
+     * Defaults to true.
+     */
+    val computeRetainedHeapSize: Boolean = true,
+
+    /**
+     * How many heap dumps are kept on the Android device for this app package. When this threshold
+     * is reached LeakCanary deletes the older heap dumps. As several heap dumps may be enqueued
+     * you should avoid going down to 1 or 2.
+     *
+     * Defaults to 7.
      */
     val maxStoredHeapDumps: Int = 7,
 
     /**
-     * LeakCanary always attempts to store heap dumps on the external storage first. If the
-     * WRITE_EXTERNAL_STORAGE permission is not granted and [requestWriteExternalStoragePermission]
-     * is true, then LeakCanary will display a notification to ask for that permission.
+     * LeakCanary always attempts to store heap dumps on the external storage if the
+     * WRITE_EXTERNAL_STORAGE is already granted, and otherwise uses the app storage.
+     * If the WRITE_EXTERNAL_STORAGE permission is not granted and
+     * [requestWriteExternalStoragePermission] is true, then LeakCanary will display a notification
+     * to ask for that permission.
+     *
+     * Defaults to false because that permission notification can be annoying.
      */
     val requestWriteExternalStoragePermission: Boolean = false,
 
@@ -67,14 +126,32 @@ object LeakCanary {
      * tracked by [KeyedWeakReference]. This leads to finding more leaks and shorter leak traces.
      * However this also means the same leaking instances will be found in every heap dump for a
      * given process life.
+     *
+     * Defaults to false.
      */
     val useExperimentalLeakFinders: Boolean = false
   )
 
+  /**
+   * The current LeakCanary configuration. Can be updated at any time, usually by replacing it with
+   * a mutated copy, e.g.:
+   *
+   * ```
+   * LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
+   * ```
+   */
   @Volatile
   var config: Config = if (LeakSentry.isInstalled) Config() else InternalLeakCanary.noInstallConfig
 
-  /** [Intent] that can be used to programmatically launch the leak display activity. */
-  val leakDisplayActivityIntent
-    get() = InternalLeakCanary.leakDisplayActivityIntent
+  /**
+   * Returns a new [Intent] that can be used to programmatically launch the leak display activity.
+   */
+  fun newLeakDisplayActivityIntent() = InternalLeakCanary.leakDisplayActivityIntent
+
+  /**
+   * Immediately triggers a heap dump and analysis, if there is at least one retained instance
+   * tracked by [LeakSentry.objectWatcher]. If there are no retained instances then the heap will not
+   * be dumped and a notification will be shown instead.
+   */
+  fun dumpHeap() = InternalLeakCanary.onDumpHeapReceived()
 }

@@ -17,7 +17,7 @@ package leakcanary.internal
 
 import leakcanary.AnalyzerProgressListener
 import leakcanary.AnalyzerProgressListener.Step.FINDING_DOMINATORS
-import leakcanary.AnalyzerProgressListener.Step.FINDING_SHORTEST_PATHS
+import leakcanary.AnalyzerProgressListener.Step.FINDING_PATHS_TO_LEAKING_INSTANCES
 import leakcanary.CanaryLog
 import leakcanary.GcRoot
 import leakcanary.GcRoot.JavaFrame
@@ -27,6 +27,7 @@ import leakcanary.GraphObjectRecord.GraphClassRecord
 import leakcanary.GraphObjectRecord.GraphInstanceRecord
 import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
 import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
+import leakcanary.HeapValue
 import leakcanary.HprofGraph
 import leakcanary.HprofReader
 import leakcanary.LeakReference
@@ -38,10 +39,9 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.ReferenceMatcher
 import leakcanary.ReferenceMatcher.IgnoredReferenceMatcher
 import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
-import leakcanary.ReferencePathNode
-import leakcanary.ReferencePathNode.ChildNode.LibraryLeakNode
-import leakcanary.ReferencePathNode.ChildNode.NormalNode
-import leakcanary.ReferencePathNode.RootNode
+import leakcanary.internal.ReferencePathNode.ChildNode.LibraryLeakNode
+import leakcanary.internal.ReferencePathNode.ChildNode.NormalNode
+import leakcanary.internal.ReferencePathNode.RootNode
 import leakcanary.ReferencePattern
 import leakcanary.ReferencePattern.InstanceFieldPattern
 import leakcanary.ReferencePattern.StaticFieldPattern
@@ -77,7 +77,7 @@ internal class ShortestPathFinder {
    * var because the instance will be returned by [findPaths] and replaced with a new empty map
    * here (copying it could be expensive).
    *
-   * If an instance has been added to [toVisitMap] or [visitedSet] and is missing from
+   * If an instance has been added to [toVisitSet] or [visitedSet] and is missing from
    * [dominatedInstances] then it's considered "undomitable" ie it is dominated by gc roots
    * and cannot be dominated by a leaking instance.
    */
@@ -97,11 +97,11 @@ internal class ShortestPathFinder {
     listener: AnalyzerProgressListener
   ): Results {
 
-    listener.onProgressUpdate(FINDING_SHORTEST_PATHS)
+    listener.onProgressUpdate(FINDING_PATHS_TO_LEAKING_INSTANCES)
     clearState()
     this.leakingInstanceObjectIds = leakingInstanceObjectIds
 
-    val objectClass = graph.indexedClass("java.lang.Object")
+    val objectClass = graph.findClassByClassName("java.lang.Object")
     sizeOfObjectInstances = if (objectClass != null) {
       // In Android 16 ClassDumpRecord.instanceSize can be 8 yet there are 0 fields.
       // Better rely on our own computation of instance size.
@@ -190,7 +190,7 @@ internal class ShortestPathFinder {
         }
       }
 
-      when (val graphRecord = graph.indexedObject(node.instance)) {
+      when (val graphRecord = graph.findObjectByObjectId(node.instance)) {
         is GraphClassRecord -> visitClassRecord(
             graph, graphRecord, node, staticFieldNameByClassName, computeDominators
         )
@@ -296,8 +296,8 @@ internal class ShortestPathFinder {
       }
     }
 
-    return graph.gcRoots()
-        .map { graph.indexedObject(it.id) to it }
+    return graph.gcRoots
+        .map { graph.findObjectByObjectId(it.id) to it }
         .sortedWith(Comparator { (graphObject1, root1), (graphObject2, root2) ->
           // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
           val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
@@ -328,7 +328,7 @@ internal class ShortestPathFinder {
         continue
       }
 
-      val objectId = staticField.value.asObjectIdReference!!
+      val objectId = staticField.value.asObjectId!!
 
       if (computeRetainedHeapSize) {
         undominateWithSkips(graph, objectId)
@@ -380,7 +380,7 @@ internal class ShortestPathFinder {
 
     fieldNamesAndValues.filter { it.value.isNonNullReference }
         .forEach { field ->
-          val objectId = field.value.asObjectIdReference!!
+          val objectId = field.value.asObjectId!!
           if (computeRetainedHeapSize) {
             updateDominatorWithSkips(graph, parent.instance, objectId)
           }
@@ -410,7 +410,7 @@ internal class ShortestPathFinder {
     computeRetainedHeapSize: Boolean
   ) {
     record.elementIds.filter { objectId ->
-      objectId != 0L && graph.objectIdExists(objectId).apply {
+      objectId != HeapValue.NULL_REFERENCE && graph.objectExists(objectId).apply {
         if (!this) {
           // dalvik.system.PathClassLoader.runtimeInternalObjects references objects which don't
           // otherwise exist in the heap dump.
@@ -434,8 +434,7 @@ internal class ShortestPathFinder {
     graph: HprofGraph,
     node: ReferencePathNode
   ) {
-    // 0L is null
-    if (node.instance == 0L) {
+    if (node.instance == HeapValue.NULL_REFERENCE) {
       return
     }
     if (visitedSet.contains(node.instance)) {
@@ -463,7 +462,7 @@ internal class ShortestPathFinder {
     val isLeakingInstance = node.instance in leakingInstanceObjectIds
 
     if (!isLeakingInstance) {
-      val skip = when (val graphObject = graph.indexedObject(node.instance)) {
+      val skip = when (val graphObject = graph.findObjectByObjectId(node.instance)) {
         is GraphClassRecord -> false
         is GraphInstanceRecord ->
           when {
@@ -497,7 +496,7 @@ internal class ShortestPathFinder {
     objectId: Long
   ) {
 
-    when (val graphObject = graph.indexedObject(objectId)) {
+    when (val graphObject = graph.findObjectByObjectId(objectId)) {
       is GraphClassRecord -> {
         undominate(objectId, false)
       }
@@ -505,7 +504,7 @@ internal class ShortestPathFinder {
         // String internal array is never enqueued
         if (graphObject.className == "java.lang.String") {
           updateDominator(parentObjectId, objectId, true)
-          val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectIdReference
+          val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectId
           if (valueId != null) {
             updateDominator(parentObjectId, valueId, true)
           }
@@ -597,7 +596,7 @@ internal class ShortestPathFinder {
     graph: HprofGraph,
     objectId: Long
   ) {
-    when (val graphObject = graph.indexedObject(objectId)) {
+    when (val graphObject = graph.findObjectByObjectId(objectId)) {
       is GraphClassRecord -> {
         undominate(objectId, false)
       }
@@ -605,7 +604,7 @@ internal class ShortestPathFinder {
         // String internal array is never enqueued
         if (graphObject.className == "java.lang.String") {
           undominate(objectId, true)
-          val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectIdReference
+          val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectId
           if (valueId != null) {
             undominate(valueId, true)
           }

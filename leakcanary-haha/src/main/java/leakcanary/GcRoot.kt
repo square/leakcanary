@@ -1,9 +1,18 @@
 package leakcanary
 
+/**
+ * A GcRoot as identified by [Record.HeapDumpRecord.GcRootRecord] in the heap dump.
+ */
 sealed class GcRoot {
 
+  /**
+   * The object id of the object that this gc root references.
+   */
   abstract val id: Long
 
+  /**
+   * An unknown gc root.
+   */
   class Unknown(override val id: Long) : GcRoot()
 
   /**
@@ -27,7 +36,7 @@ sealed class GcRoot {
   ) : GcRoot()
 
   /**
-   * Java local variable
+   * A java local variable
    */
   class JavaFrame(
     override val id: Long,
@@ -51,7 +60,7 @@ sealed class GcRoot {
   ) : GcRoot()
 
   /**
-   * System class
+   * A system class
    */
   class StickyClass(override val id: Long) : GcRoot()
 
@@ -67,6 +76,8 @@ sealed class GcRoot {
   class MonitorUsed(override val id: Long) : GcRoot()
 
   /**
+   * A thread.
+   *
    * Added at https://android.googlesource.com/platform/tools/base/+/c0f0d528c155cab32e372dac77370569a386245c
    */
   class ThreadObject(
@@ -75,16 +86,28 @@ sealed class GcRoot {
     val stackTraceSerialNumber: Int
   ) : GcRoot()
 
+  /**
+   * It's unclear what this is, documentation welcome.
+   */
   class ReferenceCleanup(override val id: Long) : GcRoot()
 
+  /**
+   * It's unclear what this is, documentation welcome.
+   */
   class VmInternal(override val id: Long) : GcRoot()
 
+  /**
+   * It's unclear what this is, documentation welcome.
+   */
   class JniMonitor(
     override val id: Long,
     val stackTraceSerialNumber: Int,
     val stackDepth: Int
   ) : GcRoot()
 
+  /**
+   * An interned string, see [java.lang.String.intern].
+   */
   class InternedString(override val id: Long) : GcRoot()
 
   /**
@@ -92,6 +115,9 @@ sealed class GcRoot {
    */
   class Finalizing(override val id: Long) : GcRoot()
 
+  /**
+   * An object held by a connected debugger
+   */
   class Debugger(override val id: Long) : GcRoot()
 
   /**

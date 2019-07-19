@@ -87,7 +87,9 @@ internal class HprofInMemoryIndex private constructor(
   }
 
   fun indexedObject(objectId: Long): IndexedObject {
-    return objectIndex[objectId]!!
+    return objectIndex[objectId] ?: throw IllegalArgumentException(
+        "Object id $objectId not found in heap dump."
+    )
   }
 
   fun objectIdIsIndexed(objectId: Long): Boolean {

@@ -1,8 +1,10 @@
-package leakcanary
+package leakcanary.internal
 
+import leakcanary.GcRoot
+import leakcanary.LeakReference
 import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
 
-sealed class ReferencePathNode {
+internal sealed class ReferencePathNode {
   abstract val instance: Long
 
   class RootNode(

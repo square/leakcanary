@@ -1,5 +1,8 @@
 package leakcanary
 
+/**
+ * A Hprof record. These data structure map 1:1 with how records are written in hprof files.
+ */
 sealed class Record {
   class StringRecord(
     val id: Long,

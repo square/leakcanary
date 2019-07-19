@@ -7,9 +7,9 @@ import leakcanary.LeakTraceElement
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.Leak
 import leakcanary.Leak.LibraryLeak
-import leakcanary.Serializables
+import leakcanary.internal.Serializables
 import leakcanary.internal.utils.to
-import leakcanary.toByteArray
+import leakcanary.internal.toByteArray
 import org.intellij.lang.annotations.Language
 
 internal object LeakingInstanceTable {

@@ -18,11 +18,11 @@ package leakcanary.internal
 import android.app.Activity
 import android.app.Application
 import leakcanary.LeakSentry.Config
-import leakcanary.RefWatcher
+import leakcanary.ObjectWatcher
 import leakcanary.internal.InternalLeakSentry.noOpDelegate
 
 internal class ActivityDestroyWatcher private constructor(
-  private val refWatcher: RefWatcher,
+  private val objectWatcher: ObjectWatcher,
   private val configProvider: () -> Config
 ) {
 
@@ -30,7 +30,7 @@ internal class ActivityDestroyWatcher private constructor(
     object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
       override fun onActivityDestroyed(activity: Activity) {
         if (configProvider().watchActivities) {
-          refWatcher.watch(activity)
+          objectWatcher.watch(activity)
         }
       }
     }
@@ -38,11 +38,11 @@ internal class ActivityDestroyWatcher private constructor(
   companion object {
     fun install(
       application: Application,
-      refWatcher: RefWatcher,
+      objectWatcher: ObjectWatcher,
       configProvider: () -> Config
     ) {
       val activityDestroyWatcher =
-        ActivityDestroyWatcher(refWatcher, configProvider)
+        ActivityDestroyWatcher(objectWatcher, configProvider)
       application.registerActivityLifecycleCallbacks(activityDestroyWatcher.lifecycleCallbacks)
     }
   }

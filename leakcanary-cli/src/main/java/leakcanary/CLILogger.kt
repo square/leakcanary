@@ -19,17 +19,14 @@ class CLILogger : Logger {
   }
 
   override fun d(
-    throwable: Throwable?,
+    throwable: Throwable,
     message: String,
     vararg args: Any?
   ) {
     d(String.format(message, *args) + '\n' + getStackTraceString(throwable))
   }
 
-  private fun getStackTraceString(throwable: Throwable?): String {
-    if (throwable == null) {
-      return ""
-    }
+  private fun getStackTraceString(throwable: Throwable): String {
     val stringWriter = StringWriter()
     val printWriter = PrintWriter(stringWriter, false)
     throwable.printStackTrace(printWriter)

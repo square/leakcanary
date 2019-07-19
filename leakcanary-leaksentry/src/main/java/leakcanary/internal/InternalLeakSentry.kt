@@ -8,8 +8,8 @@ import android.os.SystemClock
 import leakcanary.CanaryLog
 import leakcanary.Clock
 import leakcanary.LeakSentry
-import leakcanary.OnInstanceRetainedListener
-import leakcanary.RefWatcher
+import leakcanary.OnObjectRetainedListener
+import leakcanary.ObjectWatcher
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
 import java.util.concurrent.Executor
@@ -20,7 +20,7 @@ internal object InternalLeakSentry {
     get() = ::application.isInitialized
 
   private val onLeakSentryInstalled: (Application) -> Unit
-  private val onInstanceRetainedListener: OnInstanceRetainedListener
+  private val ON_OBJECT_RETAINED_LISTENER: OnObjectRetainedListener
 
   val isDebuggableBuild by lazy {
     (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
@@ -46,16 +46,16 @@ internal object InternalLeakSentry {
     }
     @kotlin.Suppress("UNCHECKED_CAST")
     onLeakSentryInstalled = internalLeakCanary as (Application) -> Unit
-    onInstanceRetainedListener = internalLeakCanary as OnInstanceRetainedListener
+    ON_OBJECT_RETAINED_LISTENER = internalLeakCanary as OnObjectRetainedListener
   }
 
   private val checkRetainedExecutor = Executor {
     mainHandler.postDelayed(it, LeakSentry.config.watchDurationMillis)
   }
-  val refWatcher = RefWatcher(
+  val objectWatcher = ObjectWatcher(
       clock = clock,
       checkRetainedExecutor = checkRetainedExecutor,
-      onInstanceRetainedListener = onInstanceRetainedListener,
+      onObjectRetainedListener = ON_OBJECT_RETAINED_LISTENER,
       isEnabled = { LeakSentry.config.enabled }
   )
 
@@ -68,8 +68,8 @@ internal object InternalLeakSentry {
     InternalLeakSentry.application = application
 
     val configProvider = { LeakSentry.config }
-    ActivityDestroyWatcher.install(application, refWatcher, configProvider)
-    FragmentDestroyWatcher.install(application, refWatcher, configProvider)
+    ActivityDestroyWatcher.install(application, objectWatcher, configProvider)
+    FragmentDestroyWatcher.install(application, objectWatcher, configProvider)
     onLeakSentryInstalled(application)
   }
 
@@ -91,11 +91,11 @@ internal object InternalLeakSentry {
     }
   }
 
-  object NoLeakCanary : (Application) -> Unit, OnInstanceRetainedListener {
+  object NoLeakCanary : (Application) -> Unit, OnObjectRetainedListener {
     override fun invoke(application: Application) {
     }
 
-    override fun onReferenceRetained() {
+    override fun onObjectRetained() {
     }
   }
 }

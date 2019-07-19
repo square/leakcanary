@@ -84,7 +84,7 @@ internal class HeapAnalysisListScreen : Screen() {
         )
 
         val title = projection.exceptionSummary ?: resources.getQuantityString(
-            R.plurals.leak_canary_heap_analysis_list_retained_instances,
+            R.plurals.leak_canary_heap_analysis_list_retained_objects,
             projection.retainedInstanceCount, projection.retainedInstanceCount
         )
         titleView.text = "$index. $title"

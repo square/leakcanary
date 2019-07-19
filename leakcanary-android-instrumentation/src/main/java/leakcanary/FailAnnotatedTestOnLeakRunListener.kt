@@ -4,8 +4,7 @@ import org.junit.runner.Description
 import org.junit.runner.notification.RunListener
 
 /**
- *
- * A JUnit [RunListener] subclassing [FailTestOnLeakRunListener] for detecting memory
+ * A JUnit [RunListener] extending [FailTestOnLeakRunListener] to detecting memory
  * leaks in Android instrumentation tests only when the [FailTestOnLeak] annotation
  * is used.
  *

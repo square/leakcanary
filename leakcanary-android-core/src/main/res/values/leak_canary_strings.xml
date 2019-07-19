@@ -34,12 +34,12 @@
   <string name="leak_canary_notification_dumping">Dumping Heap</string>
   <string name="leak_canary_notification_foreground_text">LeakCanary is working.</string>
   <string name="leak_canary_notification_message">Click for more details</string>
-  <string name="leak_canary_notification_no_retained_instance_title">All retained instances were garbage collected</string>
-  <string name="leak_canary_notification_no_retained_instance_content">Tap to dismiss</string>
+  <string name="leak_canary_notification_no_retained_object_title">All retained objects were garbage collected</string>
+  <string name="leak_canary_notification_no_retained_object_content">Tap to dismiss</string>
   <string name="leak_canary_notification_retained_debugger_attached">Waiting for debugger to detach</string>
   <string name="leak_canary_notification_retained_dump_failed">Failed to dump heap</string>
-  <string name="leak_canary_notification_retained_title">%d retained instances, tap to dump heap</string>
-  <string name="leak_canary_notification_retained_visible">App visible, waiting until %d retained instances</string>
+  <string name="leak_canary_notification_retained_title">%d retained objects, tap to dump heap</string>
+  <string name="leak_canary_notification_retained_visible">App visible, waiting until %d retained objects</string>
   <string name="leak_canary_share_leak">Share Info</string>
   <string name="leak_canary_share_heap_dump">Share Heap Dump</string>
   <string name="leak_canary_share_with">Share with…</string>
@@ -61,15 +61,15 @@
   <string name="leak_canary_options_menu_permission_toast">Please grant the External Storage Permission first, see notification…</string>
   <string name="leak_canary_generating_hq_bitmap_toast_notice">Rendering HQ Bitmap, this may take a while…</string>
   <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Rendering HQ Bitmap, this may take a while…</string>
-  <plurals name="leak_canary_heap_analysis_list_retained_instances">
-    <item quantity="one">%d Retained Instance</item>
-    <item quantity="other">%d Retained Instances</item>
+  <plurals name="leak_canary_heap_analysis_list_retained_objects">
+    <item quantity="one">%d Retained Objects</item>
+    <item quantity="other">%d Retained Objects</item>
   </plurals>
   <string name="leak_canary_share_heap_dump_bitmap_screen_title">Share Heap Dump Bitmap</string>
   <string name="leak_canary_heap_dump_screen_title">Heap Dump %s</string>
   <string name="leak_canary_analysis_deleted_title">Analysis Deleted</string>
   <string name="leak_canary_go_to_heap_analysis">Go to Heap Analysis</string>
-  <string name="leak_canary_heap_analysis_success_screen_title">Heap Analysis (%d Retained Instances)</string>
+  <string name="leak_canary_heap_analysis_success_screen_title">Heap Analysis (%d Retained Objects)</string>
   <string name="leak_canary_heap_analysis_success_screen_row_title">(%1$d / %2$d Total) %3$s</string>
   <string name="leak_canary_heap_analysis_success_screen_row_title_new">[NEW] (%1$d) %2$s</string>
   <string name="leak_canary_heap_analysis_success_screen_row_time_format">Latest: %s</string>

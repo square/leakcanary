@@ -33,7 +33,7 @@ class HprofPrimitiveArrayStripperTest {
     val strippedFile = stripper.stripPrimitiveArrays(hprofFile)
 
     strippedFile.readHprof { graph ->
-      val booleanArrays = graph.objectSequence()
+      val booleanArrays = graph.objects
           .filter { it is GraphPrimitiveArrayRecord && it.primitiveType == BOOLEAN }
           .map { it.readRecord() as BooleanArrayDump }
           .toList()
@@ -41,7 +41,7 @@ class HprofPrimitiveArrayStripperTest {
       assertThat(booleanArrays[0].id).isEqualTo(booleanArray.id)
       assertThat(booleanArrays[0].array).isEmpty()
 
-      val charArrays = graph.objectSequence()
+      val charArrays = graph.objects
           .filter { it is GraphPrimitiveArrayRecord && it.primitiveType == CHAR }
           .map { it.readRecord() as CharArrayDump }
           .toList()

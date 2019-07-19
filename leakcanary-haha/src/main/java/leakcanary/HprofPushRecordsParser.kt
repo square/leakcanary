@@ -40,7 +40,7 @@ import kotlin.reflect.KClass
  * A streaming push heap dump parser.
  *
  * Expected usage: call [readHprofRecords] once, which will go read through the entire heap dump
- * and notify the provided listener of records found.
+ * and notify the provided listeners of records found.
  *
  * This class is not thread safe, should be used from a single thread.
  *

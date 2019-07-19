@@ -1,7 +1,8 @@
-package leakcanary
+package leakcanary.internal
 
+import leakcanary.HeapValue
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 
-interface FieldValuesReader {
+internal interface FieldValuesReader {
   fun readValue(field: FieldRecord): HeapValue
 }

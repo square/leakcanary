@@ -22,11 +22,11 @@ import android.app.Activity
 import android.app.Fragment
 import android.app.FragmentManager
 import leakcanary.LeakSentry.Config
-import leakcanary.RefWatcher
+import leakcanary.ObjectWatcher
 
 @SuppressLint("NewApi")
 internal class AndroidOFragmentDestroyWatcher(
-  private val refWatcher: RefWatcher,
+  private val objectWatcher: ObjectWatcher,
   private val configProvider: () -> Config
 ) : (Activity) -> Unit {
   private val fragmentLifecycleCallbacks = object : FragmentManager.FragmentLifecycleCallbacks() {
@@ -37,7 +37,7 @@ internal class AndroidOFragmentDestroyWatcher(
     ) {
       val view = fragment.view
       if (view != null && configProvider().watchFragmentViews) {
-        refWatcher.watch(view)
+        objectWatcher.watch(view)
       }
     }
 
@@ -46,7 +46,7 @@ internal class AndroidOFragmentDestroyWatcher(
       fragment: Fragment
     ) {
       if (configProvider().watchFragments) {
-        refWatcher.watch(fragment)
+        objectWatcher.watch(fragment)
       }
     }
   }
