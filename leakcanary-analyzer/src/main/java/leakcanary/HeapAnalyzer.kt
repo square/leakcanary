@@ -18,9 +18,8 @@ package leakcanary
 import leakcanary.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACES
 import leakcanary.AnalyzerProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import leakcanary.AnalyzerProgressListener.Step.COMPUTING_RETAINED_SIZE
-import leakcanary.AnalyzerProgressListener.Step.FINDING_WATCHED_REFERENCES
-import leakcanary.AnalyzerProgressListener.Step.READING_HEAP_DUMP_FILE
-import leakcanary.AnalyzerProgressListener.Step.SCANNING_HEAP_DUMP
+import leakcanary.AnalyzerProgressListener.Step.FINDING_LEAKING_INSTANCES
+import leakcanary.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
 import leakcanary.GcRoot.JavaFrame
 import leakcanary.GcRoot.JniGlobal
 import leakcanary.GcRoot.JniLocal
@@ -46,9 +45,10 @@ import leakcanary.LeakTraceElement.Holder.ARRAY
 import leakcanary.LeakTraceElement.Holder.CLASS
 import leakcanary.LeakTraceElement.Holder.OBJECT
 import leakcanary.LeakTraceElement.Holder.THREAD
-import leakcanary.ReferencePathNode.ChildNode
-import leakcanary.ReferencePathNode.ChildNode.LibraryLeakNode
-import leakcanary.ReferencePathNode.RootNode
+import leakcanary.internal.ReferencePathNode
+import leakcanary.internal.ReferencePathNode.ChildNode
+import leakcanary.internal.ReferencePathNode.ChildNode.LibraryLeakNode
+import leakcanary.internal.ReferencePathNode.RootNode
 import leakcanary.internal.ShortestPathFinder
 import leakcanary.internal.ShortestPathFinder.Results
 import leakcanary.internal.hppc.LongLongScatterMap
@@ -86,15 +86,12 @@ class HeapAnalyzer constructor(
       )
     }
 
-    listener.onProgressUpdate(READING_HEAP_DUMP_FILE)
-
     try {
-      listener.onProgressUpdate(SCANNING_HEAP_DUMP)
-
+      listener.onProgressUpdate(PARSING_HEAP_DUMP)
       val (graph, hprofCloseable) = HprofGraph.readHprof(heapDumpFile)
 
       hprofCloseable.use {
-        listener.onProgressUpdate(FINDING_WATCHED_REFERENCES)
+        listener.onProgressUpdate(FINDING_LEAKING_INSTANCES)
 
         val leakingInstanceObjectIds = findLeakingInstances(graph, leakFinders)
 
@@ -130,7 +127,7 @@ class HeapAnalyzer constructor(
     graph: HprofGraph,
     objectInspectors: List<ObjectInspector>
   ): Set<Long> {
-    return graph.objectSequence()
+    return graph.objects
         .filter { objectRecord ->
           val reporter = ObjectReporter(objectRecord)
           objectInspectors.forEach { inspector ->
@@ -249,13 +246,13 @@ class HeapAnalyzer constructor(
     // that the CleanerThunk has a pointer to. The native pointer is in the 'nativePtr' field of
     // the CleanerThunk. The hprof does not include the native bytes pointed to.
 
-    graph.instanceSequence()
+    graph.instances
         .filter { it.className == "sun.misc.Cleaner" }
         .forEach { cleaner ->
           val thunkField = cleaner["sun.misc.Cleaner", "thunk"]
-          val thunkId = thunkField?.value?.asNonNullObjectIdReference
+          val thunkId = thunkField?.value?.asNonNullObjectId
           val referentId =
-            cleaner["java.lang.ref.Reference", "referent"]?.value?.asNonNullObjectIdReference
+            cleaner["java.lang.ref.Reference", "referent"]?.value?.asNonNullObjectId
           if (thunkId != null && referentId != null) {
             val thunkRecord = thunkField.value.asObject
             if (thunkRecord is GraphInstanceRecord && thunkRecord instanceOf "libcore.util.NativeAllocationRegistry\$CleanerThunk") {
@@ -283,7 +280,7 @@ class HeapAnalyzer constructor(
     results.forEach { pathNode ->
       val leakingInstanceObjectId = pathNode.instance
       leakingInstanceIds.add(leakingInstanceObjectId)
-      val instanceRecord = graph.indexedObject(leakingInstanceObjectId).asInstance!!
+      val instanceRecord = graph.findObjectByObjectId(leakingInstanceObjectId).asInstance!!
       val classRecord = instanceRecord.instanceClass
       var retainedSize = sizeByDominator.getValue(leakingInstanceObjectId)
 
@@ -298,7 +295,14 @@ class HeapAnalyzer constructor(
       if (instanceId !in leakingInstanceIds) {
         val currentSize = sizeByDominator.getValue(dominatorId)
         val nativeSize = nativeSizes.getValue(instanceId)
-        val shallowSize = graph.computeShallowSize(graph.indexedObject(instanceId))
+        val shallowSize = when (val objectRecord = graph.findObjectByObjectId(instanceId)) {
+          is GraphInstanceRecord -> objectRecord.size
+          is GraphObjectArrayRecord -> objectRecord.readSize()
+          is GraphPrimitiveArrayRecord -> objectRecord.readSize()
+          is GraphClassRecord -> throw IllegalStateException(
+              "Unexpected class record $objectRecord"
+          )
+        }
         sizeByDominator[dominatorId] = currentSize + nativeSize + shallowSize
       }
     }
@@ -355,7 +359,7 @@ class HeapAnalyzer constructor(
         buildLeakTrace(graph, objectInspectors, rootNode, shortestChildPath)
 
       val className =
-        recordClassName(graph.indexedObject(pathNode.instance))
+        recordClassName(graph.findObjectByObjectId(pathNode.instance))
 
       val firstLibraryLeakNode =
         shortestChildPath.firstOrNull { it is LibraryLeakNode } as LibraryLeakNode?
@@ -382,7 +386,7 @@ class HeapAnalyzer constructor(
     shortestPath.add(0, rootNode)
 
     val leakReporters = shortestPath.map {
-      ObjectReporter(graph.indexedObject(it.instance))
+      ObjectReporter(graph.findObjectByObjectId(it.instance))
     }
 
     // Looping on inspectors first to get more cache hits.
@@ -521,7 +525,7 @@ class HeapAnalyzer constructor(
   ): LeakTraceElement {
     val objectId = node.instance
 
-    val graphRecord = graph.indexedObject(objectId)
+    val graphRecord = graph.findObjectByObjectId(objectId)
 
     val className = recordClassName(graphRecord)
 

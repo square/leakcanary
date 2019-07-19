@@ -28,6 +28,14 @@ import java.lang.ref.WeakReference
 import java.util.EnumSet
 
 /**
+ * [AndroidReferenceMatchers] values add [ReferenceMatcher] instances to a global list via their
+ * [add] method. A [ReferenceMatcher] is either a [IgnoredReferenceMatcher] or
+ * a [LibraryLeakReferenceMatcher].
+ *
+ * [AndroidReferenceMatchers] is used to build the list of known references that cannot ever create
+ * leaks (via [IgnoredReferenceMatcher]) as well as the list of known leaks in the Android Framework
+ * and in manufacturer specific Android implementations.
+ *
  * This class is a work in progress. You can help by reporting leak traces that seem to be caused
  * by the Android SDK, here: https://github.com/square/leakcanary/issues/new
  *
@@ -35,9 +43,9 @@ import java.util.EnumSet
  * manufacturer implementation, they usually share their builds across multiple models, and the
  * leaks eventually get fixed in newer versions.
  *
- * Most app developers should use [appDefaults]. However, you can also pick the
- * leaks you want to ignore by creating an [EnumSet] that matches your needs and calling
- * [buildKnownReferences]
+ * Most app developers should use [appDefaults]. However, you can also use a subset of
+ * [AndroidReferenceMatchers] by creating an [EnumSet] that matches your needs and calling
+ * [buildKnownReferences].
  */
 enum class AndroidReferenceMatchers {
 
@@ -993,9 +1001,10 @@ enum class AndroidReferenceMatchers {
     const val VIVO = "vivo"
 
     /**
-     * This returns the references in the leak path that should be ignored by all on Android.
+     * Returns a list of [ReferenceMatcher] that only contains [IgnoredReferenceMatcher] and no
+     * [LibraryLeakReferenceMatcher].
      */
-    val androidDefaults: List<ReferenceMatcher>
+    val ignoredReferencesOnly: List<ReferenceMatcher>
       get() = buildKnownReferences(
           EnumSet.of(
               REFERENCES,
@@ -1007,17 +1016,18 @@ enum class AndroidReferenceMatchers {
       )
 
     /**
-     * This returns the references in the leak path that can be ignored for app developers. This
-     * doesn't mean there is no memory leak, to the contrary. However, some leaks are caused by bugs
-     * in AOSP or manufacturer forks of AOSP. In such cases, there is very little we can do as app
-     * developers except by resorting to serious hacks, so we remove the noise caused by those leaks.
+     * @see [AndroidReferenceMatchers]
      */
     val appDefaults: List<ReferenceMatcher>
       get() = buildKnownReferences(EnumSet.allOf(AndroidReferenceMatchers::class.java))
 
-    fun buildKnownReferences(defaults: Set<AndroidReferenceMatchers>): List<ReferenceMatcher> {
+    /**
+     * Builds a list of [ReferenceMatcher] from the [referenceMatchers] set of
+     * [AndroidReferenceMatchers].
+     */
+    fun buildKnownReferences(referenceMatchers: Set<AndroidReferenceMatchers>): List<ReferenceMatcher> {
       val resultSet = mutableListOf<ReferenceMatcher>()
-      defaults.forEach {
+      referenceMatchers.forEach {
         it.add(resultSet)
       }
       return resultSet
@@ -1027,6 +1037,9 @@ enum class AndroidReferenceMatchers {
       true
     }
 
+    /**
+     * Creates a [LibraryLeakReferenceMatcher] that matches a [StaticFieldPattern].
+     */
     fun staticFieldLeak(
       className: String,
       fieldName: String,
@@ -1036,6 +1049,9 @@ enum class AndroidReferenceMatchers {
       return libraryLeak(StaticFieldPattern(className, fieldName), description, patternApplies)
     }
 
+    /**
+     * Creates a [LibraryLeakReferenceMatcher] that matches a [InstanceFieldPattern].
+     */
     fun instanceFieldLeak(
       className: String,
       fieldName: String,
@@ -1059,6 +1075,9 @@ enum class AndroidReferenceMatchers {
       )
     }
 
+    /**
+     * Creates a [IgnoredReferenceMatcher] that matches a [InstanceFieldPattern].
+     */
     fun ignoredInstanceField(
       className: String,
       fieldName: String
@@ -1066,6 +1085,9 @@ enum class AndroidReferenceMatchers {
       return IgnoredReferenceMatcher(pattern = InstanceFieldPattern(className, fieldName))
     }
 
+    /**
+     * Creates a [IgnoredReferenceMatcher] that matches a [JavaLocalPattern].
+     */
     fun ignoredJavaLocal(
       threadName: String
     ): IgnoredReferenceMatcher {

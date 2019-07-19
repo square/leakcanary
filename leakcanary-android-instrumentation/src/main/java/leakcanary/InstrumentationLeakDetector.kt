@@ -25,40 +25,20 @@ import org.junit.runner.notification.RunListener
 import java.io.File
 
 /**
- * TODO Update this doc to match LeakCanary 2.0
- *
  * [InstrumentationLeakDetector] can be used to detect memory leaks in instrumentation tests.
  *
  * To use it, you need to:
  *
- *  * Install a custom RefWatcher that will not trigger heapdumps while the tests run.
- *  * Add an instrumentation test listener (a [RunListener]) that will invoke
- * [detectLeaks]
- *
- * ### Installing the instrumentation RefWatcher
- *
- * For [detectLeaks] to work correctly, the [RefWatcher] must keep track of
- * references but not trigger any heap dump until this [detectLeaks] runs, otherwise an
- * analysis in progress might prevent this listener from performing its own analysis.
- *
- * Create and install the [RefWatcher] instance using
- * [instrumentationRefWatcher] instead of
- * [LeakCanary.install] or [LeakCanary.refWatcher].
- *
- * ```
- * public class InstrumentationExampleApplication extends ExampleApplication {
- *  @Override protected void setupLeakCanary() {
- *    InstrumentationLeakDetector.instrumentationRefWatcher(this)
- *      .buildAndInstall();
- *  }
- * }
- * ```
+ *  - Call [updateConfig] so that [LeakSentry] will watch objects and [LeakCanary] will not dump
+ *  the heap on retained objects
+ *  - Add an instrumentation test listener (e.g. [FailTestOnLeakRunListener]) that will invoke
+ * [detectLeaks].
  *
  * ### Add an instrumentation test listener
  *
- * LeakCanary provides [FailTestOnLeakRunListener], but you should feel free to implement
- * your own [RunListener] and call [.detectLeaks] directly if you need a more custom
- * behavior (for instance running it only once per test suite, or reporting to a backend).
+ * LeakCanary provides [FailTestOnLeakRunListener], but you can also implement
+ * your own [RunListener] and call [detectLeaks] directly if you need a more custom
+ * behavior (for instance running it only once per test suite).
  *
  * All you need to do is add the following to the defaultConfig of your build.gradle:
  *
@@ -80,46 +60,52 @@ import java.io.File
  * ```
  *
  * ### Rationale
- * Instead of using the [FailTestOnLeakRunListener], one could simply enable LeakCanary in
+ * Instead of using the [InstrumentationLeakDetector], one could simply enable LeakCanary in
  * instrumentation tests.
  *
  * This approach would have two disadvantages:
  *
- *  * Heap dumps freeze the VM, and the leak analysis is IO and CPU heavy. This can slow down
+ *  - Heap dumps freeze the VM, and the leak analysis is IO and CPU heavy. This can slow down
  * the test and introduce flakiness
- *  * The leak analysis is asynchronous by default, and happens in a separate process. This means
- * the tests could finish and the process die before the analysis is finished.
+ *  - The leak analysis is asynchronous by default. This means the tests could finish and the
+ *  process die before the analysis is finished.
  *
- * The approach taken here is to collect all references to watch as you run the test, but not
+ * The approach taken here is to collect all objects to watch as you run the test, but not
  * do any heap dump during the test. Then, at the end, if any of the watched objects is still in
  * memory we dump the heap and perform a blocking analysis. There is only one heap dump performed,
- * no matter the number of objects leaking.
+ * no matter the number of objects retained.
  */
 class InstrumentationLeakDetector {
 
+  /**
+   * The result of calling [detectLeaks], which is either [NoAnalysis] or [AnalysisPerformed].
+   */
   sealed class Result {
     object NoAnalysis : Result()
     class AnalysisPerformed(val heapAnalysis: HeapAnalysis) : Result()
   }
 
+  /**
+   * Looks for retained objects, triggers a heap dump if needed and performs an analysis.
+   */
   fun detectLeaks(): Result {
     val leakDetectionTime = SystemClock.uptimeMillis()
     val watchDurationMillis = LeakSentry.config.watchDurationMillis
     val instrumentation = getInstrumentation()
     val context = instrumentation.targetContext
-    val refWatcher = LeakSentry.refWatcher
+    val refWatcher = LeakSentry.objectWatcher
 
-    if (!refWatcher.hasWatchedInstances) {
+    if (!refWatcher.hasWatchedObjects) {
       return NoAnalysis
     }
 
     instrumentation.waitForIdleSync()
-    if (!refWatcher.hasWatchedInstances) {
+    if (!refWatcher.hasWatchedObjects) {
       return NoAnalysis
     }
 
     runGc()
-    if (!refWatcher.hasWatchedInstances) {
+    if (!refWatcher.hasWatchedObjects) {
       return NoAnalysis
     }
 
@@ -127,7 +113,7 @@ class InstrumentationLeakDetector {
     // Android simply has way too many delayed posts that aren't canceled when views are detached.
     SystemClock.sleep(2000)
 
-    if (!refWatcher.hasWatchedInstances) {
+    if (!refWatcher.hasWatchedObjects) {
       return NoAnalysis
     }
 
@@ -143,7 +129,7 @@ class InstrumentationLeakDetector {
 
     runGc()
 
-    if (!refWatcher.hasRetainedInstances) {
+    if (!refWatcher.hasRetainedObjects) {
       return NoAnalysis
     }
 
@@ -168,7 +154,7 @@ class InstrumentationLeakDetector {
       )
     }
 
-    refWatcher.removeInstancesWatchedBeforeHeapDump(heapDumpUptimeMillis)
+    refWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
 
     val listener = AnalyzerProgressListener.NONE
 
@@ -190,12 +176,14 @@ class InstrumentationLeakDetector {
   companion object {
 
     /**
-     * Configures LeakCanary to not dump the heap so that instrumentation tests run smoothly,
-     * and we can look for leaks at the end of a test. This is automatically called by
-     * [FailTestOnLeakRunListener] when the tests start running.
+     * Configures [LeakSentry] to watch objects and [LeakCanary] to not dump the heap on retained
+     * objects so that instrumentation tests run smoothly, and we can look for leaks at the end of
+     * a test. This is automatically called by [FailTestOnLeakRunListener] when the tests start
+     * running.
      */
     fun updateConfig() {
       LeakSentry.config = LeakSentry.config.copy(enabled = true)
+      LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
     }
   }
 }

@@ -29,6 +29,8 @@ import java.io.Closeable
 import java.nio.charset.Charset
 
 /**
+ * Reads hprof content from an Okio [BufferedSource].
+ *
  * Not thread safe, should be used from a single thread.
  */
 open class HprofReader constructor(

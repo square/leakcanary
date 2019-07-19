@@ -5,17 +5,17 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.util.concurrent.Executor
 
-class RefWatcherTest {
+class ObjectWatcherTest {
 
-  private val onInstanceRetained = object: OnInstanceRetainedListener {
-    override fun onReferenceRetained() {}
+  private val onInstanceRetained = object: OnObjectRetainedListener {
+    override fun onObjectRetained() {}
   }
 
   private val checkRetainedExecutor: Executor = Executor {
     it.run()
   }
 
-  val refWatcher = RefWatcher(object : Clock {
+  private val objectWatcher = ObjectWatcher(object : Clock {
     override fun uptimeMillis(): Long {
       return time
     }
@@ -25,16 +25,16 @@ class RefWatcherTest {
   var ref: Any? = Any()
 
   @Test fun `unreachable object not retained`() {
-    refWatcher.watch(ref!!)
+    objectWatcher.watch(ref!!)
     ref = null
     runGc()
-    assertThat(refWatcher.hasRetainedInstances).isFalse()
+    assertThat(objectWatcher.hasRetainedObjects).isFalse()
   }
 
   @Test fun `reachable object retained`() {
-    refWatcher.watch(ref!!)
+    objectWatcher.watch(ref!!)
     runGc()
-    assertThat(refWatcher.hasRetainedInstances).isTrue()
+    assertThat(objectWatcher.hasRetainedObjects).isTrue()
   }
 
 }

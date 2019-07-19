@@ -1,15 +1,28 @@
 package leakcanary
 
+/**
+ * Central Logger for all LeakCanary artifacts. Set [logger] to change where these logs go.
+ */
 object CanaryLog {
 
+  /**
+   * @see CanaryLog
+   */
   interface Logger {
+
+    /**
+     * Logs a debug message formatted with the passed in arguments.
+     */
     fun d(
       message: String,
       vararg args: Any?
     )
 
+    /**
+     * Logs a [Throwable] and debug message formatted with the passed in arguments.
+     */
     fun d(
-      throwable: Throwable?,
+      throwable: Throwable,
       message: String,
       vararg args: Any?
     )
@@ -17,6 +30,9 @@ object CanaryLog {
 
   @Volatile var logger: Logger? = null
 
+  /**
+   * @see Logger.d
+   */
   fun d(
     message: String,
     vararg args: Any?
@@ -26,8 +42,11 @@ object CanaryLog {
     logger.d(message, *args)
   }
 
+  /**
+   * @see Logger.d
+   */
   fun d(
-    throwable: Throwable?,
+    throwable: Throwable,
     message: String,
     vararg args: Any?
   ) {

@@ -16,13 +16,20 @@
 package leakcanary
 
 /**
- * Called when a watched reference is expected to be weakly reachable, but hasn't been enqueued
- * in the reference queue yet. This gives the application a hook to run the GC before the [ ] checks the reference queue again, to avoid taking a heap dump if possible.
+ * [GcTrigger] is used to try triggering garbage collection and enqueuing [KeyedWeakReference] into
+ * the associated [java.lang.ref.ReferenceQueue]. The default implementation [Default] comes from
+ * AOSP.
  */
 interface GcTrigger {
 
+  /**
+   * Attempts to run garbage collection.
+   */
   fun runGc()
 
+  /**
+   * Default implementation of [GcTrigger].
+   */
   object Default : GcTrigger {
     override fun runGc() {
       // Code taken from AOSP FinalizationTest:

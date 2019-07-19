@@ -14,8 +14,14 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
+import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import leakcanary.internal.IndexedObject.IndexedClass
 import leakcanary.internal.IndexedObject.IndexedInstance
 import leakcanary.internal.IndexedObject.IndexedObjectArray
@@ -23,7 +29,12 @@ import leakcanary.internal.IndexedObject.IndexedPrimitiveArray
 import java.nio.charset.Charset
 import kotlin.reflect.KClass
 
+/**
+ * Represents an object in the heap dump and provides navigation capabilities.
+ */
 sealed class GraphObjectRecord {
+
+  abstract val graph: HprofGraph
 
   abstract val objectId: Long
 
@@ -41,11 +52,15 @@ sealed class GraphObjectRecord {
   val asPrimitiveArray: GraphPrimitiveArrayRecord?
     get() = if (this is GraphPrimitiveArrayRecord) this else null
 
+  /**
+   * Represents a class in the heap dump and provides navigation capabilities.
+   */
   class GraphClassRecord internal constructor(
-    private val graph: HprofGraph,
+    override val graph: HprofGraph,
     private val indexedObject: IndexedClass,
     override val objectId: Long
   ) : GraphObjectRecord() {
+
     override fun readRecord(): ClassDumpRecord {
       return graph.readClassDumpRecord(objectId, indexedObject)
     }
@@ -69,15 +84,15 @@ sealed class GraphObjectRecord {
 
     val superClass: GraphClassRecord?
       get() {
-        if (indexedObject.superClassId == 0L) return null
-        return graph.indexedObject(indexedObject.superClassId) as GraphClassRecord
+        if (indexedObject.superClassId == HeapValue.NULL_REFERENCE) return null
+        return graph.findObjectByObjectId(indexedObject.superClassId) as GraphClassRecord
       }
 
     val classHierarchy: Sequence<GraphClassRecord>
       get() = generateSequence(this) { it.superClass }
 
     val directInstances: Sequence<GraphInstanceRecord>
-      get() = graph.instanceSequence().filter { it.indexedObject.classId == objectId }
+      get() = graph.instances.filter { it.indexedObject.classId == objectId }
 
     fun readStaticFields(): Sequence<GraphField> {
       return readRecord().staticFields.asSequence()
@@ -104,19 +119,26 @@ sealed class GraphObjectRecord {
     }
   }
 
+  /**
+   * Represents an instance in the heap dump and provides navigation capabilities.
+   */
   class GraphInstanceRecord internal constructor(
-    private val graph: HprofGraph,
+    override val graph: HprofGraph,
     internal val indexedObject: IndexedInstance,
     override val objectId: Long,
     val isPrimitiveWrapper: Boolean
   ) : GraphObjectRecord() {
+
+    val size
+      get() = instanceClass.instanceSize
+
     override fun readRecord(): InstanceDumpRecord {
       return graph.readInstanceDumpRecord(objectId, indexedObject)
     }
 
     infix fun instanceOf(className: String): Boolean {
       var currentClassId = indexedObject.classId
-      while (currentClassId != 0L) {
+      while (currentClassId != HeapValue.NULL_REFERENCE) {
         if (graph.className(currentClassId) == className) {
           return true
         }
@@ -160,7 +182,7 @@ sealed class GraphObjectRecord {
 
     val instanceClass: GraphClassRecord
       get() {
-        return graph.indexedObject(indexedObject.classId) as GraphClassRecord
+        return graph.findObjectByObjectId(indexedObject.classId) as GraphClassRecord
       }
 
     fun readFields(): Sequence<GraphField> {
@@ -209,7 +231,7 @@ sealed class GraphObjectRecord {
             val toIndex = if (offset + count > valueRecord.array.size) {
               valueRecord.array.size
             } else offset + count
-             valueRecord.array.copyOfRange(offset, toIndex)
+            valueRecord.array.copyOfRange(offset, toIndex)
           } else {
             valueRecord.array
           }
@@ -230,8 +252,11 @@ sealed class GraphObjectRecord {
     }
   }
 
+  /**
+   * Represents an object array in the heap dump and provides navigation capabilities.
+   */
   class GraphObjectArrayRecord internal constructor(
-    private val graph: HprofGraph,
+    override val graph: HprofGraph,
     private val indexedObject: IndexedObjectArray,
     override val objectId: Long,
     val isPrimitiveWrapperArray: Boolean
@@ -239,6 +264,10 @@ sealed class GraphObjectRecord {
 
     val arrayClassName: String
       get() = graph.className(indexedObject.arrayClassId)
+
+    fun readSize(): Int {
+      return readRecord().elementIds.size * graph.idSize
+    }
 
     override fun readRecord(): ObjectArrayDumpRecord {
       return graph.readObjectArrayDumpRecord(objectId, indexedObject)
@@ -254,11 +283,28 @@ sealed class GraphObjectRecord {
     }
   }
 
+  /**
+   * Represents a primitive array in the heap dump and provides navigation capabilities.
+   */
   class GraphPrimitiveArrayRecord internal constructor(
-    private val graph: HprofGraph,
+    override val graph: HprofGraph,
     private val indexedObject: IndexedPrimitiveArray,
     override val objectId: Long
   ) : GraphObjectRecord() {
+
+    fun readSize(): Int {
+      return when (val record = readRecord()) {
+        is BooleanArrayDump -> record.array.size * HprofReader.BOOLEAN_SIZE
+        is CharArrayDump -> record.array.size * HprofReader.CHAR_SIZE
+        is FloatArrayDump -> record.array.size * HprofReader.FLOAT_SIZE
+        is DoubleArrayDump -> record.array.size * HprofReader.DOUBLE_SIZE
+        is ByteArrayDump -> record.array.size * HprofReader.BYTE_SIZE
+        is ShortArrayDump -> record.array.size * HprofReader.SHORT_SIZE
+        is IntArrayDump -> record.array.size * HprofReader.INT_SIZE
+        is LongArrayDump -> record.array.size * HprofReader.LONG_SIZE
+      }
+    }
+
     val primitiveType: PrimitiveType
       get() = indexedObject.primitiveType
 

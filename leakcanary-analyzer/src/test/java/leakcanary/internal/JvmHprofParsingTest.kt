@@ -22,7 +22,7 @@ class JvmHprofParsingTest {
     val (graph, closeable) = HprofGraph.readHprof(hprofFile)
 
     closeable.use {
-      val testInstances = graph.instanceSequence()
+      val testInstances = graph.instances
           .filter { it.className == JvmHprofParsingTest::class.name }
           .toList()
 

@@ -20,10 +20,10 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import leakcanary.LeakSentry.Config
-import leakcanary.RefWatcher
+import leakcanary.ObjectWatcher
 
 internal class AndroidXFragmentDestroyWatcher(
-  private val refWatcher: RefWatcher,
+  private val objectWatcher: ObjectWatcher,
   private val configProvider: () -> Config
 ) : (Activity) -> Unit {
 
@@ -35,7 +35,7 @@ internal class AndroidXFragmentDestroyWatcher(
     ) {
       val view = fragment.view
       if (view != null && configProvider().watchFragmentViews) {
-        refWatcher.watch(view)
+        objectWatcher.watch(view)
       }
     }
 
@@ -44,7 +44,7 @@ internal class AndroidXFragmentDestroyWatcher(
       fragment: Fragment
     ) {
       if (configProvider().watchFragments) {
-        refWatcher.watch(fragment)
+        objectWatcher.watch(fragment)
       }
     }
   }

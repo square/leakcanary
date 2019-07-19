@@ -1,13 +1,20 @@
 package leakcanary
 
+/**
+ * Used to pattern match known patterns of references in the heap, either to ignore them
+ * ([IgnoredReferenceMatcher]) or to mark them as library leaks ([LibraryLeakReferenceMatcher]).
+ */
 sealed class ReferenceMatcher {
+
+  /** The pattern that references will be matched against. */
   abstract val pattern: ReferencePattern
 
   /**
    * [LibraryLeakReferenceMatcher] should be used to match references in library code that are
    * known to create leaks and are beyond your control. The shortest path finder will only go
    * through matching references after it has exhausted references that don't match, prioritizing
-   * finding an application leak over a known library leak.
+   * finding an application leak over a known library leak. Library leaks will be reported as
+   * [Leak.LibraryLeak] instead of [Leak.ApplicationLeak].
    */
   data class LibraryLeakReferenceMatcher(
     override val pattern: ReferencePattern,

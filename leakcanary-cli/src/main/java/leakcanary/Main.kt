@@ -134,7 +134,7 @@ private fun analyze(heapDumpFile: File) {
   CanaryLog.d("Analyzing heap dump $heapDumpFile")
   val heapAnalysis = heapAnalyzer.checkForLeaks(
       heapDumpFile, AndroidReferenceMatchers.appDefaults, true,
-      AndroidObjectInspectors.defaultInspectors()
+      AndroidObjectInspectors.appDefaults
   )
 
   CanaryLog.d(heapAnalysis.toString())

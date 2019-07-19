@@ -26,7 +26,7 @@ internal class DefaultCanaryLog : Logger {
   }
 
   override fun d(
-    throwable: Throwable?,
+    throwable: Throwable,
     message: String,
     vararg args: Any?
   ) {

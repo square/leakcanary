@@ -21,7 +21,6 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import com.squareup.leakcanary.core.R
 import leakcanary.AnalyzerProgressListener
-import leakcanary.AndroidReferenceMatchers
 import leakcanary.AndroidObjectInspectors
 import leakcanary.CanaryLog
 import leakcanary.HeapAnalyzer
@@ -66,7 +65,7 @@ internal class HeapAnalyzerService : ForegroundService(
           )
       )
 
-    config.analysisResultListener(application, heapAnalysis)
+    config.onHeapAnalyzedListener.onHeapAnalyzed(heapAnalysis)
   }
 
   override fun onProgressUpdate(step: AnalyzerProgressListener.Step) {

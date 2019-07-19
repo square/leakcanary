@@ -8,10 +8,10 @@ import leakcanary.CanaryLog
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisFailure
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.Serializables
+import leakcanary.internal.Serializables
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.LeakDirectoryProvider
-import leakcanary.toByteArray
+import leakcanary.internal.toByteArray
 import org.intellij.lang.annotations.Language
 import java.io.File
 

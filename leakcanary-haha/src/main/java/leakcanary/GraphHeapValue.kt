@@ -10,6 +10,10 @@ import leakcanary.HeapValue.LongValue
 import leakcanary.HeapValue.ObjectReference
 import leakcanary.HeapValue.ShortValue
 
+/**
+ * Represents a value in the heap dump, which can be an object reference or
+ * a primitive type. Provides navigation capabilities.
+ */
 class GraphHeapValue(
   private val graph: HprofGraph,
   val actual: HeapValue
@@ -38,10 +42,10 @@ class GraphHeapValue(
   val asLong: Long?
     get() = if (actual is LongValue) actual.value else null
 
-  val asObjectIdReference: Long?
+  val asObjectId: Long?
     get() = if (actual is ObjectReference) actual.value else null
 
-  val asNonNullObjectIdReference: Long?
+  val asNonNullObjectId: Long?
     get() = if (actual is ObjectReference && !actual.isNull) actual.value else null
 
   val isNullReference: Boolean
@@ -53,7 +57,7 @@ class GraphHeapValue(
   val asObject: GraphObjectRecord?
     get() {
       return if (actual is ObjectReference && !actual.isNull) {
-        return graph.indexedObject(actual.value)
+        return graph.findObjectByObjectId(actual.value)
       } else {
         null
       }

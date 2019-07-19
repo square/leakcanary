@@ -21,7 +21,7 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.O
 import android.os.Bundle
 import leakcanary.LeakSentry
-import leakcanary.RefWatcher
+import leakcanary.ObjectWatcher
 import leakcanary.internal.InternalLeakSentry.noOpDelegate
 
 /**
@@ -35,14 +35,14 @@ internal object FragmentDestroyWatcher {
 
   fun install(
     application: Application,
-    refWatcher: RefWatcher,
+    objectWatcher: ObjectWatcher,
     configProvider: () -> LeakSentry.Config
   ) {
     val fragmentDestroyWatchers = mutableListOf<(Activity) -> Unit>()
 
     if (SDK_INT >= O) {
       fragmentDestroyWatchers.add(
-          AndroidOFragmentDestroyWatcher(refWatcher, configProvider)
+          AndroidOFragmentDestroyWatcher(objectWatcher, configProvider)
       )
     }
 
@@ -50,10 +50,10 @@ internal object FragmentDestroyWatcher {
         classAvailable(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
     ) {
       val watcherConstructor = Class.forName(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
-          .getDeclaredConstructor(RefWatcher::class.java, Function0::class.java)
+          .getDeclaredConstructor(ObjectWatcher::class.java, Function0::class.java)
       @kotlin.Suppress("UNCHECKED_CAST")
       fragmentDestroyWatchers.add(
-          watcherConstructor.newInstance(refWatcher, configProvider) as (Activity) -> Unit
+          watcherConstructor.newInstance(objectWatcher, configProvider) as (Activity) -> Unit
       )
     }
 

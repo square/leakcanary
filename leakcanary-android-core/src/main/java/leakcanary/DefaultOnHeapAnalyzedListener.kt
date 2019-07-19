@@ -13,12 +13,13 @@ import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
 import leakcanary.internal.activity.screen.HeapAnalysisListScreen
 import leakcanary.internal.activity.screen.HeapAnalysisSuccessScreen
 
-object DefaultAnalysisResultListener : AnalysisResultListener {
-  override fun invoke(
-    application: Application,
-    heapAnalysis: HeapAnalysis
-  ) {
+/**
+ * Default [OnHeapAnalyzedListener] implementation, which will store the analysis to disk and
+ * show a notification summarizing the result.
+ */
+class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHeapAnalyzedListener {
 
+  override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
     // TODO better log that include leakcanary version, exclusions, etc.
     CanaryLog.d("%s", heapAnalysis)
 
@@ -39,12 +40,12 @@ object DefaultAnalysisResultListener : AnalysisResultListener {
         var libraryLeakCount = 0
 
         for ((_, projection) in groupProjections) {
-            leakCount += projection.leakCount
-            when {
-              projection.isLibraryLeak -> libraryLeakCount += projection.leakCount
-              projection.isNew -> newLeakCount += projection.leakCount
-              else -> knownLeakCount += projection.leakCount
-            }
+          leakCount += projection.leakCount
+          when {
+            projection.isLibraryLeak -> libraryLeakCount += projection.leakCount
+            projection.isNew -> newLeakCount += projection.leakCount
+            else -> knownLeakCount += projection.leakCount
+          }
         }
 
         application.getString(

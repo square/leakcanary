@@ -30,6 +30,9 @@ import kotlin.reflect.KClass
  *
  * For example, no matter how many mistakes we make in our code, the value of Activity.mDestroy
  * will not be influenced by those mistakes.
+ *
+ * Most developers should use the entire set of default [ObjectInspector] by calling [appDefaults],
+ * unless there's a bug and you temporarily want to remove an inspector.
  */
 enum class AndroidObjectInspectors : ObjectInspector {
 
@@ -38,38 +41,39 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HprofGraph,
       reporter: ObjectReporter
     ) {
-      val references: List<KeyedWeakReferenceMirror> = graph.context.getOrPut(KEYED_WEAK_REFERENCE.name) {
-        val keyedWeakReferenceClass = graph.indexedClass("leakcanary.KeyedWeakReference")
+      val references: List<KeyedWeakReferenceMirror> =
+        graph.context.getOrPut(KEYED_WEAK_REFERENCE.name) {
+          val keyedWeakReferenceClass = graph.findClassByClassName("leakcanary.KeyedWeakReference")
 
-        val heapDumpUptimeMillis = if (keyedWeakReferenceClass == null) {
-          null
-        } else {
-          keyedWeakReferenceClass["heapDumpUptimeMillis"]?.value?.asLong
+          val heapDumpUptimeMillis = if (keyedWeakReferenceClass == null) {
+            null
+          } else {
+            keyedWeakReferenceClass["heapDumpUptimeMillis"]?.value?.asLong
+          }
+
+          if (heapDumpUptimeMillis == null) {
+            CanaryLog.d(
+                "${KeyedWeakReference::class.java.name}.heapDumpUptimeMillis field not found, " +
+                    "this must be a heap dump from an older version of LeakCanary."
+            )
+          }
+
+          val addedToContext: List<KeyedWeakReferenceMirror> = graph.instances
+              .filter { instance ->
+                val className = instance.className
+                className == "leakcanary.KeyedWeakReference" || className == "com.squareup.leakcanary.KeyedWeakReference"
+              }
+              .map { KeyedWeakReferenceMirror.fromInstance(it, heapDumpUptimeMillis) }
+              .filter { it.hasReferent }
+              .toList()
+          graph.context[KEYED_WEAK_REFERENCE.name] = addedToContext
+          addedToContext
         }
-
-        if (heapDumpUptimeMillis == null) {
-          CanaryLog.d(
-              "${KeyedWeakReference::class.java.name}.heapDumpUptimeMillis field not found, " +
-                  "this must be a heap dump from an older version of LeakCanary."
-          )
-        }
-
-        val addedToContext: List<KeyedWeakReferenceMirror> = graph.instanceSequence()
-            .filter { instance ->
-              val className = instance.className
-              className == "leakcanary.KeyedWeakReference" || className == "com.squareup.leakcanary.KeyedWeakReference"
-            }
-            .map { KeyedWeakReferenceMirror.fromInstance(it, heapDumpUptimeMillis) }
-            .filter { it.hasReferent }
-            .toList()
-        graph.context[KEYED_WEAK_REFERENCE.name] = addedToContext
-        addedToContext
-      }
 
       val objectId = reporter.objectRecord.objectId
       references.forEach { ref ->
         if (ref.referent.value == objectId) {
-          reporter.reportLeaking("RefWatcher was watching this")
+          reporter.reportLeaking("ObjectWatcher was watching this")
           reporter.addLabel("key = ${ref.key}")
           if (ref.name.isNotEmpty()) {
             reporter.addLabel("name = ${ref.name}")
@@ -474,9 +478,11 @@ enum class AndroidObjectInspectors : ObjectInspector {
   };
 
   companion object {
-    fun defaultInspectors(): List<ObjectInspector> {
-      return values().toList()
-    }
+    /** @see AndroidObjectInspectors */
+    val appDefaults: List<ObjectInspector>
+      get() {
+        return values().toList()
+      }
   }
 }
 
@@ -484,6 +490,9 @@ private infix fun GraphField.describedWithValue(valueDescription: String): Strin
   return "${classRecord.simpleName}#$name is $valueDescription"
 }
 
+/**
+ * Runs [block] if [ObjectReporter.objectRecord] is an instance of [expectedClass].
+ */
 inline fun ObjectReporter.whenInstanceOf(
   expectedClass: KClass<out Any>,
   action: ObjectReporter.(GraphInstanceRecord) -> Unit
@@ -491,15 +500,22 @@ inline fun ObjectReporter.whenInstanceOf(
   whenInstanceOf(expectedClass.java.name, action)
 }
 
+/**
+ * Runs [block] if [ObjectReporter.objectRecord] is an instance of [expectedClassName].
+ */
 inline fun ObjectReporter.whenInstanceOf(
-  className: String,
+  expectedClassName: String,
   block: ObjectReporter.(GraphInstanceRecord) -> Unit
 ) {
-  if (objectRecord is GraphInstanceRecord && objectRecord instanceOf className) {
+  if (objectRecord is GraphInstanceRecord && objectRecord instanceOf expectedClassName) {
     block(objectRecord)
   }
 }
 
+/**
+ * Recursively unwraps `this` [GraphInstanceRecord] as a ContextWrapper until an Activity is found in which case it is
+ * returned. Returns null if no activity was found.
+ */
 fun GraphInstanceRecord.unwrapActivityContext(): GraphInstanceRecord? {
   if (this instanceOf "android.app.Activity") {
     return this

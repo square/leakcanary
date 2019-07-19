@@ -100,7 +100,8 @@ internal object HeapDumpRenderer {
     val stringColor = context.getColorCompat(R.color.leak_canary_heap_instance_string)
 
     val parser = HprofPushRecordsParser()
-    val reader = parser.readHprofRecords(heapDumpFile, setOf(object : OnRecordListener {
+    var lastPosition = 0L
+    parser.readHprofRecords(heapDumpFile, setOf(object : OnRecordListener {
       override fun recordTypes(): Set<KClass<out Record>> = setOf(Record::class)
 
       val hprofStringCache = mutableMapOf<Long, String>()
@@ -113,6 +114,7 @@ internal object HeapDumpRenderer {
         position: Long,
         record: Record
       ) {
+        lastPosition = position
         when (record) {
           is StringRecord -> {
             hprofStringCache[record.id] = record.string
@@ -158,9 +160,8 @@ internal object HeapDumpRenderer {
           }
         }
       }
-    }))
-    val heapLength = reader.position
-    reader.close()
+    })).close()
+    val heapLength = lastPosition
 
     val width = sourceWidth
     var height: Int

@@ -3,6 +3,9 @@ package leakcanary
 import okio.BufferedSource
 import java.nio.channels.FileChannel
 
+/**
+ * A [HprofReader] that can be moved ([moveTo]) to a new position.
+ */
 class SeekableHprofReader(
   private val channel: FileChannel,
   source: BufferedSource,

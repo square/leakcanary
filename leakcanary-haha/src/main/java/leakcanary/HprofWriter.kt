@@ -50,6 +50,11 @@ import okio.sink
 import java.io.Closeable
 import java.io.File
 
+/**
+ * Generates Hprof files.
+ *
+ * Call [open] to create an instance, [write] to add instances and [close] when you're done.
+ */
 class HprofWriter private constructor(
   private val sink: BufferedSink,
   val idSize: Int

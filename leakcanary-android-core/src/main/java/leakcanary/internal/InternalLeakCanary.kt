@@ -17,13 +17,13 @@ import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.LeakSentry
-import leakcanary.OnInstanceRetainedListener
+import leakcanary.OnObjectRetainedListener
 import leakcanary.internal.activity.LeakActivity
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
 import java.util.concurrent.atomic.AtomicReference
 
-internal object InternalLeakCanary : (Application) -> Unit, OnInstanceRetainedListener {
+internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedListener {
 
   private const val DYNAMIC_SHORTCUT_ID = "com.squareup.leakcanary.dynamic_shortcut"
 
@@ -64,7 +64,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnInstanceRetainedLi
     val backgroundHandler = Handler(handlerThread.looper)
 
     heapDumpTrigger = HeapDumpTrigger(
-        application, backgroundHandler, LeakSentry.refWatcher, gcTrigger, heapDumper, configProvider
+        application, backgroundHandler, LeakSentry.objectWatcher, gcTrigger, heapDumper, configProvider
     )
     application.registerVisibilityListener { applicationVisible ->
       this.applicationVisible = applicationVisible
@@ -208,9 +208,9 @@ internal object InternalLeakCanary : (Application) -> Unit, OnInstanceRetainedLi
     }
   }
 
-  override fun onReferenceRetained() {
+  override fun onObjectRetained() {
     if (this::heapDumpTrigger.isInitialized) {
-      heapDumpTrigger.onReferenceRetained()
+      heapDumpTrigger.onObjectRetained()
     }
   }
 

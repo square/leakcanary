@@ -20,6 +20,7 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import leakcanary.internal.FieldValuesReader
 import leakcanary.internal.HprofInMemoryIndex
 import leakcanary.internal.IndexedObject
 import leakcanary.internal.IndexedObject.IndexedClass
@@ -39,91 +40,102 @@ class HprofGraph internal constructor(
   private val index: HprofInMemoryIndex
 ) {
 
+  /**
+   * In memory store that can be used to store objects this [HprofGraph] instance.
+   */
   val context = GraphContext()
 
   /**
-   * LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
-   * This is based on running InstrumentationLeakDetectorTest a bunch of time on a
-   * Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
+   * All GC roots which type matches the set passed to [HprofInMemoryIndex.createOnRecordListener].
    */
+  val gcRoots: List<GcRoot>
+    get() = index.gcRoots()
+
+  /**
+   * Sequence of all objects in the heap dump.
+   *
+   * This sequence does not trigger any IO reads.
+   */
+  val objects: Sequence<GraphObjectRecord>
+    get() {
+      return index.indexedObjectSequence()
+          .map {
+            wrapIndexedObject(it.second, it.first)
+          }
+    }
+
+  /**
+   * Sequence of all classes in the heap dump.
+   *
+   * This sequence does not trigger any IO reads.
+   */
+  val classes: Sequence<GraphClassRecord>
+    get() {
+      return index.indexedClassSequence()
+          .map {
+            val objectId = it.first
+            val indexedObject = it.second
+            GraphClassRecord(this, indexedObject, objectId)
+          }
+    }
+
+  /**
+   * Sequence of all instances in the heap dump.
+   *
+   * This sequence does not trigger any IO reads.
+   */
+  val instances: Sequence<GraphInstanceRecord>
+    get() {
+      return index.indexedInstanceSequence()
+          .map {
+            val objectId = it.first
+            val indexedObject = it.second
+            val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
+            GraphInstanceRecord(this, indexedObject, objectId, isPrimitiveWrapper)
+          }
+    }
+
+  internal val idSize
+    get() = index.idSize
+
+  // LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
+  // This is based on running InstrumentationLeakDetectorTest a bunch of time on a
+  // Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
   private val objectCache = LruCache<Long, ObjectRecord>(3000)
 
-  fun indexedClass(className: String): GraphClassRecord? {
+  /**
+   * Returns the [GraphObjectRecord] corresponding to the provided [objectId], and throws
+   * [IllegalArgumentException] otherwise.
+   */
+  fun findObjectByObjectId(objectId: Long): GraphObjectRecord {
+    return wrapIndexedObject(index.indexedObject(objectId), objectId)
+  }
+
+  /**
+   * Returns the [GraphClassRecord] corresponding to the provided [className], or null if the
+   * class cannot be found.
+   */
+  fun findClassByClassName(className: String): GraphClassRecord? {
     val classId = index.classId(className)
     return if (classId == null) {
       null
     } else {
-      return indexedObject(classId) as GraphClassRecord
+      return findObjectByObjectId(classId) as GraphClassRecord
     }
   }
 
-  fun readObjectRecord(objectId: Long): ObjectRecord {
-    return when (val indexedObject = index.indexedObject(objectId)) {
-      is IndexedInstance -> readInstanceDumpRecord(objectId, indexedObject)
-      is IndexedClass -> readClassDumpRecord(objectId, indexedObject)
-      is IndexedObjectArray -> readObjectArrayDumpRecord(objectId, indexedObject)
-      is IndexedPrimitiveArray -> readPrimitiveArrayDumpRecord(objectId, indexedObject)
-    }
-  }
-
-  fun indexedObject(objectId: Long): GraphObjectRecord {
-    return wrapIndexedObject(index.indexedObject(objectId), objectId)
-  }
-
-  fun objectIdExists(objectId: Long): Boolean {
+  /**
+   * Returns true if the provided [objectId] exists in the heap dump.
+   */
+  fun objectExists(objectId: Long): Boolean {
     return index.objectIdIsIndexed(objectId)
   }
 
-  fun computeShallowSize(graphObject: GraphObjectRecord): Int {
-    return when (graphObject) {
-      is GraphInstanceRecord -> graphObject.instanceClass.instanceSize
-      is GraphObjectArrayRecord -> graphObject.readRecord().elementIds.size * index.idSize
-      is GraphPrimitiveArrayRecord -> when (val record = graphObject.readRecord()) {
-        is BooleanArrayDump -> record.array.size * HprofReader.BOOLEAN_SIZE
-        is CharArrayDump -> record.array.size * HprofReader.CHAR_SIZE
-        is FloatArrayDump -> record.array.size * HprofReader.FLOAT_SIZE
-        is DoubleArrayDump -> record.array.size * HprofReader.DOUBLE_SIZE
-        is ByteArrayDump -> record.array.size * HprofReader.BYTE_SIZE
-        is ShortArrayDump -> record.array.size * HprofReader.SHORT_SIZE
-        is IntArrayDump -> record.array.size * HprofReader.INT_SIZE
-        is LongArrayDump -> record.array.size * HprofReader.LONG_SIZE
-      }
-      is GraphClassRecord -> throw IllegalStateException(
-          "Unexpected record ${graphObject.readRecord()}"
-      )
-    }
-  }
-
-  fun instanceSequence(): Sequence<GraphInstanceRecord> {
-    return index.indexedInstanceSequence()
-        .map {
-          val objectId = it.first
-          val indexedObject = it.second
-          val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
-          GraphInstanceRecord(this, indexedObject, objectId, isPrimitiveWrapper)
-        }
-  }
-
-  fun objectSequence(): Sequence<GraphObjectRecord> {
-    return index.indexedObjectSequence()
-        .map {
-          wrapIndexedObject(it.second, it.first)
-        }
-  }
-
-  fun gcRoots(): List<GcRoot> {
-    return index.gcRoots()
-  }
-
-  fun classSequence(): Sequence<GraphClassRecord> {
-    return index.indexedClassSequence()
-        .map {
-          val objectId = it.first
-          val indexedObject = it.second
-          GraphClassRecord(this, indexedObject, objectId)
-        }
-  }
-
+  /**
+   * Returns the byte size of the provided [hprofType].
+   *
+   * Note: this API may be removed eventually.
+   */
   fun sizeOfFieldType(hprofType: Int) = index.sizeOfFieldType(hprofType)
 
   internal fun fieldName(fieldRecord: FieldRecord): String {
@@ -144,6 +156,15 @@ class HprofGraph internal constructor(
       override fun readValue(field: FieldRecord): HeapValue {
         return reader.readValue(field.type)
       }
+    }
+  }
+
+  internal fun readObjectRecord(objectId: Long): ObjectRecord {
+    return when (val indexedObject = index.indexedObject(objectId)) {
+      is IndexedInstance -> readInstanceDumpRecord(objectId, indexedObject)
+      is IndexedClass -> readClassDumpRecord(objectId, indexedObject)
+      is IndexedObjectArray -> readObjectArrayDumpRecord(objectId, indexedObject)
+      is IndexedPrimitiveArray -> readPrimitiveArrayDumpRecord(objectId, indexedObject)
     }
   }
 

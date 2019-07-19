@@ -1,6 +1,7 @@
 package leakcanary.internal
 
 import leakcanary.GraphObjectRecord.GraphInstanceRecord
+import leakcanary.HeapValue
 import leakcanary.HeapValue.ObjectReference
 
 internal class KeyedWeakReferenceMirror(
@@ -14,7 +15,7 @@ internal class KeyedWeakReferenceMirror(
   val retainedDurationMillis: Long?
 ) {
 
-  val hasReferent = referent.value != 0L
+  val hasReferent = referent.value != HeapValue.NULL_REFERENCE
 
   val isRetained = retainedDurationMillis == null || retainedDurationMillis != -1L
 
