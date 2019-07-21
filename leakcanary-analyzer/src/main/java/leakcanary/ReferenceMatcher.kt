@@ -20,11 +20,11 @@ sealed class ReferenceMatcher {
     override val pattern: ReferencePattern,
     val description: String = "",
     /**
-     * Whether the identified leak may exist in the provided [HprofGraph]. Defaults to true. If
+     * Whether the identified leak may exist in the provided [HeapGraph]. Defaults to true. If
      * the heap dump comes from a VM that runs a different version of the library that doesn't
      * have the leak, then this should return false.
      */
-    val patternApplies: (HprofGraph) -> Boolean = { true }
+    val patternApplies: (HeapGraph) -> Boolean = { true }
   ) : ReferenceMatcher()
 
   /**

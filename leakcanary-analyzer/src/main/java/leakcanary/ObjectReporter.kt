@@ -7,7 +7,7 @@ package leakcanary
  * A given [ObjectReporter] only maps to one object in the heap, but is shared to many
  * [ObjectInspector] implementations and accumulates insights.
  */
-class ObjectReporter internal constructor(val objectRecord: GraphObjectRecord) {
+class ObjectReporter internal constructor(val objectRecord: HeapObject) {
 
   private val mutableLabels = mutableListOf<String>()
 

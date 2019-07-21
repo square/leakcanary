@@ -30,10 +30,10 @@ import leakcanary.GcRoot.ReferenceCleanup
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
 import leakcanary.GcRoot.ThreadObject
-import leakcanary.GraphObjectRecord.GraphClassRecord
-import leakcanary.GraphObjectRecord.GraphInstanceRecord
-import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
-import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
+import leakcanary.HeapObject.HeapClass
+import leakcanary.HeapObject.HeapInstance
+import leakcanary.HeapObject.HeapObjectArray
+import leakcanary.HeapObject.HeapPrimitiveArray
 import leakcanary.HeapAnalyzer.TrieNode.LeafNode
 import leakcanary.HeapAnalyzer.TrieNode.ParentNode
 import leakcanary.Leak.ApplicationLeak
@@ -88,7 +88,7 @@ class HeapAnalyzer constructor(
 
     try {
       listener.onProgressUpdate(PARSING_HEAP_DUMP)
-      val (graph, hprofCloseable) = HprofGraph.readHprof(heapDumpFile)
+      val (graph, hprofCloseable) = HeapGraph.readHprof(heapDumpFile)
 
       hprofCloseable.use {
         listener.onProgressUpdate(FINDING_LEAKING_INSTANCES)
@@ -124,7 +124,7 @@ class HeapAnalyzer constructor(
   }
 
   private fun findLeakingInstances(
-    graph: HprofGraph,
+    graph: HeapGraph,
     objectInspectors: List<ObjectInspector>
   ): Set<Long> {
     return graph.objects
@@ -140,7 +140,7 @@ class HeapAnalyzer constructor(
   }
 
   private fun findShortestPaths(
-    graph: HprofGraph,
+    graph: HeapGraph,
     referenceMatchers: List<ReferenceMatcher>,
     leakingInstanceObjectIds: Set<Long>,
     computeDominators: Boolean
@@ -228,7 +228,7 @@ class HeapAnalyzer constructor(
   }
 
   private fun computeRetainedSizes(
-    graph: HprofGraph,
+    graph: HeapGraph,
     results: List<ReferencePathNode>,
     dominatedInstances: LongLongScatterMap
   ): List<Int> {
@@ -247,7 +247,7 @@ class HeapAnalyzer constructor(
     // the CleanerThunk. The hprof does not include the native bytes pointed to.
 
     graph.instances
-        .filter { it.className == "sun.misc.Cleaner" }
+        .filter { it.instanceClassName == "sun.misc.Cleaner" }
         .forEach { cleaner ->
           val thunkField = cleaner["sun.misc.Cleaner", "thunk"]
           val thunkId = thunkField?.value?.asNonNullObjectId
@@ -255,12 +255,12 @@ class HeapAnalyzer constructor(
             cleaner["java.lang.ref.Reference", "referent"]?.value?.asNonNullObjectId
           if (thunkId != null && referentId != null) {
             val thunkRecord = thunkField.value.asObject
-            if (thunkRecord is GraphInstanceRecord && thunkRecord instanceOf "libcore.util.NativeAllocationRegistry\$CleanerThunk") {
+            if (thunkRecord is HeapInstance && thunkRecord instanceOf "libcore.util.NativeAllocationRegistry\$CleanerThunk") {
               val allocationRegistryIdField =
                 thunkRecord["libcore.util.NativeAllocationRegistry\$CleanerThunk", "this\$0"]
               if (allocationRegistryIdField != null && allocationRegistryIdField.value.isNonNullReference) {
                 val allocationRegistryRecord = allocationRegistryIdField.value.asObject
-                if (allocationRegistryRecord is GraphInstanceRecord && allocationRegistryRecord instanceOf "libcore.util.NativeAllocationRegistry") {
+                if (allocationRegistryRecord is HeapInstance && allocationRegistryRecord instanceOf "libcore.util.NativeAllocationRegistry") {
                   var nativeSize = nativeSizes.getValue(referentId)
                   nativeSize += allocationRegistryRecord["libcore.util.NativeAllocationRegistry", "size"]?.value?.asLong?.toInt()
                       ?: 0
@@ -280,12 +280,11 @@ class HeapAnalyzer constructor(
     results.forEach { pathNode ->
       val leakingInstanceObjectId = pathNode.instance
       leakingInstanceIds.add(leakingInstanceObjectId)
-      val instanceRecord = graph.findObjectByObjectId(leakingInstanceObjectId).asInstance!!
-      val classRecord = instanceRecord.instanceClass
+      val instanceRecord = graph.findObjectById(leakingInstanceObjectId).asInstance!!
+      val heapClass = instanceRecord.instanceClass
       var retainedSize = sizeByDominator.getValue(leakingInstanceObjectId)
 
-      retainedSize += classRecord.readRecord()
-          .instanceSize
+      retainedSize += heapClass.instanceSize
       sizeByDominator[leakingInstanceObjectId] = retainedSize
     }
 
@@ -295,11 +294,11 @@ class HeapAnalyzer constructor(
       if (instanceId !in leakingInstanceIds) {
         val currentSize = sizeByDominator.getValue(dominatorId)
         val nativeSize = nativeSizes.getValue(instanceId)
-        val shallowSize = when (val objectRecord = graph.findObjectByObjectId(instanceId)) {
-          is GraphInstanceRecord -> objectRecord.size
-          is GraphObjectArrayRecord -> objectRecord.readSize()
-          is GraphPrimitiveArrayRecord -> objectRecord.readSize()
-          is GraphClassRecord -> throw IllegalStateException(
+        val shallowSize = when (val objectRecord = graph.findObjectById(instanceId)) {
+          is HeapInstance -> objectRecord.size
+          is HeapObjectArray -> objectRecord.readSize()
+          is HeapPrimitiveArray -> objectRecord.readSize()
+          is HeapClass -> throw IllegalStateException(
               "Unexpected class record $objectRecord"
           )
         }
@@ -335,7 +334,7 @@ class HeapAnalyzer constructor(
   private fun buildLeakTraces(
     objectInspectors: List<ObjectInspector>,
     shortestPathsToLeakingInstances: List<ReferencePathNode>,
-    graph: HprofGraph,
+    graph: HeapGraph,
     retainedSizes: List<Int>?
   ): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
     listener.onProgressUpdate(BUILDING_LEAK_TRACES)
@@ -359,7 +358,7 @@ class HeapAnalyzer constructor(
         buildLeakTrace(graph, objectInspectors, rootNode, shortestChildPath)
 
       val className =
-        recordClassName(graph.findObjectByObjectId(pathNode.instance))
+        recordClassName(graph.findObjectById(pathNode.instance))
 
       val firstLibraryLeakNode =
         shortestChildPath.firstOrNull { it is LibraryLeakNode } as LibraryLeakNode?
@@ -377,7 +376,7 @@ class HeapAnalyzer constructor(
   }
 
   private fun buildLeakTrace(
-    graph: HprofGraph,
+    graph: HeapGraph,
     objectInspectors: List<ObjectInspector>,
     rootNode: RootNode,
     shortestChildPath: List<ChildNode>
@@ -386,7 +385,7 @@ class HeapAnalyzer constructor(
     shortestPath.add(0, rootNode)
 
     val leakReporters = shortestPath.map {
-      ObjectReporter(graph.findObjectByObjectId(it.instance))
+      ObjectReporter(graph.findObjectById(it.instance))
     }
 
     // Looping on inspectors first to get more cache hits.
@@ -451,7 +450,7 @@ class HeapAnalyzer constructor(
     }
 
     val simpleClassNames = leakReporters.map { reporter ->
-      recordClassName(reporter.objectRecord).lastSegment('.')
+      recordClassName(reporter.`object`).lastSegment('.')
     }
 
     // First and last are always known.
@@ -517,7 +516,7 @@ class HeapAnalyzer constructor(
   }
 
   private fun buildLeakElement(
-    graph: HprofGraph,
+    graph: HeapGraph,
     node: ReferencePathNode,
     reference: LeakReference?,
     labels: List<String>,
@@ -525,13 +524,13 @@ class HeapAnalyzer constructor(
   ): LeakTraceElement {
     val objectId = node.instance
 
-    val graphRecord = graph.findObjectByObjectId(objectId)
+    val graphRecord = graph.findObjectById(objectId)
 
     val className = recordClassName(graphRecord)
 
-    val holderType = if (graphRecord is GraphClassRecord) {
+    val holderType = if (graphRecord is HeapClass) {
       CLASS
-    } else if (graphRecord is GraphObjectArrayRecord || graphRecord is GraphPrimitiveArrayRecord) {
+    } else if (graphRecord is HeapObjectArray || graphRecord is HeapPrimitiveArray) {
       ARRAY
     } else {
       val instanceRecord = graphRecord.asInstance!!
@@ -545,13 +544,13 @@ class HeapAnalyzer constructor(
   }
 
   private fun recordClassName(
-    graphRecord: GraphObjectRecord
+    heap: HeapObject
   ): String {
-    return when (graphRecord) {
-      is GraphClassRecord -> graphRecord.name
-      is GraphInstanceRecord -> graphRecord.className
-      is GraphObjectArrayRecord -> graphRecord.arrayClassName
-      is GraphPrimitiveArrayRecord -> graphRecord.arrayClassName
+    return when (heap) {
+      is HeapClass -> heap.name
+      is HeapInstance -> heap.instanceClassName
+      is HeapObjectArray -> heap.arrayClassName
+      is HeapPrimitiveArray -> heap.arrayClassName
     }
   }
 

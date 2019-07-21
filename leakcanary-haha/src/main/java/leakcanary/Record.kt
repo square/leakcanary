@@ -60,7 +60,7 @@ sealed class Record {
         data class StaticFieldRecord(
           val nameStringId: Long,
           val type: Int,
-          val value: HeapValue
+          val value: ValueHolder
         )
 
         data class FieldRecord(
@@ -73,6 +73,9 @@ sealed class Record {
         val id: Long,
         val stackTraceSerialNumber: Int,
         val classId: Long,
+        /**
+         * Instance field values (this class, followed by super class, etc)
+         */
         val fieldValues: ByteArray
       ) : ObjectRecord()
 

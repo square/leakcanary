@@ -1,6 +1,6 @@
 package leakcanary.internal
 
-import leakcanary.HprofGraph
+import leakcanary.HeapGraph
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -19,11 +19,11 @@ class JvmHprofParsingTest {
 
     JvmTestHeapDumper.dumpHeap(hprofFile.absolutePath)
 
-    val (graph, closeable) = HprofGraph.readHprof(hprofFile)
+    val (graph, closeable) = HeapGraph.readHprof(hprofFile)
 
     closeable.use {
       val testInstances = graph.instances
-          .filter { it.className == JvmHprofParsingTest::class.name }
+          .filter { it.instanceClassName == JvmHprofParsingTest::class.name }
           .toList()
 
       assertThat(testInstances).hasSize(1)

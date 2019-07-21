@@ -1,7 +1,7 @@
 package leakcanary.internal
 
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HprofGraph
+import leakcanary.HeapGraph
 import leakcanary.ObjectInspector
 import leakcanary.ObjectReporter
 import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
@@ -64,7 +64,7 @@ class LeakTraceRendererTest {
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
           objectInspectors = listOf(object : ObjectInspector {
             override fun inspect(
-              graph: HprofGraph,
+              graph: HeapGraph,
               reporter: ObjectReporter
             ) {
               reporter.whenInstanceOf("ClassB") {
@@ -100,7 +100,7 @@ class LeakTraceRendererTest {
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
         objectInspectors = listOf(object : ObjectInspector {
           override fun inspect(
-            graph: HprofGraph,
+            graph: HeapGraph,
             reporter: ObjectReporter
           ) {
             reporter.addLabel("¯\\_(ツ)_/¯")

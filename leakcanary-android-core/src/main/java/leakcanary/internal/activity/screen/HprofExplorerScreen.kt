@@ -10,22 +10,22 @@ import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
-import leakcanary.GraphField
-import leakcanary.GraphHeapValue
-import leakcanary.GraphObjectRecord.GraphClassRecord
-import leakcanary.GraphObjectRecord.GraphInstanceRecord
-import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
-import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
-import leakcanary.HeapValue.BooleanValue
-import leakcanary.HeapValue.ByteValue
-import leakcanary.HeapValue.CharValue
-import leakcanary.HeapValue.DoubleValue
-import leakcanary.HeapValue.FloatValue
-import leakcanary.HeapValue.IntValue
-import leakcanary.HeapValue.LongValue
-import leakcanary.HeapValue.ObjectReference
-import leakcanary.HeapValue.ShortValue
-import leakcanary.HprofGraph
+import leakcanary.HeapClassField
+import leakcanary.HeapValue
+import leakcanary.HeapObject.HeapClass
+import leakcanary.HeapObject.HeapInstance
+import leakcanary.HeapObject.HeapObjectArray
+import leakcanary.HeapObject.HeapPrimitiveArray
+import leakcanary.ValueHolder.BooleanHolder
+import leakcanary.ValueHolder.ByteHolder
+import leakcanary.ValueHolder.CharHolder
+import leakcanary.ValueHolder.DoubleHolder
+import leakcanary.ValueHolder.FloatHolder
+import leakcanary.ValueHolder.IntHolder
+import leakcanary.ValueHolder.LongHolder
+import leakcanary.ValueHolder.ReferenceHolder
+import leakcanary.ValueHolder.ShortHolder
+import leakcanary.HeapGraph
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
@@ -64,7 +64,7 @@ internal class HprofExplorerScreen(
       })
 
       executeOnIo {
-        val pair = HprofGraph.readHprof(heapDumpFile)
+        val pair = HeapGraph.readHprof(heapDumpFile)
         val graph = pair.first
         closeable = pair.second
         updateUi {
@@ -124,7 +124,7 @@ internal class HprofExplorerScreen(
   private fun View.showClass(
     titleView: TextView,
     listView: ListView,
-    selectedClass: GraphClassRecord
+    selectedClass: HeapClass
   ) {
     executeOnIo {
       val className = selectedClass.name
@@ -161,12 +161,12 @@ internal class HprofExplorerScreen(
   private fun View.showInstance(
     titleView: TextView,
     listView: ListView,
-    instance: GraphInstanceRecord
+    instance: HeapInstance
   ) {
     executeOnIo {
       val fields = instance.readFields()
           .fieldsAsString()
-      val className = instance.className
+      val className = instance.instanceClassName
       updateUi {
         titleView.text = "Instance @${instance.objectId} of class $className"
         listView.adapter = SimpleListAdapter(
@@ -187,11 +187,11 @@ internal class HprofExplorerScreen(
   private fun View.showObjectArray(
     titleView: TextView,
     listView: ListView,
-    instance: GraphObjectArrayRecord
+    instance: HeapObjectArray
   ) {
     executeOnIo {
       val elements = instance.readElements()
-          .mapIndexed { index: Int, element: GraphHeapValue ->
+          .mapIndexed { index: Int, element: HeapValue ->
             element to "[$index] = ${element.heapValueAsString()}"
           }
           .toList()
@@ -217,7 +217,7 @@ internal class HprofExplorerScreen(
   private fun View.showPrimitiveArray(
     titleView: TextView,
     listView: ListView,
-    instance: GraphPrimitiveArrayRecord
+    instance: HeapPrimitiveArray
   ) {
     executeOnIo {
       val (type, values) = when (val record = instance.readRecord()) {
@@ -248,65 +248,65 @@ internal class HprofExplorerScreen(
   private fun View.onHeapValueClicked(
     titleView: TextView,
     listView: ListView,
-    graphHeapValue: GraphHeapValue
+    heapValue: HeapValue
   ) {
-    if (graphHeapValue.isNonNullReference) {
-      when (val objectRecord = graphHeapValue.asObject!!) {
-        is GraphInstanceRecord -> {
+    if (heapValue.isNonNullReference) {
+      when (val objectRecord = heapValue.asObject!!) {
+        is HeapInstance -> {
           showInstance(titleView, listView, objectRecord)
         }
-        is GraphClassRecord -> {
+        is HeapClass -> {
           showClass(titleView, listView, objectRecord)
         }
-        is GraphObjectArrayRecord -> {
+        is HeapObjectArray -> {
           showObjectArray(titleView, listView, objectRecord)
         }
-        is GraphPrimitiveArrayRecord -> {
+        is HeapPrimitiveArray -> {
           showPrimitiveArray(titleView, listView, objectRecord)
         }
       }
     }
   }
 
-  private fun Sequence<GraphField>.fieldsAsString(): List<Pair<GraphField, String>> {
+  private fun Sequence<HeapClassField>.fieldsAsString(): List<Pair<HeapClassField, String>> {
     return map { field ->
-      field to "${field.classRecord.simpleName}.${field.name} = ${field.value.heapValueAsString()}"
+      field to "${field.declaringClass.simpleName}.${field.name} = ${field.value.heapValueAsString()}"
     }
         .toList()
   }
 
-  private fun GraphHeapValue.heapValueAsString(): String {
-    return when (val heapValue = actual) {
-      is ObjectReference -> {
+  private fun HeapValue.heapValueAsString(): String {
+    return when (val heapValue = holder) {
+      is ReferenceHolder -> {
         if (isNullReference) {
           "null"
         } else {
           when (val objectRecord = asObject!!) {
-            is GraphInstanceRecord -> {
+            is HeapInstance -> {
               if (objectRecord instanceOf "java.lang.String") {
-                "${objectRecord.className}@${heapValue.value} \"${objectRecord.readAsJavaString()!!}\""
+                "${objectRecord.instanceClassName}@${heapValue.value} \"${objectRecord.readAsJavaString()!!}\""
               } else {
-                "${objectRecord.className}@${heapValue.value}"
+                "${objectRecord.instanceClassName}@${heapValue.value}"
               }
             }
-            is GraphClassRecord -> {
+            is HeapClass -> {
               "Class ${objectRecord.name}"
             }
-            is GraphObjectArrayRecord -> {
+            is HeapObjectArray -> {
               objectRecord.arrayClassName
             }
-            is GraphPrimitiveArrayRecord -> objectRecord.arrayClassName
+            is HeapPrimitiveArray -> objectRecord.arrayClassName
           }
         }
       }
-      is BooleanValue -> "boolean ${heapValue.value}"
-      is CharValue -> "char ${heapValue.value}"
-      is FloatValue -> "float ${heapValue.value}"
-      is DoubleValue -> "double ${heapValue.value}"
-      is ByteValue -> "byte ${heapValue.value}"
-      is ShortValue -> "short ${heapValue.value}"
-      is IntValue -> "int ${heapValue.value}"
-      is LongValue -> "long ${heapValue.value}"
+      is BooleanHolder -> "boolean ${heapValue.value}"
+      is CharHolder -> "char ${heapValue.value}"
+      is FloatHolder -> "float ${heapValue.value}"
+      is DoubleHolder -> "double ${heapValue.value}"
+      is ByteHolder -> "byte ${heapValue.value}"
+      is ShortHolder -> "short ${heapValue.value}"
+      is IntHolder -> "int ${heapValue.value}"
+      is LongHolder -> "long ${heapValue.value}"
     }
 
   }

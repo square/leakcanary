@@ -14,11 +14,11 @@ class AndroidBuildMirror(
   val sdkInt: Int
 )
 
-val HprofGraph.androidBuildMirror: AndroidBuildMirror
+val HeapGraph.androidBuildMirror: AndroidBuildMirror
   get() {
     return context.getOrPut(AndroidBuildMirror::class.java.name) {
-      val buildClass = findClassByClassName("android.os.Build")!!
-      val versionClass = findClassByClassName("android.os.Build\$VERSION")!!
+      val buildClass = findClassByName("android.os.Build")!!
+      val versionClass = findClassByName("android.os.Build\$VERSION")!!
       val manufacturer = buildClass["MANUFACTURER"]!!.value.readAsJavaString()!!
       val sdkInt = versionClass["SDK_INT"]!!.value.asInt!!
       AndroidBuildMirror(manufacturer, sdkInt)

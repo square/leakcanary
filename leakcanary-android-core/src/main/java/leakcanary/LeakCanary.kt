@@ -62,7 +62,7 @@ object LeakCanary {
      * When adding your own custom [LibraryLeakReferenceMatcher] instances, you'll most
      * likely want to set [LibraryLeakReferenceMatcher.patternApplies] with a filter that checks
      * for the Android OS version and manufacturer. The build information can be obtained by calling
-     * [HprofGraph.androidBuildMirror].
+     * [HeapGraph.androidBuildMirror].
      *
      * Defaults to [AndroidReferenceMatchers.appDefaults]
      */

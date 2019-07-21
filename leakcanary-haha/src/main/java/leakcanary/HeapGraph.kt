@@ -1,9 +1,9 @@
 package leakcanary
 
-import leakcanary.GraphObjectRecord.GraphClassRecord
-import leakcanary.GraphObjectRecord.GraphInstanceRecord
-import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
-import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
+import leakcanary.HeapObject.HeapClass
+import leakcanary.HeapObject.HeapInstance
+import leakcanary.HeapObject.HeapObjectArray
+import leakcanary.HeapObject.HeapPrimitiveArray
 import leakcanary.HprofPushRecordsParser.OnRecordListener
 import leakcanary.Record.HeapDumpRecord.ObjectRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -12,14 +12,6 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticField
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import leakcanary.internal.FieldValuesReader
 import leakcanary.internal.HprofInMemoryIndex
 import leakcanary.internal.IndexedObject
@@ -33,15 +25,15 @@ import java.io.Closeable
 import java.io.File
 
 /**
- * Enables navigation through the Hprof graph of objects.
+ * Enables navigation through the heap graph of objects.
  */
-class HprofGraph internal constructor(
+class HeapGraph internal constructor(
   private val reader: SeekableHprofReader,
   private val index: HprofInMemoryIndex
 ) {
 
   /**
-   * In memory store that can be used to store objects this [HprofGraph] instance.
+   * In memory store that can be used to store objects this [HeapGraph] instance.
    */
   val context = GraphContext()
 
@@ -56,7 +48,7 @@ class HprofGraph internal constructor(
    *
    * This sequence does not trigger any IO reads.
    */
-  val objects: Sequence<GraphObjectRecord>
+  val objects: Sequence<HeapObject>
     get() {
       return index.indexedObjectSequence()
           .map {
@@ -69,13 +61,13 @@ class HprofGraph internal constructor(
    *
    * This sequence does not trigger any IO reads.
    */
-  val classes: Sequence<GraphClassRecord>
+  val classes: Sequence<HeapClass>
     get() {
       return index.indexedClassSequence()
           .map {
             val objectId = it.first
             val indexedObject = it.second
-            GraphClassRecord(this, indexedObject, objectId)
+            HeapClass(this, indexedObject, objectId)
           }
     }
 
@@ -84,14 +76,14 @@ class HprofGraph internal constructor(
    *
    * This sequence does not trigger any IO reads.
    */
-  val instances: Sequence<GraphInstanceRecord>
+  val instances: Sequence<HeapInstance>
     get() {
       return index.indexedInstanceSequence()
           .map {
             val objectId = it.first
             val indexedObject = it.second
             val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
-            GraphInstanceRecord(this, indexedObject, objectId, isPrimitiveWrapper)
+            HeapInstance(this, indexedObject, objectId, isPrimitiveWrapper)
           }
     }
 
@@ -104,23 +96,23 @@ class HprofGraph internal constructor(
   private val objectCache = LruCache<Long, ObjectRecord>(3000)
 
   /**
-   * Returns the [GraphObjectRecord] corresponding to the provided [objectId], and throws
+   * Returns the [HeapObject] corresponding to the provided [objectId], and throws
    * [IllegalArgumentException] otherwise.
    */
-  fun findObjectByObjectId(objectId: Long): GraphObjectRecord {
+  fun findObjectById(objectId: Long): HeapObject {
     return wrapIndexedObject(index.indexedObject(objectId), objectId)
   }
 
   /**
-   * Returns the [GraphClassRecord] corresponding to the provided [className], or null if the
+   * Returns the [HeapClass] corresponding to the provided [className], or null if the
    * class cannot be found.
    */
-  fun findClassByClassName(className: String): GraphClassRecord? {
+  fun findClassByName(className: String): HeapClass? {
     val classId = index.classId(className)
     return if (classId == null) {
       null
     } else {
-      return findObjectByObjectId(classId) as GraphClassRecord
+      return findObjectById(classId) as HeapClass
     }
   }
 
@@ -153,18 +145,9 @@ class HprofGraph internal constructor(
     val reader = HprofReader(buffer, 0, index.idSize)
 
     return object : FieldValuesReader {
-      override fun readValue(field: FieldRecord): HeapValue {
+      override fun readValue(field: FieldRecord): ValueHolder {
         return reader.readValue(field.type)
       }
-    }
-  }
-
-  internal fun readObjectRecord(objectId: Long): ObjectRecord {
-    return when (val indexedObject = index.indexedObject(objectId)) {
-      is IndexedInstance -> readInstanceDumpRecord(objectId, indexedObject)
-      is IndexedClass -> readClassDumpRecord(objectId, indexedObject)
-      is IndexedObjectArray -> readObjectArrayDumpRecord(objectId, indexedObject)
-      is IndexedPrimitiveArray -> readPrimitiveArrayDumpRecord(objectId, indexedObject)
     }
   }
 
@@ -225,19 +208,19 @@ class HprofGraph internal constructor(
   private fun wrapIndexedObject(
     indexedObject: IndexedObject,
     objectId: Long
-  ): GraphObjectRecord {
+  ): HeapObject {
     return when (indexedObject) {
-      is IndexedClass -> GraphClassRecord(this, indexedObject, objectId)
+      is IndexedClass -> HeapClass(this, indexedObject, objectId)
       is IndexedInstance -> {
         val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
-        GraphInstanceRecord(this, indexedObject, objectId, isPrimitiveWrapper)
+        HeapInstance(this, indexedObject, objectId, isPrimitiveWrapper)
       }
       is IndexedObjectArray -> {
         val isPrimitiveWrapperArray =
           index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
-        GraphObjectArrayRecord(this, indexedObject, objectId, isPrimitiveWrapperArray)
+        HeapObjectArray(this, indexedObject, objectId, isPrimitiveWrapperArray)
       }
-      is IndexedPrimitiveArray -> GraphPrimitiveArrayRecord(this, indexedObject, objectId)
+      is IndexedPrimitiveArray -> HeapPrimitiveArray(this, indexedObject, objectId)
     }
   }
 
@@ -245,16 +228,16 @@ class HprofGraph internal constructor(
     fun readHprof(
       heapDump: File,
       vararg onRecordListeners: OnRecordListener
-    ): Pair<HprofGraph, Closeable> {
+    ): Pair<HeapGraph, Closeable> {
       val indexListener = HprofInMemoryIndex.createOnRecordListener()
 
       val parser = HprofPushRecordsParser()
 
       val reader = parser.readHprofRecords(heapDump, setOf(indexListener) + onRecordListeners)
 
-      val hprofGraph = HprofGraph(reader, indexListener.buildIndex())
+      val heapGraph = HeapGraph(reader, indexListener.buildIndex())
 
-      return hprofGraph to reader
+      return heapGraph to reader
     }
   }
 

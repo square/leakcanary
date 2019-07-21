@@ -1,14 +1,14 @@
 package leakcanary
 
-import leakcanary.HeapValue.BooleanValue
-import leakcanary.HeapValue.ByteValue
-import leakcanary.HeapValue.CharValue
-import leakcanary.HeapValue.DoubleValue
-import leakcanary.HeapValue.FloatValue
-import leakcanary.HeapValue.IntValue
-import leakcanary.HeapValue.LongValue
-import leakcanary.HeapValue.ObjectReference
-import leakcanary.HeapValue.ShortValue
+import leakcanary.ValueHolder.BooleanHolder
+import leakcanary.ValueHolder.ByteHolder
+import leakcanary.ValueHolder.CharHolder
+import leakcanary.ValueHolder.DoubleHolder
+import leakcanary.ValueHolder.FloatHolder
+import leakcanary.ValueHolder.IntHolder
+import leakcanary.ValueHolder.LongHolder
+import leakcanary.ValueHolder.ReferenceHolder
+import leakcanary.ValueHolder.ShortHolder
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
@@ -61,17 +61,17 @@ open class HprofReader constructor(
       LONG_TYPE to LONG_SIZE
   )
 
-  fun readValue(type: Int): HeapValue {
+  fun readValue(type: Int): ValueHolder {
     return when (type) {
-      OBJECT_TYPE -> ObjectReference(readId())
-      BOOLEAN_TYPE -> BooleanValue(readBoolean())
-      CHAR_TYPE -> CharValue(readChar())
-      FLOAT_TYPE -> FloatValue(readFloat())
-      DOUBLE_TYPE -> DoubleValue(readDouble())
-      BYTE_TYPE -> ByteValue(readByte())
-      SHORT_TYPE -> ShortValue(readShort())
-      INT_TYPE -> IntValue(readInt())
-      LONG_TYPE -> LongValue(readLong())
+      OBJECT_TYPE -> ReferenceHolder(readId())
+      BOOLEAN_TYPE -> BooleanHolder(readBoolean())
+      CHAR_TYPE -> CharHolder(readChar())
+      FLOAT_TYPE -> FloatHolder(readFloat())
+      DOUBLE_TYPE -> DoubleHolder(readDouble())
+      BYTE_TYPE -> ByteHolder(readByte())
+      SHORT_TYPE -> ShortHolder(readShort())
+      INT_TYPE -> IntHolder(readInt())
+      LONG_TYPE -> LongHolder(readLong())
       else -> throw IllegalStateException("Unknown type $type")
     }
   }

@@ -1,6 +1,6 @@
 package leakcanary
 
-import leakcanary.GraphObjectRecord.GraphInstanceRecord
+import leakcanary.HeapObject.HeapInstance
 
 /**
  * Inspector that automatically marks instances of the provided class names as not leaking
@@ -8,15 +8,15 @@ import leakcanary.GraphObjectRecord.GraphInstanceRecord
  */
 class AppSingletonInspector(private vararg val singletonClasses: String) : ObjectInspector {
   override fun inspect(
-    graph: HprofGraph,
+    graph: HeapGraph,
     reporter: ObjectReporter
   ) {
-    if (reporter.objectRecord is GraphInstanceRecord) {
+    if (reporter.objectRecord is HeapInstance) {
       reporter.objectRecord.instanceClass
           .classHierarchy
-          .forEach { classRecord ->
-            if (classRecord.name in singletonClasses) {
-              reporter.reportNotLeaking("${classRecord.name} is an app singleton")
+          .forEach { heapClass ->
+            if (heapClass.name in singletonClasses) {
+              reporter.reportNotLeaking("${heapClass.name} is an app singleton")
             }
           }
     }

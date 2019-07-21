@@ -1,6 +1,6 @@
 package leakcanary
 
-import leakcanary.HeapValue.ObjectReference
+import leakcanary.ValueHolder.ReferenceHolder
 import leakcanary.PrimitiveType.BOOLEAN
 import leakcanary.PrimitiveType.BYTE
 import leakcanary.PrimitiveType.CHAR
@@ -32,34 +32,34 @@ import kotlin.reflect.KClass
 /**
  * Represents an object in the heap dump and provides navigation capabilities.
  */
-sealed class GraphObjectRecord {
+sealed class HeapObject {
 
-  abstract val graph: HprofGraph
+  abstract val graph: HeapGraph
 
   abstract val objectId: Long
 
   abstract fun readRecord(): ObjectRecord
 
-  val asClass: GraphClassRecord?
-    get() = if (this is GraphClassRecord) this else null
+  val asClass: HeapClass?
+    get() = if (this is HeapClass) this else null
 
-  val asInstance: GraphInstanceRecord?
-    get() = if (this is GraphInstanceRecord) this else null
+  val asInstance: HeapInstance?
+    get() = if (this is HeapInstance) this else null
 
-  val asObjectArray: GraphObjectArrayRecord?
-    get() = if (this is GraphObjectArrayRecord) this else null
+  val asObjectArray: HeapObjectArray?
+    get() = if (this is HeapObjectArray) this else null
 
-  val asPrimitiveArray: GraphPrimitiveArrayRecord?
-    get() = if (this is GraphPrimitiveArrayRecord) this else null
+  val asPrimitiveArray: HeapPrimitiveArray?
+    get() = if (this is HeapPrimitiveArray) this else null
 
   /**
    * Represents a class in the heap dump and provides navigation capabilities.
    */
-  class GraphClassRecord internal constructor(
-    override val graph: HprofGraph,
+  class HeapClass internal constructor(
+    override val graph: HeapGraph,
     private val indexedObject: IndexedClass,
     override val objectId: Long
-  ) : GraphObjectRecord() {
+  ) : HeapObject() {
 
     override fun readRecord(): ClassDumpRecord {
       return graph.readClassDumpRecord(objectId, indexedObject)
@@ -69,45 +69,57 @@ sealed class GraphObjectRecord {
       get() = graph.className(objectId)
 
     val simpleName: String
-      get() {
-        val className = this.name
-        val separator = className.lastIndexOf('.')
-        return if (separator == -1) {
-          className
-        } else {
-          className.substring(separator + 1)
-        }
-      }
+      get() = classSimpleName(name)
 
     val instanceSize: Int
       get() = indexedObject.instanceSize
 
-    val superClass: GraphClassRecord?
+    val superclass: HeapClass?
       get() {
-        if (indexedObject.superClassId == HeapValue.NULL_REFERENCE) return null
-        return graph.findObjectByObjectId(indexedObject.superClassId) as GraphClassRecord
+        if (indexedObject.superclassId == ValueHolder.NULL_REFERENCE) return null
+        return graph.findObjectById(indexedObject.superclassId) as HeapClass
       }
 
-    val classHierarchy: Sequence<GraphClassRecord>
-      get() = generateSequence(this) { it.superClass }
+    val classHierarchy: Sequence<HeapClass>
+      get() = generateSequence(this) { it.superclass }
 
-    val directInstances: Sequence<GraphInstanceRecord>
+    val subclasses: Sequence<HeapClass>
+      get() = graph.classes.filter { it subclassOf this }
+
+    infix fun superclassOf(subclass: HeapClass): Boolean {
+      return subclass.classHierarchy.any { it.objectId == objectId }
+    }
+
+    infix fun subclassOf(superclass: HeapClass): Boolean {
+      return classHierarchy.any { it.objectId == superclass.objectId }
+    }
+
+    /**
+     * All instances of this class, including instances of subclasses of this class.
+     */
+    val instances: Sequence<HeapInstance>
+      get() = graph.instances.filter { it instanceOf this }
+
+    /**
+     * All direct instances of this class, ie excluding any instance of subclasses of this class.
+     */
+    val directInstances: Sequence<HeapInstance>
       get() = graph.instances.filter { it.indexedObject.classId == objectId }
 
-    fun readStaticFields(): Sequence<GraphField> {
+    fun readStaticFields(): Sequence<HeapClassField> {
       return readRecord().staticFields.asSequence()
           .map { fieldRecord ->
-            GraphField(
-                this, graph.staticFieldName(fieldRecord), GraphHeapValue(graph, fieldRecord.value)
+            HeapClassField(
+                this, graph.staticFieldName(fieldRecord), HeapValue(graph, fieldRecord.value)
             )
           }
     }
 
-    operator fun get(fieldName: String): GraphField? {
+    operator fun get(fieldName: String): HeapClassField? {
       for (fieldRecord in readRecord().staticFields) {
         if (graph.staticFieldName(fieldRecord) == fieldName) {
-          return GraphField(
-              this, graph.staticFieldName(fieldRecord), GraphHeapValue(graph, fieldRecord.value)
+          return HeapClassField(
+              this, graph.staticFieldName(fieldRecord), HeapValue(graph, fieldRecord.value)
           )
         }
       }
@@ -122,12 +134,12 @@ sealed class GraphObjectRecord {
   /**
    * Represents an instance in the heap dump and provides navigation capabilities.
    */
-  class GraphInstanceRecord internal constructor(
-    override val graph: HprofGraph,
+  class HeapInstance internal constructor(
+    override val graph: HeapGraph,
     internal val indexedObject: IndexedInstance,
     override val objectId: Long,
     val isPrimitiveWrapper: Boolean
-  ) : GraphObjectRecord() {
+  ) : HeapObject() {
 
     val size
       get() = instanceClass.instanceSize
@@ -136,74 +148,57 @@ sealed class GraphObjectRecord {
       return graph.readInstanceDumpRecord(objectId, indexedObject)
     }
 
-    infix fun instanceOf(className: String): Boolean {
-      var currentClassId = indexedObject.classId
-      while (currentClassId != HeapValue.NULL_REFERENCE) {
-        if (graph.className(currentClassId) == className) {
-          return true
-        }
-
-        val currentClassRecord = graph.readObjectRecord(currentClassId) as ClassDumpRecord
-        currentClassId = currentClassRecord.superClassId
-      }
-      return false
-    }
+    infix fun instanceOf(className: String): Boolean =
+      instanceClass.classHierarchy.any { it.name == className }
 
     infix fun instanceOf(expectedClass: KClass<*>) =
       this instanceOf expectedClass.java.name
 
+    infix fun instanceOf(expectedClass: HeapClass) =
+      instanceClass.classHierarchy.any { it.objectId == expectedClass.objectId }
+
     operator fun get(
       declaringClass: KClass<out Any>,
       fieldName: String
-    ): GraphField? {
+    ): HeapClassField? {
       return get(declaringClass.java.name, fieldName)
     }
 
     operator fun get(
       declaringClassName: String,
       fieldName: String
-    ): GraphField? {
-      return readFields().firstOrNull { field -> field.classRecord.name == declaringClassName && field.name == fieldName }
+    ): HeapClassField? {
+      return readFields().firstOrNull { field -> field.declaringClass.name == declaringClassName && field.name == fieldName }
     }
 
-    val className: String
+    val instanceClassName: String
       get() = graph.className(indexedObject.classId)
 
-    val classSimpleName: String
-      get() {
-        val className = this.className
-        val separator = className.lastIndexOf('.')
-        return if (separator == -1) {
-          className
-        } else {
-          className.substring(separator + 1)
-        }
-      }
+    val instanceClassSimpleName: String
+      get() = Companion.classSimpleName(instanceClassName)
 
-    val instanceClass: GraphClassRecord
-      get() {
-        return graph.findObjectByObjectId(indexedObject.classId) as GraphClassRecord
-      }
+    val instanceClass: HeapClass
+      get() = graph.findObjectById(indexedObject.classId) as HeapClass
 
-    fun readFields(): Sequence<GraphField> {
+    fun readFields(): Sequence<HeapClassField> {
       val fieldReader by lazy {
         graph.createFieldValuesReader(readRecord())
       }
       return instanceClass.classHierarchy
-          .map { classRecord ->
-            classRecord.readRecord()
+          .map { heapClass ->
+            heapClass.readRecord()
                 .fields.asSequence()
                 .map { fieldRecord ->
                   val fieldName = graph.fieldName(fieldRecord)
                   val fieldValue = fieldReader.readValue(fieldRecord)
-                  GraphField(classRecord, fieldName, GraphHeapValue(graph, fieldValue))
+                  HeapClassField(heapClass, fieldName, HeapValue(graph, fieldValue))
                 }
           }
           .flatten()
     }
 
     fun readAsJavaString(): String? {
-      if (className != "java.lang.String") {
+      if (instanceClassName != "java.lang.String") {
         return null
       }
 
@@ -248,22 +243,28 @@ sealed class GraphObjectRecord {
     }
 
     override fun toString(): String {
-      return "instance @$objectId of $className"
+      return "instance @$objectId of $instanceClassName"
     }
   }
 
   /**
    * Represents an object array in the heap dump and provides navigation capabilities.
    */
-  class GraphObjectArrayRecord internal constructor(
-    override val graph: HprofGraph,
+  class HeapObjectArray internal constructor(
+    override val graph: HeapGraph,
     private val indexedObject: IndexedObjectArray,
     override val objectId: Long,
     val isPrimitiveWrapperArray: Boolean
-  ) : GraphObjectRecord() {
+  ) : HeapObject() {
 
     val arrayClassName: String
       get() = graph.className(indexedObject.arrayClassId)
+
+    val arrayClassSimpleName: String
+      get() = classSimpleName(arrayClassName)
+
+    val arrayClass: HeapClass
+      get() = graph.findObjectById(indexedObject.arrayClassId) as HeapClass
 
     fun readSize(): Int {
       return readRecord().elementIds.size * graph.idSize
@@ -273,9 +274,9 @@ sealed class GraphObjectRecord {
       return graph.readObjectArrayDumpRecord(objectId, indexedObject)
     }
 
-    fun readElements(): Sequence<GraphHeapValue> {
+    fun readElements(): Sequence<HeapValue> {
       return readRecord().elementIds.asSequence()
-          .map { GraphHeapValue(graph, ObjectReference(it)) }
+          .map { HeapValue(graph, ReferenceHolder(it)) }
     }
 
     override fun toString(): String {
@@ -286,11 +287,11 @@ sealed class GraphObjectRecord {
   /**
    * Represents a primitive array in the heap dump and provides navigation capabilities.
    */
-  class GraphPrimitiveArrayRecord internal constructor(
-    override val graph: HprofGraph,
+  class HeapPrimitiveArray internal constructor(
+    override val graph: HeapGraph,
     private val indexedObject: IndexedPrimitiveArray,
     override val objectId: Long
-  ) : GraphObjectRecord() {
+  ) : HeapObject() {
 
     fun readSize(): Int {
       return when (val record = readRecord()) {
@@ -326,6 +327,17 @@ sealed class GraphObjectRecord {
 
     override fun toString(): String {
       return "primitive array @$objectId of $arrayClassName"
+    }
+  }
+
+  companion object {
+    private fun classSimpleName(className: String): String {
+      val separator = className.lastIndexOf('.')
+      return if (separator == -1) {
+        className
+      } else {
+        className.substring(separator + 1)
+      }
     }
   }
 

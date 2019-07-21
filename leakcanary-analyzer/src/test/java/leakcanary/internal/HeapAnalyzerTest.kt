@@ -3,7 +3,7 @@ package leakcanary.internal
 import leakcanary.GcRoot.ThreadObject
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HeapValue.ObjectReference
+import leakcanary.ValueHolder.ReferenceHolder
 import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.Leak
 import org.assertj.core.api.Assertions.assertThat
@@ -113,10 +113,10 @@ class HeapAnalyzerTest {
   @Test fun threadFieldLeak() {
     hprofFile.dump {
       val threadClassId =
-        clazz(className = "java.lang.Thread", fields = listOf("name" to ObjectReference::class))
+        clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class))
       val myThreadClassId = clazz(
           className = "MyThread", superClassId = threadClassId,
-          fields = listOf("leaking" to ObjectReference::class)
+          fields = listOf("leaking" to ReferenceHolder::class)
       )
       val threadInstance =
         instance(myThreadClassId, listOf("Leaking" watchedInstance {}, string("Thread Name")))

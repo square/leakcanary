@@ -1,7 +1,7 @@
 package leakcanary
 
 /**
- * In memory store that can be used to store objects in a given [HprofGraph] instance.
+ * In memory store that can be used to store objects in a given [HeapGraph] instance.
  * This is a simple [MutableMap] of [String] to [Any], but with unsafe generics access.
  */
 class GraphContext {

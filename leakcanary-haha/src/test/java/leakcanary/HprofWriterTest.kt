@@ -1,6 +1,6 @@
 package leakcanary
 
-import leakcanary.HeapValue.ObjectReference
+import leakcanary.ValueHolder.ReferenceHolder
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
@@ -30,7 +30,7 @@ class HprofWriterTest {
     hprofFile.writeRecords(records)
 
     hprofFile.readHprof { graph ->
-      val treasureChestClass = graph.findClassByClassName(TREASURE_CHEST_CLASS_NAME)!!
+      val treasureChestClass = graph.findClassByName(TREASURE_CHEST_CLASS_NAME)!!
       val baguetteInstance =
         treasureChestClass[CONTENT_FIELD_NAME]!!.value.asObject!!.asInstance!!
 
@@ -90,7 +90,7 @@ class HprofWriterTest {
         staticFields = listOf(
             StaticFieldRecord(
                 contentFieldName.id, HprofReader.OBJECT_TYPE,
-                ObjectReference(baguetteInstanceDump.id)
+                ReferenceHolder(baguetteInstanceDump.id)
             )
         ),
         fields = emptyList()
@@ -115,8 +115,8 @@ class HprofWriterTest {
         }
   }
 
-  fun File.readHprof(block: (HprofGraph) -> Unit) {
-    val (graph, closeable) = HprofGraph.readHprof(this)
+  fun File.readHprof(block: (HeapGraph) -> Unit) {
+    val (graph, closeable) = HeapGraph.readHprof(this)
     closeable.use {
       block(graph)
     }

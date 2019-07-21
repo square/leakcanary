@@ -1,6 +1,6 @@
 package leakcanary
 
-import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
+import leakcanary.HeapObject.HeapPrimitiveArray
 import leakcanary.PrimitiveType.BOOLEAN
 import leakcanary.PrimitiveType.CHAR
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
@@ -34,7 +34,7 @@ class HprofPrimitiveArrayStripperTest {
 
     strippedFile.readHprof { graph ->
       val booleanArrays = graph.objects
-          .filter { it is GraphPrimitiveArrayRecord && it.primitiveType == BOOLEAN }
+          .filter { it is HeapPrimitiveArray && it.primitiveType == BOOLEAN }
           .map { it.readRecord() as BooleanArrayDump }
           .toList()
       assertThat(booleanArrays).hasSize(1)
@@ -42,7 +42,7 @@ class HprofPrimitiveArrayStripperTest {
       assertThat(booleanArrays[0].array).isEmpty()
 
       val charArrays = graph.objects
-          .filter { it is GraphPrimitiveArrayRecord && it.primitiveType == CHAR }
+          .filter { it is HeapPrimitiveArray && it.primitiveType == CHAR }
           .map { it.readRecord() as CharArrayDump }
           .toList()
       assertThat(charArrays).hasSize(1)
@@ -62,8 +62,8 @@ class HprofPrimitiveArrayStripperTest {
         }
   }
 
-  fun File.readHprof(block: (HprofGraph) -> Unit) {
-    val (graph, closeable) = HprofGraph.readHprof(this)
+  fun File.readHprof(block: (HeapGraph) -> Unit) {
+    val (graph, closeable) = HeapGraph.readHprof(this)
     closeable.use {
       block(graph)
     }

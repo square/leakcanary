@@ -16,15 +16,15 @@ import leakcanary.GcRoot.ThreadObject
 import leakcanary.GcRoot.Unknown
 import leakcanary.GcRoot.Unreachable
 import leakcanary.GcRoot.VmInternal
-import leakcanary.HeapValue.BooleanValue
-import leakcanary.HeapValue.ByteValue
-import leakcanary.HeapValue.CharValue
-import leakcanary.HeapValue.DoubleValue
-import leakcanary.HeapValue.FloatValue
-import leakcanary.HeapValue.IntValue
-import leakcanary.HeapValue.LongValue
-import leakcanary.HeapValue.ObjectReference
-import leakcanary.HeapValue.ShortValue
+import leakcanary.ValueHolder.BooleanHolder
+import leakcanary.ValueHolder.ByteHolder
+import leakcanary.ValueHolder.CharHolder
+import leakcanary.ValueHolder.DoubleHolder
+import leakcanary.ValueHolder.FloatHolder
+import leakcanary.ValueHolder.IntHolder
+import leakcanary.ValueHolder.LongHolder
+import leakcanary.ValueHolder.ReferenceHolder
+import leakcanary.ValueHolder.ShortHolder
 import leakcanary.Record.HeapDumpEndRecord
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
@@ -286,17 +286,17 @@ class HprofWriter private constructor(
     }
   }
 
-  fun BufferedSink.writeValue(wrapper: HeapValue) {
+  fun BufferedSink.writeValue(wrapper: ValueHolder) {
     when (wrapper) {
-      is ObjectReference -> writeId(wrapper.value)
-      is BooleanValue -> writeBoolean(wrapper.value)
-      is CharValue -> write(charArrayOf(wrapper.value))
-      is FloatValue -> writeFloat(wrapper.value)
-      is DoubleValue -> writeDouble(wrapper.value)
-      is ByteValue -> writeByte(wrapper.value.toInt())
-      is ShortValue -> writeShort(wrapper.value.toInt())
-      is IntValue -> writeInt(wrapper.value)
-      is LongValue -> writeLong(wrapper.value)
+      is ReferenceHolder -> writeId(wrapper.value)
+      is BooleanHolder -> writeBoolean(wrapper.value)
+      is CharHolder -> write(charArrayOf(wrapper.value))
+      is FloatHolder -> writeFloat(wrapper.value)
+      is DoubleHolder -> writeDouble(wrapper.value)
+      is ByteHolder -> writeByte(wrapper.value.toInt())
+      is ShortHolder -> writeShort(wrapper.value.toInt())
+      is IntHolder -> writeInt(wrapper.value)
+      is LongHolder -> writeLong(wrapper.value)
     }
   }
 

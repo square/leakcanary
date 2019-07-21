@@ -2,15 +2,15 @@ package leakcanary.internal
 
 import leakcanary.GcRoot.JavaFrame
 import leakcanary.GcRoot.ThreadObject
-import leakcanary.HeapValue.BooleanValue
-import leakcanary.HeapValue.ObjectReference
+import leakcanary.ValueHolder.BooleanHolder
+import leakcanary.ValueHolder.ReferenceHolder
 import leakcanary.HprofWriter
 import java.io.File
 
 fun File.writeWeakReferenceCleared() {
   HprofWriter.open(this)
       .helper {
-        keyedWeakReference(ObjectReference(0))
+        keyedWeakReference(ReferenceHolder(0))
       }
 }
 
@@ -59,7 +59,7 @@ fun File.writeSinglePathsToCharArrays(values: List<String>) {
         clazz(
             className = "GcRoot",
             staticFields = listOf(
-                "arrays" to ObjectReference(
+                "arrays" to ReferenceHolder(
                     objectArray(clazz("char[][]"), arrays.toLongArray())
                 )
             )
@@ -74,7 +74,7 @@ fun File.writeTwoPathsToInstance() {
         val leaking = instance(clazz("Leaking"))
         keyedWeakReference(leaking)
         val hasLeaking = instance(
-            clazz("HasLeaking", fields = listOf("leaking" to ObjectReference::class)),
+            clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
             fields = listOf(leaking)
         )
         clazz(
@@ -91,7 +91,7 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
       .helper {
         val activityClassId = clazz(
             className = "android.app.Activity",
-            fields = listOf("mDestroyed" to BooleanValue::class)
+            fields = listOf("mDestroyed" to BooleanHolder::class)
         )
         val exampleActivityClassId = clazz(
             superClassId = activityClassId,
@@ -99,9 +99,9 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
         )
         val activityArrayClassId = arrayClass("com.example.ExampleActivity")
 
-        val destroyedActivities = mutableListOf<ObjectReference>()
+        val destroyedActivities = mutableListOf<ReferenceHolder>()
         for (i in 1..leakCount) {
-          destroyedActivities.add(instance(exampleActivityClassId, listOf(BooleanValue(true))))
+          destroyedActivities.add(instance(exampleActivityClassId, listOf(BooleanHolder(true))))
         }
 
         clazz(
@@ -125,7 +125,7 @@ fun File.writeJavaLocalLeak(
 ) {
   dump {
     val threadClassId =
-      clazz(className = "java.lang.Thread", fields = listOf("name" to ObjectReference::class))
+      clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class))
     val myThreadClassId = clazz(className = threadClass, superClassId = threadClassId)
     val threadInstance = instance(myThreadClassId, listOf(string(threadName)))
     gcRoot(
