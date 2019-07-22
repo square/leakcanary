@@ -7,13 +7,13 @@ import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
 import com.squareup.leakcanary.core.R
-import leakcanary.CanaryLog
 import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db
 import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
+import shark.SharkLog
 import java.io.FileInputStream
 import java.io.IOException
 
@@ -47,7 +47,7 @@ internal class LeakActivity : NavigatingActivity() {
     resultCode: Int,
     returnIntent: Intent?
   ) {
-    CanaryLog.d(
+    SharkLog.d(
         "Got activity result with requestCode=$requestCode resultCode=$resultCode returnIntent=$returnIntent"
     )
     if (requestCode == FILE_REQUEST_CODE && resultCode == RESULT_OK && returnIntent != null) {
@@ -77,7 +77,7 @@ internal class LeakActivity : NavigatingActivity() {
             }
       }
     } catch (e: IOException) {
-      CanaryLog.d(e, "Could not imported Hprof file")
+      SharkLog.d(e, "Could not imported Hprof file")
     }
   }
 

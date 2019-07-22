@@ -12,13 +12,13 @@ import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.HandlerThread
 import com.squareup.leakcanary.core.R
-import leakcanary.CanaryLog
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.LeakSentry
 import leakcanary.OnObjectRetainedListener
 import leakcanary.internal.activity.LeakActivity
+import shark.SharkLog
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
 import java.util.concurrent.atomic.AtomicReference
@@ -97,7 +97,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       }
 
       if (runningInInstrumentationTests) {
-        CanaryLog.d("Instrumentation test detected, setting LeakCanary.Config.dumpHeap to false")
+        SharkLog.d("Instrumentation test detected, setting LeakCanary.Config.dumpHeap to false")
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
       }
     }
@@ -199,7 +199,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     try {
       shortcutManager.addDynamicShortcuts(listOf(shortcut))
     } catch (ignored: Throwable) {
-      CanaryLog.d(
+      SharkLog.d(
           ignored,
           "Could not add dynamic shortcut. " +
               "shortcutCount=$shortcutCount, " +

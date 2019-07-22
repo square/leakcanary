@@ -25,12 +25,6 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
-import leakcanary.LeakNodeStatus.LEAKING
-import leakcanary.LeakNodeStatus.NOT_LEAKING
-import leakcanary.LeakNodeStatus.UNKNOWN
-import leakcanary.LeakTrace
-import leakcanary.LeakTraceElement
-import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.internal.DisplayLeakConnectorView.Type
 import leakcanary.internal.DisplayLeakConnectorView.Type.END
 import leakcanary.internal.DisplayLeakConnectorView.Type.END_FIRST_UNREACHABLE
@@ -46,6 +40,12 @@ import leakcanary.internal.DisplayLeakConnectorView.Type.START_LAST_REACHABLE
 import leakcanary.internal.activity.db.LeakingInstanceTable.InstanceProjection
 import leakcanary.internal.navigation.getColorCompat
 import leakcanary.internal.navigation.inflate
+import shark.LeakNodeStatus.LEAKING
+import shark.LeakNodeStatus.NOT_LEAKING
+import shark.LeakNodeStatus.UNKNOWN
+import shark.LeakTrace
+import shark.LeakTraceElement
+import shark.LeakTraceElement.Type.STATIC_FIELD
 
 @Suppress("DEPRECATION")
 internal class DisplayLeakAdapter constructor(

@@ -5,7 +5,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
-import leakcanary.HeapAnalysisFailure
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.share
@@ -15,6 +14,7 @@ import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goBack
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
+import shark.HeapAnalysisFailure
 
 internal class HeapAnalysisFailureScreen(
   private val analysisId: Long

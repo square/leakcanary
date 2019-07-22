@@ -1,7 +1,7 @@
 package leakcanary.internal
 
 import android.util.Log
-import leakcanary.CanaryLog.Logger
+import shark.SharkLog.Logger
 
 internal class DefaultCanaryLog : Logger {
 

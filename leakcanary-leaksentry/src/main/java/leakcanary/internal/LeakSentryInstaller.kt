@@ -5,7 +5,7 @@ import android.content.ContentProvider
 import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
-import leakcanary.CanaryLog
+import shark.SharkLog
 
 /**
  * Content providers are loaded before the application class is created. [LeakSentryInstaller] is
@@ -14,7 +14,7 @@ import leakcanary.CanaryLog
 internal class LeakSentryInstaller : ContentProvider() {
 
   override fun onCreate(): Boolean {
-    CanaryLog.logger = DefaultCanaryLog()
+    SharkLog.logger = DefaultCanaryLog()
     val application = context!!.applicationContext as Application
     InternalLeakSentry.install(application)
     return true

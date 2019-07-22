@@ -19,9 +19,16 @@ import android.os.Debug
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import leakcanary.GcTrigger.Default.runGc
+import leakcanary.InstrumentationLeakDetector.Companion.updateConfig
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
 import org.junit.runner.notification.RunListener
+import shark.AndroidObjectInspectors
+import shark.HeapAnalysis
+import shark.HeapAnalysisException
+import shark.HeapAnalysisFailure
+import shark.HeapAnalyzer
+import shark.SharkLog
 import java.io.File
 
 /**
@@ -144,7 +151,7 @@ class InstrumentationLeakDetector {
     try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
     } catch (exception: Exception) {
-      CanaryLog.d(exception, "Could not dump heap")
+      SharkLog.d(exception, "Could not dump heap")
       return AnalysisPerformed(
           HeapAnalysisFailure(
               heapDumpFile, analysisDurationMillis = 0,
@@ -156,7 +163,7 @@ class InstrumentationLeakDetector {
 
     refWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
 
-    val listener = AnalyzerProgressListener.NONE
+    val listener = shark.AnalyzerProgressListener.NONE
 
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.checkForLeaks(
@@ -168,7 +175,7 @@ class InstrumentationLeakDetector {
         )
     )
 
-    CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)
+    SharkLog.d("Heap Analysis:\n%s", heapAnalysis)
 
     return AnalysisPerformed(heapAnalysis)
   }

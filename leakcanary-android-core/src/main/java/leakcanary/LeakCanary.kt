@@ -1,9 +1,14 @@
 package leakcanary
 
 import android.content.Intent
-import leakcanary.ReferenceMatcher.IgnoredReferenceMatcher
-import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
+import leakcanary.LeakCanary.config
 import leakcanary.internal.InternalLeakCanary
+import shark.AndroidObjectInspectors
+import shark.AndroidReferenceMatchers
+import shark.ObjectInspector
+import shark.ReferenceMatcher
+import shark.ReferenceMatcher.IgnoredReferenceMatcher
+import shark.ReferenceMatcher.LibraryLeakReferenceMatcher
 
 /**
  * The entry point API for LeakCanary. LeakCanary builds on top of [LeakSentry]. LeakSentry

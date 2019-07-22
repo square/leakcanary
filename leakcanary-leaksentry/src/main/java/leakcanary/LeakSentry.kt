@@ -1,6 +1,8 @@
 package leakcanary
 
 import android.app.Application
+import leakcanary.LeakSentry.config
+import leakcanary.LeakSentry.objectWatcher
 import leakcanary.internal.InternalLeakSentry
 import java.util.concurrent.TimeUnit
 

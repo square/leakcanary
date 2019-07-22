@@ -6,8 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ListView
 import com.squareup.leakcanary.core.R
-import leakcanary.Leak
-import leakcanary.Leak.LibraryLeak
 import leakcanary.internal.DisplayLeakAdapter
 import leakcanary.internal.activity.db.LeakingInstanceTable
 import leakcanary.internal.activity.db.executeOnDb
@@ -20,6 +18,8 @@ import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
+import shark.Leak
+import shark.Leak.LibraryLeak
 import java.io.Serializable
 
 internal class LeakingInstanceScreen private constructor(

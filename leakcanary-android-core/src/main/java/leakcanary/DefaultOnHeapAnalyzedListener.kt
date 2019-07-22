@@ -12,6 +12,10 @@ import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
 import leakcanary.internal.activity.screen.HeapAnalysisListScreen
 import leakcanary.internal.activity.screen.HeapAnalysisSuccessScreen
+import shark.HeapAnalysis
+import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
+import shark.SharkLog
 
 /**
  * Default [OnHeapAnalyzedListener] implementation, which will store the analysis to disk and
@@ -21,7 +25,7 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
 
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
     // TODO better log that include leakcanary version, exclusions, etc.
-    CanaryLog.d("%s", heapAnalysis)
+    SharkLog.d("%s", heapAnalysis)
 
     val (id, groupProjections) = LeaksDbHelper(application)
         .writableDatabase.use { db ->

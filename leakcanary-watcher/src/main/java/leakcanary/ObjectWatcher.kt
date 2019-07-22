@@ -15,6 +15,7 @@
  */
 package leakcanary
 
+import shark.SharkLog
 import java.lang.ref.ReferenceQueue
 import java.util.UUID
 import java.util.concurrent.Executor
@@ -124,7 +125,7 @@ class ObjectWatcher constructor(
     val watchUptimeMillis = clock.uptimeMillis()
     val reference =
       KeyedWeakReference(watchedObject, key, name, watchUptimeMillis, queue)
-    CanaryLog.d(
+    SharkLog.d(
         "Watching %s with key %s",
         ((if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") + if (name.isNotEmpty()) " named $name" else ""), key
     )

@@ -1,7 +1,8 @@
 package leakcanary
 
-import leakcanary.ObjectInspector.Companion.invoke
 import leakcanary.OnHeapAnalyzedListener.Companion.invoke
+import shark.HeapAnalysis
+import shark.ObjectInspector.Companion.invoke
 
 /**
  * Listener set in [LeakCanary.Config] and called by LeakCanary on a background thread when the

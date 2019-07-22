@@ -5,7 +5,6 @@ import android.view.ViewGroup
 import android.widget.ListView
 import com.squareup.leakcanary.core.R
 import com.squareup.leakcanary.core.R.plurals
-import leakcanary.LeakTrace
 import leakcanary.internal.DisplayLeakAdapter
 import leakcanary.internal.activity.db.LeakingInstanceTable
 import leakcanary.internal.activity.db.LeakingInstanceTable.InstanceProjection
@@ -14,6 +13,7 @@ import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
+import shark.LeakTrace
 
 internal class GroupScreen(private val groupHash: String) : Screen() {
   override fun createView(container: ViewGroup) =

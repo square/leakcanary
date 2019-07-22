@@ -2,13 +2,13 @@ package leakcanary
 
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
+import shark.HeapAnalysisSuccess
 
 object TestUtils {
   fun assertLeak(expectedLeakClass: Class<*>) {
     val leakDetector = InstrumentationLeakDetector()
-    val result = leakDetector.detectLeaks()
 
-    val heapAnalysis = when (result) {
+    val heapAnalysis = when (val result = leakDetector.detectLeaks()) {
       is NoAnalysis -> throw AssertionError("Expected analysis to be performed")
       is AnalysisPerformed -> result.heapAnalysis
     }

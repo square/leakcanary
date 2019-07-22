@@ -2,15 +2,15 @@ package leakcanary.internal.activity.db
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
-import leakcanary.LeakTrace
-import leakcanary.LeakTraceElement
-import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
-import leakcanary.Leak
-import leakcanary.Leak.LibraryLeak
 import leakcanary.internal.Serializables
-import leakcanary.internal.utils.to
 import leakcanary.internal.toByteArray
+import leakcanary.internal.utils.to
 import org.intellij.lang.annotations.Language
+import shark.Leak
+import shark.Leak.LibraryLeak
+import shark.LeakTrace
+import shark.LeakTraceElement
+import shark.LeakTraceElement.Type.ARRAY_ENTRY
 
 internal object LeakingInstanceTable {
 

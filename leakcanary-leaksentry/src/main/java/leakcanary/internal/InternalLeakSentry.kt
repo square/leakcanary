@@ -5,11 +5,11 @@ import android.content.pm.ApplicationInfo
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import leakcanary.CanaryLog
 import leakcanary.Clock
 import leakcanary.LeakSentry
-import leakcanary.OnObjectRetainedListener
 import leakcanary.ObjectWatcher
+import leakcanary.OnObjectRetainedListener
+import shark.SharkLog
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
 import java.util.concurrent.Executor
@@ -60,7 +60,7 @@ internal object InternalLeakSentry {
   )
 
   fun install(application: Application) {
-    CanaryLog.d("Installing LeakSentry")
+    SharkLog.d("Installing LeakSentry")
     checkMainThread()
     if (this::application.isInitialized) {
       return
