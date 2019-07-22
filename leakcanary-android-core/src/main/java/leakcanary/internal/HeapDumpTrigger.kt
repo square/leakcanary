@@ -10,7 +10,7 @@ import com.squareup.leakcanary.core.R
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
-import leakcanary.LeakSentry
+import leakcanary.AppWatcher
 import leakcanary.ObjectWatcher
 import leakcanary.internal.NotificationReceiver.Action.CANCEL_NOTIFICATION
 import leakcanary.internal.NotificationReceiver.Action.DUMP_HEAP
@@ -54,7 +54,7 @@ internal class HeapDumpTrigger(
   private val applicationInvisibleLessThanWatchPeriod: Boolean
     get() {
       val applicationInvisibleAt = applicationInvisibleAt
-      return applicationInvisibleAt != -1L && SystemClock.uptimeMillis() - applicationInvisibleAt < LeakSentry.config.watchDurationMillis
+      return applicationInvisibleAt != -1L && SystemClock.uptimeMillis() - applicationInvisibleAt < AppWatcher.config.watchDurationMillis
     }
 
   @Volatile
@@ -65,7 +65,7 @@ internal class HeapDumpTrigger(
       applicationInvisibleAt = -1L
     } else {
       applicationInvisibleAt = SystemClock.uptimeMillis()
-      scheduleRetainedObjectCheck("app became invisible", LeakSentry.config.watchDurationMillis)
+      scheduleRetainedObjectCheck("app became invisible", AppWatcher.config.watchDurationMillis)
     }
   }
 

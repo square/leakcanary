@@ -85,7 +85,7 @@ open class FailTestOnLeakRunListener : RunListener() {
 
   override fun testFinished(description: Description) {
     detectLeaks()
-    LeakSentry.objectWatcher.clearWatchedObjects()
+    AppWatcher.objectWatcher.clearWatchedObjects()
   }
 
   override fun testRunStarted(description: Description) {

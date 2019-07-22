@@ -36,7 +36,7 @@ import java.io.File
  *
  * To use it, you need to:
  *
- *  - Call [updateConfig] so that [LeakSentry] will watch objects and [LeakCanary] will not dump
+ *  - Call [updateConfig] so that [AppWatcher] will watch objects and [LeakCanary] will not dump
  *  the heap on retained objects
  *  - Add an instrumentation test listener (e.g. [FailTestOnLeakRunListener]) that will invoke
  * [detectLeaks].
@@ -97,10 +97,10 @@ class InstrumentationLeakDetector {
    */
   fun detectLeaks(): Result {
     val leakDetectionTime = SystemClock.uptimeMillis()
-    val watchDurationMillis = LeakSentry.config.watchDurationMillis
+    val watchDurationMillis = AppWatcher.config.watchDurationMillis
     val instrumentation = getInstrumentation()
     val context = instrumentation.targetContext
-    val refWatcher = LeakSentry.objectWatcher
+    val refWatcher = AppWatcher.objectWatcher
 
     if (!refWatcher.hasWatchedObjects) {
       return NoAnalysis
@@ -183,13 +183,13 @@ class InstrumentationLeakDetector {
   companion object {
 
     /**
-     * Configures [LeakSentry] to watch objects and [LeakCanary] to not dump the heap on retained
+     * Configures [AppWatcher] to watch objects and [LeakCanary] to not dump the heap on retained
      * objects so that instrumentation tests run smoothly, and we can look for leaks at the end of
      * a test. This is automatically called by [FailTestOnLeakRunListener] when the tests start
      * running.
      */
     fun updateConfig() {
-      LeakSentry.config = LeakSentry.config.copy(enabled = true)
+      AppWatcher.config = AppWatcher.config.copy(enabled = true)
       LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
     }
   }

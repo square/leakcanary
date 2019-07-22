@@ -11,7 +11,7 @@ import shark.ReferenceMatcher.IgnoredReferenceMatcher
 import shark.ReferenceMatcher.LibraryLeakReferenceMatcher
 
 /**
- * The entry point API for LeakCanary. LeakCanary builds on top of [LeakSentry]. LeakSentry
+ * The entry point API for LeakCanary. LeakCanary builds on top of [AppWatcher]. AppWatcher
  * notifies LeakCanary of retained instances, which in turns dumps the heap, analyses it and
  * publishes the results.
  *
@@ -49,7 +49,7 @@ object LeakCanary {
      * be fixed.
      *
      * When the app becomes invisible, LeakCanary dumps the heap after
-     * [LeakSentry.Config.watchDurationMillis] ms.
+     * [AppWatcher.Config.watchDurationMillis] ms.
      *
      * The app is considered visible if it has at least one activity in started state.
      *
@@ -146,7 +146,7 @@ object LeakCanary {
    * ```
    */
   @Volatile
-  var config: Config = if (LeakSentry.isInstalled) Config() else InternalLeakCanary.noInstallConfig
+  var config: Config = if (AppWatcher.isInstalled) Config() else InternalLeakCanary.noInstallConfig
 
   /**
    * Returns a new [Intent] that can be used to programmatically launch the leak display activity.
@@ -155,7 +155,7 @@ object LeakCanary {
 
   /**
    * Immediately triggers a heap dump and analysis, if there is at least one retained instance
-   * tracked by [LeakSentry.objectWatcher]. If there are no retained instances then the heap will not
+   * tracked by [AppWatcher.objectWatcher]. If there are no retained instances then the heap will not
    * be dumped and a notification will be shown instead.
    */
   fun dumpHeap() = InternalLeakCanary.onDumpHeapReceived()

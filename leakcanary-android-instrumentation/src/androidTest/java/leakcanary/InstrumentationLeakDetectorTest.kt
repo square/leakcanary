@@ -13,18 +13,18 @@ import java.util.Date
 class InstrumentationLeakDetectorTest {
 
   @Before fun setUp() {
-    LeakSentry.objectWatcher
+    AppWatcher.objectWatcher
         .clearWatchedObjects()
   }
 
   @After fun tearDown() {
-    LeakSentry.objectWatcher
+    AppWatcher.objectWatcher
         .clearWatchedObjects()
   }
 
   @Test fun detectsLeak() {
     leaking = Date()
-    val refWatcher = LeakSentry.objectWatcher
+    val refWatcher = AppWatcher.objectWatcher
     refWatcher.watch(leaking)
     assertLeak(Date::class.java)
   }

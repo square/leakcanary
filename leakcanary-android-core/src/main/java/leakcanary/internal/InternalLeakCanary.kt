@@ -15,7 +15,7 @@ import com.squareup.leakcanary.core.R
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
-import leakcanary.LeakSentry
+import leakcanary.AppWatcher
 import leakcanary.OnObjectRetainedListener
 import leakcanary.internal.activity.LeakActivity
 import shark.SharkLog
@@ -64,7 +64,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     val backgroundHandler = Handler(handlerThread.looper)
 
     heapDumpTrigger = HeapDumpTrigger(
-        application, backgroundHandler, LeakSentry.objectWatcher, gcTrigger, heapDumper, configProvider
+        application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger, heapDumper, configProvider
     )
     application.registerVisibilityListener { applicationVisible ->
       this.applicationVisible = applicationVisible

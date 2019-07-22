@@ -25,12 +25,12 @@ class FragmentLeakTest {
   )
 
   @Before fun setUp() {
-    LeakSentry.objectWatcher
+    AppWatcher.objectWatcher
         .clearWatchedObjects()
   }
 
   @After fun tearDown() {
-    LeakSentry.objectWatcher
+    AppWatcher.objectWatcher
         .clearWatchedObjects()
   }
 

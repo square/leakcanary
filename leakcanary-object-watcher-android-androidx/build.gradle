@@ -2,29 +2,17 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 dependencies {
-  api project(':shark-analyzer')
   api project(':leakcanary-object-watcher-android')
-  api project(':leakcanary-object-watcher-android-androidx')
 
   implementation deps.kotlin.stdlib
-
-  testImplementation deps.junit
-  testImplementation deps.mockito
-  testImplementation deps.mockito_kotlin
-}
-
-def gitSha() {
-  return 'git rev-parse --short HEAD'.execute().text.trim()
+  // Optional dependency
+  compileOnly deps.androidx.fragment
 }
 
 android {
-  resourcePrefix 'leak_canary_'
   compileSdkVersion versions.compileSdk
   defaultConfig {
     minSdkVersion versions.minSdk
-    buildConfigField "String", "LIBRARY_VERSION", "\"${rootProject.ext.VERSION_NAME}\""
-    buildConfigField "String", "GIT_SHA", "\"${gitSha()}\""
-    consumerProguardFiles 'consumer-proguard-rules.pro'
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
