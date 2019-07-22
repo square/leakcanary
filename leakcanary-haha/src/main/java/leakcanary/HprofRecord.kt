@@ -3,20 +3,20 @@ package leakcanary
 /**
  * A Hprof record. These data structure map 1:1 with how records are written in hprof files.
  */
-sealed class Record {
+sealed class HprofRecord {
   class StringRecord(
     val id: Long,
     val string: String
-  ) : Record()
+  ) : HprofRecord()
 
   class LoadClassRecord(
     val classSerialNumber: Int,
     val id: Long,
     val stackTraceSerialNumber: Int,
     val classNameStringId: Long
-  ) : Record()
+  ) : HprofRecord()
 
-  object HeapDumpEndRecord : Record()
+  object HeapDumpEndRecord : HprofRecord()
 
   class StackFrameRecord(
     val id: Long,
@@ -32,15 +32,15 @@ sealed class Record {
      * -3 native method (Not implemented)
      */
     val lineNumber: Int
-  ) : Record()
+  ) : HprofRecord()
 
   class StackTraceRecord(
     val stackTraceSerialNumber: Int,
     val threadSerialNumber: Int,
     val stackFrameIds: LongArray
-  ) : Record()
+  ) : HprofRecord()
 
-  sealed class HeapDumpRecord : Record() {
+  sealed class HeapDumpRecord : HprofRecord() {
     class GcRootRecord(
       val gcRoot: GcRoot
     ) : HeapDumpRecord()

@@ -16,6 +16,25 @@ import leakcanary.GcRoot.ThreadObject
 import leakcanary.GcRoot.Unknown
 import leakcanary.GcRoot.Unreachable
 import leakcanary.GcRoot.VmInternal
+import leakcanary.HprofWriter.Companion.open
+import leakcanary.HprofRecord.HeapDumpEndRecord
+import leakcanary.HprofRecord.HeapDumpRecord.GcRootRecord
+import leakcanary.HprofRecord.HeapDumpRecord.HeapDumpInfoRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import leakcanary.HprofRecord.LoadClassRecord
+import leakcanary.HprofRecord.StackTraceRecord
+import leakcanary.HprofRecord.StringRecord
 import leakcanary.ValueHolder.BooleanHolder
 import leakcanary.ValueHolder.ByteHolder
 import leakcanary.ValueHolder.CharHolder
@@ -25,24 +44,6 @@ import leakcanary.ValueHolder.IntHolder
 import leakcanary.ValueHolder.LongHolder
 import leakcanary.ValueHolder.ReferenceHolder
 import leakcanary.ValueHolder.ShortHolder
-import leakcanary.Record.HeapDumpEndRecord
-import leakcanary.Record.HeapDumpRecord.GcRootRecord
-import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import leakcanary.Record.LoadClassRecord
-import leakcanary.Record.StackTraceRecord
-import leakcanary.Record.StringRecord
 import okio.Buffer
 import okio.BufferedSink
 import okio.buffer
@@ -62,20 +63,20 @@ class HprofWriter private constructor(
 
   private val workBuffer = Buffer()
 
-  fun write(record: Record) {
+  fun write(record: HprofRecord) {
     sink.write(record)
   }
 
-  private fun BufferedSink.write(record: Record) {
+  private fun BufferedSink.write(record: HprofRecord) {
     when (record) {
       is StringRecord -> {
-        writeNonHeapRecord(HprofPushRecordsParser.STRING_IN_UTF8) {
+        writeNonHeapRecord(HprofReader.STRING_IN_UTF8) {
           writeId(record.id)
           writeUtf8(record.string)
         }
       }
       is LoadClassRecord -> {
-        writeNonHeapRecord(HprofPushRecordsParser.LOAD_CLASS) {
+        writeNonHeapRecord(HprofReader.LOAD_CLASS) {
           writeInt(record.classSerialNumber)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
@@ -83,7 +84,7 @@ class HprofWriter private constructor(
         }
       }
       is StackTraceRecord -> {
-        writeNonHeapRecord(HprofPushRecordsParser.STACK_TRACE) {
+        writeNonHeapRecord(HprofReader.STACK_TRACE) {
           writeInt(record.stackTraceSerialNumber)
           writeInt(record.threadSerialNumber)
           writeInt(record.stackFrameIds.size)
@@ -94,80 +95,80 @@ class HprofWriter private constructor(
         with(workBuffer) {
           when (val gcRoot = record.gcRoot) {
             is Unknown -> {
-              writeByte(HprofPushRecordsParser.ROOT_UNKNOWN)
+              writeByte(HprofReader.ROOT_UNKNOWN)
               writeId(gcRoot.id)
             }
             is JniGlobal -> {
               writeByte(
-                  HprofPushRecordsParser.ROOT_JNI_GLOBAL
+                  HprofReader.ROOT_JNI_GLOBAL
               )
               writeId(gcRoot.id)
               writeId(gcRoot.jniGlobalRefId)
             }
             is JniLocal -> {
-              writeByte(HprofPushRecordsParser.ROOT_JNI_LOCAL)
+              writeByte(HprofReader.ROOT_JNI_LOCAL)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
               writeInt(gcRoot.frameNumber)
             }
             is JavaFrame -> {
-              writeByte(HprofPushRecordsParser.ROOT_JAVA_FRAME)
+              writeByte(HprofReader.ROOT_JAVA_FRAME)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
               writeInt(gcRoot.frameNumber)
             }
             is NativeStack -> {
-              writeByte(HprofPushRecordsParser.ROOT_NATIVE_STACK)
+              writeByte(HprofReader.ROOT_NATIVE_STACK)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
             }
             is StickyClass -> {
-              writeByte(HprofPushRecordsParser.ROOT_STICKY_CLASS)
+              writeByte(HprofReader.ROOT_STICKY_CLASS)
               writeId(gcRoot.id)
             }
             is ThreadBlock -> {
-              writeByte(HprofPushRecordsParser.ROOT_THREAD_BLOCK)
+              writeByte(HprofReader.ROOT_THREAD_BLOCK)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
             }
             is MonitorUsed -> {
-              writeByte(HprofPushRecordsParser.ROOT_MONITOR_USED)
+              writeByte(HprofReader.ROOT_MONITOR_USED)
               writeId(gcRoot.id)
             }
             is ThreadObject -> {
-              writeByte(HprofPushRecordsParser.ROOT_THREAD_OBJECT)
+              writeByte(HprofReader.ROOT_THREAD_OBJECT)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
               writeInt(gcRoot.stackTraceSerialNumber)
             }
             is ReferenceCleanup -> {
-              writeByte(HprofPushRecordsParser.ROOT_REFERENCE_CLEANUP)
+              writeByte(HprofReader.ROOT_REFERENCE_CLEANUP)
               writeId(gcRoot.id)
             }
             is VmInternal -> {
-              writeByte(HprofPushRecordsParser.ROOT_VM_INTERNAL)
+              writeByte(HprofReader.ROOT_VM_INTERNAL)
               writeId(gcRoot.id)
             }
             is JniMonitor -> {
-              writeByte(HprofPushRecordsParser.ROOT_JNI_MONITOR)
+              writeByte(HprofReader.ROOT_JNI_MONITOR)
               writeId(gcRoot.id)
               writeInt(gcRoot.stackTraceSerialNumber)
               writeInt(gcRoot.stackDepth)
             }
             is InternedString -> {
-              writeByte(HprofPushRecordsParser.ROOT_INTERNED_STRING)
+              writeByte(HprofReader.ROOT_INTERNED_STRING)
               writeId(gcRoot.id)
             }
             is Finalizing -> {
-              writeByte(HprofPushRecordsParser.ROOT_FINALIZING)
+              writeByte(HprofReader.ROOT_FINALIZING)
               writeId(gcRoot.id)
             }
             is Debugger -> {
-              writeByte(HprofPushRecordsParser.ROOT_DEBUGGER)
+              writeByte(HprofReader.ROOT_DEBUGGER)
               writeId(gcRoot.id)
             }
             is Unreachable -> {
-              writeByte(HprofPushRecordsParser.ROOT_UNREACHABLE)
+              writeByte(HprofReader.ROOT_UNREACHABLE)
               writeId(gcRoot.id)
             }
           }
@@ -175,7 +176,7 @@ class HprofWriter private constructor(
       }
       is ClassDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofPushRecordsParser.CLASS_DUMP)
+          writeByte(HprofReader.CLASS_DUMP)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeId(record.superClassId)
@@ -205,7 +206,7 @@ class HprofWriter private constructor(
       }
       is InstanceDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofPushRecordsParser.INSTANCE_DUMP)
+          writeByte(HprofReader.INSTANCE_DUMP)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeId(record.classId)
@@ -215,7 +216,7 @@ class HprofWriter private constructor(
       }
       is ObjectArrayDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofPushRecordsParser.OBJECT_ARRAY_DUMP)
+          writeByte(HprofReader.OBJECT_ARRAY_DUMP)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeInt(record.elementIds.size)
@@ -225,7 +226,7 @@ class HprofWriter private constructor(
       }
       is PrimitiveArrayDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofPushRecordsParser.PRIMITIVE_ARRAY_DUMP)
+          writeByte(HprofReader.PRIMITIVE_ARRAY_DUMP)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
 
@@ -275,7 +276,7 @@ class HprofWriter private constructor(
       }
       is HeapDumpInfoRecord -> {
         with(workBuffer) {
-          writeByte(HprofPushRecordsParser.HEAP_DUMP_INFO)
+          writeByte(HprofReader.HEAP_DUMP_INFO)
           writeInt(record.heapId)
           writeId(record.heapNameStringId)
         }
@@ -356,9 +357,9 @@ class HprofWriter private constructor(
 
   private fun BufferedSink.flushHeapBuffer() {
     if (workBuffer.size > 0) {
-      writeTagHeader(HprofPushRecordsParser.HEAP_DUMP, workBuffer.size)
+      writeTagHeader(HprofReader.HEAP_DUMP, workBuffer.size)
       writeAll(workBuffer)
-      writeTagHeader(HprofPushRecordsParser.HEAP_DUMP_END, 0)
+      writeTagHeader(HprofReader.HEAP_DUMP_END, 0)
     }
   }
 

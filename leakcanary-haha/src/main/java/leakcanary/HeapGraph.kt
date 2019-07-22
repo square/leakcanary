@@ -4,14 +4,13 @@ import leakcanary.HeapObject.HeapClass
 import leakcanary.HeapObject.HeapInstance
 import leakcanary.HeapObject.HeapObjectArray
 import leakcanary.HeapObject.HeapPrimitiveArray
-import leakcanary.HprofPushRecordsParser.OnRecordListener
-import leakcanary.Record.HeapDumpRecord.ObjectRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import leakcanary.internal.FieldValuesReader
 import leakcanary.internal.HprofInMemoryIndex
 import leakcanary.internal.IndexedObject
@@ -28,11 +27,11 @@ import java.io.File
  * Enables navigation through the heap graph of objects.
  */
 class HeapGraph internal constructor(
-  private val reader: SeekableHprofReader,
+  private val hprof: Hprof,
   private val index: HprofInMemoryIndex
 ) {
 
-  val objectIdByteSize: Int = index.objectIdByteSize
+  val objectIdByteSize: Int get() = hprof.reader.objectIdByteSize
 
   /**
    * In memory store that can be used to store objects this [HeapGraph] instance.
@@ -134,7 +133,7 @@ class HeapGraph internal constructor(
     val buffer = Buffer()
     buffer.write(record.fieldValues)
 
-    val reader = HprofReader(buffer, 0, index.objectIdByteSize)
+    val reader = HprofReader(buffer, 0, objectIdByteSize)
 
     return object : FieldValuesReader {
       override fun readValue(field: FieldRecord): ValueHolder {
@@ -152,7 +151,7 @@ class HeapGraph internal constructor(
     indexedObject: IndexedObjectArray
   ): ObjectArrayDumpRecord {
     return readObjectRecord(objectId, indexedObject) {
-      reader.readObjectArrayDumpRecord()
+      hprof.reader.readObjectArrayDumpRecord()
     }
   }
 
@@ -161,7 +160,7 @@ class HeapGraph internal constructor(
     indexedObject: IndexedPrimitiveArray
   ): PrimitiveArrayDumpRecord {
     return readObjectRecord(objectId, indexedObject) {
-      reader.readPrimitiveArrayDumpRecord()
+      hprof.reader.readPrimitiveArrayDumpRecord()
     }
   }
 
@@ -170,7 +169,7 @@ class HeapGraph internal constructor(
     indexedObject: IndexedClass
   ): ClassDumpRecord {
     return readObjectRecord(objectId, indexedObject) {
-      reader.readClassDumpRecord()
+      hprof.reader.readClassDumpRecord()
     }
   }
 
@@ -179,7 +178,7 @@ class HeapGraph internal constructor(
     indexedObject: IndexedInstance
   ): InstanceDumpRecord {
     return readObjectRecord(objectId, indexedObject) {
-      reader.readInstanceDumpRecord()
+      hprof.reader.readInstanceDumpRecord()
     }
   }
 
@@ -193,7 +192,7 @@ class HeapGraph internal constructor(
     if (objectRecordOrNull != null) {
       return objectRecordOrNull as T
     }
-    reader.moveTo(indexedObject.position)
+    hprof.moveReaderTo(indexedObject.position)
     return readBlock().apply { objectCache.put(objectId, this) }
   }
 
@@ -217,19 +216,9 @@ class HeapGraph internal constructor(
   }
 
   companion object {
-    fun readHprof(
-      heapDump: File,
-      vararg onRecordListeners: OnRecordListener
-    ): Pair<HeapGraph, Closeable> {
-      val indexListener = HprofInMemoryIndex.createOnRecordListener()
-
-      val parser = HprofPushRecordsParser()
-
-      val reader = parser.readHprofRecords(heapDump, setOf(indexListener) + onRecordListeners)
-
-      val heapGraph = HeapGraph(reader, indexListener.buildIndex())
-
-      return heapGraph to reader
+    fun indexHprof(hprof: Hprof): HeapGraph {
+      val index = HprofInMemoryIndex.createReadingHprof(hprof.reader)
+      return HeapGraph(hprof, index)
     }
   }
 

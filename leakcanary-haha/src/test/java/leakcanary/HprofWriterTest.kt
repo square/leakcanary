@@ -1,12 +1,12 @@
 package leakcanary
 
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.HprofRecord.LoadClassRecord
+import leakcanary.HprofRecord.StringRecord
 import leakcanary.ValueHolder.ReferenceHolder
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.Record.LoadClassRecord
-import leakcanary.Record.StringRecord
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -40,7 +40,7 @@ class HprofWriterTest {
     }
   }
 
-  private fun createRecords(): List<Record> {
+  private fun createRecords(): List<HprofRecord> {
     val magicWandClassName = StringRecord(id, MAGIC_WAND_CLASS_NAME)
     val baguetteClassName = StringRecord(id, BAGUETTE_CLASS_NAME)
     val answerFieldName = StringRecord(id, ANSWER_FIELD_NAME)
@@ -105,7 +105,7 @@ class HprofWriterTest {
   }
 
   private fun File.writeRecords(
-    records: List<Record>
+    records: List<HprofRecord>
   ) {
     HprofWriter.open(this)
         .use { writer ->
@@ -116,10 +116,10 @@ class HprofWriterTest {
   }
 
   fun File.readHprof(block: (HeapGraph) -> Unit) {
-    val (graph, closeable) = HeapGraph.readHprof(this)
-    closeable.use {
-      block(graph)
-    }
+    Hprof.open(this)
+        .use { hprof ->
+          block(HeapGraph.indexHprof(hprof))
+        }
   }
 
   companion object {

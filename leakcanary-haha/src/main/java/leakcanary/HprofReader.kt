@@ -1,20 +1,45 @@
 package leakcanary
 
-import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import leakcanary.GcRoot.Debugger
+import leakcanary.GcRoot.Finalizing
+import leakcanary.GcRoot.InternedString
+import leakcanary.GcRoot.JavaFrame
+import leakcanary.GcRoot.JniGlobal
+import leakcanary.GcRoot.JniLocal
+import leakcanary.GcRoot.JniMonitor
+import leakcanary.GcRoot.MonitorUsed
+import leakcanary.GcRoot.NativeStack
+import leakcanary.GcRoot.ReferenceCleanup
+import leakcanary.GcRoot.StickyClass
+import leakcanary.GcRoot.ThreadBlock
+import leakcanary.GcRoot.ThreadObject
+import leakcanary.GcRoot.Unknown
+import leakcanary.GcRoot.Unreachable
+import leakcanary.GcRoot.VmInternal
+import leakcanary.PrimitiveType.INT
+import leakcanary.HprofRecord.HeapDumpEndRecord
+import leakcanary.HprofRecord.HeapDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.GcRootRecord
+import leakcanary.HprofRecord.HeapDumpRecord.HeapDumpInfoRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import leakcanary.HprofRecord.LoadClassRecord
+import leakcanary.HprofRecord.StackFrameRecord
+import leakcanary.HprofRecord.StackTraceRecord
+import leakcanary.HprofRecord.StringRecord
 import leakcanary.ValueHolder.BooleanHolder
 import leakcanary.ValueHolder.ByteHolder
 import leakcanary.ValueHolder.CharHolder
@@ -25,182 +50,413 @@ import leakcanary.ValueHolder.LongHolder
 import leakcanary.ValueHolder.ReferenceHolder
 import leakcanary.ValueHolder.ShortHolder
 import okio.BufferedSource
-import java.io.Closeable
 import java.nio.charset.Charset
+import kotlin.reflect.KClass
 
 /**
  * Reads hprof content from an Okio [BufferedSource].
  *
  * Not thread safe, should be used from a single thread.
+ *
+ * Binary Dump Format reference: http://hg.openjdk.java.net/jdk6/jdk6/jdk/raw-file/tip/src/share/demo/jvmti/hprof/manual.html#mozTocId848088
+ *
+ * The Android Hprof format differs in some ways from that reference. This parser implementation
+ * is largely adapted from https://android.googlesource.com/platform/tools/base/+/studio-master-dev/perflib/src/main/java/com/android/tools/perflib
  */
-open class HprofReader constructor(
-  protected var source: BufferedSource,
-  protected val startPosition: Long,
+class HprofReader constructor(
+  private var source: BufferedSource,
+  private val startByteReadCount: Long = 0L,
   val objectIdByteSize: Int
-) : Closeable {
-  override fun close() {
-    source.close()
-  }
+) {
 
-  var position: Long = startPosition
-    protected set
+  var byteReadCount = startByteReadCount
+    private set
 
-  val isOpen
-    get() = source.isOpen
+  private val typeSizes =
+    PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to objectIdByteSize)
 
-  val typeSizes = mapOf(
-      // object
-      PrimitiveType.REFERENCE_HPROF_TYPE to objectIdByteSize,
-      BOOLEAN_TYPE to BOOLEAN_SIZE,
-      CHAR_TYPE to CHAR_SIZE,
-      FLOAT_TYPE to FLOAT_SIZE,
-      DOUBLE_TYPE to DOUBLE_SIZE,
-      BYTE_TYPE to BYTE_SIZE,
-      SHORT_TYPE to SHORT_SIZE,
-      INT_TYPE to INT_SIZE,
-      LONG_TYPE to LONG_SIZE
-  )
+  fun readHprofRecords(
+    recordTypes: Set<KClass<out HprofRecord>>,
+    listener: OnHprofRecordListener
+  ) {
+    require(byteReadCount == startByteReadCount) {
+      "readHprofRecords() should only be called with a brand new Hprof instance"
+    }
+    val readAllRecords = HprofRecord::class in recordTypes
+    val readStringRecord = readAllRecords || StringRecord::class in recordTypes
+    val readLoadClassRecord = readAllRecords || LoadClassRecord::class in recordTypes
+    val readHeapDumpEndRecord = readAllRecords || HeapDumpEndRecord::class in recordTypes
+    val readStackFrameRecord = readAllRecords || StackFrameRecord::class in recordTypes
+    val readStackTraceRecord = readAllRecords || StackTraceRecord::class in recordTypes
 
-  fun readValue(type: Int): ValueHolder {
-    return when (type) {
-      PrimitiveType.REFERENCE_HPROF_TYPE -> ReferenceHolder(readId())
-      BOOLEAN_TYPE -> BooleanHolder(readBoolean())
-      CHAR_TYPE -> CharHolder(readChar())
-      FLOAT_TYPE -> FloatHolder(readFloat())
-      DOUBLE_TYPE -> DoubleHolder(readDouble())
-      BYTE_TYPE -> ByteHolder(readByte())
-      SHORT_TYPE -> ShortHolder(readShort())
-      INT_TYPE -> IntHolder(readInt())
-      LONG_TYPE -> LongHolder(readLong())
-      else -> throw IllegalStateException("Unknown type $type")
+    val readAllHeapDumpRecords = readAllRecords || HeapDumpRecord::class in recordTypes
+
+    val readGcRootRecord = readAllHeapDumpRecords || GcRootRecord::class in recordTypes
+    val readHeapDumpInfoRecord = readAllRecords || HeapDumpInfoRecord::class in recordTypes
+
+    val readAllObjectRecords = readAllHeapDumpRecords || ObjectRecord::class in recordTypes
+
+    val readClassDumpRecord = readAllObjectRecords || ClassDumpRecord::class in recordTypes
+    val readInstanceDumpRecord = readAllObjectRecords || InstanceDumpRecord::class in recordTypes
+    val readObjectArrayDumpRecord =
+      readAllObjectRecords || ObjectArrayDumpRecord::class in recordTypes
+    val readPrimitiveArrayDumpRecord =
+      readAllObjectRecords || PrimitiveArrayDumpRecord::class in recordTypes
+
+    val intByteSize = INT.byteSize
+
+    while (!exhausted()) {
+      // type of the record
+      val tag = readUnsignedByte()
+
+      // number of microseconds since the time stamp in the header
+      skip(intByteSize)
+
+      // number of bytes that follow and belong to this record
+      val length = readUnsignedInt()
+
+      when (tag) {
+        STRING_IN_UTF8 -> {
+          if (readStringRecord) {
+            val recordPosition = byteReadCount
+            val id = readId()
+            val stringLength = length - objectIdByteSize
+            val string = readUtf8(stringLength)
+            val record = StringRecord(id, string)
+            listener.onHprofRecord(recordPosition, record)
+          } else {
+            skip(length)
+          }
+        }
+        LOAD_CLASS -> {
+          if (readLoadClassRecord) {
+            val recordPosition = byteReadCount
+            val classSerialNumber = readInt()
+            val id = readId()
+            val stackTraceSerialNumber = readInt()
+            val classNameStringId = readId()
+            val record = LoadClassRecord(
+                classSerialNumber = classSerialNumber,
+                id = id,
+                stackTraceSerialNumber = stackTraceSerialNumber,
+                classNameStringId = classNameStringId
+            )
+            listener.onHprofRecord(recordPosition, record)
+          } else {
+            skip(length)
+          }
+        }
+        STACK_FRAME -> {
+          if (readStackFrameRecord) {
+            val recordPosition = byteReadCount
+            val record = StackFrameRecord(
+                id = readId(),
+                methodNameStringId = readId(),
+                methodSignatureStringId = readId(),
+                sourceFileNameStringId = readId(),
+                classSerialNumber = readInt(),
+                lineNumber = readInt()
+            )
+            listener.onHprofRecord(recordPosition, record)
+          } else {
+            skip(length)
+          }
+        }
+        STACK_TRACE -> {
+          if (readStackTraceRecord) {
+            val recordPosition = byteReadCount
+            val stackTraceSerialNumber = readInt()
+            val threadSerialNumber = readInt()
+            val frameCount = readInt()
+            val stackFrameIds = readIdArray(frameCount)
+            val record = StackTraceRecord(
+                stackTraceSerialNumber = stackTraceSerialNumber,
+                threadSerialNumber = threadSerialNumber,
+                stackFrameIds = stackFrameIds
+            )
+            listener.onHprofRecord(recordPosition, record)
+          } else {
+            skip(length)
+          }
+        }
+        HEAP_DUMP, HEAP_DUMP_SEGMENT -> {
+          val heapDumpStart = byteReadCount
+          var previousTag = 0
+          while (byteReadCount - heapDumpStart < length) {
+            val heapDumpTag = readUnsignedByte()
+
+            when (heapDumpTag) {
+              ROOT_UNKNOWN -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val record = GcRootRecord(gcRoot = Unknown(id = readId()))
+                  listener.onHprofRecord(recordPosition, record)
+                } else {
+                  skip(objectIdByteSize)
+                }
+              }
+              ROOT_JNI_GLOBAL -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord =
+                    GcRootRecord(gcRoot = JniGlobal(id = readId(), jniGlobalRefId = readId()))
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize + objectIdByteSize)
+                }
+              }
+
+              ROOT_JNI_LOCAL -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = JniLocal(
+                          id = readId(), threadSerialNumber = readInt(), frameNumber = readInt()
+                      )
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize + intByteSize + intByteSize)
+                }
+              }
+
+              ROOT_JAVA_FRAME -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = JavaFrame(
+                          id = readId(), threadSerialNumber = readInt(), frameNumber = readInt()
+                      )
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize + intByteSize + intByteSize)
+                }
+              }
+
+              ROOT_NATIVE_STACK -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = NativeStack(id = readId(), threadSerialNumber = readInt())
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize + intByteSize)
+                }
+              }
+
+              ROOT_STICKY_CLASS -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = StickyClass(id = readId())
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize)
+                }
+              }
+
+              // An object that was referenced from an active thread block.
+              ROOT_THREAD_BLOCK -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = ThreadBlock(id = readId(), threadSerialNumber = readInt())
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize + intByteSize)
+                }
+              }
+
+              ROOT_MONITOR_USED -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = MonitorUsed(id = readId())
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize)
+                }
+              }
+
+              ROOT_THREAD_OBJECT -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = ThreadObject(
+                          id = readId(),
+                          threadSerialNumber = readInt(),
+                          stackTraceSerialNumber = readInt()
+                      )
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize + intByteSize + intByteSize)
+                }
+              }
+
+              ROOT_INTERNED_STRING -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(gcRoot = InternedString(id = readId()))
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize)
+                }
+              }
+
+              ROOT_FINALIZING -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = Finalizing(id = readId())
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize)
+                }
+              }
+
+              ROOT_DEBUGGER -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = Debugger(id = readId())
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize)
+                }
+              }
+
+              ROOT_REFERENCE_CLEANUP -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = ReferenceCleanup(id = readId())
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize)
+                }
+              }
+
+              ROOT_VM_INTERNAL -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = VmInternal(id = readId())
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize)
+                }
+              }
+
+              ROOT_JNI_MONITOR -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = JniMonitor(
+                          id = readId(), stackTraceSerialNumber = readInt(),
+                          stackDepth = readInt()
+                      )
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize + intByteSize + intByteSize)
+                }
+              }
+
+              ROOT_UNREACHABLE -> {
+                if (readGcRootRecord) {
+                  val recordPosition = byteReadCount
+                  val gcRootRecord = GcRootRecord(
+                      gcRoot = Unreachable(id = readId())
+                  )
+                  listener.onHprofRecord(recordPosition, gcRootRecord)
+                } else {
+                  skip(objectIdByteSize)
+                }
+              }
+              CLASS_DUMP -> {
+                if (readClassDumpRecord) {
+                  val recordPosition = byteReadCount
+                  val record = readClassDumpRecord()
+                  listener.onHprofRecord(recordPosition, record)
+                } else {
+                  skipClassDumpRecord()
+                }
+              }
+
+              INSTANCE_DUMP -> {
+                if (readInstanceDumpRecord) {
+                  val recordPosition = byteReadCount
+                  val instanceDumpRecord = readInstanceDumpRecord()
+                  listener.onHprofRecord(recordPosition, instanceDumpRecord)
+                } else {
+                  skipInstanceDumpRecord()
+                }
+              }
+
+              OBJECT_ARRAY_DUMP -> {
+                if (readObjectArrayDumpRecord) {
+                  val recordPosition = byteReadCount
+                  val arrayRecord = readObjectArrayDumpRecord()
+                  listener.onHprofRecord(recordPosition, arrayRecord)
+                } else {
+                  skipObjectArrayDumpRecord()
+                }
+              }
+
+              PRIMITIVE_ARRAY_DUMP -> {
+                if (readPrimitiveArrayDumpRecord) {
+                  val recordPosition = byteReadCount
+                  val record = readPrimitiveArrayDumpRecord()
+                  listener.onHprofRecord(recordPosition, record)
+                } else {
+                  skipPrimitiveArrayDumpRecord()
+                }
+              }
+
+              PRIMITIVE_ARRAY_NODATA -> {
+                throw UnsupportedOperationException("PRIMITIVE_ARRAY_NODATA cannot be parsed")
+              }
+
+              HEAP_DUMP_INFO -> {
+                if (readHeapDumpInfoRecord) {
+                  val recordPosition = byteReadCount
+                  val record = readHeapDumpInfoRecord()
+                  listener.onHprofRecord(recordPosition, record)
+                } else {
+                  skipHeapDumpInfoRecord()
+                }
+              }
+              else -> throw IllegalStateException(
+                  "Unknown tag $heapDumpTag after $previousTag"
+              )
+            }
+            previousTag = heapDumpTag
+          }
+        }
+        HEAP_DUMP_END -> {
+          if (readHeapDumpEndRecord) {
+            val recordPosition = byteReadCount
+            val record = HeapDumpEndRecord
+            listener.onHprofRecord(recordPosition, record)
+          }
+        }
+        else -> {
+          skip(length)
+        }
+      }
     }
   }
 
-  fun typeSize(type: Int): Int {
-    return typeSizes.getValue(type)
-  }
-
-  fun readShort(): Short {
-    position += SHORT_SIZE
-    return source.readShort()
-  }
-
-  fun readInt(): Int {
-    position += INT_SIZE
-    return source.readInt()
-  }
-
-  fun readIdArray(arrayLength: Int): LongArray {
-    return LongArray(arrayLength) { readId() }
-  }
-
-  fun readBooleanArray(arrayLength: Int): BooleanArray {
-    return BooleanArray(arrayLength) { readByte().toInt() != 0 }
-  }
-
-  fun readCharArray(arrayLength: Int): CharArray {
-    return readString(CHAR_SIZE * arrayLength, Charsets.UTF_16BE).toCharArray()
-  }
-
-  fun readString(
-    byteCount: Int,
-    charset: Charset
-  ): String {
-    position += byteCount
-    return source.readString(byteCount.toLong(), charset)
-  }
-
-  fun readFloatArray(arrayLength: Int): FloatArray {
-    return FloatArray(arrayLength) { readFloat() }
-  }
-
-  fun readDoubleArray(arrayLength: Int): DoubleArray {
-    return DoubleArray(arrayLength) { readDouble() }
-  }
-
-  fun readShortArray(arrayLength: Int): ShortArray {
-    return ShortArray(arrayLength) { readShort() }
-  }
-
-  fun readIntArray(arrayLength: Int): IntArray {
-    return IntArray(arrayLength) { readInt() }
-  }
-
-  fun readLongArray(arrayLength: Int): LongArray {
-    return LongArray(arrayLength) { readLong() }
-  }
-
-  fun readLong(): Long {
-    position += LONG_SIZE
-    return source.readLong()
-  }
-
-  fun exhausted() = source.exhausted()
-
-  open fun skip(byteCount: Long) {
-    position += byteCount
-    return source.skip(byteCount)
-  }
-
-  fun readByte(): Byte {
-    position += BYTE_SIZE
-    return source.readByte()
-  }
-
-  fun readBoolean(): Boolean {
-    position += BOOLEAN_SIZE
-    return source.readByte().toInt() != 0
-  }
-
-  fun readByteArray(byteCount: Int): ByteArray {
-    position += byteCount
-    return source.readByteArray(byteCount.toLong())
-  }
-
-  fun readChar(): Char {
-    return readString(CHAR_SIZE, Charsets.UTF_16BE)[0]
-  }
-
-  fun readFloat(): Float {
-    return Float.fromBits(readInt())
-  }
-
-  fun readDouble(): Double {
-    return Double.fromBits(readLong())
-  }
-
-  fun readId(): Long {
-    // As long as we don't interpret IDs, reading signed values here is fine.
-    return when (objectIdByteSize) {
-      1 -> readByte().toLong()
-      2 -> readShort().toLong()
-      4 -> readInt().toLong()
-      8 -> readLong()
-      else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
-    }
-  }
-
-  fun readUtf8(byteCount: Long): String {
-    position += byteCount
-    return source.readUtf8(byteCount)
-  }
-
-  fun readUnsignedInt(): Long {
-    return readInt().toLong() and INT_MASK
-  }
-
-  fun readUnsignedByte(): Int {
-    return readByte().toInt() and BYTE_MASK
-  }
-
-  fun readUnsignedShort(): Int {
-    return readShort().toInt() and 0xFFFF
-  }
-
-  fun skip(byteCount: Int) {
-    position += byteCount
-    return source.skip(byteCount.toLong())
-  }
 
   fun readInstanceDumpRecord(): InstanceDumpRecord {
     val id = readId()
@@ -280,65 +536,12 @@ open class HprofReader constructor(
     )
   }
 
-  fun skipInstanceDumpRecord() {
-    skip(objectIdByteSize + INT_SIZE + objectIdByteSize)
-    val remainingBytesInInstance = readInt()
-    skip(remainingBytesInInstance)
-  }
-
-  fun skipClassDumpRecord() {
-    skip(
-        objectIdByteSize + INT_SIZE + objectIdByteSize + objectIdByteSize + objectIdByteSize + objectIdByteSize + objectIdByteSize + objectIdByteSize + INT_SIZE
-    )
-    // Skip over the constant pool
-    val constantPoolCount = readUnsignedShort()
-    for (i in 0 until constantPoolCount) {
-      // constant pool index
-      skip(SHORT_SIZE)
-      skip(typeSize(readUnsignedByte()))
-    }
-
-    val staticFieldCount = readUnsignedShort()
-
-    for (i in 0 until staticFieldCount) {
-      skip(objectIdByteSize)
-      val type = readUnsignedByte()
-      skip(typeSize(type))
-    }
-
-    val fieldCount = readUnsignedShort()
-    skip(fieldCount * (objectIdByteSize + BYTE_SIZE))
-  }
-
-  fun readObjectArrayDumpRecord(
-  ): ObjectArrayDumpRecord {
-    val id = readId()
-    // stack trace serial number
-    val stackTraceSerialNumber = readInt()
-    val arrayLength = readInt()
-    val arrayClassId = readId()
-    val elementIds = readIdArray(arrayLength)
-    return ObjectArrayDumpRecord(
-        id = id,
-        stackTraceSerialNumber = stackTraceSerialNumber,
-        arrayClassId = arrayClassId,
-        elementIds = elementIds
-    )
-  }
-
-  fun skipObjectArrayDumpRecord() {
-    skip(objectIdByteSize + INT_SIZE)
-    val arrayLength = readInt()
-    skip(objectIdByteSize + arrayLength * objectIdByteSize)
-  }
-
   fun readPrimitiveArrayDumpRecord(): PrimitiveArrayDumpRecord {
     val id = readId()
     val stackTraceSerialNumber = readInt()
     // length
     val arrayLength = readInt()
-    val type = readUnsignedByte()
-    return when (type) {
+    return when (val type = readUnsignedByte()) {
       BOOLEAN_TYPE -> BooleanArrayDump(
           id, stackTraceSerialNumber, readBooleanArray(arrayLength)
       )
@@ -367,19 +570,212 @@ open class HprofReader constructor(
     }
   }
 
-  fun skipPrimitiveArrayDumpRecord() {
+  fun readObjectArrayDumpRecord(
+  ): ObjectArrayDumpRecord {
+    val id = readId()
+    // stack trace serial number
+    val stackTraceSerialNumber = readInt()
+    val arrayLength = readInt()
+    val arrayClassId = readId()
+    val elementIds = readIdArray(arrayLength)
+    return ObjectArrayDumpRecord(
+        id = id,
+        stackTraceSerialNumber = stackTraceSerialNumber,
+        arrayClassId = arrayClassId,
+        elementIds = elementIds
+    )
+  }
+
+  fun readValue(type: Int): ValueHolder {
+    return when (type) {
+      PrimitiveType.REFERENCE_HPROF_TYPE -> ReferenceHolder(readId())
+      BOOLEAN_TYPE -> BooleanHolder(readBoolean())
+      CHAR_TYPE -> CharHolder(readChar())
+      FLOAT_TYPE -> FloatHolder(readFloat())
+      DOUBLE_TYPE -> DoubleHolder(readDouble())
+      BYTE_TYPE -> ByteHolder(readByte())
+      SHORT_TYPE -> ShortHolder(readShort())
+      INT_TYPE -> IntHolder(readInt())
+      LONG_TYPE -> LongHolder(readLong())
+      else -> throw IllegalStateException("Unknown type $type")
+    }
+  }
+
+  private fun typeSize(type: Int): Int {
+    return typeSizes.getValue(type)
+  }
+
+  private fun readShort(): Short {
+    byteReadCount += SHORT_SIZE
+    return source.readShort()
+  }
+
+  private fun readInt(): Int {
+    byteReadCount += INT_SIZE
+    return source.readInt()
+  }
+
+  private fun readIdArray(arrayLength: Int): LongArray {
+    return LongArray(arrayLength) { readId() }
+  }
+
+  private fun readBooleanArray(arrayLength: Int): BooleanArray {
+    return BooleanArray(arrayLength) { readByte().toInt() != 0 }
+  }
+
+  private fun readCharArray(arrayLength: Int): CharArray {
+    return readString(CHAR_SIZE * arrayLength, Charsets.UTF_16BE).toCharArray()
+  }
+
+  private fun readString(
+    byteCount: Int,
+    charset: Charset
+  ): String {
+    byteReadCount += byteCount
+    return source.readString(byteCount.toLong(), charset)
+  }
+
+  private fun readFloatArray(arrayLength: Int): FloatArray {
+    return FloatArray(arrayLength) { readFloat() }
+  }
+
+  private fun readDoubleArray(arrayLength: Int): DoubleArray {
+    return DoubleArray(arrayLength) { readDouble() }
+  }
+
+  private fun readShortArray(arrayLength: Int): ShortArray {
+    return ShortArray(arrayLength) { readShort() }
+  }
+
+  private fun readIntArray(arrayLength: Int): IntArray {
+    return IntArray(arrayLength) { readInt() }
+  }
+
+  private fun readLongArray(arrayLength: Int): LongArray {
+    return LongArray(arrayLength) { readLong() }
+  }
+
+  private fun readLong(): Long {
+    byteReadCount += LONG_SIZE
+    return source.readLong()
+  }
+
+  private fun exhausted() = source.exhausted()
+
+  private fun skip(byteCount: Long) {
+    byteReadCount += byteCount
+    return source.skip(byteCount)
+  }
+
+  private fun readByte(): Byte {
+    byteReadCount += BYTE_SIZE
+    return source.readByte()
+  }
+
+  private fun readBoolean(): Boolean {
+    byteReadCount += BOOLEAN_SIZE
+    return source.readByte().toInt() != 0
+  }
+
+  private fun readByteArray(byteCount: Int): ByteArray {
+    byteReadCount += byteCount
+    return source.readByteArray(byteCount.toLong())
+  }
+
+  private fun readChar(): Char {
+    return readString(CHAR_SIZE, Charsets.UTF_16BE)[0]
+  }
+
+  private fun readFloat(): Float {
+    return Float.fromBits(readInt())
+  }
+
+  private fun readDouble(): Double {
+    return Double.fromBits(readLong())
+  }
+
+  private fun readId(): Long {
+    // As long as we don't interpret IDs, reading signed values here is fine.
+    return when (objectIdByteSize) {
+      1 -> readByte().toLong()
+      2 -> readShort().toLong()
+      4 -> readInt().toLong()
+      8 -> readLong()
+      else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
+    }
+  }
+
+  private fun readUtf8(byteCount: Long): String {
+    byteReadCount += byteCount
+    return source.readUtf8(byteCount)
+  }
+
+  private fun readUnsignedInt(): Long {
+    return readInt().toLong() and INT_MASK
+  }
+
+  private fun readUnsignedByte(): Int {
+    return readByte().toInt() and BYTE_MASK
+  }
+
+  private fun readUnsignedShort(): Int {
+    return readShort().toInt() and 0xFFFF
+  }
+
+  private fun skip(byteCount: Int) {
+    byteReadCount += byteCount
+    return source.skip(byteCount.toLong())
+  }
+
+  private fun skipInstanceDumpRecord() {
+    skip(objectIdByteSize + INT_SIZE + objectIdByteSize)
+    val remainingBytesInInstance = readInt()
+    skip(remainingBytesInInstance)
+  }
+
+  private fun skipClassDumpRecord() {
+    skip(
+        objectIdByteSize + INT_SIZE + objectIdByteSize + objectIdByteSize + objectIdByteSize + objectIdByteSize + objectIdByteSize + objectIdByteSize + INT_SIZE
+    )
+    // Skip over the constant pool
+    val constantPoolCount = readUnsignedShort()
+    for (i in 0 until constantPoolCount) {
+      // constant pool index
+      skip(SHORT_SIZE)
+      skip(typeSize(readUnsignedByte()))
+    }
+
+    val staticFieldCount = readUnsignedShort()
+
+    for (i in 0 until staticFieldCount) {
+      skip(objectIdByteSize)
+      val type = readUnsignedByte()
+      skip(typeSize(type))
+    }
+
+    val fieldCount = readUnsignedShort()
+    skip(fieldCount * (objectIdByteSize + BYTE_SIZE))
+  }
+
+  private fun skipObjectArrayDumpRecord() {
+    skip(objectIdByteSize + INT_SIZE)
+    val arrayLength = readInt()
+    skip(objectIdByteSize + arrayLength * objectIdByteSize)
+  }
+
+  private fun skipPrimitiveArrayDumpRecord() {
     skip(objectIdByteSize + INT_SIZE)
     val arrayLength = readInt()
     val type = readUnsignedByte()
     skip(objectIdByteSize + arrayLength * typeSize(type))
   }
 
-  fun readHeapDumpInfoRecord(): HeapDumpInfoRecord {
+  private fun readHeapDumpInfoRecord(): HeapDumpInfoRecord {
     val heapId = readInt()
     return HeapDumpInfoRecord(heapId = heapId, heapNameStringId = readId())
   }
 
-  fun skipHeapDumpInfoRecord() {
+  private fun skipHeapDumpInfoRecord() {
     skip(objectIdByteSize + objectIdByteSize)
   }
 
@@ -404,6 +800,56 @@ open class HprofReader constructor(
 
     private const val INT_MASK = 0xffffffffL
     private const val BYTE_MASK = 0xff
+
+    internal const val STRING_IN_UTF8 = 0x01
+    internal const val LOAD_CLASS = 0x02
+    internal const val UNLOAD_CLASS = 0x03
+    internal const val STACK_FRAME = 0x04
+    internal const val STACK_TRACE = 0x05
+    internal const val ALLOC_SITES = 0x06
+    internal const val HEAP_SUMMARY = 0x07
+    // TODO Maybe parse this?
+    internal const val START_THREAD = 0x0a
+    internal const val END_THREAD = 0x0b
+    internal const val HEAP_DUMP = 0x0c
+    internal const val HEAP_DUMP_SEGMENT = 0x1c
+    internal const val HEAP_DUMP_END = 0x2c
+    internal const val CPU_SAMPLES = 0x0d
+    internal const val CONTROL_SETTINGS = 0x0e
+    internal const val ROOT_UNKNOWN = 0xff
+    internal const val ROOT_JNI_GLOBAL = 0x01
+    internal const val ROOT_JNI_LOCAL = 0x02
+    internal const val ROOT_JAVA_FRAME = 0x03
+    internal const val ROOT_NATIVE_STACK = 0x04
+    internal const val ROOT_STICKY_CLASS = 0x05
+    internal const val ROOT_THREAD_BLOCK = 0x06
+    internal const val ROOT_MONITOR_USED = 0x07
+    internal const val ROOT_THREAD_OBJECT = 0x08
+    internal const val CLASS_DUMP = 0x20
+    internal const val INSTANCE_DUMP = 0x21
+    internal const val OBJECT_ARRAY_DUMP = 0x22
+    internal const val PRIMITIVE_ARRAY_DUMP = 0x23
+
+    /**
+     * Android format addition
+     *
+     * Specifies information about which heap certain objects came from. When a sub-tag of this type
+     * appears in a HPROF_HEAP_DUMP or HPROF_HEAP_DUMP_SEGMENT record, entries that follow it will
+     * be associated with the specified heap.  The HEAP_DUMP_INFO data is reset at the end of the
+     * HEAP_DUMP[_SEGMENT].  Multiple HEAP_DUMP_INFO entries may appear in a single
+     * HEAP_DUMP[_SEGMENT].
+     *
+     * Format: u1: Tag value (0xFE) u4: heap ID ID: heap name string ID
+     */
+    internal const val HEAP_DUMP_INFO = 0xfe
+    internal const val ROOT_INTERNED_STRING = 0x89
+    internal const val ROOT_FINALIZING = 0x8a
+    internal const val ROOT_DEBUGGER = 0x8b
+    internal const val ROOT_REFERENCE_CLEANUP = 0x8c
+    internal const val ROOT_VM_INTERNAL = 0x8d
+    internal const val ROOT_JNI_MONITOR = 0x8e
+    internal const val ROOT_UNREACHABLE = 0x90
+    internal const val PRIMITIVE_ARRAY_NODATA = 0xc3
   }
 
 }

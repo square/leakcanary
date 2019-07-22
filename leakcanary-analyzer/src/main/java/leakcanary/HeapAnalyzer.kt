@@ -88,9 +88,8 @@ class HeapAnalyzer constructor(
 
     try {
       listener.onProgressUpdate(PARSING_HEAP_DUMP)
-      val (graph, hprofCloseable) = HeapGraph.readHprof(heapDumpFile)
-
-      hprofCloseable.use {
+      Hprof.open(heapDumpFile).use { hprof ->
+        val graph = HeapGraph.indexHprof(hprof)
         listener.onProgressUpdate(FINDING_LEAKING_INSTANCES)
 
         val leakingInstanceObjectIds = findLeakingInstances(graph, leakFinders)

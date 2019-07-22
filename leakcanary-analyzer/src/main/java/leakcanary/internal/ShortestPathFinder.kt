@@ -34,7 +34,7 @@ import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
 import leakcanary.PrimitiveType
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.ReferenceMatcher
 import leakcanary.ReferenceMatcher.IgnoredReferenceMatcher
 import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher

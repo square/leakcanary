@@ -3,8 +3,8 @@ package leakcanary
 import leakcanary.HeapObject.HeapPrimitiveArray
 import leakcanary.PrimitiveType.BOOLEAN
 import leakcanary.PrimitiveType.CHAR
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -52,7 +52,7 @@ class HprofPrimitiveArrayStripperTest {
   }
 
   private fun File.writeRecords(
-    records: List<Record>
+    records: List<HprofRecord>
   ) {
     HprofWriter.open(this)
         .use { writer ->
@@ -63,10 +63,10 @@ class HprofPrimitiveArrayStripperTest {
   }
 
   fun File.readHprof(block: (HeapGraph) -> Unit) {
-    val (graph, closeable) = HeapGraph.readHprof(this)
-    closeable.use {
-      block(graph)
-    }
+    Hprof.open(this)
+        .use { hprof ->
+          block(HeapGraph.indexHprof(hprof))
+        }
   }
 
 }
