@@ -30,9 +30,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
-import leakcanary.CanaryLog
 import leakcanary.internal.InternalLeakCanary.noOpDelegate
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
+import shark.SharkLog
 import java.io.File
 import java.util.concurrent.TimeUnit.SECONDS
 
@@ -68,7 +68,7 @@ internal class AndroidHeapDumper(
     showToast(waitingForToast)
 
     if (!waitingForToast.wait(5, SECONDS)) {
-      CanaryLog.d("Did not dump heap, too much time waiting for Toast.")
+      SharkLog.d("Did not dump heap, too much time waiting for Toast.")
       return null
     }
 
@@ -87,13 +87,13 @@ internal class AndroidHeapDumper(
     return try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
       if (heapDumpFile.length() == 0L) {
-        CanaryLog.d("Dumped heap file is 0 byte length")
+        SharkLog.d("Dumped heap file is 0 byte length")
         null
       } else {
         heapDumpFile
       }
     } catch (e: Exception) {
-      CanaryLog.d(e, "Could not dump heap")
+      SharkLog.d(e, "Could not dump heap")
       // Abort heap dump
       null
     } finally {

@@ -4,15 +4,15 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.os.AsyncTask
-import leakcanary.CanaryLog
-import leakcanary.HeapAnalysis
-import leakcanary.HeapAnalysisFailure
-import leakcanary.HeapAnalysisSuccess
-import leakcanary.internal.Serializables
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.LeakDirectoryProvider
+import leakcanary.internal.Serializables
 import leakcanary.internal.toByteArray
 import org.intellij.lang.annotations.Language
+import shark.HeapAnalysis
+import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
+import shark.SharkLog
 import java.io.File
 
 internal object HeapAnalysisTable {
@@ -127,7 +127,7 @@ internal object HeapAnalysisTable {
         if (heapDumpDeleted) {
           LeakDirectoryProvider.filesDeletedRemoveLeak += path
         } else {
-          CanaryLog.d("Could not delete heap dump file %s", heapDumpFile.path)
+          SharkLog.d("Could not delete heap dump file %s", heapDumpFile.path)
         }
       }
     }

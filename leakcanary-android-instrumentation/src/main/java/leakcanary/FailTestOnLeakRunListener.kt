@@ -26,6 +26,10 @@ import org.junit.runner.Description
 import org.junit.runner.Result
 import org.junit.runner.notification.Failure
 import org.junit.runner.notification.RunListener
+import shark.HeapAnalysis
+import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
+import shark.SharkLog
 
 /**
  *
@@ -81,7 +85,7 @@ open class FailTestOnLeakRunListener : RunListener() {
 
   override fun testFinished(description: Description) {
     detectLeaks()
-    LeakSentry.objectWatcher.clearWatchedObjects()
+    AppWatcher.objectWatcher.clearWatchedObjects()
   }
 
   override fun testRunStarted(description: Description) {
@@ -92,7 +96,7 @@ open class FailTestOnLeakRunListener : RunListener() {
 
   private fun detectLeaks() {
     if (skipLeakDetectionReason != null) {
-      CanaryLog.d("Skipping leak detection because the test %s", skipLeakDetectionReason)
+      SharkLog.d("Skipping leak detection because the test %s", skipLeakDetectionReason)
       skipLeakDetectionReason = null
       return
     }

@@ -19,9 +19,16 @@ import android.os.Debug
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import leakcanary.GcTrigger.Default.runGc
+import leakcanary.InstrumentationLeakDetector.Companion.updateConfig
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
 import org.junit.runner.notification.RunListener
+import shark.HeapAnalysis
+import shark.HeapAnalysisException
+import shark.HeapAnalysisFailure
+import shark.HeapAnalyzer
+import shark.ObjectInspectors
+import shark.SharkLog
 import java.io.File
 
 /**
@@ -29,7 +36,7 @@ import java.io.File
  *
  * To use it, you need to:
  *
- *  - Call [updateConfig] so that [LeakSentry] will watch objects and [LeakCanary] will not dump
+ *  - Call [updateConfig] so that [AppWatcher] will watch objects and [LeakCanary] will not dump
  *  the heap on retained objects
  *  - Add an instrumentation test listener (e.g. [FailTestOnLeakRunListener]) that will invoke
  * [detectLeaks].
@@ -90,10 +97,10 @@ class InstrumentationLeakDetector {
    */
   fun detectLeaks(): Result {
     val leakDetectionTime = SystemClock.uptimeMillis()
-    val watchDurationMillis = LeakSentry.config.watchDurationMillis
+    val watchDurationMillis = AppWatcher.config.watchDurationMillis
     val instrumentation = getInstrumentation()
     val context = instrumentation.targetContext
-    val refWatcher = LeakSentry.objectWatcher
+    val refWatcher = AppWatcher.objectWatcher
 
     if (!refWatcher.hasWatchedObjects) {
       return NoAnalysis
@@ -144,7 +151,7 @@ class InstrumentationLeakDetector {
     try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
     } catch (exception: Exception) {
-      CanaryLog.d(exception, "Could not dump heap")
+      SharkLog.d(exception, "Could not dump heap")
       return AnalysisPerformed(
           HeapAnalysisFailure(
               heapDumpFile, analysisDurationMillis = 0,
@@ -156,7 +163,7 @@ class InstrumentationLeakDetector {
 
     refWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
 
-    val listener = AnalyzerProgressListener.NONE
+    val listener = shark.AnalyzerProgressListener.NONE
 
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.checkForLeaks(
@@ -164,11 +171,11 @@ class InstrumentationLeakDetector {
         config.computeRetainedHeapSize,
         config.objectInspectors,
         if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
-            AndroidObjectInspectors.KEYED_WEAK_REFERENCE
+            ObjectInspectors.KEYED_WEAK_REFERENCE
         )
     )
 
-    CanaryLog.d("Heap Analysis:\n%s", heapAnalysis)
+    SharkLog.d("Heap Analysis:\n%s", heapAnalysis)
 
     return AnalysisPerformed(heapAnalysis)
   }
@@ -176,13 +183,13 @@ class InstrumentationLeakDetector {
   companion object {
 
     /**
-     * Configures [LeakSentry] to watch objects and [LeakCanary] to not dump the heap on retained
+     * Configures [AppWatcher] to watch objects and [LeakCanary] to not dump the heap on retained
      * objects so that instrumentation tests run smoothly, and we can look for leaks at the end of
      * a test. This is automatically called by [FailTestOnLeakRunListener] when the tests start
      * running.
      */
     fun updateConfig() {
-      LeakSentry.config = LeakSentry.config.copy(enabled = true)
+      AppWatcher.config = AppWatcher.config.copy(enabled = true)
       LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
     }
   }

@@ -4,9 +4,9 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import leakcanary.CanaryLog
 import leakcanary.internal.NotificationReceiver.Action.CANCEL_NOTIFICATION
 import leakcanary.internal.NotificationReceiver.Action.DUMP_HEAP
+import shark.SharkLog
 
 internal class NotificationReceiver : BroadcastReceiver() {
 
@@ -27,7 +27,7 @@ internal class NotificationReceiver : BroadcastReceiver() {
         // Do nothing, the notification has auto cancel true.
       }
       else -> {
-        CanaryLog.d("NotificationReceiver received unknown intent action for $intent")
+        SharkLog.d("NotificationReceiver received unknown intent action for $intent")
       }
     }
   }

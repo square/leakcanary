@@ -1,12 +1,17 @@
 package leakcanary
 
 import android.content.Intent
-import leakcanary.ReferenceMatcher.IgnoredReferenceMatcher
-import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
+import leakcanary.LeakCanary.config
 import leakcanary.internal.InternalLeakCanary
+import shark.AndroidObjectInspectors
+import shark.AndroidReferenceMatchers
+import shark.ObjectInspector
+import shark.ReferenceMatcher
+import shark.ReferenceMatcher.IgnoredReferenceMatcher
+import shark.ReferenceMatcher.LibraryLeakReferenceMatcher
 
 /**
- * The entry point API for LeakCanary. LeakCanary builds on top of [LeakSentry]. LeakSentry
+ * The entry point API for LeakCanary. LeakCanary builds on top of [AppWatcher]. AppWatcher
  * notifies LeakCanary of retained instances, which in turns dumps the heap, analyses it and
  * publishes the results.
  *
@@ -44,7 +49,7 @@ object LeakCanary {
      * be fixed.
      *
      * When the app becomes invisible, LeakCanary dumps the heap after
-     * [LeakSentry.Config.watchDurationMillis] ms.
+     * [AppWatcher.Config.watchDurationMillis] ms.
      *
      * The app is considered visible if it has at least one activity in started state.
      *
@@ -62,7 +67,7 @@ object LeakCanary {
      * When adding your own custom [LibraryLeakReferenceMatcher] instances, you'll most
      * likely want to set [LibraryLeakReferenceMatcher.patternApplies] with a filter that checks
      * for the Android OS version and manufacturer. The build information can be obtained by calling
-     * [HeapGraph.androidBuildMirror].
+     * the extension function [shark.HeapGraph.androidBuildMirror].
      *
      * Defaults to [AndroidReferenceMatchers.appDefaults]
      */
@@ -71,7 +76,7 @@ object LeakCanary {
     /**
      * List of [ObjectInspector] that provide LeakCanary with insights about objects found in the
      * heap. You can create your own [ObjectInspector] implementations, and also add
-     * a [AppSingletonInspector] instance created with the list of internal singletons.
+     * a [shark.AppSingletonInspector] instance created with the list of internal singletons.
      *
      * Defaults to [AndroidObjectInspectors.appDefaults]
      */
@@ -94,8 +99,8 @@ object LeakCanary {
      * associated to Java objects (e.g. Android bitmaps).
      *
      * Computing the retained heap size can slow down the analysis because it requires navigating
-     * from GC roots through the entire object graph, whereas [HeapAnalyzer] would otherwise stop
-     * as soon as all leaking instances are found.
+     * from GC roots through the entire object graph, whereas [shark.HeapAnalyzer] would otherwise
+     * stop as soon as all leaking instances are found.
      *
      * Defaults to true.
      */
@@ -141,7 +146,7 @@ object LeakCanary {
    * ```
    */
   @Volatile
-  var config: Config = if (LeakSentry.isInstalled) Config() else InternalLeakCanary.noInstallConfig
+  var config: Config = if (AppWatcher.isInstalled) Config() else InternalLeakCanary.noInstallConfig
 
   /**
    * Returns a new [Intent] that can be used to programmatically launch the leak display activity.
@@ -150,7 +155,7 @@ object LeakCanary {
 
   /**
    * Immediately triggers a heap dump and analysis, if there is at least one retained instance
-   * tracked by [LeakSentry.objectWatcher]. If there are no retained instances then the heap will not
+   * tracked by [AppWatcher.objectWatcher]. If there are no retained instances then the heap will not
    * be dumped and a notification will be shown instead.
    */
   fun dumpHeap() = InternalLeakCanary.onDumpHeapReceived()

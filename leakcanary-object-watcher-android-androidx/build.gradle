@@ -1,0 +1,25 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+dependencies {
+  api project(':leakcanary-object-watcher-android')
+
+  implementation deps.kotlin.stdlib
+  // Optional dependency
+  compileOnly deps.androidx.fragment
+}
+
+android {
+  compileSdkVersion versions.compileSdk
+  defaultConfig {
+    minSdkVersion versions.minSdk
+  }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    error 'ObsoleteSdkInt'
+    check 'Interoperability'
+  }
+}
+
+apply from: rootProject.file('gradle/checkstyle.gradle')
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

@@ -6,7 +6,6 @@ import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
-import leakcanary.HeapAnalysisSuccess
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakingInstanceTable
 import leakcanary.internal.activity.db.LeakingInstanceTable.HeapAnalysisGroupProjection
@@ -19,6 +18,7 @@ import leakcanary.internal.navigation.goBack
 import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
+import shark.HeapAnalysisSuccess
 
 internal class HeapAnalysisSuccessScreen(
   private val analysisId: Long
