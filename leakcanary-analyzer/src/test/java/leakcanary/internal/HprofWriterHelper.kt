@@ -14,6 +14,7 @@ import leakcanary.ValueHolder.ReferenceHolder
 import leakcanary.ValueHolder.ShortHolder
 import leakcanary.HprofReader
 import leakcanary.HprofWriter
+import leakcanary.PrimitiveType
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
@@ -45,18 +46,8 @@ class HprofWriterHelper constructor(
     get() =
       UUID(weakRefKeyRandom.nextLong(), weakRefKeyRandom.nextLong()).toString()
 
-  private val typeSizes = mapOf(
-      // object
-      HprofReader.OBJECT_TYPE to writer.idSize,
-      HprofReader.BOOLEAN_TYPE to HprofReader.BOOLEAN_SIZE,
-      HprofReader.CHAR_TYPE to HprofReader.CHAR_SIZE,
-      HprofReader.FLOAT_TYPE to HprofReader.FLOAT_SIZE,
-      HprofReader.DOUBLE_TYPE to HprofReader.DOUBLE_SIZE,
-      HprofReader.BYTE_TYPE to HprofReader.BYTE_SIZE,
-      HprofReader.SHORT_TYPE to HprofReader.SHORT_SIZE,
-      HprofReader.INT_TYPE to HprofReader.INT_SIZE,
-      HprofReader.LONG_TYPE to HprofReader.LONG_SIZE
-  )
+  private val typeSizes =
+    PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to writer.idSize)
 
   private val classDumps = mutableMapOf<Long, ClassDumpRecord>()
 
@@ -268,29 +259,29 @@ class HprofWriterHelper constructor(
 
   private fun typeOf(wrapper: ValueHolder): Int {
     return when (wrapper) {
-      is ReferenceHolder -> HprofReader.OBJECT_TYPE
-      is BooleanHolder -> HprofReader.BOOLEAN_TYPE
-      is CharHolder -> HprofReader.CHAR_TYPE
-      is FloatHolder -> HprofReader.FLOAT_TYPE
-      is DoubleHolder -> HprofReader.DOUBLE_TYPE
-      is ByteHolder -> HprofReader.BYTE_TYPE
-      is ShortHolder -> HprofReader.SHORT_TYPE
-      is IntHolder -> HprofReader.INT_TYPE
-      is LongHolder -> HprofReader.LONG_TYPE
+      is ReferenceHolder -> PrimitiveType.REFERENCE_HPROF_TYPE
+      is BooleanHolder -> PrimitiveType.BOOLEAN.hprofType
+      is CharHolder -> PrimitiveType.CHAR.hprofType
+      is FloatHolder -> PrimitiveType.FLOAT.hprofType
+      is DoubleHolder -> PrimitiveType.DOUBLE.hprofType
+      is ByteHolder -> PrimitiveType.BYTE.hprofType
+      is ShortHolder -> PrimitiveType.SHORT.hprofType
+      is IntHolder -> PrimitiveType.INT.hprofType
+      is LongHolder -> PrimitiveType.LONG.hprofType
     }
   }
 
   private fun typeOf(wrapperClass: KClass<out ValueHolder>): Int {
     return when (wrapperClass) {
-      ReferenceHolder::class -> HprofReader.OBJECT_TYPE
-      BooleanHolder::class -> HprofReader.BOOLEAN_TYPE
-      CharHolder::class -> HprofReader.CHAR_TYPE
-      FloatHolder::class -> HprofReader.FLOAT_TYPE
-      DoubleHolder::class -> HprofReader.DOUBLE_TYPE
-      ByteHolder::class -> HprofReader.BYTE_TYPE
-      ShortHolder::class -> HprofReader.SHORT_TYPE
-      IntHolder::class -> HprofReader.INT_TYPE
-      LongHolder::class -> HprofReader.LONG_TYPE
+      ReferenceHolder::class -> PrimitiveType.REFERENCE_HPROF_TYPE
+      BooleanHolder::class -> PrimitiveType.BOOLEAN.hprofType
+      CharHolder::class -> PrimitiveType.CHAR.hprofType
+      FloatHolder::class -> PrimitiveType.FLOAT.hprofType
+      DoubleHolder::class -> PrimitiveType.DOUBLE.hprofType
+      ByteHolder::class -> PrimitiveType.BYTE.hprofType
+      ShortHolder::class -> PrimitiveType.SHORT.hprofType
+      IntHolder::class -> PrimitiveType.INT.hprofType
+      LongHolder::class -> PrimitiveType.LONG.hprofType
       else -> throw IllegalArgumentException("Unexpected class $wrapperClass")
     }
   }

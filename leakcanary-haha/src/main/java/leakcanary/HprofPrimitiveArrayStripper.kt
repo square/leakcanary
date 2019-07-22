@@ -35,7 +35,7 @@ class HprofPrimitiveArrayStripper {
 
       override fun onTypeSizesAvailable(typeSizes: Map<Int, Int>) {
         writer =
-          HprofWriter.open(outputHprofFile, idSize = typeSizes.getValue(HprofReader.OBJECT_TYPE))
+          HprofWriter.open(outputHprofFile, idSize = typeSizes.getValue(PrimitiveType.REFERENCE_HPROF_TYPE))
       }
 
       override fun onRecord(

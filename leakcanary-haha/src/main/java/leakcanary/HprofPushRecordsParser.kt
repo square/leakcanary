@@ -16,8 +16,8 @@ import leakcanary.GcRoot.ThreadObject
 import leakcanary.GcRoot.Unknown
 import leakcanary.GcRoot.Unreachable
 import leakcanary.GcRoot.VmInternal
-import leakcanary.HprofReader.Companion.INT_SIZE
-import leakcanary.HprofReader.Companion.LONG_SIZE
+import leakcanary.PrimitiveType.INT
+import leakcanary.PrimitiveType.LONG
 import leakcanary.Record.HeapDumpEndRecord
 import leakcanary.Record.HeapDumpRecord
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
@@ -173,16 +173,18 @@ class HprofPushRecordsParser {
         }
       }
     }
+    val intByteSize = INT.byteSize
+    val longByteSize = LONG.byteSize
 
     // heap dump timestamp
-    skip(LONG_SIZE)
+    skip(longByteSize)
 
     while (!exhausted()) {
       // type of the record
       val tag = readUnsignedByte()
 
       // number of microseconds since the time stamp in the header
-      skip(INT_SIZE)
+      skip(intByteSize)
 
       // number of bytes that follow and belong to this record
       val length = readUnsignedInt()
@@ -192,7 +194,7 @@ class HprofPushRecordsParser {
           if (readStringRecord.isNotEmpty()) {
             val recordPosition = position
             val id = readId()
-            val stringLength = length - idSize
+            val stringLength = length - objectIdByteSize
             val string = readUtf8(stringLength)
             val record = StringRecord(id, string)
             readStringRecord.forEach { it.onRecord(recordPosition, record) }
@@ -270,7 +272,7 @@ class HprofPushRecordsParser {
                   val record = GcRootRecord(gcRoot = Unknown(id = readId()))
                   readGcRootRecord.forEach { it.onRecord(recordPosition, record) }
                 } else {
-                  skip(idSize)
+                  skip(objectIdByteSize)
                 }
               }
               ROOT_JNI_GLOBAL -> {
@@ -284,7 +286,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize + idSize)
+                  skip(objectIdByteSize + objectIdByteSize)
                 }
               }
 
@@ -302,7 +304,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize + INT_SIZE + INT_SIZE)
+                  skip(objectIdByteSize + intByteSize + intByteSize)
                 }
               }
 
@@ -320,7 +322,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize + INT_SIZE + INT_SIZE)
+                  skip(objectIdByteSize + intByteSize + intByteSize)
                 }
               }
 
@@ -336,7 +338,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize + INT_SIZE)
+                  skip(objectIdByteSize + intByteSize)
                 }
               }
 
@@ -352,7 +354,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize)
+                  skip(objectIdByteSize)
                 }
               }
 
@@ -369,7 +371,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize + INT_SIZE)
+                  skip(objectIdByteSize + intByteSize)
                 }
               }
 
@@ -385,7 +387,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize)
+                  skip(objectIdByteSize)
                 }
               }
 
@@ -405,7 +407,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize + INT_SIZE + INT_SIZE)
+                  skip(objectIdByteSize + intByteSize + intByteSize)
                 }
               }
 
@@ -419,7 +421,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize)
+                  skip(objectIdByteSize)
                 }
               }
 
@@ -435,7 +437,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize)
+                  skip(objectIdByteSize)
                 }
               }
 
@@ -451,7 +453,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize)
+                  skip(objectIdByteSize)
                 }
               }
 
@@ -467,7 +469,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize)
+                  skip(objectIdByteSize)
                 }
               }
 
@@ -483,7 +485,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize)
+                  skip(objectIdByteSize)
                 }
               }
 
@@ -502,7 +504,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize + INT_SIZE + INT_SIZE)
+                  skip(objectIdByteSize + intByteSize + intByteSize)
                 }
               }
 
@@ -518,7 +520,7 @@ class HprofPushRecordsParser {
                     )
                   }
                 } else {
-                  skip(idSize)
+                  skip(objectIdByteSize)
                 }
               }
               CLASS_DUMP -> {

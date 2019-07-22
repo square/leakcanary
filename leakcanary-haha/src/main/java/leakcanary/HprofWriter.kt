@@ -232,42 +232,42 @@ class HprofWriter private constructor(
           when (record) {
             is BooleanArrayDump -> {
               writeInt(record.array.size)
-              writeByte(HprofReader.BOOLEAN_TYPE)
+              writeByte(PrimitiveType.BOOLEAN.hprofType)
               write(record.array)
             }
             is CharArrayDump -> {
               writeInt(record.array.size)
-              writeByte(HprofReader.CHAR_TYPE)
+              writeByte(PrimitiveType.CHAR.hprofType)
               write(record.array)
             }
             is FloatArrayDump -> {
               writeInt(record.array.size)
-              writeByte(HprofReader.FLOAT_TYPE)
+              writeByte(PrimitiveType.FLOAT.hprofType)
               write(record.array)
             }
             is DoubleArrayDump -> {
               writeInt(record.array.size)
-              writeByte(HprofReader.DOUBLE_TYPE)
+              writeByte(PrimitiveType.DOUBLE.hprofType)
               write(record.array)
             }
             is ByteArrayDump -> {
               writeInt(record.array.size)
-              writeByte(HprofReader.BYTE_TYPE)
+              writeByte(PrimitiveType.BYTE.hprofType)
               write(record.array)
             }
             is ShortArrayDump -> {
               writeInt(record.array.size)
-              writeByte(HprofReader.SHORT_TYPE)
+              writeByte(PrimitiveType.SHORT.hprofType)
               write(record.array)
             }
             is IntArrayDump -> {
               writeInt(record.array.size)
-              writeByte(HprofReader.INT_TYPE)
+              writeByte(PrimitiveType.INT.hprofType)
               write(record.array)
             }
             is LongArrayDump -> {
               writeInt(record.array.size)
-              writeByte(HprofReader.LONG_TYPE)
+              writeByte(PrimitiveType.LONG.hprofType)
               write(record.array)
             }
           }

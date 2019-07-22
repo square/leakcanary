@@ -1,14 +1,5 @@
 package leakcanary
 
-import leakcanary.ValueHolder.BooleanHolder
-import leakcanary.ValueHolder.ByteHolder
-import leakcanary.ValueHolder.CharHolder
-import leakcanary.ValueHolder.DoubleHolder
-import leakcanary.ValueHolder.FloatHolder
-import leakcanary.ValueHolder.IntHolder
-import leakcanary.ValueHolder.LongHolder
-import leakcanary.ValueHolder.ReferenceHolder
-import leakcanary.ValueHolder.ShortHolder
 import leakcanary.Record.HeapDumpRecord.HeapDumpInfoRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
@@ -24,6 +15,15 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import leakcanary.ValueHolder.BooleanHolder
+import leakcanary.ValueHolder.ByteHolder
+import leakcanary.ValueHolder.CharHolder
+import leakcanary.ValueHolder.DoubleHolder
+import leakcanary.ValueHolder.FloatHolder
+import leakcanary.ValueHolder.IntHolder
+import leakcanary.ValueHolder.LongHolder
+import leakcanary.ValueHolder.ReferenceHolder
+import leakcanary.ValueHolder.ShortHolder
 import okio.BufferedSource
 import java.io.Closeable
 import java.nio.charset.Charset
@@ -36,8 +36,8 @@ import java.nio.charset.Charset
 open class HprofReader constructor(
   protected var source: BufferedSource,
   protected val startPosition: Long,
-  val idSize: Int
-): Closeable {
+  val objectIdByteSize: Int
+) : Closeable {
   override fun close() {
     source.close()
   }
@@ -50,7 +50,7 @@ open class HprofReader constructor(
 
   val typeSizes = mapOf(
       // object
-      OBJECT_TYPE to idSize,
+      PrimitiveType.REFERENCE_HPROF_TYPE to objectIdByteSize,
       BOOLEAN_TYPE to BOOLEAN_SIZE,
       CHAR_TYPE to CHAR_SIZE,
       FLOAT_TYPE to FLOAT_SIZE,
@@ -63,7 +63,7 @@ open class HprofReader constructor(
 
   fun readValue(type: Int): ValueHolder {
     return when (type) {
-      OBJECT_TYPE -> ReferenceHolder(readId())
+      PrimitiveType.REFERENCE_HPROF_TYPE -> ReferenceHolder(readId())
       BOOLEAN_TYPE -> BooleanHolder(readBoolean())
       CHAR_TYPE -> CharHolder(readChar())
       FLOAT_TYPE -> FloatHolder(readFloat())
@@ -171,7 +171,7 @@ open class HprofReader constructor(
 
   fun readId(): Long {
     // As long as we don't interpret IDs, reading signed values here is fine.
-    return when (idSize) {
+    return when (objectIdByteSize) {
       1 -> readByte().toLong()
       2 -> readShort().toLong()
       4 -> readInt().toLong()
@@ -281,14 +281,14 @@ open class HprofReader constructor(
   }
 
   fun skipInstanceDumpRecord() {
-    skip(idSize + INT_SIZE + idSize)
+    skip(objectIdByteSize + INT_SIZE + objectIdByteSize)
     val remainingBytesInInstance = readInt()
     skip(remainingBytesInInstance)
   }
 
   fun skipClassDumpRecord() {
     skip(
-        idSize + INT_SIZE + idSize + idSize + idSize + idSize + idSize + idSize + INT_SIZE
+        objectIdByteSize + INT_SIZE + objectIdByteSize + objectIdByteSize + objectIdByteSize + objectIdByteSize + objectIdByteSize + objectIdByteSize + INT_SIZE
     )
     // Skip over the constant pool
     val constantPoolCount = readUnsignedShort()
@@ -301,13 +301,13 @@ open class HprofReader constructor(
     val staticFieldCount = readUnsignedShort()
 
     for (i in 0 until staticFieldCount) {
-      skip(idSize)
+      skip(objectIdByteSize)
       val type = readUnsignedByte()
       skip(typeSize(type))
     }
 
     val fieldCount = readUnsignedShort()
-    skip(fieldCount * (idSize + BYTE_SIZE))
+    skip(fieldCount * (objectIdByteSize + BYTE_SIZE))
   }
 
   fun readObjectArrayDumpRecord(
@@ -327,9 +327,9 @@ open class HprofReader constructor(
   }
 
   fun skipObjectArrayDumpRecord() {
-    skip(idSize + INT_SIZE)
+    skip(objectIdByteSize + INT_SIZE)
     val arrayLength = readInt()
-    skip(idSize + arrayLength * idSize)
+    skip(objectIdByteSize + arrayLength * objectIdByteSize)
   }
 
   fun readPrimitiveArrayDumpRecord(): PrimitiveArrayDumpRecord {
@@ -368,10 +368,10 @@ open class HprofReader constructor(
   }
 
   fun skipPrimitiveArrayDumpRecord() {
-    skip(idSize + INT_SIZE)
+    skip(objectIdByteSize + INT_SIZE)
     val arrayLength = readInt()
     val type = readUnsignedByte()
-    skip(idSize + arrayLength * typeSize(type))
+    skip(objectIdByteSize + arrayLength * typeSize(type))
   }
 
   fun readHeapDumpInfoRecord(): HeapDumpInfoRecord {
@@ -380,34 +380,30 @@ open class HprofReader constructor(
   }
 
   fun skipHeapDumpInfoRecord() {
-    skip(idSize + idSize)
+    skip(objectIdByteSize + objectIdByteSize)
   }
 
-  val tagPositionAfterReadingId
-    get() = position - (idSize + BYTE_SIZE)
-
   companion object {
-    const val BOOLEAN_SIZE = 1
-    const val CHAR_SIZE = 2
-    const val FLOAT_SIZE = 4
-    const val DOUBLE_SIZE = 8
-    const val BYTE_SIZE = 1
-    const val SHORT_SIZE = 2
-    const val INT_SIZE = 4
-    const val LONG_SIZE = 8
+    private val BOOLEAN_SIZE = PrimitiveType.BOOLEAN.byteSize
+    private val CHAR_SIZE = PrimitiveType.CHAR.byteSize
+    private val FLOAT_SIZE = PrimitiveType.FLOAT.byteSize
+    private val DOUBLE_SIZE = PrimitiveType.DOUBLE.byteSize
+    private val BYTE_SIZE = PrimitiveType.BYTE.byteSize
+    private val SHORT_SIZE = PrimitiveType.SHORT.byteSize
+    private val INT_SIZE = PrimitiveType.INT.byteSize
+    private val LONG_SIZE = PrimitiveType.LONG.byteSize
 
-    const val OBJECT_TYPE = 2
-    const val BOOLEAN_TYPE = 4
-    const val CHAR_TYPE = 5
-    const val FLOAT_TYPE = 6
-    const val DOUBLE_TYPE = 7
-    const val BYTE_TYPE = 8
-    const val SHORT_TYPE = 9
-    const val INT_TYPE = 10
-    const val LONG_TYPE = 11
+    private val BOOLEAN_TYPE = PrimitiveType.BOOLEAN.hprofType
+    private val CHAR_TYPE = PrimitiveType.CHAR.hprofType
+    private val FLOAT_TYPE = PrimitiveType.FLOAT.hprofType
+    private val DOUBLE_TYPE = PrimitiveType.DOUBLE.hprofType
+    private val BYTE_TYPE = PrimitiveType.BYTE.hprofType
+    private val SHORT_TYPE = PrimitiveType.SHORT.hprofType
+    private val INT_TYPE = PrimitiveType.INT.hprofType
+    private val LONG_TYPE = PrimitiveType.LONG.hprofType
 
-    const val INT_MASK = 0xffffffffL
-    const val BYTE_MASK = 0xff
+    private const val INT_MASK = 0xffffffffL
+    private const val BYTE_MASK = 0xff
   }
 
 }

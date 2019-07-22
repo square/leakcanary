@@ -11,7 +11,6 @@ import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
 import leakcanary.GcRoot.ThreadObject
 import leakcanary.HprofPushRecordsParser.OnRecordListener
-import leakcanary.HprofReader
 import leakcanary.PrimitiveType
 import leakcanary.Record
 import leakcanary.Record.HeapDumpRecord.GcRootRecord
@@ -33,6 +32,7 @@ import leakcanary.internal.IndexedObject.IndexedClass
 import leakcanary.internal.IndexedObject.IndexedInstance
 import leakcanary.internal.IndexedObject.IndexedObjectArray
 import leakcanary.internal.IndexedObject.IndexedPrimitiveArray
+import kotlin.properties.Delegates.notNull
 import kotlin.reflect.KClass
 
 /**
@@ -43,13 +43,9 @@ internal class HprofInMemoryIndex private constructor(
   private val classNames: LongToLongSparseArray,
   private val objectIndex: LongToObjectSparseArray<IndexedObject>,
   private val gcRoots: List<GcRoot>,
-  private val typeSizes: Map<Int, Int>,
+  val objectIdByteSize: Int,
   val primitiveWrapperTypes: Set<Long>
 ) {
-  val idSize: Int
-    get() = typeSizes.getValue(HprofReader.OBJECT_TYPE)
-
-  fun sizeOfFieldType(hprofType: Int): Int = typeSizes.getValue(hprofType)
 
   fun hprofStringById(id: Long): String {
     return hprofStringCache[id] ?: throw IllegalArgumentException("Hprof string $id not in cache")
@@ -133,7 +129,8 @@ internal class HprofInMemoryIndex private constructor(
 
     private val gcRoots = mutableListOf<GcRoot>()
 
-    private lateinit var typeSizes: Map<Int, Int>
+    private var objectIdByteSize: Int by notNull()
+
     private var consumed = false
 
     override fun recordTypes(): Set<KClass<out Record>> = setOf(
@@ -147,7 +144,7 @@ internal class HprofInMemoryIndex private constructor(
     )
 
     override fun onTypeSizesAvailable(typeSizes: Map<Int, Int>) {
-      this.typeSizes = typeSizes
+      objectIdByteSize = typeSizes.getValue(PrimitiveType.REFERENCE_HPROF_TYPE)
     }
 
     override fun onRecord(
@@ -207,7 +204,7 @@ internal class HprofInMemoryIndex private constructor(
       // Passing references to avoid copying the underlying data structures.
       return HprofInMemoryIndex(
           hprofStringCache, classNames, objectIndex, gcRoots,
-          typeSizes,
+          objectIdByteSize,
           primitiveWrapperTypes
       )
     }

@@ -1,6 +1,5 @@
 package leakcanary
 
-import leakcanary.ValueHolder.ReferenceHolder
 import leakcanary.PrimitiveType.BOOLEAN
 import leakcanary.PrimitiveType.BYTE
 import leakcanary.PrimitiveType.CHAR
@@ -22,6 +21,7 @@ import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import leakcanary.ValueHolder.ReferenceHolder
 import leakcanary.internal.IndexedObject.IndexedClass
 import leakcanary.internal.IndexedObject.IndexedInstance
 import leakcanary.internal.IndexedObject.IndexedObjectArray
@@ -74,6 +74,15 @@ sealed class HeapObject {
     val instanceSize: Int
       get() = indexedObject.instanceSize
 
+    fun readFieldsSize(): Int {
+      return readRecord()
+          .fields.sumBy {
+        if (it.type == PrimitiveType.REFERENCE_HPROF_TYPE) {
+          graph.objectIdByteSize
+        } else PrimitiveType.byteSizeByHprofType.getValue(it.type)
+      }
+    }
+
     val superclass: HeapClass?
       get() {
         if (indexedObject.superclassId == ValueHolder.NULL_REFERENCE) return null
@@ -115,7 +124,7 @@ sealed class HeapObject {
           }
     }
 
-    operator fun get(fieldName: String): HeapClassField? {
+    fun readStaticField(fieldName: String): HeapClassField? {
       for (fieldRecord in readRecord().staticFields) {
         if (graph.staticFieldName(fieldRecord) == fieldName) {
           return HeapClassField(
@@ -125,6 +134,8 @@ sealed class HeapObject {
       }
       return null
     }
+
+    operator fun get(fieldName: String) = readStaticField(fieldName)
 
     override fun toString(): String {
       return "record of class $name"
@@ -161,10 +172,22 @@ sealed class HeapObject {
       declaringClass: KClass<out Any>,
       fieldName: String
     ): HeapClassField? {
-      return get(declaringClass.java.name, fieldName)
+      return readField(declaringClass, fieldName)
     }
 
     operator fun get(
+      declaringClassName: String,
+      fieldName: String
+    ) = readField(declaringClassName, fieldName)
+
+    fun readField(
+      declaringClass: KClass<out Any>,
+      fieldName: String
+    ): HeapClassField? {
+      return readField(declaringClass.java.name, fieldName)
+    }
+
+    fun readField(
       declaringClassName: String,
       fieldName: String
     ): HeapClassField? {
@@ -267,7 +290,7 @@ sealed class HeapObject {
       get() = graph.findObjectById(indexedObject.arrayClassId) as HeapClass
 
     fun readSize(): Int {
-      return readRecord().elementIds.size * graph.idSize
+      return readRecord().elementIds.size * graph.objectIdByteSize
     }
 
     override fun readRecord(): ObjectArrayDumpRecord {
@@ -295,14 +318,14 @@ sealed class HeapObject {
 
     fun readSize(): Int {
       return when (val record = readRecord()) {
-        is BooleanArrayDump -> record.array.size * HprofReader.BOOLEAN_SIZE
-        is CharArrayDump -> record.array.size * HprofReader.CHAR_SIZE
-        is FloatArrayDump -> record.array.size * HprofReader.FLOAT_SIZE
-        is DoubleArrayDump -> record.array.size * HprofReader.DOUBLE_SIZE
-        is ByteArrayDump -> record.array.size * HprofReader.BYTE_SIZE
-        is ShortArrayDump -> record.array.size * HprofReader.SHORT_SIZE
-        is IntArrayDump -> record.array.size * HprofReader.INT_SIZE
-        is LongArrayDump -> record.array.size * HprofReader.LONG_SIZE
+        is BooleanArrayDump -> record.array.size * PrimitiveType.BOOLEAN.byteSize
+        is CharArrayDump -> record.array.size * PrimitiveType.CHAR.byteSize
+        is FloatArrayDump -> record.array.size * PrimitiveType.FLOAT.byteSize
+        is DoubleArrayDump -> record.array.size * PrimitiveType.DOUBLE.byteSize
+        is ByteArrayDump -> record.array.size * PrimitiveType.BYTE.byteSize
+        is ShortArrayDump -> record.array.size * PrimitiveType.SHORT.byteSize
+        is IntArrayDump -> record.array.size * PrimitiveType.INT.byteSize
+        is LongArrayDump -> record.array.size * PrimitiveType.LONG.byteSize
       }
     }
 

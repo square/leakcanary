@@ -32,6 +32,8 @@ class HeapGraph internal constructor(
   private val index: HprofInMemoryIndex
 ) {
 
+  val objectIdByteSize: Int = index.objectIdByteSize
+
   /**
    * In memory store that can be used to store objects this [HeapGraph] instance.
    */
@@ -87,9 +89,6 @@ class HeapGraph internal constructor(
           }
     }
 
-  internal val idSize
-    get() = index.idSize
-
   // LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
   // This is based on running InstrumentationLeakDetectorTest a bunch of time on a
   // Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
@@ -123,13 +122,6 @@ class HeapGraph internal constructor(
     return index.objectIdIsIndexed(objectId)
   }
 
-  /**
-   * Returns the byte size of the provided [hprofType].
-   *
-   * Note: this API may be removed eventually.
-   */
-  fun sizeOfFieldType(hprofType: Int) = index.sizeOfFieldType(hprofType)
-
   internal fun fieldName(fieldRecord: FieldRecord): String {
     return index.hprofStringById(fieldRecord.nameStringId)
   }
@@ -142,7 +134,7 @@ class HeapGraph internal constructor(
     val buffer = Buffer()
     buffer.write(record.fieldValues)
 
-    val reader = HprofReader(buffer, 0, index.idSize)
+    val reader = HprofReader(buffer, 0, index.objectIdByteSize)
 
     return object : FieldValuesReader {
       override fun readValue(field: FieldRecord): ValueHolder {

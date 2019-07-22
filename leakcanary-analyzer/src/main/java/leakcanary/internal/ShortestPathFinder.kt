@@ -22,29 +22,29 @@ import leakcanary.CanaryLog
 import leakcanary.GcRoot
 import leakcanary.GcRoot.JavaFrame
 import leakcanary.GcRoot.ThreadObject
+import leakcanary.HeapGraph
 import leakcanary.HeapObject
 import leakcanary.HeapObject.HeapClass
 import leakcanary.HeapObject.HeapInstance
 import leakcanary.HeapObject.HeapObjectArray
 import leakcanary.HeapObject.HeapPrimitiveArray
-import leakcanary.ValueHolder
-import leakcanary.HeapGraph
-import leakcanary.HprofReader
 import leakcanary.LeakReference
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
+import leakcanary.PrimitiveType
 import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.ReferenceMatcher
 import leakcanary.ReferenceMatcher.IgnoredReferenceMatcher
 import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
-import leakcanary.internal.ReferencePathNode.ChildNode.LibraryLeakNode
-import leakcanary.internal.ReferencePathNode.ChildNode.NormalNode
-import leakcanary.internal.ReferencePathNode.RootNode
 import leakcanary.ReferencePattern
 import leakcanary.ReferencePattern.InstanceFieldPattern
 import leakcanary.ReferencePattern.StaticFieldPattern
+import leakcanary.ValueHolder
+import leakcanary.internal.ReferencePathNode.ChildNode.LibraryLeakNode
+import leakcanary.internal.ReferencePathNode.ChildNode.NormalNode
+import leakcanary.internal.ReferencePathNode.RootNode
 import leakcanary.internal.hppc.LongLongScatterMap
 import leakcanary.internal.hppc.LongScatterSet
 import java.util.ArrayDeque
@@ -106,14 +106,10 @@ internal class ShortestPathFinder {
       // In Android 16 ClassDumpRecord.instanceSize can be 8 yet there are 0 fields.
       // Better rely on our own computation of instance size.
       // See #1374
-      val objectClassFieldSize = objectClass.readRecord()
-          .fields.sumBy {
-        graph.sizeOfFieldType(it.type)
-      }
+      val objectClassFieldSize = objectClass.readFieldsSize()
 
       // shadow$_klass_ (object id) + shadow$_monitor_ (Int)
-      val sizeOfObjectOnArt =
-        graph.sizeOfFieldType(HprofReader.OBJECT_TYPE) + graph.sizeOfFieldType(HprofReader.INT_TYPE)
+      val sizeOfObjectOnArt = graph.objectIdByteSize + PrimitiveType.INT.byteSize
       if (objectClassFieldSize == sizeOfObjectOnArt) {
         sizeOfObjectOnArt
       } else {

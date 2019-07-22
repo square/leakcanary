@@ -69,7 +69,7 @@ class HprofWriterTest {
         protectionDomainId = 0,
         instanceSize = 0,
         staticFields = emptyList(),
-        fields = listOf(FieldRecord(answerFieldName.id, HprofReader.INT_TYPE))
+        fields = listOf(FieldRecord(answerFieldName.id, PrimitiveType.INT.hprofType))
     )
 
     val baguetteInstanceDump = InstanceDumpRecord(
@@ -89,7 +89,7 @@ class HprofWriterTest {
         instanceSize = 0,
         staticFields = listOf(
             StaticFieldRecord(
-                contentFieldName.id, HprofReader.OBJECT_TYPE,
+                contentFieldName.id, PrimitiveType.REFERENCE_HPROF_TYPE,
                 ReferenceHolder(baguetteInstanceDump.id)
             )
         ),
