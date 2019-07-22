@@ -53,6 +53,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   override fun invoke(application: Application) {
     this.application = application
 
+    AppWatcher.objectWatcher.addOnObjectRetainedListener(this)
+
     val heapDumper = AndroidHeapDumper(application, leakDirectoryProvider)
 
     val gcTrigger = GcTrigger.Default

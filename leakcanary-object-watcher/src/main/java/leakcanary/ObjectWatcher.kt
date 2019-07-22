@@ -36,12 +36,13 @@ import java.util.concurrent.Executor
 class ObjectWatcher constructor(
   private val clock: Clock,
   private val checkRetainedExecutor: Executor,
-  private val onObjectRetainedListener: OnObjectRetainedListener,
   /**
    * Calls to [watch] will be ignored when [isEnabled] returns false
    */
   private val isEnabled: () -> Boolean = { true }
 ) {
+
+  private val onObjectRetainedListeners = mutableSetOf<OnObjectRetainedListener>()
 
   /**
    * References passed to [watch].
@@ -100,6 +101,14 @@ class ObjectWatcher constructor(
       return instances
     }
 
+  @Synchronized fun addOnObjectRetainedListener(listener: OnObjectRetainedListener) {
+    onObjectRetainedListeners.add(listener)
+  }
+
+  @Synchronized fun removeOnObjectRetainedListener(listener: OnObjectRetainedListener) {
+    onObjectRetainedListeners.remove(listener)
+  }
+
   /**
    * Identical to [watch] with an empty string reference name.
    */
@@ -127,7 +136,8 @@ class ObjectWatcher constructor(
       KeyedWeakReference(watchedObject, key, name, watchUptimeMillis, queue)
     SharkLog.d(
         "Watching %s with key %s",
-        ((if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") + if (name.isNotEmpty()) " named $name" else ""), key
+        ((if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") + if (name.isNotEmpty()) " named $name" else ""),
+        key
     )
 
     watchedObjects[key] = reference
@@ -141,7 +151,8 @@ class ObjectWatcher constructor(
    * [clock] [Clock.uptimeMillis])
    */
   @Synchronized fun clearObjectsWatchedBefore(heapDumpUptimeMillis: Long) {
-    val weakRefsToRemove = watchedObjects.filter { it.value.watchUptimeMillis <= heapDumpUptimeMillis }
+    val weakRefsToRemove =
+      watchedObjects.filter { it.value.watchUptimeMillis <= heapDumpUptimeMillis }
     weakRefsToRemove.values.forEach { it.clear() }
     watchedObjects.keys.removeAll(weakRefsToRemove.keys)
   }
@@ -159,7 +170,7 @@ class ObjectWatcher constructor(
     val retainedRef = watchedObjects[key]
     if (retainedRef != null) {
       retainedRef.retainedUptimeMillis = clock.uptimeMillis()
-      onObjectRetainedListener.onObjectRetained()
+      onObjectRetainedListeners.forEach { it.onObjectRetained() }
     }
   }
 

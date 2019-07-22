@@ -20,7 +20,6 @@ internal object InternalAppWatcher {
     get() = ::application.isInitialized
 
   private val onAppWatcherInstalled: (Application) -> Unit
-  private val ON_OBJECT_RETAINED_LISTENER: OnObjectRetainedListener
 
   val isDebuggableBuild by lazy {
     (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
@@ -46,7 +45,6 @@ internal object InternalAppWatcher {
     }
     @kotlin.Suppress("UNCHECKED_CAST")
     onAppWatcherInstalled = internalLeakCanary as (Application) -> Unit
-    ON_OBJECT_RETAINED_LISTENER = internalLeakCanary as OnObjectRetainedListener
   }
 
   private val checkRetainedExecutor = Executor {
@@ -55,7 +53,6 @@ internal object InternalAppWatcher {
   val objectWatcher = ObjectWatcher(
       clock = clock,
       checkRetainedExecutor = checkRetainedExecutor,
-      onObjectRetainedListener = ON_OBJECT_RETAINED_LISTENER,
       isEnabled = { AppWatcher.config.enabled }
   )
 

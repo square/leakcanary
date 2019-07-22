@@ -7,10 +7,6 @@ import java.util.concurrent.Executor
 
 class ObjectWatcherTest {
 
-  private val onInstanceRetained = object: OnObjectRetainedListener {
-    override fun onObjectRetained() {}
-  }
-
   private val checkRetainedExecutor: Executor = Executor {
     it.run()
   }
@@ -19,7 +15,7 @@ class ObjectWatcherTest {
     override fun uptimeMillis(): Long {
       return time
     }
-  }, checkRetainedExecutor, onInstanceRetained)
+  }, checkRetainedExecutor).apply { addOnObjectRetainedListener(OnObjectRetainedListener {}) }
   var time: Long = 0
 
   var ref: Any? = Any()

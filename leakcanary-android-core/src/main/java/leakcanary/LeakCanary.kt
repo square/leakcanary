@@ -67,7 +67,7 @@ object LeakCanary {
      * When adding your own custom [LibraryLeakReferenceMatcher] instances, you'll most
      * likely want to set [LibraryLeakReferenceMatcher.patternApplies] with a filter that checks
      * for the Android OS version and manufacturer. The build information can be obtained by calling
-     * [HeapGraph.androidBuildMirror].
+     * the extension function [shark.HeapGraph.androidBuildMirror].
      *
      * Defaults to [AndroidReferenceMatchers.appDefaults]
      */
@@ -76,7 +76,7 @@ object LeakCanary {
     /**
      * List of [ObjectInspector] that provide LeakCanary with insights about objects found in the
      * heap. You can create your own [ObjectInspector] implementations, and also add
-     * a [AppSingletonInspector] instance created with the list of internal singletons.
+     * a [shark.AppSingletonInspector] instance created with the list of internal singletons.
      *
      * Defaults to [AndroidObjectInspectors.appDefaults]
      */
@@ -99,8 +99,8 @@ object LeakCanary {
      * associated to Java objects (e.g. Android bitmaps).
      *
      * Computing the retained heap size can slow down the analysis because it requires navigating
-     * from GC roots through the entire object graph, whereas [HeapAnalyzer] would otherwise stop
-     * as soon as all leaking instances are found.
+     * from GC roots through the entire object graph, whereas [shark.HeapAnalyzer] would otherwise
+     * stop as soon as all leaking instances are found.
      *
      * Defaults to true.
      */
