@@ -70,7 +70,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
           addedToContext
         }
 
-      val objectId = reporter.objectRecord.objectId
+      val objectId = reporter.heapObject.objectId
       references.forEach { ref ->
         if (ref.referent.value == objectId) {
           reporter.reportLeaking("ObjectWatcher was watching this")
@@ -266,7 +266,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HeapGraph,
       reporter: ObjectReporter
     ) {
-      if (reporter.objectRecord is HeapClass) {
+      if (reporter.heapObject is HeapClass) {
         reporter.reportNotLeaking("a class is never leaking")
       }
     }
@@ -389,8 +389,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
       graph: HeapGraph,
       reporter: ObjectReporter
     ) {
-      if (reporter.objectRecord is HeapInstance) {
-        val instanceClass = reporter.objectRecord.instanceClass
+      if (reporter.heapObject is HeapInstance) {
+        val instanceClass = reporter.heapObject.instanceClass
         if (instanceClass.name.matches(HeapAnalyzer.ANONYMOUS_CLASS_NAME_PATTERN_REGEX)) {
           val parentClassRecord = instanceClass.superclass!!
           if (parentClassRecord.name == "java.lang.Object") {
@@ -491,7 +491,7 @@ private infix fun HeapClassField.describedWithValue(valueDescription: String): S
 }
 
 /**
- * Runs [block] if [ObjectReporter.objectRecord] is an instance of [expectedClass].
+ * Runs [block] if [ObjectReporter.heapObject] is an instance of [expectedClass].
  */
 inline fun ObjectReporter.whenInstanceOf(
   expectedClass: KClass<out Any>,
@@ -501,14 +501,14 @@ inline fun ObjectReporter.whenInstanceOf(
 }
 
 /**
- * Runs [block] if [ObjectReporter.objectRecord] is an instance of [expectedClassName].
+ * Runs [block] if [ObjectReporter.heapObject] is an instance of [expectedClassName].
  */
 inline fun ObjectReporter.whenInstanceOf(
   expectedClassName: String,
   block: ObjectReporter.(HeapInstance) -> Unit
 ) {
-  if (objectRecord is HeapInstance && objectRecord instanceOf expectedClassName) {
-    block(objectRecord)
+  if (heapObject is HeapInstance && heapObject instanceOf expectedClassName) {
+    block(heapObject)
   }
 }
 

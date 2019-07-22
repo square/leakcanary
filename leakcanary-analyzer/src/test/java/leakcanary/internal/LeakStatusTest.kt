@@ -435,7 +435,7 @@ class LeakStatusTest {
         graph: HeapGraph,
         reporter: ObjectReporter
       ) {
-        val record = reporter.objectRecord
+        val record = reporter.heapObject
         if (record is HeapInstance && record.instanceClassName == className) {
           reporter.reportNotLeaking("$className is not leaking")
         }
@@ -449,7 +449,7 @@ class LeakStatusTest {
         graph: HeapGraph,
         reporter: ObjectReporter
       ) {
-        val record = reporter.objectRecord
+        val record = reporter.heapObject
         if (record is HeapInstance && record.instanceClassName == className) {
           reporter.reportLeaking("$className is leaking")
         }
@@ -463,7 +463,7 @@ class LeakStatusTest {
         graph: HeapGraph,
         reporter: ObjectReporter
       ) {
-        val record = reporter.objectRecord
+        val record = reporter.heapObject
         if (record is HeapClass && record.name == className) {
           reporter.reportNotLeaking("$className is not leaking")
         }
@@ -477,7 +477,7 @@ class LeakStatusTest {
         graph: HeapGraph,
         reporter: ObjectReporter
       ) {
-        val record = reporter.objectRecord
+        val record = reporter.heapObject
         if (record is HeapClass && record.name == className) {
           reporter.reportLeaking("$className is leaking")
         }

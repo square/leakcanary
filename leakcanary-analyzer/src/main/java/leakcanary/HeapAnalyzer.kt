@@ -450,7 +450,7 @@ class HeapAnalyzer constructor(
     }
 
     val simpleClassNames = leakReporters.map { reporter ->
-      recordClassName(reporter.`object`).lastSegment('.')
+      recordClassName(reporter.heapObject).lastSegment('.')
     }
 
     // First and last are always known.

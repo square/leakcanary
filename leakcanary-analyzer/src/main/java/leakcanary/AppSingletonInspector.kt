@@ -11,8 +11,8 @@ class AppSingletonInspector(private vararg val singletonClasses: String) : Objec
     graph: HeapGraph,
     reporter: ObjectReporter
   ) {
-    if (reporter.objectRecord is HeapInstance) {
-      reporter.objectRecord.instanceClass
+    if (reporter.heapObject is HeapInstance) {
+      reporter.heapObject.instanceClass
           .classHierarchy
           .forEach { heapClass ->
             if (heapClass.name in singletonClasses) {

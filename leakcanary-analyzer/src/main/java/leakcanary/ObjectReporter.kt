@@ -1,13 +1,13 @@
 package leakcanary
 
 /**
- * Enables [ObjectInspector] implementations to provide insights on [objectRecord], which is
+ * Enables [ObjectInspector] implementations to provide insights on [heapObject], which is
  * an object (class, instance or array) found in the heap.
  *
  * A given [ObjectReporter] only maps to one object in the heap, but is shared to many
  * [ObjectInspector] implementations and accumulates insights.
  */
-class ObjectReporter internal constructor(val objectRecord: HeapObject) {
+class ObjectReporter internal constructor(val heapObject: HeapObject) {
 
   private val mutableLabels = mutableListOf<String>()
 
@@ -16,20 +16,20 @@ class ObjectReporter internal constructor(val objectRecord: HeapObject) {
   private val mutableNotLeakingStatuses = mutableListOf<LeakNodeStatusAndReason>()
 
   /**
-   * All labels added via [addLabel] for the [objectRecord] instance.
+   * All labels added via [addLabel] for the [heapObject] instance.
    */
   val labels: List<String>
     get() = mutableLabels
 
   /**
    * All leaking insights added via [reportLikelyLeaking], [reportLeaking] and [reportNotLeaking]
-   * for the [objectRecord] instance.
+   * for the [heapObject] instance.
    */
   val leakNodeStatuses: List<LeakNodeStatusAndReason>
     get() = mutableLeakingStatuses + mutableLikelyLeakingStatuses + mutableNotLeakingStatuses
 
   /**
-   * All leaking insights added via [reportLeaking] for the [objectRecord] instance.
+   * All leaking insights added via [reportLeaking] for the [heapObject] instance.
    */
   val leakingStatuses: List<LeakNodeStatusAndReason>
     get() = mutableLeakingStatuses
