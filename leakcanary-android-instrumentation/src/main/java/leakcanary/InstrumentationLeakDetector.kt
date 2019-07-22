@@ -23,11 +23,11 @@ import leakcanary.InstrumentationLeakDetector.Companion.updateConfig
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
 import org.junit.runner.notification.RunListener
-import shark.AndroidObjectInspectors
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
 import shark.HeapAnalyzer
+import shark.ObjectInspectors
 import shark.SharkLog
 import java.io.File
 
@@ -171,7 +171,7 @@ class InstrumentationLeakDetector {
         config.computeRetainedHeapSize,
         config.objectInspectors,
         if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
-            AndroidObjectInspectors.KEYED_WEAK_REFERENCE
+            ObjectInspectors.KEYED_WEAK_REFERENCE
         )
     )
 

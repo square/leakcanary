@@ -22,8 +22,8 @@ import android.os.Process
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
 import shark.AnalyzerProgressListener
-import shark.AndroidObjectInspectors
 import shark.HeapAnalyzer
+import shark.ObjectInspectors
 import shark.SharkLog
 import java.io.File
 
@@ -34,7 +34,7 @@ internal class HeapAnalyzerService : ForegroundService(
     HeapAnalyzerService::class.java.simpleName,
     R.string.leak_canary_notification_analysing,
     R.id.leak_canary_notification_analyzing_heap
-), shark.AnalyzerProgressListener {
+), AnalyzerProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
     if (intent == null) {
@@ -61,7 +61,7 @@ internal class HeapAnalyzerService : ForegroundService(
       heapAnalyzer.checkForLeaks(
           heapDumpFile, config.referenceMatchers, config.computeRetainedHeapSize, config.objectInspectors,
           if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
-              AndroidObjectInspectors.KEYED_WEAK_REFERENCE
+              ObjectInspectors.KEYED_WEAK_REFERENCE
           )
       )
 

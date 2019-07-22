@@ -10,7 +10,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticField
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
-import shark.PrimitiveType
 import shark.ValueHolder.ReferenceHolder
 import java.io.File
 

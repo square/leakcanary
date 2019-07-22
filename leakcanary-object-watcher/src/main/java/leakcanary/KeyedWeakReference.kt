@@ -27,7 +27,6 @@ import java.lang.ref.WeakReference
  * [heapDumpUptimeMillis] should be set with the current time from [Clock.uptimeMillis] right
  * before dumping the heap, so that we can later determine how long an object was retained.
  */
-@Suppress("unused")
 class KeyedWeakReference(
   referent: Any,
   val key: String,

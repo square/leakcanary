@@ -6,7 +6,7 @@ sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
 
 dependencies {
-  api project(':shark-analyzer')
+  api project(':shark-android')
 
   implementation deps.kotlin.stdlib
 }
