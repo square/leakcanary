@@ -2,6 +2,7 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.HprofRecord.StringRecord
 import java.io.File
 
 class LegacyHprofTest {
@@ -61,8 +62,7 @@ class LegacyHprofTest {
     val classLoader = Thread.currentThread()
         .contextClassLoader
     val url = classLoader.getResource(fileName)
-    val hprofFile = File(url.path)
-    return hprofFile
+    return File(url.path)
   }
 
   private fun analyzeHprof(hprofFile: File): HeapAnalysisSuccess {
@@ -70,7 +70,7 @@ class LegacyHprofTest {
     val analysis = heapAnalyzer.checkForLeaks(
         hprofFile, AndroidReferenceMatchers.appDefaults, false, AndroidObjectInspectors.appDefaults
     )
-    print(analysis)
+    println(analysis)
     return analysis as HeapAnalysisSuccess
   }
 }

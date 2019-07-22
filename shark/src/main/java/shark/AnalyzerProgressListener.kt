@@ -16,11 +16,11 @@ interface AnalyzerProgressListener {
     BUILDING_LEAK_TRACES,
   }
 
-  fun onProgressUpdate(step: shark.AnalyzerProgressListener.Step)
+  fun onProgressUpdate(step: Step)
 
   companion object {
-    val NONE = object : shark.AnalyzerProgressListener {
-      override fun onProgressUpdate(step: shark.AnalyzerProgressListener.Step) {
+    val NONE = object : AnalyzerProgressListener {
+      override fun onProgressUpdate(step: Step) {
       }
     }
   }

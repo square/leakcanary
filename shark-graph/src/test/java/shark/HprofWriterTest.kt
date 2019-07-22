@@ -46,7 +46,8 @@ class HprofWriterTest {
     val magicWandClassName = StringRecord(id, MAGIC_WAND_CLASS_NAME)
     val baguetteClassName = StringRecord(id, BAGUETTE_CLASS_NAME)
     val answerFieldName = StringRecord(id, ANSWER_FIELD_NAME)
-    val treasureChestClassName = StringRecord(id,
+    val treasureChestClassName = StringRecord(
+        id,
         TREASURE_CHEST_CLASS_NAME
     )
     val contentFieldName = StringRecord(id, CONTENT_FIELD_NAME)
