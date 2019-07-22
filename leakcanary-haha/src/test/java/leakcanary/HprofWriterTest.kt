@@ -1,12 +1,12 @@
 package leakcanary
 
-import leakcanary.HeapValue.ObjectReference
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.Record.LoadClassRecord
-import leakcanary.Record.StringRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.HprofRecord.LoadClassRecord
+import leakcanary.HprofRecord.StringRecord
+import leakcanary.ValueHolder.ReferenceHolder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -30,7 +30,7 @@ class HprofWriterTest {
     hprofFile.writeRecords(records)
 
     hprofFile.readHprof { graph ->
-      val treasureChestClass = graph.findClassByClassName(TREASURE_CHEST_CLASS_NAME)!!
+      val treasureChestClass = graph.findClassByName(TREASURE_CHEST_CLASS_NAME)!!
       val baguetteInstance =
         treasureChestClass[CONTENT_FIELD_NAME]!!.value.asObject!!.asInstance!!
 
@@ -40,7 +40,7 @@ class HprofWriterTest {
     }
   }
 
-  private fun createRecords(): List<Record> {
+  private fun createRecords(): List<HprofRecord> {
     val magicWandClassName = StringRecord(id, MAGIC_WAND_CLASS_NAME)
     val baguetteClassName = StringRecord(id, BAGUETTE_CLASS_NAME)
     val answerFieldName = StringRecord(id, ANSWER_FIELD_NAME)
@@ -69,7 +69,7 @@ class HprofWriterTest {
         protectionDomainId = 0,
         instanceSize = 0,
         staticFields = emptyList(),
-        fields = listOf(FieldRecord(answerFieldName.id, HprofReader.INT_TYPE))
+        fields = listOf(FieldRecord(answerFieldName.id, PrimitiveType.INT.hprofType))
     )
 
     val baguetteInstanceDump = InstanceDumpRecord(
@@ -89,8 +89,8 @@ class HprofWriterTest {
         instanceSize = 0,
         staticFields = listOf(
             StaticFieldRecord(
-                contentFieldName.id, HprofReader.OBJECT_TYPE,
-                ObjectReference(baguetteInstanceDump.id)
+                contentFieldName.id, PrimitiveType.REFERENCE_HPROF_TYPE,
+                ReferenceHolder(baguetteInstanceDump.id)
             )
         ),
         fields = emptyList()
@@ -105,7 +105,7 @@ class HprofWriterTest {
   }
 
   private fun File.writeRecords(
-    records: List<Record>
+    records: List<HprofRecord>
   ) {
     HprofWriter.open(this)
         .use { writer ->
@@ -115,11 +115,11 @@ class HprofWriterTest {
         }
   }
 
-  fun File.readHprof(block: (HprofGraph) -> Unit) {
-    val (graph, closeable) = HprofGraph.readHprof(this)
-    closeable.use {
-      block(graph)
-    }
+  fun File.readHprof(block: (HeapGraph) -> Unit) {
+    Hprof.open(this)
+        .use { hprof ->
+          block(HeapGraph.indexHprof(hprof))
+        }
   }
 
   companion object {

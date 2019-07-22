@@ -2,27 +2,27 @@ package leakcanary.internal
 
 import leakcanary.GcRoot
 import leakcanary.GcRoot.StickyClass
-import leakcanary.HeapValue
-import leakcanary.HeapValue.BooleanValue
-import leakcanary.HeapValue.ByteValue
-import leakcanary.HeapValue.CharValue
-import leakcanary.HeapValue.DoubleValue
-import leakcanary.HeapValue.FloatValue
-import leakcanary.HeapValue.IntValue
-import leakcanary.HeapValue.LongValue
-import leakcanary.HeapValue.ObjectReference
-import leakcanary.HeapValue.ShortValue
-import leakcanary.HprofReader
+import leakcanary.ValueHolder
+import leakcanary.ValueHolder.BooleanHolder
+import leakcanary.ValueHolder.ByteHolder
+import leakcanary.ValueHolder.CharHolder
+import leakcanary.ValueHolder.DoubleHolder
+import leakcanary.ValueHolder.FloatHolder
+import leakcanary.ValueHolder.IntHolder
+import leakcanary.ValueHolder.LongHolder
+import leakcanary.ValueHolder.ReferenceHolder
+import leakcanary.ValueHolder.ShortHolder
 import leakcanary.HprofWriter
-import leakcanary.Record.HeapDumpRecord.GcRootRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import leakcanary.Record.LoadClassRecord
-import leakcanary.Record.StringRecord
+import leakcanary.PrimitiveType
+import leakcanary.HprofRecord.HeapDumpRecord.GcRootRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import leakcanary.HprofRecord.LoadClassRecord
+import leakcanary.HprofRecord.StringRecord
 import okio.Buffer
 import java.io.Closeable
 import java.io.File
@@ -45,18 +45,8 @@ class HprofWriterHelper constructor(
     get() =
       UUID(weakRefKeyRandom.nextLong(), weakRefKeyRandom.nextLong()).toString()
 
-  private val typeSizes = mapOf(
-      // object
-      HprofReader.OBJECT_TYPE to writer.idSize,
-      HprofReader.BOOLEAN_TYPE to HprofReader.BOOLEAN_SIZE,
-      HprofReader.CHAR_TYPE to HprofReader.CHAR_SIZE,
-      HprofReader.FLOAT_TYPE to HprofReader.FLOAT_SIZE,
-      HprofReader.DOUBLE_TYPE to HprofReader.DOUBLE_SIZE,
-      HprofReader.BYTE_TYPE to HprofReader.BYTE_SIZE,
-      HprofReader.SHORT_TYPE to HprofReader.SHORT_SIZE,
-      HprofReader.INT_TYPE to HprofReader.INT_SIZE,
-      HprofReader.LONG_TYPE to HprofReader.LONG_SIZE
-  )
+  private val typeSizes =
+    PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to writer.idSize)
 
   private val classDumps = mutableMapOf<Long, ClassDumpRecord>()
 
@@ -64,15 +54,15 @@ class HprofWriterHelper constructor(
   private val objectArrayClassId = arrayClass("java.lang.Object")
   private val stringClassId = clazz(
       className = "java.lang.String", fields = listOf(
-      "value" to ObjectReference::class,
-      "count" to IntValue::class
+      "value" to ReferenceHolder::class,
+      "count" to IntHolder::class
   )
   )
 
   private val referenceClassId = clazz(
       className = "java.lang.ref.Reference",
       fields = listOf(
-          "referent" to ObjectReference::class
+          "referent" to ReferenceHolder::class
       )
   )
 
@@ -83,20 +73,20 @@ class HprofWriterHelper constructor(
   private val keyedWeakReferenceClassId = clazz(
       superClassId = weakReferenceClassId,
       className = "leakcanary.KeyedWeakReference",
-      staticFields = listOf("heapDumpUptimeMillis" to LongValue(30000)),
+      staticFields = listOf("heapDumpUptimeMillis" to LongHolder(30000)),
       fields = listOf(
-          "key" to ObjectReference::class,
-          "name" to ObjectReference::class,
-          "watchUptimeMillis" to LongValue::class,
-          "retainedUptimeMillis" to LongValue::class
+          "key" to ReferenceHolder::class,
+          "name" to ReferenceHolder::class,
+          "watchUptimeMillis" to LongHolder::class,
+          "retainedUptimeMillis" to LongHolder::class
       )
   )
 
   fun clazz(
     className: String,
     superClassId: Long = -1L, // -1 defaults to java.lang.Object
-    staticFields: List<Pair<String, HeapValue>> = emptyList(),
-    fields: List<Pair<String, KClass<out HeapValue>>> = emptyList()
+    staticFields: List<Pair<String, ValueHolder>> = emptyList(),
+    fields: List<Pair<String, KClass<out ValueHolder>>> = emptyList()
   ): Long {
     val classNameRecord = StringRecord(id, className)
     writer.write(classNameRecord)
@@ -156,33 +146,33 @@ class HprofWriterHelper constructor(
 
   fun string(
     string: String
-  ): ObjectReference {
+  ): ReferenceHolder {
     return instance(
         stringClassId,
-        fields = listOf(string.charArrayDump, IntValue(string.length))
+        fields = listOf(string.charArrayDump, IntHolder(string.length))
     )
   }
 
   fun keyedWeakReference(
-    referentInstanceId: ObjectReference
-  ): ObjectReference {
+    referentInstanceId: ReferenceHolder
+  ): ReferenceHolder {
     val referenceKey = string(weakRefKey)
     return instance(
         classId = keyedWeakReferenceClassId,
         fields = listOf(
             referenceKey,
             string(""),
-            LongValue(5000),
-            LongValue(20000),
-            ObjectReference(referentInstanceId.value)
+            LongHolder(5000),
+            LongHolder(20000),
+            ReferenceHolder(referentInstanceId.value)
         )
     )
   }
 
   fun instance(
     classId: Long,
-    fields: List<HeapValue> = emptyList()
-  ): ObjectReference {
+    fields: List<ValueHolder> = emptyList()
+  ): ReferenceHolder {
     val fieldsBuffer = Buffer()
     fields.forEach { value ->
       with(writer) {
@@ -196,25 +186,25 @@ class HprofWriterHelper constructor(
         fieldValues = fieldsBuffer.readByteArray()
     )
     writer.write(instanceDump)
-    return ObjectReference(instanceDump.id)
+    return ReferenceHolder(instanceDump.id)
   }
 
   inner class InstanceAndClassDefinition {
-    val field = LinkedHashMap<String, HeapValue>()
-    val staticField = LinkedHashMap<String, HeapValue>()
+    val field = LinkedHashMap<String, ValueHolder>()
+    val staticField = LinkedHashMap<String, ValueHolder>()
   }
 
   inner class ClassDefinition {
-    val staticField = LinkedHashMap<String, HeapValue>()
+    val staticField = LinkedHashMap<String, ValueHolder>()
   }
 
-  infix fun String.watchedInstance(block: InstanceAndClassDefinition.() -> Unit): ObjectReference {
+  infix fun String.watchedInstance(block: InstanceAndClassDefinition.() -> Unit): ReferenceHolder {
     val instance = this.instance(block)
     keyedWeakReference(instance)
     return instance
   }
 
-  infix fun String.instance(block: InstanceAndClassDefinition.() -> Unit): ObjectReference {
+  infix fun String.instance(block: InstanceAndClassDefinition.() -> Unit): ReferenceHolder {
     val definition = InstanceAndClassDefinition()
     block(definition)
 
@@ -237,24 +227,24 @@ class HprofWriterHelper constructor(
     return clazz(this, staticFields = staticFields)
   }
 
-  val String.charArrayDump: ObjectReference
+  val String.charArrayDump: ReferenceHolder
     get() {
       val arrayDump = CharArrayDump(id, 1, toCharArray())
       writer.write(arrayDump)
-      return ObjectReference(arrayDump.id)
+      return ReferenceHolder(arrayDump.id)
     }
 
   fun objectArray(
-    vararg elements: ObjectReference
-  ): ObjectReference {
+    vararg elements: ReferenceHolder
+  ): ReferenceHolder {
     return objectArrayOf(objectArrayClassId, *elements)
   }
 
   fun objectArrayOf(
     classId: Long,
-    vararg elements: ObjectReference
-  ): ObjectReference {
-    return ObjectReference(objectArray(classId, elements.map { it.value }.toLongArray()))
+    vararg elements: ReferenceHolder
+  ): ReferenceHolder {
+    return ReferenceHolder(objectArray(classId, elements.map { it.value }.toLongArray()))
   }
 
   fun objectArray(
@@ -266,31 +256,31 @@ class HprofWriterHelper constructor(
     return arrayDump.id
   }
 
-  private fun typeOf(wrapper: HeapValue): Int {
+  private fun typeOf(wrapper: ValueHolder): Int {
     return when (wrapper) {
-      is ObjectReference -> HprofReader.OBJECT_TYPE
-      is BooleanValue -> HprofReader.BOOLEAN_TYPE
-      is CharValue -> HprofReader.CHAR_TYPE
-      is FloatValue -> HprofReader.FLOAT_TYPE
-      is DoubleValue -> HprofReader.DOUBLE_TYPE
-      is ByteValue -> HprofReader.BYTE_TYPE
-      is ShortValue -> HprofReader.SHORT_TYPE
-      is IntValue -> HprofReader.INT_TYPE
-      is LongValue -> HprofReader.LONG_TYPE
+      is ReferenceHolder -> PrimitiveType.REFERENCE_HPROF_TYPE
+      is BooleanHolder -> PrimitiveType.BOOLEAN.hprofType
+      is CharHolder -> PrimitiveType.CHAR.hprofType
+      is FloatHolder -> PrimitiveType.FLOAT.hprofType
+      is DoubleHolder -> PrimitiveType.DOUBLE.hprofType
+      is ByteHolder -> PrimitiveType.BYTE.hprofType
+      is ShortHolder -> PrimitiveType.SHORT.hprofType
+      is IntHolder -> PrimitiveType.INT.hprofType
+      is LongHolder -> PrimitiveType.LONG.hprofType
     }
   }
 
-  private fun typeOf(wrapperClass: KClass<out HeapValue>): Int {
+  private fun typeOf(wrapperClass: KClass<out ValueHolder>): Int {
     return when (wrapperClass) {
-      ObjectReference::class -> HprofReader.OBJECT_TYPE
-      BooleanValue::class -> HprofReader.BOOLEAN_TYPE
-      CharValue::class -> HprofReader.CHAR_TYPE
-      FloatValue::class -> HprofReader.FLOAT_TYPE
-      DoubleValue::class -> HprofReader.DOUBLE_TYPE
-      ByteValue::class -> HprofReader.BYTE_TYPE
-      ShortValue::class -> HprofReader.SHORT_TYPE
-      IntValue::class -> HprofReader.INT_TYPE
-      LongValue::class -> HprofReader.LONG_TYPE
+      ReferenceHolder::class -> PrimitiveType.REFERENCE_HPROF_TYPE
+      BooleanHolder::class -> PrimitiveType.BOOLEAN.hprofType
+      CharHolder::class -> PrimitiveType.CHAR.hprofType
+      FloatHolder::class -> PrimitiveType.FLOAT.hprofType
+      DoubleHolder::class -> PrimitiveType.DOUBLE.hprofType
+      ByteHolder::class -> PrimitiveType.BYTE.hprofType
+      ShortHolder::class -> PrimitiveType.SHORT.hprofType
+      IntHolder::class -> PrimitiveType.INT.hprofType
+      LongHolder::class -> PrimitiveType.LONG.hprofType
       else -> throw IllegalArgumentException("Unexpected class $wrapperClass")
     }
   }

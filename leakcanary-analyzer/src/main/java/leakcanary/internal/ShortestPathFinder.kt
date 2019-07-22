@@ -22,29 +22,29 @@ import leakcanary.CanaryLog
 import leakcanary.GcRoot
 import leakcanary.GcRoot.JavaFrame
 import leakcanary.GcRoot.ThreadObject
-import leakcanary.GraphObjectRecord
-import leakcanary.GraphObjectRecord.GraphClassRecord
-import leakcanary.GraphObjectRecord.GraphInstanceRecord
-import leakcanary.GraphObjectRecord.GraphObjectArrayRecord
-import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
-import leakcanary.HeapValue
-import leakcanary.HprofGraph
-import leakcanary.HprofReader
+import leakcanary.HeapGraph
+import leakcanary.HeapObject
+import leakcanary.HeapObject.HeapClass
+import leakcanary.HeapObject.HeapInstance
+import leakcanary.HeapObject.HeapObjectArray
+import leakcanary.HeapObject.HeapPrimitiveArray
 import leakcanary.LeakReference
 import leakcanary.LeakTraceElement.Type.ARRAY_ENTRY
 import leakcanary.LeakTraceElement.Type.INSTANCE_FIELD
 import leakcanary.LeakTraceElement.Type.LOCAL
 import leakcanary.LeakTraceElement.Type.STATIC_FIELD
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.PrimitiveType
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import leakcanary.ReferenceMatcher
 import leakcanary.ReferenceMatcher.IgnoredReferenceMatcher
 import leakcanary.ReferenceMatcher.LibraryLeakReferenceMatcher
-import leakcanary.internal.ReferencePathNode.ChildNode.LibraryLeakNode
-import leakcanary.internal.ReferencePathNode.ChildNode.NormalNode
-import leakcanary.internal.ReferencePathNode.RootNode
 import leakcanary.ReferencePattern
 import leakcanary.ReferencePattern.InstanceFieldPattern
 import leakcanary.ReferencePattern.StaticFieldPattern
+import leakcanary.ValueHolder
+import leakcanary.internal.ReferencePathNode.ChildNode.LibraryLeakNode
+import leakcanary.internal.ReferencePathNode.ChildNode.NormalNode
+import leakcanary.internal.ReferencePathNode.RootNode
 import leakcanary.internal.hppc.LongLongScatterMap
 import leakcanary.internal.hppc.LongScatterSet
 import java.util.ArrayDeque
@@ -90,7 +90,7 @@ internal class ShortestPathFinder {
   )
 
   fun findPaths(
-    graph: HprofGraph,
+    graph: HeapGraph,
     referenceMatchers: List<ReferenceMatcher>,
     leakingInstanceObjectIds: Set<Long>,
     computeDominators: Boolean,
@@ -101,19 +101,15 @@ internal class ShortestPathFinder {
     clearState()
     this.leakingInstanceObjectIds = leakingInstanceObjectIds
 
-    val objectClass = graph.findClassByClassName("java.lang.Object")
+    val objectClass = graph.findClassByName("java.lang.Object")
     sizeOfObjectInstances = if (objectClass != null) {
       // In Android 16 ClassDumpRecord.instanceSize can be 8 yet there are 0 fields.
       // Better rely on our own computation of instance size.
       // See #1374
-      val objectClassFieldSize = objectClass.readRecord()
-          .fields.sumBy {
-        graph.sizeOfFieldType(it.type)
-      }
+      val objectClassFieldSize = objectClass.readFieldsSize()
 
       // shadow$_klass_ (object id) + shadow$_monitor_ (Int)
-      val sizeOfObjectOnArt =
-        graph.sizeOfFieldType(HprofReader.OBJECT_TYPE) + graph.sizeOfFieldType(HprofReader.INT_TYPE)
+      val sizeOfObjectOnArt = graph.objectIdByteSize + PrimitiveType.INT.byteSize
       if (objectClassFieldSize == sizeOfObjectOnArt) {
         sizeOfObjectOnArt
       } else {
@@ -190,14 +186,14 @@ internal class ShortestPathFinder {
         }
       }
 
-      when (val graphRecord = graph.findObjectByObjectId(node.instance)) {
-        is GraphClassRecord -> visitClassRecord(
+      when (val graphRecord = graph.findObjectById(node.instance)) {
+        is HeapClass -> visitClassRecord(
             graph, graphRecord, node, staticFieldNameByClassName, computeDominators
         )
-        is GraphInstanceRecord -> visitInstanceRecord(
+        is HeapInstance -> visitInstanceRecord(
             graph, graphRecord, node, fieldNameByClassName, computeDominators
         )
-        is GraphObjectArrayRecord -> visitObjectArrayRecord(
+        is HeapObjectArray -> visitObjectArrayRecord(
             graph, graphRecord.readRecord(), node, computeDominators
         )
       }
@@ -227,13 +223,13 @@ internal class ShortestPathFinder {
   }
 
   private fun enqueueGcRoots(
-    graph: HprofGraph,
+    graph: HeapGraph,
     threadNameReferenceMatchers: Map<String, ReferenceMatcher>,
     computeDominators: Boolean
   ) {
     val gcRoots = sortedGcRoots(graph)
 
-    val threadsBySerialNumber = mutableMapOf<Int, Pair<GraphInstanceRecord, ThreadObject>>()
+    val threadsBySerialNumber = mutableMapOf<Int, Pair<HeapInstance, ThreadObject>>()
     gcRoots.forEach { (objectRecord, gcRoot) ->
       if (computeDominators) {
         undominateWithSkips(graph, gcRoot.id)
@@ -277,27 +273,27 @@ internal class ShortestPathFinder {
    * built before JavaFrames.
    */
   private fun sortedGcRoots(
-    graph: HprofGraph
-  ): List<Pair<GraphObjectRecord, GcRoot>> {
-    val rootClassName: (GraphObjectRecord) -> String = { graphObject ->
+    graph: HeapGraph
+  ): List<Pair<HeapObject, GcRoot>> {
+    val rootClassName: (HeapObject) -> String = { graphObject ->
       when (graphObject) {
-        is GraphClassRecord -> {
+        is HeapClass -> {
           graphObject.name
         }
-        is GraphInstanceRecord -> {
-          graphObject.className
+        is HeapInstance -> {
+          graphObject.instanceClassName
         }
-        is GraphObjectArrayRecord -> {
+        is HeapObjectArray -> {
           graphObject.arrayClassName
         }
-        is GraphPrimitiveArrayRecord -> {
+        is HeapPrimitiveArray -> {
           graphObject.arrayClassName
         }
       }
     }
 
     return graph.gcRoots
-        .map { graph.findObjectByObjectId(it.id) to it }
+        .map { graph.findObjectById(it.id) to it }
         .sortedWith(Comparator { (graphObject1, root1), (graphObject2, root2) ->
           // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
           val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
@@ -310,15 +306,15 @@ internal class ShortestPathFinder {
   }
 
   private fun visitClassRecord(
-    graph: HprofGraph,
-    classRecord: GraphClassRecord,
+    graph: HeapGraph,
+    heapClass: HeapClass,
     parent: ReferencePathNode,
     staticFieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>,
     computeRetainedHeapSize: Boolean
   ) {
-    val ignoredStaticFields = staticFieldNameByClassName[classRecord.name] ?: emptyMap()
+    val ignoredStaticFields = staticFieldNameByClassName[heapClass.name] ?: emptyMap()
 
-    for (staticField in classRecord.readStaticFields()) {
+    for (staticField in heapClass.readStaticFields()) {
       if (!staticField.value.isNonNullReference) {
         continue
       }
@@ -354,15 +350,15 @@ internal class ShortestPathFinder {
   }
 
   private fun visitInstanceRecord(
-    graph: HprofGraph,
-    instanceRecord: GraphInstanceRecord,
+    graph: HeapGraph,
+    instance: HeapInstance,
     parent: ReferencePathNode,
     fieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>,
     computeRetainedHeapSize: Boolean
   ) {
     val fieldReferenceMatchers = LinkedHashMap<String, ReferenceMatcher>()
 
-    instanceRecord.instanceClass.classHierarchy.forEach {
+    instance.instanceClass.classHierarchy.forEach {
       val referenceMatcherByField = fieldNameByClassName[it.name]
       if (referenceMatcherByField != null) {
         for ((fieldName, referenceMatcher) in referenceMatcherByField) {
@@ -373,7 +369,7 @@ internal class ShortestPathFinder {
       }
     }
 
-    val fieldNamesAndValues = instanceRecord.readFields()
+    val fieldNamesAndValues = instance.readFields()
         .toMutableList()
 
     fieldNamesAndValues.sortBy { it.name }
@@ -404,13 +400,13 @@ internal class ShortestPathFinder {
   }
 
   private fun visitObjectArrayRecord(
-    graph: HprofGraph,
+    graph: HeapGraph,
     record: ObjectArrayDumpRecord,
     parentNode: ReferencePathNode,
     computeRetainedHeapSize: Boolean
   ) {
     record.elementIds.filter { objectId ->
-      objectId != HeapValue.NULL_REFERENCE && graph.objectExists(objectId).apply {
+      objectId != ValueHolder.NULL_REFERENCE && graph.objectExists(objectId).apply {
         if (!this) {
           // dalvik.system.PathClassLoader.runtimeInternalObjects references objects which don't
           // otherwise exist in the heap dump.
@@ -431,10 +427,10 @@ internal class ShortestPathFinder {
   }
 
   private fun enqueue(
-    graph: HprofGraph,
+    graph: HeapGraph,
     node: ReferencePathNode
   ) {
-    if (node.instance == HeapValue.NULL_REFERENCE) {
+    if (node.instance == ValueHolder.NULL_REFERENCE) {
       return
     }
     if (visitedSet.contains(node.instance)) {
@@ -462,20 +458,20 @@ internal class ShortestPathFinder {
     val isLeakingInstance = node.instance in leakingInstanceObjectIds
 
     if (!isLeakingInstance) {
-      val skip = when (val graphObject = graph.findObjectByObjectId(node.instance)) {
-        is GraphClassRecord -> false
-        is GraphInstanceRecord ->
+      val skip = when (val graphObject = graph.findObjectById(node.instance)) {
+        is HeapClass -> false
+        is HeapInstance ->
           when {
             graphObject.isPrimitiveWrapper -> true
-            graphObject.className == "java.lang.String" -> true
+            graphObject.instanceClassName == "java.lang.String" -> true
             graphObject.instanceClass.instanceSize <= sizeOfObjectInstances -> true
             else -> false
           }
-        is GraphObjectArrayRecord -> when {
+        is HeapObjectArray -> when {
           graphObject.isPrimitiveWrapperArray -> true
           else -> false
         }
-        is GraphPrimitiveArrayRecord -> true
+        is HeapPrimitiveArray -> true
       }
       if (skip) {
         return
@@ -491,18 +487,18 @@ internal class ShortestPathFinder {
   }
 
   private fun updateDominatorWithSkips(
-    graph: HprofGraph,
+    graph: HeapGraph,
     parentObjectId: Long,
     objectId: Long
   ) {
 
-    when (val graphObject = graph.findObjectByObjectId(objectId)) {
-      is GraphClassRecord -> {
+    when (val graphObject = graph.findObjectById(objectId)) {
+      is HeapClass -> {
         undominate(objectId, false)
       }
-      is GraphInstanceRecord -> {
+      is HeapInstance -> {
         // String internal array is never enqueued
-        if (graphObject.className == "java.lang.String") {
+        if (graphObject.instanceClassName == "java.lang.String") {
           updateDominator(parentObjectId, objectId, true)
           val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectId
           if (valueId != null) {
@@ -512,7 +508,7 @@ internal class ShortestPathFinder {
           updateDominator(parentObjectId, objectId, false)
         }
       }
-      is GraphObjectArrayRecord -> {
+      is HeapObjectArray -> {
         // Primitive wrapper array elements are never enqueued
         if (graphObject.isPrimitiveWrapperArray) {
           updateDominator(parentObjectId, objectId, true)
@@ -593,16 +589,16 @@ internal class ShortestPathFinder {
   }
 
   private fun undominateWithSkips(
-    graph: HprofGraph,
+    graph: HeapGraph,
     objectId: Long
   ) {
-    when (val graphObject = graph.findObjectByObjectId(objectId)) {
-      is GraphClassRecord -> {
+    when (val graphObject = graph.findObjectById(objectId)) {
+      is HeapClass -> {
         undominate(objectId, false)
       }
-      is GraphInstanceRecord -> {
+      is HeapInstance -> {
         // String internal array is never enqueued
-        if (graphObject.className == "java.lang.String") {
+        if (graphObject.instanceClassName == "java.lang.String") {
           undominate(objectId, true)
           val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectId
           if (valueId != null) {
@@ -612,7 +608,7 @@ internal class ShortestPathFinder {
           undominate(objectId, false)
         }
       }
-      is GraphObjectArrayRecord -> {
+      is HeapObjectArray -> {
         // Primitive wrapper array elements are never enqueued
         if (graphObject.isPrimitiveWrapperArray) {
           undominate(objectId, true)

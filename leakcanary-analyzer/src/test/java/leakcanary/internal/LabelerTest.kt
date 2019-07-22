@@ -2,7 +2,7 @@ package leakcanary.internal
 
 import leakcanary.AndroidObjectInspectors
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HprofGraph
+import leakcanary.HeapGraph
 import leakcanary.ObjectInspector
 import leakcanary.ObjectReporter
 import leakcanary.whenInstanceOf
@@ -29,7 +29,7 @@ class LabelerTest {
 
     val labeler = object : ObjectInspector{
       override fun inspect(
-        graph: HprofGraph,
+        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
         reporter.whenInstanceOf("java.lang.String")  { instance ->

@@ -15,8 +15,8 @@
  */
 package leakcanary
 
-import leakcanary.GraphObjectRecord.GraphClassRecord
-import leakcanary.GraphObjectRecord.GraphInstanceRecord
+import leakcanary.HeapObject.HeapClass
+import leakcanary.HeapObject.HeapInstance
 import leakcanary.internal.KeyedWeakReferenceMirror
 import kotlin.reflect.KClass
 
@@ -38,12 +38,12 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   KEYED_WEAK_REFERENCE {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       val references: List<KeyedWeakReferenceMirror> =
         graph.context.getOrPut(KEYED_WEAK_REFERENCE.name) {
-          val keyedWeakReferenceClass = graph.findClassByClassName("leakcanary.KeyedWeakReference")
+          val keyedWeakReferenceClass = graph.findClassByName("leakcanary.KeyedWeakReference")
 
           val heapDumpUptimeMillis = if (keyedWeakReferenceClass == null) {
             null
@@ -60,7 +60,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
           val addedToContext: List<KeyedWeakReferenceMirror> = graph.instances
               .filter { instance ->
-                val className = instance.className
+                val className = instance.instanceClassName
                 className == "leakcanary.KeyedWeakReference" || className == "com.squareup.leakcanary.KeyedWeakReference"
               }
               .map { KeyedWeakReferenceMirror.fromInstance(it, heapDumpUptimeMillis) }
@@ -70,7 +70,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
           addedToContext
         }
 
-      val objectId = reporter.objectRecord.objectId
+      val objectId = reporter.heapObject.objectId
       references.forEach { ref ->
         if (ref.referent.value == objectId) {
           reporter.reportLeaking("ObjectWatcher was watching this")
@@ -91,7 +91,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   VIEW {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.view.View") { instance ->
@@ -106,21 +106,21 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         val activityContext = mContext.unwrapActivityContext()
         if (activityContext == null) {
-          addLabel("mContext instance of ${mContext.className}, not wrapping activity")
+          addLabel("mContext instance of ${mContext.instanceClassName}, not wrapping activity")
         } else {
           val activityDescription =
             " with mDestroyed = " + (activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
                 ?: "UNKNOWN")
           if (activityContext == mContext) {
-            addLabel("mContext instance of ${activityContext.className} $activityDescription")
+            addLabel("mContext instance of ${activityContext.instanceClassName} $activityDescription")
           } else {
             addLabel(
-                "mContext instance of ${mContext.className}, wrapping activity ${activityContext.className} $activityDescription"
+                "mContext instance of ${mContext.instanceClassName}, wrapping activity ${activityContext.instanceClassName} $activityDescription"
             )
           }
         }
 
-        addLabel("mContext = ${mContext.className}")
+        addLabel("mContext = ${mContext.instanceClassName}")
 
         if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
           reportLeaking("View.mContext references a destroyed activity")
@@ -162,7 +162,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   ACTIVITY {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Activity") { instance ->
@@ -184,7 +184,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   CONTEXT_WRAPPER {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.content.ContextWrapper") { instance ->
@@ -196,13 +196,13 @@ enum class AndroidObjectInspectors : ObjectInspector {
             if (mDestroyed != null) {
               if (mDestroyed.value.asBoolean!!) {
                 reportLeaking(
-                    "${instance.classSimpleName} wraps an Activity with Activity.mDestroyed true"
+                    "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed true"
                 )
               } else {
                 // We can't assume it's not leaking, because this context might have a shorter lifecycle
                 // than the activity. So we'll just add a label.
                 addLabel(
-                    "${instance.classSimpleName} wraps an Activity with Activity.mDestroyed false"
+                    "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed false"
                 )
               }
             }
@@ -214,7 +214,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   DIALOG {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Dialog") { instance ->
@@ -230,7 +230,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   APPLICATION {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Application") {
@@ -241,7 +241,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   INPUT_METHOD_MANAGER {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.view.inputmethod.InputMethodManager") {
@@ -252,7 +252,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   CLASSLOADER {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf(ClassLoader::class) {
@@ -263,10 +263,10 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   CLASS {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
-      if (reporter.objectRecord is GraphClassRecord) {
+      if (reporter.heapObject is HeapClass) {
         reporter.reportNotLeaking("a class is never leaking")
       }
     }
@@ -274,7 +274,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   FRAGMENT {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Fragment") { instance ->
@@ -294,7 +294,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   SUPPORT_FRAGMENT {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.support.v4.app.Fragment") { instance ->
@@ -314,7 +314,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   ANDROIDX_FRAGMENT {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("androidx.fragment.app.Fragment") { instance ->
@@ -334,7 +334,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   MESSAGE_QUEUE {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.os.MessageQueue") { instance ->
@@ -353,7 +353,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   MORTAR_PRESENTER {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("mortar.Presenter") { instance ->
@@ -370,7 +370,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   COORDINATOR {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
@@ -386,19 +386,19 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   ANONYMOUS_CLASS {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
-      if (reporter.objectRecord is GraphInstanceRecord) {
-        val classRecord = reporter.objectRecord.instanceClass
-        if (classRecord.name.matches(HeapAnalyzer.ANONYMOUS_CLASS_NAME_PATTERN_REGEX)) {
-          val parentClassRecord = classRecord.superClass!!
+      if (reporter.heapObject is HeapInstance) {
+        val instanceClass = reporter.heapObject.instanceClass
+        if (instanceClass.name.matches(HeapAnalyzer.ANONYMOUS_CLASS_NAME_PATTERN_REGEX)) {
+          val parentClassRecord = instanceClass.superclass!!
           if (parentClassRecord.name == "java.lang.Object") {
             try {
               // This is an anonymous class implementing an interface. The API does not give access
               // to the interfaces implemented by the class. We check if it's in the class path and
               // use that instead.
-              val actualClass = Class.forName(classRecord.name)
+              val actualClass = Class.forName(instanceClass.name)
               val interfaces = actualClass.interfaces
               reporter.addLabel(
                   if (interfaces.isNotEmpty()) {
@@ -421,7 +421,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   THREAD {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf(Thread::class) { instance ->
@@ -436,7 +436,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   WINDOW {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.view.Window") { instance ->
@@ -453,7 +453,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   TOAST {
     override fun inspect(
-      graph: HprofGraph,
+      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.widget.Toast") { instance ->
@@ -486,37 +486,37 @@ enum class AndroidObjectInspectors : ObjectInspector {
   }
 }
 
-private infix fun GraphField.describedWithValue(valueDescription: String): String {
-  return "${classRecord.simpleName}#$name is $valueDescription"
+private infix fun HeapClassField.describedWithValue(valueDescription: String): String {
+  return "${declaringClass.simpleName}#$name is $valueDescription"
 }
 
 /**
- * Runs [block] if [ObjectReporter.objectRecord] is an instance of [expectedClass].
+ * Runs [block] if [ObjectReporter.heapObject] is an instance of [expectedClass].
  */
 inline fun ObjectReporter.whenInstanceOf(
   expectedClass: KClass<out Any>,
-  action: ObjectReporter.(GraphInstanceRecord) -> Unit
+  action: ObjectReporter.(HeapInstance) -> Unit
 ) {
   whenInstanceOf(expectedClass.java.name, action)
 }
 
 /**
- * Runs [block] if [ObjectReporter.objectRecord] is an instance of [expectedClassName].
+ * Runs [block] if [ObjectReporter.heapObject] is an instance of [expectedClassName].
  */
 inline fun ObjectReporter.whenInstanceOf(
   expectedClassName: String,
-  block: ObjectReporter.(GraphInstanceRecord) -> Unit
+  block: ObjectReporter.(HeapInstance) -> Unit
 ) {
-  if (objectRecord is GraphInstanceRecord && objectRecord instanceOf expectedClassName) {
-    block(objectRecord)
+  if (heapObject is HeapInstance && heapObject instanceOf expectedClassName) {
+    block(heapObject)
   }
 }
 
 /**
- * Recursively unwraps `this` [GraphInstanceRecord] as a ContextWrapper until an Activity is found in which case it is
+ * Recursively unwraps `this` [HeapInstance] as a ContextWrapper until an Activity is found in which case it is
  * returned. Returns null if no activity was found.
  */
-fun GraphInstanceRecord.unwrapActivityContext(): GraphInstanceRecord? {
+fun HeapInstance.unwrapActivityContext(): HeapInstance? {
   if (this instanceOf "android.app.Activity") {
     return this
   }

@@ -1,27 +1,69 @@
 package leakcanary
 
-import leakcanary.HeapValue.ObjectReference
+import leakcanary.ValueHolder.BooleanHolder
+import leakcanary.ValueHolder.ByteHolder
+import leakcanary.ValueHolder.CharHolder
+import leakcanary.ValueHolder.DoubleHolder
+import leakcanary.ValueHolder.FloatHolder
+import leakcanary.ValueHolder.IntHolder
+import leakcanary.ValueHolder.LongHolder
+import leakcanary.ValueHolder.ReferenceHolder
+import leakcanary.ValueHolder.ShortHolder
 
 /**
- * A value in the heap dump, which can be an [ObjectReference] or
- * a primitive type.
+ * Represents a value in the heap dump, which can be an object reference or
+ * a primitive type. Provides navigation capabilities.
  */
-sealed class HeapValue {
-  data class ObjectReference(val value: Long) : HeapValue() {
-    val isNull
-      get() = value == NULL_REFERENCE
-  }
+class HeapValue(
+  private val graph: HeapGraph,
+  val holder: ValueHolder
+) {
+  val asBoolean: Boolean?
+    get() = if (holder is BooleanHolder) holder.value else null
 
-  data class BooleanValue(val value: Boolean) : HeapValue()
-  data class CharValue(val value: Char) : HeapValue()
-  data class FloatValue(val value: Float) : HeapValue()
-  data class DoubleValue(val value: Double) : HeapValue()
-  data class ByteValue(val value: Byte) : HeapValue()
-  data class ShortValue(val value: Short) : HeapValue()
-  data class IntValue(val value: Int) : HeapValue()
-  data class LongValue(val value: Long) : HeapValue()
+  val asChar: Char?
+    get() = if (holder is CharHolder) holder.value else null
 
-  companion object {
-    const val NULL_REFERENCE = 0L
+  val asFloat: Float?
+    get() = if (holder is FloatHolder) holder.value else null
+
+  val asDouble: Double?
+    get() = if (holder is DoubleHolder) holder.value else null
+
+  val asByte: Byte?
+    get() = if (holder is ByteHolder) holder.value else null
+
+  val asShort: Short?
+    get() = if (holder is ShortHolder) holder.value else null
+
+  val asInt: Int?
+    get() = if (holder is IntHolder) holder.value else null
+
+  val asLong: Long?
+    get() = if (holder is LongHolder) holder.value else null
+
+  val asObjectId: Long?
+    get() = if (holder is ReferenceHolder) holder.value else null
+
+  val asNonNullObjectId: Long?
+    get() = if (holder is ReferenceHolder && !holder.isNull) holder.value else null
+
+  val isNullReference: Boolean
+    get() = holder is ReferenceHolder && holder.isNull
+
+  val isNonNullReference: Boolean
+    get() = holder is ReferenceHolder && !holder.isNull
+
+  val asObject: HeapObject?
+    get() {
+      return if (holder is ReferenceHolder && !holder.isNull) {
+        return graph.findObjectById(holder.value)
+      } else {
+        null
+      }
+    }
+
+  fun readAsJavaString(): String? {
+    return asObject?.asInstance?.readAsJavaString()
   }
 }

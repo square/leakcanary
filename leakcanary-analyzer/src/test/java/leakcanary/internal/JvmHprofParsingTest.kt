@@ -1,6 +1,7 @@
 package leakcanary.internal
 
-import leakcanary.HprofGraph
+import leakcanary.HeapGraph
+import leakcanary.Hprof
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -19,22 +20,22 @@ class JvmHprofParsingTest {
 
     JvmTestHeapDumper.dumpHeap(hprofFile.absolutePath)
 
-    val (graph, closeable) = HprofGraph.readHprof(hprofFile)
+    Hprof.open(hprofFile)
+        .use { hprof ->
+          val graph = HeapGraph.indexHprof(hprof)
+          val testInstances = graph.instances
+              .filter { it.instanceClassName == JvmHprofParsingTest::class.name }
+              .toList()
 
-    closeable.use {
-      val testInstances = graph.instances
-          .filter { it.className == JvmHprofParsingTest::class.name }
-          .toList()
+          assertThat(testInstances).hasSize(1)
+          val test = testInstances[0]
+          val folderPath = test[JvmHprofParsingTest::class.name, "testFolder"]!!
+              .valueAsInstance!![TemporaryFolder::class.name, "folder"]!!
+              .valueAsInstance!![File::class.name, "path"]!!
+              .value.readAsJavaString()!!
 
-      assertThat(testInstances).hasSize(1)
-      val test = testInstances[0]
-      val folderPath = test[JvmHprofParsingTest::class.name, "testFolder"]!!
-          .valueAsInstance!![TemporaryFolder::class.name, "folder"]!!
-          .valueAsInstance!![File::class.name, "path"]!!
-          .value.readAsJavaString()!!
-
-      assertThat(folderPath).isEqualTo(testFolder.root.path)
-    }
+          assertThat(folderPath).isEqualTo(testFolder.root.path)
+        }
   }
 }
 

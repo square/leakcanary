@@ -1,10 +1,10 @@
 package leakcanary
 
-import leakcanary.GraphObjectRecord.GraphPrimitiveArrayRecord
+import leakcanary.HeapObject.HeapPrimitiveArray
 import leakcanary.PrimitiveType.BOOLEAN
 import leakcanary.PrimitiveType.CHAR
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -34,7 +34,7 @@ class HprofPrimitiveArrayStripperTest {
 
     strippedFile.readHprof { graph ->
       val booleanArrays = graph.objects
-          .filter { it is GraphPrimitiveArrayRecord && it.primitiveType == BOOLEAN }
+          .filter { it is HeapPrimitiveArray && it.primitiveType == BOOLEAN }
           .map { it.readRecord() as BooleanArrayDump }
           .toList()
       assertThat(booleanArrays).hasSize(1)
@@ -42,7 +42,7 @@ class HprofPrimitiveArrayStripperTest {
       assertThat(booleanArrays[0].array).isEmpty()
 
       val charArrays = graph.objects
-          .filter { it is GraphPrimitiveArrayRecord && it.primitiveType == CHAR }
+          .filter { it is HeapPrimitiveArray && it.primitiveType == CHAR }
           .map { it.readRecord() as CharArrayDump }
           .toList()
       assertThat(charArrays).hasSize(1)
@@ -52,7 +52,7 @@ class HprofPrimitiveArrayStripperTest {
   }
 
   private fun File.writeRecords(
-    records: List<Record>
+    records: List<HprofRecord>
   ) {
     HprofWriter.open(this)
         .use { writer ->
@@ -62,11 +62,11 @@ class HprofPrimitiveArrayStripperTest {
         }
   }
 
-  fun File.readHprof(block: (HprofGraph) -> Unit) {
-    val (graph, closeable) = HprofGraph.readHprof(this)
-    closeable.use {
-      block(graph)
-    }
+  fun File.readHprof(block: (HeapGraph) -> Unit) {
+    Hprof.open(this)
+        .use { hprof ->
+          block(HeapGraph.indexHprof(hprof))
+        }
   }
 
 }

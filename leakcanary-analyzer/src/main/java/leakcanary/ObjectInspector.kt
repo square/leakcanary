@@ -14,7 +14,7 @@ interface ObjectInspector {
    * @see [ObjectInspector]
    */
   fun inspect(
-    graph: HprofGraph,
+    graph: HeapGraph,
     reporter: ObjectReporter
   )
 
@@ -31,10 +31,10 @@ interface ObjectInspector {
      * }
      * ```
      */
-    inline operator fun invoke(crossinline block: (HprofGraph, ObjectReporter) -> Unit): ObjectInspector =
+    inline operator fun invoke(crossinline block: (HeapGraph, ObjectReporter) -> Unit): ObjectInspector =
       object : ObjectInspector {
         override fun inspect(
-          graph: HprofGraph,
+          graph: HeapGraph,
           reporter: ObjectReporter
         ) {
           block(graph, reporter)

@@ -7,7 +7,7 @@ internal sealed class IndexedObject {
 
   class IndexedClass(
     override val position: Long,
-    val superClassId: Long,
+    val superclassId: Long,
     val instanceSize: Int
   ) : IndexedObject()
 

@@ -10,25 +10,25 @@ import leakcanary.GcRoot.NativeStack
 import leakcanary.GcRoot.StickyClass
 import leakcanary.GcRoot.ThreadBlock
 import leakcanary.GcRoot.ThreadObject
-import leakcanary.HprofPushRecordsParser.OnRecordListener
+import leakcanary.OnHprofRecordListener
 import leakcanary.HprofReader
 import leakcanary.PrimitiveType
-import leakcanary.Record
-import leakcanary.Record.HeapDumpRecord.GcRootRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import leakcanary.Record.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import leakcanary.Record.LoadClassRecord
-import leakcanary.Record.StringRecord
+import leakcanary.HprofRecord
+import leakcanary.HprofRecord.HeapDumpRecord.GcRootRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
+import leakcanary.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import leakcanary.HprofRecord.LoadClassRecord
+import leakcanary.HprofRecord.StringRecord
 import leakcanary.internal.IndexedObject.IndexedClass
 import leakcanary.internal.IndexedObject.IndexedInstance
 import leakcanary.internal.IndexedObject.IndexedObjectArray
@@ -43,13 +43,8 @@ internal class HprofInMemoryIndex private constructor(
   private val classNames: LongToLongSparseArray,
   private val objectIndex: LongToObjectSparseArray<IndexedObject>,
   private val gcRoots: List<GcRoot>,
-  private val typeSizes: Map<Int, Int>,
   val primitiveWrapperTypes: Set<Long>
 ) {
-  val idSize: Int
-    get() = typeSizes.getValue(HprofReader.OBJECT_TYPE)
-
-  fun sizeOfFieldType(hprofType: Int): Int = typeSizes.getValue(hprofType)
 
   fun hprofStringById(id: Long): String {
     return hprofStringCache[id] ?: throw IllegalArgumentException("Hprof string $id not in cache")
@@ -96,9 +91,9 @@ internal class HprofInMemoryIndex private constructor(
     return objectIndex[objectId] != null
   }
 
-  class Builder(
+  private class Builder(
     private val indexedGcRootsTypes: Set<KClass<out GcRoot>>
-  ) : OnRecordListener {
+  ) : OnHprofRecordListener {
     /**
      * Map of string id to string
      * This currently keeps all the hprof strings that we could care about: class names,
@@ -133,30 +128,10 @@ internal class HprofInMemoryIndex private constructor(
 
     private val gcRoots = mutableListOf<GcRoot>()
 
-    private lateinit var typeSizes: Map<Int, Int>
-    private var consumed = false
-
-    override fun recordTypes(): Set<KClass<out Record>> = setOf(
-        StringRecord::class,
-        LoadClassRecord::class,
-        ClassDumpRecord::class,
-        InstanceDumpRecord::class,
-        ObjectArrayDumpRecord::class,
-        PrimitiveArrayDumpRecord::class,
-        GcRootRecord::class
-    )
-
-    override fun onTypeSizesAvailable(typeSizes: Map<Int, Int>) {
-      this.typeSizes = typeSizes
-    }
-
-    override fun onRecord(
+    override fun onHprofRecord(
       position: Long,
-      record: Record
+      record: HprofRecord
     ) {
-      if (consumed) {
-        throw IllegalStateException("This builder instance already produced a HprofInMemoryIndex")
-      }
       when (record) {
         is StringRecord -> {
           if (PRIMITIVE_WRAPPER_TYPES.contains(record.string)) {
@@ -203,11 +178,9 @@ internal class HprofInMemoryIndex private constructor(
     }
 
     fun buildIndex(): HprofInMemoryIndex {
-      consumed = true
       // Passing references to avoid copying the underlying data structures.
       return HprofInMemoryIndex(
           hprofStringCache, classNames, objectIndex, gcRoots,
-          typeSizes,
           primitiveWrapperTypes
       )
     }
@@ -222,36 +195,45 @@ internal class HprofInMemoryIndex private constructor(
         Int::class.java.name, Long::class.java.name
     )
 
-    fun createOnRecordListener(
-      indexedGcRootTypes: Set<KClass<out GcRoot>> = setOf(
-          JniGlobal::class,
-          JavaFrame::class,
-          JniLocal::class,
-          MonitorUsed::class,
-          NativeStack::class,
-          StickyClass::class,
-          ThreadBlock::class,
-          // ThreadObject points to threads, which we need to find the thread that a JavaLocalPattern
-          // belongs to
-          ThreadObject::class,
-          JniMonitor::class
-          /*
-          Not included here:
+    fun createReadingHprof(reader: HprofReader, indexedGcRootTypes: Set<KClass<out GcRoot>> = setOf(
+        JniGlobal::class,
+        JavaFrame::class,
+        JniLocal::class,
+        MonitorUsed::class,
+        NativeStack::class,
+        StickyClass::class,
+        ThreadBlock::class,
+        // ThreadObject points to threads, which we need to find the thread that a JavaLocalPattern
+        // belongs to
+        ThreadObject::class,
+        JniMonitor::class
+        /*
+        Not included here:
 
-          VmInternal: Ignoring because we've got 150K of it, but is this the right thing
-          to do? What's VmInternal exactly? History does not go further than
-          https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
-          We should log to figure out what objects VmInternal points to.
+        VmInternal: Ignoring because we've got 150K of it, but is this the right thing
+        to do? What's VmInternal exactly? History does not go further than
+        https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
+        We should log to figure out what objects VmInternal points to.
 
-          ReferenceCleanup: We used to keep it, but the name doesn't seem like it should create a leak.
+        ReferenceCleanup: We used to keep it, but the name doesn't seem like it should create a leak.
 
-          Unknown: it's unknown, should we care?
+        Unknown: it's unknown, should we care?
 
-          We definitely don't care about those for leak finding: InternedString, Finalizing, Debugger, Unreachable
-           */
+        We definitely don't care about those for leak finding: InternedString, Finalizing, Debugger, Unreachable
+         */
+    )): HprofInMemoryIndex {
+      val recordTypes = setOf(
+          StringRecord::class,
+          LoadClassRecord::class,
+          ClassDumpRecord::class,
+          InstanceDumpRecord::class,
+          ObjectArrayDumpRecord::class,
+          PrimitiveArrayDumpRecord::class,
+          GcRootRecord::class
       )
-    ): Builder {
-      return Builder(indexedGcRootTypes)
+      val indexBuilderListener = Builder(indexedGcRootTypes)
+      reader.readHprofRecords(recordTypes, indexBuilderListener)
+      return indexBuilderListener.buildIndex()
     }
 
   }

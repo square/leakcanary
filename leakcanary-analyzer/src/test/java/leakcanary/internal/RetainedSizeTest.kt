@@ -2,11 +2,11 @@ package leakcanary.internal
 
 import leakcanary.HeapAnalysis
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HeapValue
-import leakcanary.HeapValue.IntValue
-import leakcanary.HeapValue.LongValue
-import leakcanary.HeapValue.ObjectReference
-import leakcanary.HeapValue.ShortValue
+import leakcanary.ValueHolder
+import leakcanary.ValueHolder.IntHolder
+import leakcanary.ValueHolder.LongHolder
+import leakcanary.ValueHolder.ReferenceHolder
+import leakcanary.ValueHolder.ShortHolder
 import leakcanary.Leak
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -42,7 +42,7 @@ class RetainedSizeTest {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["shortestPath"] = "Leaking" watchedInstance {
-          field["answer"] = LongValue(42)
+          field["answer"] = LongHolder(42)
         }
       }
     }
@@ -88,7 +88,7 @@ class RetainedSizeTest {
       "GcRoot" clazz {
         staticField["shortestPath"] = "Leaking" watchedInstance {
           field["answer"] = "FortyTwo" instance {
-            field["number"] = IntValue(42)
+            field["number"] = IntHolder(42)
           }
         }
       }
@@ -105,7 +105,7 @@ class RetainedSizeTest {
       "GcRoot" clazz {
         staticField["shortestPath"] = "Leaking" watchedInstance {
           field["answer"] = "java.lang.Integer" instance {
-            field["value"] = IntValue(42)
+            field["value"] = IntHolder(42)
           }
         }
       }
@@ -119,7 +119,7 @@ class RetainedSizeTest {
 
   @Test fun leakingInstanceWithPrimitiveWrapperArray() {
     hprofFile.dump {
-      val intWrapperClass = clazz("java.lang.Integer", fields = listOf("value" to IntValue::class))
+      val intWrapperClass = clazz("java.lang.Integer", fields = listOf("value" to IntHolder::class))
 
       "GcRoot" clazz {
         staticField["shortestPath"] = "Leaking" watchedInstance {
@@ -127,11 +127,11 @@ class RetainedSizeTest {
               intWrapperClass,
               instance(
                   intWrapperClass,
-                  fields = listOf<HeapValue>(IntValue(4))
+                  fields = listOf<ValueHolder>(IntHolder(4))
               ),
               instance(
                   intWrapperClass,
-                  fields = listOf<HeapValue>(IntValue(2))
+                  fields = listOf<ValueHolder>(IntHolder(2))
               )
           )
         }
@@ -197,13 +197,13 @@ class RetainedSizeTest {
 
   @Test fun leakingInstanceWithSuperClass() {
     hprofFile.dump {
-      val parentClass = clazz("Parent", fields = listOf("value" to LongValue::class))
+      val parentClass = clazz("Parent", fields = listOf("value" to LongHolder::class))
       val childClass =
-        clazz("Child", superClassId = parentClass, fields = listOf("value" to IntValue::class))
+        clazz("Child", superClassId = parentClass, fields = listOf("value" to IntHolder::class))
 
       "GcRoot" clazz {
         staticField["shortestPath"] = "Leaking" watchedInstance {
-          field["answer"] = instance(childClass, listOf(LongValue(42), IntValue(42)))
+          field["answer"] = instance(childClass, listOf(LongHolder(42), IntHolder(42)))
         }
       }
     }
@@ -218,11 +218,11 @@ class RetainedSizeTest {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["shortestPath"] = "GrandParentLeaking" watchedInstance {
-          field["answer"] = ShortValue(42)
+          field["answer"] = ShortHolder(42)
           field["child"] = "ParentLeaking" watchedInstance {
-            field["answer"] = IntValue(42)
+            field["answer"] = IntHolder(42)
             field["child"] = "ChildLeaking" watchedInstance {
-              field["answer"] = LongValue(42)
+              field["answer"] = LongHolder(42)
             }
           }
         }
@@ -271,22 +271,22 @@ class RetainedSizeTest {
 
     hprofFile.dump {
       val bitmap = "android.graphics.Bitmap" instance {
-        field["mWidth"] = IntValue(width)
-        field["mHeight"] = IntValue(height)
+        field["mWidth"] = IntHolder(width)
+        field["mHeight"] = IntHolder(height)
       }
 
       val referenceClass =
-        clazz("java.lang.ref.Reference", fields = listOf("referent" to ObjectReference::class))
+        clazz("java.lang.ref.Reference", fields = listOf("referent" to ReferenceHolder::class))
       val cleanerClass = clazz(
           "sun.misc.Cleaner", clazz("java.lang.ref.PhantomReference", referenceClass),
-          fields = listOf("thunk" to ObjectReference::class)
+          fields = listOf("thunk" to ReferenceHolder::class)
       )
 
       instance(
           cleanerClass,
           fields = listOf("libcore.util.NativeAllocationRegistry\$CleanerThunk" instance {
             field["this\$0"] = "libcore.util.NativeAllocationRegistry" instance {
-              field["size"] = LongValue(nativeBitmapSize.toLong())
+              field["size"] = LongHolder(nativeBitmapSize.toLong())
             }
           }, bitmap)
       )

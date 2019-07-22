@@ -1,11 +1,11 @@
 package leakcanary.internal
 
-import leakcanary.GraphObjectRecord.GraphInstanceRecord
-import leakcanary.HeapValue
-import leakcanary.HeapValue.ObjectReference
+import leakcanary.HeapObject.HeapInstance
+import leakcanary.ValueHolder
+import leakcanary.ValueHolder.ReferenceHolder
 
 internal class KeyedWeakReferenceMirror(
-  val referent: ObjectReference,
+  val referent: ReferenceHolder,
   val key: String,
     // The name field does not exist in pre 1.0 heap dumps.
   val name: String,
@@ -15,7 +15,7 @@ internal class KeyedWeakReferenceMirror(
   val retainedDurationMillis: Long?
 ) {
 
-  val hasReferent = referent.value != HeapValue.NULL_REFERENCE
+  val hasReferent = referent.value != ValueHolder.NULL_REFERENCE
 
   val isRetained = retainedDurationMillis == null || retainedDurationMillis != -1L
 
@@ -24,12 +24,12 @@ internal class KeyedWeakReferenceMirror(
     private const val UNKNOWN_LEGACY = "Unknown (legacy)"
 
     fun fromInstance(
-      weakRef: GraphInstanceRecord,
+      weakRef: HeapInstance,
       // Null for pre 2.0 alpha 3 heap dumps
       heapDumpUptimeMillis: Long?
     ): KeyedWeakReferenceMirror {
 
-      val keyWeakRefClassName = weakRef.className
+      val keyWeakRefClassName = weakRef.instanceClassName
       val watchDurationMillis = if (heapDumpUptimeMillis != null)
         heapDumpUptimeMillis - weakRef[keyWeakRefClassName, "watchUptimeMillis"]!!.value.asLong!!
       else null
@@ -45,7 +45,7 @@ internal class KeyedWeakReferenceMirror(
       return KeyedWeakReferenceMirror(
           watchDurationMillis = watchDurationMillis,
           retainedDurationMillis = retainedDurationMillis,
-          referent = weakRef["java.lang.ref.Reference", "referent"]!!.value.actual as ObjectReference,
+          referent = weakRef["java.lang.ref.Reference", "referent"]!!.value.holder as ReferenceHolder,
           key = keyString,
           name = name
       )

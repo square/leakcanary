@@ -1,10 +1,10 @@
 package leakcanary.internal
 
 import leakcanary.AndroidObjectInspectors
-import leakcanary.GraphObjectRecord.GraphClassRecord
-import leakcanary.GraphObjectRecord.GraphInstanceRecord
+import leakcanary.HeapObject.HeapClass
+import leakcanary.HeapObject.HeapInstance
 import leakcanary.HeapAnalysisSuccess
-import leakcanary.HprofGraph
+import leakcanary.HeapGraph
 import leakcanary.LeakNodeStatus.LEAKING
 import leakcanary.LeakNodeStatus.NOT_LEAKING
 import leakcanary.LeakNodeStatus.UNKNOWN
@@ -432,11 +432,11 @@ class LeakStatusTest {
   private fun notLeakingInstance(className: String): ObjectInspector {
     return object : ObjectInspector {
       override fun inspect(
-        graph: HprofGraph,
+        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
-        val record = reporter.objectRecord
-        if (record is GraphInstanceRecord && record.className == className) {
+        val record = reporter.heapObject
+        if (record is HeapInstance && record.instanceClassName == className) {
           reporter.reportNotLeaking("$className is not leaking")
         }
       }
@@ -446,11 +446,11 @@ class LeakStatusTest {
   private fun leakingInstance(className: String): ObjectInspector {
     return object : ObjectInspector {
       override fun inspect(
-        graph: HprofGraph,
+        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
-        val record = reporter.objectRecord
-        if (record is GraphInstanceRecord && record.className == className) {
+        val record = reporter.heapObject
+        if (record is HeapInstance && record.instanceClassName == className) {
           reporter.reportLeaking("$className is leaking")
         }
       }
@@ -460,11 +460,11 @@ class LeakStatusTest {
   private fun notLeakingClass(className: String): ObjectInspector {
     return object : ObjectInspector {
       override fun inspect(
-        graph: HprofGraph,
+        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
-        val record = reporter.objectRecord
-        if (record is GraphClassRecord && record.name == className) {
+        val record = reporter.heapObject
+        if (record is HeapClass && record.name == className) {
           reporter.reportNotLeaking("$className is not leaking")
         }
       }
@@ -474,11 +474,11 @@ class LeakStatusTest {
   private fun leakingClass(className: String): ObjectInspector {
     return object : ObjectInspector {
       override fun inspect(
-        graph: HprofGraph,
+        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
-        val record = reporter.objectRecord
-        if (record is GraphClassRecord && record.name == className) {
+        val record = reporter.heapObject
+        if (record is HeapClass && record.name == className) {
           reporter.reportLeaking("$className is leaking")
         }
       }

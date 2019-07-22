@@ -1,7 +1,7 @@
 package leakcanary
 
 /**
- * A GcRoot as identified by [Record.HeapDumpRecord.GcRootRecord] in the heap dump.
+ * A GcRoot as identified by [HprofRecord.HeapDumpRecord.GcRootRecord] in the heap dump.
  */
 sealed class GcRoot {
 
