@@ -89,7 +89,7 @@ class HeapAnalyzer constructor(
     try {
       listener.onProgressUpdate(PARSING_HEAP_DUMP)
       Hprof.open(heapDumpFile).use { hprof ->
-        val graph = HeapGraph.indexHprof(hprof)
+        val graph = HprofHeapGraph.indexHprof(hprof)
         listener.onProgressUpdate(FINDING_LEAKING_INSTANCES)
 
         val leakingInstanceObjectIds = findLeakingInstances(graph, leakFinders)
@@ -130,7 +130,7 @@ class HeapAnalyzer constructor(
         .filter { objectRecord ->
           val reporter = ObjectReporter(objectRecord)
           objectInspectors.forEach { inspector ->
-            inspector.inspect(graph, reporter)
+            inspector.inspect(reporter)
           }
           reporter.leakingStatuses.isNotEmpty()
         }
@@ -390,7 +390,7 @@ class HeapAnalyzer constructor(
     // Looping on inspectors first to get more cache hits.
     objectInspectors.forEach { inspector ->
       leakReporters.forEach { reporter ->
-        inspector.inspect(graph, reporter)
+        inspector.inspect(reporter)
       }
     }
 

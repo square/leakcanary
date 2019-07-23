@@ -1070,7 +1070,7 @@ enum class AndroidReferenceMatchers {
           pattern = referencePattern,
           description = description,
           patternApplies = { graph ->
-            graph.androidBuildMirror.patternApplies()
+            AndroidBuildMirror.fromHeapGraph(graph).patternApplies()
           }
       )
     }

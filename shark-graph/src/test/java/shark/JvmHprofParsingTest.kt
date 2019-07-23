@@ -20,7 +20,7 @@ class JvmHprofParsingTest {
 
     Hprof.open(hprofFile)
         .use { hprof ->
-          val graph = HeapGraph.indexHprof(hprof)
+          val graph = HprofHeapGraph.indexHprof(hprof)
           val testInstances = graph.instances
               .filter { it.instanceClassName == JvmHprofParsingTest::class.name }
               .toList()

@@ -8,7 +8,6 @@ import shark.HeapObject.HeapInstance
  */
 class AppSingletonInspector(private vararg val singletonClasses: String) : ObjectInspector {
   override fun inspect(
-    graph: HeapGraph,
     reporter: ObjectReporter
   ) {
     if (reporter.heapObject is HeapInstance) {

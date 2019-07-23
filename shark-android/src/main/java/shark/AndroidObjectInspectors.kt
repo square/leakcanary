@@ -36,7 +36,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   VIEW {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.view.View") { instance ->
@@ -109,7 +108,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   ACTIVITY {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Activity") { instance ->
@@ -131,7 +129,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   CONTEXT_WRAPPER {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.content.ContextWrapper") { instance ->
@@ -161,7 +158,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   DIALOG {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Dialog") { instance ->
@@ -177,7 +173,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   APPLICATION {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Application") {
@@ -188,7 +183,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   INPUT_METHOD_MANAGER {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.view.inputmethod.InputMethodManager") {
@@ -199,7 +193,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   FRAGMENT {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Fragment") { instance ->
@@ -219,7 +212,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   SUPPORT_FRAGMENT {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.support.v4.app.Fragment") { instance ->
@@ -239,7 +231,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   ANDROIDX_FRAGMENT {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("androidx.fragment.app.Fragment") { instance ->
@@ -259,7 +250,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   MESSAGE_QUEUE {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.os.MessageQueue") { instance ->
@@ -278,7 +268,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   MORTAR_PRESENTER {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("mortar.Presenter") { instance ->
@@ -295,7 +284,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   COORDINATOR {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
@@ -311,7 +299,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   MAIN_THREAD {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf(Thread::class) { instance ->
@@ -325,7 +312,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   WINDOW {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.view.Window") { instance ->
@@ -342,7 +328,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   TOAST {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.widget.Toast") { instance ->

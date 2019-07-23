@@ -427,7 +427,6 @@ class LeakStatusTest {
   private fun notLeakingInstance(className: String): ObjectInspector {
     return object : ObjectInspector {
       override fun inspect(
-        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
         val record = reporter.heapObject
@@ -441,7 +440,6 @@ class LeakStatusTest {
   private fun leakingInstance(className: String): ObjectInspector {
     return object : ObjectInspector {
       override fun inspect(
-        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
         val record = reporter.heapObject
@@ -455,7 +453,6 @@ class LeakStatusTest {
   private fun notLeakingClass(className: String): ObjectInspector {
     return object : ObjectInspector {
       override fun inspect(
-        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
         val record = reporter.heapObject
@@ -469,7 +466,6 @@ class LeakStatusTest {
   private fun leakingClass(className: String): ObjectInspector {
     return object : ObjectInspector {
       override fun inspect(
-        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
         val record = reporter.heapObject

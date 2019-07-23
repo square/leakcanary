@@ -15,10 +15,7 @@ interface ObjectInspector {
   /**
    * @see [ObjectInspector]
    */
-  fun inspect(
-    graph: HeapGraph,
-    reporter: ObjectReporter
-  )
+  fun inspect(reporter: ObjectReporter)
 
   companion object {
     /**
@@ -28,18 +25,17 @@ interface ObjectInspector {
      * Usage:
      *
      * ```kotlin
-     * val inspector = ObjectInspector { graph, reporter ->
+     * val inspector = ObjectInspector { reporter ->
      *
      * }
      * ```
      */
-    inline operator fun invoke(crossinline block: (HeapGraph, ObjectReporter) -> Unit): ObjectInspector =
+    inline operator fun invoke(crossinline block: (ObjectReporter) -> Unit): ObjectInspector =
       object : ObjectInspector {
         override fun inspect(
-          graph: HeapGraph,
           reporter: ObjectReporter
         ) {
-          block(graph, reporter)
+          block(reporter)
         }
       }
   }

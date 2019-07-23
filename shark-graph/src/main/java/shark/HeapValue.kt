@@ -15,7 +15,7 @@ import shark.ValueHolder.ShortHolder
  * a primitive type. Provides navigation capabilities.
  */
 class HeapValue(
-  private val graph: HeapGraph,
+  private val graph: HprofHeapGraph,
   val holder: ValueHolder
 ) {
   val asBoolean: Boolean?
