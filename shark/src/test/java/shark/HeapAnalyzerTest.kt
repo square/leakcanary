@@ -112,7 +112,7 @@ class HeapAnalyzerTest {
       val threadClassId =
         clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class))
       val myThreadClassId = clazz(
-          className = "MyThread", superClassId = threadClassId,
+          className = "MyThread", superclassId = threadClassId,
           fields = listOf("leaking" to ReferenceHolder::class)
       )
       val threadInstance =

@@ -2,6 +2,7 @@ package shark
 
 /**
  * Caches values from the android.os.Build class in the heap dump.
+ * Retrieve a cached instances via [fromHeapGraph].
  */
 class AndroidBuildMirror(
   /**
@@ -14,6 +15,9 @@ class AndroidBuildMirror(
   val sdkInt: Int
 ) {
   companion object {
+    /**
+     * @see AndroidBuildMirror
+     */
     fun fromHeapGraph(graph: HeapGraph): AndroidBuildMirror {
       return graph.context.getOrPut(AndroidBuildMirror::class.java.name) {
         val buildClass = graph.findClassByName("android.os.Build")!!

@@ -1,6 +1,5 @@
 package shark
 
-import okio.Buffer
 import shark.GcRoot.StickyClass
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -50,11 +49,11 @@ class HprofWriterHelper constructor(
       UUID(weakRefKeyRandom.nextLong(), weakRefKeyRandom.nextLong()).toString()
 
   private val typeSizes =
-    PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to writer.idSize)
+    PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to writer.identifierByteSize)
 
   private val classDumps = mutableMapOf<Long, ClassDumpRecord>()
 
-  private val objectClassId = clazz(superClassId = 0, className = "java.lang.Object")
+  private val objectClassId = clazz(superclassId = 0, className = "java.lang.Object")
   private val objectArrayClassId = arrayClass("java.lang.Object")
   private val stringClassId = clazz(
       className = "java.lang.String", fields = listOf(
@@ -72,10 +71,10 @@ class HprofWriterHelper constructor(
 
   private val weakReferenceClassId = clazz(
       className = "java.lang.ref.WeakReference",
-      superClassId = referenceClassId
+      superclassId = referenceClassId
   )
   private val keyedWeakReferenceClassId = clazz(
-      superClassId = weakReferenceClassId,
+      superclassId = weakReferenceClassId,
       className = "leakcanary.KeyedWeakReference",
       staticFields = listOf("heapDumpUptimeMillis" to LongHolder(30000)),
       fields = listOf(
@@ -88,7 +87,7 @@ class HprofWriterHelper constructor(
 
   fun clazz(
     className: String,
-    superClassId: Long = -1L, // -1 defaults to java.lang.Object
+    superclassId: Long = -1L, // -1 defaults to java.lang.Object
     staticFields: List<Pair<String, ValueHolder>> = emptyList(),
     fields: List<Pair<String, KClass<out ValueHolder>>> = emptyList()
   ): Long {
@@ -113,18 +112,18 @@ class HprofWriterHelper constructor(
       typeSizes.getValue(it.type)
     }
 
-    var nextUpId = if (superClassId == -1L) objectClassId else superClassId
+    var nextUpId = if (superclassId == -1L) objectClassId else superclassId
     while (nextUpId != 0L) {
       val nextUp = classDumps[nextUpId]!!
       instanceSize += nextUp.fields.sumBy {
         typeSizes.getValue(it.type)
       }
-      nextUpId = nextUp.superClassId
+      nextUpId = nextUp.superclassId
     }
     val classDump = ClassDumpRecord(
         id = loadClass.id,
         stackTraceSerialNumber = 1,
-        superClassId = if (superClassId == -1L) objectClassId else superClassId,
+        superclassId = if (superclassId == -1L) objectClassId else superclassId,
         classLoaderId = 0,
         signersId = 0,
         protectionDomainId = 0,
@@ -177,17 +176,11 @@ class HprofWriterHelper constructor(
     classId: Long,
     fields: List<ValueHolder> = emptyList()
   ): ReferenceHolder {
-    val fieldsBuffer = Buffer()
-    fields.forEach { value ->
-      with(writer) {
-        fieldsBuffer.writeValue(value)
-      }
-    }
     val instanceDump = InstanceDumpRecord(
         id = id,
         stackTraceSerialNumber = 1,
         classId = classId,
-        fieldValues = fieldsBuffer.readByteArray()
+        fieldValues = writer.valuesToBytes(fields)
     )
     writer.write(instanceDump)
     return ReferenceHolder(instanceDump.id)

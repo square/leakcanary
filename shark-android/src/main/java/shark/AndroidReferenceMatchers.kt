@@ -17,8 +17,8 @@ package shark
 
 import shark.AndroidReferenceMatchers.Companion.appDefaults
 import shark.AndroidReferenceMatchers.Companion.buildKnownReferences
-import shark.ReferenceMatcher.IgnoredReferenceMatcher
-import shark.ReferenceMatcher.LibraryLeakReferenceMatcher
+import shark.IgnoredReferenceMatcher
+import shark.LibraryLeakReferenceMatcher
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
 import shark.ReferencePattern.StaticFieldPattern
@@ -1039,6 +1039,7 @@ enum class AndroidReferenceMatchers {
 
     /**
      * Creates a [LibraryLeakReferenceMatcher] that matches a [StaticFieldPattern].
+     * [description] should convey what we know about this library leak.
      */
     fun staticFieldLeak(
       className: String,
@@ -1051,6 +1052,7 @@ enum class AndroidReferenceMatchers {
 
     /**
      * Creates a [LibraryLeakReferenceMatcher] that matches a [InstanceFieldPattern].
+     * [description] should convey what we know about this library leak.
      */
     fun instanceFieldLeak(
       className: String,

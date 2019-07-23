@@ -93,7 +93,7 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
             fields = listOf("mDestroyed" to BooleanHolder::class)
         )
         val exampleActivityClassId = clazz(
-            superClassId = activityClassId,
+            superclassId = activityClassId,
             className = "com.example.ExampleActivity"
         )
         val activityArrayClassId = arrayClass("com.example.ExampleActivity")
@@ -125,7 +125,7 @@ fun File.writeJavaLocalLeak(
   dump {
     val threadClassId =
       clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class))
-    val myThreadClassId = clazz(className = threadClass, superClassId = threadClassId)
+    val myThreadClassId = clazz(className = threadClass, superclassId = threadClassId)
     val threadInstance = instance(myThreadClassId, listOf(string(threadName)))
     gcRoot(
         ThreadObject(

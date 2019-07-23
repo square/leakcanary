@@ -30,30 +30,54 @@ import java.nio.charset.Charset
 import kotlin.reflect.KClass
 
 /**
- * Represents an object in the heap dump and provides navigation capabilities.
+ * An object in the heap dump.
  */
 sealed class HeapObject {
 
+  /**
+   * The graph of objects in the heap, which you can use to navigate the heap.
+   */
+
   abstract val graph: HeapGraph
 
+  /**
+   * The heap identifier of this object.
+   */
   abstract val objectId: Long
 
+  /**
+   * Reads and returns the underlying [ObjectRecord].
+   *
+   * This may trigger IO reads.
+   */
   abstract fun readRecord(): ObjectRecord
 
+  /**
+   * This [HeapObject] as a [HeapClass] if it is one, or null otherwise
+   */
   val asClass: HeapClass?
     get() = if (this is HeapClass) this else null
 
+  /**
+   * This [HeapObject] as a [HeapInstance] if it is one, or null otherwise
+   */
   val asInstance: HeapInstance?
     get() = if (this is HeapInstance) this else null
 
+  /**
+   * This [HeapObject] as a [HeapObjectArray] if it is one, or null otherwise
+   */
   val asObjectArray: HeapObjectArray?
     get() = if (this is HeapObjectArray) this else null
 
+  /**
+   * This [HeapObject] as a [HeapPrimitiveArray] if it is one, or null otherwise
+   */
   val asPrimitiveArray: HeapPrimitiveArray?
     get() = if (this is HeapPrimitiveArray) this else null
 
   /**
-   * Represents a class in the heap dump and provides navigation capabilities.
+   * A class in the heap dump.
    */
   class HeapClass internal constructor(
     private val hprofGraph: HprofHeapGraph,
@@ -63,44 +87,81 @@ sealed class HeapObject {
     override val graph: HeapGraph
       get() = hprofGraph
 
-    override fun readRecord(): ClassDumpRecord {
-      return hprofGraph.readClassDumpRecord(objectId, indexedObject)
-    }
-
+    /**
+     * The name of this class, identical to [Class.getName].
+     */
     val name: String
       get() = hprofGraph.className(objectId)
 
+    /**
+     * Returns [name] stripped of any string content before the last period (included).
+     */
     val simpleName: String
       get() = classSimpleName(name)
 
-    val instanceSize: Int
+    /**
+     * The total byte size of fields for instances of this class, as registered in the class dump.
+     * This includes the size of fields from superclasses.
+     *
+     * @see readFieldsByteSize
+     */
+    val instanceByteSize: Int
       get() = indexedObject.instanceSize
 
-    fun readFieldsSize(): Int {
+    /**
+     * The total byte size of fields for instances of this class, computed as the sum of the
+     * individual size of each field of this class. This does not include the size of fields from
+     * superclasses.
+     *
+     * This may trigger IO reads.
+     *
+     * @see instanceByteSize
+     */
+    fun readFieldsByteSize(): Int {
       return readRecord()
           .fields.sumBy {
         if (it.type == PrimitiveType.REFERENCE_HPROF_TYPE) {
-          hprofGraph.objectIdByteSize
+          hprofGraph.identifierByteSize
         } else PrimitiveType.byteSizeByHprofType.getValue(it.type)
       }
     }
 
+    /**
+     * The [HeapClass] representing the superclass of this [HeapClass]. If this [HeapClass]
+     * represents either the [Object] class or a primitive type, then
+     * null is returned. If this [HeapClass] represents an array class then the
+     * [HeapClass] object representing the [Object] class is returned.
+     */
     val superclass: HeapClass?
       get() {
         if (indexedObject.superclassId == ValueHolder.NULL_REFERENCE) return null
         return hprofGraph.findObjectById(indexedObject.superclassId) as HeapClass
       }
 
+    /**
+     * The class hierarchy starting at this class (included) and ending at the [Object] class
+     * (included).
+     */
     val classHierarchy: Sequence<HeapClass>
       get() = generateSequence(this) { it.superclass }
 
+    /**
+     * All the subclasses (direct and indirect) of this class,
+     * in the order they were recorded in the heap dump.
+     */
     val subclasses: Sequence<HeapClass>
       get() = hprofGraph.classes.filter { it subclassOf this }
 
+    /**
+     * Returns true if [subclass] is a sub class of this [HeapClass].
+     */
     infix fun superclassOf(subclass: HeapClass): Boolean {
       return subclass.classHierarchy.any { it.objectId == objectId }
     }
 
+    /**
+     * Returns true if [superclass] is a superclass of this [HeapClass].
+     */
     infix fun subclassOf(superclass: HeapClass): Boolean {
       return classHierarchy.any { it.objectId == superclass.objectId }
     }
@@ -117,6 +178,20 @@ sealed class HeapObject {
     val directInstances: Sequence<HeapInstance>
       get() = hprofGraph.instances.filter { it.indexedObject.classId == objectId }
 
+    /**
+     * Reads and returns the underlying [ClassDumpRecord].
+     *
+     * This may trigger IO reads.
+     */
+    override fun readRecord(): ClassDumpRecord {
+      return hprofGraph.readClassDumpRecord(objectId, indexedObject)
+    }
+
+    /**
+     * The static fields of this class, as a sequence of [HeapClassField].
+     *
+     * This may trigger IO reads.
+     */
     fun readStaticFields(): Sequence<HeapClassField> {
       return readRecord().staticFields.asSequence()
           .map { fieldRecord ->
@@ -127,6 +202,15 @@ sealed class HeapObject {
           }
     }
 
+    /**
+     * Returns a [HeapClassField] object that reflects the specified declared
+     * field of the class represented by this [HeapClass] object, or null if this field does not
+     * exist. The [name] parameter specifies the simple name of the desired field.
+     *
+     * Also available as a convenience operator: [get]
+     *
+     * This may trigger IO reads.
+     */
     fun readStaticField(fieldName: String): HeapClassField? {
       for (fieldRecord in readRecord().staticFields) {
         if (hprofGraph.staticFieldName(fieldRecord) == fieldName) {
@@ -139,54 +223,89 @@ sealed class HeapObject {
       return null
     }
 
+    /**
+     * @see readStaticField
+     */
     operator fun get(fieldName: String) = readStaticField(fieldName)
 
     override fun toString(): String {
-      return "record of class $name"
+      return "class $name"
     }
   }
 
   /**
-   * Represents an instance in the heap dump and provides navigation capabilities.
+   * An instance in the heap dump.
    */
   class HeapInstance internal constructor(
     private val hprofGraph: HprofHeapGraph,
     internal val indexedObject: IndexedInstance,
     override val objectId: Long,
+    /**
+     * Whether this is an instance of a primitive wrapper type.
+     */
     val isPrimitiveWrapper: Boolean
   ) : HeapObject() {
 
     override val graph: HeapGraph
       get() = hprofGraph
 
-    val size
-      get() = instanceClass.instanceSize
+    /**
+     * @see HeapClass.instanceByteSize
+     */
+    val byteSize
+      get() = instanceClass.instanceByteSize
 
+    /**
+     * The name of the class of this instance, identical to [Class.getName].
+     */
+    val instanceClassName: String
+      get() = hprofGraph.className(indexedObject.classId)
+
+    /**
+     * Returns [instanceClassName] stripped of any string content before the last period (included).
+     */
+    val instanceClassSimpleName: String
+      get() = classSimpleName(instanceClassName)
+
+    /**
+     * The class of this instance.
+     */
+    val instanceClass: HeapClass
+      get() = hprofGraph.findObjectById(indexedObject.classId) as HeapClass
+
+    /**
+     * Reads and returns the underlying [InstanceDumpRecord].
+     *
+     * This may trigger IO reads.
+     */
     override fun readRecord(): InstanceDumpRecord {
       return hprofGraph.readInstanceDumpRecord(objectId, indexedObject)
     }
 
+    /**
+     * Returns true if this is an instance of the class named [className] or an instance of a
+     * subclass of that class.
+     */
     infix fun instanceOf(className: String): Boolean =
       instanceClass.classHierarchy.any { it.name == className }
 
+    /**
+     * Returns true if this is an instance of [expectedClass] or an instance of a subclass of that
+     * class.
+     */
     infix fun instanceOf(expectedClass: KClass<*>) =
       this instanceOf expectedClass.java.name
 
+    /**
+     * Returns true if this is an instance of [expectedClass] or an instance of a subclass of that
+     * class.
+     */
     infix fun instanceOf(expectedClass: HeapClass) =
       instanceClass.classHierarchy.any { it.objectId == expectedClass.objectId }
 
-    operator fun get(
-      declaringClass: KClass<out Any>,
-      fieldName: String
-    ): HeapClassField? {
-      return readField(declaringClass, fieldName)
-    }
-
-    operator fun get(
-      declaringClassName: String,
-      fieldName: String
-    ) = readField(declaringClassName, fieldName)
-
+    /**
+     * @see readField
+     */
     fun readField(
       declaringClass: KClass<out Any>,
       fieldName: String
@@ -194,6 +313,16 @@ sealed class HeapObject {
       return readField(declaringClass.java.name, fieldName)
     }
 
+    /**
+     * Returns a [HeapClassField] object that reflects the specified declared
+     * field of the instance represented by this [HeapInstance] object, or null if this field does
+     * not exist. The [declaringClassName] specifies the class in which the desired field is
+     * declared, and the [fieldName] parameter specifies the simple name of the desired field.
+     *
+     * Also available as a convenience operator: [get]
+     *
+     * This may trigger IO reads.
+     */
     fun readField(
       declaringClassName: String,
       fieldName: String
@@ -201,15 +330,29 @@ sealed class HeapObject {
       return readFields().firstOrNull { field -> field.declaringClass.name == declaringClassName && field.name == fieldName }
     }
 
-    val instanceClassName: String
-      get() = hprofGraph.className(indexedObject.classId)
+    /**
+     * @see readField
+     */
+    operator fun get(
+      declaringClass: KClass<out Any>,
+      fieldName: String
+    ): HeapClassField? {
+      return readField(declaringClass, fieldName)
+    }
 
-    val instanceClassSimpleName: String
-      get() = classSimpleName(instanceClassName)
+    /**
+     * @see readField
+     */
+    operator fun get(
+      declaringClassName: String,
+      fieldName: String
+    ) = readField(declaringClassName, fieldName)
 
-    val instanceClass: HeapClass
-      get() = hprofGraph.findObjectById(indexedObject.classId) as HeapClass
-
+    /**
+     * The fields of this instance, as a sequence of [HeapClassField].
+     *
+     * This may trigger IO reads.
+     */
     fun readFields(): Sequence<HeapClassField> {
       val fieldReader by lazy {
         hprofGraph.createFieldValuesReader(readRecord())
@@ -227,6 +370,12 @@ sealed class HeapObject {
           .flatten()
     }
 
+    /**
+     * If this [HeapInstance] is an instance of the [String] class, returns a [String] instance
+     * with content that matches the string in the heap dump. Otherwise returns null.
+     *
+     * This may trigger IO reads.
+     */
     fun readAsJavaString(): String? {
       if (instanceClassName != "java.lang.String") {
         return null
@@ -278,7 +427,7 @@ sealed class HeapObject {
   }
 
   /**
-   * Represents an object array in the heap dump and provides navigation capabilities.
+   * An object array in the heap dump.
    */
   class HeapObjectArray internal constructor(
     private val hprofGraph: HprofHeapGraph,
@@ -290,23 +439,45 @@ sealed class HeapObject {
     override val graph: HeapGraph
       get() = hprofGraph
 
+    /**
+     * The name of the class of this array, identical to [Class.getName].
+     */
     val arrayClassName: String
       get() = hprofGraph.className(indexedObject.arrayClassId)
 
+    /**
+     * Returns [arrayClassName] stripped of any string content before the last period (included).
+     */
     val arrayClassSimpleName: String
       get() = classSimpleName(arrayClassName)
 
+    /**
+     * The class of this array.
+     */
     val arrayClass: HeapClass
       get() = hprofGraph.findObjectById(indexedObject.arrayClassId) as HeapClass
 
-    fun readSize(): Int {
-      return readRecord().elementIds.size * hprofGraph.objectIdByteSize
+    /**
+     * The total byte shallow size of elements in this array.
+     */
+    fun readByteSize(): Int {
+      return readRecord().elementIds.size * hprofGraph.identifierByteSize
     }
 
+    /**
+     * Reads and returns the underlying [ObjectArrayDumpRecord].
+     *
+     * This may trigger IO reads.
+     */
     override fun readRecord(): ObjectArrayDumpRecord {
       return hprofGraph.readObjectArrayDumpRecord(objectId, indexedObject)
     }
 
+    /**
+     * The elements in this array, as a sequence of [HeapValue].
+     *
+     * This may trigger IO reads.
+     */
     fun readElements(): Sequence<HeapValue> {
       return readRecord().elementIds.asSequence()
           .map { HeapValue(hprofGraph, ReferenceHolder(it)) }
@@ -318,7 +489,7 @@ sealed class HeapObject {
   }
 
   /**
-   * Represents a primitive array in the heap dump and provides navigation capabilities.
+   * A primitive array in the heap dump.
    */
   class HeapPrimitiveArray internal constructor(
     private val hprofGraph: HprofHeapGraph,
@@ -329,7 +500,10 @@ sealed class HeapObject {
     override val graph: HeapGraph
       get() = hprofGraph
 
-    fun readSize(): Int {
+    /**
+     * The total byte shallow size of elements in this array.
+     */
+    fun readByteSize(): Int {
       return when (val record = readRecord()) {
         is BooleanArrayDump -> record.array.size * PrimitiveType.BOOLEAN.byteSize
         is CharArrayDump -> record.array.size * PrimitiveType.CHAR.byteSize
@@ -342,9 +516,15 @@ sealed class HeapObject {
       }
     }
 
+    /**
+     * The [PrimitiveType] of elements in this array.
+     */
     val primitiveType: PrimitiveType
       get() = indexedObject.primitiveType
 
+    /**
+     * The name of the class of this array, identical to [Class.getName].
+     */
     val arrayClassName: String
       get() = when (primitiveType) {
         BOOLEAN -> "boolean[]"
@@ -357,6 +537,11 @@ sealed class HeapObject {
         LONG -> "long[]"
       }
 
+    /**
+     * Reads and returns the underlying [PrimitiveArrayDumpRecord].
+     *
+     * This may trigger IO reads.
+     */
     override fun readRecord(): PrimitiveArrayDumpRecord {
       return hprofGraph.readPrimitiveArrayDumpRecord(objectId, indexedObject)
     }

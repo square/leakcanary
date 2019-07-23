@@ -7,7 +7,7 @@ import shark.HeapObject.HeapInstance
  * Enables navigation through the heap graph of objects.
  */
 interface HeapGraph {
-  val objectIdByteSize: Int
+  val identifierByteSize: Int
   /**
    * In memory store that can be used to store objects this [HeapGraph] instance.
    */

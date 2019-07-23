@@ -7,8 +7,8 @@ import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
 import shark.ObjectInspector
 import shark.ReferenceMatcher
-import shark.ReferenceMatcher.IgnoredReferenceMatcher
-import shark.ReferenceMatcher.LibraryLeakReferenceMatcher
+import shark.IgnoredReferenceMatcher
+import shark.LibraryLeakReferenceMatcher
 
 /**
  * The entry point API for LeakCanary. LeakCanary builds on top of [AppWatcher]. AppWatcher

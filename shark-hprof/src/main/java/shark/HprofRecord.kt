@@ -16,6 +16,10 @@ sealed class HprofRecord {
     val classNameStringId: Long
   ) : HprofRecord()
 
+  /**
+   * Terminates a series of heap dump segments. Concatenation of heap dump segments equals a
+   * heap dump.
+   */
   object HeapDumpEndRecord : HprofRecord()
 
   class StackFrameRecord(
@@ -49,7 +53,7 @@ sealed class HprofRecord {
       class ClassDumpRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
-        val superClassId: Long,
+        val superclassId: Long,
         val classLoaderId: Long,
         val signersId: Long,
         val protectionDomainId: Long,

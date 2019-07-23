@@ -163,7 +163,7 @@ class InstrumentationLeakDetector {
 
     refWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
 
-    val listener = shark.AnalyzerProgressListener.NONE
+    val listener = shark.OnAnalysisProgressListener.NO_OP
 
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.checkForLeaks(

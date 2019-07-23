@@ -6,8 +6,8 @@ import shark.internal.renderToString
 import java.io.Serializable
 
 /**
- * A chain of references that constitute the shortest strong reference path from a leaking instance
- * to the GC roots. Fixing the leak usually means breaking one of the references in that chain.
+ * A chain of references that constitute the shortest strong reference path from a GC root to the
+ * leaking object. Fixing the leak usually means breaking one of the references in that chain.
  */
 data class LeakTrace(
   val elements: List<LeakTraceElement>

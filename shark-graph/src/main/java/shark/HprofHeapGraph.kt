@@ -5,6 +5,7 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
+import shark.HprofHeapGraph.Companion.indexHprof
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
@@ -21,13 +22,15 @@ import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.LruCache
 
-
+/**
+ * A [HeapGraph] that reads from an indexed [Hprof]. Create a new instance with [indexHprof].
+ */
 class HprofHeapGraph internal constructor(
   private val hprof: Hprof,
   private val index: HprofInMemoryIndex
 ) : HeapGraph {
 
-  override val objectIdByteSize: Int get() = hprof.reader.objectIdByteSize
+  override val identifierByteSize: Int get() = hprof.reader.identifierByteSize
 
   override val context = GraphContext()
 
@@ -97,7 +100,7 @@ class HprofHeapGraph internal constructor(
     val buffer = Buffer()
     buffer.write(record.fieldValues)
 
-    val reader = HprofReader(buffer, 0, objectIdByteSize)
+    val reader = HprofReader(buffer, identifierByteSize)
 
     return object : FieldValuesReader {
       override fun readValue(field: FieldRecord): ValueHolder {

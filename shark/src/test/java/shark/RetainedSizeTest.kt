@@ -195,7 +195,7 @@ class RetainedSizeTest {
     hprofFile.dump {
       val parentClass = clazz("Parent", fields = listOf("value" to LongHolder::class))
       val childClass =
-        clazz("Child", superClassId = parentClass, fields = listOf("value" to IntHolder::class))
+        clazz("Child", superclassId = parentClass, fields = listOf("value" to IntHolder::class))
 
       "GcRoot" clazz {
         staticField["shortestPath"] = "Leaking" watchedInstance {
@@ -232,7 +232,7 @@ class RetainedSizeTest {
 
     assertThat(instance.className).isEqualTo("GrandParentLeaking")
     // 4 bytes per ref * 2 + short + int + long
-    assertThat(instance.retainedHeapSize).isEqualTo(22)
+    assertThat(instance.retainedHeapByteSize).isEqualTo(22)
   }
 
   @Test fun crossDominatedIsNotDominated() {
@@ -255,7 +255,7 @@ class RetainedSizeTest {
 
     retainedInstances.forEach { instance ->
       // 4 byte reference
-      assertThat(instance.retainedHeapSize).isEqualTo(4)
+      assertThat(instance.retainedHeapByteSize).isEqualTo(4)
     }
   }
 
@@ -309,7 +309,7 @@ class RetainedSizeTest {
 
   private fun firstRetainedSize(): Int {
     return retainedInstances()
-        .map { it.retainedHeapSize!! }
+        .map { it.retainedHeapByteSize!! }
         .first()
   }
 

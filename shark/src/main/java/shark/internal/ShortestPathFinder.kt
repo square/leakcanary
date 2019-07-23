@@ -15,8 +15,8 @@
  */
 package shark.internal
 
-import shark.AnalyzerProgressListener.Step.FINDING_DOMINATORS
-import shark.AnalyzerProgressListener.Step.FINDING_PATHS_TO_LEAKING_INSTANCES
+import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
+import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_LEAKING_INSTANCES
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.ThreadObject
@@ -34,8 +34,8 @@ import shark.LeakTraceElement.Type.LOCAL
 import shark.LeakTraceElement.Type.STATIC_FIELD
 import shark.PrimitiveType
 import shark.ReferenceMatcher
-import shark.ReferenceMatcher.IgnoredReferenceMatcher
-import shark.ReferenceMatcher.LibraryLeakReferenceMatcher
+import shark.IgnoredReferenceMatcher
+import shark.LibraryLeakReferenceMatcher
 import shark.ReferencePattern
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.StaticFieldPattern
@@ -93,22 +93,22 @@ internal class ShortestPathFinder {
     referenceMatchers: List<ReferenceMatcher>,
     leakingInstanceObjectIds: Set<Long>,
     computeDominators: Boolean,
-    listener: shark.AnalyzerProgressListener
+    listener: shark.OnAnalysisProgressListener
   ): Results {
 
-    listener.onProgressUpdate(FINDING_PATHS_TO_LEAKING_INSTANCES)
+    listener.onAnalysisProgress(FINDING_PATHS_TO_LEAKING_INSTANCES)
     clearState()
     this.leakingInstanceObjectIds = leakingInstanceObjectIds
 
     val objectClass = graph.findClassByName("java.lang.Object")
     sizeOfObjectInstances = if (objectClass != null) {
-      // In Android 16 ClassDumpRecord.instanceSize can be 8 yet there are 0 fields.
-      // Better rely on our own computation of instance size.
-      // See #1374
-      val objectClassFieldSize = objectClass.readFieldsSize()
+      // In Android 16 ClassDumpRecord.instanceSize for java.lang.Object can be 8 yet there are 0
+      // fields. This is likely because there is extra per instance data that isn't coming from
+      // fields in the Object class. See #1374
+      val objectClassFieldSize = objectClass.readFieldsByteSize()
 
       // shadow$_klass_ (object id) + shadow$_monitor_ (Int)
-      val sizeOfObjectOnArt = graph.objectIdByteSize + PrimitiveType.INT.byteSize
+      val sizeOfObjectOnArt = graph.identifierByteSize + PrimitiveType.INT.byteSize
       if (objectClassFieldSize == sizeOfObjectOnArt) {
         sizeOfObjectOnArt
       } else {
@@ -178,7 +178,7 @@ internal class ShortestPathFinder {
         // Found all refs, stop searching (unless computing retained size which stops on weak reachables)
         if (shortestPathsToLeakingInstances.size == leakingInstanceObjectIds.size) {
           if (computeDominators) {
-            listener.onProgressUpdate(FINDING_DOMINATORS)
+            listener.onAnalysisProgress(FINDING_DOMINATORS)
           } else {
             break@visitingQueue
           }
@@ -463,7 +463,7 @@ internal class ShortestPathFinder {
           when {
             graphObject.isPrimitiveWrapper -> true
             graphObject.instanceClassName == "java.lang.String" -> true
-            graphObject.instanceClass.instanceSize <= sizeOfObjectInstances -> true
+            graphObject.instanceClass.instanceByteSize <= sizeOfObjectInstances -> true
             else -> false
           }
         is HeapObjectArray -> when {

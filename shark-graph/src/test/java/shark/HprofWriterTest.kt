@@ -57,7 +57,7 @@ class HprofWriterTest {
     val magicWandClassDump = ClassDumpRecord(
         id = loadMagicWandClass.id,
         stackTraceSerialNumber = 1,
-        superClassId = 0,
+        superclassId = 0,
         classLoaderId = 0,
         signersId = 0,
         protectionDomainId = 0,
@@ -68,7 +68,7 @@ class HprofWriterTest {
     val baguetteClassDump = ClassDumpRecord(
         id = loadBaguetteClass.id,
         stackTraceSerialNumber = 1,
-        superClassId = loadMagicWandClass.id,
+        superclassId = loadMagicWandClass.id,
         classLoaderId = 0,
         signersId = 0,
         protectionDomainId = 0,
@@ -87,7 +87,7 @@ class HprofWriterTest {
     val treasureChestClassDump = ClassDumpRecord(
         id = loadTreasureChestClass.id,
         stackTraceSerialNumber = 1,
-        superClassId = 0,
+        superclassId = 0,
         classLoaderId = 0,
         signersId = 0,
         protectionDomainId = 0,
