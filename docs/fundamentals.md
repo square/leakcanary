@@ -24,7 +24,7 @@ When we first enabled LeakCanary in the Square Point Of Sale app, we were able t
 
 ### Detecting retained instances
 
-The foundation of LeakCanary is a library called LeakSentry. LeakSentry hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed instances are passed to a `RefWatcher`, which holds weak references to them. You can also watch any instance that is no longer needed, e.g. a detached view, a destroyed presenter, etc.
+The foundation of LeakCanary is a library called Object Watcher Android. It hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed instances are passed to an `ObjectWatcher`, which holds weak references to them. You can also watch any instance that is no longer needed, e.g. a detached view, a destroyed presenter, etc.
 
 If the weak references aren't cleared after waiting 5 seconds and running the garbage collector, the watched instances are considered *retained*, and potentially leaking.
 
@@ -206,16 +206,23 @@ If you cannot figure out a leak, **please do not file an issue**. Instead, creat
 
 ## LeakCanary artifacts
 
-LeakCanary is released as several distinct libraries:
+LeakCanary is released as several libraries:
 
-* LeakSentry
-    * Detects retained instances.
+* Shark
+    * The heap analyzer that powers LeakCanary.
+    * See [Shark](shark.md) for details.
+* ObjectWatcher
+    * Used to watch retained objects and check if they become weakly reachable.
     * Suitable for release builds.
-    * Artifact id: `com.squareup.leakcanary:leaksentry`.
+    * Artifact id: `com.squareup.leakcanary:object-watcher`.
+* ObjectWatcher Android
+    * Automatically detects retained destroyed activities and fragments.
+    * Suitable for release builds.
+    * Artifact id: `com.squareup.leakcanary:object-watcher-android`.
 * LeakCanary
     * Dumps the heap and analyzes it.
     * Currently only suitable for debug builds.
-    * Depends on LeakSentry.
+    * Depends on ObjectWatcher Android.
     * Artifact id: `com.squareup.leakcanary:leakcanary-android`.
 * LeakCanary for Instrumentation tests
     * Fails tests if a leak is detected.
@@ -223,3 +230,6 @@ LeakCanary is released as several distinct libraries:
     * Configures LeakCanary to wait for the end of tests before dumping the heap.
     * Artifact id: `com.squareup.leakcanary:leakcanary-android-instrumentation`.
     * See [Running LeakCanary in instrumentation tests](recipes.md#running-leakcanary-in-instrumentation-tests).
+* LeakCanary Android separate process
+	* Enables running LeakCanary separately from the main app process.
+	* Artifact id: `com.squareup.leakcanary:leakcanary-android-process` (as a replacement for `com.squareup.leakcanary:leakcanary-android`).

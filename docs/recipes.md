@@ -2,15 +2,15 @@
 
 If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new/choose). Your feedback help us make LeakCanary better for the entire community.
 
-## Configuring LeakSentry
+## Configuring ObjectWatcher Android
 
-LeakSentry can be configured by replacing `LeakSentry.config`:
+ObjectWatcher Android can be configured by replacing `AppWatcher.config`:
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
     super.onCreate()
-    LeakSentry.config = LeakSentry.config.copy(watchFragmentViews = false)
+    AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
   }
 }
 ```
@@ -27,7 +27,7 @@ disableLeakCanaryButton.setOnClickListener {
 
 ## Watching objects with a lifecycle
 
-In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use `LeakSentry.refWatcher` to watch instances that should be garbage collected:
+In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use `AppWatcher.objectWatcher` to watch instances that should be garbage collected:
 
 ```kotlin
 class MyService : Service {
@@ -36,26 +36,26 @@ class MyService : Service {
 
   override fun onDestroy() {
     super.onDestroy()
-    LeakSentry.refWatcher.watch(this)
+    AppWatcher.objectWatcher.watch(this)
   }
 }
 ```
 
 ## Counting retained instances in production
 
-`com.squareup.leakcanary:leakcanary-android` should only be used in debug builds. It depends on `com.squareup.leakcanary:leaksentry` which you can use in production to track and count retained instances.
+`com.squareup.leakcanary:leakcanary-android` should only be used in debug builds. It depends on `com.squareup.leakcanary:object-watcher-android` which you can use in production to track and count retained instances.
 
 In your `build.gradle`:
 
 ```gradle
 dependencies {
-  implementation 'com.squareup.leakcanary:leaksentry:2.0-alpha-2'
+  implementation 'com.squareup.leakcanary:object-watcher-android:2.0-alpha-2'
 }
 ```
 
 In your leak reporting code:
 ```kotlin
-val retainedInstanceCount = LeakSentry.refWatcher.retainedKeys.size
+val retainedInstanceCount = AppWatcher.objectWatcher.retainedKeys.size
 ```
 
 ## Running LeakCanary in instrumentation tests
