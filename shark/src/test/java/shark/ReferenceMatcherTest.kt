@@ -5,8 +5,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.ReferenceMatcher.IgnoredReferenceMatcher
-import shark.ReferenceMatcher.LibraryLeakReferenceMatcher
+import shark.IgnoredReferenceMatcher
+import shark.LibraryLeakReferenceMatcher
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
 import shark.ReferencePattern.StaticFieldPattern

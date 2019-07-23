@@ -1,6 +1,5 @@
 package shark
 
-import shark.ReferenceMatcher.IgnoredReferenceMatcher
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
 import java.io.File
@@ -19,7 +18,7 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   } else {
     objectInspectors
   }
-  val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
+  val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
   val result = heapAnalyzer.checkForLeaks(
       this, referenceMatchers, computeRetainedHeapSize, inspectors
   )

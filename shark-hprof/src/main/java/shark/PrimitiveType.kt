@@ -1,7 +1,16 @@
 package shark
 
+/**
+ * A primitive type in the prof.
+ */
 enum class PrimitiveType(
+  /**
+   * The hprof defined "basic type".
+   */
   val hprofType: Int,
+  /**
+   * The size in bytes for each value of that type.
+   */
   val byteSize: Int
 ) {
   BOOLEAN(4, 1),
@@ -14,6 +23,9 @@ enum class PrimitiveType(
   LONG(11, 8);
 
   companion object {
+    /**
+     * The hprof defined "basic type" for references.
+     */
     const val REFERENCE_HPROF_TYPE = 2
 
     val byteSizeByHprofType = values().map { it.hprofType to it.byteSize }.toMap()

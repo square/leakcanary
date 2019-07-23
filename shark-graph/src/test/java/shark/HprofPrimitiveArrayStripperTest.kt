@@ -65,7 +65,7 @@ class HprofPrimitiveArrayStripperTest {
   fun File.readHprof(block: (HeapGraph) -> Unit) {
     Hprof.open(this)
         .use { hprof ->
-          block(HeapGraph.indexHprof(hprof))
+          block(HprofHeapGraph.indexHprof(hprof))
         }
   }
 

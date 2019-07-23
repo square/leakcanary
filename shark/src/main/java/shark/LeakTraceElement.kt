@@ -5,8 +5,9 @@ import java.io.Serializable
 
 data class LeakTraceElement(
   /**
-   * Information about the reference that points to the next [LeakTraceElement] in the leak
-   * chain. Null if this is the last element in the leak trace, ie the leaking object.
+   * Information about the reference that points to the next [LeakTraceElement] in
+   * [LeakTrace.elements]. Null if this is the last element in the leak trace, ie the leaking
+   * object.
    */
   val reference: LeakReference?,
 

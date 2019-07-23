@@ -28,6 +28,7 @@ sealed class GcRoot {
    */
   class JniLocal(
     override val id: Long,
+    /** Corresponds to [ThreadObject.threadSerialNumber] */
     val threadSerialNumber: Int,
     /**
      * frame number in stack trace (-1 for empty)
@@ -40,6 +41,7 @@ sealed class GcRoot {
    */
   class JavaFrame(
     override val id: Long,
+    /** Corresponds to [ThreadObject.threadSerialNumber] */
     val threadSerialNumber: Int,
     /**
      * frame number in stack trace (-1 for empty)
@@ -53,7 +55,8 @@ sealed class GcRoot {
   class NativeStack(
     override val id: Long,
     /**
-     * Thread is sometimes not found, see:
+     * Corresponds to [ThreadObject.threadSerialNumber]
+     * Note: the corresponding thread is sometimes not found, see:
      * https://issuetracker.google.com/issues/122713143
      */
     val threadSerialNumber: Int
@@ -66,6 +69,7 @@ sealed class GcRoot {
 
   class ThreadBlock(
     override val id: Long,
+    /** Corresponds to [ThreadObject.threadSerialNumber] */
     val threadSerialNumber: Int
   ) : GcRoot()
 

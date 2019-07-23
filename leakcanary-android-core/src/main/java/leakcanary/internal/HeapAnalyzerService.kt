@@ -21,7 +21,7 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
-import shark.AnalyzerProgressListener
+import shark.OnAnalysisProgressListener
 import shark.HeapAnalyzer
 import shark.ObjectInspectors
 import shark.SharkLog
@@ -34,7 +34,7 @@ internal class HeapAnalyzerService : ForegroundService(
     HeapAnalyzerService::class.java.simpleName,
     R.string.leak_canary_notification_analysing,
     R.id.leak_canary_notification_analyzing_heap
-), AnalyzerProgressListener {
+), OnAnalysisProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
     if (intent == null) {
@@ -68,8 +68,8 @@ internal class HeapAnalyzerService : ForegroundService(
     config.onHeapAnalyzedListener.onHeapAnalyzed(heapAnalysis)
   }
 
-  override fun onProgressUpdate(step: shark.AnalyzerProgressListener.Step) {
-    val percent = (100f * step.ordinal / shark.AnalyzerProgressListener.Step.values().size).toInt()
+  override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
+    val percent = (100f * step.ordinal / shark.OnAnalysisProgressListener.Step.values().size).toInt()
     SharkLog.d("Analysis in progress, working on: %s", step.name)
     val lowercase = step.name.replace("_", " ")
         .toLowerCase()

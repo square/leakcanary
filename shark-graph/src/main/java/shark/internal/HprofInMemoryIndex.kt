@@ -154,7 +154,7 @@ internal class HprofInMemoryIndex private constructor(
           }
         }
         is ClassDumpRecord -> {
-          objectIndex[record.id] = IndexedClass(position, record.superClassId, record.instanceSize)
+          objectIndex[record.id] = IndexedClass(position, record.superclassId, record.instanceSize)
         }
         is InstanceDumpRecord -> {
           objectIndex[record.id] = IndexedInstance(position, record.classId)

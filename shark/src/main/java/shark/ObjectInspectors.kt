@@ -26,9 +26,9 @@ enum class ObjectInspectors : ObjectInspector {
 
   KEYED_WEAK_REFERENCE {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
+      val graph = reporter.heapObject.graph
       val references: List<KeyedWeakReferenceMirror> =
         graph.context.getOrPut(KEYED_WEAK_REFERENCE.name) {
           val keyedWeakReferenceClass = graph.findClassByName("leakcanary.KeyedWeakReference")
@@ -79,7 +79,6 @@ enum class ObjectInspectors : ObjectInspector {
 
   CLASSLOADER {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf(ClassLoader::class) {
@@ -90,7 +89,6 @@ enum class ObjectInspectors : ObjectInspector {
 
   CLASS {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       if (reporter.heapObject is HeapClass) {
@@ -101,7 +99,6 @@ enum class ObjectInspectors : ObjectInspector {
 
   ANONYMOUS_CLASS {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       val heapObject = reporter.heapObject
@@ -137,7 +134,6 @@ enum class ObjectInspectors : ObjectInspector {
 
   THREAD {
     override fun inspect(
-      graph: HeapGraph,
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf(Thread::class) { instance ->

@@ -20,6 +20,7 @@ import shark.GcRoot.ThreadObject
 import shark.GcRoot.Unknown
 import shark.GcRoot.Unreachable
 import shark.GcRoot.VmInternal
+import shark.Hprof.HprofVersion
 import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.HeapDumpInfoRecord
@@ -66,13 +67,54 @@ import java.io.File
  */
 class HprofWriter private constructor(
   private val sink: BufferedSink,
-  val idSize: Int
+  val identifierByteSize: Int,
+  val hprofVersion: HprofVersion
 ) : Closeable {
 
   private val workBuffer = Buffer()
 
+  /**
+   * Appends a [HprofRecord] to the heap dump. If [record] is a [HprofRecord.HeapDumpRecord] then
+   * it will not be written to an in memory buffer and written to file only when the next a record
+   * that is not a [HprofRecord.HeapDumpRecord] is written or when [close] is called.
+   */
   fun write(record: HprofRecord) {
     sink.write(record)
+  }
+
+  /**
+   * Helper method for creating a [ByteArray] for [InstanceDumpRecord.fieldValues] from a
+   * list of [ValueHolder].
+   */
+  fun valuesToBytes(values: List<ValueHolder>): ByteArray {
+    val valuesBuffer = Buffer()
+    values.forEach { value ->
+        valuesBuffer.writeValue(value)
+    }
+    return valuesBuffer.readByteArray()
+  }
+
+  /**
+   * Flushes to disk all [HprofRecord.HeapDumpRecord] that are currently written to the in memory
+   * buffer, then closes the file.
+   */
+  override fun close() {
+    sink.flushHeapBuffer()
+    sink.close()
+  }
+
+  private fun BufferedSink.writeValue(wrapper: ValueHolder) {
+    when (wrapper) {
+      is ReferenceHolder -> writeId(wrapper.value)
+      is BooleanHolder -> writeBoolean(wrapper.value)
+      is CharHolder -> write(charArrayOf(wrapper.value))
+      is FloatHolder -> writeFloat(wrapper.value)
+      is DoubleHolder -> writeDouble(wrapper.value)
+      is ByteHolder -> writeByte(wrapper.value.toInt())
+      is ShortHolder -> writeShort(wrapper.value.toInt())
+      is IntHolder -> writeInt(wrapper.value)
+      is LongHolder -> writeLong(wrapper.value)
+    }
   }
 
   private fun BufferedSink.write(record: HprofRecord) {
@@ -187,7 +229,7 @@ class HprofWriter private constructor(
           writeByte(HprofReader.CLASS_DUMP)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
-          writeId(record.superClassId)
+          writeId(record.superclassId)
           writeId(record.classLoaderId)
           writeId(record.signersId)
           writeId(record.protectionDomainId)
@@ -295,20 +337,6 @@ class HprofWriter private constructor(
     }
   }
 
-  fun BufferedSink.writeValue(wrapper: ValueHolder) {
-    when (wrapper) {
-      is ReferenceHolder -> writeId(wrapper.value)
-      is BooleanHolder -> writeBoolean(wrapper.value)
-      is CharHolder -> write(charArrayOf(wrapper.value))
-      is FloatHolder -> writeFloat(wrapper.value)
-      is DoubleHolder -> writeDouble(wrapper.value)
-      is ByteHolder -> writeByte(wrapper.value.toInt())
-      is ShortHolder -> writeShort(wrapper.value.toInt())
-      is IntHolder -> writeInt(wrapper.value)
-      is LongHolder -> writeLong(wrapper.value)
-    }
-  }
-
   private fun BufferedSink.writeDouble(value: Double) {
     writeLong(value.toBits())
   }
@@ -382,7 +410,7 @@ class HprofWriter private constructor(
   }
 
   private fun BufferedSink.writeId(id: Long) {
-    when (idSize) {
+    when (identifierByteSize) {
       1 -> writeByte(id.toInt())
       2 -> writeShort(id.toInt())
       4 -> writeInt(id.toInt())
@@ -391,28 +419,30 @@ class HprofWriter private constructor(
     }
   }
 
-  override fun close() {
-    sink.flushHeapBuffer()
-    sink.close()
-  }
-
   companion object {
+    /**
+     * Opens a new file for writing hprof records. Don't forget to call [close] once done.
+     */
     fun open(
       hprofFile: File,
-      idSize: Int = 4
+      /**
+       * Size of Hprof identifiers. Identifiers are used to represent UTF8 strings, objects,
+       * stack traces, etc. They can have the same size as host pointers or sizeof(void*), but are
+       * not required to be.
+       */
+      identifierByteSize: Int = 4,
+      /** Version of the opened hprof, which is tied to the runtime where the heap was dumped. */
+      hprofVersion: HprofVersion = HprofVersion.ANDROID
     ): HprofWriter {
-
       val sink = hprofFile.outputStream()
           .sink()
           .buffer()
-
-      val hprofVersion = "JAVA PROFILE 1.0.3"
-      sink.writeUtf8(hprofVersion)
+      sink.writeUtf8(hprofVersion.versionString)
       sink.writeByte(0)
-      sink.writeInt(idSize)
+      sink.writeInt(identifierByteSize)
       val heapDumpTimestamp = System.currentTimeMillis()
       sink.writeLong(heapDumpTimestamp)
-      return HprofWriter(sink, idSize)
+      return HprofWriter(sink, identifierByteSize, hprofVersion)
     }
   }
 }

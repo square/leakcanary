@@ -5,7 +5,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.ReferenceMatcher.LibraryLeakReferenceMatcher
+import shark.LibraryLeakReferenceMatcher
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.internal.renderToString
 import java.io.File
@@ -60,7 +60,6 @@ class LeakTraceRendererTest {
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
           objectInspectors = listOf(object : ObjectInspector {
             override fun inspect(
-              graph: HeapGraph,
               reporter: ObjectReporter
             ) {
               reporter.whenInstanceOf("ClassB") {
@@ -96,7 +95,6 @@ class LeakTraceRendererTest {
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
         objectInspectors = listOf(object : ObjectInspector {
           override fun inspect(
-            graph: HeapGraph,
             reporter: ObjectReporter
           ) {
             reporter.addLabel("¯\\_(ツ)_/¯")

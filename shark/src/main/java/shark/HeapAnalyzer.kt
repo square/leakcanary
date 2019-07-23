@@ -15,11 +15,11 @@
  */
 package shark
 
-import shark.AnalyzerProgressListener.Step.BUILDING_LEAK_TRACES
-import shark.AnalyzerProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
-import shark.AnalyzerProgressListener.Step.COMPUTING_RETAINED_SIZE
-import shark.AnalyzerProgressListener.Step.FINDING_LEAKING_INSTANCES
-import shark.AnalyzerProgressListener.Step.PARSING_HEAP_DUMP
+import shark.OnAnalysisProgressListener.Step.BUILDING_LEAK_TRACES
+import shark.OnAnalysisProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
+import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
+import shark.OnAnalysisProgressListener.Step.FINDING_LEAKING_INSTANCES
+import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
 import shark.GcRoot.JniLocal
@@ -36,8 +36,6 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.Leak.ApplicationLeak
-import shark.Leak.LibraryLeak
 import shark.LeakNodeStatus.LEAKING
 import shark.LeakNodeStatus.NOT_LEAKING
 import shark.LeakNodeStatus.UNKNOWN
@@ -62,7 +60,7 @@ import java.util.concurrent.TimeUnit.NANOSECONDS
  * Analyzes heap dumps to look for leaks.
  */
 class HeapAnalyzer constructor(
-  private val listener: AnalyzerProgressListener
+  private val listener: OnAnalysisProgressListener
 ) {
 
   /**
@@ -87,10 +85,10 @@ class HeapAnalyzer constructor(
     }
 
     try {
-      listener.onProgressUpdate(PARSING_HEAP_DUMP)
+      listener.onAnalysisProgress(PARSING_HEAP_DUMP)
       Hprof.open(heapDumpFile).use { hprof ->
-        val graph = HeapGraph.indexHprof(hprof)
-        listener.onProgressUpdate(FINDING_LEAKING_INSTANCES)
+        val graph = HprofHeapGraph.indexHprof(hprof)
+        listener.onAnalysisProgress(FINDING_LEAKING_INSTANCES)
 
         val leakingInstanceObjectIds = findLeakingInstances(graph, leakFinders)
 
@@ -130,7 +128,7 @@ class HeapAnalyzer constructor(
         .filter { objectRecord ->
           val reporter = ObjectReporter(objectRecord)
           objectInspectors.forEach { inspector ->
-            inspector.inspect(graph, reporter)
+            inspector.inspect(reporter)
           }
           reporter.leakingStatuses.isNotEmpty()
         }
@@ -231,7 +229,7 @@ class HeapAnalyzer constructor(
     results: List<ReferencePathNode>,
     dominatedInstances: LongLongScatterMap
   ): List<Int> {
-    listener.onProgressUpdate(COMPUTING_NATIVE_RETAINED_SIZE)
+    listener.onAnalysisProgress(COMPUTING_NATIVE_RETAINED_SIZE)
 
     // Map of Object id to native size as tracked by NativeAllocationRegistry$CleanerThunk
     val nativeSizes = mutableMapOf<Long, Int>().withDefault { 0 }
@@ -270,7 +268,7 @@ class HeapAnalyzer constructor(
           }
         }
 
-    listener.onProgressUpdate(COMPUTING_RETAINED_SIZE)
+    listener.onAnalysisProgress(COMPUTING_RETAINED_SIZE)
 
     val sizeByDominator = LinkedHashMap<Long, Int>().withDefault { 0 }
 
@@ -283,7 +281,7 @@ class HeapAnalyzer constructor(
       val heapClass = instanceRecord.instanceClass
       var retainedSize = sizeByDominator.getValue(leakingInstanceObjectId)
 
-      retainedSize += heapClass.instanceSize
+      retainedSize += heapClass.instanceByteSize
       sizeByDominator[leakingInstanceObjectId] = retainedSize
     }
 
@@ -294,9 +292,9 @@ class HeapAnalyzer constructor(
         val currentSize = sizeByDominator.getValue(dominatorId)
         val nativeSize = nativeSizes.getValue(instanceId)
         val shallowSize = when (val objectRecord = graph.findObjectById(instanceId)) {
-          is HeapInstance -> objectRecord.size
-          is HeapObjectArray -> objectRecord.readSize()
-          is HeapPrimitiveArray -> objectRecord.readSize()
+          is HeapInstance -> objectRecord.byteSize
+          is HeapObjectArray -> objectRecord.readByteSize()
+          is HeapPrimitiveArray -> objectRecord.readByteSize()
           is HeapClass -> throw IllegalStateException(
               "Unexpected class record $objectRecord"
           )
@@ -336,7 +334,7 @@ class HeapAnalyzer constructor(
     graph: HeapGraph,
     retainedSizes: List<Int>?
   ): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
-    listener.onProgressUpdate(BUILDING_LEAK_TRACES)
+    listener.onAnalysisProgress(BUILDING_LEAK_TRACES)
 
     val applicationLeaks = mutableListOf<ApplicationLeak>()
     val libraryLeaks = mutableListOf<LibraryLeak>()
@@ -390,7 +388,7 @@ class HeapAnalyzer constructor(
     // Looping on inspectors first to get more cache hits.
     objectInspectors.forEach { inspector ->
       leakReporters.forEach { reporter ->
-        inspector.inspect(graph, reporter)
+        inspector.inspect(reporter)
       }
     }
 

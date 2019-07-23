@@ -12,12 +12,21 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import java.io.File
 
 /**
- * Transforms a Hprof to all primitive arrays, which can be useful to remove PII.
+ * Converts a Hprof file to another file with all primitive arrays replaces with empty arrays,
+ * which can be useful to remove PII.
  */
 class HprofPrimitiveArrayStripper {
 
+  /**
+   * @see HprofPrimitiveArrayStripper
+   */
   fun stripPrimitiveArrays(
     inputHprofFile: File,
+    /**
+     * Optional output file. Defaults to a file in the same directory as [inputHprofFile], with
+     * the same name and "-stripped" prepended before the ".hprof" extension. If the file extension
+     * is not ".hprof", then "-stripped" is added at the end of the file.
+     */
     outputHprofFile: File = File(
         inputHprofFile.parent, inputHprofFile.name.replace(
         ".hprof", "-stripped.hprof"
@@ -26,7 +35,7 @@ class HprofPrimitiveArrayStripper {
     Hprof.open(inputHprofFile)
         .use { hprof ->
           val reader = hprof.reader
-          HprofWriter.open(outputHprofFile, idSize = reader.objectIdByteSize)
+          HprofWriter.open(outputHprofFile, identifierByteSize = reader.identifierByteSize)
               .use { writer ->
                 reader.readHprofRecords(setOf(HprofRecord::class),
                     OnHprofRecordListener { _,

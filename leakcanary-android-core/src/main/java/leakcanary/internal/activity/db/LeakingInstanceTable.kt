@@ -7,7 +7,7 @@ import leakcanary.internal.toByteArray
 import leakcanary.internal.utils.to
 import org.intellij.lang.annotations.Language
 import shark.Leak
-import shark.Leak.LibraryLeak
+import shark.LibraryLeak
 import shark.LeakTrace
 import shark.LeakTraceElement
 import shark.LeakTraceElement.Type.ARRAY_ENTRY

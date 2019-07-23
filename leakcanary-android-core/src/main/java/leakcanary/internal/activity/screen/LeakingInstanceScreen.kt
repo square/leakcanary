@@ -19,7 +19,7 @@ import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
 import shark.Leak
-import shark.Leak.LibraryLeak
+import shark.LibraryLeak
 import java.io.Serializable
 
 internal class LeakingInstanceScreen private constructor(

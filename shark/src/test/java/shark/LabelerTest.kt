@@ -23,7 +23,6 @@ class LabelerTest {
 
     val labeler = object : ObjectInspector {
       override fun inspect(
-        graph: HeapGraph,
         reporter: ObjectReporter
       ) {
         reporter.whenInstanceOf("java.lang.String")  { instance ->

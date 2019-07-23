@@ -1,6 +1,6 @@
 package shark
 
-import shark.AnalyzerProgressListener.Step
+import shark.OnAnalysisProgressListener.Step
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -126,10 +126,8 @@ private fun runCommand(
 }
 
 private fun analyze(heapDumpFile: File) {
-  val listener = object : shark.AnalyzerProgressListener {
-    override fun onProgressUpdate(step: Step) {
-      SharkLog.d(step.name)
-    }
+  val listener = OnAnalysisProgressListener { step ->
+    SharkLog.d(step.name)
   }
 
   val heapAnalyzer = HeapAnalyzer(listener)

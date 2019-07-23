@@ -7,8 +7,8 @@ import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
 import shark.ObjectInspector
 import shark.ReferenceMatcher
-import shark.ReferenceMatcher.IgnoredReferenceMatcher
-import shark.ReferenceMatcher.LibraryLeakReferenceMatcher
+import shark.IgnoredReferenceMatcher
+import shark.LibraryLeakReferenceMatcher
 
 /**
  * The entry point API for LeakCanary. LeakCanary builds on top of [AppWatcher]. AppWatcher
@@ -67,7 +67,7 @@ object LeakCanary {
      * When adding your own custom [LibraryLeakReferenceMatcher] instances, you'll most
      * likely want to set [LibraryLeakReferenceMatcher.patternApplies] with a filter that checks
      * for the Android OS version and manufacturer. The build information can be obtained by calling
-     * the extension function [shark.HeapGraph.androidBuildMirror].
+     * [shark.AndroidBuildMirror.fromHeapGraph].
      *
      * Defaults to [AndroidReferenceMatchers.appDefaults]
      */
