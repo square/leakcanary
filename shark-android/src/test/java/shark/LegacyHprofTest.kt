@@ -2,6 +2,10 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.LeakNodeStatus.LEAKING
+import shark.LegacyHprofTest.WRAPS_ACTIVITY.DESTROYED
+import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_ACTIVITY
+import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_DESTROYED
 import java.io.File
 
 class LegacyHprofTest {
@@ -43,6 +47,39 @@ class LegacyHprofTest {
     assertThat(analysis.applicationLeaks).hasSize(1)
     val leak = analysis.applicationLeaks[0]
     assertThat(leak.className).isEqualTo("com.example.leakcanary.MainActivity")
+  }
+
+  private enum class WRAPS_ACTIVITY {
+    DESTROYED,
+    NOT_DESTROYED,
+    NOT_ACTIVITY
+  }
+
+  @Test fun androidOCountActivityWrappingContexts() {
+    val contextWrapperStatuses = Hprof.open(fileFromResources("leak_asynctask_o.hprof"))
+        .use { hprof ->
+          val graph = HprofHeapGraph.indexHprof(hprof)
+          graph.instances.filter { it instanceOf "android.content.ContextWrapper" && !(it instanceOf "android.app.Activity") }
+              .map { instance ->
+                val reporter = ObjectReporter(instance)
+                AndroidObjectInspectors.CONTEXT_WRAPPER.inspect(reporter)
+                if (reporter.leakingStatuses.size == 1 && reporter.leakingStatuses[0].status == LEAKING) {
+                  DESTROYED
+                } else if (reporter.labels.size == 1) {
+                  if ("Activity.mDestroyed false" in reporter.labels[0]) {
+                    NOT_DESTROYED
+                  } else {
+                    NOT_ACTIVITY
+                  }
+                } else throw IllegalStateException(
+                    "Unexpected, should have 1 leaking status ${reporter.leakingStatuses} or one label ${reporter.labels}"
+                )
+              }
+              .toList()
+        }
+    assertThat(contextWrapperStatuses.filter { it == DESTROYED }).hasSize(12)
+    assertThat(contextWrapperStatuses.filter { it == NOT_DESTROYED }).hasSize(6)
+    assertThat(contextWrapperStatuses.filter { it == NOT_ACTIVITY }).hasSize(1)
   }
 
   @Test fun gcRootInNonPrimaryHeap() {

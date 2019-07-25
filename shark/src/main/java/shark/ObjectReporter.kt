@@ -10,7 +10,7 @@ import kotlin.reflect.KClass
  * A given [ObjectReporter] only maps to one object in the heap, but is shared to many
  * [ObjectInspector] implementations and accumulates insights.
  */
-class ObjectReporter internal constructor(val heapObject: HeapObject) {
+class ObjectReporter constructor(val heapObject: HeapObject) {
 
   private val mutableLabels = mutableListOf<String>()
 
