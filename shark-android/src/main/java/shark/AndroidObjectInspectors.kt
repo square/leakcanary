@@ -136,7 +136,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (!(instance instanceOf "android.app.Activity")) {
           val activityContext = instance.unwrapActivityContext()
           if (activityContext != null) {
-            val mDestroyed = instance["android.app.Activity", "mDestroyed"]
+            val mDestroyed = activityContext["android.app.Activity", "mDestroyed"]
             if (mDestroyed != null) {
               if (mDestroyed.value.asBoolean!!) {
                 reportLeaking(
@@ -150,6 +150,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
                 )
               }
             }
+          } else {
+            addLabel("${instance.instanceClassSimpleName} does not wrap an activity context")
           }
         }
       }
@@ -282,6 +284,20 @@ enum class AndroidObjectInspectors : ObjectInspector {
     }
   },
 
+  MORTAR_SCOPE {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("mortar.MortarScope") { instance ->
+        val dead = instance["mortar.MortarScope", "dead"]!!.value.asBoolean!!
+        val scopeName = instance["mortar.MortarScope", "name"]!!.value.readAsJavaString()
+        if (dead) {
+          reportLeaking("mortar.MortarScope.dead is true for scope $scopeName")
+        } else {
+          reportNotLeaking("mortar.MortarScope.dead is false for scope $scopeName")
+        }
+      }
+    }
+  },
+
   COORDINATOR {
     override fun inspect(
       reporter: ObjectReporter
@@ -305,6 +321,19 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val threadName = instance[Thread::class, "name"]!!.value.readAsJavaString()
         if (threadName == "main") {
           reportNotLeaking("the main thread always runs")
+        }
+      }
+    }
+  },
+
+  VIEW_ROOT_IMPL {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.view.ViewRootImpl") { instance ->
+        val mViewField = instance["android.view.ViewRootImpl", "mView"]!!
+        if (mViewField.value.isNullReference) {
+          reportLeaking(mViewField describedWithValue "null")
+        } else {
+          reportNotLeaking(mViewField describedWithValue "not null")
         }
       }
     }
@@ -382,14 +411,29 @@ fun HeapInstance.unwrapActivityContext(): HeapInstance? {
       val mBase = context["android.content.ContextWrapper", "mBase"]!!.value
 
       if (mBase.isNonNullReference) {
+        var parentContext = context
         context = mBase.asObject!!.asInstance!!
         if (context instanceOf "android.app.Activity") {
           return context
-        } else if (context instanceOf "android.content.ContextWrapper" &&
-            // Avoids infinite loops
-            context.objectId !in visitedInstances
-        ) {
-          keepUnwrapping = true
+        } else {
+          if (parentContext instanceOf "com.android.internal.policy.DecorContext") {
+            // mBase isn't an activity, let's unwrap DecorContext.mPhoneWindow.mContext instead
+            val mPhoneWindowField =
+              parentContext["com.android.internal.policy.DecorContext", "mPhoneWindow"]
+            if (mPhoneWindowField != null) {
+              val phoneWindow = mPhoneWindowField.valueAsInstance!!
+              context = phoneWindow["android.view.Window", "mContext"]!!.valueAsInstance!!
+              if (context instanceOf "android.app.Activity") {
+                return context
+              }
+            }
+          }
+          if (context instanceOf "android.content.ContextWrapper" &&
+              // Avoids infinite loops
+              context.objectId !in visitedInstances
+          ) {
+            keepUnwrapping = true
+          }
         }
       }
     }
