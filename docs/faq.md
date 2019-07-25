@@ -32,6 +32,10 @@ Here's how you can find the leaking instance in the heap dump:
 4. The `referent` field of that `KeyedWeakReference` is your leaking object.
 5. From then on, the matter is in your hands. A good start is to look at the shortest path to GC Roots (excluding weak references).
 
+## How does LeakCanary get installed by only adding a dependency?
+
+On Android, content providers are created after the Application instance is created but before Application.onCreate() is called. The `leakcanary-object-watcher-android` artifact has a non exported ContentProvider defined in its `AndroidManifest.xml` file. When that ContentProvider is installed, it adds activity and fragment lifecycle listeners to the application.
+
 ## How many methods does LeakCanary add?
 
 **0**. LeakCanary is a debug only library.
