@@ -137,3 +137,33 @@ fun File.writeJavaLocalLeak(
     gcRoot(JavaFrame(id = leaking.value, threadSerialNumber = 42, frameNumber = 0))
   }
 }
+
+fun File.writeTwoPathJavaLocalShorterLeak(
+  threadClass: String,
+  threadName: String
+) {
+  dump {
+    val threadClassId =
+      clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class))
+    val myThreadClassId = clazz(className = threadClass, superclassId = threadClassId)
+    val threadInstance = instance(myThreadClassId, listOf(string(threadName)))
+    gcRoot(
+        ThreadObject(
+            id = threadInstance.value, threadSerialNumber = 42, stackTraceSerialNumber = 0
+        )
+    )
+
+    val leaking = "Leaking" watchedInstance {}
+    gcRoot(JavaFrame(id = leaking.value, threadSerialNumber = 42, frameNumber = 0))
+
+    val hasLeaking = instance(
+        clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
+        fields = listOf(leaking)
+    )
+    clazz(
+        "GcRoot", staticFields = listOf(
+        "longestPath" to hasLeaking
+    )
+    )
+  }
+}

@@ -13,7 +13,8 @@ interface HeapGraph {
    */
   val context: GraphContext
   /**
-   * All GC roots which type matches types known to this heap graph.
+   * All GC roots which type matches types known to this heap graph and which point to non null
+   * references.
    */
   val gcRoots: List<GcRoot>
   /**

@@ -7,6 +7,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.ThreadObject
 import shark.LeakTraceElement.Type.LOCAL
+import shark.LeakTraceElement.Type.STATIC_FIELD
 import shark.ValueHolder.ReferenceHolder
 import java.io.File
 
@@ -105,6 +106,18 @@ class HeapAnalyzerTest {
     assertThat(leak.leakTrace.elements[0].className).isEqualTo("MyThread")
     assertThat(leak.leakTrace.elements[0].reference!!.type).isEqualTo(LOCAL)
     assertThat(leak.leakTrace.elements[1].className).isEqualTo("Leaking")
+  }
+
+  @Test fun localVariableLeakShortestPathGoesLast() {
+    hprofFile.writeTwoPathJavaLocalShorterLeak(threadClass = "MyThread", threadName = "kroutine")
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+    println(analysis)
+
+    val leak = analysis.applicationLeaks[0]
+    assertThat(leak.leakTrace.elements).hasSize(3)
+    assertThat(leak.leakTrace.elements[0].className).isEqualTo("GcRoot")
+    assertThat(leak.leakTrace.elements[0].reference!!.type).isEqualTo(STATIC_FIELD)
   }
 
   @Test fun threadFieldLeak() {
