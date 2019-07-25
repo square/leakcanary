@@ -4,6 +4,9 @@ apply plugin: 'kotlin-android'
 dependencies {
   debugImplementation project(':leakcanary-android')
 
+  releaseImplementation project(':leakcanary-object-watcher-android')
+  releaseImplementation project(':shark-android')
+
   implementation deps.kotlin.stdlib
 
   testImplementation deps.junit
@@ -38,7 +41,9 @@ android {
 
   buildTypes {
     debug
-    release
+    release {
+      signingConfig debug.signingConfig
+    }
   }
 
   dexOptions {
