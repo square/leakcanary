@@ -195,3 +195,46 @@ class DebugExampleApplication : ExampleApplication() {
   }
 }
 ```
+
+## Setting up LeakCanary for different product flavors
+
+You can setup LeakCanary to run in a specific Product Flavor of your Application. To do this you will have to define the Product Flavors for your App:
+
+```
+android {
+  flavorDimensions "default"
+  productFlavors {
+    prod {
+      // ...
+    }
+    qa {
+    // ...
+    }
+    dev {
+    // ...
+    }
+  }
+}
+```
+
+Then, you will have to define a Custom Configuration for which flavor do you want to enable LeakCanary: 
+
+```
+android {
+  // ...
+}
+configurations {
+    devDebugImplementation {}
+}
+```
+
+Doing this you are able to add the LeakCanary dependency using the configuration defined:
+
+```
+dependencies {
+  // ...
+  
+  devDebugImplementation 'com.squareup.leakcanary:leakcanary-android:<current_version>'
+  
+}
+```
