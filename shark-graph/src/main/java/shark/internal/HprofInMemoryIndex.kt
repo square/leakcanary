@@ -29,6 +29,7 @@ import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
 import shark.OnHprofRecordListener
 import shark.PrimitiveType
+import shark.ValueHolder
 import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
@@ -149,7 +150,7 @@ internal class HprofInMemoryIndex private constructor(
         }
         is GcRootRecord -> {
           val gcRoot = record.gcRoot
-          if (gcRoot.id != 0L && gcRoot::class in indexedGcRootsTypes) {
+          if (gcRoot.id != ValueHolder.NULL_REFERENCE && gcRoot::class in indexedGcRootsTypes) {
             gcRoots += gcRoot
           }
         }

@@ -11,8 +11,8 @@ class LegacyHprofTest {
     assertThat(analysis.applicationLeaks).hasSize(2)
     val leak1 = analysis.applicationLeaks[0]
     val leak2 = analysis.applicationLeaks[1]
-    assertThat(leak1.className).isEqualTo("com.example.leakcanary.MainActivity")
-    assertThat(leak2.className).isEqualTo("android.graphics.Bitmap")
+    assertThat(leak1.className).isEqualTo("android.graphics.Bitmap")
+    assertThat(leak2.className).isEqualTo("com.example.leakcanary.MainActivity")
   }
 
   @Test fun androidM() {
@@ -21,20 +21,28 @@ class LegacyHprofTest {
     assertThat(analysis.applicationLeaks).hasSize(1)
     val leak = analysis.applicationLeaks[0]
     assertThat(leak.className).isEqualTo("com.example.leakcanary.MainActivity")
-    assertThat(leak.leakTrace.elements[0].labels).contains("Thread name: 'AsyncTask #1'")
+    assertThat(leak.leakTrace.elements[0].labels).contains("GC Root: System class")
   }
 
   @Test fun androidMStripped() {
     val stripper = HprofPrimitiveArrayStripper()
-    val strippedHprof =
-      stripper.stripPrimitiveArrays(fileFromResources("leak_asynctask_m.hprof"))
+    val sourceHprof = fileFromResources("leak_asynctask_m.hprof")
+    val strippedHprof = stripper.stripPrimitiveArrays(sourceHprof)
 
-    val analysis = analyzeHprof(strippedHprof)
+    assertThat(readThreadNames(sourceHprof)).contains("AsyncTask #1")
+    assertThat(readThreadNames(strippedHprof)).containsOnly("")
+  }
 
-    assertThat(analysis.applicationLeaks).hasSize(1)
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.className).isEqualTo("com.example.leakcanary.MainActivity")
-    assertThat(leak.leakTrace.elements[0].labels).contains("Thread name: ''")
+  private fun readThreadNames(hprofFile: File): List<String> {
+    val threadNames = Hprof.open(hprofFile)
+        .use { hprof ->
+          val graph = HprofHeapGraph.indexHprof(hprof)
+          graph.findClassByName("java.lang.Thread")!!.instances.map { instance ->
+            instance["java.lang.Thread", "name"]!!.value.readAsJavaString()!!
+          }
+              .toList()
+        }
+    return threadNames
   }
 
   @Test fun androidO() {

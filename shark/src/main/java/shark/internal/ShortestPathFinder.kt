@@ -15,8 +15,6 @@
  */
 package shark.internal
 
-import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
-import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_LEAKING_INSTANCES
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.ThreadObject
@@ -27,20 +25,23 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import shark.IgnoredReferenceMatcher
 import shark.LeakReference
 import shark.LeakTraceElement.Type.ARRAY_ENTRY
 import shark.LeakTraceElement.Type.INSTANCE_FIELD
 import shark.LeakTraceElement.Type.LOCAL
 import shark.LeakTraceElement.Type.STATIC_FIELD
+import shark.LibraryLeakReferenceMatcher
+import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
+import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_LEAKING_INSTANCES
 import shark.PrimitiveType
 import shark.ReferenceMatcher
-import shark.IgnoredReferenceMatcher
-import shark.LibraryLeakReferenceMatcher
 import shark.ReferencePattern
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.StaticFieldPattern
 import shark.SharkLog
 import shark.ValueHolder
+import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.ChildNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.ChildNode.NormalNode
 import shark.internal.ReferencePathNode.RootNode
@@ -61,7 +62,12 @@ internal class ShortestPathFinder {
 
   /** Set of instances to visit */
   private val toVisitQueue: Deque<ReferencePathNode> = ArrayDeque()
-  private val toVisitLastQueue: Deque<LibraryLeakNode> = ArrayDeque()
+
+  /**
+   * Instances to visit when [toVisitQueue] is empty. Should contain [JavaFrame] gc roots first,
+   * then [LibraryLeakNode].
+   */
+  private val toVisitLastQueue: Deque<ReferencePathNode> = ArrayDeque()
   /**
    * Enables fast checking of whether a node is already in the queue.
    */
@@ -246,10 +252,10 @@ internal class ShortestPathFinder {
           val referenceMatcher = threadNameReferenceMatchers[threadName]
 
           if (referenceMatcher !is IgnoredReferenceMatcher) {
-            // visitOrder is unused as this root node isn't enqueued.
             val rootNode = RootNode(gcRoot, threadRoot.id)
-            // TODO #1352 Instead of <Java Local>, it should be <local variable in Foo.bar()>
-            // We should also add the full stacktrace as a label of thread objects
+            // Unfortunately Android heap dumps do not include stack trace data, so
+            // JavaFrame.frameNumber is always -1 and we cannot know which method is causing the
+            // reference to be held.
             val leakReference = LeakReference(LOCAL, "")
 
             val childNode = if (referenceMatcher is LibraryLeakReferenceMatcher) {
@@ -439,10 +445,14 @@ internal class ShortestPathFinder {
     if (toVisitSet.contains(node.instance)) {
       return
     }
-    //
+
+    val visitLast =
+      node is LibraryLeakNode ||
+          (node is NormalNode && node.parent is RootNode && node.parent.gcRoot is JavaFrame)
+
     if (toVisitLastSet.contains(node.instance)) {
       // Already enqueued => shorter or equal distance amongst library leak ref patterns.
-      if (node is LibraryLeakNode) {
+      if (visitLast) {
         return
       } else {
         toVisitQueue.add(node)
@@ -476,7 +486,7 @@ internal class ShortestPathFinder {
         return
       }
     }
-    if (node is LibraryLeakNode) {
+    if (visitLast) {
       toVisitLastQueue.add(node)
       toVisitLastSet.add(node.instance)
     } else {
