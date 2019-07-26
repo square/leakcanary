@@ -37,6 +37,12 @@ class ObjectReporter constructor(val heapObject: HeapObject) {
   val leakingStatuses: List<LeakNodeStatusAndReason>
     get() = mutableLeakingStatuses
 
+  val notLeakingStatuses: List<LeakNodeStatusAndReason>
+    get() = mutableNotLeakingStatuses
+
+  val likelyLeakingStatuses: List<LeakNodeStatusAndReason>
+    get() = mutableLikelyLeakingStatuses
+
   /**
    * Adds a label that will be visible on the corresponding node in the leak trace.
    */

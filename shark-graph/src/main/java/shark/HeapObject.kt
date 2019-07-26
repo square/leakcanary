@@ -188,14 +188,14 @@ sealed class HeapObject {
     }
 
     /**
-     * The static fields of this class, as a sequence of [HeapClassField].
+     * The static fields of this class, as a sequence of [HeapField].
      *
      * This may trigger IO reads.
      */
-    fun readStaticFields(): Sequence<HeapClassField> {
+    fun readStaticFields(): Sequence<HeapField> {
       return readRecord().staticFields.asSequence()
           .map { fieldRecord ->
-            HeapClassField(
+            HeapField(
                 this, hprofGraph.staticFieldName(fieldRecord),
                 HeapValue(hprofGraph, fieldRecord.value)
             )
@@ -203,7 +203,7 @@ sealed class HeapObject {
     }
 
     /**
-     * Returns a [HeapClassField] object that reflects the specified declared
+     * Returns a [HeapField] object that reflects the specified declared
      * field of the class represented by this [HeapClass] object, or null if this field does not
      * exist. The [name] parameter specifies the simple name of the desired field.
      *
@@ -211,10 +211,10 @@ sealed class HeapObject {
      *
      * This may trigger IO reads.
      */
-    fun readStaticField(fieldName: String): HeapClassField? {
+    fun readStaticField(fieldName: String): HeapField? {
       for (fieldRecord in readRecord().staticFields) {
         if (hprofGraph.staticFieldName(fieldRecord) == fieldName) {
-          return HeapClassField(
+          return HeapField(
               this, hprofGraph.staticFieldName(fieldRecord),
               HeapValue(hprofGraph, fieldRecord.value)
           )
@@ -309,12 +309,12 @@ sealed class HeapObject {
     fun readField(
       declaringClass: KClass<out Any>,
       fieldName: String
-    ): HeapClassField? {
+    ): HeapField? {
       return readField(declaringClass.java.name, fieldName)
     }
 
     /**
-     * Returns a [HeapClassField] object that reflects the specified declared
+     * Returns a [HeapField] object that reflects the specified declared
      * field of the instance represented by this [HeapInstance] object, or null if this field does
      * not exist. The [declaringClassName] specifies the class in which the desired field is
      * declared, and the [fieldName] parameter specifies the simple name of the desired field.
@@ -326,7 +326,7 @@ sealed class HeapObject {
     fun readField(
       declaringClassName: String,
       fieldName: String
-    ): HeapClassField? {
+    ): HeapField? {
       return readFields().firstOrNull { field -> field.declaringClass.name == declaringClassName && field.name == fieldName }
     }
 
@@ -336,7 +336,7 @@ sealed class HeapObject {
     operator fun get(
       declaringClass: KClass<out Any>,
       fieldName: String
-    ): HeapClassField? {
+    ): HeapField? {
       return readField(declaringClass, fieldName)
     }
 
@@ -349,11 +349,11 @@ sealed class HeapObject {
     ) = readField(declaringClassName, fieldName)
 
     /**
-     * The fields of this instance, as a sequence of [HeapClassField].
+     * The fields of this instance, as a sequence of [HeapField].
      *
      * This may trigger IO reads.
      */
-    fun readFields(): Sequence<HeapClassField> {
+    fun readFields(): Sequence<HeapField> {
       val fieldReader by lazy {
         hprofGraph.createFieldValuesReader(readRecord())
       }
@@ -364,7 +364,7 @@ sealed class HeapObject {
                 .map { fieldRecord ->
                   val fieldName = hprofGraph.fieldName(fieldRecord)
                   val fieldValue = fieldReader.readValue(fieldRecord)
-                  HeapClassField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue))
+                  HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue))
                 }
           }
           .flatten()

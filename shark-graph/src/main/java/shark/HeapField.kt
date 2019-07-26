@@ -8,7 +8,7 @@ import shark.HeapObject.HeapPrimitiveArray
 /**
  * Represents a static field or an instance field.
  */
-class HeapClassField(
+class HeapField(
   /**
    * The class this field was declared in.
    */
