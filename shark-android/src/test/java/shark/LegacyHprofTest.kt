@@ -71,16 +71,16 @@ class LegacyHprofTest {
               .map { instance ->
                 val reporter = ObjectReporter(instance)
                 AndroidObjectInspectors.CONTEXT_WRAPPER.inspect(reporter)
-                if (reporter.leakingStatuses.size == 1 && reporter.leakingStatuses[0].status == LEAKING) {
+                if (reporter.leakingReasons.size == 1) {
                   DESTROYED
                 } else if (reporter.labels.size == 1) {
-                  if ("Activity.mDestroyed false" in reporter.labels[0]) {
+                  if ("Activity.mDestroyed false" in reporter.labels.first()) {
                     NOT_DESTROYED
                   } else {
                     NOT_ACTIVITY
                   }
                 } else throw IllegalStateException(
-                    "Unexpected, should have 1 leaking status ${reporter.leakingStatuses} or one label ${reporter.labels}"
+                    "Unexpected, should have 1 leaking status ${reporter.leakingReasons} or one label ${reporter.labels}"
                 )
               }
               .toList()

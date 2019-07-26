@@ -49,56 +49,52 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val mContext = instance["android.view.View", "mContext"]!!.value.asObject!!.asInstance!!
 
         val activityContext = mContext.unwrapActivityContext()
-        if (activityContext == null) {
-          addLabel("mContext instance of ${mContext.instanceClassName}, not wrapping activity")
+        labels += if (activityContext == null) {
+          "mContext instance of ${mContext.instanceClassName}, not wrapping activity"
         } else {
           val activityDescription =
             "with mDestroyed = " + (activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
                 ?: "UNKNOWN")
           if (activityContext == mContext) {
-            addLabel(
-                "mContext instance of ${activityContext.instanceClassName} $activityDescription"
-            )
+            "mContext instance of ${activityContext.instanceClassName} $activityDescription"
           } else {
-            addLabel(
-                "mContext instance of ${mContext.instanceClassName}, wrapping activity ${activityContext.instanceClassName} $activityDescription"
-            )
+            "mContext instance of ${mContext.instanceClassName}, wrapping activity ${activityContext.instanceClassName} $activityDescription"
           }
         }
         if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
-          reportLeaking("View.mContext references a destroyed activity")
+          leakingReasons += "View.mContext references a destroyed activity"
         } else {
           if (mParentSet && mWindowAttachCount > 0) {
             if (viewDetached) {
-              reportLikelyLeaking("View detached and has parent")
+              likelyLeakingReasons += "View detached and has parent"
             } else {
               val viewParent = mParentRef.asObject!!.asInstance!!
               if (viewParent instanceOf "android.view.View" &&
                   viewParent["android.view.View", "mAttachInfo"]!!.value.isNullReference
               ) {
-                reportLikelyLeaking("View attached but parent detached (attach disorder)")
+                likelyLeakingReasons += "View attached but parent detached (attach disorder)"
               } else {
-                reportNotLeaking("View attached")
+                notLeakingReasons += "View attached"
               }
             }
           }
         }
 
         if (mParentSet) {
-          addLabel("View#mParent is set")
+          labels += "View#mParent is set"
         } else {
-          addLabel("View#mParent is null")
+          labels += "View#mParent is null"
         }
 
         if (viewDetached) {
-          addLabel("View#mAttachInfo is null (view detached)")
+          labels += "View#mAttachInfo is null (view detached)"
         } else {
-          addLabel("View#mAttachInfo is not null (view attached)")
+          labels += "View#mAttachInfo is not null (view attached)"
         }
 
         // TODO Add back support for view id labels, see https://github.com/square/leakcanary/issues/1297
 
-        addLabel("View.mWindowAttachCount = $mWindowAttachCount")
+        labels += "View.mWindowAttachCount = $mWindowAttachCount"
       }
     }
   },
@@ -123,9 +119,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         if (field != null) {
           if (field.value.asBoolean!!) {
-            reportLeaking(field describedWithValue "true")
+            leakingReasons += field describedWithValue "true"
           } else {
-            reportNotLeaking(field describedWithValue "false")
+            notLeakingReasons += field describedWithValue "false"
           }
         }
       }
@@ -144,19 +140,15 @@ enum class AndroidObjectInspectors : ObjectInspector {
             val mDestroyed = activityContext["android.app.Activity", "mDestroyed"]
             if (mDestroyed != null) {
               if (mDestroyed.value.asBoolean!!) {
-                reportLeaking(
-                    "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed true"
-                )
+                leakingReasons += "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed true"
               } else {
                 // We can't assume it's not leaking, because this context might have a shorter lifecycle
                 // than the activity. So we'll just add a label.
-                addLabel(
-                    "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed false"
-                )
+                labels += "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed false"
               }
             }
           } else {
-            addLabel("${instance.instanceClassSimpleName} does not wrap an activity context")
+            labels += "${instance.instanceClassSimpleName} does not wrap an activity context"
           }
         }
       }
@@ -170,9 +162,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf("android.app.Dialog") { instance ->
         val mDecor = instance["android.app.Dialog", "mDecor"]!!
         if (mDecor.value.isNullReference) {
-          reportLeaking(mDecor describedWithValue "null")
+          leakingReasons += mDecor describedWithValue "null"
         } else {
-          reportNotLeaking(mDecor describedWithValue "not null")
+          notLeakingReasons += mDecor describedWithValue "not null"
         }
       }
     }
@@ -183,7 +175,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Application") {
-        reportNotLeaking("Application is a singleton")
+        notLeakingReasons += "Application is a singleton"
       }
     }
   },
@@ -193,7 +185,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.view.inputmethod.InputMethodManager") {
-        reportNotLeaking("InputMethodManager is a singleton")
+        notLeakingReasons += "InputMethodManager is a singleton"
       }
     }
   },
@@ -205,13 +197,13 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf("android.app.Fragment") { instance ->
         val fragmentManager = instance["android.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
-          reportLeaking(fragmentManager describedWithValue "null")
+          leakingReasons += fragmentManager describedWithValue "null"
         } else {
-          reportNotLeaking(fragmentManager describedWithValue "not null")
+          notLeakingReasons += fragmentManager describedWithValue "not null"
         }
         val mTag = instance["android.app.Fragment", "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          addLabel("Fragment.mTag=$mTag")
+          labels += "Fragment.mTag=$mTag"
         }
       }
     }
@@ -224,13 +216,13 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf("android.support.v4.app.Fragment") { instance ->
         val fragmentManager = instance["android.support.v4.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
-          reportLeaking(fragmentManager describedWithValue "null")
+          leakingReasons += fragmentManager describedWithValue "null"
         } else {
-          reportNotLeaking(fragmentManager describedWithValue "not null")
+          notLeakingReasons += fragmentManager describedWithValue "not null"
         }
         val mTag = instance["android.support.v4.app.Fragment", "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          addLabel("Fragment.mTag=$mTag")
+          labels += "Fragment.mTag=$mTag"
         }
       }
     }
@@ -243,13 +235,13 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf("androidx.fragment.app.Fragment") { instance ->
         val fragmentManager = instance["androidx.fragment.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
-          reportLeaking(fragmentManager describedWithValue "null")
+          leakingReasons += fragmentManager describedWithValue "null"
         } else {
-          reportNotLeaking(fragmentManager describedWithValue "not null")
+          notLeakingReasons += fragmentManager describedWithValue "not null"
         }
         val mTag = instance["androidx.fragment.app.Fragment", "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          addLabel("Fragment.mTag=$mTag")
+          labels += "Fragment.mTag=$mTag"
         }
       }
     }
@@ -265,9 +257,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val mQuitting = instance["android.os.MessageQueue", "mQuitting"]
             ?: instance["android.os.MessageQueue", "mQuiting"]!!
         if (mQuitting.value.asBoolean!!) {
-          reportLeaking(mQuitting describedWithValue "true")
+          leakingReasons += mQuitting describedWithValue "true"
         } else {
-          reportNotLeaking(mQuitting describedWithValue "false")
+          notLeakingReasons += mQuitting describedWithValue "false"
         }
       }
     }
@@ -283,9 +275,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         // when the view is null, we're pretty sure they  never leaking.
         val view = instance["mortar.Presenter", "view"]!!
         if (view.value.isNullReference) {
-          reportLeaking(view describedWithValue "null")
+          leakingReasons += view describedWithValue "null"
         } else {
-          addLabel(view describedWithValue "set")
+          labels += view describedWithValue "set"
         }
       }
     }
@@ -297,9 +289,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val dead = instance["mortar.MortarScope", "dead"]!!.value.asBoolean!!
         val scopeName = instance["mortar.MortarScope", "name"]!!.value.readAsJavaString()
         if (dead) {
-          reportLeaking("mortar.MortarScope.dead is true for scope $scopeName")
+          leakingReasons += "mortar.MortarScope.dead is true for scope $scopeName"
         } else {
-          reportNotLeaking("mortar.MortarScope.dead is false for scope $scopeName")
+          notLeakingReasons += "mortar.MortarScope.dead is false for scope $scopeName"
         }
       }
     }
@@ -312,9 +304,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
         val attached = instance["com.squareup.coordinators.Coordinator", "attached"]
         if (attached!!.value.asBoolean!!) {
-          reportNotLeaking(attached describedWithValue "true")
+          notLeakingReasons += attached describedWithValue "true"
         } else {
-          reportLeaking(attached describedWithValue "false")
+          leakingReasons += attached describedWithValue "false"
         }
       }
     }
@@ -327,7 +319,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf(Thread::class) { instance ->
         val threadName = instance[Thread::class, "name"]!!.value.readAsJavaString()
         if (threadName == "main") {
-          reportNotLeaking("the main thread always runs")
+          notLeakingReasons += "the main thread always runs"
         }
       }
     }
@@ -338,9 +330,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf("android.view.ViewRootImpl") { instance ->
         val mViewField = instance["android.view.ViewRootImpl", "mView"]!!
         if (mViewField.value.isNullReference) {
-          reportLeaking(mViewField describedWithValue "null")
+          leakingReasons += mViewField describedWithValue "null"
         } else {
-          reportNotLeaking(mViewField describedWithValue "not null")
+          notLeakingReasons += mViewField describedWithValue "not null"
         }
       }
     }
@@ -354,9 +346,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val mDestroyed = instance["android.view.Window", "mDestroyed"]!!
 
         if (mDestroyed.value.asBoolean!!) {
-          reportLeaking(mDestroyed describedWithValue "true")
+          leakingReasons += mDestroyed describedWithValue "true"
         } else {
-          reportNotLeaking(mDestroyed describedWithValue "false")
+          notLeakingReasons += mDestroyed describedWithValue "false"
         }
       }
     }
@@ -374,13 +366,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (tnInstance["android.widget.Toast\$TN", "mWM"]!!.value.isNonNullReference) {
           // mView is reset to null in android.widget.Toast.TN#handleHide
           if (tnInstance["android.widget.Toast\$TN", "mView"]!!.value.isNullReference) {
-            reportLeaking(
-                "This toast is done showing (Toast.mTN.mWM != null && Toast.mTN.mView == null)"
-            )
+            leakingReasons += "This toast is done showing (Toast.mTN.mWM != null && Toast.mTN.mView == null)"
           } else {
-            reportNotLeaking(
-                "This toast is showing (Toast.mTN.mWM != null && Toast.mTN.mView != null)"
-            )
+            notLeakingReasons += "This toast is showing (Toast.mTN.mWM != null && Toast.mTN.mView != null)"
           }
         }
       }
@@ -414,14 +402,11 @@ private fun ObjectReporter.applyFromField(
   val delegateReporter = ObjectReporter(heapObject)
   inspector.inspect(delegateReporter)
   val prefix = "${field.declaringClass.simpleName}#${field.name}:"
-  delegateReporter.labels.forEach { addLabel("$prefix $it") }
-  delegateReporter.leakingStatuses.forEach { reportLeaking("$prefix ${it.reason}") }
-  delegateReporter.likelyLeakingStatuses.forEach {
-    reportNotLeaking("$prefix ${it.reason}")
-  }
-  delegateReporter.notLeakingStatuses.forEach {
-    reportLikelyLeaking("$prefix ${it.reason}")
-  }
+
+  labels += delegateReporter.labels.map { "$prefix $it" }
+  leakingReasons += delegateReporter.leakingReasons.map { "$prefix $it" }
+  likelyLeakingReasons += delegateReporter.likelyLeakingReasons.map { "$prefix $it" }
+  notLeakingReasons += delegateReporter.notLeakingReasons.map { "$prefix $it" }
 }
 
 /**

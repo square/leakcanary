@@ -63,7 +63,7 @@ class LeakTraceRendererTest {
               reporter: ObjectReporter
             ) {
               reporter.whenInstanceOf("ClassB") {
-                reportLeaking("because reasons")
+                leakingReasons += "because reasons"
               }
             }
           })
@@ -97,7 +97,7 @@ class LeakTraceRendererTest {
           override fun inspect(
             reporter: ObjectReporter
           ) {
-            reporter.addLabel("¯\\_(ツ)_/¯")
+            reporter.labels += "¯\\_(ツ)_/¯"
           }
 
         })

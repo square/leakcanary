@@ -16,11 +16,13 @@ data class LeakTraceElement(
   val className: String,
 
   /**
-   * Ordered labels that were computed during analysis. A label provides
-   * extra information that helps understand the leak trace element.
+   * Labels that were computed during analysis. A label provides extra information that helps
+   * understand the leak trace element.
    */
-  val labels: List<String>,
-  val leakStatusAndReason: LeakNodeStatusAndReason
+  val labels: Set<String>,
+  val leakStatus: LeakNodeStatus,
+  val leakStatusReason: String
+
 ) : Serializable {
 
   /**

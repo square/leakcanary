@@ -32,7 +32,7 @@ class LeakStatusTest {
 
     val leak = analysis.applicationLeaks[0]
 
-    assertThat(leak.leakTrace.elements.first().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
+    assertThat(leak.leakTrace.elements.first().leakStatus).isEqualTo(NOT_LEAKING)
   }
 
   @Test fun leakingInstanceLeaking() {
@@ -42,7 +42,7 @@ class LeakStatusTest {
 
     val leak = analysis.applicationLeaks[0]
 
-    assertThat(leak.leakTrace.elements.last().leakStatusAndReason.status).isEqualTo(LEAKING)
+    assertThat(leak.leakTrace.elements.last().leakStatus).isEqualTo(LEAKING)
   }
 
   @Test fun defaultsToUnknown() {
@@ -58,7 +58,7 @@ class LeakStatusTest {
 
     val leak = analysis.applicationLeaks[0]
 
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(UNKNOWN)
+    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(UNKNOWN)
   }
 
   @Test fun inspectorNotLeaking() {
@@ -75,7 +75,7 @@ class LeakStatusTest {
     )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
+    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(NOT_LEAKING)
   }
 
   @Test fun inspectorLeaking() {
@@ -93,7 +93,7 @@ class LeakStatusTest {
       )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(LEAKING)
+    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(LEAKING)
   }
 
   @Test fun leakingWinsUnknown() {
@@ -111,7 +111,7 @@ class LeakStatusTest {
       )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(LEAKING)
+    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(LEAKING)
   }
 
   @Test fun notLeakingWhenNextIsNotLeaking() {
@@ -133,7 +133,7 @@ class LeakStatusTest {
       )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
+    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(NOT_LEAKING)
   }
 
   @Test fun leakingWhenPreviousIsLeaking() {
@@ -156,7 +156,7 @@ class LeakStatusTest {
 
     val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements).hasSize(2)
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(LEAKING)
+    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(LEAKING)
   }
 
   @Test fun middleUnknown() {
@@ -180,7 +180,7 @@ class LeakStatusTest {
       )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[2].leakStatusAndReason.status).isEqualTo(UNKNOWN)
+    assertThat(leak.leakTrace.elements[2].leakStatus).isEqualTo(UNKNOWN)
   }
 
   @Test fun gcRootClassNotLeakingConflictingWithInspector() {
@@ -193,8 +193,8 @@ class LeakStatusTest {
 
     val leak = analysis.applicationLeaks[0]
 
-    assertThat(leak.leakTrace.elements.first().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements.first().leakStatusAndReason.reason).isEqualTo(
+    assertThat(leak.leakTrace.elements.first().leakStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leak.leakTrace.elements.first().leakStatusReason).isEqualTo(
         "a class is never leaking. Conflicts with GcRoot is leaking"
     )
   }
@@ -211,8 +211,8 @@ class LeakStatusTest {
 
     val leak = analysis.applicationLeaks[0]
 
-    assertThat(leak.leakTrace.elements.first().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements.first().leakStatusAndReason.reason).isEqualTo(
+    assertThat(leak.leakTrace.elements.first().leakStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leak.leakTrace.elements.first().leakStatusReason).isEqualTo(
         "GcRoot is not leaking and a class is never leaking"
     )
   }
@@ -225,8 +225,8 @@ class LeakStatusTest {
       )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements.last().leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements.last().leakStatusAndReason.reason).isEqualTo(
+    assertThat(leak.leakTrace.elements.last().leakStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leak.leakTrace.elements.last().leakStatusReason).isEqualTo(
         "Leaking is not leaking. Conflicts with ObjectWatcher was watching this"
     )
   }
@@ -239,8 +239,8 @@ class LeakStatusTest {
       )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements.last().leakStatusAndReason.status).isEqualTo(LEAKING)
-    assertThat(leak.leakTrace.elements.last().leakStatusAndReason.reason).isEqualTo(
+    assertThat(leak.leakTrace.elements.last().leakStatus).isEqualTo(LEAKING)
+    assertThat(leak.leakTrace.elements.last().leakStatusReason).isEqualTo(
         "Leaking is leaking and ObjectWatcher was watching this"
     )
   }
@@ -262,8 +262,8 @@ class LeakStatusTest {
       )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.reason).isEqualTo(
+    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leak.leakTrace.elements[1].leakStatusReason).isEqualTo(
         "Class1 is not leaking. Conflicts with Class1 is leaking"
     )
   }
@@ -285,9 +285,9 @@ class LeakStatusTest {
       )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.reason).isEqualTo(
-        "Class1 is not leaking and Class1 is not leaking"
+    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leak.leakTrace.elements[1].leakStatusReason).isEqualTo(
+        "Class1 is not leaking"
     )
   }
 
@@ -306,9 +306,9 @@ class LeakStatusTest {
       )
 
     val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.status).isEqualTo(LEAKING)
-    assertThat(leak.leakTrace.elements[1].leakStatusAndReason.reason).isEqualTo(
-        "Class1 is leaking and Class1 is leaking"
+    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(LEAKING)
+    assertThat(leak.leakTrace.elements[1].leakStatusReason).isEqualTo(
+        "Class1 is leaking"
     )
   }
 
@@ -431,7 +431,7 @@ class LeakStatusTest {
       ) {
         val record = reporter.heapObject
         if (record is HeapInstance && record.instanceClassName == className) {
-          reporter.reportNotLeaking("$className is not leaking")
+          reporter.notLeakingReasons += "$className is not leaking"
         }
       }
     }
@@ -444,7 +444,7 @@ class LeakStatusTest {
       ) {
         val record = reporter.heapObject
         if (record is HeapInstance && record.instanceClassName == className) {
-          reporter.reportLeaking("$className is leaking")
+          reporter.leakingReasons += "$className is leaking"
         }
       }
     }
@@ -457,7 +457,7 @@ class LeakStatusTest {
       ) {
         val record = reporter.heapObject
         if (record is HeapClass && record.name == className) {
-          reporter.reportNotLeaking("$className is not leaking")
+          reporter.notLeakingReasons += "$className is not leaking"
         }
       }
     }
@@ -470,7 +470,7 @@ class LeakStatusTest {
       ) {
         val record = reporter.heapObject
         if (record is HeapClass && record.name == className) {
-          reporter.reportLeaking("$className is leaking")
+          reporter.leakingReasons += "$className is leaking"
         }
       }
     }

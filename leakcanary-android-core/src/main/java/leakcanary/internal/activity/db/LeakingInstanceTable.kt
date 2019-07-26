@@ -210,9 +210,9 @@ internal object LeakingInstanceTable {
                   if (reference.type == ARRAY_ENTRY) {
                     // No array index in groups
                     element =
-                      element.copy(reference = reference.copy(name = "x"), labels = emptyList())
+                      element.copy(reference = reference.copy(name = "x"), labels = emptySet(), leakStatusReason = "")
                   } else {
-                    element = element.copy(labels = emptyList())
+                    element = element.copy(labels = emptySet(), leakStatusReason = "")
                   }
 
                   elements.add(element)
