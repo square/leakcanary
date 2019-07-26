@@ -44,11 +44,11 @@ import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.FINDING_LEAKING_INSTANCES
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.internal.PathFinder
+import shark.internal.PathFinder.PathFindingResults
 import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.ChildNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
-import shark.internal.hppc.LongLongScatterMap
 import shark.internal.lastSegment
 import java.io.File
 import java.util.ArrayList
@@ -61,6 +61,14 @@ import java.util.concurrent.TimeUnit.NANOSECONDS
 class HeapAnalyzer constructor(
   private val listener: OnAnalysisProgressListener
 ) {
+
+  private class FindLeakInput(
+    val graph: HeapGraph,
+    val leakFinders: List<ObjectInspector>,
+    val referenceMatchers: List<ReferenceMatcher>,
+    val computeRetainedHeapSize: Boolean,
+    val objectInspectors: List<ObjectInspector>
+  )
 
   /**
    * Searches the heap dump for leaking instances and then computes the shortest strong reference
@@ -88,24 +96,11 @@ class HeapAnalyzer constructor(
       Hprof.open(heapDumpFile)
           .use { hprof ->
             val graph = HprofHeapGraph.indexHprof(hprof)
-            listener.onAnalysisProgress(FINDING_LEAKING_INSTANCES)
 
-            val leakingInstanceObjectIds = findLeakingInstances(graph, leakFinders)
-
-            val pathFinder = PathFinder(graph, listener, referenceMatchers)
-            val (pathsToLeakingInstances, dominatedInstances) =
-              pathFinder.findPathsFromGcRoots(leakingInstanceObjectIds, computeRetainedHeapSize)
-
-            val retainedSizes = if (computeRetainedHeapSize) {
-              computeRetainedSizes(graph, pathsToLeakingInstances, dominatedInstances)
-            } else {
-              null
-            }
-
-            val (applicationLeaks, libraryLeaks) = buildLeakTraces(
-                objectInspectors, pathsToLeakingInstances, graph, retainedSizes
+            val findLeakInput = FindLeakInput(
+                graph, leakFinders, referenceMatchers, computeRetainedHeapSize, objectInspectors
             )
-
+            val (applicationLeaks, libraryLeaks) = findLeakInput.findLeaks()
             return HeapAnalysisSuccess(
                 heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
                 applicationLeaks, libraryLeaks
@@ -119,17 +114,25 @@ class HeapAnalyzer constructor(
     }
   }
 
-  private fun findLeakingInstances(
-    graph: HeapGraph,
-    objectInspectors: List<ObjectInspector>
-  ): Set<Long> {
+  private fun FindLeakInput.findLeaks(): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
+    val leakingInstanceObjectIds = findLeakingObjects()
+
+    val pathFinder = PathFinder(graph, listener, referenceMatchers)
+    val pathFindingResults =
+      pathFinder.findPathsFromGcRoots(leakingInstanceObjectIds, computeRetainedHeapSize)
+
+    return buildLeakTraces(pathFindingResults)
+  }
+
+  private fun FindLeakInput.findLeakingObjects(): Set<Long> {
+    listener.onAnalysisProgress(FINDING_LEAKING_INSTANCES)
     return graph.objects
         .filter { objectRecord ->
           val reporter = ObjectReporter(objectRecord)
-          objectInspectors.forEach { inspector ->
+          leakFinders.any { inspector ->
             inspector.inspect(reporter)
+            reporter.leakingStatuses.isNotEmpty()
           }
-          reporter.leakingStatuses.isNotEmpty()
         }
         .map { it.objectId }
         .toSet()
@@ -211,11 +214,13 @@ class HeapAnalyzer constructor(
     }
   }
 
-  private fun computeRetainedSizes(
-    graph: HeapGraph,
-    pathsToLeakingInstances: List<ReferencePathNode>,
-    dominatedInstances: LongLongScatterMap
-  ): List<Int> {
+  private fun FindLeakInput.computeRetainedSizes(pathFindingResults: PathFindingResults): List<Int>? {
+    if (!computeRetainedHeapSize) {
+      return null
+    }
+    val pathsToLeakingInstances = pathFindingResults.pathsToLeakingInstances
+    val dominatedInstances = pathFindingResults.dominatedInstances
+
     listener.onAnalysisProgress(COMPUTING_NATIVE_RETAINED_SIZE)
 
     // Map of Object id to native size as tracked by NativeAllocationRegistry$CleanerThunk
@@ -315,18 +320,15 @@ class HeapAnalyzer constructor(
     }
   }
 
-  private fun buildLeakTraces(
-    objectInspectors: List<ObjectInspector>,
-    pathsToLeakingInstances: List<ReferencePathNode>,
-    graph: HeapGraph,
-    retainedSizes: List<Int>?
-  ): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
+  private fun FindLeakInput.buildLeakTraces(pathFindingResults: PathFindingResults): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
+    val retainedSizes = computeRetainedSizes(pathFindingResults)
+
     listener.onAnalysisProgress(BUILDING_LEAK_TRACES)
 
     val applicationLeaks = mutableListOf<ApplicationLeak>()
     val libraryLeaks = mutableListOf<LibraryLeak>()
 
-    val deduplicatedPaths = deduplicateShortestPaths(pathsToLeakingInstances)
+    val deduplicatedPaths = deduplicateShortestPaths(pathFindingResults.pathsToLeakingInstances)
 
     deduplicatedPaths.forEachIndexed { index, pathNode ->
       val shortestChildPath = mutableListOf<ChildNode>()

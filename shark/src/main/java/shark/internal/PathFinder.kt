@@ -141,7 +141,7 @@ internal class PathFinder(
       get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
   }
 
-  data class Results(
+  class PathFindingResults(
     val pathsToLeakingInstances: List<ReferencePathNode>,
     val dominatedInstances: LongLongScatterMap
   )
@@ -149,7 +149,7 @@ internal class PathFinder(
   fun findPathsFromGcRoots(
     leakingInstanceObjectIds: Set<Long>,
     computeRetainedHeapSize: Boolean
-  ): Results {
+  ): PathFindingResults {
     listener.onAnalysisProgress(FINDING_PATHS_TO_LEAKING_INSTANCES)
 
     val sizeOfObjectInstances = determineSizeOfObjectInstances(graph)
@@ -179,7 +179,7 @@ internal class PathFinder(
     }
   }
 
-  private fun State.findPathsFromGcRoots(leakingInstanceObjectIds: Set<Long>): Results {
+  private fun State.findPathsFromGcRoots(leakingInstanceObjectIds: Set<Long>): PathFindingResults {
     enqueueGcRoots()
 
     val shortestPathsToLeakingInstances = mutableListOf<ReferencePathNode>()
@@ -210,7 +210,7 @@ internal class PathFinder(
         is HeapObjectArray -> visitObjectArrayRecord(heapObject, node)
       }
     }
-    return Results(shortestPathsToLeakingInstances, dominatedInstances)
+    return PathFindingResults(shortestPathsToLeakingInstances, dominatedInstances)
   }
 
   private fun State.poll(): ReferencePathNode {
