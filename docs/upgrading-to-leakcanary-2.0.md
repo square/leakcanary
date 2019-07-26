@@ -15,7 +15,7 @@ dependencies {
 
 ```groovy
 dependencies {
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-2'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-1'
 }
 ```
 
@@ -24,8 +24,8 @@ dependencies {
 * The `leakcanary-android-no-op` artifact is gone. If you have compile errors, see below.
   * **Question**: if there's no no-op anymore, how do I ensure none of this runs during release builds?
   * **Answer**: as long as you add `leakcanary-android` as `debugImplementation`, there won't be any code referencing LeakCanary in your release builds.
-* LeakCanary now **depends on AndroidX** instead of the support library.
-* Detection of AndroidX fragments is now automatic if you have the AndroidX fragments dependency.
+* LeakCanary does not depend on the support library anymore, and it doesn't depend on AndroidX either.
+* Detection of AndroidX fragments is automatic if you have the AndroidX fragments dependency.
 
 ## Default setup code
 
@@ -61,58 +61,58 @@ There is no more code for default setup.
 ### Before
 
 ```kotlin
-val refWatcher = LeakCanary.installedRefWatcher()
+val refWatcher: RefWatcher = LeakCanary.installedRefWatcher()
 ```
 
 ### Now
 
 ```kotlin
-val refWatcher = LeakSentry.refWatcher
+val objectWatcher: ObjectWatcher = AppWatcher.objectWatcher
 ```
 
 ## Compile errors because RefWatcher is used in release code
 
-If you were using `RefWatcher` in non debug code, you now get a compile error because the no-op artifact is gone. `RefWatcher` now lives in the `leaksentry` artifact, which is suitable for production. You have two options:
+If you were using `RefWatcher` in non debug code, you now get a compile error because the no-op artifact is gone. `ObjectWatcher` now lives in the `object-watcher` artifact, which is suitable for production. You have two options:
 
-### Option 1: Add `leaksentry` to release builds.
+### Option 1: Add `object-watcher-android` to release builds.
 
 ```groovy
 dependencies {
-  implementation 'com.squareup.leakcanary:leaksentry:2.0-alpha-2'
+  implementation 'com.squareup.leakcanary:object-watcher-android:2.0-beta-1'
 }
 ```
 
-* It will automatically keep weak references on activities, fragments, and any instance you pass to `RefWatcher`.
+* It will automatically keep weak references to destroyed activities, fragments, and any instance you pass to `ObjectWatcher`.
 * It will not trigger heap dumps or anything else that LeakCanary does.
 * It's very little code and should have a no impact on your release app.
-* You can use it to count how many instances are retained, for instance to add metadata to OutOfMemoryError crashes:
+* You can use it to count how many objects are retained, for example to add metadata to OutOfMemoryError crashes:
 
 ```kotlin
-val retainedInstanceCount = LeakSentry.refWatcher.retainedInstanceCount
+val retainedObjectCount = AppWatcher.objectWatcher.retainedObjectCount
 ```
 
-### Option 2: Make your own `RefWatcher` interface
+### Option 2: Make your own `ObjectWatcher` interface
 
 ```kotlin
 // In shared code
-interface MaybeRefWatcher {
-  fun watch(watchedInstance: Any)
+interface MaybeObjectWatcher {
+  fun watch(watchedObject: Any)
 
-  object None : MaybeRefWatcher {
-    override fun watch(watchedInstance: Any) {
+  object None : MaybeObjectWatcher {
+    override fun watch(watchedObject: Any) {
     }
   }
 }
 
 // In debug code
-class RealRefWatcher : MaybeRefWatcher {
-  override fun watch(watchedInstance: Any) {
-    LeakSentry.refWatcher.watch(watchedInstance)
+class RealObjectWatcher : MaybeObjectWatcher {
+  override fun watch(watchedObject: Any) {
+    AppWatcher.objectWatcher.watch(watchedObject)
   }
 }
 ```
 
-Use MaybeRefWatcher.None in release code and RealRefWatcher in debug code.
+Use MaybeObjectWatcher.None in release code and RealObjectWatcher in debug code.
 
 ## Configuring LeakCanary
 
@@ -131,13 +131,14 @@ public class DebugExampleApplication extends ExampleApplication {
 
 ### Now
 
-LeakSentry is in charge of detecting memory leaks. Its configuration can be updated at any time by replacing `LeakSentry.config`:
+AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing `AppWatcher.config`:
+
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
     super.onCreate()
-    LeakSentry.config = LeakSentry.config.copy(watchFragmentViews = false)
+    AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
   }
 }
 ```
@@ -236,21 +237,36 @@ RefWatcher refWatcher = LeakCanary.refWatcher(this)
 ### Now
 
 ```Kotlin
-LeakCanary.config = LeakCanary.config.copy(
-    analysisResultListener = { application, heapAnalysis ->
-      // TODO Upload result to server
-      DefaultAnalysisResultListener(application, heapAnalysis)
-    }
-)
+class LeakUploader : OnHeapAnalyzedListener {
+
+  val defaultListener = DefaultOnHeapAnalyzedListener.create()
+
+  override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
+    TODO("Upload heap analysis to server")
+
+    // Delegate to default behavior (notification and saving result)
+    defaultListener.onHeapAnalyzed(heapAnalysis)
+  }
+}
+
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+    LeakCanary.config = LeakCanary.config.copy(
+        onHeapAnalyzedListener = LeakUploader()
+    )
+  }
+}
 ```
 
-### Marking known framework leaks as won't fix
+### Matching known library leaks
 
 ### Before
 
 ```java
 ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults()
-    .instanceField("com.example.ExampleClass", "exampleField")
+    .staticField("com.samsing.SomeSingleton", "sContext")
     .build();
 RefWatcher refWatcher = LeakCanary.refWatcher(this)
   .excludedRefs(excludedRefs)
@@ -262,16 +278,11 @@ RefWatcher refWatcher = LeakCanary.refWatcher(this)
 
 ```kotlin
 LeakCanary.config = LeakCanary.config.copy(
-  exclusionsFactory = { parser ->
-    val build = BuildMirror.readFromHprof(parser)
-    val exclusions =
-      AndroidExcludedRefs.exclusionsMatchingBuild(AndroidExcludedRefs.appDefaults, build)
-          .toMutableList()
-    exclusions += Exclusion(
-        type = InstanceFieldExclusion("com.example.ExampleClass", "exampleField")
-    )
-    exclusions
-  }
+    referenceMatchers = AndroidReferenceMatchers.appDefaults +
+        AndroidReferenceMatchers.staticFieldLeak(
+            "com.samsing.SomeSingleton",
+            "sContext"
+        )
 )
 ```
 

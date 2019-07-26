@@ -5,10 +5,10 @@ import leakcanary.LeakCanary.config
 import leakcanary.internal.InternalLeakCanary
 import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
-import shark.ObjectInspector
-import shark.ReferenceMatcher
 import shark.IgnoredReferenceMatcher
 import shark.LibraryLeakReferenceMatcher
+import shark.ObjectInspector
+import shark.ReferenceMatcher
 
 /**
  * The entry point API for LeakCanary. LeakCanary builds on top of [AppWatcher]. AppWatcher
@@ -89,9 +89,7 @@ object LeakCanary {
      *
      * Defaults to [DefaultOnHeapAnalyzedListener]
      */
-    val onHeapAnalyzedListener: OnHeapAnalyzedListener = DefaultOnHeapAnalyzedListener(
-        InternalLeakCanary.application
-    ),
+    val onHeapAnalyzedListener: OnHeapAnalyzedListener = DefaultOnHeapAnalyzedListener.create(),
 
     /**
      * Whether to compute the retained heap size, which is the total number of bytes in memory that

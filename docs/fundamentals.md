@@ -10,7 +10,7 @@ For example, an Android activity instance is no longer needed after its `onDestr
 
 Most memory leaks are caused by bugs related to the lifecycle of objects. Here are a few common Android mistakes:
 
-* Storing an Activity context as a field in an object that survives activity recreation configuration changes.
+* Storing an Activity context as a field in an object that survives activity recreation due to configuration changes.
 * Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister when the lifecycle reaches its end.
 * Storing a view in a static field, and not clearing that field when the view is detached.
 
@@ -24,17 +24,17 @@ When we first enabled LeakCanary in the Square Point Of Sale app, we were able t
 
 ### Detecting retained instances
 
-The foundation of LeakCanary is a library called Object Watcher Android. It hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed instances are passed to an `ObjectWatcher`, which holds weak references to them. You can also watch any instance that is no longer needed, e.g. a detached view, a destroyed presenter, etc.
+The foundation of LeakCanary is a library called ObjectWatcher Android. It hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed instances are passed to an `ObjectWatcher`, which holds weak references to them. You can also watch any instance that is no longer needed, for example a detached view, a destroyed presenter, etc.
 
 If the weak references aren't cleared after waiting 5 seconds and running the garbage collector, the watched instances are considered *retained*, and potentially leaking.
 
 ### Dumping the heap
 
-When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored onto the Android file system. The default threshold is 5 retained instances when the app is visible, 1 otherwise.
+When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored onto the Android file system. The default threshold is 5 retained instances when the app is visible, and 1 retained instance when the app is not visible.
 
 ### Analyzing the heap
 
-LeakCanary parses the `.hprof` file and finds the chain of references that prevents retained instances from being garbage collected: the **leak trace**. Leak trace is another name for the *shortest strong reference path from garbage collection roots to retained instances*. Once the leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which instances in the leak trace are leaking (see below [How do I fix a memory leak?](#how-do-i-fix-a-memory-leak)).
+LeakCanary parses the `.hprof` file using [Shark](shark.md) and finds the chain of references that prevents retained instances from being garbage collected: the **leak trace**. Leak trace is another name for the *shortest strong reference path from garbage collection roots to a retained object*. Once the leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which instances in the leak trace are leaking (see below [How do I fix a memory leak?](#how-do-i-fix-a-memory-leak)).
 
 ### Grouping leaks
 
@@ -113,7 +113,7 @@ At the top of the leak trace is a garbage-collection (GC) root. GC roots are spe
 is true)
 ```
 
-At the bottom of the leak trace is the leaking instance. This instance was passed to `RefWatcher.watch()` to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.
+At the bottom of the leak trace is the leaking instance. This instance was passed to [AppWatcher.objectWatcher](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.
 
 ### Chain of references
 
@@ -143,17 +143,19 @@ The chain of references from the GC root to the leaking instance is what is prev
     │    View.mWindowAttachCount=1
 ```
 
-LeakCanary runs heuristics to determine the lifecycle state of the nodes of the leak trace, and therefore whether they are leaking or not. For example, if a view has `View#mAttachInfo = null` and `mParent != null` then it is detached yet has a parent, so that view is probably leaking. In the leak trace, for each node you'll see `Leaking: YES / NO / UNKNOWN` with an explanation in parenthesis. LeakCanary can also surface extra information about the state of a node, e.g. `View.mWindowAttachCount=1`. You can customize this behavior and add your own heuristics by updating `LeakCanary.Config.leakTraceInspectors`.
+LeakCanary runs heuristics to determine the lifecycle state of the nodes of the leak trace, and therefore whether they are leaking or not. For example, if a view has `View#mAttachInfo = null` and `mParent != null` then it is detached yet has a parent, so that view is probably leaking. In the leak trace, for each node you'll see `Leaking: YES / NO / UNKNOWN` with an explanation in parenthesis. LeakCanary can also surface extra information about the state of a node, e.g. `View.mWindowAttachCount=1`. LeakCanary comes with a set of default heuristics ([AndroidObjectInspectors](/api/shark-android/shark/-android-object-inspectors/), you can add your own heuristics by updating [LeakCanary.Config.objectInspectors](/api/leakcanary-android-core/leakcanary/-leak-canary/-config/object-inspectors/).
 
 ### Narrowing down the cause of a leak
 
 ```
     ┬
-    ├─ leakcanary.internal.InternalLeakCanary
-    │    Leaking: NO (it's a GC root and a class is never leaking)
-    │    ↓ static InternalLeakCanary.application
+    ├─ android.provider.FontsContract
+    │    Leaking: NO (ExampleApplication↓ is not leaking and a class is never leaking)
+    │    GC Root: System class
+    │    ↓ static FontsContract.sContext
     ├─ com.example.leakcanary.ExampleApplication
     │    Leaking: NO (Application is a singleton)
+    │    ExampleApplication does not wrap an activity context
     │    ↓ ExampleApplication.leakedViews
     │                         ~~~~~~~~~~~
     ├─ java.util.ArrayList
@@ -162,13 +164,13 @@ LeakCanary runs heuristics to determine the lifecycle state of the nodes of the 
     │                ~~~~~~~~~~~
     ├─ java.lang.Object[]
     │    Leaking: UNKNOWN
-    │    ↓ array Object[].[0]
+    │    ↓ array Object[].[1]
     │                     ~~~
     ├─ android.widget.TextView
-    │    Leaking: YES (View detached and has parent)
+    │    Leaking: YES (View.mContext references a destroyed activity)
     │    ↓ TextView.mContext
     ╰→ com.example.leakcanary.MainActivity
-    ​     Leaking: YES (RefWatcher was watching this and MainActivity#mDestroyed is true)
+    ​     Leaking: YES (TextView↑ is leaking and Activity#mDestroyed is true and ObjectWatcher was watching this)
 ```
 
 If a node is not leaking, then any prior reference that points to it is not the source of the leak, and also not leaking. Similarly, if a node is leaking then any node down the leak trace is also leaking. From that, we can deduce that the leak is caused by a reference that is after the last `Leaking: NO`	and before the first `Leaking: YES`.
@@ -190,7 +192,7 @@ In this example, the last `Leaking: NO` is on `com.example.leakcanary.ExampleApp
 ...
 ```
 
-Looking at the [source](https://github.com/square/leakcanary/blob/master/leakcanary-sample/src/main/java/com/example/leakcanary/ExampleApplication.kt#L23), we can see that `ExampleApplication` has a list field:
+Looking at the [source](https://github.com/square/leakcanary/blob/master/leakcanary-android-sample/src/main/java/com/example/leakcanary/ExampleApplication.kt#L23), we can see that `ExampleApplication` has a list field:
 
 ```
 open class ExampleApplication : Application() {
