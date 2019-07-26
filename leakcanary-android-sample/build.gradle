@@ -37,7 +37,16 @@ android {
   }
 
   buildTypes {
-    debug
+    // Build with ./gradlew leakcanary-android-sample:installDebug -Pminify
+    if (project.hasProperty('minify')) {
+      debug {
+        minifyEnabled true
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+      }
+    } else {
+      debug
+    }
+
     release
   }
 

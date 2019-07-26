@@ -13,6 +13,7 @@ android {
   compileSdkVersion versions.compileSdk
   defaultConfig {
     minSdkVersion versions.minSdk
+    consumerProguardFiles 'consumer-proguard-rules.pro'
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'

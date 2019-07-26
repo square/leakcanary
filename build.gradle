@@ -41,7 +41,7 @@ buildscript {
   }
   dependencies {
     classpath deps.kotlin.gradlePlugin
-    classpath 'com.android.tools.build:gradle:3.4.0'
+    classpath 'com.android.tools.build:gradle:3.4.2'
     classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.16'
     classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
     classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
