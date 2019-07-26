@@ -1,6 +1,5 @@
 package shark
 
-import shark.HeapObject.HeapInstance
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
 import shark.ValueHolder.CharHolder

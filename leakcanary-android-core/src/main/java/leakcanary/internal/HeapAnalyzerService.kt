@@ -58,7 +58,7 @@ internal class HeapAnalyzerService : ForegroundService(
 
 
     val heapAnalysis =
-      heapAnalyzer.checkForLeaks(
+      heapAnalyzer.analyze(
           heapDumpFile, config.referenceMatchers, config.computeRetainedHeapSize, config.objectInspectors,
           if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
               ObjectInspectors.KEYED_WEAK_REFERENCE

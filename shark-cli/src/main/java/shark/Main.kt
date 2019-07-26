@@ -1,6 +1,5 @@
 package shark
 
-import shark.OnAnalysisProgressListener.Step
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -132,7 +131,7 @@ private fun analyze(heapDumpFile: File) {
 
   val heapAnalyzer = HeapAnalyzer(listener)
   SharkLog.d("Analyzing heap dump $heapDumpFile")
-  val heapAnalysis = heapAnalyzer.checkForLeaks(
+  val heapAnalysis = heapAnalyzer.analyze(
       heapDumpFile, AndroidReferenceMatchers.appDefaults, true,
       AndroidObjectInspectors.appDefaults
   )

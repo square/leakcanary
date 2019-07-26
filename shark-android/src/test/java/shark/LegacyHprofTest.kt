@@ -111,7 +111,7 @@ class LegacyHprofTest {
 
   private fun analyzeHprof(hprofFile: File): HeapAnalysisSuccess {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
-    val analysis = heapAnalyzer.checkForLeaks(
+    val analysis = heapAnalyzer.analyze(
         hprofFile, AndroidReferenceMatchers.appDefaults, false, AndroidObjectInspectors.appDefaults
     )
     println(analysis)
