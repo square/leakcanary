@@ -2,6 +2,7 @@ package leakcanary
 
 import android.app.Application
 import com.squareup.leakcanary.core.R
+import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.NotificationType.LEAKCANARY_RESULT
 import leakcanary.internal.Notifications
 import leakcanary.internal.activity.LeakActivity
@@ -70,5 +71,10 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
         R.id.leak_canary_notification_analysis_result,
         LEAKCANARY_RESULT
     )
+  }
+
+  companion object {
+    fun create(): OnHeapAnalyzedListener =
+      DefaultOnHeapAnalyzedListener(InternalLeakCanary.application)
   }
 }

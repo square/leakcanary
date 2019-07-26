@@ -2,9 +2,9 @@
 
 If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new/choose). Your feedback help us make LeakCanary better for the entire community.
 
-## Configuring ObjectWatcher Android
+## Configuring AppWatcher in `object-watcher-android`
 
-ObjectWatcher Android can be configured by replacing `AppWatcher.config`:
+AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing `AppWatcher.config`:
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
 
@@ -55,7 +55,7 @@ dependencies {
 
 In your leak reporting code:
 ```kotlin
-val retainedInstanceCount = AppWatcher.objectWatcher.retainedKeys.size
+val retainedInstanceCount = AppWatcher.objectWatcher.retainedObjectCount
 ```
 
 ## Running LeakCanary in instrumentation tests
@@ -82,7 +82,7 @@ android {
 Run the instrumentation tests:
 
 ```
-./gradlew leakcanary-sample:connectedCheck
+./gradlew leakcanary-android-sample:connectedCheck
 ```
 
 You can extend `FailTestOnLeakRunListener` to customize the behavior.
@@ -121,15 +121,15 @@ You can change the default behavior to upload the analysis result to a server of
 Create a custom `AnalysisResultListener` that delegates to the default: 
 
 ```kotlin
-class LeakUploader : AnalysisResultListener {
-  override fun invoke(
-    application: Application,
-    heapAnalysis: HeapAnalysis
-  ) {
+class LeakUploader : OnHeapAnalyzedListener {
+
+  val defaultListener = DefaultOnHeapAnalyzedListener.create()
+
+  override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
     TODO("Upload heap analysis to server")
 
     // Delegate to default behavior (notification and saving result)
-    DefaultAnalysisResultListener(application, heapAnalysis)
+    defaultListener.onHeapAnalyzed(heapAnalysis)
   }
 }
 ```
@@ -141,57 +141,65 @@ class DebugExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
     super.onCreate()
-    LeakCanary.config = LeakCanary.config.copy(analysisResultListener = LeakUploader())
+    LeakCanary.config = LeakCanary.config.copy(onHeapAnalyzedListener = LeakUploader())
   }
 }
 ```
 
 
-## Identifying 3rd party leaks as "won't fix"
+## Matching known library leaks
 
-Set `exclusionsFactory` on the LeakCanary config to a `ExclusionsFactory` that delegates to the default one and then and add custom exclusions:
+Set [LeakCanary.Config.referenceMatchers](/api/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/) to a list that builds on top of [AndroidReferenceMatchers.appDefaults](/api/shark-android/shark/-android-reference-matchers/app-defaults/):
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
     super.onCreate()
-    LeakCanary.config = LeakCanary.config.copy(exclusionsFactory = { hprofParser ->
-      val defaultFactory = AndroidExcludedRefs.exclusionsFactory(AndroidExcludedRefs.appDefaults)
-      val appDefaults = defaultFactory(hprofParser)
-      val customExclusion = Exclusion(
-          type = StaticFieldExclusion("com.thirdparty.SomeSingleton", "sContext"),
-          status = Exclusion.Status.WONT_FIX_LEAK,
-          reason = "SomeSingleton in library X has a static field leaking a context."
-      )
-      appDefaults + customExclusion
-    })
+    LeakCanary.config = LeakCanary.config.copy(
+        referenceMatchers = AndroidReferenceMatchers.appDefaults +
+            AndroidReferenceMatchers.staticFieldLeak(
+                className = "com.samsing.SomeSingleton",
+                fieldName = "sContext",
+                description = "SomeSingleton has a static field leaking a context.",
+                patternApplies = {
+                  manufacturer == "Samsing" && sdkInt == 26
+                }
+            )
+    )
   }
 }
 ```
 
-## Identifying leaking instances and labeling instances
+## Identifying leaking objects and labeling objects
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
     super.onCreate()
-    val customLabeler: Labeler = { parser, node ->
-      listOf("Heap dump object id is ${node.instance}")
+    val addObjectIdLabel = ObjectInspector { reporter ->
+      reporter.addLabel("Heap dump object id is ${reporter.heapObject.objectId}")
     }
-    val labelers = AndroidLabelers.defaultAndroidLabelers(this) + customLabeler
 
-    val customInspector: LeakInspector = { parser, node ->
-      with(parser) {
-        if (node.instance.objectRecord.isInstanceOf("com.example.MySingleton")) {
-          LeakNodeStatus.notLeaking("MySingleton is a singleton")
-        } else LeakNodeStatus.unknown()
+    val singletonsInspector =
+      AppSingletonInspector("com.example.MySingleton", "com.example.OtherSingleton")
+
+    val mmvmInspector = ObjectInspector { reporter ->
+      reporter.whenInstanceOf("com.mmvm.SomeViewModel") { instance ->
+        val destroyedField = instance["com.mmvm.SomeViewModel", "destroyed"]!!
+        if (destroyedField.value.asBoolean!!) {
+          reportLeaking("SomeViewModel.destroyed is true")
+        } else {
+          reportNotLeaking("SomeViewModel.destroyed is false")
+        }
       }
     }
-    val leakInspectors = AndroidLeakInspectors.defaultAndroidInspectors() + customInspector
 
-    LeakCanary.config = LeakCanary.config.copy(labelers = labelers, leakInspectors = leakInspectors)
+    LeakCanary.config = LeakCanary.config.copy(
+        objectInspectors = AndroidObjectInspectors.appDefaults +
+            listOf(addObjectIdLabel, singletonsInspector, mmvmInspector)
+    )
   }
 }
 ```

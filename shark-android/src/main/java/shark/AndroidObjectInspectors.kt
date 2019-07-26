@@ -53,7 +53,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
           addLabel("mContext instance of ${mContext.instanceClassName}, not wrapping activity")
         } else {
           val activityDescription =
-            " with mDestroyed = " + (activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
+            "with mDestroyed = " + (activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
                 ?: "UNKNOWN")
           if (activityContext == mContext) {
             addLabel(
@@ -65,9 +65,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
             )
           }
         }
-
-        addLabel("mContext = ${mContext.instanceClassName}")
-
         if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
           reportLeaking("View.mContext references a destroyed activity")
         } else {

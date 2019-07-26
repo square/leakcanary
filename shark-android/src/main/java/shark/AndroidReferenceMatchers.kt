@@ -17,8 +17,6 @@ package shark
 
 import shark.AndroidReferenceMatchers.Companion.appDefaults
 import shark.AndroidReferenceMatchers.Companion.buildKnownReferences
-import shark.IgnoredReferenceMatcher
-import shark.LibraryLeakReferenceMatcher
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
 import shark.ReferencePattern.StaticFieldPattern
@@ -971,12 +969,18 @@ enum class AndroidReferenceMatchers {
     }
   },
 
-  ANDROID_HEAP_DUMPER {
+  LEAK_CANARY_HEAP_DUMPER {
     override fun add(references: MutableList<ReferenceMatcher>) {
       // Holds on to the resumed activity (which is never destroyed), so this will not cause leaks
       // but may surface on the path when a resumed activity holds on to destroyed objects.
       // Would have a path that doesn't include LeakCanary instead.
       references += ignoredInstanceField("leakcanary.internal.AndroidHeapDumper", "resumedActivity")
+    }
+  },
+
+  LEAK_CANARY_INTERNAL {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += ignoredInstanceField("leakcanary.internal.InternalLeakCanary", "application")
     }
   },
 
