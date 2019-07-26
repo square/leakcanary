@@ -16,7 +16,7 @@ import leakcanary.internal.activity.ui.SimpleListAdapter
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.inflate
-import shark.HeapClassField
+import shark.HeapField
 import shark.HprofHeapGraph
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
@@ -269,7 +269,7 @@ internal class HprofExplorerScreen(
     }
   }
 
-  private fun Sequence<HeapClassField>.fieldsAsString(): List<Pair<HeapClassField, String>> {
+  private fun Sequence<HeapField>.fieldsAsString(): List<Pair<HeapField, String>> {
     return map { field ->
       field to "${field.declaringClass.simpleName}.${field.name} = ${field.value.heapValueAsString()}"
     }

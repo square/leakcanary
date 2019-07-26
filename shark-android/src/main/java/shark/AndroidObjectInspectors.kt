@@ -103,6 +103,14 @@ enum class AndroidObjectInspectors : ObjectInspector {
     }
   },
 
+  EDITOR {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.widget.Editor") { instance ->
+        applyFromField(VIEW, instance["android.widget.Editor", "mTextView"])
+      }
+    }
+  },
+
   ACTIVITY {
     override fun inspect(
       reporter: ObjectReporter
@@ -276,6 +284,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val view = instance["mortar.Presenter", "view"]!!
         if (view.value.isNullReference) {
           reportLeaking(view describedWithValue "null")
+        } else {
+          addLabel(view describedWithValue "set")
         }
       }
     }
@@ -386,8 +396,32 @@ enum class AndroidObjectInspectors : ObjectInspector {
   }
 }
 
-private infix fun HeapClassField.describedWithValue(valueDescription: String): String {
+private infix fun HeapField.describedWithValue(valueDescription: String): String {
   return "${declaringClass.simpleName}#$name is $valueDescription"
+}
+
+private fun ObjectReporter.applyFromField(
+  inspector: ObjectInspector,
+  field: HeapField?
+) {
+  if (field == null) {
+    return
+  }
+  if (field.value.isNullReference) {
+    return
+  }
+  val heapObject = field.value.asObject!!
+  val delegateReporter = ObjectReporter(heapObject)
+  inspector.inspect(delegateReporter)
+  val prefix = "${field.declaringClass.simpleName}#${field.name}:"
+  delegateReporter.labels.forEach { addLabel("$prefix $it") }
+  delegateReporter.leakingStatuses.forEach { reportLeaking("$prefix ${it.reason}") }
+  delegateReporter.likelyLeakingStatuses.forEach {
+    reportNotLeaking("$prefix ${it.reason}")
+  }
+  delegateReporter.notLeakingStatuses.forEach {
+    reportLikelyLeaking("$prefix ${it.reason}")
+  }
 }
 
 /**
