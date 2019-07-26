@@ -131,7 +131,7 @@ class HeapAnalyzer constructor(
           val reporter = ObjectReporter(objectRecord)
           leakFinders.any { inspector ->
             inspector.inspect(reporter)
-            reporter.leakingStatuses.isNotEmpty()
+            reporter.leakingReasons.isNotEmpty()
           }
         }
         .map { it.objectId }
@@ -385,10 +385,12 @@ class HeapAnalyzer constructor(
 
     val elements = shortestPath.mapIndexed { index, pathNode ->
       val leakReporter = leakReporters[index]
-      val leakStatus = leakStatuses[index]
+      val (leakStatus, leakStatusReason) = leakStatuses[index]
       val reference =
         if (index < shortestPath.lastIndex) (shortestPath[index + 1] as ChildNode).referenceFromParent else null
-      buildLeakElement(graph, pathNode, reference, leakReporter.labels, leakStatus)
+      buildLeakElement(
+          graph, pathNode, reference, leakReporter.labels, leakStatus, leakStatusReason
+      )
     }
     return LeakTrace(elements)
   }
@@ -396,41 +398,41 @@ class HeapAnalyzer constructor(
   private fun computeLeakStatuses(
     rootNode: RootNode,
     leakReporters: List<ObjectReporter>
-  ): List<LeakNodeStatusAndReason> {
+  ): List<Pair<LeakNodeStatus, String>> {
     val lastElementIndex = leakReporters.size - 1
 
     val rootNodeReporter = leakReporters[0]
 
-    rootNodeReporter.addLabel(
-        "GC Root: " + when (rootNode.gcRoot) {
-          is ThreadObject -> "Thread object"
-          is JniGlobal -> "Global variable in native code"
-          is JniLocal -> "Local variable in native code"
-          is JavaFrame -> "Java local variable"
-          is NativeStack -> "Input or output parameters in native code"
-          is StickyClass -> "System class"
-          is ThreadBlock -> "Thread block"
-          is MonitorUsed -> "Monitor (anything that called the wait() or notify() methods, or that is synchronized.)"
-          is ReferenceCleanup -> "Reference cleanup"
-          is JniMonitor -> "Root JNI monitor"
-          else -> throw IllegalStateException("Unexpected gc root ${rootNode.gcRoot}")
-        }
-    )
+    rootNodeReporter.labels +=
+      "GC Root: " + when (rootNode.gcRoot) {
+        is ThreadObject -> "Thread object"
+        is JniGlobal -> "Global variable in native code"
+        is JniLocal -> "Local variable in native code"
+        is JavaFrame -> "Java local variable"
+        is NativeStack -> "Input or output parameters in native code"
+        is StickyClass -> "System class"
+        is ThreadBlock -> "Thread block"
+        is MonitorUsed -> "Monitor (anything that called the wait() or notify() methods, or that is synchronized.)"
+        is ReferenceCleanup -> "Reference cleanup"
+        is JniMonitor -> "Root JNI monitor"
+        else -> throw IllegalStateException("Unexpected gc root ${rootNode.gcRoot}")
+      }
 
     var lastNotLeakingElementIndex = 0
     var firstLeakingElementIndex = lastElementIndex
 
-    val leakStatuses = ArrayList<LeakNodeStatusAndReason>()
+    val leakStatuses = ArrayList<Pair<LeakNodeStatus, String>>()
 
     for ((index, reporter) in leakReporters.withIndex()) {
-      val leakStatus = resolveStatus(reporter)
-      leakStatuses.add(leakStatus)
-      if (leakStatus.status == NOT_LEAKING) {
+      val resolvedStatusPair = resolveStatus(reporter)
+      leakStatuses.add(resolvedStatusPair)
+      val (leakStatus, _) = resolvedStatusPair
+      if (leakStatus == NOT_LEAKING) {
         lastNotLeakingElementIndex = index
         // Reset firstLeakingElementIndex so that we never have
         // firstLeakingElementIndex < lastNotLeakingElementIndex
         firstLeakingElementIndex = lastElementIndex
-      } else if (firstLeakingElementIndex == lastElementIndex && leakStatus.status == LEAKING) {
+      } else if (firstLeakingElementIndex == lastElementIndex && leakStatus == LEAKING) {
         firstLeakingElementIndex = index
       }
     }
@@ -441,27 +443,19 @@ class HeapAnalyzer constructor(
 
     // First and last are always known.
     for (i in 0..lastElementIndex) {
-      val leakStatus = leakStatuses[i]
+      val (leakStatus, leakStatusReason) = leakStatuses[i]
       if (i < lastNotLeakingElementIndex) {
         val nextNotLeakingName = simpleClassNames[i + 1]
-        leakStatuses[i] = when (leakStatus.status) {
-          UNKNOWN -> LeakNodeStatus.notLeaking("$nextNotLeakingName↓ is not leaking")
-          NOT_LEAKING -> LeakNodeStatus.notLeaking(
-              "$nextNotLeakingName↓ is not leaking and ${leakStatus.reason}"
-          )
-          LEAKING -> LeakNodeStatus.notLeaking(
-              "$nextNotLeakingName↓ is not leaking. Conflicts with ${leakStatus.reason}"
-          )
+        leakStatuses[i] = when (leakStatus) {
+          UNKNOWN -> NOT_LEAKING to "$nextNotLeakingName↓ is not leaking"
+          NOT_LEAKING -> NOT_LEAKING to "$nextNotLeakingName↓ is not leaking and $leakStatusReason"
+          LEAKING -> NOT_LEAKING to "$nextNotLeakingName↓ is not leaking. Conflicts with $leakStatusReason"
         }
       } else if (i > firstLeakingElementIndex) {
         val previousLeakingName = simpleClassNames[i - 1]
-        leakStatuses[i] = LeakNodeStatus.leaking("$previousLeakingName↑ is leaking")
-
-        leakStatuses[i] = when (leakStatus.status) {
-          UNKNOWN -> LeakNodeStatus.leaking("$previousLeakingName↑ is leaking")
-          LEAKING -> LeakNodeStatus.leaking(
-              "$previousLeakingName↑ is leaking and ${leakStatus.reason}"
-          )
+        leakStatuses[i] = when (leakStatus) {
+          UNKNOWN -> LEAKING to "$previousLeakingName↑ is leaking"
+          LEAKING -> LEAKING to "$previousLeakingName↑ is leaking and $leakStatusReason"
           NOT_LEAKING -> throw IllegalStateException("Should never happen")
         }
       }
@@ -471,42 +465,34 @@ class HeapAnalyzer constructor(
 
   private fun resolveStatus(
     reporter: ObjectReporter
-  ): LeakNodeStatusAndReason {
-    // NOT_LEAKING always wins over LEAKING
-    var current = LeakNodeStatus.unknown()
-    for (statusAndReason in reporter.leakNodeStatuses) {
-      current = when {
-        current.status == UNKNOWN -> statusAndReason
-        current.status == LEAKING && statusAndReason.status == LEAKING -> {
-          LeakNodeStatus.leaking("${current.reason} and ${statusAndReason.reason}")
-        }
-        current.status == NOT_LEAKING && statusAndReason.status == NOT_LEAKING -> {
-          LeakNodeStatus.notLeaking("${current.reason} and ${statusAndReason.reason}")
-        }
-        current.status == NOT_LEAKING && statusAndReason.status == LEAKING -> {
-          LeakNodeStatus.notLeaking(
-              "${current.reason}. Conflicts with ${statusAndReason.reason}"
-          )
-        }
-        current.status == LEAKING && statusAndReason.status == NOT_LEAKING -> {
-          LeakNodeStatus.notLeaking(
-              "${statusAndReason.reason}. Conflicts with ${current.reason}"
-          )
-        }
-        else -> throw IllegalStateException(
-            "Should never happen ${current.status} ${statusAndReason.reason}"
-        )
+  ): Pair<LeakNodeStatus, String> {
+    var status = UNKNOWN
+    var reason = ""
+    if (reporter.notLeakingReasons.isNotEmpty()) {
+      status = NOT_LEAKING
+      reason = reporter.notLeakingReasons.joinToString(" and ")
+    }
+
+    val leakingReasons = reporter.leakingReasons + reporter.likelyLeakingReasons
+    if (leakingReasons.isNotEmpty()) {
+      // NOT_LEAKING wins over LEAKING
+      if (status == NOT_LEAKING) {
+        reason += ". Conflicts with ${leakingReasons.joinToString(" and ")}"
+      } else {
+        status = LEAKING
+        reason = leakingReasons.joinToString(" and ")
       }
     }
-    return current
+    return status to reason
   }
 
   private fun buildLeakElement(
     graph: HeapGraph,
     node: ReferencePathNode,
     reference: LeakReference?,
-    labels: List<String>,
-    leakStatus: LeakNodeStatusAndReason
+    labels: Set<String>,
+    leakStatus: LeakNodeStatus,
+    leakStatusReason: String
   ): LeakTraceElement {
     val objectId = node.instance
 
@@ -526,7 +512,7 @@ class HeapAnalyzer constructor(
         OBJECT
       }
     }
-    return LeakTraceElement(reference, holderType, className, labels, leakStatus)
+    return LeakTraceElement(reference, holderType, className, labels, leakStatus, leakStatusReason)
   }
 
   private fun recordClassName(

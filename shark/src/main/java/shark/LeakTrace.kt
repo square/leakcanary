@@ -21,10 +21,10 @@ data class LeakTrace(
   }
 
   fun elementMayBeLeakCause(index: Int): Boolean {
-    return when (elements[index].leakStatusAndReason.status) {
+    return when (elements[index].leakStatus) {
       UNKNOWN -> true
       NOT_LEAKING -> if (index < elements.lastIndex) {
-        elements[index + 1].leakStatusAndReason.status != NOT_LEAKING
+        elements[index + 1].leakStatus != NOT_LEAKING
       } else {
         false
       }

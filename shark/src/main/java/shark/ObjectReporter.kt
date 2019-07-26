@@ -12,69 +12,29 @@ import kotlin.reflect.KClass
  */
 class ObjectReporter constructor(val heapObject: HeapObject) {
 
-  private val mutableLabels = mutableListOf<String>()
-
-  private val mutableLeakingStatuses = mutableListOf<LeakNodeStatusAndReason>()
-  private val mutableLikelyLeakingStatuses = mutableListOf<LeakNodeStatusAndReason>()
-  private val mutableNotLeakingStatuses = mutableListOf<LeakNodeStatusAndReason>()
-
   /**
-   * All labels added via [addLabel] for the [heapObject] instance.
+   * Labels that will be visible on the corresponding [heapObject] in the leak trace.
    */
-  val labels: List<String>
-    get() = mutableLabels
+  val labels = linkedSetOf<String>()
 
   /**
-   * All leaking insights added via [reportLikelyLeaking], [reportLeaking] and [reportNotLeaking]
-   * for the [heapObject] instance.
-   */
-  val leakNodeStatuses: List<LeakNodeStatusAndReason>
-    get() = mutableLeakingStatuses + mutableLikelyLeakingStatuses + mutableNotLeakingStatuses
-
-  /**
-   * All leaking insights added via [reportLeaking] for the [heapObject] instance.
-   */
-  val leakingStatuses: List<LeakNodeStatusAndReason>
-    get() = mutableLeakingStatuses
-
-  val notLeakingStatuses: List<LeakNodeStatusAndReason>
-    get() = mutableNotLeakingStatuses
-
-  val likelyLeakingStatuses: List<LeakNodeStatusAndReason>
-    get() = mutableLikelyLeakingStatuses
-
-  /**
-   * Adds a label that will be visible on the corresponding node in the leak trace.
-   */
-  fun addLabel(label: String) {
-    mutableLabels += label
-  }
-
-  /**
-   * @see [reportLeaking]
-   */
-  fun reportLikelyLeaking(reason: String) {
-    mutableLikelyLeakingStatuses += LeakNodeStatus.leaking(reason)
-  }
-
-  /**
-   * Call this to let LeakCanary know that this instance was expected to be unreachable, ie that
-   * it's leaking.
+   * Reasons for which this object is expected to be unreachable (ie it's leaking).
    *
-   * Only call this method if you're 100% sure this instance is leaking, otherwise call
-   * [reportLikelyLeaking]. The difference is that instances that are "likely leaking" are not
-   * considered to be leaking instances on which LeakCanary should compute the leak trace.
+   * Only add reasons to this if you're 100% sure this object is leaking, otherwise add reasons to
+   * [likelyLeakingReasons]. The difference is that objects that are "likely leaking" are not
+   * considered to be leaking objects on which LeakCanary should compute the leak trace.
    */
-  fun reportLeaking(reason: String) {
-    mutableLeakingStatuses += LeakNodeStatus.leaking(reason)
-  }
+  val leakingReasons = mutableSetOf<String>()
 
   /**
-   * Call this to let LeakCanary know that this instance was expected to be reachable.
+   * @see leakingReasons
    */
-  fun reportNotLeaking(reason: String) {
-    mutableNotLeakingStatuses += LeakNodeStatus.notLeaking(reason)
-  }
+  val likelyLeakingReasons = mutableSetOf<String>()
+
+  /**
+   * Reasons for which this object is expected to be reachable (ie it's not leaking).
+   */
+  val notLeakingReasons = mutableSetOf<String>()
 
   /**
    * Runs [block] if [ObjectReporter.heapObject] is an instance of [expectedClass].
@@ -98,6 +58,5 @@ class ObjectReporter constructor(val heapObject: HeapObject) {
       block(heapObject)
     }
   }
-
 
 }

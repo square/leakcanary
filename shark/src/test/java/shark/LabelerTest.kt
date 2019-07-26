@@ -26,7 +26,7 @@ class LabelerTest {
         reporter: ObjectReporter
       ) {
         reporter.whenInstanceOf("java.lang.String")  { instance ->
-          addLabel("Hello ${instance.readAsJavaString()}")
+          labels += "Hello ${instance.readAsJavaString()}"
         }
       }
     }

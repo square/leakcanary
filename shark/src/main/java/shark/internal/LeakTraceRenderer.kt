@@ -3,7 +3,6 @@ package shark.internal
 import shark.LeakNodeStatus.LEAKING
 import shark.LeakNodeStatus.NOT_LEAKING
 import shark.LeakNodeStatus.UNKNOWN
-import shark.LeakNodeStatusAndReason
 import shark.LeakTrace
 import shark.LeakTraceElement
 import shark.LeakTraceElement.Holder.ARRAY
@@ -29,8 +28,11 @@ internal fun LeakTrace.renderToString(): String {
       "$ZERO_WIDTH_SPACE     "
     }
 
-    val currentReachability = elements[index].leakStatusAndReason
-    result += "\n" + contentPrefix + "Leaking: " + currentReachability.renderToString()
+    result += "\n" + contentPrefix + "Leaking: " + when (elements[index].leakStatus) {
+      UNKNOWN -> "UNKNOWN"
+      NOT_LEAKING -> "NO (${elements[index].leakStatusReason})"
+      LEAKING -> "YES (${elements[index].leakStatusReason})"
+    }
 
     for (label in element.labels) {
       result += "\n" + contentPrefix + label
@@ -42,14 +44,6 @@ internal fun LeakTrace.renderToString(): String {
 
   }
   return result
-}
-
-private fun LeakNodeStatusAndReason.renderToString(): String {
-  return when (status) {
-    UNKNOWN -> "UNKNOWN"
-    NOT_LEAKING -> "NO ($reason)"
-    LEAKING -> "YES ($reason)"
-  }
 }
 
 private fun getNextElementString(

@@ -61,16 +61,16 @@ enum class ObjectInspectors : ObjectInspector {
       val objectId = reporter.heapObject.objectId
       references.forEach { ref ->
         if (ref.referent.value == objectId) {
-          reporter.reportLeaking("ObjectWatcher was watching this")
-          reporter.addLabel("key = ${ref.key}")
+          reporter.leakingReasons += "ObjectWatcher was watching this"
+          reporter.labels += "key = ${ref.key}"
           if (ref.name.isNotEmpty()) {
-            reporter.addLabel("name = ${ref.name}")
+            reporter.labels += "name = ${ref.name}"
           }
           if (ref.watchDurationMillis != null) {
-            reporter.addLabel("watchDurationMillis = ${ref.watchDurationMillis}")
+            reporter.labels += "watchDurationMillis = ${ref.watchDurationMillis}"
           }
           if (ref.retainedDurationMillis != null) {
-            reporter.addLabel("retainedDurationMillis = ${ref.retainedDurationMillis}")
+            reporter.labels += "retainedDurationMillis = ${ref.retainedDurationMillis}"
           }
         }
       }
@@ -82,7 +82,7 @@ enum class ObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf(ClassLoader::class) {
-        reportNotLeaking("A ClassLoader is never leaking")
+        notLeakingReasons += "A ClassLoader is never leaking"
       }
     }
   },
@@ -92,7 +92,7 @@ enum class ObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       if (reporter.heapObject is HeapClass) {
-        reporter.reportNotLeaking("a class is never leaking")
+        reporter.notLeakingReasons += "a class is never leaking"
       }
     }
   },
@@ -113,19 +113,17 @@ enum class ObjectInspectors : ObjectInspector {
               // use that instead.
               val actualClass = Class.forName(instanceClass.name)
               val interfaces = actualClass.interfaces
-              reporter.addLabel(
-                  if (interfaces.isNotEmpty()) {
-                    val implementedInterface = interfaces[0]
-                    "Anonymous class implementing ${implementedInterface.name}"
-                  } else {
-                    "Anonymous subclass of java.lang.Object"
-                  }
-              )
+              reporter.labels += if (interfaces.isNotEmpty()) {
+                val implementedInterface = interfaces[0]
+                "Anonymous class implementing ${implementedInterface.name}"
+              } else {
+                "Anonymous subclass of java.lang.Object"
+              }
             } catch (ignored: ClassNotFoundException) {
             }
           } else {
             // Makes it easier to figure out which anonymous class we're looking at.
-            reporter.addLabel("Anonymous subclass of ${parentClassRecord.name}")
+            reporter.labels += "Anonymous subclass of ${parentClassRecord.name}"
           }
         }
       }
@@ -138,7 +136,7 @@ enum class ObjectInspectors : ObjectInspector {
     ) {
       reporter.whenInstanceOf(Thread::class) { instance ->
         val threadName = instance[Thread::class, "name"]!!.value.readAsJavaString()
-        addLabel("Thread name: '$threadName'")
+        labels += "Thread name: '$threadName'"
       }
     }
   };

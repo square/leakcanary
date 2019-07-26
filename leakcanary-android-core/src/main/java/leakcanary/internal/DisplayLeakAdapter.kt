@@ -178,10 +178,10 @@ internal class DisplayLeakAdapter constructor(
 
     htmlString += "<br>"
 
-    val reachabilityString = when (element.leakStatusAndReason.status) {
+    val reachabilityString = when (element.leakStatus) {
       UNKNOWN -> "UNKNOWN"
-      NOT_LEAKING -> "NO (${element.leakStatusAndReason.reason})"
-      LEAKING -> "YES (${element.leakStatusAndReason.reason})"
+      NOT_LEAKING -> "NO (${element.leakStatusReason})"
+      LEAKING -> "YES (${element.leakStatusReason})"
     }
 
     val indentation = "&nbsp;".repeat(4)
@@ -224,23 +224,23 @@ internal class DisplayLeakAdapter constructor(
         return START_LAST_REACHABLE
       }
       val nextReachability = leakTrace.elements[elementIndex(position + 1)]
-      return if (nextReachability.leakStatusAndReason.status != NOT_LEAKING) {
+      return if (nextReachability.leakStatus != NOT_LEAKING) {
         START_LAST_REACHABLE
       } else START
     } else {
       val isLeakingInstance = position == count - 1
       if (isLeakingInstance) {
         val previousReachability = leakTrace.elements[elementIndex(position - 1)]
-        return if (previousReachability.leakStatusAndReason.status != LEAKING) {
+        return if (previousReachability.leakStatus != LEAKING) {
           END_FIRST_UNREACHABLE
         } else END
       } else {
         val reachability = leakTrace.elements[elementIndex(position)]
-        when (reachability.leakStatusAndReason.status) {
+        when (reachability.leakStatus) {
           UNKNOWN -> return NODE_UNKNOWN
           NOT_LEAKING -> {
             val nextReachability = leakTrace.elements[elementIndex(position + 1)]
-            return if (nextReachability.leakStatusAndReason.status != NOT_LEAKING) {
+            return if (nextReachability.leakStatus != NOT_LEAKING) {
               NODE_LAST_REACHABLE
             } else {
               NODE_REACHABLE
@@ -248,14 +248,14 @@ internal class DisplayLeakAdapter constructor(
           }
           LEAKING -> {
             val previousReachability = leakTrace.elements[elementIndex(position - 1)]
-            return if (previousReachability.leakStatusAndReason.status != LEAKING) {
+            return if (previousReachability.leakStatus != LEAKING) {
               NODE_FIRST_UNREACHABLE
             } else {
               NODE_UNREACHABLE
             }
           }
           else -> throw IllegalStateException(
-              "Unknown value: " + reachability.leakStatusAndReason.status
+              "Unknown value: " + reachability.leakStatus
           )
         }
       }
