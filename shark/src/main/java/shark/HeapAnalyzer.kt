@@ -67,7 +67,7 @@ class HeapAnalyzer constructor(
    * Searches the heap dump for leaking instances and then computes the shortest strong reference
    * path from those instances to the GC roots.
    */
-  fun checkForLeaks(
+  fun analyze(
     heapDumpFile: File,
     referenceMatchers: List<ReferenceMatcher> = emptyList(),
     computeRetainedHeapSize: Boolean = false,

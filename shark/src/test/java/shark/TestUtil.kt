@@ -19,7 +19,7 @@ fun <T : HeapAnalysis> File.checkForLeaks(
     objectInspectors
   }
   val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
-  val result = heapAnalyzer.checkForLeaks(
+  val result = heapAnalyzer.analyze(
       this, referenceMatchers, computeRetainedHeapSize, inspectors
   )
   if (result is HeapAnalysisFailure) {

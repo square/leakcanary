@@ -166,7 +166,7 @@ class InstrumentationLeakDetector {
     val listener = shark.OnAnalysisProgressListener.NO_OP
 
     val heapAnalyzer = HeapAnalyzer(listener)
-    val heapAnalysis = heapAnalyzer.checkForLeaks(
+    val heapAnalysis = heapAnalyzer.analyze(
         heapDumpFile, config.referenceMatchers,
         config.computeRetainedHeapSize,
         config.objectInspectors,
