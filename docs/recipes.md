@@ -4,7 +4,7 @@ If you think a recipe might be missing or you're not sure that what you're tryin
 
 ## Configuring AppWatcher in `object-watcher-android`
 
-AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing `AppWatcher.config`:
+AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing [AppWatcher.config](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/):
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
 
@@ -17,7 +17,7 @@ class DebugExampleApplication : ExampleApplication() {
 
 ## Configuring LeakCanary
 
-LeakCanary can be configured by replacing `LeakCanary.config`:
+LeakCanary can be configured by replacing [LeakCanary.config](/api/leakcanary-android-core/leakcanary/-leak-canary/config/):
 
 ```kotlin
 disableLeakCanaryButton.setOnClickListener {
@@ -27,7 +27,7 @@ disableLeakCanaryButton.setOnClickListener {
 
 ## Watching objects with a lifecycle
 
-In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use `AppWatcher.objectWatcher` to watch instances that should be garbage collected:
+In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use [AppWatcher.objectWatcher](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to watch instances that should be garbage collected:
 
 ```kotlin
 class MyService : Service {
@@ -118,7 +118,7 @@ res/
 
 You can change the default behavior to upload the analysis result to a server of your choosing.
 
-Create a custom `AnalysisResultListener` that delegates to the default: 
+Create a custom [OnHeapAnalyzedListener](/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/) that delegates to [DefaultOnHeapAnalyzedListener](/api/leakcanary-android-core/leakcanary/-default-on-heap-analyzed-listener/): 
 
 ```kotlin
 class LeakUploader : OnHeapAnalyzedListener {
@@ -134,7 +134,7 @@ class LeakUploader : OnHeapAnalyzedListener {
 }
 ```
 
-Set `analysisResultListener` on the LeakCanary config:
+Set [LeakCanary.config.onHeapAnalyzedListener](/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/):
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {

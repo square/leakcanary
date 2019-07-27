@@ -9,10 +9,10 @@ dependencies {
 }
 ```
 
-**That's it, there is no code change needed!** [Here's why](faq.md#how-does-leakcanary-get-installed-by-only-adding-a-dependency). LeakCanary will automatically show a notification when a memory leak is detected in debug builds.
+**That's it, there is no code change needed!** LeakCanary will automatically show a notification when a memory leak is detected in debug builds.
 
 What's next?
 
 * Learn the [Fundamentals](fundamentals.md)
 * Try the [code recipes](recipes.md)
-* Read the [FAQ](faq.md)
+* Read the [FAQ](faq.md), e.g. [How does LeakCanary get installed by only adding a dependency?](faq.md#how-does-leakcanary-get-installed-by-only-adding-a-dependency)

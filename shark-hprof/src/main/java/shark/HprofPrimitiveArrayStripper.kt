@@ -36,7 +36,11 @@ class HprofPrimitiveArrayStripper {
     Hprof.open(inputHprofFile)
         .use { hprof ->
           val reader = hprof.reader
-          HprofWriter.open(outputHprofFile, identifierByteSize = reader.identifierByteSize)
+          HprofWriter.open(
+              outputHprofFile,
+              identifierByteSize = reader.identifierByteSize,
+              hprofVersion = hprof.hprofVersion
+          )
               .use { writer ->
                 reader.readHprofRecords(setOf(HprofRecord::class),
                     OnHprofRecordListener { _,

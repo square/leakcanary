@@ -23,10 +23,22 @@ fun main(args: Array<String>) {
 fun printHelp() {
   val workingDirectory = File(System.getProperty("user.dir"))
 
+  // ASCII art is a remix of a shark from -David "TAZ" Baltazar- and chick from jgs.
   SharkLog.d(
       """
-    LeakCanary CLI
-    Running in directory $workingDirectory
+    Shark CLI, running in directory $workingDirectory
+
+                     ^`.                 .=""=.
+     ^_              \  \               / _  _ \
+     \ \             {   \             |  d  b  |
+     {  \           /     `~~~--__     \   /\   /
+     {   \___----~~'              `~~-_/'-=\/=-'\,
+      \                         /// a  `~.      \ \
+      / /~~~~-, ,__.    ,      ///  __,,,,)      \ |
+      \/      \/    `~~~;   ,---~~-_`/ \        / \/
+                       /   /            '.    .'
+                      '._.'             _|`~~`|_
+                                        /|\  /|\
 
     Commands: [analyze-process, dump-process, analyze-hprof, strip-hprof]
 
