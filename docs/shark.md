@@ -7,20 +7,75 @@
 <img src="https://github.com/square/leakcanary/wiki/assets/shark.png" />
 </p>
 
-Shark is the heap analyzer that powers LeakCanary. It's a standalone heap analyzer Kotlin library that can run in Java and Android VMs at **high speed** with a **low memory footprint**. It can analyze both Android and Java VM hprof files.
+Shark is the heap analyzer that powers LeakCanary 2. It's a Kotlin standalone heap analysis library that runs at **high speed** with a **low memory footprint**.
 
-Shark is released as several distinct libraries:
+Shark is released in layers:
 
-* `Shark Hprof`: Read and write records in hprof files
-* `Shark Graph`: Navigate the heap object graph
-* `Shark`: Generate heap analysis reports
-* `Shark Android`: Generate Android tailored heap analysis reports
+1. **Shark Hprof**: Read and write records in hprof files.
+2. **Shark Graph**: Navigate the heap object graph.
+3. **Shark**: Generate heap analysis reports.
+4. **Shark Android**: Android heuristics to generate tailored heap analysis reports.
+5. **Shark CLI**: Analyze the heap of debuggable apps installed on an Android device connected to your desktop. The output is similar to the output of LeakCanary, except you don't have to add the LeakCanary dependency to your app.
+6. **LeakCanary**: Builds on top. It automatically watches destroyed activities and fragments, triggers a heap dump, runs Shark Android and then displays the result.
 
-Shark is also released as a CLI tool, `Shark CLI`.
+A few more things:
 
-## Example usage
+* Shark is built on top of Okio. Okio makes it easy to parse heap dumps efficiently.
+* Shark is a 100% Kotlin library, and Kotlin is essential to its design, because Shark relies heavily on sealed classes and sequences to save memory.
+* Shark has the unique ability to help narrow down the cause of memory leaks through platform specific [heuristics](fundamentals.md#heuristics-and-labels).
+* Shark is heavily tested (80% test coverage).
+* Shark can run in both Java and Android VMs, with no other dependency than Okio and Kotlin.
+* Shark can analyze both Java and Android VM hprof files.
 
-### Reading records in a hprof file with shark-hprof
+## Shark CLI
+
+The Shark Command Line Interface (CLI) enables you to analyze heaps directly from your computer. It can dump the heap of an app installed on a connected Android device, analyze it, and even strip a heap dump of any sensitive data (e.g. PII, passwords or encryption keys) which is useful when sharing a heap dump.
+
+Download it [here](https://github.com/square/leakcanary/releases/download/v2.0-beta-1/shark-cli-2.0-beta-1.zip)!
+
+Usage instructions:
+
+```
+$ ./bin/shark-cli
+
+Shark CLI
+
+                 ^`.                 .=""=.
+ ^_              \  \               / _  _ \
+ \ \             {   \             |  d  b  |
+ {  \           /     `~~~--__     \   /\   /
+ {   \___----~~'              `~~-_/'-=\/=-'\,
+  \                         /// a  `~.      \ \
+  / /~~~~-, ,__.    ,      ///  __,,,,)      \ |
+  \/      \/    `~~~;   ,---~~-_`/ \        / \/
+                   /   /            '.    .'
+                  '._.'             _|`~~`|_
+                                    /|\  /|\
+
+Commands: [analyze-process, dump-process, analyze-hprof, strip-hprof]
+
+analyze-process: Dumps the heap for the provided process name, pulls the hprof file and analyzes it.
+  USAGE: analyze-process PROCESS_PACKAGE_NAME
+
+dump-process: Dumps the heap for the provided process name and pulls the hprof file.
+  USAGE: dump-process PROCESS_PACKAGE_NAME
+
+analyze-hprof: Analyzes the provided hprof file.
+  USAGE: analyze-hprof HPROF_FILE_PATH
+
+strip-hprof: Replaces all primitive arrays from the provided hprof file with arrays of zeroes.
+  USAGE: strip-hprof HPROF_FILE_PATH
+```
+
+## Shark code examples
+
+### Reading records in a hprof file
+
+```groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:shark-hprof:$sharkVersion'
+}
+```
 
 ```kotlin
 // Prints all class and field names
@@ -34,13 +89,19 @@ Hprof.open(heapDumpFile)
     }
 ```
 
-### Navigating the heap object graph with shark-graph
+### Navigating the heap object graph
+
+```groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:shark-graph:$sharkVersion'
+}
+```
 
 ```kotlin
 // Prints all thread names
 Hprof.open(heapDumpFile)
     .use { hprof ->
-      val heapGraph = HeapGraph.indexHprof(hprof)
+      val heapGraph = HprofHeapGraph.indexHprof(hprof)
       val threadClass = heapGraph.findClassByName("java.lang.Thread")!!
       val threadNames: Sequence<String> = threadClass.instances.map { instance ->
         val nameField = instance["java.lang.Thread", "name"]!!
@@ -50,7 +111,13 @@ Hprof.open(heapDumpFile)
     }
 ```
 
-### Generating a heap analysis report with shark
+### Generating a heap analysis report
+
+```groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:shark:$sharkVersion'
+}
+```
 
 ```kotlin
 val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
@@ -61,7 +128,7 @@ val analysis = heapAnalyzer.checkForLeaks(
         val field = instance["com.example.ThingWithLifecycle", "destroyed"]!!
         val destroyed = field.value.asBoolean!!
         if (destroyed) {
-          reportLeaking(reason = "ThingWithLifecycle.destroyed = true")
+          leakingReasons += "ThingWithLifecycle.destroyed = true"
         }
       }
     })
@@ -69,7 +136,13 @@ val analysis = heapAnalyzer.checkForLeaks(
 println(analysis)
 ```
 
-### Generating an Android heap analysis report with shark-android
+### Generating an Android heap analysis report
+
+```groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:shark-android:$sharkVersion'
+}
+```
 
 
 ```kotlin

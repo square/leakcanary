@@ -72,7 +72,7 @@ val objectWatcher: ObjectWatcher = AppWatcher.objectWatcher
 
 ## Compile errors because RefWatcher is used in release code
 
-If you were using `RefWatcher` in non debug code, you now get a compile error because the no-op artifact is gone. `ObjectWatcher` now lives in the `object-watcher` artifact, which is suitable for production. You have two options:
+If you were using `RefWatcher` in non debug code, you now get a compile error because the no-op artifact is gone. [ObjectWatcher](/api/leakcanary-object-watcher/leakcanary/-object-watcher/) now lives in the `object-watcher` artifact, which is suitable for production. You have two options:
 
 ### Option 1: Add `object-watcher-android` to release builds.
 
@@ -82,7 +82,7 @@ dependencies {
 }
 ```
 
-* It will automatically keep weak references to destroyed activities, fragments, and any instance you pass to `ObjectWatcher`.
+* It will automatically keep weak references to destroyed activities, fragments, and any instance you pass to [AppWatcher.objectWatcher](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/).
 * It will not trigger heap dumps or anything else that LeakCanary does.
 * It's very little code and should have a no impact on your release app.
 * You can use it to count how many objects are retained, for example to add metadata to OutOfMemoryError crashes:
@@ -112,7 +112,7 @@ class RealObjectWatcher : MaybeObjectWatcher {
 }
 ```
 
-Use MaybeObjectWatcher.None in release code and RealObjectWatcher in debug code.
+Use `MaybeObjectWatcher.None` in release code and `RealObjectWatcher` in debug code.
 
 ## Configuring LeakCanary
 
@@ -131,7 +131,7 @@ public class DebugExampleApplication extends ExampleApplication {
 
 ### Now
 
-AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing `AppWatcher.config`:
+AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing [AppWatcher.config](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/):
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
@@ -143,7 +143,7 @@ class DebugExampleApplication : ExampleApplication() {
 }
 ```
 
-LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing `LeakCanary.config`:
+LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing [LeakCanary.config](/api/leakcanary-android-core/leakcanary/-leak-canary/config/):
 
 ```kotlin
 disableLeakCanaryButton.setOnClickListener {
