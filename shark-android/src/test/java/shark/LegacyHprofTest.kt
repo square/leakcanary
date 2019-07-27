@@ -34,7 +34,9 @@ class LegacyHprofTest {
     val strippedHprof = stripper.stripPrimitiveArrays(sourceHprof)
 
     assertThat(readThreadNames(sourceHprof)).contains("AsyncTask #1")
-    assertThat(readThreadNames(strippedHprof)).containsOnly("")
+    assertThat(readThreadNames(strippedHprof)).allMatch { threadName ->
+      threadName.all { character -> character == '?' }
+    }
   }
 
   private fun readThreadNames(hprofFile: File): List<String> {

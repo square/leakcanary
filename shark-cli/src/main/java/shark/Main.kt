@@ -39,7 +39,7 @@ fun printHelp() {
     analyze-hprof: Analyzes the provided hprof file.
       USAGE: analyze-hprof HPROF_FILE_PATH
 
-    strip-hprof: Removes all primitive arrays from the provided hprof file and generates a new "-stripped" hprof file.
+    strip-hprof: Replaces all primitive arrays from the provided hprof file with arrays of zeroes and generates a new "-stripped" hprof file.
       USAGE: strip-hprof HPROF_FILE_PATH
   """.trimIndent()
   )

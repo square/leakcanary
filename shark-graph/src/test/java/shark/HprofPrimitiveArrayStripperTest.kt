@@ -39,7 +39,7 @@ class HprofPrimitiveArrayStripperTest {
           .toList()
       assertThat(booleanArrays).hasSize(1)
       assertThat(booleanArrays[0].id).isEqualTo(booleanArray.id)
-      assertThat(booleanArrays[0].array).isEmpty()
+      assertThat(booleanArrays[0].array).isEqualTo(booleanArrayOf(false, false, false, false))
 
       val charArrays = graph.objects
           .filter { it is HeapPrimitiveArray && it.primitiveType == CHAR }
@@ -47,7 +47,7 @@ class HprofPrimitiveArrayStripperTest {
           .toList()
       assertThat(charArrays).hasSize(1)
       assertThat(charArrays[0].id).isEqualTo(charArray.id)
-      assertThat(charArrays[0].array).isEmpty()
+      assertThat(charArrays[0].array).isEqualTo("????????????".toCharArray())
     }
   }
 
