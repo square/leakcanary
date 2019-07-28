@@ -1,6 +1,6 @@
 # Change Log
 
-## Version 2.0 Beta 1 (2019-17-30)
+## Version 2.0 Beta 1 (2019-07-30)
 
 LeakCanary 2 reached **beta status**: the internals and APIs are mostly stable.
 
