@@ -69,12 +69,16 @@ enum class AndroidObjectInspectors : ObjectInspector {
               likelyLeakingReasons += "View detached and has parent"
             } else {
               val viewParent = mParentRef.asObject!!.asInstance!!
-              if (viewParent instanceOf "android.view.View" &&
-                  viewParent["android.view.View", "mAttachInfo"]!!.value.isNullReference
-              ) {
-                likelyLeakingReasons += "View attached but parent detached (attach disorder)"
+              if (viewParent instanceOf "android.view.View") {
+                if (viewParent["android.view.View", "mAttachInfo"]!!.value.isNullReference) {
+                  likelyLeakingReasons += "View attached but parent ${viewParent.instanceClassName} detached (attach disorder)"
+                } else {
+                  notLeakingReasons += "View attached"
+                  labels += "View.parent ${viewParent.instanceClassName} attached as well"
+                }
               } else {
                 notLeakingReasons += "View attached"
+                labels += "Parent ${viewParent.instanceClassName} not a android.view.View"
               }
             }
           }
