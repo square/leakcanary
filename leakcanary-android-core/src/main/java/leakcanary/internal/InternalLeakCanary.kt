@@ -4,6 +4,9 @@ import android.app.Application
 import android.app.Instrumentation
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+import android.content.pm.PackageManager.DONT_KILL_APP
 import android.content.pm.ShortcutInfo.Builder
 import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon
@@ -66,7 +69,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     val backgroundHandler = Handler(handlerThread.looper)
 
     heapDumpTrigger = HeapDumpTrigger(
-        application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger, heapDumper, configProvider
+        application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger, heapDumper,
+        configProvider
     )
     application.registerVisibilityListener { applicationVisible ->
       this.applicationVisible = applicationVisible
@@ -220,6 +224,17 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     if (this::heapDumpTrigger.isInitialized) {
       heapDumpTrigger.onDumpHeapReceived()
     }
+  }
+
+  fun setEnabledBlocking(
+    componentClassName: String,
+    enabled: Boolean
+  ) {
+    val component = ComponentName(application, componentClassName)
+    val newState =
+      if (enabled) COMPONENT_ENABLED_STATE_ENABLED else COMPONENT_ENABLED_STATE_DISABLED
+    // Blocks on IPC.
+    application.packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP)
   }
 
   inline fun <reified T : Any> noOpDelegate(): T {
