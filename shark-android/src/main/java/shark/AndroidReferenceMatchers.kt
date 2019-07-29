@@ -202,7 +202,7 @@ enum class AndroidReferenceMatchers {
           description =
           "HUAWEI added a mLastSrvView field to InputMethodManager" + " that leaks a reference to the last served view."
       ) {
-        manufacturer == HUAWEI && sdkInt in 23..27
+        manufacturer == HUAWEI && sdkInt in 23..28
       }
 
       references += instanceFieldLeak(
@@ -462,7 +462,7 @@ enum class AndroidReferenceMatchers {
               + " Fixed in AOSP: https://android.googlesource.com/platform/frameworks/base/+"
               + "/5b734f2430e9f26c769d6af8ea5645e390fcf5af%5E%21/"
       ) {
-        sdkInt <= 22
+        sdkInt <= 23
       }
     }
   },
@@ -509,6 +509,49 @@ enum class AndroidReferenceMatchers {
               + "android/view/accessibility/AccessibilityNodeInfo.java"
       ) {
         sdkInt in 26..27
+      }
+    }
+  },
+
+  CHANGE_WATCHER {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += instanceFieldLeak(
+          "android.widget.TextView\$ChangeWatcher", "this\$0"
+          ,
+          description = "AssistStructure (google assistant / autofill) holds on to text spannables" +
+              " on the screen. One such spannables is unfortunately TextView.ChangeWatcher, which" +
+              " ends up leaking the textview."
+      ) {
+        sdkInt in 24..25
+      }
+    }
+  },
+
+  BIOMETRIC_PROMPT {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += instanceFieldLeak(
+          "android.hardware.biometrics.BiometricPrompt", "mFingerprintManager"
+          ,
+          description = "BiometricPrompt holds on to a FingerprintManager which holds on to a " +
+              "destroyed activity."
+      ) {
+        sdkInt == 28
+      }
+    }
+  },
+
+  MAGNIFIER {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += instanceFieldLeak(
+          "android.widget.Magnifier\$InternalPopupWindow", "mCallback"
+          ,
+          description = "android.widget.Magnifier.InternalPopupWindow registers a frame callback" +
+              " on android.view.ThreadedRenderer.SimpleRenderer which holds it as a native" +
+              " reference. android.widget.Editor\$InsertionHandleView registers an" +
+              " OnOperationCompleteCallback on Magnifier.InternalPopupWindow. These references are" +
+              " held after the activity has been destroyed."
+      ) {
+        sdkInt == 28
       }
     }
   },
@@ -562,7 +605,7 @@ enum class AndroidReferenceMatchers {
               children view forever. Future releases of Q will hold weak references.
             """.trimIndent()
       ) {
-        sdkInt == 28
+        sdkInt in 28..29
       }
     }
 
@@ -658,6 +701,30 @@ enum class AndroidReferenceMatchers {
       }
     }
   },
+
+  CLIPBOARD_EX_MANAGER {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+          "android.sec.clipboard.ClipboardExManager", "mContext",
+          description = "android.sec.clipboard.ClipboardExManager\$IClipboardDataPasteEventImpl\$1" +
+              " is a native callback that holds IClipboardDataPasteEventImpl which holds" +
+              " ClipboardExManager which has a destroyed activity as mContext"
+      ) {
+        manufacturer == SAMSUNG && sdkInt == 23
+      }
+      references += instanceFieldLeak(
+          "android.widget.TextView\$IClipboardDataPasteEventImpl", "this\$0",
+          description = "TextView\$IClipboardDataPasteEventImpl\$1 is held by a native ref, and" +
+              " IClipboardDataPasteEventImpl ends up leaking a detached textview"
+      ) {
+        manufacturer == SAMSUNG && sdkInt == 22
+      }
+    }
+  },
+
+
 
   SEM_EMERGENCY_MANAGER__MCONTEXT {
     override fun add(
@@ -847,6 +914,20 @@ enum class AndroidReferenceMatchers {
           description = "LGContext is a static singleton that leaks an activity context."
       ) {
         manufacturer == LG && sdkInt == 21
+      }
+    }
+  },
+
+  SMART_COVER_MANAGER {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+          "com.lge.systemservice.core.SmartCoverManager", "mContext",
+          description = "SmartCoverManager\$CallbackRegister is a callback held by a native ref," +
+              " and SmartCoverManager ends up leaking an activity context."
+      ) {
+        manufacturer == LG && sdkInt == 27
       }
     }
   },
