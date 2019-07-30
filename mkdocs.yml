@@ -19,6 +19,8 @@ theme:
   palette:
     primary: 'deep-orange'
     accent: 'deep-purple'
+  feature:
+    tabs: true
 
 markdown_extensions:
   - smarty
@@ -45,27 +47,29 @@ nav:
   - 'Fundamentals': fundamentals.md
   - 'Code recipes': recipes.md
   - 'FAQ': faq.md
-  - 'Shark': shark.md
-  - 'Stack Overflow ⏏': https://stackoverflow.com/questions/tagged/leakcanary?sort=active
+  - 'Change Log': changelog.md
+  - 'Help & Community':
+    - 'Support': support.md
+    - 'Upgrading to LeakCanary 2': upgrading-to-leakcanary-2.0.md
+    - 'Recorded Presentations': recorded-presentations.md
+    - 'Blog Articles': blog-articles.md
+    - 'Stack Overflow ⏏': https://stackoverflow.com/questions/tagged/leakcanary?sort=active
+    - 'Contributing': contributing.md
+    - 'Code of Conduct': code_of_conduct.md
+  - 'Shark':
+    - 'Overview': shark.md
+    - 'Shark API':
+      - 'Shark': api/shark/shark/index.md
+      - 'Extension: Shark Android': api/shark-android/shark/index.md
+      - 'Core: Graph': api/shark-graph/shark/index.md
+      - 'Core: Hprof': api/shark-hprof/shark/index.md
+      - 'Core: Logs': api/shark-log/shark/index.md
   - 'LeakCanary API':
     - 'LeakCanary': api/leakcanary-android-core/leakcanary/index.md
     - 'ObjectWatcher Android': api/leakcanary-object-watcher-android/leakcanary/index.md
     - 'Extension: Instrumentation tests': api/leakcanary-android-instrumentation/leakcanary/index.md
     - 'Extension: Separate process': api/leakcanary-android-process/leakcanary/index.md
     - 'Core: ObjectWatcher': api/leakcanary-object-watcher/leakcanary/index.md
-  - 'Shark API':
-    - 'Shark': api/shark/shark/index.md
-    - 'Extension: Shark Android': api/shark-android/shark/index.md
-    - 'Core: Graph': api/shark-graph/shark/index.md
-    - 'Core: Hprof': api/shark-hprof/shark/index.md
-    - 'Core: Logs': api/shark-log/shark/index.md
-  - 'Change Log': changelog.md
-  - 'Support': support.md
-  - 'Upgrading to LeakCanary 2': upgrading-to-leakcanary-2.0.md
-  - 'Blog Articles': blog-articles.md
-  - 'Recorded Presentations': recorded-presentations.md
-  - 'Contributing': contributing.md
-  - 'Code of Conduct': code_of_conduct.md
 
 # Google Analytics. Add export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-XXXXXXXXX-X" to your ~/.bashrc
 google_analytics:
