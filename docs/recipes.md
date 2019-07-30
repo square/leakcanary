@@ -2,29 +2,6 @@
 
 If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new/choose). Your feedback help us make LeakCanary better for the entire community.
 
-## Configuring AppWatcher in `object-watcher-android`
-
-AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing [AppWatcher.config](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/):
-```kotlin
-class DebugExampleApplication : ExampleApplication() {
-
-  override fun onCreate() {
-    super.onCreate()
-    AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
-  }
-}
-```
-
-## Configuring LeakCanary
-
-LeakCanary can be configured by replacing [LeakCanary.config](/api/leakcanary-android-core/leakcanary/-leak-canary/config/):
-
-```kotlin
-disableLeakCanaryButton.setOnClickListener {
-  LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
-}
-```
-
 ## Watching objects with a lifecycle
 
 In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use [AppWatcher.objectWatcher](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to watch instances that should be garbage collected:
@@ -41,6 +18,47 @@ class MyService : Service {
 }
 ```
 
+## Configuration
+
+To customize the detection of retained objects at runtime, update [AppWatcher.config](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/):
+
+```
+AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
+```
+
+To customize the heap dumping & analysis, update [LeakCanary.config](/api/leakcanary-android-core/leakcanary/-leak-canary/config/):
+
+```
+LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
+```
+
+The LeakCanary UI can be configured by overriding the following resources:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <public name="leak_canary_display_activity_label" type="string"/>
+  <public name="leak_canary_heap_dump_toast" type="layout"/>
+  <public name="leak_canary_icon" type="mipmap"/>
+  <public name="leak_canary_add_dynamic_shortcut" type="bool"/>
+  <public name="leak_canary_add_launcher_icon" type="bool"/>
+</resources>
+```
+
+## Disabling LeakCanary
+
+Sometimes it's necessary to disable LeakCanary temporarily, for example for a product demo or when running performance tests. You have different options, depending on what you're trying to achieve:
+
+* Create a build variant that does not include the LeakCanary dependencies, see [Setting up LeakCanary for different product flavors](#setting-up-leakcanary-for-different-product-flavors).
+* Disable the tracking of retained objects: `AppWatcher.config = AppWatcher.config.copy(enabled = false)`.
+* Disable the heap dumping & analysis: `LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)`.
+* Hide the leak display activity launcher icon: override `R.bool.leak_canary_add_launcher_icon` or call `LeakCanary.showLeakDisplayActivityLauncherIcon(false)`
+
+!!! info
+    When you set `AppWatcher.config.enabled` to false, `AppWatcher.objectWatcher` will stop creating weak references to destroyed objects.
+
+	If instead you set `LeakCanary.Config.dumpHeap` to false, `AppWatcher.objectWatcher` will still keep track of retained objects, and LeakCanary will look for these objects when you change `LeakCanary.Config.dumpHeap` back to true.
+
 ## Counting retained instances in production
 
 `com.squareup.leakcanary:leakcanary-android` should only be used in debug builds. It depends on `com.squareup.leakcanary:object-watcher-android` which you can use in production to track and count retained instances.
@@ -49,7 +67,7 @@ In your `build.gradle`:
 
 ```gradle
 dependencies {
-  implementation 'com.squareup.leakcanary:object-watcher-android:2.0-alpha-2'
+  implementation 'com.squareup.leakcanary:object-watcher-android:2.0-beta-1'
 }
 ```
 
