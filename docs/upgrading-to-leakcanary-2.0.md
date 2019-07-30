@@ -1,3 +1,10 @@
+LeakCanary 2 is a major rewrite. High level changes:
+
+* New heap analyzer, reimplemented from scratch to use 10 times less memory ([see Shark](shark.md)).
+* APIs updated to simplify configuration and provide access to the new heap analyzer.
+* Internals rewritten to 100% Kotlin.
+* Multiple leaks detected in one analysis, grouped per leak type
+
 ## Dependencies
 
 ### Before
