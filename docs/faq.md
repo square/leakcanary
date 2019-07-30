@@ -2,7 +2,7 @@
 
 ## Can a leak be caused by the Android SDK?
 
-Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: [AndroidReferenceMatchers](/api/shark-android/shark/-android-reference-matchers/).
+Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: [AndroidReferenceMatchers](/leakcanary/api/shark-android/shark/-android-reference-matchers/).
 
 If you find a new one, please [create an issue](https://github.com/square/leakcanary/issues/new/choose) and follow these steps:
 
@@ -11,7 +11,7 @@ If you find a new one, please [create an issue](https://github.com/square/leakca
 3. Check if it happens on the latest version of Android, and otherwise use blame to find when it was fixed.
 4. If it's still happening, build a simple repro case.
 5. File an issue on [b.android.com](http://b.android.com) with the leak trace and the repro case.
-6. Create a PR in LeakCanary to update [AndroidReferenceMatchers](/api/shark-android/shark/-android-reference-matchers/). Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.
+6. Create a PR in LeakCanary to update [AndroidReferenceMatchers](/leakcanary/api/shark-android/shark/-android-reference-matchers/). Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.
 
 ## How do I share a leak trace?
 

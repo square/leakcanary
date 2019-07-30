@@ -4,7 +4,7 @@ If you think a recipe might be missing or you're not sure that what you're tryin
 
 ## Watching objects with a lifecycle
 
-In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use [AppWatcher.objectWatcher](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to watch instances that should be garbage collected:
+In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use [AppWatcher.objectWatcher](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to watch instances that should be garbage collected:
 
 ```kotlin
 class MyService : Service {
@@ -20,13 +20,13 @@ class MyService : Service {
 
 ## Configuration
 
-To customize the detection of retained objects at runtime, update [AppWatcher.config](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/):
+To customize the detection of retained objects at runtime, update [AppWatcher.config](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/):
 
 ```
 AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
 ```
 
-To customize the heap dumping & analysis, update [LeakCanary.config](/api/leakcanary-android-core/leakcanary/-leak-canary/config/):
+To customize the heap dumping & analysis, update [LeakCanary.config](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/config/):
 
 ```
 LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
@@ -136,7 +136,7 @@ res/
 
 You can change the default behavior to upload the analysis result to a server of your choosing.
 
-Create a custom [OnHeapAnalyzedListener](/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/) that delegates to [DefaultOnHeapAnalyzedListener](/api/leakcanary-android-core/leakcanary/-default-on-heap-analyzed-listener/): 
+Create a custom [OnHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/) that delegates to [DefaultOnHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-default-on-heap-analyzed-listener/): 
 
 ```kotlin
 class LeakUploader : OnHeapAnalyzedListener {
@@ -152,7 +152,7 @@ class LeakUploader : OnHeapAnalyzedListener {
 }
 ```
 
-Set [LeakCanary.config.onHeapAnalyzedListener](/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/):
+Set [LeakCanary.config.onHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/):
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
@@ -167,7 +167,7 @@ class DebugExampleApplication : ExampleApplication() {
 
 ## Matching known library leaks
 
-Set [LeakCanary.Config.referenceMatchers](/api/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/) to a list that builds on top of [AndroidReferenceMatchers.appDefaults](/api/shark-android/shark/-android-reference-matchers/app-defaults/):
+Set [LeakCanary.Config.referenceMatchers](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/) to a list that builds on top of [AndroidReferenceMatchers.appDefaults](/leakcanary/api/shark-android/shark/-android-reference-matchers/app-defaults/):
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
