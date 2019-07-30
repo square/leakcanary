@@ -2,7 +2,11 @@
 
 {% block content %}
                 {% if page.edit_url %}
-				<span style="float: right">🤔Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20{{ page.url }}%20page">Report</a> or <a href="{{ page.edit_url }}">edit</a> </span>
+				  {% if "/api/" in page.edit_url %}
+				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20{{ page.url }}%20page">Report it</a></span>
+                  {% else %}
+				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20{{ page.url }}%20page">Report</a> or <a href="{{ page.edit_url }}">edit</a></span>
+                  {% endif %}
                 {% endif %}
                 {% if not "\x3ch1" in page.content %}
                   <h1>{{ page.title | default(config.site_name, true)}}</h1>

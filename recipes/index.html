@@ -206,6 +206,75 @@
         
       
       
+        
+
+<nav class="md-tabs" data-md-component="tabs">
+  <div class="md-tabs__inner md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  <li class="md-tabs__item">
+    
+      <a href=".." title="Overview" class="md-tabs__link md-tabs__link--active">
+        Overview
+      </a>
+    
+  </li>
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../support/" title="Help & Community" class="md-tabs__link">
+          Help & Community
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../shark/" title="Shark" class="md-tabs__link">
+          Shark
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../api/leakcanary-android-core/leakcanary/" title="LeakCanary API" class="md-tabs__link">
+          LeakCanary API
+        </a>
+      
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+      
       <main class="md-main">
         <div class="md-main__inner md-grid" data-md-component="container">
           
@@ -314,22 +383,22 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#configuring-leaksentry" title="Configuring LeakSentry" class="md-nav__link">
-    Configuring LeakSentry
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuring-leakcanary" title="Configuring LeakCanary" class="md-nav__link">
-    Configuring LeakCanary
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#watching-objects-with-a-lifecycle" title="Watching objects with a lifecycle" class="md-nav__link">
     Watching objects with a lifecycle
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" title="Configuration" class="md-nav__link">
+    Configuration
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disabling-leakcanary" title="Disabling LeakCanary" class="md-nav__link">
+    Disabling LeakCanary
   </a>
   
 </li>
@@ -363,15 +432,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#identifying-3rd-party-leaks-as-wont-fix" title="Identifying 3rd party leaks as "won't fix"" class="md-nav__link">
-    Identifying 3rd party leaks as "won't fix"
+  <a href="#matching-known-library-leaks" title="Matching known library leaks" class="md-nav__link">
+    Matching known library leaks
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#identifying-leaking-instances-and-labeling-instances" title="Identifying leaking instances and labeling instances" class="md-nav__link">
-    Identifying leaking instances and labeling instances
+  <a href="#identifying-leaking-objects-and-labeling-objects" title="Identifying leaking objects and labeling objects" class="md-nav__link">
+    Identifying leaking objects and labeling objects
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setting-up-leakcanary-for-different-product-flavors" title="Setting up LeakCanary for different product flavors" class="md-nav__link">
+    Setting up LeakCanary for different product flavors
   </a>
   
 </li>
@@ -405,18 +481,6 @@
 
 
   <li class="md-nav__item">
-    <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" title="Stack Overflow ⏏" class="md-nav__link">
-      Stack Overflow ⏏
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
     <a href="../changelog/" title="Change Log" class="md-nav__link">
       Change Log
     </a>
@@ -428,16 +492,35 @@
       
 
 
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+    
+    <label class="md-nav__link" for="nav-7">
+      Help & Community
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-7">
+        Help & Community
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
   <li class="md-nav__item">
     <a href="../support/" title="Support" class="md-nav__link">
       Support
     </a>
   </li>
 
-    
-      
-      
-      
+        
+          
+          
+          
 
 
   <li class="md-nav__item">
@@ -446,22 +529,10 @@
     </a>
   </li>
 
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../blog-articles/" title="Blog Articles" class="md-nav__link">
-      Blog Articles
-    </a>
-  </li>
-
-    
-      
-      
-      
+        
+          
+          
+          
 
 
   <li class="md-nav__item">
@@ -470,10 +541,34 @@
     </a>
   </li>
 
-    
-      
-      
-      
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../blog-articles/" title="Blog Articles" class="md-nav__link">
+      Blog Articles
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" title="Stack Overflow ⏏" class="md-nav__link">
+      Stack Overflow ⏏
+    </a>
+  </li>
+
+        
+          
+          
+          
 
 
   <li class="md-nav__item">
@@ -482,16 +577,225 @@
     </a>
   </li>
 
-    
-      
-      
-      
+        
+          
+          
+          
 
 
   <li class="md-nav__item">
     <a href="../code_of_conduct/" title="Code of Conduct" class="md-nav__link">
       Code of Conduct
     </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-8" type="checkbox" id="nav-8">
+    
+    <label class="md-nav__link" for="nav-8">
+      Shark
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-8">
+        Shark
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../shark/" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-8-2" type="checkbox" id="nav-8-2">
+    
+    <label class="md-nav__link" for="nav-8-2">
+      Shark API
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
+      <label class="md-nav__title" for="nav-8-2">
+        Shark API
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/shark/shark/" title="Shark" class="md-nav__link">
+      Shark
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/shark-android/shark/" title="Extension: Shark Android" class="md-nav__link">
+      Extension: Shark Android
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/shark-graph/shark/" title="Core: Graph" class="md-nav__link">
+      Core: Graph
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/shark-hprof/shark/" title="Core: Hprof" class="md-nav__link">
+      Core: Hprof
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/shark-log/shark/" title="Core: Logs" class="md-nav__link">
+      Core: Logs
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-9" type="checkbox" id="nav-9">
+    
+    <label class="md-nav__link" for="nav-9">
+      LeakCanary API
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-9">
+        LeakCanary API
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/leakcanary-android-core/leakcanary/" title="LeakCanary" class="md-nav__link">
+      LeakCanary
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/leakcanary-object-watcher-android/leakcanary/" title="ObjectWatcher Android" class="md-nav__link">
+      ObjectWatcher Android
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/leakcanary-android-instrumentation/leakcanary/" title="Extension: Instrumentation tests" class="md-nav__link">
+      Extension: Instrumentation tests
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/leakcanary-android-process/leakcanary/" title="Extension: Separate process" class="md-nav__link">
+      Extension: Separate process
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/leakcanary-object-watcher/leakcanary/" title="Core: ObjectWatcher" class="md-nav__link">
+      Core: ObjectWatcher
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
     
@@ -516,22 +820,22 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#configuring-leaksentry" title="Configuring LeakSentry" class="md-nav__link">
-    Configuring LeakSentry
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuring-leakcanary" title="Configuring LeakCanary" class="md-nav__link">
-    Configuring LeakCanary
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#watching-objects-with-a-lifecycle" title="Watching objects with a lifecycle" class="md-nav__link">
     Watching objects with a lifecycle
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" title="Configuration" class="md-nav__link">
+    Configuration
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disabling-leakcanary" title="Disabling LeakCanary" class="md-nav__link">
+    Disabling LeakCanary
   </a>
   
 </li>
@@ -565,15 +869,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#identifying-3rd-party-leaks-as-wont-fix" title="Identifying 3rd party leaks as "won't fix"" class="md-nav__link">
-    Identifying 3rd party leaks as "won't fix"
+  <a href="#matching-known-library-leaks" title="Matching known library leaks" class="md-nav__link">
+    Matching known library leaks
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#identifying-leaking-instances-and-labeling-instances" title="Identifying leaking instances and labeling instances" class="md-nav__link">
-    Identifying leaking instances and labeling instances
+  <a href="#identifying-leaking-objects-and-labeling-objects" title="Identifying leaking objects and labeling objects" class="md-nav__link">
+    Identifying leaking objects and labeling objects
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setting-up-leakcanary-for-different-product-flavors" title="Setting up LeakCanary for different product flavors" class="md-nav__link">
+    Setting up LeakCanary for different product flavors
   </a>
   
 </li>
@@ -594,51 +905,69 @@
             <article class="md-content__inner md-typeset">
               
                 
-				<span style="float: right">🤔Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20recipes/%20page">Report</a> or <a href="https://github.com/square/leakcanary/edit/master/docs/recipes.md">edit</a> </span>
+				  
+				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20recipes/%20page">Report</a> or <a href="https://github.com/square/leakcanary/edit/master/docs/recipes.md">edit</a></span>
+                  
                 
                 
                 <h1 id="code-recipes">Code Recipes<a class="headerlink" href="#code-recipes" title="Permanent link">&para;</a></h1>
 <p>If you think a recipe might be missing or you&rsquo;re not sure that what you&rsquo;re trying to achieve is possible with the current APIs, please <a href="https://github.com/square/leakcanary/issues/new/choose">file an issue</a>. Your feedback help us make LeakCanary better for the entire community.</p>
-<h2 id="configuring-leaksentry">Configuring LeakSentry<a class="headerlink" href="#configuring-leaksentry" title="Permanent link">&para;</a></h2>
-<p>LeakSentry can be configured by replacing <code>LeakSentry.config</code>:
-<div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
-
-  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
-    <span class="n">LeakSentry</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakSentry</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">watchFragmentViews</span> <span class="p">=</span> <span class="k">false</span><span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</pre></div></p>
-<h2 id="configuring-leakcanary">Configuring LeakCanary<a class="headerlink" href="#configuring-leakcanary" title="Permanent link">&para;</a></h2>
-<p>LeakCanary can be configured by replacing <code>LeakCanary.config</code>:</p>
-<div class="codehilite"><pre><span></span><span class="n">disableLeakCanaryButton</span><span class="p">.</span><span class="n">setOnClickListener</span> <span class="p">{</span>
-  <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">dumpHeap</span> <span class="p">=</span> <span class="k">false</span><span class="p">)</span>
-<span class="p">}</span>
-</pre></div>
-
 <h2 id="watching-objects-with-a-lifecycle">Watching objects with a lifecycle<a class="headerlink" href="#watching-objects-with-a-lifecycle" title="Permanent link">&para;</a></h2>
-<p>In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use <code>LeakSentry.refWatcher</code> to watch instances that should be garbage collected:</p>
+<p>In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use <a href="/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to watch instances that should be garbage collected:</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">MyService</span> <span class="p">:</span> <span class="n">Service</span> <span class="p">{</span>
 
   <span class="c1">// ...</span>
 
   <span class="k">override</span> <span class="k">fun</span> <span class="nf">onDestroy</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">super</span><span class="p">.</span><span class="n">onDestroy</span><span class="p">()</span>
-    <span class="n">LeakSentry</span><span class="p">.</span><span class="n">refWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+    <span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>To customize the detection of retained objects at runtime, update <a href="/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/">AppWatcher.config</a>:</p>
+<div class="codehilite"><pre><span></span>AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
+</pre></div>
+
+<p>To customize the heap dumping &amp; analysis, update <a href="/api/leakcanary-android-core/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
+<div class="codehilite"><pre><span></span>LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
+</pre></div>
+
+<p>The LeakCanary UI can be configured by overriding the following resources:</p>
+<div class="codehilite"><pre><span></span><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+<span class="nt">&lt;resources&gt;</span>
+  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_display_activity_label&quot;</span> <span class="na">type=</span><span class="s">&quot;string&quot;</span><span class="nt">/&gt;</span>
+  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_heap_dump_toast&quot;</span> <span class="na">type=</span><span class="s">&quot;layout&quot;</span><span class="nt">/&gt;</span>
+  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_icon&quot;</span> <span class="na">type=</span><span class="s">&quot;mipmap&quot;</span><span class="nt">/&gt;</span>
+  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_add_dynamic_shortcut&quot;</span> <span class="na">type=</span><span class="s">&quot;bool&quot;</span><span class="nt">/&gt;</span>
+  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_add_launcher_icon&quot;</span> <span class="na">type=</span><span class="s">&quot;bool&quot;</span><span class="nt">/&gt;</span>
+<span class="nt">&lt;/resources&gt;</span>
+</pre></div>
+
+<h2 id="disabling-leakcanary">Disabling LeakCanary<a class="headerlink" href="#disabling-leakcanary" title="Permanent link">&para;</a></h2>
+<p>Sometimes it&rsquo;s necessary to disable LeakCanary temporarily, for example for a product demo or when running performance tests. You have different options, depending on what you&rsquo;re trying to achieve:</p>
+<ul>
+<li>Create a build variant that does not include the LeakCanary dependencies, see <a href="#setting-up-leakcanary-for-different-product-flavors">Setting up LeakCanary for different product flavors</a>.</li>
+<li>Disable the tracking of retained objects: <code>AppWatcher.config = AppWatcher.config.copy(enabled = false)</code>.</li>
+<li>Disable the heap dumping &amp; analysis: <code>LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)</code>.</li>
+<li>Hide the leak display activity launcher icon: override <code>R.bool.leak_canary_add_launcher_icon</code> or call <code>LeakCanary.showLeakDisplayActivityLauncherIcon(false)</code></li>
+</ul>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>When you set <code>AppWatcher.config.enabled</code> to false, <code>AppWatcher.objectWatcher</code> will stop creating weak references to destroyed objects.</p>
+<p>If instead you set <code>LeakCanary.Config.dumpHeap</code> to false, <code>AppWatcher.objectWatcher</code> will still keep track of retained objects, and LeakCanary will look for these objects when you change <code>LeakCanary.Config.dumpHeap</code> back to true.</p>
+</div>
 <h2 id="counting-retained-instances-in-production">Counting retained instances in production<a class="headerlink" href="#counting-retained-instances-in-production" title="Permanent link">&para;</a></h2>
-<p><code>com.squareup.leakcanary:leakcanary-android</code> should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leaksentry</code> which you can use in production to track and count retained instances.</p>
+<p><code>com.squareup.leakcanary:leakcanary-android</code> should only be used in debug builds. It depends on <code>com.squareup.leakcanary:object-watcher-android</code> which you can use in production to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="codehilite"><pre><span></span>dependencies {
-  implementation &#39;com.squareup.leakcanary:leaksentry:2.0-alpha-2&#39;
+  implementation &#39;com.squareup.leakcanary:object-watcher-android:2.0-beta-1&#39;
 }
 </pre></div>
 
 <p>In your leak reporting code:
-<div class="codehilite"><pre><span></span><span class="k">val</span> <span class="py">retainedInstanceCount</span> <span class="p">=</span> <span class="n">LeakSentry</span><span class="p">.</span><span class="n">refWatcher</span><span class="p">.</span><span class="n">retainedKeys</span><span class="p">.</span><span class="n">size</span>
+<div class="codehilite"><pre><span></span><span class="k">val</span> <span class="py">retainedInstanceCount</span> <span class="p">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">retainedObjectCount</span>
 </pre></div></p>
 <h2 id="running-leakcanary-in-instrumentation-tests">Running LeakCanary in instrumentation tests<a class="headerlink" href="#running-leakcanary-in-instrumentation-tests" title="Permanent link">&para;</a></h2>
 <p>Add the <code>leakcanary-android-instrumentation</code> dependency to your instrumentation tests:</p>
@@ -657,7 +986,7 @@
 </pre></div>
 
 <p>Run the instrumentation tests:</p>
-<div class="codehilite"><pre><span></span>./gradlew leakcanary-sample:connectedCheck
+<div class="codehilite"><pre><span></span>./gradlew leakcanary-android-sample:connectedCheck
 </pre></div>
 
 <p>You can extend <code>FailTestOnLeakRunListener</code> to customize the behavior.</p>
@@ -686,72 +1015,113 @@
 
 <h2 id="uploading-to-a-server">Uploading to a server<a class="headerlink" href="#uploading-to-a-server" title="Permanent link">&para;</a></h2>
 <p>You can change the default behavior to upload the analysis result to a server of your choosing.</p>
-<p>Create a custom <code>AnalysisResultListener</code> that delegates to the default: </p>
-<div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">LeakUploader</span> <span class="p">:</span> <span class="n">AnalysisResultListener</span> <span class="p">{</span>
-  <span class="k">override</span> <span class="k">fun</span> <span class="nf">invoke</span><span class="p">(</span>
-    <span class="n">application</span><span class="p">:</span> <span class="n">Application</span><span class="p">,</span>
-    <span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysis</span>
-  <span class="p">)</span> <span class="p">{</span>
+<p>Create a custom <a href="/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/">OnHeapAnalyzedListener</a> that delegates to <a href="/api/leakcanary-android-core/leakcanary/-default-on-heap-analyzed-listener/">DefaultOnHeapAnalyzedListener</a>: </p>
+<div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">LeakUploader</span> <span class="p">:</span> <span class="n">OnHeapAnalyzedListener</span> <span class="p">{</span>
+
+  <span class="k">val</span> <span class="py">defaultListener</span> <span class="p">=</span> <span class="n">DefaultOnHeapAnalyzedListener</span><span class="p">.</span><span class="n">create</span><span class="p">()</span>
+
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onHeapAnalyzed</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysis</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">TODO</span><span class="p">(</span><span class="s">&quot;Upload heap analysis to server&quot;</span><span class="p">)</span>
 
     <span class="c1">// Delegate to default behavior (notification and saving result)</span>
-    <span class="n">DefaultAnalysisResultListener</span><span class="p">(</span><span class="n">application</span><span class="p">,</span> <span class="n">heapAnalysis</span><span class="p">)</span>
+    <span class="n">defaultListener</span><span class="p">.</span><span class="n">onHeapAnalyzed</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 
-<p>Set <code>analysisResultListener</code> on the LeakCanary config:</p>
+<p>Set <a href="/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/">LeakCanary.config.onHeapAnalyzedListener</a>:</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
   <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
-    <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">analysisResultListener</span> <span class="p">=</span> <span class="n">LeakUploader</span><span class="p">())</span>
+    <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">onHeapAnalyzedListener</span> <span class="p">=</span> <span class="n">LeakUploader</span><span class="p">())</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 
-<h2 id="identifying-3rd-party-leaks-as-wont-fix">Identifying 3<sup>rd</sup> party leaks as &ldquo;won&rsquo;t fix&rdquo;<a class="headerlink" href="#identifying-3rd-party-leaks-as-wont-fix" title="Permanent link">&para;</a></h2>
-<p>Set <code>exclusionsFactory</code> on the LeakCanary config to a <code>ExclusionsFactory</code> that delegates to the default one and then and add custom exclusions:</p>
+<h2 id="matching-known-library-leaks">Matching known library leaks<a class="headerlink" href="#matching-known-library-leaks" title="Permanent link">&para;</a></h2>
+<p>Set <a href="/api/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/">LeakCanary.Config.referenceMatchers</a> to a list that builds on top of <a href="/api/shark-android/shark/-android-reference-matchers/app-defaults/">AndroidReferenceMatchers.appDefaults</a>:</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
   <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
-    <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">exclusionsFactory</span> <span class="p">=</span> <span class="p">{</span> <span class="n">hprofParser</span> <span class="p">-&gt;</span>
-      <span class="k">val</span> <span class="py">defaultFactory</span> <span class="p">=</span> <span class="n">AndroidExcludedRefs</span><span class="p">.</span><span class="n">exclusionsFactory</span><span class="p">(</span><span class="n">AndroidExcludedRefs</span><span class="p">.</span><span class="n">appDefaults</span><span class="p">)</span>
-      <span class="k">val</span> <span class="py">appDefaults</span> <span class="p">=</span> <span class="n">defaultFactory</span><span class="p">(</span><span class="n">hprofParser</span><span class="p">)</span>
-      <span class="k">val</span> <span class="py">customExclusion</span> <span class="p">=</span> <span class="n">Exclusion</span><span class="p">(</span>
-          <span class="n">type</span> <span class="p">=</span> <span class="n">StaticFieldExclusion</span><span class="p">(</span><span class="s">&quot;com.thirdparty.SomeSingleton&quot;</span><span class="p">,</span> <span class="s">&quot;sContext&quot;</span><span class="p">),</span>
-          <span class="n">status</span> <span class="p">=</span> <span class="n">Exclusion</span><span class="p">.</span><span class="n">Status</span><span class="p">.</span><span class="n">WONT_FIX_LEAK</span><span class="p">,</span>
-          <span class="n">reason</span> <span class="p">=</span> <span class="s">&quot;SomeSingleton in library X has a static field leaking a context.&quot;</span>
-      <span class="p">)</span>
-      <span class="n">appDefaults</span> <span class="p">+</span> <span class="n">customExclusion</span>
-    <span class="p">})</span>
+    <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span>
+        <span class="n">referenceMatchers</span> <span class="p">=</span> <span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="n">appDefaults</span> <span class="p">+</span>
+            <span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="n">staticFieldLeak</span><span class="p">(</span>
+                <span class="n">className</span> <span class="p">=</span> <span class="s">&quot;com.samsing.SomeSingleton&quot;</span><span class="p">,</span>
+                <span class="n">fieldName</span> <span class="p">=</span> <span class="s">&quot;sContext&quot;</span><span class="p">,</span>
+                <span class="n">description</span> <span class="p">=</span> <span class="s">&quot;SomeSingleton has a static field leaking a context.&quot;</span><span class="p">,</span>
+                <span class="n">patternApplies</span> <span class="p">=</span> <span class="p">{</span>
+                  <span class="n">manufacturer</span> <span class="p">==</span> <span class="s">&quot;Samsing&quot;</span> <span class="p">&amp;&amp;</span> <span class="n">sdkInt</span> <span class="p">==</span> <span class="m">26</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+    <span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 
-<h2 id="identifying-leaking-instances-and-labeling-instances">Identifying leaking instances and labeling instances<a class="headerlink" href="#identifying-leaking-instances-and-labeling-instances" title="Permanent link">&para;</a></h2>
+<h2 id="identifying-leaking-objects-and-labeling-objects">Identifying leaking objects and labeling objects<a class="headerlink" href="#identifying-leaking-objects-and-labeling-objects" title="Permanent link">&para;</a></h2>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
   <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
-    <span class="k">val</span> <span class="py">customLabeler</span><span class="p">:</span> <span class="n">Labeler</span> <span class="p">=</span> <span class="p">{</span> <span class="n">parser</span><span class="p">,</span> <span class="n">node</span> <span class="p">-&gt;</span>
-      <span class="n">listOf</span><span class="p">(</span><span class="s">&quot;Heap dump object id is ${node.instance}&quot;</span><span class="p">)</span>
+    <span class="k">val</span> <span class="py">addObjectIdLabel</span> <span class="p">=</span> <span class="n">ObjectInspector</span> <span class="p">{</span> <span class="n">reporter</span> <span class="p">-&gt;</span>
+      <span class="n">reporter</span><span class="p">.</span><span class="n">addLabel</span><span class="p">(</span><span class="s">&quot;Heap dump object id is ${reporter.heapObject.objectId}&quot;</span><span class="p">)</span>
     <span class="p">}</span>
-    <span class="k">val</span> <span class="py">labelers</span> <span class="p">=</span> <span class="n">AndroidLabelers</span><span class="p">.</span><span class="n">defaultAndroidLabelers</span><span class="p">(</span><span class="k">this</span><span class="p">)</span> <span class="p">+</span> <span class="n">customLabeler</span>
 
-    <span class="k">val</span> <span class="py">customInspector</span><span class="p">:</span> <span class="n">LeakInspector</span> <span class="p">=</span> <span class="p">{</span> <span class="n">parser</span><span class="p">,</span> <span class="n">node</span> <span class="p">-&gt;</span>
-      <span class="n">with</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">instance</span><span class="p">.</span><span class="n">objectRecord</span><span class="p">.</span><span class="n">isInstanceOf</span><span class="p">(</span><span class="s">&quot;com.example.MySingleton&quot;</span><span class="p">))</span> <span class="p">{</span>
-          <span class="n">LeakNodeStatus</span><span class="p">.</span><span class="n">notLeaking</span><span class="p">(</span><span class="s">&quot;MySingleton is a singleton&quot;</span><span class="p">)</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="n">LeakNodeStatus</span><span class="p">.</span><span class="n">unknown</span><span class="p">()</span>
+    <span class="k">val</span> <span class="py">singletonsInspector</span> <span class="p">=</span>
+      <span class="n">AppSingletonInspector</span><span class="p">(</span><span class="s">&quot;com.example.MySingleton&quot;</span><span class="p">,</span> <span class="s">&quot;com.example.OtherSingleton&quot;</span><span class="p">)</span>
+
+    <span class="k">val</span> <span class="py">mmvmInspector</span> <span class="p">=</span> <span class="n">ObjectInspector</span> <span class="p">{</span> <span class="n">reporter</span> <span class="p">-&gt;</span>
+      <span class="n">reporter</span><span class="p">.</span><span class="n">whenInstanceOf</span><span class="p">(</span><span class="s">&quot;com.mmvm.SomeViewModel&quot;</span><span class="p">)</span> <span class="p">{</span> <span class="n">instance</span> <span class="p">-&gt;</span>
+        <span class="k">val</span> <span class="py">destroyedField</span> <span class="p">=</span> <span class="n">instance</span><span class="p">[</span><span class="s">&quot;com.mmvm.SomeViewModel&quot;</span><span class="p">,</span> <span class="s">&quot;destroyed&quot;</span><span class="p">]</span><span class="o">!!</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">destroyedField</span><span class="p">.</span><span class="n">value</span><span class="p">.</span><span class="n">asBoolean</span><span class="o">!!</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">reportLeaking</span><span class="p">(</span><span class="s">&quot;SomeViewModel.destroyed is true&quot;</span><span class="p">)</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+          <span class="n">reportNotLeaking</span><span class="p">(</span><span class="s">&quot;SomeViewModel.destroyed is false&quot;</span><span class="p">)</span>
+        <span class="p">}</span>
       <span class="p">}</span>
     <span class="p">}</span>
-    <span class="k">val</span> <span class="py">leakInspectors</span> <span class="p">=</span> <span class="n">AndroidLeakInspectors</span><span class="p">.</span><span class="n">defaultAndroidInspectors</span><span class="p">()</span> <span class="p">+</span> <span class="n">customInspector</span>
 
-    <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">labelers</span> <span class="p">=</span> <span class="n">labelers</span><span class="p">,</span> <span class="n">leakInspectors</span> <span class="p">=</span> <span class="n">leakInspectors</span><span class="p">)</span>
+    <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span>
+        <span class="n">objectInspectors</span> <span class="p">=</span> <span class="n">AndroidObjectInspectors</span><span class="p">.</span><span class="n">appDefaults</span> <span class="p">+</span>
+            <span class="n">listOf</span><span class="p">(</span><span class="n">addObjectIdLabel</span><span class="p">,</span> <span class="n">singletonsInspector</span><span class="p">,</span> <span class="n">mmvmInspector</span><span class="p">)</span>
+    <span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
+</pre></div>
+
+<h2 id="setting-up-leakcanary-for-different-product-flavors">Setting up LeakCanary for different product flavors<a class="headerlink" href="#setting-up-leakcanary-for-different-product-flavors" title="Permanent link">&para;</a></h2>
+<p>You can setup LeakCanary to run in a specific product flavors of your app. For example, create:</p>
+<div class="codehilite"><pre><span></span>android {
+  flavorDimensions &quot;default&quot;
+  productFlavors {
+    prod {
+      // ...
+    }
+    qa {
+      // ...
+    }
+    dev {
+      // ...
+    }
+  }
+}
+</pre></div>
+
+<p>Then, define a custom configuration for the flavor for which you want to enable LeakCanary:</p>
+<div class="codehilite"><pre><span></span>android {
+  // ...
+}
+configurations {
+    devDebugImplementation {}
+}
+</pre></div>
+
+<p>You can now add the LeakCanary dependency for that configuration:</p>
+<div class="codehilite"><pre><span></span>dependencies {
+  devDebugImplementation &quot;com.squareup.leakcanary:leakcanary-android:${leakCanaryVersion}&quot;
+}
 </pre></div>
                 
                   
