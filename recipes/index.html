@@ -913,7 +913,7 @@
                 <h1 id="code-recipes">Code Recipes<a class="headerlink" href="#code-recipes" title="Permanent link">&para;</a></h1>
 <p>If you think a recipe might be missing or you&rsquo;re not sure that what you&rsquo;re trying to achieve is possible with the current APIs, please <a href="https://github.com/square/leakcanary/issues/new/choose">file an issue</a>. Your feedback help us make LeakCanary better for the entire community.</p>
 <h2 id="watching-objects-with-a-lifecycle">Watching objects with a lifecycle<a class="headerlink" href="#watching-objects-with-a-lifecycle" title="Permanent link">&para;</a></h2>
-<p>In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use <a href="/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to watch instances that should be garbage collected:</p>
+<p>In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to watch instances that should be garbage collected:</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">MyService</span> <span class="p">:</span> <span class="n">Service</span> <span class="p">{</span>
 
   <span class="c1">// ...</span>
@@ -926,11 +926,11 @@
 </pre></div>
 
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>To customize the detection of retained objects at runtime, update <a href="/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/">AppWatcher.config</a>:</p>
+<p>To customize the detection of retained objects at runtime, update <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/">AppWatcher.config</a>:</p>
 <div class="codehilite"><pre><span></span>AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
 </pre></div>
 
-<p>To customize the heap dumping &amp; analysis, update <a href="/api/leakcanary-android-core/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
+<p>To customize the heap dumping &amp; analysis, update <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
 <div class="codehilite"><pre><span></span>LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 </pre></div>
 
@@ -1015,7 +1015,7 @@
 
 <h2 id="uploading-to-a-server">Uploading to a server<a class="headerlink" href="#uploading-to-a-server" title="Permanent link">&para;</a></h2>
 <p>You can change the default behavior to upload the analysis result to a server of your choosing.</p>
-<p>Create a custom <a href="/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/">OnHeapAnalyzedListener</a> that delegates to <a href="/api/leakcanary-android-core/leakcanary/-default-on-heap-analyzed-listener/">DefaultOnHeapAnalyzedListener</a>: </p>
+<p>Create a custom <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/">OnHeapAnalyzedListener</a> that delegates to <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-default-on-heap-analyzed-listener/">DefaultOnHeapAnalyzedListener</a>: </p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">LeakUploader</span> <span class="p">:</span> <span class="n">OnHeapAnalyzedListener</span> <span class="p">{</span>
 
   <span class="k">val</span> <span class="py">defaultListener</span> <span class="p">=</span> <span class="n">DefaultOnHeapAnalyzedListener</span><span class="p">.</span><span class="n">create</span><span class="p">()</span>
@@ -1029,7 +1029,7 @@
 <span class="p">}</span>
 </pre></div>
 
-<p>Set <a href="/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/">LeakCanary.config.onHeapAnalyzedListener</a>:</p>
+<p>Set <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/">LeakCanary.config.onHeapAnalyzedListener</a>:</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
   <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
@@ -1040,7 +1040,7 @@
 </pre></div>
 
 <h2 id="matching-known-library-leaks">Matching known library leaks<a class="headerlink" href="#matching-known-library-leaks" title="Permanent link">&para;</a></h2>
-<p>Set <a href="/api/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/">LeakCanary.Config.referenceMatchers</a> to a list that builds on top of <a href="/api/shark-android/shark/-android-reference-matchers/app-defaults/">AndroidReferenceMatchers.appDefaults</a>:</p>
+<p>Set <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/">LeakCanary.Config.referenceMatchers</a> to a list that builds on top of <a href="/leakcanary/api/shark-android/shark/-android-reference-matchers/app-defaults/">AndroidReferenceMatchers.appDefaults</a>:</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
   <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>

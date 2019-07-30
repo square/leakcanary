@@ -1337,7 +1337,7 @@
 </pre></div>
 
 <h2 id="compile-errors-because-refwatcher-is-used-in-release-code">Compile errors because RefWatcher is used in release code<a class="headerlink" href="#compile-errors-because-refwatcher-is-used-in-release-code" title="Permanent link">&para;</a></h2>
-<p>If you were using <code>RefWatcher</code> in non debug code, you now get a compile error because the no-op artifact is gone. <a href="/api/leakcanary-object-watcher/leakcanary/-object-watcher/">ObjectWatcher</a> now lives in the <code>object-watcher</code> artifact, which is suitable for production. You have two options:</p>
+<p>If you were using <code>RefWatcher</code> in non debug code, you now get a compile error because the no-op artifact is gone. <a href="/leakcanary/api/leakcanary-object-watcher/leakcanary/-object-watcher/">ObjectWatcher</a> now lives in the <code>object-watcher</code> artifact, which is suitable for production. You have two options:</p>
 <h3 id="option-1-add-object-watcher-android-to-release-builds">Option 1: Add <code>object-watcher-android</code> to release builds.<a class="headerlink" href="#option-1-add-object-watcher-android-to-release-builds" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span><span class="n">dependencies</span> <span class="o">{</span>
   <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:object-watcher-android:2.0-beta-1&#39;</span>
@@ -1345,7 +1345,7 @@
 </pre></div>
 
 <ul>
-<li>It will automatically keep weak references to destroyed activities, fragments, and any instance you pass to <a href="/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a>.</li>
+<li>It will automatically keep weak references to destroyed activities, fragments, and any instance you pass to <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a>.</li>
 <li>It will not trigger heap dumps or anything else that LeakCanary does.</li>
 <li>It&rsquo;s very little code and should have a no impact on your release app.</li>
 <li>You can use it to count how many objects are retained, for example to add metadata to OutOfMemoryError crashes:</li>
@@ -1386,7 +1386,7 @@
 </pre></div>
 
 <h3 id="now_3">Now<a class="headerlink" href="#now_3" title="Permanent link">&para;</a></h3>
-<p>AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing <a href="/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/">AppWatcher.config</a>:</p>
+<p>AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/">AppWatcher.config</a>:</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
   <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
@@ -1396,7 +1396,7 @@
 <span class="p">}</span>
 </pre></div>
 
-<p>LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing <a href="/api/leakcanary-android-core/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
+<p>LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
 <div class="codehilite"><pre><span></span><span class="n">disableLeakCanaryButton</span><span class="p">.</span><span class="n">setOnClickListener</span> <span class="p">{</span>
   <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">dumpHeap</span> <span class="p">=</span> <span class="k">false</span><span class="p">)</span>
 <span class="p">}</span>

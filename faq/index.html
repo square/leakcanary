@@ -898,7 +898,7 @@
                 
                 <h1 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">&para;</a></h1>
 <h2 id="can-a-leak-be-caused-by-the-android-sdk">Can a leak be caused by the Android SDK?<a class="headerlink" href="#can-a-leak-be-caused-by-the-android-sdk" title="Permanent link">&para;</a></h2>
-<p>Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: <a href="/api/shark-android/shark/-android-reference-matchers/">AndroidReferenceMatchers</a>.</p>
+<p>Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: <a href="/leakcanary/api/shark-android/shark/-android-reference-matchers/">AndroidReferenceMatchers</a>.</p>
 <p>If you find a new one, please <a href="https://github.com/square/leakcanary/issues/new/choose">create an issue</a> and follow these steps:</p>
 <ol>
 <li>Provide the entire leak trace information (reference key, device, etc), and use backticks (`) for formatting.</li>
@@ -906,7 +906,7 @@
 <li>Check if it happens on the latest version of Android, and otherwise use blame to find when it was fixed.</li>
 <li>If it&rsquo;s still happening, build a simple repro case.</li>
 <li>File an issue on <a href="http://b.android.com">b.android.com</a> with the leak trace and the repro case.</li>
-<li>Create a PR in LeakCanary to update <a href="/api/shark-android/shark/-android-reference-matchers/">AndroidReferenceMatchers</a>. Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.</li>
+<li>Create a PR in LeakCanary to update <a href="/leakcanary/api/shark-android/shark/-android-reference-matchers/">AndroidReferenceMatchers</a>. Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.</li>
 </ol>
 <h2 id="how-do-i-share-a-leak-trace">How do I share a leak trace?<a class="headerlink" href="#how-do-i-share-a-leak-trace" title="Permanent link">&para;</a></h2>
 <ul>
