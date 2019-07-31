@@ -295,6 +295,15 @@ internal class PathFinder(
     }
 
     return graph.gcRoots
+        .filter { gcRoot ->
+          // GC roots sometimes reference objects that don't exist in the heap dump
+          // See https://github.com/square/leakcanary/issues/1516
+          val objectExists = graph.objectExists(gcRoot.id)
+          if (!objectExists) {
+            SharkLog.d("%s gc root ignored because it's pointing to unknown object @%s", gcRoot::class.java.simpleName, gcRoot.id)
+          }
+          objectExists
+        }
         .map { graph.findObjectById(it.id) to it }
         .sortedWith(Comparator { (graphObject1, root1), (graphObject2, root2) ->
           // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
