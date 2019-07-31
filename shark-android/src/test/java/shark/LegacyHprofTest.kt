@@ -2,7 +2,6 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.LeakNodeStatus.LEAKING
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.DESTROYED
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_ACTIVITY
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_DESTROYED
@@ -26,6 +25,12 @@ class LegacyHprofTest {
     val leak = analysis.applicationLeaks[0]
     assertThat(leak.className).isEqualTo("com.example.leakcanary.MainActivity")
     assertThat(leak.leakTrace.elements[0].labels).contains("GC Root: System class")
+  }
+
+  @Test fun gcRootReferencesUnknownObject() {
+    val analysis = analyzeHprof("gcroot_unknown_object.hprof")
+
+    assertThat(analysis.applicationLeaks).hasSize(2)
   }
 
   @Test fun androidMStripped() {
