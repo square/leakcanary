@@ -113,7 +113,7 @@ At the top of the leak trace is a garbage-collection (GC) root. GC roots are spe
 is true)
 ```
 
-At the bottom of the leak trace is the leaking instance. This instance was passed to [AppWatcher.objectWatcher](/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.
+At the bottom of the leak trace is the leaking instance. This instance was passed to [AppWatcher.objectWatcher](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.
 
 ### Chain of references
 
@@ -143,7 +143,7 @@ The chain of references from the GC root to the leaking instance is what is prev
     │    View.mWindowAttachCount=1
 ```
 
-LeakCanary runs heuristics to determine the lifecycle state of the nodes of the leak trace, and therefore whether they are leaking or not. For example, if a view has `View#mAttachInfo = null` and `mParent != null` then it is detached yet has a parent, so that view is probably leaking. In the leak trace, for each node you'll see `Leaking: YES / NO / UNKNOWN` with an explanation in parenthesis. LeakCanary can also surface extra information about the state of a node, e.g. `View.mWindowAttachCount=1`. LeakCanary comes with a set of default heuristics: [AndroidObjectInspectors](/api/shark-android/shark/-android-object-inspectors/). You can add your own heuristics by updating [LeakCanary.Config.objectInspectors](/api/leakcanary-android-core/leakcanary/-leak-canary/-config/object-inspectors/) (see the [recipe](recipes.md#identifying-leaking-objects-and-labeling-objects)).
+LeakCanary runs heuristics to determine the lifecycle state of the nodes of the leak trace, and therefore whether they are leaking or not. For example, if a view has `View#mAttachInfo = null` and `mParent != null` then it is detached yet has a parent, so that view is probably leaking. In the leak trace, for each node you'll see `Leaking: YES / NO / UNKNOWN` with an explanation in parenthesis. LeakCanary can also surface extra information about the state of a node, e.g. `View.mWindowAttachCount=1`. LeakCanary comes with a set of default heuristics: [AndroidObjectInspectors](/leakcanary/api/shark-android/shark/-android-object-inspectors/). You can add your own heuristics by updating [LeakCanary.Config.objectInspectors](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/object-inspectors/) (see the [recipe](recipes.md#identifying-leaking-objects-and-labeling-objects)).
 
 ### Narrowing down the cause of a leak
 
