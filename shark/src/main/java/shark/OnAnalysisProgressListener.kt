@@ -14,6 +14,7 @@ interface OnAnalysisProgressListener {
     COMPUTING_NATIVE_RETAINED_SIZE,
     COMPUTING_RETAINED_SIZE,
     BUILDING_LEAK_TRACES,
+    REPORTING_HEAP_ANALYSIS
   }
 
   fun onAnalysisProgress(step: Step)

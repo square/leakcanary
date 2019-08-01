@@ -34,15 +34,17 @@ import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
+import shark.internal.hppc.LongLongScatterMap
+import shark.internal.hppc.LongObjectScatterMap
 import kotlin.reflect.KClass
 
 /**
  * This class is not thread safe, should be used from a single thread.
  */
 internal class HprofInMemoryIndex private constructor(
-  private val hprofStringCache: LongToStringSparseArray,
-  private val classNames: LongToLongSparseArray,
-  private val objectIndex: LongToObjectSparseArray<IndexedObject>,
+  private val hprofStringCache: LongObjectScatterMap<String>,
+  private val classNames: LongLongScatterMap,
+  private val objectIndex: LongObjectScatterMap<IndexedObject>,
   private val gcRoots: List<GcRoot>,
   val primitiveWrapperTypes: Set<Long>
 ) {
@@ -53,13 +55,20 @@ internal class HprofInMemoryIndex private constructor(
 
   fun className(classId: Long): String {
     // String, primitive types
-    return hprofStringById(classNames[classId])
+    val classNameStringId =
+      classNames[classId] ?: throw IllegalArgumentException("Unknown class id $classId")
+    return hprofStringById(classNameStringId)
   }
 
   fun classId(className: String): Long? {
     // Note: this performs two linear scans over arrays
-    return hprofStringCache.getKey(className)
-        ?.let { stringId -> classNames.getKey(stringId) }
+    return hprofStringCache.entrySequence()
+        .firstOrNull { it.second == className }
+        ?.first?.let { stringId ->
+      classNames.entrySequence()
+          .firstOrNull { it.second == stringId }
+          ?.first
+    }
   }
 
   fun indexedClassSequence(): Sequence<Pair<Long, IndexedClass>> {
@@ -104,19 +113,19 @@ internal class HprofInMemoryIndex private constructor(
     // memory.
     // Another option is to switch back to reading from the file system as necessary, and keep a much
     // smaller cache for strings we need during shortest path (those are for exclusions)
-    private val hprofStringCache = LongToStringSparseArray(60000)
+    private val hprofStringCache = LongObjectScatterMap<String>()
 
     /**
      * class id to string id
      */
-    private val classNames = LongToLongSparseArray(20000)
+    private val classNames = LongLongScatterMap()
 
     /**
      * Object id to [IndexedObject].
      * The id can be for classes instances, classes, object arrays and primitive arrays
      */
     private val objectIndex =
-      LongToObjectSparseArray<IndexedObject>(250000)
+      LongObjectScatterMap<IndexedObject>()
 
     /**
      * Class ids for primitive wrapper types
@@ -197,33 +206,36 @@ internal class HprofInMemoryIndex private constructor(
         Int::class.java.name, Long::class.java.name
     )
 
-    fun createReadingHprof(reader: HprofReader, indexedGcRootTypes: Set<KClass<out GcRoot>> = setOf(
-        JniGlobal::class,
-        JavaFrame::class,
-        JniLocal::class,
-        MonitorUsed::class,
-        NativeStack::class,
-        StickyClass::class,
-        ThreadBlock::class,
-        // ThreadObject points to threads, which we need to find the thread that a JavaLocalPattern
-        // belongs to
-        ThreadObject::class,
-        JniMonitor::class
-        /*
-        Not included here:
+    fun createReadingHprof(
+      reader: HprofReader,
+      indexedGcRootTypes: Set<KClass<out GcRoot>> = setOf(
+          JniGlobal::class,
+          JavaFrame::class,
+          JniLocal::class,
+          MonitorUsed::class,
+          NativeStack::class,
+          StickyClass::class,
+          ThreadBlock::class,
+          // ThreadObject points to threads, which we need to find the thread that a JavaLocalPattern
+          // belongs to
+          ThreadObject::class,
+          JniMonitor::class
+          /*
+          Not included here:
 
-        VmInternal: Ignoring because we've got 150K of it, but is this the right thing
-        to do? What's VmInternal exactly? History does not go further than
-        https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
-        We should log to figure out what objects VmInternal points to.
+          VmInternal: Ignoring because we've got 150K of it, but is this the right thing
+          to do? What's VmInternal exactly? History does not go further than
+          https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
+          We should log to figure out what objects VmInternal points to.
 
-        ReferenceCleanup: We used to keep it, but the name doesn't seem like it should create a leak.
+          ReferenceCleanup: We used to keep it, but the name doesn't seem like it should create a leak.
 
-        Unknown: it's unknown, should we care?
+          Unknown: it's unknown, should we care?
 
-        We definitely don't care about those for leak finding: InternedString, Finalizing, Debugger, Unreachable
-         */
-    )): HprofInMemoryIndex {
+          We definitely don't care about those for leak finding: InternedString, Finalizing, Debugger, Unreachable
+           */
+      )
+    ): HprofInMemoryIndex {
       val recordTypes = setOf(
           StringRecord::class,
           LoadClassRecord::class,
