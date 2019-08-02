@@ -735,7 +735,9 @@
 <p><code>val gcRoots:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;GcRoot&gt;</code></p>
 <p>Overrides <a href="../../-heap-graph/gc-roots/">HeapGraph.gcRoots</a></p>
 <p>All GC roots which type matches types known to this heap graph and which point to non null
-references.</p>
+references. You can retrieve the object that a GC Root points to by calling <a href="../../-heap-graph/find-object-by-id/">findObjectById</a>
+with <a href="#">GcRoot.id</a>, however you need to first check that <a href="../../-heap-graph/object-exists/">objectExists</a> returns true because
+GC roots can point to objects that don&rsquo;t exist in the heap dump.</p>
                 
                   
                 
