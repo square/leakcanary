@@ -11,7 +11,7 @@ For example, an Android activity instance is no longer needed after its `onDestr
 Most memory leaks are caused by bugs related to the lifecycle of objects. Here are a few common Android mistakes:
 
 * Storing an Activity context as a field in an object that survives activity recreation due to configuration changes.
-* Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister when the lifecycle reaches its end.
+* Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister whe	n the lifecycle reaches its end.
 * Storing a view in a static field, and not clearing that field when the view is detached.
 
 ## Why should I use LeakCanary?
@@ -216,11 +216,11 @@ LeakCanary is released as several libraries:
 * ObjectWatcher
     * Used to watch retained objects and check if they become weakly reachable.
     * Suitable for release builds.
-    * Artifact id: `com.squareup.leakcanary:object-watcher`.
+    * Artifact id: `com.squareup.leakcanary:leakcanary-object-watcher`.
 * ObjectWatcher Android
     * Automatically detects retained destroyed activities and fragments.
     * Suitable for release builds.
-    * Artifact id: `com.squareup.leakcanary:object-watcher-android`.
+    * Artifact id: `com.squareup.leakcanary:leakcanary-object-watcher-android`.
 * LeakCanary
     * Dumps the heap and analyzes it.
     * Currently only suitable for debug builds.

@@ -85,7 +85,7 @@ If you were using `RefWatcher` in non debug code, you now get a compile error be
 
 ```groovy
 dependencies {
-  implementation 'com.squareup.leakcanary:object-watcher-android:2.0-beta-2'
+  implementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-2'
 }
 ```
 

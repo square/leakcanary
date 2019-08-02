@@ -61,13 +61,13 @@ Sometimes it's necessary to disable LeakCanary temporarily, for example for a pr
 
 ## Counting retained instances in production
 
-`com.squareup.leakcanary:leakcanary-android` should only be used in debug builds. It depends on `com.squareup.leakcanary:object-watcher-android` which you can use in production to track and count retained instances.
+`com.squareup.leakcanary:leakcanary-android` should only be used in debug builds. It depends on `com.squareup.leakcanary:leakcanary-object-watcher-android` which you can use in production to track and count retained instances.
 
 In your `build.gradle`:
 
 ```gradle
 dependencies {
-  implementation 'com.squareup.leakcanary:object-watcher-android:2.0-beta-2'
+  implementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-2'
 }
 ```
 
