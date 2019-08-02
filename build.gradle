@@ -72,6 +72,14 @@ subprojects {
       prefix = "com.squareup.leakcanary"
       suppress = true
     }
+    packageOptions {
+      prefix = "shark.internal"
+      suppress = true
+    }
+    packageOptions {
+      prefix = "leakcanary.internal"
+      suppress = true
+    }
     outputFormat = 'gfm'
     outputDirectory = "$rootDir/docs/api"
   }
