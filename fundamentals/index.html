@@ -1040,7 +1040,7 @@
 <p>Most memory leaks are caused by bugs related to the lifecycle of objects. Here are a few common Android mistakes:</p>
 <ul>
 <li>Storing an Activity context as a field in an object that survives activity recreation due to configuration changes.</li>
-<li>Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister when the lifecycle reaches its end.</li>
+<li>Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister whe n the lifecycle reaches its end.</li>
 <li>Storing a view in a static field, and not clearing that field when the view is detached.</li>
 </ul>
 <h2 id="why-should-i-use-leakcanary">Why should I use LeakCanary?<a class="headerlink" href="#why-should-i-use-leakcanary" title="Permanent link">&para;</a></h2>
@@ -1201,13 +1201,13 @@ is true)
 <li>ObjectWatcher<ul>
 <li>Used to watch retained objects and check if they become weakly reachable.</li>
 <li>Suitable for release builds.</li>
-<li>Artifact id: <code>com.squareup.leakcanary:object-watcher</code>.</li>
+<li>Artifact id: <code>com.squareup.leakcanary:leakcanary-object-watcher</code>.</li>
 </ul>
 </li>
 <li>ObjectWatcher Android<ul>
 <li>Automatically detects retained destroyed activities and fragments.</li>
 <li>Suitable for release builds.</li>
-<li>Artifact id: <code>com.squareup.leakcanary:object-watcher-android</code>.</li>
+<li>Artifact id: <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code>.</li>
 </ul>
 </li>
 <li>LeakCanary<ul>

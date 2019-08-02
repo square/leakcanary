@@ -959,10 +959,10 @@
 <p>If instead you set <code>LeakCanary.Config.dumpHeap</code> to false, <code>AppWatcher.objectWatcher</code> will still keep track of retained objects, and LeakCanary will look for these objects when you change <code>LeakCanary.Config.dumpHeap</code> back to true.</p>
 </div>
 <h2 id="counting-retained-instances-in-production">Counting retained instances in production<a class="headerlink" href="#counting-retained-instances-in-production" title="Permanent link">&para;</a></h2>
-<p><code>com.squareup.leakcanary:leakcanary-android</code> should only be used in debug builds. It depends on <code>com.squareup.leakcanary:object-watcher-android</code> which you can use in production to track and count retained instances.</p>
+<p><code>com.squareup.leakcanary:leakcanary-android</code> should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in production to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="codehilite"><pre><span></span>dependencies {
-  implementation &#39;com.squareup.leakcanary:object-watcher-android:2.0-beta-2&#39;
+  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-2&#39;
 }
 </pre></div>
 
