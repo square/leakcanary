@@ -1,10 +1,23 @@
 # Change Log
 
-## Version 2.0 Beta 1 (2019-07-30)
+## Version 2.0 Beta 2 (2019-08-02)
 
 LeakCanary 2 reached **beta status**: the internals and APIs are mostly stable.
 
 Now is a great time to adopt it and provide feedback before the stable release. We're counting on you to find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/). 
+
+* Fixed *Leak analysis failed: Object id not found in heap dump.* [#1516](https://github.com/square/leakcanary/issues/1516)
+* 10x speed increase of hprof indexing on large heap dumps [#1520](https://github.com/square/leakcanary/pull/1520)
+
+Many thanks to
+[@kolphi](https://github.com/kolphi),
+[@pyricau](https://github.com/pyricau),
+[@ZacSweers](https://github.com/ZacSweers)
+for the contributions, bug reports and feature requests.
+
+For more details, see the [2.0-beta-2 Milestone](https://github.com/square/leakcanary/milestone/10) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-beta-1...v2.0-beta-2).
+
+## Version 2.0 Beta 1 (2019-07-30)
 
 * New standalone library! [Shark](shark.md) is the heap analyzer that powers LeakCanary 2, and it can run in any Java VM. It comes with a [CLI](shark.md#shark-cli): you can now run `shark-cli analyze-process com.example.myapp` from your computer.
 * New Heap Explorer directly on device! Open a Heap Analysis in LeakCanary, tap the options menu and select "Heap Explorer". This is still experimental and not very user friendly, contributions welcome!
@@ -23,7 +36,7 @@ Many thanks to
 [@snkashis](https://github.com/snkashis)
 for the contributions, bug reports and feature requests.
 
-For more details, see the [2.0-beta-1 Milestone](https://github.com/square/leakcanary/milestone/1) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-alpha-3...v2.0-beta-1).
+For more details, see the [2.0-beta-1 Milestone](https://github.com/square/leakcanary/milestone/9) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-alpha-3...v2.0-beta-1).
 
 ## Version 2.0 Alpha 3 (2019-07-04)
 

@@ -45,7 +45,6 @@ buildscript {
     classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.16'
     classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
     classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
-    classpath "gradle.plugin.com.vanniktech:gradle-maven-publish-plugin:0.8.0"
   }
 }
 
@@ -118,9 +117,5 @@ subprojects {
 
   dependencies {
     errorprone "com.google.errorprone:error_prone_core:${versions.errorProne}"
-  }
-
-  if (hasProperty("POM_ARTIFACT_ID")) {
-    apply plugin: 'com.vanniktech.maven.publish'
   }
 }
