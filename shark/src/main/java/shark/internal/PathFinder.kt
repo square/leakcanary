@@ -435,6 +435,9 @@ internal class PathFinder(
 
     val visitLast =
       node is LibraryLeakNode ||
+          // We deprioritize thread objects because on Lollipop the thread local values are stored
+          // as a field.
+          (node is RootNode && node.gcRoot is ThreadObject) ||
           (node is NormalNode && node.parent is RootNode && node.parent.gcRoot is JavaFrame)
 
     if (toVisitLastSet.contains(node.instance)) {
