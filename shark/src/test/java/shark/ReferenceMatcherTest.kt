@@ -5,8 +5,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.IgnoredReferenceMatcher
-import shark.LibraryLeakReferenceMatcher
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
 import shark.ReferencePattern.StaticFieldPattern
@@ -75,6 +73,18 @@ class ReferenceMatcherTest {
 
   @Test fun excludedThread() {
     hprofFile.writeJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
+
+    val matcher = LibraryLeakReferenceMatcher(JavaLocalPattern("kroutine"))
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        referenceMatchers = listOf(matcher)
+    )
+
+    val leak = analysis.libraryLeaks[0]
+    assertThat(leak.pattern).isEqualTo(matcher.pattern)
+  }
+
+  @Test fun excludedLollipopThread() {
+    hprofFile.writeLollipopJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
 
     val matcher = LibraryLeakReferenceMatcher(JavaLocalPattern("kroutine"))
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
