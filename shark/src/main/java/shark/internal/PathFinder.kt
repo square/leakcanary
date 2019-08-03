@@ -63,6 +63,45 @@ internal class PathFinder(
   referenceMatchers: List<ReferenceMatcher>
 ) {
 
+  class PathFindingResults(
+    val pathsToLeakingInstances: List<ReferencePathNode>,
+    val dominatedInstances: LongLongScatterMap
+  )
+
+  private class State(
+    val leakingInstanceObjectIds: Set<Long>,
+    val sizeOfObjectInstances: Int,
+    val computeRetainedHeapSize: Boolean
+  ) {
+
+    /** Set of instances to visit */
+    val toVisitQueue: Deque<ReferencePathNode> = ArrayDeque()
+
+    /**
+     * Instances to visit when [toVisitQueue] is empty. Should contain [JavaFrame] gc roots first,
+     * then [LibraryLeakNode].
+     */
+    val toVisitLastQueue: Deque<ReferencePathNode> = ArrayDeque()
+    /**
+     * Enables fast checking of whether a node is already in the queue.
+     */
+    val toVisitSet = HashSet<Long>()
+    val toVisitLastSet = HashSet<Long>()
+
+    val visitedSet = LongScatterSet()
+
+    /**
+     * Map of instances to their leaking dominator.
+     * If an instance has been added to [toVisitSet] or [visitedSet] and is missing from
+     * [dominatedInstances] then it's considered "undomitable" ie it is dominated by gc roots
+     * and cannot be dominated by a leaking instance.
+     */
+    val dominatedInstances = LongLongScatterMap()
+
+    val queuesNotEmpty: Boolean
+      get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
+  }
+
   private val fieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
   private val staticFieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
   private val threadNameReferenceMatchers: Map<String, ReferenceMatcher>
@@ -106,45 +145,6 @@ internal class PathFinder(
     this.staticFieldNameByClassName = staticFieldNameByClassName
     this.threadNameReferenceMatchers = threadNames
   }
-
-  private class State(
-    val leakingInstanceObjectIds: Set<Long>,
-    val sizeOfObjectInstances: Int,
-    val computeRetainedHeapSize: Boolean
-  ) {
-
-    /** Set of instances to visit */
-    val toVisitQueue: Deque<ReferencePathNode> = ArrayDeque()
-
-    /**
-     * Instances to visit when [toVisitQueue] is empty. Should contain [JavaFrame] gc roots first,
-     * then [LibraryLeakNode].
-     */
-    val toVisitLastQueue: Deque<ReferencePathNode> = ArrayDeque()
-    /**
-     * Enables fast checking of whether a node is already in the queue.
-     */
-    val toVisitSet = HashSet<Long>()
-    val toVisitLastSet = HashSet<Long>()
-
-    val visitedSet = LongScatterSet()
-
-    /**
-     * Map of instances to their leaking dominator.
-     * If an instance has been added to [toVisitSet] or [visitedSet] and is missing from
-     * [dominatedInstances] then it's considered "undomitable" ie it is dominated by gc roots
-     * and cannot be dominated by a leaking instance.
-     */
-    val dominatedInstances = LongLongScatterMap()
-
-    val queuesNotEmpty: Boolean
-      get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
-  }
-
-  class PathFindingResults(
-    val pathsToLeakingInstances: List<ReferencePathNode>,
-    val dominatedInstances: LongLongScatterMap
-  )
 
   fun findPathsFromGcRoots(
     leakingInstanceObjectIds: Set<Long>,
@@ -452,6 +452,9 @@ internal class PathFinder(
 
     val visitLast =
       node is LibraryLeakNode ||
+          // We deprioritize thread objects because on Lollipop the thread local values are stored
+          // as a field.
+          (node is RootNode && node.gcRoot is ThreadObject) ||
           (node is NormalNode && node.parent is RootNode && node.parent.gcRoot is JavaFrame)
 
     if (toVisitLastSet.contains(node.instance)) {
