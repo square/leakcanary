@@ -1,11 +1,13 @@
 package leakcanary.internal.activity
 
+import android.app.ActivityManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
+import android.util.Log
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.InternalLeakCanary
@@ -21,6 +23,15 @@ internal class LeakActivity : NavigatingActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
+    if (ActivityManager.isUserAMonkey())
+    {
+        Log.d("LeakCanaryMonkey", "it was the monkey")
+        finish()
+    } else {
+        Log.d("LeakCanaryMonkey", "it was an user")
+    }
+
     setContentView(R.layout.leak_canary_leak_activity)
 
     installNavigation(savedInstanceState, findViewById(R.id.main_container))
