@@ -715,6 +715,15 @@ enum class AndroidReferenceMatchers {
         manufacturer == SAMSUNG && sdkInt == 23
       }
       references += instanceFieldLeak(
+          "android.sec.clipboard.ClipboardExManager", "mPersonaManager",
+          description = "android.sec.clipboard.ClipboardExManager\$IClipboardDataPasteEventImpl\$1" +
+              " is a native callback that holds IClipboardDataPasteEventImpl which holds" +
+              " ClipboardExManager which holds PersonaManager which has a destroyed activity as" +
+              " mContext"
+      ) {
+        manufacturer == SAMSUNG && sdkInt == 23
+      }
+      references += instanceFieldLeak(
           "android.widget.TextView\$IClipboardDataPasteEventImpl", "this\$0",
           description = "TextView\$IClipboardDataPasteEventImpl\$1 is held by a native ref, and" +
               " IClipboardDataPasteEventImpl ends up leaking a detached textview"
@@ -870,6 +879,20 @@ enum class AndroidReferenceMatchers {
               + " https://github.com/square/leakcanary/issues/177#issuecomment-222724283"
       ) {
         manufacturer == SAMSUNG && sdkInt in 22..23
+      }
+    }
+  },
+
+  STATIC_MTARGET_VIEW {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += staticFieldLeak(
+          "android.widget.TextView", "mTargetView",
+          description =
+          "Samsung added a static mTargetView field to TextView which holds on to detached views."
+      ) {
+        manufacturer == SAMSUNG && sdkInt == 27
       }
     }
   },
