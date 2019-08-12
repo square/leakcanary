@@ -19,6 +19,7 @@ import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.AppWatcher
+import leakcanary.OnHeapAnalyzedListener
 import leakcanary.OnObjectRetainedListener
 import leakcanary.internal.activity.LeakActivity
 import shark.SharkLog
@@ -50,7 +51,10 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
   val noInstallConfig: Config
     get() = Config(
-        dumpHeap = false, referenceMatchers = emptyList(), objectInspectors = emptyList()
+        dumpHeap = false,
+        referenceMatchers = emptyList(),
+        objectInspectors = emptyList(),
+        onHeapAnalyzedListener = OnHeapAnalyzedListener {}
     )
 
   override fun invoke(application: Application) {
