@@ -14,5 +14,4 @@ dependencies {
   testImplementation deps.junit
 }
 
-apply from: rootProject.file('gradle/checkstyle.gradle')
 apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

@@ -29,6 +29,7 @@ buildscript {
           gradlePlugin: "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}",
           stdlib      : "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
       ],
+      detekt        : 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.0.0-RC16',
       mockito       : 'org.mockito:mockito-core:2.7.5',
       mockito_kotlin: 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0',
       okio: 'com.squareup.okio:okio:2.2.2',
@@ -45,6 +46,7 @@ buildscript {
     classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.16'
     classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
     classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
+    classpath deps.detekt
   }
 }
 
@@ -63,6 +65,7 @@ subprojects {
 
   apply plugin: 'net.ltgt.errorprone'
   apply plugin: 'org.jetbrains.dokka'
+  apply plugin: 'io.gitlab.arturbosch.detekt'
 
   dokka {
     reportUndocumented = false
@@ -113,6 +116,16 @@ subprojects {
       showExceptions true
       showStackTraces true
     }
+  }
+
+  detekt {
+    config = rootProject.files('detekt-config.yml')
+    baseline = project.file('detekt-baseline.xml')
+    parallel = true
+  }
+
+  afterEvaluate {
+    project.tasks.getByName('check').dependsOn 'detekt'
   }
 
   dependencies {

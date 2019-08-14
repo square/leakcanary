@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <Blacklist></Blacklist>
+  <Whitelist>
+    <ID>MagicNumber:Main.kt$10</ID>
+    <ID>MagicNumber:Main.kt$5000</ID>
+    <ID>MagicNumber:Main.kt$8</ID>
+    <ID>MaxLineLength:Main.kt$ strip-hprof: Replaces all primitive arrays from the provided hprof file with arrays of zeroes and generates a new </ID>
+    <ID>MaxLineLength:Main.kt$"More than one process matches \"$packageName\" but none matches exactly: ${matchingProcesses.map { it.first }}"</ID>
+    <ID>NewLineAtEndOfFile:CLILogger.kt$shark.CLILogger.kt</ID>
+    <ID>SpreadOperator:CLILogger.kt$CLILogger$(message, *args)</ID>
+    <ID>SpreadOperator:Main.kt$(*arguments)</ID>
+    <ID>TooGenericExceptionThrown:Main.kt$throw Exception(process.errorStream.bufferedReader().readText())</ID>
+    <ID>TooGenericExceptionThrown:Main.kt$throw RuntimeException("System exiting with error")</ID>
+  </Whitelist>
+</SmellBaseline>

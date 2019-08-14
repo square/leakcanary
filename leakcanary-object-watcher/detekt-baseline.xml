@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <Blacklist></Blacklist>
+  <Whitelist>
+    <ID>MagicNumber:GcTrigger.kt$GcTrigger.Default$100</ID>
+    <ID>MaxLineLength:ObjectWatcher.kt$ObjectWatcher$((if (watchedObject is Class&lt;*&gt;) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") + if (name.isNotEmpty()) " named $name" else "")</ID>
+    <ID>NewLineAtEndOfFile:OnObjectRetainedListener.kt$leakcanary.OnObjectRetainedListener.kt</ID>
+  </Whitelist>
+</SmellBaseline>

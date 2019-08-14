@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <Blacklist></Blacklist>
+  <Whitelist>
+    <ID>SpreadOperator:SharkLog.kt$SharkLog$(message, *args)</ID>
+    <ID>SpreadOperator:SharkLog.kt$SharkLog$(throwable, message, *args)</ID>
+  </Whitelist>
+</SmellBaseline>

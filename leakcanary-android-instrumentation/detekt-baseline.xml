@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <Blacklist></Blacklist>
+  <Whitelist>
+    <ID>ComplexMethod:InstrumentationLeakDetector.kt$InstrumentationLeakDetector$ fun detectLeaks(): Result</ID>
+    <ID>EmptyFunctionBlock:FailTestOnLeakRunListener.kt$FailTestOnLeakRunListener${}</ID>
+    <ID>LongMethod:InstrumentationLeakDetector.kt$InstrumentationLeakDetector$ fun detectLeaks(): Result</ID>
+    <ID>MagicNumber:InstrumentationLeakDetector.kt$InstrumentationLeakDetector$2000</ID>
+    <ID>NewLineAtEndOfFile:FailAnnotatedTestOnLeakRunListener.kt$leakcanary.FailAnnotatedTestOnLeakRunListener.kt</ID>
+    <ID>NewLineAtEndOfFile:FailTestOnLeak.kt$leakcanary.FailTestOnLeak.kt</ID>
+    <ID>ReturnCount:InstrumentationLeakDetector.kt$InstrumentationLeakDetector$ fun detectLeaks(): Result</ID>
+    <ID>TooGenericExceptionCaught:InstrumentationLeakDetector.kt$InstrumentationLeakDetector$exception: Exception</ID>
+    <ID>TooManyFunctions:FailTestOnLeakRunListener.kt$FailTestOnLeakRunListener : RunListener</ID>
+  </Whitelist>
+</SmellBaseline>

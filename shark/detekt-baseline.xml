@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <Blacklist></Blacklist>
+  <Whitelist>
+    <ID>ComplexCondition:PathFinder.kt$PathFinder$currentDominator == null &amp;&amp; (instance in visitedSet || instance in toVisitSet || instance in toVisitLastSet)</ID>
+    <ID>ComplexMethod:HeapAnalyzer.kt$HeapAnalyzer$private fun FindLeakInput.computeRetainedSizes(pathFindingResults: PathFindingResults): List&lt;Int&gt;?</ID>
+    <ID>ComplexMethod:HeapAnalyzer.kt$HeapAnalyzer$private fun computeLeakStatuses( rootNode: RootNode, leakReporters: List&lt;ObjectReporter&gt; ): List&lt;Pair&lt;LeakNodeStatus, String&gt;&gt;</ID>
+    <ID>ComplexMethod:LeakTraceRenderer.kt$internal fun LeakTrace.renderToString(): String</ID>
+    <ID>ComplexMethod:PathFinder.kt$PathFinder$private fun State.enqueue( node: ReferencePathNode )</ID>
+    <ID>ComplexMethod:PathFinder.kt$PathFinder$private fun State.findPathsFromGcRoots(leakingInstanceObjectIds: Set&lt;Long&gt;): PathFindingResults</ID>
+    <ID>ComplexMethod:PathFinder.kt$PathFinder$private fun State.undominateWithSkips(objectId: Long)</ID>
+    <ID>ComplexMethod:PathFinder.kt$PathFinder$private fun State.updateDominator( parent: Long, instance: Long, neverEnqueued: Boolean )</ID>
+    <ID>ComplexMethod:PathFinder.kt$PathFinder$private fun State.updateDominatorWithSkips( parentObjectId: Long, objectId: Long )</ID>
+    <ID>ComplexMethod:PathFinder.kt$PathFinder$private fun State.visitInstanceRecord( instance: HeapInstance, parent: ReferencePathNode )</ID>
+    <ID>EmptyFunctionBlock:OnAnalysisProgressListener.kt$OnAnalysisProgressListener.Companion.&lt;no name provided&gt;${ }</ID>
+    <ID>LongMethod:HeapAnalyzer.kt$HeapAnalyzer$private fun FindLeakInput.computeRetainedSizes(pathFindingResults: PathFindingResults): List&lt;Int&gt;?</ID>
+    <ID>LongParameterList:HeapAnalyzer.kt$HeapAnalyzer$( graph: HeapGraph, node: ReferencePathNode, reference: LeakReference?, labels: Set&lt;String&gt;, leakStatus: LeakNodeStatus, leakStatusReason: String )</ID>
+    <ID>MagicNumber:Strings.kt$0xff</ID>
+    <ID>MaxLineLength:HeapAnalyzer.kt$HeapAnalyzer$if (allocationRegistryRecord is HeapInstance &amp;&amp; allocationRegistryRecord instanceOf "libcore.util.NativeAllocationRegistry") { var nativeSize = nativeSizes.getValue(referentId) nativeSize += allocationRegistryRecord["libcore.util.NativeAllocationRegistry", "size"]?.value?.asLong?.toInt() ?: 0 nativeSizes[referentId] = nativeSize }</ID>
+    <ID>MaxLineLength:HeapAnalyzer.kt$HeapAnalyzer$if (thunkRecord is HeapInstance &amp;&amp; thunkRecord instanceOf "libcore.util.NativeAllocationRegistry\$CleanerThunk") { val allocationRegistryIdField = thunkRecord["libcore.util.NativeAllocationRegistry\$CleanerThunk", "this\$0"] if (allocationRegistryIdField != null &amp;&amp; allocationRegistryIdField.value.isNonNullReference) { val allocationRegistryRecord = allocationRegistryIdField.value.asObject if (allocationRegistryRecord is HeapInstance &amp;&amp; allocationRegistryRecord instanceOf "libcore.util.NativeAllocationRegistry") { var nativeSize = nativeSizes.getValue(referentId) nativeSize += allocationRegistryRecord["libcore.util.NativeAllocationRegistry", "size"]?.value?.asLong?.toInt() ?: 0 nativeSizes[referentId] = nativeSize } } }</ID>
+    <ID>MaxLineLength:HeapAnalyzer.kt$HeapAnalyzer$nativeSize</ID>
+    <ID>MaxLineLength:HeapAnalyzer.kt$HeapAnalyzer$private</ID>
+    <ID>MaxLineLength:ObjectInspectors.kt$ObjectInspectors.KEYED_WEAK_REFERENCE$className == "leakcanary.KeyedWeakReference" || className == "com.squareup.leakcanary.KeyedWeakReference"</ID>
+    <ID>MaxLineLength:PathFinder.kt$PathFinder$if (threadLocalValuesMatcher != null &amp;&amp; field.declaringClass.name == "java.lang.Thread" &amp;&amp; field.name == "localValues") { // Earlier Android versions store local references in a Thread.localValues field. if (threadLocalValuesMatcher is LibraryLeakReferenceMatcher) { LibraryLeakNode( objectId, parent, LeakReference(INSTANCE_FIELD, field.name), threadLocalValuesMatcher ) } else { null } } else when (val referenceMatcher = fieldReferenceMatchers[field.name]) { null -&gt; NormalNode(objectId, parent, LeakReference(INSTANCE_FIELD, field.name)) is LibraryLeakReferenceMatcher -&gt; LibraryLeakNode( objectId, parent, LeakReference(INSTANCE_FIELD, field.name), referenceMatcher ) is IgnoredReferenceMatcher -&gt; null }</ID>
+    <ID>NestedBlockDepth:HeapAnalyzer.kt$HeapAnalyzer$private fun FindLeakInput.computeRetainedSizes(pathFindingResults: PathFindingResults): List&lt;Int&gt;?</ID>
+    <ID>NestedBlockDepth:ObjectInspectors.kt$ObjectInspectors.ANONYMOUS_CLASS$override fun inspect( reporter: ObjectReporter )</ID>
+    <ID>NestedBlockDepth:PathFinder.kt$PathFinder$private fun State.enqueueGcRoots()</ID>
+    <ID>NestedBlockDepth:PathFinder.kt$PathFinder$private fun State.findPathsFromGcRoots(leakingInstanceObjectIds: Set&lt;Long&gt;): PathFindingResults</ID>
+    <ID>NestedBlockDepth:PathFinder.kt$PathFinder$private fun State.updateDominator( parent: Long, instance: Long, neverEnqueued: Boolean )</ID>
+    <ID>NestedBlockDepth:PathFinder.kt$PathFinder$private fun State.visitInstanceRecord( instance: HeapInstance, parent: ReferencePathNode )</ID>
+    <ID>NewLineAtEndOfFile:AppSingletonInspector.kt$shark.AppSingletonInspector.kt</ID>
+    <ID>NewLineAtEndOfFile:HeapAnalysis.kt$shark.HeapAnalysis.kt</ID>
+    <ID>NewLineAtEndOfFile:HeapAnalysisException.kt$shark.HeapAnalysisException.kt</ID>
+    <ID>NewLineAtEndOfFile:LeakTrace.kt$shark.LeakTrace.kt</ID>
+    <ID>NewLineAtEndOfFile:LeakTraceElement.kt$shark.LeakTraceElement.kt</ID>
+    <ID>NewLineAtEndOfFile:LeakTraceRenderer.kt$shark.internal.LeakTraceRenderer.kt</ID>
+    <ID>NewLineAtEndOfFile:ObjectInspector.kt$shark.ObjectInspector.kt</ID>
+    <ID>NewLineAtEndOfFile:ObjectInspectors.kt$shark.ObjectInspectors.kt</ID>
+    <ID>NewLineAtEndOfFile:ObjectReporter.kt$shark.ObjectReporter.kt</ID>
+    <ID>NewLineAtEndOfFile:OnAnalysisProgressListener.kt$shark.OnAnalysisProgressListener.kt</ID>
+    <ID>NewLineAtEndOfFile:ReferencePathNode.kt$shark.internal.ReferencePathNode.kt</ID>
+    <ID>NewLineAtEndOfFile:ReferencePattern.kt$shark.ReferencePattern.kt</ID>
+    <ID>ReturnCount:HeapAnalyzer.kt$HeapAnalyzer$ fun analyze( heapDumpFile: File, referenceMatchers: List&lt;ReferenceMatcher&gt; = emptyList(), computeRetainedHeapSize: Boolean = false, objectInspectors: List&lt;ObjectInspector&gt; = emptyList(), leakFinders: List&lt;ObjectInspector&gt; = objectInspectors ): HeapAnalysis</ID>
+    <ID>ReturnCount:PathFinder.kt$PathFinder$private fun State.enqueue( node: ReferencePathNode )</ID>
+    <ID>TooGenericExceptionCaught:HeapAnalyzer.kt$HeapAnalyzer$exception: Throwable</ID>
+    <ID>TooManyFunctions:HeapAnalyzer.kt$HeapAnalyzer</ID>
+    <ID>TooManyFunctions:PathFinder.kt$PathFinder</ID>
+  </Whitelist>
+</SmellBaseline>
