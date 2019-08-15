@@ -233,6 +233,7 @@ internal class PathFinder(
   private fun State.enqueueGcRoots() {
     val gcRoots = sortedGcRoots()
 
+    val threadNames = mutableMapOf<HeapInstance, String>()
     val threadsBySerialNumber = mutableMapOf<Int, Pair<HeapInstance, ThreadObject>>()
     gcRoots.forEach { (objectRecord, gcRoot) ->
       if (computeRetainedHeapSize) {
@@ -247,7 +248,11 @@ internal class PathFinder(
           val (threadInstance, threadRoot) = threadsBySerialNumber.getValue(
               gcRoot.threadSerialNumber
           )
-          val threadName = threadInstance[Thread::class, "name"]?.value?.readAsJavaString()
+          val threadName = threadNames[threadInstance] ?: {
+            val name = threadInstance[Thread::class, "name"]?.value?.readAsJavaString()?:""
+            threadNames[threadInstance] = name
+            name
+          }()
           val referenceMatcher = threadNameReferenceMatchers[threadName]
 
           if (referenceMatcher !is IgnoredReferenceMatcher) {

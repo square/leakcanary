@@ -73,6 +73,22 @@ sealed class HprofRecord {
         )
       }
 
+      /**
+       * This isn't a real record type as found in the heap dump. It's an alternative to
+       * [ClassDumpRecord] for when you don't need the class content.
+       */
+      class ClassSkipContentRecord(
+        val id: Long,
+        val stackTraceSerialNumber: Int,
+        val superclassId: Long,
+        val classLoaderId: Long,
+        val signersId: Long,
+        val protectionDomainId: Long,
+        val instanceSize: Int,
+        val staticFieldCount: Int,
+        val fieldCount: Int
+      ) : ObjectRecord()
+
       class InstanceDumpRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
@@ -83,6 +99,16 @@ sealed class HprofRecord {
         val fieldValues: ByteArray
       ) : ObjectRecord()
 
+      /**
+       * This isn't a real record type as found in the heap dump. It's an alternative to
+       * [InstanceDumpRecord] for when you don't need the instance content.
+       */
+      class InstanceSkipContentRecord(
+        val id: Long,
+        val stackTraceSerialNumber: Int,
+        val classId: Long
+      ) : ObjectRecord()
+
       class ObjectArrayDumpRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
@@ -91,11 +117,16 @@ sealed class HprofRecord {
       ) : ObjectRecord()
 
       /**
-       * Note: we could move the arrays to the parent class as a ByteString or ByteArray
-       * and then each subtype can create a new array of the right type if needed.
-       * However, experimenting with live parsing has shown that we never to read arrays except
-       * when we want to display leak trace information, in which case we do need the data.
+       * This isn't a real record type as found in the heap dump. It's an alternative to
+       * [ObjectArrayDumpRecord] for when you don't need the array content.
        */
+      class ObjectArraySkipContentRecord(
+        val id: Long,
+        val stackTraceSerialNumber: Int,
+        val arrayClassId: Long,
+        val size: Int
+      ) : ObjectRecord()
+
       sealed class PrimitiveArrayDumpRecord : ObjectRecord() {
         abstract val id: Long
         abstract val stackTraceSerialNumber: Int
@@ -173,6 +204,17 @@ sealed class HprofRecord {
             get() = array.size
         }
       }
+
+      /**
+       * This isn't a real record type as found in the heap dump. It's an alternative to
+       * [PrimitiveArrayDumpRecord] for when you don't need the array content.
+       */
+      class PrimitiveArraySkipContentRecord(
+        val id: Long,
+        val stackTraceSerialNumber: Int,
+        val size: Int,
+        val type: PrimitiveType
+      ) : ObjectRecord()
     }
 
     class HeapDumpInfoRecord(

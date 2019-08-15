@@ -3,6 +3,7 @@ package shark
 import okio.BufferedSource
 import okio.buffer
 import okio.source
+import shark.Hprof.Companion.open
 import java.io.Closeable
 import java.io.File
 import java.nio.channels.FileChannel
@@ -18,11 +19,12 @@ class Hprof private constructor(
   /** Unix timestamp at which the heap was dumped. */
   val heapDumpTimestamp: Long,
   /** Version of the opened hprof, which is tied to the runtime where the heap was dumped. */
-  val hprofVersion: HprofVersion
+  val hprofVersion: HprofVersion,
+  /**
+   * Length of the hprof file, in bytes.
+   */
+  val fileLength: Long
 ) : Closeable {
-
-  private var lastReaderByteReadCount = reader.byteReadCount
-  private var lastKnownPosition = reader.byteReadCount
 
   override fun close() {
     source.close()
@@ -30,18 +32,17 @@ class Hprof private constructor(
 
   /**
    * Moves [reader] to a new position in the hprof file. This is transparent to the reader, and
-   * will not reset [HprofReader.byteReadCount].
+   * will not reset [HprofReader.position].
    */
   fun moveReaderTo(newPosition: Long) {
-    val currentPosition = lastKnownPosition + (reader.byteReadCount - lastReaderByteReadCount)
+    val currentPosition = reader.position
 
     if (currentPosition == newPosition) {
       return
     }
     source.buffer.clear()
     channel.position(newPosition)
-    lastReaderByteReadCount = reader.byteReadCount
-    lastKnownPosition = newPosition
+    reader.position = newPosition
   }
 
   /**
@@ -56,14 +57,16 @@ class Hprof private constructor(
 
   companion object {
     private val supportedVersions = HprofVersion.values()
-        .map { it.versionString to it }.toMap()
+        .map { it.versionString to it }
+        .toMap()
 
     /**
      * Reads the headers of the provided [hprofFile] and returns an opened [Hprof]. Don't forget
      * to call [close] once done.
      */
     fun open(hprofFile: File): Hprof {
-      if (hprofFile.length() == 0L) {
+      val fileLength = hprofFile.length()
+      if (fileLength == 0L) {
         throw IllegalArgumentException("Hprof file is 0 byte length")
       }
       val inputStream = hprofFile.inputStream()
@@ -91,7 +94,7 @@ class Hprof private constructor(
       val reader = HprofReader(source, identifierByteSize, byteReadCount)
 
       return Hprof(
-          channel, source, reader, heapDumpTimestamp, hprofVersion
+          channel, source, reader, heapDumpTimestamp, hprofVersion, fileLength
       )
     }
   }
