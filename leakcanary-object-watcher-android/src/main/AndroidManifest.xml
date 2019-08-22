@@ -7,7 +7,7 @@
   <application>
     <provider
         android:name="leakcanary.internal.AppWatcherInstaller"
-        android:authorities="${applicationId}.leak-sentry-installer"
+        android:authorities="${applicationId}.leakcanary-installer"
         android:exported="false"/>
   </application>
 </manifest>
