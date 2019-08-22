@@ -56,12 +56,12 @@ internal class LeakDirectoryProvider constructor(
 
     val externalFiles = externalStorageDirectory().listFiles(filter)
     if (externalFiles != null) {
-      files.addAll(Arrays.asList(*externalFiles))
+      files.addAll(externalFiles)
     }
 
     val appFiles = appStorageDirectory().listFiles(filter)
     if (appFiles != null) {
-      files.addAll(Arrays.asList(*appFiles))
+      files.addAll(appFiles)
     }
     return files
   }

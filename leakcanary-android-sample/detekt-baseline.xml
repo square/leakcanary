@@ -1,10 +1,5 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
   <Blacklist></Blacklist>
-  <Whitelist>
-    <ID>MagicNumber:MainActivity.kt$MainActivity$1000</ID>
-    <ID>MagicNumber:MainActivity.kt$MainActivity$4</ID>
-    <ID>NewLineAtEndOfFile:LeakingSingleton.kt$com.example.leakcanary.LeakingSingleton.kt</ID>
-    <ID>NewLineAtEndOfFile:LeakingThread.kt$com.example.leakcanary.LeakingThread.kt</ID>
-  </Whitelist>
+  <Whitelist></Whitelist>
 </SmellBaseline>

@@ -39,7 +39,7 @@ object SharkLog {
   ) {
     // Local variable to prevent the ref from becoming null after the null check.
     val logger = logger ?: return
-    logger.d(message, *args)
+    logger.d(message, args)
   }
 
   /**
@@ -52,6 +52,6 @@ object SharkLog {
   ) {
     // Local variable to prevent the ref from becoming null after the null check.
     val logger = logger ?: return
-    logger.d(throwable, message, *args)
+    logger.d(throwable, message, args)
   }
 }

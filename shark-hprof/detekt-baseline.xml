@@ -2,45 +2,10 @@
 <SmellBaseline>
   <Blacklist></Blacklist>
   <Whitelist>
-    <ID>ComplexMethod:HprofPrimitiveArrayStripper.kt$HprofPrimitiveArrayStripper$ fun stripPrimitiveArrays( inputHprofFile: File, /** * Optional output file. Defaults to a file in the same directory as [inputHprofFile], with * the same name and "-stripped" prepended before the ".hprof" extension. If the file extension * is not ".hprof", then "-stripped" is added at the end of the file. */ outputHprofFile: File = File( inputHprofFile.parent, inputHprofFile.name.replace( ".hprof", "-stripped.hprof" ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-stripped" }) ): File</ID>
     <ID>ComplexMethod:HprofReader.kt$HprofReader$ fun readHprofRecords( recordTypes: Set&lt;KClass&lt;out HprofRecord&gt;&gt;, listener: OnHprofRecordListener )</ID>
-    <ID>ComplexMethod:HprofReader.kt$HprofReader$ fun readPrimitiveArrayDumpRecord(): PrimitiveArrayDumpRecord</ID>
-    <ID>ComplexMethod:HprofReader.kt$HprofReader$ fun readValue(type: Int): ValueHolder</ID>
-    <ID>ComplexMethod:HprofWriter.kt$HprofWriter$private fun BufferedSink.write(record: HprofRecord)</ID>
-    <ID>ComplexMethod:HprofWriter.kt$HprofWriter$private fun BufferedSink.writeValue(wrapper: ValueHolder)</ID>
     <ID>LargeClass:HprofReader.kt$HprofReader</ID>
-    <ID>LongMethod:HprofPrimitiveArrayStripper.kt$HprofPrimitiveArrayStripper$ fun stripPrimitiveArrays( inputHprofFile: File, /** * Optional output file. Defaults to a file in the same directory as [inputHprofFile], with * the same name and "-stripped" prepended before the ".hprof" extension. If the file extension * is not ".hprof", then "-stripped" is added at the end of the file. */ outputHprofFile: File = File( inputHprofFile.parent, inputHprofFile.name.replace( ".hprof", "-stripped.hprof" ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-stripped" }) ): File</ID>
     <ID>LongMethod:HprofReader.kt$HprofReader$ fun readHprofRecords( recordTypes: Set&lt;KClass&lt;out HprofRecord&gt;&gt;, listener: OnHprofRecordListener )</ID>
     <ID>LongMethod:HprofWriter.kt$HprofWriter$private fun BufferedSink.write(record: HprofRecord)</ID>
-    <ID>MagicNumber:Hprof.kt$Hprof.Companion$4</ID>
-    <ID>MagicNumber:Hprof.kt$Hprof.Companion$8</ID>
-    <ID>MagicNumber:HprofReader.kt$HprofReader$0xFFFF</ID>
-    <ID>MagicNumber:HprofReader.kt$HprofReader$4</ID>
-    <ID>MagicNumber:HprofReader.kt$HprofReader$8</ID>
-    <ID>MagicNumber:HprofWriter.kt$HprofWriter$4</ID>
-    <ID>MagicNumber:HprofWriter.kt$HprofWriter$8</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.BOOLEAN$4</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.BYTE$8</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.CHAR$5</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.DOUBLE$7</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.DOUBLE$8</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.FLOAT$4</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.FLOAT$6</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.INT$10</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.INT$4</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.LONG$11</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.LONG$8</ID>
-    <ID>MagicNumber:PrimitiveType.kt$PrimitiveType.SHORT$9</ID>
-    <ID>MaxLineLength:HprofReader.kt$HprofReader$identifierByteSize + INT_SIZE + identifierByteSize + identifierByteSize + identifierByteSize + identifierByteSize + identifierByteSize + identifierByteSize + INT_SIZE</ID>
-    <ID>NestedBlockDepth:HprofReader.kt$HprofReader$ fun readHprofRecords( recordTypes: Set&lt;KClass&lt;out HprofRecord&gt;&gt;, listener: OnHprofRecordListener )</ID>
-    <ID>NewLineAtEndOfFile:GcRoot.kt$shark.GcRoot.kt</ID>
-    <ID>NewLineAtEndOfFile:Hprof.kt$shark.Hprof.kt</ID>
-    <ID>NewLineAtEndOfFile:HprofPrimitiveArrayStripper.kt$shark.HprofPrimitiveArrayStripper.kt</ID>
-    <ID>NewLineAtEndOfFile:HprofRecord.kt$shark.HprofRecord.kt</ID>
-    <ID>NewLineAtEndOfFile:HprofWriter.kt$shark.HprofWriter.kt</ID>
-    <ID>NewLineAtEndOfFile:OnHprofRecordListener.kt$shark.OnHprofRecordListener.kt</ID>
-    <ID>NewLineAtEndOfFile:PrimitiveType.kt$shark.PrimitiveType.kt</ID>
-    <ID>NewLineAtEndOfFile:ValueHolder.kt$shark.ValueHolder.kt</ID>
     <ID>TooManyFunctions:HprofReader.kt$HprofReader</ID>
     <ID>TooManyFunctions:HprofWriter.kt$HprofWriter : Closeable</ID>
   </Whitelist>

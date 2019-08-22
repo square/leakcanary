@@ -773,7 +773,8 @@ class HprofReader constructor(
 
   private fun skipClassDumpRecord() {
     skip(
-        identifierByteSize + INT_SIZE + identifierByteSize + identifierByteSize + identifierByteSize + identifierByteSize + identifierByteSize + identifierByteSize + INT_SIZE
+        identifierByteSize + INT_SIZE + identifierByteSize + identifierByteSize + identifierByteSize +
+            identifierByteSize + identifierByteSize + identifierByteSize + INT_SIZE
     )
     // Skip over the constant pool
     val constantPoolCount = readUnsignedShort()

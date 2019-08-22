@@ -2,97 +2,11 @@
 <SmellBaseline>
   <Blacklist></Blacklist>
   <Whitelist>
-    <ID>ComplexMethod:DisplayLeakAdapter.kt$DisplayLeakAdapter$private fun getConnectorType(position: Int): Type</ID>
-    <ID>ComplexMethod:DisplayLeakAdapter.kt$DisplayLeakAdapter$private fun htmlTitle( element: LeakTraceElement, maybeLeakCause: Boolean, context: Context ): Spanned</ID>
-    <ID>ComplexMethod:DisplayLeakConnectorView.kt$DisplayLeakConnectorView$override fun onDraw(canvas: Canvas)</ID>
-    <ID>ComplexMethod:HeapDumpRenderer.kt$HeapDumpRenderer$fun render( context: Context, heapDumpFile: File, sourceWidth: Int, sourceHeight: Int, /** * If [sourceBytesPerPixel] &gt; 0 then [sourceHeight] will be ignored. */ sourceBytesPerPixel: Int ): Bitmap</ID>
-    <ID>ComplexMethod:HprofExplorerScreen.kt$HprofExplorerScreen$private fun HeapValue.heapValueAsString(): String</ID>
-    <ID>ComplexMethod:InternalLeakCanary.kt$InternalLeakCanary$private fun addDynamicShortcut(application: Application)</ID>
-    <ID>ComplexMethod:LeakCanaryFileProvider.kt$LeakCanaryFileProvider.Companion$ @Throws(IOException::class, XmlPullParserException::class) private fun parsePathStrategy( context: Context, authority: String ): PathStrategy</ID>
-    <ID>ComplexMethod:LeakCanaryFileProvider.kt$LeakCanaryFileProvider.Companion$ private fun modeToMode(mode: String): Int</ID>
-    <ID>ComplexMethod:LeakingInstanceTable.kt$LeakingInstanceTable$fun retrieveGroup( db: SQLiteDatabase, groupHash: String ): Triple&lt;LeakTrace, String, List&lt;InstanceProjection&gt;&gt;?</ID>
-    <ID>EmptyFunctionBlock:HprofExplorerScreen.kt$HprofExplorerScreen.&lt;no name provided&gt;${ }</ID>
-    <ID>EmptyFunctionBlock:Io.kt$Io.&lt;no name provided&gt;${ }</ID>
-    <ID>LongMethod:HeapAnalysisSuccessScreen.kt$HeapAnalysisSuccessScreen$private fun View.onSuccessRetrieved( heapAnalysis: HeapAnalysisSuccess, leakGroupByHash: Map&lt;String, HeapAnalysisGroupProjection&gt;, heapDumpFileExist: Boolean )</ID>
     <ID>LongMethod:HeapDumpRenderer.kt$HeapDumpRenderer$fun render( context: Context, heapDumpFile: File, sourceWidth: Int, sourceHeight: Int, /** * If [sourceBytesPerPixel] &gt; 0 then [sourceHeight] will be ignored. */ sourceBytesPerPixel: Int ): Bitmap</ID>
-    <ID>LongMethod:HprofExplorerScreen.kt$HprofExplorerScreen$override fun createView(container: ViewGroup)</ID>
-    <ID>LongMethod:InternalLeakCanary.kt$InternalLeakCanary$private fun addDynamicShortcut(application: Application)</ID>
-    <ID>LongMethod:LeakingInstanceTable.kt$LeakingInstanceTable$fun retrieveGroup( db: SQLiteDatabase, groupHash: String ): Triple&lt;LeakTrace, String, List&lt;InstanceProjection&gt;&gt;?</ID>
-    <ID>LongMethod:RenderHeapDumpScreen.kt$RenderHeapDumpScreen$override fun createView(container: ViewGroup)</ID>
     <ID>LongParameterList:Notifications.kt$Notifications$( context: Context, contentTitle: CharSequence, contentText: CharSequence, pendingIntent: PendingIntent?, notificationId: Int, type: NotificationType )</ID>
     <ID>LongParameterList:SquigglySpan.kt$SquigglySpan.Companion$( path: Path, left: Float, right: Float, centerY: Float, amplitude: Float, periodDegrees: Float )</ID>
-    <ID>MagicNumber:AndroidHeapDumper.kt$AndroidHeapDumper$5</ID>
-    <ID>MagicNumber:DisplayLeakAdapter.kt$DisplayLeakAdapter$4</ID>
-    <ID>MagicNumber:DisplayLeakAdapter.kt$DisplayLeakAdapter.Companion$0xFFFFFF</ID>
-    <ID>MagicNumber:DisplayLeakConnectorView.kt$DisplayLeakConnectorView$3f</ID>
-    <ID>MagicNumber:DisplayLeakConnectorView.kt$DisplayLeakConnectorView$45f</ID>
-    <ID>MagicNumber:GroupListScreen.kt$GroupListScreen$21</ID>
-    <ID>MagicNumber:HeapAnalysisTable.kt$HeapAnalysisTable$3</ID>
-    <ID>MagicNumber:HeapAnalyzerService.kt$HeapAnalyzerService$100</ID>
-    <ID>MagicNumber:HeapAnalyzerService.kt$HeapAnalyzerService$100f</ID>
-    <ID>MagicNumber:HeapAnalyzerService.kt$HeapAnalyzerService.Companion$26</ID>
-    <ID>MagicNumber:HeapDumpRenderer.kt$HeapDumpRenderer$0.8f</ID>
-    <ID>MagicNumber:HeapDumpRenderer.kt$HeapDumpRenderer$16</ID>
-    <ID>MagicNumber:HeapDumpRenderer.kt$HeapDumpRenderer$4</ID>
-    <ID>MagicNumber:HeapDumpRenderer.kt$HeapDumpRenderer$8</ID>
-    <ID>MagicNumber:InternalLeakCanary.kt$InternalLeakCanary$10</ID>
-    <ID>MagicNumber:InternalLeakCanary.kt$InternalLeakCanary$25</ID>
-    <ID>MagicNumber:LeakCanaryFileProvider.kt$LeakCanaryFileProvider.Companion$19</ID>
-    <ID>MagicNumber:LeakingInstanceTable.kt$LeakingInstanceTable$3</ID>
-    <ID>MagicNumber:LeakingInstanceTable.kt$LeakingInstanceTable$4</ID>
-    <ID>MagicNumber:LeakingInstanceTable.kt$LeakingInstanceTable$5</ID>
-    <ID>MagicNumber:RenderHeapDumpScreen.kt$RenderHeapDumpScreen$100</ID>
-    <ID>MagicNumber:RenderHeapDumpScreen.kt$RenderHeapDumpScreen$1000</ID>
-    <ID>MagicNumber:RenderHeapDumpScreen.kt$RenderHeapDumpScreen$1024</ID>
-    <ID>MagicNumber:RenderHeapDumpScreen.kt$RenderHeapDumpScreen$2048</ID>
-    <ID>MagicNumber:RenderHeapDumpScreen.kt$RenderHeapDumpScreen$4</ID>
-    <ID>MagicNumber:RequestStoragePermissionActivity.kt$RequestStoragePermissionActivity$42</ID>
-    <ID>MagicNumber:RowElementLayout.kt$RowElementLayout$4</ID>
-    <ID>MagicNumber:SquigglySpan.kt$SquigglySpan.Companion$40</ID>
-    <ID>MagicNumber:Views.kt$23</ID>
-    <ID>MaxLineLength:HeapDumpRenderer.kt$HeapDumpRenderer$when (hprofStringCache[localCurrentRecord.heapNameStringId]) { // The primary heap on which your app allocates memory. "app" -&gt; appHeapColor // The system boot image, containing classes that are preloaded during boot time. // Allocations here are guaranteed to never move or go away. "image" -&gt; imageHeapColor // The copy-on-write heap where an app process is forked from in the Android system. "zygote" -&gt; zygoteHeapColor // JNI heap: The heap that shows where Java Native Interface (JNI) references are allocated and released. // default heap: When no heap is specified by the system else -&gt; otherColor }</ID>
-    <ID>MaxLineLength:HeapDumpTrigger.kt$HeapDumpTrigger$return applicationInvisibleAt != -1L &amp;&amp; SystemClock.uptimeMillis() - applicationInvisibleAt &lt; AppWatcher.config.watchDurationMillis</ID>
-    <ID>NestedBlockDepth:HeapDumpRenderer.kt$HeapDumpRenderer$fun render( context: Context, heapDumpFile: File, sourceWidth: Int, sourceHeight: Int, /** * If [sourceBytesPerPixel] &gt; 0 then [sourceHeight] will be ignored. */ sourceBytesPerPixel: Int ): Bitmap</ID>
-    <ID>NestedBlockDepth:HprofExplorerScreen.kt$HprofExplorerScreen$private fun HeapValue.heapValueAsString(): String</ID>
-    <ID>NestedBlockDepth:LeakActivity.kt$LeakActivity$private fun importHprof(fileUri: Uri)</ID>
-    <ID>NestedBlockDepth:LeakingInstanceTable.kt$LeakingInstanceTable$fun retrieveGroup( db: SQLiteDatabase, groupHash: String ): Triple&lt;LeakTrace, String, List&lt;InstanceProjection&gt;&gt;?</ID>
-    <ID>NewLineAtEndOfFile:BackstackFrame.kt$leakcanary.internal.navigation.BackstackFrame.kt</ID>
-    <ID>NewLineAtEndOfFile:Cursors.kt$leakcanary.internal.activity.db.Cursors.kt</ID>
-    <ID>NewLineAtEndOfFile:Db.kt$leakcanary.internal.activity.db.Db.kt</ID>
-    <ID>NewLineAtEndOfFile:DefaultOnHeapAnalyzedListener.kt$leakcanary.DefaultOnHeapAnalyzedListener.kt</ID>
-    <ID>NewLineAtEndOfFile:GroupListScreen.kt$leakcanary.internal.activity.screen.GroupListScreen.kt</ID>
-    <ID>NewLineAtEndOfFile:GroupScreen.kt$leakcanary.internal.activity.screen.GroupScreen.kt</ID>
-    <ID>NewLineAtEndOfFile:HeapAnalysisFailureScreen.kt$leakcanary.internal.activity.screen.HeapAnalysisFailureScreen.kt</ID>
-    <ID>NewLineAtEndOfFile:HeapAnalysisListScreen.kt$leakcanary.internal.activity.screen.HeapAnalysisListScreen.kt</ID>
-    <ID>NewLineAtEndOfFile:HeapAnalysisSuccessScreen.kt$leakcanary.internal.activity.screen.HeapAnalysisSuccessScreen.kt</ID>
-    <ID>NewLineAtEndOfFile:HeapAnalysisTable.kt$leakcanary.internal.activity.db.HeapAnalysisTable.kt</ID>
-    <ID>NewLineAtEndOfFile:HeapDumpRenderer.kt$leakcanary.internal.activity.screen.HeapDumpRenderer.kt</ID>
-    <ID>NewLineAtEndOfFile:HeapDumpTrigger.kt$leakcanary.internal.HeapDumpTrigger.kt</ID>
-    <ID>NewLineAtEndOfFile:Io.kt$leakcanary.internal.activity.db.Io.kt</ID>
-    <ID>NewLineAtEndOfFile:LeakingInstanceScreen.kt$leakcanary.internal.activity.screen.LeakingInstanceScreen.kt</ID>
-    <ID>NewLineAtEndOfFile:LeakingInstanceTable.kt$leakcanary.internal.activity.db.LeakingInstanceTable.kt</ID>
-    <ID>NewLineAtEndOfFile:LeaksDbHelper.kt$leakcanary.internal.activity.db.LeaksDbHelper.kt</ID>
-    <ID>NewLineAtEndOfFile:NotificationReceiver.kt$leakcanary.internal.NotificationReceiver.kt</ID>
-    <ID>NewLineAtEndOfFile:NotificationType.kt$leakcanary.internal.NotificationType.kt</ID>
-    <ID>NewLineAtEndOfFile:OnHeapAnalyzedListener.kt$leakcanary.OnHeapAnalyzedListener.kt</ID>
-    <ID>NewLineAtEndOfFile:Screen.kt$leakcanary.internal.navigation.Screen.kt</ID>
-    <ID>NewLineAtEndOfFile:Serializables.kt$leakcanary.internal.Serializables.kt</ID>
-    <ID>NewLineAtEndOfFile:SimpleListAdapter.kt$leakcanary.internal.activity.ui.SimpleListAdapter.kt</ID>
-    <ID>NewLineAtEndOfFile:SquigglySpan.kt$leakcanary.internal.SquigglySpan.kt</ID>
-    <ID>NewLineAtEndOfFile:Views.kt$leakcanary.internal.navigation.Views.kt</ID>
-    <ID>NewLineAtEndOfFile:VisibilityTracker.kt$leakcanary.internal.VisibilityTracker.kt</ID>
-    <ID>ReturnCount:AndroidHeapDumper.kt$AndroidHeapDumper$override fun dumpHeap(): File?</ID>
     <ID>ReturnCount:DisplayLeakAdapter.kt$DisplayLeakAdapter$private fun getConnectorType(position: Int): Type</ID>
-    <ID>ReturnCount:HeapDumpTrigger.kt$HeapDumpTrigger$private fun checkRetainedCount( retainedKeysCount: Int, retainedVisibleThreshold: Int ): Boolean</ID>
-    <ID>ReturnCount:HeapDumpTrigger.kt$HeapDumpTrigger$private fun checkRetainedObjects(reason: String)</ID>
     <ID>ReturnCount:InternalLeakCanary.kt$InternalLeakCanary$private fun addDynamicShortcut(application: Application)</ID>
-    <ID>ReturnCount:LeakDirectoryProvider.kt$LeakDirectoryProvider$@TargetApi(M) fun hasStoragePermission(): Boolean</ID>
-    <ID>SafeCast:Serializables.kt$Serializables$if (deserializedObject is T) { deserializedObject } else { null }</ID>
-    <ID>SpreadOperator:LeakDirectoryProvider.kt$LeakDirectoryProvider$(*appFiles)</ID>
-    <ID>SpreadOperator:LeakDirectoryProvider.kt$LeakDirectoryProvider$(*externalFiles)</ID>
-    <ID>TooGenericExceptionCaught:AndroidHeapDumper.kt$AndroidHeapDumper$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:Cursors.kt$e: Throwable</ID>
-    <ID>TooGenericExceptionThrown:FutureResult.kt$FutureResult$throw RuntimeException("Did not expect thread to be interrupted", e)</ID>
     <ID>TooManyFunctions:DisplayLeakAdapter.kt$DisplayLeakAdapter : BaseAdapter</ID>
     <ID>TooManyFunctions:HeapDumpTrigger.kt$HeapDumpTrigger</ID>
   </Whitelist>

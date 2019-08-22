@@ -53,10 +53,11 @@ complexity:
     threshold: 10
     includeStaticDeclarations: false
   ComplexMethod:
+    #LeakCanary - increased allowed complexity from 10 to 30; enabled ignores
     active: true
-    threshold: 10
-    ignoreSingleWhenExpression: false
-    ignoreSimpleWhenEntries: false
+    threshold: 30
+    ignoreSingleWhenExpression: true
+    ignoreSimpleWhenEntries: true
   LabeledExpression:
     active: false
     ignoredLabels: ""
@@ -64,18 +65,21 @@ complexity:
     active: true
     threshold: 600
   LongMethod:
+    #LeakCanary - increased from 60 to 90
     active: true
-    threshold: 60
+    threshold: 90
   LongParameterList:
+    #LeakCanary - enabled ignore
     active: true
     threshold: 6
-    ignoreDefaultParameters: false
+    ignoreDefaultParameters: true
   MethodOverloading:
     active: false
     threshold: 6
   NestedBlockDepth:
+    #LeakCanary - increased from 4 to 7
     active: true
-    threshold: 4
+    threshold: 7
   StringLiteralDuplication:
     active: false
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
@@ -84,13 +88,14 @@ complexity:
     excludeStringsWithLessThan5Characters: true
     ignoreStringsRegex: '$^'
   TooManyFunctions:
+    #LeakCanary - increased from 11 to 12
     active: true
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
-    thresholdInFiles: 11
-    thresholdInClasses: 11
-    thresholdInInterfaces: 11
-    thresholdInObjects: 11
-    thresholdInEnums: 11
+    thresholdInFiles: 12
+    thresholdInClasses: 12
+    thresholdInInterfaces: 12
+    thresholdInObjects: 12
+    thresholdInEnums: 12
     ignoreDeprecated: false
     ignorePrivate: false
     ignoreOverridden: false
@@ -113,8 +118,9 @@ empty-blocks:
   EmptyForBlock:
     active: true
   EmptyFunctionBlock:
+    #LeakCanary - allow empty overridden functions
     active: true
-    ignoreOverriddenFunctions: false
+    ignoreOverriddenFunctions: true
   EmptyIfBlock:
     active: true
   EmptyInitBlock:
@@ -157,7 +163,8 @@ exceptions:
   ThrowingNewInstanceOfSameException:
     active: false
   TooGenericExceptionCaught:
-    active: true
+    #LeakCanary - disabled
+    active: false
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
     exceptionNames:
      - ArrayIndexOutOfBoundsException
@@ -170,7 +177,8 @@ exceptions:
      - Throwable
     allowedExceptionNameRegex: "^(_|(ignore|expected).*)"
   TooGenericExceptionThrown:
-    active: true
+    #LeakCanary - disabled
+    active: false
     exceptionNames:
      - Error
      - Exception
@@ -384,7 +392,7 @@ potential-bugs:
   EqualsWithHashCodeExist:
     active: true
   ExplicitGarbageCollectionCall:
-    #LeakCanary custom rule - we want to trigger GC manually
+    #LeakCanary - we want to trigger GC manually
     active: false
   InvalidRange:
     active: false
@@ -451,7 +459,8 @@ style:
     active: false
     maxJumpCount: 1
   MagicNumber:
-    active: true
+    #LeakCanary - disabled
+    active: false
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
     ignoreNumbers: '-1,0,1,2'
     ignoreHashCodeFunction: true
@@ -465,8 +474,9 @@ style:
   MandatoryBracesIfStatements:
     active: false
   MaxLineLength:
+    #LeakCanary - increased from 120 to 150
     active: true
-    maxLineLength: 120
+    maxLineLength: 150
     excludePackageStatements: true
     excludeImportStatements: true
     excludeCommentStatements: false
@@ -477,7 +487,8 @@ style:
   NestedClassesVisibility:
     active: false
   NewLineAtEndOfFile:
-    active: true
+    #LeakCanary - disabled
+    active: false
   NoTabs:
     active: false
   OptionalAbstractKeyword:
@@ -493,8 +504,9 @@ style:
   RedundantVisibilityModifierRule:
     active: false
   ReturnCount:
+    #LeakCanary - increased from 2 to 4
     active: true
-    max: 2
+    max: 4
     excludedFunctions: "equals"
     excludeLabeled: false
     excludeReturnFromLambda: true

@@ -686,7 +686,8 @@ enum class AndroidReferenceMatchers {
           "mContext"
           ,
           description =
-          "SemClipboardManager is held in memory by an anonymous inner class" + " implementation of android.os.Binder, thereby leaking an activity context."
+          "SemClipboardManager is held in memory by an anonymous inner class" +
+            " implementation of android.os.Binder, thereby leaking an activity context."
       ) {
         manufacturer == SAMSUNG && sdkInt in 19..24
       }
@@ -695,7 +696,8 @@ enum class AndroidReferenceMatchers {
           "this$0"
           ,
           description =
-          "SemClipboardManager is held in memory by an anonymous inner class" + " implementation of android.os.Binder, thereby leaking an activity context."
+          "SemClipboardManager is held in memory by an anonymous inner class" +
+            " implementation of android.os.Binder, thereby leaking an activity context."
       ) {
         manufacturer == SAMSUNG && sdkInt in 22..28
       }
@@ -743,7 +745,8 @@ enum class AndroidReferenceMatchers {
           "com.samsung.android.emergencymode.SemEmergencyManager", "mContext"
           ,
           description =
-          "SemEmergencyManager is a static singleton that leaks a DecorContext." + " Fix: https://gist.github.com/jankovd/a210460b814c04d500eb12025902d60d"
+          "SemEmergencyManager is a static singleton that leaks a DecorContext." +
+            " Fix: https://gist.github.com/jankovd/a210460b814c04d500eb12025902d60d"
       ) {
         manufacturer == SAMSUNG && sdkInt in 19..24
       }
@@ -907,7 +910,8 @@ enum class AndroidReferenceMatchers {
           "android.gestureboost.GestureBoostManager", "mContext"
           ,
           description =
-          "GestureBoostManager is a static singleton that leaks an activity context." + " Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756"
+          "GestureBoostManager is a static singleton that leaks an activity context." +
+            " Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756"
       ) {
         manufacturer == HUAWEI && sdkInt in 24..25
       }

@@ -1,14 +1,5 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
   <Blacklist></Blacklist>
-  <Whitelist>
-    <ID>EmptyFunctionBlock:InternalAppWatcher.kt$InternalAppWatcher.NoLeakCanary${ }</ID>
-    <ID>MagicNumber:AppWatcher.kt$AppWatcher.Config$5</ID>
-    <ID>MagicNumber:DefaultCanaryLog.kt$DefaultCanaryLog$4000</ID>
-    <ID>NewLineAtEndOfFile:AppWatcher.kt$leakcanary.AppWatcher.kt</ID>
-    <ID>NewLineAtEndOfFile:AppWatcherInstaller.kt$leakcanary.internal.AppWatcherInstaller.kt</ID>
-    <ID>NewLineAtEndOfFile:DefaultCanaryLog.kt$leakcanary.internal.DefaultCanaryLog.kt</ID>
-    <ID>NewLineAtEndOfFile:InternalAppWatcher.kt$leakcanary.internal.InternalAppWatcher.kt</ID>
-    <ID>SpreadOperator:DefaultCanaryLog.kt$DefaultCanaryLog$(message, *args)</ID>
-  </Whitelist>
+  <Whitelist></Whitelist>
 </SmellBaseline>

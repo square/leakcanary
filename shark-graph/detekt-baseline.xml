@@ -2,50 +2,6 @@
 <SmellBaseline>
   <Blacklist></Blacklist>
   <Whitelist>
-    <ID>ComplexMethod:HeapObject.kt$HeapObject.HeapInstance$ fun readAsJavaString(): String?</ID>
-    <ID>ComplexMethod:HprofInMemoryIndex.kt$HprofInMemoryIndex.Builder$override fun onHprofRecord( position: Long, record: HprofRecord )</ID>
-    <ID>MagicNumber:HHPC.kt$HHPC$16</ID>
-    <ID>MagicNumber:HHPC.kt$HHPC$32</ID>
-    <ID>MagicNumber:HHPC.kt$HHPC$4</ID>
-    <ID>MagicNumber:HHPC.kt$HHPC$8</ID>
-    <ID>MagicNumber:HprofHeapGraph.kt$HprofHeapGraph$3000</ID>
-    <ID>MagicNumber:LongLongScatterMap.kt$LongLongScatterMap$0.75</ID>
-    <ID>MagicNumber:LongLongScatterMap.kt$LongLongScatterMap$4</ID>
-    <ID>MagicNumber:LongObjectScatterMap.kt$LongObjectScatterMap$0.75</ID>
-    <ID>MagicNumber:LongObjectScatterMap.kt$LongObjectScatterMap$4</ID>
-    <ID>MagicNumber:LongScatterSet.kt$LongScatterSet$0.75</ID>
-    <ID>MagicNumber:LongScatterSet.kt$LongScatterSet$4</ID>
-    <ID>MagicNumber:LruCache.kt$LruCache$100</ID>
-    <ID>MagicNumber:LruCache.kt$LruCache.&lt;no name provided&gt;$0.75f</ID>
-    <ID>MaxLineLength:HeapObject.kt$HeapObject.HeapInstance$return readFields().firstOrNull { field -&gt; field.declaringClass.name == declaringClassName &amp;&amp; field.name == fieldName }</ID>
-    <ID>NestedBlockDepth:LongLongScatterMap.kt$LongLongScatterMap$fun forEach(block: (Long, Long) -&gt; Unit)</ID>
-    <ID>NewLineAtEndOfFile:FieldValuesReader.kt$shark.internal.FieldValuesReader.kt</ID>
-    <ID>NewLineAtEndOfFile:GraphContext.kt$shark.GraphContext.kt</ID>
-    <ID>NewLineAtEndOfFile:HHPC.kt$shark.internal.hppc.HHPC.kt</ID>
-    <ID>NewLineAtEndOfFile:HeapField.kt$shark.HeapField.kt</ID>
-    <ID>NewLineAtEndOfFile:HeapGraph.kt$shark.HeapGraph.kt</ID>
-    <ID>NewLineAtEndOfFile:HeapObject.kt$shark.HeapObject.kt</ID>
-    <ID>NewLineAtEndOfFile:HprofHeapGraph.kt$shark.HprofHeapGraph.kt</ID>
-    <ID>NewLineAtEndOfFile:HprofInMemoryIndex.kt$shark.internal.HprofInMemoryIndex.kt</ID>
-    <ID>NewLineAtEndOfFile:IndexedObject.kt$shark.internal.IndexedObject.kt</ID>
-    <ID>NewLineAtEndOfFile:LongScatterSet.kt$shark.internal.hppc.LongScatterSet.kt</ID>
-    <ID>NewLineAtEndOfFile:LruCache.kt$shark.internal.LruCache.kt</ID>
-    <ID>ReturnCount:HeapObject.kt$HeapObject.HeapInstance$ fun readAsJavaString(): String?</ID>
-    <ID>ReturnCount:LongLongScatterMap.kt$LongLongScatterMap$fun containsKey(key: Long): Boolean</ID>
-    <ID>ReturnCount:LongLongScatterMap.kt$LongLongScatterMap$fun remove(key: Long): Long</ID>
-    <ID>ReturnCount:LongLongScatterMap.kt$LongLongScatterMap$operator fun get(key: Long): Long?</ID>
-    <ID>ReturnCount:LongLongScatterMap.kt$LongLongScatterMap$operator fun set( key: Long, value: Long ): Long</ID>
-    <ID>ReturnCount:LongObjectScatterMap.kt$LongObjectScatterMap$fun containsKey(key: Long): Boolean</ID>
-    <ID>ReturnCount:LongObjectScatterMap.kt$LongObjectScatterMap$fun remove(key: Long): T?</ID>
-    <ID>ReturnCount:LongObjectScatterMap.kt$LongObjectScatterMap$operator fun get(key: Long): T?</ID>
-    <ID>ReturnCount:LongObjectScatterMap.kt$LongObjectScatterMap$operator fun set( key: Long, value: T ): T?</ID>
-    <ID>ReturnCount:LongScatterSet.kt$LongScatterSet$fun add(key: Long): Boolean</ID>
-    <ID>ReturnCount:LongScatterSet.kt$LongScatterSet$operator fun contains(key: Long): Boolean</ID>
-    <ID>TooGenericExceptionThrown:HHPC.kt$HHPC$throw RuntimeException( String.format( Locale.ROOT, "Maximum array size exceeded for this load factor (elements: %d, load factor: %f)", elements, loadFactor ) )</ID>
-    <ID>TooGenericExceptionThrown:LongLongScatterMap.kt$LongLongScatterMap$throw RuntimeException( String.format( Locale.ROOT, "Not enough memory to allocate buffers for rehashing: %,d -&gt; %,d", this.mask + 1, arraySize ), e )</ID>
-    <ID>TooGenericExceptionThrown:LongObjectScatterMap.kt$LongObjectScatterMap$throw RuntimeException( String.format( Locale.ROOT, "Not enough memory to allocate buffers for rehashing: %,d -&gt; %,d", this.mask + 1, arraySize ), e )</ID>
-    <ID>TooGenericExceptionThrown:LongScatterSet.kt$LongScatterSet$throw RuntimeException( String.format( Locale.ROOT, "Not enough memory to allocate buffers for rehashing: %,d -&gt; %,d", size(), arraySize ), e )</ID>
-    <ID>TooManyFunctions:HeapObject.kt$HeapObject$HeapInstance : HeapObject</ID>
     <ID>TooManyFunctions:HprofHeapGraph.kt$HprofHeapGraph : HeapGraph</ID>
     <ID>TooManyFunctions:LongLongScatterMap.kt$LongLongScatterMap</ID>
     <ID>TooManyFunctions:LongObjectScatterMap.kt$LongObjectScatterMap&lt;T&gt;</ID>
