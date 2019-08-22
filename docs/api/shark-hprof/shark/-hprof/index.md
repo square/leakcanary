@@ -17,6 +17,7 @@ forget to call [close](close.md) once done.
 
 | Name | Summary |
 |---|---|
+| [fileLength](file-length.md) | `val fileLength: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>Length of the hprof file, in bytes. |
 | [heapDumpTimestamp](heap-dump-timestamp.md) | `val heapDumpTimestamp: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>Unix timestamp at which the heap was dumped. |
 | [hprofVersion](hprof-version.md) | `val hprofVersion: `[`Hprof.HprofVersion`](-hprof-version/index.md)<br>Version of the opened hprof, which is tied to the runtime where the heap was dumped. |
 | [reader](reader.md) | `val reader: `[`HprofReader`](../-hprof-reader/index.md) |
@@ -26,7 +27,7 @@ forget to call [close](close.md) once done.
 | Name | Summary |
 |---|---|
 | [close](close.md) | `fun close(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
-| [moveReaderTo](move-reader-to.md) | `fun moveReaderTo(newPosition: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Moves [reader](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.io/java.io.-file/reader.html) to a new position in the hprof file. This is transparent to the reader, and will not reset [HprofReader.byteReadCount](../-hprof-reader/byte-read-count.md). |
+| [moveReaderTo](move-reader-to.md) | `fun moveReaderTo(newPosition: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Moves [reader](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.io/java.io.-file/reader.html) to a new position in the hprof file. This is transparent to the reader, and will not reset [HprofReader.position](../-hprof-reader/position.md). |
 
 ### Companion Object Functions
 

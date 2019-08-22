@@ -12,12 +12,10 @@ git checkout -b release_1.5
 VERSION_NAME = "1.5"
 ```
 
-* Update the `dependencies` sample block in `docs/getting_started.md`
-```gradle
-dependencies {
-  // debugImplementation because LeakCanary should only run in debug builds.
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-alpha-3'
-}
+* Find all doc references to the current version and update them:
+
+```
+grep -R "2.0-beta-2" docs/
 ```
 
 * Generate the Dokka docs
@@ -28,7 +26,7 @@ rm -rf docs/api
 ```
 
 * Update `docs/changelog.md` after checking out all changes:
-  * https://github.com/square/leakcanary/compare/v1.4...master
+    * https://github.com/square/leakcanary/compare/v1.4...master
 * Take one last look
 ```
 git diff
@@ -71,12 +69,12 @@ SONATYPE_NEXUS_PASSWORD=
 ```
 
 * Release to Maven Central
-  * Login to Sonatype OSS Nexus: https://oss.sonatype.org/
-  * Click on **Staging Repositories**
-  * Scroll to the bottom, you should see an entry named `comsquareup-XXXX`
-  * Check the box next to the `comsquareup-XXXX` entry, click **Close** then **Confirm**
-  * Wait a bit, hit **Refresh**, until the *Status* for that column changes to *Closed*.
-  * Check the box next to the `comsquareup-XXXX` entry, click **Release** then **Confirm**
+    * Login to Sonatype OSS Nexus: https://oss.sonatype.org/
+    * Click on **Staging Repositories**
+    * Scroll to the bottom, you should see an entry named `comsquareup-XXXX`
+    * Check the box next to the `comsquareup-XXXX` entry, click **Close** then **Confirm**
+    * Wait a bit, hit **Refresh**, until the *Status* for that column changes to *Closed*.
+    * Check the box next to the `comsquareup-XXXX` entry, click **Release** then **Confirm**
 * Merge the release branch to master
 ```
 git checkout master
