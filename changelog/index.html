@@ -407,6 +407,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-20-beta-3-2019-08-22" title="Version 2.0 Beta 3 (2019-08-22)" class="md-nav__link">
+    Version 2.0 Beta 3 (2019-08-22)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-20-beta-2-2019-08-02" title="Version 2.0 Beta 2 (2019-08-02)" class="md-nav__link">
     Version 2.0 Beta 2 (2019-08-02)
   </a>
@@ -1002,6 +1009,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-20-beta-3-2019-08-22" title="Version 2.0 Beta 3 (2019-08-22)" class="md-nav__link">
+    Version 2.0 Beta 3 (2019-08-22)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-20-beta-2-2019-08-02" title="Version 2.0 Beta 2 (2019-08-02)" class="md-nav__link">
     Version 2.0 Beta 2 (2019-08-02)
   </a>
@@ -1227,9 +1241,24 @@
                 
                 
                 <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
-<h2 id="version-20-beta-2-2019-08-02">Version 2.0 Beta 2 (2019-08-02)<a class="headerlink" href="#version-20-beta-2-2019-08-02" title="Permanent link">&para;</a></h2>
-<p>LeakCanary 2 reached <strong>beta status</strong>: the internals and APIs are mostly stable.</p>
+<h2 id="version-20-beta-3-2019-08-22">Version 2.0 Beta 3 (2019-08-22)<a class="headerlink" href="#version-20-beta-3-2019-08-22" title="Permanent link">&para;</a></h2>
+<p>LeakCanary 2 is in <strong>beta</strong>: the internals and APIs are mostly stable.</p>
 <p>Now is a great time to adopt it and provide feedback before the stable release. We&rsquo;re counting on you to find bugs and suggest improvements! Check out the new <a href="https://square.github.io/leakcanary/getting_started">Getting Started</a> instructions and the <a href="https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/">migration guide</a>. </p>
+<ul>
+<li>Baseline memory usage for large hprofs divided by 3 and removed memory spikes <a href="https://github.com/square/leakcanary/pull/1543">#1543</a></li>
+<li>Fixed crash when LeakCanary is initialized from another process <a href="https://github.com/square/leakcanary/issues/1529">#1529</a></li>
+<li>Java local references are deprioritized to look for longer alternative paths <a href="https://github.com/square/leakcanary/pull/1525">#1525</a></li>
+<li>Fixed <code>JavaLocalPattern</code> not matching on Lollipop <a href="https://github.com/square/leakcanary/pull/1524">#1524</a></li>
+</ul>
+<p>Many thanks to
+<a href="https://github.com/Armaxis">@Armaxis</a>,
+<a href="https://github.com/elihart">@elihart</a>,
+<a href="https://github.com/emartynov">@emartynov</a>,
+<a href="https://github.com/hmcgreevy-instil">@hmcgreevy-instil</a>,
+<a href="https://github.com/pyricau">@pyricau</a>
+for the contributions, bug reports and feature requests.</p>
+<p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/11">2.0-beta-3 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.0-beta-2...v2.0-beta-3">full diff</a>.</p>
+<h2 id="version-20-beta-2-2019-08-02">Version 2.0 Beta 2 (2019-08-02)<a class="headerlink" href="#version-20-beta-2-2019-08-02" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Fixed <em>Leak analysis failed: Object id not found in heap dump.</em> <a href="https://github.com/square/leakcanary/issues/1516">#1516</a></li>
 <li>10x speed increase of hprof indexing on large heap dumps <a href="https://github.com/square/leakcanary/pull/1520">#1520</a></li>

@@ -818,16 +818,32 @@
 <td><code>class ClassDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
 </tr>
 <tr>
+<td><a href="-class-skip-content-record/">ClassSkipContentRecord</a></td>
+<td><code>class ClassSkipContentRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>This isn&rsquo;t a real record type as found in the heap dump. It&rsquo;s an alternative to <a href="-class-dump-record/">ClassDumpRecord</a> for when you don&rsquo;t need the class content.</td>
+</tr>
+<tr>
 <td><a href="-instance-dump-record/">InstanceDumpRecord</a></td>
 <td><code>class InstanceDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
+</tr>
+<tr>
+<td><a href="-instance-skip-content-record/">InstanceSkipContentRecord</a></td>
+<td><code>class InstanceSkipContentRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>This isn&rsquo;t a real record type as found in the heap dump. It&rsquo;s an alternative to <a href="-instance-dump-record/">InstanceDumpRecord</a> for when you don&rsquo;t need the instance content.</td>
 </tr>
 <tr>
 <td><a href="-object-array-dump-record/">ObjectArrayDumpRecord</a></td>
 <td><code>class ObjectArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
 </tr>
 <tr>
+<td><a href="-object-array-skip-content-record/">ObjectArraySkipContentRecord</a></td>
+<td><code>class ObjectArraySkipContentRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>This isn&rsquo;t a real record type as found in the heap dump. It&rsquo;s an alternative to <a href="-object-array-dump-record/">ObjectArrayDumpRecord</a> for when you don&rsquo;t need the array content.</td>
+</tr>
+<tr>
 <td><a href="-primitive-array-dump-record/">PrimitiveArrayDumpRecord</a></td>
-<td><code>sealed class PrimitiveArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>Note: we could move the arrays to the parent class as a ByteString or ByteArray and then each subtype can create a new array of the right type if needed. However, experimenting with live parsing has shown that we never to read arrays except when we want to display leak trace information, in which case we do need the data.</td>
+<td><code>sealed class PrimitiveArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
+</tr>
+<tr>
+<td><a href="-primitive-array-skip-content-record/">PrimitiveArraySkipContentRecord</a></td>
+<td><code>class PrimitiveArraySkipContentRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>This isn&rsquo;t a real record type as found in the heap dump. It&rsquo;s an alternative to <a href="-primitive-array-dump-record/">PrimitiveArrayDumpRecord</a> for when you don&rsquo;t need the array content.</td>
 </tr>
 </tbody>
 </table>
@@ -845,16 +861,32 @@
 <td><code>class ClassDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
 </tr>
 <tr>
+<td><a href="-class-skip-content-record/">ClassSkipContentRecord</a></td>
+<td><code>class ClassSkipContentRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>This isn&rsquo;t a real record type as found in the heap dump. It&rsquo;s an alternative to <a href="-class-dump-record/">ClassDumpRecord</a> for when you don&rsquo;t need the class content.</td>
+</tr>
+<tr>
 <td><a href="-instance-dump-record/">InstanceDumpRecord</a></td>
 <td><code>class InstanceDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
+</tr>
+<tr>
+<td><a href="-instance-skip-content-record/">InstanceSkipContentRecord</a></td>
+<td><code>class InstanceSkipContentRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>This isn&rsquo;t a real record type as found in the heap dump. It&rsquo;s an alternative to <a href="-instance-dump-record/">InstanceDumpRecord</a> for when you don&rsquo;t need the instance content.</td>
 </tr>
 <tr>
 <td><a href="-object-array-dump-record/">ObjectArrayDumpRecord</a></td>
 <td><code>class ObjectArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
 </tr>
 <tr>
+<td><a href="-object-array-skip-content-record/">ObjectArraySkipContentRecord</a></td>
+<td><code>class ObjectArraySkipContentRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>This isn&rsquo;t a real record type as found in the heap dump. It&rsquo;s an alternative to <a href="-object-array-dump-record/">ObjectArrayDumpRecord</a> for when you don&rsquo;t need the array content.</td>
+</tr>
+<tr>
 <td><a href="-primitive-array-dump-record/">PrimitiveArrayDumpRecord</a></td>
-<td><code>sealed class PrimitiveArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>Note: we could move the arrays to the parent class as a ByteString or ByteArray and then each subtype can create a new array of the right type if needed. However, experimenting with live parsing has shown that we never to read arrays except when we want to display leak trace information, in which case we do need the data.</td>
+<td><code>sealed class PrimitiveArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
+</tr>
+<tr>
+<td><a href="-primitive-array-skip-content-record/">PrimitiveArraySkipContentRecord</a></td>
+<td><code>class PrimitiveArraySkipContentRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a><br>This isn&rsquo;t a real record type as found in the heap dump. It&rsquo;s an alternative to <a href="-primitive-array-dump-record/">PrimitiveArrayDumpRecord</a> for when you don&rsquo;t need the array content.</td>
 </tr>
 </tbody>
 </table>

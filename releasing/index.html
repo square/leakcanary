@@ -808,24 +808,24 @@ git checkout -b release_1.5
 </pre></div></p>
 </li>
 <li>
-<p>Update the <code>dependencies</code> sample block in <code>docs/getting_started.md</code>
-<div class="codehilite"><pre><span></span>dependencies {
-  // debugImplementation because LeakCanary should only run in debug builds.
-  debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.0-alpha-3&#39;
-}
-</pre></div></p>
+<p>Find all doc references to the current version and update them:</p>
 </li>
-<li>
-<p>Generate the Dokka docs</p>
-</li>
+</ul>
+<div class="codehilite"><pre><span></span>grep -R &quot;2.0-beta-2&quot; docs/
+</pre></div>
+
+<ul>
+<li>Generate the Dokka docs</li>
 </ul>
 <div class="codehilite"><pre><span></span>rm -rf docs/api
 ./gradlew shark:dokka shark-android:dokka leakcanary-android-core:dokka leakcanary-android-instrumentation:dokka leakcanary-android-process:dokka shark-graph:dokka shark-hprof:dokka leakcanary-object-watcher-android:dokka shark-log:dokka leakcanary-object-watcher:dokka
 </pre></div>
 
 <ul>
-<li>Update <code>docs/changelog.md</code> after checking out all changes:</li>
+<li>Update <code>docs/changelog.md</code> after checking out all changes:<ul>
 <li><a href="https://github.com/square/leakcanary/compare/v1.4...master">https://github.com/square/leakcanary/compare/v1.4...master</a></li>
+</ul>
+</li>
 <li>
 <p>Take one last look
 <div class="codehilite"><pre><span></span>git diff
@@ -858,23 +858,25 @@ SONATYPE_NEXUS_PASSWORD=
 <ul>
 <li>Upload the artifacts to Sonatype OSS Nexus</li>
 </ul>
-<div class="codehilite"><pre><span></span>./gradlew uploadArchives
+<div class="codehilite"><pre><span></span>./gradlew uploadArchives --no-daemon --no-parallel
 </pre></div>
 
 <ul>
 <li>Generate the CLI zip</li>
 </ul>
-<div class="codehilite"><pre><span></span>./gradlew leakcanary-cli:distZip
+<div class="codehilite"><pre><span></span>./gradlew shark-cli:distZip
 </pre></div>
 
 <ul>
-<li>Release to Maven Central</li>
+<li>Release to Maven Central<ul>
 <li>Login to Sonatype OSS Nexus: <a href="https://oss.sonatype.org/">https://oss.sonatype.org/</a></li>
 <li>Click on <strong>Staging Repositories</strong></li>
 <li>Scroll to the bottom, you should see an entry named <code>comsquareup-XXXX</code></li>
 <li>Check the box next to the <code>comsquareup-XXXX</code> entry, click <strong>Close</strong> then <strong>Confirm</strong></li>
 <li>Wait a bit, hit <strong>Refresh</strong>, until the <em>Status</em> for that column changes to <em>Closed</em>.</li>
 <li>Check the box next to the <code>comsquareup-XXXX</code> entry, click <strong>Release</strong> then <strong>Confirm</strong></li>
+</ul>
+</li>
 <li>Merge the release branch to master
 <div class="codehilite"><pre><span></span>git checkout master
 git pull
@@ -888,21 +890,25 @@ git merge --no-ff release_1.5
    debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.0-alpha-4-SNAPSHOT&#39;
  }
 </pre></div></li>
-<li>Commit your changes
+<li>
+<p>Commit your changes
 <div class="codehilite"><pre><span></span>git commit -am &quot;Prepare for next development iteration&quot;
-</pre></div></li>
-</ul>
-<p>Wait for the release to be available <a href="https://repo1.maven.org/maven2/com/squareup/leakcanary/leakcanary-android/">on Maven Central</a>.</p>
-<ul>
-<li>Push your changes
+</pre></div></p>
+</li>
+<li>
+<p>Push your changes
 <div class="codehilite"><pre><span></span>git push
-</pre></div></li>
-<li>Go to <a href="https://github.com/square/leakcanary/milestones">Milestones</a>, rename the current release to the version just released, and create a new <em>Next Release</em> milestone.</li>
+</pre></div></p>
+</li>
+<li>
+<p>Go to <a href="https://github.com/square/leakcanary/milestones">Milestones</a>, rename the current release to the version just released, and create a new <em>Next Release</em> milestone.</p>
+</li>
+<li>Wait for the release to be available <a href="https://repo1.maven.org/maven2/com/squareup/leakcanary/leakcanary-android/">on Maven Central</a>.</li>
 <li>Redeploy the docs: <code>mkdocs serve</code> to check locally, <code>mkdocs gh-deploy</code> to deploy.</li>
 <li>Go to the <a href="https://github.com/square/leakcanary/releases/new">Draft a new release</a> page, enter the release name (v1.5) as tag and title, and have the description point to the changelog. You can find the direct anchor URL from the <a href="https://square.github.io/leakcanary/changelog">Change Log</a> page on the doc site.
 <div class="codehilite"><pre><span></span>See [Change Log](https://square.github.io/leakcanary/changelog#version-20-alpha-2-2019-05-21)
 </pre></div></li>
-<li>Add the CLIP zip from <code>leakcanary-cli/build/distributions/</code> to the release. Update the documentation to point to it.</li>
+<li>Add the CLIP zip from <code>shark-cli/build/distributions/</code> to the release. Update the documentation to point to it.</li>
 <li>Tell your friends, update all of your apps, and tweet the new release. As a nice extra touch, mention external contributions.</li>
 </ul>
                 

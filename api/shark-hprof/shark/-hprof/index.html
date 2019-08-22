@@ -845,6 +845,10 @@ forget to call <a href="close/">close</a> once done.</p>
 </thead>
 <tbody>
 <tr>
+<td><a href="file-length/">fileLength</a></td>
+<td><code>val fileLength:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>Length of the hprof file, in bytes.</td>
+</tr>
+<tr>
 <td><a href="heap-dump-timestamp/">heapDumpTimestamp</a></td>
 <td><code>val heapDumpTimestamp:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>Unix timestamp at which the heap was dumped.</td>
 </tr>
@@ -873,7 +877,7 @@ forget to call <a href="close/">close</a> once done.</p>
 </tr>
 <tr>
 <td><a href="move-reader-to/">moveReaderTo</a></td>
-<td><code>fun moveReaderTo(newPosition:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Moves <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.io/java.io.-file/reader.html">reader</a> to a new position in the hprof file. This is transparent to the reader, and will not reset <a href="../-hprof-reader/byte-read-count/">HprofReader.byteReadCount</a>.</td>
+<td><code>fun moveReaderTo(newPosition:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Moves <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.io/java.io.-file/reader.html">reader</a> to a new position in the hprof file. This is transparent to the reader, and will not reset <a href="../-hprof-reader/position/">HprofReader.position</a>.</td>
 </tr>
 </tbody>
 </table>

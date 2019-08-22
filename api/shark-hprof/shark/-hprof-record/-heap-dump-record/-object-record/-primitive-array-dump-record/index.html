@@ -811,10 +811,6 @@
                 <p><a href="../../../../../">shark-hprof</a> / <a href="../../../../">shark</a> / <a href="../../../">HprofRecord</a> / <a href="../../">HeapDumpRecord</a> / <a href="../">ObjectRecord</a> / <a href="./">PrimitiveArrayDumpRecord</a></p>
 <h1 id="primitivearraydumprecord">PrimitiveArrayDumpRecord<a class="headerlink" href="#primitivearraydumprecord" title="Permanent link">&para;</a></h1>
 <p><code>sealed class PrimitiveArrayDumpRecord :</code><a href="../"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></p>
-<p>Note: we could move the arrays to the parent class as a ByteString or ByteArray
-and then each subtype can create a new array of the right type if needed.
-However, experimenting with live parsing has shown that we never to read arrays except
-when we want to display leak trace information, in which case we do need the data.</p>
 <h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
 <table>
 <thead>

@@ -827,7 +827,7 @@ is largely adapted from <a href="https://android.googlesource.com/platform/tools
 <tbody>
 <tr>
 <td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>HprofReader(source: BufferedSource, identifierByteSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>, startByteReadCount:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>= 0L)</code><br>Reads hprof content from an Okio <a href="#">BufferedSource</a>.</td>
+<td><code>HprofReader(source: BufferedSource, identifierByteSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>, startPosition:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>= 0L)</code><br>Reads hprof content from an Okio <a href="#">BufferedSource</a>.</td>
 </tr>
 </tbody>
 </table>
@@ -841,16 +841,16 @@ is largely adapted from <a href="https://android.googlesource.com/platform/tools
 </thead>
 <tbody>
 <tr>
-<td><a href="byte-read-count/">byteReadCount</a></td>
-<td><code>var byteReadCount:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>Starts at <a href="start-byte-read-count/">startByteReadCount</a> and increases as <a href="./">HprofReader</a> reads bytes. This is useful for tracking the position of content in the backing <a href="#">source</a>. This never resets.</td>
-</tr>
-<tr>
 <td><a href="identifier-byte-size/">identifierByteSize</a></td>
 <td><code>val identifierByteSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><br>Size of Hprof identifiers. Identifiers are used to represent UTF8 strings, objects, stack traces, etc. They can have the same size as host pointers or sizeof(void*), but are not required to be.</td>
 </tr>
 <tr>
-<td><a href="start-byte-read-count/">startByteReadCount</a></td>
-<td><code>val startByteReadCount:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>How many bytes have already been read from <a href="#">source</a> when this <a href="./">HprofReader</a> is created.</td>
+<td><a href="position/">position</a></td>
+<td><code>var position:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>Starts at <a href="start-position/">startPosition</a> and increases as <a href="./">HprofReader</a> reads bytes. This is useful for tracking the position of content in the backing <a href="#">source</a>. This never resets.</td>
+</tr>
+<tr>
+<td><a href="start-position/">startPosition</a></td>
+<td><code>val startPosition:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>How many bytes have already been read from <a href="#">source</a> when this <a href="./">HprofReader</a> is created.</td>
 </tr>
 </tbody>
 </table>
@@ -868,20 +868,36 @@ is largely adapted from <a href="https://android.googlesource.com/platform/tools
 <td><code>fun readClassDumpRecord():</code><a href="../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord</code></a><br>Reads a full class record after a class dump tag.</td>
 </tr>
 <tr>
+<td><a href="read-class-skip-content-record/">readClassSkipContentRecord</a></td>
+<td><code>fun readClassSkipContentRecord():</code><a href="../-hprof-record/-heap-dump-record/-object-record/-class-skip-content-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.ClassSkipContentRecord</code></a><br>Reads a class record after a class dump tag, skipping its content.</td>
+</tr>
+<tr>
 <td><a href="read-hprof-records/">readHprofRecords</a></td>
-<td><code>fun readHprofRecords(recordTypes:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html"><code>KClass</code></a><code>&lt;out</code><a href="../-hprof-record/"><code>HprofRecord</code></a><code>&gt;&gt;, listener:</code><a href="../-on-hprof-record-listener/"><code>OnHprofRecordListener</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Reads all hprof records from <a href="#">source</a>. Assumes the <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.io/java.io.-file/reader.html">reader</a> was just created, with a source that currently points to the start position of hprof records.</td>
+<td><code>fun readHprofRecords(recordTypes:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html"><code>KClass</code></a><code>&lt;out</code><a href="../-hprof-record/"><code>HprofRecord</code></a><code>&gt;&gt;, listener:</code><a href="../-on-hprof-record-listener/"><code>OnHprofRecordListener</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Reads all hprof records from <a href="#">source</a>. Assumes the <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.io/java.io.-file/reader.html">reader</a> was has a source that currently points to the start position of hprof records.</td>
 </tr>
 <tr>
 <td><a href="read-instance-dump-record/">readInstanceDumpRecord</a></td>
 <td><code>fun readInstanceDumpRecord():</code><a href="../-hprof-record/-heap-dump-record/-object-record/-instance-dump-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord</code></a><br>Reads a full instance record after a instance dump tag.</td>
 </tr>
 <tr>
+<td><a href="read-instance-skip-content-record/">readInstanceSkipContentRecord</a></td>
+<td><code>fun readInstanceSkipContentRecord():</code><a href="../-hprof-record/-heap-dump-record/-object-record/-instance-skip-content-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.InstanceSkipContentRecord</code></a><br>Reads an instance record after a instance dump tag, skipping its content.</td>
+</tr>
+<tr>
 <td><a href="read-object-array-dump-record/">readObjectArrayDumpRecord</a></td>
 <td><code>fun readObjectArrayDumpRecord():</code><a href="../-hprof-record/-heap-dump-record/-object-record/-object-array-dump-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord</code></a><br>Reads a full object array record after a object array dump tag.</td>
 </tr>
 <tr>
+<td><a href="read-object-array-skip-content-record/">readObjectArraySkipContentRecord</a></td>
+<td><code>fun readObjectArraySkipContentRecord():</code><a href="../-hprof-record/-heap-dump-record/-object-record/-object-array-skip-content-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecord</code></a><br>Reads an object array record after a object array dump tag, skipping its content.</td>
+</tr>
+<tr>
 <td><a href="read-primitive-array-dump-record/">readPrimitiveArrayDumpRecord</a></td>
 <td><code>fun readPrimitiveArrayDumpRecord():</code><a href="../-hprof-record/-heap-dump-record/-object-record/-primitive-array-dump-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord</code></a><br>Reads a full primitive array record after a primitive array dump tag.</td>
+</tr>
+<tr>
+<td><a href="read-primitive-array-skip-content-record/">readPrimitiveArraySkipContentRecord</a></td>
+<td><code>fun readPrimitiveArraySkipContentRecord():</code><a href="../-hprof-record/-heap-dump-record/-object-record/-primitive-array-skip-content-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord</code></a><br>Reads a primitive array record after a primitive array dump tag, skipping its content.</td>
 </tr>
 <tr>
 <td><a href="read-value/">readValue</a></td>
