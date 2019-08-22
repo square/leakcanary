@@ -59,13 +59,13 @@ SONATYPE_NEXUS_PASSWORD=
 * Upload the artifacts to Sonatype OSS Nexus
 
 ```
-./gradlew uploadArchives
+./gradlew uploadArchives --no-daemon --no-parallel
 ```
 
 * Generate the CLI zip
 
 ```
-./gradlew leakcanary-cli:distZip
+./gradlew shark-cli:distZip
 ```
 
 * Release to Maven Central
@@ -96,17 +96,17 @@ VERSION_NAME = "2.0-alpha-4-SNAPSHOT"
 git commit -am "Prepare for next development iteration"
 ```
 
-Wait for the release to be available [on Maven Central](https://repo1.maven.org/maven2/com/squareup/leakcanary/leakcanary-android/).
-
 * Push your changes
 ```
 git push
 ```
+
 * Go to [Milestones](https://github.com/square/leakcanary/milestones), rename the current release to the version just released, and create a new *Next Release* milestone.
+* Wait for the release to be available [on Maven Central](https://repo1.maven.org/maven2/com/squareup/leakcanary/leakcanary-android/).
 * Redeploy the docs: `mkdocs serve` to check locally, `mkdocs gh-deploy` to deploy.
 * Go to the [Draft a new release](https://github.com/square/leakcanary/releases/new) page, enter the release name (v1.5) as tag and title, and have the description point to the changelog. You can find the direct anchor URL from the [Change Log](https://square.github.io/leakcanary/changelog) page on the doc site.
 ```
 See [Change Log](https://square.github.io/leakcanary/changelog#version-20-alpha-2-2019-05-21)
 ```
-* Add the CLIP zip from `leakcanary-cli/build/distributions/` to the release. Update the documentation to point to it.
+* Add the CLIP zip from `shark-cli/build/distributions/` to the release. Update the documentation to point to it.
 * Tell your friends, update all of your apps, and tweet the new release. As a nice extra touch, mention external contributions.
