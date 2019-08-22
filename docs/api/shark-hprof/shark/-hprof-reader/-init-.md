@@ -2,7 +2,7 @@
 
 # &lt;init&gt;
 
-`HprofReader(source: BufferedSource, identifierByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, startByteReadCount: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)` = 0L)`
+`HprofReader(source: BufferedSource, identifierByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, startPosition: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)` = 0L)`
 
 Reads hprof content from an Okio [BufferedSource](#).
 

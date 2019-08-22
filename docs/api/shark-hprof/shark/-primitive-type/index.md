@@ -31,4 +31,5 @@ A primitive type in the prof.
 | Name | Summary |
 |---|---|
 | [byteSizeByHprofType](byte-size-by-hprof-type.md) | `val byteSizeByHprofType: `[`Map`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html)`<`[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`>` |
+| [primitiveTypeByHprofType](primitive-type-by-hprof-type.md) | `val primitiveTypeByHprofType: `[`Map`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html)`<`[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, `[`PrimitiveType`](./index.md)`>` |
 | [REFERENCE_HPROF_TYPE](-r-e-f-e-r-e-n-c-e_-h-p-r-o-f_-t-y-p-e.md) | `const val REFERENCE_HPROF_TYPE: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)<br>The hprof defined "basic type" for references. |
