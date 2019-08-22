@@ -89,12 +89,12 @@ class HprofHeapGraph internal constructor(
     return index.objectIdIsIndexed(objectId)
   }
 
-  internal fun fieldName(fieldRecord: FieldRecord): String {
-    return index.hprofStringById(fieldRecord.nameStringId)
+  internal fun fieldName(fieldRecord: FieldRecord, classId: Long): String {
+    return index.fieldName(fieldRecord.nameStringId, classId)
   }
 
-  internal fun staticFieldName(fieldRecord: StaticFieldRecord): String {
-    return index.hprofStringById(fieldRecord.nameStringId)
+  internal fun staticFieldName(fieldRecord: StaticFieldRecord, classId: Long): String {
+    return index.fieldName(fieldRecord.nameStringId, classId)
   }
 
   internal fun createFieldValuesReader(record: InstanceDumpRecord): FieldValuesReader {
@@ -184,8 +184,8 @@ class HprofHeapGraph internal constructor(
   }
 
   companion object {
-    fun indexHprof(hprof: Hprof): HeapGraph {
-      val index = HprofInMemoryIndex.createReadingHprof(hprof)
+    fun indexHprof(hprof: Hprof, , proguardMapping: ProguardMapping? = null): HeapGraph {
+      val index = HprofInMemoryIndex.createReadingHprof(hprof, proguardMapping)
       return HprofHeapGraph(hprof, index)
     }
   }

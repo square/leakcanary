@@ -196,7 +196,7 @@ sealed class HeapObject {
       return readRecord().staticFields.asSequence()
           .map { fieldRecord ->
             HeapField(
-                this, hprofGraph.staticFieldName(fieldRecord),
+                this, hprofGraph.staticFieldName(fieldRecord, objectId),
                 HeapValue(hprofGraph, fieldRecord.value)
             )
           }
@@ -213,9 +213,9 @@ sealed class HeapObject {
      */
     fun readStaticField(fieldName: String): HeapField? {
       for (fieldRecord in readRecord().staticFields) {
-        if (hprofGraph.staticFieldName(fieldRecord) == fieldName) {
+        if (hprofGraph.staticFieldName(fieldRecord, objectId) == fieldName) {
           return HeapField(
-              this, hprofGraph.staticFieldName(fieldRecord),
+              this, hprofGraph.staticFieldName(fieldRecord, objectId),
               HeapValue(hprofGraph, fieldRecord.value)
           )
         }
@@ -362,7 +362,7 @@ sealed class HeapObject {
             heapClass.readRecord()
                 .fields.asSequence()
                 .map { fieldRecord ->
-                  val fieldName = hprofGraph.fieldName(fieldRecord)
+                  val fieldName = hprofGraph.fieldName(fieldRecord, heapClass.objectId)
                   val fieldValue = fieldReader.readValue(fieldRecord)
                   HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue))
                 }
