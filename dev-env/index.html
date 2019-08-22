@@ -40,7 +40,7 @@
     
     
       
-        <title>Contributing - LeakCanary</title>
+        <title>Dev Environment - LeakCanary</title>
       
     
     
@@ -114,7 +114,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#contributing" tabindex="1" class="md-skip">
+      <a href="#dev-environment-for-leakcanary-contributors" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -140,7 +140,7 @@
             </span>
             <span class="md-header-nav__topic">
               
-                Contributing
+                Dev Environment
               
             </span>
           
@@ -476,17 +476,29 @@
   
 
 
-  <li class="md-nav__item md-nav__item--active">
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7-6" type="checkbox" id="nav-7-6" checked>
     
-      
-    
-    
-    <a href="./" title="Contributing" class="md-nav__link md-nav__link--active">
+    <label class="md-nav__link" for="nav-7-6">
       Contributing
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
+      <label class="md-nav__title" for="nav-7-6">
+        Contributing
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../how_to_help/" title="How to help" class="md-nav__link">
+      How to help
     </a>
-    
   </li>
 
         
@@ -499,6 +511,44 @@
     <a href="../code_of_conduct/" title="Code of Conduct" class="md-nav__link">
       Code of Conduct
     </a>
+  </li>
+
+        
+          
+          
+          
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+    <a href="./" title="Dev Environment" class="md-nav__link md-nav__link--active">
+      Dev Environment
+    </a>
+    
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../releasing/" title="Releasing" class="md-nav__link">
+      Releasing
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
         
@@ -739,15 +789,18 @@
               
                 
 				  
-				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20contributing/%20page">Report</a> or <a href="https://github.com/square/leakcanary/edit/master/docs/contributing.md">edit</a></span>
+				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20dev-env/%20page">Report</a> or <a href="https://github.com/square/leakcanary/edit/master/docs/dev-env.md">edit</a></span>
                   
                 
                 
-                <h1 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h1>
-<p>You are most welcome to contribute code, answer <a href="http://stackoverflow.com/questions/tagged/leakcanary?sort=active">StackOverflow questions</a>, help manage GitHub issues and review pull requests.</p>
-<p>If you would like to contribute code to LeakCanary you can do so through GitHub by
-forking the repository and sending a pull request. When submitting code, please make every effort to follow existing conventions
-and style in order to keep the code as readable as possible.</p>
+                <h1 id="dev-environment-for-leakcanary-contributors">Dev Environment for LeakCanary contributors<a class="headerlink" href="#dev-environment-for-leakcanary-contributors" title="Permanent link">&para;</a></h1>
+<ul>
+<li>Download Android Studio</li>
+<li>We use two spaces code indentation, use <a href="https://github.com/square/java-code-styles">https://github.com/square/java-code-styles</a></li>
+<li>Build with <code>./gradlew build</code></li>
+<li>Running the failing UI tests to confirm leak detection correctly fails UI tests: <code>./gradlew leakcanary-sample:connectedCheck</code></li>
+<li>Normal UI tests: <code>./gradlew leakcanary-support-fragment:connectedCheck</code></li>
+</ul>
                 
                   
                 
@@ -768,7 +821,7 @@ and style in order to keep the code as readable as possible.</p>
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../blog-articles/" title="Blog Articles" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../code_of_conduct/" title="Code of Conduct" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -777,19 +830,19 @@ and style in order to keep the code as readable as possible.</p>
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Blog Articles
+                Code of Conduct
               </span>
             </div>
           </a>
         
         
-          <a href="../code_of_conduct/" title="Code of Conduct" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../releasing/" title="Releasing" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Code of Conduct
+                Releasing
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">

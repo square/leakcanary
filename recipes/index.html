@@ -571,9 +571,28 @@
           
 
 
-  <li class="md-nav__item">
-    <a href="../contributing/" title="Contributing" class="md-nav__link">
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7-6" type="checkbox" id="nav-7-6">
+    
+    <label class="md-nav__link" for="nav-7-6">
       Contributing
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
+      <label class="md-nav__title" for="nav-7-6">
+        Contributing
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../how_to_help/" title="How to help" class="md-nav__link">
+      How to help
     </a>
   </li>
 
@@ -587,6 +606,35 @@
     <a href="../code_of_conduct/" title="Code of Conduct" class="md-nav__link">
       Code of Conduct
     </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../dev-env/" title="Dev Environment" class="md-nav__link">
+      Dev Environment
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../releasing/" title="Releasing" class="md-nav__link">
+      Releasing
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
         
@@ -911,7 +959,10 @@
                 
                 
                 <h1 id="code-recipes">Code Recipes<a class="headerlink" href="#code-recipes" title="Permanent link">&para;</a></h1>
+<div class="admonition bug">
+<p class="admonition-title">Bug</p>
 <p>If you think a recipe might be missing or you&rsquo;re not sure that what you&rsquo;re trying to achieve is possible with the current APIs, please <a href="https://github.com/square/leakcanary/issues/new/choose">file an issue</a>. Your feedback help us make LeakCanary better for the entire community.</p>
+</div>
 <h2 id="watching-objects-with-a-lifecycle">Watching objects with a lifecycle<a class="headerlink" href="#watching-objects-with-a-lifecycle" title="Permanent link">&para;</a></h2>
 <p>In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to watch instances that should be garbage collected:</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">MyService</span> <span class="p">:</span> <span class="n">Service</span> <span class="p">{</span>
@@ -926,6 +977,20 @@
 </pre></div>
 
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>LeakCanary has a default configuration that should work well for most apps. You can also customize it to your needs. The LeakCanary configuration is held by two singleton objects (<code>AppWatcher</code> and <code>LeakCanary</code>) and can be updated at any time. Most developers configure LeakCanary in their <strong>debug</strong> <a href="https://developer.android.com/reference/android/app/Application">Application</a> class:</p>
+<div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
+    <span class="n">AppWatcher</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">watchFragmentViews</span> <span class="p">=</span> <span class="k">false</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>You can create a debug application class in your <code>src/debug/java</code> folder. Don&rsquo;t forget to also register it in <code>src/debug/AndroidManifest.xml</code>.</p>
+</div>
 <p>To customize the detection of retained objects at runtime, update <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/">AppWatcher.config</a>:</p>
 <div class="codehilite"><pre><span></span>AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
 </pre></div>
@@ -935,16 +1000,13 @@
 </pre></div>
 
 <p>The LeakCanary UI can be configured by overriding the following resources:</p>
-<div class="codehilite"><pre><span></span><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
-<span class="nt">&lt;resources&gt;</span>
-  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_display_activity_label&quot;</span> <span class="na">type=</span><span class="s">&quot;string&quot;</span><span class="nt">/&gt;</span>
-  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_heap_dump_toast&quot;</span> <span class="na">type=</span><span class="s">&quot;layout&quot;</span><span class="nt">/&gt;</span>
-  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_icon&quot;</span> <span class="na">type=</span><span class="s">&quot;mipmap&quot;</span><span class="nt">/&gt;</span>
-  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_add_dynamic_shortcut&quot;</span> <span class="na">type=</span><span class="s">&quot;bool&quot;</span><span class="nt">/&gt;</span>
-  <span class="nt">&lt;public</span> <span class="na">name=</span><span class="s">&quot;leak_canary_add_launcher_icon&quot;</span> <span class="na">type=</span><span class="s">&quot;bool&quot;</span><span class="nt">/&gt;</span>
-<span class="nt">&lt;/resources&gt;</span>
-</pre></div>
-
+<ul>
+<li><code>mipmap/leak_canary_icon</code> see <a href="#icon-and-label">Icon and label</a></li>
+<li><code>string/leak_canary_display_activity_label</code> see <a href="#icon-and-label">Icon and label</a></li>
+<li><code>bool/leak_canary_add_dynamic_shortcut</code> see <a href="#disabling-leakcanary">Disabling LeakCanary</a></li>
+<li><code>bool/leak_canary_add_launcher_icon</code> see <a href="#disabling-leakcanary">Disabling LeakCanary</a></li>
+<li><code>layout/leak_canary_heap_dump_toast</code> the layout for the toast shown when the heap is dumped</li>
+</ul>
 <h2 id="disabling-leakcanary">Disabling LeakCanary<a class="headerlink" href="#disabling-leakcanary" title="Permanent link">&para;</a></h2>
 <p>Sometimes it&rsquo;s necessary to disable LeakCanary temporarily, for example for a product demo or when running performance tests. You have different options, depending on what you&rsquo;re trying to achieve:</p>
 <ul>
@@ -959,7 +1021,7 @@
 <p>If instead you set <code>LeakCanary.Config.dumpHeap</code> to false, <code>AppWatcher.objectWatcher</code> will still keep track of retained objects, and LeakCanary will look for these objects when you change <code>LeakCanary.Config.dumpHeap</code> back to true.</p>
 </div>
 <h2 id="counting-retained-instances-in-production">Counting retained instances in production<a class="headerlink" href="#counting-retained-instances-in-production" title="Permanent link">&para;</a></h2>
-<p><code>com.squareup.leakcanary:leakcanary-android</code> should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in production to track and count retained instances.</p>
+<p>The <code>com.squareup.leakcanary:leakcanary-android</code> dependency should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in production to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="codehilite"><pre><span></span>dependencies {
   implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-2&#39;
@@ -1120,7 +1182,7 @@ configurations {
 
 <p>You can now add the LeakCanary dependency for that configuration:</p>
 <div class="codehilite"><pre><span></span>dependencies {
-  devDebugImplementation &quot;com.squareup.leakcanary:leakcanary-android:${leakCanaryVersion}&quot;
+  devDebugImplementation &quot;com.squareup.leakcanary:leakcanary-android:${version}&quot;
 }
 </pre></div>
                 
