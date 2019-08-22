@@ -54,8 +54,11 @@ nav:
     - 'Recorded Presentations': recorded-presentations.md
     - 'Blog Articles': blog-articles.md
     - 'Stack Overflow ⏏': https://stackoverflow.com/questions/tagged/leakcanary?sort=active
-    - 'Contributing': contributing.md
-    - 'Code of Conduct': code_of_conduct.md
+    - 'Contributing':
+        - 'How to help': how_to_help.md
+        - 'Code of Conduct': code_of_conduct.md
+        - 'Dev Environment': dev-env.md
+        - 'Releasing': releasing.md
   - 'Shark':
     - 'Overview': shark.md
     - 'Shark API':

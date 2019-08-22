@@ -270,6 +270,6 @@ You can now add the LeakCanary dependency for that configuration:
 
 ```
 dependencies {
-  devDebugImplementation "com.squareup.leakcanary:leakcanary-android:${leakCanaryVersion}"
+  devDebugImplementation "com.squareup.leakcanary:leakcanary-android:${version}"
 }
 ```

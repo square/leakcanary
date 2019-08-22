@@ -94,7 +94,7 @@ For more details, see the [2.0-alpha-2 Milestone](https://github.com/square/leak
 
 ## Version 2.0 Alpha 1 (2019-04-23)
 
-<img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
+![logo](images/logo-2.0-200px.png)
 
 * New [logo](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo), thanks [@flickator](https://github.com/flickator)!
 * Entirely rewritten to **100% Kotlin**
