@@ -29,5 +29,7 @@ enum class PrimitiveType(
     const val REFERENCE_HPROF_TYPE = 2
 
     val byteSizeByHprofType = values().map { it.hprofType to it.byteSize }.toMap()
+
+    val primitiveTypeByHprofType = values().map { it.hprofType to it }.toMap()
   }
 }

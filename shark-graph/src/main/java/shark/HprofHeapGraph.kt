@@ -184,7 +184,7 @@ class HprofHeapGraph internal constructor(
 
   companion object {
     fun indexHprof(hprof: Hprof): HeapGraph {
-      val index = HprofInMemoryIndex.createReadingHprof(hprof.reader)
+      val index = HprofInMemoryIndex.createReadingHprof(hprof)
       return HprofHeapGraph(hprof, index)
     }
   }
