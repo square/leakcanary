@@ -50,10 +50,10 @@ internal fun View.shareToStackOverflow(content: String) {
   // AsyncTask was needed here due to setPrimaryClip making a disk write which
   // violated StrictMode if on the main thread
   AsyncTask.execute {
-    clipboard.primaryClip = ClipData.newPlainText(
+    clipboard.setPrimaryClip(ClipData.newPlainText(
         context.getString(R.string.leak_canary_leak_clipdata_label),
         "```\n$content```"
-    )
+    ))
   }
   Toast.makeText(context, R.string.leak_canary_leak_copied, Toast.LENGTH_LONG)
       .show()

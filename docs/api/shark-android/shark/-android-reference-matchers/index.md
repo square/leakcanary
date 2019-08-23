@@ -68,6 +68,7 @@ Most app developers should use [appDefaults](app-defaults.md). However, you can 
 | [VIEW_CONFIGURATION__MCONTEXT](-v-i-e-w_-c-o-n-f-i-g-u-r-a-t-i-o-n__-m-c-o-n-t-e-x-t.md) |  |
 | [AUDIO_MANAGER__MCONTEXT_STATIC](-a-u-d-i-o_-m-a-n-a-g-e-r__-m-c-o-n-t-e-x-t_-s-t-a-t-i-c.md) |  |
 | [ACTIVITY_MANAGER_MCONTEXT](-a-c-t-i-v-i-t-y_-m-a-n-a-g-e-r_-m-c-o-n-t-e-x-t.md) |  |
+| [STATIC_MTARGET_VIEW](-s-t-a-t-i-c_-m-t-a-r-g-e-t_-v-i-e-w.md) |  |
 | [GESTURE_BOOST_MANAGER](-g-e-s-t-u-r-e_-b-o-o-s-t_-m-a-n-a-g-e-r.md) |  |
 | [BUBBLE_POPUP_HELPER__SHELPER](-b-u-b-b-l-e_-p-o-p-u-p_-h-e-l-p-e-r__-s-h-e-l-p-e-r.md) |  |
 | [LGCONTEXT__MCONTEXT](-l-g-c-o-n-t-e-x-t__-m-c-o-n-t-e-x-t.md) |  |

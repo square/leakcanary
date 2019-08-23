@@ -1,10 +1,27 @@
 # Change Log
 
-## Version 2.0 Beta 2 (2019-08-02)
+## Version 2.0 Beta 3 (2019-08-22)
 
-LeakCanary 2 reached **beta status**: the internals and APIs are mostly stable.
+LeakCanary 2 is in **beta**: the internals and APIs are mostly stable.
 
 Now is a great time to adopt it and provide feedback before the stable release. We're counting on you to find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/). 
+
+* Baseline memory usage for large hprofs divided by 3 and removed memory spikes [#1543](https://github.com/square/leakcanary/pull/1543)
+* Fixed crash when LeakCanary is initialized from another process [#1529](https://github.com/square/leakcanary/issues/1529)
+* Java local references are deprioritized to look for longer alternative paths [#1525](https://github.com/square/leakcanary/pull/1525)
+* Fixed `JavaLocalPattern` not matching on Lollipop [#1524](https://github.com/square/leakcanary/pull/1524)
+
+Many thanks to
+[@Armaxis](https://github.com/Armaxis),
+[@elihart](https://github.com/elihart),
+[@emartynov](https://github.com/emartynov),
+[@hmcgreevy-instil](https://github.com/hmcgreevy-instil),
+[@pyricau](https://github.com/pyricau)
+for the contributions, bug reports and feature requests.
+
+For more details, see the [2.0-beta-3 Milestone](https://github.com/square/leakcanary/milestone/11) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-beta-2...v2.0-beta-3).
+
+## Version 2.0 Beta 2 (2019-08-02)
 
 * Fixed *Leak analysis failed: Object id not found in heap dump.* [#1516](https://github.com/square/leakcanary/issues/1516)
 * 10x speed increase of hprof indexing on large heap dumps [#1520](https://github.com/square/leakcanary/pull/1520)
@@ -94,7 +111,7 @@ For more details, see the [2.0-alpha-2 Milestone](https://github.com/square/leak
 
 ## Version 2.0 Alpha 1 (2019-04-23)
 
-<img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0-200px.png" />
+![logo](images/logo-2.0-200px.png)
 
 * New [logo](https://github.com/square/leakcanary/wiki/FAQ#who-made-the-logo), thanks [@flickator](https://github.com/flickator)!
 * Entirely rewritten to **100% Kotlin**

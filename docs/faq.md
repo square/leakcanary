@@ -46,7 +46,7 @@ Update your dependencies to the latest SNAPSHOT (see [build.gradle](https://gith
 
 ```gradle
  dependencies {
-   debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-3-SNAPSHOT'
+   debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-4-SNAPSHOT'
  }
 ```
 
@@ -78,5 +78,5 @@ The name **LeakCanary** is a reference to the expression [canary in a coal mine]
 * [@flickator](https://github.com/flickator) designed [a much nicer logo](https://github.com/square/leakcanary/pull/1269) for LeakCanary 2.0!
 
 <p align="center">
-<img src="https://github.com/square/leakcanary/wiki/assets/logo-2.0.png" />
+<img src="../images/logo-2.0.png" />
 </p>

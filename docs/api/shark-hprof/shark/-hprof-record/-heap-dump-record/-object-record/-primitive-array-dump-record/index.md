@@ -4,11 +4,6 @@
 
 `sealed class PrimitiveArrayDumpRecord : `[`HprofRecord.HeapDumpRecord.ObjectRecord`](../index.md)
 
-Note: we could move the arrays to the parent class as a ByteString or ByteArray
-and then each subtype can create a new array of the right type if needed.
-However, experimenting with live parsing has shown that we never to read arrays except
-when we want to display leak trace information, in which case we do need the data.
-
 ### Types
 
 | Name | Summary |

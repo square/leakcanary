@@ -25,8 +25,11 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassSkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceSkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -36,6 +39,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackFrameRecord
 import shark.HprofRecord.StackTraceRecord
@@ -81,31 +85,28 @@ class HprofReader constructor(
   /**
    * How many bytes have already been read from [source] when this [HprofReader] is created.
    */
-  val startByteReadCount: Long = 0L
+  val startPosition: Long = 0L
 ) {
 
   /**
-   * Starts at [startByteReadCount] and increases as [HprofReader] reads bytes. This is useful
+   * Starts at [startPosition] and increases as [HprofReader] reads bytes. This is useful
    * for tracking the position of content in the backing [source]. This never resets.
    */
-  var byteReadCount = startByteReadCount
-    private set
+  var position = startPosition
+    internal set
 
   private val typeSizes =
     PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to identifierByteSize)
 
   /**
    * Reads all hprof records from [source].
-   * Assumes the [reader] was just created, with a source that currently points to the start
-   * position of hprof records.
+   * Assumes the [reader] was has a source that currently points to the start position of hprof
+   * records.
    */
   fun readHprofRecords(
     recordTypes: Set<KClass<out HprofRecord>>,
     listener: OnHprofRecordListener
   ) {
-    require(byteReadCount == startByteReadCount) {
-      "readHprofRecords() should only be called on a unused HprofReader instance"
-    }
     val readAllRecords = HprofRecord::class in recordTypes
     val readStringRecord = readAllRecords || StringRecord::class in recordTypes
     val readLoadClassRecord = readAllRecords || LoadClassRecord::class in recordTypes
@@ -121,11 +122,15 @@ class HprofReader constructor(
     val readAllObjectRecords = readAllHeapDumpRecords || ObjectRecord::class in recordTypes
 
     val readClassDumpRecord = readAllObjectRecords || ClassDumpRecord::class in recordTypes
+    val readClassSkipContentRecord = ClassSkipContentRecord::class in recordTypes
     val readInstanceDumpRecord = readAllObjectRecords || InstanceDumpRecord::class in recordTypes
+    val readInstanceSkipContentRecord = InstanceSkipContentRecord::class in recordTypes
     val readObjectArrayDumpRecord =
       readAllObjectRecords || ObjectArrayDumpRecord::class in recordTypes
+    val readObjectArraySkipContentRecord = ObjectArraySkipContentRecord::class in recordTypes
     val readPrimitiveArrayDumpRecord =
       readAllObjectRecords || PrimitiveArrayDumpRecord::class in recordTypes
+    val readPrimitiveArraySkipContentRecord = PrimitiveArraySkipContentRecord::class in recordTypes
 
     val intByteSize = INT.byteSize
 
@@ -142,7 +147,7 @@ class HprofReader constructor(
       when (tag) {
         STRING_IN_UTF8 -> {
           if (readStringRecord) {
-            val recordPosition = byteReadCount
+            val recordPosition = position
             val id = readId()
             val stringLength = length - identifierByteSize
             val string = readUtf8(stringLength)
@@ -154,7 +159,7 @@ class HprofReader constructor(
         }
         LOAD_CLASS -> {
           if (readLoadClassRecord) {
-            val recordPosition = byteReadCount
+            val recordPosition = position
             val classSerialNumber = readInt()
             val id = readId()
             val stackTraceSerialNumber = readInt()
@@ -172,7 +177,7 @@ class HprofReader constructor(
         }
         STACK_FRAME -> {
           if (readStackFrameRecord) {
-            val recordPosition = byteReadCount
+            val recordPosition = position
             val record = StackFrameRecord(
                 id = readId(),
                 methodNameStringId = readId(),
@@ -188,7 +193,7 @@ class HprofReader constructor(
         }
         STACK_TRACE -> {
           if (readStackTraceRecord) {
-            val recordPosition = byteReadCount
+            val recordPosition = position
             val stackTraceSerialNumber = readInt()
             val threadSerialNumber = readInt()
             val frameCount = readInt()
@@ -204,15 +209,15 @@ class HprofReader constructor(
           }
         }
         HEAP_DUMP, HEAP_DUMP_SEGMENT -> {
-          val heapDumpStart = byteReadCount
+          val heapDumpStart = position
           var previousTag = 0
-          while (byteReadCount - heapDumpStart < length) {
+          while (position - heapDumpStart < length) {
             val heapDumpTag = readUnsignedByte()
 
             when (heapDumpTag) {
               ROOT_UNKNOWN -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val record = GcRootRecord(gcRoot = Unknown(id = readId()))
                   listener.onHprofRecord(recordPosition, record)
                 } else {
@@ -221,7 +226,7 @@ class HprofReader constructor(
               }
               ROOT_JNI_GLOBAL -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord =
                     GcRootRecord(gcRoot = JniGlobal(id = readId(), jniGlobalRefId = readId()))
                   listener.onHprofRecord(recordPosition, gcRootRecord)
@@ -232,7 +237,7 @@ class HprofReader constructor(
 
               ROOT_JNI_LOCAL -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = JniLocal(
                           id = readId(), threadSerialNumber = readInt(), frameNumber = readInt()
@@ -246,7 +251,7 @@ class HprofReader constructor(
 
               ROOT_JAVA_FRAME -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = JavaFrame(
                           id = readId(), threadSerialNumber = readInt(), frameNumber = readInt()
@@ -260,7 +265,7 @@ class HprofReader constructor(
 
               ROOT_NATIVE_STACK -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = NativeStack(id = readId(), threadSerialNumber = readInt())
                   )
@@ -272,7 +277,7 @@ class HprofReader constructor(
 
               ROOT_STICKY_CLASS -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = StickyClass(id = readId())
                   )
@@ -285,7 +290,7 @@ class HprofReader constructor(
               // An object that was referenced from an active thread block.
               ROOT_THREAD_BLOCK -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = ThreadBlock(id = readId(), threadSerialNumber = readInt())
                   )
@@ -297,7 +302,7 @@ class HprofReader constructor(
 
               ROOT_MONITOR_USED -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = MonitorUsed(id = readId())
                   )
@@ -309,7 +314,7 @@ class HprofReader constructor(
 
               ROOT_THREAD_OBJECT -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = ThreadObject(
                           id = readId(),
@@ -325,7 +330,7 @@ class HprofReader constructor(
 
               ROOT_INTERNED_STRING -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(gcRoot = InternedString(id = readId()))
                   listener.onHprofRecord(recordPosition, gcRootRecord)
                 } else {
@@ -335,7 +340,7 @@ class HprofReader constructor(
 
               ROOT_FINALIZING -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = Finalizing(id = readId())
                   )
@@ -347,7 +352,7 @@ class HprofReader constructor(
 
               ROOT_DEBUGGER -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = Debugger(id = readId())
                   )
@@ -359,7 +364,7 @@ class HprofReader constructor(
 
               ROOT_REFERENCE_CLEANUP -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = ReferenceCleanup(id = readId())
                   )
@@ -371,7 +376,7 @@ class HprofReader constructor(
 
               ROOT_VM_INTERNAL -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = VmInternal(id = readId())
                   )
@@ -383,7 +388,7 @@ class HprofReader constructor(
 
               ROOT_JNI_MONITOR -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = JniMonitor(
                           id = readId(), stackTraceSerialNumber = readInt(),
@@ -398,7 +403,7 @@ class HprofReader constructor(
 
               ROOT_UNREACHABLE -> {
                 if (readGcRootRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val gcRootRecord = GcRootRecord(
                       gcRoot = Unreachable(id = readId())
                   )
@@ -408,42 +413,65 @@ class HprofReader constructor(
                 }
               }
               CLASS_DUMP -> {
-                if (readClassDumpRecord) {
-                  val recordPosition = byteReadCount
-                  val record = readClassDumpRecord()
-                  listener.onHprofRecord(recordPosition, record)
-                } else {
-                  skipClassDumpRecord()
+                when {
+                  readClassDumpRecord -> {
+                    val recordPosition = position
+                    val record = readClassDumpRecord()
+                    listener.onHprofRecord(recordPosition, record)
+                  }
+                  readClassSkipContentRecord -> {
+                    val recordPosition = position
+                    val record = readClassSkipContentRecord()
+                    listener.onHprofRecord(recordPosition, record)
+                  }
+                  else -> skipClassDumpRecord()
                 }
               }
-
               INSTANCE_DUMP -> {
-                if (readInstanceDumpRecord) {
-                  val recordPosition = byteReadCount
-                  val instanceDumpRecord = readInstanceDumpRecord()
-                  listener.onHprofRecord(recordPosition, instanceDumpRecord)
-                } else {
-                  skipInstanceDumpRecord()
+                when {
+                  readInstanceDumpRecord -> {
+                    val recordPosition = position
+                    val record = readInstanceDumpRecord()
+                    listener.onHprofRecord(recordPosition, record)
+                  }
+                  readInstanceSkipContentRecord -> {
+                    val recordPosition = position
+                    val record = readInstanceSkipContentRecord()
+                    listener.onHprofRecord(recordPosition, record)
+                  }
+                  else -> skipInstanceDumpRecord()
                 }
               }
 
               OBJECT_ARRAY_DUMP -> {
-                if (readObjectArrayDumpRecord) {
-                  val recordPosition = byteReadCount
-                  val arrayRecord = readObjectArrayDumpRecord()
-                  listener.onHprofRecord(recordPosition, arrayRecord)
-                } else {
-                  skipObjectArrayDumpRecord()
+                when {
+                  readObjectArrayDumpRecord -> {
+                    val recordPosition = position
+                    val arrayRecord = readObjectArrayDumpRecord()
+                    listener.onHprofRecord(recordPosition, arrayRecord)
+                  }
+                  readObjectArraySkipContentRecord -> {
+                    val recordPosition = position
+                    val arrayRecord = readObjectArraySkipContentRecord()
+                    listener.onHprofRecord(recordPosition, arrayRecord)
+                  }
+                  else -> skipObjectArrayDumpRecord()
                 }
               }
 
               PRIMITIVE_ARRAY_DUMP -> {
-                if (readPrimitiveArrayDumpRecord) {
-                  val recordPosition = byteReadCount
-                  val record = readPrimitiveArrayDumpRecord()
-                  listener.onHprofRecord(recordPosition, record)
-                } else {
-                  skipPrimitiveArrayDumpRecord()
+                when {
+                  readPrimitiveArrayDumpRecord -> {
+                    val recordPosition = position
+                    val record = readPrimitiveArrayDumpRecord()
+                    listener.onHprofRecord(recordPosition, record)
+                  }
+                  readPrimitiveArraySkipContentRecord -> {
+                    val recordPosition = position
+                    val record = readPrimitiveArraySkipContentRecord()
+                    listener.onHprofRecord(recordPosition, record)
+                  }
+                  else -> skipPrimitiveArrayDumpRecord()
                 }
               }
 
@@ -453,7 +481,7 @@ class HprofReader constructor(
 
               HEAP_DUMP_INFO -> {
                 if (readHeapDumpInfoRecord) {
-                  val recordPosition = byteReadCount
+                  val recordPosition = position
                   val record = readHeapDumpInfoRecord()
                   listener.onHprofRecord(recordPosition, record)
                 } else {
@@ -469,7 +497,7 @@ class HprofReader constructor(
         }
         HEAP_DUMP_END -> {
           if (readHeapDumpEndRecord) {
-            val recordPosition = byteReadCount
+            val recordPosition = position
             val record = HeapDumpEndRecord
             listener.onHprofRecord(recordPosition, record)
           }
@@ -495,6 +523,22 @@ class HprofReader constructor(
         stackTraceSerialNumber = stackTraceSerialNumber,
         classId = classId,
         fieldValues = fieldValues
+    )
+  }
+
+  /**
+   * Reads an instance record after a instance dump tag, skipping its content.
+   */
+  fun readInstanceSkipContentRecord(): InstanceSkipContentRecord {
+    val id = readId()
+    val stackTraceSerialNumber = readInt()
+    val classId = readId()
+    val remainingBytesInInstance = readInt()
+    skip(remainingBytesInInstance)
+    return InstanceSkipContentRecord(
+        id = id,
+        stackTraceSerialNumber = stackTraceSerialNumber,
+        classId = classId
     )
   }
 
@@ -566,6 +610,66 @@ class HprofReader constructor(
   }
 
   /**
+   * Reads a class record after a class dump tag, skipping its content.
+   */
+  fun readClassSkipContentRecord(): ClassSkipContentRecord {
+    val id = readId()
+    // stack trace serial number
+    val stackTraceSerialNumber = readInt()
+    val superclassId = readId()
+    // class loader object ID
+    val classLoaderId = readId()
+    // signers object ID
+    val signersId = readId()
+    // protection domain object ID
+    val protectionDomainId = readId()
+    // reserved
+    readId()
+    // reserved
+    readId()
+
+    // instance size (in bytes)
+    // Useful to compute retained size
+    val instanceSize = readInt()
+
+    // Skip over the constant pool
+    val constantPoolCount = readUnsignedShort()
+    for (i in 0 until constantPoolCount) {
+      // constant pool index
+      skip(SHORT_SIZE)
+      skip(typeSize(readUnsignedByte()))
+    }
+
+    val staticFieldCount = readUnsignedShort()
+    for (i in 0 until staticFieldCount) {
+      skip(identifierByteSize)
+      val type = readUnsignedByte()
+      skip(
+          if (type == PrimitiveType.REFERENCE_HPROF_TYPE) {
+            identifierByteSize
+          } else {
+            PrimitiveType.byteSizeByHprofType.getValue(type)
+          }
+      )
+    }
+
+    val fieldCount = readUnsignedShort()
+    // Each field takes id + byte.
+    skip((identifierByteSize + 1) * fieldCount)
+    return ClassSkipContentRecord(
+        id = id,
+        stackTraceSerialNumber = stackTraceSerialNumber,
+        superclassId = superclassId,
+        classLoaderId = classLoaderId,
+        signersId = signersId,
+        protectionDomainId = protectionDomainId,
+        instanceSize = instanceSize,
+        staticFieldCount = staticFieldCount,
+        fieldCount = fieldCount
+    )
+  }
+
+  /**
    * Reads a full primitive array record after a primitive array dump tag.
    */
   fun readPrimitiveArrayDumpRecord(): PrimitiveArrayDumpRecord {
@@ -603,6 +707,19 @@ class HprofReader constructor(
   }
 
   /**
+   * Reads a primitive array record after a primitive array dump tag, skipping its content.
+   */
+  fun readPrimitiveArraySkipContentRecord(): PrimitiveArraySkipContentRecord {
+    val id = readId()
+    val stackTraceSerialNumber = readInt()
+    // length
+    val arrayLength = readInt()
+    val type = PrimitiveType.primitiveTypeByHprofType.getValue(readUnsignedByte())
+    skip(arrayLength * type.byteSize)
+    return PrimitiveArraySkipContentRecord(id, stackTraceSerialNumber, arrayLength, type)
+  }
+
+  /**
    * Reads a full object array record after a object array dump tag.
    */
   fun readObjectArrayDumpRecord(
@@ -618,6 +735,25 @@ class HprofReader constructor(
         stackTraceSerialNumber = stackTraceSerialNumber,
         arrayClassId = arrayClassId,
         elementIds = elementIds
+    )
+  }
+
+  /**
+   * Reads an object array record after a object array dump tag, skipping its content.
+   */
+  fun readObjectArraySkipContentRecord(
+  ): ObjectArraySkipContentRecord {
+    val id = readId()
+    // stack trace serial number
+    val stackTraceSerialNumber = readInt()
+    val arrayLength = readInt()
+    val arrayClassId = readId()
+    skip(identifierByteSize * arrayLength)
+    return ObjectArraySkipContentRecord(
+        id = id,
+        stackTraceSerialNumber = stackTraceSerialNumber,
+        arrayClassId = arrayClassId,
+        size = arrayLength
     )
   }
 
@@ -644,12 +780,12 @@ class HprofReader constructor(
   }
 
   private fun readShort(): Short {
-    byteReadCount += SHORT_SIZE
+    position += SHORT_SIZE
     return source.readShort()
   }
 
   private fun readInt(): Int {
-    byteReadCount += INT_SIZE
+    position += INT_SIZE
     return source.readInt()
   }
 
@@ -669,7 +805,7 @@ class HprofReader constructor(
     byteCount: Int,
     charset: Charset
   ): String {
-    byteReadCount += byteCount
+    position += byteCount
     return source.readString(byteCount.toLong(), charset)
   }
 
@@ -694,29 +830,29 @@ class HprofReader constructor(
   }
 
   private fun readLong(): Long {
-    byteReadCount += LONG_SIZE
+    position += LONG_SIZE
     return source.readLong()
   }
 
   private fun exhausted() = source.exhausted()
 
   private fun skip(byteCount: Long) {
-    byteReadCount += byteCount
+    position += byteCount
     return source.skip(byteCount)
   }
 
   private fun readByte(): Byte {
-    byteReadCount += BYTE_SIZE
+    position += BYTE_SIZE
     return source.readByte()
   }
 
   private fun readBoolean(): Boolean {
-    byteReadCount += BOOLEAN_SIZE
+    position += BOOLEAN_SIZE
     return source.readByte().toInt() != 0
   }
 
   private fun readByteArray(byteCount: Int): ByteArray {
-    byteReadCount += byteCount
+    position += byteCount
     return source.readByteArray(byteCount.toLong())
   }
 
@@ -744,7 +880,7 @@ class HprofReader constructor(
   }
 
   private fun readUtf8(byteCount: Long): String {
-    byteReadCount += byteCount
+    position += byteCount
     return source.readUtf8(byteCount)
   }
 
@@ -761,7 +897,7 @@ class HprofReader constructor(
   }
 
   private fun skip(byteCount: Int) {
-    byteReadCount += byteCount
+    position += byteCount
     return source.skip(byteCount.toLong())
   }
 
