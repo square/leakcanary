@@ -7,7 +7,7 @@ build:
     # comments: 1
 
 processors:
-  active: false
+  active: true
   exclude:
   # - 'FunctionCountProcessor'
   # - 'PropertyCountProcessor'
@@ -18,8 +18,8 @@ processors:
 console-reports:
   active: true
   exclude:
-    - 'ProjectStatisticsReport'
-    - 'ComplexityReport'
+  #  - 'ProjectStatisticsReport'
+  #  - 'ComplexityReport'
   #  - 'NotificationReport'
   #  - 'FindingsReport'
   #  - 'BuildFailureReport'
