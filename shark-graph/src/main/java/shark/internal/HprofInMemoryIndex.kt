@@ -33,6 +33,7 @@ import kotlin.reflect.KClass
 /**
  * This class is not thread safe, should be used from a single thread.
  */
+@Suppress("TooManyFunctions")
 internal class HprofInMemoryIndex private constructor(
   private val positionSize: Int,
   private val hprofStringCache: LongObjectScatterMap<String>,
@@ -138,6 +139,7 @@ internal class HprofInMemoryIndex private constructor(
     )
   }
 
+  @Suppress("ReturnCount")
   private fun indexedObjectOrNull(objectId: Long): IndexedObject? {
     var array: ByteSubArray? = classIndex[objectId]
     if (array != null) {
@@ -171,6 +173,7 @@ internal class HprofInMemoryIndex private constructor(
     return null
   }
 
+  @Suppress("ReturnCount")
   fun objectIdIsIndexed(objectId: Long): Boolean {
     if (classIndex[objectId] != null) {
       return true

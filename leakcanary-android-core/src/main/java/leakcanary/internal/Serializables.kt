@@ -17,12 +17,7 @@ internal object Serializables {
   inline fun <reified T> fromByteArray(byteArray: ByteArray): T? {
     val inputStream = ByteArrayInputStream(byteArray)
     return try {
-      val deserializedObject = ObjectInputStream(inputStream).readObject()
-      if (deserializedObject is T) {
-        deserializedObject
-      } else {
-        null
-      }
+      ObjectInputStream(inputStream).readObject() as? T
     } catch (ignored: Throwable) {
       null
     }

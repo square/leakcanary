@@ -23,6 +23,7 @@ import java.util.Locale
  *
  * See https://github.com/carrotsearch/hppc .
  */
+@Suppress("TooManyFunctions")
 class LongLongScatterMap {
   /**
    * The array holding keys.

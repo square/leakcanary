@@ -74,6 +74,7 @@ import kotlin.reflect.KClass
  * The Android Hprof format differs in some ways from that reference. This parser implementation
  * is largely adapted from https://android.googlesource.com/platform/tools/base/+/studio-master-dev/perflib/src/main/java/com/android/tools/perflib
  */
+@Suppress("LargeClass", "TooManyFunctions")
 class HprofReader constructor(
   private var source: BufferedSource,
   /**
@@ -103,6 +104,7 @@ class HprofReader constructor(
    * Assumes the [reader] was has a source that currently points to the start position of hprof
    * records.
    */
+  @Suppress("ComplexMethod", "LongMethod")
   fun readHprofRecords(
     recordTypes: Set<KClass<out HprofRecord>>,
     listener: OnHprofRecordListener
@@ -909,7 +911,8 @@ class HprofReader constructor(
 
   private fun skipClassDumpRecord() {
     skip(
-        identifierByteSize + INT_SIZE + identifierByteSize + identifierByteSize + identifierByteSize + identifierByteSize + identifierByteSize + identifierByteSize + INT_SIZE
+        identifierByteSize + INT_SIZE + identifierByteSize + identifierByteSize + identifierByteSize +
+            identifierByteSize + identifierByteSize + identifierByteSize + INT_SIZE
     )
     // Skip over the constant pool
     val constantPoolCount = readUnsignedShort()

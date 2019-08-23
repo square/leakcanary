@@ -417,6 +417,7 @@ private fun ObjectReporter.applyFromField(
  * Recursively unwraps `this` [HeapInstance] as a ContextWrapper until an Activity is found in which case it is
  * returned. Returns null if no activity was found.
  */
+@Suppress("NestedBlockDepth")
 fun HeapInstance.unwrapActivityContext(): HeapInstance? {
   if (this instanceOf "android.app.Activity") {
     return this

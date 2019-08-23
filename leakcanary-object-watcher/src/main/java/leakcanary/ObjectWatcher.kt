@@ -136,7 +136,8 @@ class ObjectWatcher constructor(
       KeyedWeakReference(watchedObject, key, name, watchUptimeMillis, queue)
     SharkLog.d(
         "Watching %s with key %s",
-        ((if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") + if (name.isNotEmpty()) " named $name" else ""),
+        ((if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") +
+            if (name.isNotEmpty()) " named $name" else ""),
         key
     )
 

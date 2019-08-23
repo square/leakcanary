@@ -36,6 +36,7 @@ internal object Notifications {
     !InternalLeakCanary.application.packageManager.isInstantApp
   } else true
 
+  @Suppress("LongParameterList")
   fun showNotification(
     context: Context,
     contentTitle: CharSequence,

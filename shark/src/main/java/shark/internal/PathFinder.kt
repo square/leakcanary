@@ -57,6 +57,7 @@ import java.util.LinkedHashMap
  * identified as "to visit last" and then visiting them as needed if no path is
  * found.
  */
+@Suppress("TooManyFunctions")
 internal class PathFinder(
   private val graph: HeapGraph,
   private val listener: OnAnalysisProgressListener,
@@ -441,6 +442,7 @@ internal class PathFinder(
     }
   }
 
+  @Suppress("ReturnCount")
   private fun State.enqueue(
     node: ReferencePathNode
   ) {
@@ -545,6 +547,7 @@ internal class PathFinder(
     }
   }
 
+  @Suppress("ComplexCondition")
   private fun State.updateDominator(
     parent: Long,
     instance: Long,

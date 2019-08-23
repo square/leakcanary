@@ -47,7 +47,7 @@ import shark.LeakTrace
 import shark.LeakTraceElement
 import shark.LeakTraceElement.Type.STATIC_FIELD
 
-@Suppress("DEPRECATION")
+@Suppress("DEPRECATION", "TooManyFunctions")
 internal class DisplayLeakAdapter constructor(
   context: Context,
   private val leakTrace: LeakTrace,
@@ -216,6 +216,7 @@ internal class DisplayLeakAdapter constructor(
     return builder
   }
 
+  @Suppress("ReturnCount")
   private fun getConnectorType(position: Int): Type {
     if (isFirstConnectorRow(position)) {
       return if (isLeakGroup) HELP_LEAK_GROUP else HELP
