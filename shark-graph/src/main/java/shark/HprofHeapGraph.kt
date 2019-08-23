@@ -184,7 +184,7 @@ class HprofHeapGraph internal constructor(
   }
 
   companion object {
-    fun indexHprof(hprof: Hprof, , proguardMapping: ProguardMapping? = null): HeapGraph {
+    fun indexHprof(hprof: Hprof, proguardMapping: ProguardMapping? = null): HeapGraph {
       val index = HprofInMemoryIndex.createReadingHprof(hprof, proguardMapping)
       return HprofHeapGraph(hprof, index)
     }

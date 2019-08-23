@@ -325,7 +325,8 @@ internal class HprofInMemoryIndex private constructor(
           hprofStringCache, classNames, sortedClassIndex, sortedInstanceIndex,
           sortedObjectArrayIndex,
           sortedPrimitiveArrayIndex, gcRoots,
-          primitiveWrapperTypes, proguardMapping
+          proguardMapping,
+          primitiveWrapperTypes
       )
     }
 
