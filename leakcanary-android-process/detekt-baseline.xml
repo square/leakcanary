@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-<SmellBaseline>
-  <Blacklist></Blacklist>
-  <Whitelist>
-    <ID>ReturnCount:LeakCanaryProcess.kt$LeakCanaryProcess$private fun isInServiceProcess( context: Context, serviceClass: Class&lt;out Service&gt; ): Boolean</ID>
-  </Whitelist>
-</SmellBaseline>

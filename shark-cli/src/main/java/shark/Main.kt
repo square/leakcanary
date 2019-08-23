@@ -124,7 +124,7 @@ private fun runCommand(
   directory: File,
   vararg arguments: String
 ): String {
-  val process = ProcessBuilder(arguments.asList())
+  val process = ProcessBuilder(*arguments)
       .directory(directory)
       .start()
       .also { it.waitFor(10, SECONDS) }

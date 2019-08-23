@@ -44,6 +44,7 @@ object LeakCanaryProcess {
     return isInAnalyzerProcess
   }
 
+  @Suppress("ReturnCount")
   private fun isInServiceProcess(
     context: Context,
     serviceClass: Class<out Service>

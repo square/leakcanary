@@ -113,6 +113,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     }
   }
 
+  @Suppress("ReturnCount")
   private fun addDynamicShortcut(application: Application) {
     if (VERSION.SDK_INT < VERSION_CODES.N_MR1) {
       return

@@ -59,6 +59,7 @@ import java.util.concurrent.TimeUnit.NANOSECONDS
 /**
  * Analyzes heap dumps to look for leaks.
  */
+@Suppress("TooManyFunctions")
 class HeapAnalyzer constructor(
   private val listener: OnAnalysisProgressListener
 ) {
@@ -490,6 +491,7 @@ class HeapAnalyzer constructor(
     return status to reason
   }
 
+  @Suppress("LongParameterList")
   private fun buildLeakElement(
     graph: HeapGraph,
     node: ReferencePathNode,

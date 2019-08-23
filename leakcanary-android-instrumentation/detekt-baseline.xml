@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-<SmellBaseline>
-  <Blacklist></Blacklist>
-  <Whitelist>
-    <ID>ReturnCount:InstrumentationLeakDetector.kt$InstrumentationLeakDetector$ fun detectLeaks(): Result</ID>
-  </Whitelist>
-</SmellBaseline>

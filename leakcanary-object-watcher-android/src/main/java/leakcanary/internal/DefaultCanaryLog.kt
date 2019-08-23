@@ -9,7 +9,7 @@ internal class DefaultCanaryLog : Logger {
     message: String,
     vararg args: Any?
   ) {
-    val formatted = if (args.isNotEmpty()) String.format(message, args) else message
+    val formatted = if (args.isNotEmpty()) String.format(message, *args) else message
 
     if (formatted.length < 4000) {
       Log.d("LeakCanary", formatted)
@@ -25,7 +25,11 @@ internal class DefaultCanaryLog : Logger {
     message: String,
     vararg args: Any?
   ) {
-    d("${String.format(message, args)}\n${Log.getStackTraceString(throwable)}")
+    d(
+        String.format(message, *args) + '\n'.toString() + Log.getStackTraceString(
+            throwable
+        )
+    )
   }
 
   companion object {

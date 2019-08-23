@@ -17,6 +17,7 @@ import leakcanary.internal.NotificationReceiver.Action.DUMP_HEAP
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import shark.SharkLog
 
+@Suppress("TooManyFunctions")
 internal class HeapDumpTrigger(
   private val application: Application,
   private val backgroundHandler: Handler,

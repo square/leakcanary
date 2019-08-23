@@ -113,6 +113,7 @@ internal class SquigglySpan(context: Context) : ReplacementSpan() {
       }
     }
 
+    @Suppress("LongParameterList")
     private fun squigglyHorizontalPath(
       path: Path,
       left: Float,

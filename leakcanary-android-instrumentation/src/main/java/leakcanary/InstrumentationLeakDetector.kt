@@ -95,6 +95,7 @@ class InstrumentationLeakDetector {
   /**
    * Looks for retained objects, triggers a heap dump if needed and performs an analysis.
    */
+  @Suppress("ReturnCount")
   fun detectLeaks(): Result {
     val leakDetectionTime = SystemClock.uptimeMillis()
     val watchDurationMillis = AppWatcher.config.watchDurationMillis

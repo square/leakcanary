@@ -46,6 +46,7 @@ internal object HeapDumpRenderer {
       get() = this * density
   }
 
+  @Suppress("LongMethod")
   fun render(
     context: Context,
     heapDumpFile: File,

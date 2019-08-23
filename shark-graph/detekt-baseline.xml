@@ -1,9 +1,0 @@
-<?xml version="1.0" ?>
-<SmellBaseline>
-  <Blacklist></Blacklist>
-  <Whitelist>
-    <ID>TooManyFunctions:HprofHeapGraph.kt$HprofHeapGraph : HeapGraph</ID>
-    <ID>TooManyFunctions:LongLongScatterMap.kt$LongLongScatterMap</ID>
-    <ID>TooManyFunctions:LongObjectScatterMap.kt$LongObjectScatterMap&lt;T&gt;</ID>
-  </Whitelist>
-</SmellBaseline>

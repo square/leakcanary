@@ -1,5 +1,5 @@
 build:
-  maxIssues: 10
+  maxIssues: 1
   weights:
     # complexity: 2
     # LongParameterList: 1
@@ -7,7 +7,7 @@ build:
     # comments: 1
 
 processors:
-  active: true
+  active: false
   exclude:
   # - 'FunctionCountProcessor'
   # - 'PropertyCountProcessor'
@@ -18,8 +18,8 @@ processors:
 console-reports:
   active: true
   exclude:
-  #  - 'ProjectStatisticsReport'
-  #  - 'ComplexityReport'
+    - 'ProjectStatisticsReport'
+    - 'ComplexityReport'
   #  - 'NotificationReport'
   #  - 'FindingsReport'
   #  - 'BuildFailureReport'
@@ -378,7 +378,8 @@ performance:
     active: true
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
   SpreadOperator:
-    active: true
+    #LeakCanary - disabled
+    active: false
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
   UnnecessaryTemporaryInstantiation:
     active: true

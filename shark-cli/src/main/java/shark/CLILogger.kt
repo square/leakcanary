@@ -11,7 +11,7 @@ class CLILogger : Logger {
     vararg args: Any?
   ) {
     val formatted = if (args.isNotEmpty()) {
-      String.format(message, args)
+      String.format(message, *args)
     } else {
       message
     }
@@ -23,7 +23,7 @@ class CLILogger : Logger {
     message: String,
     vararg args: Any?
   ) {
-    d("${String.format(message, args)}\n${getStackTraceString(throwable)}")
+    d(String.format(message, *args) + '\n' + getStackTraceString(throwable))
   }
 
   private fun getStackTraceString(throwable: Throwable): String {

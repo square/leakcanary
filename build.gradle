@@ -120,8 +120,10 @@ subprojects {
 
   detekt {
     config = rootProject.files('detekt-config.yml')
-    baseline = project.file('detekt-baseline.xml')
     parallel = true
+    reports {
+      xml.enabled = false
+    }
   }
 
   afterEvaluate {

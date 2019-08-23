@@ -65,6 +65,7 @@ import java.io.File
  *
  * Call [open] to create an instance, [write] to add instances and [close] when you're done.
  */
+@Suppress("TooManyFunctions")
 class HprofWriter private constructor(
   private val sink: BufferedSink,
   val identifierByteSize: Int,
@@ -117,6 +118,7 @@ class HprofWriter private constructor(
     }
   }
 
+  @Suppress("LongMethod")
   private fun BufferedSink.write(record: HprofRecord) {
     when (record) {
       is StringRecord -> {
