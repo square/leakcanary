@@ -91,7 +91,7 @@ internal class RenderHeapDumpScreen(
                   val imageFile = File(storageDir, "${heapDumpFile.name}.png")
                   val saved = savePng(imageFile, bitmap)
                   if (saved) {
-                    SharkLog.d("Png saved at $imageFile")
+                    SharkLog.d { "Png saved at $imageFile" }
                     imageFile.setReadable(true, false)
                     val imageUri = LeakCanaryFileProvider.getUriForFile(
                         activity,

@@ -13,19 +13,12 @@ object SharkLog {
     /**
      * Logs a debug message formatted with the passed in arguments.
      */
-    fun d(
-      message: String,
-      vararg args: Any?
-    )
+    fun d(message: String)
 
     /**
      * Logs a [Throwable] and debug message formatted with the passed in arguments.
      */
-    fun d(
-      throwable: Throwable,
-      message: String,
-      vararg args: Any?
-    )
+    fun e(throwable: Throwable, message: String)
   }
 
   @Volatile var logger: Logger? = null
@@ -33,25 +26,18 @@ object SharkLog {
   /**
    * @see Logger.d
    */
-  fun d(
-    message: String,
-    vararg args: Any?
-  ) {
+  inline fun d(message: () -> String) {
     // Local variable to prevent the ref from becoming null after the null check.
     val logger = logger ?: return
-    logger.d(message, *args)
+    logger.d(message.invoke())
   }
 
   /**
-   * @see Logger.d
+   * @see Logger.e
    */
-  fun d(
-    throwable: Throwable,
-    message: String,
-    vararg args: Any?
-  ) {
+  inline fun e(throwable: Throwable, message: () -> String) {
     // Local variable to prevent the ref from becoming null after the null check.
     val logger = logger ?: return
-    logger.d(throwable, message, *args)
+    logger.e(throwable, message.invoke())
   }
 }

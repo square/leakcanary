@@ -47,9 +47,9 @@ internal class LeakActivity : NavigatingActivity() {
     resultCode: Int,
     returnIntent: Intent?
   ) {
-    SharkLog.d(
+    SharkLog.d {
         "Got activity result with requestCode=$requestCode resultCode=$resultCode returnIntent=$returnIntent"
-    )
+    }
     if (requestCode == FILE_REQUEST_CODE && resultCode == RESULT_OK && returnIntent != null) {
       returnIntent.data?.let { fileUri ->
         AsyncTask.THREAD_POOL_EXECUTOR.execute {
@@ -77,7 +77,7 @@ internal class LeakActivity : NavigatingActivity() {
             }
       }
     } catch (e: IOException) {
-      SharkLog.d(e, "Could not imported Hprof file")
+      SharkLog.e(e) { "Could not imported Hprof file" }
     }
   }
 

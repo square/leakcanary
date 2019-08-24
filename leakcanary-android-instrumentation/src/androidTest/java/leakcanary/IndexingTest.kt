@@ -19,11 +19,11 @@ class IndexingTest {
     context.assets.open("large-dump.hprof").copyTo(FileOutputStream(heapDumpFile))
 
     Hprof.open(heapDumpFile).use { hprof ->
-      SharkLog.d("Start indexing")
+      SharkLog.d { "Start indexing" }
       val before = SystemClock.uptimeMillis()
       HprofHeapGraph.indexHprof(hprof)
       val durationMs = (SystemClock.uptimeMillis() - before)
-      SharkLog.d("Indexing took $durationMs ms")
+      SharkLog.d { "Indexing took $durationMs ms" }
     }
   }
 }

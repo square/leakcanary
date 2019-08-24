@@ -6,24 +6,12 @@ import java.io.StringWriter
 
 class CLILogger : Logger {
 
-  override fun d(
-    message: String,
-    vararg args: Any?
-  ) {
-    val formatted = if (args.isNotEmpty()) {
-      String.format(message, *args)
-    } else {
-      message
-    }
-    println(formatted)
+  override fun d(message: String) {
+    println(message)
   }
 
-  override fun d(
-    throwable: Throwable,
-    message: String,
-    vararg args: Any?
-  ) {
-    d(String.format(message, *args) + '\n' + getStackTraceString(throwable))
+  override fun e(throwable: Throwable, message: String) {
+    d("$message\n${getStackTraceString(throwable)}")
   }
 
   private fun getStackTraceString(throwable: Throwable): String {

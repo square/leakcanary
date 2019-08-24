@@ -134,12 +134,12 @@ class ObjectWatcher constructor(
     val watchUptimeMillis = clock.uptimeMillis()
     val reference =
       KeyedWeakReference(watchedObject, key, name, watchUptimeMillis, queue)
-    SharkLog.d(
-        "Watching %s with key %s",
-        ((if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") +
-            if (name.isNotEmpty()) " named $name" else ""),
-        key
-    )
+    SharkLog.d {
+        "Watching " +
+            (if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") +
+            (if (name.isNotEmpty()) " named $name" else "") +
+            " with key $key"
+    }
 
     watchedObjects[key] = reference
     checkRetainedExecutor.execute {

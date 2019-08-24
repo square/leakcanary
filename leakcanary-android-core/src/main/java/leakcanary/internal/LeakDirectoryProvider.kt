@@ -73,29 +73,27 @@ internal class LeakDirectoryProvider constructor(
     if (!directoryWritableAfterMkdirs(storageDirectory)) {
       if (!hasStoragePermission()) {
         if (requestExternalStoragePermission()) {
-          SharkLog.d("WRITE_EXTERNAL_STORAGE permission not granted, requesting")
+          SharkLog.d { "WRITE_EXTERNAL_STORAGE permission not granted, requesting" }
           requestWritePermissionNotification()
         } else {
-          SharkLog.d("WRITE_EXTERNAL_STORAGE permission not granted, ignoring")
+          SharkLog.d { "WRITE_EXTERNAL_STORAGE permission not granted, ignoring" }
         }
       } else {
         val state = Environment.getExternalStorageState()
         if (Environment.MEDIA_MOUNTED != state) {
-          SharkLog.d("External storage not mounted, state: %s", state)
+          SharkLog.d { "External storage not mounted, state: $state" }
         } else {
-          SharkLog.d(
-              "Could not create heap dump directory in external storage: [%s]",
-              storageDirectory.absolutePath
-          )
+          SharkLog.d {
+              "Could not create heap dump directory in external storage: [${storageDirectory.absolutePath}]"
+          }
         }
       }
       // Fallback to app storage.
       storageDirectory = appStorageDirectory()
       if (!directoryWritableAfterMkdirs(storageDirectory)) {
-        SharkLog.d(
-            "Could not create heap dump directory in app storage: [%s]",
-            storageDirectory.absolutePath
-        )
+        SharkLog.d {
+            "Could not create heap dump directory in app storage: [${storageDirectory.absolutePath}]"
+        }
         return null
       }
     }
@@ -116,7 +114,7 @@ internal class LeakDirectoryProvider constructor(
         filesDeletedClearDirectory += path
       }
       if (!deleted) {
-        SharkLog.d("Could not delete file %s", file.path)
+        SharkLog.d { "Could not delete file ${file.path}" }
       }
     }
   }
@@ -183,7 +181,7 @@ internal class LeakDirectoryProvider constructor(
 
     val filesToRemove = hprofFiles.size - maxStoredHeapDumps
     if (filesToRemove > 0) {
-      SharkLog.d("Removing %d heap dumps", filesToRemove)
+      SharkLog.d { "Removing $filesToRemove heap dumps" }
       // Sort with oldest modified first.
       hprofFiles.sortWith(Comparator { lhs, rhs ->
         java.lang.Long.valueOf(lhs.lastModified())
@@ -195,7 +193,7 @@ internal class LeakDirectoryProvider constructor(
         if (deleted) {
           filesDeletedTooOld += path
         } else {
-          SharkLog.d("Could not delete old hprof file %s", hprofFiles[i].path)
+          SharkLog.d { "Could not delete old hprof file ${hprofFiles[i].path}" }
         }
       }
     }

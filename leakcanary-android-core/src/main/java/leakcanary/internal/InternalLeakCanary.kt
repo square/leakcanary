@@ -107,7 +107,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       }
 
       if (runningInInstrumentationTests) {
-        SharkLog.d("Instrumentation test detected, setting LeakCanary.Config.dumpHeap to false")
+        SharkLog.d { "Instrumentation test detected, setting LeakCanary.Config.dumpHeap to false" }
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
       }
     }
@@ -210,12 +210,11 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     try {
       shortcutManager.addDynamicShortcuts(listOf(shortcut))
     } catch (ignored: Throwable) {
-      SharkLog.d(
-          ignored,
-          "Could not add dynamic shortcut. " +
-              "shortcutCount=$shortcutCount, " +
-              "maxShortcutCountPerActivity=${shortcutManager.maxShortcutCountPerActivity}"
-      )
+      SharkLog.e(ignored) {
+        "Could not add dynamic shortcut. " +
+            "shortcutCount=$shortcutCount, " +
+            "maxShortcutCountPerActivity=${shortcutManager.maxShortcutCountPerActivity}"
+      }
     }
   }
 
