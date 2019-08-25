@@ -93,7 +93,7 @@ internal class AndroidHeapDumper(
         heapDumpFile
       }
     } catch (e: Exception) {
-      SharkLog.e(e) { "Could not dump heap" }
+      SharkLog.d(e) { "Could not dump heap" }
       // Abort heap dump
       null
     } finally {

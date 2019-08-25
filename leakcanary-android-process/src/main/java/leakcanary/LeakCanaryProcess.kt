@@ -54,7 +54,7 @@ object LeakCanaryProcess {
     try {
       packageInfo = packageManager.getPackageInfo(context.packageName, PackageManager.GET_SERVICES)
     } catch (e: Exception) {
-      SharkLog.e(e) { "Could not get package info for ${context.packageName}" }
+      SharkLog.d(e) { "Could not get package info for ${context.packageName}" }
       return false
     }
 

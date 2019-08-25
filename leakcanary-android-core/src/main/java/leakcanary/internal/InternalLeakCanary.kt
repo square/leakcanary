@@ -210,7 +210,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     try {
       shortcutManager.addDynamicShortcuts(listOf(shortcut))
     } catch (ignored: Throwable) {
-      SharkLog.e(ignored) {
+      SharkLog.d(ignored) {
         "Could not add dynamic shortcut. " +
             "shortcutCount=$shortcutCount, " +
             "maxShortcutCountPerActivity=${shortcutManager.maxShortcutCountPerActivity}"
