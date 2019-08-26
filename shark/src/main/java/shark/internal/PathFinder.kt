@@ -306,10 +306,9 @@ internal class PathFinder(
           // See https://github.com/square/leakcanary/issues/1516
           val objectExists = graph.objectExists(gcRoot.id)
           if (!objectExists) {
-            SharkLog.d(
-                "%s gc root ignored because it's pointing to unknown object @%s",
-                gcRoot::class.java.simpleName, gcRoot.id
-            )
+            SharkLog.d {
+                "${gcRoot::class.java.simpleName} gc root ignored because it's pointing to unknown object @${gcRoot.id}"
+            }
           }
           objectExists
         }
@@ -429,7 +428,7 @@ internal class PathFinder(
         if (!this) {
           // dalvik.system.PathClassLoader.runtimeInternalObjects references objects which don't
           // otherwise exist in the heap dump.
-          SharkLog.d("Invalid Hprof? Found unknown object id $objectId")
+          SharkLog.d { "Invalid Hprof? Found unknown object id $objectId" }
         }
       }
     }

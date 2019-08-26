@@ -27,7 +27,7 @@ internal class NotificationReceiver : BroadcastReceiver() {
         // Do nothing, the notification has auto cancel true.
       }
       else -> {
-        SharkLog.d("NotificationReceiver received unknown intent action for $intent")
+        SharkLog.d { "NotificationReceiver received unknown intent action for $intent" }
       }
     }
   }

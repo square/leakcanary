@@ -78,10 +78,10 @@ internal class HeapDumpTrigger(
     val config = configProvider()
     // A tick will be rescheduled when this is turned back on.
     if (!config.dumpHeap) {
-      SharkLog.d("No checking for retained object: LeakCanary.Config.dumpHeap is false")
+      SharkLog.d { "No checking for retained object: LeakCanary.Config.dumpHeap is false" }
       return
     }
-    SharkLog.d("Checking retained object because %s", reason)
+    SharkLog.d { "Checking retained object because $reason" }
 
     var retainedReferenceCount = objectWatcher.retainedObjectCount
 
@@ -95,20 +95,19 @@ internal class HeapDumpTrigger(
     if (!config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached) {
       showRetainedCountWithDebuggerAttached(retainedReferenceCount)
       scheduleRetainedObjectCheck("debugger was attached", WAIT_FOR_DEBUG_MILLIS)
-      SharkLog.d(
-          "Not checking for leaks while the debugger is attached, will retry in %d ms",
-          WAIT_FOR_DEBUG_MILLIS
-      )
+      SharkLog.d {
+          "Not checking for leaks while the debugger is attached, will retry in $WAIT_FOR_DEBUG_MILLIS ms"
+      }
       return
     }
 
-    SharkLog.d("Found %d retained references, dumping the heap", retainedReferenceCount)
+    SharkLog.d { "Found $retainedReferenceCount retained references, dumping the heap" }
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
     dismissRetainedCountNotification()
     val heapDumpFile = heapDumper.dumpHeap()
     if (heapDumpFile == null) {
-      SharkLog.d("Failed to dump heap, will retry in %d ms", WAIT_AFTER_DUMP_FAILED_MILLIS)
+      SharkLog.d { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
       scheduleRetainedObjectCheck("failed to dump heap", WAIT_AFTER_DUMP_FAILED_MILLIS)
       showRetainedCountWithHeapDumpFailed(retainedReferenceCount)
       return
@@ -125,7 +124,7 @@ internal class HeapDumpTrigger(
       gcTrigger.runGc()
       val retainedReferenceCount = objectWatcher.retainedObjectCount
       if (retainedReferenceCount == 0) {
-        SharkLog.d("No retained objects after GC")
+        SharkLog.d { "No retained objects after GC" }
         @Suppress("DEPRECATION")
         val builder = Notification.Builder(application)
             .setContentTitle(
@@ -153,11 +152,11 @@ internal class HeapDumpTrigger(
 
       val heapDumpUptimeMillis = SystemClock.uptimeMillis()
       KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-      SharkLog.d("Dumping the heap because user tapped notification")
+      SharkLog.d { "Dumping the heap because user tapped notification" }
 
       val heapDumpFile = heapDumper.dumpHeap()
       if (heapDumpFile == null) {
-        SharkLog.d("Failed to dump heap")
+        SharkLog.d { "Failed to dump heap" }
         showRetainedCountWithHeapDumpFailed(retainedReferenceCount)
         return@post
       }
@@ -174,7 +173,7 @@ internal class HeapDumpTrigger(
     val countChanged = lastDisplayedRetainedObjectCount != retainedKeysCount
     lastDisplayedRetainedObjectCount = retainedKeysCount
     if (retainedKeysCount == 0) {
-      SharkLog.d("No retained objects")
+      SharkLog.d { "No retained objects" }
       if (countChanged) {
         showNoMoreRetainedObjectNotification()
       }
@@ -183,11 +182,9 @@ internal class HeapDumpTrigger(
 
     if (retainedKeysCount < retainedVisibleThreshold) {
       if (applicationVisible || applicationInvisibleLessThanWatchPeriod) {
-        SharkLog.d(
-            "Found %d retained objects, which is less than the visible threshold of %d",
-            retainedKeysCount,
-            retainedVisibleThreshold
-        )
+        SharkLog.d {
+            "Found $retainedKeysCount retained objects, which is less than the visible threshold of $retainedVisibleThreshold"
+        }
         showRetainedCountBelowThresholdNotification(retainedKeysCount, retainedVisibleThreshold)
         scheduleRetainedObjectCheck(
             "Showing retained objects notification", WAIT_FOR_OBJECT_THRESHOLD_MILLIS
@@ -200,7 +197,7 @@ internal class HeapDumpTrigger(
 
   private fun scheduleRetainedObjectCheck(reason: String) {
     if (checkScheduled) {
-      SharkLog.d("Already scheduled retained check, ignoring ($reason)")
+      SharkLog.d { "Already scheduled retained check, ignoring ($reason)" }
       return
     }
     checkScheduled = true
@@ -215,7 +212,7 @@ internal class HeapDumpTrigger(
     delayMillis: Long
   ) {
     if (checkScheduled) {
-      SharkLog.d("Already scheduled retained check, ignoring ($reason)")
+      SharkLog.d { "Already scheduled retained check, ignoring ($reason)" }
       return
     }
     checkScheduled = true

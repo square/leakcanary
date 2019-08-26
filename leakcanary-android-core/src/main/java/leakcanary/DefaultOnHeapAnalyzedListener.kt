@@ -26,7 +26,7 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
 
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
     // TODO better log that include leakcanary version, exclusions, etc.
-    SharkLog.d("%s", heapAnalysis)
+    SharkLog.d { "$heapAnalysis" }
 
     val (id, groupProjections) = LeaksDbHelper(application)
         .writableDatabase.use { db ->

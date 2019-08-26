@@ -96,7 +96,7 @@ open class FailTestOnLeakRunListener : RunListener() {
 
   private fun detectLeaks() {
     if (skipLeakDetectionReason != null) {
-      SharkLog.d("Skipping leak detection because the test %s", skipLeakDetectionReason)
+      SharkLog.d { "Skipping leak detection because the test $skipLeakDetectionReason" }
       skipLeakDetectionReason = null
       return
     }

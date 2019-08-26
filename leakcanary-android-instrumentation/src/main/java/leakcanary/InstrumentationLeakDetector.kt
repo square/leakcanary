@@ -152,7 +152,7 @@ class InstrumentationLeakDetector {
     try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
     } catch (exception: Exception) {
-      SharkLog.d(exception, "Could not dump heap")
+      SharkLog.d(exception) { "Could not dump heap" }
       return AnalysisPerformed(
           HeapAnalysisFailure(
               heapDumpFile, analysisDurationMillis = 0,
@@ -176,7 +176,7 @@ class InstrumentationLeakDetector {
         )
     )
 
-    SharkLog.d("Heap Analysis:\n%s", heapAnalysis)
+    SharkLog.d { "Heap Analysis:\n$heapAnalysis" }
 
     return AnalysisPerformed(heapAnalysis)
   }
