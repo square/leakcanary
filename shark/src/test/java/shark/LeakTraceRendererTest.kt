@@ -5,7 +5,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.LibraryLeakReferenceMatcher
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.internal.renderToString
 import java.io.File
@@ -45,6 +44,38 @@ class LeakTraceRendererTest {
     """
   }
 
+  @Test fun rendersDeobfuscatedSimplePath() {
+    hprofFile.dump {
+      "a" clazz {
+        staticField["b.c"] = "Leaking" watchedInstance {}
+      }
+    }
+
+    val proguardMappingText = """
+            GcRoot -> a:
+                type leak -> b.c
+        """.trimIndent()
+
+    val reader =
+        ProguardMappingReader(proguardMappingText.byteInputStream(Charsets.UTF_8))
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(proguardMappingReader = reader)
+
+    analysis renders """
+    ┬
+    ├─ GcRoot
+    │    Leaking: UNKNOWN
+    │    GC Root: System class
+    │    ↓ static GcRoot.leak
+    │                    ~~~~
+    ╰→ Leaking
+    ​     Leaking: YES (ObjectWatcher was watching this)
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
+    """
+  }
+
   @Test fun rendersLeakingWithReason() {
     hprofFile.dump {
       "GcRoot" clazz {
@@ -57,17 +88,17 @@ class LeakTraceRendererTest {
     }
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(object : ObjectInspector {
-            override fun inspect(
-              reporter: ObjectReporter
-            ) {
-              reporter.whenInstanceOf("ClassB") {
-                leakingReasons += "because reasons"
+        hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+            objectInspectors = listOf(object : ObjectInspector {
+              override fun inspect(
+                reporter: ObjectReporter
+              ) {
+                reporter.whenInstanceOf("ClassB") {
+                  leakingReasons += "because reasons"
+                }
               }
-            }
-          })
-      )
+            })
+        )
 
     analysis renders """
     ┬
@@ -130,11 +161,11 @@ class LeakTraceRendererTest {
     }
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          referenceMatchers = listOf(
-              LibraryLeakReferenceMatcher(pattern = InstanceFieldPattern("ClassA", "leak"))
-          )
-      )
+        hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+            referenceMatchers = listOf(
+                LibraryLeakReferenceMatcher(pattern = InstanceFieldPattern("ClassA", "leak"))
+            )
+        )
 
     analysis rendersLibraryLeak """
     ┬
@@ -163,7 +194,7 @@ class LeakTraceRendererTest {
     }
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+        hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
     analysis renders """
     ┬
@@ -188,7 +219,7 @@ class LeakTraceRendererTest {
     hprofFile.writeJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+        hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
     analysis renders """
     ┬

@@ -81,7 +81,8 @@ class HeapAnalyzer constructor(
     referenceMatchers: List<ReferenceMatcher> = emptyList(),
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
-    leakFinders: List<ObjectInspector> = objectInspectors
+    leakFinders: List<ObjectInspector> = objectInspectors,
+    proguardMappingReader: ProguardMappingReader? = null
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -98,7 +99,7 @@ class HeapAnalyzer constructor(
       listener.onAnalysisProgress(PARSING_HEAP_DUMP)
       Hprof.open(heapDumpFile)
           .use { hprof ->
-            val graph = HprofHeapGraph.indexHprof(hprof)
+            val graph = HprofHeapGraph.indexHprof(hprof, proguardMappingReader)
 
             val findLeakInput = FindLeakInput(
                 graph, leakFinders, referenceMatchers, computeRetainedHeapSize, objectInspectors

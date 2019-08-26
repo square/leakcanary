@@ -8,14 +8,41 @@ import java.util.concurrent.TimeUnit.SECONDS
 
 fun main(args: Array<String>) {
   SharkLog.logger = CLILogger()
-  when {
-    args.size == 2 && args[0] == "analyze-process" -> {
-      val heapDumpFile = dumpHeap(args[1])
-      analyze(heapDumpFile)
+  when (args.size) {
+    2 -> {
+      when (args[0]) {
+        "analyze-process" -> {
+          val heapDumpFile = dumpHeap(args[1])
+          analyze(heapDumpFile)
+        }
+        "dump-process" -> dumpHeap(args[1])
+        "analyze-hprof" -> analyze(File(args[1]))
+        "strip-hprof" -> stripHprof(File(args[1]))
+        else -> printHelp()
+      }
     }
-    args.size == 2 && args[0] == "dump-process" -> dumpHeap(args[1])
-    args.size == 2 && args[0] == "analyze-hprof" -> analyze(File(args[1]))
-    args.size == 2 && args[0] == "strip-hprof" -> stripHprof(File(args[1]))
+    4 -> {
+      val heapFile = when (args[0]) {
+        "analyze-process" -> {
+          dumpHeap(args[1])
+        }
+        "analyze-hprof" -> {
+          File(args[1])
+        }
+        else -> {
+          printHelp()
+          null
+        }
+      }
+
+      val mappingFile = if (args[2] == "-proguard_mapping") File(args[3]) else null
+
+      if (heapFile != null && mappingFile != null) {
+        analyze(heapFile, mappingFile)
+      } else {
+        printHelp()
+      }
+    }
     else -> printHelp()
   }
 }
@@ -44,12 +71,14 @@ fun printHelp() {
 
     analyze-process: Dumps the heap for the provided process name, pulls the hprof file and analyzes it.
       USAGE: analyze-process PROCESS_PACKAGE_NAME
+             (optional) -proguard_mapping PROGUARD_MAPPING_FILE_PATH
 
     dump-process: Dumps the heap for the provided process name and pulls the hprof file.
       USAGE: dump-process PROCESS_PACKAGE_NAME
 
     analyze-hprof: Analyzes the provided hprof file.
       USAGE: analyze-hprof HPROF_FILE_PATH
+             (optional) -proguard_mapping PROGUARD_MAPPING_FILE_PATH
 
     strip-hprof: Replaces all primitive arrays from the provided hprof file with arrays of zeroes and generates a new "-stripped" hprof file.
       USAGE: strip-hprof HPROF_FILE_PATH
@@ -89,9 +118,9 @@ private fun dumpHeap(packageName: String): File {
   }
 
   val heapDumpFileName =
-    SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'-$processName.hprof'", Locale.US).format(
-        Date()
-    )
+      SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'-$processName.hprof'", Locale.US).format(
+          Date()
+      )
 
   val heapDumpDevicePath = "/data/local/tmp/$heapDumpFileName"
 
@@ -136,16 +165,19 @@ private fun runCommand(
       .readText()
 }
 
-private fun analyze(heapDumpFile: File) {
+private fun analyze(heapDumpFile: File, proguardMappingFile: File? = null) {
   val listener = OnAnalysisProgressListener { step ->
     SharkLog.d(step.name)
   }
+
+  val proguardMappingReader = proguardMappingFile?.let { ProguardMappingReader(it.inputStream()) }
 
   val heapAnalyzer = HeapAnalyzer(listener)
   SharkLog.d("Analyzing heap dump $heapDumpFile")
   val heapAnalysis = heapAnalyzer.analyze(
       heapDumpFile, AndroidReferenceMatchers.appDefaults, true,
-      AndroidObjectInspectors.appDefaults
+      AndroidObjectInspectors.appDefaults,
+      proguardMappingReader = proguardMappingReader
   )
 
   SharkLog.d(heapAnalysis.toString())
@@ -157,4 +189,3 @@ private fun stripHprof(heapDumpFile: File) {
   val outputFile = stripper.stripPrimitiveArrays(heapDumpFile)
   SharkLog.d("Stripped primitive arrays to $outputFile")
 }
-
