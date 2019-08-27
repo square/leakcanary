@@ -33,7 +33,7 @@ import shark.LeakTraceElement.Type.STATIC_FIELD
 import shark.LibraryLeakReferenceMatcher
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
-import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_LEAKING_INSTANCES
+import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_LEAKING_OBJECTS
 import shark.PrimitiveType.INT
 import shark.ReferenceMatcher
 import shark.ReferencePattern
@@ -65,21 +65,21 @@ internal class PathFinder(
 ) {
 
   class PathFindingResults(
-    val pathsToLeakingInstances: List<ReferencePathNode>,
-    val dominatedInstances: LongLongScatterMap
+    val pathsToLeakingObjects: List<ReferencePathNode>,
+    val dominatedObjectIds: LongLongScatterMap
   )
 
   private class State(
-    val leakingInstanceObjectIds: Set<Long>,
+    val leakingObjectIds: Set<Long>,
     val sizeOfObjectInstances: Int,
     val computeRetainedHeapSize: Boolean
   ) {
 
-    /** Set of instances to visit */
+    /** Set of objects to visit */
     val toVisitQueue: Deque<ReferencePathNode> = ArrayDeque()
 
     /**
-     * Instances to visit when [toVisitQueue] is empty. Should contain [JavaFrame] gc roots first,
+     * Objects to visit when [toVisitQueue] is empty. Should contain [JavaFrame] gc roots first,
      * then [LibraryLeakNode].
      */
     val toVisitLastQueue: Deque<ReferencePathNode> = ArrayDeque()
@@ -92,12 +92,12 @@ internal class PathFinder(
     val visitedSet = LongScatterSet()
 
     /**
-     * Map of instances to their leaking dominator.
-     * If an instance has been added to [toVisitSet] or [visitedSet] and is missing from
-     * [dominatedInstances] then it's considered "undomitable" ie it is dominated by gc roots
-     * and cannot be dominated by a leaking instance.
+     * Map of objects to their leaking dominator.
+     * If an object has been added to [toVisitSet] or [visitedSet] and is missing from
+     * [dominatedObjectIds] then it's considered "undomitable" ie it is dominated by gc roots
+     * and cannot be dominated by a leaking object.
      */
-    val dominatedInstances = LongLongScatterMap()
+    val dominatedObjectIds = LongLongScatterMap()
 
     val queuesNotEmpty: Boolean
       get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
@@ -148,16 +148,16 @@ internal class PathFinder(
   }
 
   fun findPathsFromGcRoots(
-    leakingInstanceObjectIds: Set<Long>,
+    leakingObjectIds: Set<Long>,
     computeRetainedHeapSize: Boolean
   ): PathFindingResults {
-    listener.onAnalysisProgress(FINDING_PATHS_TO_LEAKING_INSTANCES)
+    listener.onAnalysisProgress(FINDING_PATHS_TO_LEAKING_OBJECTS)
 
     val sizeOfObjectInstances = determineSizeOfObjectInstances(graph)
 
-    val state = State(leakingInstanceObjectIds, sizeOfObjectInstances, computeRetainedHeapSize)
+    val state = State(leakingObjectIds, sizeOfObjectInstances, computeRetainedHeapSize)
 
-    return state.findPathsFromGcRoots(leakingInstanceObjectIds)
+    return state.findPathsFromGcRoots()
   }
 
   private fun determineSizeOfObjectInstances(graph: HeapGraph): Int {
@@ -180,23 +180,23 @@ internal class PathFinder(
     }
   }
 
-  private fun State.findPathsFromGcRoots(leakingInstanceObjectIds: Set<Long>): PathFindingResults {
+  private fun State.findPathsFromGcRoots(): PathFindingResults {
     enqueueGcRoots()
 
-    val shortestPathsToLeakingInstances = mutableListOf<ReferencePathNode>()
+    val shortestPathsToLeakingObjects = mutableListOf<ReferencePathNode>()
     visitingQueue@ while (queuesNotEmpty) {
       val node = poll()
 
       if (checkSeen(node)) {
         throw IllegalStateException(
-            "Node $node objectId=${node.instance} should not be enqueued when already visited or enqueued"
+            "Node $node objectId=${node.objectId} should not be enqueued when already visited or enqueued"
         )
       }
 
-      if (node.instance in leakingInstanceObjectIds) {
-        shortestPathsToLeakingInstances.add(node)
+      if (node.objectId in leakingObjectIds) {
+        shortestPathsToLeakingObjects.add(node)
         // Found all refs, stop searching (unless computing retained size)
-        if (shortestPathsToLeakingInstances.size == leakingInstanceObjectIds.size) {
+        if (shortestPathsToLeakingObjects.size == leakingObjectIds.size) {
           if (computeRetainedHeapSize) {
             listener.onAnalysisProgress(FINDING_DOMINATORS)
           } else {
@@ -205,29 +205,29 @@ internal class PathFinder(
         }
       }
 
-      when (val heapObject = graph.findObjectById(node.instance)) {
+      when (val heapObject = graph.findObjectById(node.objectId)) {
         is HeapClass -> visitClassRecord(heapObject, node)
-        is HeapInstance -> visitInstanceRecord(heapObject, node)
-        is HeapObjectArray -> visitObjectArrayRecord(heapObject, node)
+        is HeapInstance -> visitInstance(heapObject, node)
+        is HeapObjectArray -> visitObjectArray(heapObject, node)
       }
     }
-    return PathFindingResults(shortestPathsToLeakingInstances, dominatedInstances)
+    return PathFindingResults(shortestPathsToLeakingObjects, dominatedObjectIds)
   }
 
   private fun State.poll(): ReferencePathNode {
     return if (!toVisitQueue.isEmpty()) {
       val removedNode = toVisitQueue.poll()
-      toVisitSet.remove(removedNode.instance)
+      toVisitSet.remove(removedNode.objectId)
       removedNode
     } else {
       val removedNode = toVisitLastQueue.poll()
-      toVisitLastSet.remove(removedNode.instance)
+      toVisitLastSet.remove(removedNode.objectId)
       removedNode
     }
   }
 
   private fun State.checkSeen(node: ReferencePathNode): Boolean {
-    val neverSeen = visitedSet.add(node.instance)
+    val neverSeen = visitedSet.add(node.objectId)
     return !neverSeen
   }
 
@@ -359,7 +359,7 @@ internal class PathFinder(
     }
   }
 
-  private fun State.visitInstanceRecord(
+  private fun State.visitInstance(
     instance: HeapInstance,
     parent: ReferencePathNode
   ) {
@@ -390,7 +390,7 @@ internal class PathFinder(
     fieldNamesAndValues.forEach { field ->
       val objectId = field.value.asObjectId!!
       if (computeRetainedHeapSize) {
-        updateDominatorWithSkips(parent.instance, objectId)
+        updateDominatorWithSkips(parent.objectId, objectId)
       }
 
       val node =
@@ -418,7 +418,7 @@ internal class PathFinder(
     }
   }
 
-  private fun State.visitObjectArrayRecord(
+  private fun State.visitObjectArray(
     objectArray: HeapObjectArray,
     parent: ReferencePathNode
   ) {
@@ -434,9 +434,9 @@ internal class PathFinder(
     }
     nonNullElementIds.forEachIndexed { index, elementId ->
       if (computeRetainedHeapSize) {
-        updateDominatorWithSkips(parent.instance, elementId)
+        updateDominatorWithSkips(parent.objectId, elementId)
       }
-      val name = Integer.toString(index)
+      val name = index.toString()
       enqueue(NormalNode(elementId, parent, LeakReference(ARRAY_ENTRY, name)))
     }
   }
@@ -445,14 +445,14 @@ internal class PathFinder(
   private fun State.enqueue(
     node: ReferencePathNode
   ) {
-    if (node.instance == ValueHolder.NULL_REFERENCE) {
+    if (node.objectId == ValueHolder.NULL_REFERENCE) {
       return
     }
-    if (visitedSet.contains(node.instance)) {
+    if (visitedSet.contains(node.objectId)) {
       return
     }
     // Already enqueued => shorter or equal distance
-    if (toVisitSet.contains(node.instance)) {
+    if (toVisitSet.contains(node.objectId)) {
       return
     }
 
@@ -463,24 +463,24 @@ internal class PathFinder(
           (node is RootNode && node.gcRoot is ThreadObject) ||
           (node is NormalNode && node.parent is RootNode && node.parent.gcRoot is JavaFrame)
 
-    if (toVisitLastSet.contains(node.instance)) {
+    if (toVisitLastSet.contains(node.objectId)) {
       // Already enqueued => shorter or equal distance amongst library leak ref patterns.
       if (visitLast) {
         return
       } else {
         toVisitQueue.add(node)
-        toVisitSet.add(node.instance)
-        val nodeToRemove = toVisitLastQueue.first { it.instance == node.instance }
+        toVisitSet.add(node.objectId)
+        val nodeToRemove = toVisitLastQueue.first { it.objectId == node.objectId }
         toVisitLastQueue.remove(nodeToRemove)
-        toVisitLastSet.remove(node.instance)
+        toVisitLastSet.remove(node.objectId)
         return
       }
     }
 
-    val isLeakingInstance = node.instance in leakingInstanceObjectIds
+    val isLeakingObject = node.objectId in leakingObjectIds
 
-    if (!isLeakingInstance) {
-      val skip = when (val graphObject = graph.findObjectById(node.instance)) {
+    if (!isLeakingObject) {
+      val skip = when (val graphObject = graph.findObjectById(node.objectId)) {
         is HeapClass -> false
         is HeapInstance ->
           when {
@@ -501,10 +501,10 @@ internal class PathFinder(
     }
     if (visitLast) {
       toVisitLastQueue.add(node)
-      toVisitLastSet.add(node.instance)
+      toVisitLastSet.add(node.objectId)
     } else {
       toVisitQueue.add(node)
-      toVisitSet.add(node.instance)
+      toVisitSet.add(node.objectId)
     }
   }
 
@@ -549,45 +549,45 @@ internal class PathFinder(
   @Suppress("ComplexCondition")
   private fun State.updateDominator(
     parent: Long,
-    instance: Long,
+    objectId: Long,
     neverEnqueued: Boolean
   ) {
-    val currentDominator = dominatedInstances[instance]
-    if (currentDominator == null && (instance in visitedSet || instance in toVisitSet || instance in toVisitLastSet)) {
+    val currentDominator = dominatedObjectIds[objectId]
+    if (currentDominator == null && (objectId in visitedSet || objectId in toVisitSet || objectId in toVisitLastSet)) {
       return
     }
-    val parentDominator = dominatedInstances[parent]
+    val parentDominator = dominatedObjectIds[parent]
 
-    val parentIsRetainedInstance = parent in leakingInstanceObjectIds
+    val parentIsRetainedObject = parent in leakingObjectIds
 
-    val nextDominator = if (parentIsRetainedInstance) parent else parentDominator
+    val nextDominator = if (parentIsRetainedObject) parent else parentDominator
 
     if (nextDominator == null) {
       // parent is not a retained instance and parent has no dominator, but it must have been
       // visited therefore we know parent belongs to undominated.
       if (neverEnqueued) {
-        visitedSet.add(instance)
+        visitedSet.add(objectId)
       }
 
       if (currentDominator != null) {
-        dominatedInstances.remove(instance)
+        dominatedObjectIds.remove(objectId)
       }
       return
     }
     if (currentDominator == null) {
-      dominatedInstances[instance] = nextDominator
+      dominatedObjectIds[objectId] = nextDominator
     } else {
       val parentDominators = mutableListOf<Long>()
       val currentDominators = mutableListOf<Long>()
       var dominator: Long? = nextDominator
       while (dominator != null) {
         parentDominators.add(dominator)
-        dominator = dominatedInstances[dominator]
+        dominator = dominatedObjectIds[dominator]
       }
       dominator = currentDominator
       while (dominator != null) {
         currentDominators.add(dominator)
-        dominator = dominatedInstances[dominator]
+        dominator = dominatedObjectIds[dominator]
       }
 
       var sharedDominator: Long? = null
@@ -600,12 +600,12 @@ internal class PathFinder(
         }
       }
       if (sharedDominator == null) {
-        dominatedInstances.remove(instance)
+        dominatedObjectIds.remove(objectId)
         if (neverEnqueued) {
-          visitedSet.add(instance)
+          visitedSet.add(objectId)
         }
       } else {
-        dominatedInstances[instance] = sharedDominator
+        dominatedObjectIds[objectId] = sharedDominator
       }
     }
   }
@@ -645,12 +645,12 @@ internal class PathFinder(
   }
 
   private fun State.undominate(
-    instance: Long,
+    objectId: Long,
     neverEnqueued: Boolean
   ) {
-    dominatedInstances.remove(instance)
+    dominatedObjectIds.remove(objectId)
     if (neverEnqueued) {
-      visitedSet.add(instance)
+      visitedSet.add(objectId)
     }
   }
 }
