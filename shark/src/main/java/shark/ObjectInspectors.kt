@@ -40,10 +40,10 @@ enum class ObjectInspectors : ObjectInspector {
           }
 
           if (heapDumpUptimeMillis == null) {
-            SharkLog.d(
+            SharkLog.d {
                 "leakcanary.KeyedWeakReference.heapDumpUptimeMillis field not found, " +
                     "this must be a heap dump from an older version of LeakCanary."
-            )
+            }
           }
 
           val addedToContext: List<KeyedWeakReferenceMirror> = graph.instances

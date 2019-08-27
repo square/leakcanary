@@ -38,7 +38,7 @@ internal class HeapAnalyzerService : ForegroundService(
 
   override fun onHandleIntentInForeground(intent: Intent?) {
     if (intent == null) {
-      SharkLog.d("HeapAnalyzerService received a null intent, ignoring.")
+      SharkLog.d { "HeapAnalyzerService received a null intent, ignoring." }
       return
     }
     // Since we're running in the main process we should be careful not to impact it.
@@ -70,7 +70,7 @@ internal class HeapAnalyzerService : ForegroundService(
 
   override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
     val percent = (100f * step.ordinal / shark.OnAnalysisProgressListener.Step.values().size).toInt()
-    SharkLog.d("Analysis in progress, working on: %s", step.name)
+    SharkLog.d { "Analysis in progress, working on: ${step.name}" }
     val lowercase = step.name.replace("_", " ")
         .toLowerCase()
     val message = lowercase.substring(0, 1).toUpperCase() + lowercase.substring(1)

@@ -57,7 +57,7 @@ internal object InternalAppWatcher {
   )
 
   fun install(application: Application) {
-    SharkLog.d("Installing AppWatcher")
+    SharkLog.d { "Installing AppWatcher" }
     checkMainThread()
     if (this::application.isInitialized) {
       return

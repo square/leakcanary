@@ -51,7 +51,7 @@ fun printHelp() {
   val workingDirectory = File(System.getProperty("user.dir"))
 
   // ASCII art is a remix of a shark from -David "TAZ" Baltazar- and chick from jgs.
-  SharkLog.d(
+  SharkLog.d {
       """
     Shark CLI, running in directory $workingDirectory
 
@@ -83,7 +83,7 @@ fun printHelp() {
     strip-hprof: Replaces all primitive arrays from the provided hprof file with arrays of zeroes and generates a new "-stripped" hprof file.
       USAGE: strip-hprof HPROF_FILE_PATH
   """.trimIndent()
-  )
+  }
 }
 
 private fun dumpHeap(packageName: String): File {
@@ -101,7 +101,7 @@ private fun dumpHeap(packageName: String): File {
   val (processName, processId) = if (matchingProcesses.size == 1) {
     matchingProcesses[0]
   } else if (matchingProcesses.isEmpty()) {
-    SharkLog.d("No process matching \"$packageName\"")
+    SharkLog.d { "No process matching \"$packageName\"" }
     System.exit(1)
     throw RuntimeException("System exiting with error")
   } else {
@@ -109,9 +109,9 @@ private fun dumpHeap(packageName: String): File {
     if (matchingExactly != null) {
       matchingExactly
     } else {
-      SharkLog.d(
+      SharkLog.d {
           "More than one process matches \"$packageName\" but none matches exactly: ${matchingProcesses.map { it.first }}"
-      )
+      }
       System.exit(1)
       throw RuntimeException("System exiting with error")
     }
@@ -124,9 +124,9 @@ private fun dumpHeap(packageName: String): File {
 
   val heapDumpDevicePath = "/data/local/tmp/$heapDumpFileName"
 
-  SharkLog.d(
+  SharkLog.d {
       "Dumping heap for process \"$processName\" with pid $processId to $heapDumpDevicePath"
-  )
+  }
 
   runCommand(
       workingDirectory, "adb", "shell", "am", "dumpheap", processId, heapDumpDevicePath
@@ -135,16 +135,16 @@ private fun dumpHeap(packageName: String): File {
   // Dump heap takes time but adb returns immediately.
   Thread.sleep(5000)
 
-  SharkLog.d("Pulling $heapDumpDevicePath")
+  SharkLog.d { "Pulling $heapDumpDevicePath" }
 
   val pullResult = runCommand(workingDirectory, "adb", "pull", heapDumpDevicePath)
-  SharkLog.d(pullResult)
-  SharkLog.d("Removing $heapDumpDevicePath")
+  SharkLog.d { pullResult }
+  SharkLog.d { "Removing $heapDumpDevicePath" }
 
   runCommand(workingDirectory, "adb", "shell", "rm", heapDumpDevicePath)
 
   val heapDumpFile = File(workingDirectory, heapDumpFileName)
-  SharkLog.d("Pulled heap dump to $heapDumpFile")
+  SharkLog.d { "Pulled heap dump to $heapDumpFile" }
 
   return heapDumpFile
 }
@@ -167,25 +167,25 @@ private fun runCommand(
 
 private fun analyze(heapDumpFile: File, proguardMappingFile: File? = null) {
   val listener = OnAnalysisProgressListener { step ->
-    SharkLog.d(step.name)
+    SharkLog.d { step.name }
   }
 
   val proguardMappingReader = proguardMappingFile?.let { ProguardMappingReader(it.inputStream()) }
 
   val heapAnalyzer = HeapAnalyzer(listener)
-  SharkLog.d("Analyzing heap dump $heapDumpFile")
+  SharkLog.d { "Analyzing heap dump $heapDumpFile" }
   val heapAnalysis = heapAnalyzer.analyze(
       heapDumpFile, AndroidReferenceMatchers.appDefaults, true,
       AndroidObjectInspectors.appDefaults,
       proguardMappingReader = proguardMappingReader
   )
 
-  SharkLog.d(heapAnalysis.toString())
+  SharkLog.d { heapAnalysis.toString() }
 }
 
 private fun stripHprof(heapDumpFile: File) {
-  SharkLog.d("Stripping primitive arrays in heap dump $heapDumpFile")
+  SharkLog.d { "Stripping primitive arrays in heap dump $heapDumpFile" }
   val stripper = HprofPrimitiveArrayStripper()
   val outputFile = stripper.stripPrimitiveArrays(heapDumpFile)
-  SharkLog.d("Stripped primitive arrays to $outputFile")
+  SharkLog.d { "Stripped primitive arrays to $outputFile" }
 }

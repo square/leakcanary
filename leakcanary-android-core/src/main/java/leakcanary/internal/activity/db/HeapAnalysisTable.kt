@@ -127,7 +127,7 @@ internal object HeapAnalysisTable {
         if (heapDumpDeleted) {
           LeakDirectoryProvider.filesDeletedRemoveLeak += path
         } else {
-          SharkLog.d("Could not delete heap dump file %s", heapDumpFile.path)
+          SharkLog.d { "Could not delete heap dump file ${heapDumpFile.path}" }
         }
       }
     }

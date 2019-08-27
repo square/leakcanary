@@ -54,7 +54,7 @@ object LeakCanaryProcess {
     try {
       packageInfo = packageManager.getPackageInfo(context.packageName, PackageManager.GET_SERVICES)
     } catch (e: Exception) {
-      SharkLog.d(e, "Could not get package info for %s", context.packageName)
+      SharkLog.d(e) { "Could not get package info for ${context.packageName}" }
       return false
     }
 
@@ -71,12 +71,10 @@ object LeakCanaryProcess {
     }
 
     if (serviceInfo.processName == null) {
-      SharkLog.d("Did not expect service %s to have a null process name", serviceClass)
+      SharkLog.d { "Did not expect service $serviceClass to have a null process name" }
       return false
     } else if (serviceInfo.processName == mainProcess) {
-      SharkLog.d(
-          "Did not expect service %s to run in main process %s", serviceClass, mainProcess
-      )
+      SharkLog.d { "Did not expect service $serviceClass to run in main process $mainProcess" }
       // Technically we are in the service process, but we're not in the service dedicated process.
       return false
     }
@@ -89,7 +87,7 @@ object LeakCanaryProcess {
       runningProcesses = activityManager.runningAppProcesses
     } catch (exception: SecurityException) {
       // https://github.com/square/leakcanary/issues/948
-      SharkLog.d("Could not get running app processes %d", exception)
+      SharkLog.d { "Could not get running app processes $exception" }
       return false
     }
 
@@ -102,7 +100,7 @@ object LeakCanaryProcess {
       }
     }
     if (myProcess == null) {
-      SharkLog.d("Could not find running process for %d", myPid)
+      SharkLog.d { "Could not find running process for $myPid" }
       return false
     }
 
