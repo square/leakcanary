@@ -528,9 +528,45 @@
       
     
     
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Dev Environment
+      </label>
+    
     <a href="./" title="Dev Environment" class="md-nav__link md-nav__link--active">
       Dev Environment
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" title="Setup" class="md-nav__link">
+    Setup
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#static-code-analysis" title="Static Code Analysis" class="md-nav__link">
+    Static Code Analysis
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -778,6 +814,29 @@
     
   
   
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" title="Setup" class="md-nav__link">
+    Setup
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#static-code-analysis" title="Static Code Analysis" class="md-nav__link">
+    Static Code Analysis
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -794,12 +853,21 @@
                 
                 
                 <h1 id="dev-environment-for-leakcanary-contributors">Dev Environment for LeakCanary contributors<a class="headerlink" href="#dev-environment-for-leakcanary-contributors" title="Permanent link">&para;</a></h1>
+<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Download Android Studio</li>
+<li>Download <a href="https://developer.android.com/studio">Android Studio</a></li>
 <li>We use two spaces code indentation, use <a href="https://github.com/square/java-code-styles">https://github.com/square/java-code-styles</a></li>
 <li>Build with <code>./gradlew build</code></li>
 <li>Running the failing UI tests to confirm leak detection correctly fails UI tests: <code>./gradlew leakcanary-sample:connectedCheck</code></li>
 <li>Normal UI tests: <code>./gradlew leakcanary-support-fragment:connectedCheck</code></li>
+</ul>
+<h2 id="static-code-analysis">Static Code Analysis<a class="headerlink" href="#static-code-analysis" title="Permanent link">&para;</a></h2>
+<ul>
+<li>LeakCanary <a href="https://github.com/square/leakcanary/pull/1535">uses</a> tool <a href="https://arturbosch.github.io/detekt/">Detekt</a> for static Code analysis</li>
+<li>Analyze whole project with <code>./gradlew check</code> or particular modules with <code>./gradlew :module-name:check</code> </li>
+<li>Detekt will fail the build if any ruleset violations are found. <strong>You should fix all issues before pushing the branch to remote</strong>.</li>
+<li>If you don&rsquo;t - Travis CI build will fail the check for you. A <a href="https://github.com/square/leakcanary/issues/1547">git push hook</a> will prevent pushing failing builds in future.</li>
+<li>Detekt report will be printed in console and saved to `/moduleDir/build/reports/</li>
 </ul>
                 
                   
