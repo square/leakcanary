@@ -99,7 +99,8 @@ class HeapAnalyzer constructor(
       listener.onAnalysisProgress(PARSING_HEAP_DUMP)
       Hprof.open(heapDumpFile)
           .use { hprof ->
-            val graph = HprofHeapGraph.indexHprof(hprof, proguardMappingReader)
+            val proguardMapping = proguardMappingReader?.readProguardMapping()
+            val graph = HprofHeapGraph.indexHprof(hprof, proguardMapping)
 
             val findLeakInput = FindLeakInput(
                 graph, leakFinders, referenceMatchers, computeRetainedHeapSize, objectInspectors

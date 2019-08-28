@@ -57,7 +57,7 @@ class LeakTraceRendererTest {
         """.trimIndent()
 
     val reader =
-        ProguardMappingReader(proguardMappingText.byteInputStream(Charsets.UTF_8))
+      ProguardMappingReader(proguardMappingText.byteInputStream(Charsets.UTF_8))
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(proguardMappingReader = reader)
 
@@ -88,17 +88,17 @@ class LeakTraceRendererTest {
     }
 
     val analysis =
-        hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-            objectInspectors = listOf(object : ObjectInspector {
-              override fun inspect(
-                reporter: ObjectReporter
-              ) {
-                reporter.whenInstanceOf("ClassB") {
-                  leakingReasons += "because reasons"
-                }
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          objectInspectors = listOf(object : ObjectInspector {
+            override fun inspect(
+              reporter: ObjectReporter
+            ) {
+              reporter.whenInstanceOf("ClassB") {
+                leakingReasons += "because reasons"
               }
-            })
-        )
+            }
+          })
+      )
 
     analysis renders """
     ┬
@@ -161,11 +161,11 @@ class LeakTraceRendererTest {
     }
 
     val analysis =
-        hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-            referenceMatchers = listOf(
-                LibraryLeakReferenceMatcher(pattern = InstanceFieldPattern("ClassA", "leak"))
-            )
-        )
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          referenceMatchers = listOf(
+              LibraryLeakReferenceMatcher(pattern = InstanceFieldPattern("ClassA", "leak"))
+          )
+      )
 
     analysis rendersLibraryLeak """
     ┬
@@ -194,7 +194,7 @@ class LeakTraceRendererTest {
     }
 
     val analysis =
-        hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
     analysis renders """
     ┬
@@ -219,7 +219,7 @@ class LeakTraceRendererTest {
     hprofFile.writeJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
 
     val analysis =
-        hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
     analysis renders """
     ┬
@@ -237,12 +237,14 @@ class LeakTraceRendererTest {
   }
 
   private infix fun HeapAnalysisSuccess.renders(expectedString: String) {
-    assertThat(applicationLeaks[0].leakTrace.renderToString()).isEqualTo(expectedString.trimIndent()
+    assertThat(applicationLeaks[0].leakTrace.renderToString()).isEqualTo(
+        expectedString.trimIndent()
     )
   }
 
   private infix fun HeapAnalysisSuccess.rendersLibraryLeak(expectedString: String) {
-    assertThat(libraryLeaks[0].leakTrace.renderToString()).isEqualTo(expectedString.trimIndent()
+    assertThat(libraryLeaks[0].leakTrace.renderToString()).isEqualTo(
+        expectedString.trimIndent()
     )
   }
 }

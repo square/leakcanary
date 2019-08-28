@@ -35,7 +35,7 @@ fun main(args: Array<String>) {
         }
       }
 
-      val mappingFile = if (args[2] == "-proguard_mapping") File(args[3]) else null
+      val mappingFile = if (args[2] == "-proguard-mapping") File(args[3]) else null
 
       if (heapFile != null && mappingFile != null) {
         analyze(heapFile, mappingFile)
@@ -71,14 +71,14 @@ fun printHelp() {
 
     analyze-process: Dumps the heap for the provided process name, pulls the hprof file and analyzes it.
       USAGE: analyze-process PROCESS_PACKAGE_NAME
-             (optional) -proguard_mapping PROGUARD_MAPPING_FILE_PATH
+             (optional) -proguard-mapping PROGUARD_MAPPING_FILE_PATH
 
     dump-process: Dumps the heap for the provided process name and pulls the hprof file.
       USAGE: dump-process PROCESS_PACKAGE_NAME
 
     analyze-hprof: Analyzes the provided hprof file.
       USAGE: analyze-hprof HPROF_FILE_PATH
-             (optional) -proguard_mapping PROGUARD_MAPPING_FILE_PATH
+             (optional) -proguard-mapping PROGUARD_MAPPING_FILE_PATH
 
     strip-hprof: Replaces all primitive arrays from the provided hprof file with arrays of zeroes and generates a new "-stripped" hprof file.
       USAGE: strip-hprof HPROF_FILE_PATH

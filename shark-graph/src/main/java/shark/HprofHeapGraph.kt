@@ -89,11 +89,17 @@ class HprofHeapGraph internal constructor(
     return index.objectIdIsIndexed(objectId)
   }
 
-  internal fun fieldName(classId: Long, fieldRecord: FieldRecord): String {
+  internal fun fieldName(
+    classId: Long,
+    fieldRecord: FieldRecord
+  ): String {
     return index.fieldName(classId, fieldRecord.nameStringId)
   }
 
-  internal fun staticFieldName(classId: Long, fieldRecord: StaticFieldRecord): String {
+  internal fun staticFieldName(
+    classId: Long,
+    fieldRecord: StaticFieldRecord
+  ): String {
     return index.fieldName(classId, fieldRecord.nameStringId)
   }
 
@@ -176,7 +182,7 @@ class HprofHeapGraph internal constructor(
       }
       is IndexedObjectArray -> {
         val isPrimitiveWrapperArray =
-            index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
+          index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
         HeapObjectArray(this, indexedObject, objectId, isPrimitiveWrapperArray)
       }
       is IndexedPrimitiveArray -> HeapPrimitiveArray(this, indexedObject, objectId)
@@ -186,9 +192,9 @@ class HprofHeapGraph internal constructor(
   companion object {
     fun indexHprof(
       hprof: Hprof,
-      inputStreamProguardMappingReader: ProguardMappingReader? = null
+      proguardMapping: ProguardMapping? = null
     ): HeapGraph {
-      val index = HprofInMemoryIndex.createReadingHprof(hprof, inputStreamProguardMappingReader)
+      val index = HprofInMemoryIndex.createReadingHprof(hprof, proguardMapping)
       return HprofHeapGraph(hprof, index)
     }
   }
