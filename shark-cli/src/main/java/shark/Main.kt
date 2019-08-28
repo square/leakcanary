@@ -52,7 +52,7 @@ fun printHelp() {
 
   // ASCII art is a remix of a shark from -David "TAZ" Baltazar- and chick from jgs.
   SharkLog.d {
-      """
+    """
     Shark CLI, running in directory $workingDirectory
 
                      ^`.                 .=""=.
@@ -110,7 +110,7 @@ private fun dumpHeap(packageName: String): File {
       matchingExactly
     } else {
       SharkLog.d {
-          "More than one process matches \"$packageName\" but none matches exactly: ${matchingProcesses.map { it.first }}"
+        "More than one process matches \"$packageName\" but none matches exactly: ${matchingProcesses.map { it.first }}"
       }
       System.exit(1)
       throw RuntimeException("System exiting with error")
@@ -118,14 +118,14 @@ private fun dumpHeap(packageName: String): File {
   }
 
   val heapDumpFileName =
-      SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'-$processName.hprof'", Locale.US).format(
-          Date()
-      )
+    SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'-$processName.hprof'", Locale.US).format(
+        Date()
+    )
 
   val heapDumpDevicePath = "/data/local/tmp/$heapDumpFileName"
 
   SharkLog.d {
-      "Dumping heap for process \"$processName\" with pid $processId to $heapDumpDevicePath"
+    "Dumping heap for process \"$processName\" with pid $processId to $heapDumpDevicePath"
   }
 
   runCommand(
@@ -165,19 +165,24 @@ private fun runCommand(
       .readText()
 }
 
-private fun analyze(heapDumpFile: File, proguardMappingFile: File? = null) {
+private fun analyze(
+  heapDumpFile: File,
+  proguardMappingFile: File? = null
+) {
   val listener = OnAnalysisProgressListener { step ->
     SharkLog.d { step.name }
   }
 
-  val proguardMappingReader = proguardMappingFile?.let { ProguardMappingReader(it.inputStream()) }
+  val proguardMapping = proguardMappingFile?.let {
+    ProguardMappingReader(it.inputStream()).readProguardMapping()
+  }
 
   val heapAnalyzer = HeapAnalyzer(listener)
   SharkLog.d { "Analyzing heap dump $heapDumpFile" }
   val heapAnalysis = heapAnalyzer.analyze(
       heapDumpFile, AndroidReferenceMatchers.appDefaults, true,
       AndroidObjectInspectors.appDefaults,
-      proguardMappingReader = proguardMappingReader
+      proguardMapping = proguardMapping
   )
 
   SharkLog.d { heapAnalysis.toString() }

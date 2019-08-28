@@ -56,10 +56,11 @@ class LeakTraceRendererTest {
                 type leak -> b.c
         """.trimIndent()
 
-    val reader =
-      ProguardMappingReader(proguardMappingText.byteInputStream(Charsets.UTF_8))
+    val reader = ProguardMappingReader(proguardMappingText.byteInputStream(Charsets.UTF_8))
 
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(proguardMappingReader = reader)
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        proguardMapping = reader.readProguardMapping()
+    )
 
     analysis renders """
     ┬

@@ -12,7 +12,7 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   objectInspectors: List<ObjectInspector> = emptyList(),
   computeRetainedHeapSize: Boolean = false,
   referenceMatchers: List<ReferenceMatcher> = defaultReferenceMatchers,
-  proguardMappingReader: ProguardMappingReader? = null
+  proguardMapping: ProguardMapping? = null
 ): T {
   val inspectors = if (ObjectInspectors.KEYED_WEAK_REFERENCE !in objectInspectors) {
     objectInspectors + ObjectInspectors.KEYED_WEAK_REFERENCE
@@ -25,7 +25,7 @@ fun <T : HeapAnalysis> File.checkForLeaks(
       referenceMatchers,
       computeRetainedHeapSize,
       inspectors,
-      proguardMappingReader = proguardMappingReader
+      proguardMapping = proguardMapping
   )
   if (result is HeapAnalysisFailure) {
     println(result)
