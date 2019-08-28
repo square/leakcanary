@@ -169,10 +169,10 @@ class HeapAnalyzer constructor(
       val path = mutableListOf<Long>()
       var leakNode: ReferencePathNode = pathNode
       while (leakNode is ChildNode) {
-        path.add(0, leakNode.instance)
+        path.add(0, leakNode.objectId)
         leakNode = leakNode.parent
       }
-      path.add(0, leakNode.instance)
+      path.add(0, leakNode.objectId)
       updateTrie(pathNode, path, 0, rootTrieNode)
     }
 
@@ -223,8 +223,8 @@ class HeapAnalyzer constructor(
     if (!computeRetainedHeapSize) {
       return null
     }
-    val pathsToLeakingInstances = pathFindingResults.pathsToLeakingInstances
-    val dominatedInstances = pathFindingResults.dominatedInstances
+    val pathsToLeakingInstances = pathFindingResults.pathsToLeakingObjects
+    val dominatedInstances = pathFindingResults.dominatedObjectIds
 
     listener.onAnalysisProgress(COMPUTING_NATIVE_RETAINED_SIZE)
 
@@ -272,7 +272,7 @@ class HeapAnalyzer constructor(
     // Include self size for leaking instances
     val leakingInstanceIds = mutableSetOf<Long>()
     pathsToLeakingInstances.forEach { pathNode ->
-      val leakingInstanceObjectId = pathNode.instance
+      val leakingInstanceObjectId = pathNode.objectId
       leakingInstanceIds.add(leakingInstanceObjectId)
       val instanceRecord = graph.findObjectById(leakingInstanceObjectId).asInstance!!
       val heapClass = instanceRecord.instanceClass
@@ -305,7 +305,7 @@ class HeapAnalyzer constructor(
     var sizedMoved: Boolean
     do {
       sizedMoved = false
-      pathsToLeakingInstances.map { it.instance }
+      pathsToLeakingInstances.map { it.objectId }
           .forEach { leakingInstanceId ->
             val dominator = dominatedInstances[leakingInstanceId]
             if (dominator != null) {
@@ -321,7 +321,7 @@ class HeapAnalyzer constructor(
     } while (sizedMoved)
     dominatedInstances.release()
     return pathsToLeakingInstances.map { pathNode ->
-      sizeByDominator[pathNode.instance]!!
+      sizeByDominator[pathNode.objectId]!!
     }
   }
 
@@ -333,7 +333,7 @@ class HeapAnalyzer constructor(
     val applicationLeaks = mutableListOf<ApplicationLeak>()
     val libraryLeaks = mutableListOf<LibraryLeak>()
 
-    val deduplicatedPaths = deduplicateShortestPaths(pathFindingResults.pathsToLeakingInstances)
+    val deduplicatedPaths = deduplicateShortestPaths(pathFindingResults.pathsToLeakingObjects)
 
     deduplicatedPaths.forEachIndexed { index, pathNode ->
       val shortestChildPath = mutableListOf<ChildNode>()
@@ -349,7 +349,7 @@ class HeapAnalyzer constructor(
         buildLeakTrace(graph, objectInspectors, rootNode, shortestChildPath)
 
       val className =
-        recordClassName(graph.findObjectById(pathNode.instance))
+        recordClassName(graph.findObjectById(pathNode.objectId))
 
       val firstLibraryLeakNode =
         shortestChildPath.firstOrNull { it is LibraryLeakNode } as LibraryLeakNode?
@@ -376,7 +376,7 @@ class HeapAnalyzer constructor(
     shortestPath.add(0, rootNode)
 
     val leakReporters = shortestPath.map {
-      ObjectReporter(graph.findObjectById(it.instance))
+      ObjectReporter(graph.findObjectById(it.objectId))
     }
 
     // Looping on inspectors first to get more cache hits.
@@ -500,7 +500,7 @@ class HeapAnalyzer constructor(
     leakStatus: LeakNodeStatus,
     leakStatusReason: String
   ): LeakTraceElement {
-    val objectId = node.instance
+    val objectId = node.objectId
 
     val graphRecord = graph.findObjectById(objectId)
 
