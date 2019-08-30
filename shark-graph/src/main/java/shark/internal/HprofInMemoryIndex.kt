@@ -21,6 +21,7 @@ import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
 import shark.OnHprofRecordListener
 import shark.PrimitiveType
+import shark.ProguardMapping
 import shark.ValueHolder
 import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
@@ -43,18 +44,29 @@ internal class HprofInMemoryIndex private constructor(
   private val objectArrayIndex: SortedBytesMap,
   private val primitiveArrayIndex: SortedBytesMap,
   private val gcRoots: List<GcRoot>,
+  private val proguardMapping: ProguardMapping?,
   val primitiveWrapperTypes: Set<Long>
 ) {
 
-  fun hprofStringById(id: Long): String {
-    return hprofStringCache[id] ?: throw IllegalArgumentException("Hprof string $id not in cache")
+  fun fieldName(
+    classId: Long,
+    id: Long
+  ): String {
+    val fieldNameString = hprofStringById(id)
+    return proguardMapping?.let {
+      val classNameStringId =
+        classNames[classId] ?: throw IllegalArgumentException("Unknown class id $classId")
+      val classNameString = hprofStringById(classNameStringId)
+      proguardMapping.deobfuscateFieldName(classNameString, fieldNameString)
+    } ?: fieldNameString
   }
 
   fun className(classId: Long): String {
     // String, primitive types
     val classNameStringId =
       classNames[classId] ?: throw IllegalArgumentException("Unknown class id $classId")
-    return hprofStringById(classNameStringId)
+    val classNameString = hprofStringById(classNameStringId)
+    return proguardMapping?.deobfuscateClassName(classNameString) ?: classNameString
   }
 
   fun classId(className: String): Long? {
@@ -190,6 +202,10 @@ internal class HprofInMemoryIndex private constructor(
     return false
   }
 
+  private fun hprofStringById(id: Long): String {
+    return hprofStringCache[id] ?: throw IllegalArgumentException("Hprof string $id not in cache")
+  }
+
   private class Builder(
     longIdentifiers: Boolean,
     fileLength: Long,
@@ -309,7 +325,9 @@ internal class HprofInMemoryIndex private constructor(
       }
     }
 
-    fun buildIndex(): HprofInMemoryIndex {
+    fun buildIndex(
+      proguardMapping: ProguardMapping?
+    ): HprofInMemoryIndex {
       val sortedInstanceIndex = instanceIndex.moveToSortedMap()
       val sortedObjectArrayIndex = objectArrayIndex.moveToSortedMap()
       val sortedPrimitiveArrayIndex = primitiveArrayIndex.moveToSortedMap()
@@ -320,6 +338,7 @@ internal class HprofInMemoryIndex private constructor(
           hprofStringCache, classNames, sortedClassIndex, sortedInstanceIndex,
           sortedObjectArrayIndex,
           sortedPrimitiveArrayIndex, gcRoots,
+          proguardMapping,
           primitiveWrapperTypes
       )
     }
@@ -346,6 +365,7 @@ internal class HprofInMemoryIndex private constructor(
 
     fun createReadingHprof(
       hprof: Hprof,
+      proguardMapping: ProguardMapping?,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = setOf(
           JniGlobal::class,
           JavaFrame::class,
@@ -413,7 +433,7 @@ internal class HprofInMemoryIndex private constructor(
 
       reader.readHprofRecords(recordTypes, indexBuilderListener)
 
-      return indexBuilderListener.buildIndex()
+      return indexBuilderListener.buildIndex(proguardMapping)
     }
 
   }

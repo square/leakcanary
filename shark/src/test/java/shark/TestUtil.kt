@@ -11,7 +11,8 @@ import java.lang.ref.WeakReference
 fun <T : HeapAnalysis> File.checkForLeaks(
   objectInspectors: List<ObjectInspector> = emptyList(),
   computeRetainedHeapSize: Boolean = false,
-  referenceMatchers: List<ReferenceMatcher> = defaultReferenceMatchers
+  referenceMatchers: List<ReferenceMatcher> = defaultReferenceMatchers,
+  proguardMapping: ProguardMapping? = null
 ): T {
   val inspectors = if (ObjectInspectors.KEYED_WEAK_REFERENCE !in objectInspectors) {
     objectInspectors + ObjectInspectors.KEYED_WEAK_REFERENCE
@@ -20,7 +21,11 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   }
   val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
   val result = heapAnalyzer.analyze(
-      this, referenceMatchers, computeRetainedHeapSize, inspectors
+      this,
+      referenceMatchers,
+      computeRetainedHeapSize,
+      inspectors,
+      proguardMapping = proguardMapping
   )
   if (result is HeapAnalysisFailure) {
     println(result)

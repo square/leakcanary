@@ -5,7 +5,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.LibraryLeakReferenceMatcher
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.internal.renderToString
 import java.io.File
@@ -29,6 +28,39 @@ class LeakTraceRendererTest {
     }
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+
+    analysis renders """
+    ┬
+    ├─ GcRoot
+    │    Leaking: UNKNOWN
+    │    GC Root: System class
+    │    ↓ static GcRoot.leak
+    │                    ~~~~
+    ╰→ Leaking
+    ​     Leaking: YES (ObjectWatcher was watching this)
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
+    """
+  }
+
+  @Test fun rendersDeobfuscatedSimplePath() {
+    hprofFile.dump {
+      "a" clazz {
+        staticField["b.c"] = "Leaking" watchedInstance {}
+      }
+    }
+
+    val proguardMappingText = """
+            GcRoot -> a:
+                type leak -> b.c
+        """.trimIndent()
+
+    val reader = ProguardMappingReader(proguardMappingText.byteInputStream(Charsets.UTF_8))
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        proguardMapping = reader.readProguardMapping()
+    )
 
     analysis renders """
     ┬
@@ -206,12 +238,14 @@ class LeakTraceRendererTest {
   }
 
   private infix fun HeapAnalysisSuccess.renders(expectedString: String) {
-    assertThat(applicationLeaks[0].leakTrace.renderToString()).isEqualTo(expectedString.trimIndent()
+    assertThat(applicationLeaks[0].leakTrace.renderToString()).isEqualTo(
+        expectedString.trimIndent()
     )
   }
 
   private infix fun HeapAnalysisSuccess.rendersLibraryLeak(expectedString: String) {
-    assertThat(libraryLeaks[0].leakTrace.renderToString()).isEqualTo(expectedString.trimIndent()
+    assertThat(libraryLeaks[0].leakTrace.renderToString()).isEqualTo(
+        expectedString.trimIndent()
     )
   }
 }
