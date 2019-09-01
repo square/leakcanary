@@ -127,10 +127,20 @@ subprojects {
   }
 
   afterEvaluate {
-    project.tasks.getByName('check').dependsOn 'detekt'
+    tasks.getByName('check').dependsOn 'detekt'
+    tasks.getByName('assemble').dependsOn installGitHooks
+    tasks.getByName('clean').dependsOn installGitHooks
   }
 
   dependencies {
     errorprone "com.google.errorprone:error_prone_core:${versions.errorProne}"
   }
+}
+
+//Copies git hooks from /hooks folder into .git; currently used to run Detekt during push
+//Git hook installation
+task installGitHooks(type: Copy) {
+  from new File(rootProject.rootDir, 'hooks')
+  into { new File(rootProject.rootDir, '.git/hooks') }
+  fileMode 0777 //Make files executable
 }
