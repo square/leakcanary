@@ -947,7 +947,7 @@ class HprofReader constructor(
     skip(identifierByteSize + INT_SIZE)
     val arrayLength = readInt()
     val type = readUnsignedByte()
-    skip(identifierByteSize + arrayLength * typeSize(type))
+    skip(arrayLength * typeSize(type))
   }
 
   private fun readHeapDumpInfoRecord(): HeapDumpInfoRecord {
