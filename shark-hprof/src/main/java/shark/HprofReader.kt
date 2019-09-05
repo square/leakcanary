@@ -213,7 +213,9 @@ class HprofReader constructor(
         HEAP_DUMP, HEAP_DUMP_SEGMENT -> {
           val heapDumpStart = position
           var previousTag = 0
+          var previousTagPosition = 0L
           while (position - heapDumpStart < length) {
+            val heapDumpTagPosition = position
             val heapDumpTag = readUnsignedByte()
 
             when (heapDumpTag) {
@@ -491,10 +493,11 @@ class HprofReader constructor(
                 }
               }
               else -> throw IllegalStateException(
-                  "Unknown tag $heapDumpTag after $previousTag"
+                  "Unknown tag ${"0x%02x".format(heapDumpTag)} at $heapDumpTagPosition after ${"0x%02x".format(previousTag)} at $previousTagPosition"
               )
             }
             previousTag = heapDumpTag
+            previousTagPosition = heapDumpTagPosition
           }
         }
         HEAP_DUMP_END -> {
