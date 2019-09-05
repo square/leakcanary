@@ -10,7 +10,7 @@
 
 ## Static Code Analysis 
 * LeakCanary [uses](https://github.com/square/leakcanary/pull/1535) tool [Detekt](https://arturbosch.github.io/detekt/) for static Code analysis
-* Analyze whole project with `./gradlew check` or particular modules with `./gradlew :module-name:check` 
-* Detekt will fail the build if any ruleset violations are found. **You should fix all issues before pushing the branch to remote**.
-* If you don't - Travis CI build will fail the check for you. A [git push hook](https://github.com/square/leakcanary/issues/1547) will prevent pushing failing builds in future.
+* Analyze whole project with `./gradlew check` or particular modules with `./gradlew :module-name:check`. Detekt will fail the build if any ruleset violations are found. **You should fix all issues before pushing the branch to remote**.
+  * There's also a **git pre-push** hook that will run analysis automatically before pushing branch to remote. If there are any violations - it will prevent the push. Fix the issues!
+  * You can bypass the git hook though; Travis CI will still run checks and will fail if any violations are found. 
 * Detekt report will be printed in console and saved to `/moduleDir/build/reports/
