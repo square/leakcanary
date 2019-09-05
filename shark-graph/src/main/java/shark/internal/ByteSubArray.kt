@@ -66,6 +66,13 @@ internal class ByteSubArray(
   }
 }
 
+internal fun ByteArray.readShort(index: Int): Short {
+  var pos = index
+  val array = this
+  val valueAsInt = array[pos++] and 0xff shl 8 or (array[pos] and 0xff)
+  return valueAsInt.toShort()
+}
+
 internal fun ByteArray.readInt(index: Int): Int {
   var pos = index
   val array = this
