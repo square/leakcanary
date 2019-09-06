@@ -54,8 +54,7 @@ internal class HprofInMemoryIndex private constructor(
   ): String {
     val fieldNameString = hprofStringById(id)
     return proguardMapping?.let {
-      val classNameStringId =
-        classNames[classId] ?: throw IllegalArgumentException("Unknown class id $classId")
+      val classNameStringId = classNames[classId]
       val classNameString = hprofStringById(classNameStringId)
       proguardMapping.deobfuscateFieldName(classNameString, fieldNameString)
     } ?: fieldNameString
@@ -63,8 +62,7 @@ internal class HprofInMemoryIndex private constructor(
 
   fun className(classId: Long): String {
     // String, primitive types
-    val classNameStringId =
-      classNames[classId] ?: throw IllegalArgumentException("Unknown class id $classId")
+    val classNameStringId = classNames[classId]
     val classNameString = hprofStringById(classNameStringId)
     return proguardMapping?.deobfuscateClassName(classNameString) ?: classNameString
   }

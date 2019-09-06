@@ -308,8 +308,9 @@ class HeapAnalyzer constructor(
       sizedMoved = false
       pathsToLeakingInstances.map { it.objectId }
           .forEach { leakingInstanceId ->
-            val dominator = dominatedInstances[leakingInstanceId]
-            if (dominator != null) {
+            val dominatorSlot = dominatedInstances.getSlot(leakingInstanceId)
+            if (dominatorSlot != -1) {
+              val dominator = dominatedInstances.getSlotValue(dominatorSlot)
               val retainedSize = sizeByDominator.getValue(leakingInstanceId)
               if (retainedSize > 0) {
                 sizeByDominator[leakingInstanceId] = 0

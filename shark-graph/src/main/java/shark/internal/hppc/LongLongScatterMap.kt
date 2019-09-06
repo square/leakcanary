@@ -133,9 +133,15 @@ class LongLongScatterMap {
     }
   }
 
-  operator fun get(key: Long): Long? {
+  /**
+   * Being given a key looks it up in the map and returns the slot where element sits, so it later
+   * can be retrieved with [getSlotValue]; return '-1' if element not found.
+   * Why so complicated and not just make [get] return null if value not found? The reason is performance:
+   * this approach prevents unnecessary boxing of the primitive long that would happen with nullable Long?
+   */
+  fun getSlot(key: Long): Int {
     if (key == 0L) {
-      return if (hasEmptyKey) values[mask + 1] else null
+      return if (hasEmptyKey) mask + 1 else -1
     } else {
       val keys = this.keys
       val mask = this.mask
@@ -144,14 +150,29 @@ class LongLongScatterMap {
       var existing = keys[slot]
       while (existing != 0L) {
         if (existing == key) {
-          return values[slot]
+          return slot
         }
         slot = slot + 1 and mask
         existing = keys[slot]
       }
 
-      return null
+      return -1
     }
+  }
+
+  /**
+   * Being given a slot of element retrieves it from the collection
+   */
+  fun getSlotValue(slot: Int): Long = values[slot]
+
+  /**
+   * Returns an element matching a provided [key]; throws [IllegalArgumentException] if element not found
+   */
+  operator fun get(key: Long): Long {
+    val slot = getSlot(key)
+    require(slot != -1) { "Unknown key $key" }
+
+    return getSlotValue(slot)
   }
 
   fun forEach(block: (Long, Long) -> Unit) {
