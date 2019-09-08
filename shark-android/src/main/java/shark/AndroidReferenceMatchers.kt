@@ -513,16 +513,30 @@ enum class AndroidReferenceMatchers {
     }
   },
 
-  CHANGE_WATCHER {
+  ASSIST_STRUCTURE {
     override fun add(references: MutableList<ReferenceMatcher>) {
       references += instanceFieldLeak(
-          "android.widget.TextView\$ChangeWatcher", "this\$0"
+          "android.app.assist.AssistStructure\$ViewNodeText", "mText"
           ,
           description = "AssistStructure (google assistant / autofill) holds on to text spannables" +
-              " on the screen. One such spannables is unfortunately TextView.ChangeWatcher, which" +
-              " ends up leaking the textview."
+              " on the screen. TextView.ChangeWatcher and android.widget.Editor end up in spans and" +
+              " typically hold on to the view hierarchy"
       ) {
-        sdkInt in 24..25
+        sdkInt in 24..27
+      }
+    }
+  },
+
+  ACCESSIBILITY_ITERATORS {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += instanceFieldLeak(
+          "android.widget.AccessibilityIterators\$LineTextSegmentIterator", "mLayout"
+          ,
+          description = "AccessibilityIterators holds on to text layouts which can hold on to spans" +
+              " TextView.ChangeWatcher and android.widget.Editor end up in spans and" +
+              " typically hold on to the view hierarchy"
+      ) {
+        sdkInt == 27
       }
     }
   },
@@ -608,7 +622,6 @@ enum class AndroidReferenceMatchers {
         sdkInt in 28..29
       }
     }
-
   },
 
   TEXT_TO_SPEECH {
@@ -635,6 +648,21 @@ enum class AndroidReferenceMatchers {
           description = description
       ) {
         sdkInt == 24
+      }
+    }
+  },
+
+  WINDOW_MANAGER_GLOBAL {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += instanceFieldLeak(
+          "android.view.WindowManagerGlobal", "mRoots"
+          ,
+          description = """
+              ViewRootImpl references a destroyed activity yet it's not detached (still has a view)
+               and WindowManagerGlobal still references it.
+            """.trimIndent()
+      ) {
+        sdkInt == 27
       }
     }
   },
@@ -687,7 +715,7 @@ enum class AndroidReferenceMatchers {
           ,
           description =
           "SemClipboardManager is held in memory by an anonymous inner class" +
-            " implementation of android.os.Binder, thereby leaking an activity context."
+              " implementation of android.os.Binder, thereby leaking an activity context."
       ) {
         manufacturer == SAMSUNG && sdkInt in 19..24
       }
@@ -697,9 +725,19 @@ enum class AndroidReferenceMatchers {
           ,
           description =
           "SemClipboardManager is held in memory by an anonymous inner class" +
-            " implementation of android.os.Binder, thereby leaking an activity context."
+              " implementation of android.os.Binder, thereby leaking an activity context."
       ) {
         manufacturer == SAMSUNG && sdkInt in 22..28
+      }
+      references += instanceFieldLeak(
+          "com.samsung.android.content.clipboard.SemClipboardManager$1",
+          "this$0"
+          ,
+          description =
+          "SemClipboardManager is held in memory by an anonymous inner class" +
+              " implementation of android.os.Binder, thereby leaking an activity context."
+      ) {
+        manufacturer == SAMSUNG && sdkInt == 24
       }
     }
   },
@@ -735,8 +773,6 @@ enum class AndroidReferenceMatchers {
     }
   },
 
-
-
   SEM_EMERGENCY_MANAGER__MCONTEXT {
     override fun add(
       references: MutableList<ReferenceMatcher>
@@ -746,7 +782,7 @@ enum class AndroidReferenceMatchers {
           ,
           description =
           "SemEmergencyManager is a static singleton that leaks a DecorContext." +
-            " Fix: https://gist.github.com/jankovd/a210460b814c04d500eb12025902d60d"
+              " Fix: https://gist.github.com/jankovd/a210460b814c04d500eb12025902d60d"
       ) {
         manufacturer == SAMSUNG && sdkInt in 19..24
       }
@@ -911,7 +947,7 @@ enum class AndroidReferenceMatchers {
           ,
           description =
           "GestureBoostManager is a static singleton that leaks an activity context." +
-            " Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756"
+              " Fix: https://github.com/square/leakcanary/issues/696#issuecomment-296420756"
       ) {
         manufacturer == HUAWEI && sdkInt in 24..25
       }
@@ -1027,6 +1063,24 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  EXTENDED_STATUS_BAR_MANAGER {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += staticFieldLeak(
+          "android.app.ExtendedStatusBarManager", "sInstance"
+          ,
+          description =
+          """
+            ExtendedStatusBarManager is held in a static sInstance field and has a mContext
+            field which references a decor context which references a destroyed activity.
+          """.trimIndent()
+      ) {
+        manufacturer == SHARP && sdkInt == 28
+      }
+    }
+  },
+
   // ######## Ignored references (not leaks) ########
 
   REFERENCES {
@@ -1120,6 +1174,7 @@ enum class AndroidReferenceMatchers {
     const val MEIZU = "Meizu"
     const val HUAWEI = "HUAWEI"
     const val VIVO = "vivo"
+    const val SHARP = "SHARP"
 
     /**
      * Returns a list of [ReferenceMatcher] that only contains [IgnoredReferenceMatcher] and no
