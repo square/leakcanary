@@ -45,6 +45,8 @@ class ProfiledTest {
         leakFinders = listOf(KEYED_WEAK_REFERENCE)
     )
     SharkLog.d { result.toString() }
+    // Giving time to stop CPU profiler (otherwise trace won't succeed)
+    Thread.sleep(20000)
   }
 
 }
