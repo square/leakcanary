@@ -5,12 +5,13 @@ package shark.internal
  */
 internal class ByteSubArray(
   private val array: ByteArray,
-  private val range: IntRange,
+  private val rangeStart: Int,
+  size: Int,
   private val longIdentifiers: Boolean
 ) {
-  private val endInclusive = range.endInclusive - range.start
 
-  val size = endInclusive + 1
+  private val endInclusive = size - 1
+
   private var currentIndex = 0
 
   fun readByte(): Byte {
@@ -19,7 +20,7 @@ internal class ByteSubArray(
     require(index in 0..endInclusive) {
       "Index $index should be between 0 and $endInclusive"
     }
-    return array[range.first + index]
+    return array[rangeStart + index]
   }
 
   fun readId(): Long {
@@ -36,7 +37,7 @@ internal class ByteSubArray(
     require(index >= 0 && index <= endInclusive - 3) {
       "Index $index should be between 0 and ${endInclusive - 3}"
     }
-    return array.readInt(range.first + index)
+    return array.readInt(rangeStart + index)
   }
 
   fun readTruncatedLong(byteCount: Int): Long {
@@ -45,12 +46,15 @@ internal class ByteSubArray(
     require(index >= 0 && index <= endInclusive - (byteCount - 1)) {
       "Index $index should be between 0 and ${endInclusive - (byteCount - 1)}"
     }
-    var pos = range.first + index
+    var pos = rangeStart + index
     val array = array
 
     var value = 0L
-    for (shift in ((byteCount - 1) * 8) downTo 8 step 8) {
+
+    var shift = (byteCount - 1) * 8
+    while (shift >= 8) {
       value = value or (array[pos++] and 0xffL shl shift)
+      shift -= 8
     }
     value = value or (array[pos] and 0xffL)
     return value
@@ -62,7 +66,7 @@ internal class ByteSubArray(
     require(index >= 0 && index <= endInclusive - 7) {
       "Index $index should be between 0 and ${endInclusive - 7}"
     }
-    return array.readLong(range.first + index)
+    return array.readLong(rangeStart + index)
   }
 }
 

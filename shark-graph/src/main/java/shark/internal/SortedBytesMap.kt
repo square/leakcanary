@@ -24,9 +24,7 @@ internal class SortedBytesMap(
       return null
     }
     val valueIndex = keyIndex * bytesPerEntry + bytesPerKey
-    return ByteSubArray(
-        sortedEntries, valueIndex until valueIndex + bytesPerValue, longIdentifiers
-    )
+    return ByteSubArray(sortedEntries, valueIndex, bytesPerValue, longIdentifiers)
   }
 
   operator fun contains(key: Long): Boolean {
@@ -38,9 +36,7 @@ internal class SortedBytesMap(
     return (0 until size).asSequence()
         .map { keyIndex ->
           val valueIndex = keyIndex * bytesPerEntry + bytesPerKey
-          keyAt(keyIndex) to ByteSubArray(
-              sortedEntries, valueIndex until valueIndex + bytesPerValue, longIdentifiers
-          )
+          keyAt(keyIndex) to ByteSubArray(sortedEntries, valueIndex, bytesPerValue, longIdentifiers)
         }
   }
 

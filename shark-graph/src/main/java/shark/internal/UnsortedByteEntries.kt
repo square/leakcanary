@@ -163,8 +163,11 @@ internal class UnsortedByteEntries(
       }
       var pos = ((assigned - 1) * bytesPerEntry) + index
       val values = entries!!
-      for (shift in ((byteCount - 1) * 8) downTo 8 step 8) {
+
+      var shift = (byteCount - 1) * 8
+      while(shift >= 8) {
         values[pos++] = (value ushr shift and 0xffL).toByte()
+        shift -= 8
       }
       values[pos] = (value and 0xffL).toByte()
     }
