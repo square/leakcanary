@@ -552,42 +552,53 @@ internal class PathFinder(
     objectId: Long,
     neverEnqueued: Boolean
   ) {
-    val currentDominator = dominatedObjectIds[objectId]
-    if (currentDominator == null && (objectId in visitedSet || objectId in toVisitSet || objectId in toVisitLastSet)) {
+    val currentDominatorSlot = dominatedObjectIds.getSlot(objectId)
+    if (currentDominatorSlot == -1 && (objectId in visitedSet || objectId in toVisitSet || objectId in toVisitLastSet)) {
       return
     }
-    val parentDominator = dominatedObjectIds[parent]
+    val parentDominatorSlot = dominatedObjectIds.getSlot(parent)
 
     val parentIsRetainedObject = parent in leakingObjectIds
 
-    val nextDominator = if (parentIsRetainedObject) parent else parentDominator
-
-    if (nextDominator == null) {
+    if (!parentIsRetainedObject && parentDominatorSlot == -1) {
       // parent is not a retained instance and parent has no dominator, but it must have been
       // visited therefore we know parent belongs to undominated.
       if (neverEnqueued) {
         visitedSet.add(objectId)
       }
 
-      if (currentDominator != null) {
+      if (currentDominatorSlot != -1) {
         dominatedObjectIds.remove(objectId)
       }
       return
     }
-    if (currentDominator == null) {
+    val nextDominator = if (parentIsRetainedObject) parent else dominatedObjectIds.getSlotValue(parentDominatorSlot)
+    if (currentDominatorSlot == -1) {
       dominatedObjectIds[objectId] = nextDominator
     } else {
       val parentDominators = mutableListOf<Long>()
       val currentDominators = mutableListOf<Long>()
-      var dominator: Long? = nextDominator
-      while (dominator != null) {
+      var stop = false
+      var dominator: Long = nextDominator
+      while (!stop) {
         parentDominators.add(dominator)
-        dominator = dominatedObjectIds[dominator]
+        val nextDominatorSlot = dominatedObjectIds.getSlot(dominator)
+        if (nextDominatorSlot == -1) {
+          stop = true
+        } else {
+          dominator = dominatedObjectIds.getSlotValue(nextDominatorSlot)
+        }
       }
-      dominator = currentDominator
-      while (dominator != null) {
+      stop = false
+      dominator = dominatedObjectIds.getSlotValue(currentDominatorSlot)
+      while (!stop) {
         currentDominators.add(dominator)
-        dominator = dominatedObjectIds[dominator]
+        val nextDominatorSlot = dominatedObjectIds.getSlot(dominator)
+        if (nextDominatorSlot == -1) {
+          stop = true
+        } else {
+          dominator = dominatedObjectIds.getSlotValue(nextDominatorSlot)
+        }
       }
 
       var sharedDominator: Long? = null
