@@ -293,6 +293,9 @@ LeakCanary.config = LeakCanary.config.copy(
 )
 ```
 
+!!! info
+    There is no equivalent API to `ExcludedRefs.Builder.clazz()` because it led to abuses. Instead see [Ignoring specific activities or fragment classes](recipes.md#ignoring-specific-activities-or-fragment-classes).
+
 ## Public API packages
 
 ### Before
