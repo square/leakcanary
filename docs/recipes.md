@@ -176,7 +176,6 @@ class DebugExampleApplication : ExampleApplication() {
 }
 ```
 
-
 ## Matching known library leaks
 
 Set [LeakCanary.Config.referenceMatchers](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/) to a list that builds on top of [AndroidReferenceMatchers.appDefaults](/leakcanary/api/shark-android/shark/-android-reference-matchers/app-defaults/):
@@ -200,6 +199,13 @@ class DebugExampleApplication : ExampleApplication() {
   }
 }
 ```
+
+## Ignoring specific activities or fragment classes
+
+Sometimes a 3rd party library provides its own activities or fragments which contain a number of bugs leading to leaks of those specific 3rd party activities and fragments. You should push hard on that library to fix their memory leaks as it's directly impacting your application. That being said, until those are fixed, you have two options:
+
+1. Add the specific leaks as known library leaks (see [Matching known library leaks](#matching-known-library-leaks)). LeakCanary will run when those leaks are detected and then report them as known library leaks.
+2. Disable LeakCanary automatic activity or fragment watching (e.g. `AppWatcher.config = AppWatcher.config.copy(watchActivities = false)`) and then manually pass objects to `AppWatcher.objectWatcher.watch`.
 
 ## Identifying leaking objects and labeling objects
 
