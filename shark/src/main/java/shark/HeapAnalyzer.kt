@@ -48,7 +48,7 @@ import shark.internal.PathFinder
 import shark.internal.PathFinder.PathFindingResults
 import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
-import shark.internal.ReferencePathNode.ChildNode.LibraryLeakNode
+import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.lastSegment
 import java.io.File
@@ -353,7 +353,7 @@ class HeapAnalyzer constructor(
       val className =
         recordClassName(graph.findObjectById(pathNode.objectId))
 
-      val firstLibraryLeakNode =
+      val firstLibraryLeakNode = if (rootNode is LibraryLeakNode) rootNode else
         shortestChildPath.firstOrNull { it is LibraryLeakNode } as LibraryLeakNode?
 
       if (firstLibraryLeakNode != null) {

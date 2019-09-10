@@ -46,4 +46,10 @@ sealed class ReferencePattern : Serializable {
       return "instance field $className#$fieldName"
     }
   }
+
+  data class NativeGlobalVariablePattern(val className: String) : ReferencePattern() {
+    override fun toString(): String {
+      return "native global variable referencing $className"
+    }
+  }
 }
