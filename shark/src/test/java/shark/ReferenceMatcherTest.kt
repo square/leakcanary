@@ -5,9 +5,12 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.GcRoot.JniGlobal
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
+import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
+import shark.ValueHolder.ReferenceHolder
 import java.io.File
 import java.lang.ref.WeakReference
 
@@ -114,6 +117,41 @@ class ReferenceMatcherTest {
         )
     )
     assertThat(analysis.libraryLeaks).isEmpty()
+  }
+
+  @Test fun nativeGlobalVariableLibraryLeak() {
+    hprofFile.dump {
+      gcRoot(JniGlobal(id = "Leaking".watchedInstance {}.value, jniGlobalRefId = 42))
+    }
+
+    val matcher = LibraryLeakReferenceMatcher(NativeGlobalVariablePattern("Leaking"))
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        referenceMatchers = listOf(matcher)
+    )
+    val leak = analysis.libraryLeaks[0]
+    assertThat(leak.pattern).isEqualTo(matcher.pattern)
+  }
+
+  @Test fun nativeGlobalVariableShortestPathExcluded() {
+    hprofFile.dump {
+      val leaking = instance(clazz("Leaking"))
+      keyedWeakReference(leaking)
+      val hasLeaking = instance(
+          clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
+          fields = listOf(leaking)
+      )
+      clazz("GcRoot", staticFields = listOf("longestPath" to hasLeaking))
+      gcRoot(JniGlobal(id = leaking.value, jniGlobalRefId = 42))
+    }
+
+    val matcher = LibraryLeakReferenceMatcher(NativeGlobalVariablePattern("Leaking"))
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        referenceMatchers = listOf(matcher)
+    )
+    val leak = analysis.applicationLeaks[0]
+    assertThat(leak.leakTrace.elements).hasSize(3)
+    assertThat(leak.leakTrace.elements[0].className).isEqualTo("GcRoot")
+    assertThat(leak.leakTrace.elements[0].reference!!.name).isEqualTo("longestPath")
   }
 
 }

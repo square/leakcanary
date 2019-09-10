@@ -17,6 +17,7 @@ package shark.internal
 
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
+import shark.GcRoot.JniGlobal
 import shark.GcRoot.ThreadObject
 import shark.HeapGraph
 import shark.HeapObject
@@ -38,12 +39,16 @@ import shark.PrimitiveType.INT
 import shark.ReferenceMatcher
 import shark.ReferencePattern
 import shark.ReferencePattern.InstanceFieldPattern
+import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
 import shark.SharkLog
 import shark.ValueHolder
-import shark.internal.ReferencePathNode.ChildNode.LibraryLeakNode
+import shark.internal.ReferencePathNode.ChildNode.LibraryLeakChildNode
 import shark.internal.ReferencePathNode.ChildNode.NormalNode
+import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
+import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
+import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongScatterSet
 import java.util.ArrayDeque
@@ -106,11 +111,13 @@ internal class PathFinder(
   private val fieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
   private val staticFieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
   private val threadNameReferenceMatchers: Map<String, ReferenceMatcher>
+  private val jniGlobalReferenceMatchers: Map<String, ReferenceMatcher>
 
   init {
     val fieldNameByClassName = mutableMapOf<String, MutableMap<String, ReferenceMatcher>>()
     val staticFieldNameByClassName = mutableMapOf<String, MutableMap<String, ReferenceMatcher>>()
     val threadNames = mutableMapOf<String, ReferenceMatcher>()
+    val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
 
     referenceMatchers.filter {
       (it is IgnoredReferenceMatcher || (it is LibraryLeakReferenceMatcher && it.patternApplies(
@@ -140,11 +147,15 @@ internal class PathFinder(
               }
               map[pattern.fieldName] = referenceMatcher
             }
+            is NativeGlobalVariablePattern -> {
+              jniGlobals[pattern.className] = referenceMatcher
+            }
           }
         }
     this.fieldNameByClassName = fieldNameByClassName
     this.staticFieldNameByClassName = staticFieldNameByClassName
     this.threadNameReferenceMatchers = threadNames
+    this.jniGlobalReferenceMatchers = jniGlobals
   }
 
   fun findPathsFromGcRoots(
@@ -243,35 +254,49 @@ internal class PathFinder(
       when (gcRoot) {
         is ThreadObject -> {
           threadsBySerialNumber[gcRoot.threadSerialNumber] = objectRecord.asInstance!! to gcRoot
-          enqueue(RootNode(gcRoot, gcRoot.id))
+          enqueue(NormalRootNode(gcRoot.id, gcRoot))
         }
         is JavaFrame -> {
           val (threadInstance, threadRoot) = threadsBySerialNumber.getValue(
               gcRoot.threadSerialNumber
           )
           val threadName = threadNames[threadInstance] ?: {
-            val name = threadInstance[Thread::class, "name"]?.value?.readAsJavaString()?:""
+            val name = threadInstance[Thread::class, "name"]?.value?.readAsJavaString() ?: ""
             threadNames[threadInstance] = name
             name
           }()
           val referenceMatcher = threadNameReferenceMatchers[threadName]
 
           if (referenceMatcher !is IgnoredReferenceMatcher) {
-            val rootNode = RootNode(gcRoot, threadRoot.id)
+            val rootNode = NormalRootNode(threadRoot.id, gcRoot)
             // Unfortunately Android heap dumps do not include stack trace data, so
             // JavaFrame.frameNumber is always -1 and we cannot know which method is causing the
             // reference to be held.
             val leakReference = LeakReference(LOCAL, "")
 
             val childNode = if (referenceMatcher is LibraryLeakReferenceMatcher) {
-              LibraryLeakNode(gcRoot.id, rootNode, leakReference, referenceMatcher)
+              LibraryLeakChildNode(gcRoot.id, rootNode, leakReference, referenceMatcher)
             } else {
               NormalNode(gcRoot.id, rootNode, leakReference)
             }
             enqueue(childNode)
           }
         }
-        else -> enqueue(RootNode(gcRoot, gcRoot.id))
+        is JniGlobal -> {
+          val referenceMatcher = when (objectRecord) {
+            is HeapClass -> jniGlobalReferenceMatchers[objectRecord.name]
+            is HeapInstance -> jniGlobalReferenceMatchers[objectRecord.instanceClassName]
+            is HeapObjectArray -> jniGlobalReferenceMatchers[objectRecord.arrayClassName]
+            is HeapPrimitiveArray -> jniGlobalReferenceMatchers[objectRecord.arrayClassName]
+          }
+          if (referenceMatcher !is IgnoredReferenceMatcher) {
+            if (referenceMatcher is LibraryLeakReferenceMatcher)
+              enqueue(LibraryLeakRootNode(gcRoot.id, gcRoot, referenceMatcher))
+          } else {
+            enqueue(NormalRootNode(gcRoot.id, gcRoot))
+          }
+        }
+        else -> enqueue(NormalRootNode(gcRoot.id, gcRoot))
       }
     }
   }
@@ -307,7 +332,7 @@ internal class PathFinder(
           val objectExists = graph.objectExists(gcRoot.id)
           if (!objectExists) {
             SharkLog.d {
-                "${gcRoot::class.java.simpleName} gc root ignored because it's pointing to unknown object @${gcRoot.id}"
+              "${gcRoot::class.java.simpleName} gc root ignored because it's pointing to unknown object @${gcRoot.id}"
             }
           }
           objectExists
@@ -348,7 +373,7 @@ internal class PathFinder(
 
       val node = when (val referenceMatcher = ignoredStaticFields[fieldName]) {
         null -> NormalNode(objectId, parent, LeakReference(STATIC_FIELD, fieldName))
-        is LibraryLeakReferenceMatcher -> LibraryLeakNode(
+        is LibraryLeakReferenceMatcher -> LibraryLeakChildNode(
             objectId, parent, LeakReference(STATIC_FIELD, fieldName), referenceMatcher
         )
         is IgnoredReferenceMatcher -> null
@@ -397,7 +422,7 @@ internal class PathFinder(
         if (threadLocalValuesMatcher != null && field.declaringClass.name == "java.lang.Thread" && field.name == "localValues") {
           // Earlier Android versions store local references in a Thread.localValues field.
           if (threadLocalValuesMatcher is LibraryLeakReferenceMatcher) {
-            LibraryLeakNode(
+            LibraryLeakChildNode(
                 objectId, parent, LeakReference(INSTANCE_FIELD, field.name),
                 threadLocalValuesMatcher
             )
@@ -407,7 +432,7 @@ internal class PathFinder(
         } else when (val referenceMatcher = fieldReferenceMatchers[field.name]) {
           null -> NormalNode(objectId, parent, LeakReference(INSTANCE_FIELD, field.name))
           is LibraryLeakReferenceMatcher ->
-            LibraryLeakNode(
+            LibraryLeakChildNode(
                 objectId, parent, LeakReference(INSTANCE_FIELD, field.name), referenceMatcher
             )
           is IgnoredReferenceMatcher -> null
@@ -572,7 +597,8 @@ internal class PathFinder(
       }
       return
     }
-    val nextDominator = if (parentIsRetainedObject) parent else dominatedObjectIds.getSlotValue(parentDominatorSlot)
+    val nextDominator =
+      if (parentIsRetainedObject) parent else dominatedObjectIds.getSlotValue(parentDominatorSlot)
     if (currentDominatorSlot == -1) {
       dominatedObjectIds[objectId] = nextDominator
     } else {

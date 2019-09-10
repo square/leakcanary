@@ -19,6 +19,7 @@ import shark.AndroidReferenceMatchers.Companion.appDefaults
 import shark.AndroidReferenceMatchers.Companion.buildKnownReferences
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
+import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
@@ -667,6 +668,28 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  CONTROLLED_INPUT_CONNECTION_WRAPPER {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += nativeGlobalVariableLeak(
+          "android.view.inputmethod.InputMethodManager\$ControlledInputConnectionWrapper",
+          description = """
+        ControlledInputConnectionWrapper is held by a global variable in native code. 
+      """.trimIndent()
+      )
+    }
+  },
+
+  TOAST_TN {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += nativeGlobalVariableLeak(
+          "android.widget.Toast\$TN",
+          description = """
+        Toast.TN is held by a global variable in native code due to an IPC call to show the toast.
+      """.trimIndent()
+      )
+    }
+  },
+
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG
@@ -709,35 +732,18 @@ enum class AndroidReferenceMatchers {
     override fun add(
       references: MutableList<ReferenceMatcher>
     ) {
-      references += instanceFieldLeak(
-          "com.samsung.android.content.clipboard.SemClipboardManager",
-          "mContext"
-          ,
-          description =
-          "SemClipboardManager is held in memory by an anonymous inner class" +
-              " implementation of android.os.Binder, thereby leaking an activity context."
+      val description = """
+         SemClipboardManager inner classes are held by native references due to IPC calls 
+      """.trimIndent()
+      references += nativeGlobalVariableLeak(
+          "com.samsung.android.content.clipboard.SemClipboardManager$1", description
       ) {
-        manufacturer == SAMSUNG && sdkInt in 19..24
+        manufacturer == SAMSUNG && sdkInt in 19..28
       }
-      references += instanceFieldLeak(
-          "com.samsung.android.content.clipboard.SemClipboardManager$3",
-          "this$0"
-          ,
-          description =
-          "SemClipboardManager is held in memory by an anonymous inner class" +
-              " implementation of android.os.Binder, thereby leaking an activity context."
+      references += nativeGlobalVariableLeak(
+          "com.samsung.android.content.clipboard.SemClipboardManager$3", description
       ) {
-        manufacturer == SAMSUNG && sdkInt in 22..28
-      }
-      references += instanceFieldLeak(
-          "com.samsung.android.content.clipboard.SemClipboardManager$1",
-          "this$0"
-          ,
-          description =
-          "SemClipboardManager is held in memory by an anonymous inner class" +
-              " implementation of android.os.Binder, thereby leaking an activity context."
-      ) {
-        manufacturer == SAMSUNG && sdkInt == 24
+        manufacturer == SAMSUNG && sdkInt in 19..28
       }
     }
   },
@@ -1237,6 +1243,14 @@ enum class AndroidReferenceMatchers {
       patternApplies: AndroidBuildMirror.() -> Boolean = ALWAYS
     ): LibraryLeakReferenceMatcher {
       return libraryLeak(InstanceFieldPattern(className, fieldName), description, patternApplies)
+    }
+
+    fun nativeGlobalVariableLeak(
+      className: String,
+      description: String = "",
+      patternApplies: AndroidBuildMirror.() -> Boolean = ALWAYS
+    ): LibraryLeakReferenceMatcher {
+      return libraryLeak(NativeGlobalVariablePattern(className), description, patternApplies)
     }
 
     private fun libraryLeak(
