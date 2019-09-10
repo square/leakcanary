@@ -13,9 +13,7 @@ sealed class ReferencePattern : Serializable {
   data class JavaLocalPattern(
     val threadName: String
   ) : ReferencePattern() {
-    override fun toString(): String {
-      return "local variable on thread $threadName"
-    }
+    override fun toString() = "local variable on thread $threadName"
   }
 
   /**
@@ -25,9 +23,7 @@ sealed class ReferencePattern : Serializable {
     val className: String,
     val fieldName: String
   ) : ReferencePattern() {
-    override fun toString(): String {
-      return "static field $className#$fieldName"
-    }
+    override fun toString() = "static field $className#$fieldName"
   }
 
   /**
@@ -42,14 +38,15 @@ sealed class ReferencePattern : Serializable {
     val className: String,
     val fieldName: String
   ) : ReferencePattern() {
-    override fun toString(): String {
-      return "instance field $className#$fieldName"
-    }
+    override fun toString() = "instance field $className#$fieldName"
   }
 
+  /**
+   * Matches native global variables (also known as jni global gc roots) that reference
+   * Java objects. The class name will match against classes, instances and object arrays with
+   * a matching class name.
+   */
   data class NativeGlobalVariablePattern(val className: String) : ReferencePattern() {
-    override fun toString(): String {
-      return "native global variable referencing $className"
-    }
+    override fun toString() = "native global variable referencing $className"
   }
 }
