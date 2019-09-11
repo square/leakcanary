@@ -8,6 +8,7 @@ interface OnAnalysisProgressListener {
   // These steps are defined in the order in which they occur.
   enum class Step {
     PARSING_HEAP_DUMP,
+    EXTRACTING_METADATA,
     FINDING_LEAKING_INSTANCES,
     FINDING_PATHS_TO_LEAKING_OBJECTS,
     FINDING_DOMINATORS,
@@ -24,10 +25,7 @@ interface OnAnalysisProgressListener {
     /**
      * A no-op [OnAnalysisProgressListener]
      */
-    val NO_OP = object : OnAnalysisProgressListener {
-      override fun onAnalysisProgress(step: Step) {
-      }
-    }
+    val NO_OP = OnAnalysisProgressListener {}
 
     /**
      * Utility function to create a [OnAnalysisProgressListener] from the passed in [block] lambda

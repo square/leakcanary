@@ -41,6 +41,7 @@ import shark.LeakTraceElement.Holder.THREAD
 import shark.OnAnalysisProgressListener.Step.BUILDING_LEAK_TRACES
 import shark.OnAnalysisProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
+import shark.OnAnalysisProgressListener.Step.EXTRACTING_METADATA
 import shark.OnAnalysisProgressListener.Step.FINDING_LEAKING_INSTANCES
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
@@ -82,6 +83,7 @@ class HeapAnalyzer constructor(
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     leakFinders: List<ObjectInspector> = objectInspectors,
+    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
     proguardMapping: ProguardMapping? = null
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
@@ -101,13 +103,16 @@ class HeapAnalyzer constructor(
           .use { hprof ->
             val graph = HprofHeapGraph.indexHprof(hprof, proguardMapping)
 
+            listener.onAnalysisProgress(EXTRACTING_METADATA)
+            val metadata = metadataExtractor.extractMetadata(graph)
+
             val findLeakInput = FindLeakInput(
                 graph, leakFinders, referenceMatchers, computeRetainedHeapSize, objectInspectors
             )
             val (applicationLeaks, libraryLeaks) = findLeakInput.findLeaks()
             listener.onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
             return HeapAnalysisSuccess(
-                heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
+                heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime), metadata,
                 applicationLeaks, libraryLeaks
             )
           }

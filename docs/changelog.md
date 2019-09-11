@@ -2,7 +2,8 @@
 
 ## Next release
 
-* Adding support for deobfuscation using Proguard mapping files in Shark [#1499](https://github.com/square/leakcanary/issues/1499)
+* Added support for deobfuscation using Proguard mapping files in Shark [#1499](https://github.com/square/leakcanary/issues/1499)
+* Added support for extracting metadata from the heap dump (see the[recipe](recipes.md#extracting-metadata-from-the-heap-dump)) [#1519](https://github.com/square/leakcanary/issues/1519)
 * Several performance improvements when parsing heap dumps
 * Fixed several bugs and crashes
 * Added new known leak patterns
