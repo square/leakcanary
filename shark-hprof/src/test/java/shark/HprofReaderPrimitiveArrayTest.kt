@@ -1,9 +1,8 @@
+package shark
+
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
-import shark.Hprof
-import shark.HprofRecord
-import shark.OnHprofRecordListener
 import kotlin.text.Charsets.UTF_8
 
 class HprofReaderPrimitiveArrayTest {
@@ -24,7 +23,9 @@ class HprofReaderPrimitiveArrayTest {
 
     @Test
     fun reads_primitive_arrays_correctly() {
-        val byteArray = "mybytes".toByteArray(UTF_8)
+        val byteArray = ("Sharks also have a sensory organ called the \"ampullae of Lorenzini\" " +
+                         "which they use to \"feel\" the electrical field coming from its prey.")
+                .toByteArray(UTF_8)
 
         val heapDump = heapDumpRule.dumpHeap()
 

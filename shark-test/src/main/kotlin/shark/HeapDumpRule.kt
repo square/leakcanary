@@ -1,10 +1,9 @@
-import com.sun.management.HotSpotDiagnosticMXBean
+package shark
+
 import org.junit.rules.ExternalResource
 import org.junit.rules.TemporaryFolder
-
 import java.io.File
 import java.io.IOException
-import java.lang.management.ManagementFactory
 import java.util.UUID
 
 class HeapDumpRule : ExternalResource() {
@@ -21,13 +20,8 @@ class HeapDumpRule : ExternalResource() {
 
     @Throws(IOException::class)
     fun dumpHeap(): File {
-        val hotSpotDiag = ManagementFactory.newPlatformMXBeanProxy(
-                ManagementFactory.getPlatformMBeanServer(),
-                "com.sun.management:type=HotSpotDiagnostic",
-                HotSpotDiagnosticMXBean::class.java
-        )
         val hprof = File(temporaryFolder.root, "heapDump" + UUID.randomUUID() + ".hprof")
-        hotSpotDiag.dumpHeap(hprof.absolutePath, true)
+        JvmTestHeapDumper.dumpHeap(hprof.absolutePath)
         return hprof
     }
 }
