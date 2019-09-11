@@ -1087,6 +1087,22 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  OEM_SCENE_CALL_BLOCKER {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += staticFieldLeak(
+          "com.oneplus.util.OemSceneCallBlocker", "sContext",
+          description =
+          """
+            OemSceneCallBlocker has a sContext static field which holds on to an activity instance.
+          """.trimIndent()
+      ) {
+        manufacturer == ONE_PLUS && sdkInt == 28
+      }
+    }
+  },
+
   // ######## Ignored references (not leaks) ########
 
   REFERENCES {
@@ -1178,6 +1194,7 @@ enum class AndroidReferenceMatchers {
     const val LG = "LGE"
     const val NVIDIA = "NVIDIA"
     const val MEIZU = "Meizu"
+    const val ONE_PLUS = "OnePlus"
     const val HUAWEI = "HUAWEI"
     const val VIVO = "vivo"
     const val SHARP = "SHARP"
