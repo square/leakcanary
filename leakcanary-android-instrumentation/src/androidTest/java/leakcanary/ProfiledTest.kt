@@ -30,7 +30,7 @@ class ProfiledTest {
         .copyTo(FileOutputStream(heapDumpFile))
 
     SharkLog.d { "Waiting, please start profiler" }
-    Thread.sleep(20000)
+    Profiler.waitForSamplingStart()
 
     val analyzer = HeapAnalyzer(object : OnAnalysisProgressListener {
       override fun onAnalysisProgress(step: Step) {
@@ -46,7 +46,7 @@ class ProfiledTest {
     )
     SharkLog.d { result.toString() }
     // Giving time to stop CPU profiler (otherwise trace won't succeed)
-    Thread.sleep(20000)
+    Profiler.waitForSamplingStop()
   }
 
 }
