@@ -1,9 +1,8 @@
+package shark
+
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
-import shark.Hprof
-import shark.HprofRecord
-import shark.OnHprofRecordListener
 import kotlin.text.Charsets.UTF_8
 
 class HprofReaderPrimitiveArrayTest {
