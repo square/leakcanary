@@ -24,7 +24,9 @@ class HprofReaderPrimitiveArrayTest {
 
     @Test
     fun reads_primitive_arrays_correctly() {
-        val byteArray = "mybytes".toByteArray(UTF_8)
+        val byteArray = ("Sharks also have a sensory organ called the \"ampullae of Lorenzini\" " +
+                         "which they use to \"feel\" the electrical field coming from its prey.")
+                .toByteArray(UTF_8)
 
         val heapDump = heapDumpRule.dumpHeap()
 
