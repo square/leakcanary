@@ -123,7 +123,9 @@ internal abstract class NavigatingActivity : Activity() {
     val actionBar = actionBar
         ?: // https://github.com/square/leakcanary/issues/967
         return
-    actionBar.setDisplayHomeAsUpEnabled(backstack.size > 0)
+    val homeEnabled = backstack.size > 0
+    actionBar.setDisplayHomeAsUpEnabled(homeEnabled)
+    actionBar.setHomeButtonEnabled(homeEnabled)
   }
 
   override fun onCreateOptionsMenu(menu: Menu): Boolean {
