@@ -439,8 +439,22 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ignoring-specific-activities-or-fragment-classes" title="Ignoring specific activities or fragment classes" class="md-nav__link">
+    Ignoring specific activities or fragment classes
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#identifying-leaking-objects-and-labeling-objects" title="Identifying leaking objects and labeling objects" class="md-nav__link">
     Identifying leaking objects and labeling objects
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-leakcanary-analysis-in-a-separate-process" title="Running the LeakCanary analysis in a separate process" class="md-nav__link">
+    Running the LeakCanary analysis in a separate process
   </a>
   
 </li>
@@ -924,8 +938,22 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ignoring-specific-activities-or-fragment-classes" title="Ignoring specific activities or fragment classes" class="md-nav__link">
+    Ignoring specific activities or fragment classes
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#identifying-leaking-objects-and-labeling-objects" title="Identifying leaking objects and labeling objects" class="md-nav__link">
     Identifying leaking objects and labeling objects
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-leakcanary-analysis-in-a-separate-process" title="Running the LeakCanary analysis in a separate process" class="md-nav__link">
+    Running the LeakCanary analysis in a separate process
   </a>
   
 </li>
@@ -1032,7 +1060,9 @@
 <div class="codehilite"><pre><span></span><span class="k">val</span> <span class="py">retainedInstanceCount</span> <span class="p">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">retainedObjectCount</span>
 </pre></div></p>
 <h2 id="running-leakcanary-in-instrumentation-tests">Running LeakCanary in instrumentation tests<a class="headerlink" href="#running-leakcanary-in-instrumentation-tests" title="Permanent link">&para;</a></h2>
-<p>Add the <code>leakcanary-android-instrumentation</code> dependency to your instrumentation tests:</p>
+<p>Running leak detection in UI tests means you can detect memory leaks automatically in Continuous Integration prior to those leaks being merged into the codebase. However, as LeakCanary runs with a 5 seconds delay and freezes the VM to take a heap dump, this can introduce flakiness to the UI tests. Therefore LeakCanary automatically disables itself by setting <code>LeakCanary.config.dumpHeap</code> to <code>false</code> if it detects classes from the <code>androidx.test</code> dependency in the runtime classpath. If you run UI tests without <code>androidx.test</code>, we strongly advise that you set <code>dumpHeap</code> to <code>false</code>: <code>LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)</code>.</p>
+<p>LeakCanary provides an artifact dedicated to detecting leaks in UI tests which provides a run listener that waits for the end of a test, and if the test succeeds then it look for retained objects, trigger a heap dump if needed and perform an analysis.</p>
+<p>To set it up, add the <code>leakcanary-android-instrumentation</code> dependency to your instrumentation tests:</p>
 <div class="codehilite"><pre><span></span>androidTestImplementation &quot;com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}&quot;
 </pre></div>
 
@@ -1122,6 +1152,12 @@
 <span class="p">}</span>
 </pre></div>
 
+<h2 id="ignoring-specific-activities-or-fragment-classes">Ignoring specific activities or fragment classes<a class="headerlink" href="#ignoring-specific-activities-or-fragment-classes" title="Permanent link">&para;</a></h2>
+<p>Sometimes a 3<sup>rd</sup> party library provides its own activities or fragments which contain a number of bugs leading to leaks of those specific 3<sup>rd</sup> party activities and fragments. You should push hard on that library to fix their memory leaks as it&rsquo;s directly impacting your application. That being said, until those are fixed, you have two options:</p>
+<ol>
+<li>Add the specific leaks as known library leaks (see <a href="#matching-known-library-leaks">Matching known library leaks</a>). LeakCanary will run when those leaks are detected and then report them as known library leaks.</li>
+<li>Disable LeakCanary automatic activity or fragment watching (e.g. <code>AppWatcher.config = AppWatcher.config.copy(watchActivities = false)</code>) and then manually pass objects to <code>AppWatcher.objectWatcher.watch</code>.</li>
+</ol>
 <h2 id="identifying-leaking-objects-and-labeling-objects">Identifying leaking objects and labeling objects<a class="headerlink" href="#identifying-leaking-objects-and-labeling-objects" title="Permanent link">&para;</a></h2>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1153,6 +1189,16 @@
 <span class="p">}</span>
 </pre></div>
 
+<h2 id="running-the-leakcanary-analysis-in-a-separate-process">Running the LeakCanary analysis in a separate process<a class="headerlink" href="#running-the-leakcanary-analysis-in-a-separate-process" title="Permanent link">&para;</a></h2>
+<p>LeakCanary runs in your main app process. LeakCanary 2 is optimized to keep memory usage low while analysing and runs in a background thread with priority <code>Process.THREAD_PRIORITY_BACKGROUND</code>. If you find that LeakCanary is still using too much memory or impacting the app process performance, you can configure it to run the analysis in a separate process.</p>
+<p>All you have to do is replace the <code>leakcanary-android</code> artifact with <code>leakcanary-android-process</code></p>
+<div class="codehilite"><pre><span></span><span class="n">dependencies</span> <span class="o">{</span>
+  <span class="c1">// debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:${version}&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-process:${version}&#39;</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>You can call <code>LeakCanaryProcess.isInAnalyzerProcess()</code> to check if your Application class is being created in the LeakCanary process. This is useful for libraries like Firebase that may crash when running in an unexpected process.</p>
 <h2 id="setting-up-leakcanary-for-different-product-flavors">Setting up LeakCanary for different product flavors<a class="headerlink" href="#setting-up-leakcanary-for-different-product-flavors" title="Permanent link">&para;</a></h2>
 <p>You can setup LeakCanary to run in a specific product flavors of your app. For example, create:</p>
 <div class="codehilite"><pre><span></span>android {
