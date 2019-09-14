@@ -329,13 +329,7 @@ internal class PathFinder(
         .filter { gcRoot ->
           // GC roots sometimes reference objects that don't exist in the heap dump
           // See https://github.com/square/leakcanary/issues/1516
-          val objectExists = graph.objectExists(gcRoot.id)
-          if (!objectExists) {
-            SharkLog.d {
-              "${gcRoot::class.java.simpleName} gc root ignored because it's pointing to unknown object @${gcRoot.id}"
-            }
-          }
-          objectExists
+          graph.objectExists(gcRoot.id)
         }
         .map { graph.findObjectById(it.id) to it }
         .sortedWith(Comparator { (graphObject1, root1), (graphObject2, root2) ->
@@ -449,13 +443,7 @@ internal class PathFinder(
   ) {
     val record = objectArray.readRecord()
     val nonNullElementIds = record.elementIds.filter { objectId ->
-      objectId != ValueHolder.NULL_REFERENCE && graph.objectExists(objectId).apply {
-        if (!this) {
-          // dalvik.system.PathClassLoader.runtimeInternalObjects references objects which don't
-          // otherwise exist in the heap dump.
-          SharkLog.d { "Invalid Hprof? Found unknown object id $objectId" }
-        }
-      }
+      objectId != ValueHolder.NULL_REFERENCE && graph.objectExists(objectId)
     }
     nonNullElementIds.forEachIndexed { index, elementId ->
       if (computeRetainedHeapSize) {
