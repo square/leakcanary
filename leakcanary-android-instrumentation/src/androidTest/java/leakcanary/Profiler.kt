@@ -1,14 +1,13 @@
 package leakcanary
 
-import android.util.Log
+import shark.SharkLog
 
 /**
  * Helper class for working with Android Studio's Profiler
  */
 internal object Profiler {
-  private const val SLEEP_TIME = 1000L
+  private const val SLEEP_TIME_MILLIS = 1000L
   private const val SAMPLING_THREAD_NAME = "Sampling Profiler"
-  private const val TAG = "Profiler"
 
   /**
    * Wait until Profiler is attached and CPU Sampling is started.
@@ -17,10 +16,10 @@ internal object Profiler {
    * Note: only works with 'Sample Java Methods' profiling, won't work with 'Trace Java Methods'!
    */
   fun waitForSamplingStart() {
-    Log.d(TAG, "Waiting for sampling to start. Go to Profiler -> CPU -> Record")
+    SharkLog.d { "Waiting for sampling to start. Go to Profiler -> CPU -> Record" }
     sleepUntil { samplingThreadExists() }
-    Thread.sleep(SLEEP_TIME) //Wait a bit more to ensure profiler started sampling
-    Log.d(TAG, "Sampling started! Proceeding...")
+    Thread.sleep(SLEEP_TIME_MILLIS) //Wait a bit more to ensure profiler started sampling
+    SharkLog.d { "Sampling started! Proceeding..." }
   }
 
 
@@ -30,14 +29,14 @@ internal object Profiler {
    * profiler.
    */
   fun waitForSamplingStop() {
-    Log.d(TAG, "Waiting for sampling to stop. Go to Profiler -> CPU -> Stop recording")
+    SharkLog.d { "Waiting for sampling to stop. Go to Profiler -> CPU -> Stop recording" }
     sleepUntil { !samplingThreadExists() }
-    Log.d(TAG, "Sampling stopped! Proceeding...")
+    SharkLog.d { "Sampling stopped! Proceeding..." }
   }
 
   private inline fun sleepUntil(condition: () -> Boolean) {
     while (true) {
-      if (condition()) return else Thread.sleep(SLEEP_TIME)
+      if (condition()) return else Thread.sleep(SLEEP_TIME_MILLIS)
     }
   }
 
