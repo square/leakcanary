@@ -57,6 +57,7 @@ internal object InternalAppWatcher {
   )
 
   fun install(application: Application) {
+    SharkLog.logger = DefaultCanaryLog()
     SharkLog.d { "Installing AppWatcher" }
     checkMainThread()
     if (this::application.isInitialized) {

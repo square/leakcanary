@@ -6,7 +6,7 @@
 
   <application>
     <provider
-        android:name="leakcanary.internal.AppWatcherInstaller"
+        android:name="leakcanary.internal.AppWatcherInstaller$MainProcess"
         android:authorities="${applicationId}.leakcanary-installer"
         android:exported="false"/>
   </application>

@@ -9,6 +9,7 @@ import shark.IgnoredReferenceMatcher
 import shark.LibraryLeakReferenceMatcher
 import shark.ObjectInspector
 import shark.ReferenceMatcher
+import shark.SharkLog
 
 /**
  * The entry point API for LeakCanary. LeakCanary builds on top of [AppWatcher]. AppWatcher
@@ -145,6 +146,10 @@ object LeakCanary {
    */
   @Volatile
   var config: Config = if (AppWatcher.isInstalled) Config() else InternalLeakCanary.noInstallConfig
+    set(value) {
+      field = value
+      SharkLog.d { "Updated LeakCanary.config to $value" }
+    }
 
   /**
    * Returns a new [Intent] that can be used to programmatically launch the leak display activity.

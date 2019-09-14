@@ -21,13 +21,13 @@
     <service
         android:name="leakcanary.internal.HeapAnalyzerService"
         android:exported="false"
-        android:process=":leakcanary"
-        >
-      <intent-filter>
-        <action android:name="leakcanary.ANALYSIS_ACTION"/>
-      </intent-filter>
-    </service>
+        android:process=":leakcanary" />
 
+    <provider
+        android:name="leakcanary.internal.AppWatcherInstaller$LeakCanaryProcess"
+        android:authorities="${applicationId}.leakcanary-process.installer"
+        android:process=":leakcanary"
+        android:exported="false"/>
   </application>
 
 </manifest>

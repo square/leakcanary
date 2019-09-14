@@ -20,13 +20,7 @@
   <application>
     <service
         android:name="leakcanary.internal.HeapAnalyzerService"
-        android:exported="false"
-        >
-      <intent-filter>
-        <action android:name="leakcanary.ANALYSIS_ACTION"/>
-      </intent-filter>
-    </service>
-
+        android:exported="false" />
   </application>
 
 </manifest>
