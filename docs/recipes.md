@@ -244,6 +244,21 @@ class DebugExampleApplication : ExampleApplication() {
 }
 ```
 
+## Running the LeakCanary analysis in a separate process
+
+LeakCanary runs in your main app process. LeakCanary 2 is optimized to keep memory usage low while analysing and runs in a background thread with priority `Process.THREAD_PRIORITY_BACKGROUND`. If you find that LeakCanary is still using too much memory or impacting the app process performance, you can configure it to run the analysis in a separate process.
+
+All you have to do is replace the `leakcanary-android` depedency with `leakcanary-android-process`:
+
+```groovy
+dependencies {
+  // debugImplementation 'com.squareup.leakcanary:leakcanary-android:${version}'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-process:${version}'
+}
+```
+
+You can call [LeakCanaryProcess.isInAnalyzerProcess](/leakcanary/api/leakcanary-android-process/leakcanary/-leak-canary-process/is-in-analyzer-process/) to check if your Application class is being created in the LeakCanary process. This is useful when configuring libraries like Firebase that may crash when running in an unexpected process.
+
 ## Setting up LeakCanary for different product flavors
 
 You can setup LeakCanary to run in a specific product flavors of your app. For example, create:

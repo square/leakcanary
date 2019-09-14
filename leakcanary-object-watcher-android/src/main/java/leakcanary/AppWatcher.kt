@@ -1,9 +1,9 @@
 package leakcanary
 
 import android.app.Application
-import leakcanary.AppWatcher.config
 import leakcanary.AppWatcher.objectWatcher
 import leakcanary.internal.InternalAppWatcher
+import shark.SharkLog
 import java.util.concurrent.TimeUnit
 
 /**
@@ -61,6 +61,10 @@ object AppWatcher {
    */
   @Volatile
   var config: Config = if (isInstalled) Config() else Config(enabled = false)
+    set(value) {
+      field = value
+      SharkLog.d { "Updated AppWatcher.config to $value" }
+    }
 
   /**
    * The [ObjectWatcher] used by AppWatcher to detect retained objects.

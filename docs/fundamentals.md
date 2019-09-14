@@ -235,3 +235,4 @@ LeakCanary is released as several libraries:
 * LeakCanary Android separate process
 	* Enables running LeakCanary separately from the main app process.
 	* Artifact id: `com.squareup.leakcanary:leakcanary-android-process` (as a replacement for `com.squareup.leakcanary:leakcanary-android`).
+	* See [Running the LeakCanary analysis in a separate process](recipes.md#running-the-leakcanary-analysis-in-a-separate-process).
