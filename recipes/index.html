@@ -1191,14 +1191,14 @@
 
 <h2 id="running-the-leakcanary-analysis-in-a-separate-process">Running the LeakCanary analysis in a separate process<a class="headerlink" href="#running-the-leakcanary-analysis-in-a-separate-process" title="Permanent link">&para;</a></h2>
 <p>LeakCanary runs in your main app process. LeakCanary 2 is optimized to keep memory usage low while analysing and runs in a background thread with priority <code>Process.THREAD_PRIORITY_BACKGROUND</code>. If you find that LeakCanary is still using too much memory or impacting the app process performance, you can configure it to run the analysis in a separate process.</p>
-<p>All you have to do is replace the <code>leakcanary-android</code> artifact with <code>leakcanary-android-process</code></p>
+<p>All you have to do is replace the <code>leakcanary-android</code> depedency with <code>leakcanary-android-process</code>:</p>
 <div class="codehilite"><pre><span></span><span class="n">dependencies</span> <span class="o">{</span>
   <span class="c1">// debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:${version}&#39;</span>
   <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-process:${version}&#39;</span>
 <span class="o">}</span>
 </pre></div>
 
-<p>You can call <code>LeakCanaryProcess.isInAnalyzerProcess()</code> to check if your Application class is being created in the LeakCanary process. This is useful for libraries like Firebase that may crash when running in an unexpected process.</p>
+<p>You can call <a href="/leakcanary/api/leakcanary-android-process/leakcanary/-leak-canary-process/is-in-analyzer-process/">LeakCanaryProcess.isInAnalyzerProcess</a> to check if your Application class is being created in the LeakCanary process. This is useful when configuring libraries like Firebase that may crash when running in an unexpected process.</p>
 <h2 id="setting-up-leakcanary-for-different-product-flavors">Setting up LeakCanary for different product flavors<a class="headerlink" href="#setting-up-leakcanary-for-different-product-flavors" title="Permanent link">&para;</a></h2>
 <p>You can setup LeakCanary to run in a specific product flavors of your app. For example, create:</p>
 <div class="codehilite"><pre><span></span>android {
