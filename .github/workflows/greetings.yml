@@ -1,0 +1,13 @@
+name: Greetings
+
+on: [pull_request, issues]
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/first-interaction@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        issue-message: '🙏Thank you for opening an issue! LeakCanary is maintained by @pyricau with help from the community. Please be kind and remember that LeakCanary isn''t anyone''s main job 😘.'
+        pr-message: '🙏Thank you for your contribution! @pyricau will take a look 🔎. Depending on his availability that might take a while 😴, but don''t worry, your pull request will not be ignored.'
