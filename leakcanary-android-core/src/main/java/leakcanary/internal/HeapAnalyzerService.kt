@@ -21,11 +21,13 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
-import shark.OnAnalysisProgressListener
 import shark.HeapAnalyzer
 import shark.ObjectInspectors
+import shark.OnAnalysisProgressListener
+import shark.ProguardMappingReader
 import shark.SharkLog
 import java.io.File
+import java.io.IOException
 
 /**
  * This service runs in a main app process.
@@ -56,20 +58,27 @@ internal class HeapAnalyzerService : ForegroundService(
     val heapAnalyzer = HeapAnalyzer(this)
     val config = LeakCanary.config
 
+    val proguardMapping = try {
+      ProguardMappingReader(assets.open("leakCanaryProguardMapping.txt")).readProguardMapping()
+    } catch (e: IOException) {
+      null
+    }
 
     val heapAnalysis =
       heapAnalyzer.analyze(
-          heapDumpFile, config.referenceMatchers, config.computeRetainedHeapSize, config.objectInspectors,
+          heapDumpFile, config.referenceMatchers, config.computeRetainedHeapSize,
+          config.objectInspectors,
           if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
               ObjectInspectors.KEYED_WEAK_REFERENCE
-          )
+          ), proguardMapping
       )
 
     config.onHeapAnalyzedListener.onHeapAnalyzed(heapAnalysis)
   }
 
   override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
-    val percent = (100f * step.ordinal / shark.OnAnalysisProgressListener.Step.values().size).toInt()
+    val percent =
+      (100f * step.ordinal / shark.OnAnalysisProgressListener.Step.values().size).toInt()
     SharkLog.d { "Analysis in progress, working on: ${step.name}" }
     val lowercase = step.name.replace("_", " ")
         .toLowerCase()
