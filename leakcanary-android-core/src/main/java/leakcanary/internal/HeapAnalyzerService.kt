@@ -59,8 +59,8 @@ internal class HeapAnalyzerService : ForegroundService(
     val heapAnalyzer = HeapAnalyzer(this)
     val config = LeakCanary.config
 
-    val proguardMapping = try {
-      ProguardMappingReader(assets.open("leakCanaryProguardMapping.txt")).readProguardMapping()
+    val proguardMappingReader = try {
+      ProguardMappingReader(assets.open(PROGUARD_MAPPING_FILE_NAME))
     } catch (e: IOException) {
       null
     }
@@ -75,15 +75,14 @@ internal class HeapAnalyzerService : ForegroundService(
               ObjectInspectors.KEYED_WEAK_REFERENCE
           ),
           config.metatadaExtractor,
-          proguardMapping
+          proguardMappingReader?.readProguardMapping()
       )
 
     config.onHeapAnalyzedListener.onHeapAnalyzed(heapAnalysis)
   }
 
   override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
-    val percent =
-      (100f * step.ordinal / shark.OnAnalysisProgressListener.Step.values().size).toInt()
+    val percent = (100f * step.ordinal / shark.OnAnalysisProgressListener.Step.values().size).toInt()
     SharkLog.d { "Analysis in progress, working on: ${step.name}" }
     val lowercase = step.name.replace("_", " ")
         .toLowerCase()
@@ -93,6 +92,7 @@ internal class HeapAnalyzerService : ForegroundService(
 
   companion object {
     private const val HEAPDUMP_FILE_EXTRA = "HEAPDUMP_FILE_EXTRA"
+    private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryProguardMapping.txt"
 
     fun runAnalysis(
       context: Context,
