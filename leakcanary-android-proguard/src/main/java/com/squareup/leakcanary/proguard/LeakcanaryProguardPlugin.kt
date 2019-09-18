@@ -21,6 +21,7 @@ class LeakcanaryProguardPlugin : Plugin<Project> {
             ) {
               it.variantDirName = variant.dirName
               it.mappingFile = variant.mappingFile
+              it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
             }
 
             val mappingGeneratingTask = project.tasks.find { task ->
@@ -31,18 +32,6 @@ class LeakcanaryProguardPlugin : Plugin<Project> {
 
             mappingGeneratingTask?.let {
               mappingGeneratingTask.finalizedBy(copyProguardMappingFileTask)
-
-              variant.mergeAssetsProvider?.configure { provider ->
-                provider.dependsOn(copyProguardMappingFileTask)
-              }
-
-              android.sourceSets
-                  .find { it.name == variant.name }
-                  ?.apply {
-                    assets.setSrcDirs(
-                        assets.srcDirs + copyProguardMappingFileTask.leakCanaryAssetsOutputDirectory
-                    )
-                  }
             }
           }
         }

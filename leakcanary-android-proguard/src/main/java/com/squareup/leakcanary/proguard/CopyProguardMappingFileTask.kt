@@ -1,38 +1,47 @@
 package com.squareup.leakcanary.proguard
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
-import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 
+@CacheableTask
 open class CopyProguardMappingFileTask : DefaultTask() {
 
-  private val assetsOutputDirectory = "${project.buildDir}/generated/assets/"
+  @Input
+  var variantDirName: String? = null
 
-  @Input var variantDirName: String? = null
+  @Input
+  @Optional
+  @PathSensitive(PathSensitivity.RELATIVE)
+  var mappingFile: File? = null
 
-  @Input @Optional var mappingFile: File? = null
+  @Input
+  @PathSensitive(PathSensitivity.RELATIVE)
+  var mergeAssetsDirectory: File? = null
 
-  @get:OutputDirectory
-  val leakCanaryAssetsOutputDirectory: File
-    get() = project.file("$assetsOutputDirectory$variantDirName")
+  @get:OutputFile
+  @get:PathSensitive(PathSensitivity.RELATIVE)
+  val leakCanaryAssetsOutputFile: File
+    get() = File(mergeAssetsDirectory, "leakCanaryProguardMapping.txt")
 
   init {
-    group = "leakcanaryplugin"
-    description = "LeakCanary copy proguard mapping file."
+    description = "Puts proguard mapping file in assets directory."
   }
 
   @TaskAction
   fun copyProguardMappingFile() {
     mappingFile?.let { mappingFile ->
       if (mappingFile.exists()) {
-        val destination = File(leakCanaryAssetsOutputDirectory, "leakCanaryProguardMapping.txt")
-        if (destination.exists()) {
-          destination.delete()
+        if (leakCanaryAssetsOutputFile.exists()) {
+          leakCanaryAssetsOutputFile.delete()
         }
-        mappingFile.copyTo(destination)
+        mappingFile.copyTo(leakCanaryAssetsOutputFile)
       }
     }
   }
