@@ -35,6 +35,7 @@ buildscript {
       mockito_kotlin: 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0',
       okio: 'com.squareup.okio:okio:2.2.2',
       robolectric   : 'org.robolectric:robolectric:4.0-alpha-3',
+      androidGradlePlugin: "com.android.tools.build:gradle:3.5.0"
   ]
   repositories {
     google()
