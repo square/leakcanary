@@ -81,8 +81,7 @@ internal class HeapAnalyzerService : ForegroundService(
   }
 
   override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
-    val percent =
-      (100f * step.ordinal / shark.OnAnalysisProgressListener.Step.values().size).toInt()
+    val percent = (100f * step.ordinal / shark.OnAnalysisProgressListener.Step.values().size).toInt()
     SharkLog.d { "Analysis in progress, working on: ${step.name}" }
     val lowercase = step.name.replace("_", " ")
         .toLowerCase()
