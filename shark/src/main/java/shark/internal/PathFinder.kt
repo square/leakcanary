@@ -257,29 +257,34 @@ internal class PathFinder(
           enqueue(NormalRootNode(gcRoot.id, gcRoot))
         }
         is JavaFrame -> {
-          val (threadInstance, threadRoot) = threadsBySerialNumber.getValue(
-              gcRoot.threadSerialNumber
-          )
-          val threadName = threadNames[threadInstance] ?: {
-            val name = threadInstance[Thread::class, "name"]?.value?.readAsJavaString() ?: ""
-            threadNames[threadInstance] = name
-            name
-          }()
-          val referenceMatcher = threadNameReferenceMatchers[threadName]
+          val threadPair = threadsBySerialNumber[gcRoot.threadSerialNumber]
+          if (threadPair == null) {
+            // Could not find the thread that this java frame is for.
+            enqueue(NormalRootNode(gcRoot.id, gcRoot))
+          } else {
 
-          if (referenceMatcher !is IgnoredReferenceMatcher) {
-            val rootNode = NormalRootNode(threadRoot.id, gcRoot)
-            // Unfortunately Android heap dumps do not include stack trace data, so
-            // JavaFrame.frameNumber is always -1 and we cannot know which method is causing the
-            // reference to be held.
-            val leakReference = LeakReference(LOCAL, "")
+            val (threadInstance, threadRoot) = threadPair
+            val threadName = threadNames[threadInstance] ?: {
+              val name = threadInstance[Thread::class, "name"]?.value?.readAsJavaString() ?: ""
+              threadNames[threadInstance] = name
+              name
+            }()
+            val referenceMatcher = threadNameReferenceMatchers[threadName]
 
-            val childNode = if (referenceMatcher is LibraryLeakReferenceMatcher) {
-              LibraryLeakChildNode(gcRoot.id, rootNode, leakReference, referenceMatcher)
-            } else {
-              NormalNode(gcRoot.id, rootNode, leakReference)
+            if (referenceMatcher !is IgnoredReferenceMatcher) {
+              val rootNode = NormalRootNode(threadRoot.id, gcRoot)
+              // Unfortunately Android heap dumps do not include stack trace data, so
+              // JavaFrame.frameNumber is always -1 and we cannot know which method is causing the
+              // reference to be held.
+              val leakReference = LeakReference(LOCAL, "")
+
+              val childNode = if (referenceMatcher is LibraryLeakReferenceMatcher) {
+                LibraryLeakChildNode(gcRoot.id, rootNode, leakReference, referenceMatcher)
+              } else {
+                NormalNode(gcRoot.id, rootNode, leakReference)
+              }
+              enqueue(childNode)
             }
-            enqueue(childNode)
           }
         }
         is JniGlobal -> {
