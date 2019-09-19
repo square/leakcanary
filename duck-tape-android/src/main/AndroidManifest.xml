@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.squareup.leakcanary.duck.tape">
+  <application>
+    <provider
+        android:name="leakcanary.internal.DuckTapeInstaller"
+        android:authorities="${applicationId}.duck-tape-installer"
+        android:exported="false" />
+  </application>
+</manifest>
