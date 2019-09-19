@@ -112,12 +112,16 @@ class HeapValue(
 
   /**
    * If this [HeapValue] if it represents a non null object reference to an instance of the
-   * [String] class, returns a [String] instance with content that matches the string in the heap
-   * dump. Otherwise returns null.
+   * [String] class that exists in the heap dump, returns a [String] instance with content that
+   * matches the string in the heap dump. Otherwise returns null.
    *
    * This may trigger IO reads.
    */
   fun readAsJavaString(): String? {
-    return asObject?.asInstance?.readAsJavaString()
+    if (holder is ReferenceHolder && !holder.isNull) {
+      val heapObject = graph.findObjectByIdOrNull(holder.value)
+      return heapObject?.asInstance?.readAsJavaString()
+    }
+    return null
   }
 }

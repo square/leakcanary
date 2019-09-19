@@ -46,6 +46,12 @@ interface HeapGraph {
   fun findObjectById(objectId: Long): HeapObject
 
   /**
+   * Returns the [HeapObject] corresponding to the provided [objectId] or null if it cannot be
+   * found.
+   */
+  fun findObjectByIdOrNull(objectId: Long): HeapObject?
+
+  /**
    * Returns the [HeapClass] corresponding to the provided [className], or null if the
    * class cannot be found.
    */

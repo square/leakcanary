@@ -72,7 +72,14 @@ class HprofHeapGraph internal constructor(
   private val objectCache = LruCache<Long, ObjectRecord>(3000)
 
   override fun findObjectById(objectId: Long): HeapObject {
-    return wrapIndexedObject(index.indexedObject(objectId), objectId)
+    return findObjectByIdOrNull(objectId) ?: throw IllegalArgumentException(
+        "Object id $objectId not found in heap dump."
+    )
+  }
+
+  override fun findObjectByIdOrNull(objectId: Long): HeapObject? {
+    val indexedObject = index.indexedObjectOrNull(objectId) ?: return null
+    return wrapIndexedObject(indexedObject, objectId)
   }
 
   override fun findClassByName(className: String): HeapClass? {

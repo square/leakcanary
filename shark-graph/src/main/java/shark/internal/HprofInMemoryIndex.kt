@@ -143,14 +143,8 @@ internal class HprofInMemoryIndex private constructor(
     return gcRoots
   }
 
-  fun indexedObject(objectId: Long): IndexedObject {
-    return indexedObjectOrNull(objectId) ?: throw IllegalArgumentException(
-        "Object id $objectId not found in heap dump."
-    )
-  }
-
   @Suppress("ReturnCount")
-  private fun indexedObjectOrNull(objectId: Long): IndexedObject? {
+  fun indexedObjectOrNull(objectId: Long): IndexedObject? {
     var array: ByteSubArray? = classIndex[objectId]
     if (array != null) {
       return IndexedClass(
