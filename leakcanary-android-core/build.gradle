@@ -5,6 +5,7 @@ dependencies {
   api project(':shark-android')
   api project(':leakcanary-object-watcher-android')
   api project(':leakcanary-object-watcher-android-androidx')
+  implementation project(':duck-tape-android')
 
   implementation deps.kotlin.stdlib
 
