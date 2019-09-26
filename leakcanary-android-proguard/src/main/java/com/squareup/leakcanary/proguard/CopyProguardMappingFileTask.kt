@@ -41,7 +41,12 @@ open class CopyProguardMappingFileTask : DefaultTask() {
         if (leakCanaryAssetsOutputFile.exists()) {
           leakCanaryAssetsOutputFile.delete()
         }
-        mappingFile.copyTo(leakCanaryAssetsOutputFile)
+        mergeAssetsDirectory?.let { dir ->
+          if (!dir.exists()) {
+            dir.mkdirs()
+          }
+          mappingFile.copyTo(leakCanaryAssetsOutputFile)
+        }
       }
     }
   }
