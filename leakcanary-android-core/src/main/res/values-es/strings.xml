@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <plurals name="leak_canary_heap_analysis_list_retained_objects">
+    <item quantity="one">%d Objeto retenido</item>
+    <item quantity="other">%d Objetos retenidos</item>
+  </plurals>
+  <plurals name="leak_canary_group_screen_title">
+    <item quantity="one">%1$d leak en %2$s</item>
+    <item quantity="other">%1$d leaks en %2$s</item>
+  </plurals>
+  <string name="leak_canary_options_menu_see_analysis_list">Ver la lista de análisis</string>
+  <string name="leak_canary_about_menu">Sobre LeakCanary</string>
+  <string name="leak_canary_about_title">Sobre LeakCanary %s</string>
+  <string name="leak_canary_analysis_deleted_title">Análisis Borrado</string>
+  <string name="leak_canary_analysis_failed">Análisis de Leak fallido</string>
+  <string name="leak_canary_class_has_leaked">%1$s Leaked</string>
+  <string name="leak_canary_about_message"><![CDATA[<a href="https://github.com/square/leakcanary">LeakCanary</a>
+  es una librería de detección de memory leaks para Android, creada por
+  <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> y distribuida como software libre por <a href="https://square.github.io">Square</a>.<br><br>
+  Aceptamos contribuciones de la comunidad, por favor no dudes en
+  <a href="https://github.com/square/leakcanary/issues">informar de un problema</a> o abrir una pull request!<br>]]></string>
+  <string name="leak_canary_delete">Borrar</string>
+  <string name="leak_canary_delete_all">Borrar todo</string>
+  <string name="leak_canary_delete_all_leaks_title">¿Estás seguro de borrar todos los leaks?</string>
+  <string name="leak_canary_display_activity_label">Leaks</string>
+  <string name="leak_canary_download_dump">Puedes descargar el volcado de memoria mediante \"Menú > Compartir volcado de memoria\" ó \"adb pull %1$s\"</string>
+  <string name="leak_canary_share_heap_dump">Compartir volcado de memoria</string>
+  <string name="leak_canary_share_heap_dump_bitmap_screen_title">Compartir volcado de memoria de Bitmap</string>
+  <string name="leak_canary_share_leak">Compartir información</string>
+  <string name="leak_canary_share_with">Compartir por…</string>
+  <string name="leak_canary_shortcut_label">Leaks</string>
+  <string name="leak_canary_stackoverflow_share">Compartir Leak en Stack Overflow</string>
+  <string name="leak_canary_storage_permission_activity_label">Permiso de almacenamiento</string>
+  <string name="leak_canary_toast_heap_dump">LeakCanary está volcando la memoria, la app se congelará. Brrrr.</string>
+  <string name="leak_canary_options_menu_render_heap_dump">Renderizar el volcado de memoria</string>
+  <string name="leak_canary_permission_not_granted">Por favor concede el permiso de almacenamiento externo o los memory leaks no serán detectados.</string>
+  <string name="leak_canary_permission_notification_text">Haz click para activar el permiso de almacenamiento para %s.</string>
+  <string name="leak_canary_permission_notification_title">Leak detectado, se necesita permiso</string>
+  <string name="leak_canary_options_menu_generate_hq_bitmap">Generar Bitmap de alta calidad</string>
+  <string name="leak_canary_options_menu_explore_heap_dump">Explorar volcado de memoria</string>
+  <string name="leak_canary_options_menu_import_hprof_file">Importar y analizar el archivo Hprof</string>
+  <string name="leak_canary_options_menu_permission_toast">Por favor concede el permiso de almacenamiento primero, ver notificación…</string>
+  <string name="leak_canary_notification_retained_dump_failed">Volcado de memoria fallido</string>
+  <string name="leak_canary_notification_retained_title">%d objetos retenidos, toca para volcar la memoria</string>
+  <string name="leak_canary_notification_retained_visible">App visible, esperando hasta %d objetos retenidos</string>
+  <string name="leak_canary_notification_no_retained_object_title">Todos los objetos retenidos fueron desechados.</string>
+  <string name="leak_canary_notification_no_retained_object_content">Toca para descartar</string>
+  <string name="leak_canary_notification_message">Click para mas detalles</string>
+  <string name="leak_canary_notification_foreground_text">LeakCanary está trabajando</string>
+  <string name="leak_canary_notification_dumping">Volcando memoria</string>
+  <string name="leak_canary_loading_title">Cargando…</string>
+  <string name="leak_canary_help_title">Toca aquí para saber mas</string>
+  <string name="leak_canary_import_from_title">Importar desde…</string>
+  <string name="leak_canary_leak_clipdata_label">LeakCanary traza de Leak</string>
+  <string name="leak_canary_leak_copied">Información de Leak copiada al portapapeles</string>
+  <string name="leak_canary_notification_analysing">Analizando volcado de memoria</string>
+  <string name="leak_canary_notification_channel_low">LeakCanary baja prioridad</string>
+  <string name="leak_canary_notification_channel_result">Resultado LeakCanary</string>
+  <string name="leak_canary_heap_dump_screen_title">Volcado de memoria %s</string>
+  <string name="leak_canary_heap_analysis_success_screen_row_title_new">[NUEVO] (%1$d) %2$s</string>
+  <string name="leak_canary_heap_analysis_success_screen_row_title">(%1$d / %2$d Total) %3$s</string>
+  <string name="leak_canary_heap_analysis_success_screen_title">Análisis de memoria (%d Objetos retenidos)</string>
+  <string name="leak_canary_heap_analysis_success_screen_row_time_format">Reciente: %s</string>
+  <string name="leak_canary_heap_analysis_list_screen_title">Todos los Análisis</string>
+  <string name="leak_canary_group_list_time_label">Reciente: %s</string>
+  <string name="leak_canary_group_list_screen_title">%d Grupos de Leak</string>
+  <string name="leak_canary_go_to_heap_analysis">Ir a Análisis de memoria</string>
+  <string name="leak_canary_generating_hq_bitmap_toast_notice">Renderizando Bitmap de alta calidad, tardará un poco…</string>
+  <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Renderizando Bitmap de alta calidad, tardará un poco…</string>
+  <string name="leak_canary_failure_report">Por favor informar de este fallo a http://github.com/square/leakcanary y compartir el archivo de volcado de memoria que lo causó.</string>
+  <string name="leak_canary_explorer_search_classes">Buscar clases</string>
+  <string name="leak_canary_analysis_success_notification">Análisis hecho: %1$d leaks (%2$d nuevo, %3$d conocido, %4$d librería)</string>
+  <string name="leak_canary_notification_retained_debugger_attached">Esperando que el debugger se desacople</string>
+</resources>
