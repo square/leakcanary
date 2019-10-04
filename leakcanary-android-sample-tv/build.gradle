@@ -1,0 +1,60 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+dependencies {
+  debugImplementation project(':leakcanary-android-tv')
+
+  implementation deps.kotlin.stdlib
+}
+
+android {
+  compileSdkVersion versions.compileSdk
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+
+  defaultConfig {
+    applicationId "com.example.leakcanary.tv"
+    minSdkVersion versions.minSdk
+    targetSdkVersion versions.compileSdk
+
+    versionCode 1
+    versionName "1.0"
+  }
+
+  buildTypes {
+    // Build with ./gradlew leakcanary-android-sample-tv:installDebug -Pminify
+    if (project.hasProperty('minify')) {
+      debug {
+        minifyEnabled true
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+      }
+    } else {
+      debug
+    }
+
+    release
+  }
+
+  dexOptions {
+    dexInProcess false
+  }
+
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+  }
+}
+
+// Instrumentation test dependencies resolve to 27.1.1 so we align the sample.
+configurations.all {
+  resolutionStrategy {
+    eachDependency { details ->
+      // Force all of the primary support libraries to use the same version.
+      if (details.requested.group == 'com.android.support') {
+        details.useVersion "27.1.1"
+      }
+    }
+  }
+}
