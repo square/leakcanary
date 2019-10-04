@@ -1,0 +1,23 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+dependencies {
+  api project(':leakcanary-android')
+
+  implementation deps.kotlin.stdlib
+}
+
+android {
+  compileSdkVersion versions.compileSdk
+  defaultConfig {
+    minSdkVersion versions.minSdk
+  }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    // junit references java.lang.management
+    ignore 'InvalidPackage'
+    check 'Interoperability'
+  }
+}
+
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
