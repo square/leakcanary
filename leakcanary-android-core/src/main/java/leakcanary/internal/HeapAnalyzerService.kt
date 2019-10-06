@@ -91,7 +91,7 @@ internal class HeapAnalyzerService : ForegroundService(
 
   companion object {
     private const val HEAPDUMP_FILE_EXTRA = "HEAPDUMP_FILE_EXTRA"
-    private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryProguardMapping.txt"
+    private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
 
     fun runAnalysis(
       context: Context,

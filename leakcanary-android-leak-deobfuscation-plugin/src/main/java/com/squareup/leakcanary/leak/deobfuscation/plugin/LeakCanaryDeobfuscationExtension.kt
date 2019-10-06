@@ -1,6 +1,6 @@
-package com.squareup.leakcanary.proguard
+package com.squareup.leakcanary.leak.deobfuscation.plugin
 
-open class LeakCanaryProguardExtension {
+open class LeakCanaryDeobfuscationExtension {
   var obfuscatedVariantNames: Collection<String>? = null
 
   fun obfuscatedVariantNames(vararg names: String) {
