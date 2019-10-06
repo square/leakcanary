@@ -5,8 +5,9 @@ apply plugin: 'maven'
 gradlePlugin {
   plugins {
     leakCanary {
-      id = 'com.squareup.leakcanary.proguard'
-      implementationClass = 'com.squareup.leakcanary.proguard.LeakcanaryProguardPlugin'
+      id = 'com.squareup.leakcanary.leak.deobfuscation.plugin'
+      implementationClass =
+          'com.squareup.leakcanary.leak.deobfuscation.plugin.LeakcanaryLeakDeobfuscationPlugin'
     }
   }
 }

@@ -1,4 +1,4 @@
-package com.squareup.leakcanary.proguard
+package com.squareup.leakcanary.leak.deobfuscation.plugin
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.CacheableTask
@@ -11,7 +11,7 @@ import org.gradle.api.tasks.TaskAction
 import java.io.File
 
 @CacheableTask
-open class CopyProguardMappingFileTask : DefaultTask() {
+open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @Input
   var variantDirName: String? = null
@@ -28,14 +28,14 @@ open class CopyProguardMappingFileTask : DefaultTask() {
   @get:OutputFile
   @get:PathSensitive(PathSensitivity.RELATIVE)
   val leakCanaryAssetsOutputFile: File
-    get() = File(mergeAssetsDirectory, "leakCanaryProguardMapping.txt")
+    get() = File(mergeAssetsDirectory, "leakCanaryObfuscationMapping.txt")
 
   init {
-    description = "Puts proguard mapping file in assets directory."
+    description = "Puts obfuscation mapping file in assets directory."
   }
 
   @TaskAction
-  fun copyProguardMappingFile() {
+  fun copyObfuscationMappingFile() {
     mappingFile?.let { mappingFile ->
       if (mappingFile.exists()) {
         if (leakCanaryAssetsOutputFile.exists()) {
