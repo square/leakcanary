@@ -92,6 +92,8 @@ object LeakCanary {
      */
     val onHeapAnalyzedListener: OnHeapAnalyzedListener = DefaultOnHeapAnalyzedListener.create(),
 
+    val onRetainInstanceListener: OnRetainInstanceListener = DefaultOnRetainInstanceListener(),
+
     /**
      * Whether to compute the retained heap size, which is the total number of bytes in memory that
      * would be reclaimed if the detected leaks didn't happen. This includes native memory

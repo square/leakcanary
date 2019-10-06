@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 dependencies {
-  api project(':leakcanary-android')
+  api project(':leakcanary-android-core')
 
   implementation deps.kotlin.stdlib
 }

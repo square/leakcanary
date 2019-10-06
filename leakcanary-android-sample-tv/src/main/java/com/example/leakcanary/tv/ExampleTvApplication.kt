@@ -19,6 +19,7 @@ import android.app.Application
 import android.os.StrictMode
 import android.view.View
 import leakcanary.LeakCanary
+import leakcanary.watchTV
 
 open class ExampleTvApplication : Application() {
   val leakedViews = mutableListOf<View>()
@@ -26,8 +27,7 @@ open class ExampleTvApplication : Application() {
   override fun onCreate() {
     super.onCreate()
     enabledStrictMode()
-
-    LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 1)
+    LeakCanary.watchTV(this)
   }
 
   private fun enabledStrictMode() {
