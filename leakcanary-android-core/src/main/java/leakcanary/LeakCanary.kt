@@ -92,6 +92,11 @@ object LeakCanary {
      */
     val onHeapAnalyzedListener: OnHeapAnalyzedListener = DefaultOnHeapAnalyzedListener.create(),
 
+    /**
+     * Called on a background thread when the number of retained instances changes.
+     *
+     * Defaults to [DefaultOnRetainInstanceListener]
+     */
     val onRetainInstanceListener: OnRetainInstanceListener = DefaultOnRetainInstanceListener(),
 
     /**
