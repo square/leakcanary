@@ -27,6 +27,9 @@ open class ExampleTvApplication : Application() {
   override fun onCreate() {
     super.onCreate()
     enabledStrictMode()
+
+    // Set up LeakCanary for Android TV usage.
+    // Java callers should use: LeakCanaryTV.watchTV(LeakCanary.INSTANCE, this);
     LeakCanary.watchTV(this)
   }
 

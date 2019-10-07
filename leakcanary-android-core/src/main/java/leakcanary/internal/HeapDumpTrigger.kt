@@ -102,7 +102,9 @@ internal class HeapDumpTrigger(
       retainedReferenceCount = objectWatcher.retainedObjectCount
     }
 
-    if (checkRetainedCount(retainedReferenceCount, config)) return
+    config.onRetainInstanceListener.onCountChanged(retainedReferenceCount)
+
+    if (checkRetainedCount(retainedReferenceCount, config.retainedVisibleThreshold)) return
 
     if (!config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached) {
       showRetainedCountNotification(
@@ -168,6 +170,7 @@ internal class HeapDumpTrigger(
     }
     lastDisplayedRetainedObjectCount = 0
     lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
+    configProvider().onRetainInstanceListener.onReset()
     objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
     HeapAnalyzerService.runAnalysis(application, heapDumpFile)
   }
@@ -230,12 +233,10 @@ internal class HeapDumpTrigger(
 
   private fun checkRetainedCount(
     retainedKeysCount: Int,
-    config: Config
+    retainedVisibleThreshold: Int
   ): Boolean {
     val countChanged = lastDisplayedRetainedObjectCount != retainedKeysCount
     lastDisplayedRetainedObjectCount = retainedKeysCount
-
-    config.onRetainInstanceListener.onCountChanged(retainedKeysCount)
     if (retainedKeysCount == 0) {
       SharkLog.d { "Check for retained object found no objects remaining" }
       if (countChanged) {
@@ -244,7 +245,6 @@ internal class HeapDumpTrigger(
       return true
     }
 
-    val retainedVisibleThreshold = config.retainedVisibleThreshold
     if (retainedKeysCount < retainedVisibleThreshold) {
       if (applicationVisible || applicationInvisibleLessThanWatchPeriod) {
         showRetainedCountNotification(

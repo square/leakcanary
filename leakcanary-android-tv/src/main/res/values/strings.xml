@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-  <string name="leak_canary_toast_heap_dump">LeakCanary is dumping the heap, app will freeze. Brrrr. See Logcat for details.</string>
-</resources>
