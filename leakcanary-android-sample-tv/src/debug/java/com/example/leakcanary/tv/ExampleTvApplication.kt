@@ -15,31 +15,15 @@
  */
 package com.example.leakcanary.tv
 
-import android.app.Application
-import android.os.StrictMode
-import android.view.View
 import leakcanary.LeakCanary
 import leakcanary.watchTV
 
-open class ExampleTvApplication : Application() {
-  val leakedViews = mutableListOf<View>()
+open class ExampleTvApplication : BaseTvApplication() {
 
   override fun onCreate() {
     super.onCreate()
-    enabledStrictMode()
-
     // Set up LeakCanary for Android TV usage.
     // Java callers should use: LeakCanaryTV.watchTV(LeakCanary.INSTANCE, this);
     LeakCanary.watchTV(this)
-  }
-
-  private fun enabledStrictMode() {
-    StrictMode.setThreadPolicy(
-        StrictMode.ThreadPolicy.Builder()
-            .detectAll()
-            .penaltyLog()
-            .penaltyDeath()
-            .build()
-    )
   }
 }
