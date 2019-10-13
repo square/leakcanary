@@ -2,7 +2,7 @@
 
 A memory leak detection library for Android.
 
-### [square.github.io/leakcanary](http://square.github.io/leakcanary)
+### [square.github.io/leakcanary](https://square.github.io/leakcanary)
 
 ## License
 
