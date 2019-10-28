@@ -50,6 +50,23 @@ enum class AndroidReferenceMatchers {
 
   // ######## Android Framework known leaks ########
 
+  IREQUEST_FINISH_CALLBACK {
+      override fun add(
+          references: MutableList<ReferenceMatcher>
+      ) {
+          references += instanceFieldLeak("android.app.Activity\$1", "this\$0",
+              description = "Android Q added a new android.app.IRequestFinishCallback\$Stub " +
+                  "class. android.app.Activity creates an implementation of that interface as an " +
+                  "anonymous subclass. That anonymous subclass has a reference to the activity. " +
+                  "Another process is keeping the android.app.IRequestFinishCallback\$Stub " +
+                  "reference alive long after Activity.onDestroyed() has been called, " +
+                  "causing the activity to leak."
+          ) {
+              sdkInt == 29
+          }
+      }
+  },
+
   ACTIVITY_CLIENT_RECORD__NEXT_IDLE {
     override fun add(
       references: MutableList<ReferenceMatcher>
