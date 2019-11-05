@@ -57,7 +57,6 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
           "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
           CopyObfuscationMappingFileTask::class.java
       ) {
-        it.variantDirName = variant.dirName
         it.mappingFile = variant.mappingFile
         it.mergeAssetsDirectory = variant.mergeAssetsProvider.get()
             .outputDir.get()

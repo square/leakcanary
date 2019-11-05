@@ -14,9 +14,6 @@ import java.io.File
 open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @Input
-  var variantDirName: String? = null
-
-  @Input
   @Optional
   @PathSensitive(PathSensitivity.RELATIVE)
   var mappingFile: File? = null
