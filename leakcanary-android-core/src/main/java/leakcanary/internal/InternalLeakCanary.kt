@@ -121,6 +121,10 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     if (!application.resources.getBoolean(R.bool.leak_canary_add_dynamic_shortcut)) {
       return
     }
+    if (VERSION.SDK_INT >= VERSION_CODES.O && application.packageManager.isInstantApp) {
+      // Instant Apps don't have access to ShortcutManager
+      return
+    }
 
     val shortcutManager = application.getSystemService(ShortcutManager::class.java)!!
     val dynamicShortcuts = shortcutManager.dynamicShortcuts
