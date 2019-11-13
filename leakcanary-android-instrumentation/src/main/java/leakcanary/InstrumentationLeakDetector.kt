@@ -166,6 +166,10 @@ class InstrumentationLeakDetector {
 
     val listener = shark.OnAnalysisProgressListener.NO_OP
 
+    // Giving an extra 2 seconds to flush the hprof to the file system. We've seen several cases
+    // of corrupted hprof files and assume this could be a timing issue.
+    SystemClock.sleep(2000)
+
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.analyze(
         heapDumpFile, config.referenceMatchers,
