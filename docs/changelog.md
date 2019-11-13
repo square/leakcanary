@@ -1,5 +1,24 @@
 # Change Log
 
+## Next release
+
+* Adding support for deobfuscation using Proguard mapping files in Shark [#1499](https://github.com/square/leakcanary/issues/1499)
+* Several performance improvements when parsing heap dumps
+* Fixed several bugs and crashes
+* Added new known leak patterns
+
+Many thanks to
+[@Armaxis](https://github.com/Armaxis),
+[@bric3](https://github.com/bric3),
+[@fernandospr](https://github.com/fernandospr),
+[@JorgeDLS](https://github.com/JorgeDLS),
+[@msfjarvis](https://github.com/msfjarvis),
+[@mzgreen](https://github.com/mzgreen),
+[@PaulWoitaschek](https://github.com/pyricau),
+[@pyricau](https://github.com/pyricau),
+[@ZacSweers](https://github.com/ZacSweers)
+for the contributions, bug reports and feature requests.
+
 ## Version 2.0 Beta 3 (2019-08-22)
 
 LeakCanary 2 is in **beta**: the internals and APIs are mostly stable.
