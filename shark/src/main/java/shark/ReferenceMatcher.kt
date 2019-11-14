@@ -30,10 +30,18 @@ data class LibraryLeakReferenceMatcher(
    * have the leak, then this should return false.
    */
   val patternApplies: (HeapGraph) -> Boolean = { true }
-) : ReferenceMatcher()
+) : ReferenceMatcher() {
+  override fun toString(): String {
+    return "library leak: $pattern"
+  }
+}
 
 /**
  * [IgnoredReferenceMatcher] should be used to match references that cannot ever create leaks. The
  * shortest path finder will never go through matching references.
  */
-class IgnoredReferenceMatcher(override val pattern: ReferencePattern) : ReferenceMatcher()
+class IgnoredReferenceMatcher(override val pattern: ReferencePattern) : ReferenceMatcher() {
+  override fun toString(): String {
+    return "ignored ref: $pattern"
+  }
+}

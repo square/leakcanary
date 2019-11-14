@@ -157,9 +157,24 @@ object LeakCanary {
    */
   @Volatile
   var config: Config = if (AppWatcher.isInstalled) Config() else InternalLeakCanary.noInstallConfig
-    set(value) {
-      field = value
-      SharkLog.d { "Updated LeakCanary.config to $value" }
+    set(newConfig) {
+      val previousConfig = field
+      field = newConfig
+      SharkLog.d {
+        val changedFields = mutableListOf<String>()
+        Config::class.java.declaredFields.forEach { field ->
+          field.isAccessible = true
+          val previousValue = field[previousConfig]
+          val newValue = field[newConfig]
+          if (previousValue != newValue) {
+            changedFields += "${field.name}=$newValue"
+          }
+        }
+
+        "Updated LeakCanary.config: Config(${if (changedFields.isNotEmpty()) changedFields.joinToString(
+            ", "
+        ) else "no changes"})"
+      }
     }
 
   /**
