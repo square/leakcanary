@@ -13,13 +13,20 @@
 
 Many thanks to
 [@Armaxis](https://github.com/Armaxis),
+[@BraisGabin](https://github.com/BraisGabin),
 [@bric3](https://github.com/bric3),
+[@elihart](https://github.com/elihart),
 [@fernandospr](https://github.com/fernandospr),
+[@gabrysgab](https://github.com/gabrysgab),
 [@JorgeDLS](https://github.com/JorgeDLS),
+[@lannyf77](https://github.com/lannyf77),
 [@msfjarvis](https://github.com/msfjarvis),
 [@mzgreen](https://github.com/mzgreen),
+[@ozmium](https://github.com/ozmium),
 [@PaulWoitaschek](https://github.com/pyricau),
 [@pyricau](https://github.com/pyricau),
+[@shelpy](https://github.com/shelpy),
+[@vRallev](https://github.com/vRallev),
 [@ZacSweers](https://github.com/ZacSweers)
 for the contributions, bug reports and feature requests.
 
