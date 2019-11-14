@@ -6,10 +6,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.ReferencePattern.InstanceFieldPattern
-import shark.internal.renderToString
 import java.io.File
 
-class LeakTraceRendererTest {
+class LeakTraceStringRenderingTest {
 
   @get:Rule
   var testFolder = TemporaryFolder()
@@ -238,13 +237,13 @@ class LeakTraceRendererTest {
   }
 
   private infix fun HeapAnalysisSuccess.renders(expectedString: String) {
-    assertThat(applicationLeaks[0].leakTrace.renderToString()).isEqualTo(
+    assertThat(applicationLeaks[0].leakTrace.toString()).isEqualTo(
         expectedString.trimIndent()
     )
   }
 
   private infix fun HeapAnalysisSuccess.rendersLibraryLeak(expectedString: String) {
-    assertThat(libraryLeaks[0].leakTrace.renderToString()).isEqualTo(
+    assertThat(libraryLeaks[0].leakTrace.toString()).isEqualTo(
         expectedString.trimIndent()
     )
   }
