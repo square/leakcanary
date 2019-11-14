@@ -37,7 +37,29 @@ data class HeapAnalysisFailure(
    * An exception wrapping the actual exception that was thrown.
    */
   val exception: HeapAnalysisException
-) : HeapAnalysis()
+) : HeapAnalysis() {
+
+  override fun toString(): String {
+    return """====================================
+HEAP ANALYSIS FAILED
+
+You can report this failure at https://github.com/square/leakcanary/issues
+Please provide the stacktrace, metadata and the heap dump file.
+====================================
+STACKTRACE
+
+$exception====================================
+METADATA
+
+Build.VERSION.SDK_INT: ${androidSdkInt()}
+Build.MANUFACTURER: ${androidManufacturer()}
+LeakCanary version: ${leakCanaryVersion()}
+Analysis duration: $analysisDurationMillis ms
+Heap dump file path: ${heapDumpFile.absolutePath}
+Heap dump timestamp: $createdAtTimeMillis
+===================================="""
+  }
+}
 
 /**
  * The result of a successful heap analysis performed by [HeapAnalyzer].
@@ -62,6 +84,35 @@ data class HeapAnalysisSuccess(
    */
   val allLeaks: List<Leak>
     get() = applicationLeaks + libraryLeaks
+
+  override fun toString(): String {
+    return """====================================
+HEAP ANALYSIS RESULT
+====================================
+${applicationLeaks.size} APPLICATION LEAKS
+
+References underlined with "~~~" are likely causes.
+Learn more at https://squ.re/leaks.
+${if (applicationLeaks.isNotEmpty()) "\n" + applicationLeaks.joinToString(
+        "\n\n"
+    ) + "\n" else ""}====================================
+${libraryLeaks.size} LIBRARY LEAKS
+
+Leaks coming from the Android Framework or Google libraries.
+${if (libraryLeaks.isNotEmpty()) "\n" + libraryLeaks.joinToString(
+        "\n\n"
+    ) + "\n" else ""}====================================
+METADATA
+
+Please include this in bug reports and Stack Overflow questions.
+${if (metadata.isNotEmpty()) "\n" + metadata.map { "${it.key}: ${it.value}" }.joinToString(
+        "\n"
+    ) else ""}
+Analysis duration: $analysisDurationMillis ms
+Heap dump file path: ${heapDumpFile.absolutePath}
+Heap dump timestamp: $createdAtTimeMillis
+===================================="""
+  }
 }
 
 /**
@@ -103,6 +154,10 @@ sealed class Leak : Serializable {
       return if (separator == -1) className else className.substring(separator + 1)
     }
 
+  override fun toString(): String {
+    return if (retainedHeapByteSize != null) "$retainedHeapByteSize bytes retained" else "" + leakTrace
+  }
+
   protected abstract fun createGroupHash(): String
 }
 
@@ -126,6 +181,13 @@ data class LibraryLeak(
   val description: String
 ) : Leak() {
   override fun createGroupHash() = pattern.toString().createSHA1Hash()
+
+  override fun toString(): String {
+    return """Known leak pattern: $pattern
+Description: $description
+${super.toString()}
+"""
+  }
 }
 
 /**
@@ -143,5 +205,41 @@ data class ApplicationLeak(
           element.className + referenceName
         }
         .createSHA1Hash()
+  }
+
+  // Required to avoid the default toString() from data classes
+  override fun toString(): String {
+    return super.toString()
+  }
+}
+
+private fun androidSdkInt(): Int {
+  return try {
+    val versionClass = Class.forName("android.os.Build\$VERSION")
+    val sdkIntField = versionClass.getDeclaredField("SDK_INT")
+    sdkIntField.get(null) as Int
+  } catch (e: Exception) {
+    -1
+  }
+}
+
+private fun androidManufacturer(): String {
+  return try {
+    val buildClass = Class.forName("android.os.Build")
+    val manufacturerField = buildClass.getDeclaredField("MANUFACTURER")
+    manufacturerField.get(null) as String
+  } catch (e: Exception) {
+    "Unknown"
+  }
+}
+
+private fun leakCanaryVersion(): String {
+  return try {
+    val versionHolderClass = Class.forName("leakcanary.internal.InternalLeakCanary")
+    val versionField = versionHolderClass.getDeclaredField("version")
+    versionField.isAccessible = true
+    versionField.get(null) as String
+  } catch (e: Exception) {
+    "Unknown"
   }
 }
