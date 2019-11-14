@@ -1,7 +1,6 @@
 package leakcanary.internal
 
 import android.app.Application
-import android.app.Instrumentation
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
@@ -16,17 +15,16 @@ import android.os.Handler
 import android.os.HandlerThread
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
+import leakcanary.AppWatcher
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
-import leakcanary.AppWatcher
 import leakcanary.OnHeapAnalyzedListener
 import leakcanary.OnObjectRetainedListener
 import leakcanary.internal.activity.LeakActivity
 import shark.SharkLog
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
-import java.util.concurrent.atomic.AtomicReference
 
 internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedListener {
 
@@ -45,6 +43,13 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   @Volatile
   var applicationVisible = false
     private set
+
+  private val isJunitAvailable = try {
+    Class.forName("org.junit.Test")
+    true
+  } catch (e: Exception) {
+    false
+  }
 
   val leakDirectoryProvider: LeakDirectoryProvider by lazy {
     LeakDirectoryProvider(application, {
@@ -90,32 +95,15 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     }
     addDynamicShortcut(application)
 
-    disableDumpHeapInInstrumentationTests()
+    disableDumpHeapInTests()
   }
 
-  private fun disableDumpHeapInInstrumentationTests() {
-    // This is called before Application.onCreate(), so InstrumentationRegistry has no reference to
-    // the instrumentation yet. That happens immediately after the content providers are created,
-    // in the same main thread message, so by posting to the end of the main thread queue we're
-    // guaranteed that the instrumentation will be in place.
+  private fun disableDumpHeapInTests() {
+    // This is called before Application.onCreate(), so if the class is loaded through a secondary
+    // dex it might not be available yet.
     Handler().post {
-      val runningInInstrumentationTests = try {
-        // This is assuming all UI tests rely on InstrumentationRegistry. Should be mostly true
-        // these days (especially since we force the Android X dependency on consumers).
-        val registryClass = Class.forName("androidx.test.platform.app.InstrumentationRegistry")
-        val instrumentationRefField = registryClass.getDeclaredField("instrumentationRef")
-        instrumentationRefField.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val instrumentationRef = instrumentationRefField.get(
-            null
-        ) as AtomicReference<Instrumentation>
-        instrumentationRef.get() != null
-      } catch (ignored: Throwable) {
-        false
-      }
-
-      if (runningInInstrumentationTests) {
-        SharkLog.d { "Instrumentation test detected, setting LeakCanary.Config.dumpHeap to false" }
+      if (isJunitAvailable) {
+        SharkLog.d { "Tests detected, setting LeakCanary.Config.dumpHeap to false" }
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
       }
     }
