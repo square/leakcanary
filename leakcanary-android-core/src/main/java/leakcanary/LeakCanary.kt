@@ -3,10 +3,13 @@ package leakcanary
 import android.content.Intent
 import leakcanary.LeakCanary.config
 import leakcanary.internal.InternalLeakCanary
+import shark.AndroidMetadataExtractor
 import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
+import shark.HeapAnalysisSuccess
 import shark.IgnoredReferenceMatcher
 import shark.LibraryLeakReferenceMatcher
+import shark.MetadataExtractor
 import shark.ObjectInspector
 import shark.ReferenceMatcher
 import shark.SharkLog
@@ -91,6 +94,14 @@ object LeakCanary {
      * Defaults to [DefaultOnHeapAnalyzedListener]
      */
     val onHeapAnalyzedListener: OnHeapAnalyzedListener = DefaultOnHeapAnalyzedListener.create(),
+
+    /**
+     * Extracts metadata from a hprof to be reported in [HeapAnalysisSuccess.metadata].
+     * Called on a background thread during heap analysis.
+     *
+     * Defaults to [AndroidMetadataExtractor]
+     */
+    val metatadaExtractor: MetadataExtractor = AndroidMetadataExtractor,
 
     /**
      * Whether to compute the retained heap size, which is the total number of bytes in memory that

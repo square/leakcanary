@@ -16,6 +16,14 @@ class LegacyHprofTest {
     val leak2 = analysis.applicationLeaks[1]
     assertThat(leak1.className).isEqualTo("android.graphics.Bitmap")
     assertThat(leak2.className).isEqualTo("com.example.leakcanary.MainActivity")
+    assertThat(analysis.metadata).isEqualTo(
+        mapOf(
+            "App process name" to "com.example.leakcanary",
+            "Build.MANUFACTURER" to "Genymotion",
+            "Build.VERSION.SDK_INT" to "19",
+            "LeakCanary version" to "Unknown"
+        )
+    )
   }
 
   @Test fun androidM() {
@@ -119,7 +127,11 @@ class LegacyHprofTest {
   private fun analyzeHprof(hprofFile: File): HeapAnalysisSuccess {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = heapAnalyzer.analyze(
-        hprofFile, AndroidReferenceMatchers.appDefaults, false, AndroidObjectInspectors.appDefaults
+        heapDumpFile = hprofFile,
+        referenceMatchers = AndroidReferenceMatchers.appDefaults,
+        computeRetainedHeapSize = false,
+        objectInspectors = AndroidObjectInspectors.appDefaults,
+        metadataExtractor = AndroidMetadataExtractor
     )
     println(analysis)
     return analysis as HeapAnalysisSuccess

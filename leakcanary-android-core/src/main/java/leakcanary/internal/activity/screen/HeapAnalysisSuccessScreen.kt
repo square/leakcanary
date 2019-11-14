@@ -123,6 +123,8 @@ internal class HeapAnalysisSuccessScreen(
       titleText to timeText
     })
 
+    rowList.addAll(heapAnalysis.metadata.map { it.key to it.value })
+
     listView.adapter =
       SimpleListAdapter(R.layout.leak_canary_leak_row, rowList) { view, position ->
         val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)

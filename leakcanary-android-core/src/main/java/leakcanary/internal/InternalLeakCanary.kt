@@ -14,6 +14,7 @@ import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.HandlerThread
+import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
@@ -34,6 +35,13 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   private lateinit var heapDumpTrigger: HeapDumpTrigger
 
   lateinit var application: Application
+
+  // BuildConfig.LIBRARY_VERSION is stripped so this static var is how we keep it around to find
+  // it later when parsing the heap dump.
+  @Suppress("unused")
+  @JvmStatic
+  private var version = BuildConfig.LIBRARY_VERSION
+
   @Volatile
   var applicationVisible = false
     private set

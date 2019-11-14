@@ -46,6 +46,7 @@ data class HeapAnalysisSuccess(
   override val heapDumpFile: File,
   override val createdAtTimeMillis: Long,
   override val analysisDurationMillis: Long,
+  val metadata: Map<String, String>,
   /**
    * The list of [ApplicationLeak] found in the heap dump by [HeapAnalyzer].
    */

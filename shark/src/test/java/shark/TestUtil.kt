@@ -12,6 +12,7 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   objectInspectors: List<ObjectInspector> = emptyList(),
   computeRetainedHeapSize: Boolean = false,
   referenceMatchers: List<ReferenceMatcher> = defaultReferenceMatchers,
+  metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
   proguardMapping: ProguardMapping? = null
 ): T {
   val inspectors = if (ObjectInspectors.KEYED_WEAK_REFERENCE !in objectInspectors) {
@@ -21,10 +22,11 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   }
   val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
   val result = heapAnalyzer.analyze(
-      this,
-      referenceMatchers,
-      computeRetainedHeapSize,
-      inspectors,
+      heapDumpFile = this,
+      referenceMatchers = referenceMatchers,
+      computeRetainedHeapSize = computeRetainedHeapSize,
+      objectInspectors = inspectors,
+      metadataExtractor =  metadataExtractor,
       proguardMapping = proguardMapping
   )
   if (result is HeapAnalysisFailure) {
