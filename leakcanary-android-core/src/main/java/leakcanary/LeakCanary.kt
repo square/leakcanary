@@ -160,22 +160,27 @@ object LeakCanary {
     set(newConfig) {
       val previousConfig = field
       field = newConfig
-      SharkLog.d {
-        val changedFields = mutableListOf<String>()
-        Config::class.java.declaredFields.forEach { field ->
-          field.isAccessible = true
-          val previousValue = field[previousConfig]
-          val newValue = field[newConfig]
-          if (previousValue != newValue) {
-            changedFields += "${field.name}=$newValue"
-          }
-        }
-
-        "Updated LeakCanary.config: Config(${if (changedFields.isNotEmpty()) changedFields.joinToString(
-            ", "
-        ) else "no changes"})"
-      }
+      logConfigChange(previousConfig, newConfig)
     }
+
+  private fun logConfigChange(
+    previousConfig: Config,
+    newConfig: Config
+  ) {
+    SharkLog.d {
+      val changedFields = mutableListOf<String>()
+      Config::class.java.declaredFields.forEach { field ->
+        field.isAccessible = true
+        val previousValue = field[previousConfig]
+        val newValue = field[newConfig]
+        if (previousValue != newValue) {
+          changedFields += "${field.name}=$newValue"
+        }
+      }
+      "Updated LeakCanary.config: Config(${if (changedFields.isNotEmpty())
+        changedFields.joinToString(", ") else "no changes"})"
+    }
+  }
 
   /**
    * Returns a new [Intent] that can be used to programmatically launch the leak display activity.
