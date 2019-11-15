@@ -16,33 +16,61 @@ Most memory leaks are caused by bugs related to the lifecycle of objects. Here a
 
 ## Why should I use LeakCanary?
 
-Memory leaks are very common in Android apps. OutOfMemoryError (OOM) is the top crash for most apps on the play store, however that's usually not counted correctly. When memory is low the OOM can be thrown from anywhere in your code, which means every OOM has a different stacktrace and they're counted as different crashes.
+Memory leaks are very common in Android apps and the accumulation of small memory leaks causes apps to run out of memory and crash with an OutOfMemoryError (OOM). When we first enabled LeakCanary in the Square Point Of Sale app, we were able to find and fix several leaks and reduced the OOM crash rate by **94%**.
 
-When we first enabled LeakCanary in the Square Point Of Sale app, we were able to find and fix several leaks and reduced the OutOfMemoryError crash rate by **94%**.
+!!! info
+    **Most crash reporting tools do not correctly report OOMs**. When memory is low because of memory leak accumulation, an OOM can be thrown from anywhere in the app code, which means every OOM has a different stacktrace. So instead of one crash entry with a 1000 crashes, those get reported as 1000 distinct crashes and hide in the long tail of low occuring crashes.
 
 ## How does LeakCanary work?
 
-### Detecting retained instances
+### Detecting retained objects
 
-The foundation of LeakCanary is a library called ObjectWatcher Android. It hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed instances are passed to an `ObjectWatcher`, which holds weak references to them. You can also watch any instance that is no longer needed, for example a detached view, a destroyed presenter, etc.
+The foundation of LeakCanary is a library called *ObjectWatcher Android*. It hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed objects are passed to an `ObjectWatcher`, which holds **weak references** to them. You can also watch any objects that is no longer needed, for example a detached view, a destroyed presenter, etc.
 
-If the weak references aren't cleared after waiting 5 seconds and running the garbage collector, the watched instances are considered *retained*, and potentially leaking.
+```kotlin
+AppWatcher.objectWatcher.watch(myDetachedView)
+```
+
+If the weak references aren't cleared after **waiting 5 seconds** and running the garbage collector, the watched objects are considered **retained**, and potentially leaking. LeakCanary logs this to Logcat:
+
+```
+D LeakCanary: Watching instance of com.example.leakcanary.MainActivity 
+// 5 seconds later...
+D LeakCanary: Found 1 retained object
+```
+
+LeakCanary waits for the count of retained objects to reach a threshold before dumping the heap, and displays a notification with the latest count.
+
+![notification](images/retained-notification.png)
+
+!!! info
+    The default threshold is **5 retained objects** when the app is **visible**, and **1 retained object** when the app is **not visible**. If you see the retained objects notification and then put the app in background (for example by pressing the Home button), then the threshold changes from 5 to 1 and LeakCanary dumps the heap immediately. Tapping the notification forces LeakCanary to dump the heap immediately.
 
 ### Dumping the heap
 
-When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored onto the Android file system. The default threshold is 5 retained instances when the app is visible, and 1 retained instance when the app is not visible.
+When the count of retained objects reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored onto the Android file system. This freezes the app for a short amount of time, during which LeakCanary displays the following toast:
+
+![toast](images/dumping-toast.png)
+
 
 ### Analyzing the heap
 
-LeakCanary parses the `.hprof` file using [Shark](shark.md) and finds the chain of references that prevents retained instances from being garbage collected: the **leak trace**. Leak trace is another name for the *shortest strong reference path from garbage collection roots to a retained object*. Once the leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which instances in the leak trace are leaking (see below [How do I fix a memory leak?](#how-do-i-fix-a-memory-leak)).
+LeakCanary parses the `.hprof` file using [Shark](shark.md) and locates the retained objects in that heap dump. If the retained objects cannot be found then they were most likely garbage collected by the time the heap was dumped:
 
-### Grouping leaks
+![collected](images/collected.png)
 
-Using the leak status information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks that have the same causal chain are considered to be the same leak, so leaks are grouped by identical sub chain.
+For each retained object, LeakCanary finds the chain of references that prevents retained objects from being garbage collected: the **leak trace**. Leak trace is another name for the *shortest strong reference path from garbage collection roots to a retained object*. Once a leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which objects in the leak trace are leaking (see below [How do I fix a memory leak?](#how-do-i-fix-a-memory-leak)).
+
+When the analysis is done, LeakCanary displays a notification that can be tapped to see the analysis result:
+
+![done](images/analysis-done.png)
+
+!!! info
+    Using the leak status information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks that have the same causal chain are considered to be the same leak, so leaks are grouped by identical sub chain. This is how LeakCanary determines whether a leak is new or not.
 
 ## How do I fix a memory leak?
 
-For each leaking instance, LeakCanary computes a leak trace and displays it in its UI:
+For each leaking object, LeakCanary computes a leak trace and displays it in its UI:
 
 ![leak trace](images/leaktrace.png)
 
@@ -105,7 +133,7 @@ At the top of the leak trace is a garbage-collection (GC) root. GC roots are spe
   * **Classes**, which never unload on Android.
   * **Native references**, which are controlled by native code.
 
-### Leaking instance
+### Leaking object
 
 ```
     ╰→ com.example.leakcanary.MainActivity
@@ -113,7 +141,7 @@ At the top of the leak trace is a garbage-collection (GC) root. GC roots are spe
 is true)
 ```
 
-At the bottom of the leak trace is the leaking instance. This instance was passed to [AppWatcher.objectWatcher](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.
+At the bottom of the leak trace is the leaking object. This object was passed to [AppWatcher.objectWatcher](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.
 
 ### Chain of references
 
@@ -131,7 +159,7 @@ At the bottom of the leak trace is the leaking instance. This instance was passe
 ...
 ```
 
-The chain of references from the GC root to the leaking instance is what is preventing the leaking instance from being garbage collected. If you can identify the reference that should not exist at that point in time, then you can figure out why it's incorrectly still set and then fix the memory leak.
+The chain of references from the GC root to the leaking object is what is preventing the leaking object from being garbage collected. If you can identify the reference that should not exist at that point in time, then you can figure out why it's incorrectly still set and then fix the memory leak.
 
 ### Heuristics and labels
 
