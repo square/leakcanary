@@ -31,9 +31,7 @@ data class LibraryLeakReferenceMatcher(
    */
   val patternApplies: (HeapGraph) -> Boolean = { true }
 ) : ReferenceMatcher() {
-  override fun toString(): String {
-    return "library leak: $pattern"
-  }
+  override fun toString() = "library leak: $pattern"
 }
 
 /**
@@ -41,7 +39,5 @@ data class LibraryLeakReferenceMatcher(
  * shortest path finder will never go through matching references.
  */
 class IgnoredReferenceMatcher(override val pattern: ReferencePattern) : ReferenceMatcher() {
-  override fun toString(): String {
-    return "ignored ref: $pattern"
-  }
+  override fun toString() = "ignored ref: $pattern"
 }
