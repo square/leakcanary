@@ -1,7 +1,6 @@
 package leakcanary.internal.activity.db
 
 import android.content.ContentValues
-import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.os.AsyncTask
 import leakcanary.internal.InternalLeakCanary
@@ -22,7 +21,7 @@ internal object HeapAnalysisTable {
         (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         created_at_time_millis INTEGER,
-        retained_instance_count INTEGER DEFAULT 0,
+        leak_group_count INTEGER DEFAULT 0,
         exception_summary TEXT DEFAULT NULL,
         object BLOB
         )"""
@@ -39,7 +38,8 @@ internal object HeapAnalysisTable {
     values.put("object", heapAnalysis.toByteArray())
     when (heapAnalysis) {
       is HeapAnalysisSuccess -> {
-        values.put("retained_instance_count", heapAnalysis.allLeaks.size)
+        val leakGroupCount = heapAnalysis.allLeaks.map { it.groupHash }.distinct().size
+        values.put("leak_group_count", leakGroupCount)
       }
       is HeapAnalysisFailure -> {
         val cause = heapAnalysis.exception.cause!!
@@ -53,7 +53,7 @@ internal object HeapAnalysisTable {
       if (heapAnalysis is HeapAnalysisSuccess) {
         heapAnalysis.allLeaks
             .forEach { leakingInstance ->
-              LeakingInstanceTable.insert(
+              LeakTable.insert(
                   db, heapAnalysisId, leakingInstance
               )
             }
@@ -94,7 +94,7 @@ internal object HeapAnalysisTable {
           SELECT
           id
           , created_at_time_millis
-          , retained_instance_count
+          , leak_group_count
           , exception_summary
           FROM heap_analysis
           ORDER BY created_at_time_millis DESC
@@ -106,7 +106,7 @@ internal object HeapAnalysisTable {
             val summary = Projection(
                 id = cursor.getLong(0),
                 createdAtTimeMillis = cursor.getLong(1),
-                retainedInstanceCount = cursor.getInt(2),
+                leakGroupCount = cursor.getInt(2),
                 exceptionSummary = cursor.getString(3)
             )
             all.add(summary)
@@ -134,26 +134,23 @@ internal object HeapAnalysisTable {
 
     db.inTransaction {
       db.delete("heap_analysis", "id=$id", null)
-      LeakingInstanceTable.deleteByHeapAnalysisId(db, id)
+      LeakTable.deleteByHeapAnalysisId(db, id)
     }
   }
 
-  fun deleteAll(
-    db: SQLiteDatabase,
-    context: Context
-  ) {
+  fun deleteAll(db: SQLiteDatabase) {
     val leakDirectoryProvider = InternalLeakCanary.leakDirectoryProvider
     AsyncTask.SERIAL_EXECUTOR.execute { leakDirectoryProvider.clearLeakDirectory() }
     db.inTransaction {
       db.delete("heap_analysis", null, null)
-      LeakingInstanceTable.deleteAll(db)
+      LeakTable.deleteAll(db)
     }
   }
 
   class Projection(
     val id: Long,
     val createdAtTimeMillis: Long,
-    val retainedInstanceCount: Int,
+    val leakGroupCount: Int,
     val exceptionSummary: String?
   )
 

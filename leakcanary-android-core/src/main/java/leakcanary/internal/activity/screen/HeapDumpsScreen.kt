@@ -7,6 +7,8 @@ import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
+import leakcanary.LeakCanary
+import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.HeapAnalysisTable.Projection
 import leakcanary.internal.activity.db.executeOnDb
@@ -17,13 +19,9 @@ import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
 
-internal class HeapAnalysisListScreen : Screen() {
+internal class HeapDumpsScreen : Screen() {
   override fun createView(container: ViewGroup) =
-    container.inflate(R.layout.leak_canary_list).apply {
-      activity.title = resources.getString(
-          R.string.leak_canary_heap_analysis_list_screen_title
-      )
-
+    container.inflate(R.layout.leak_canary_heap_dumps_screen).apply {
       onCreateOptionsMenu { menu ->
         menu.add(R.string.leak_canary_delete_all)
             .setOnMenuItemClickListener {
@@ -33,12 +31,12 @@ internal class HeapAnalysisListScreen : Screen() {
                   .setMessage(R.string.leak_canary_delete_all_leaks_title)
                   .setPositiveButton(android.R.string.ok) { _, _ ->
                     executeOnDb {
-                      HeapAnalysisTable.deleteAll(db, context)
+                      HeapAnalysisTable.deleteAll(db)
                       updateUi {
                         val listView = findViewById<ListView>(R.id.leak_canary_list)
                         listView.adapter =
                           SimpleListAdapter(
-                              R.layout.leak_canary_leak_row, emptyList<Any>()
+                              R.layout.leak_canary_simple_row, emptyList<Any>()
                           ) { _, _ -> }
                       }
                     }
@@ -49,6 +47,14 @@ internal class HeapAnalysisListScreen : Screen() {
             }
       }
 
+      findViewById<View>(R.id.leak_canary_import_heap_dump).setOnClickListener {
+        activity<LeakActivity>().requestImportHprof()
+      }
+
+      findViewById<View>(R.id.leak_canary_dump_heap_now).setOnClickListener {
+        LeakCanary.dumpHeap()
+      }
+
       executeOnDb {
         val projections = HeapAnalysisTable.retrieveAll(db)
         updateUi { onAnalysesRetrieved(projections) }
@@ -57,6 +63,10 @@ internal class HeapAnalysisListScreen : Screen() {
     }
 
   private fun View.onAnalysesRetrieved(projections: List<Projection>) {
+    activity.title = resources.getString(
+        R.string.leak_canary_heap_analysis_list_screen_title, projections.size
+    )
+
     val listView = findViewById<ListView>(R.id.leak_canary_list)
 
     listView.setOnItemClickListener { _, _, position, _ ->
@@ -64,17 +74,16 @@ internal class HeapAnalysisListScreen : Screen() {
       val analysisScreen = if (projection.exceptionSummary != null)
         HeapAnalysisFailureScreen(projection.id)
       else
-        HeapAnalysisSuccessScreen(projection.id)
+        HeapDumpScreen(projection.id)
       goTo(analysisScreen)
     }
 
     listView.adapter =
       SimpleListAdapter(R.layout.leak_canary_leak_row, projections) { view, position ->
-        val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
-        val timeView = view.findViewById<TextView>(R.id.leak_canary_row_time)
-        // Results are sorted by timestamp DESC so the top item of the list is the last
-        // occurrence, hence the reversed index.
-        val index = count - position
+        val goneView = view.findViewById<TextView>(R.id.leak_canary_count_text)
+        goneView.visibility = View.GONE
+        val timeView = view.findViewById<TextView>(R.id.leak_canary_leak_text)
+        val countView = view.findViewById<TextView>(R.id.leak_canary_time_text)
 
         val projection = getItem(position)
 
@@ -83,11 +92,11 @@ internal class HeapAnalysisListScreen : Screen() {
             DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
         )
 
-        val title = projection.exceptionSummary ?: resources.getQuantityString(
-            R.plurals.leak_canary_heap_analysis_list_retained_objects,
-            projection.retainedInstanceCount, projection.retainedInstanceCount
+        val count = projection.exceptionSummary ?: resources.getQuantityString(
+            R.plurals.leak_canary_distinct_leaks,
+            projection.leakGroupCount, projection.leakGroupCount
         )
-        titleView.text = "$index. $title"
+        countView.text = count
       }
   }
 

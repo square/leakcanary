@@ -70,7 +70,7 @@ internal class HprofExplorerScreen(
         val graph = HprofHeapGraph.indexHprof(hprof)
         updateUi {
           container.activity.title =
-            resources.getString(R.string.leak_canary_options_menu_explore_heap_dump)
+            resources.getString(R.string.leak_canary_explore_heap_dump)
           val titleView = findViewById<TextView>(R.id.leak_canary_explorer_title)
           val searchView = findViewById<View>(R.id.leak_canary_search_button)
           val listView = findViewById<ListView>(R.id.leak_canary_explorer_list)
@@ -102,7 +102,7 @@ internal class HprofExplorerScreen(
                         titleView.text =
                           "${matchingClasses.size} classes matching [$partialClassName]"
                         listView.adapter = SimpleListAdapter(
-                            R.layout.leak_canary_leak_row, matchingClasses
+                            R.layout.leak_canary_simple_row, matchingClasses
                         ) { view, position ->
                           val itemTitleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
                           itemTitleView.text = matchingClasses[position].name
@@ -136,7 +136,7 @@ internal class HprofExplorerScreen(
         titleView.text =
           "Class $className (${instances.size} instances)"
         listView.adapter = SimpleListAdapter(
-            R.layout.leak_canary_leak_row, staticFields + instances
+            R.layout.leak_canary_simple_row, staticFields + instances
         ) { view, position ->
           val itemTitleView =
             view.findViewById<TextView>(R.id.leak_canary_row_text)
@@ -171,7 +171,7 @@ internal class HprofExplorerScreen(
       updateUi {
         titleView.text = "Instance @${instance.objectId} of class $className"
         listView.adapter = SimpleListAdapter(
-            R.layout.leak_canary_leak_row, fields
+            R.layout.leak_canary_simple_row, fields
         ) { view, position ->
           val itemTitleView =
             view.findViewById<TextView>(R.id.leak_canary_row_text)
@@ -201,7 +201,7 @@ internal class HprofExplorerScreen(
       updateUi {
         titleView.text = "Array $className[${elements.size}]"
         listView.adapter = SimpleListAdapter(
-            R.layout.leak_canary_leak_row, elements
+            R.layout.leak_canary_simple_row, elements
         ) { view, position ->
           val itemTitleView =
             view.findViewById<TextView>(R.id.leak_canary_row_text)
@@ -234,7 +234,7 @@ internal class HprofExplorerScreen(
       updateUi {
         titleView.text = "Array $type[${values.size}]"
         listView.adapter = SimpleListAdapter(
-            R.layout.leak_canary_leak_row, values
+            R.layout.leak_canary_simple_row, values
         ) { view, position ->
           val itemTitleView =
             view.findViewById<TextView>(R.id.leak_canary_row_text)

@@ -4,19 +4,16 @@ import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import leakcanary.internal.Serializables
 import leakcanary.internal.toByteArray
-import leakcanary.internal.utils.to
 import org.intellij.lang.annotations.Language
+import shark.HeapAnalysisSuccess
 import shark.Leak
 import shark.LibraryLeak
-import shark.LeakTrace
-import shark.LeakTraceElement
-import shark.LeakTraceElement.Type.ARRAY_ENTRY
 
-internal object LeakingInstanceTable {
+internal object LeakTable {
 
   @Language("RoomSql")
   const val create = """
-        CREATE TABLE leaking_instance
+        CREATE TABLE leak
         (
         id INTEGER PRIMARY KEY,
         heap_analysis_id REFERENCES heap_analysis(id),
@@ -29,12 +26,12 @@ internal object LeakingInstanceTable {
 
   @Language("RoomSql")
   const val createGroupHashIndex = """
-        CREATE INDEX leaking_instance_group_hash
-        on leaking_instance (group_hash)
+        CREATE INDEX leak_group_hash
+        on leak (group_hash)
     """
 
   @Language("RoomSql")
-  const val drop = "DROP TABLE IF EXISTS leaking_instance"
+  const val drop = "DROP TABLE IF EXISTS leak"
 
   fun insert(
     db: SQLiteDatabase,
@@ -48,34 +45,7 @@ internal object LeakingInstanceTable {
     values.put("class_simple_name", leak.classSimpleName)
     values.put("object", leak.toByteArray())
     values.put("is_library_leak", if (leak is LibraryLeak) 1 else 0)
-    return db.insertOrThrow("leaking_instance", null, values)
-  }
-
-  fun retrieve(
-    db: SQLiteDatabase,
-    id: Long
-  ): Pair<Long, Leak>? {
-    return db.rawQuery(
-        """
-          SELECT
-          heap_analysis_id,
-          object
-          FROM leaking_instance
-          WHERE id=$id
-          """, null
-    )
-        .use { cursor ->
-          if (cursor.moveToNext()) {
-            val heapAnalysisId = cursor.getLong(0)
-            val leakingInstance = Serializables.fromByteArray<Leak>(cursor.getBlob(1))
-            if (leakingInstance == null) {
-              null
-            } else {
-              heapAnalysisId to leakingInstance
-            }
-          } else
-            null
-        }
+    return db.insertOrThrow("leak", null, values)
   }
 
   class HeapAnalysisGroupProjection(
@@ -83,12 +53,11 @@ internal object LeakingInstanceTable {
     val description: String,
     val createdAtTimeMillis: Long,
     val leakCount: Int,
-    val totalLeakCount: Int,
     val isNew: Boolean,
     val isLibraryLeak: Boolean
   )
 
-  fun retrieveAllByHeapAnalysisId(
+  fun retrieveHeapDumpLeaks(
     db: SQLiteDatabase,
     heapAnalysisId: Long
   ): Map<String, HeapAnalysisGroupProjection> {
@@ -108,7 +77,7 @@ internal object LeakingInstanceTable {
           , SUM(CASE WHEN heap_analysis_id=$heapAnalysisId THEN 1 ELSE 0 END) as leak_count
           , COUNT(*) as total_leak_count
           , MIN(is_library_leak) as is_library_leak
-          FROM leaking_instance l
+          FROM leak l
           LEFT JOIN heap_analysis h ON l.heap_analysis_id = h.id
           GROUP BY 1, 2
           HAVING leak_count > 0
@@ -126,8 +95,7 @@ internal object LeakingInstanceTable {
             val isNew = isLatestHeapAnalysis && leakCount == totalLeakCount
             val isLibraryLeak = cursor.getInt(5) == 1
             val group = HeapAnalysisGroupProjection(
-                hash, description, createdAtTimeMillis, leakCount, totalLeakCount, isNew,
-                isLibraryLeak
+                hash, description, createdAtTimeMillis, leakCount, isNew, isLibraryLeak
             )
             projectionsByHash[hash] = group
           }
@@ -142,7 +110,7 @@ internal object LeakingInstanceTable {
     val leakCount: Int
   )
 
-  fun retrieveAllGroups(
+  fun retrieveAllLeaks(
     db: SQLiteDatabase
   ): List<GroupProjection> {
     return db.rawQuery(
@@ -152,7 +120,7 @@ internal object LeakingInstanceTable {
           , group_description
           , MAX(created_at_time_millis) as created_at_time_millis
           , COUNT(*) as leak_count
-          FROM leaking_instance l
+          FROM leak l
           LEFT JOIN heap_analysis h ON l.heap_analysis_id = h.id
           GROUP BY 1, 2
           ORDER BY leak_count, created_at_time_millis DESC
@@ -173,102 +141,95 @@ internal object LeakingInstanceTable {
         }
   }
 
-  class InstanceProjection(
+  class LeakProjection(
     val id: Long,
+    val analysisId: Long,
     val classSimpleName: String,
+    val groupDescription: String,
     val createdAtTimeMillis: Long
   )
 
-  fun retrieveGroup(
+  fun retrieveLeaksByHash(
     db: SQLiteDatabase,
     groupHash: String
-  ): Triple<LeakTrace, String, List<InstanceProjection>>? {
-    val pair = db.rawQuery(
+  ): List<LeakProjection> {
+    return db.rawQuery(
         """
-           SELECT
-            object
-            , group_description
-            FROM leaking_instance
-            WHERE group_hash = ?
-            LIMIT 1
-            """, arrayOf(groupHash)
-    )
-        .use { cursor ->
-          if (cursor.moveToNext()) {
-            val leakingInstance = Serializables.fromByteArray<Leak>(cursor.getBlob(0))!!
-            val leakTrace = leakingInstance.leakTrace
-
-            val groupLeakTrace = if (leakingInstance is LibraryLeak) {
-              LeakTrace(elements = emptyList())
-            } else {
-              val elements = mutableListOf<LeakTraceElement>()
-              for (index in 0 until leakTrace.elements.size) {
-                if (leakTrace.elementMayBeLeakCause(index)) {
-                  var element = leakTrace.elements[index]
-
-                  val reference = element.reference!!
-                  if (reference.type == ARRAY_ENTRY) {
-                    // No array index in groups
-                    element =
-                      element.copy(reference = reference.copy(name = "x"), labels = emptySet(), leakStatusReason = "")
-                  } else {
-                    element = element.copy(labels = emptySet(), leakStatusReason = "")
-                  }
-
-                  elements.add(element)
-                }
-              }
-              LeakTrace(elements)
-            }
-            val groupDescription = cursor.getString(1)!!
-            groupLeakTrace to groupDescription
-          } else
-            null
-        } ?: return null
-
-    val projections = db.rawQuery(
-        """
-         SELECT
+          SELECT
           l.id
-          , class_simple_name
+          , l.heap_analysis_id
+          , l.class_simple_name
+          , l.group_description
           , h.created_at_time_millis
-          FROM leaking_instance l
+          FROM leak l
           LEFT JOIN heap_analysis h ON l.heap_analysis_id = h.id
-          WHERE l.group_hash = ?
-          ORDER BY h.created_at_time_millis DESC
+          WHERE group_hash = ?
           """, arrayOf(groupHash)
     )
         .use { cursor ->
-          val projections = mutableListOf<InstanceProjection>()
+          val leaks = mutableListOf<LeakProjection>()
           while (cursor.moveToNext()) {
-            projections.add(
-                InstanceProjection(
-                    id = cursor.getLong(0),
-                    classSimpleName = cursor.getString(1),
-                    createdAtTimeMillis = cursor.getLong(2)
-                )
+            val id = cursor.getLong(0)
+            val analysisId = cursor.getLong(1)
+            val classSimpleName = cursor.getString(2)
+            val groupDescription = cursor.getString(3)
+            val createdAtTimeMillis = cursor.getLong(4)
+            leaks += LeakProjection(
+                id, analysisId, classSimpleName, groupDescription, createdAtTimeMillis
             )
           }
-          projections
+          return leaks
         }
+  }
 
-    return pair to projections
+  class LeakDetails(
+    val leak: Leak,
+    val analysisId: Long,
+    val analysis: HeapAnalysisSuccess
+  )
+
+  fun retrieveLeakById(
+    db: SQLiteDatabase,
+    leakId: Long
+  ): LeakDetails? {
+    return db.rawQuery(
+        """
+          SELECT
+          l.heap_analysis_id
+          , l.object
+          , h.object
+          FROM leak l
+          LEFT JOIN heap_analysis h ON l.heap_analysis_id = h.id
+          WHERE l.id = ?
+          LIMIT 1
+          """, arrayOf(leakId.toString())
+    )
+        .use { cursor ->
+          return if (cursor.moveToNext()) {
+            val heapAnalysisId = cursor.getLong(0)
+            val leakingInstance = Serializables.fromByteArray<Leak>(cursor.getBlob(1))
+            val analysis = Serializables.fromByteArray<HeapAnalysisSuccess>(cursor.getBlob(2))
+            if (leakingInstance != null && analysis != null) {
+              LeakDetails(leakingInstance, heapAnalysisId, analysis)
+            } else null
+          } else null
+        }
   }
 
   fun deleteByHeapAnalysisId(
     db: SQLiteDatabase,
     heapAnalysisId: Long
   ) {
-    db.delete("leaking_instance", "heap_analysis_id=$heapAnalysisId", null)
+    db.delete("leak", "heap_analysis_id=$heapAnalysisId", null)
   }
 
   fun deleteAll(db: SQLiteDatabase) {
-    db.delete("leaking_instance", null, null)
+    db.delete("leak", null, null)
   }
 
-  private fun Leak.createGroupDescription(): String {
+  internal fun Leak.createGroupDescription(): String {
     return if (this is LibraryLeak) {
-      "Library Leak: " + pattern.toString()
+      "Library Leak: $pattern"
     } else {
       val leakCauses = leakTrace.leakCauses
       if (leakCauses.isEmpty()) {
@@ -282,5 +243,4 @@ internal object LeakingInstanceTable {
       }
     }
   }
-
 }

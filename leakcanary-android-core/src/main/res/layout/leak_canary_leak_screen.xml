@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     >
+
+  <Spinner
+      android:id="@+id/leak_canary_spinner"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      />
+
   <ListView
       android:id="@+id/leak_canary_list"
       android:layout_width="match_parent"
@@ -10,4 +18,4 @@
       android:divider="@null"
       android:dividerHeight="0dp"
       />
-</FrameLayout>
+</LinearLayout>

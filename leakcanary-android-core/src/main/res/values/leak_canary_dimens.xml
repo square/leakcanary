@@ -25,7 +25,7 @@
   <dimen name="leak_canary_connector_leak_dash_gap">1dp</dimen>
   <dimen name="leak_canary_more_stroke_width">2dp</dimen>
   <dimen name="leak_canary_connector_width">16dp</dimen>
-  <dimen name="leak_canary_row_margins">16dp</dimen>
+  <dimen name="leak_canary_row_margins">20dp</dimen>
   <dimen name="leak_canary_more_size">12dp</dimen>
   <dimen name="leak_canary_more_margin_top">18dp</dimen>
   <dimen name="leak_canary_row_min">48dp</dimen>

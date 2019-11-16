@@ -210,5 +210,5 @@ object LeakCanary {
    * tracked by [AppWatcher.objectWatcher]. If there are no retained instances then the heap will not
    * be dumped and a notification will be shown instead.
    */
-  fun dumpHeap() = InternalLeakCanary.onDumpHeapReceived()
+  fun dumpHeap() = InternalLeakCanary.onDumpHeapReceived(forceDump = true)
 }

@@ -14,6 +14,7 @@ import com.squareup.leakcanary.core.R
 /**
  * A simple backstack navigating activity
  */
+@Suppress("TooManyFunctions")
 internal abstract class NavigatingActivity : Activity() {
 
   private lateinit var backstack: ArrayList<BackstackFrame>
@@ -52,7 +53,7 @@ internal abstract class NavigatingActivity : Activity() {
     }
     currentView = currentScreen.createView(container)
     container.addView(currentView)
-    updateActionBar()
+    screenUpdated()
   }
 
   override fun onNewIntent(intent: Intent) {
@@ -86,6 +87,22 @@ internal abstract class NavigatingActivity : Activity() {
     super.onBackPressed()
   }
 
+  fun resetTo(screen: Screen) {
+    onCreateOptionsMenu = NO_MENU
+
+    currentView.startAnimation(loadAnimation(this, R.anim.leak_canary_exit_alpha))
+    container.removeView(currentView)
+
+    backstack.clear()
+
+    currentScreen = screen
+    currentView = currentScreen.createView(container)
+    currentView.startAnimation(loadAnimation(this, R.anim.leak_canary_enter_alpha))
+    container.addView(currentView)
+
+    screenUpdated()
+  }
+
   fun goTo(screen: Screen) {
     onCreateOptionsMenu = NO_MENU
 
@@ -99,7 +116,7 @@ internal abstract class NavigatingActivity : Activity() {
     currentView.startAnimation(loadAnimation(this, R.anim.leak_canary_enter_forward))
     container.addView(currentView)
 
-    updateActionBar()
+    screenUpdated()
   }
 
   fun goBack() {
@@ -115,10 +132,10 @@ internal abstract class NavigatingActivity : Activity() {
     container.addView(currentView, 0)
     latest.restore(currentView)
 
-    updateActionBar()
+    screenUpdated()
   }
 
-  private fun updateActionBar() {
+  private fun screenUpdated() {
     invalidateOptionsMenu()
     val actionBar = actionBar
         ?: // https://github.com/square/leakcanary/issues/967
@@ -126,6 +143,10 @@ internal abstract class NavigatingActivity : Activity() {
     val homeEnabled = backstack.size > 0
     actionBar.setDisplayHomeAsUpEnabled(homeEnabled)
     actionBar.setHomeButtonEnabled(homeEnabled)
+    onNewScreen(currentScreen)
+  }
+
+  protected open fun onNewScreen(screen: Screen) {
   }
 
   override fun onCreateOptionsMenu(menu: Menu): Boolean {

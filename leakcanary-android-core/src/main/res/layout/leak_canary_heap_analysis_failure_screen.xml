@@ -4,6 +4,5 @@
     android:id="@+id/leak_canary_failure"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/leak_canary_background_color"
     android:textSize="12sp"
     />

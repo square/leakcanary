@@ -19,7 +19,7 @@ import android.content.Context
 import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.Spanned
-import android.text.format.DateUtils
+import android.text.method.LinkMovementMethod
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
@@ -29,7 +29,6 @@ import leakcanary.internal.DisplayLeakConnectorView.Type
 import leakcanary.internal.DisplayLeakConnectorView.Type.END
 import leakcanary.internal.DisplayLeakConnectorView.Type.END_FIRST_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.HELP
-import leakcanary.internal.DisplayLeakConnectorView.Type.HELP_LEAK_GROUP
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_FIRST_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_LAST_REACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_REACHABLE
@@ -37,7 +36,6 @@ import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_UNKNOWN
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.START
 import leakcanary.internal.DisplayLeakConnectorView.Type.START_LAST_REACHABLE
-import leakcanary.internal.activity.db.LeakingInstanceTable.InstanceProjection
 import leakcanary.internal.navigation.getColorCompat
 import leakcanary.internal.navigation.inflate
 import shark.LeakNodeStatus.LEAKING
@@ -51,11 +49,8 @@ import shark.LeakTraceElement.Type.STATIC_FIELD
 internal class DisplayLeakAdapter constructor(
   context: Context,
   private val leakTrace: LeakTrace,
-  private val groupDescription: String = "",
-  private val instanceProjections: List<InstanceProjection> = emptyList()
+  private val header: CharSequence
 ) : BaseAdapter() {
-
-  private val isLeakGroup = instanceProjections.isNotEmpty()
 
   private val classNameColorHexString: String
   private val leakColorHexString: String
@@ -77,9 +72,9 @@ internal class DisplayLeakAdapter constructor(
     parent: ViewGroup
   ): View {
     return when (getItemViewType(position)) {
-      TOP_ROW -> {
-        val view = convertView ?: parent.inflate(R.layout.leak_canary_ref_top_row)
-        bindTopRow(view)
+      HEADER_ROW -> {
+        val view = convertView ?: parent.inflate(R.layout.leak_canary_leak_header)
+        bindHeaderRow(view)
         view
       }
       CONNECTOR_ROW -> {
@@ -88,16 +83,18 @@ internal class DisplayLeakAdapter constructor(
         view
       }
       else -> {
-        val view = convertView ?: parent.inflate(R.layout.leak_canary_leak_row)
-        bindLeakInstanceRow(view, position)
-        view
+        throw IllegalStateException("Unexpected type ${getItemViewType(position)}")
       }
     }
   }
 
-  private fun bindTopRow(view: View) {
-    val textView = view.findViewById<TextView>(R.id.leak_canary_row_text)
-    textView.text = groupDescription
+  private fun bindHeaderRow(
+    view: View
+  ) {
+    val textView = view.findViewById<TextView>(R.id.leak_canary_header_text).apply {
+      movementMethod = LinkMovementMethod.getInstance()
+      text = header
+    }
   }
 
   private fun bindConnectorRow(
@@ -109,55 +106,12 @@ internal class DisplayLeakAdapter constructor(
 
     connector.setType(getConnectorType(position))
 
-    val resources = view.resources
-    if (isFirstConnectorRow(position)) {
-      titleView.text = if (isLeakGroup) {
-        Html.fromHtml(
-            """
-              <font color='$helpColorHexString'>
-                <b>Known likely causes of leak group</b>
-              </font>
-            """
-        )
-      } else {
-        Html.fromHtml(
-            """
-              <font color='$helpColorHexString'>
-                <b>${resources.getString(R.string.leak_canary_help_title)}</b>
-              </font>
-            """
-        )
-      }
-    } else {
-      val elementIndex = elementIndex(position)
-      val element = leakTrace.elements[elementIndex]
+    val elementIndex = elementIndex(position)
+    val element = leakTrace.elements[elementIndex]
 
-      val maybeLeakCause = if (isLeakGroup) {
-        true
-      } else leakTrace.elementMayBeLeakCause(elementIndex)
+    val mayBeLeakCause = leakTrace.elementMayBeLeakCause(elementIndex)
 
-      val htmlTitle = htmlTitle(element, maybeLeakCause, view.context)
-
-      titleView.text = htmlTitle
-    }
-  }
-
-  private fun bindLeakInstanceRow(
-    view: View,
-    position: Int
-  ) {
-    val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
-    val timeView = view.findViewById<TextView>(R.id.leak_canary_row_time)
-
-    val projection = instanceProjections[position - TOP_ROW_COUNT - leakTrace.elements.size]
-
-    titleView.text =
-      view.resources.getString(R.string.leak_canary_class_has_leaked, projection.classSimpleName)
-
-    timeView.text = DateUtils.formatDateTime(
-        view.context, projection.createdAtTimeMillis,
-        DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
-    )
+    titleView.text = htmlTitle(element, mayBeLeakCause, view.context)
   }
 
   private fun htmlTitle(
@@ -218,9 +172,9 @@ internal class DisplayLeakAdapter constructor(
 
   @Suppress("ReturnCount")
   private fun getConnectorType(position: Int): Type {
-    if (isFirstConnectorRow(position)) {
-      return if (isLeakGroup) HELP_LEAK_GROUP else HELP
-    } else if (position == TOP_ROW_COUNT) {
+    if (position == 0) {
+      return HELP
+    } else if (position == 1) {
       if (leakTrace.elements.size == 1) {
         return START_LAST_REACHABLE
       }
@@ -263,34 +217,24 @@ internal class DisplayLeakAdapter constructor(
     }
   }
 
-  fun isLearnMoreRow(position: Int) = isFirstConnectorRow(position) && !isLeakGroup
+  override fun isEnabled(position: Int) = false
 
-  fun isFirstConnectorRow(position: Int) = position == TOP_ROW_COUNT - 1
-
-  override fun getCount() = TOP_ROW_COUNT + leakTrace.elements.size + instanceProjections.size
+  override fun getCount() = leakTrace.elements.size + 1
 
   override fun getItem(position: Int) = null
 
-  private fun elementIndex(position: Int): Int {
-    return position - TOP_ROW_COUNT
-  }
+  private fun elementIndex(position: Int) = position - 1
 
-  override fun getViewTypeCount() = 3
+  override fun getViewTypeCount() = 2
 
-  override fun getItemViewType(position: Int) = when {
-    position == 0 -> TOP_ROW
-    position < TOP_ROW_COUNT + leakTrace.elements.size -> CONNECTOR_ROW
-    else -> LEAK_ROW
-  }
+  override fun getItemViewType(position: Int) = if (position == 0) HEADER_ROW else CONNECTOR_ROW
 
   override fun getItemId(position: Int) = position.toLong()
 
   companion object {
 
-    private const val TOP_ROW = 0
-    private const val CONNECTOR_ROW = 1
-    private const val LEAK_ROW = 2
-    private const val TOP_ROW_COUNT = 2
+    const val HEADER_ROW = 0
+    const val CONNECTOR_ROW = 1
 
     // https://stackoverflow.com/a/6540378/703646
     private fun hexStringColor(

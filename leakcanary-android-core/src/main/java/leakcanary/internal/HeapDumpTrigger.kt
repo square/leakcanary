@@ -118,12 +118,12 @@ internal class HeapDumpTrigger(
     HeapAnalyzerService.runAnalysis(application, heapDumpFile)
   }
 
-  fun onDumpHeapReceived() {
+  fun onDumpHeapReceived(forceDump: Boolean) {
     backgroundHandler.post {
       dismissNoRetainedOnTapNotification()
       gcTrigger.runGc()
       val retainedReferenceCount = objectWatcher.retainedObjectCount
-      if (retainedReferenceCount == 0) {
+      if (!forceDump && retainedReferenceCount == 0) {
         SharkLog.d { "No retained objects after GC" }
         @Suppress("DEPRECATION")
         val builder = Notification.Builder(application)

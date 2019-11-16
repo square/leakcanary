@@ -3,14 +3,19 @@ package leakcanary.internal.activity
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
+import android.view.View
+import android.widget.TextView
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db
-import leakcanary.internal.activity.screen.GroupListScreen
+import leakcanary.internal.activity.screen.AboutScreen
+import leakcanary.internal.activity.screen.LeaksScreen
+import leakcanary.internal.activity.screen.HeapDumpsScreen
 import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
 import shark.SharkLog
@@ -19,15 +24,70 @@ import java.io.IOException
 
 internal class LeakActivity : NavigatingActivity() {
 
+  private val leaksButton by lazy {
+    findViewById<TextView>(R.id.leak_canary_navigation_button_leaks)
+  }
+
+  private val heapDumpsButton by lazy {
+    findViewById<TextView>(R.id.leak_canary_navigation_button_heap_dumps)
+  }
+
+  private val aboutButton by lazy {
+    findViewById<TextView>(R.id.leak_canary_navigation_button_about)
+  }
+
+  private val bottomNavigationBar by lazy {
+    findViewById<View>(R.id.leak_canary_bottom_navigation_bar)
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.leak_canary_leak_activity)
 
-    installNavigation(savedInstanceState, findViewById(R.id.main_container))
+    installNavigation(savedInstanceState, findViewById(R.id.leak_canary_main_container))
+
+    leaksButton.setOnClickListener { resetTo(LeaksScreen()) }
+    heapDumpsButton.setOnClickListener { resetTo(HeapDumpsScreen()) }
+    aboutButton.setOnClickListener { resetTo(AboutScreen()) }
+  }
+
+  override fun onNewScreen(screen: Screen) {
+    when(screen) {
+      is LeaksScreen -> {
+        bottomNavigationBar.visibility = View.VISIBLE
+        leaksButton.isSelected = true
+        leaksButton.setTypeface(null, Typeface.BOLD)
+        heapDumpsButton.isSelected = false
+        heapDumpsButton.setTypeface(null, Typeface.NORMAL)
+        aboutButton.isSelected = false
+        aboutButton.setTypeface(null, Typeface.NORMAL)
+      }
+      is HeapDumpsScreen -> {
+        bottomNavigationBar.visibility = View.VISIBLE
+        leaksButton.isSelected = false
+        leaksButton.setTypeface(null, Typeface.NORMAL)
+        heapDumpsButton.isSelected = true
+        heapDumpsButton.setTypeface(null, Typeface.BOLD)
+        aboutButton.isSelected = false
+        aboutButton.setTypeface(null, Typeface.NORMAL)
+      }
+      is AboutScreen -> {
+        bottomNavigationBar.visibility = View.VISIBLE
+        leaksButton.isSelected = false
+        leaksButton.setTypeface(null, Typeface.NORMAL)
+        heapDumpsButton.isSelected = false
+        heapDumpsButton.setTypeface(null, Typeface.NORMAL)
+        aboutButton.isSelected = true
+        aboutButton.setTypeface(null, Typeface.BOLD)
+      }
+      else -> {
+        bottomNavigationBar.visibility = View.GONE
+      }
+    }
   }
 
   override fun getLauncherScreen(): Screen {
-    return GroupListScreen()
+    return LeaksScreen()
   }
 
   fun requestImportHprof() {

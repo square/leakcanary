@@ -155,7 +155,8 @@ sealed class Leak : Serializable {
     }
 
   override fun toString(): String {
-    return if (retainedHeapByteSize != null) "$retainedHeapByteSize bytes retained" else "" + leakTrace
+    return (if (retainedHeapByteSize != null) "$retainedHeapByteSize bytes retained\n" else "") +
+        leakTrace
   }
 
   protected abstract fun createGroupHash(): String

@@ -21,7 +21,7 @@ internal class NotificationReceiver : BroadcastReceiver() {
   ) {
     when (intent.action) {
       DUMP_HEAP.name -> {
-        InternalLeakCanary.onDumpHeapReceived()
+        InternalLeakCanary.onDumpHeapReceived(forceDump = false)
       }
       CANCEL_NOTIFICATION.name -> {
         // Do nothing, the notification has auto cancel true.
