@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    >
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:layout_marginStart="20dp"
+      android:layout_marginEnd="20dp"
+      >
+    <Button
+        android:id="@+id/leak_canary_import_heap_dump"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/leak_canary_import_hprof_file"
+        />
+    <Button
+        android:id="@+id/leak_canary_dump_heap_now"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/leak_canary_dump_heap"
+        />
+  </LinearLayout>
+  <ListView
+      android:id="@+id/leak_canary_list"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:divider="@null"
+      android:dividerHeight="0dp"
+      />
+</LinearLayout>

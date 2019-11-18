@@ -7,12 +7,11 @@ import leakcanary.internal.NotificationType.LEAKCANARY_RESULT
 import leakcanary.internal.Notifications
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
-import leakcanary.internal.activity.db.LeakingInstanceTable
+import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.LeaksDbHelper
-import leakcanary.internal.activity.screen.GroupListScreen
 import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
-import leakcanary.internal.activity.screen.HeapAnalysisListScreen
-import leakcanary.internal.activity.screen.HeapAnalysisSuccessScreen
+import leakcanary.internal.activity.screen.HeapDumpsScreen
+import leakcanary.internal.activity.screen.HeapDumpScreen
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
@@ -25,13 +24,12 @@ import shark.SharkLog
 class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHeapAnalyzedListener {
 
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
-    // TODO better log that include leakcanary version, exclusions, etc.
     SharkLog.d { "$heapAnalysis" }
 
     val (id, groupProjections) = LeaksDbHelper(application)
         .writableDatabase.use { db ->
       val id = HeapAnalysisTable.insert(db, heapAnalysis)
-      id to LeakingInstanceTable.retrieveAllByHeapAnalysisId(db, id)
+      id to LeakTable.retrieveHeapDumpLeaks(db, id)
     }
 
     val (contentTitle, screenToShow) = when (heapAnalysis) {
@@ -56,12 +54,12 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
         application.getString(
             R.string.leak_canary_analysis_success_notification, leakCount, newLeakCount,
             knownLeakCount, libraryLeakCount
-        ) to HeapAnalysisSuccessScreen(id)
+        ) to HeapDumpScreen(id)
       }
     }
 
     val pendingIntent = LeakActivity.createPendingIntent(
-        application, arrayListOf(GroupListScreen(), HeapAnalysisListScreen(), screenToShow)
+        application, arrayListOf(HeapDumpsScreen(), screenToShow)
     )
 
     val contentText = application.getString(R.string.leak_canary_notification_message)

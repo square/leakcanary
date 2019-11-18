@@ -16,6 +16,13 @@
   -->
 <resources>
   <style name="leak_canary_LeakCanary.Base" parent="android:Theme.Holo">
+    <item name="android:windowBackground">@color/leak_canary_background_color</item>
+    <item name="android:actionBarStyle">@style/leak_canary_Widget.ActionBar</item>
+  </style>
+
+  <style name="leak_canary_Widget.ActionBar" parent="android:Widget.Holo.ActionBar">
+    <item name="android:background">@color/leak_canary_background_color</item>
+    <item name="android:windowContentOverlay">@null</item>
   </style>
 
   <style name="leak_canary_Theme.Transparent" parent="android:Theme">

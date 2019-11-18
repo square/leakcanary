@@ -15,11 +15,6 @@
   -->
 <resources>
   <string name="leak_canary_about_title">About LeakCanary %s</string>
-  <string name="leak_canary_about_message"><![CDATA[<a href="https://github.com/square/leakcanary">LeakCanary</a>
-  ist eine Memory-Leak-Detection Bibliothek für Android, erstellt von
-  <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> und open-sourced von <a href="https://square.github.io">Square</a>.<br><br>
-  Wir begrüßen Contributions aus der Community, bitte zögert nicht
-  <a href="https://github.com/square/leakcanary/issues">Fehler zu reporten</a> oder ein Pull Request zu erstellen!<br>]]></string>
   <string name="leak_canary_class_has_leaked">%1$s hat geleaked</string>
   <string name="leak_canary_download_dump">Du kannst den Heap Dump unter \"Menu > Heap Dump teilen\" oder \"adb pull %1$s\" herunterladen</string>
   <string name="leak_canary_analysis_failed">Leak Analyse fehlgeschlagen</string>
@@ -28,7 +23,6 @@
   <string name="leak_canary_notification_foreground_text">LeakCanary ist beschäftigt.</string>
   <string name="leak_canary_notification_message">Für mehr Details, hier klicken</string>
   <string name="leak_canary_share_leak">Info teilen</string>
-  <string name="leak_canary_share_heap_dump">Heap Dump teilen</string>
   <string name="leak_canary_share_with">Teilen mit…</string>
   <string name="leak_canary_display_activity_label">Leaks</string>
   <string name="leak_canary_storage_permission_activity_label">Storage Berechtigung</string>
@@ -47,27 +41,12 @@
   <string name="leak_canary_options_menu_permission_toast">Bitte erlaube zunächst die Speicher-Berechtigung, siehe Benachrichtigung…</string>
   <string name="leak_canary_generating_hq_bitmap_toast_notice">Rendere HQ Bitmap, das könnte eine Weile dauern…</string>
   <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Rendere HQ Bitmap, das könnte eine Weile dauern…</string>
-  <plurals name="leak_canary_heap_analysis_list_retained_objects">
-    <item quantity="one">%d erhaltene Instanz</item>
-    <item quantity="other">%d erhaltene Instanzen</item>
-  </plurals>
   <string name="leak_canary_share_heap_dump_bitmap_screen_title">Heap Dump Bitmap teilen</string>
   <string name="leak_canary_heap_dump_screen_title">Heap Dump %s</string>
   <string name="leak_canary_analysis_deleted_title">Analyse gelöscht</string>
   <string name="leak_canary_go_to_heap_analysis">Zur Heap Analyse</string>
-  <string name="leak_canary_heap_analysis_success_screen_title">Heap Analyse (%d erhaltene Instanzen)</string>
-  <string name="leak_canary_heap_analysis_success_screen_row_title">(%1$d / %2$d Gesamt) %3$s</string>
   <string name="leak_canary_heap_analysis_success_screen_row_time_format">Neueste: %s</string>
-  <string name="leak_canary_heap_analysis_list_screen_title">Alle Analysen</string>
-  <plurals name="leak_canary_group_screen_title">
-    <item quantity="one">%1$d Leak in %2$s</item>
-    <item quantity="other">%1$d Leaks in %2$s</item>
-  </plurals>
-  <string name="leak_canary_group_list_screen_title">%d Leak Gruppen</string>
-  <string name="leak_canary_group_list_time_label">Neueste: %s</string>
   <string name="leak_canary_import_from_title">Importieren von…</string>
-  <string name="leak_canary_options_menu_import_hprof_file">Hprof Datei importieren &amp; analysieren</string>
-  <string name="leak_canary_options_menu_see_analysis_list">Siehe Analyse-Liste</string>
   <string name="leak_canary_options_menu_render_heap_dump">Heap Dump rendern</string>
   <string name="leak_canary_help_title">Tippe hier, um mehr zu erfahren</string>
 </resources>

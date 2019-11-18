@@ -218,9 +218,9 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     }
   }
 
-  fun onDumpHeapReceived() {
+  fun onDumpHeapReceived(forceDump: Boolean) {
     if (this::heapDumpTrigger.isInitialized) {
-      heapDumpTrigger.onDumpHeapReceived()
+      heapDumpTrigger.onDumpHeapReceived(forceDump)
     }
   }
 

@@ -20,6 +20,8 @@ internal class HeapAnalysisFailureScreen(
   private val analysisId: Long
 ) : Screen() {
 
+  // TODO Refresh screen
+
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_heap_analysis_failure_screen).apply {
       activity.title = resources.getString(R.string.leak_canary_loading_title)
@@ -71,7 +73,7 @@ internal class HeapAnalysisFailureScreen(
             true
           }
       if (heapDumpFileExist) {
-        menu.add(R.string.leak_canary_share_heap_dump)
+        menu.add("Share Heap Dump")
             .setOnMenuItemClickListener {
               shareHeapDump(heapAnalysis.heapDumpFile)
               true
