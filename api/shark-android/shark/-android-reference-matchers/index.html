@@ -835,6 +835,10 @@ leaks eventually get fixed in newer versions.</p>
 </thead>
 <tbody>
 <tr>
+<td><a href="-i-r-e-q-u-e-s-t_-f-i-n-i-s-h_-c-a-l-l-b-a-c-k/">IREQUEST_FINISH_CALLBACK</a></td>
+<td></td>
+</tr>
+<tr>
 <td><a href="-a-c-t-i-v-i-t-y_-c-l-i-e-n-t_-r-e-c-o-r-d__-n-e-x-t_-i-d-l-e/">ACTIVITY_CLIENT_RECORD__NEXT_IDLE</a></td>
 <td></td>
 </tr>
@@ -915,7 +919,11 @@ leaks eventually get fixed in newer versions.</p>
 <td></td>
 </tr>
 <tr>
-<td><a href="-c-h-a-n-g-e_-w-a-t-c-h-e-r/">CHANGE_WATCHER</a></td>
+<td><a href="-a-s-s-i-s-t_-s-t-r-u-c-t-u-r-e/">ASSIST_STRUCTURE</a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="-a-c-c-e-s-s-i-b-i-l-i-t-y_-i-t-e-r-a-t-o-r-s/">ACCESSIBILITY_ITERATORS</a></td>
 <td></td>
 </tr>
 <tr>
@@ -940,6 +948,18 @@ leaks eventually get fixed in newer versions.</p>
 </tr>
 <tr>
 <td><a href="-t-e-x-t_-t-o_-s-p-e-e-c-h/">TEXT_TO_SPEECH</a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="-w-i-n-d-o-w_-m-a-n-a-g-e-r_-g-l-o-b-a-l/">WINDOW_MANAGER_GLOBAL</a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="-c-o-n-t-r-o-l-l-e-d_-i-n-p-u-t_-c-o-n-n-e-c-t-i-o-n_-w-r-a-p-p-e-r/">CONTROLLED_INPUT_CONNECTION_WRAPPER</a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="-t-o-a-s-t_-t-n/">TOAST_TN</a></td>
 <td></td>
 </tr>
 <tr>
@@ -1035,6 +1055,14 @@ leaks eventually get fixed in newer versions.</p>
 <td></td>
 </tr>
 <tr>
+<td><a href="-e-x-t-e-n-d-e-d_-s-t-a-t-u-s_-b-a-r_-m-a-n-a-g-e-r/">EXTENDED_STATUS_BAR_MANAGER</a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="-o-e-m_-s-c-e-n-e_-c-a-l-l_-b-l-o-c-k-e-r/">OEM_SCENE_CALL_BLOCKER</a></td>
+<td></td>
+</tr>
+<tr>
 <td><a href="-r-e-f-e-r-e-n-c-e-s/">REFERENCES</a></td>
 <td></td>
 </tr>
@@ -1106,8 +1134,16 @@ leaks eventually get fixed in newer versions.</p>
 <td><code>const val NVIDIA:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
 </tr>
 <tr>
+<td><a href="-o-n-e_-p-l-u-s/">ONE_PLUS</a></td>
+<td><code>const val ONE_PLUS:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
+</tr>
+<tr>
 <td><a href="-s-a-m-s-u-n-g/">SAMSUNG</a></td>
 <td><code>const val SAMSUNG:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
+</tr>
+<tr>
+<td><a href="-s-h-a-r-p/">SHARP</a></td>
+<td><code>const val SHARP:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
 </tr>
 <tr>
 <td><a href="-v-i-v-o/">VIVO</a></td>
@@ -1139,6 +1175,10 @@ leaks eventually get fixed in newer versions.</p>
 <tr>
 <td><a href="instance-field-leak/">instanceFieldLeak</a></td>
 <td><code>fun instanceFieldLeak(className:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>, fieldName:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>, description:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>= "", patternApplies:</code><a href="../-android-build-mirror/"><code>AndroidBuildMirror</code></a><code>.() -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= ALWAYS): LibraryLeakReferenceMatcher</code><br>Creates a <a href="#">LibraryLeakReferenceMatcher</a> that matches a <a href="#">InstanceFieldPattern</a>. <a href="instance-field-leak/#shark.AndroidReferenceMatchers.Companion$instanceFieldLeak(kotlin.String, kotlin.String, kotlin.String, kotlin.Function1((shark.AndroidBuildMirror, kotlin.Boolean)))/description">description</a> should convey what we know about this library leak.</td>
+</tr>
+<tr>
+<td><a href="native-global-variable-leak/">nativeGlobalVariableLeak</a></td>
+<td><code>fun nativeGlobalVariableLeak(className:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>, description:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>= "", patternApplies:</code><a href="../-android-build-mirror/"><code>AndroidBuildMirror</code></a><code>.() -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= ALWAYS): LibraryLeakReferenceMatcher</code></td>
 </tr>
 <tr>
 <td><a href="static-field-leak/">staticFieldLeak</a></td>

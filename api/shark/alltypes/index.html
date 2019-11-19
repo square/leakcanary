@@ -864,6 +864,10 @@
 <td><a href="../shark/-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> should be used to match references in library code that are known to create leaks and are beyond your control. The shortest path finder will only go through matching references after it has exhausted references that don&rsquo;t match, prioritizing finding an application leak over a known library leak. Library leaks will be reported as <a href="../shark/-library-leak/">LibraryLeak</a> instead of <a href="../shark/-application-leak/">ApplicationLeak</a>.</td>
 </tr>
 <tr>
+<td><a href="../shark/-metadata-extractor/">shark.MetadataExtractor</a></td>
+<td>Extracts metadata from a hprof to be reported in <a href="../shark/-heap-analysis-success/metadata/">HeapAnalysisSuccess.metadata</a>.</td>
+</tr>
+<tr>
 <td><a href="../shark/-object-inspector/">shark.ObjectInspector</a></td>
 <td>Provides LeakCanary with insights about objects (classes, instances and arrays) found in the heap. <a href="../shark/-object-inspector/inspect/">inspect</a> will be called for each object that LeakCanary wants to know more about. The implementation can then use the provided <a href="../shark/-object-reporter/">ObjectReporter</a> to provide insights for that object.</td>
 </tr>

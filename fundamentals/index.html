@@ -400,8 +400,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#detecting-retained-instances" title="Detecting retained instances" class="md-nav__link">
-    Detecting retained instances
+  <a href="#detecting-retained-objects" title="Detecting retained objects" class="md-nav__link">
+    Detecting retained objects
   </a>
   
 </li>
@@ -416,13 +416,6 @@
           <li class="md-nav__item">
   <a href="#analyzing-the-heap" title="Analyzing the heap" class="md-nav__link">
     Analyzing the heap
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#grouping-leaks" title="Grouping leaks" class="md-nav__link">
-    Grouping leaks
   </a>
   
 </li>
@@ -455,8 +448,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#leaking-instance" title="Leaking instance" class="md-nav__link">
-    Leaking instance
+  <a href="#leaking-object" title="Leaking object" class="md-nav__link">
+    Leaking object
   </a>
   
 </li>
@@ -958,8 +951,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#detecting-retained-instances" title="Detecting retained instances" class="md-nav__link">
-    Detecting retained instances
+  <a href="#detecting-retained-objects" title="Detecting retained objects" class="md-nav__link">
+    Detecting retained objects
   </a>
   
 </li>
@@ -974,13 +967,6 @@
           <li class="md-nav__item">
   <a href="#analyzing-the-heap" title="Analyzing the heap" class="md-nav__link">
     Analyzing the heap
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#grouping-leaks" title="Grouping leaks" class="md-nav__link">
-    Grouping leaks
   </a>
   
 </li>
@@ -1013,8 +999,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#leaking-instance" title="Leaking instance" class="md-nav__link">
-    Leaking instance
+  <a href="#leaking-object" title="Leaking object" class="md-nav__link">
+    Leaking object
   </a>
   
 </li>
@@ -1092,20 +1078,44 @@
 <li>Storing a view in a static field, and not clearing that field when the view is detached.</li>
 </ul>
 <h2 id="why-should-i-use-leakcanary">Why should I use LeakCanary?<a class="headerlink" href="#why-should-i-use-leakcanary" title="Permanent link">&para;</a></h2>
-<p>Memory leaks are very common in Android apps. OutOfMemoryError (OOM) is the top crash for most apps on the play store, however that&rsquo;s usually not counted correctly. When memory is low the OOM can be thrown from anywhere in your code, which means every OOM has a different stacktrace and they&rsquo;re counted as different crashes.</p>
-<p>When we first enabled LeakCanary in the Square Point Of Sale app, we were able to find and fix several leaks and reduced the OutOfMemoryError crash rate by <strong>94%</strong>.</p>
+<p>Memory leaks are very common in Android apps and the accumulation of small memory leaks causes apps to run out of memory and crash with an OutOfMemoryError (OOM). When we first enabled LeakCanary in the Square Point Of Sale app, we were able to find and fix several leaks and reduced the OOM crash rate by <strong>94%</strong>.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p><strong>Most crash reporting tools do not correctly report OOMs</strong>. When memory is low because of memory leak accumulation, an OOM can be thrown from anywhere in the app code, which means every OOM has a different stacktrace. So instead of one crash entry with a 1000 crashes, those get reported as 1000 distinct crashes and hide in the long tail of low occuring crashes.</p>
+</div>
 <h2 id="how-does-leakcanary-work">How does LeakCanary work?<a class="headerlink" href="#how-does-leakcanary-work" title="Permanent link">&para;</a></h2>
-<h3 id="detecting-retained-instances">Detecting retained instances<a class="headerlink" href="#detecting-retained-instances" title="Permanent link">&para;</a></h3>
-<p>The foundation of LeakCanary is a library called ObjectWatcher Android. It hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed instances are passed to an <code>ObjectWatcher</code>, which holds weak references to them. You can also watch any instance that is no longer needed, for example a detached view, a destroyed presenter, etc.</p>
-<p>If the weak references aren&rsquo;t cleared after waiting 5 seconds and running the garbage collector, the watched instances are considered <em>retained</em>, and potentially leaking.</p>
+<h3 id="detecting-retained-objects">Detecting retained objects<a class="headerlink" href="#detecting-retained-objects" title="Permanent link">&para;</a></h3>
+<p>The foundation of LeakCanary is a library called <em>ObjectWatcher Android</em>. It hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed objects are passed to an <code>ObjectWatcher</code>, which holds <strong>weak references</strong> to them. You can also watch any objects that is no longer needed, for example a detached view, a destroyed presenter, etc.</p>
+<div class="codehilite"><pre><span></span><span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span><span class="n">myDetachedView</span><span class="p">)</span>
+</pre></div>
+
+<p>If the weak references aren&rsquo;t cleared after <strong>waiting 5 seconds</strong> and running the garbage collector, the watched objects are considered <strong>retained</strong>, and potentially leaking. LeakCanary logs this to Logcat:</p>
+<div class="codehilite"><pre><span></span>D LeakCanary: Watching instance of com.example.leakcanary.MainActivity 
+// 5 seconds later...
+D LeakCanary: Found 1 retained object
+</pre></div>
+
+<p>LeakCanary waits for the count of retained objects to reach a threshold before dumping the heap, and displays a notification with the latest count.</p>
+<p><img alt="notification" src="../images/retained-notification.png" /></p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>The default threshold is <strong>5 retained objects</strong> when the app is <strong>visible</strong>, and <strong>1 retained object</strong> when the app is <strong>not visible</strong>. If you see the retained objects notification and then put the app in background (for example by pressing the Home button), then the threshold changes from 5 to 1 and LeakCanary dumps the heap immediately. Tapping the notification forces LeakCanary to dump the heap immediately.</p>
+</div>
 <h3 id="dumping-the-heap">Dumping the heap<a class="headerlink" href="#dumping-the-heap" title="Permanent link">&para;</a></h3>
-<p>When the number of retained instances reaches a threshold, LeakCanary dumps the Java heap into a <code>.hprof</code> file stored onto the Android file system. The default threshold is 5 retained instances when the app is visible, and 1 retained instance when the app is not visible.</p>
+<p>When the count of retained objects reaches a threshold, LeakCanary dumps the Java heap into a <code>.hprof</code> file stored onto the Android file system. This freezes the app for a short amount of time, during which LeakCanary displays the following toast:</p>
+<p><img alt="toast" src="../images/dumping-toast.png" /></p>
 <h3 id="analyzing-the-heap">Analyzing the heap<a class="headerlink" href="#analyzing-the-heap" title="Permanent link">&para;</a></h3>
-<p>LeakCanary parses the <code>.hprof</code> file using <a href="../shark/">Shark</a> and finds the chain of references that prevents retained instances from being garbage collected: the <strong>leak trace</strong>. Leak trace is another name for the <em>shortest strong reference path from garbage collection roots to a retained object</em>. Once the leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which instances in the leak trace are leaking (see below <a href="#how-do-i-fix-a-memory-leak">How do I fix a memory leak?</a>).</p>
-<h3 id="grouping-leaks">Grouping leaks<a class="headerlink" href="#grouping-leaks" title="Permanent link">&para;</a></h3>
-<p>Using the leak status information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks that have the same causal chain are considered to be the same leak, so leaks are grouped by identical sub chain.</p>
+<p>LeakCanary parses the <code>.hprof</code> file using <a href="../shark/">Shark</a> and locates the retained objects in that heap dump. If the retained objects cannot be found then they were most likely garbage collected by the time the heap was dumped:</p>
+<p><img alt="collected" src="../images/collected.png" /></p>
+<p>For each retained object, LeakCanary finds the chain of references that prevents retained objects from being garbage collected: the <strong>leak trace</strong>. Leak trace is another name for the <em>shortest strong reference path from garbage collection roots to a retained object</em>. Once a leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which objects in the leak trace are leaking (see below <a href="#how-do-i-fix-a-memory-leak">How do I fix a memory leak?</a>).</p>
+<p>When the analysis is done, LeakCanary displays a notification that can be tapped to see the analysis result:</p>
+<p><img alt="done" src="../images/analysis-done.png" /></p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Using the leak status information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks that have the same causal chain are considered to be the same leak, so leaks are grouped by identical sub chain. This is how LeakCanary determines whether a leak is new or not.</p>
+</div>
 <h2 id="how-do-i-fix-a-memory-leak">How do I fix a memory leak?<a class="headerlink" href="#how-do-i-fix-a-memory-leak" title="Permanent link">&para;</a></h2>
-<p>For each leaking instance, LeakCanary computes a leak trace and displays it in its UI:</p>
+<p>For each leaking object, LeakCanary computes a leak trace and displays it in its UI:</p>
 <p><img alt="leak trace" src="../images/leaktrace.png" /></p>
 <p>The leak trace is also logged to Logcat:</p>
 <div class="codehilite"><pre><span></span>    ┬
@@ -1157,13 +1167,13 @@ is true)
 <li><strong>Classes</strong>, which never unload on Android.</li>
 <li><strong>Native references</strong>, which are controlled by native code.</li>
 </ul>
-<h3 id="leaking-instance">Leaking instance<a class="headerlink" href="#leaking-instance" title="Permanent link">&para;</a></h3>
+<h3 id="leaking-object">Leaking object<a class="headerlink" href="#leaking-object" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span>    ╰→ com.example.leakcanary.MainActivity
     ​     Leaking: YES (RefWatcher was watching this and MainActivity#mDestroyed
 is true)
 </pre></div>
 
-<p>At the bottom of the leak trace is the leaking instance. This instance was passed to <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.</p>
+<p>At the bottom of the leak trace is the leaking object. This object was passed to <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.</p>
 <h3 id="chain-of-references">Chain of references<a class="headerlink" href="#chain-of-references" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span>...
     │    ↓ static InternalLeakCanary.application
@@ -1178,7 +1188,7 @@ is true)
 ...
 </pre></div>
 
-<p>The chain of references from the GC root to the leaking instance is what is preventing the leaking instance from being garbage collected. If you can identify the reference that should not exist at that point in time, then you can figure out why it&rsquo;s incorrectly still set and then fix the memory leak.</p>
+<p>The chain of references from the GC root to the leaking object is what is preventing the leaking object from being garbage collected. If you can identify the reference that should not exist at that point in time, then you can figure out why it&rsquo;s incorrectly still set and then fix the memory leak.</p>
 <h3 id="heuristics-and-labels">Heuristics and labels<a class="headerlink" href="#heuristics-and-labels" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span>    ├─ android.widget.TextView
     │    Leaking: YES (View detached and has parent)

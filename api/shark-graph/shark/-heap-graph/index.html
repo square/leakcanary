@@ -865,6 +865,10 @@
 <td><code>abstract fun findObjectById(objectId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>):</code><a href="../-heap-object/"><code>HeapObject</code></a><br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-id/#shark.HeapGraph$findObjectById(kotlin.Long)/objectId">objectId</a>, and throws <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> otherwise.</td>
 </tr>
 <tr>
+<td><a href="find-object-by-id-or-null/">findObjectByIdOrNull</a></td>
+<td><code>abstract fun findObjectByIdOrNull(objectId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>):</code><a href="../-heap-object/"><code>HeapObject</code></a><code>?</code><br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-id-or-null/#shark.HeapGraph$findObjectByIdOrNull(kotlin.Long)/objectId">objectId</a> or null if it cannot be found.</td>
+</tr>
+<tr>
 <td><a href="object-exists/">objectExists</a></td>
 <td><code>abstract fun objectExists(objectId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>Returns true if the provided <a href="object-exists/#shark.HeapGraph$objectExists(kotlin.Long)/objectId">objectId</a> exists in the heap dump.</td>
 </tr>

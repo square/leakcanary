@@ -466,6 +466,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#extracting-metadata-from-the-heap-dump" title="Extracting metadata from the heap dump" class="md-nav__link">
+    Extracting metadata from the heap dump
+  </a>
+  
+</li>
+      
       
       
       
@@ -965,6 +972,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#extracting-metadata-from-the-heap-dump" title="Extracting metadata from the heap dump" class="md-nav__link">
+    Extracting metadata from the heap dump
+  </a>
+  
+</li>
+      
       
       
       
@@ -1052,7 +1066,7 @@
 <p>The <code>com.squareup.leakcanary:leakcanary-android</code> dependency should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in production to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="codehilite"><pre><span></span>dependencies {
-  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-3&#39;
+  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-4&#39;
 }
 </pre></div>
 
@@ -1230,6 +1244,38 @@ configurations {
 <div class="codehilite"><pre><span></span>dependencies {
   devDebugImplementation &quot;com.squareup.leakcanary:leakcanary-android:${version}&quot;
 }
+</pre></div>
+
+<h2 id="extracting-metadata-from-the-heap-dump">Extracting metadata from the heap dump<a class="headerlink" href="#extracting-metadata-from-the-heap-dump" title="Permanent link">&para;</a></h2>
+<p><a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/metatadaExtractor/">LeakCanary.Config.metatadaExtractor</a> extracts metadata from a heap dump. The metadata is then available in <code>HeapAnalysisSuccess.metadata</code>. <code>LeakCanary.Config.metatadaExtractor</code> defaults to <code>AndroidMetadataExtractor</code> but you can replace it to extract additional metadata from the hprof.</p>
+<p>For example, if you want to include the app version name in your heap analysis reports, you need to first store it in memory (e.g. in a static field) and then you can retrieve it in <code>MetadataExtractor</code>.</p>
+<div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+
+  <span class="k">companion</span> <span class="k">object</span> <span class="p">{</span>
+    <span class="n">@JvmStatic</span>
+    <span class="k">lateinit</span> <span class="k">var</span> <span class="py">savedVersionName</span><span class="p">:</span> <span class="n">String</span>
+  <span class="p">}</span>
+
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
+
+    <span class="k">val</span> <span class="py">packageInfo</span> <span class="p">=</span> <span class="n">packageManager</span><span class="p">.</span><span class="n">getPackageInfo</span><span class="p">(</span><span class="n">packageName</span><span class="p">,</span> <span class="m">0</span><span class="p">)</span>
+    <span class="n">savedVersionName</span> <span class="p">=</span> <span class="n">packageInfo</span><span class="p">.</span><span class="n">versionName</span>
+
+    <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span>
+        <span class="n">metatadaExtractor</span> <span class="p">=</span> <span class="n">MetadataExtractor</span> <span class="p">{</span> <span class="n">graph</span> <span class="p">-&gt;</span>
+          <span class="k">val</span> <span class="py">companionClass</span> <span class="p">=</span>
+            <span class="n">graph</span><span class="p">.</span><span class="n">findClassByName</span><span class="p">(</span><span class="s">&quot;com.example.DebugExampleApplication&quot;</span><span class="p">)</span><span class="o">!!</span>
+
+          <span class="k">val</span> <span class="py">versionNameField</span> <span class="p">=</span> <span class="n">companionClass</span><span class="p">[</span><span class="s">&quot;savedVersionName&quot;</span><span class="p">]</span><span class="o">!!</span>
+          <span class="k">val</span> <span class="py">versionName</span> <span class="p">=</span> <span class="n">versionNameField</span><span class="p">.</span><span class="n">valueAsInstance</span><span class="o">!!</span><span class="p">.</span><span class="n">readAsJavaString</span><span class="p">()</span><span class="o">!!</span>
+
+          <span class="k">val</span> <span class="py">defaultMetadata</span> <span class="p">=</span> <span class="n">AndroidMetadataExtractor</span><span class="p">.</span><span class="n">extractMetadata</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+
+          <span class="n">mapOf</span><span class="p">(</span><span class="s">&quot;App Version Name&quot;</span> <span class="n">to</span> <span class="n">versionName</span><span class="p">)</span> <span class="p">+</span> <span class="n">defaultMetadata</span>
+        <span class="p">})</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
                 
                   

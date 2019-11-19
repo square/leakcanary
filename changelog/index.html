@@ -407,6 +407,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-20-beta-4-2019-11-18" title="Version 2.0 Beta 4 (2019-11-18)" class="md-nav__link">
+    Version 2.0 Beta 4 (2019-11-18)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-20-beta-3-2019-08-22" title="Version 2.0 Beta 3 (2019-08-22)" class="md-nav__link">
     Version 2.0 Beta 3 (2019-08-22)
   </a>
@@ -1009,6 +1016,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-20-beta-4-2019-11-18" title="Version 2.0 Beta 4 (2019-11-18)" class="md-nav__link">
+    Version 2.0 Beta 4 (2019-11-18)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-20-beta-3-2019-08-22" title="Version 2.0 Beta 3 (2019-08-22)" class="md-nav__link">
     Version 2.0 Beta 3 (2019-08-22)
   </a>
@@ -1241,9 +1255,41 @@
                 
                 
                 <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
-<h2 id="version-20-beta-3-2019-08-22">Version 2.0 Beta 3 (2019-08-22)<a class="headerlink" href="#version-20-beta-3-2019-08-22" title="Permanent link">&para;</a></h2>
+<h2 id="version-20-beta-4-2019-11-18">Version 2.0 Beta 4 (2019-11-18)<a class="headerlink" href="#version-20-beta-4-2019-11-18" title="Permanent link">&para;</a></h2>
 <p>LeakCanary 2 is in <strong>beta</strong>: the internals and APIs are mostly stable.</p>
 <p>Now is a great time to adopt it and provide feedback before the stable release. We&rsquo;re counting on you to find bugs and suggest improvements! Check out the new <a href="https://square.github.io/leakcanary/getting_started">Getting Started</a> instructions and the <a href="https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/">migration guide</a>. </p>
+<ul>
+<li>Improved string rendering for heap analysis results</li>
+<li>UX redesign <a href="https://github.com/square/leakcanary/issues/1445">#1445</a></li>
+<li>Support for pattern matching of native reference leaks <a href="https://github.com/square/leakcanary/issues/1562">#1562</a></li>
+<li>Added support for deobfuscation using Proguard mapping files in Shark <a href="https://github.com/square/leakcanary/issues/1499">#1499</a>. This isn&rsquo;t directly supported in LeakCanary yet.</li>
+<li>Added support for extracting metadata from the heap dump (see the<a href="../recipes/#extracting-metadata-from-the-heap-dump">recipe</a>) <a href="https://github.com/square/leakcanary/issues/1519">#1519</a></li>
+<li>Improved auto disabling of LeakCanary in Unit and UI tests <a href="https://github.com/square/leakcanary/issues/1552">#1552</a></li>
+<li>Several performance improvements when parsing heap dumps</li>
+<li>Fixed several bugs and crashes</li>
+<li>Added new known leak patterns</li>
+</ul>
+<p>Many thanks to
+<a href="https://github.com/Armaxis">@Armaxis</a>,
+<a href="https://github.com/BraisGabin">@BraisGabin</a>,
+<a href="https://github.com/bric3">@bric3</a>,
+<a href="https://github.com/elihart">@elihart</a>,
+<a href="https://github.com/fernandospr">@fernandospr</a>,
+<a href="https://github.com/flickator">@flickator</a>,
+<a href="https://github.com/gabrysgab">@gabrysgab</a>,
+<a href="https://github.com/JorgeDLS">@JorgeDLS</a>,
+<a href="https://github.com/lannyf77">@lannyf77</a>,
+<a href="https://github.com/msfjarvis">@msfjarvis</a>,
+<a href="https://github.com/mzgreen">@mzgreen</a>,
+<a href="https://github.com/ozmium">@ozmium</a>,
+<a href="https://github.com/pyricau">@PaulWoitaschek</a>,
+<a href="https://github.com/pyricau">@pyricau</a>,
+<a href="https://github.com/shelpy">@shelpy</a>,
+<a href="https://github.com/vRallev">@vRallev</a>,
+<a href="https://github.com/ZacSweers">@ZacSweers</a>
+for the contributions, bug reports and feature requests.</p>
+<p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/12">2.0-beta-4 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.0-beta-3...v2.0-beta-4">full diff</a>.</p>
+<h2 id="version-20-beta-3-2019-08-22">Version 2.0 Beta 3 (2019-08-22)<a class="headerlink" href="#version-20-beta-3-2019-08-22" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Baseline memory usage for large hprofs divided by 3 and removed memory spikes <a href="https://github.com/square/leakcanary/pull/1543">#1543</a></li>
 <li>Fixed crash when LeakCanary is initialized from another process <a href="https://github.com/square/leakcanary/issues/1529">#1529</a></li>

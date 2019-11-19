@@ -823,6 +823,10 @@
 <td><code>data class JavaLocalPattern :</code><a href="./"><code>ReferencePattern</code></a><br>Matches local references held in the stack of frames of a given thread, identified by its name.</td>
 </tr>
 <tr>
+<td><a href="-native-global-variable-pattern/">NativeGlobalVariablePattern</a></td>
+<td><code>data class NativeGlobalVariablePattern :</code><a href="./"><code>ReferencePattern</code></a><br>Matches native global variables (also known as jni global gc roots) that reference Java objects. The class name will match against classes, instances and object arrays with a matching class name.</td>
+</tr>
+<tr>
 <td><a href="-static-field-pattern/">StaticFieldPattern</a></td>
 <td><code>data class StaticFieldPattern :</code><a href="./"><code>ReferencePattern</code></a><br>Matches static field references, identified by <a href="-static-field-pattern/class-name/">className</a> and <a href="-static-field-pattern/field-name/">fieldName</a>.</td>
 </tr>
@@ -844,6 +848,10 @@
 <tr>
 <td><a href="-java-local-pattern/">JavaLocalPattern</a></td>
 <td><code>data class JavaLocalPattern :</code><a href="./"><code>ReferencePattern</code></a><br>Matches local references held in the stack of frames of a given thread, identified by its name.</td>
+</tr>
+<tr>
+<td><a href="-native-global-variable-pattern/">NativeGlobalVariablePattern</a></td>
+<td><code>data class NativeGlobalVariablePattern :</code><a href="./"><code>ReferencePattern</code></a><br>Matches native global variables (also known as jni global gc roots) that reference Java objects. The class name will match against classes, instances and object arrays with a matching class name.</td>
 </tr>
 <tr>
 <td><a href="-static-field-pattern/">StaticFieldPattern</a></td>
