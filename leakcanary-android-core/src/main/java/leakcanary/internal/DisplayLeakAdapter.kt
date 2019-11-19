@@ -91,7 +91,7 @@ internal class DisplayLeakAdapter constructor(
   private fun bindHeaderRow(
     view: View
   ) {
-    val textView = view.findViewById<TextView>(R.id.leak_canary_header_text).apply {
+    view.findViewById<TextView>(R.id.leak_canary_header_text).apply {
       movementMethod = LinkMovementMethod.getInstance()
       text = header
     }

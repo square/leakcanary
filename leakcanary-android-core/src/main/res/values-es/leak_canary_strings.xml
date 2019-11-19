@@ -9,9 +9,7 @@
   <string name="leak_canary_delete_all">Borrar todo</string>
   <string name="leak_canary_delete_all_leaks_title">¿Estás seguro de borrar todos los leaks?</string>
   <string name="leak_canary_display_activity_label">Leaks</string>
-  <string name="leak_canary_download_dump">Puedes descargar el volcado de memoria mediante \"Menú > Compartir volcado de memoria\" ó \"adb pull %1$s\"</string>
   <string name="leak_canary_share_heap_dump_bitmap_screen_title">Compartir volcado de memoria de Bitmap</string>
-  <string name="leak_canary_share_leak">Compartir información</string>
   <string name="leak_canary_share_with">Compartir por…</string>
   <string name="leak_canary_shortcut_label">Leaks</string>
   <string name="leak_canary_stackoverflow_share">Compartir Leak en Stack Overflow</string>
@@ -43,7 +41,6 @@
   <string name="leak_canary_go_to_heap_analysis">Ir a Análisis de memoria</string>
   <string name="leak_canary_generating_hq_bitmap_toast_notice">Renderizando Bitmap de alta calidad, tardará un poco…</string>
   <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Renderizando Bitmap de alta calidad, tardará un poco…</string>
-  <string name="leak_canary_failure_report">Por favor informar de este fallo a http://github.com/square/leakcanary y compartir el archivo de volcado de memoria que lo causó.</string>
   <string name="leak_canary_explorer_search_classes">Buscar clases</string>
   <string name="leak_canary_analysis_success_notification">Análisis hecho: %1$d leaks (%2$d nuevo, %3$d conocido, %4$d librería)</string>
   <string name="leak_canary_notification_retained_debugger_attached">Esperando que el debugger se desacople</string>
