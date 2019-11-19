@@ -28,7 +28,6 @@
   <string name="leak_canary_analysis_failed">Leak analysis failed</string>
   <string name="leak_canary_analysis_success_notification">Analysis done: %1$d leaks (%2$d new, %3$d known, %4$d library)</string>
   <string name="leak_canary_class_has_leaked">%1$s Leaked</string>
-  <string name="leak_canary_download_dump">You can download the heap dump via \"Menu > Share Heap Dump\" or \"adb pull %1$s\"</string>
   <string name="leak_canary_explorer_search_classes">Search classes</string>
   <plurals name="leak_canary_distinct_leaks">
     <item quantity="one">%d Distinct Leak</item>
@@ -48,13 +47,11 @@
   <string name="leak_canary_notification_retained_dump_failed">Failed to dump heap</string>
   <string name="leak_canary_notification_retained_title">%d retained objects, tap to dump heap</string>
   <string name="leak_canary_notification_retained_visible">App visible, waiting until %d retained objects</string>
-  <string name="leak_canary_share_leak">Share Info</string>
   <string name="leak_canary_share_with">Share with…</string>
   <string name="leak_canary_display_activity_label">Leaks</string>
   <string name="leak_canary_storage_permission_activity_label">Storage permission</string>
   <string name="leak_canary_toast_heap_dump">LeakCanary is dumping the memory to investigate leaks.</string>
   <string name="leak_canary_delete">Delete</string>
-  <string name="leak_canary_failure_report">"Please report this failure to http://github.com/square/leakcanary and share the heapdump file that caused it."</string>
   <string name="leak_canary_delete_all">Delete all</string>
   <string name="leak_canary_delete_all_leaks_title">Are you sure you want to delete all leaks?</string>
   <string name="leak_canary_permission_not_granted">Please grant external storage permission, otherwise memory leaks will not be detected.</string>
@@ -62,7 +59,9 @@
   <string name="leak_canary_permission_notification_text">Click to enable storage permission for %s.</string>
   <string name="leak_canary_shortcut_label">Leaks</string>
   <string name="leak_canary_stackoverflow_share">Share Leak On Stack Overflow</string>
+  <string name="leak_canary_failure_copied">Stacktrace copied to clipboard</string>
   <string name="leak_canary_leak_copied">Leak info copied to clipboard</string>
+  <string name="leak_canary_failure_clipdata_label">LeakCanary failure stacktrace</string>
   <string name="leak_canary_leak_clipdata_label">LeakCanary Leak Trace</string>
   <string name="leak_canary_leak_not_found">Leak not found</string>
   <string name="leak_canary_options_menu_generate_hq_bitmap">Generate HQ Bitmap</string>
