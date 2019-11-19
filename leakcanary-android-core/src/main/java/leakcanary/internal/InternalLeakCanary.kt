@@ -44,11 +44,13 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   var applicationVisible = false
     private set
 
-  private val isJunitAvailable = try {
-    Class.forName("org.junit.Test")
-    true
-  } catch (e: Exception) {
-    false
+  private val isJunitAvailable by lazy {
+    try {
+      Class.forName("org.junit.Test")
+      true
+    } catch (e: Exception) {
+      false
+    }
   }
 
   val leakDirectoryProvider: LeakDirectoryProvider by lazy {
