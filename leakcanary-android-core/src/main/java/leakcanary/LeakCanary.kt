@@ -105,7 +105,7 @@ object LeakCanary {
      *
      * Defaults to [DefaultOnRetainInstanceListener]
      */
-    val onRetainInstanceListener: OnRetainInstanceListener = DefaultOnRetainInstanceListener(),
+    val onRetainInstanceListener: OnRetainInstanceListener = DefaultOnRetainInstanceListener.create(),
 
     /**
      * Extracts metadata from a hprof to be reported in [HeapAnalysisSuccess.metadata].

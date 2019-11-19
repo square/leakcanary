@@ -3,7 +3,6 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   debugImplementation project(':leakcanary-android')
-  debugImplementation project(':leakcanary-android-tv')
 
   implementation deps.kotlin.stdlib
 }

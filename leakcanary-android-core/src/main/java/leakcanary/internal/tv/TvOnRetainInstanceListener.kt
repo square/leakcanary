@@ -1,9 +1,14 @@
-package leakcanary
+package leakcanary.internal.tv
 
 import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
+import leakcanary.RetainInstanceChange
+import leakcanary.LeakCanary
+import leakcanary.OnRetainInstanceListener
+import leakcanary.RetainInstanceChange.CountChanged
+import leakcanary.RetainInstanceChange.Reset
 
 /**
  * [OnRetainInstanceListener] implementation for Android TV devices which keeps track of the current
@@ -19,7 +24,14 @@ class TvOnRetainInstanceListener(private val application: Application) : OnRetai
   private var lastRetainedCount = 0
   private val handler = Handler(Looper.getMainLooper())
 
-  override fun onCountChanged(retainedCount: Int) {
+  override fun onChange(change: RetainInstanceChange) {
+    when (change) {
+      is CountChanged -> onCountChanged(change.retainedCount)
+      Reset -> onReset()
+    }
+  }
+
+  private fun onCountChanged(retainedCount: Int) {
     // Do nothing if count hasn't changed
     if (retainedCount == lastRetainedCount) return
 
@@ -50,7 +62,7 @@ class TvOnRetainInstanceListener(private val application: Application) : OnRetai
     }
   }
 
-  override fun onReset() {
+  private fun onReset() {
     lastRetainedCount = 0
   }
 }

@@ -24,17 +24,19 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.JELLY_BEAN
 import android.os.Build.VERSION_CODES.O
 import com.squareup.leakcanary.core.R
+import leakcanary.internal.utils.FormFactor.MOBILE
+import leakcanary.internal.utils.formFactor
 
 internal object Notifications {
 
   val canShowNotification: Boolean
     get() = canShowBackgroundNotifications || InternalLeakCanary.applicationVisible
 
-  private val canShowBackgroundNotifications = if (SDK_INT >= O) {
-    // Instants apps cannot show background notifications
-    // See https://github.com/square/leakcanary/issues/1197
-    !InternalLeakCanary.application.packageManager.isInstantApp
-  } else true
+  // Instants apps cannot show background notifications
+  // See https://github.com/square/leakcanary/issues/1197
+  // TV devices also can't do notifications
+  private val canShowBackgroundNotifications =
+    InternalLeakCanary.application.formFactor == MOBILE
 
   @Suppress("LongParameterList")
   fun showNotification(
