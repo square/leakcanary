@@ -12,3 +12,5 @@
 | [HeapObject](-heap-object/index.md) | `sealed class HeapObject`<br>An object in the heap dump. |
 | [HeapValue](-heap-value/index.md) | `class HeapValue`<br>Represents a value in the heap dump, which can be an object reference or a primitive type. |
 | [HprofHeapGraph](-hprof-heap-graph/index.md) | `class HprofHeapGraph : `[`HeapGraph`](-heap-graph/index.md)<br>A [HeapGraph](-heap-graph/index.md) that reads from an indexed [Hprof](#). Create a new instance with [indexHprof](-hprof-heap-graph/index-hprof.md). |
+| [ProguardMapping](-proguard-mapping/index.md) | `class ProguardMapping` |
+| [ProguardMappingReader](-proguard-mapping-reader/index.md) | `class ProguardMappingReader` |

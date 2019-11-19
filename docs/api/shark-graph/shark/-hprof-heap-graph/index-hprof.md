@@ -2,4 +2,4 @@
 
 # indexHprof
 
-`fun indexHprof(hprof: Hprof): `[`HeapGraph`](../-heap-graph/index.md)
+`fun indexHprof(hprof: Hprof, proguardMapping: `[`ProguardMapping`](../-proguard-mapping/index.md)`? = null): `[`HeapGraph`](../-heap-graph/index.md)

@@ -32,3 +32,4 @@ A leak found by [HeapAnalyzer](../-heap-analyzer/index.md) in your application.
 | Name | Summary |
 |---|---|
 | [createGroupHash](create-group-hash.md) | `fun createGroupHash(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [toString](to-string.md) | `fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |

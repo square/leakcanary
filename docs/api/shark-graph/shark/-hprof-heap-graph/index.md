@@ -23,10 +23,11 @@ A [HeapGraph](../-heap-graph/index.md) that reads from an indexed [Hprof](#). Cr
 |---|---|
 | [findClassByName](find-class-by-name.md) | `fun findClassByName(className: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`HeapObject.HeapClass`](../-heap-object/-heap-class/index.md)`?`<br>Returns the [HeapClass](../-heap-object/-heap-class/index.md) corresponding to the provided [className](../-heap-graph/find-class-by-name.md#shark.HeapGraph$findClassByName(kotlin.String)/className), or null if the class cannot be found. |
 | [findObjectById](find-object-by-id.md) | `fun findObjectById(objectId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`HeapObject`](../-heap-object/index.md)<br>Returns the [HeapObject](../-heap-object/index.md) corresponding to the provided [objectId](../-heap-graph/find-object-by-id.md#shark.HeapGraph$findObjectById(kotlin.Long)/objectId), and throws [IllegalArgumentException](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html) otherwise. |
+| [findObjectByIdOrNull](find-object-by-id-or-null.md) | `fun findObjectByIdOrNull(objectId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`HeapObject`](../-heap-object/index.md)`?`<br>Returns the [HeapObject](../-heap-object/index.md) corresponding to the provided [objectId](../-heap-graph/find-object-by-id-or-null.md#shark.HeapGraph$findObjectByIdOrNull(kotlin.Long)/objectId) or null if it cannot be found. |
 | [objectExists](object-exists.md) | `fun objectExists(objectId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Returns true if the provided [objectId](../-heap-graph/object-exists.md#shark.HeapGraph$objectExists(kotlin.Long)/objectId) exists in the heap dump. |
 
 ### Companion Object Functions
 
 | Name | Summary |
 |---|---|
-| [indexHprof](index-hprof.md) | `fun indexHprof(hprof: Hprof): `[`HeapGraph`](../-heap-graph/index.md) |
+| [indexHprof](index-hprof.md) | `fun indexHprof(hprof: Hprof, proguardMapping: `[`ProguardMapping`](../-proguard-mapping/index.md)`? = null): `[`HeapGraph`](../-heap-graph/index.md) |

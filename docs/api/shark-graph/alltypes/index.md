@@ -10,3 +10,5 @@
 | [shark.HeapObject](../shark/-heap-object/index.md) | An object in the heap dump. |
 | [shark.HeapValue](../shark/-heap-value/index.md) | Represents a value in the heap dump, which can be an object reference or a primitive type. |
 | [shark.HprofHeapGraph](../shark/-hprof-heap-graph/index.md) | A [HeapGraph](../shark/-heap-graph/index.md) that reads from an indexed [Hprof](#). Create a new instance with [indexHprof](../shark/-hprof-heap-graph/index-hprof.md). |
+| [shark.ProguardMapping](../shark/-proguard-mapping/index.md) |  |
+| [shark.ProguardMappingReader](../shark/-proguard-mapping-reader/index.md) |  |
