@@ -301,7 +301,7 @@ dependencies {
 
 ## Extracting metadata from the heap dump
 
-[LeakCanary.Config.metatadaExtractor](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/metatadaExtractor/) extracts metadata from a heap dump. The metadata is then available in `HeapAnalysisSuccess.metadata`. `LeakCanary.Config.metatadaExtractor` defaults to `AndroidMetadataExtractor` but you can replace it to extract additional metadata from the hprof.
+[LeakCanary.Config.metatadaExtractor](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/metatada-extractor/) extracts metadata from a heap dump. The metadata is then available in `HeapAnalysisSuccess.metadata`. `LeakCanary.Config.metatadaExtractor` defaults to `AndroidMetadataExtractor` but you can replace it to extract additional metadata from the hprof.
 
 For example, if you want to include the app version name in your heap analysis reports, you need to first store it in memory (e.g. in a static field) and then you can retrieve it in `MetadataExtractor`.
 

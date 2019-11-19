@@ -10,7 +10,7 @@ Now is a great time to adopt it and provide feedback before the stable release. 
 * UX redesign [#1445](https://github.com/square/leakcanary/issues/1445)
 * Support for pattern matching of native reference leaks [#1562](https://github.com/square/leakcanary/issues/1562)
 * Added support for deobfuscation using Proguard mapping files in Shark [#1499](https://github.com/square/leakcanary/issues/1499). This isn't directly supported in LeakCanary yet.
-* Added support for extracting metadata from the heap dump (see the[recipe](recipes.md#extracting-metadata-from-the-heap-dump)) [#1519](https://github.com/square/leakcanary/issues/1519)
+* Added support for extracting metadata from the heap dump (see the [recipe](recipes.md#extracting-metadata-from-the-heap-dump)) [#1519](https://github.com/square/leakcanary/issues/1519)
 * Improved auto disabling of LeakCanary in Unit and UI tests [#1552](https://github.com/square/leakcanary/issues/1552)
 * Several performance improvements when parsing heap dumps
 * Fixed several bugs and crashes
