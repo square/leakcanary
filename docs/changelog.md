@@ -1,6 +1,10 @@
 # Change Log
 
-## Next release
+## Version 2.0 Beta 4 (2019-11-18)
+
+LeakCanary 2 is in **beta**: the internals and APIs are mostly stable.
+
+Now is a great time to adopt it and provide feedback before the stable release. We're counting on you to find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/). 
 
 * Improved string rendering for heap analysis results
 * UX redesign [#1445](https://github.com/square/leakcanary/issues/1445)
@@ -32,11 +36,9 @@ Many thanks to
 [@ZacSweers](https://github.com/ZacSweers)
 for the contributions, bug reports and feature requests.
 
+For more details, see the [2.0-beta-4 Milestone](https://github.com/square/leakcanary/milestone/12) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-beta-3...v2.0-beta-4).
+
 ## Version 2.0 Beta 3 (2019-08-22)
-
-LeakCanary 2 is in **beta**: the internals and APIs are mostly stable.
-
-Now is a great time to adopt it and provide feedback before the stable release. We're counting on you to find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/). 
 
 * Baseline memory usage for large hprofs divided by 3 and removed memory spikes [#1543](https://github.com/square/leakcanary/pull/1543)
 * Fixed crash when LeakCanary is initialized from another process [#1529](https://github.com/square/leakcanary/issues/1529)

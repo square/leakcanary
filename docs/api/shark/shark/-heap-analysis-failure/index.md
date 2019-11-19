@@ -20,3 +20,9 @@ The analysis performed by [HeapAnalyzer](../-heap-analyzer/index.md) did not com
 | [createdAtTimeMillis](created-at-time-millis.md) | `val createdAtTimeMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>The [System.currentTimeMillis](https://docs.oracle.com/javase/6/docs/api/java/lang/System.html#currentTimeMillis()) when this [HeapAnalysis](../-heap-analysis/index.md) instance was created. |
 | [exception](exception.md) | `val exception: `[`HeapAnalysisException`](../-heap-analysis-exception/index.md)<br>An exception wrapping the actual exception that was thrown. |
 | [heapDumpFile](heap-dump-file.md) | `val heapDumpFile: `[`File`](https://docs.oracle.com/javase/6/docs/api/java/io/File.html)<br>The hprof file that was analyzed. |
+
+### Functions
+
+| Name | Summary |
+|---|---|
+| [toString](to-string.md) | `fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |

@@ -36,3 +36,4 @@ instance. This is a known leak in library code that is beyond your control.
 | Name | Summary |
 |---|---|
 | [createGroupHash](create-group-hash.md) | `fun createGroupHash(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [toString](to-string.md) | `fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |

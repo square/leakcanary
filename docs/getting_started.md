@@ -5,7 +5,7 @@ Add LeakCanary to `build.gradle`:
 ```groovy
 dependencies {
   // debugImplementation because LeakCanary should only run in debug builds.
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-3'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-4'
 }
 ```
 

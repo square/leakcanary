@@ -27,6 +27,7 @@ Most app developers should use [appDefaults](app-defaults.md). However, you can 
 
 | Name | Summary |
 |---|---|
+| [IREQUEST_FINISH_CALLBACK](-i-r-e-q-u-e-s-t_-f-i-n-i-s-h_-c-a-l-l-b-a-c-k.md) |  |
 | [ACTIVITY_CLIENT_RECORD__NEXT_IDLE](-a-c-t-i-v-i-t-y_-c-l-i-e-n-t_-r-e-c-o-r-d__-n-e-x-t_-i-d-l-e.md) |  |
 | [SPAN_CONTROLLER](-s-p-a-n_-c-o-n-t-r-o-l-l-e-r.md) |  |
 | [MEDIA_SESSION_LEGACY_HELPER__SINSTANCE](-m-e-d-i-a_-s-e-s-s-i-o-n_-l-e-g-a-c-y_-h-e-l-p-e-r__-s-i-n-s-t-a-n-c-e.md) |  |
@@ -47,13 +48,17 @@ Most app developers should use [appDefaults](app-defaults.md). However, you can 
 | [EDITTEXT_BLINK_MESSAGEQUEUE](-e-d-i-t-t-e-x-t_-b-l-i-n-k_-m-e-s-s-a-g-e-q-u-e-u-e.md) |  |
 | [CONNECTIVITY_MANAGER__SINSTANCE](-c-o-n-n-e-c-t-i-v-i-t-y_-m-a-n-a-g-e-r__-s-i-n-s-t-a-n-c-e.md) |  |
 | [ACCESSIBILITY_NODE_INFO__MORIGINALTEXT](-a-c-c-e-s-s-i-b-i-l-i-t-y_-n-o-d-e_-i-n-f-o__-m-o-r-i-g-i-n-a-l-t-e-x-t.md) |  |
-| [CHANGE_WATCHER](-c-h-a-n-g-e_-w-a-t-c-h-e-r.md) |  |
+| [ASSIST_STRUCTURE](-a-s-s-i-s-t_-s-t-r-u-c-t-u-r-e.md) |  |
+| [ACCESSIBILITY_ITERATORS](-a-c-c-e-s-s-i-b-i-l-i-t-y_-i-t-e-r-a-t-o-r-s.md) |  |
 | [BIOMETRIC_PROMPT](-b-i-o-m-e-t-r-i-c_-p-r-o-m-p-t.md) |  |
 | [MAGNIFIER](-m-a-g-n-i-f-i-e-r.md) |  |
 | [BACKDROP_FRAME_RENDERER__MDECORVIEW](-b-a-c-k-d-r-o-p_-f-r-a-m-e_-r-e-n-d-e-r-e-r__-m-d-e-c-o-r-v-i-e-w.md) |  |
 | [VIEWLOCATIONHOLDER_ROOT](-v-i-e-w-l-o-c-a-t-i-o-n-h-o-l-d-e-r_-r-o-o-t.md) |  |
 | [ACCESSIBILITY_NODE_ID_MANAGER](-a-c-c-e-s-s-i-b-i-l-i-t-y_-n-o-d-e_-i-d_-m-a-n-a-g-e-r.md) |  |
 | [TEXT_TO_SPEECH](-t-e-x-t_-t-o_-s-p-e-e-c-h.md) |  |
+| [WINDOW_MANAGER_GLOBAL](-w-i-n-d-o-w_-m-a-n-a-g-e-r_-g-l-o-b-a-l.md) |  |
+| [CONTROLLED_INPUT_CONNECTION_WRAPPER](-c-o-n-t-r-o-l-l-e-d_-i-n-p-u-t_-c-o-n-n-e-c-t-i-o-n_-w-r-a-p-p-e-r.md) |  |
+| [TOAST_TN](-t-o-a-s-t_-t-n.md) |  |
 | [SPEN_GESTURE_MANAGER](-s-p-e-n_-g-e-s-t-u-r-e_-m-a-n-a-g-e-r.md) |  |
 | [CLIPBOARD_UI_MANAGER__SINSTANCE](-c-l-i-p-b-o-a-r-d_-u-i_-m-a-n-a-g-e-r__-s-i-n-s-t-a-n-c-e.md) |  |
 | [SEM_CLIPBOARD_MANAGER__MCONTEXT](-s-e-m_-c-l-i-p-b-o-a-r-d_-m-a-n-a-g-e-r__-m-c-o-n-t-e-x-t.md) |  |
@@ -77,6 +82,8 @@ Most app developers should use [appDefaults](app-defaults.md). However, you can 
 | [SYSTEM_SENSOR_MANAGER__MAPPCONTEXTIMPL](-s-y-s-t-e-m_-s-e-n-s-o-r_-m-a-n-a-g-e-r__-m-a-p-p-c-o-n-t-e-x-t-i-m-p-l.md) |  |
 | [INSTRUMENTATION_RECOMMEND_ACTIVITY](-i-n-s-t-r-u-m-e-n-t-a-t-i-o-n_-r-e-c-o-m-m-e-n-d_-a-c-t-i-v-i-t-y.md) |  |
 | [DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER](-d-e-v-i-c-e_-p-o-l-i-c-y_-m-a-n-a-g-e-r__-s-e-t-t-i-n-g-s_-o-b-s-e-r-v-e-r.md) |  |
+| [EXTENDED_STATUS_BAR_MANAGER](-e-x-t-e-n-d-e-d_-s-t-a-t-u-s_-b-a-r_-m-a-n-a-g-e-r.md) |  |
+| [OEM_SCENE_CALL_BLOCKER](-o-e-m_-s-c-e-n-e_-c-a-l-l_-b-l-o-c-k-e-r.md) |  |
 | [REFERENCES](-r-e-f-e-r-e-n-c-e-s.md) |  |
 | [FINALIZER_WATCHDOG_DAEMON](-f-i-n-a-l-i-z-e-r_-w-a-t-c-h-d-o-g_-d-a-e-m-o-n.md) |  |
 | [MAIN](-m-a-i-n.md) |  |
@@ -97,7 +104,9 @@ Most app developers should use [appDefaults](app-defaults.md). However, you can 
 | [MEIZU](-m-e-i-z-u.md) | `const val MEIZU: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [MOTOROLA](-m-o-t-o-r-o-l-a.md) | `const val MOTOROLA: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [NVIDIA](-n-v-i-d-i-a.md) | `const val NVIDIA: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [ONE_PLUS](-o-n-e_-p-l-u-s.md) | `const val ONE_PLUS: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [SAMSUNG](-s-a-m-s-u-n-g.md) | `const val SAMSUNG: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [SHARP](-s-h-a-r-p.md) | `const val SHARP: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [VIVO](-v-i-v-o.md) | `const val VIVO: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 
 ### Companion Object Functions
@@ -108,4 +117,5 @@ Most app developers should use [appDefaults](app-defaults.md). However, you can 
 | [ignoredInstanceField](ignored-instance-field.md) | `fun ignoredInstanceField(className: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, fieldName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): IgnoredReferenceMatcher`<br>Creates a [IgnoredReferenceMatcher](#) that matches a [InstanceFieldPattern](#). |
 | [ignoredJavaLocal](ignored-java-local.md) | `fun ignoredJavaLocal(threadName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): IgnoredReferenceMatcher`<br>Creates a [IgnoredReferenceMatcher](#) that matches a [JavaLocalPattern](#). |
 | [instanceFieldLeak](instance-field-leak.md) | `fun instanceFieldLeak(className: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, fieldName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)` = "", patternApplies: `[`AndroidBuildMirror`](../-android-build-mirror/index.md)`.() -> `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = ALWAYS): LibraryLeakReferenceMatcher`<br>Creates a [LibraryLeakReferenceMatcher](#) that matches a [InstanceFieldPattern](#). [description](instance-field-leak.md#shark.AndroidReferenceMatchers.Companion$instanceFieldLeak(kotlin.String, kotlin.String, kotlin.String, kotlin.Function1((shark.AndroidBuildMirror, kotlin.Boolean)))/description) should convey what we know about this library leak. |
+| [nativeGlobalVariableLeak](native-global-variable-leak.md) | `fun nativeGlobalVariableLeak(className: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)` = "", patternApplies: `[`AndroidBuildMirror`](../-android-build-mirror/index.md)`.() -> `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = ALWAYS): LibraryLeakReferenceMatcher` |
 | [staticFieldLeak](static-field-leak.md) | `fun staticFieldLeak(className: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, fieldName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)` = "", patternApplies: `[`AndroidBuildMirror`](../-android-build-mirror/index.md)`.() -> `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = ALWAYS): LibraryLeakReferenceMatcher`<br>Creates a [LibraryLeakReferenceMatcher](#) that matches a [StaticFieldPattern](#). [description](static-field-leak.md#shark.AndroidReferenceMatchers.Companion$staticFieldLeak(kotlin.String, kotlin.String, kotlin.String, kotlin.Function1((shark.AndroidBuildMirror, kotlin.Boolean)))/description) should convey what we know about this library leak. |

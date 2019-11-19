@@ -31,7 +31,7 @@ A few more things:
 
 The Shark Command Line Interface (CLI) enables you to analyze heaps directly from your computer. It can dump the heap of an app installed on a connected Android device, analyze it, and even strip a heap dump of any sensitive data (e.g. PII, passwords or encryption keys) which is useful when sharing a heap dump.
 
-Download it [here](https://github.com/square/leakcanary/releases/download/v2.0-beta-3/shark-cli-2.0-beta-3.zip)!
+Download it [here](https://github.com/square/leakcanary/releases/download/v2.0-beta-4/shark-cli-2.0-beta-4.zip)!
 
 Usage instructions:
 

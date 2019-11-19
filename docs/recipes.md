@@ -79,7 +79,7 @@ In your `build.gradle`:
 
 ```gradle
 dependencies {
-  implementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-3'
+  implementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-4'
 }
 ```
 
