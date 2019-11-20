@@ -211,7 +211,7 @@ For more details, see the [1.6.3 Milestone](https://github.com/square/leakcanary
 
 Many thanks to
 [@fractalwrench](https://github.com/fractalwrench),
-[@hzsweers](https://github.com/hzsweers),
+[@ZacSweers](https://github.com/ZacSweers),
 [@Goddchen](https://github.com/Goddchen),
 [@igokoro](https://github.com/igokoro),
 [@IlyaGulya](https://github.com/IlyaGulya),
