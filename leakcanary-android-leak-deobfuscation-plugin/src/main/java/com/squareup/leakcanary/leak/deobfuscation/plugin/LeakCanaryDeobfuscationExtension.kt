@@ -1,9 +1,7 @@
 package com.squareup.leakcanary.leak.deobfuscation.plugin
 
-open class LeakCanaryDeobfuscationExtension {
-  var obfuscatedVariantNames: Collection<String>? = null
+import com.android.build.gradle.api.BaseVariant
 
-  fun obfuscatedVariantNames(vararg names: String) {
-    obfuscatedVariantNames = names.toList()
-  }
+open class LeakCanaryDeobfuscationExtension {
+  var filterObfuscatedVariants: (BaseVariant) -> Boolean = { false }
 }

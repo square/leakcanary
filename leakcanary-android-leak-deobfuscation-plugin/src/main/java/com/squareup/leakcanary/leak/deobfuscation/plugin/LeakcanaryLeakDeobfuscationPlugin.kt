@@ -52,7 +52,7 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
     variant: BaseVariant,
     leakCanaryExtension: LeakCanaryDeobfuscationExtension
   ) {
-    if (leakCanaryExtension.obfuscatedVariantNames?.contains(variant.name) == true) {
+    if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
       val copyObfuscationMappingFileTaskProvider = project.tasks.register(
           "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
           CopyObfuscationMappingFileTask::class.java
