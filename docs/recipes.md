@@ -354,7 +354,9 @@ apply plugin: 'com.squareup.leakcanary.leak.deobfuscation.plugin'
 
 leakCanary {
   // LeakCanary needs to know which variants have obfuscation turned on
-  obfuscatedVariantNames 'debug'
+  filterObfuscatedVariants { variant ->
+    variant.name == "debug"
+  }
 }
 ```
 
