@@ -1,13 +1,16 @@
 package leakcanary.internal
 
 import android.app.Application
+import android.app.UiModeManager
 import android.content.ComponentName
+import android.content.Context.UI_MODE_SERVICE
 import android.content.Intent
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
 import android.content.pm.PackageManager.DONT_KILL_APP
 import android.content.pm.ShortcutInfo.Builder
 import android.content.pm.ShortcutManager
+import android.content.res.Configuration
 import android.graphics.drawable.Icon
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
@@ -21,6 +24,10 @@ import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.OnHeapAnalyzedListener
 import leakcanary.OnObjectRetainedListener
+import leakcanary.internal.InternalLeakCanary.FormFactor.INSTANT_APP
+import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
+import leakcanary.internal.InternalLeakCanary.FormFactor.TV
+import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
 import leakcanary.internal.activity.LeakActivity
 import shark.SharkLog
 import java.lang.reflect.InvocationHandler
@@ -249,6 +256,24 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     return Proxy.newProxyInstance(
         javaClass.classLoader, arrayOf(javaClass), noOpHandler
     ) as T
+  }
+
+  internal enum class FormFactor {
+    MOBILE,
+    TV,
+    WATCH,
+    INSTANT_APP,
+  }
+
+  val formFactor by lazy {
+    val currentModeType =
+      (application.getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType
+    return@lazy when {
+      VERSION.SDK_INT >= VERSION_CODES.O && application.packageManager.isInstantApp -> INSTANT_APP
+      currentModeType == Configuration.UI_MODE_TYPE_TELEVISION -> TV
+      currentModeType == Configuration.UI_MODE_TYPE_WATCH -> WATCH
+      else -> MOBILE
+    }
   }
 
   private const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"

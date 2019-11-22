@@ -6,6 +6,7 @@ import android.os.Looper
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.InternalLeakCanary
+import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.NotificationType.LEAKCANARY_MAX
 import leakcanary.internal.Notifications
 import leakcanary.internal.activity.LeakActivity
@@ -15,8 +16,6 @@ import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
 import leakcanary.internal.activity.screen.HeapDumpScreen
 import leakcanary.internal.activity.screen.HeapDumpsScreen
 import leakcanary.internal.navigation.Screen
-import leakcanary.internal.utils.FormFactor.TV
-import leakcanary.internal.utils.formFactor
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
@@ -49,7 +48,7 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
       }
     }
 
-    if (application.formFactor == TV) {
+    if (InternalLeakCanary.formFactor == TV) {
       showToast()
     } else {
       showNotification(screenToShow, contentTitle)

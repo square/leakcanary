@@ -24,8 +24,7 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.JELLY_BEAN
 import android.os.Build.VERSION_CODES.O
 import com.squareup.leakcanary.core.R
-import leakcanary.internal.utils.FormFactor.MOBILE
-import leakcanary.internal.utils.formFactor
+import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 
 internal object Notifications {
 
@@ -36,7 +35,7 @@ internal object Notifications {
   // See https://github.com/square/leakcanary/issues/1197
   // TV devices also can't do notifications
   private val canShowBackgroundNotifications =
-    InternalLeakCanary.application.formFactor == MOBILE
+    InternalLeakCanary.formFactor == MOBILE
 
   @Suppress("LongParameterList")
   fun showNotification(
