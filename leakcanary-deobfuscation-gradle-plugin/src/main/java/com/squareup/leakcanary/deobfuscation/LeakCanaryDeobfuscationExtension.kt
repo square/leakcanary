@@ -17,7 +17,8 @@ open class LeakCanaryDeobfuscationExtension {
    * ```
    * means that debug variant should be deobfuscated by LeakCanary when displaying leaks.
    *
-   * If it's not overriden then LeakCanary will use the value of [isMinifyEnabled()](https://static.javadoc.io/com.android.tools.build/builder/1.2.0/com/android/builder/core/DefaultBuildType.html#isMinifyEnabled())
+   * If it's not overriden then LeakCanary will
+   * use the value of [isMinifyEnabled()](http://tiny.cc/isMinifyEnabled)
    */
   var filterObfuscatedVariants: ((BaseVariant) -> Boolean)? = null
 }
