@@ -1,4 +1,4 @@
-package com.squareup.leakcanary.leak.deobfuscation.plugin
+package com.squareup.leakcanary.deobfuscation
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.CacheableTask

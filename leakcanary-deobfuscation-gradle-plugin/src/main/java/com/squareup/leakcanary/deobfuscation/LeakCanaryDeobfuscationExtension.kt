@@ -1,4 +1,4 @@
-package com.squareup.leakcanary.leak.deobfuscation.plugin
+package com.squareup.leakcanary.deobfuscation
 
 import com.android.build.gradle.api.BaseVariant
 
