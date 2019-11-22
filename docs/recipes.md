@@ -343,7 +343,7 @@ You have to add a plugin dependency in your root `build.gradle` file:
 
 ```groovy
 dependencies {
-  classpath 'com.squareup.leakcanary:leakcanary-android-leak-deobfuscation-plugin:${version}'
+  classpath 'com.squareup.leakcanary:leakcanary-deobfuscation-gradle-plugin:${version}'
 }
 ```
 
@@ -351,7 +351,7 @@ And then you need to apply and configure the plugin in your app (or library) spe
 
 ```groovy
 // LeakCanary plugin should be added below android application ('com.android.application') or android library ('com.android.library') plugin
-apply plugin: 'com.squareup.leakcanary.leak.deobfuscation.plugin'
+apply plugin: 'com.squareup.leakcanary.deobfuscation'
 
 leakCanary {
   // LeakCanary needs to know which variants have obfuscation turned on

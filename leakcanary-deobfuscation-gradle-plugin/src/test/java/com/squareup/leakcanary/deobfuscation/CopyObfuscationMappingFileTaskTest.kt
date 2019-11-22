@@ -1,4 +1,4 @@
-package com.squareup.leakcanary.leak.deobfuscation.plugin
+package com.squareup.leakcanary.deobfuscation
 
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testfixtures.ProjectBuilder

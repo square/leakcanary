@@ -1,4 +1,4 @@
-package com.squareup.leakcanary.leak.deobfuscation.plugin
+package com.squareup.leakcanary.deobfuscation
 
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.BaseExtension
@@ -63,11 +63,12 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
         "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
         CopyObfuscationMappingFileTask::class.java
     ) {
+      val mappingFile = variant.mappingFile ?: throw GradleException(
+          "This plugin can only be applied in modules with minification enabled."
+      )
       it.variantDirName = variant.dirName
-      it.mappingFile = variant.mappingFile
-      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get()
-          .outputDir.get()
-          .asFile
+      it.mappingFile = mappingFile
+      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
     }
 
     getPackageTaskProvider(variant).configure {
@@ -82,11 +83,9 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
         ) ?: findTaskProviderOrNull(
             project,
             "transformClassesAndResourcesWithProguardFor${variant.name.capitalize()}"
-        ) ?: throw GradleException(
-            "LeakCanary plugin should be applied only on variants which have minification enabled."
         )
 
-      copyProguardMappingFileTask.dependsOn(mappingGeneratingTaskProvider)
+      mappingGeneratingTaskProvider?.let { copyProguardMappingFileTask.dependsOn(it) }
     }
   }
 
