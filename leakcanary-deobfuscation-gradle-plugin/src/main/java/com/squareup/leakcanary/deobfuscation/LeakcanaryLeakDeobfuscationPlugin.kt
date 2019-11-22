@@ -14,6 +14,7 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.UnknownTaskException
 import org.gradle.api.tasks.TaskProvider
+import java.io.File
 
 class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
   override fun apply(project: Project) {
@@ -63,12 +64,10 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
         "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
         CopyObfuscationMappingFileTask::class.java
     ) {
-      val mappingFile = variant.mappingFile ?: throw GradleException(
-          "This plugin can only be applied in modules with minification enabled."
-      )
+      val empty = File("empty")
       it.variantDirName = variant.dirName
-      it.mappingFile = mappingFile
-      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
+      it.mappingFile = variant.mappingFile ?: empty
+      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile ?: empty
     }
 
     getPackageTaskProvider(variant).configure {
