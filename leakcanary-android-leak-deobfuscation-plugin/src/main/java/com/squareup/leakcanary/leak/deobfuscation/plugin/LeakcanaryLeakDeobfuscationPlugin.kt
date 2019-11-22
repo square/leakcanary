@@ -1,11 +1,13 @@
 package com.squareup.leakcanary.leak.deobfuscation.plugin
 
 import com.android.build.gradle.AppExtension
+import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.api.BaseVariant
 import com.android.build.gradle.api.LibraryVariant
 import org.gradle.api.DefaultTask
+import org.gradle.api.DomainObjectSet
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -15,55 +17,64 @@ import org.gradle.api.tasks.TaskProvider
 
 class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
   override fun apply(project: Project) {
-    val leakCanaryExtension =
-      project.extensions.create("leakCanary", LeakCanaryDeobfuscationExtension::class.java)
-
-    val androidAppPluginHandler = { _: Plugin<*> ->
-      val appExtension = project.extensions.getByType(AppExtension::class.java)
-      appExtension.applicationVariants.all { variant ->
-        setupPlugin(project, variant, leakCanaryExtension)
+    val androidPluginHandler = { _: Plugin<*> ->
+      val extension = project.extensions.getByType(BaseExtension::class.java)
+      val variants: DomainObjectSet<BaseVariant> = when (extension) {
+        is AppExtension -> {
+          extension.applicationVariants as DomainObjectSet<BaseVariant>
+        }
+        is LibraryExtension -> {
+          extension.libraryVariants as DomainObjectSet<BaseVariant>
+        }
+        else -> throw GradleException(
+            "This plugin can only be applied in Android application or library modules."
+        )
       }
-    }
+      val leakCanaryExtension = project.extensions.create(
+          "leakCanary",
+          LeakCanaryDeobfuscationExtension::class.java
+      )
 
-    val androidLibraryPluginHandler = { _: Plugin<*> ->
-      val libraryExtension = project.extensions.getByType(LibraryExtension::class.java)
-      libraryExtension.libraryVariants.all { variant ->
-        setupPlugin(project, variant, leakCanaryExtension)
+      variants.all { variant ->
+        val obfuscatedVariant =
+          leakCanaryExtension.filterObfuscatedVariants?.invoke(variant) ?: false
+        if (obfuscatedVariant || variant.buildType.isMinifyEnabled) {
+          setupPlugin(project, variant)
+        }
       }
     }
 
     when {
-      project.plugins.hasPlugin("com.android.application") -> {
-        project.plugins.withId("com.android.application", androidAppPluginHandler)
-      }
-      project.plugins.hasPlugin("com.android.library") -> {
-        project.plugins.withId("com.android.library", androidLibraryPluginHandler)
-      }
-      else -> {
-        throw GradleException(
-            "This plugin can only be applied in Android application or library modules."
-        )
-      }
+      project.plugins.hasPlugin("com.android.application") ->
+        project.plugins.withId("com.android.application", androidPluginHandler)
+      project.plugins.hasPlugin("com.android.library") ->
+        project.plugins.withId("com.android.library", androidPluginHandler)
+      else -> throw GradleException(
+          "This plugin can only be applied in Android application or library modules."
+      )
     }
   }
 
   private fun setupPlugin(
     project: Project,
-    variant: BaseVariant,
-    leakCanaryExtension: LeakCanaryDeobfuscationExtension
+    variant: BaseVariant
   ) {
-    if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
-      val copyObfuscationMappingFileTaskProvider = project.tasks.register(
-          "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
-          CopyObfuscationMappingFileTask::class.java
-      ) {
-        it.variantDirName = variant.dirName
-        it.mappingFile = variant.mappingFile
-        it.mergeAssetsDirectory = variant.mergeAssetsProvider.get()
-            .outputDir.get()
-            .asFile
-      }
+    val copyObfuscationMappingFileTaskProvider = project.tasks.register(
+        "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
+        CopyObfuscationMappingFileTask::class.java
+    ) {
+      it.variantDirName = variant.dirName
+      it.mappingFile = variant.mappingFile
+      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get()
+          .outputDir.get()
+          .asFile
+    }
 
+    getPackageTaskProvider(variant).configure {
+      it.dependsOn(copyObfuscationMappingFileTaskProvider)
+    }
+
+    copyObfuscationMappingFileTaskProvider.configure { copyProguardMappingFileTask ->
       val mappingGeneratingTaskProvider =
         findTaskProviderOrNull(
             project,
@@ -71,14 +82,11 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
         ) ?: findTaskProviderOrNull(
             project,
             "transformClassesAndResourcesWithProguardFor${variant.name.capitalize()}"
+        ) ?: throw GradleException(
+            "LeakCanary plugin should be applied only on variants which have minification enabled."
         )
 
-      getPackageTaskProvider(variant)?.configure {
-        it.dependsOn(copyObfuscationMappingFileTaskProvider)
-      }
-      copyObfuscationMappingFileTaskProvider.configure { copyProguardMappingFileTask ->
-        mappingGeneratingTaskProvider?.let { copyProguardMappingFileTask.dependsOn(it) }
-      }
+      copyProguardMappingFileTask.dependsOn(mappingGeneratingTaskProvider)
     }
   }
 
@@ -93,17 +101,13 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
     }
   }
 
-  private fun getPackageTaskProvider(variant: BaseVariant): TaskProvider<out DefaultTask>? {
+  private fun getPackageTaskProvider(variant: BaseVariant): TaskProvider<out DefaultTask> {
     return when (variant) {
-      is LibraryVariant -> {
-        variant.packageLibraryProvider
-      }
-      is ApplicationVariant -> {
-        variant.packageApplicationProvider
-      }
-      else -> {
-        null
-      }
+      is LibraryVariant -> variant.packageLibraryProvider
+      is ApplicationVariant -> variant.packageApplicationProvider
+      else -> throw GradleException(
+          "This plugin can only be applied in Android application or library modules."
+      )
     }
   }
 }

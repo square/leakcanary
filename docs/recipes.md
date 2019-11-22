@@ -350,6 +350,7 @@ dependencies {
 And then you need to apply and configure the plugin in your app (or library) specific `build.gradle` file:
 
 ```groovy
+// LeakCanary plugin should be added below android application ('com.android.application') or android library ('com.android.library') plugin
 apply plugin: 'com.squareup.leakcanary.leak.deobfuscation.plugin'
 
 leakCanary {

@@ -7,6 +7,7 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 
@@ -17,11 +18,12 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   var variantDirName: String? = null
 
   @Input
-  @Optional
+  @SkipWhenEmpty
   @PathSensitive(PathSensitivity.RELATIVE)
   var mappingFile: File? = null
 
   @Input
+  @SkipWhenEmpty
   @PathSensitive(PathSensitivity.RELATIVE)
   var mergeAssetsDirectory: File? = null
 
