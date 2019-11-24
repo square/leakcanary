@@ -35,8 +35,12 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @TaskAction
   fun copyObfuscationMappingFile() {
-    if (!mappingFile.exists()) {
+    if (!::mappingFile.isInitialized || !mappingFile.exists()) {
       throw GradleException("Missing obfuscation mapping file.")
+    }
+
+    if (!::mergeAssetsDirectory.isInitialized) {
+      throw GradleException("Missing merge assets directory.")
     }
 
     if (!mergeAssetsDirectory.exists()) {
