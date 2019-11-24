@@ -1,6 +1,8 @@
 package com.squareup.leakcanary.deobfuscation
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatExceptionOfType
+import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Rule
 import org.junit.Test
@@ -23,28 +25,25 @@ class CopyObfuscationMappingFileTaskTest {
         )
 
   @Test
-  fun `non existing mapping not copied if merge assets dir is not specified`() {
-    task.copyObfuscationMappingFile()
-
-    assertThat(task.leakCanaryAssetsOutputFile.exists()).isFalse()
+  fun `should throw if mapping file and merge assets dir are not specified`() {
+    assertThatExceptionOfType(GradleException::class.java)
+        .isThrownBy { task.copyObfuscationMappingFile() }
   }
 
   @Test
-  fun `non existing mapping not copied if merge assets dir is specified`() {
+  fun `should throw if mapping file is not specified`() {
     task.mergeAssetsDirectory = tempFolder.newFolder("mergeAssetsDir")
 
-    task.copyObfuscationMappingFile()
-
-    assertThat(task.leakCanaryAssetsOutputFile.exists()).isFalse()
+    assertThatExceptionOfType(GradleException::class.java)
+        .isThrownBy { task.copyObfuscationMappingFile() }
   }
 
   @Test
-  fun `existing mapping not copied if merge assets dir is not specified`() {
+  fun `should throw if merge assets dir is not specified`() {
     task.mappingFile = tempFolder.newFile("mapping.txt")
 
-    task.copyObfuscationMappingFile()
-
-    assertThat(task.leakCanaryAssetsOutputFile.exists()).isFalse()
+    assertThatExceptionOfType(GradleException::class.java)
+        .isThrownBy { task.copyObfuscationMappingFile() }
   }
 
   @Test
