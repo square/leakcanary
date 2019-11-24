@@ -1,6 +1,7 @@
 package com.squareup.leakcanary.deobfuscation
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
@@ -14,17 +15,14 @@ import java.io.File
 open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @Input
-  var variantDirName: String? = null
+  @SkipWhenEmpty
+  @PathSensitive(PathSensitivity.RELATIVE)
+  lateinit var mappingFile: File
 
   @Input
   @SkipWhenEmpty
   @PathSensitive(PathSensitivity.RELATIVE)
-  var mappingFile: File? = null
-
-  @Input
-  @SkipWhenEmpty
-  @PathSensitive(PathSensitivity.RELATIVE)
-  var mergeAssetsDirectory: File? = null
+  lateinit var mergeAssetsDirectory: File
 
   @get:OutputFile
   @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -37,18 +35,18 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @TaskAction
   fun copyObfuscationMappingFile() {
-    mappingFile?.let { mappingFile ->
-      if (mappingFile.exists()) {
-        if (leakCanaryAssetsOutputFile.exists()) {
-          leakCanaryAssetsOutputFile.delete()
-        }
-        mergeAssetsDirectory?.let { dir ->
-          if (!dir.exists()) {
-            dir.mkdirs()
-          }
-          mappingFile.copyTo(leakCanaryAssetsOutputFile)
-        }
-      }
+    if (!mappingFile.exists()) {
+      throw GradleException("Missing obfuscation mapping file.")
     }
+
+    if (!mergeAssetsDirectory.exists()) {
+      mergeAssetsDirectory.mkdirs()
+    }
+
+    if (leakCanaryAssetsOutputFile.exists()) {
+      leakCanaryAssetsOutputFile.delete()
+    }
+
+    mappingFile.copyTo(leakCanaryAssetsOutputFile)
   }
 }
