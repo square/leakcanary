@@ -8,8 +8,8 @@ import com.android.build.gradle.api.BaseVariant
 open class LeakCanaryDeobfuscationExtension {
 
   /**
-   * Variant filtering function. It should be overriden to tell LeakCanary which obfuscated
-   * variants should be deobfuscated. For example this:
+   * Variant filtering function. It should be overriden to tell LeakCanary for which obfuscated
+   * variants it should copy the mapping file into apk. For example this:
    * ```
    * filterObfuscatedVariants { variant ->
    *   variant.name == "debug"
@@ -17,8 +17,7 @@ open class LeakCanaryDeobfuscationExtension {
    * ```
    * means that debug variant should be deobfuscated by LeakCanary when displaying leaks.
    *
-   * If it's not overriden then LeakCanary will
-   * use the value of [isMinifyEnabled()](http://tiny.cc/isMinifyEnabled)
+   * Default value is *false* so no variant will have the obfuscation mapping file copied.
    */
-  var filterObfuscatedVariants: ((BaseVariant) -> Boolean)? = null
+  var filterObfuscatedVariants: (BaseVariant) -> Boolean = { false }
 }

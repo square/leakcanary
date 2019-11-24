@@ -13,50 +13,35 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.UnknownTaskException
+import org.gradle.api.logging.LogLevel.DEBUG
 import org.gradle.api.tasks.TaskProvider
 import java.io.File
 
 class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
+
   override fun apply(project: Project) {
-    val androidPluginHandler = { _: Plugin<*> ->
-      val extension = project.extensions.getByType(BaseExtension::class.java)
-      val variants: DomainObjectSet<BaseVariant> = when (extension) {
-        is AppExtension -> {
-          extension.applicationVariants as DomainObjectSet<BaseVariant>
-        }
-        is LibraryExtension -> {
-          extension.libraryVariants as DomainObjectSet<BaseVariant>
-        }
-        else -> throw GradleException(
-            "This plugin can only be applied in Android application or library modules."
-        )
+    val variants = findAndroidVariants(project)
+    val leakCanaryExtension = createLeakCanaryExtension(project)
+    variants.all { variant ->
+      if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
+        setupTasks(project, variant)
       }
-      val leakCanaryExtension = project.extensions.create(
-          "leakCanary",
-          LeakCanaryDeobfuscationExtension::class.java
-      )
-
-      variants.all { variant ->
-        val obfuscatedVariant =
-          leakCanaryExtension.filterObfuscatedVariants?.invoke(variant) ?: false
-        if (obfuscatedVariant || variant.buildType.isMinifyEnabled) {
-          setupPlugin(project, variant)
-        }
-      }
-    }
-
-    when {
-      project.plugins.hasPlugin("com.android.application") ->
-        project.plugins.withId("com.android.application", androidPluginHandler)
-      project.plugins.hasPlugin("com.android.library") ->
-        project.plugins.withId("com.android.library", androidPluginHandler)
-      else -> throw GradleException(
-          "This plugin can only be applied in Android application or library modules."
-      )
     }
   }
 
-  private fun setupPlugin(
+  private fun findAndroidVariants(project: Project): DomainObjectSet<BaseVariant> {
+    return when (val extension = project.extensions.getByType(BaseExtension::class.java)) {
+      is AppExtension -> extension.applicationVariants as DomainObjectSet<BaseVariant>
+      is LibraryExtension -> extension.libraryVariants as DomainObjectSet<BaseVariant>
+      else -> throwNoAndroidPluginException()
+    }
+  }
+
+  private fun createLeakCanaryExtension(project: Project): LeakCanaryDeobfuscationExtension {
+    return project.extensions.create("leakCanary", LeakCanaryDeobfuscationExtension::class.java)
+  }
+
+  private fun setupTasks(
     project: Project,
     variant: BaseVariant
   ) {
@@ -64,17 +49,9 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
         "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
         CopyObfuscationMappingFileTask::class.java
     ) {
-      val empty = File("empty")
-      it.variantDirName = variant.dirName
-      it.mappingFile = variant.mappingFile ?: empty
-      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile ?: empty
-    }
+      it.mappingFile = getMappingFile(project, variant)
+      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
 
-    getPackageTaskProvider(variant).configure {
-      it.dependsOn(copyObfuscationMappingFileTaskProvider)
-    }
-
-    copyObfuscationMappingFileTaskProvider.configure { copyProguardMappingFileTask ->
       val mappingGeneratingTaskProvider =
         findTaskProviderOrNull(
             project,
@@ -82,10 +59,21 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
         ) ?: findTaskProviderOrNull(
             project,
             "transformClassesAndResourcesWithProguardFor${variant.name.capitalize()}"
-        )
+        ) ?: throwMissingMinifiedVariantException(project)
 
-      mappingGeneratingTaskProvider?.let { copyProguardMappingFileTask.dependsOn(it) }
+      it.dependsOn(mappingGeneratingTaskProvider)
     }
+
+    getPackageTaskProvider(variant).configure {
+      it.dependsOn(copyObfuscationMappingFileTaskProvider)
+    }
+  }
+
+  private fun getMappingFile(
+    project: Project,
+    variant: BaseVariant
+  ): File {
+    return variant.mappingFile ?: throwMissingMappingFileForVariantException(project, variant.name)
   }
 
   private fun findTaskProviderOrNull(
@@ -103,9 +91,38 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
     return when (variant) {
       is LibraryVariant -> variant.packageLibraryProvider
       is ApplicationVariant -> variant.packageApplicationProvider
-      else -> throw GradleException(
-          "This plugin can only be applied in Android application or library modules."
-      )
+      else -> throwNoAndroidPluginException()
     }
+  }
+
+  private fun throwNoAndroidPluginException(): Nothing {
+    throw GradleException(
+        "LeakCanary deobfuscation plugin can be used only in Android application or library module."
+    )
+  }
+
+  private fun throwMissingMinifiedVariantException(project: Project): Nothing {
+    project.logger.log(
+        DEBUG,
+        """
+          None of the project's variants seem to have minification enabled. 
+          Please make sure that there is at least 1 minified variant in your project.    
+        """.trimIndent()
+    )
+    throwNoAndroidPluginException()
+  }
+
+  private fun throwMissingMappingFileForVariantException(
+    project: Project,
+    variantName: String
+  ): Nothing {
+    project.logger.log(
+        DEBUG,
+        """
+          Missing obfuscation mapping file for $variantName variant.
+          Make sure you used correct variant name in Leak Canary plugin configuration block.
+        """.trimIndent()
+    )
+    throwNoAndroidPluginException()
   }
 }
