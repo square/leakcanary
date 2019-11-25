@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-Read this first: https://github.com/square/leakcanary#can-a-leak-be-caused-by-the-android-sdk
+Read this first: https://square.github.io/leakcanary/faq/#can-a-leak-be-caused-by-the-android-sdk
 
 ### LeakTrace information
 
