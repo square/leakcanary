@@ -11,6 +11,9 @@ dependencies {
 
 **That's it, there is no code change needed!** LeakCanary will automatically show a notification when a memory leak is detected in debug builds.
 
+!!! info
+    To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
+
 What's next?
 
 * Learn the [Fundamentals](fundamentals.md)
