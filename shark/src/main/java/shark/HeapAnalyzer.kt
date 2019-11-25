@@ -42,7 +42,7 @@ import shark.OnAnalysisProgressListener.Step.BUILDING_LEAK_TRACES
 import shark.OnAnalysisProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.EXTRACTING_METADATA
-import shark.OnAnalysisProgressListener.Step.FINDING_LEAKING_INSTANCES
+import shark.OnAnalysisProgressListener.Step.FINDING_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
 import shark.internal.PathFinder
@@ -126,17 +126,22 @@ class HeapAnalyzer constructor(
   }
 
   private fun FindLeakInput.findLeaks(): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
-    val leakingInstanceObjectIds = findLeakingObjects()
+    val leakingInstanceObjectIds = findRetainedObjects()
 
     val pathFinder = PathFinder(graph, listener, referenceMatchers)
     val pathFindingResults =
       pathFinder.findPathsFromGcRoots(leakingInstanceObjectIds, computeRetainedHeapSize)
 
+    SharkLog.d {
+      "Found ${leakingInstanceObjectIds.size} retained objects" +
+          " and ${pathFindingResults.pathsToLeakingObjects.size} paths."
+    }
+
     return buildLeakTraces(pathFindingResults)
   }
 
-  private fun FindLeakInput.findLeakingObjects(): Set<Long> {
-    listener.onAnalysisProgress(FINDING_LEAKING_INSTANCES)
+  private fun FindLeakInput.findRetainedObjects(): Set<Long> {
+    listener.onAnalysisProgress(FINDING_RETAINED_OBJECTS)
     return graph.objects
         .filter { objectRecord ->
           val reporter = ObjectReporter(objectRecord)
