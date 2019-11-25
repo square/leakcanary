@@ -5,6 +5,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.GcRoot.JniGlobal
 import shark.GcRoot.ThreadObject
 import shark.LeakTraceElement.Type.LOCAL
 import shark.LeakTraceElement.Type.STATIC_FIELD
@@ -146,4 +147,12 @@ class HeapAnalyzerTest {
     assertThat(leak.leakTrace.elements[1].className).isEqualTo("Leaking")
   }
 
+  @Test fun nativeGlobalVariableApplicationLeak() {
+    hprofFile.dump {
+      gcRoot(JniGlobal(id = "Leaking".watchedInstance {}.value, jniGlobalRefId = 42))
+    }
+
+    val leaks = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+    assertThat(leaks.applicationLeaks).hasSize(1)
+  }
 }
