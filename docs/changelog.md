@@ -1,10 +1,24 @@
 # Change Log
 
-## Version 2.0 Beta 4 (2019-11-18)
+## Version 2.0 Beta 5 (2019-11-25)
 
 LeakCanary 2 is in **beta**: the internals and APIs are mostly stable.
 
-Now is a great time to adopt it and provide feedback before the stable release. We're counting on you to find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/). 
+Now is a great time to adopt it and provide feedback before the stable release. We're counting on you to find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/).
+
+* Major bugfix: native gc roots were accidentally ignored in Beta 4 [#1634](https://github.com/square/leakcanary/issues/1634), as a result some leaks were not found.
+* Fixed Lint warning (`leak_canary_about_message` string triggered *multiple substitutions* warning) [#1630](https://github.com/square/leakcanary/issues/1630)
+
+Many thanks to
+[@DanEdgarTarget](https://github.com/DanEdgarTarget),
+[@msfjarvis](https://github.com/msfjarvis),
+[@PaulWoitaschek](https://github.com/pyricau),
+[@pyricau](https://github.com/pyricau),
+[@ZacSweers](https://github.com/ZacSweers)
+
+For more details, see the [2.0-beta-5 Milestone](https://github.com/square/leakcanary/milestone/13) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-beta-4...v2.0-beta-5).
+
+## Version 2.0 Beta 4 (2019-11-18)
 
 * Improved string rendering for heap analysis results
 * UX redesign [#1445](https://github.com/square/leakcanary/issues/1445)
