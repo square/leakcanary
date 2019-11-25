@@ -294,10 +294,11 @@ internal class PathFinder(
             is HeapPrimitiveArray -> jniGlobalReferenceMatchers[objectRecord.arrayClassName]
           }
           if (referenceMatcher !is IgnoredReferenceMatcher) {
-            if (referenceMatcher is LibraryLeakReferenceMatcher)
+            if (referenceMatcher is LibraryLeakReferenceMatcher) {
               enqueue(LibraryLeakRootNode(gcRoot.id, gcRoot, referenceMatcher))
-          } else {
-            enqueue(NormalRootNode(gcRoot.id, gcRoot))
+            } else {
+              enqueue(NormalRootNode(gcRoot.id, gcRoot))
+            }
           }
         }
         else -> enqueue(NormalRootNode(gcRoot.id, gcRoot))
