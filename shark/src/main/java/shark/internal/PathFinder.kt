@@ -34,14 +34,13 @@ import shark.LeakTraceElement.Type.STATIC_FIELD
 import shark.LibraryLeakReferenceMatcher
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
-import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_LEAKING_OBJECTS
+import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.PrimitiveType.INT
 import shark.ReferenceMatcher
 import shark.ReferencePattern
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
-import shark.SharkLog
 import shark.ValueHolder
 import shark.internal.ReferencePathNode.ChildNode.LibraryLeakChildNode
 import shark.internal.ReferencePathNode.ChildNode.NormalNode
@@ -162,7 +161,7 @@ internal class PathFinder(
     leakingObjectIds: Set<Long>,
     computeRetainedHeapSize: Boolean
   ): PathFindingResults {
-    listener.onAnalysisProgress(FINDING_PATHS_TO_LEAKING_OBJECTS)
+    listener.onAnalysisProgress(FINDING_PATHS_TO_RETAINED_OBJECTS)
 
     val sizeOfObjectInstances = determineSizeOfObjectInstances(graph)
 

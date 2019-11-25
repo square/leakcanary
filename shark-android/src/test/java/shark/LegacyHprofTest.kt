@@ -5,6 +5,7 @@ import org.junit.Test
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.DESTROYED
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_ACTIVITY
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_DESTROYED
+import shark.SharkLog.Logger
 import java.io.File
 
 class LegacyHprofTest {
@@ -125,6 +126,20 @@ class LegacyHprofTest {
   }
 
   private fun analyzeHprof(hprofFile: File): HeapAnalysisSuccess {
+    SharkLog.logger = object : Logger {
+      override fun d(message: String) {
+        println(message)
+      }
+
+      override fun d(
+        throwable: Throwable,
+        message: String
+      ) {
+        println(message)
+        throwable.printStackTrace()
+      }
+
+    }
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = heapAnalyzer.analyze(
         heapDumpFile = hprofFile,

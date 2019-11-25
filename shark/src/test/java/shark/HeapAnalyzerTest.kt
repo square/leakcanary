@@ -93,7 +93,6 @@ class HeapAnalyzerTest {
     val leaks = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
     assertThat(leaks.applicationLeaks).hasSize(5)
-        .hasOnlyElementsOfType(Leak::class.java)
   }
 
   @Test fun localVariableLeak() {
