@@ -6,7 +6,7 @@ LeakCanary 2 is in **beta**: the internals and APIs are mostly stable.
 
 Now is a great time to adopt it and provide feedback before the stable release. We're counting on you to find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/).
 
-* Major bugfix: native gc roots were accidentally ignored in Beta 4 [#1634](https://github.com/square/leakcanary/issues/1634), as a result some leaks were not found.
+* Major bugfix: native gc roots were accidentally ignored in Beta 4, as a result some leaks were not found [#1634](https://github.com/square/leakcanary/issues/1634)
 * Fixed Lint warning (`leak_canary_about_message` string triggered *multiple substitutions* warning) [#1630](https://github.com/square/leakcanary/issues/1630)
 
 Many thanks to
