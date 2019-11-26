@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Square, Inc.
+ * Copyright (C) 2019 Square, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,26 +50,22 @@ internal object FragmentDestroyWatcher {
       )
     }
 
-    if (classAvailable(ANDROIDX_FRAGMENT_CLASS_NAME) &&
-        classAvailable(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
-    ) {
-      val watcherConstructor = Class.forName(ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
-          .getDeclaredConstructor(ObjectWatcher::class.java, Function0::class.java)
-      @kotlin.Suppress("UNCHECKED_CAST")
-      fragmentDestroyWatchers.add(
-          watcherConstructor.newInstance(objectWatcher, configProvider) as (Activity) -> Unit
-      )
+    getWatcherIfAvailable(
+        ANDROIDX_FRAGMENT_CLASS_NAME,
+        ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME,
+        objectWatcher,
+        configProvider
+    )?.let {
+      fragmentDestroyWatchers.add(it)
     }
 
-    if (classAvailable(ANDROID_SUPPORT_FRAGMENT_CLASS_NAME) &&
-        classAvailable(ANDROID_SUPPORT_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
-    ) {
-      val watcherConstructor = Class.forName(ANDROID_SUPPORT_FRAGMENT_DESTROY_WATCHER_CLASS_NAME)
-          .getDeclaredConstructor(ObjectWatcher::class.java, Function0::class.java)
-      @kotlin.Suppress("UNCHECKED_CAST")
-      fragmentDestroyWatchers.add(
-          watcherConstructor.newInstance(objectWatcher, configProvider) as (Activity) -> Unit
-      )
+    getWatcherIfAvailable(
+        ANDROID_SUPPORT_FRAGMENT_CLASS_NAME,
+        ANDROID_SUPPORT_FRAGMENT_DESTROY_WATCHER_CLASS_NAME,
+        objectWatcher,
+        configProvider
+    )?.let {
+      fragmentDestroyWatchers.add(it)
     }
 
     if (fragmentDestroyWatchers.size == 0) {
@@ -86,6 +82,26 @@ internal object FragmentDestroyWatcher {
         }
       }
     })
+  }
+
+  private fun getWatcherIfAvailable(
+    fragmentClassName: String,
+    watcherClassName: String,
+    objectWatcher: ObjectWatcher,
+    configProvider: () -> AppWatcher.Config
+  ): ((Activity) -> Unit)? {
+
+    return if (classAvailable(fragmentClassName) &&
+            classAvailable(watcherClassName)
+    ) {
+      val watcherConstructor = Class.forName(watcherClassName)
+              .getDeclaredConstructor(ObjectWatcher::class.java, Function0::class.java)
+      @Suppress("UNCHECKED_CAST")
+      watcherConstructor.newInstance(objectWatcher, configProvider) as (Activity) -> Unit
+
+    } else {
+      null
+    }
   }
 
   private fun classAvailable(className: String): Boolean {
