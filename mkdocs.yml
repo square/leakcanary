@@ -2,6 +2,11 @@
 # mkdocs serve
 # mkdocs gh-deploy
 
+extra:
+  leak_canary:
+    release: '2.0-beta-5'
+    next_release: '2.0-beta-6'
+
 site_name: LeakCanary
 repo_name: LeakCanary
 repo_url: https://github.com/square/leakcanary
@@ -10,6 +15,7 @@ site_author: Square, Inc.
 remote_branch: gh-pages
 
 copyright: 'Copyright &copy; 2015 Square, Inc.'
+
 
 theme:
   name: 'material'
@@ -40,6 +46,10 @@ markdown_extensions:
   - pymdownx.emoji
   - tables
   - admonition
+
+plugins:
+    - search
+    - markdownextradata: {}
 
 nav:
   - 'Overview': index.md

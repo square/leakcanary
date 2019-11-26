@@ -45,20 +45,20 @@ On Android, content providers are created after the Application instance is crea
 Update your dependencies to the latest SNAPSHOT (see [build.gradle](https://github.com/square/leakcanary/blob/master/build.gradle)):
 
 ```gradle
- dependencies {
-   debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0-beta-6-SNAPSHOT'
- }
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:{{ leak_canary.next_release }}-SNAPSHOT'
+}
 ```
 
 Add Sonatype's `snapshots` repository:
 
-```
-  repositories {
-    mavenCentral()
-    maven {
-      url 'https://oss.sonatype.org/content/repositories/snapshots/'
-    }
+```gradle
+repositories {
+  mavenCentral()
+  maven {
+    url 'https://oss.sonatype.org/content/repositories/snapshots/'
   }
+}
 ```
 
 Status of the snapshot build: [![Build Status](https://travis-ci.org/square/leakcanary.svg?branch=master)](https://travis-ci.org/square/leakcanary)
