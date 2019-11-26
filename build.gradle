@@ -24,6 +24,7 @@ buildscript {
               runner  : 'androidx.test:runner:1.1.0',
           ],
       ],
+      android_support: 'com.android.support:support-v4:28.0.0',
       junit         : 'junit:junit:4.12',
       kotlin        : [
           gradlePlugin: "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}",
@@ -42,7 +43,7 @@ buildscript {
   }
   dependencies {
     classpath deps.kotlin.gradlePlugin
-    classpath 'com.android.tools.build:gradle:3.5.0'
+    classpath 'com.android.tools.build:gradle:3.5.2'
     classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.16'
     classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
     classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
