@@ -1,8 +1,21 @@
 # Change Log
 
-## Version 2.0 Beta 5 (2019-11-25)
+## Version 2.0 (2019-11-27)
 
-LeakCanary 2 is in **beta**: the internals and APIs are mostly stable.
+* Shark CLI supports multiple connected devices [#1642](https://github.com/square/leakcanary/issues/1642)
+* Fixed missing sources from Maven Central [#1643](https://github.com/square/leakcanary/issues/1643)
+* Updated notification icon to avoid confusion with Twitter DM notifications, and added icons to bottom navigation bar [#1648](https://github.com/square/leakcanary/pull/1648)
+* Automatic leak detection for support library fragments [#1611](https://github.com/square/leakcanary/pull/1611)
+
+Many thanks to
+[@AndreasBoehm](https://github.com/AndreasBoehm),
+[@jrodbx](https://github.com/jrodbx),
+[@pyricau](https://github.com/pyricau)
+for the contributions, bug reports and feature requests.
+
+For more details, see the [2.0 Milestone](https://github.com/square/leakcanary/milestone/14) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-beta-5...v2.0).
+
+## Version 2.0 Beta 5 (2019-11-25)
 
 Now is a great time to adopt it and provide feedback before the stable release. We're counting on you to find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/).
 
@@ -15,6 +28,7 @@ Many thanks to
 [@PaulWoitaschek](https://github.com/pyricau),
 [@pyricau](https://github.com/pyricau),
 [@ZacSweers](https://github.com/ZacSweers)
+for the contributions, bug reports and feature requests.
 
 For more details, see the [2.0-beta-5 Milestone](https://github.com/square/leakcanary/milestone/13) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-beta-4...v2.0-beta-5).
 
