@@ -5,46 +5,73 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit.SECONDS
+import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
   SharkLog.logger = CLILogger()
-  when (args.size) {
-    2 -> {
-      when (args[0]) {
-        "analyze-process" -> {
-          val heapDumpFile = dumpHeap(args[1])
-          analyze(heapDumpFile)
-        }
-        "dump-process" -> dumpHeap(args[1])
-        "analyze-hprof" -> analyze(File(args[1]))
-        "strip-hprof" -> stripHprof(File(args[1]))
-        else -> printHelp()
-      }
-    }
-    4 -> {
-      val heapFile = when (args[0]) {
-        "analyze-process" -> {
-          dumpHeap(args[1])
-        }
-        "analyze-hprof" -> {
-          File(args[1])
-        }
-        else -> {
-          printHelp()
-          null
-        }
-      }
-
-      val mappingFile = if (args[2] == "-proguard-mapping") File(args[3]) else null
-
-      if (heapFile != null && mappingFile != null) {
-        analyze(heapFile, mappingFile)
-      } else {
-        printHelp()
-      }
-    }
-    else -> printHelp()
+  if (args.isEmpty()) {
+    printHelp()
+    return
   }
+
+  var argIndex = -1
+
+  when (val command = args[++argIndex]) {
+    "dump-process" -> {
+      val packageName = args[++argIndex]
+      argIndex++
+      val remainderArgs = args.drop(argIndex)
+      val deviceId = readDeviceIdFromArgs(remainderArgs)
+      dumpHeap(packageName, deviceId)
+    }
+    "analyze-process" -> {
+      val packageName = args[++argIndex]
+      argIndex++
+      val remainderArgs = args.drop(argIndex)
+      val deviceId = readDeviceIdFromArgs(remainderArgs)
+      val heapDumpFile = dumpHeap(packageName, deviceId)
+      val mappingFile = readMappingFileFromArgs(remainderArgs)
+      analyze(heapDumpFile, mappingFile)
+    }
+    "analyze-hprof" -> {
+      val hprofPath = args[++argIndex]
+      argIndex++
+      val remainderArgs = args.asList()
+          .subList(argIndex, args.size)
+      val mappingFile = readMappingFileFromArgs(remainderArgs)
+      analyze(File(hprofPath), mappingFile)
+    }
+    "strip-hprof" -> {
+      val hprofPath = args[++argIndex]
+      stripHprof(File(hprofPath))
+    }
+    else -> {
+      SharkLog.d {
+        "Error: unknown command [$command]"
+      }
+      printHelp()
+    }
+  }
+}
+
+private fun readMappingFileFromArgs(args: List<String>): File? {
+  val tagIndex = args.indexOfFirst {
+    it == "-p" || it == "--proguard-mapping"
+  }
+  if (tagIndex == -1 || tagIndex == args.lastIndex) {
+    return null
+  }
+  return File(args[tagIndex + 1])
+}
+
+private fun readDeviceIdFromArgs(args: List<String>): String? {
+  val tagIndex = args.indexOfFirst {
+    it == "-d" || it == "--device"
+  }
+  if (tagIndex == -1 || tagIndex == args.lastIndex) {
+    return null
+  }
+  return args[tagIndex + 1]
 }
 
 fun printHelp() {
@@ -71,14 +98,16 @@ fun printHelp() {
 
     analyze-process: Dumps the heap for the provided process name, pulls the hprof file and analyzes it.
       USAGE: analyze-process PROCESS_PACKAGE_NAME
-             (optional) -proguard-mapping PROGUARD_MAPPING_FILE_PATH
+               [-d ID, --device ID]                optional device/emulator id
+               [-p PATH, --proguard-mapping PATH]  optional path to Proguard mapping file
 
     dump-process: Dumps the heap for the provided process name and pulls the hprof file.
       USAGE: dump-process PROCESS_PACKAGE_NAME
+               [-d ID, --device ID]  optional device/emulator id
 
     analyze-hprof: Analyzes the provided hprof file.
       USAGE: analyze-hprof HPROF_FILE_PATH
-             (optional) -proguard-mapping PROGUARD_MAPPING_FILE_PATH
+               [-p PATH, --proguard-mapping PATH]  optional path to Proguard mapping file
 
     strip-hprof: Replaces all primitive arrays from the provided hprof file with arrays of zeroes and generates a new "-stripped" hprof file.
       USAGE: strip-hprof HPROF_FILE_PATH
@@ -86,34 +115,64 @@ fun printHelp() {
   }
 }
 
-private fun dumpHeap(packageName: String): File {
+private fun dumpHeap(
+  packageName: String,
+  maybeDeviceId: String?
+): File {
   val workingDirectory = File(System.getProperty("user.dir"))
 
-  val processList = runCommand(workingDirectory, "adb", "shell", "ps")
+  val deviceList = runCommand(workingDirectory, "adb", "devices")
+
+  val connectedDevices = deviceList.lines()
+      .drop(1)
+      .filter { it.isNotBlank() }
+      .map { SPACE_PATTERN.split(it)[0] }
+
+  val deviceId = if (connectedDevices.isEmpty()) {
+    SharkLog.d { "Error: No device connected to adb" }
+    exitProcess(1)
+  } else if (maybeDeviceId == null) {
+    if (connectedDevices.size == 1) {
+      connectedDevices[0]
+    } else {
+      SharkLog.d {
+        "Error: more than one device/emulator connected to adb," +
+            " use '--device ID' argument with one of $connectedDevices"
+      }
+      exitProcess(1)
+    }
+  } else {
+    if (maybeDeviceId in connectedDevices) {
+      maybeDeviceId
+    } else {
+      SharkLog.d { "Error: device '$maybeDeviceId' not in the list of connected devices $connectedDevices" }
+      exitProcess(1)
+    }
+  }
+
+  val processList = runCommand(workingDirectory, "adb", "-s", deviceId, "shell", "ps")
 
   val matchingProcesses = processList.lines()
       .filter { it.contains(packageName) }
       .map {
-        val columns = Regex("\\s+").split(it)
+        val columns = SPACE_PATTERN.split(it)
         columns[8] to columns[1]
       }
 
   val (processName, processId) = if (matchingProcesses.size == 1) {
     matchingProcesses[0]
   } else if (matchingProcesses.isEmpty()) {
-    SharkLog.d { "No process matching \"$packageName\"" }
-    System.exit(1)
-    throw RuntimeException("System exiting with error")
+    SharkLog.d { "Error: No process matching \"$packageName\"" }
+    exitProcess(1)
   } else {
     val matchingExactly = matchingProcesses.firstOrNull { it.first == packageName }
     if (matchingExactly != null) {
       matchingExactly
     } else {
       SharkLog.d {
-        "More than one process matches \"$packageName\" but none matches exactly: ${matchingProcesses.map { it.first }}"
+        "Error: More than one process matches \"$packageName\" but none matches exactly: ${matchingProcesses.map { it.first }}"
       }
-      System.exit(1)
-      throw RuntimeException("System exiting with error")
+      exitProcess(1)
     }
   }
 
@@ -129,7 +188,8 @@ private fun dumpHeap(packageName: String): File {
   }
 
   runCommand(
-      workingDirectory, "adb", "shell", "am", "dumpheap", processId, heapDumpDevicePath
+      workingDirectory, "adb", "-s", deviceId, "shell", "am", "dumpheap", processId,
+      heapDumpDevicePath
   )
 
   // Dump heap takes time but adb returns immediately.
@@ -137,11 +197,11 @@ private fun dumpHeap(packageName: String): File {
 
   SharkLog.d { "Pulling $heapDumpDevicePath" }
 
-  val pullResult = runCommand(workingDirectory, "adb", "pull", heapDumpDevicePath)
+  val pullResult = runCommand(workingDirectory, "adb",  "-s", deviceId, "pull", heapDumpDevicePath)
   SharkLog.d { pullResult }
   SharkLog.d { "Removing $heapDumpDevicePath" }
 
-  runCommand(workingDirectory, "adb", "shell", "rm", heapDumpDevicePath)
+  runCommand(workingDirectory, "adb", "-s", deviceId, "shell", "rm", heapDumpDevicePath)
 
   val heapDumpFile = File(workingDirectory, heapDumpFileName)
   SharkLog.d { "Pulled heap dump to $heapDumpFile" }
@@ -159,7 +219,11 @@ private fun runCommand(
       .also { it.waitFor(10, SECONDS) }
 
   if (process.exitValue() != 0) {
-    throw Exception(process.errorStream.bufferedReader().readText())
+    throw Exception(
+        "Failed command: '${arguments.joinToString(
+            " "
+        )}', error output: '${process.errorStream.bufferedReader().readText()}'"
+    )
   }
   return process.inputStream.bufferedReader()
       .readText()
@@ -167,7 +231,7 @@ private fun runCommand(
 
 private fun analyze(
   heapDumpFile: File,
-  proguardMappingFile: File? = null
+  proguardMappingFile: File?
 ) {
   val listener = OnAnalysisProgressListener { step ->
     SharkLog.d { step.name }
@@ -194,3 +258,5 @@ private fun stripHprof(heapDumpFile: File) {
   val outputFile = stripper.stripPrimitiveArrays(heapDumpFile)
   SharkLog.d { "Stripped primitive arrays to $outputFile" }
 }
+
+private val SPACE_PATTERN = Regex("\\s+")
