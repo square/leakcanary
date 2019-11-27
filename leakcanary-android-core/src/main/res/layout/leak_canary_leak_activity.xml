@@ -14,40 +14,95 @@
   <LinearLayout
       android:id="@+id/leak_canary_bottom_navigation_bar"
       android:layout_width="match_parent"
-      android:layout_height="48dp"
-      android:orientation="horizontal"
+      android:layout_height="68dp"
       android:background="@color/leak_canary_yellow"
+      android:orientation="horizontal"
       >
-    <TextView
+
+    <LinearLayout
         android:id="@+id/leak_canary_navigation_button_leaks"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:gravity="center"
-        android:textColor="@color/leak_canary_bottom_menu"
+        android:orientation="vertical"
         android:background="@drawable/leak_canary_tab_background"
-        android:text="Leaks"
-        />
-    <TextView
+        >
+      <ImageView
+          android:id="@+id/leak_canary_navigation_button_leaks_icon"
+          android:layout_width="24dp"
+          android:layout_height="24dp"
+          android:layout_gravity="center_horizontal"
+          android:layout_marginTop="14dp"
+          android:src="@drawable/leak_canary_leak"
+          android:scaleType="center"
+          />
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_horizontal"
+          android:layout_marginTop="2dp"
+          android:text="Leaks"
+          android:textColor="@color/leak_canary_bottom_menu"
+          android:textSize="11sp"
+          />
+    </LinearLayout>
+
+
+    <LinearLayout
         android:id="@+id/leak_canary_navigation_button_heap_dumps"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:gravity="center"
-        android:textColor="@color/leak_canary_bottom_menu"
+        android:orientation="vertical"
         android:background="@drawable/leak_canary_tab_background"
-        android:text="Heap Dumps"
-        />
-    <TextView
+        >
+      <ImageView
+          android:id="@+id/leak_canary_navigation_button_heap_dumps_icon"
+          android:layout_width="24dp"
+          android:layout_height="24dp"
+          android:layout_gravity="center_horizontal"
+          android:layout_marginTop="14dp"
+          android:src="@drawable/leak_canary_dump"
+          android:scaleType="center"
+          />
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_horizontal"
+          android:layout_marginTop="2dp"
+          android:text="Heap Dumps"
+          android:textColor="@color/leak_canary_bottom_menu"
+          android:textSize="11sp"
+          />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/leak_canary_navigation_button_about"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:gravity="center"
-        android:textColor="@color/leak_canary_bottom_menu"
+        android:orientation="vertical"
         android:background="@drawable/leak_canary_tab_background"
-        android:text="About"
-        />
+        >
+      <ImageView
+          android:id="@+id/leak_canary_navigation_button_about_icon"
+          android:layout_width="24dp"
+          android:layout_height="24dp"
+          android:layout_gravity="center_horizontal"
+          android:layout_marginTop="14dp"
+          android:src="@drawable/leak_canary_info"
+          android:scaleType="center"
+          />
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center_horizontal"
+          android:layout_marginTop="2dp"
+          android:text="About"
+          android:textColor="@color/leak_canary_bottom_menu"
+          android:textSize="11sp"
+          />
+    </LinearLayout>
   </LinearLayout>
 
 </LinearLayout>
