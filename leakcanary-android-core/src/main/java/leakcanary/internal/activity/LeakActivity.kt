@@ -3,19 +3,17 @@ package leakcanary.internal.activity
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.Typeface
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
 import android.view.View
-import android.widget.TextView
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db
 import leakcanary.internal.activity.screen.AboutScreen
-import leakcanary.internal.activity.screen.LeaksScreen
 import leakcanary.internal.activity.screen.HeapDumpsScreen
+import leakcanary.internal.activity.screen.LeaksScreen
 import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
 import shark.SharkLog
@@ -25,15 +23,27 @@ import java.io.IOException
 internal class LeakActivity : NavigatingActivity() {
 
   private val leaksButton by lazy {
-    findViewById<TextView>(R.id.leak_canary_navigation_button_leaks)
+    findViewById<View>(R.id.leak_canary_navigation_button_leaks)
+  }
+
+  private val leaksButtonIconView by lazy {
+    findViewById<View>(R.id.leak_canary_navigation_button_leaks_icon)
   }
 
   private val heapDumpsButton by lazy {
-    findViewById<TextView>(R.id.leak_canary_navigation_button_heap_dumps)
+    findViewById<View>(R.id.leak_canary_navigation_button_heap_dumps)
+  }
+
+  private val heapDumpsButtonIconView by lazy {
+    findViewById<View>(R.id.leak_canary_navigation_button_heap_dumps_icon)
   }
 
   private val aboutButton by lazy {
-    findViewById<TextView>(R.id.leak_canary_navigation_button_about)
+    findViewById<View>(R.id.leak_canary_navigation_button_about)
+  }
+
+  private val aboutButtonIconView by lazy {
+    findViewById<View>(R.id.leak_canary_navigation_button_about_icon)
   }
 
   private val bottomNavigationBar by lazy {
@@ -52,33 +62,33 @@ internal class LeakActivity : NavigatingActivity() {
   }
 
   override fun onNewScreen(screen: Screen) {
-    when(screen) {
+    when (screen) {
       is LeaksScreen -> {
         bottomNavigationBar.visibility = View.VISIBLE
         leaksButton.isSelected = true
-        leaksButton.setTypeface(null, Typeface.BOLD)
+        leaksButtonIconView.alpha = 1.0f
         heapDumpsButton.isSelected = false
-        heapDumpsButton.setTypeface(null, Typeface.NORMAL)
+        heapDumpsButtonIconView.alpha = 0.4f
         aboutButton.isSelected = false
-        aboutButton.setTypeface(null, Typeface.NORMAL)
+        aboutButtonIconView.alpha = 0.4f
       }
       is HeapDumpsScreen -> {
         bottomNavigationBar.visibility = View.VISIBLE
         leaksButton.isSelected = false
-        leaksButton.setTypeface(null, Typeface.NORMAL)
+        leaksButtonIconView.alpha = 0.4f
         heapDumpsButton.isSelected = true
-        heapDumpsButton.setTypeface(null, Typeface.BOLD)
+        heapDumpsButtonIconView.alpha = 1.0f
         aboutButton.isSelected = false
-        aboutButton.setTypeface(null, Typeface.NORMAL)
+        aboutButtonIconView.alpha = 0.4f
       }
       is AboutScreen -> {
         bottomNavigationBar.visibility = View.VISIBLE
         leaksButton.isSelected = false
-        leaksButton.setTypeface(null, Typeface.NORMAL)
+        leaksButtonIconView.alpha = 0.4f
         heapDumpsButton.isSelected = false
-        heapDumpsButton.setTypeface(null, Typeface.NORMAL)
+        heapDumpsButtonIconView.alpha = 0.4f
         aboutButton.isSelected = true
-        aboutButton.setTypeface(null, Typeface.BOLD)
+        aboutButtonIconView.alpha = 1.0f
       }
       else -> {
         bottomNavigationBar.visibility = View.GONE
@@ -108,7 +118,7 @@ internal class LeakActivity : NavigatingActivity() {
     returnIntent: Intent?
   ) {
     SharkLog.d {
-        "Got activity result with requestCode=$requestCode resultCode=$resultCode returnIntent=$returnIntent"
+      "Got activity result with requestCode=$requestCode resultCode=$resultCode returnIntent=$returnIntent"
     }
     if (requestCode == FILE_REQUEST_CODE && resultCode == RESULT_OK && returnIntent != null) {
       returnIntent.data?.let { fileUri ->

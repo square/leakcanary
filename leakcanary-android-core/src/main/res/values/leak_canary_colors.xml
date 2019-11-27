@@ -26,7 +26,7 @@
   <color name="leak_canary_gray_light">#939CA3</color>
   <color name="leak_canary_gray">#2F2F2F</color>
   <color name="leak_canary_gray_darkest">#151C1F</color>
-  <color name="leak_canary_gray_darkest_50p">#c1151C1F</color>
+  <color name="leak_canary_gray_darkest_40p">#66151C1F</color>
   <color name="leak_canary_gray_darkest_25p">#40151C1F</color>
   <color name="leak_canary_white">#ffffff</color>
   <color name="leak_canary_heap_stack_trace">#ffd40b</color>

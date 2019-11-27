@@ -66,7 +66,7 @@ internal object Notifications {
     builder: Notification.Builder,
     type: NotificationType
   ): Notification {
-    builder.setSmallIcon(R.drawable.leak_canary_notification)
+    builder.setSmallIcon(R.drawable.leak_canary_leak)
         .setWhen(System.currentTimeMillis())
 
     if (SDK_INT >= O) {
