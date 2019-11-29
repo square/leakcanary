@@ -60,16 +60,6 @@ class CopyObfuscationMappingFileTaskTest {
   }
 
   @Test
-  fun `existing mapping copied if merge assets dir is specified`() {
-    task.mappingFile = tempFolder.newFile("mapping.txt")
-    task.mergeAssetsDirectory = tempFolder.newFolder("mergeAssetsDir")
-
-    task.copyObfuscationMappingFile()
-
-    assertThat(task.leakCanaryAssetsOutputFile.exists()).isTrue()
-  }
-
-  @Test
   fun `previous mapping overwritten`() {
     task.mergeAssetsDirectory = tempFolder.newFolder("mergeAssetsDir")
 

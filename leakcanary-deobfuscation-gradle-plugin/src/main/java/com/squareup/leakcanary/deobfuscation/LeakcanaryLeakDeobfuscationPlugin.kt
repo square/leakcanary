@@ -49,7 +49,7 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
         "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
         CopyObfuscationMappingFileTask::class.java
     ) {
-      it.mappingFile = getMappingFile(project, variant)
+      it.mappingFile = variant.mappingFile
       it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
 
       val mappingGeneratingTaskProvider =
@@ -67,13 +67,6 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
     getPackageTaskProvider(variant).configure {
       it.dependsOn(copyObfuscationMappingFileTaskProvider)
     }
-  }
-
-  private fun getMappingFile(
-    project: Project,
-    variant: BaseVariant
-  ): File {
-    return variant.mappingFile ?: throwMissingMappingFileForVariantException(project, variant.name)
   }
 
   private fun findTaskProviderOrNull(
@@ -107,20 +100,6 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
         """
           None of the project's variants seem to have minification enabled. 
           Please make sure that there is at least 1 minified variant in your project.    
-        """.trimIndent()
-    )
-    throwNoAndroidPluginException()
-  }
-
-  private fun throwMissingMappingFileForVariantException(
-    project: Project,
-    variantName: String
-  ): Nothing {
-    project.logger.log(
-        DEBUG,
-        """
-          Missing obfuscation mapping file for $variantName variant.
-          Make sure you used correct variant name in Leak Canary plugin configuration block.
         """.trimIndent()
     )
     throwNoAndroidPluginException()
