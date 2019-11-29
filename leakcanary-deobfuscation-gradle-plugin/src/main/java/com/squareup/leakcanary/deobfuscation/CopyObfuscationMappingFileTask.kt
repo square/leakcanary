@@ -32,15 +32,7 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @TaskAction
   fun copyObfuscationMappingFile() {
-    val mapping = mappingFile
-    if (mapping == null || !mapping.exists()) {
-      throw GradleException(
-          """
-          The plugin was configured to be applied to the variant which doesn't define 
-          an obfuscation mapping file: make sure that isMinified is true for this variant.
-          """
-      )
-    }
+    val mapping = validateMappingFile()
 
     if (!mergeAssetsDirectory!!.exists() && !mergeAssetsDirectory!!.mkdirs()) {
       throw GradleException("Can't create obfuscation mapping file destination directory.")
@@ -50,5 +42,18 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
       throw GradleException("Can't copy obfuscation mapping file. Previous one still exists.")
     }
     mapping.copyTo(leakCanaryAssetsOutputFile)
+  }
+
+  private fun validateMappingFile(): File {
+    val mapping = mappingFile
+    if (mapping == null || !mapping.exists()) {
+      throw GradleException(
+          """
+          The plugin was configured to be applied to the variant which doesn't define 
+          an obfuscation mapping file: make sure that isMinified is true for this variant.
+          """
+      )
+    }
+    return mapping
   }
 }
