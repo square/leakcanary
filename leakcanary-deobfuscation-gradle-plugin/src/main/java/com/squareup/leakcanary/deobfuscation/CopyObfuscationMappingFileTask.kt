@@ -7,7 +7,6 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
-import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 
@@ -15,14 +14,12 @@ import java.io.File
 open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @Input
-  @SkipWhenEmpty
   @PathSensitive(PathSensitivity.RELATIVE)
-  lateinit var mappingFile: File
+  var mappingFile: File? = null
 
   @Input
-  @SkipWhenEmpty
   @PathSensitive(PathSensitivity.RELATIVE)
-  lateinit var mergeAssetsDirectory: File
+  var mergeAssetsDirectory: File? = null
 
   @get:OutputFile
   @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -35,22 +32,23 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @TaskAction
   fun copyObfuscationMappingFile() {
-    if (!::mappingFile.isInitialized || !mappingFile.exists()) {
-      throw GradleException("Missing obfuscation mapping file.")
+    val mapping = mappingFile
+    if (mapping == null || !mapping.exists()) {
+      throw GradleException(
+          """
+          The plugin was configured to be applied to the variant which doesn't define 
+          an obfuscation mapping file: make sure that isMinified is true for this variant.
+          """
+      )
     }
 
-    if (!::mergeAssetsDirectory.isInitialized) {
-      throw GradleException("Missing merge assets directory.")
+    if (!mergeAssetsDirectory!!.exists() && !mergeAssetsDirectory!!.mkdirs()) {
+      throw GradleException("Can't create obfuscation mapping file destination directory.")
     }
 
-    if (!mergeAssetsDirectory.exists()) {
-      mergeAssetsDirectory.mkdirs()
+    if (leakCanaryAssetsOutputFile.exists() && !leakCanaryAssetsOutputFile.delete()) {
+      throw GradleException("Can't copy obfuscation mapping file. Previous one still exists.")
     }
-
-    if (leakCanaryAssetsOutputFile.exists()) {
-      leakCanaryAssetsOutputFile.delete()
-    }
-
-    mappingFile.copyTo(leakCanaryAssetsOutputFile)
+    mapping.copyTo(leakCanaryAssetsOutputFile)
   }
 }
