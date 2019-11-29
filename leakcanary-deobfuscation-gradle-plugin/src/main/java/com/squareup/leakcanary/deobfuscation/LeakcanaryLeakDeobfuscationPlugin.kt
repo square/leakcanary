@@ -15,7 +15,6 @@ import org.gradle.api.Task
 import org.gradle.api.UnknownTaskException
 import org.gradle.api.logging.LogLevel.DEBUG
 import org.gradle.api.tasks.TaskProvider
-import java.io.File
 
 class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
 
