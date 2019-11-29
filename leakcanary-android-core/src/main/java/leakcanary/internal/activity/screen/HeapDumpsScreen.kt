@@ -71,10 +71,11 @@ internal class HeapDumpsScreen : Screen() {
 
     listView.setOnItemClickListener { _, _, position, _ ->
       val projection = projections[position]
-      val analysisScreen = if (projection.exceptionSummary != null)
+      val analysisScreen = if (projection.exceptionSummary != null) {
         HeapAnalysisFailureScreen(projection.id)
-      else
+      } else {
         HeapDumpScreen(projection.id)
+      }
       goTo(analysisScreen)
     }
 

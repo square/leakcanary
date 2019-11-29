@@ -61,9 +61,10 @@ internal class SortedBytesMap(
 
   private fun keyAt(index: Int): Long {
     val keyIndex = index * bytesPerEntry
-    return if (longIdentifiers)
+    return if (longIdentifiers) {
       sortedEntries.readLong(keyIndex)
-    else
+    } else {
       sortedEntries.readInt(keyIndex).toLong()
+    }
   }
 }

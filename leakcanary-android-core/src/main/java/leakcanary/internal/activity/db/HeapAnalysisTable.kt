@@ -82,8 +82,9 @@ internal object HeapAnalysisTable {
                 delete(db, id, null)
               }
               analysis
-            } else
+            } else {
               null
+            }
           } ?: return null
     }
   }

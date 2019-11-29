@@ -30,14 +30,18 @@ internal class KeyedWeakReferenceMirror(
     ): KeyedWeakReferenceMirror {
 
       val keyWeakRefClassName = weakRef.instanceClassName
-      val watchDurationMillis = if (heapDumpUptimeMillis != null)
+      val watchDurationMillis = if (heapDumpUptimeMillis != null) {
         heapDumpUptimeMillis - weakRef[keyWeakRefClassName, "watchUptimeMillis"]!!.value.asLong!!
-      else null
+      } else {
+        null
+      }
 
       val retainedDurationMillis = if (heapDumpUptimeMillis != null) {
         val retainedUptimeMillis = weakRef[keyWeakRefClassName, "retainedUptimeMillis"]!!.value.asLong!!
         if (retainedUptimeMillis == -1L) -1L else heapDumpUptimeMillis - retainedUptimeMillis
-      } else null
+      } else {
+        null
+      }
 
       val keyString = weakRef[keyWeakRefClassName, "key"]!!.value.readAsJavaString()!!
 

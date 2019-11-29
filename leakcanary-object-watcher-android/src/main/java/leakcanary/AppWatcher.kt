@@ -81,8 +81,11 @@ object AppWatcher {
           changedFields += "${field.name}=$newValue"
         }
       }
-      "Updated AppWatcher.config: Config(${if (changedFields.isNotEmpty())
-        changedFields.joinToString(", ") else "no changes"})"
+
+      val changesInConfig =
+        if (changedFields.isNotEmpty()) changedFields.joinToString(", ") else "no changes"
+
+      "Updated AppWatcher.config: Config($changesInConfig)"
     }
   }
 
