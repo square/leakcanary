@@ -44,9 +44,13 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   var applicationVisible = false
     private set
 
-  private val isJunitAvailable by lazy {
+  private val testClassName by lazy {
+    application.getString(R.string.leak_canary_test_class_name)
+  }
+
+  private val isRunningTests by lazy {
     try {
-      Class.forName("org.junit.Test")
+      Class.forName(testClassName)
       true
     } catch (e: Exception) {
       false
@@ -104,8 +108,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     // This is called before Application.onCreate(), so if the class is loaded through a secondary
     // dex it might not be available yet.
     Handler().post {
-      if (isJunitAvailable) {
-        SharkLog.d { "JUnit detected in classpath, app is running tests => disabling heap dumping & analysis " }
+      if (isRunningTests) {
+        SharkLog.d { "$testClassName detected in classpath, app is running tests => disabling heap dumping & analysis" }
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
       }
     }
