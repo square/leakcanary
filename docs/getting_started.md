@@ -9,7 +9,11 @@ dependencies {
 }
 ```
 
-**That's it, there is no code change needed!** LeakCanary will automatically show a notification when a memory leak is detected in debug builds.
+**That's it, there is no code change needed!** You can confirm that LeakCanary is running on startup by filtering on the LeakCanary tag in Logcat:
+
+```
+D LeakCanary: Installing AppWatcher
+```
 
 !!! info
     To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
