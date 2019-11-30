@@ -90,7 +90,7 @@ val retainedInstanceCount = AppWatcher.objectWatcher.retainedObjectCount
 
 ## Running LeakCanary in instrumentation tests
 
-Running leak detection in UI tests means you can detect memory leaks automatically in Continuous Integration prior to those leaks being merged into the codebase. However, as LeakCanary runs with a 5 seconds delay and freezes the VM to take a heap dump, this can introduce flakiness to the UI tests. Therefore LeakCanary automatically disables itself by setting `LeakCanary.config.dumpHeap` to `false` if it detects classes from the `androidx.test` dependency in the runtime classpath. If you run UI tests without `androidx.test`, we strongly advise that you set `dumpHeap` to `false`: `LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)`.
+Running leak detection in UI tests means you can detect memory leaks automatically in Continuous Integration prior to those leaks being merged into the codebase. However, as LeakCanary runs with a 5 seconds delay and freezes the VM to take a heap dump, this can introduce flakiness to the UI tests. Therefore it is automatically disabled by setting `LeakCanary.config.dumpHeap` to `false` when JUnit is on the runtime classpath.
 
 LeakCanary provides an artifact dedicated to detecting leaks in UI tests which provides a run listener that waits for the end of a test, and if the test succeeds then it look for retained objects, trigger a heap dump if needed and perform an analysis.
 

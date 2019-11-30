@@ -105,7 +105,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     // dex it might not be available yet.
     Handler().post {
       if (isJunitAvailable) {
-        SharkLog.d { "Tests detected, setting LeakCanary.Config.dumpHeap to false" }
+        SharkLog.d { "JUnit detected in classpath, app is running tests => disabling heap dumping & analysis " }
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
       }
     }
