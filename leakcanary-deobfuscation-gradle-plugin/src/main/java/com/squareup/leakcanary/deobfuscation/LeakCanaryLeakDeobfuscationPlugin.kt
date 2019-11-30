@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2015 Square, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.squareup.leakcanary.deobfuscation
 
 import com.android.build.gradle.AppExtension
@@ -16,7 +31,7 @@ import org.gradle.api.UnknownTaskException
 import org.gradle.api.logging.LogLevel.DEBUG
 import org.gradle.api.tasks.TaskProvider
 
-class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
+class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
 
   override fun apply(project: Project) {
     val variants = findAndroidVariants(project)
@@ -29,10 +44,14 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
   }
 
   private fun findAndroidVariants(project: Project): DomainObjectSet<BaseVariant> {
-    return when (val extension = project.extensions.getByType(BaseExtension::class.java)) {
-      is AppExtension -> extension.applicationVariants as DomainObjectSet<BaseVariant>
-      is LibraryExtension -> extension.libraryVariants as DomainObjectSet<BaseVariant>
-      else -> throwNoAndroidPluginException()
+    return try {
+      when (val extension = project.extensions.getByType(BaseExtension::class.java)) {
+        is AppExtension -> extension.applicationVariants as DomainObjectSet<BaseVariant>
+        is LibraryExtension -> extension.libraryVariants as DomainObjectSet<BaseVariant>
+        else -> throwNoAndroidPluginException()
+      }
+    } catch (e: Exception) {
+      throwNoAndroidPluginException()
     }
   }
 
@@ -49,7 +68,9 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
         CopyObfuscationMappingFileTask::class.java
     ) {
       it.mappingFile = variant.mappingFile
-      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
+      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get()
+          .outputDir.get()
+          .asFile
 
       val mappingGeneratingTaskProvider =
         findTaskProviderOrNull(
@@ -101,6 +122,8 @@ class LeakcanaryLeakDeobfuscationPlugin : Plugin<Project> {
           Please make sure that there is at least 1 minified variant in your project.    
         """.trimIndent()
     )
-    throwNoAndroidPluginException()
+    throw GradleException(
+        "LeakCanary deobfuscation plugin couldn't find any variant with minification enabled."
+    )
   }
 }
