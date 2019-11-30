@@ -74,7 +74,8 @@ internal class HeapAnalyzerService : ForegroundService(
           if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
               ObjectInspectors.KEYED_WEAK_REFERENCE
           ),
-          config.metatadaExtractor
+          config.metatadaExtractor,
+          proguardMappingReader?.readProguardMapping()
       )
 
     config.onHeapAnalyzedListener.onHeapAnalyzed(heapAnalysis)

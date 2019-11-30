@@ -75,7 +75,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
     // task has been run
     assertThat(
-        result.task(":leakCanaryCopyObfuscationMappingForDebug")?.outcome == SUCCESS
+      result.task(":leakCanaryCopyObfuscationMappingForDebug")?.outcome == SUCCESS
     ).isTrue()
 
     // apk has been built
@@ -98,7 +98,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     buildFile.writeText(
       """
         plugins {
-            id 'com.squareup.leakcanary.deobfuscation'
+          id 'com.squareup.leakcanary.deobfuscation'
         }
       """.trimIndent()
     )

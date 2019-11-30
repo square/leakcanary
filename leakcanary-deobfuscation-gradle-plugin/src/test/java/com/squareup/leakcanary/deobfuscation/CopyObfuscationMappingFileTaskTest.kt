@@ -16,18 +16,18 @@ class CopyObfuscationMappingFileTaskTest {
 
   private val task =
     ProjectBuilder
-        .builder()
-        .build()
-        .tasks
-        .create(
-            "testCopyObfuscationMappingFileTask",
-            CopyObfuscationMappingFileTask::class.java
-        )
+      .builder()
+      .build()
+      .tasks
+      .create(
+        "testCopyObfuscationMappingFileTask",
+        CopyObfuscationMappingFileTask::class.java
+      )
 
   @Test
   fun `should throw if mapping file and merge assets dir are not specified`() {
     assertThatExceptionOfType(GradleException::class.java)
-        .isThrownBy { task.copyObfuscationMappingFile() }
+      .isThrownBy { task.copyObfuscationMappingFile() }
   }
 
   @Test
@@ -35,7 +35,7 @@ class CopyObfuscationMappingFileTaskTest {
     task.mergeAssetsDirectory = tempFolder.newFolder("mergeAssetsDir")
 
     assertThatExceptionOfType(GradleException::class.java)
-        .isThrownBy { task.copyObfuscationMappingFile() }
+      .isThrownBy { task.copyObfuscationMappingFile() }
   }
 
   @Test
@@ -43,7 +43,7 @@ class CopyObfuscationMappingFileTaskTest {
     task.mappingFile = tempFolder.newFile("mapping.txt")
 
     assertThatExceptionOfType(GradleException::class.java)
-        .isThrownBy { task.copyObfuscationMappingFile() }
+      .isThrownBy { task.copyObfuscationMappingFile() }
   }
 
   @Test
@@ -65,16 +65,16 @@ class CopyObfuscationMappingFileTaskTest {
 
     // create first mapping file
     task.mappingFile = tempFolder.newFile("firstMappingFile.txt")
-        .apply {
-          writeText("firstMappingFile")
-        }
+      .apply {
+        writeText("firstMappingFile")
+      }
     task.copyObfuscationMappingFile()
 
     // create second mapping file
     task.mappingFile = tempFolder.newFile("secondMappingFile.txt")
-        .apply {
-          writeText("secondMappingFile")
-        }
+      .apply {
+        writeText("secondMappingFile")
+      }
     task.copyObfuscationMappingFile()
 
     assertThat(task.leakCanaryAssetsOutputFile.exists()).isTrue()

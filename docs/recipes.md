@@ -362,4 +362,4 @@ leakCanary {
 ```
 
 And that's all. Now you can run LeakCanary on an obfuscated app and leak traces will be automatically deobfuscated.
-**Important:** never use this plugin on a variant that you release for production. This plugin copies obfuscation mapping file and puts it inside the .apk, so if you use it on production build then the obfuscation becomes pointless because the code can be easily deobfuscated using mapping file.
+**Important:** never use this plugin on a variant that you release for production. This plugin copies obfuscation mapping
