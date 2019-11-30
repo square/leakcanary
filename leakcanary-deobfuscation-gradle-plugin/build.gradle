@@ -7,8 +7,12 @@ gradlePlugin {
     leakCanary {
       id = 'com.squareup.leakcanary.deobfuscation'
       implementationClass =
-          'com.squareup.leakcanary.deobfuscation.LeakcanaryLeakDeobfuscationPlugin'
+          'com.squareup.leakcanary.deobfuscation.LeakCanaryLeakDeobfuscationPlugin'
     }
+  }
+
+  sourceSets {
+    test.java.srcDirs += 'src/test/test-project/src/main/java'
   }
 }
 
