@@ -33,37 +33,37 @@ class LeakCanaryLeakDeobfuscationPluginTest {
   fun `leakcanary deobfuscation plugin runs and copies mapping file into the apk assets dir`() {
     buildFile.writeText(
       """
-      plugins {
-        id 'com.android.application'
-        id 'com.squareup.leakcanary.deobfuscation'
-      }
-      
-      allprojects {
-        repositories {
-          google()
-          jcenter()
+        plugins {
+          id 'com.android.application'
+          id 'com.squareup.leakcanary.deobfuscation'
         }
-      }
-      
-      android {
-        compileSdkVersion 29
-
-        defaultConfig {
-          minSdkVersion 29
-        }
-
-        buildTypes {
-          debug {
-            minifyEnabled true
+        
+        allprojects {
+          repositories {
+            google()
+            jcenter()
           }
         }
-      }
-      
-      leakCanary {
-        filterObfuscatedVariants { variant ->
-          variant.name == "debug"
+        
+        android {
+          compileSdkVersion 29
+  
+          defaultConfig {
+            minSdkVersion 29
+          }
+  
+          buildTypes {
+            debug {
+              minifyEnabled true
+            }
+          }
         }
-      }
+        
+        leakCanary {
+          filterObfuscatedVariants { variant ->
+            variant.name == "debug"
+          }
+        }
       """.trimIndent()
     )
 
@@ -91,6 +91,59 @@ class LeakCanaryLeakDeobfuscationPluginTest {
       }
     }
     assertThat(obfuscationMappingEntry != null).isTrue()
+  }
+
+  @Test
+  fun `leakcanary deobfuscation plugin doesn't copy mapping file if it hasn't been configured`() {
+    buildFile.writeText(
+      """
+        plugins {
+          id 'com.android.application'
+          id 'com.squareup.leakcanary.deobfuscation'
+        }
+        
+        allprojects {
+          repositories {
+            google()
+            jcenter()
+          }
+        }
+        
+        android {
+          compileSdkVersion 29
+  
+          defaultConfig {
+            minSdkVersion 29
+          }
+  
+          buildTypes {
+            debug {
+              minifyEnabled true
+            }
+          }
+        }
+      """.trimIndent()
+    )
+
+    val result = GradleRunner.create()
+        .withProjectDir(tempFolder.root)
+        .withArguments("assembleDebug")
+        .withPluginClasspath()
+        .build()
+
+    // apk has been built
+    val apkFile = File(tempFolder.root, "build/outputs/apk/debug")
+        .listFiles()
+        ?.firstOrNull { it.extension == "apk" }
+    assertThat(apkFile != null).isTrue()
+
+    // apk doesn't contain obfuscation mapping file in assets dir
+    val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
+      zipFile.entries().toList().firstOrNull { entry ->
+        entry.name.contains("assets/leakCanaryObfuscationMapping.txt")
+      }
+    }
+    assertThat(obfuscationMappingEntry == null).isTrue()
   }
 
   @Test
