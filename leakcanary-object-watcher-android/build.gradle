@@ -5,6 +5,9 @@ dependencies {
   api project(':leakcanary-object-watcher')
 
   implementation deps.kotlin.stdlib
+
+  testImplementation deps.assertj_core
+  testImplementation deps.junit
 }
 
 android {
