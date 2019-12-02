@@ -48,10 +48,6 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   @TaskAction
   fun copyObfuscationMappingFile() {
     throw GradleException("TEST RUNNING THE TASK")
-    val mapping = validateMappingFile()
-    validateMergeAssetsDir()
-    validateOutputFile()
-    mapping.copyTo(leakCanaryAssetsOutputFile)
   }
 
   private fun validateMappingFile(): File {
