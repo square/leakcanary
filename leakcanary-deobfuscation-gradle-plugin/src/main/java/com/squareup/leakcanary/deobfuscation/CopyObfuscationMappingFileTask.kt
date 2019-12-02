@@ -50,7 +50,6 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
     val mapping = validateMappingFile()
     validateMergeAssetsDir()
     validateOutputFile()
-    throw GradleException("TEST ${mapping.readText()}")
     mapping.copyTo(leakCanaryAssetsOutputFile)
   }
 

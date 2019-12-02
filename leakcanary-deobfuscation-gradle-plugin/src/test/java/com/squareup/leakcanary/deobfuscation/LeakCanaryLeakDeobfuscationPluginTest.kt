@@ -80,6 +80,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
       .build()
 
     // task has been run
+    assertThat(result.task(":leakCanaryCopyObfuscationMappingForDebug") != null).isTrue()
     assertThat(
       result.task(":leakCanaryCopyObfuscationMappingForDebug")?.outcome == SUCCESS
     ).isTrue()
