@@ -1,6 +1,8 @@
 package com.leakcanary.test;
 
-public class TestProjectClass {
+import android.app.Activity;
+
+public class TestProjectClass extends Activity {
   public void foo() {
 
   }
