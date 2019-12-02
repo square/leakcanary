@@ -38,7 +38,7 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
     val leakCanaryExtension = createLeakCanaryExtension(project)
     variants.all { variant ->
       if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
-        throw GradleException("SETTING UP VARIANT: ${variant.name}")
+        setupTasks(project, variant)
       }
     }
   }
@@ -63,6 +63,7 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
     project: Project,
     variant: BaseVariant
   ) {
+    val sb = StringBuilder()
     val copyObfuscationMappingFileTaskProvider = project.tasks.register(
         "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
         CopyObfuscationMappingFileTask::class.java
@@ -81,12 +82,18 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
             "transformClassesAndResourcesWithProguardFor${variant.name.capitalize()}"
         ) ?: throwMissingMinifiedVariantException(project)
 
+      sb.append("mappingGeneratingTaskProvider: "+mappingGeneratingTaskProvider.name)
+      sb.append("\n")
       it.dependsOn(mappingGeneratingTaskProvider)
     }
 
     getPackageTaskProvider(variant).configure {
+      sb.append("packagetaskprovider: "+it.name)
+      sb.append("\n")
       it.dependsOn(copyObfuscationMappingFileTaskProvider)
     }
+
+    throw GradleException("TEST ${sb.toString()}")
   }
 
   private fun findTaskProviderOrNull(

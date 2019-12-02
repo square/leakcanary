@@ -15,9 +15,6 @@
   ~ limitations under the License.
   -->
 <manifest
-  xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.leakcanary.test">
-    <application>
-      <activity android:name=".TestProjectClass" />
-    </application>
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.leakcanary.test">
 </manifest>
