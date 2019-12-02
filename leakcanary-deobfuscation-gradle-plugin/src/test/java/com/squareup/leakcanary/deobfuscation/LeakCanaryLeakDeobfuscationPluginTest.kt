@@ -25,15 +25,10 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     if (localPropertiesFile.exists()) {
       localPropertiesFile.copyTo(File(tempFolder.root, "local.properties"), overwrite = true)
     } else {
-      tempFolder.newFile("local.properties").apply {
-        if(System.getenv("ANDROID_HOME") != null) {
-          println("AAA HOME: ${System.getenv("ANDROID_HOME")}")
-        } else {
-          println("AAA HOME IS NULL")
-        }
-        System.getenv("ANDROID_HOME")?.let { androidHome ->
+      System.getenv("ANDROID_HOME")?.let { androidHome->
+        tempFolder.newFile("local.properties").apply {
           writeText("sdk.dir=$androidHome")
-        } ?: writeText("sdk.dir=/usr/local/android-sdk/")
+        }
       }
     }
 
@@ -96,12 +91,14 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     assertThat(apkFile != null).isTrue()
 
     // apk contains obfuscation mapping file in assets dir
-    val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
-      zipFile.entries().toList().firstOrNull { entry ->
-        entry.name.contains("assets/leakCanaryObfuscationMapping.txt")
+    val sb = StringBuilder()
+    ZipFile(apkFile).use { zipFile ->
+      zipFile.entries().toList().forEach {
+        sb.append(it.name)
+        sb.append("\n")
       }
     }
-    assertThat(obfuscationMappingEntry != null).isTrue()
+    assertThat(sb.toString()).isEqualTo("test")
   }
 
   @Test
