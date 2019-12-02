@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.media.MediaScannerConnection
+import android.os.Build.MANUFACTURER
 import android.os.Build.VERSION.SDK_INT
 import android.os.Handler
 import android.os.HandlerThread
@@ -11,8 +13,13 @@ import android.os.Looper
 import android.os.Process
 import android.os.UserManager
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.ShareActionProvider
+import android.widget.TextView
 import java.lang.reflect.Array
+import java.lang.reflect.Field
 import java.lang.reflect.InvocationHandler
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 import java.lang.reflect.Proxy
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -155,15 +162,15 @@ enum class DuckTapeAndroid {
           .threadGroup
       var lookForRoot = true
       while (lookForRoot) {
-        val parentGroup = rootGroup.parent
+        val parentGroup = rootGroup?.parent
         if (parentGroup != null) {
           rootGroup = parentGroup
         } else {
           lookForRoot = false
         }
       }
-      var threads = arrayOfNulls<Thread>(rootGroup.activeCount())
-      while (rootGroup.enumerate(threads, true) == threads.size) {
+      var threads = arrayOfNulls<Thread>(rootGroup?.activeCount() ?: 0)
+      while (rootGroup?.enumerate(threads, true) == threads.size) {
         threads = arrayOfNulls(threads.size * 2)
       }
       for (thread in threads) {
@@ -200,6 +207,201 @@ enum class DuckTapeAndroid {
     }
   },
 
+  /**
+   * ActivityChooserModel holds a static reference to the last set ActivityChooserModelPolicy which can be an activity context.
+   * Tracked here: https://code.google.com/p/android/issues/detail?id=172659
+   */
+  ACTIVITY_CHOOSE_MODEL {
+    private val activityChooserModelClassNames = arrayOf(
+      "android.support.v7.internal.widget.ActivityChooserModel",
+      "androidx.appcompat.widget.ActivityChooserModel",
+      "android.widget.ActivityChooserModel"
+    )
+
+    override fun apply(application: Application) {
+      // Can't use reflection starting in SDK 28
+      if (SDK_INT >= 28) {
+        return
+      }
+      backgroundExecutor.execute {
+        val infos = activityChooserModelClassNames.mapNotNull { name -> getActivityChooserInfo(application, name) }
+        application.onActivityDestroyed {
+          infos.forEach { (model, method) ->
+            try {
+              method.invoke(model, null)
+            } catch (ignored: Exception) {
+              // Silent
+            }
+          }
+        }
+      }
+    }
+
+    private fun getActivityChooserInfo(context: Context, className: String): Pair<Any, Method>? {
+      return try {
+        val modelClass = Class.forName(className)
+        val getMethod = modelClass.getDeclaredMethod("get", Context::class.java, String::class.java)
+        getMethod.isAccessible = true
+        val model = getMethod.invoke(null, context.applicationContext, ShareActionProvider.DEFAULT_SHARE_HISTORY_FILE_NAME)
+        val listenerClass = modelClass.declaredClasses.first { it.simpleName == "OnChooseActivityListener" }
+        val listenerMethod = modelClass.getDeclaredMethod("setOnChooseActivityListener", listenerClass)
+        listenerMethod.isAccessible = true
+        model!! to listenerMethod
+      } catch (ignored: Exception) {
+        null
+      }
+    }
+  },
+
+  /**
+   * ConnectivityManager has a sInstance field that is set when the first ConnectivityManager instance is created.
+   * ConnectivityManager has a mContext field. When calling activity.getSystemService(Context.CONNECTIVITY_SERVICE),
+   * the first ConnectivityManager instance is created with the activity context and stored in sInstance.
+   * Tracked here: https://code.google.com/p/android/issues/detail?id=198852
+   * Introduced here: https://github.com/android/platform_frameworks_base/commit/e0bef71662d81caaaa0d7214fb0bef5d39996a69
+   */
+  CONNECTIVITY_MANAGER {
+    override fun apply(application: Application) {
+      if (SDK_INT <= 23) {
+        try {
+          application.getSystemService(Context.CONNECTIVITY_SERVICE)
+        } catch (ignored: Exception) {
+          // Silent
+        }
+      }
+    }
+  },
+
+  /**
+   * ClipboardUIManager is a static singleton that leaks an activity context.
+   */
+  CLIPBOARD_UI_MANAGER__SINSTANCE {
+    override fun apply(application: Application) {
+      if (SDK_INT >= 28 || MANUFACTURER != "samsung" || SDK_INT !in 19..21) {
+        return
+      }
+      backgroundExecutor.execute {
+        try {
+          val clazz = Class.forName("android.sec.clipboard.ClipboardUIManager")
+          val method = clazz.getDeclaredMethod("getInstance", Context::class.java)
+          method.isAccessible = true
+          method.invoke(null, application)
+        } catch (ignored: Exception) {
+          // Silent
+        }
+      }
+    }
+  },
+
+  /**
+   * The static method MediaScannerConnection.scanFile() takes an activity context but the service might not disconnect
+   * after the activity has been destroyed.
+   * Tracked here: https://code.google.com/p/android/issues/detail?id=173788
+   */
+  MEDIA_SCANNER_CONNECTION {
+    override fun apply(application: Application) {
+      if (SDK_INT <= 22) {
+        backgroundExecutor.execute {
+          with(MediaScannerConnection(application, null)) {
+            connect()
+            disconnect()
+          }
+        }
+      }
+    }
+  },
+
+  /**
+   * A static helper for EditText bubble popups leaks a reference to the latest focused view.
+   */
+  BUBBLE_POPUP_HELPER {
+    override fun apply(application: Application) {
+      if (SDK_INT >= 28 || MANUFACTURER != "LGE" || SDK_INT !in 19..21) {
+        return
+      }
+      backgroundExecutor.execute {
+        val helperField: Field
+        try {
+          val clazz = Class.forName("android.widget.BubblePopupHelper")
+          helperField = clazz.getDeclaredField("sHelper")
+          helperField.isAccessible = true
+        } catch (ignored: Exception) {
+          return@execute
+        }
+
+        application.onActivityDestroyed {
+          try {
+            helperField.set(null, null)
+          } catch (ignored: Exception) {
+            // Silent
+          }
+        }
+      }
+    }
+  },
+
+  /**
+   * mLastHoveredView is a static field in TextView that leaks the last hovered view.
+   */
+  LAST_HOVERED_VIEW {
+    override fun apply(application: Application) {
+      if (SDK_INT >= 28 || MANUFACTURER != "samsung" || SDK_INT !in 19..21) {
+        return
+      }
+      backgroundExecutor.execute {
+        val field: Field
+        try {
+          field = TextView::class.java.getDeclaredField("mLastHoveredView")
+          field.isAccessible = true
+        } catch (ignored: Exception) {
+          return@execute
+        }
+
+        application.onActivityDestroyed {
+          try {
+            field.set(null, null)
+          } catch (ignored: Exception) {
+          }
+        }
+      }
+    }
+  },
+
+  /**
+   * Samsung added a static mContext field to ActivityManager, holds a reference to the activity.
+   */
+  ACTIVITY_MANAGER {
+    override fun apply(application: Application) {
+      if (SDK_INT >= 28 || MANUFACTURER != "samsung" || SDK_INT != 22) {
+        return
+      }
+      backgroundExecutor.execute {
+        val contextField: Field
+        val needsCleaning: Boolean
+        try {
+          val activityManager = application.getSystemService(Context.ACTIVITY_SERVICE)
+          contextField = activityManager.javaClass.getDeclaredField("mContext")
+          contextField.isAccessible = true
+          needsCleaning = (contextField.modifiers or Modifier.STATIC) == contextField.modifiers
+        } catch (ignored: Exception) {
+          return@execute
+        }
+
+        if (needsCleaning) {
+          application.onActivityDestroyed { activity ->
+            try {
+              if (contextField.get(null) == activity) {
+                contextField.set(null, null)
+              }
+            } catch (ignored: Exception) {
+              // Silent
+            }
+          }
+        }
+      }
+    }
+  }
+
   ;
 
   abstract fun apply(application: Application)
@@ -232,9 +434,8 @@ enum class DuckTapeAndroid {
         // no op
       }
       return Proxy.newProxyInstance(
-          javaClass.classLoader, arrayOf(javaClass), noOpHandler
+        javaClass.classLoader, arrayOf(javaClass), noOpHandler
       ) as T
     }
-
   }
 }
