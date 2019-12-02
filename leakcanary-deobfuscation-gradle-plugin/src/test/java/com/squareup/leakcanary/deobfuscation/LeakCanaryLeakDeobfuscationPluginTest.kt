@@ -61,6 +61,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
           buildTypes {
             debug {
               minifyEnabled true
+              proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
             }
           }
         }
@@ -125,13 +126,14 @@ class LeakCanaryLeakDeobfuscationPluginTest {
           buildTypes {
             debug {
               minifyEnabled true
+              proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
             }
           }
         }
       """.trimIndent()
     )
 
-    val result = GradleRunner.create()
+    GradleRunner.create()
         .withProjectDir(tempFolder.root)
         .withArguments("assembleDebug")
         .withPluginClasspath()
