@@ -24,6 +24,12 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     val localPropertiesFile = File("../local.properties")
     if (localPropertiesFile.exists()) {
       localPropertiesFile.copyTo(File(tempFolder.root, "local.properties"), overwrite = true)
+    } else {
+      System.getenv("ANDROID_HOME")?.let { androidHome->
+        tempFolder.newFile("local.properties").apply {
+          writeText("sdk.dir=$androidHome")
+        }
+      }
     }
 
     File("src/test/test-project").copyRecursively(tempFolder.root)
