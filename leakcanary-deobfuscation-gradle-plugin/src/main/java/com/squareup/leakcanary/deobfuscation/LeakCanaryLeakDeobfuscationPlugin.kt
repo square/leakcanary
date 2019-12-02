@@ -39,7 +39,6 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
     variants.all { variant ->
       if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
         throw GradleException("SETTING UP VARIANT: ${variant.name}")
-        setupTasks(project, variant)
       }
     }
   }
