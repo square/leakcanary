@@ -29,19 +29,15 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.UnknownTaskException
 import org.gradle.api.logging.LogLevel.DEBUG
-import org.gradle.api.logging.LogLevel.LIFECYCLE
 import org.gradle.api.tasks.TaskProvider
 
 class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
 
   override fun apply(project: Project) {
-    project.logger.log(LIFECYCLE, "PLUGIN TEST1")
     val variants = findAndroidVariants(project)
     val leakCanaryExtension = createLeakCanaryExtension(project)
     variants.all { variant ->
-      project.logger.log(LIFECYCLE, "PLUGIN TEST2")
       if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
-        project.logger.log(LIFECYCLE, "PLUGIN TEST3")
         setupTasks(project, variant)
       }
     }
@@ -88,7 +84,6 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
       it.dependsOn(mappingGeneratingTaskProvider)
     }
 
-    project.logger.log(LIFECYCLE, "PLUGIN TEST4")
     getPackageTaskProvider(variant).configure {
       it.dependsOn(copyObfuscationMappingFileTaskProvider)
     }
