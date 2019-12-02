@@ -25,10 +25,15 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     if (localPropertiesFile.exists()) {
       localPropertiesFile.copyTo(File(tempFolder.root, "local.properties"), overwrite = true)
     } else {
-      System.getenv("ANDROID_HOME")?.let { androidHome->
-        tempFolder.newFile("local.properties").apply {
-          writeText("sdk.dir=$androidHome")
+      tempFolder.newFile("local.properties").apply {
+        if(System.getenv("ANDROID_HOME") != null) {
+          println("AAA HOME: ${System.getenv("ANDROID_HOME")}")
+        } else {
+          println("AAA HOME IS NULL")
         }
+        System.getenv("ANDROID_HOME")?.let { androidHome ->
+          writeText("sdk.dir=$androidHome")
+        } ?: writeText("sdk.dir=/usr/local/android-sdk/")
       }
     }
 
