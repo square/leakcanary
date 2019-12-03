@@ -227,7 +227,7 @@ class LeakStatusTest {
     val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements.last().leakStatus).isEqualTo(NOT_LEAKING)
     assertThat(leak.leakTrace.elements.last().leakStatusReason).isEqualTo(
-        "Leaking is not leaking. Conflicts with ObjectWatcher was watching this"
+        "Leaking is not leaking. Conflicts with ObjectWatcher was watching this because its lifecycle has ended"
     )
   }
 
@@ -241,7 +241,7 @@ class LeakStatusTest {
     val leak = analysis.applicationLeaks[0]
     assertThat(leak.leakTrace.elements.last().leakStatus).isEqualTo(LEAKING)
     assertThat(leak.leakTrace.elements.last().leakStatusReason).isEqualTo(
-        "Leaking is leaking and ObjectWatcher was watching this"
+        "Leaking is leaking and ObjectWatcher was watching this because its lifecycle has ended"
     )
   }
 

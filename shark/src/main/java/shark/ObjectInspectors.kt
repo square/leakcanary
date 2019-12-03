@@ -61,11 +61,12 @@ enum class ObjectInspectors : ObjectInspector {
       val objectId = reporter.heapObject.objectId
       references.forEach { ref ->
         if (ref.referent.value == objectId) {
-          reporter.leakingReasons += "ObjectWatcher was watching this"
-          reporter.labels += "key = ${ref.key}"
-          if (ref.name.isNotEmpty()) {
-            reporter.labels += "name = ${ref.name}"
+          reporter.leakingReasons += if (ref.description.isNotEmpty()) {
+            "ObjectWatcher was watching this because ${ref.description}"
+          } else {
+            "ObjectWatcher was watching this"
           }
+          reporter.labels += "key = ${ref.key}"
           if (ref.watchDurationMillis != null) {
             reporter.labels += "watchDurationMillis = ${ref.watchDurationMillis}"
           }

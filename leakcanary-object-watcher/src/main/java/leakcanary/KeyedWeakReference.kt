@@ -30,7 +30,7 @@ import java.lang.ref.WeakReference
 class KeyedWeakReference(
   referent: Any,
   val key: String,
-  val name: String,
+  val description: String,
   val watchUptimeMillis: Long,
   referenceQueue: ReferenceQueue<Any>
 ) : WeakReference<Any>(
