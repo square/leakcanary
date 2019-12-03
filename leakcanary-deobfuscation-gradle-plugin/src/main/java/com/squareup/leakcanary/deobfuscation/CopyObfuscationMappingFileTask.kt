@@ -29,6 +29,9 @@ import java.io.File
 open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @Input
+  var variantName: String = ""
+
+  @Input
   @PathSensitive(PathSensitivity.RELATIVE)
   var mappingFile: File? = null
 
@@ -49,33 +52,32 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   fun copyObfuscationMappingFile() {
     val mapping = validateMappingFile()
     validateMergeAssetsDir()
-    validateOutputFile()
-    mapping.copyTo(leakCanaryAssetsOutputFile)
+    mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
   }
 
   private fun validateMappingFile(): File {
     val mapping = mappingFile
     if (mapping == null || !mapping.exists()) {
       throw GradleException(
-          """
-          The plugin was configured to be applied to the variant which doesn't define 
-          an obfuscation mapping file: make sure that isMinified is true for this variant.
-          """
+        """
+        The plugin was configured to be applied to a variant which doesn't define 
+        an obfuscation mapping file: make sure that isMinified is true for variant: $variantName.
+        """
       )
     }
     return mapping
   }
 
   private fun validateMergeAssetsDir() {
-    val mergeAssetsDir = mergeAssetsDirectory
-    if (mergeAssetsDir == null || (!mergeAssetsDir.exists() && !mergeAssetsDir.mkdirs())) {
-      throw GradleException("Can't create obfuscation mapping file destination directory.")
-    }
-  }
-
-  private fun validateOutputFile() {
-    if (leakCanaryAssetsOutputFile.exists() && !leakCanaryAssetsOutputFile.delete()) {
-      throw GradleException("Can't copy obfuscation mapping file. Previous one still exists.")
-    }
+    mergeAssetsDirectory?.let { mergeAssetsDir ->
+      if (!mergeAssetsDir.exists()) {
+        val mergeAssetsDirCreated = mergeAssetsDir.mkdirs()
+        if (!mergeAssetsDirCreated) {
+          throw GradleException(
+            "Obfuscation mapping destination dir doesn't exist and it's impossible to create it."
+          )
+        }
+      }
+    } ?: throw GradleException("Obfuscation mapping is null.")
   }
 }

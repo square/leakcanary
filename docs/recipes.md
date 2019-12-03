@@ -342,14 +342,17 @@ If obfuscation is turned on then leak traces will be obfuscated. It's possible t
 You have to add a plugin dependency in your root `build.gradle` file:
 
 ```groovy
-dependencies {
-  classpath 'com.squareup.leakcanary:leakcanary-deobfuscation-gradle-plugin:${version}'
+buildscript {
+  dependencies {
+    classpath 'com.squareup.leakcanary:leakcanary-deobfuscation-gradle-plugin:${version}'
+  }
 }
 ```
 
 And then you need to apply and configure the plugin in your app (or library) specific `build.gradle` file:
 
 ```groovy
+apply plugin: 'com.android.application'
 // LeakCanary plugin should be added after android application or android library plugin
 apply plugin: 'com.squareup.leakcanary.deobfuscation'
 
@@ -362,4 +365,4 @@ leakCanary {
 ```
 
 And that's all. Now you can run LeakCanary on an obfuscated app and leak traces will be automatically deobfuscated.
-**Important:** never use this plugin on a variant that you release for production. This plugin copies obfuscation mapping
+**Important:** never use this plugin on a variant that you release for production. This plugin copies obfuscation mapping file and puts it inside the .apk, so if you use it on production build then the obfuscation becomes pointless because the code can be easily deobfuscated using mapping file.

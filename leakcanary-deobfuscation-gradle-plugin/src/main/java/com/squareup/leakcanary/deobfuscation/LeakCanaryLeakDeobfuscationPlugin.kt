@@ -28,7 +28,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.UnknownTaskException
-import org.gradle.api.logging.LogLevel.DEBUG
 import org.gradle.api.tasks.TaskProvider
 
 class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
@@ -64,13 +63,12 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
     variant: BaseVariant
   ) {
     val copyObfuscationMappingFileTaskProvider = project.tasks.register(
-        "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
-        CopyObfuscationMappingFileTask::class.java
+      "leakCanaryCopyObfuscationMappingFor${variant.name.capitalize()}",
+      CopyObfuscationMappingFileTask::class.java
     ) {
+      it.variantName = variant.name
       it.mappingFile = variant.mappingFile
-      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get()
-          .outputDir.get()
-          .asFile
+      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
 
       val mappingGeneratingTaskProvider =
         findTaskProviderOrNull(
@@ -79,7 +77,7 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
         ) ?: findTaskProviderOrNull(
             project,
             "transformClassesAndResourcesWithProguardFor${variant.name.capitalize()}"
-        ) ?: throwMissingMinifiedVariantException(project)
+        ) ?: throwMissingMinifiedVariantException()
 
       it.dependsOn(mappingGeneratingTaskProvider)
     }
@@ -110,20 +108,16 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
 
   private fun throwNoAndroidPluginException(): Nothing {
     throw GradleException(
-        "LeakCanary deobfuscation plugin can be used only in Android application or library module."
+      "LeakCanary deobfuscation plugin can be used only in Android application or library module."
     )
   }
 
-  private fun throwMissingMinifiedVariantException(project: Project): Nothing {
-    project.logger.log(
-        DEBUG,
-        """
-          None of the project's variants seem to have minification enabled. 
-          Please make sure that there is at least 1 minified variant in your project.    
-        """.trimIndent()
-    )
+  private fun throwMissingMinifiedVariantException(): Nothing {
     throw GradleException(
-        "LeakCanary deobfuscation plugin couldn't find any variant with minification enabled."
+      """
+        LeakCanary deobfuscation plugin couldn't find any variant with minification enabled.
+        Please make sure that there is at least 1 minified variant in your project. 
+      """
     )
   }
 }
