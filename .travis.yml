@@ -1,4 +1,5 @@
 language: android
+dist: trusty
 
 jdk:
   - oraclejdk8
