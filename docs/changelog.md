@@ -13,10 +13,9 @@ In the past 7 months, LeakCanary went through 3 alphas and 5 betas, encompassing
 **Everything.** The LeakCanary codebase went from **~6000** lines of Java to **~16000** lines of Kotlin, excluding comments & blanks.
 
 !!! question "Isn't Kotlin supposed to drastically reduce the amount of boilerplate code?"
-    Absolutely! And it did. But then, we wrote more code.
-    LeakCanary used to depend on [HAHA](https://github.com/square/haha), a repackaging of [perflib](https://android.googlesource.com/platform/tools/base/+/2f03004c181baf9d291a9bf992e1b444e83cd82d/perflib/), the heap dump parser used by Android Studio. Unfortunately perflib was slow and used too much memory, so LeakCanary now includes its own heap dump parser: [Shark](shark.md). The extra code comes from Shark, but also from having a lot more automated tests, and an improved UI layer.
+    Absolutely! And it did. But then, we wrote more code. LeakCanary used to depend on [HAHA](https://github.com/square/haha), a repackaging of [perflib](https://android.googlesource.com/platform/tools/base/+/2f03004c181baf9d291a9bf992e1b444e83cd82d/perflib/), the heap dump parser used by Android Studio. Unfortunately perflib was slow and used too much memory, so LeakCanary now includes its own heap dump parser: [Shark](shark.md). The extra code comes from Shark, but also from having a lot more automated tests, and an improved UI layer.
 
-One major difference: when the app is in foreground, LeakCanary 2 will not trigger on every retained instance. Instead it will wait until the app goes in background or to reach a threashold of 5 retained instances in foreground. The analysis will then find all the leaks at once, and group identical leaks in the results UI. Please read the [Fundamentals](fundamentals.md) section to learn more!
+One major difference: when the app is in foreground, LeakCanary 2 will not trigger on every retained instance. Instead it will wait until the app goes in background or to reach a threshold of 5 retained instances in foreground. The analysis will then find all the leaks at once, and group identical leaks in the results UI. Please read the [Fundamentals](fundamentals.md) section to learn more!
 
 ### Random facts
 
