@@ -82,7 +82,7 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
       it.dependsOn(mappingGeneratingTaskProvider)
     }
 
-    getPackageTaskProvider(variant).configure {
+    (variant as ApplicationVariant).packageApplicationProvider.configure {
       it.dependsOn(copyObfuscationMappingFileTaskProvider)
     }
   }
