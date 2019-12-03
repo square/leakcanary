@@ -52,10 +52,7 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   fun copyObfuscationMappingFile() {
     val mapping = validateMappingFile()
     validateMergeAssetsDir()
-    val result = mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
-    throw GradleException(
-        "TEST CRASH IN TASK: ${result.absolutePath} ${result.exists()} ${result.readText()}"
-    )
+    mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
   }
 
   private fun validateMappingFile(): File {
