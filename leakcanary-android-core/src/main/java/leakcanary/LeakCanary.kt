@@ -177,8 +177,10 @@ object LeakCanary {
           changedFields += "${field.name}=$newValue"
         }
       }
-      "Updated LeakCanary.config: Config(${if (changedFields.isNotEmpty())
-        changedFields.joinToString(", ") else "no changes"})"
+      val changesInConfig =
+        if (changedFields.isNotEmpty()) changedFields.joinToString(", ") else "no changes"
+
+      "Updated LeakCanary.config: Config($changesInConfig)"
     }
   }
 

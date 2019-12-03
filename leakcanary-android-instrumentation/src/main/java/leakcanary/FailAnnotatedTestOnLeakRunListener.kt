@@ -12,10 +12,10 @@ import org.junit.runner.notification.RunListener
  */
 class FailAnnotatedTestOnLeakRunListener: FailTestOnLeakRunListener() {
 
-  override fun skipLeakDetectionReason(description: Description): String? {
-    return if (description.getAnnotation(FailTestOnLeak::class.java) != null)
-          null
-      else
-          "test is not annotated with @FailTestOnLeak"
-  }
+  override fun skipLeakDetectionReason(description: Description) =
+    if (description.getAnnotation(FailTestOnLeak::class.java) != null) {
+      null
+    } else {
+      "test is not annotated with @FailTestOnLeak"
+    }
 }
