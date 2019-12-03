@@ -82,12 +82,6 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
       it.dependsOn(mappingGeneratingTaskProvider)
     }
 
-    (variant as ApplicationVariant).packageApplicationProvider.configure {
-      it.doLast {
-        throw GradleException("${it.name} PACKAGE TASK FINISHED")
-      }
-    }
-
     getPackageTaskProvider(variant).configure {
       it.dependsOn(copyObfuscationMappingFileTaskProvider)
     }
