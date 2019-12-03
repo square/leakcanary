@@ -100,6 +100,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     assertThat(apkFile != null).isTrue()
 
     // apk contains obfuscation mapping file in assets dir
+    sb.append("inside apk: ${apkFile?.absolutePath}")
     val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
       zipFile.entries().toList().forEach { entry ->
         sb.append(entry.name)

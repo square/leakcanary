@@ -2,9 +2,12 @@ package com.leakcanary.test;
 
 public class TestProjectClass {
   static class Leak {
-    static Object o = new Object();
+    Object o = new Object();
   }
+
+  static Leak leak = new Leak();
+
   public void foo() {
-    Leak.o = new Object();
+    leak.o = this;
   }
 }
