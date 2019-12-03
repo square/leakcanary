@@ -411,6 +411,40 @@
     Version 2.0 (2019-11-27)
   </a>
   
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#should-i-upgrade" class="md-nav__link">
+    Should I upgrade?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#so-whats-changed-since-163" class="md-nav__link">
+    So, what's changed since 1.6.3?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#random-facts" class="md-nav__link">
+    Random facts
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changes-since-20-beta-5" class="md-nav__link">
+    Changes since 2.0 Beta 5
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1034,6 +1068,40 @@
     Version 2.0 (2019-11-27)
   </a>
   
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#should-i-upgrade" class="md-nav__link">
+    Should I upgrade?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#so-whats-changed-since-163" class="md-nav__link">
+    So, what's changed since 1.6.3?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#random-facts" class="md-nav__link">
+    Random facts
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changes-since-20-beta-5" class="md-nav__link">
+    Changes since 2.0 Beta 5
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1284,6 +1352,28 @@
                 
                 <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
 <h2 id="version-20-2019-11-27">Version 2.0 (2019-11-27)<a class="headerlink" href="#version-20-2019-11-27" title="Permanent link">&para;</a></h2>
+<p>In the past 7 months, LeakCanary went through 3 alphas and 5 betas, encompassing 23 contributors over 493 commits, 35826 insertions and 10156 deletions.</p>
+<h3 id="should-i-upgrade">Should I upgrade?<a class="headerlink" href="#should-i-upgrade" title="Permanent link">&para;</a></h3>
+<p><strong>YES!</strong> LeakCanary 2 is so much better, it might make you excited when you see a new memory leak. Follow the <a href="../upgrading-to-leakcanary-2.0/">upgrade guide</a>, you won&rsquo;t regret it!</p>
+<h3 id="so-whats-changed-since-163">So, what&rsquo;s changed since 1.6.3?<a class="headerlink" href="#so-whats-changed-since-163" title="Permanent link">&para;</a></h3>
+<p><strong>Everything.</strong> The LeakCanary codebase went from <strong>~6000</strong> lines of Java to <strong>~16000</strong> lines of Kotlin, excluding comments &amp; blanks.</p>
+<div class="admonition question">
+<p class="admonition-title">Isn&rsquo;t Kotlin supposed to drastically reduce the amount of boilerplate code?</p>
+<p>Absolutely! And it did. But then, we wrote more code.
+LeakCanary used to depend on <a href="https://github.com/square/haha">HAHA</a>, a repackaging of <a href="https://android.googlesource.com/platform/tools/base/+/2f03004c181baf9d291a9bf992e1b444e83cd82d/perflib/">perflib</a>, the heap dump parser used by Android Studio. Unfortunately perflib was slow and used too much memory, so LeakCanary now includes its own heap dump parser: <a href="../shark/">Shark</a>. The extra code comes from Shark, but also from having a lot more automated tests, and an improved UI layer.</p>
+</div>
+<p>One major difference: when the app is in foreground, LeakCanary 2 will not trigger on every retained instance. Instead it will wait until the app goes in background or to reach a threashold of 5 retained instances in foreground. The analysis will then find all the leaks at once, and group identical leaks in the results UI. Please read the <a href="../fundamentals/">Fundamentals</a> section to learn more!</p>
+<h3 id="random-facts">Random facts<a class="headerlink" href="#random-facts" title="Permanent link">&para;</a></h3>
+<ul>
+<li>You can customize the Leaks launcher icon and label: <a href="../recipes/#icon-and-label">learn more here</a>.</li>
+<li>If you long press on your main activity launcher icon, you should see a LeakCanary dynamic shortcut. You can then long press that to drop it on your home screen, and the launcher shows that it&rsquo;s the leaks launcher for your app.</li>
+<li>Out of the box, LeakCanary tracks all fragments flavors: AOSP, Support Library and Android X.</li>
+<li>From within the leak screen, you can share a leak to stack overflow. You can also share a heap dump, or import and analyze a heap dump from another device.</li>
+<li>You can run LeakCanary from your computer command line, on any debuggable app even if that app doesn&rsquo;t have LeakCanary: <a href="../shark/##shark-cli">learn more here</a>.</li>
+<li>The new documentation is fully searchable and includes the API documentation. Try the search bar ⤴.</li>
+<li>A large 160Mb heap dump uses 2Gb memory when opening it in Android Studio, but only 40Mb with Shark.</li>
+</ul>
+<h3 id="changes-since-20-beta-5">Changes since 2.0 Beta 5<a class="headerlink" href="#changes-since-20-beta-5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Shark CLI supports multiple connected devices <a href="https://github.com/square/leakcanary/issues/1642">#1642</a></li>
 <li>Fixed missing sources from Maven Central <a href="https://github.com/square/leakcanary/issues/1643">#1643</a></li>
@@ -1297,7 +1387,6 @@
 for the contributions, bug reports and feature requests.</p>
 <p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/14">2.0 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.0-beta-5...v2.0">full diff</a>.</p>
 <h2 id="version-20-beta-5-2019-11-25">Version 2.0 Beta 5 (2019-11-25)<a class="headerlink" href="#version-20-beta-5-2019-11-25" title="Permanent link">&para;</a></h2>
-<p>Now is a great time to adopt it and provide feedback before the stable release. We&rsquo;re counting on you to find bugs and suggest improvements! Check out the new <a href="https://square.github.io/leakcanary/getting_started">Getting Started</a> instructions and the <a href="https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/">migration guide</a>.</p>
 <ul>
 <li>Major bugfix: native gc roots were accidentally ignored in Beta 4, as a result some leaks were not found <a href="https://github.com/square/leakcanary/issues/1634">#1634</a></li>
 <li>Fixed Lint warning (<code>leak_canary_about_message</code> string triggered <em>multiple substitutions</em> warning) <a href="https://github.com/square/leakcanary/issues/1630">#1630</a></li>
