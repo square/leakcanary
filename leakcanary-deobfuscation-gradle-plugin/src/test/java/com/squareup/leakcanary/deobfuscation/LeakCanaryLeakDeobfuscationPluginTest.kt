@@ -85,19 +85,30 @@ class LeakCanaryLeakDeobfuscationPluginTest {
       result.task(":leakCanaryCopyObfuscationMappingForDebug")?.outcome == SUCCESS
     ).isTrue()
 
+    val sb  = StringBuilder()
+    sb.append("files:")
     // apk has been built
     val apkFile = File(tempFolder.root, "build/outputs/apk/debug")
-      .listFiles()
+      .listFiles().run {
+          this.forEach {
+            sb.append(it.absolutePath)
+            sb.append("\n")
+          }
+          this
+        }
       ?.firstOrNull { it.extension == "apk" }
     assertThat(apkFile != null).isTrue()
 
     // apk contains obfuscation mapping file in assets dir
     val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
-      zipFile.entries().toList().firstOrNull { entry ->
-        entry.name.contains("assets/leakCanaryObfuscationMapping.txt")
+      zipFile.entries().toList().forEach { entry ->
+        sb.append(entry.name)
+        sb.append("\n")
+//        entry.name.contains("assets/leakCanaryObfuscationMapping.txt")
       }
     }
-    assertThat(obfuscationMappingEntry != null).isTrue()
+    assertThat(sb.toString()).isEqualToIgnoringCase("foo")
+//    assertThat(obfuscationMappingEntry != null).isTrue()
   }
 
   @Test
