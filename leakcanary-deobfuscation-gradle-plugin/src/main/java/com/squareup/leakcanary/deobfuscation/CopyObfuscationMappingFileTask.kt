@@ -28,7 +28,6 @@ import java.io.File
 @CacheableTask
 open class CopyObfuscationMappingFileTask : DefaultTask() {
 
-  @Input
   var variantName: String = ""
 
   @Input
@@ -52,8 +51,7 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   fun copyObfuscationMappingFile() {
     val mapping = validateMappingFile()
     validateMergeAssetsDir()
-    validateOutputFile()
-    mapping.copyTo(leakCanaryAssetsOutputFile)
+    mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
   }
 
   private fun validateMappingFile(): File {
@@ -80,11 +78,5 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
         }
       }
     } ?: throw GradleException("Obfuscation mapping is null.")
-  }
-
-  private fun validateOutputFile() {
-    if (leakCanaryAssetsOutputFile.exists() && !leakCanaryAssetsOutputFile.delete()) {
-      throw GradleException("Can't copy obfuscation mapping file. Previous one still exists.")
-    }
   }
 }
