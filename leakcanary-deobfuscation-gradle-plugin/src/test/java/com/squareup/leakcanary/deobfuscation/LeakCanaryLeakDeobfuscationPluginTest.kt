@@ -8,6 +8,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.io.IOException
+import java.io.RandomAccessFile
 import java.util.zip.ZipFile
 
 class LeakCanaryLeakDeobfuscationPluginTest {
@@ -95,6 +97,9 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     val mappingFile = File(tempFolder.root, "build/outputs/mapping/debug/mapping.txt")
     assertThat(mappingFile.exists()).isTrue()
 
+    assertThat(isCompletelyWritten(apkFile!!)).isTrue()
+    assertThat(isCompletelyWritten(mappingFile!!)).isTrue()
+
     // apk contains obfuscation mapping file in assets dir
     val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
       zipFile.entries().toList().firstOrNull { entry ->
@@ -102,6 +107,25 @@ class LeakCanaryLeakDeobfuscationPluginTest {
       }
     }
     assertThat(obfuscationMappingEntry != null).isTrue()
+  }
+
+  private fun isCompletelyWritten(file: File): Boolean {
+    var stream: RandomAccessFile? = null
+    try {
+      stream = RandomAccessFile(file, "rw")
+      return true
+    } catch (e: Exception) {
+
+    } finally {
+      if(stream != null) {
+        try {
+          stream?.close()
+        } catch (e: IOException) {
+
+        }
+      }
+    }
+    return false
   }
 
   @Test
