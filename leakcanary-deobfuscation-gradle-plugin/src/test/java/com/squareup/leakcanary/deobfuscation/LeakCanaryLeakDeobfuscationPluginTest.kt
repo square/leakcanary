@@ -95,6 +95,14 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     val mappingFile = File(tempFolder.root, "build/outputs/mapping/debug/mapping.txt")
     assertThat(mappingFile.exists()).isTrue()
 
+    val sb = StringBuilder()
+    sb.append("APK PATH: ${apkFile?.absolutePath}")
+    sb.append(System.lineSeparator())
+    sb.append("APK PATH: ${mappingFile?.absolutePath}")
+    sb.append(System.lineSeparator())
+    sb.append(result.output)
+    assertThat(sb.toString()).isEqualToIgnoringCase("foo")
+
     // apk contains obfuscation mapping file in assets dir
     val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
       zipFile.entries().toList().firstOrNull { entry ->

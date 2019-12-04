@@ -17,6 +17,7 @@ package com.squareup.leakcanary.deobfuscation
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.logging.LogLevel.LIFECYCLE
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
@@ -51,7 +52,9 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   fun copyObfuscationMappingFile() {
     val mapping = validateMappingFile()
     validateMergeAssetsDir()
-    mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
+    val file = mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
+    logger.log(LIFECYCLE, "ORIGINAL MAPPING: ${mapping.isDirectory} ${mapping.absolutePath} ${mapping.name}")
+    logger.log(LIFECYCLE, "COPIED MAPPING: ${file.isDirectory} ${file.absolutePath} ${file.name}")
   }
 
   private fun validateMappingFile(): File {
