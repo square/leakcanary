@@ -53,8 +53,9 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
     val mapping = validateMappingFile()
     validateMergeAssetsDir()
     val file = mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
-    logger.log(LIFECYCLE, "ORIGINAL MAPPING: ${mapping.isDirectory} ${mapping.absolutePath} ${mapping.name}")
-    logger.log(LIFECYCLE, "COPIED MAPPING: ${file.isDirectory} ${file.absolutePath} ${file.name}")
+    logger.log(LIFECYCLE, "ORIGINAL MAPPING CURRENT TIME: ${System.currentTimeMillis()}")
+    logger.log(LIFECYCLE, "ORIGINAL MAPPING: ${mapping.isDirectory} ${mapping.absolutePath} ${mapping.name} ${mapping.lastModified()}")
+    logger.log(LIFECYCLE, "COPIED MAPPING: ${file.isDirectory} ${file.absolutePath} ${file.name} ${file.lastModified()}")
   }
 
   private fun validateMappingFile(): File {

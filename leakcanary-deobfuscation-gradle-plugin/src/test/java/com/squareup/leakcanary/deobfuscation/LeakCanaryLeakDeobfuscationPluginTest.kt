@@ -96,9 +96,11 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     assertThat(mappingFile.exists()).isTrue()
 
     val sb = StringBuilder()
-    sb.append("APK PATH: ${apkFile?.absolutePath}")
+    sb.append("CURRENT TIME: ${System.currentTimeMillis()}")
     sb.append(System.lineSeparator())
-    sb.append("APK PATH: ${mappingFile?.absolutePath}")
+    sb.append("APK PATH: ${apkFile?.absolutePath} ${apkFile?.lastModified()}")
+    sb.append(System.lineSeparator())
+    sb.append("APK PATH: ${mappingFile?.absolutePath} ${mappingFile?.lastModified()}")
     sb.append(System.lineSeparator())
     sb.append(result.output)
     assertThat(sb.toString()).isEqualToIgnoringCase("foo")
