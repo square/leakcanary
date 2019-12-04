@@ -52,7 +52,8 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   fun copyObfuscationMappingFile() {
     val mapping = validateMappingFile()
     validateMergeAssetsDir()
-    mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
+    validateOutputFile()
+    mapping.copyTo(leakCanaryAssetsOutputFile)
   }
 
   private fun validateMappingFile(): File {
@@ -79,5 +80,11 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
         }
       }
     } ?: throw GradleException("Obfuscation mapping is null.")
+  }
+
+  private fun validateOutputFile() {
+    if (leakCanaryAssetsOutputFile.exists() && !leakCanaryAssetsOutputFile.delete()) {
+      throw GradleException("Can't copy obfuscation mapping file. Previous one still exists.")
+    }
   }
 }
