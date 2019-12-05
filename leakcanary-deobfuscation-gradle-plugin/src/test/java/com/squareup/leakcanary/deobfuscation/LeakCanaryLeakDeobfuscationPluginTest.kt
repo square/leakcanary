@@ -81,6 +81,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     )
 
     val result = GradleRunner.create()
+      .withDebug(true)
       .withProjectDir(tempFolder.root)
       .withArguments("clean", "assembleDebug")
       .withPluginClasspath()
