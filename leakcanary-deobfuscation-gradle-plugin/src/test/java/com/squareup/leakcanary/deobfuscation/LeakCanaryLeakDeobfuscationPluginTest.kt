@@ -81,7 +81,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     )
 
     val result = GradleRunner.create()
-      .withDebug(true)
       .withProjectDir(tempFolder.root)
       .withArguments("clean", "assembleDebug")
       .withPluginClasspath()
@@ -145,7 +144,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     )
 
     GradleRunner.create()
-        .withDebug(true)
         .withProjectDir(tempFolder.root)
         .withArguments("clean", "assembleDebug")
         .withPluginClasspath()
@@ -177,7 +175,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     )
 
     val result = GradleRunner.create()
-      .withDebug(true)
       .withProjectDir(tempFolder.root)
       .withPluginClasspath()
       .buildAndFail()
@@ -226,7 +223,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     )
 
     val result = GradleRunner.create()
-      .withDebug(true)
       .withProjectDir(tempFolder.root)
       .withArguments("clean", "assembleDebug")
       .withPluginClasspath()
