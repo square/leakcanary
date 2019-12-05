@@ -33,6 +33,12 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     }
 
     File("src/test/test-project").copyRecursively(tempFolder.root)
+
+    val proguardRules = tempFolder.newFile("proguard-rules.pro")
+    proguardRules.writeText("""
+      -keep class com.leakcanary.test.** {*;}
+    """.trimIndent()
+    )
   }
 
   @Test
@@ -61,7 +67,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
           buildTypes {
             debug {
               minifyEnabled true
-              proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+              proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             }
           }
         }
@@ -130,7 +136,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
           buildTypes {
             debug {
               minifyEnabled true
-              proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+              proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             }
           }
         }
