@@ -91,6 +91,8 @@ class LeakCanaryLeakDeobfuscationPluginTest {
       result.task(":leakCanaryCopyObfuscationMappingForDebug")?.outcome == SUCCESS
     ).isTrue()
 
+    assertThat(result.output).isEqualToIgnoringCase("foo")
+
     // apk has been built
     val apkFile = File(tempFolder.root, "build/outputs/apk/debug")
       .listFiles()

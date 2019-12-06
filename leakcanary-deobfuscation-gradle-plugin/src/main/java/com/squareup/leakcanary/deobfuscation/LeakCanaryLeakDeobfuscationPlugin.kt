@@ -28,6 +28,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.UnknownTaskException
+import org.gradle.api.logging.LogLevel.LIFECYCLE
 import org.gradle.api.tasks.TaskProvider
 
 class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
@@ -80,10 +81,18 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
         ) ?: throwMissingMinifiedVariantException()
 
       it.dependsOn(mappingGeneratingTaskProvider)
+//      it.dependsOn(variant.mergeAssetsProvider)
+
+      it.doLast { project.logger.log(LIFECYCLE, "TEST MAPPING COPIED") }
     }
 
+    variant.mergeAssetsProvider.configure {
+//      it.dependsOn(copyObfuscationMappingFileTaskProvider)
+      it.doLast { project.logger.log(LIFECYCLE, "TEST MERGE") }
+    }
     getPackageTaskProvider(variant).configure {
       it.dependsOn(copyObfuscationMappingFileTaskProvider)
+      it.doLast { project.logger.log(LIFECYCLE, "TEST PACKAGE") }
     }
   }
 
