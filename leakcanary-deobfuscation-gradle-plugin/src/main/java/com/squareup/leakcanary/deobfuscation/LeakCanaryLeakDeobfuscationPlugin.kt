@@ -82,17 +82,9 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
       it.dependsOn(mappingGeneratingTaskProvider)
     }
 
-    val mergeAssetsTaskName = "generateDebugAssets"
-    project.tasks.named(mergeAssetsTaskName).configure {
+    getPackageTaskProvider(variant).configure {
       it.dependsOn(copyObfuscationMappingFileTaskProvider)
     }
-
-    val android = project.extensions.getByType(AppExtension::class.java)
-    android.sourceSets
-        .first { it.name == variant.name }
-        .apply {
-          assets.setSrcDirs(assets.srcDirs + project.file("${project.buildDir}/generated/assets/"))
-        }
   }
 
   private fun findTaskProviderOrNull(

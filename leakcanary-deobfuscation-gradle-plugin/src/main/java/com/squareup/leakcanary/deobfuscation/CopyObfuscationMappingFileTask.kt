@@ -41,7 +41,7 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   @get:OutputFile
   @get:PathSensitive(PathSensitivity.RELATIVE)
   val leakCanaryAssetsOutputFile: File
-    get() = File("${project.buildDir}/generated/assets/", "leakCanaryObfuscationMapping.txt")
+    get() = File(mergeAssetsDirectory, "leakCanaryObfuscationMapping.txt")
 
   init {
     description = "Puts obfuscation mapping file in assets directory."
