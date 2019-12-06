@@ -21,6 +21,7 @@ import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.api.BaseVariant
 import com.android.build.gradle.api.LibraryVariant
+import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.DefaultTask
 import org.gradle.api.DomainObjectSet
 import org.gradle.api.GradleException
@@ -68,7 +69,8 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
     ) {
       it.variantName = variant.name
       it.mappingFile = variant.mappingFile
-      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
+      it.variantDirName = variant.dirName
+//      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
 
       val mappingGeneratingTaskProvider =
         findTaskProviderOrNull(
@@ -82,9 +84,22 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
       it.dependsOn(mappingGeneratingTaskProvider)
     }
 
-    getPackageTaskProvider(variant).configure {
-      it.dependsOn(copyObfuscationMappingFileTaskProvider)
-    }
+//    getPackageTaskProvider(variant).configure {
+//      it.dependsOn(copyObfuscationMappingFileTaskProvider)
+//    }
+
+
+    val generateAssetsTask = project.tasks.named("generateDebugAssets")
+
+    generateAssetsTask.dependsOn(copyObfuscationMappingFileTaskProvider)
+
+    val android = project.extensions.getByType(AppExtension::class.java)
+    android.sourceSets
+      .first { variant.name == it.name }
+      .apply {
+        val file = project.file("${project.buildDir}/generated/assets/${variant.dirName}")
+        assets.setSrcDirs(assets.srcDirs + file)
+      }
   }
 
   private fun findTaskProviderOrNull(

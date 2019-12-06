@@ -82,7 +82,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
     val result = GradleRunner.create()
       .withProjectDir(tempFolder.root)
-      .withArguments("clean", "assembleDebug", "--debug")
+      .withArguments("clean", "assembleDebug")
       .withPluginClasspath()
       .build()
 
@@ -90,8 +90,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     assertThat(
       result.task(":leakCanaryCopyObfuscationMappingForDebug")?.outcome == SUCCESS
     ).isTrue()
-
-    assertThat(result.output).isEqualToIgnoringCase("foo")
 
     // apk has been built
     val apkFile = File(tempFolder.root, "build/outputs/apk/debug")

@@ -29,19 +29,22 @@ import java.io.File
 open class CopyObfuscationMappingFileTask : DefaultTask() {
 
   var variantName: String = ""
+  var variantDirName: String = ""
 
   @Input
   @PathSensitive(PathSensitivity.RELATIVE)
   var mappingFile: File? = null
 
-  @Input
-  @PathSensitive(PathSensitivity.RELATIVE)
-  var mergeAssetsDirectory: File? = null
+//  @Input
+//  @PathSensitive(PathSensitivity.RELATIVE)
+//  var mergeAssetsDirectory: File? = null
 
   @get:OutputFile
   @get:PathSensitive(PathSensitivity.RELATIVE)
   val leakCanaryAssetsOutputFile: File
-    get() = File(mergeAssetsDirectory, "leakCanaryObfuscationMapping.txt")
+    get() = File(
+        project.file("${project.buildDir}/generated/assets/$variantDirName"),
+        "leakCanaryObfuscationMapping.txt")
 
   init {
     description = "Puts obfuscation mapping file in assets directory."
@@ -50,7 +53,6 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   @TaskAction
   fun copyObfuscationMappingFile() {
     val mapping = validateMappingFile()
-    validateMergeAssetsDir()
     mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
   }
 
@@ -65,18 +67,5 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
       )
     }
     return mapping
-  }
-
-  private fun validateMergeAssetsDir() {
-    mergeAssetsDirectory?.let { mergeAssetsDir ->
-      if (!mergeAssetsDir.exists()) {
-        val mergeAssetsDirCreated = mergeAssetsDir.mkdirs()
-        if (!mergeAssetsDirCreated) {
-          throw GradleException(
-            "Obfuscation mapping destination dir doesn't exist and it's impossible to create it."
-          )
-        }
-      }
-    } ?: throw GradleException("Obfuscation mapping is null.")
   }
 }
