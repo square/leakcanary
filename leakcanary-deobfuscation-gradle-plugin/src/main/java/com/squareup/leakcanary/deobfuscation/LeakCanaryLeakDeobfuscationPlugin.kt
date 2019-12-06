@@ -81,7 +81,7 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
         ) ?: throwMissingMinifiedVariantException()
 
       it.dependsOn(mappingGeneratingTaskProvider)
-//      it.dependsOn(variant.mergeAssetsProvider)
+      it.dependsOn(variant.mergeAssetsProvider)
 
       it.doLast { project.logger.log(LIFECYCLE, "TEST MAPPING COPIED") }
     }
