@@ -61,14 +61,6 @@ internal class LeakScreen(
 
     val spinner = findViewById<Spinner>(R.id.leak_canary_spinner)
 
-    val selectedLeakIndex =
-      if (selectedHeapAnalysisId == null) -1 else leaks.indexOfFirst { it.analysisId == selectedHeapAnalysisId }
-    if (selectedLeakIndex != -1) {
-      spinner.setSelection(selectedLeakIndex)
-    } else {
-      spinner.setSelection(0)
-    }
-
     spinner.adapter = SimpleListAdapter(R.layout.leak_canary_simple_row, leaks) { view, position ->
       val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
       val timeView = view.findViewById<TextView>(R.id.leak_canary_row_small_text)
@@ -101,6 +93,14 @@ internal class LeakScreen(
               }
         }
       }
+    }
+
+    val selectedLeakIndex =
+      if (selectedHeapAnalysisId == null) -1 else leaks.indexOfFirst { it.analysisId == selectedHeapAnalysisId }
+    if (selectedLeakIndex != -1) {
+      spinner.setSelection(selectedLeakIndex)
+    } else {
+      spinner.setSelection(0)
     }
   }
 
