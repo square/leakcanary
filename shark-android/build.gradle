@@ -11,7 +11,10 @@ dependencies {
 
   testImplementation deps.assertj_core
   testImplementation deps.junit
+  testImplementation deps.mockito
+  testImplementation deps.mockito_kotlin
   testImplementation deps.okio
+  testImplementation project(':shark-test')
 }
 
 apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

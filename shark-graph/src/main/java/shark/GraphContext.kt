@@ -5,7 +5,7 @@ package shark
  * This is a simple [MutableMap] of [String] to [Any], but with unsafe generics access.
  */
 class GraphContext {
-  private val store = mutableMapOf<String, Any>()
+  private val store = mutableMapOf<String, Any?>()
   operator fun <T> get(key: String): T? {
     @Suppress("UNCHECKED_CAST")
     return store[key] as T?
@@ -20,7 +20,7 @@ class GraphContext {
   ): T {
     @Suppress("UNCHECKED_CAST")
     return store.getOrPut(key, {
-      defaultValue() as Any
+      defaultValue()
     }) as T
   }
 
@@ -31,7 +31,7 @@ class GraphContext {
     key: String,
     value: T
   ) {
-    store[key] = (value as Any)
+    store[key] = (value as Any?)
   }
 
   /**
