@@ -36,7 +36,7 @@ class LeakTraceStringRenderingTest {
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking
-    ​     Leaking: YES (ObjectWatcher was watching this)
+    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -69,7 +69,7 @@ class LeakTraceStringRenderingTest {
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking
-    ​     Leaking: YES (ObjectWatcher was watching this)
+    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -143,7 +143,7 @@ class LeakTraceStringRenderingTest {
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking
-    ​     Leaking: YES (ObjectWatcher was watching this)
+    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     ¯\_(ツ)_/¯
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -179,7 +179,7 @@ class LeakTraceStringRenderingTest {
     │    ↓ ClassA.leak
     │             ~~~~
     ╰→ Leaking
-    ​     Leaking: YES (ObjectWatcher was watching this)
+    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -208,7 +208,7 @@ class LeakTraceStringRenderingTest {
     │    ↓ array Object[].[0]
     │                     ~~~
     ╰→ Leaking
-    ​     Leaking: YES (ObjectWatcher was watching this)
+    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -229,7 +229,7 @@ class LeakTraceStringRenderingTest {
     │    ↓ thread MyThread.<Java Local>
     │                      ~~~~~~~~~~~~
     ╰→ Leaking
-    ​     Leaking: YES (ObjectWatcher was watching this)
+    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000

@@ -14,7 +14,7 @@ class MyService : Service {
 
   override fun onDestroy() {
     super.onDestroy()
-    AppWatcher.objectWatcher.watch(this)
+    AppWatcher.objectWatcher.watch(this, "MyService received Service#onDestroy() callback")
   }
 }
 ```

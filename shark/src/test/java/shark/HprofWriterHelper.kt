@@ -164,7 +164,7 @@ class HprofWriterHelper constructor(
         classId = keyedWeakReferenceClassId,
         fields = listOf(
             referenceKey,
-            string(""),
+            string("its lifecycle has ended"),
             LongHolder(5000),
             LongHolder(20000),
             ReferenceHolder(referentInstanceId.value)

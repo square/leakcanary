@@ -25,7 +25,7 @@ class InstrumentationLeakDetectorTest {
   @Test fun detectsLeak() {
     leaking = Date()
     val refWatcher = AppWatcher.objectWatcher
-    refWatcher.watch(leaking)
+    refWatcher.watch(leaking, "This date should not live beyond the test")
     assertLeak(Date::class.java)
   }
 
