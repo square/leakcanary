@@ -14,6 +14,11 @@ before_install:
   - sdkmanager "system-images;android-16;default;armeabi-v7a"
   # Create and start emulator for the script. Meant to race the install task.
   - echo no | avdmanager create avd --force -n test -k "system-images;android-16;default;armeabi-v7a"
+  # Pin the emulator to 29.2.1.0 to work around https://issuetracker.google.com/issues/145622251.
+  - curl -fo emulator.zip "https://dl.google.com/android/repository/emulator-linux-5889189.zip"
+  - rm -rf "${ANDROID_HOME}/emulator"
+  - unzip -q emulator.zip -d "${ANDROID_HOME}"
+  - rm -f emulator.zip 
   - $ANDROID_HOME/emulator/emulator -avd test -no-audio -no-window &
 
 install:
