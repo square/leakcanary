@@ -4,17 +4,19 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.content.res.Resources.NotFoundException
 import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
+import leakcanary.AppWatcher
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
-import leakcanary.AppWatcher
 import leakcanary.ObjectWatcher
 import leakcanary.internal.NotificationReceiver.Action.CANCEL_NOTIFICATION
 import leakcanary.internal.NotificationReceiver.Action.DUMP_HEAP
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
+import shark.AndroidResourceIdNames
 import shark.SharkLog
 
 @Suppress("TooManyFunctions")
@@ -96,26 +98,56 @@ internal class HeapDumpTrigger(
       showRetainedCountWithDebuggerAttached(retainedReferenceCount)
       scheduleRetainedObjectCheck("debugger was attached", WAIT_FOR_DEBUG_MILLIS)
       SharkLog.d {
-          "Not checking for leaks while the debugger is attached, will retry in $WAIT_FOR_DEBUG_MILLIS ms"
+        "Not checking for leaks while the debugger is attached, will retry in $WAIT_FOR_DEBUG_MILLIS ms"
       }
       return
     }
 
     SharkLog.d { "Found $retainedReferenceCount retained references, dumping the heap" }
+    dismissRetainedCountNotification()
+    dumpHeap(retainedReferenceCount, retry = true)
+  }
+
+  private fun dumpHeap(
+    retainedReferenceCount: Int,
+    retry: Boolean
+  ) {
+    saveResourceIdNamesToMemory()
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-    dismissRetainedCountNotification()
     val heapDumpFile = heapDumper.dumpHeap()
     if (heapDumpFile == null) {
-      SharkLog.d { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
-      scheduleRetainedObjectCheck("failed to dump heap", WAIT_AFTER_DUMP_FAILED_MILLIS)
+      if (retry) {
+        SharkLog.d { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
+        scheduleRetainedObjectCheck("failed to dump heap", WAIT_AFTER_DUMP_FAILED_MILLIS)
+      } else {
+        SharkLog.d { "Failed to dump heap" }
+      }
       showRetainedCountWithHeapDumpFailed(retainedReferenceCount)
       return
     }
     lastDisplayedRetainedObjectCount = 0
     objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-
     HeapAnalyzerService.runAnalysis(application, heapDumpFile)
+  }
+
+  private fun saveResourceIdNamesToMemory() {
+    val resources = application.resources
+    AndroidResourceIdNames.saveToMemory(
+        getResourceTypeName = { id ->
+          try {
+            resources.getResourceTypeName(id)
+          } catch (e: NotFoundException) {
+            null
+          }
+        },
+        getResourceEntryName = { id ->
+          try {
+            resources.getResourceEntryName(id)
+          } catch (e: NotFoundException) {
+            null
+          }
+        })
   }
 
   fun onDumpHeapReceived(forceDump: Boolean) {
@@ -150,19 +182,8 @@ internal class HeapDumpTrigger(
         return@post
       }
 
-      val heapDumpUptimeMillis = SystemClock.uptimeMillis()
-      KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-      SharkLog.d { "Dumping the heap because user tapped notification" }
-
-      val heapDumpFile = heapDumper.dumpHeap()
-      if (heapDumpFile == null) {
-        SharkLog.d { "Failed to dump heap" }
-        showRetainedCountWithHeapDumpFailed(retainedReferenceCount)
-        return@post
-      }
-      lastDisplayedRetainedObjectCount = 0
-      objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-      HeapAnalyzerService.runAnalysis(application, heapDumpFile)
+      SharkLog.d { "Dumping the heap because user requested it" }
+      dumpHeap(retainedReferenceCount, retry = false)
     }
   }
 
@@ -183,7 +204,7 @@ internal class HeapDumpTrigger(
     if (retainedKeysCount < retainedVisibleThreshold) {
       if (applicationVisible || applicationInvisibleLessThanWatchPeriod) {
         SharkLog.d {
-            "Found $retainedKeysCount retained objects, which is less than the visible threshold of $retainedVisibleThreshold"
+          "Found $retainedKeysCount retained objects, which is less than the visible threshold of $retainedVisibleThreshold"
         }
         showRetainedCountBelowThresholdNotification(retainedKeysCount, retainedVisibleThreshold)
         scheduleRetainedObjectCheck(
