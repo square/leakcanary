@@ -16,10 +16,10 @@
   -->
 <resources>
 
+  <public name="leak_canary_add_dynamic_shortcut" type="bool"/>
+  <public name="leak_canary_add_launcher_icon" type="bool"/>
   <public name="leak_canary_display_activity_label" type="string"/>
   <public name="leak_canary_heap_dump_toast" type="layout"/>
   <public name="leak_canary_icon" type="mipmap"/>
-  <public name="leak_canary_add_dynamic_shortcut" type="bool"/>
-  <public name="leak_canary_add_launcher_icon" type="bool"/>
-
+  <public name="leak_canary_test_class_name" type="string"/>
 </resources>

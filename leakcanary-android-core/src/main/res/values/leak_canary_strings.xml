@@ -84,4 +84,5 @@
   <string name="leak_canary_import_hprof_file">Import Heap Dump</string>
   <string name="leak_canary_options_menu_render_heap_dump">Render Heap Dump</string>
   <string name="leak_canary_help_title">Tap here to learn more</string>
+  <string name="leak_canary_test_class_name" translatable="false">org.junit.Test</string>
 </resources>

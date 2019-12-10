@@ -1,29 +1,20 @@
-# recipe from https://medium.com/@fawwazyusran/how-to-travis-ci-working-for-android-api-level-28-2fde7292813c
-# needed special script to install android 28, build tools required by AGP 3.5.2
-
-sudo: required
 language: android
-jdk: oraclejdk8
-dist: trusty
 
-android:
-  components:
-    - tools
-    - platform-tools
-    - sys-img-armeabi-v7a-google_apis-25
-
-licenses:
-    - 'android-sdk-preview-license-52d11cd2'
-    - 'android-sdk-license-.+'
-
+jdk:
+  - oraclejdk8
 
 before_install:
-  - touch $HOME/.android/repositories.cfg
-  - yes | sdkmanager "build-tools;28.0.3"
-  - android create avd --force -n test -t android-25 --abi armeabi-v7a -c 100M
-  - emulator -avd test -no-audio -no-window &
-  #- echo no | $ANDROID_HOME/tools/bin/avdmanager create avd --force -n test -k "sys-img-armeabi-v7a-google_apis-25" -c 100M
-  #- $ANDROID_HOME/tools/emulator/emulator -avd test -no-audio -no-window &
+  # Install SDK license so Android Gradle plugin can install deps.
+  - mkdir "$ANDROID_HOME/licenses" || true
+  - echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-license"
+  - echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> "$ANDROID_HOME/licenses/android-sdk-license"
+  # Install the rest of tools (e.g., avdmanager)
+  - sdkmanager tools
+  # Install the system image
+  - sdkmanager "system-images;android-16;default;armeabi-v7a"
+  # Create and start emulator for the script. Meant to race the install task.
+  - echo no | avdmanager create avd --force -n test -k "system-images;android-16;default;armeabi-v7a"
+  - $ANDROID_HOME/emulator/emulator -avd test -no-audio -no-window -gpu swiftshader_indirect &
 
 install:
   #Run tasks in sequence so that Gradle doesn't run 'clean' in parallel with 'build'

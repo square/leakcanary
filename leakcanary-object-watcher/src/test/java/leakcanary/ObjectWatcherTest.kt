@@ -21,14 +21,14 @@ class ObjectWatcherTest {
   var ref: Any? = Any()
 
   @Test fun `unreachable object not retained`() {
-    objectWatcher.watch(ref!!)
+    objectWatcher.watch(ref!!, "unreachable object not retained")
     ref = null
     runGc()
     assertThat(objectWatcher.hasRetainedObjects).isFalse()
   }
 
   @Test fun `reachable object retained`() {
-    objectWatcher.watch(ref!!)
+    objectWatcher.watch(ref!!, "reachable object retained")
     runGc()
     assertThat(objectWatcher.hasRetainedObjects).isTrue()
   }

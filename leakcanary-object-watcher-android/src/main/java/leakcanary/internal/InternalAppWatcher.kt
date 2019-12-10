@@ -14,6 +14,9 @@ import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
 import java.util.concurrent.Executor
 
+/**
+ * Note: this object must load fine in a JUnit environment
+ */
 internal object InternalAppWatcher {
 
   val isInstalled
@@ -33,7 +36,9 @@ internal object InternalAppWatcher {
     }
   }
 
-  private val mainHandler = Handler(Looper.getMainLooper())
+  private val mainHandler by lazy {
+    Handler(Looper.getMainLooper())
+  }
 
   init {
     val internalLeakCanary = try {

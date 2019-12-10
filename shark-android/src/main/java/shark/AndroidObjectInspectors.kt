@@ -96,8 +96,14 @@ enum class AndroidObjectInspectors : ObjectInspector {
           labels += "View#mAttachInfo is not null (view attached)"
         }
 
-        // TODO Add back support for view id labels, see https://github.com/square/leakcanary/issues/1297
-
+        AndroidResourceIdNames.readFromHeap(instance.graph)?.let { resIds ->
+         val mID = instance["android.view.View", "mID"]!!.value.asInt!!
+          val noViewId = -1
+          if (mID != noViewId) {
+            val resourceName = resIds[mID]
+            labels += "View.mID = R.id.$resourceName"
+          }
+        }
         labels += "View.mWindowAttachCount = $mWindowAttachCount"
       }
     }

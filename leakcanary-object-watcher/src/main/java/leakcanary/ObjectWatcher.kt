@@ -112,6 +112,12 @@ class ObjectWatcher constructor(
   /**
    * Identical to [watch] with an empty string reference name.
    */
+  @Deprecated(
+      "Add description parameter explaining why an object is watched to help understand leak traces.",
+      replaceWith = ReplaceWith(
+          "watch(watchedObject, \"Explain why this object should be garbage collected soon\")"
+      )
+  )
   @Synchronized fun watch(watchedObject: Any) {
     watch(watchedObject, "")
   }
@@ -119,11 +125,11 @@ class ObjectWatcher constructor(
   /**
    * Watches the provided [watchedObject].
    *
-   * @param name A logical identifier for the watched object.
+   * @param description Describes why the object is watched.
    */
   @Synchronized fun watch(
     watchedObject: Any,
-    name: String
+    description: String
   ) {
     if (!isEnabled()) {
       return
@@ -133,12 +139,12 @@ class ObjectWatcher constructor(
         .toString()
     val watchUptimeMillis = clock.uptimeMillis()
     val reference =
-      KeyedWeakReference(watchedObject, key, name, watchUptimeMillis, queue)
+      KeyedWeakReference(watchedObject, key, description, watchUptimeMillis, queue)
     SharkLog.d {
-        "Watching " +
-            (if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") +
-            (if (name.isNotEmpty()) " named $name" else "") +
-            " with key $key"
+      "Watching " +
+          (if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") +
+          (if (description.isNotEmpty()) " ($description)" else "") +
+          " with key $key"
     }
 
     watchedObjects[key] = reference

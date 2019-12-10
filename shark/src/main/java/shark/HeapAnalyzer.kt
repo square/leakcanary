@@ -363,8 +363,11 @@ class HeapAnalyzer constructor(
       val className =
         recordClassName(graph.findObjectById(pathNode.objectId))
 
-      val firstLibraryLeakNode = if (rootNode is LibraryLeakNode) rootNode else
+      val firstLibraryLeakNode = if (rootNode is LibraryLeakNode) {
+        rootNode
+      } else {
         shortestChildPath.firstOrNull { it is LibraryLeakNode } as LibraryLeakNode?
+      }
 
       if (firstLibraryLeakNode != null) {
         val matcher = firstLibraryLeakNode.matcher

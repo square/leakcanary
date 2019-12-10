@@ -2,6 +2,34 @@
 
 ## Version 2.0 (2019-11-27)
 
+In the past 7 months, LeakCanary went through 3 alphas and 5 betas, encompassing 23 contributors over 493 commits, 35826 insertions and 10156 deletions.
+
+### Should I upgrade?
+
+**YES!** LeakCanary 2 is so much better, it might make you excited when you see a new memory leak. Follow the [upgrade guide](upgrading-to-leakcanary-2.0.md), you won't regret it!
+
+### So, what's changed since 1.6.3?
+
+**Everything.** The LeakCanary codebase went from **~6000** lines of Java to **~16000** lines of Kotlin, excluding comments & blanks.
+
+!!! question "Isn't Kotlin supposed to drastically reduce the amount of boilerplate code?"
+    Absolutely! And it did. But then, we wrote more code.
+    LeakCanary used to depend on [HAHA](https://github.com/square/haha), a repackaging of [perflib](https://android.googlesource.com/platform/tools/base/+/2f03004c181baf9d291a9bf992e1b444e83cd82d/perflib/), the heap dump parser used by Android Studio. Unfortunately perflib was slow and used too much memory, so LeakCanary now includes its own heap dump parser: [Shark](shark.md). The extra code comes from Shark, but also from having a lot more automated tests, and an improved UI layer.
+
+One major difference: when the app is in foreground, LeakCanary 2 will not trigger on every retained instance. Instead it will wait until the app goes in background or to reach a threashold of 5 retained instances in foreground. The analysis will then find all the leaks at once, and group identical leaks in the results UI. Please read the [Fundamentals](fundamentals.md) section to learn more!
+
+### Random facts
+
+* You can customize the Leaks launcher icon and label: [learn more here](recipes.md#icon-and-label).
+* If you long press on your main activity launcher icon, you should see a LeakCanary dynamic shortcut. You can then long press that to drop it on your home screen, and the launcher shows that it's the leaks launcher for your app.
+* Out of the box, LeakCanary tracks all fragments flavors: AOSP, Support Library and Android X.
+* From within the leak screen, you can share a leak to stack overflow. You can also share a heap dump, or import and analyze a heap dump from another device.
+* You can run LeakCanary from your computer command line, on any debuggable app even if that app doesn't have LeakCanary: [learn more here](shark.md##shark-cli).
+* The new documentation is fully searchable and includes the API documentation. Try the search bar ⤴.
+* A large 160Mb heap dump uses 2Gb memory when opening it in Android Studio, but only 40Mb with Shark.
+
+### Changes since 2.0 Beta 5
+
 * Shark CLI supports multiple connected devices [#1642](https://github.com/square/leakcanary/issues/1642)
 * Fixed missing sources from Maven Central [#1643](https://github.com/square/leakcanary/issues/1643)
 * Updated notification icon to avoid confusion with Twitter DM notifications, and added icons to bottom navigation bar [#1648](https://github.com/square/leakcanary/pull/1648)
@@ -16,8 +44,6 @@ for the contributions, bug reports and feature requests.
 For more details, see the [2.0 Milestone](https://github.com/square/leakcanary/milestone/14) and the [full diff](https://github.com/square/leakcanary/compare/v2.0-beta-5...v2.0).
 
 ## Version 2.0 Beta 5 (2019-11-25)
-
-Now is a great time to adopt it and provide feedback before the stable release. We're counting on you to find bugs and suggest improvements! Check out the new [Getting Started](https://square.github.io/leakcanary/getting_started) instructions and the [migration guide](https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/).
 
 * Major bugfix: native gc roots were accidentally ignored in Beta 4, as a result some leaks were not found [#1634](https://github.com/square/leakcanary/issues/1634)
 * Fixed Lint warning (`leak_canary_about_message` string triggered *multiple substitutions* warning) [#1630](https://github.com/square/leakcanary/issues/1630)

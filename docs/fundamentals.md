@@ -28,7 +28,7 @@ Memory leaks are very common in Android apps and the accumulation of small memor
 The foundation of LeakCanary is a library called *ObjectWatcher Android*. It hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed objects are passed to an `ObjectWatcher`, which holds **weak references** to them. You can also watch any objects that is no longer needed, for example a detached view, a destroyed presenter, etc.
 
 ```kotlin
-AppWatcher.objectWatcher.watch(myDetachedView)
+AppWatcher.objectWatcher.watch(myDetachedView, "View was detached")
 ```
 
 If the weak references aren't cleared after **waiting 5 seconds** and running the garbage collector, the watched objects are considered **retained**, and potentially leaking. LeakCanary logs this to Logcat:
