@@ -92,10 +92,10 @@ internal object FragmentDestroyWatcher {
   ): ((Activity) -> Unit)? {
 
     return if (classAvailable(fragmentClassName) &&
-            classAvailable(watcherClassName)
+        classAvailable(watcherClassName)
     ) {
       val watcherConstructor = Class.forName(watcherClassName)
-              .getDeclaredConstructor(ObjectWatcher::class.java, Function0::class.java)
+          .getDeclaredConstructor(ObjectWatcher::class.java, Function0::class.java)
       @Suppress("UNCHECKED_CAST")
       watcherConstructor.newInstance(objectWatcher, configProvider) as (Activity) -> Unit
 
@@ -108,7 +108,15 @@ internal object FragmentDestroyWatcher {
     return try {
       Class.forName(className)
       true
-    } catch (e: ClassNotFoundException) {
+    } catch (e: Throwable) {
+      // e is typically expected to be a ClassNotFoundException
+      // Unfortunately, prior to version 25.0.2 of the support library the
+      // FragmentManager.FragmentLifecycleCallbacks class was a non static inner class.
+      // Our AndroidSupportFragmentDestroyWatcher class is compiled against the static version of
+      // the FragmentManager.FragmentLifecycleCallbacks class, leading to the
+      // AndroidSupportFragmentDestroyWatcher class being rejected and a NoClassDefFoundError being
+      // thrown here. So we're just covering our butts here and catching everything, and assuming
+      // any throwable means "can't use this". See https://github.com/square/leakcanary/issues/1662
       false
     }
   }
