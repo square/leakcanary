@@ -14,7 +14,7 @@ before_install:
   - sdkmanager "system-images;android-16;default;armeabi-v7a"
   # Create and start emulator for the script. Meant to race the install task.
   - echo no | avdmanager create avd --force -n test -k "system-images;android-16;default;armeabi-v7a"
-  - $ANDROID_HOME/emulator/emulator -avd test -no-audio -no-window &
+  - $ANDROID_HOME/emulator/emulator -avd test -no-audio -no-window -gpu swiftshader_indirect &
 
 install:
   #Run tasks in sequence so that Gradle doesn't run 'clean' in parallel with 'build'
