@@ -21,11 +21,13 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
-import shark.OnAnalysisProgressListener
 import shark.HeapAnalyzer
 import shark.ObjectInspectors
+import shark.OnAnalysisProgressListener
+import shark.ProguardMappingReader
 import shark.SharkLog
 import java.io.File
+import java.io.IOException
 
 /**
  * This service runs in a main app process.
@@ -57,6 +59,11 @@ internal class HeapAnalyzerService : ForegroundService(
     val heapAnalyzer = HeapAnalyzer(this)
     val config = LeakCanary.config
 
+    val proguardMappingReader = try {
+      ProguardMappingReader(assets.open(PROGUARD_MAPPING_FILE_NAME))
+    } catch (e: IOException) {
+      null
+    }
 
     val heapAnalysis =
       heapAnalyzer.analyze(
@@ -67,7 +74,8 @@ internal class HeapAnalyzerService : ForegroundService(
           if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
               ObjectInspectors.KEYED_WEAK_REFERENCE
           ),
-          config.metatadaExtractor
+          config.metatadaExtractor,
+          proguardMappingReader?.readProguardMapping()
       )
 
     config.onHeapAnalyzedListener.onHeapAnalyzed(heapAnalysis)
@@ -84,6 +92,7 @@ internal class HeapAnalyzerService : ForegroundService(
 
   companion object {
     private const val HEAPDUMP_FILE_EXTRA = "HEAPDUMP_FILE_EXTRA"
+    private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
 
     fun runAnalysis(
       context: Context,

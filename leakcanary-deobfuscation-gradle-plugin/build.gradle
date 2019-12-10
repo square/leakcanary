@@ -1,0 +1,32 @@
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'java-gradle-plugin'
+apply plugin: 'maven'
+
+gradlePlugin {
+  plugins {
+    leakCanary {
+      id = 'com.squareup.leakcanary.deobfuscation'
+      implementationClass =
+          'com.squareup.leakcanary.deobfuscation.LeakCanaryLeakDeobfuscationPlugin'
+    }
+  }
+
+  sourceSets {
+    test.java.srcDirs += 'src/test/test-project/src/main/java'
+  }
+}
+
+dependencies {
+  implementation deps.kotlin.stdlib
+  implementation deps.kotlin.gradlePlugin
+  implementation deps.androidGradlePlugin
+  compileOnly gradleApi()
+
+  testImplementation deps.assertj_core
+  testImplementation deps.junit
+}
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
