@@ -2,7 +2,6 @@ package leakcanary.internal.activity.screen
 
 import android.text.Html
 import android.text.SpannableStringBuilder
-import android.text.format.DateUtils
 import android.text.method.LinkMovementMethod
 import android.view.View
 import android.view.ViewGroup
@@ -16,6 +15,7 @@ import leakcanary.internal.activity.db.LeakTable.HeapAnalysisGroupProjection
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.share
 import leakcanary.internal.activity.shareHeapDump
+import leakcanary.internal.activity.ui.TimeFormatter
 import leakcanary.internal.activity.ui.UiUtils
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
@@ -54,12 +54,7 @@ internal class HeapDumpScreen(
     heapDumpFileExist: Boolean
   ) {
 
-    val timeString = DateUtils.formatDateTime(
-        context, heapAnalysis.createdAtTimeMillis,
-        DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
-    )
-
-    activity.title = timeString
+    activity.title = TimeFormatter.formatTimestamp(context, heapAnalysis.createdAtTimeMillis)
 
     onCreateOptionsMenu { menu ->
       menu.add(R.string.leak_canary_delete)
@@ -168,10 +163,8 @@ internal class HeapDumpScreen(
           descriptionView.text =
             (if (isNew) "[NEW] " else "") + projection.description
 
-          val formattedDate = DateUtils.formatDateTime(
-              view.context, projection.createdAtTimeMillis,
-              DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
-          )
+          val formattedDate =
+            TimeFormatter.formatTimestamp(view.context, projection.createdAtTimeMillis)
           timeView.text =
             resources.getString(R.string.leak_canary_group_list_time_label, formattedDate)
           view

@@ -2,7 +2,6 @@ package leakcanary.internal.activity.screen
 
 import android.text.Html
 import android.text.SpannableStringBuilder
-import android.text.format.DateUtils
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
@@ -21,6 +20,7 @@ import leakcanary.internal.activity.share
 import leakcanary.internal.activity.shareHeapDump
 import leakcanary.internal.activity.shareToStackOverflow
 import leakcanary.internal.activity.ui.SimpleListAdapter
+import leakcanary.internal.activity.ui.TimeFormatter
 import leakcanary.internal.activity.ui.UiUtils.replaceUrlSpanWithAction
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
@@ -68,10 +68,8 @@ internal class LeakScreen(
         view.resources.getString(
             R.string.leak_canary_class_has_leaked, leaks[position].classSimpleName
         )
-      timeView.text = DateUtils.formatDateTime(
-          view.context, leaks[position].createdAtTimeMillis,
-          DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
-      )
+      timeView.text =
+        TimeFormatter.formatTimestamp(view.context, leaks[position].createdAtTimeMillis)
     }
 
     spinner.onItemSelectedListener = object : OnItemSelectedListener {

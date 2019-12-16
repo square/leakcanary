@@ -123,7 +123,7 @@ internal object LeakTable {
           FROM leak l
           LEFT JOIN heap_analysis h ON l.heap_analysis_id = h.id
           GROUP BY 1, 2
-          ORDER BY leak_count, created_at_time_millis DESC
+          ORDER BY leak_count DESC, created_at_time_millis DESC
           """, null
     )
         .use { cursor ->
@@ -164,6 +164,7 @@ internal object LeakTable {
           FROM leak l
           LEFT JOIN heap_analysis h ON l.heap_analysis_id = h.id
           WHERE group_hash = ?
+          ORDER BY h.created_at_time_millis DESC
           """, arrayOf(groupHash)
     )
         .use { cursor ->

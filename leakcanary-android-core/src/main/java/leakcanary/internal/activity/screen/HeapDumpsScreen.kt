@@ -1,7 +1,6 @@
 package leakcanary.internal.activity.screen
 
 import android.app.AlertDialog
-import android.text.format.DateUtils
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ListView
@@ -13,6 +12,7 @@ import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.HeapAnalysisTable.Projection
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.ui.SimpleListAdapter
+import leakcanary.internal.activity.ui.TimeFormatter
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
@@ -88,10 +88,7 @@ internal class HeapDumpsScreen : Screen() {
 
         val projection = getItem(position)
 
-        timeView.text = DateUtils.formatDateTime(
-            view.context, projection.createdAtTimeMillis,
-            DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
-        )
+        timeView.text = TimeFormatter.formatTimestamp(view.context, projection.createdAtTimeMillis)
 
         val count = projection.exceptionSummary ?: resources.getQuantityString(
             R.plurals.leak_canary_distinct_leaks,
