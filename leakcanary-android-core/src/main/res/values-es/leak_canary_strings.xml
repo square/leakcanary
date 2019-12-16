@@ -42,6 +42,5 @@
   <string name="leak_canary_generating_hq_bitmap_toast_notice">Renderizando Bitmap de alta calidad, tardará un poco…</string>
   <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Renderizando Bitmap de alta calidad, tardará un poco…</string>
   <string name="leak_canary_explorer_search_classes">Buscar clases</string>
-  <string name="leak_canary_analysis_success_notification">Análisis hecho: %1$d leaks (%2$d nuevo, %3$d conocido, %4$d librería)</string>
   <string name="leak_canary_notification_retained_debugger_attached">Esperando que el debugger se desacople</string>
 </resources>

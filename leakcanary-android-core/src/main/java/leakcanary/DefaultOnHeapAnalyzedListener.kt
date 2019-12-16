@@ -3,7 +3,7 @@ package leakcanary
 import android.app.Application
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.InternalLeakCanary
-import leakcanary.internal.NotificationType.LEAKCANARY_RESULT
+import leakcanary.internal.NotificationType.LEAKCANARY_MAX
 import leakcanary.internal.Notifications
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
@@ -67,7 +67,7 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
     Notifications.showNotification(
         application, contentTitle, contentText, pendingIntent,
         R.id.leak_canary_notification_analysis_result,
-        LEAKCANARY_RESULT
+        LEAKCANARY_MAX
     )
   }
 
