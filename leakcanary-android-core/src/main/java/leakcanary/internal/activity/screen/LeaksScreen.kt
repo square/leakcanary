@@ -1,6 +1,5 @@
 package leakcanary.internal.activity.screen
 
-import android.text.format.DateUtils
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ListView
@@ -10,6 +9,7 @@ import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.LeakTable.GroupProjection
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.ui.SimpleListAdapter
+import leakcanary.internal.activity.ui.TimeFormatter
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
@@ -43,10 +43,8 @@ internal class LeaksScreen : Screen() {
         countView.text = projection.leakCount.toString()
         descriptionView.text = projection.description
 
-        val formattedDate = DateUtils.formatDateTime(
-            view.context, projection.createdAtTimeMillis,
-            DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
-        )
+        val formattedDate =
+          TimeFormatter.formatTimestamp(view.context, projection.createdAtTimeMillis)
         timeView.text =
           resources.getString(R.string.leak_canary_group_list_time_label, formattedDate)
       }
