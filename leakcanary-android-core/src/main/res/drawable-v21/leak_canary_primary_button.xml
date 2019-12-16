@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/leak_canary_yellow_button_pressed">
+  <item>
+    <shape>
+      <solid android:color="@color/leak_canary_yellow_button" />
+      <corners android:radius="12dp" />
+    </shape>
+  </item>
+  <item android:id="@android:id/mask">
+    <shape>
+      <solid android:color="@color/leak_canary_yellow_button" />
+      <corners android:radius="12dp" />
+    </shape>
+  </item>
+</ripple>
+
