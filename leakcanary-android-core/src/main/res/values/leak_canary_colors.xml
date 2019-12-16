@@ -23,6 +23,11 @@
   <color name="leak_canary_background_color">#242424</color>
   <color name="leak_canary_yellow">#FFD34C</color>
   <color name="leak_canary_yellow_15p">#26FFD34C</color>
+  <color name="leak_canary_yellow_button">#FFE79F</color>
+  <color name="leak_canary_yellow_button_pressed">#c4b47f</color>
+  <color name="leak_canary_gray_3f">#3F3F3F</color>
+  <color name="leak_canary_gray_6f">#6f6f6f</color>
+  <color name="leak_canary_gray_lightest">#F2F4F5</color>
   <color name="leak_canary_gray_light">#939CA3</color>
   <color name="leak_canary_gray">#2F2F2F</color>
   <color name="leak_canary_gray_darkest">#151C1F</color>
