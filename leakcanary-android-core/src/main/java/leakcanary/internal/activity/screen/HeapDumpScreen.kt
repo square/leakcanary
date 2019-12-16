@@ -158,6 +158,7 @@ internal class HeapDumpScreen(
           val projection = leakGroups[position - 2]
 
           val isNew = projection.isNew && !projection.isLibraryLeak
+          countView.isEnabled = isNew
 
           countView.text = projection.leakCount.toString()
           descriptionView.text =

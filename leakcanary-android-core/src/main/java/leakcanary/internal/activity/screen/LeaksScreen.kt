@@ -39,6 +39,7 @@ internal class LeaksScreen : Screen() {
         val timeView = view.findViewById<TextView>(R.id.leak_canary_time_text)
 
         val projection = projections[position]
+        countView.isEnabled = projection.isNew
 
         countView.text = projection.leakCount.toString()
         descriptionView.text = projection.description
