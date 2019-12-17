@@ -184,7 +184,7 @@ data class LibraryLeak(
   override fun createGroupHash() = pattern.toString().createSHA1Hash()
 
   override fun toString(): String {
-    return """Known leak pattern: $pattern
+    return """Leak pattern: $pattern
 Description: $description
 ${super.toString()}
 """
