@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    >
+
+  <TextView
+      android:id="@+id/leak_canary_chip_new"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginRight="8dp"
+      android:background="@drawable/leak_canary_count_background"
+      android:gravity="center_vertical"
+      android:paddingLeft="8dp"
+      android:paddingTop="2dp"
+      android:paddingRight="8dp"
+      android:paddingBottom="2dp"
+      android:text="New"
+      android:textColor="@color/leak_canary_count_text"
+      android:textSize="14sp"
+      android:visibility="gone"
+      />
+
+  <TextView
+      android:id="@+id/leak_canary_chip_library_leak"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:background="@drawable/leak_canary_count_background"
+      android:enabled="false"
+      android:gravity="center_vertical"
+      android:paddingLeft="8dp"
+      android:paddingTop="2dp"
+      android:paddingRight="8dp"
+      android:paddingBottom="2dp"
+      android:text="Library Leak"
+      android:textColor="@color/leak_canary_count_text"
+      android:textSize="14sp"
+      android:visibility="gone"
+      />
+</LinearLayout>

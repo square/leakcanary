@@ -4,6 +4,8 @@ import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.method.LinkMovementMethod
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.ListView
@@ -154,15 +156,17 @@ internal class HeapDumpScreen(
           val countView = view.findViewById<TextView>(R.id.leak_canary_count_text)
           val descriptionView = view.findViewById<TextView>(R.id.leak_canary_leak_text)
           val timeView = view.findViewById<TextView>(R.id.leak_canary_time_text)
+          val newChipView = view.findViewById<TextView>(R.id.leak_canary_chip_new)
+          val libraryLeakChipView = view.findViewById<TextView>(R.id.leak_canary_chip_library_leak)
 
           val projection = leakGroups[position - 2]
 
-          val isNew = projection.isNew && !projection.isLibraryLeak
-          countView.isEnabled = isNew
+          countView.isEnabled = projection.isNew
+          newChipView.visibility = if (projection.isNew) VISIBLE else GONE
+          libraryLeakChipView.visibility = if (projection.isLibraryLeak) VISIBLE else GONE
 
           countView.text = projection.leakCount.toString()
-          descriptionView.text =
-            (if (isNew) "[NEW] " else "") + projection.description
+          descriptionView.text = projection.description
 
           val formattedDate =
             TimeFormatter.formatTimestamp(view.context, projection.createdAtTimeMillis)

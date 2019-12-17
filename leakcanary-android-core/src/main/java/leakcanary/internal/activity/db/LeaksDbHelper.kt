@@ -37,6 +37,6 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
   }
 
   companion object {
-    private const val VERSION = 20
+    private const val VERSION = 21
   }
 }

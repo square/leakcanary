@@ -11,6 +11,15 @@
       android:layout_height="wrap_content"
       />
 
+  <include
+      layout="@layout/leak_canary_leak_chips"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="16dp"
+      android:layout_marginEnd="16dp"
+      android:layout_marginBottom="16dp"
+      />
+
   <ListView
       android:id="@+id/leak_canary_list"
       android:layout_width="match_parent"
