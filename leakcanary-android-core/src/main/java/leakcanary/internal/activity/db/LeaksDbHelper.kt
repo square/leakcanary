@@ -19,6 +19,18 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     oldVersion: Int,
     newVersion: Int
   ) {
+    recreateDb(db)
+  }
+
+  override fun onDowngrade(
+    db: SQLiteDatabase,
+    oldVersion: Int,
+    newVersion: Int
+  ) {
+    recreateDb(db)
+  }
+
+  private fun recreateDb(db: SQLiteDatabase) {
     db.execSQL(HeapAnalysisTable.drop)
     db.execSQL(LeakTable.drop)
     onCreate(db)
