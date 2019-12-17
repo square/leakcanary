@@ -1,8 +1,7 @@
 package shark
 
 import okio.BufferedSource
-import okio.buffer
-import okio.source
+import okio.Okio
 import shark.Hprof.Companion.open
 import java.io.Closeable
 import java.io.File
@@ -40,7 +39,7 @@ class Hprof private constructor(
     if (currentPosition == newPosition) {
       return
     }
-    source.buffer.clear()
+    source.buffer().clear()
     channel.position(newPosition)
     reader.position = newPosition
   }
@@ -71,8 +70,7 @@ class Hprof private constructor(
       }
       val inputStream = hprofFile.inputStream()
       val channel = inputStream.channel
-      val source = inputStream.source()
-          .buffer()
+      val source = Okio.buffer(Okio.source(inputStream))
 
       val endOfVersionString = source.indexOf(0)
       val versionName = source.readUtf8(endOfVersionString)

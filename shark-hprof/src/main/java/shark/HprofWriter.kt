@@ -2,8 +2,7 @@ package shark
 
 import okio.Buffer
 import okio.BufferedSink
-import okio.buffer
-import okio.sink
+import okio.Okio
 import shark.GcRoot.Debugger
 import shark.GcRoot.Finalizing
 import shark.GcRoot.InternedString
@@ -389,13 +388,13 @@ class HprofWriter private constructor(
   ) {
     flushHeapBuffer()
     workBuffer.block()
-    writeTagHeader(tag, workBuffer.size)
+    writeTagHeader(tag, workBuffer.size())
     writeAll(workBuffer)
   }
 
   private fun BufferedSink.flushHeapBuffer() {
-    if (workBuffer.size > 0) {
-      writeTagHeader(HprofReader.HEAP_DUMP, workBuffer.size)
+    if (workBuffer.size() > 0) {
+      writeTagHeader(HprofReader.HEAP_DUMP, workBuffer.size())
       writeAll(workBuffer)
       writeTagHeader(HprofReader.HEAP_DUMP_END, 0)
     }
@@ -436,9 +435,7 @@ class HprofWriter private constructor(
       /** Version of the opened hprof, which is tied to the runtime where the heap was dumped. */
       hprofVersion: HprofVersion = HprofVersion.ANDROID
     ): HprofWriter {
-      val sink = hprofFile.outputStream()
-          .sink()
-          .buffer()
+      val sink = Okio.buffer(Okio.sink(hprofFile.outputStream()))
       sink.writeUtf8(hprofVersion.versionString)
       sink.writeByte(0)
       sink.writeInt(identifierByteSize)
