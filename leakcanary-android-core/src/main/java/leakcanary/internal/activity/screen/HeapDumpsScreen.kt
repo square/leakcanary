@@ -87,6 +87,8 @@ internal class HeapDumpsScreen : Screen() {
         val countView = view.findViewById<TextView>(R.id.leak_canary_time_text)
 
         val projection = getItem(position)
+        // Enable means "new"
+        countView.isEnabled = false
 
         timeView.text = TimeFormatter.formatTimestamp(view.context, projection.createdAtTimeMillis)
 

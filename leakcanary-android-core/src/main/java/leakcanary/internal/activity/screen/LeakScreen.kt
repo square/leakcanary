@@ -39,11 +39,13 @@ internal class LeakScreen(
       activity.title = resources.getString(R.string.leak_canary_loading_title)
       executeOnDb {
         val leaks = LeakTable.retrieveLeaksByHash(db, groupHash)
+        val selectedLeakIndex =
+          if (selectedHeapAnalysisId == null) 0 else leaks.indexOfFirst { it.analysisId == selectedHeapAnalysisId }
         updateUi {
           if (leaks.isEmpty()) {
             activity.title = resources.getString(R.string.leak_canary_leak_not_found)
           } else {
-            onLeaksRetrieved(leaks, selectedHeapAnalysisId)
+            onLeaksRetrieved(leaks, selectedLeakIndex)
           }
         }
       }
@@ -51,7 +53,7 @@ internal class LeakScreen(
 
   private fun View.onLeaksRetrieved(
     leaks: List<LeakProjection>,
-    selectedHeapAnalysisId: Long?
+    selectedLeakIndex: Int
   ) {
     activity.title = String.format(
         resources.getQuantityText(
@@ -83,23 +85,20 @@ internal class LeakScreen(
         id: Long
       ) {
         executeOnDb {
-          LeakTable.retrieveLeakById(db, leaks[position].id)
+          val displayedLeak = leaks[position]
+          LeakTable.retrieveLeakById(db, displayedLeak.id)
               ?.let { leak ->
                 updateUi {
                   displayLeakTrace(leak)
+                }
+                if (leak.isNew) {
+                  LeakTable.markAsRead(db, displayedLeak.id)
                 }
               }
         }
       }
     }
-
-    val selectedLeakIndex =
-      if (selectedHeapAnalysisId == null) -1 else leaks.indexOfFirst { it.analysisId == selectedHeapAnalysisId }
-    if (selectedLeakIndex != -1) {
-      spinner.setSelection(selectedLeakIndex)
-    } else {
-      spinner.setSelection(0)
-    }
+    spinner.setSelection(selectedLeakIndex)
   }
 
   private fun View.displayLeakTrace(projection: LeakDetails) {

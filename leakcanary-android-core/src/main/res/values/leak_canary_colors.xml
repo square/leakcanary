@@ -21,8 +21,10 @@
   <color name="leak_canary_extra">#919191</color>
   <color name="leak_canary_help">#6a98b9</color>
   <color name="leak_canary_background_color">#242424</color>
-  <color name="leak_canary_yellow">#FFD34C</color>
-  <color name="leak_canary_yellow_15p">#26FFD34C</color>
+  <color name="leak_canary_count_new">#FFD34C</color>
+  <color name="leak_canary_count_new_border">@color/leak_canary_yellow</color>
+  <color name="leak_canary_count_default">#26FFCC32</color>
+  <color name="leak_canary_yellow">#FFCC32</color>
   <color name="leak_canary_yellow_button">#FFE79F</color>
   <color name="leak_canary_yellow_button_pressed">#c4b47f</color>
   <color name="leak_canary_gray_3f">#3F3F3F</color>
