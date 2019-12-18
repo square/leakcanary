@@ -25,8 +25,8 @@
   We welcome contributions from the community, please do not hesitate to
   <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br>
 ]]></string>
-  <string name="leak_canary_analysis_failed">Leak analysis failed</string>
-  <string name="leak_canary_analysis_success_notification">Heap analysis done: %1$d leaks (%2$d new, %3$d known, %4$d library)</string>
+  <string name="leak_canary_analysis_failed">Heap analysis failed</string>
+  <string name="leak_canary_analysis_success_notification">Found %1$d retained objects grouped as %2$d distinct leaks</string>
   <string name="leak_canary_class_has_leaked">%1$s Leaked</string>
   <string name="leak_canary_explorer_search_classes">Search classes</string>
   <plurals name="leak_canary_distinct_leaks">
@@ -40,7 +40,7 @@
   <string name="leak_canary_notification_channel_result">LeakCanary Result</string>
   <string name="leak_canary_notification_dumping">Dumping Heap</string>
   <string name="leak_canary_notification_foreground_text">LeakCanary is working.</string>
-  <string name="leak_canary_notification_message">Click for more details</string>
+  <string name="leak_canary_notification_message">Tap for more details</string>
   <string name="leak_canary_notification_no_retained_object_title">All retained objects were garbage collected</string>
   <string name="leak_canary_notification_no_retained_object_content">Tap to dismiss</string>
   <string name="leak_canary_notification_retained_debugger_attached">Waiting for debugger to detach</string>
