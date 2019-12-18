@@ -64,7 +64,7 @@ class HeapAnalysisStringRenderingTest {
       |====================================
       |0 LIBRARY LEAKS
       |
-      |Leaks coming from the Android Framework or Google libraries.
+      |Library Leaks are leaks coming from the Android Framework or Google libraries.
       |====================================
       |METADATA
       |
@@ -101,7 +101,7 @@ class HeapAnalysisStringRenderingTest {
       |====================================
       |0 LIBRARY LEAKS
       |
-      |Leaks coming from the Android Framework or Google libraries.
+      |Library Leaks are leaks coming from the Android Framework or Google libraries.
       |====================================
       |METADATA
       |
