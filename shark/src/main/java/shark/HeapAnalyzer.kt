@@ -44,7 +44,6 @@ import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.EXTRACTING_METADATA
 import shark.OnAnalysisProgressListener.Step.FINDING_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
-import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
 import shark.internal.PathFinder
 import shark.internal.PathFinder.PathFindingResults
 import shark.internal.ReferencePathNode
@@ -90,7 +89,6 @@ class HeapAnalyzer constructor(
 
     if (!heapDumpFile.exists()) {
       val exception = IllegalArgumentException("File does not exist: $heapDumpFile")
-      listener.onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
       return HeapAnalysisFailure(
           heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)
@@ -110,14 +108,12 @@ class HeapAnalyzer constructor(
                 graph, leakFinders, referenceMatchers, computeRetainedHeapSize, objectInspectors
             )
             val (applicationLeaks, libraryLeaks) = findLeakInput.findLeaks()
-            listener.onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
             return HeapAnalysisSuccess(
                 heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime), metadata,
                 applicationLeaks, libraryLeaks
             )
           }
     } catch (exception: Throwable) {
-      listener.onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
       return HeapAnalysisFailure(
           heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)
