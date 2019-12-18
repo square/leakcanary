@@ -98,7 +98,7 @@ ${if (applicationLeaks.isNotEmpty()) "\n" + applicationLeaks.joinToString(
     ) + "\n" else ""}====================================
 ${libraryLeaks.size} LIBRARY LEAKS
 
-Leaks coming from the Android Framework or Google libraries.
+Library Leaks are leaks coming from the Android Framework or Google libraries.
 ${if (libraryLeaks.isNotEmpty()) "\n" + libraryLeaks.joinToString(
         "\n\n"
     ) + "\n" else ""}====================================
