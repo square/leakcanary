@@ -1,5 +1,8 @@
 # Getting started
 
+!!! info
+    To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
+
 Add LeakCanary to `build.gradle`:
 
 ```groovy
@@ -15,11 +18,4 @@ dependencies {
 D LeakCanary: Installing AppWatcher
 ```
 
-!!! info
-    To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
-
-What's next?
-
-* Learn the [Fundamentals](fundamentals.md)
-* Try the [code recipes](recipes.md)
-* Read the [FAQ](faq.md), e.g. [How does LeakCanary get installed by only adding a dependency?](faq.md#how-does-leakcanary-get-installed-by-only-adding-a-dependency)
+What's next? Learn the [Fundamentals](fundamentals.md)!
