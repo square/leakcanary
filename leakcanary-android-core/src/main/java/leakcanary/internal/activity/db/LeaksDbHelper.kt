@@ -1,11 +1,12 @@
 package leakcanary.internal.activity.db
 
+import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
-    context, "leaks.db", null, VERSION
+    context, DATABASE_NAME, null, VERSION
 ) {
 
   override fun onCreate(db: SQLiteDatabase) {
@@ -19,7 +20,20 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     oldVersion: Int,
     newVersion: Int
   ) {
-    recreateDb(db)
+    // LeakCanary 2.0 to LeakCanary 2.1
+    if (oldVersion == 19 && newVersion == 21) {
+      db.execSQL(
+          """
+        ALTER TABLE leak
+          ADD is_read INTEGER;
+      """.trimIndent()
+      )
+      db.update("leak", ContentValues().apply {
+        put("is_read", 1)
+      }, null, null)
+    } else {
+      recreateDb(db)
+    }
   }
 
   override fun onDowngrade(
@@ -37,6 +51,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
   }
 
   companion object {
-    private const val VERSION = 21
+    internal const val VERSION = 21
+    internal const val DATABASE_NAME = "leaks.db"
   }
 }

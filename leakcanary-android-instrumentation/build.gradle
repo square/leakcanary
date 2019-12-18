@@ -10,7 +10,6 @@ dependencies {
   androidTestImplementation deps.androidx.test.core
   androidTestImplementation deps.androidx.test.espresso
   androidTestImplementation deps.androidx.test.rules
-  androidTestImplementation deps.androidx.test.runner
   androidTestImplementation deps.androidx.fragment
 }
 
