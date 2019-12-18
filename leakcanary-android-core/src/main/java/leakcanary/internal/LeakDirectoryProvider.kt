@@ -210,10 +210,10 @@ internal class LeakDirectoryProvider constructor(
     fun hprofDeleteReason(file: File): String {
       val path = file.absolutePath
       return when {
-        filesDeletedTooOld.contains(path) -> "Older than all other hprof files"
-        filesDeletedClearDirectory.contains(path) -> "Hprof directory cleared"
-        filesDeletedRemoveLeak.contains(path) -> "Leak manually removed"
-        else -> "Unknown"
+        filesDeletedTooOld.contains(path) -> "older than all other hprof files"
+        filesDeletedClearDirectory.contains(path) -> "hprof directory cleared"
+        filesDeletedRemoveLeak.contains(path) -> "leak manually removed"
+        else -> "unknown"
       }
     }
   }

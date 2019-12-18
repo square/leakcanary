@@ -21,13 +21,19 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
+import leakcanary.LeakCanary.Config
+import shark.HeapAnalysis
+import shark.HeapAnalysisException
+import shark.HeapAnalysisFailure
 import shark.HeapAnalyzer
-import shark.ObjectInspectors
+import shark.ObjectInspectors.KEYED_WEAK_REFERENCE
 import shark.OnAnalysisProgressListener
+import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
 import shark.ProguardMappingReader
 import shark.SharkLog
 import java.io.File
 import java.io.IOException
+import java.util.Locale
 
 /**
  * This service runs in a main app process.
@@ -48,45 +54,60 @@ internal class HeapAnalyzerService : ForegroundService(
     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
     val heapDumpFile = intent.getSerializableExtra(HEAPDUMP_FILE_EXTRA) as File
 
-    if (!heapDumpFile.exists()) {
-      throw IllegalStateException(
-          "Hprof file missing due to: [${LeakDirectoryProvider.hprofDeleteReason(
-              heapDumpFile
-          )}] $heapDumpFile"
-      )
-    }
-
-    val heapAnalyzer = HeapAnalyzer(this)
     val config = LeakCanary.config
+    val heapAnalysis = if (heapDumpFile.exists()) {
+      analyzeHeap(heapDumpFile, config)
+    } else {
+      missingFileFailure(heapDumpFile)
+    }
+    onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
+    config.onHeapAnalyzedListener.onHeapAnalyzed(heapAnalysis)
+  }
+
+  private fun analyzeHeap(
+    heapDumpFile: File,
+    config: Config
+  ): HeapAnalysis {
+    val heapAnalyzer = HeapAnalyzer(this)
 
     val proguardMappingReader = try {
       ProguardMappingReader(assets.open(PROGUARD_MAPPING_FILE_NAME))
     } catch (e: IOException) {
       null
     }
+    return heapAnalyzer.analyze(
+        heapDumpFile = heapDumpFile,
+        referenceMatchers = config.referenceMatchers,
+        computeRetainedHeapSize = config.computeRetainedHeapSize,
+        objectInspectors = config.objectInspectors,
+        leakFinders = if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
+            KEYED_WEAK_REFERENCE
+        ),
+        metadataExtractor = config.metatadaExtractor,
+        proguardMapping = proguardMappingReader?.readProguardMapping()
+    )
+  }
 
-    val heapAnalysis =
-      heapAnalyzer.analyze(
-          heapDumpFile,
-          config.referenceMatchers,
-          config.computeRetainedHeapSize,
-          config.objectInspectors,
-          if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
-              ObjectInspectors.KEYED_WEAK_REFERENCE
-          ),
-          config.metatadaExtractor,
-          proguardMappingReader?.readProguardMapping()
-      )
-
-    config.onHeapAnalyzedListener.onHeapAnalyzed(heapAnalysis)
+  private fun missingFileFailure(heapDumpFile: File): HeapAnalysisFailure {
+    val deletedReason = LeakDirectoryProvider.hprofDeleteReason(heapDumpFile)
+    val exception = IllegalStateException(
+        "Hprof file $heapDumpFile missing, deleted because: $deletedReason"
+    )
+    return HeapAnalysisFailure(
+        heapDumpFile = heapDumpFile,
+        createdAtTimeMillis = System.currentTimeMillis(),
+        analysisDurationMillis = 0,
+        exception = HeapAnalysisException(exception)
+    )
   }
 
   override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
-    val percent = (100f * step.ordinal / shark.OnAnalysisProgressListener.Step.values().size).toInt()
+    val percent =
+      (100f * step.ordinal / OnAnalysisProgressListener.Step.values().size).toInt()
     SharkLog.d { "Analysis in progress, working on: ${step.name}" }
     val lowercase = step.name.replace("_", " ")
-        .toLowerCase()
-    val message = lowercase.substring(0, 1).toUpperCase() + lowercase.substring(1)
+        .toLowerCase(Locale.US)
+    val message = lowercase.substring(0, 1).toUpperCase(Locale.US) + lowercase.substring(1)
     showForegroundNotification(100, percent, false, message)
   }
 
