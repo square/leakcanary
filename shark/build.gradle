@@ -8,6 +8,7 @@ dependencies {
   api project(':shark-graph')
 
   implementation deps.kotlin.stdlib
+  implementation deps.okio
 
   testImplementation deps.assertj_core
   testImplementation deps.junit
