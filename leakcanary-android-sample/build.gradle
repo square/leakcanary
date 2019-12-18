@@ -2,14 +2,14 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 dependencies {
-  debugImplementation project(':leakcanary-android')
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.0'
 
   implementation deps.kotlin.stdlib
 
   testImplementation deps.junit
   testImplementation deps.robolectric
 
-  androidTestImplementation project(':leakcanary-android-instrumentation')
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-instrumentation:2.0'
   androidTestImplementation deps.androidx.test.espresso
   androidTestImplementation deps.androidx.test.rules
   androidTestImplementation deps.androidx.test.runner

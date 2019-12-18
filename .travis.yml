@@ -28,6 +28,7 @@ before_script:
   - adb shell input keyevent 82
 
 script:
+  - ./gradlew leakcanary-android-core:connectedCheck --stacktrace
   - ./gradlew leakcanary-android-instrumentation:connectedCheck --stacktrace
 
 after_success:
