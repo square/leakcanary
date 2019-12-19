@@ -5,6 +5,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
+import shark.HeapObject.HeapInstance
 import shark.ReferencePattern.InstanceFieldPattern
 import java.io.File
 
@@ -98,6 +100,10 @@ class LeakTraceStringRenderingTest {
               }
             }
           })
+          , leakFilters = listOf(object : LeakingObjectFilter {
+        override fun isLeakingObject(heapObject: HeapObject) =
+          heapObject is HeapInstance && heapObject instanceOf "ClassB"
+      })
       )
 
     analysis renders """

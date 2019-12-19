@@ -19,17 +19,20 @@ class ObjectReporter constructor(val heapObject: HeapObject) {
 
   /**
    * Reasons for which this object is expected to be unreachable (ie it's leaking).
-   *
-   * Only add reasons to this if you're 100% sure this object is leaking, otherwise add reasons to
-   * [likelyLeakingReasons]. The difference is that objects that are "likely leaking" are not
-   * considered to be leaking objects on which LeakCanary should compute the leak trace.
    */
   val leakingReasons = mutableSetOf<String>()
 
   /**
-   * @see leakingReasons
+   * Deprecated, use leakingReasons instead.
    */
-  val likelyLeakingReasons = mutableSetOf<String>()
+  @Deprecated(
+      "Replace likelyLeakingReasons with leakingReasons",
+      replaceWith = ReplaceWith(
+          "leakingReasons"
+      )
+  )
+  val likelyLeakingReasons
+    get() = leakingReasons
 
   /**
    * Reasons for which this object is expected to be reachable (ie it's not leaking).
