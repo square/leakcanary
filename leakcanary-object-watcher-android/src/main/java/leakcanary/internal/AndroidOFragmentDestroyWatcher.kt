@@ -38,8 +38,8 @@ internal class AndroidOFragmentDestroyWatcher(
       val view = fragment.view
       if (view != null && configProvider().watchFragmentViews) {
         objectWatcher.watch(
-            view, "Fragment received Fragment#onDestroyView() callback " +
-            "(references to its view should be cleared to prevent leaks)"
+            view, "${fragment::class.java.name} received Fragment#onDestroyView() callback " +
+            "(references to its views should be cleared to prevent leaks)"
         )
       }
     }
@@ -49,7 +49,9 @@ internal class AndroidOFragmentDestroyWatcher(
       fragment: Fragment
     ) {
       if (configProvider().watchFragments) {
-        objectWatcher.watch(fragment, "Fragment received Fragment#onDestroy() callback")
+        objectWatcher.watch(
+            fragment, "${fragment::class.java.name} received Fragment#onDestroy() callback"
+        )
       }
     }
   }

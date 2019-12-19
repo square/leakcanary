@@ -30,7 +30,9 @@ internal class ActivityDestroyWatcher private constructor(
     object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
       override fun onActivityDestroyed(activity: Activity) {
         if (configProvider().watchActivities) {
-          objectWatcher.watch(activity, "Activity received Activity#onDestroy() callback")
+          objectWatcher.watch(
+              activity, "${activity::class.java.name} received Activity#onDestroy() callback"
+          )
         }
       }
     }
