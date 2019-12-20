@@ -14,6 +14,10 @@ sealed class ReferencePattern : Serializable {
     val threadName: String
   ) : ReferencePattern() {
     override fun toString() = "local variable on thread $threadName"
+
+    companion object {
+      private const val serialVersionUID: Long = -8985446122829543654
+    }
   }
 
   /**
@@ -24,6 +28,10 @@ sealed class ReferencePattern : Serializable {
     val fieldName: String
   ) : ReferencePattern() {
     override fun toString() = "static field $className#$fieldName"
+
+    companion object {
+      private const val serialVersionUID: Long = 7656908128775899611
+    }
   }
 
   /**
@@ -39,6 +47,10 @@ sealed class ReferencePattern : Serializable {
     val fieldName: String
   ) : ReferencePattern() {
     override fun toString() = "instance field $className#$fieldName"
+
+    companion object {
+      private const val serialVersionUID: Long = 6649791455204159802
+    }
   }
 
   /**
@@ -48,5 +60,13 @@ sealed class ReferencePattern : Serializable {
    */
   data class NativeGlobalVariablePattern(val className: String) : ReferencePattern() {
     override fun toString() = "native global variable referencing $className"
+
+    companion object {
+      private const val serialVersionUID: Long = -2651328076202244933
+    }
+  }
+
+  companion object {
+    private const val serialVersionUID: Long = -5113635523713591133
   }
 }

@@ -26,11 +26,13 @@ object TestUtils {
       )
     }
 
-    val leakInstance = applicationLeaks.first()
+    val leak = applicationLeaks.first()
 
-    if (leakInstance.className != expectedLeakClass.name) {
+    val leakTrace = leak.leakTraces.first()
+    val className = leakTrace.leakingObject.className
+    if (className != expectedLeakClass.name) {
       throw AssertionError(
-          "Expected a leak of $expectedLeakClass, not ${leakInstance.className} in $heapAnalysis"
+          "Expected a leak of $expectedLeakClass, not $className in $heapAnalysis"
       )
     }
   }

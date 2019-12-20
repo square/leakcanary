@@ -8,8 +8,10 @@ import leakcanary.internal.activity.db.LeaksDbHelper
 import org.junit.Test
 import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
+import shark.LeakTrace.GcRootType.JAVA_FRAME
+import shark.LeakTrace.GcRootType.STICKY_CLASS
+import shark.SharkLog
 import java.io.FileOutputStream
-import kotlin.reflect.KClass
 
 class DatabaseMigrationTest {
 
@@ -35,6 +37,21 @@ class DatabaseMigrationTest {
     }
   }
 
+  @Test fun v19_has_8_leak_traces() {
+    DB_V19 upgrade {
+      val allLeakTraces = HeapAnalysisTable.retrieveAll(this)
+          .map { HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(this, it.id)!! }
+          .flatMap { analysis ->
+            analysis.allLeaks.toList()
+          }
+          .flatMap { leak ->
+            leak.leakTraces
+          }
+
+      allLeakTraces.size assertEquals 8
+    }
+  }
+
   @Test fun v19_has_3_leak_types() {
     DB_V19 upgrade {
       LeakTable.retrieveAllLeaks(this).size assertEquals 3
@@ -50,16 +67,21 @@ class DatabaseMigrationTest {
     }
   }
 
-  @Test fun v19_all_8_leaks_can_be_deserialized() {
+  @Test fun v19_has_5_sticky_class_and_3_java_frame_gc_roots() {
     DB_V19 upgrade {
-     val allLeaks = LeakTable.retrieveAllLeaks(this)
-          .flatMap { leakTypeProjection ->
-            LeakTable.retrieveLeaksByHash(this, leakTypeProjection.hash)
+      val allLeakTraces = HeapAnalysisTable.retrieveAll(this)
+          .map { HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(this, it.id)!! }
+          .flatMap { analysis ->
+            analysis.allLeaks.toList()
           }
-          .map { leakProjection ->
-            LeakTable.retrieveLeakById(this, leakProjection.id)
+          .flatMap { leak ->
+            leak.leakTraces
           }
-      allLeaks.size assertEquals 8
+      val gcRootCounts = allLeakTraces.groupingBy { it.gcRootType }
+          .eachCount()
+
+      gcRootCounts.getValue(STICKY_CLASS) assertEquals 5
+      gcRootCounts.getValue(JAVA_FRAME) assertEquals 3
     }
   }
 

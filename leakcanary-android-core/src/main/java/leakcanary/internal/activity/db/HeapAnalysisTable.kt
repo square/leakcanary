@@ -21,7 +21,7 @@ internal object HeapAnalysisTable {
         (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         created_at_time_millis INTEGER,
-        leak_group_count INTEGER DEFAULT 0,
+        leak_count INTEGER DEFAULT 0,
         exception_summary TEXT DEFAULT NULL,
         object BLOB
         )"""
@@ -38,8 +38,8 @@ internal object HeapAnalysisTable {
     values.put("object", heapAnalysis.toByteArray())
     when (heapAnalysis) {
       is HeapAnalysisSuccess -> {
-        val leakGroupCount = heapAnalysis.allLeaks.map { it.groupHash }.distinct().size
-        values.put("leak_group_count", leakGroupCount)
+        val leakCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
+        values.put("leak_count", leakCount)
       }
       is HeapAnalysisFailure -> {
         val cause = heapAnalysis.exception.cause!!
@@ -95,7 +95,7 @@ internal object HeapAnalysisTable {
           SELECT
           id
           , created_at_time_millis
-          , leak_group_count
+          , leak_count
           , exception_summary
           FROM heap_analysis
           ORDER BY created_at_time_millis DESC
@@ -107,7 +107,7 @@ internal object HeapAnalysisTable {
             val summary = Projection(
                 id = cursor.getLong(0),
                 createdAtTimeMillis = cursor.getLong(1),
-                leakGroupCount = cursor.getInt(2),
+                leakCount = cursor.getInt(2),
                 exceptionSummary = cursor.getString(3)
             )
             all.add(summary)
@@ -118,7 +118,7 @@ internal object HeapAnalysisTable {
 
   fun delete(
     db: SQLiteDatabase,
-    id: Long,
+    heapAnalysisId: Long,
     heapDumpFile: File?
   ) {
     if (heapDumpFile != null) {
@@ -134,8 +134,8 @@ internal object HeapAnalysisTable {
     }
 
     db.inTransaction {
-      db.delete("heap_analysis", "id=$id", null)
-      LeakTable.deleteByHeapAnalysisId(db, id)
+      db.delete("heap_analysis", "id=$heapAnalysisId", null)
+      LeakTable.deleteByHeapAnalysisId(db, heapAnalysisId)
     }
   }
 
@@ -151,7 +151,7 @@ internal object HeapAnalysisTable {
   class Projection(
     val id: Long,
     val createdAtTimeMillis: Long,
-    val leakGroupCount: Int,
+    val leakCount: Int,
     val exceptionSummary: String?
   )
 

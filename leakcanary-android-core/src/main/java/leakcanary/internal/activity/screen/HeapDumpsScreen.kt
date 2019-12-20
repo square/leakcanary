@@ -94,7 +94,7 @@ internal class HeapDumpsScreen : Screen() {
 
         val count = projection.exceptionSummary ?: resources.getQuantityString(
             R.plurals.leak_canary_distinct_leaks,
-            projection.leakGroupCount, projection.leakGroupCount
+            projection.leakCount, projection.leakCount
         )
         countView.text = count
       }

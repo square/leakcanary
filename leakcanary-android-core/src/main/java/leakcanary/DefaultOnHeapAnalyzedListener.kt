@@ -7,7 +7,6 @@ import leakcanary.internal.NotificationType.LEAKCANARY_MAX
 import leakcanary.internal.Notifications
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
-import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.LeaksDbHelper
 import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
 import leakcanary.internal.activity.screen.HeapDumpScreen
@@ -26,10 +25,8 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
     SharkLog.d { "$heapAnalysis" }
 
-    val (id, groupProjections) = LeaksDbHelper(application)
-        .writableDatabase.use { db ->
-      val id = HeapAnalysisTable.insert(db, heapAnalysis)
-      id to LeakTable.retrieveHeapDumpLeaks(db, id)
+    val id = LeaksDbHelper(application).writableDatabase.use { db ->
+      HeapAnalysisTable.insert(db, heapAnalysis)
     }
 
     val (contentTitle, screenToShow) = when (heapAnalysis) {
@@ -37,8 +34,8 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
           R.string.leak_canary_analysis_failed
       ) to HeapAnalysisFailureScreen(id)
       is HeapAnalysisSuccess -> {
-        val retainedObjectCount = groupProjections.values.sumBy { it.leakCount }
-        val leakTypeCount = groupProjections.size
+        val retainedObjectCount = heapAnalysis.allLeaks.sumBy { it.leakTraces.size }
+        val leakTypeCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
         application.getString(
             R.string.leak_canary_analysis_success_notification, retainedObjectCount, leakTypeCount
         ) to HeapDumpScreen(id)

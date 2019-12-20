@@ -8,7 +8,7 @@ import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.activity.db.LeakTable
-import leakcanary.internal.activity.db.LeakTable.GroupProjection
+import leakcanary.internal.activity.db.LeakTable.AllLeaksProjection
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.ui.SimpleListAdapter
 import leakcanary.internal.activity.ui.TimeFormatter
@@ -26,7 +26,7 @@ internal class LeaksScreen : Screen() {
       }
     }
 
-  private fun View.onGroupsRetrieved(projections: List<GroupProjection>) {
+  private fun View.onGroupsRetrieved(projections: List<AllLeaksProjection>) {
     activity.title = resources.getQuantityString(
         R.plurals.leak_canary_distinct_leaks,
         projections.size, projections.size
@@ -48,8 +48,8 @@ internal class LeaksScreen : Screen() {
         newChipView.visibility = if (projection.isNew) VISIBLE else GONE
         libraryLeakChipView.visibility = if (projection.isLibraryLeak) VISIBLE else GONE
 
-        countView.text = projection.leakCount.toString()
-        descriptionView.text = projection.description
+        countView.text = projection.leakTraceCount.toString()
+        descriptionView.text = projection.shortDescription
 
         val formattedDate =
           TimeFormatter.formatTimestamp(view.context, projection.createdAtTimeMillis)
@@ -58,7 +58,7 @@ internal class LeaksScreen : Screen() {
       }
 
     listView.setOnItemClickListener { _, _, position, _ ->
-      goTo(LeakScreen(projections[position].hash))
+      goTo(LeakScreen(projections[position].signature))
     }
   }
 }

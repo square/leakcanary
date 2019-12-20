@@ -18,7 +18,6 @@ package leakcanary.internal
 import android.content.Context
 import android.text.Html
 import android.text.SpannableStringBuilder
-import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.view.View
 import android.view.ViewGroup
@@ -28,7 +27,7 @@ import com.squareup.leakcanary.core.R
 import leakcanary.internal.DisplayLeakConnectorView.Type
 import leakcanary.internal.DisplayLeakConnectorView.Type.END
 import leakcanary.internal.DisplayLeakConnectorView.Type.END_FIRST_UNREACHABLE
-import leakcanary.internal.DisplayLeakConnectorView.Type.HELP
+import leakcanary.internal.DisplayLeakConnectorView.Type.GC_ROOT
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_FIRST_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_LAST_REACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_REACHABLE
@@ -38,12 +37,13 @@ import leakcanary.internal.DisplayLeakConnectorView.Type.START
 import leakcanary.internal.DisplayLeakConnectorView.Type.START_LAST_REACHABLE
 import leakcanary.internal.navigation.getColorCompat
 import leakcanary.internal.navigation.inflate
-import shark.LeakNodeStatus.LEAKING
-import shark.LeakNodeStatus.NOT_LEAKING
-import shark.LeakNodeStatus.UNKNOWN
 import shark.LeakTrace
-import shark.LeakTraceElement
-import shark.LeakTraceElement.Type.STATIC_FIELD
+import shark.LeakTrace.GcRootType.JAVA_FRAME
+import shark.LeakTraceObject
+import shark.LeakTraceObject.LeakingStatus.LEAKING
+import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
+import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.ReferencePathElement.ReferenceType.STATIC_FIELD
 
 @Suppress("DEPRECATION", "TooManyFunctions")
 internal class DisplayLeakAdapter constructor(
@@ -91,10 +91,11 @@ internal class DisplayLeakAdapter constructor(
   private fun bindHeaderRow(
     view: View
   ) {
-    view.findViewById<TextView>(R.id.leak_canary_header_text).apply {
-      movementMethod = LinkMovementMethod.getInstance()
-      text = header
-    }
+    view.findViewById<TextView>(R.id.leak_canary_header_text)
+        .apply {
+          movementMethod = LinkMovementMethod.getInstance()
+          text = header
+        }
   }
 
   private fun bindConnectorRow(
@@ -106,111 +107,132 @@ internal class DisplayLeakAdapter constructor(
 
     connector.setType(getConnectorType(position))
 
-    val elementIndex = elementIndex(position)
-    val element = leakTrace.elements[elementIndex]
+    titleView.text = when {
+      position == 1 -> {
+        "GC Root: ${leakTrace.gcRootType.description}"
+      }
+      position < count - 1 -> {
+        val referencePathIndex = elementIndex(position)
+        val referencePath = leakTrace.referencePath[referencePathIndex]
+        val isSuspect = leakTrace.referencePathElementIsSuspect(referencePathIndex)
 
-    val mayBeLeakCause = leakTrace.elementMayBeLeakCause(elementIndex)
+        val leakTraceObject = referencePath.originObject
 
-    titleView.text = htmlTitle(element, mayBeLeakCause, view.context)
+        val typeName =
+          if (position == 2 && leakTrace.gcRootType == JAVA_FRAME) "thread" else leakTraceObject.typeName
+
+        var referenceName = referencePath.referenceDisplayName
+
+        referenceName = referenceName.replace("<".toRegex(), "&lt;")
+            .replace(">".toRegex(), "&gt;")
+
+        referenceName = if (isSuspect) {
+          "<u><font color='$leakColorHexString'>$referenceName</font></u>"
+        } else {
+          "<font color='$referenceColorHexString'>$referenceName</font>"
+        }
+
+        if (referencePath.referenceType == STATIC_FIELD) {
+          referenceName = "static <i>$referenceName</i>"
+        }
+
+        if (isSuspect) {
+          referenceName = "<b>$referenceName</b>"
+        }
+
+        val htmlString = leakTraceObject.asHtmlString(typeName) +
+            "$INDENTATION${leakTraceObject.styledClassSimpleName()}.$referenceName"
+
+        val builder = Html.fromHtml(htmlString) as SpannableStringBuilder
+        if (isSuspect) {
+          SquigglySpan.replaceUnderlineSpans(builder, view.context)
+        }
+        builder
+      }
+      else -> {
+        Html.fromHtml(leakTrace.leakingObject.asHtmlString(leakTrace.leakingObject.typeName))
+      }
+    }
   }
 
-  private fun htmlTitle(
-    element: LeakTraceElement,
-    maybeLeakCause: Boolean,
-    context: Context
-  ): Spanned {
+  private fun LeakTraceObject.asHtmlString(typeName: String): String {
+    val packageEnd = className.lastIndexOf('.')
 
-    val packageEnd = element.className.lastIndexOf('.')
-    var simpleName = element.classSimpleName
-    simpleName = simpleName.replace("[]", "[ ]")
-    val styledClassName = "<font color='$classNameColorHexString'>$simpleName</font>"
-
+    val styledClassName = styledClassSimpleName()
     var htmlString =
-      if (packageEnd != -1) "<font color='$extraColorHexString'>${element.className.substring(
+      if (packageEnd != -1) "<font color='$extraColorHexString'>${className.substring(
           0, packageEnd
       )}</font>.$styledClassName" else styledClassName
+    htmlString += " <font color='$extraColorHexString'>$typeName</font><br>"
 
-    htmlString += "<br>"
-
-    val reachabilityString = when (element.leakStatus) {
+    val reachabilityString = when (leakingStatus) {
       UNKNOWN -> "UNKNOWN"
-      NOT_LEAKING -> "NO (${element.leakStatusReason})"
-      LEAKING -> "YES (${element.leakStatusReason})"
+      NOT_LEAKING -> "NO (${leakingStatusReason})"
+      LEAKING -> "YES (${leakingStatusReason})"
     }
 
-    val indentation = "&nbsp;".repeat(4)
-    htmlString += "$indentation<font color='$extraColorHexString'>Leaking: $reachabilityString</font><br>"
+    htmlString += "$INDENTATION<font color='$extraColorHexString'>Leaking: $reachabilityString</font><br>"
 
-    element.labels.forEach { label ->
-      htmlString += "$indentation<font color='$extraColorHexString'>$label</font><br>"
+    labels.forEach { label ->
+      htmlString += "$INDENTATION<font color='$extraColorHexString'>$label</font><br>"
     }
+    return htmlString
+  }
 
-    val reference = element.reference
-    if (reference != null) {
-      var referenceName = reference.displayName.replace("<".toRegex(), "&lt;")
-          .replace(">".toRegex(), "&gt;")
-
-      referenceName = if (maybeLeakCause) {
-        "<u><font color='$leakColorHexString'>$referenceName</font></u>"
-      } else {
-        "<font color='$referenceColorHexString'>$referenceName</font>"
-      }
-
-      if (reference.type == STATIC_FIELD) {
-        referenceName = "<i>$referenceName</i>"
-      }
-
-      htmlString += "$indentation$styledClassName.${if (maybeLeakCause) "<b>$referenceName</b>" else referenceName}"
-    }
-    val builder = Html.fromHtml(htmlString) as SpannableStringBuilder
-    if (maybeLeakCause) {
-      SquigglySpan.replaceUnderlineSpans(builder, context)
-    }
-
-    return builder
+  private fun LeakTraceObject.styledClassSimpleName(): String {
+    val simpleName = classSimpleName.replace("[]", "[ ]")
+    return "<font color='$classNameColorHexString'>$simpleName</font>"
   }
 
   @Suppress("ReturnCount")
   private fun getConnectorType(position: Int): Type {
-    if (position == 0) {
-      return HELP
-    } else if (position == 1) {
-      if (leakTrace.elements.size == 1) {
+    if (position == 1) {
+      return GC_ROOT
+    } else if (position == 2) {
+      if (leakTrace.referencePath.size == 1) {
         return START_LAST_REACHABLE
       }
-      val nextReachability = leakTrace.elements[elementIndex(position + 1)]
-      return if (nextReachability.leakStatus != NOT_LEAKING) {
+      val nextReachability =
+        if (position + 1 == count - 1) leakTrace.leakingObject else leakTrace.referencePath[elementIndex(
+            position + 1
+        )].originObject
+      return if (nextReachability.leakingStatus != NOT_LEAKING) {
         START_LAST_REACHABLE
       } else START
     } else {
       val isLeakingInstance = position == count - 1
       if (isLeakingInstance) {
-        val previousReachability = leakTrace.elements[elementIndex(position - 1)]
-        return if (previousReachability.leakStatus != LEAKING) {
+        val previousReachability = leakTrace.referencePath.last()
+            .originObject
+        return if (previousReachability.leakingStatus != LEAKING) {
           END_FIRST_UNREACHABLE
         } else END
       } else {
-        val reachability = leakTrace.elements[elementIndex(position)]
-        when (reachability.leakStatus) {
+        val reachability = leakTrace.referencePath[elementIndex(position)].originObject
+        when (reachability.leakingStatus) {
           UNKNOWN -> return NODE_UNKNOWN
           NOT_LEAKING -> {
-            val nextReachability = leakTrace.elements[elementIndex(position + 1)]
-            return if (nextReachability.leakStatus != NOT_LEAKING) {
+            val nextReachability =
+              if (position + 1 == count - 1) leakTrace.leakingObject else leakTrace.referencePath[elementIndex(
+                  position + 1
+              )].originObject
+            return if (nextReachability.leakingStatus != NOT_LEAKING) {
               NODE_LAST_REACHABLE
             } else {
               NODE_REACHABLE
             }
           }
           LEAKING -> {
-            val previousReachability = leakTrace.elements[elementIndex(position - 1)]
-            return if (previousReachability.leakStatus != LEAKING) {
+            val previousReachability =
+              leakTrace.referencePath[elementIndex(position - 1)].originObject
+            return if (previousReachability.leakingStatus != LEAKING) {
               NODE_FIRST_UNREACHABLE
             } else {
               NODE_UNREACHABLE
             }
           }
           else -> throw IllegalStateException(
-              "Unknown value: " + reachability.leakStatus
+              "Unknown value: " + reachability.leakingStatus
           )
         }
       }
@@ -219,11 +241,11 @@ internal class DisplayLeakAdapter constructor(
 
   override fun isEnabled(position: Int) = false
 
-  override fun getCount() = leakTrace.elements.size + 1
+  override fun getCount() = leakTrace.referencePath.size + 3
 
   override fun getItem(position: Int) = null
 
-  private fun elementIndex(position: Int) = position - 1
+  private fun elementIndex(position: Int) = position - 2
 
   override fun getViewTypeCount() = 2
 
@@ -235,6 +257,7 @@ internal class DisplayLeakAdapter constructor(
 
     const val HEADER_ROW = 0
     const val CONNECTOR_ROW = 1
+    val INDENTATION = "&nbsp;".repeat(4)
 
     // https://stackoverflow.com/a/6540378/703646
     private fun hexStringColor(

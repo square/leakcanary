@@ -230,9 +230,9 @@ class RetainedSizeTest {
 
     val instance = retainedInstances[0]
 
-    assertThat(instance.className).isEqualTo("GrandParentLeaking")
+    assertThat(instance.leakTraces.first().leakingObject.className).isEqualTo("GrandParentLeaking")
     // 4 bytes per ref * 2 + short + int + long
-    assertThat(instance.retainedHeapByteSize).isEqualTo(22)
+    assertThat(instance.totalRetainedHeapByteSize).isEqualTo(22)
   }
 
   @Test fun crossDominatedIsNotDominated() {
@@ -255,7 +255,7 @@ class RetainedSizeTest {
 
     retainedInstances.forEach { instance ->
       // 4 byte reference
-      assertThat(instance.retainedHeapByteSize).isEqualTo(4)
+      assertThat(instance.totalRetainedHeapByteSize).isEqualTo(4)
     }
   }
 
@@ -309,7 +309,7 @@ class RetainedSizeTest {
 
   private fun firstRetainedSize(): Int {
     return retainedInstances()
-        .map { it.retainedHeapByteSize!! }
+        .map { it.totalRetainedHeapByteSize!! }
         .first()
   }
 

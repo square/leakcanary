@@ -29,7 +29,7 @@ import android.view.View
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.DisplayLeakConnectorView.Type.END
 import leakcanary.internal.DisplayLeakConnectorView.Type.END_FIRST_UNREACHABLE
-import leakcanary.internal.DisplayLeakConnectorView.Type.HELP
+import leakcanary.internal.DisplayLeakConnectorView.Type.GC_ROOT
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_FIRST_UNREACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_LAST_REACHABLE
 import leakcanary.internal.DisplayLeakConnectorView.Type.NODE_REACHABLE
@@ -56,7 +56,7 @@ internal class DisplayLeakConnectorView(
   private var cache: Bitmap? = null
 
   enum class Type {
-    HELP,
+    GC_ROOT,
     START,
     START_LAST_REACHABLE,
     NODE_UNKNOWN,
@@ -141,7 +141,7 @@ internal class DisplayLeakConnectorView(
         END_FIRST_UNREACHABLE -> drawItems(
             cacheCanvas, leakPaint, null
         )
-        HELP -> drawRoot(cacheCanvas)
+        GC_ROOT -> drawGcRoot(cacheCanvas)
         else -> throw UnsupportedOperationException("Unknown type " + type!!)
       }
     }
@@ -154,16 +154,12 @@ internal class DisplayLeakConnectorView(
     cacheCanvas.drawLine(halfWidth, 0f, halfWidth, circleY, classNamePaint)
   }
 
-  private fun drawRoot(
+  private fun drawGcRoot(
     cacheCanvas: Canvas
   ) {
     val width = measuredWidth
     val height = measuredHeight
     val halfWidth = width / 2f
-    val radiusClear = halfWidth - strokeSize / 2f
-    cacheCanvas.drawRect(0f, 0f, width.toFloat(), radiusClear, classNamePaint)
-    cacheCanvas.drawCircle(0f, radiusClear, radiusClear, clearPaint)
-    cacheCanvas.drawCircle(width.toFloat(), radiusClear, radiusClear, clearPaint)
     cacheCanvas.drawLine(halfWidth, 0f, halfWidth, height.toFloat(), classNamePaint)
   }
 

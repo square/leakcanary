@@ -31,13 +31,14 @@ class LeakTraceStringRenderingTest {
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
     analysis renders """
-    ┬
-    ├─ GcRoot
+    ┬───
+    │ GC Root: System class
+    │
+    ├─ GcRoot class
     │    Leaking: UNKNOWN
-    │    GC Root: System class
     │    ↓ static GcRoot.leak
     │                    ~~~~
-    ╰→ Leaking
+    ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -64,13 +65,14 @@ class LeakTraceStringRenderingTest {
     )
 
     analysis renders """
-    ┬
-    ├─ GcRoot
+    ┬───
+    │ GC Root: System class
+    │
+    ├─ GcRoot class
     │    Leaking: UNKNOWN
-    │    GC Root: System class
     │    ↓ static GcRoot.leak
     │                    ~~~~
-    ╰→ Leaking
+    ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -107,17 +109,18 @@ class LeakTraceStringRenderingTest {
       )
 
     analysis renders """
-    ┬
-    ├─ GcRoot
+    ┬───
+    │ GC Root: System class
+    │
+    ├─ GcRoot class
     │    Leaking: UNKNOWN
-    │    GC Root: System class
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
-    ├─ ClassA
+    ├─ ClassA instance
     │    Leaking: UNKNOWN
     │    ↓ ClassA.instanceB
     │             ~~~~~~~~~
-    ╰→ ClassB
+    ╰→ ClassB instance
     ​     Leaking: YES (because reasons)
     """
   }
@@ -141,14 +144,15 @@ class LeakTraceStringRenderingTest {
     )
 
     analysis renders """
-    ┬
-    ├─ GcRoot
+    ┬───
+    │ GC Root: System class
+    │
+    ├─ GcRoot class
     │    Leaking: UNKNOWN
     │    ¯\_(ツ)_/¯
-    │    GC Root: System class
     │    ↓ static GcRoot.leak
     │                    ~~~~
-    ╰→ Leaking
+    ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     ¯\_(ツ)_/¯
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
@@ -174,17 +178,18 @@ class LeakTraceStringRenderingTest {
       )
 
     analysis rendersLibraryLeak """
-    ┬
-    ├─ GcRoot
+    ┬───
+    │ GC Root: System class
+    │
+    ├─ GcRoot class
     │    Leaking: UNKNOWN
-    │    GC Root: System class
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
-    ├─ ClassA
+    ├─ ClassA instance
     │    Leaking: UNKNOWN
     │    ↓ ClassA.leak
     │             ~~~~
-    ╰→ Leaking
+    ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -203,17 +208,18 @@ class LeakTraceStringRenderingTest {
       hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
     analysis renders """
-    ┬
-    ├─ GcRoot
+    ┬───
+    │ GC Root: System class
+    │
+    ├─ GcRoot class
     │    Leaking: UNKNOWN
-    │    GC Root: System class
     │    ↓ static GcRoot.array
     │                    ~~~~~
-    ├─ java.lang.Object[]
+    ├─ java.lang.Object[] array
     │    Leaking: UNKNOWN
-    │    ↓ array Object[].[0]
-    │                     ~~~
-    ╰→ Leaking
+    │    ↓ Object[].[0]
+    │               ~~~
+    ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -228,13 +234,14 @@ class LeakTraceStringRenderingTest {
       hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
     analysis renders """
-    ┬
-    ├─ MyThread
+    ┬───
+    │ GC Root: Java local variable
+    │
+    ├─ MyThread thread
     │    Leaking: UNKNOWN
-    │    GC Root: Java local variable
-    │    ↓ thread MyThread.<Java Local>
-    │                      ~~~~~~~~~~~~
-    ╰→ Leaking
+    │    ↓ MyThread.<Java Local>
+    │               ~~~~~~~~~~~~
+    ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -243,13 +250,13 @@ class LeakTraceStringRenderingTest {
   }
 
   private infix fun HeapAnalysisSuccess.renders(expectedString: String) {
-    assertThat(applicationLeaks[0].leakTrace.toString()).isEqualTo(
+    assertThat(applicationLeaks[0].leakTraces.first().toString()).isEqualTo(
         expectedString.trimIndent()
     )
   }
 
   private infix fun HeapAnalysisSuccess.rendersLibraryLeak(expectedString: String) {
-    assertThat(libraryLeaks[0].leakTrace.toString()).isEqualTo(
+    assertThat(libraryLeaks[0].leakTraces.first().toString()).isEqualTo(
         expectedString.trimIndent()
     )
   }

@@ -10,4 +10,8 @@ class HeapAnalysisException(cause: Throwable) : RuntimeException(cause) {
     cause!!.printStackTrace(PrintWriter(stringWriter))
     return stringWriter.toString()
   }
+
+  companion object {
+    private const val serialVersionUID: Long = -2522323377375290608
+  }
 }

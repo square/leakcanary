@@ -95,8 +95,11 @@ class HeapAnalysisStringRenderingTest {
       |References underlined with "~~~" are likely causes.
       |Learn more at https://squ.re/leaks.
       |
-      |┬
-      |├─ GcRoot
+      |Signature: a49095c3373b957532aff14eb32987bb75ffe9d5
+      |┬───
+      |│ GC Root: System class
+      |│
+      |├─ GcRoot class
       |.*
       |====================================
       |0 LIBRARY LEAKS

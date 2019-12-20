@@ -5,12 +5,11 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
-import shark.LeakNodeStatus.LEAKING
-import shark.LeakNodeStatus.NOT_LEAKING
-import shark.LeakNodeStatus.UNKNOWN
+import shark.LeakTraceObject.LeakingStatus.LEAKING
+import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
+import shark.LeakTraceObject.LeakingStatus.UNKNOWN
 import java.io.File
 
 class LeakStatusTest {
@@ -33,7 +32,9 @@ class LeakStatusTest {
 
     val leak = analysis.applicationLeaks[0]
 
-    assertThat(leak.leakTrace.elements.first().leakStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leak.leakTraces.first().referencePath.first().originObject.leakingStatus).isEqualTo(
+        NOT_LEAKING
+    )
   }
 
   @Test fun leakingInstanceLeaking() {
@@ -41,9 +42,8 @@ class LeakStatusTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    val leak = analysis.applicationLeaks[0]
-
-    assertThat(leak.leakTrace.elements.last().leakStatus).isEqualTo(LEAKING)
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.leakingObject.leakingStatus).isEqualTo(LEAKING)
   }
 
   @Test fun defaultsToUnknown() {
@@ -57,9 +57,8 @@ class LeakStatusTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
-    val leak = analysis.applicationLeaks[0]
-
-    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(UNKNOWN)
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(UNKNOWN)
   }
 
   @Test fun inspectorNotLeaking() {
@@ -75,8 +74,8 @@ class LeakStatusTest {
         objectInspectors = listOf(notLeakingInstance("Class1"))
     )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(NOT_LEAKING)
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(NOT_LEAKING)
   }
 
   @Test fun inspectorLeaking() {
@@ -93,8 +92,10 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingInstance("Class1"))
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(LEAKING)
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
+        "Class1 is leaking"
+    )
   }
 
   @Test fun leakingWinsUnknown() {
@@ -111,8 +112,8 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingInstance("Class1"))
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(LEAKING)
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(LEAKING)
   }
 
   @Test fun notLeakingWhenNextIsNotLeaking() {
@@ -133,8 +134,8 @@ class LeakStatusTest {
           objectInspectors = listOf(notLeakingInstance("Class3"))
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(NOT_LEAKING)
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(NOT_LEAKING)
   }
 
   @Test fun leakingWhenPreviousIsLeaking() {
@@ -152,16 +153,15 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          leakFilters = listOf(object : LeakingObjectFilter {
-            override fun isLeakingObject(heapObject: HeapObject) =
-              heapObject is HeapInstance && heapObject instanceOf "Class1"
-          }),
           objectInspectors = listOf(leakingInstance("Class1"))
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements).hasSize(2)
-    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(LEAKING)
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath).hasSize(4)
+    assertThat(leakTrace.referencePath[2].originObject.leakingStatus).isEqualTo(LEAKING)
+    assertThat(leakTrace.referencePath[2].originObject.leakingStatusReason).isEqualTo(
+        "Class1↑ is leaking"
+    )
   }
 
   @Test fun middleUnknown() {
@@ -184,8 +184,8 @@ class LeakStatusTest {
           )
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[2].leakStatus).isEqualTo(UNKNOWN)
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[2].originObject.leakingStatus).isEqualTo(UNKNOWN)
   }
 
   @Test fun gcRootClassNotLeakingConflictingWithInspector() {
@@ -196,10 +196,10 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingClass("GcRoot"), ObjectInspectors.CLASS)
       )
 
-    val leak = analysis.applicationLeaks[0]
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
 
-    assertThat(leak.leakTrace.elements.first().leakStatus).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements.first().leakStatusReason).isEqualTo(
+    assertThat(leakTrace.referencePath.first().originObject.leakingStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leakTrace.referencePath.first().originObject.leakingStatusReason).isEqualTo(
         "a class is never leaking. Conflicts with GcRoot is leaking"
     )
   }
@@ -214,10 +214,10 @@ class LeakStatusTest {
 
     println(analysis)
 
-    val leak = analysis.applicationLeaks[0]
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
 
-    assertThat(leak.leakTrace.elements.first().leakStatus).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements.first().leakStatusReason).isEqualTo(
+    assertThat(leakTrace.referencePath.first().originObject.leakingStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leakTrace.referencePath.first().originObject.leakingStatusReason).isEqualTo(
         "GcRoot is not leaking and a class is never leaking"
     )
   }
@@ -229,10 +229,11 @@ class LeakStatusTest {
           objectInspectors = listOf(notLeakingInstance("Leaking"))
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements.last().leakStatus).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements.last().leakStatusReason).isEqualTo(
-        "Leaking is not leaking. Conflicts with ObjectWatcher was watching this because its lifecycle has ended"
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.leakingObject.leakingStatus).isEqualTo(LEAKING)
+    assertThat(leakTrace.leakingObject.leakingStatusReason).isEqualTo(
+        "ObjectWatcher was watching this because its lifecycle has ended. " +
+            "Conflicts with Leaking is not leaking"
     )
   }
 
@@ -243,9 +244,9 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingInstance("Leaking"))
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements.last().leakStatus).isEqualTo(LEAKING)
-    assertThat(leak.leakTrace.elements.last().leakStatusReason).isEqualTo(
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.leakingObject.leakingStatus).isEqualTo(LEAKING)
+    assertThat(leakTrace.leakingObject.leakingStatusReason).isEqualTo(
         "Leaking is leaking and ObjectWatcher was watching this because its lifecycle has ended"
     )
   }
@@ -266,9 +267,12 @@ class LeakStatusTest {
           )
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements[1].leakStatusReason).isEqualTo(
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+
+    println(leakTrace)
+
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
         "Class1 is not leaking. Conflicts with Class1 is leaking"
     )
   }
@@ -289,9 +293,9 @@ class LeakStatusTest {
           )
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(NOT_LEAKING)
-    assertThat(leak.leakTrace.elements[1].leakStatusReason).isEqualTo(
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
         "Class1 is not leaking"
     )
   }
@@ -310,10 +314,62 @@ class LeakStatusTest {
           objectInspectors = listOf(leakingInstance("Class1"), leakingInstance("Class1"))
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elements[1].leakStatus).isEqualTo(LEAKING)
-    assertThat(leak.leakTrace.elements[1].leakStatusReason).isEqualTo(
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(LEAKING)
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
         "Class1 is leaking"
+    )
+  }
+
+  @Test fun notLeakingWhenFurtherDownIsNotLeaking() {
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
+
+    val analysis =
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          objectInspectors = listOf(notLeakingInstance("Class3"))
+      )
+
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[1].originObject.className).isEqualTo("Class1")
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(NOT_LEAKING)
+    assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
+        "Class3↓ is not leaking"
+    )
+  }
+
+  @Test fun leakingWhenFurtherUpIsleaking() {
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
+
+    val analysis =
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          objectInspectors = listOf(leakingInstance("Class1"))
+      )
+
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath[3].originObject.className).isEqualTo("Class3")
+    assertThat(leakTrace.referencePath[3].originObject.leakingStatus).isEqualTo(LEAKING)
+    assertThat(leakTrace.referencePath[3].originObject.leakingStatusReason).isEqualTo(
+        "Class1↑ is leaking"
     )
   }
 
@@ -337,14 +393,13 @@ class LeakStatusTest {
           )
       )
 
-    val leak = analysis.applicationLeaks[0]
-    assertThat(leak.leakTrace.elementMayBeLeakCause(0)).isFalse()
-    assertThat(leak.leakTrace.elementMayBeLeakCause(1)).isTrue()
-    assertThat(leak.leakTrace.elementMayBeLeakCause(2)).isTrue()
-    assertThat(leak.leakTrace.elementMayBeLeakCause(3)).isFalse()
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePathElementIsSuspect(0)).isFalse()
+    assertThat(leakTrace.referencePathElementIsSuspect(1)).isTrue()
+    assertThat(leakTrace.referencePathElementIsSuspect(2)).isTrue()
   }
 
-  @Test fun sameLeakTraceSameGroup() {
+  @Test fun sameLeakTraceSameSignature() {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -356,7 +411,7 @@ class LeakStatusTest {
         }
       }
     }
-    val hash1 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    val hash1 = computeSignature(notLeaking = "Class1", leaking = "Class3")
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -368,11 +423,11 @@ class LeakStatusTest {
         }
       }
     }
-    val hash2 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    val hash2 = computeSignature(notLeaking = "Class1", leaking = "Class3")
     assertThat(hash1).isEqualTo(hash2)
   }
 
-  @Test fun differentLeakTraceDifferentGroup() {
+  @Test fun differentLeakTraceDifferentSignature() {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -384,7 +439,7 @@ class LeakStatusTest {
         }
       }
     }
-    val hash1 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    val hash1 = computeSignature(notLeaking = "Class1", leaking = "Class3")
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -396,11 +451,11 @@ class LeakStatusTest {
         }
       }
     }
-    val hash2 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    val hash2 = computeSignature(notLeaking = "Class1", leaking = "Class3")
     assertThat(hash1).isNotEqualTo(hash2)
   }
 
-  @Test fun sameCausesSameGroup() {
+  @Test fun sameCausesSameSignature() {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -412,7 +467,7 @@ class LeakStatusTest {
         }
       }
     }
-    val hash1 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    val hash1 = computeSignature(notLeaking = "Class1", leaking = "Class3")
 
     hprofFile.dump {
       "GcRoot" clazz {
@@ -425,8 +480,31 @@ class LeakStatusTest {
         }
       }
     }
-    val hash2 = computeGroupHash(notLeaking = "Class1", leaking = "Class3")
+    val hash2 = computeSignature(notLeaking = "Class1", leaking = "Class3")
     assertThat(hash1).isEqualTo(hash2)
+  }
+
+  @Test fun sameCausesSameApplicationLeak() {
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["staticField1"] = "Class1" instance {
+          field["field1"] = "Class2" instance {
+            field["field2"] = "Class3" instance {
+              field["field3a"] = "Leaking" watchedInstance {}
+              field["field3b"] = "Leaking" watchedInstance {}
+            }
+          }
+        }
+      }
+    }
+
+    val analysis =
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          objectInspectors = listOf(notLeakingInstance("Class1"), leakingInstance("Class3"))
+      )
+
+    assertThat(analysis.applicationLeaks).hasSize(1)
+    assertThat(analysis.applicationLeaks.first().leakTraces).hasSize(2)
   }
 
   private fun notLeakingInstance(className: String): ObjectInspector {
@@ -481,7 +559,7 @@ class LeakStatusTest {
     }
   }
 
-  private fun computeGroupHash(
+  private fun computeSignature(
     notLeaking: String,
     leaking: String
   ): String {
@@ -493,6 +571,6 @@ class LeakStatusTest {
       "Expecting 1 retained instance in ${analysis.applicationLeaks}"
     }
     val leak = analysis.applicationLeaks[0]
-    return leak.groupHash
+    return leak.signature
   }
 }
