@@ -26,7 +26,6 @@ import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
 import shark.HeapAnalyzer
-import shark.ObjectInspectors.KEYED_WEAK_REFERENCE
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
 import shark.ProguardMappingReader
@@ -77,12 +76,10 @@ internal class HeapAnalyzerService : ForegroundService(
     }
     return heapAnalyzer.analyze(
         heapDumpFile = heapDumpFile,
+        leakingObjectFinder = config.leakingObjectFinder,
         referenceMatchers = config.referenceMatchers,
         computeRetainedHeapSize = config.computeRetainedHeapSize,
         objectInspectors = config.objectInspectors,
-        leakFinders = if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
-            KEYED_WEAK_REFERENCE
-        ),
         metadataExtractor = config.metatadaExtractor,
         proguardMapping = proguardMappingReader?.readProguardMapping()
     )

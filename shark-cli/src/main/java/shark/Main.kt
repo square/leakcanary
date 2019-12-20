@@ -197,7 +197,7 @@ private fun dumpHeap(
 
   SharkLog.d { "Pulling $heapDumpDevicePath" }
 
-  val pullResult = runCommand(workingDirectory, "adb",  "-s", deviceId, "pull", heapDumpDevicePath)
+  val pullResult = runCommand(workingDirectory, "adb", "-s", deviceId, "pull", heapDumpDevicePath)
   SharkLog.d { pullResult }
   SharkLog.d { "Removing $heapDumpDevicePath" }
 
@@ -244,8 +244,13 @@ private fun analyze(
   val heapAnalyzer = HeapAnalyzer(listener)
   SharkLog.d { "Analyzing heap dump $heapDumpFile" }
   val heapAnalysis = heapAnalyzer.analyze(
-      heapDumpFile, AndroidReferenceMatchers.appDefaults, true,
-      AndroidObjectInspectors.appDefaults,
+      heapDumpFile = heapDumpFile,
+      leakingObjectFinder = FilteringLeakingObjectFinder(
+          AndroidObjectInspectors.appLeakingObjectFilters
+      ),
+      referenceMatchers = AndroidReferenceMatchers.appDefaults,
+      computeRetainedHeapSize = true,
+      objectInspectors = AndroidObjectInspectors.appDefaults,
       proguardMapping = proguardMapping
   )
 

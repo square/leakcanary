@@ -5,6 +5,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.LeakNodeStatus.LEAKING
@@ -151,6 +152,10 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          leakFilters = listOf(object : LeakingObjectFilter {
+            override fun isLeakingObject(heapObject: HeapObject) =
+              heapObject is HeapInstance && heapObject instanceOf "Class1"
+          }),
           objectInspectors = listOf(leakingInstance("Class1"))
       )
 

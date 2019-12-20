@@ -27,7 +27,6 @@ import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
 import shark.HeapAnalyzer
-import shark.ObjectInspectors
 import shark.SharkLog
 import java.io.File
 
@@ -172,12 +171,11 @@ class InstrumentationLeakDetector {
 
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.analyze(
-        heapDumpFile, config.referenceMatchers,
-        config.computeRetainedHeapSize,
-        config.objectInspectors,
-        if (config.useExperimentalLeakFinders) config.objectInspectors else listOf(
-            ObjectInspectors.KEYED_WEAK_REFERENCE
-        )
+        heapDumpFile = heapDumpFile,
+        leakingObjectFinder = config.leakingObjectFinder,
+        referenceMatchers = config.referenceMatchers,
+        computeRetainedHeapSize = config.computeRetainedHeapSize,
+        objectInspectors = config.objectInspectors
     )
 
     SharkLog.d { "Heap Analysis:\n$heapAnalysis" }

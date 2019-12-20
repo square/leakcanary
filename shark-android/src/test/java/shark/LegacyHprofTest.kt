@@ -2,6 +2,7 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.DESTROYED
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_ACTIVITY
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_DESTROYED
@@ -143,6 +144,9 @@ class LegacyHprofTest {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = heapAnalyzer.analyze(
         heapDumpFile = hprofFile,
+        leakingObjectFinder = FilteringLeakingObjectFinder(
+            AndroidObjectInspectors.appLeakingObjectFilters
+        ),
         referenceMatchers = AndroidReferenceMatchers.appDefaults,
         computeRetainedHeapSize = false,
         objectInspectors = AndroidObjectInspectors.appDefaults,

@@ -15,9 +15,10 @@
  */
 package shark
 
+import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
-import shark.internal.KeyedWeakReferenceMirror
+import java.util.EnumSet
 
 /**
  * A set of default [ObjectInspector]s that knows about common JDK objects.
@@ -25,38 +26,19 @@ import shark.internal.KeyedWeakReferenceMirror
 enum class ObjectInspectors : ObjectInspector {
 
   KEYED_WEAK_REFERENCE {
+
+    override val leakingObjectFilter = { heapObject: HeapObject ->
+      KeyedWeakReferenceFinder.findKeyedWeakReferences(heapObject.graph)
+          .any { reference ->
+            reference.referent.value == heapObject.objectId
+          }
+    }
+
     override fun inspect(
       reporter: ObjectReporter
     ) {
       val graph = reporter.heapObject.graph
-      val references: List<KeyedWeakReferenceMirror> =
-        graph.context.getOrPut(KEYED_WEAK_REFERENCE.name) {
-          val keyedWeakReferenceClass = graph.findClassByName("leakcanary.KeyedWeakReference")
-
-          val heapDumpUptimeMillis = if (keyedWeakReferenceClass == null) {
-            null
-          } else {
-            keyedWeakReferenceClass["heapDumpUptimeMillis"]?.value?.asLong
-          }
-
-          if (heapDumpUptimeMillis == null) {
-            SharkLog.d {
-                "leakcanary.KeyedWeakReference.heapDumpUptimeMillis field not found, " +
-                    "this must be a heap dump from an older version of LeakCanary."
-            }
-          }
-
-          val addedToContext: List<KeyedWeakReferenceMirror> = graph.instances
-              .filter { instance ->
-                val className = instance.instanceClassName
-                className == "leakcanary.KeyedWeakReference" || className == "com.squareup.leakcanary.KeyedWeakReference"
-              }
-              .map { KeyedWeakReferenceMirror.fromInstance(it, heapDumpUptimeMillis) }
-              .filter { it.hasReferent }
-              .toList()
-          graph.context[KEYED_WEAK_REFERENCE.name] = addedToContext
-          addedToContext
-        }
+      val references = KeyedWeakReferenceFinder.findKeyedWeakReferences(graph)
 
       val objectId = reporter.heapObject.objectId
       references.forEach { ref ->
@@ -142,6 +124,8 @@ enum class ObjectInspectors : ObjectInspector {
     }
   };
 
+  internal open val leakingObjectFilter: ((heapObject: HeapObject) -> Boolean)? = null
+
   companion object {
     private const val ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$"
     private val ANONYMOUS_CLASS_NAME_PATTERN_REGEX = ANONYMOUS_CLASS_NAME_PATTERN.toRegex()
@@ -150,5 +134,22 @@ enum class ObjectInspectors : ObjectInspector {
       get() {
         return values().toList()
       }
+
+    /**
+     * Returns a list of [LeakingObjectFilter] suitable for common JDK projects.
+     */
+    val jdkLeakingObjectFilters: List<LeakingObjectFilter> =
+      createLeakingObjectFilters(EnumSet.allOf(ObjectInspectors::class.java))
+
+    /**
+     * Creates a list of [LeakingObjectFilter] based on the passed in [ObjectInspectors].
+     */
+    fun createLeakingObjectFilters(inspectors: Set<ObjectInspectors>): List<LeakingObjectFilter> =
+      inspectors.mapNotNull { it.leakingObjectFilter }
+          .map { filter ->
+            object : LeakingObjectFilter {
+              override fun isLeakingObject(heapObject: HeapObject) = filter(heapObject)
+            }
+          }
   }
 }
