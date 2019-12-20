@@ -56,7 +56,7 @@ fun main(args: Array<String>) {
 
 private fun readMappingFileFromArgs(args: List<String>): File? {
   val tagIndex = args.indexOfFirst {
-    it == "-p" || it == "--proguard-mapping"
+    it == "-p" || it == "--obfuscation-mapping"
   }
   if (tagIndex == -1 || tagIndex == args.lastIndex) {
     return null
@@ -99,7 +99,7 @@ fun printHelp() {
     analyze-process: Dumps the heap for the provided process name, pulls the hprof file and analyzes it.
       USAGE: analyze-process PROCESS_PACKAGE_NAME
                [-d ID, --device ID]                optional device/emulator id
-               [-p PATH, --proguard-mapping PATH]  optional path to Proguard mapping file
+               [-p PATH, --obfuscation-mapping PATH]  optional path to obfuscation mapping file
 
     dump-process: Dumps the heap for the provided process name and pulls the hprof file.
       USAGE: dump-process PROCESS_PACKAGE_NAME
@@ -107,7 +107,7 @@ fun printHelp() {
 
     analyze-hprof: Analyzes the provided hprof file.
       USAGE: analyze-hprof HPROF_FILE_PATH
-               [-p PATH, --proguard-mapping PATH]  optional path to Proguard mapping file
+               [-p PATH, --obfuscation-mapping PATH]  optional path to obfuscation mapping file
 
     strip-hprof: Replaces all primitive arrays from the provided hprof file with arrays of zeroes and generates a new "-stripped" hprof file.
       USAGE: strip-hprof HPROF_FILE_PATH
