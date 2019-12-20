@@ -26,6 +26,7 @@ A few more things:
 * Shark is heavily tested (80% test coverage).
 * Shark can run in both Java and Android VMs, with no other dependency than Okio and Kotlin.
 * Shark can analyze both Java and Android VM hprof files.
+* Shark can deobfuscate hprof records if it has access to obfuscation mapping file.
 
 ## Shark CLI
 
