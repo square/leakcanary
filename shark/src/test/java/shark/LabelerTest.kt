@@ -25,7 +25,7 @@ class LabelerTest {
       override fun inspect(
         reporter: ObjectReporter
       ) {
-        reporter.whenInstanceOf("java.lang.String")  { instance ->
+        reporter.whenInstanceOf("java.lang.String") { instance ->
           labels += "Hello ${instance.readAsJavaString()}"
         }
       }
@@ -33,20 +33,24 @@ class LabelerTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(objectInspectors = listOf(labeler))
 
-    val leak = analysis.applicationLeaks[0]
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
 
-    assertThat(leak.leakTrace.elements.last().labels).contains("Hello World")
+    assertThat(leakTrace.leakingObject.labels).contains("Hello World")
   }
 
   @Test fun threadNameLabel() {
     hprofFile.writeJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>(objectInspectors = listOf(ObjectInspectors.THREAD))
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          objectInspectors = listOf(ObjectInspectors.THREAD)
+      )
 
     val leak = analysis.applicationLeaks[0]
 
-    assertThat(leak.leakTrace.elements.first().labels).contains("Thread name: 'kroutine'")
+    assertThat(leak.leakTraces.first().referencePath.first().originObject.labels).contains(
+        "Thread name: 'kroutine'"
+    )
   }
 
 }

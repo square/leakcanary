@@ -1,5 +1,14 @@
 package shark
 
+import shark.GcRoot.JavaFrame
+import shark.GcRoot.JniGlobal
+import shark.GcRoot.JniLocal
+import shark.GcRoot.JniMonitor
+import shark.GcRoot.MonitorUsed
+import shark.GcRoot.NativeStack
+import shark.GcRoot.StickyClass
+import shark.GcRoot.ThreadBlock
+import shark.GcRoot.ThreadObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -20,6 +29,7 @@ import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.LruCache
+import kotlin.reflect.KClass
 
 /**
  * A [HeapGraph] that reads from an indexed [Hprof]. Create a new instance with [indexHprof].
@@ -188,9 +198,36 @@ class HprofHeapGraph internal constructor(
   companion object {
     fun indexHprof(
       hprof: Hprof,
-      proguardMapping: ProguardMapping? = null
+      proguardMapping: ProguardMapping? = null,
+      indexedGcRootTypes: Set<KClass<out GcRoot>> = setOf(
+          JniGlobal::class,
+          JavaFrame::class,
+          JniLocal::class,
+          MonitorUsed::class,
+          NativeStack::class,
+          StickyClass::class,
+          ThreadBlock::class,
+          // ThreadObject points to threads, which we need to find the thread that a JavaLocalPattern
+          // belongs to
+          ThreadObject::class,
+          JniMonitor::class
+          /*
+          Not included here:
+
+          VmInternal: Ignoring because we've got 150K of it, but is this the right thing
+          to do? What's VmInternal exactly? History does not go further than
+          https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
+          We should log to figure out what objects VmInternal points to.
+
+          ReferenceCleanup: We used to keep it, but the name doesn't seem like it should create a leak.
+
+          Unknown: it's unknown, should we care?
+
+          We definitely don't care about those for leak finding: InternedString, Finalizing, Debugger, Unreachable
+           */
+      )
     ): HeapGraph {
-      val index = HprofInMemoryIndex.createReadingHprof(hprof, proguardMapping)
+      val index = HprofInMemoryIndex.createReadingHprof(hprof, proguardMapping, indexedGcRootTypes)
       return HprofHeapGraph(hprof, index)
     }
   }

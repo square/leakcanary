@@ -1,21 +1,5 @@
-/*
- * Copyright (C) 2015 Square, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package shark
 
-import shark.LeakTraceElement.Type
 import shark.LeakTraceElement.Type.ARRAY_ENTRY
 import shark.LeakTraceElement.Type.INSTANCE_FIELD
 import shark.LeakTraceElement.Type.LOCAL
@@ -23,29 +7,25 @@ import shark.LeakTraceElement.Type.STATIC_FIELD
 import java.io.Serializable
 
 /**
- * A single field in a [LeakTraceElement].
+ * This class is kept to support backward compatible deserialization.
  */
-data class LeakReference(
-  val type: Type,
-  val name: String
-) : Serializable {
+internal class LeakReference : Serializable {
 
-  val displayName: String
-    get() {
-      return when (type) {
-        ARRAY_ENTRY -> "[$name]"
-        STATIC_FIELD, INSTANCE_FIELD -> name
-        LOCAL -> "<Java Local>"
-      }
-    }
+  private val type: LeakTraceElement.Type? = null
+  private val name: String? = null
 
-  val groupingName: String
-    get() {
-      return when (type) {
-        // The specific array index in a leak rarely matters, this improves grouping.
-        ARRAY_ENTRY -> "[x]"
-        STATIC_FIELD, INSTANCE_FIELD -> name
-        LOCAL -> "<Java Local>"
-      }
-    }
+  fun fromV20(originObject: LeakTraceObject) = ReferencePathElement(
+      originObject = originObject,
+      referenceType = when (type!!) {
+        INSTANCE_FIELD -> ReferencePathElement.ReferenceType.INSTANCE_FIELD
+        STATIC_FIELD -> ReferencePathElement.ReferenceType.STATIC_FIELD
+        LOCAL -> ReferencePathElement.ReferenceType.LOCAL
+        ARRAY_ENTRY -> ReferencePathElement.ReferenceType.ARRAY_ENTRY
+      },
+      referenceName = name!!
+  )
+
+  companion object {
+    private const val serialVersionUID: Long = 2028550902155599651
+  }
 }

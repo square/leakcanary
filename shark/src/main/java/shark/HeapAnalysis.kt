@@ -24,6 +24,10 @@ sealed class HeapAnalysis : Serializable {
    * Total time spent analyzing the heap.
    */
   abstract val analysisDurationMillis: Long
+
+  companion object {
+    private const val serialVersionUID: Long = -8657286725869987172
+  }
 }
 
 /**
@@ -59,6 +63,10 @@ Heap dump file path: ${heapDumpFile.absolutePath}
 Heap dump timestamp: $createdAtTimeMillis
 ===================================="""
   }
+
+  companion object {
+    private const val serialVersionUID: Long = 8483254400637792414
+  }
 }
 
 /**
@@ -82,8 +90,8 @@ data class HeapAnalysisSuccess(
    * The list of [Leak] found in the heap dump by [HeapAnalyzer], ie all [applicationLeaks] and
    * all [libraryLeaks] in one list.
    */
-  val allLeaks: List<Leak>
-    get() = applicationLeaks + libraryLeaks
+  val allLeaks: Sequence<Leak>
+    get() = applicationLeaks.asSequence() + libraryLeaks.asSequence()
 
   override fun toString(): String {
     return """====================================
@@ -113,53 +121,88 @@ Heap dump file path: ${heapDumpFile.absolutePath}
 Heap dump timestamp: $createdAtTimeMillis
 ===================================="""
   }
+
+  companion object {
+    private const val serialVersionUID: Long = 130453013437459642
+
+    /**
+     * If [fromV20] was serialized in LeakCanary 2.0, you must deserialize it and call this
+     * method to create a usable [HeapAnalysisSuccess] instance.
+     */
+    fun upgradeFrom20Deserialized(fromV20: HeapAnalysisSuccess): HeapAnalysisSuccess {
+      val applicationLeaks = fromV20.applicationLeaks
+          .map { it.leakTraceFromV20() }
+          .groupBy { it.signature }
+          .values
+          .map {
+            ApplicationLeak(it)
+          }
+
+      val libraryLeaks = fromV20.libraryLeaks
+          .map { it to it.leakTraceFromV20() }
+          .groupBy { it.second.signature }
+          .values
+          .map { listOfPairs ->
+            val libraryLeakFrom20 = listOfPairs.first()
+                .first
+            LibraryLeak(pattern = libraryLeakFrom20.pattern,
+                description = libraryLeakFrom20.description,
+                leakTraces = listOfPairs.map { it.second }
+            )
+          }
+      return HeapAnalysisSuccess(
+          heapDumpFile = fromV20.heapDumpFile,
+          createdAtTimeMillis = fromV20.createdAtTimeMillis,
+          analysisDurationMillis = fromV20.analysisDurationMillis,
+          metadata = fromV20.metadata,
+          applicationLeaks = applicationLeaks,
+          libraryLeaks = libraryLeaks
+      )
+    }
+  }
 }
 
 /**
  * A leak found by [HeapAnalyzer], either an [ApplicationLeak] or a [LibraryLeak].
  */
 sealed class Leak : Serializable {
-  /**
-   * Class name of the leaking object.
-   * The class name format is the same as what would be returned by [Class.getName].
-   */
-  abstract val className: String
 
   /**
-   * Shortest path from GC roots to the leaking object.
+   * Group of leak traces which share the same leak signature.
    */
-  abstract val leakTrace: LeakTrace
+  abstract val leakTraces: List<LeakTrace>
 
   /**
-   * The number of bytes which would be freed if all references to the leaking object were
-   * released. Null if the retained heap size was not computed.
+   * Sum of [LeakTrace.retainedHeapByteSize] for all elements in [leakTraces].
+   * Null if the retained heap size was not computed.
    */
-  abstract val retainedHeapByteSize: Int?
-
-  /**
-   * A unique SHA1 hash that represents this group of leaks.
-   *
-   * For [ApplicationLeak] this is based on [LeakTrace.leakCauses] and for [LibraryLeak] this is
-   * based on [LibraryLeak.pattern].
-   */
-  val groupHash
-    get() = createGroupHash()
-
-  /**
-   * Returns [className] stripped of any string content before the last period (included).
-   */
-  val classSimpleName: String
-    get() {
-      val separator = className.lastIndexOf('.')
-      return if (separator == -1) className else className.substring(separator + 1)
+  val totalRetainedHeapByteSize: Int?
+    get() = if (leakTraces.first().retainedHeapByteSize == null) {
+      null
+    } else {
+      leakTraces.sumBy { it.retainedHeapByteSize!! }
     }
 
+  /**
+   * A unique SHA1 hash that represents this group of leak traces.
+   *
+   * For [ApplicationLeak] this is based on [LeakTrace.signature] and for [LibraryLeak] this is
+   * based on [LibraryLeak.pattern].
+   */
+  abstract val signature: String
+
+  abstract val shortDescription: String
+
   override fun toString(): String {
-    return (if (retainedHeapByteSize != null) "$retainedHeapByteSize bytes retained\n" else "") +
-        leakTrace
+    return (if (totalRetainedHeapByteSize != null) "$totalRetainedHeapByteSize bytes retained by leaking objects\n" else "") +
+        (if (leakTraces.size > 1) "Displaying only 1 leak trace out of ${leakTraces.size} with the same signature\n" else "") +
+        "Signature: $signature\n" +
+        leakTraces.first()
   }
 
-  protected abstract fun createGroupHash(): String
+  companion object {
+    private const val serialVersionUID: Long = -2287572510360910916
+  }
 }
 
 /**
@@ -168,11 +211,9 @@ sealed class Leak : Serializable {
  * instance. This is a known leak in library code that is beyond your control.
  */
 data class LibraryLeak(
-  override val className: String,
-  override val leakTrace: LeakTrace,
-  override val retainedHeapByteSize: Int?,
+  override val leakTraces: List<LeakTrace>,
   /**
-   * The pattern that matched one of the references in [leakTrace], as provided to a
+   * The pattern that matched one of the references in each of [leakTraces], as provided to a
    * [LibraryLeakReferenceMatcher] instance.
    */
   val pattern: ReferencePattern,
@@ -181,7 +222,11 @@ data class LibraryLeak(
    */
   val description: String
 ) : Leak() {
-  override fun createGroupHash() = pattern.toString().createSHA1Hash()
+  override val signature: String
+    get() = pattern.toString().createSHA1Hash()
+
+  override val shortDescription: String
+    get() = pattern.toString()
 
   override fun toString(): String {
     return """Leak pattern: $pattern
@@ -189,28 +234,51 @@ Description: $description
 ${super.toString()}
 """
   }
+
+  /** This field is kept to support backward compatible deserialization. */
+  private val leakTrace: LeakTrace? = null
+  /** This field is kept to support backward compatible deserialization. */
+  private val retainedHeapByteSize: Int? = null
+
+  internal fun leakTraceFromV20() = leakTrace!!.fromV20(retainedHeapByteSize)
+
+  companion object {
+    private const val serialVersionUID: Long = 3943636164568681903
+  }
 }
 
 /**
  * A leak found by [HeapAnalyzer] in your application.
  */
 data class ApplicationLeak(
-  override val className: String,
-  override val leakTrace: LeakTrace,
-  override val retainedHeapByteSize: Int?
+  override val leakTraces: List<LeakTrace>
 ) : Leak() {
-  override fun createGroupHash(): String {
-    return leakTrace.leakCauses
-        .joinToString(separator = "") { element ->
-          val referenceName = element.reference!!.groupingName
-          element.className + referenceName
-        }
-        .createSHA1Hash()
-  }
+  override val signature: String
+    get() = leakTraces.first().signature
 
-  // Required to avoid the default toString() from data classes
+  override val shortDescription: String
+    get() {
+      val leakTrace = leakTraces.first()
+      return leakTrace.suspectReferenceSubpath.firstOrNull()?.let { firstSuspectReferencePath ->
+        val referenceName = firstSuspectReferencePath.referenceGenericName
+        firstSuspectReferencePath.originObject.classSimpleName + "." + referenceName
+      } ?: leakTrace.leakingObject.className
+    }
+
+  // Override required to avoid the default toString() from data classes
   override fun toString(): String {
     return super.toString()
+  }
+
+  /** This field is kept to support backward compatible deserialization. */
+  private val leakTrace: LeakTrace? = null
+  /** This field is kept to support backward compatible deserialization. */
+  private val retainedHeapByteSize: Int? = null
+
+  internal fun leakTraceFromV20() = leakTrace!!.fromV20(retainedHeapByteSize)
+
+  companion object {
+    private const val serialVersionUID: Long = 524928276700576863
   }
 }
 

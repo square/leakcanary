@@ -1,8 +1,8 @@
 package shark.internal
 
 import shark.GcRoot
-import shark.LeakReference
 import shark.LibraryLeakReferenceMatcher
+import shark.ReferencePathElement
 
 internal sealed class ReferencePathNode {
   abstract val objectId: Long
@@ -34,19 +34,22 @@ internal sealed class ReferencePathNode {
     /**
      * The reference from the parent to this node
      */
-    abstract val referenceFromParent: LeakReference
+    abstract val refFromParentType: ReferencePathElement.ReferenceType
+    abstract val refFromParentName: String
 
     class LibraryLeakChildNode(
       override val objectId: Long,
       override val parent: ReferencePathNode,
-      override val referenceFromParent: LeakReference,
+      override val refFromParentType: ReferencePathElement.ReferenceType,
+      override val refFromParentName: String,
       override val matcher: LibraryLeakReferenceMatcher
     ) : ChildNode(), LibraryLeakNode
 
     class NormalNode(
       override val objectId: Long,
       override val parent: ReferencePathNode,
-      override val referenceFromParent: LeakReference
+      override val refFromParentType: ReferencePathElement.ReferenceType,
+      override val refFromParentName: String
     ) : ChildNode()
   }
 

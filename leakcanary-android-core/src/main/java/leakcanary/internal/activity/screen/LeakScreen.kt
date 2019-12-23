@@ -12,8 +12,8 @@ import android.widget.TextView
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.DisplayLeakAdapter
 import leakcanary.internal.SquigglySpan
+import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable
-import leakcanary.internal.activity.db.LeakTable.LeakDetails
 import leakcanary.internal.activity.db.LeakTable.LeakProjection
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.share
@@ -27,36 +27,45 @@ import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import shark.HeapAnalysisSuccess
-import shark.Leak
+import shark.LeakTrace
 import shark.LibraryLeak
 
 internal class LeakScreen(
-  private val groupHash: String,
+  private val leakSignature: String,
   private val selectedHeapAnalysisId: Long? = null
 ) : Screen() {
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_leak_screen).apply {
       activity.title = resources.getString(R.string.leak_canary_loading_title)
       executeOnDb {
-        val leaks = LeakTable.retrieveLeaksByHash(db, groupHash)
-        val selectedLeakIndex =
-          if (selectedHeapAnalysisId == null) 0 else leaks.indexOfFirst { it.analysisId == selectedHeapAnalysisId }
-        updateUi {
-          if (leaks.isEmpty()) {
+        val leak = LeakTable.retrieveLeakBySignature(db, leakSignature)
+
+        if (leak == null) {
+          updateUi {
             activity.title = resources.getString(R.string.leak_canary_leak_not_found)
-          } else {
-            onLeaksRetrieved(leaks, selectedLeakIndex)
           }
+        } else {
+          val selectedLeakIndex =
+            if (selectedHeapAnalysisId == null) 0 else leak.leakTraces.indexOfFirst { it.heapAnalysisId == selectedHeapAnalysisId }
+
+          val heapAnalysisId = leak.leakTraces[selectedLeakIndex].heapAnalysisId
+          val selectedHeapAnalysis = HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, heapAnalysisId)!!
+
+          updateUi {
+            onLeaksRetrieved(leak, selectedLeakIndex, selectedHeapAnalysis)
+          }
+          LeakTable.markAsRead(db, leakSignature)
         }
       }
     }
 
   private fun View.onLeaksRetrieved(
-    leaks: List<LeakProjection>,
-    selectedLeakIndex: Int
+    leak: LeakProjection,
+    selectedLeakTraceIndex: Int,
+    selectedHeapAnalysis: HeapAnalysisSuccess
   ) {
-    val isLibraryLeak = leaks.any { it.isLibraryLeak }
-    val isNew = leaks.all { it.isNew }
+    val isLibraryLeak = leak.isLibraryLeak
+    val isNew = leak.isNew
     val newChipView = findViewById<TextView>(R.id.leak_canary_chip_new)
     val libraryLeakChipView = findViewById<TextView>(R.id.leak_canary_chip_library_leak)
     newChipView.visibility = if (isNew) View.VISIBLE else View.GONE
@@ -64,22 +73,26 @@ internal class LeakScreen(
 
     activity.title = String.format(
         resources.getQuantityText(
-            R.plurals.leak_canary_group_screen_title, leaks.size
-        ).toString(), leaks.size, leaks[0].groupDescription
+            R.plurals.leak_canary_group_screen_title, leak.leakTraces.size
+        ).toString(), leak.leakTraces.size, leak.shortDescription
     )
 
     val spinner = findViewById<Spinner>(R.id.leak_canary_spinner)
 
-    spinner.adapter = SimpleListAdapter(R.layout.leak_canary_simple_row, leaks) { view, position ->
-      val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
-      val timeView = view.findViewById<TextView>(R.id.leak_canary_row_small_text)
-      titleView.text =
-        view.resources.getString(
-            R.string.leak_canary_class_has_leaked, leaks[position].classSimpleName
-        )
-      timeView.text =
-        TimeFormatter.formatTimestamp(view.context, leaks[position].createdAtTimeMillis)
-    }
+    spinner.adapter =
+      SimpleListAdapter(R.layout.leak_canary_simple_row, leak.leakTraces) { view, position ->
+        val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
+        val timeView = view.findViewById<TextView>(R.id.leak_canary_row_small_text)
+        titleView.text =
+          view.resources.getString(
+              R.string.leak_canary_class_has_leaked, leak.leakTraces[position].classSimpleName
+          )
+        timeView.text =
+          TimeFormatter.formatTimestamp(view.context, leak.leakTraces[position].createdAtTimeMillis)
+      }
+
+    var lastSelectedLeakTraceIndex = selectedLeakTraceIndex
+    var lastSelectedHeapAnalysis = selectedHeapAnalysis
 
     spinner.onItemSelectedListener = object : OnItemSelectedListener {
       override fun onNothingSelected(parent: AdapterView<*>?) {
@@ -91,26 +104,33 @@ internal class LeakScreen(
         position: Int,
         id: Long
       ) {
-        executeOnDb {
-          val displayedLeak = leaks[position]
-          LeakTable.retrieveLeakById(db, displayedLeak.id)
-              ?.let { leak ->
-                updateUi {
-                  displayLeakTrace(leak)
-                }
-                if (leak.isNew) {
-                  LeakTable.markAsRead(db, displayedLeak.id)
-                }
-              }
+        val selectedLeakTrace = leak.leakTraces[position]
+
+        val selectedHeapAnalysisId = selectedLeakTrace.heapAnalysisId
+        val lastSelectedHeapAnalysisId = leak.leakTraces[lastSelectedLeakTraceIndex].heapAnalysisId
+
+        if (selectedHeapAnalysisId != lastSelectedHeapAnalysisId) {
+          executeOnDb {
+            val newSelectedHeapAnalysis = HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, selectedHeapAnalysisId)!!
+            updateUi {
+              lastSelectedLeakTraceIndex = position
+              lastSelectedHeapAnalysis = newSelectedHeapAnalysis
+              onLeakTraceSelected(newSelectedHeapAnalysis, selectedHeapAnalysisId, selectedLeakTrace.leakTraceIndex)
+            }
+          }
+        } else {
+          lastSelectedLeakTraceIndex = position
+          onLeakTraceSelected(lastSelectedHeapAnalysis, selectedHeapAnalysisId, selectedLeakTrace.leakTraceIndex)
         }
       }
     }
-    spinner.setSelection(selectedLeakIndex)
+    spinner.setSelection(selectedLeakTraceIndex)
   }
 
-  private fun View.displayLeakTrace(projection: LeakDetails) {
-    val leak = projection.leak
-    val analysis = projection.analysis
+
+private fun View.onLeakTraceSelected(analysis: HeapAnalysisSuccess, heapAnalysisId: Long, leakTraceIndex: Int) {
+  val selectedLeak = analysis.allLeaks.first { it.signature == leakSignature }
+  val leakTrace = selectedLeak.leakTraces[leakTraceIndex]
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)
     listView.alpha = 0f
@@ -123,10 +143,10 @@ internal class LeakScreen(
       Share <a href="share_hprof">Heap Dump file</a><br><br>
       References <b><u>underlined</u></b> are the likely causes of the leak.
       Learn more at <a href="https://squ.re/leaks">https://squ.re/leaks</a>
-    """.trimIndent() + if (leak is LibraryLeak) "<br><br>" +
+    """.trimIndent() + if (selectedLeak is LibraryLeak) "<br><br>" +
         "A <font color='#FFCC32'>Library Leak</font> is a leak coming from the Android Framework or Google libraries.<br><br>" +
-        "<b>Leak pattern</b>: ${leak.pattern}<br><br>" +
-        "<b>Description</b>: ${leak.description}" else ""
+        "<b>Leak pattern</b>: ${selectedLeak.pattern}<br><br>" +
+        "<b>Description</b>: ${selectedLeak.description}" else ""
 
     val title = Html.fromHtml(titleText) as SpannableStringBuilder
     SquigglySpan.replaceUnderlineSpans(title, context)
@@ -135,17 +155,17 @@ internal class LeakScreen(
       when (urlSpan) {
         "share" -> {
           {
-            share(leakToString(leak, analysis))
+            share(leakToString(leakTrace, analysis))
           }
         }
         "share_stack_overflow" -> {
           {
-            shareToStackOverflow(leakToString(leak, analysis))
+            shareToStackOverflow(leakToString(leakTrace, analysis))
           }
         }
         "open_analysis" -> {
           {
-            goTo(HeapDumpScreen(projection.analysisId))
+            goTo(HeapDumpScreen(heapAnalysisId))
           }
         }
         "share_hprof" -> {
@@ -157,14 +177,14 @@ internal class LeakScreen(
       }
     }
 
-    val adapter = DisplayLeakAdapter(context, leak.leakTrace, title)
+    val adapter = DisplayLeakAdapter(context, leakTrace, title)
     listView.adapter = adapter
   }
 
   private fun leakToString(
-    leak: Leak,
+    leakTrace: LeakTrace,
     analysis: HeapAnalysisSuccess
-  ) = """$leak
+  ) = """$leakTrace
 
 METADATA
 

@@ -13,7 +13,6 @@ import android.widget.TextView
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable
-import leakcanary.internal.activity.db.LeakTable.HeapAnalysisGroupProjection
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.share
 import leakcanary.internal.activity.shareHeapDump
@@ -26,6 +25,7 @@ import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
 import shark.HeapAnalysisSuccess
+import shark.LibraryLeak
 
 internal class HeapDumpScreen(
   private val analysisId: Long
@@ -42,17 +42,17 @@ internal class HeapDumpScreen(
             activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
           }
         } else {
-          val leakGroupByHash =
-            LeakTable.retrieveHeapDumpLeaks(db, analysisId)
+          val signatures = heapAnalysis.allLeaks.map { it.signature }.toSet()
+          val leakReadStatus = LeakTable.retrieveLeakReadStatuses(db, signatures)
           val heapDumpFileExist = heapAnalysis.heapDumpFile.exists()
-          updateUi { onSuccessRetrieved(heapAnalysis, leakGroupByHash, heapDumpFileExist) }
+          updateUi { onSuccessRetrieved(heapAnalysis, leakReadStatus, heapDumpFileExist) }
         }
       }
     }
 
   private fun View.onSuccessRetrieved(
     heapAnalysis: HeapAnalysisSuccess,
-    leakGroupByHash: Map<String, HeapAnalysisGroupProjection>,
+    leakReadStatus: Map<String, Boolean>,
     heapDumpFileExist: Boolean
   ) {
 
@@ -80,17 +80,8 @@ internal class HeapDumpScreen(
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)
 
-    val retainedInstances = heapAnalysis.allLeaks
-
-    retainedInstances.forEach { retainedInstance ->
-      if (leakGroupByHash[retainedInstance.groupHash] == null) {
-        throw IllegalStateException(
-            "Removing groups is not supported, this should never happen."
-        )
-      }
-    }
-
-    val leakGroups = leakGroupByHash.values.toList()
+    val leaks = heapAnalysis.allLeaks.sortedByDescending { it.leakTraces.size }
+        .toList()
 
     listView.adapter = object : BaseAdapter() {
       override fun getView(
@@ -138,8 +129,6 @@ internal class HeapDumpScreen(
           }
 
           textView.text = title
-
-
           view
         }
         LEAK_TITLE -> {
@@ -147,7 +136,7 @@ internal class HeapDumpScreen(
           val leaksTextView = view.findViewById<TextView>(R.id.leak_canary_heap_dump_leaks)
           leaksTextView.text = resources.getQuantityString(
               R.plurals.leak_canary_distinct_leaks,
-              leakGroups.size, leakGroups.size
+              leaks.size, leaks.size
           )
           view
         }
@@ -159,19 +148,19 @@ internal class HeapDumpScreen(
           val newChipView = view.findViewById<TextView>(R.id.leak_canary_chip_new)
           val libraryLeakChipView = view.findViewById<TextView>(R.id.leak_canary_chip_library_leak)
 
-          val projection = leakGroups[position - 2]
+          val leak = leaks[position - 2]
 
-          countView.isEnabled = projection.isNew
-          newChipView.visibility = if (projection.isNew) VISIBLE else GONE
-          libraryLeakChipView.visibility = if (projection.isLibraryLeak) VISIBLE else GONE
+          val isNew = !leakReadStatus.getValue(leak.signature)
 
-          countView.text = projection.leakCount.toString()
-          descriptionView.text = projection.description
+          countView.isEnabled = isNew
+          countView.text = leak.leakTraces.size.toString()
+          newChipView.visibility = if (isNew) VISIBLE else GONE
+          libraryLeakChipView.visibility = if (leak is LibraryLeak) VISIBLE else GONE
+          descriptionView.text = leak.shortDescription
 
           val formattedDate =
-            TimeFormatter.formatTimestamp(view.context, projection.createdAtTimeMillis)
-          timeView.text =
-            resources.getString(R.string.leak_canary_group_list_time_label, formattedDate)
+            TimeFormatter.formatTimestamp(view.context, heapAnalysis.createdAtTimeMillis)
+          timeView.text = formattedDate
           view
         }
         else -> {
@@ -183,7 +172,7 @@ internal class HeapDumpScreen(
 
       override fun getItemId(position: Int) = position.toLong()
 
-      override fun getCount() = 2 + leakGroups.size
+      override fun getCount() = 2 + leaks.size
 
       override fun getItemViewType(position: Int) = when (position) {
         0 -> METADATA
@@ -198,7 +187,7 @@ internal class HeapDumpScreen(
 
     listView.setOnItemClickListener { _, _, position, _ ->
       if (position > LEAK_TITLE) {
-        goTo(LeakScreen(leakGroups[position - 2].hash, analysisId))
+        goTo(LeakScreen(leaks[position - 2].signature, analysisId))
       }
     }
   }
