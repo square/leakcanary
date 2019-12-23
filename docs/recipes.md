@@ -218,8 +218,12 @@ class DebugExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
     super.onCreate()
-    val addObjectIdLabel = ObjectInspector { reporter ->
-      reporter.addLabel("Heap dump object id is ${reporter.heapObject.objectId}")
+    val addEntityIdLabel = ObjectInspector { reporter ->
+      reporter.whenInstanceOf("com.example.DbEntity") { instance ->
+		val databaseIdField = instance["com.example.DbEntity", "databaseId"]!!
+		val databaseId = databaseIdField.value.asInt!!
+        labels += "DbEntity.databaseId = $databaseId"
+      }
     }
 
     val singletonsInspector =
@@ -229,9 +233,9 @@ class DebugExampleApplication : ExampleApplication() {
       reporter.whenInstanceOf("com.mmvm.SomeViewModel") { instance ->
         val destroyedField = instance["com.mmvm.SomeViewModel", "destroyed"]!!
         if (destroyedField.value.asBoolean!!) {
-          reportLeaking("SomeViewModel.destroyed is true")
+          leakingReasons += "SomeViewModel.destroyed is true"
         } else {
-          reportNotLeaking("SomeViewModel.destroyed is false")
+          notLeakingReasons += "SomeViewModel.destroyed is false"
         }
       }
     }

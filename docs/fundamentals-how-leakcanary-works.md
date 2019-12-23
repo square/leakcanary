@@ -42,13 +42,31 @@ LeakCanary parses the `.hprof` file using [Shark](shark.md) and locates the reta
 
 ![done](images/finding-retained-notification.png)
 
-For each retained object, LeakCanary finds the chain of references which prevents that retained object from being garbage collected: its **leak trace**. Leak trace is another name for the *shortest strong reference path from garbage collection roots to a retained object*. 
+For each retained object, LeakCanary finds the path of references which prevents that retained object from being garbage collected: its **leak trace**. Leak trace is another name for the *best strong reference path from garbage collection roots to a retained object*. 
 
 ![done](images/building-leak-traces-notification.png)
 
-When the analysis is done, LeakCanary displays a notification with a summary. Notice below how the **4 retained objects** are grouped as **2 distinct leaks**. LeakCanary creates a **signature for each leak trace**, and groups together leaks that have the same signature.
+When the analysis is done, LeakCanary displays a **notification** with a summary, and also prints the result in **Logcat**. Notice below how the **4 retained objects** are grouped as **2 distinct leaks**. LeakCanary creates a **signature for each leak trace**, and groups together leaks that have the same signature, ie leaks that are caused by the same bug.
 
 ![done](images/analysis-done.png)
+
+```
+====================================
+HEAP ANALYSIS RESULT
+====================================
+2 APPLICATION LEAKS
+
+References underlined with "~~~" are likely causes.
+Learn more at https://squ.re/leaks.
+
+58782 bytes retained by leaking objects
+Displaying only 1 leak trace out of 2 with the same signature
+Signature: ce9dee3a1feb859fd3b3a9ff51e3ddfd8efbc6
+┬───
+│ GC Root: Local variable in native code
+│
+...
+```
 
 Tapping the notification starts an activity that provides more details. Each row corresponds to a group of leaks with the same signature. LeakCanary will mark a leak as **New** if it's the first time you've seen a leak with that signature.
 
@@ -58,19 +76,41 @@ Tapping into a leak opens up a screen where you can see each retained object and
 
 ![toast](images/leak-screen.png)
 
-The leak signature is the hash of the concatenation of each **<span style="color: #9976a8;">reference</span>** identified as potential cause of the leak, ie each reference **<span style="text-decoration: underline; text-decoration-color: red; text-decoration-style: wavy; color: #9976a8;">displayed with a red underline</span>**:
+The leak signature is the hash of the concatenation of each **<span style="color: #9976a8;">reference</span>** suspected to cause the leak, ie each reference **<span style="text-decoration: underline; text-decoration-color: red; text-decoration-style: wavy; color: #9976a8;">displayed with a red underline</span>**:
 
 ![toast](images/signature.png)
 
-In the example above, the signature would be computed as:
+These same suspicious references are underlined with `~~~` when the leak trace is shared as text:
+
+```
+...
+│  
+├─ com.example.leakcanary.LeakingSingleton class
+│    Leaking: NO (a class is never leaking)
+│    ↓ static LeakingSingleton.leakedViews
+│                              ~~~~~~~~~~~
+├─ java.util.ArrayList instance
+│    Leaking: UNKNOWN
+│    ↓ ArrayList.elementData
+│                ~~~~~~~~~~~
+├─ java.lang.Object[] array
+│    Leaking: UNKNOWN
+│    ↓ Object[].[0]
+│               ~~~
+├─ android.widget.TextView instance
+│    Leaking: YES (View.mContext references a destroyed activity)
+...
+```
+
+In the example above, the signature of the leak would be computed as:
 
 ```kotlin
-val signature = sha1Hash(
+val leakSignature = sha1Hash(
     "com.example.leakcanary.LeakingSingle.leakedView" +
     "java.util.ArrayList.elementData" +
     "java.lang.Object[].[x]"
 )
-println(signature)
+println(leakSignature)
 // d962211eda4d45ac50d88d8f212224116a664968
 ```
 

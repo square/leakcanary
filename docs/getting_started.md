@@ -12,7 +12,7 @@ dependencies {
 }
 ```
 
-**That's it, there is no code change needed!** You can confirm that LeakCanary is running on startup by filtering on the LeakCanary tag in Logcat:
+**That's it, there is no code change needed!** You can confirm that LeakCanary is running on startup by filtering on the `LeakCanary` tag in Logcat:
 
 ```
 D LeakCanary: Installing AppWatcher
