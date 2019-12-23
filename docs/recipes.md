@@ -33,7 +33,6 @@ class DebugExampleApplication : ExampleApplication() {
 }
 ```
 
-
 !!! info
     You can create a debug application class in your `src/debug/java` folder. Don't forget to also register it in `src/debug/AndroidManifest.xml`.
 
@@ -179,6 +178,143 @@ class DebugExampleApplication : ExampleApplication() {
   }
 }
 ```
+
+## Uploading to Bugsnag
+
+A leak trace has a lot in common with a stack trace, so if you lack the engineering resources to build a backend for LeakCanary, you can instead upload leak traces to a crash reporting backend. The client needs to support grouping via custom client-side hashing as well as custom metadata with support for newlines.
+
+!!! info
+    As of this writing, the only known library suitable for uploading leaks is the Bugsnag client. If you managed to make it work with another library, please [file an issue](https://github.com/square/leakcanary/issues/new/choose).
+
+Create a [Bugsnag account](https://app.bugsnag.com/user/new/), create a new project for leak reporting and grab an **API key**. Make sure the app has the `android.permission.INTERNET` permission then add the [latest version](https://docs.bugsnag.com/platforms/android/) of the Bugsnag Android client library to `build.gradle`:
+
+```groovy
+dependencies {
+  // debugImplementation because LeakCanary should only run in debug builds.
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:{{ leak_canary.release }}'
+  debugImplementation "com.bugsnag:bugsnag-android:$bugsnagVersion"
+}
+```
+
+!!! info
+    If you're only using Bugsnag for uploading leaks, then you do not need to set up the Bugsnag Gradle plugin or to configure the API key in your app manifest.
+
+
+Create a new `BugsnagLeakUploader`:
+
+```kotlin
+import android.app.Application
+import com.bugsnag.android.Client
+import com.bugsnag.android.MetaData
+import leakcanary.DefaultOnHeapAnalyzedListener
+import leakcanary.OnHeapAnalyzedListener
+import shark.HeapAnalysis
+import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
+import shark.Leak
+import shark.LeakTrace
+import shark.LibraryLeak
+
+class BugsnagLeakUploader(applicationContext: Application) :
+    OnHeapAnalyzedListener {
+
+  private val defaultLeakListener = DefaultOnHeapAnalyzedListener.create()
+  private val bugsnagClient: Client
+
+  init {
+    bugsnagClient = Client(
+        applicationContext,
+        BUGSNAG_API_KEY,
+        DO_NOT_ENABLE_EXCEPTION_HANDLER
+    )
+    bugsnagClient.setSendThreads(false)
+  }
+
+  override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
+    // Delegate to default behavior (notification and saving result)
+    defaultLeakListener.onHeapAnalyzed(heapAnalysis)
+
+    when (heapAnalysis) {
+      is HeapAnalysisSuccess -> {
+        val allLeakTraces = heapAnalysis
+            .allLeaks
+            .toList()
+            .flatMap { leak ->
+              leak.leakTraces.map { leakTrace -> leak to leakTrace }
+            }
+
+        allLeakTraces.forEach { (leak, leakTrace) ->
+          val exception = FakeReportingException(leak.shortDescription)
+          bugsnagClient.notify(exception) { report ->
+            val bugsnagMetaData = report.error.metaData
+            bugsnagMetaData.addHeapAnalysis(heapAnalysis)
+            bugsnagMetaData.addLeak(leak)
+            bugsnagMetaData.addLeakTrace(leakTrace)
+            report.error.groupingHash = leak.signature
+          }
+        }
+
+      }
+      is HeapAnalysisFailure -> {
+        // Please file any reported failure to
+        // https://github.com/square/leakcanary/issues
+        bugsnagClient.notify(heapAnalysis.exception)
+      }
+    }
+  }
+
+  private fun MetaData.addHeapAnalysis(heapAnalysis: HeapAnalysisSuccess) {
+    addToTab("Leak", "heapDumpPath", heapAnalysis.heapDumpFile.absolutePath)
+    heapAnalysis.metadata.forEach { (key, value) ->
+      addToTab("Leak", key, value)
+    }
+    addToTab("Leak", "analysisDurationMs", heapAnalysis.analysisDurationMillis)
+  }
+
+  private fun MetaData.addLeak(leak: Leak) {
+    addToTab("Leak", "libraryLeak", leak is LibraryLeak)
+    if (leak is LibraryLeak) {
+      addToTab("Leak", "libraryLeakPattern", leak.pattern)
+      addToTab("Leak", "libraryLeakDescription", leak.description)
+    }
+  }
+
+  private fun MetaData.addLeakTrace(leakTrace: LeakTrace) {
+    addToTab("Leak", "retainedHeapByteSize", leakTrace.retainedHeapByteSize)
+    addToTab("Leak", "signature", leakTrace.signature)
+    addToTab("Leak", "leakTrace", leakTrace.toString())
+  }
+
+  class FakeReportingException(message: String) : RuntimeException(message)
+
+  companion object {
+    private const val BUGSNAG_API_KEY = YOUR_BUGSNAG_API_KEY
+    private const val DO_NOT_ENABLE_EXCEPTION_HANDLER = false
+  }
+}
+```
+
+Set [LeakCanary.config.onHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/) to `BugsnagLeakUploader`:
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+    LeakCanary.config = LeakCanary.config.copy(
+        onHeapAnalyzedListener = BugsnagLeakUploader(applicationContext = this)
+    )
+  }
+}
+```
+
+You should start seeing leaks reported into Bugsnag, grouped by their leak signature:
+
+![list](images/bugsnag-list.png)
+
+The `LEAK` tab contains the leak trace: 
+
+![leak](images/bugsnag-leak.png)
 
 ## Matching known library leaks
 
