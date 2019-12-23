@@ -133,15 +133,17 @@ internal class DisplayLeakAdapter constructor(
         }
 
         if (referencePath.referenceType == STATIC_FIELD) {
-          referenceName = "static <i>$referenceName</i>"
+          referenceName = "<i>$referenceName</i>"
         }
 
         if (isSuspect) {
           referenceName = "<b>$referenceName</b>"
         }
 
+        val staticPrefix = if (referencePath.referenceType == STATIC_FIELD) "static " else ""
+
         val htmlString = leakTraceObject.asHtmlString(typeName) +
-            "$INDENTATION${leakTraceObject.styledClassSimpleName()}.$referenceName"
+            "$INDENTATION$staticPrefix${leakTraceObject.styledClassSimpleName()}.$referenceName"
 
         val builder = Html.fromHtml(htmlString) as SpannableStringBuilder
         if (isSuspect) {
