@@ -32,10 +32,10 @@ import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.PrimitiveType.INT
 import shark.ReferenceMatcher
-import shark.ReferencePathElement.ReferenceType.ARRAY_ENTRY
-import shark.ReferencePathElement.ReferenceType.INSTANCE_FIELD
-import shark.ReferencePathElement.ReferenceType.LOCAL
-import shark.ReferencePathElement.ReferenceType.STATIC_FIELD
+import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
+import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
+import shark.LeakTraceReference.ReferenceType.LOCAL
+import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.ReferencePattern
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.NativeGlobalVariablePattern

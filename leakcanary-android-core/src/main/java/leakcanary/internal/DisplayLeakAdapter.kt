@@ -43,7 +43,7 @@ import shark.LeakTraceObject
 import shark.LeakTraceObject.LeakingStatus.LEAKING
 import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
 import shark.LeakTraceObject.LeakingStatus.UNKNOWN
-import shark.ReferencePathElement.ReferenceType.STATIC_FIELD
+import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 
 @Suppress("DEPRECATION", "TooManyFunctions")
 internal class DisplayLeakAdapter constructor(

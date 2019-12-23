@@ -14,13 +14,13 @@ internal class LeakReference : Serializable {
   private val type: LeakTraceElement.Type? = null
   private val name: String? = null
 
-  fun fromV20(originObject: LeakTraceObject) = ReferencePathElement(
+  fun fromV20(originObject: LeakTraceObject) = LeakTraceReference(
       originObject = originObject,
       referenceType = when (type!!) {
-        INSTANCE_FIELD -> ReferencePathElement.ReferenceType.INSTANCE_FIELD
-        STATIC_FIELD -> ReferencePathElement.ReferenceType.STATIC_FIELD
-        LOCAL -> ReferencePathElement.ReferenceType.LOCAL
-        ARRAY_ENTRY -> ReferencePathElement.ReferenceType.ARRAY_ENTRY
+        INSTANCE_FIELD -> LeakTraceReference.ReferenceType.INSTANCE_FIELD
+        STATIC_FIELD -> LeakTraceReference.ReferenceType.STATIC_FIELD
+        LOCAL -> LeakTraceReference.ReferenceType.LOCAL
+        ARRAY_ENTRY -> LeakTraceReference.ReferenceType.ARRAY_ENTRY
       },
       referenceName = name!!
   )

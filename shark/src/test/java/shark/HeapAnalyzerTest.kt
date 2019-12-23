@@ -7,8 +7,8 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
 import shark.GcRoot.ThreadObject
-import shark.ReferencePathElement.ReferenceType.STATIC_FIELD
-import shark.ReferencePathElement.ReferenceType.LOCAL
+import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
+import shark.LeakTraceReference.ReferenceType.LOCAL
 import shark.ValueHolder.ReferenceHolder
 import java.io.File
 
