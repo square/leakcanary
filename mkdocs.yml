@@ -54,11 +54,13 @@ plugins:
 nav:
   - 'Overview': index.md
   - 'Getting Started': getting_started.md
-  - 'Fundamentals': fundamentals.md
-  - 'Code recipes': recipes.md
-  - 'FAQ': faq.md
-  - 'Change Log': changelog.md
+  - 'Fundamentals':
+    - 'Introduction': 'fundamentals.md'
+    - 'How LeakCanary works': 'fundamentals-how-leakcanary-works.md'
+    - 'Fixing a memory leak': 'fundamentals-fixing-a-memory-leak.md'
   - 'Help & Community':
+    - 'Code recipes': recipes.md
+    - 'FAQ': faq.md
     - 'Support': support.md
     - 'Upgrading to LeakCanary 2': upgrading-to-leakcanary-2.0.md
     - 'Recorded Presentations': recorded-presentations.md
@@ -83,6 +85,7 @@ nav:
     - 'Extension: Instrumentation tests': api/leakcanary-android-instrumentation/leakcanary/index.md
     - 'Extension: Separate process': api/leakcanary-android-process/leakcanary/index.md
     - 'Core: ObjectWatcher': api/leakcanary-object-watcher/leakcanary/index.md
+  - 'Change Log': changelog.md
 
 # Google Analytics. Add export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-XXXXXXXXX-X" to your ~/.bashrc
 google_analytics:

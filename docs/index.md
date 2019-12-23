@@ -10,7 +10,6 @@ LeakCanary's knowledge of the internals of the Android Framework gives it a uniq
 
 [Get started!](getting_started.md)
 
-
 !!! quote
     *“A small leak will sink a great ship.”* - Benjamin Franklin
 
