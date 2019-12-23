@@ -420,9 +420,9 @@ class HeapAnalyzer constructor(
   private fun buildReferencePath(
     shortestChildPath: List<ChildNode>,
     leakTraceObjects: List<LeakTraceObject>
-  ): List<ReferencePathElement> {
+  ): List<LeakTraceReference> {
     return shortestChildPath.mapIndexed { index, childNode ->
-      ReferencePathElement(
+      LeakTraceReference(
           originObject = leakTraceObjects[index],
           referenceType = childNode.refFromParentType,
           referenceName = childNode.refFromParentName

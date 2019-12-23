@@ -4,7 +4,7 @@ import shark.LeakTrace.GcRootType.JAVA_FRAME
 import shark.LeakTraceObject.LeakingStatus.LEAKING
 import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
 import shark.LeakTraceObject.LeakingStatus.UNKNOWN
-import shark.ReferencePathElement.ReferenceType.STATIC_FIELD
+import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.internal.createSHA1Hash
 import java.io.Serializable
 
@@ -15,16 +15,16 @@ import java.io.Serializable
  * [LibraryLeakReferenceMatcher] (because those are known to create leaks so it's more interesting
  * to find other paths causing leaks), then it prioritize paths that don't go through java local
  * gc roots (because those are harder to reason about). Taking those priorities into account,
- * finding the shortest path means there are less [ReferencePathElement] that can be suspected to
+ * finding the shortest path means there are less [LeakTraceReference] that can be suspected to
  * cause the leak.
  */
 data class LeakTrace(
   /**
-   * The Garbage Collection root that references the [ReferencePathElement.originObject] in
-   * the first [ReferencePathElement] of [referencePath].
+   * The Garbage Collection root that references the [LeakTraceReference.originObject] in
+   * the first [LeakTraceReference] of [referencePath].
    */
   val gcRootType: GcRootType,
-  val referencePath: List<ReferencePathElement>,
+  val referencePath: List<LeakTraceReference>,
   val leakingObject: LeakTraceObject,
   /**
    * The minimum number of bytes which would be freed if all references to the leaking object were
@@ -59,8 +59,8 @@ data class LeakTrace(
   /**
    * Returns true if the [referencePath] element at the provided [index] contains a reference
    * that is suspected to cause the leak, ie if [index] is greater than or equal to the index
-   * of the [ReferencePathElement] of the last non leaking object and strictly lower than the index
-   * of the [ReferencePathElement] of the first leaking object.
+   * of the [LeakTraceReference] of the last non leaking object and strictly lower than the index
+   * of the [LeakTraceReference] of the first leaking object.
    */
   fun referencePathElementIsSuspect(index: Int): Boolean {
     return when (referencePath[index].originObject.leakingStatus) {
@@ -158,12 +158,12 @@ data class LeakTrace(
   companion object {
     private fun getNextElementString(
       leakTrace: LeakTrace,
-      element: ReferencePathElement,
+      reference: LeakTraceReference,
       index: Int
     ): String {
-      val static = if (element.referenceType == STATIC_FIELD) " static" else ""
+      val static = if (reference.referenceType == STATIC_FIELD) " static" else ""
       val referenceLine =
-        "    ↓$static ${element.originObject.classSimpleName}.${element.referenceDisplayName}"
+        "    ↓$static ${reference.originObject.classSimpleName}.${reference.referenceDisplayName}"
 
       return if (leakTrace.referencePathElementIsSuspect(index)) {
         val lengthBeforeReferenceName = referenceLine.lastIndexOf('.') + 1

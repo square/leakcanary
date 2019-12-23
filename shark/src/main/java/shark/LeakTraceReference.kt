@@ -1,18 +1,18 @@
 package shark
 
-import shark.ReferencePathElement.ReferenceType.ARRAY_ENTRY
-import shark.ReferencePathElement.ReferenceType.INSTANCE_FIELD
-import shark.ReferencePathElement.ReferenceType.LOCAL
-import shark.ReferencePathElement.ReferenceType.STATIC_FIELD
+import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
+import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
+import shark.LeakTraceReference.ReferenceType.LOCAL
+import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import java.io.Serializable
 
 /**
- * A [ReferencePathElement] represents and origin [LeakTraceObject] and either a reference from that
- * object to the [LeakTraceObject] in the next [ReferencePathElement] in [LeakTrace.referencePath],
- * or to [LeakTrace.leakingObject] if this is the last [ReferencePathElement] in
+ * A [LeakTraceReference] represents and origin [LeakTraceObject] and either a reference from that
+ * object to the [LeakTraceObject] in the next [LeakTraceReference] in [LeakTrace.referencePath],
+ * or to [LeakTrace.leakingObject] if this is the last [LeakTraceReference] in
  * [LeakTrace.referencePath].
  */
-data class ReferencePathElement(
+data class LeakTraceReference(
   val originObject: LeakTraceObject,
 
   val referenceType: ReferenceType,
