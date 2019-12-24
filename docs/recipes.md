@@ -506,3 +506,117 @@ leakCanary {
 
 And that's all. Now you can run LeakCanary on an obfuscated app and leak traces will be automatically deobfuscated.
 **Important:** never use this plugin on a variant that you release for production. This plugin copies obfuscation mapping file and puts it inside the .apk, so if you use it on production build then the obfuscation becomes pointless because the code can be easily deobfuscated using mapping file.
+
+## Detecting leaks in JVM applications
+
+While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.
+
+Add the ObjectWatcher and Shark dependencies to your build file:
+
+```groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:leakcanary-object-watcher:{{ leak_canary.release }}'
+  implementation 'com.squareup.leakcanary:shark:{{ leak_canary.release }}'
+}
+```
+
+Define a `HotSpotHeapDumper` to dump the heap:
+
+```kotlin
+import com.sun.management.HotSpotDiagnosticMXBean
+import java.lang.management.ManagementFactory
+
+object HotSpotHeapDumper {
+  private val mBean: HotSpotDiagnosticMXBean by lazy {
+    val server = ManagementFactory.getPlatformMBeanServer()
+    ManagementFactory.newPlatformMXBeanProxy(
+        server,
+        "com.sun.management:type=HotSpotDiagnostic",
+        HotSpotDiagnosticMXBean::class.java
+    )
+  }
+
+  fun dumpHeap(fileName: String) {
+    mBean.dumpHeap(fileName, LIVE)
+  }
+
+  private const val LIVE = true
+}
+```
+
+Define a `JvmHeapAnalyzer` to analyze the heap when objects are retained and print the result to the console:
+
+```kotlin
+import leakcanary.GcTrigger
+import leakcanary.ObjectWatcher
+import leakcanary.OnObjectRetainedListener
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale.US
+
+class JvmHeapAnalyzer(private val objectWatcher: ObjectWatcher) :
+    OnObjectRetainedListener {
+
+  private val fileNameFormat = SimpleDateFormat(DATE_PATTERN, US)
+
+  override fun onObjectRetained() {
+    GcTrigger.Default.runGc()
+    if (objectWatcher.retainedObjectCount == 0) {
+      return
+    }
+    val fileName = fileNameFormat.format(Date())
+    val hprofFile = File(fileName)
+
+    println("Dumping the heap to ${hprofFile.absolutePath}")
+    HotSpotHeapDumper.dumpHeap(hprofFile.absolutePath)
+
+    val analyzer = HeapAnalyzer(
+        OnAnalysisProgressListener { step ->
+          println("Analysis in progress, working on: ${step.name}")
+        })
+
+    val heapDumpAnalysis = analyzer.analyze(
+        heapDumpFile = hprofFile,
+        leakingObjectFinder = KeyedWeakReferenceFinder,
+        computeRetainedHeapSize = true,
+        objectInspectors = ObjectInspectors.jdkDefaults
+    )
+    println(heapDumpAnalysis)
+  }
+  companion object {
+    private const val DATE_PATTERN = "yyyy-MM-dd_HH-mm-ss_SSS'.hprof'"
+  }
+}
+```
+
+Create an `ObjectWatcher` instance and configure it to watch objects for 5 seconds before notifying a `JvmHeapAnalyzer` instance:
+
+```kotlin
+val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
+val objectWatcher = ObjectWatcher(
+    clock = Clock {
+      System.currentTimeMillis()
+    },
+    checkRetainedExecutor = Executor { command ->
+      scheduledExecutor.schedule(command, 5, SECONDS)
+    }
+)
+
+val heapAnalyzer = JvmHeapAnalyzer(objectWatcher)
+objectWatcher.addOnObjectRetainedListener(heapAnalyzer)
+```
+
+Pass objects that you expect to be garbage collected (e.g. closed resources) to the `ObjectWatcher` instance:
+
+```kotlin
+objectWatcher.watch(
+    watchedObject = closedResource,
+    description = "$closedResource is closed and should be garbage collected"
+)
+```
+
+If you end up using LeakCanary on a JVM, the community will definitely benefit from you experience, so don't hesitate to [let us know](https://github.com/square/leakcanary/issues/)!
+
+
+
