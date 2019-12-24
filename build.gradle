@@ -2,41 +2,42 @@ apply plugin: 'com.github.ben-manes.versions'
 
 buildscript {
   ext.versions = [
-      'minSdk'    : 14,
+      'minSdk': 14,
       'compileSdk': 29,
       'errorProne': '2.3.1',
-      'kotlin'    : '1.3.50',
+      'kotlin': '1.3.50',
   ]
   ext.deps = [
-      assertj_core  : 'org.assertj:assertj-core:3.9.1',
+      assertj_core: 'org.assertj:assertj-core:3.9.1',
       // We don't need the latest version of AndroidX (there are no bugs that impact what LeakCanary
       // relies on), we're sticking a bit older because most apps will be using a more recent version
       // and they'll automatically resolve to higher version without having to necessarily resort to a
       // resolution strategy.
-      androidx      : [
+      androidGradlePlugin: "com.android.tools.build:gradle:3.5.2",
+      androidx: [
           annotation: 'androidx.annotation:annotation:1.0.2',
           core: 'androidx.core:core:1.0.1',
-          fragment  : 'androidx.fragment:fragment:1.0.0',
-          test      : [
-              core    : 'androidx.test:core:1.0.0',
+          fragment: 'androidx.fragment:fragment:1.0.0',
+          test: [
+              core: 'androidx.test:core:1.0.0',
               espresso: 'androidx.test.espresso:espresso-core:3.1.0',
-              rules   : 'androidx.test:rules:1.1.0',
-              runner  : 'androidx.test:runner:1.1.0',
+              rules: 'androidx.test:rules:1.1.0',
+              runner: 'androidx.test:runner:1.1.0',
           ],
       ],
       android_support: 'com.android.support:support-v4:28.0.0',
-      junit         : 'junit:junit:4.12',
-      kotlin        : [
+      clikt: 'com.github.ajalt:clikt:2.3.0',
+      detekt: 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.2.1',
+      junit: 'junit:junit:4.12',
+      kotlin: [
           gradlePlugin: "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}",
-          stdlib      : "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
+          stdlib: "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
       ],
-      detekt        : 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.2.1',
-      mockito       : 'org.mockito:mockito-core:2.7.5',
+      mockito: 'org.mockito:mockito-core:2.7.5',
       mockito_kotlin: 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0',
       okio: 'com.squareup.okio:okio:2.2.2',
       okio_1x: 'com.squareup.okio:okio:1.0.0',
-      robolectric   : 'org.robolectric:robolectric:4.0-alpha-3',
-      androidGradlePlugin: "com.android.tools.build:gradle:3.5.2"
+      robolectric: 'org.robolectric:robolectric:4.0-alpha-3',
   ]
   repositories {
     google()
