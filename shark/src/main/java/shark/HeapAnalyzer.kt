@@ -125,10 +125,7 @@ class HeapAnalyzer constructor(
     val pathFindingResults =
       pathFinder.findPathsFromGcRoots(leakingObjectIds, computeRetainedHeapSize)
 
-    SharkLog.d {
-      "Found ${leakingObjectIds.size} retained objects" +
-          " and ${pathFindingResults.pathsToLeakingObjects.size} paths."
-    }
+    SharkLog.d { "Found ${leakingObjectIds.size} retained objects" }
 
     return buildLeakTraces(pathFindingResults)
   }
@@ -326,6 +323,15 @@ class HeapAnalyzer constructor(
       mutableMapOf<String, Pair<LibraryLeakReferenceMatcher, MutableList<LeakTrace>>>()
 
     val deduplicatedPaths = deduplicateShortestPaths(pathFindingResults.pathsToLeakingObjects)
+
+    if (deduplicatedPaths.size != pathFindingResults.pathsToLeakingObjects.size) {
+      SharkLog.d {
+        "Found ${pathFindingResults.pathsToLeakingObjects.size} paths to retained objects," +
+            " down to ${deduplicatedPaths.size} after removing duplicated paths"
+      }
+    } else {
+      SharkLog.d { "Found ${deduplicatedPaths.size} paths to retained objects" }
+    }
 
     deduplicatedPaths.forEachIndexed { index, retainedObjectNode ->
 
