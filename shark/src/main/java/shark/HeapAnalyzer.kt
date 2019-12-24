@@ -86,38 +86,71 @@ class HeapAnalyzer constructor(
       )
     }
 
-    try {
+    return try {
       listener.onAnalysisProgress(PARSING_HEAP_DUMP)
       Hprof.open(heapDumpFile)
           .use { hprof ->
             val graph = HprofHeapGraph.indexHprof(hprof, proguardMapping)
-
-            listener.onAnalysisProgress(EXTRACTING_METADATA)
-            val metadata = metadataExtractor.extractMetadata(graph)
-
-            listener.onAnalysisProgress(FINDING_RETAINED_OBJECTS)
-            val leakingObjectIds = leakingObjectFinder.findLeakingObjectIds(graph)
-
             val helpers =
               FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
-
-            val (applicationLeaks, libraryLeaks) = helpers.findLeaks(leakingObjectIds)
-
-            return HeapAnalysisSuccess(
-                heapDumpFile = heapDumpFile,
-                createdAtTimeMillis = System.currentTimeMillis(),
-                analysisDurationMillis = since(analysisStartNanoTime),
-                metadata = metadata,
-                applicationLeaks = applicationLeaks,
-                libraryLeaks = libraryLeaks
+            helpers.analyzeGraph(
+                metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
             )
           }
     } catch (exception: Throwable) {
-      return HeapAnalysisFailure(
+      HeapAnalysisFailure(
           heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)
       )
     }
+  }
+
+  fun analyze(
+    heapDumpFile: File,
+    graph: HeapGraph,
+    leakingObjectFinder: LeakingObjectFinder,
+    referenceMatchers: List<ReferenceMatcher> = emptyList(),
+    computeRetainedHeapSize: Boolean = false,
+    objectInspectors: List<ObjectInspector> = emptyList(),
+    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP
+  ): HeapAnalysis {
+    val analysisStartNanoTime = System.nanoTime()
+    return try {
+      val helpers =
+        FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
+      helpers.analyzeGraph(
+          metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
+      )
+    } catch (exception: Throwable) {
+      HeapAnalysisFailure(
+          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
+          HeapAnalysisException(exception)
+      )
+    }
+  }
+
+  private fun FindLeakInput.analyzeGraph(
+    metadataExtractor: MetadataExtractor,
+    leakingObjectFinder: LeakingObjectFinder,
+    heapDumpFile: File,
+    analysisStartNanoTime: Long
+  ): HeapAnalysisSuccess {
+    listener.onAnalysisProgress(EXTRACTING_METADATA)
+    val metadata = metadataExtractor.extractMetadata(graph)
+
+    listener.onAnalysisProgress(FINDING_RETAINED_OBJECTS)
+    val leakingObjectIds = leakingObjectFinder.findLeakingObjectIds(graph)
+
+    val (applicationLeaks, libraryLeaks) = findLeaks(leakingObjectIds)
+
+    return HeapAnalysisSuccess(
+        heapDumpFile = heapDumpFile,
+        createdAtTimeMillis = System.currentTimeMillis(),
+        analysisDurationMillis = since(analysisStartNanoTime),
+        metadata = metadata,
+        applicationLeaks = applicationLeaks,
+        libraryLeaks = libraryLeaks
+    )
   }
 
   private fun FindLeakInput.findLeaks(leakingObjectIds: Set<Long>): Pair<List<ApplicationLeak>, List<LibraryLeak>> {

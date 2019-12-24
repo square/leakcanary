@@ -76,6 +76,21 @@ class HprofHeapGraph internal constructor(
           }
     }
 
+  override val objectArrays: Sequence<HeapObjectArray>
+    get() = index.indexedObjectArraySequence().map {
+      val objectId = it.first
+      val indexedObject = it.second
+      val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
+      HeapObjectArray(this, indexedObject, objectId, isPrimitiveWrapper)
+    }
+
+  override val primitiveArrays: Sequence<HeapPrimitiveArray>
+    get() = index.indexedPrimitiveArraySequence().map {
+      val objectId = it.first
+      val indexedObject = it.second
+      HeapPrimitiveArray(this, indexedObject, objectId)
+    }
+
   // LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
   // This is based on running InstrumentationLeakDetectorTest a bunch of time on a
   // Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
