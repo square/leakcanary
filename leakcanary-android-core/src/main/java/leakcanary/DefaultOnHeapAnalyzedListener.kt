@@ -110,7 +110,7 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
     val message = """====================================
 ANDROID TV LAUNCH INTENT
 ====================================
-Use following adb command to open Leak Activity with results:
+Run the following adb command to display the list of leaks:
 
 adb shell am start -n "${application.packageName}/${leakClass.name.replace(leakClass.simpleName, "LeakLauncherActivity")}"
 //===================================="""
