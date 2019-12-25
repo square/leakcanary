@@ -86,4 +86,6 @@
   <string name="leak_canary_options_menu_render_heap_dump">Render Heap Dump</string>
   <string name="leak_canary_help_title">Tap here to learn more</string>
   <string name="leak_canary_test_class_name" translatable="false">org.junit.Test</string>
+  <string name="leak_canary_tv_analysis_success">Heap Analysis performed, %1$d application leaks, %2$d library leaks. See details in Logcat</string>
+  <string name="leak_canary_tv_analysis_failure">Heap Analysis failed, see details in Logcat</string>
 </resources>

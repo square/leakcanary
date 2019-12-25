@@ -35,7 +35,7 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
       HeapAnalysisTable.insert(db, heapAnalysis)
     }
 
-    val (contentTitle, screenToShow) = when (heapAnalysis) {
+     val (contentTitle, screenToShow) = when (heapAnalysis) {
       is HeapAnalysisFailure -> application.getString(
           R.string.leak_canary_analysis_failed
       ) to HeapAnalysisFailureScreen(id)
@@ -49,7 +49,7 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
     }
 
     if (InternalLeakCanary.formFactor == TV) {
-      showToast()
+      showToast(heapAnalysis)
       printIntentInfo()
     } else {
       showNotification(screenToShow, contentTitle)
@@ -78,19 +78,25 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
    * to communicate with user is via Toast messages. These are used just to grab user attention and
    * to direct them to Logcat where a much more detailed report will be printed.
    */
-  private fun showToast() {
+  private fun showToast(heapAnalysis: HeapAnalysis) {
     // Post the Toast into main thread and wrap it with try-catch in case Toast crashes (it happens)
     handler.post {
-      try {
-        Toast.makeText(
-            application,
-            "Analysis complete, please check Logcat",
-            Toast.LENGTH_LONG
-        )
-            .show()
-      } catch (exception: Exception) {
-        // Toasts are prone to crashing, ignore
+      val toastText: String = when (heapAnalysis) {
+        is HeapAnalysisSuccess -> {
+          val leakTypeCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
+          application.getString(
+              R.string.leak_canary_tv_analysis_success,
+              leakTypeCount,
+              heapAnalysis.libraryLeaks.size
+          )
+        }
+        is HeapAnalysisFailure -> application.getString(R.string.leak_canary_tv_analysis_failure)
       }
+      Toast.makeText(
+          application,
+          toastText,
+          Toast.LENGTH_LONG
+      ).show()
     }
   }
 
