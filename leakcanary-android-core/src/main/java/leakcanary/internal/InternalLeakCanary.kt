@@ -29,6 +29,7 @@ import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
 import leakcanary.internal.activity.LeakActivity
+import leakcanary.internal.tv.TvOnRetainInstanceListener
 import shark.SharkLog
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
@@ -82,6 +83,13 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
         objectInspectors = emptyList(),
         onHeapAnalyzedListener = OnHeapAnalyzedListener {}
     )
+
+  val onRetainInstanceListener by lazy {
+    when (formFactor) {
+      TV -> TvOnRetainInstanceListener(application)
+      else -> DefaultOnRetainInstanceListener()
+    }
+  }
 
   override fun invoke(application: Application) {
     this.application = application

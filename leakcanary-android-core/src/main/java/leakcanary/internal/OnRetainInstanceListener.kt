@@ -1,6 +1,6 @@
-package leakcanary
+package leakcanary.internal
 
-sealed class RetainInstanceChange {
+internal sealed class RetainInstanceChange {
   data class CountChanged(val retainedCount: Int) : RetainInstanceChange()
   object Reset : RetainInstanceChange()
 }
@@ -10,11 +10,16 @@ sealed class RetainInstanceChange {
  * the number of retained instances changes.
  *
  */
-interface OnRetainInstanceListener {
+internal interface OnRetainInstanceListener {
 
   /**
    * Called when there's a change to the Retained Instances. See [RetainInstanceChange] for
    * possible change events.
    */
   fun onChange(change: RetainInstanceChange)
+}
+
+internal class DefaultOnRetainInstanceListener : OnRetainInstanceListener {
+
+  override fun onChange(change: RetainInstanceChange) {}
 }

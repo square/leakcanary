@@ -4,11 +4,11 @@ import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
-import leakcanary.RetainInstanceChange
+import leakcanary.internal.RetainInstanceChange
 import leakcanary.LeakCanary
-import leakcanary.OnRetainInstanceListener
-import leakcanary.RetainInstanceChange.CountChanged
-import leakcanary.RetainInstanceChange.Reset
+import leakcanary.internal.OnRetainInstanceListener
+import leakcanary.internal.RetainInstanceChange.CountChanged
+import leakcanary.internal.RetainInstanceChange.Reset
 
 /**
  * [OnRetainInstanceListener] implementation for Android TV devices which keeps track of the current
@@ -19,7 +19,7 @@ import leakcanary.RetainInstanceChange.Reset
  * as any retain instance change will trigger the heap dump with its own toast.
  *
  */
-class TvOnRetainInstanceListener(private val application: Application) : OnRetainInstanceListener {
+internal class TvOnRetainInstanceListener(private val application: Application) : OnRetainInstanceListener {
 
   private var lastRetainedCount = 0
   private val handler = Handler(Looper.getMainLooper())
