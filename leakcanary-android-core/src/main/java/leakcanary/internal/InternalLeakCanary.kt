@@ -24,7 +24,6 @@ import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.OnHeapAnalyzedListener
 import leakcanary.OnObjectRetainedListener
-import leakcanary.internal.InternalLeakCanary.FormFactor.INSTANT_APP
 import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
@@ -84,6 +83,26 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
         onHeapAnalyzedListener = OnHeapAnalyzedListener {}
     )
 
+  internal enum class FormFactor {
+    MOBILE,
+    TV,
+    WATCH,
+  }
+
+  val formFactor by lazy {
+    val currentModeType =
+      (application.getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType
+    return@lazy when (currentModeType) {
+      Configuration.UI_MODE_TYPE_TELEVISION -> TV
+      Configuration.UI_MODE_TYPE_WATCH -> WATCH
+      else -> MOBILE
+    }
+  }
+
+  val isInstantApp by lazy {
+    VERSION.SDK_INT >= VERSION_CODES.O && application.packageManager.isInstantApp
+  }
+
   val onRetainInstanceListener by lazy {
     when (formFactor) {
       TV -> TvOnRetainInstanceListener(application)
@@ -138,7 +157,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     if (!application.resources.getBoolean(R.bool.leak_canary_add_dynamic_shortcut)) {
       return
     }
-    if (formFactor == INSTANT_APP) {
+    if (isInstantApp) {
       // Instant Apps don't have access to ShortcutManager
       return
     }
@@ -264,24 +283,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     return Proxy.newProxyInstance(
         javaClass.classLoader, arrayOf(javaClass), noOpHandler
     ) as T
-  }
-
-  internal enum class FormFactor {
-    MOBILE,
-    TV,
-    WATCH,
-    INSTANT_APP,
-  }
-
-  val formFactor by lazy {
-    val currentModeType =
-      (application.getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType
-    return@lazy when {
-      VERSION.SDK_INT >= VERSION_CODES.O && application.packageManager.isInstantApp -> INSTANT_APP
-      currentModeType == Configuration.UI_MODE_TYPE_TELEVISION -> TV
-      currentModeType == Configuration.UI_MODE_TYPE_WATCH -> WATCH
-      else -> MOBILE
-    }
   }
 
   private const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"

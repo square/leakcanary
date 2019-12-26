@@ -31,11 +31,11 @@ internal object Notifications {
   val canShowNotification: Boolean
     get() = canShowBackgroundNotifications || InternalLeakCanary.applicationVisible
 
-  // Instants apps cannot show background notifications
+  // Instant apps cannot show background notifications
   // See https://github.com/square/leakcanary/issues/1197
   // TV devices also can't do notifications
   private val canShowBackgroundNotifications =
-    InternalLeakCanary.formFactor == MOBILE
+    InternalLeakCanary.formFactor == MOBILE && !InternalLeakCanary.isInstantApp
 
   @Suppress("LongParameterList")
   fun showNotification(
