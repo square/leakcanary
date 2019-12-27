@@ -2,6 +2,8 @@ package shark
 
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
+import shark.HeapObject.HeapObjectArray
+import shark.HeapObject.HeapPrimitiveArray
 
 /**
  * Enables navigation through the heap graph of objects.
@@ -37,6 +39,18 @@ interface HeapGraph {
    * This sequence does not trigger any IO reads.
    */
   val instances: Sequence<HeapInstance>
+  /**
+   * Sequence of all object arrays in the heap dump.
+   *
+   * This sequence does not trigger any IO reads.
+   */
+  val objectArrays: Sequence<HeapObjectArray>
+  /**
+   * Sequence of all primitive arrays in the heap dump.
+   *
+   * This sequence does not trigger any IO reads.
+   */
+  val primitiveArrays: Sequence<HeapPrimitiveArray>
 
   /**
    * Returns the [HeapObject] corresponding to the provided [objectId], and throws

@@ -71,12 +71,16 @@ data class LeakTrace(
     }
   }
 
-  override fun toString(): String {
+  override fun toString(): String = leakTraceAsString(showLeakingStatus = true)
+
+  fun toSimplePathString(): String = leakTraceAsString(showLeakingStatus = false)
+
+  private fun leakTraceAsString(showLeakingStatus: Boolean): String {
     var result = """
-      ┬───
-      │ GC Root: ${gcRootType.description}
-      │
-    """.trimIndent()
+        ┬───
+        │ GC Root: ${gcRootType.description}
+        │
+      """.trimIndent()
 
     referencePath.forEachIndexed { index, element ->
       val leakStatus = when (referencePath[index].originObject.leakingStatus) {
@@ -93,17 +97,22 @@ data class LeakTrace(
         if (index == 0 && gcRootType == JAVA_FRAME) "thread" else element.originObject.typeName
 
       result += "\n├─ ${element.originObject.className} $typeName"
-      result += "\n│    Leaking: $leakStatus"
+      if (showLeakingStatus) {
+        result += "\n│    Leaking: $leakStatus"
+      }
 
       for (label in element.originObject.labels) {
         result += "\n│    $label"
       }
-      result += getNextElementString(this, element, index)
+      result += getNextElementString(this, element, index, showLeakingStatus)
     }
 
     result += "\n"
-    result += "╰→ ${leakingObject.className} ${leakingObject.typeName}\n$ZERO_WIDTH_SPACE"
-    result += "     Leaking: YES (${leakingObject.leakingStatusReason})"
+    result += "╰→ ${leakingObject.className} ${leakingObject.typeName}"
+    if (showLeakingStatus) {
+      result += "\n$ZERO_WIDTH_SPACE"
+      result += "     Leaking: YES (${leakingObject.leakingStatusReason})"
+    }
     for (label in leakingObject.labels) {
       result += "\n$ZERO_WIDTH_SPACE"
       result += "     $label"
@@ -159,13 +168,14 @@ data class LeakTrace(
     private fun getNextElementString(
       leakTrace: LeakTrace,
       reference: LeakTraceReference,
-      index: Int
+      index: Int,
+      showLeakingStatus: Boolean
     ): String {
       val static = if (reference.referenceType == STATIC_FIELD) " static" else ""
       val referenceLine =
         "    ↓$static ${reference.originObject.classSimpleName}.${reference.referenceDisplayName}"
 
-      return if (leakTrace.referencePathElementIsSuspect(index)) {
+      return if (showLeakingStatus && leakTrace.referencePathElementIsSuspect(index)) {
         val lengthBeforeReferenceName = referenceLine.lastIndexOf('.') + 1
         val referenceLength = referenceLine.length - lengthBeforeReferenceName
 

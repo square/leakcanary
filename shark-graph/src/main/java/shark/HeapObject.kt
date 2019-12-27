@@ -27,6 +27,7 @@ import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import java.nio.charset.Charset
+import java.util.Locale
 import kotlin.reflect.KClass
 
 /**
@@ -109,6 +110,18 @@ sealed class HeapObject {
       get() = indexedObject.instanceSize
 
     /**
+     * Returns true if this class is an array class, and false otherwise.
+     */
+    val isArrayClass: Boolean
+      get() = name.endsWith("[]")
+
+    val isPrimitiveArrayClass: Boolean
+      get() = name in primitiveArrayClassesByName
+
+    val isObjectArrayClass: Boolean
+      get() = isArrayClass && !isPrimitiveArrayClass
+
+    /**
      * The total byte size of fields for instances of this class, computed as the sum of the
      * individual size of each field of this class. This does not include the size of fields from
      * superclasses.
@@ -170,7 +183,26 @@ sealed class HeapObject {
      * All instances of this class, including instances of subclasses of this class.
      */
     val instances: Sequence<HeapInstance>
-      get() = hprofGraph.instances.filter { it instanceOf this }
+      get() = if (!isArrayClass) {
+        hprofGraph.instances.filter { it instanceOf this }
+      } else {
+        emptySequence()
+      }
+
+    val objectArrayInstances: Sequence<HeapObjectArray>
+      get() = if (isObjectArrayClass) {
+        hprofGraph.objectArrays.filter { it.indexedObject.arrayClassId == objectId }
+      } else {
+        emptySequence()
+      }
+
+    val primitiveArrayInstances: Sequence<HeapPrimitiveArray>
+      get() = if (isPrimitiveArrayClass) {
+        val primitiveType = primitiveArrayClassesByName[name]
+        hprofGraph.primitiveArrays.filter { it.primitiveType == primitiveType }
+      } else {
+        emptySequence()
+      }
 
     /**
      * All direct instances of this class, ie excluding any instance of subclasses of this class.
@@ -431,7 +463,7 @@ sealed class HeapObject {
    */
   class HeapObjectArray internal constructor(
     private val hprofGraph: HprofHeapGraph,
-    private val indexedObject: IndexedObjectArray,
+    internal val indexedObject: IndexedObjectArray,
     override val objectId: Long,
     val isPrimitiveWrapperArray: Boolean
   ) : HeapObject() {
@@ -526,16 +558,13 @@ sealed class HeapObject {
      * The name of the class of this array, identical to [Class.getName].
      */
     val arrayClassName: String
-      get() = when (primitiveType) {
-        BOOLEAN -> "boolean[]"
-        CHAR -> "char[]"
-        FLOAT -> "float[]"
-        DOUBLE -> "double[]"
-        BYTE -> "byte[]"
-        SHORT -> "short[]"
-        INT -> "int[]"
-        LONG -> "long[]"
-      }
+      get() = "${primitiveType.name.toLowerCase(Locale.US)}[]"
+
+    /**
+     * The class of this array.
+     */
+    val arrayClass: HeapClass
+      get() = graph.findClassByName(arrayClassName)!!
 
     /**
      * Reads and returns the underlying [PrimitiveArrayDumpRecord].
@@ -552,6 +581,11 @@ sealed class HeapObject {
   }
 
   companion object {
+
+    private val primitiveArrayClassesByName = PrimitiveType.values()
+        .map { "${it.name.toLowerCase(Locale.US)}[]" to it }
+        .toMap()
+
     private fun classSimpleName(className: String): String {
       val separator = className.lastIndexOf('.')
       return if (separator == -1) {

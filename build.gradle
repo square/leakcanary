@@ -27,6 +27,7 @@ buildscript {
       ],
       android_support: 'com.android.support:support-v4:28.0.0',
       clikt: 'com.github.ajalt:clikt:2.3.0',
+      jline: 'jline:jline:2.14.6',
       detekt: 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.2.1',
       junit: 'junit:junit:4.12',
       kotlin: [

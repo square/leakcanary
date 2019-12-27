@@ -2,52 +2,37 @@ package shark
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.PrintMessage
-import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.options.option
-import shark.SharkCli.Companion.SHARK_CLI_COMMAND
-import shark.SharkCli.Companion.USAGE_HELP_TAG
-import shark.SharkCli.Companion.runCommand
+import com.github.ajalt.clikt.core.UsageError
+import shark.SharkCliCommand.Companion.echo
+import shark.SharkCliCommand.Companion.retrieveHeapDumpFile
+import shark.SharkCliCommand.Companion.runCommand
+import shark.SharkCliCommand.Companion.sharkCliParams
+import shark.SharkCliCommand.HeapDumpSource.ProcessSource
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class DumpProcess : CliktCommand(
-    name = COMMAND,
-    help = "Dumps the heap for the provided partial $PROCESS_NAME_ARG_NAME and pulls the hprof file.",
-    helpTags = mapOf(
-        USAGE_HELP_TAG to "$SHARK_CLI_COMMAND $COMMAND [$DEVICE_USAGE] $PROCESS_NAME_ARG_NAME"
-    ),
-    printHelpOnEmptyArgs = true
+class DumpProcessCommand : CliktCommand(
+    name = "dump-process",
+    help = "Dump the heap and pull the hprof file."
 ) {
 
-  private val processName by argument(name = PROCESS_NAME_ARG_NAME, help = PROCESS_NAME_HELP)
-
-  private val device by option(
-      *DEVICE_OPTION_NAMES, metavar = DEVICE_METAVAR, help = DEVICE_OPTION_HELP
-  )
-
   override fun run() {
-    dumpHeap(processName, device)
+    val params = context.sharkCliParams
+    if (params.source !is ProcessSource) {
+      throw UsageError("dump-process must be used with --process")
+    }
+    val file = retrieveHeapDumpFile(params)
+    echo("Pulled heap dump to $file")
   }
 
   companion object {
 
-    private const val COMMAND = "dump-process"
-
-    const val PROCESS_NAME_HELP =
-      "Full or partial name of a process, e.g. \"example\" would match \"com.example.app\""
-    const val PROCESS_NAME_ARG_NAME = "PROCESS_NAME"
-
-    val DEVICE_OPTION_NAMES = arrayOf("-d", "--device")
-    const val DEVICE_OPTION_HELP = "device/emulator id"
-    const val DEVICE_METAVAR = "ID"
-    const val DEVICE_USAGE = "--device ID"
-
     private val SPACE_PATTERN = Regex("\\s+")
 
     @Suppress("ThrowsCount")
-    fun dumpHeap(
+    fun CliktCommand.dumpHeap(
       processNameParam: String,
       maybeDeviceId: String?
     ): File {
@@ -112,9 +97,9 @@ class DumpProcess : CliktCommand(
 
       val heapDumpDevicePath = "/data/local/tmp/$heapDumpFileName"
 
-      SharkLog.d {
-        "Dumping heap for process \"$processName\" with pid $processId to $heapDumpDevicePath"
-      }
+      echo(
+        "Dumping heap on $deviceId for process \"$processName\" with pid $processId to $heapDumpDevicePath"
+      )
 
       runCommand(
           workingDirectory, "adb", "-s", deviceId, "shell", "am", "dumpheap", processId,
