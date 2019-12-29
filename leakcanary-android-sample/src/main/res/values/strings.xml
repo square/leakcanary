@@ -18,7 +18,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="MissingTranslation">
   <string name="app_name">Example App</string>
-  <string name="helper_text">Rotate the screen 5 times to create 5 leaks and trigger a foreground
-    heap dump. Or press back to cause a leak and trigger a background heap dump.
+  <string name="helper_text">Rotate the screen or press the button 5 times to create 5 leaks and
+trigger a foreground heap dump.\nOr press back to cause a leak and trigger a background heap dump.
   </string>
+  <string name="button_text">Leak Activity</string>
 </resources>
