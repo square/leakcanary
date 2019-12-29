@@ -46,11 +46,12 @@ internal class TvOnRetainInstanceListener(private val application: Application) 
 
     var text = "Retained objects: $retainedCount."
     text +=
-      if (retainedCount >= retainedVisibleThreshold)
+      if (retainedCount >= retainedVisibleThreshold) {
         " Dumping the heap..."
-      else
+      } else {
         "Heap dump threshold is $retainedVisibleThreshold" +
             "\nBackground the app to trigger heap dump immediately"
+      }
 
     // Post the Toast into main thread and wrap it with try-catch in case Toast crashes (it happens)
     handler.post {
