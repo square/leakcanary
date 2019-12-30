@@ -2,10 +2,26 @@ package shark
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.PrintMessage
+import com.jakewharton.picnic.renderText
+import com.jakewharton.picnic.table
 import jline.console.ConsoleReader
 import jline.console.UserInterruptException
 import jline.console.completer.CandidateListCompletionHandler
 import jline.console.completer.StringsCompleter
+import org.apache.calcite.adapter.java.AbstractQueryableTable
+import org.apache.calcite.jdbc.CalciteConnection
+import org.apache.calcite.linq4j.Enumerator
+import org.apache.calcite.linq4j.Linq4j
+import org.apache.calcite.linq4j.QueryProvider
+import org.apache.calcite.linq4j.Queryable
+import org.apache.calcite.rel.type.RelDataType
+import org.apache.calcite.rel.type.RelDataTypeFactory
+import org.apache.calcite.schema.SchemaPlus
+import org.apache.calcite.schema.Table
+import org.apache.calcite.schema.impl.AbstractSchema
+import org.apache.calcite.schema.impl.AbstractTableQueryable
+import org.apache.calcite.sql.parser.SqlParseException
+import org.apache.calcite.sql.type.SqlTypeName
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -27,6 +43,15 @@ import shark.InteractiveCommand.COMMAND.EXIT
 import shark.InteractiveCommand.COMMAND.HELP
 import shark.InteractiveCommand.COMMAND.INSTANCE
 import shark.InteractiveCommand.COMMAND.PATH_TO_INSTANCE
+import shark.InteractiveCommand.COMMAND.SQL
+import shark.PrimitiveType.BOOLEAN
+import shark.PrimitiveType.BYTE
+import shark.PrimitiveType.CHAR
+import shark.PrimitiveType.DOUBLE
+import shark.PrimitiveType.FLOAT
+import shark.PrimitiveType.INT
+import shark.PrimitiveType.LONG
+import shark.PrimitiveType.SHORT
 import shark.SharkCliCommand.Companion.echoNewline
 import shark.SharkCliCommand.Companion.retrieveHeapDumpFile
 import shark.SharkCliCommand.Companion.sharkCliParams
@@ -40,7 +65,9 @@ import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
 import java.io.File
+import java.sql.DriverManager
 import java.util.Locale
+import java.util.Properties
 
 @Suppress("TooManyFunctions")
 class InteractiveCommand : CliktCommand(
@@ -81,6 +108,11 @@ class InteractiveCommand : CliktCommand(
         commandName = "~>instance",
         suffix = "CLASS_NAME@ID",
         help = "Show path from GC Roots to instance, highlighting suspect references."
+    ),
+    SQL(
+        commandName = "sql",
+        suffix = "SQL_STATEMENT",
+        help = "Explore the heap dump via SQL"
     ),
     HELP(
         commandName = "help",
@@ -242,6 +274,162 @@ class InteractiveCommand : CliktCommand(
           }
         }
       }
+      input matchesCommand SQL -> {
+        val firstSpaceIndex = input.indexOf(' ')
+        val contentStartIndex = firstSpaceIndex + 1
+        val query = input.substring(contentStartIndex)
+        Class.forName("org.apache.calcite.jdbc.Driver")
+        val info = Properties()
+        info.setProperty("lex", "JAVA")
+        info.put("quoting", "DOUBLE_QUOTE");
+
+        DriverManager.getConnection("jdbc:calcite:", info)
+            .unwrap(CalciteConnection::class.java)
+            .use { connection ->
+
+              // TODO How should we query static fields?
+
+              val tables = graph.classes.map { heapClass ->
+                // TODO not sure what elementType is about
+                val elementType = Array<Any>::class.java
+                heapClass.name to object : AbstractQueryableTable(elementType) {
+                  override fun <T : Any?> asQueryable(
+                    queryProvider: QueryProvider,
+                    schema: SchemaPlus,
+                    tableName: String
+                  ): Queryable<T> {
+                    @Suppress("UNCHECKED_CAST")
+                    return object : AbstractTableQueryable<Array<Any?>>(
+                        queryProvider, schema,
+                        this, tableName
+                    ) {
+                      override fun enumerator(): Enumerator<Array<Any?>> {
+                        return Linq4j.iterableEnumerator(object : Iterable<Array<Any?>> {
+                          override fun iterator(): Iterator<Array<Any?>> {
+                            return heapClass.instances.map { instance ->
+                              (listOf(
+                                  instance
+                              ) + instance.readFields().filter {
+                                !it.name.startsWith(
+                                    "shadow\$_"
+                                )
+                              }.toList().reversed().map { field ->
+                                when (val holder = field.value.holder) {
+                                  is ReferenceHolder -> field.value.asObject
+                                  is BooleanHolder -> holder.value
+                                  is CharHolder -> holder.value
+                                  is FloatHolder -> holder.value
+                                  is DoubleHolder -> holder.value
+                                  is ByteHolder -> holder.value
+                                  is ShortHolder -> holder.value
+                                  is IntHolder -> holder.value
+                                  is LongHolder -> holder.value
+                                }
+                              }).toTypedArray()
+
+                            }
+                                .iterator()
+                          }
+                        })
+                      }
+
+                    } as Queryable<T>
+                  }
+
+                  override fun getRowType(typeFactory: RelDataTypeFactory): RelDataType {
+                    // TODO Cache per typeFactory?
+                    val columns = mutableMapOf<String, RelDataType>()
+
+                    val any = typeFactory.createSqlType(SqlTypeName.ANY)
+                    columns["this"] = any
+
+                    val allFields = heapClass.classHierarchy.flatMap { it.readFields() }
+                        .filter { !it.name.startsWith("shadow\$_") }
+                        .toList()
+                        .reversed()
+
+                    // TODO Can we make fields from parent classes available?
+                    // Right now we just erase them. Which creates conflicts with columns
+                    allFields.forEach { field ->
+                      // TODO Prebuild that map
+                      columns[field.name] =
+                        if (field.isReference) any else when (field.primitiveType) {
+                          BOOLEAN -> typeFactory.createJavaType(Boolean::class.javaPrimitiveType)
+                          CHAR -> typeFactory.createJavaType(Char::class.javaPrimitiveType)
+                          FLOAT -> typeFactory.createJavaType(Float::class.javaPrimitiveType)
+                          DOUBLE -> typeFactory.createJavaType(Double::class.javaPrimitiveType)
+                          BYTE -> typeFactory.createJavaType(Byte::class.javaPrimitiveType)
+                          SHORT -> typeFactory.createJavaType(Short::class.javaPrimitiveType)
+                          INT -> typeFactory.createJavaType(Int::class.javaPrimitiveType)
+                          LONG -> typeFactory.createJavaType(Long::class.javaPrimitiveType)
+                        }
+                    }
+
+                    val columnList = columns.toList()
+                    return typeFactory.createStructType(
+                        columnList.map { it.second }, columnList.map { it.first })
+                  }
+                }
+              }
+                  .toMap()
+
+              val heapSchema = object : AbstractSchema() {
+                override fun getTableMap(): Map<String, Table> {
+                  return tables
+                }
+
+                override fun isMutable() = false
+              }
+
+              connection.rootSchema.add("HEAP", heapSchema)
+              connection.schema = "HEAP"
+              connection.createStatement()
+                  .use { statement ->
+                    try {
+                      statement.executeQuery(query)
+                          .use { resultSet ->
+                            val columnCount = resultSet.metaData.columnCount
+
+                            val table = table {
+                              cellStyle {
+                                border = true
+                                paddingLeft = 1
+                                paddingRight = 1
+                              }
+                              header {
+                                row {
+                                  for (columnIndex in 1..columnCount) {
+                                    cell(resultSet.metaData.getColumnName(columnIndex))
+                                  }
+                                }
+                              }
+                              body {
+                                while (resultSet.next()) {
+                                  row {
+                                    for (columnIndex in 1..columnCount) {
+                                      val columnValue = resultSet.getObject(columnIndex)
+                                      if (columnValue is HeapObject) {
+                                        cell(renderHeapObject(columnValue))
+                                      } else {
+                                        cell(columnValue)
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+
+                            echo(table.renderText())
+
+                          }
+                    } catch (exception: Exception) {
+                      // TODO handle this.
+                      exception.printStackTrace()
+                    }
+                  }
+            }
+      }
+
       else -> {
         echo("Unknown command [$input].\n")
         echoHelp()

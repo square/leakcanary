@@ -13,14 +13,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import shark.PrimitiveType.BOOLEAN
-import shark.PrimitiveType.BYTE
-import shark.PrimitiveType.CHAR
-import shark.PrimitiveType.DOUBLE
-import shark.PrimitiveType.FLOAT
-import shark.PrimitiveType.INT
-import shark.PrimitiveType.LONG
-import shark.PrimitiveType.SHORT
 import shark.ValueHolder.ReferenceHolder
 import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
@@ -230,6 +222,15 @@ sealed class HeapObject {
             HeapField(
                 this, hprofGraph.staticFieldName(objectId, fieldRecord),
                 HeapValue(hprofGraph, fieldRecord.value)
+            )
+          }
+    }
+
+    fun readFields(): Sequence<HeapClassMemberField> {
+      return readRecord().fields.asSequence()
+          .map { fieldRecord ->
+            HeapClassMemberField.create(
+                hprofGraph.fieldName(objectId, fieldRecord), fieldRecord.type
             )
           }
     }
