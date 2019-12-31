@@ -208,14 +208,16 @@
       
         
 
-<nav class="md-tabs" data-md-component="tabs">
+  
+
+<nav class="md-tabs md-tabs--active" data-md-component="tabs">
   <div class="md-tabs__inner md-grid">
     <ul class="md-tabs__list">
       
         
   <li class="md-tabs__item">
     
-      <a href=".." class="md-tabs__link md-tabs__link--active">
+      <a href=".." class="md-tabs__link">
         Overview
       </a>
     
@@ -225,19 +227,24 @@
         
       
         
+  
+  
+    <li class="md-tabs__item">
       
-        
+        <a href="../fundamentals/" class="md-tabs__link">
+          Fundamentals
+        </a>
       
-        
-      
-        
+    </li>
+  
+
       
         
   
   
     <li class="md-tabs__item">
       
-        <a href="../support/" class="md-tabs__link">
+        <a href="./" class="md-tabs__link md-tabs__link--active">
           Help & Community
         </a>
       
@@ -270,6 +277,8 @@
     </li>
   
 
+      
+        
       
     </ul>
   </div>
@@ -343,16 +352,85 @@
       
 
 
-  <li class="md-nav__item">
-    <a href="../fundamentals/" title="Fundamentals" class="md-nav__link">
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+    
+    <label class="md-nav__link" for="nav-3">
       Fundamentals
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-3">
+        Fundamentals
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../fundamentals/" title="Introduction" class="md-nav__link">
+      Introduction
     </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-nav__link">
+      How LeakCanary works
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../fundamentals-fixing-a-memory-leak/" title="Fixing a memory leak" class="md-nav__link">
+      Fixing a memory leak
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
     
       
       
       
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" checked>
+    
+    <label class="md-nav__link" for="nav-4">
+      Help & Community
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        Help & Community
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
 
   
 
@@ -432,6 +510,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#uploading-to-bugsnag" class="md-nav__link">
+    Uploading to Bugsnag
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#matching-known-library-leaks" class="md-nav__link">
     Matching known library leaks
   </a>
@@ -473,6 +558,20 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#using-leakcanary-with-obfuscated-apps" class="md-nav__link">
+    Using LeakCanary with obfuscated apps
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detecting-leaks-in-jvm-applications" class="md-nav__link">
+    Detecting leaks in JVM applications
+  </a>
+  
+</li>
+      
       
       
       
@@ -483,10 +582,10 @@
     
   </li>
 
-    
-      
-      
-      
+        
+          
+          
+          
 
 
   <li class="md-nav__item">
@@ -495,37 +594,6 @@
     </a>
   </li>
 
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../changelog/" title="Change Log" class="md-nav__link">
-      Change Log
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
-    
-    <label class="md-nav__link" for="nav-7">
-      Help & Community
-    </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-7">
-        Help & Community
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
         
           
           
@@ -594,13 +662,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7-6" type="checkbox" id="nav-7-6">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8">
     
-    <label class="md-nav__link" for="nav-7-6">
+    <label class="md-nav__link" for="nav-4-8">
       Contributing
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
-      <label class="md-nav__title" for="nav-7-6">
+      <label class="md-nav__title" for="nav-4-8">
         Contributing
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -671,13 +739,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-8" type="checkbox" id="nav-8">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
     
-    <label class="md-nav__link" for="nav-8">
+    <label class="md-nav__link" for="nav-5">
       Shark
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-8">
+      <label class="md-nav__title" for="nav-5">
         Shark
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -702,13 +770,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-8-2" type="checkbox" id="nav-8-2">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2">
     
-    <label class="md-nav__link" for="nav-8-2">
+    <label class="md-nav__link" for="nav-5-2">
       Shark API
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
-      <label class="md-nav__title" for="nav-8-2">
+      <label class="md-nav__title" for="nav-5-2">
         Shark API
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -791,13 +859,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-9" type="checkbox" id="nav-9">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
     
-    <label class="md-nav__link" for="nav-9">
+    <label class="md-nav__link" for="nav-6">
       LeakCanary API
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-9">
+      <label class="md-nav__title" for="nav-6">
         LeakCanary API
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -865,6 +933,18 @@
         
       </ul>
     </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../changelog/" title="Change Log" class="md-nav__link">
+      Change Log
+    </a>
   </li>
 
     
@@ -938,6 +1018,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#uploading-to-bugsnag" class="md-nav__link">
+    Uploading to Bugsnag
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#matching-known-library-leaks" class="md-nav__link">
     Matching known library leaks
   </a>
@@ -979,6 +1066,20 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#using-leakcanary-with-obfuscated-apps" class="md-nav__link">
+    Using LeakCanary with obfuscated apps
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detecting-leaks-in-jvm-applications" class="md-nav__link">
+    Detecting leaks in JVM applications
+  </a>
+  
+</li>
+      
       
       
       
@@ -1013,7 +1114,7 @@
 
   <span class="k">override</span> <span class="k">fun</span> <span class="nf">onDestroy</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">super</span><span class="p">.</span><span class="n">onDestroy</span><span class="p">()</span>
-    <span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+    <span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="s">&quot;MyService received Service#onDestroy() callback&quot;</span><span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1074,7 +1175,7 @@
 <div class="codehilite"><pre><span></span><span class="k">val</span> <span class="py">retainedInstanceCount</span> <span class="p">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">retainedObjectCount</span>
 </pre></div></p>
 <h2 id="running-leakcanary-in-instrumentation-tests">Running LeakCanary in instrumentation tests<a class="headerlink" href="#running-leakcanary-in-instrumentation-tests" title="Permanent link">&para;</a></h2>
-<p>Running leak detection in UI tests means you can detect memory leaks automatically in Continuous Integration prior to those leaks being merged into the codebase. However, as LeakCanary runs with a 5 seconds delay and freezes the VM to take a heap dump, this can introduce flakiness to the UI tests. Therefore LeakCanary automatically disables itself by setting <code>LeakCanary.config.dumpHeap</code> to <code>false</code> if it detects classes from the <code>androidx.test</code> dependency in the runtime classpath. If you run UI tests without <code>androidx.test</code>, we strongly advise that you set <code>dumpHeap</code> to <code>false</code>: <code>LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)</code>.</p>
+<p>Running leak detection in UI tests means you can detect memory leaks automatically in Continuous Integration prior to those leaks being merged into the codebase. However, as LeakCanary runs with a 5 seconds delay and freezes the VM to take a heap dump, this can introduce flakiness to the UI tests. Therefore it is automatically disabled by setting <code>LeakCanary.config.dumpHeap</code> to <code>false</code> when JUnit is on the runtime classpath.</p>
 <p>LeakCanary provides an artifact dedicated to detecting leaks in UI tests which provides a run listener that waits for the end of a test, and if the test succeeds then it look for retained objects, trigger a heap dump if needed and perform an analysis.</p>
 <p>To set it up, add the <code>leakcanary-android-instrumentation</code> dependency to your instrumentation tests:</p>
 <div class="codehilite"><pre><span></span>androidTestImplementation &quot;com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}&quot;
@@ -1145,6 +1246,132 @@
 <span class="p">}</span>
 </pre></div>
 
+<h2 id="uploading-to-bugsnag">Uploading to Bugsnag<a class="headerlink" href="#uploading-to-bugsnag" title="Permanent link">&para;</a></h2>
+<p>A leak trace has a lot in common with a stack trace, so if you lack the engineering resources to build a backend for LeakCanary, you can instead upload leak traces to a crash reporting backend. The client needs to support grouping via custom client-side hashing as well as custom metadata with support for newlines.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>As of this writing, the only known library suitable for uploading leaks is the Bugsnag client. If you managed to make it work with another library, please <a href="https://github.com/square/leakcanary/issues/new/choose">file an issue</a>.</p>
+</div>
+<p>Create a <a href="https://app.bugsnag.com/user/new/">Bugsnag account</a>, create a new project for leak reporting and grab an <strong>API key</strong>. Make sure the app has the <code>android.permission.INTERNET</code> permission then add the <a href="https://docs.bugsnag.com/platforms/android/">latest version</a> of the Bugsnag Android client library to <code>build.gradle</code>:</p>
+<div class="codehilite"><pre><span></span><span class="n">dependencies</span> <span class="o">{</span>
+  <span class="c1">// debugImplementation because LeakCanary should only run in debug builds.</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.1&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s2">&quot;com.bugsnag:bugsnag-android:$bugsnagVersion&quot;</span>
+<span class="o">}</span>
+</pre></div>
+
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>If you&rsquo;re only using Bugsnag for uploading leaks, then you do not need to set up the Bugsnag Gradle plugin or to configure the API key in your app manifest.</p>
+</div>
+<p>Create a new <code>BugsnagLeakUploader</code>:</p>
+<div class="codehilite"><pre><span></span><span class="k">import</span> <span class="nn">android.app.Application</span>
+<span class="k">import</span> <span class="nn">com.bugsnag.android.Client</span>
+<span class="k">import</span> <span class="nn">com.bugsnag.android.MetaData</span>
+<span class="k">import</span> <span class="nn">leakcanary.DefaultOnHeapAnalyzedListener</span>
+<span class="k">import</span> <span class="nn">leakcanary.OnHeapAnalyzedListener</span>
+<span class="k">import</span> <span class="nn">shark.HeapAnalysis</span>
+<span class="k">import</span> <span class="nn">shark.HeapAnalysisFailure</span>
+<span class="k">import</span> <span class="nn">shark.HeapAnalysisSuccess</span>
+<span class="k">import</span> <span class="nn">shark.Leak</span>
+<span class="k">import</span> <span class="nn">shark.LeakTrace</span>
+<span class="k">import</span> <span class="nn">shark.LibraryLeak</span>
+
+<span class="k">class</span> <span class="nc">BugsnagLeakUploader</span><span class="p">(</span><span class="n">applicationContext</span><span class="p">:</span> <span class="n">Application</span><span class="p">)</span> <span class="p">:</span>
+    <span class="n">OnHeapAnalyzedListener</span> <span class="p">{</span>
+
+  <span class="k">private</span> <span class="k">val</span> <span class="py">defaultLeakListener</span> <span class="p">=</span> <span class="n">DefaultOnHeapAnalyzedListener</span><span class="p">.</span><span class="n">create</span><span class="p">()</span>
+  <span class="k">private</span> <span class="k">val</span> <span class="py">bugsnagClient</span><span class="p">:</span> <span class="n">Client</span>
+
+  <span class="n">init</span> <span class="p">{</span>
+    <span class="n">bugsnagClient</span> <span class="p">=</span> <span class="n">Client</span><span class="p">(</span>
+        <span class="n">applicationContext</span><span class="p">,</span>
+        <span class="n">BUGSNAG_API_KEY</span><span class="p">,</span>
+        <span class="n">DO_NOT_ENABLE_EXCEPTION_HANDLER</span>
+    <span class="p">)</span>
+    <span class="n">bugsnagClient</span><span class="p">.</span><span class="n">setSendThreads</span><span class="p">(</span><span class="k">false</span><span class="p">)</span>
+  <span class="p">}</span>
+
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onHeapAnalyzed</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysis</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Delegate to default behavior (notification and saving result)</span>
+    <span class="n">defaultLeakListener</span><span class="p">.</span><span class="n">onHeapAnalyzed</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
+
+    <span class="k">when</span> <span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">is</span> <span class="n">HeapAnalysisSuccess</span> <span class="p">-&gt;</span> <span class="p">{</span>
+        <span class="k">val</span> <span class="py">allLeakTraces</span> <span class="p">=</span> <span class="n">heapAnalysis</span>
+            <span class="p">.</span><span class="n">allLeaks</span>
+            <span class="p">.</span><span class="n">toList</span><span class="p">()</span>
+            <span class="p">.</span><span class="n">flatMap</span> <span class="p">{</span> <span class="n">leak</span> <span class="p">-&gt;</span>
+              <span class="n">leak</span><span class="p">.</span><span class="n">leakTraces</span><span class="p">.</span><span class="n">map</span> <span class="p">{</span> <span class="n">leakTrace</span> <span class="p">-&gt;</span> <span class="n">leak</span> <span class="n">to</span> <span class="n">leakTrace</span> <span class="p">}</span>
+            <span class="p">}</span>
+
+        <span class="n">allLeakTraces</span><span class="p">.</span><span class="n">forEach</span> <span class="p">{</span> <span class="p">(</span><span class="n">leak</span><span class="p">,</span> <span class="n">leakTrace</span><span class="p">)</span> <span class="p">-&gt;</span>
+          <span class="k">val</span> <span class="py">exception</span> <span class="p">=</span> <span class="n">FakeReportingException</span><span class="p">(</span><span class="n">leak</span><span class="p">.</span><span class="n">shortDescription</span><span class="p">)</span>
+          <span class="n">bugsnagClient</span><span class="p">.</span><span class="n">notify</span><span class="p">(</span><span class="n">exception</span><span class="p">)</span> <span class="p">{</span> <span class="n">report</span> <span class="p">-&gt;</span>
+            <span class="k">val</span> <span class="py">bugsnagMetaData</span> <span class="p">=</span> <span class="n">report</span><span class="p">.</span><span class="n">error</span><span class="p">.</span><span class="n">metaData</span>
+            <span class="n">bugsnagMetaData</span><span class="p">.</span><span class="n">addHeapAnalysis</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
+            <span class="n">bugsnagMetaData</span><span class="p">.</span><span class="n">addLeak</span><span class="p">(</span><span class="n">leak</span><span class="p">)</span>
+            <span class="n">bugsnagMetaData</span><span class="p">.</span><span class="n">addLeakTrace</span><span class="p">(</span><span class="n">leakTrace</span><span class="p">)</span>
+            <span class="n">report</span><span class="p">.</span><span class="n">error</span><span class="p">.</span><span class="n">groupingHash</span> <span class="p">=</span> <span class="n">leak</span><span class="p">.</span><span class="n">signature</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+
+      <span class="p">}</span>
+      <span class="k">is</span> <span class="n">HeapAnalysisFailure</span> <span class="p">-&gt;</span> <span class="p">{</span>
+        <span class="c1">// Please file any reported failure to</span>
+        <span class="c1">// https://github.com/square/leakcanary/issues</span>
+        <span class="n">bugsnagClient</span><span class="p">.</span><span class="n">notify</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">.</span><span class="n">exception</span><span class="p">)</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="k">private</span> <span class="k">fun</span> <span class="nc">MetaData</span><span class="p">.</span><span class="nf">addHeapAnalysis</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysisSuccess</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;heapDumpPath&quot;</span><span class="p">,</span> <span class="n">heapAnalysis</span><span class="p">.</span><span class="n">heapDumpFile</span><span class="p">.</span><span class="n">absolutePath</span><span class="p">)</span>
+    <span class="n">heapAnalysis</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">forEach</span> <span class="p">{</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="p">-&gt;</span>
+      <span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;analysisDurationMs&quot;</span><span class="p">,</span> <span class="n">heapAnalysis</span><span class="p">.</span><span class="n">analysisDurationMillis</span><span class="p">)</span>
+  <span class="p">}</span>
+
+  <span class="k">private</span> <span class="k">fun</span> <span class="nc">MetaData</span><span class="p">.</span><span class="nf">addLeak</span><span class="p">(</span><span class="n">leak</span><span class="p">:</span> <span class="n">Leak</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;libraryLeak&quot;</span><span class="p">,</span> <span class="n">leak</span> <span class="k">is</span> <span class="n">LibraryLeak</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">leak</span> <span class="k">is</span> <span class="n">LibraryLeak</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;libraryLeakPattern&quot;</span><span class="p">,</span> <span class="n">leak</span><span class="p">.</span><span class="n">pattern</span><span class="p">)</span>
+      <span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;libraryLeakDescription&quot;</span><span class="p">,</span> <span class="n">leak</span><span class="p">.</span><span class="n">description</span><span class="p">)</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="k">private</span> <span class="k">fun</span> <span class="nc">MetaData</span><span class="p">.</span><span class="nf">addLeakTrace</span><span class="p">(</span><span class="n">leakTrace</span><span class="p">:</span> <span class="n">LeakTrace</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;retainedHeapByteSize&quot;</span><span class="p">,</span> <span class="n">leakTrace</span><span class="p">.</span><span class="n">retainedHeapByteSize</span><span class="p">)</span>
+    <span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;signature&quot;</span><span class="p">,</span> <span class="n">leakTrace</span><span class="p">.</span><span class="n">signature</span><span class="p">)</span>
+    <span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;leakTrace&quot;</span><span class="p">,</span> <span class="n">leakTrace</span><span class="p">.</span><span class="n">toString</span><span class="p">())</span>
+  <span class="p">}</span>
+
+  <span class="k">class</span> <span class="nc">FakeReportingException</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">String</span><span class="p">)</span> <span class="p">:</span> <span class="n">RuntimeException</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+  <span class="k">companion</span> <span class="k">object</span> <span class="p">{</span>
+    <span class="k">private</span> <span class="k">const</span> <span class="k">val</span> <span class="py">BUGSNAG_API_KEY</span> <span class="p">=</span> <span class="n">YOUR_BUGSNAG_API_KEY</span>
+    <span class="k">private</span> <span class="k">const</span> <span class="k">val</span> <span class="py">DO_NOT_ENABLE_EXCEPTION_HANDLER</span> <span class="p">=</span> <span class="k">false</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Set <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/">LeakCanary.config.onHeapAnalyzedListener</a> to <code>BugsnagLeakUploader</code>:</p>
+<div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
+    <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span>
+        <span class="n">onHeapAnalyzedListener</span> <span class="p">=</span> <span class="n">BugsnagLeakUploader</span><span class="p">(</span><span class="n">applicationContext</span> <span class="p">=</span> <span class="k">this</span><span class="p">)</span>
+    <span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>You should start seeing leaks reported into Bugsnag, grouped by their leak signature:</p>
+<p><img alt="list" src="../images/bugsnag-list.png" /></p>
+<p>The <code>LEAK</code> tab contains the leak trace: </p>
+<p><img alt="leak" src="../images/bugsnag-leak.png" /></p>
 <h2 id="matching-known-library-leaks">Matching known library leaks<a class="headerlink" href="#matching-known-library-leaks" title="Permanent link">&para;</a></h2>
 <p>Set <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/">LeakCanary.Config.referenceMatchers</a> to a list that builds on top of <a href="/leakcanary/api/shark-android/shark/-android-reference-matchers/app-defaults/">AndroidReferenceMatchers.appDefaults</a>:</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
@@ -1177,8 +1404,12 @@
 
   <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
-    <span class="k">val</span> <span class="py">addObjectIdLabel</span> <span class="p">=</span> <span class="n">ObjectInspector</span> <span class="p">{</span> <span class="n">reporter</span> <span class="p">-&gt;</span>
-      <span class="n">reporter</span><span class="p">.</span><span class="n">addLabel</span><span class="p">(</span><span class="s">&quot;Heap dump object id is ${reporter.heapObject.objectId}&quot;</span><span class="p">)</span>
+    <span class="k">val</span> <span class="py">addEntityIdLabel</span> <span class="p">=</span> <span class="n">ObjectInspector</span> <span class="p">{</span> <span class="n">reporter</span> <span class="p">-&gt;</span>
+      <span class="n">reporter</span><span class="p">.</span><span class="n">whenInstanceOf</span><span class="p">(</span><span class="s">&quot;com.example.DbEntity&quot;</span><span class="p">)</span> <span class="p">{</span> <span class="n">instance</span> <span class="p">-&gt;</span>
+        <span class="k">val</span> <span class="py">databaseIdField</span> <span class="p">=</span> <span class="n">instance</span><span class="p">[</span><span class="s">&quot;com.example.DbEntity&quot;</span><span class="p">,</span> <span class="s">&quot;databaseId&quot;</span><span class="p">]</span><span class="o">!!</span>
+        <span class="k">val</span> <span class="py">databaseId</span> <span class="p">=</span> <span class="n">databaseIdField</span><span class="p">.</span><span class="n">value</span><span class="p">.</span><span class="n">asInt</span><span class="o">!!</span>
+        <span class="n">labels</span> <span class="p">+=</span> <span class="s">&quot;DbEntity.databaseId = $databaseId&quot;</span>
+      <span class="p">}</span>
     <span class="p">}</span>
 
     <span class="k">val</span> <span class="py">singletonsInspector</span> <span class="p">=</span>
@@ -1188,9 +1419,9 @@
       <span class="n">reporter</span><span class="p">.</span><span class="n">whenInstanceOf</span><span class="p">(</span><span class="s">&quot;com.mmvm.SomeViewModel&quot;</span><span class="p">)</span> <span class="p">{</span> <span class="n">instance</span> <span class="p">-&gt;</span>
         <span class="k">val</span> <span class="py">destroyedField</span> <span class="p">=</span> <span class="n">instance</span><span class="p">[</span><span class="s">&quot;com.mmvm.SomeViewModel&quot;</span><span class="p">,</span> <span class="s">&quot;destroyed&quot;</span><span class="p">]</span><span class="o">!!</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">destroyedField</span><span class="p">.</span><span class="n">value</span><span class="p">.</span><span class="n">asBoolean</span><span class="o">!!</span><span class="p">)</span> <span class="p">{</span>
-          <span class="n">reportLeaking</span><span class="p">(</span><span class="s">&quot;SomeViewModel.destroyed is true&quot;</span><span class="p">)</span>
+          <span class="n">leakingReasons</span> <span class="p">+=</span> <span class="s">&quot;SomeViewModel.destroyed is true&quot;</span>
         <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-          <span class="n">reportNotLeaking</span><span class="p">(</span><span class="s">&quot;SomeViewModel.destroyed is false&quot;</span><span class="p">)</span>
+          <span class="n">notLeakingReasons</span> <span class="p">+=</span> <span class="s">&quot;SomeViewModel.destroyed is false&quot;</span>
         <span class="p">}</span>
       <span class="p">}</span>
     <span class="p">}</span>
@@ -1277,6 +1508,130 @@ configurations {
   <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
+
+<h2 id="using-leakcanary-with-obfuscated-apps">Using LeakCanary with obfuscated apps<a class="headerlink" href="#using-leakcanary-with-obfuscated-apps" title="Permanent link">&para;</a></h2>
+<p>If obfuscation is turned on then leak traces will be obfuscated. It&rsquo;s possible to automatically deobfuscate leak traces by using a deobfuscation gradle plugin provided by LeakCanary.</p>
+<p>You have to add a plugin dependency in your root <code>build.gradle</code> file:</p>
+<div class="codehilite"><pre><span></span><span class="n">buildscript</span> <span class="o">{</span>
+  <span class="n">dependencies</span> <span class="o">{</span>
+    <span class="n">classpath</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-deobfuscation-gradle-plugin:${version}&#39;</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>And then you need to apply and configure the plugin in your app (or library) specific <code>build.gradle</code> file:</p>
+<div class="codehilite"><pre><span></span><span class="n">apply</span> <span class="nl">plugin:</span> <span class="s1">&#39;com.android.application&#39;</span>
+<span class="c1">// LeakCanary plugin should be added after android application or android library plugin</span>
+<span class="n">apply</span> <span class="nl">plugin:</span> <span class="s1">&#39;com.squareup.leakcanary.deobfuscation&#39;</span>
+
+<span class="n">leakCanary</span> <span class="o">{</span>
+  <span class="c1">// LeakCanary needs to know which variants have obfuscation turned on</span>
+  <span class="n">filterObfuscatedVariants</span> <span class="o">{</span> <span class="n">variant</span> <span class="o">-&gt;</span>
+    <span class="n">variant</span><span class="o">.</span><span class="na">name</span> <span class="o">==</span> <span class="s2">&quot;debug&quot;</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>And that&rsquo;s all. Now you can run LeakCanary on an obfuscated app and leak traces will be automatically deobfuscated.
+<strong>Important:</strong> never use this plugin on a variant that you release for production. This plugin copies obfuscation mapping file and puts it inside the .apk, so if you use it on production build then the obfuscation becomes pointless because the code can be easily deobfuscated using mapping file.</p>
+<h2 id="detecting-leaks-in-jvm-applications">Detecting leaks in JVM applications<a class="headerlink" href="#detecting-leaks-in-jvm-applications" title="Permanent link">&para;</a></h2>
+<p>While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.</p>
+<p>Add the ObjectWatcher and Shark dependencies to your build file:</p>
+<div class="codehilite"><pre><span></span><span class="n">dependencies</span> <span class="o">{</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.1&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.1&#39;</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Define a <code>HotSpotHeapDumper</code> to dump the heap:</p>
+<div class="codehilite"><pre><span></span><span class="k">import</span> <span class="nn">com.sun.management.HotSpotDiagnosticMXBean</span>
+<span class="k">import</span> <span class="nn">java.lang.management.ManagementFactory</span>
+
+<span class="k">object</span> <span class="nc">HotSpotHeapDumper</span> <span class="p">{</span>
+  <span class="k">private</span> <span class="k">val</span> <span class="py">mBean</span><span class="p">:</span> <span class="n">HotSpotDiagnosticMXBean</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
+    <span class="k">val</span> <span class="py">server</span> <span class="p">=</span> <span class="n">ManagementFactory</span><span class="p">.</span><span class="n">getPlatformMBeanServer</span><span class="p">()</span>
+    <span class="n">ManagementFactory</span><span class="p">.</span><span class="n">newPlatformMXBeanProxy</span><span class="p">(</span>
+        <span class="n">server</span><span class="p">,</span>
+        <span class="s">&quot;com.sun.management:type=HotSpotDiagnostic&quot;</span><span class="p">,</span>
+        <span class="n">HotSpotDiagnosticMXBean</span><span class="o">::</span><span class="k">class</span><span class="p">.</span><span class="n">java</span>
+    <span class="p">)</span>
+  <span class="p">}</span>
+
+  <span class="k">fun</span> <span class="nf">dumpHeap</span><span class="p">(</span><span class="n">fileName</span><span class="p">:</span> <span class="n">String</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">mBean</span><span class="p">.</span><span class="n">dumpHeap</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">LIVE</span><span class="p">)</span>
+  <span class="p">}</span>
+
+  <span class="k">private</span> <span class="k">const</span> <span class="k">val</span> <span class="py">LIVE</span> <span class="p">=</span> <span class="k">true</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Define a <code>JvmHeapAnalyzer</code> to analyze the heap when objects are retained and print the result to the console:</p>
+<div class="codehilite"><pre><span></span><span class="k">import</span> <span class="nn">leakcanary.GcTrigger</span>
+<span class="k">import</span> <span class="nn">leakcanary.ObjectWatcher</span>
+<span class="k">import</span> <span class="nn">leakcanary.OnObjectRetainedListener</span>
+<span class="k">import</span> <span class="nn">java.io.File</span>
+<span class="k">import</span> <span class="nn">java.text.SimpleDateFormat</span>
+<span class="k">import</span> <span class="nn">java.util.Date</span>
+<span class="k">import</span> <span class="nn">java.util.Locale.US</span>
+
+<span class="k">class</span> <span class="nc">JvmHeapAnalyzer</span><span class="p">(</span><span class="k">private</span> <span class="k">val</span> <span class="py">objectWatcher</span><span class="p">:</span> <span class="n">ObjectWatcher</span><span class="p">)</span> <span class="p">:</span>
+    <span class="n">OnObjectRetainedListener</span> <span class="p">{</span>
+
+  <span class="k">private</span> <span class="k">val</span> <span class="py">fileNameFormat</span> <span class="p">=</span> <span class="n">SimpleDateFormat</span><span class="p">(</span><span class="n">DATE_PATTERN</span><span class="p">,</span> <span class="n">US</span><span class="p">)</span>
+
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onObjectRetained</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">GcTrigger</span><span class="p">.</span><span class="n">Default</span><span class="p">.</span><span class="n">runGc</span><span class="p">()</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">retainedObjectCount</span> <span class="p">==</span> <span class="m">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span>
+    <span class="p">}</span>
+    <span class="k">val</span> <span class="py">fileName</span> <span class="p">=</span> <span class="n">fileNameFormat</span><span class="p">.</span><span class="n">format</span><span class="p">(</span><span class="n">Date</span><span class="p">())</span>
+    <span class="k">val</span> <span class="py">hprofFile</span> <span class="p">=</span> <span class="n">File</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+
+    <span class="n">println</span><span class="p">(</span><span class="s">&quot;Dumping the heap to ${hprofFile.absolutePath}&quot;</span><span class="p">)</span>
+    <span class="n">HotSpotHeapDumper</span><span class="p">.</span><span class="n">dumpHeap</span><span class="p">(</span><span class="n">hprofFile</span><span class="p">.</span><span class="n">absolutePath</span><span class="p">)</span>
+
+    <span class="k">val</span> <span class="py">analyzer</span> <span class="p">=</span> <span class="n">HeapAnalyzer</span><span class="p">(</span>
+        <span class="n">OnAnalysisProgressListener</span> <span class="p">{</span> <span class="n">step</span> <span class="p">-&gt;</span>
+          <span class="n">println</span><span class="p">(</span><span class="s">&quot;Analysis in progress, working on: ${step.name}&quot;</span><span class="p">)</span>
+        <span class="p">})</span>
+
+    <span class="k">val</span> <span class="py">heapDumpAnalysis</span> <span class="p">=</span> <span class="n">analyzer</span><span class="p">.</span><span class="n">analyze</span><span class="p">(</span>
+        <span class="n">heapDumpFile</span> <span class="p">=</span> <span class="n">hprofFile</span><span class="p">,</span>
+        <span class="n">leakingObjectFinder</span> <span class="p">=</span> <span class="n">KeyedWeakReferenceFinder</span><span class="p">,</span>
+        <span class="n">computeRetainedHeapSize</span> <span class="p">=</span> <span class="k">true</span><span class="p">,</span>
+        <span class="n">objectInspectors</span> <span class="p">=</span> <span class="n">ObjectInspectors</span><span class="p">.</span><span class="n">jdkDefaults</span>
+    <span class="p">)</span>
+    <span class="n">println</span><span class="p">(</span><span class="n">heapDumpAnalysis</span><span class="p">)</span>
+  <span class="p">}</span>
+  <span class="k">companion</span> <span class="k">object</span> <span class="p">{</span>
+    <span class="k">private</span> <span class="k">const</span> <span class="k">val</span> <span class="py">DATE_PATTERN</span> <span class="p">=</span> <span class="s">&quot;yyyy-MM-dd_HH-mm-ss_SSS&#39;.hprof&#39;&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Create an <code>ObjectWatcher</code> instance and configure it to watch objects for 5 seconds before notifying a <code>JvmHeapAnalyzer</code> instance:</p>
+<div class="codehilite"><pre><span></span><span class="k">val</span> <span class="py">scheduledExecutor</span> <span class="p">=</span> <span class="n">Executors</span><span class="p">.</span><span class="n">newSingleThreadScheduledExecutor</span><span class="p">()</span>
+<span class="k">val</span> <span class="py">objectWatcher</span> <span class="p">=</span> <span class="n">ObjectWatcher</span><span class="p">(</span>
+    <span class="n">clock</span> <span class="p">=</span> <span class="n">Clock</span> <span class="p">{</span>
+      <span class="n">System</span><span class="p">.</span><span class="n">currentTimeMillis</span><span class="p">()</span>
+    <span class="p">},</span>
+    <span class="n">checkRetainedExecutor</span> <span class="p">=</span> <span class="n">Executor</span> <span class="p">{</span> <span class="n">command</span> <span class="p">-&gt;</span>
+      <span class="n">scheduledExecutor</span><span class="p">.</span><span class="n">schedule</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="m">5</span><span class="p">,</span> <span class="n">SECONDS</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+<span class="k">val</span> <span class="py">heapAnalyzer</span> <span class="p">=</span> <span class="n">JvmHeapAnalyzer</span><span class="p">(</span><span class="n">objectWatcher</span><span class="p">)</span>
+<span class="n">objectWatcher</span><span class="p">.</span><span class="n">addOnObjectRetainedListener</span><span class="p">(</span><span class="n">heapAnalyzer</span><span class="p">)</span>
+</pre></div>
+
+<p>Pass objects that you expect to be garbage collected (e.g. closed resources) to the <code>ObjectWatcher</code> instance:</p>
+<div class="codehilite"><pre><span></span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span>
+    <span class="n">watchedObject</span> <span class="p">=</span> <span class="n">closedResource</span><span class="p">,</span>
+    <span class="n">description</span> <span class="p">=</span> <span class="s">&quot;$closedResource is closed and should be garbage collected&quot;</span>
+<span class="p">)</span>
+</pre></div>
+
+<p>If you end up using LeakCanary on a JVM, the community will definitely benefit from you experience, so don&rsquo;t hesitate to <a href="https://github.com/square/leakcanary/issues/">let us know</a>!</p>
                 
                   
                 
@@ -1297,7 +1652,7 @@ configurations {
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../fundamentals/" title="Fundamentals" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../fundamentals-fixing-a-memory-leak/" title="Fixing a memory leak" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -1306,7 +1661,7 @@ configurations {
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Fundamentals
+                Fixing a memory leak
               </span>
             </div>
           </a>

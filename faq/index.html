@@ -208,14 +208,16 @@
       
         
 
-<nav class="md-tabs" data-md-component="tabs">
+  
+
+<nav class="md-tabs md-tabs--active" data-md-component="tabs">
   <div class="md-tabs__inner md-grid">
     <ul class="md-tabs__list">
       
         
   <li class="md-tabs__item">
     
-      <a href=".." class="md-tabs__link md-tabs__link--active">
+      <a href=".." class="md-tabs__link">
         Overview
       </a>
     
@@ -225,19 +227,24 @@
         
       
         
+  
+  
+    <li class="md-tabs__item">
       
-        
+        <a href="../fundamentals/" class="md-tabs__link">
+          Fundamentals
+        </a>
       
-        
-      
-        
+    </li>
+  
+
       
         
   
   
     <li class="md-tabs__item">
       
-        <a href="../support/" class="md-tabs__link">
+        <a href="../recipes/" class="md-tabs__link md-tabs__link--active">
           Help & Community
         </a>
       
@@ -270,6 +277,8 @@
     </li>
   
 
+      
+        
       
     </ul>
   </div>
@@ -343,16 +352,85 @@
       
 
 
-  <li class="md-nav__item">
-    <a href="../fundamentals/" title="Fundamentals" class="md-nav__link">
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+    
+    <label class="md-nav__link" for="nav-3">
       Fundamentals
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-3">
+        Fundamentals
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../fundamentals/" title="Introduction" class="md-nav__link">
+      Introduction
     </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-nav__link">
+      How LeakCanary works
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../fundamentals-fixing-a-memory-leak/" title="Fixing a memory leak" class="md-nav__link">
+      Fixing a memory leak
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
     
       
       
       
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" checked>
+    
+    <label class="md-nav__link" for="nav-4">
+      Help & Community
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        Help & Community
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
 
 
   <li class="md-nav__item">
@@ -361,10 +439,10 @@
     </a>
   </li>
 
-    
-      
-      
-      
+        
+          
+          
+          
 
   
 
@@ -402,8 +480,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-do-i-share-a-leak-trace" class="md-nav__link">
-    How do I share a leak trace?
+  <a href="#how-do-i-know-if-leakcanary-is-running" class="md-nav__link">
+    How do I know if LeakCanary is running?
   </a>
   
 </li>
@@ -467,37 +545,6 @@
     
   </li>
 
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../changelog/" title="Change Log" class="md-nav__link">
-      Change Log
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
-    
-    <label class="md-nav__link" for="nav-7">
-      Help & Community
-    </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-7">
-        Help & Community
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
         
           
           
@@ -566,13 +613,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7-6" type="checkbox" id="nav-7-6">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8">
     
-    <label class="md-nav__link" for="nav-7-6">
+    <label class="md-nav__link" for="nav-4-8">
       Contributing
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
-      <label class="md-nav__title" for="nav-7-6">
+      <label class="md-nav__title" for="nav-4-8">
         Contributing
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -643,13 +690,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-8" type="checkbox" id="nav-8">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
     
-    <label class="md-nav__link" for="nav-8">
+    <label class="md-nav__link" for="nav-5">
       Shark
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-8">
+      <label class="md-nav__title" for="nav-5">
         Shark
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -674,13 +721,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-8-2" type="checkbox" id="nav-8-2">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2">
     
-    <label class="md-nav__link" for="nav-8-2">
+    <label class="md-nav__link" for="nav-5-2">
       Shark API
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
-      <label class="md-nav__title" for="nav-8-2">
+      <label class="md-nav__title" for="nav-5-2">
         Shark API
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -763,13 +810,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-9" type="checkbox" id="nav-9">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
     
-    <label class="md-nav__link" for="nav-9">
+    <label class="md-nav__link" for="nav-6">
       LeakCanary API
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-9">
+      <label class="md-nav__title" for="nav-6">
         LeakCanary API
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -840,6 +887,18 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../changelog/" title="Change Log" class="md-nav__link">
+      Change Log
+    </a>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -868,8 +927,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-do-i-share-a-leak-trace" class="md-nav__link">
-    How do I share a leak trace?
+  <a href="#how-do-i-know-if-leakcanary-is-running" class="md-nav__link">
+    How do I know if LeakCanary is running?
   </a>
   
 </li>
@@ -946,21 +1005,32 @@
                 
                 <h1 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">&para;</a></h1>
 <h2 id="can-a-leak-be-caused-by-the-android-sdk">Can a leak be caused by the Android SDK?<a class="headerlink" href="#can-a-leak-be-caused-by-the-android-sdk" title="Permanent link">&para;</a></h2>
-<p>Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to ignore: <a href="/leakcanary/api/shark-android/shark/-android-reference-matchers/">AndroidReferenceMatchers</a>.</p>
+<p>Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to recognize: <a href="/leakcanary/api/shark-android/shark/-android-reference-matchers/">AndroidReferenceMatchers</a>.</p>
 <p>If you find a new one, please <a href="https://github.com/square/leakcanary/issues/new/choose">create an issue</a> and follow these steps:</p>
 <ol>
-<li>Provide the entire leak trace information (reference key, device, etc), and use backticks (`) for formatting.</li>
+<li>Provide the entire leak trace information (including metadata), and use backticks (`) for formatting.</li>
 <li>Read the AOSP source for that version of Android, and try to figure out why it happens. You can easily navigate through SDK versions by switching branches on the GitHub mirror: <a href="https://github.com/android/platform_frameworks_base">android/platform_frameworks_base</a>.</li>
 <li>Check if it happens on the latest version of Android, and otherwise use blame to find when it was fixed.</li>
 <li>If it&rsquo;s still happening, build a simple repro case.</li>
 <li>File an issue on <a href="http://b.android.com">b.android.com</a> with the leak trace and the repro case.</li>
 <li>Create a PR in LeakCanary to update <a href="/leakcanary/api/shark-android/shark/-android-reference-matchers/">AndroidReferenceMatchers</a>. Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.</li>
 </ol>
-<h2 id="how-do-i-share-a-leak-trace">How do I share a leak trace?<a class="headerlink" href="#how-do-i-share-a-leak-trace" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Go to the leak screen, click the overflow menu and select <em>Share Info</em>.</li>
-<li>You can also find the leak trace in Logcat.</li>
-</ul>
+<h2 id="how-do-i-know-if-leakcanary-is-running">How do I know if LeakCanary is running?<a class="headerlink" href="#how-do-i-know-if-leakcanary-is-running" title="Permanent link">&para;</a></h2>
+<p>You can confirm that LeakCanary starts correctly by filtering on the LeakCanary tag in Logcat:</p>
+<div class="codehilite"><pre><span></span>$ adb logcat | grep LeakCanary
+
+D/LeakCanary: Installing AppWatcher
+</pre></div>
+
+<p>If you do not see <code>Installing AppWatcher</code> in the logs, check your dependencies (<code>./gradlew app:dependencies</code>) and make sure LeakCanary is there.</p>
+<p>Note that LeakCanary is automatically disabled in tests (see <a href="recipes.md/#running-leakcanary-in-instrumentation-tests">Running LeakCanary in instrumentation tests</a>):</p>
+<div class="codehilite"><pre><span></span>$ adb logcat | grep LeakCanary
+
+D/LeakCanary: Installing AppWatcher
+D/LeakCanary: JUnit detected in classpath, app is running tests =&gt; disabling heap dumping &amp; analysis
+D/LeakCanary: Updated LeakCanary.config: Config(dumpHeap=false)
+</pre></div>
+
 <h2 id="how-can-i-dig-beyond-the-leak-trace">How can I dig beyond the leak trace?<a class="headerlink" href="#how-can-i-dig-beyond-the-leak-trace" title="Permanent link">&para;</a></h2>
 <p>Sometimes the leak trace isn&rsquo;t enough and you need to dig into a heap dump with <a href="http://eclipse.org/mat/">MAT</a> or <a href="https://www.yourkit.com/">YourKit</a>.</p>
 <ul>
@@ -981,7 +1051,7 @@
 <h2 id="how-do-i-use-the-snapshot-version">How do I use the SNAPSHOT version?<a class="headerlink" href="#how-do-i-use-the-snapshot-version" title="Permanent link">&para;</a></h2>
 <p>Update your dependencies to the latest SNAPSHOT (see <a href="https://github.com/square/leakcanary/blob/master/build.gradle">build.gradle</a>):</p>
 <div class="codehilite"><pre><span></span>dependencies {
-  debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.1-SNAPSHOT&#39;
+  debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.2-SNAPSHOT&#39;
 }
 </pre></div>
 
@@ -1043,13 +1113,13 @@
           </a>
         
         
-          <a href="../changelog/" title="Change Log" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../support/" title="Support" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Change Log
+                Support
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">

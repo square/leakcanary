@@ -40,7 +40,7 @@
     
     
       
-        <title>Fundamentals - LeakCanary</title>
+        <title>Introduction - LeakCanary</title>
       
     
     
@@ -114,7 +114,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#fundamentals" tabindex="1" class="md-skip">
+      <a href="#what-is-a-memory-leak" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -140,7 +140,7 @@
             </span>
             <span class="md-header-nav__topic">
               
-                Fundamentals
+                Introduction
               
             </span>
           
@@ -208,14 +208,16 @@
       
         
 
-<nav class="md-tabs" data-md-component="tabs">
+  
+
+<nav class="md-tabs md-tabs--active" data-md-component="tabs">
   <div class="md-tabs__inner md-grid">
     <ul class="md-tabs__list">
       
         
   <li class="md-tabs__item">
     
-      <a href=".." class="md-tabs__link md-tabs__link--active">
+      <a href=".." class="md-tabs__link">
         Overview
       </a>
     
@@ -225,19 +227,24 @@
         
       
         
+  
+  
+    <li class="md-tabs__item">
       
-        
+        <a href="./" class="md-tabs__link md-tabs__link--active">
+          Fundamentals
+        </a>
       
-        
-      
-        
+    </li>
+  
+
       
         
   
   
     <li class="md-tabs__item">
       
-        <a href="../support/" class="md-tabs__link">
+        <a href="../recipes/" class="md-tabs__link">
           Help & Community
         </a>
       
@@ -270,6 +277,8 @@
     </li>
   
 
+      
+        
       
     </ul>
   </div>
@@ -345,26 +354,43 @@
   
 
 
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
+    
+    <label class="md-nav__link" for="nav-3">
+      Fundamentals
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-3">
+        Fundamentals
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+  
+
+
   <li class="md-nav__item md-nav__item--active">
     
     <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
-      
-    
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
-        Fundamentals
+        Introduction
       </label>
     
-    <a href="./" title="Fundamentals" class="md-nav__link md-nav__link--active">
-      Fundamentals
+    <a href="./" title="Introduction" class="md-nav__link md-nav__link--active">
+      Introduction
     </a>
     
       
 <nav class="md-nav md-nav--secondary">
   
-  
-    
   
   
     <label class="md-nav__title" for="__toc">Table of contents</label>
@@ -391,109 +417,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#how-does-leakcanary-work" class="md-nav__link">
-    How does LeakCanary work?
-  </a>
-  
-    <nav class="md-nav">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#detecting-retained-objects" class="md-nav__link">
-    Detecting retained objects
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#dumping-the-heap" class="md-nav__link">
-    Dumping the heap
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#analyzing-the-heap" class="md-nav__link">
-    Analyzing the heap
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-do-i-fix-a-memory-leak" class="md-nav__link">
-    How do I fix a memory leak?
-  </a>
-  
-    <nav class="md-nav">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#objects-and-references" class="md-nav__link">
-    Objects and references
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gc-root" class="md-nav__link">
-    GC Root
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#leaking-object" class="md-nav__link">
-    Leaking object
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#chain-of-references" class="md-nav__link">
-    Chain of references
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#heuristics-and-labels" class="md-nav__link">
-    Heuristics and labels
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#narrowing-down-the-cause-of-a-leak" class="md-nav__link">
-    Narrowing down the cause of a leak
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#asking-for-help-with-a-leak" class="md-nav__link">
-    Asking for help with a leak
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#leakcanary-artifacts" class="md-nav__link">
-    LeakCanary artifacts
-  </a>
-  
-</li>
-      
       
       
       
@@ -504,40 +427,33 @@
     
   </li>
 
-    
-      
-      
-      
+        
+          
+          
+          
 
 
   <li class="md-nav__item">
-    <a href="../recipes/" title="Code recipes" class="md-nav__link">
-      Code recipes
+    <a href="../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-nav__link">
+      How LeakCanary works
     </a>
   </li>
 
-    
-      
-      
-      
+        
+          
+          
+          
 
 
   <li class="md-nav__item">
-    <a href="../faq/" title="FAQ" class="md-nav__link">
-      FAQ
+    <a href="../fundamentals-fixing-a-memory-leak/" title="Fixing a memory leak" class="md-nav__link">
+      Fixing a memory leak
     </a>
   </li>
 
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../changelog/" title="Change Log" class="md-nav__link">
-      Change Log
-    </a>
+        
+      </ul>
+    </nav>
   </li>
 
     
@@ -548,17 +464,41 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
     
-    <label class="md-nav__link" for="nav-7">
+    <label class="md-nav__link" for="nav-4">
       Help & Community
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-7">
+      <label class="md-nav__title" for="nav-4">
         Help & Community
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../recipes/" title="Code recipes" class="md-nav__link">
+      Code recipes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../faq/" title="FAQ" class="md-nav__link">
+      FAQ
+    </a>
+  </li>
+
         
           
           
@@ -627,13 +567,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7-6" type="checkbox" id="nav-7-6">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8">
     
-    <label class="md-nav__link" for="nav-7-6">
+    <label class="md-nav__link" for="nav-4-8">
       Contributing
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
-      <label class="md-nav__title" for="nav-7-6">
+      <label class="md-nav__title" for="nav-4-8">
         Contributing
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -704,13 +644,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-8" type="checkbox" id="nav-8">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
     
-    <label class="md-nav__link" for="nav-8">
+    <label class="md-nav__link" for="nav-5">
       Shark
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-8">
+      <label class="md-nav__title" for="nav-5">
         Shark
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -735,13 +675,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-8-2" type="checkbox" id="nav-8-2">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2">
     
-    <label class="md-nav__link" for="nav-8-2">
+    <label class="md-nav__link" for="nav-5-2">
       Shark API
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
-      <label class="md-nav__title" for="nav-8-2">
+      <label class="md-nav__title" for="nav-5-2">
         Shark API
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -824,13 +764,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-9" type="checkbox" id="nav-9">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
     
-    <label class="md-nav__link" for="nav-9">
+    <label class="md-nav__link" for="nav-6">
       LeakCanary API
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-9">
+      <label class="md-nav__title" for="nav-6">
         LeakCanary API
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -901,6 +841,18 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../changelog/" title="Change Log" class="md-nav__link">
+      Change Log
+    </a>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -914,8 +866,6 @@
                     
 <nav class="md-nav md-nav--secondary">
   
-  
-    
   
   
     <label class="md-nav__title" for="__toc">Table of contents</label>
@@ -942,109 +892,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#how-does-leakcanary-work" class="md-nav__link">
-    How does LeakCanary work?
-  </a>
-  
-    <nav class="md-nav">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#detecting-retained-objects" class="md-nav__link">
-    Detecting retained objects
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#dumping-the-heap" class="md-nav__link">
-    Dumping the heap
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#analyzing-the-heap" class="md-nav__link">
-    Analyzing the heap
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-do-i-fix-a-memory-leak" class="md-nav__link">
-    How do I fix a memory leak?
-  </a>
-  
-    <nav class="md-nav">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#objects-and-references" class="md-nav__link">
-    Objects and references
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gc-root" class="md-nav__link">
-    GC Root
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#leaking-object" class="md-nav__link">
-    Leaking object
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#chain-of-references" class="md-nav__link">
-    Chain of references
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#heuristics-and-labels" class="md-nav__link">
-    Heuristics and labels
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#narrowing-down-the-cause-of-a-leak" class="md-nav__link">
-    Narrowing down the cause of a leak
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#asking-for-help-with-a-leak" class="md-nav__link">
-    Asking for help with a leak
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#leakcanary-artifacts" class="md-nav__link">
-    LeakCanary artifacts
-  </a>
-  
-</li>
-      
       
       
       
@@ -1066,230 +913,25 @@
                   
                 
                 
-                <h1 id="fundamentals">Fundamentals<a class="headerlink" href="#fundamentals" title="Permanent link">&para;</a></h1>
-<h2 id="what-is-a-memory-leak">What is a memory leak?<a class="headerlink" href="#what-is-a-memory-leak" title="Permanent link">&para;</a></h2>
+                  <h1>Introduction</h1>
+                
+                <h2 id="what-is-a-memory-leak">What is a memory leak?<a class="headerlink" href="#what-is-a-memory-leak" title="Permanent link">&para;</a></h2>
 <p>In a Java based runtime, a memory leak is a programming error that causes an application to keep a reference to an object that is no longer needed. As a result, the memory allocated for that object cannot be reclaimed, eventually leading to an OutOfMemoryError crash.</p>
 <p>For example, an Android activity instance is no longer needed after its <code>onDestroy()</code> method is called, and storing a reference to that activity in a static field would prevent it from being garbage collected.</p>
 <h2 id="common-causes-for-memory-leaks">Common causes for memory leaks<a class="headerlink" href="#common-causes-for-memory-leaks" title="Permanent link">&para;</a></h2>
 <p>Most memory leaks are caused by bugs related to the lifecycle of objects. Here are a few common Android mistakes:</p>
 <ul>
+<li>Adding a <code>Fragment</code> to the backstack without clearing its view fields in <code>Fragment.onDestroyView()</code> (see this great <a href="https://stackoverflow.com/a/59504797/703646">StackOverflow answer</a>)</li>
 <li>Storing an Activity context as a field in an object that survives activity recreation due to configuration changes.</li>
 <li>Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister when the lifecycle reaches its end.</li>
-<li>Storing a view in a static field, and not clearing that field when the view is detached.</li>
 </ul>
 <h2 id="why-should-i-use-leakcanary">Why should I use LeakCanary?<a class="headerlink" href="#why-should-i-use-leakcanary" title="Permanent link">&para;</a></h2>
-<p>Memory leaks are very common in Android apps and the accumulation of small memory leaks causes apps to run out of memory and crash with an OutOfMemoryError (OOM). When we first enabled LeakCanary in the Square Point Of Sale app, we were able to find and fix several leaks and reduced the OOM crash rate by <strong>94%</strong>.</p>
+<p>Memory leaks are very common in Android apps and the accumulation of small memory leaks causes apps to run out of memory and crash with an OutOfMemoryError (OOM). LeakCanary will help you find these memory leaks during development. When we first enabled LeakCanary in the Square Point Of Sale app, we were able to find and fix several leaks and reduced the OOM crash rate by <strong>94%</strong>.</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p><strong>Most crash reporting tools do not correctly report OOMs</strong>. When memory is low because of memory leak accumulation, an OOM can be thrown from anywhere in the app code, which means every OOM has a different stacktrace. So instead of one crash entry with a 1000 crashes, those get reported as 1000 distinct crashes and hide in the long tail of low occuring crashes.</p>
 </div>
-<h2 id="how-does-leakcanary-work">How does LeakCanary work?<a class="headerlink" href="#how-does-leakcanary-work" title="Permanent link">&para;</a></h2>
-<h3 id="detecting-retained-objects">Detecting retained objects<a class="headerlink" href="#detecting-retained-objects" title="Permanent link">&para;</a></h3>
-<p>The foundation of LeakCanary is a library called <em>ObjectWatcher Android</em>. It hooks into the Android lifecycle to automatically detect when activities and fragments are destroyed and should be garbage collected. These destroyed objects are passed to an <code>ObjectWatcher</code>, which holds <strong>weak references</strong> to them. You can also watch any objects that is no longer needed, for example a detached view, a destroyed presenter, etc.</p>
-<div class="codehilite"><pre><span></span><span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span><span class="n">myDetachedView</span><span class="p">)</span>
-</pre></div>
-
-<p>If the weak references aren&rsquo;t cleared after <strong>waiting 5 seconds</strong> and running the garbage collector, the watched objects are considered <strong>retained</strong>, and potentially leaking. LeakCanary logs this to Logcat:</p>
-<div class="codehilite"><pre><span></span>D LeakCanary: Watching instance of com.example.leakcanary.MainActivity 
-// 5 seconds later...
-D LeakCanary: Found 1 retained object
-</pre></div>
-
-<p>LeakCanary waits for the count of retained objects to reach a threshold before dumping the heap, and displays a notification with the latest count.</p>
-<p><img alt="notification" src="../images/retained-notification.png" /></p>
-<div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>The default threshold is <strong>5 retained objects</strong> when the app is <strong>visible</strong>, and <strong>1 retained object</strong> when the app is <strong>not visible</strong>. If you see the retained objects notification and then put the app in background (for example by pressing the Home button), then the threshold changes from 5 to 1 and LeakCanary dumps the heap immediately. Tapping the notification forces LeakCanary to dump the heap immediately.</p>
-</div>
-<h3 id="dumping-the-heap">Dumping the heap<a class="headerlink" href="#dumping-the-heap" title="Permanent link">&para;</a></h3>
-<p>When the count of retained objects reaches a threshold, LeakCanary dumps the Java heap into a <code>.hprof</code> file stored onto the Android file system. This freezes the app for a short amount of time, during which LeakCanary displays the following toast:</p>
-<p><img alt="toast" src="../images/dumping-toast.png" /></p>
-<h3 id="analyzing-the-heap">Analyzing the heap<a class="headerlink" href="#analyzing-the-heap" title="Permanent link">&para;</a></h3>
-<p>LeakCanary parses the <code>.hprof</code> file using <a href="../shark/">Shark</a> and locates the retained objects in that heap dump. If the retained objects cannot be found then they were most likely garbage collected by the time the heap was dumped:</p>
-<p><img alt="collected" src="../images/collected.png" /></p>
-<p>For each retained object, LeakCanary finds the chain of references that prevents retained objects from being garbage collected: the <strong>leak trace</strong>. Leak trace is another name for the <em>shortest strong reference path from garbage collection roots to a retained object</em>. Once a leak trace is determined, LeakCanary uses its built-in knowledge of the Android framework to deduct which objects in the leak trace are leaking (see below <a href="#how-do-i-fix-a-memory-leak">How do I fix a memory leak?</a>).</p>
-<p>When the analysis is done, LeakCanary displays a notification that can be tapped to see the analysis result:</p>
-<p><img alt="done" src="../images/analysis-done.png" /></p>
-<div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>Using the leak status information, LeakCanary narrows down the reference chain to a sub chain of possible leak causes, and displays the result. Leaks that have the same causal chain are considered to be the same leak, so leaks are grouped by identical sub chain. This is how LeakCanary determines whether a leak is new or not.</p>
-</div>
-<h2 id="how-do-i-fix-a-memory-leak">How do I fix a memory leak?<a class="headerlink" href="#how-do-i-fix-a-memory-leak" title="Permanent link">&para;</a></h2>
-<p>For each leaking object, LeakCanary computes a leak trace and displays it in its UI:</p>
-<p><img alt="leak trace" src="../images/leaktrace.png" /></p>
-<p>The leak trace is also logged to Logcat:</p>
-<div class="codehilite"><pre><span></span>    ┬
-    ├─ leakcanary.internal.InternalLeakCanary
-    │    Leaking: NO (it&#39;s a GC root and a class is never leaking)
-    │    ↓ static InternalLeakCanary.application
-    ├─ com.example.leakcanary.ExampleApplication
-    │    Leaking: NO (Application is a singleton)
-    │    ↓ ExampleApplication.leakedViews
-    │                         ~~~~~~~~~~~
-    ├─ java.util.ArrayList
-    │    Leaking: UNKNOWN
-    │    ↓ ArrayList.elementData
-    │                ~~~~~~~~~~~
-    ├─ java.lang.Object[]
-    │    Leaking: UNKNOWN
-    │    ↓ array Object[].[0]
-    │                     ~~~
-    ├─ android.widget.TextView
-    │    Leaking: YES (View detached and has parent)
-    │    View#mAttachInfo is null (view detached)
-    │    View#mParent is set
-    │    View.mWindowAttachCount=1
-    │    ↓ TextView.mContext
-    ╰→ com.example.leakcanary.MainActivity
-    ​     Leaking: YES (RefWatcher was watching this and MainActivity#mDestroyed
-is true)
-</pre></div>
-
-<h3 id="objects-and-references">Objects and references<a class="headerlink" href="#objects-and-references" title="Permanent link">&para;</a></h3>
-<div class="codehilite"><pre><span></span>├─ android.widget.TextView
-</pre></div>
-
-<p>Each node in the leak trace is a Java object and is either a class, an object array or an instance.</p>
-<div class="codehilite"><pre><span></span>│    ↓ TextView.mContext
-</pre></div>
-
-<p>Going down, each node has a reference to the next node. In the UI, that reference is in <strong><span style="color:#9976a8">purple</span></strong>. In the Logcat representation, the reference is on the line that starts with a down arrow.</p>
-<h3 id="gc-root">GC Root<a class="headerlink" href="#gc-root" title="Permanent link">&para;</a></h3>
-<div class="codehilite"><pre><span></span>    ┬
-    ├─ leakcanary.internal.InternalLeakCanary
-    │    Leaking: NO (it&#39;s a GC root and a class is never leaking)
-</pre></div>
-
-<p>At the top of the leak trace is a garbage-collection (GC) root. GC roots are special objects that are always reachable. There are four kinds of GC roots worth mentioning:</p>
-<ul>
-<li><strong>Local variables</strong>, which belong to the stack of a thread.</li>
-<li>Instances of <strong>active Java threads</strong>.</li>
-<li><strong>Classes</strong>, which never unload on Android.</li>
-<li><strong>Native references</strong>, which are controlled by native code.</li>
-</ul>
-<h3 id="leaking-object">Leaking object<a class="headerlink" href="#leaking-object" title="Permanent link">&para;</a></h3>
-<div class="codehilite"><pre><span></span>    ╰→ com.example.leakcanary.MainActivity
-    ​     Leaking: YES (RefWatcher was watching this and MainActivity#mDestroyed
-is true)
-</pre></div>
-
-<p>At the bottom of the leak trace is the leaking object. This object was passed to <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.</p>
-<h3 id="chain-of-references">Chain of references<a class="headerlink" href="#chain-of-references" title="Permanent link">&para;</a></h3>
-<div class="codehilite"><pre><span></span>...
-    │    ↓ static InternalLeakCanary.application
-...
-    │    ↓ ExampleApplication.leakedViews
-...
-    │    ↓ ArrayList.elementData
-...
-    │    ↓ array Object[].[0]
-...
-    │    ↓ TextView.mContext
-...
-</pre></div>
-
-<p>The chain of references from the GC root to the leaking object is what is preventing the leaking object from being garbage collected. If you can identify the reference that should not exist at that point in time, then you can figure out why it&rsquo;s incorrectly still set and then fix the memory leak.</p>
-<h3 id="heuristics-and-labels">Heuristics and labels<a class="headerlink" href="#heuristics-and-labels" title="Permanent link">&para;</a></h3>
-<div class="codehilite"><pre><span></span>    ├─ android.widget.TextView
-    │    Leaking: YES (View detached and has parent)
-    │    View#mAttachInfo is null (view detached)
-    │    View#mParent is set
-    │    View.mWindowAttachCount=1
-</pre></div>
-
-<p>LeakCanary runs heuristics to determine the lifecycle state of the nodes of the leak trace, and therefore whether they are leaking or not. For example, if a view has <code>View#mAttachInfo = null</code> and <code>mParent != null</code> then it is detached yet has a parent, so that view is probably leaking. In the leak trace, for each node you&rsquo;ll see <code>Leaking: YES / NO / UNKNOWN</code> with an explanation in parenthesis. LeakCanary can also surface extra information about the state of a node, e.g. <code>View.mWindowAttachCount=1</code>. LeakCanary comes with a set of default heuristics: <a href="/leakcanary/api/shark-android/shark/-android-object-inspectors/">AndroidObjectInspectors</a>. You can add your own heuristics by updating <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/object-inspectors/">LeakCanary.Config.objectInspectors</a> (see the <a href="../recipes/#identifying-leaking-objects-and-labeling-objects">recipe</a>).</p>
-<h3 id="narrowing-down-the-cause-of-a-leak">Narrowing down the cause of a leak<a class="headerlink" href="#narrowing-down-the-cause-of-a-leak" title="Permanent link">&para;</a></h3>
-<div class="codehilite"><pre><span></span>    ┬
-    ├─ android.provider.FontsContract
-    │    Leaking: NO (ExampleApplication↓ is not leaking and a class is never leaking)
-    │    GC Root: System class
-    │    ↓ static FontsContract.sContext
-    ├─ com.example.leakcanary.ExampleApplication
-    │    Leaking: NO (Application is a singleton)
-    │    ExampleApplication does not wrap an activity context
-    │    ↓ ExampleApplication.leakedViews
-    │                         ~~~~~~~~~~~
-    ├─ java.util.ArrayList
-    │    Leaking: UNKNOWN
-    │    ↓ ArrayList.elementData
-    │                ~~~~~~~~~~~
-    ├─ java.lang.Object[]
-    │    Leaking: UNKNOWN
-    │    ↓ array Object[].[1]
-    │                     ~~~
-    ├─ android.widget.TextView
-    │    Leaking: YES (View.mContext references a destroyed activity)
-    │    ↓ TextView.mContext
-    ╰→ com.example.leakcanary.MainActivity
-    ​     Leaking: YES (TextView↑ is leaking and Activity#mDestroyed is true and ObjectWatcher was watching this)
-</pre></div>
-
-<p>If a node is not leaking, then any prior reference that points to it is not the source of the leak, and also not leaking. Similarly, if a node is leaking then any node down the leak trace is also leaking. From that, we can deduce that the leak is caused by a reference that is after the last <code>Leaking: NO</code>   and before the first <code>Leaking: YES</code>.</p>
-<p>LeakCanary highlights those references with a <strong><span style="text-decoration: underline; text-decoration-color: red; text-decoration-style: wavy;">red underline</span></strong> in the UI, or a <strong>~~~~</strong> underline in the Logcat representation. These highlighted references are the <strong>only possible causes of the leak</strong>. These are the references you should spend time investigating.</p>
-<p>In this example, the last <code>Leaking: NO</code> is on <code>com.example.leakcanary.ExampleApplication</code> and the first <code>Leaking: YES</code> is on <code>android.widget.TextView</code>, so the leak is caused by one of the 3 references in between:</p>
-<div class="codehilite"><pre><span></span>...
-    │    ↓ ExampleApplication.leakedViews
-    │                         ~~~~~~~~~~~
-...
-    │    ↓ ArrayList.elementData
-    │                ~~~~~~~~~~~
-...
-    │    ↓ array Object[].[0]
-    │                     ~~~
-...
-</pre></div>
-
-<p>Looking at the <a href="https://github.com/square/leakcanary/blob/master/leakcanary-android-sample/src/main/java/com/example/leakcanary/ExampleApplication.kt#L23">source</a>, we can see that <code>ExampleApplication</code> has a list field:</p>
-<div class="codehilite"><pre><span></span>open class ExampleApplication : Application() {
-  val leakedViews = mutableListOf&lt;View&gt;()
-}
-</pre></div>
-
-<p>It&rsquo;s unlikely that there&rsquo;s a bug in the <code>ArrayList</code> implementation itself, so the leak happens because we&rsquo;re adding views to <code>ExampleApplication.leakedViews</code>. If we stop doing that, we&rsquo;ve fixed the leak!</p>
-<h3 id="asking-for-help-with-a-leak">Asking for help with a leak<a class="headerlink" href="#asking-for-help-with-a-leak" title="Permanent link">&para;</a></h3>
-<p>If you cannot figure out a leak, <strong>please do not file an issue</strong>. Instead, create a <a href="http://stackoverflow.com/questions/tagged/leakcanary?sort=active">Stack Overflow question</a> using the <em>leakcanary</em> tag.</p>
-<h2 id="leakcanary-artifacts">LeakCanary artifacts<a class="headerlink" href="#leakcanary-artifacts" title="Permanent link">&para;</a></h2>
-<p>LeakCanary is released as several libraries:</p>
-<ul>
-<li>Shark<ul>
-<li>The heap analyzer that powers LeakCanary.</li>
-<li>See <a href="../shark/">Shark</a> for details.</li>
-</ul>
-</li>
-<li>ObjectWatcher<ul>
-<li>Used to watch retained objects and check if they become weakly reachable.</li>
-<li>Suitable for release builds.</li>
-<li>Artifact id: <code>com.squareup.leakcanary:leakcanary-object-watcher</code>.</li>
-</ul>
-</li>
-<li>ObjectWatcher Android<ul>
-<li>Automatically detects retained destroyed activities and fragments.</li>
-<li>Suitable for release builds.</li>
-<li>Artifact id: <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code>.</li>
-</ul>
-</li>
-<li>LeakCanary<ul>
-<li>Dumps the heap and analyzes it.</li>
-<li>Currently only suitable for debug builds.</li>
-<li>Depends on ObjectWatcher Android.</li>
-<li>Artifact id: <code>com.squareup.leakcanary:leakcanary-android</code>.</li>
-</ul>
-</li>
-<li>LeakCanary for Instrumentation tests<ul>
-<li>Fails tests if a leak is detected.</li>
-<li>Only suitable for Instrumentation tests.</li>
-<li>Configures LeakCanary to wait for the end of tests before dumping the heap.</li>
-<li>Artifact id: <code>com.squareup.leakcanary:leakcanary-android-instrumentation</code>.</li>
-<li>See <a href="../recipes/#running-leakcanary-in-instrumentation-tests">Running LeakCanary in instrumentation tests</a>.</li>
-</ul>
-</li>
-<li>LeakCanary Android separate process<ul>
-<li>Enables running LeakCanary separately from the main app process.</li>
-<li>Artifact id: <code>com.squareup.leakcanary:leakcanary-android-process</code> (as a replacement for <code>com.squareup.leakcanary:leakcanary-android</code>).</li>
-<li>See <a href="../recipes/#running-the-leakcanary-analysis-in-a-separate-process">Running the LeakCanary analysis in a separate process</a>.</li>
-</ul>
-</li>
-</ul>
+<p>What&rsquo;s next? Learn <a href="../fundamentals-how-leakcanary-works/">how LeakCanary works</a>!</p>
                 
                   
                 
@@ -1325,13 +967,13 @@ is true)
           </a>
         
         
-          <a href="../recipes/" title="Code recipes" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Code recipes
+                How LeakCanary works
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
