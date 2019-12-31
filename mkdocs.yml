@@ -4,8 +4,8 @@
 
 extra:
   leak_canary:
-    release: '2.0'
-    next_release: '2.1'
+    release: '2.1'
+    next_release: '2.2'
 
 site_name: LeakCanary
 repo_name: LeakCanary

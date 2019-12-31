@@ -2,9 +2,8 @@
 
 # likelyLeakingReasons
 
-`val likelyLeakingReasons: `[`MutableSet`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-set/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`>`
+`val ~~likelyLeakingReasons~~: `[`MutableSet`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-set/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`>`
+**Deprecated:** Replace likelyLeakingReasons with leakingReasons
 
-**See Also**
-
-[leakingReasons](leaking-reasons.md)
+Deprecated, use leakingReasons instead.
 

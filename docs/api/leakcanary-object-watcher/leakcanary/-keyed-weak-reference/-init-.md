@@ -2,7 +2,7 @@
 
 # &lt;init&gt;
 
-`KeyedWeakReference(referent: `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`, key: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, name: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, watchUptimeMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`, referenceQueue: `[`ReferenceQueue`](https://docs.oracle.com/javase/6/docs/api/java/lang/ref/ReferenceQueue.html)`<`[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`>)`
+`KeyedWeakReference(referent: `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`, key: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, watchUptimeMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`, referenceQueue: `[`ReferenceQueue`](https://docs.oracle.com/javase/6/docs/api/java/lang/ref/ReferenceQueue.html)`<`[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`>)`
 
 A weak reference used by [ObjectWatcher](../-object-watcher/index.md) to determine which objects become weakly reachable
 and which don't. [ObjectWatcher](../-object-watcher/index.md) uses [key](key.md) to keep track of [KeyedWeakReference](index.md) instances that

@@ -6,7 +6,3 @@
 
 Reasons for which this object is expected to be unreachable (ie it's leaking).
 
-Only add reasons to this if you're 100% sure this object is leaking, otherwise add reasons to
-[likelyLeakingReasons](likely-leaking-reasons.md). The difference is that objects that are "likely leaking" are not
-considered to be leaking objects on which LeakCanary should compute the leak trace.
-
