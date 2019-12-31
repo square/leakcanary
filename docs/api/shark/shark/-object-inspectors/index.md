@@ -27,3 +27,10 @@ A set of default [ObjectInspector](../-object-inspector/index.md)s that knows ab
 | Name | Summary |
 |---|---|
 | [jdkDefaults](jdk-defaults.md) | `val jdkDefaults: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`ObjectInspector`](../-object-inspector/index.md)`>` |
+| [jdkLeakingObjectFilters](jdk-leaking-object-filters.md) | `val jdkLeakingObjectFilters: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`FilteringLeakingObjectFinder.LeakingObjectFilter`](../-filtering-leaking-object-finder/-leaking-object-filter/index.md)`>`<br>Returns a list of [LeakingObjectFilter](../-filtering-leaking-object-finder/-leaking-object-filter/index.md) suitable for common JDK projects. |
+
+### Companion Object Functions
+
+| Name | Summary |
+|---|---|
+| [createLeakingObjectFilters](create-leaking-object-filters.md) | `fun createLeakingObjectFilters(inspectors: `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`ObjectInspectors`](./index.md)`>): `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`FilteringLeakingObjectFinder.LeakingObjectFilter`](../-filtering-leaking-object-finder/-leaking-object-filter/index.md)`>`<br>Creates a list of [LeakingObjectFilter](../-filtering-leaking-object-finder/-leaking-object-filter/index.md) based on the passed in [ObjectInspectors](./index.md). |

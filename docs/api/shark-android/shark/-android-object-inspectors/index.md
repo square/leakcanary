@@ -45,3 +45,10 @@ unless there's a bug and you temporarily want to remove an inspector.
 | Name | Summary |
 |---|---|
 | [appDefaults](app-defaults.md) | `val appDefaults: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<ObjectInspector>` |
+| [appLeakingObjectFilters](app-leaking-object-filters.md) | `val appLeakingObjectFilters: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<LeakingObjectFilter>`<br>Returns a list of [LeakingObjectFilter](#) suitable for apps. |
+
+### Companion Object Functions
+
+| Name | Summary |
+|---|---|
+| [createLeakingObjectFilters](create-leaking-object-filters.md) | `fun createLeakingObjectFilters(inspectors: `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`AndroidObjectInspectors`](./index.md)`>): `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<LeakingObjectFilter>`<br>Creates a list of [LeakingObjectFilter](#) based on the passed in [AndroidObjectInspectors](./index.md). |

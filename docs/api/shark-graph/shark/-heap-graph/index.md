@@ -15,7 +15,9 @@ Enables navigation through the heap graph of objects.
 | [gcRoots](gc-roots.md) | `abstract val gcRoots: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<GcRoot>`<br>All GC roots which type matches types known to this heap graph and which point to non null references. You can retrieve the object that a GC Root points to by calling [findObjectById](find-object-by-id.md) with [GcRoot.id](#), however you need to first check that [objectExists](object-exists.md) returns true because GC roots can point to objects that don't exist in the heap dump. |
 | [identifierByteSize](identifier-byte-size.md) | `abstract val identifierByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
 | [instances](instances.md) | `abstract val instances: `[`Sequence`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html)`<`[`HeapObject.HeapInstance`](../-heap-object/-heap-instance/index.md)`>`<br>Sequence of all instances in the heap dump. |
+| [objectArrays](object-arrays.md) | `abstract val objectArrays: `[`Sequence`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html)`<`[`HeapObject.HeapObjectArray`](../-heap-object/-heap-object-array/index.md)`>`<br>Sequence of all object arrays in the heap dump. |
 | [objects](objects.md) | `abstract val objects: `[`Sequence`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html)`<`[`HeapObject`](../-heap-object/index.md)`>`<br>Sequence of all objects in the heap dump. |
+| [primitiveArrays](primitive-arrays.md) | `abstract val primitiveArrays: `[`Sequence`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html)`<`[`HeapObject.HeapPrimitiveArray`](../-heap-object/-heap-primitive-array/index.md)`>`<br>Sequence of all primitive arrays in the heap dump. |
 
 ### Functions
 

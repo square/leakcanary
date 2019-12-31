@@ -2,12 +2,8 @@
 
 # useExperimentalLeakFinders
 
-`val useExperimentalLeakFinders: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)
+`val ~~useExperimentalLeakFinders~~: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)
+**Deprecated:** This is a no-op, set a custom leakingObjectFinder instead
 
-When true, [objectInspectors](object-inspectors.md) are used to find leaks instead of only checking instances
-tracked by [KeyedWeakReference](#). This leads to finding more leaks and shorter leak traces.
-However this also means the same leaking instances will be found in every heap dump for a
-given process life.
-
-Defaults to false.
+Deprecated: This is a no-op, set a custom [leakingObjectFinder](leaking-object-finder.md) instead.
 

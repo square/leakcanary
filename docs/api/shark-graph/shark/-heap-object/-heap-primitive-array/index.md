@@ -10,6 +10,7 @@ A primitive array in the heap dump.
 
 | Name | Summary |
 |---|---|
+| [arrayClass](array-class.md) | `val arrayClass: `[`HeapObject.HeapClass`](../-heap-class/index.md)<br>The class of this array. |
 | [arrayClassName](array-class-name.md) | `val arrayClassName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>The name of the class of this array, identical to [Class.getName](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#getName()). |
 | [graph](graph.md) | `val graph: `[`HeapGraph`](../../-heap-graph/index.md)<br>The graph of objects in the heap, which you can use to navigate the heap. |
 | [objectId](object-id.md) | `val objectId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>The heap identifier of this object. |

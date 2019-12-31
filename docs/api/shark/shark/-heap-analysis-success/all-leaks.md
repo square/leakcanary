@@ -2,7 +2,7 @@
 
 # allLeaks
 
-`val allLeaks: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`Leak`](../-leak/index.md)`>`
+`val allLeaks: `[`Sequence`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html)`<`[`Leak`](../-leak/index.md)`>`
 
 The list of [Leak](../-leak/index.md) found in the heap dump by [HeapAnalyzer](../-heap-analyzer/index.md), ie all [applicationLeaks](application-leaks.md) and
 all [libraryLeaks](library-leaks.md) in one list.

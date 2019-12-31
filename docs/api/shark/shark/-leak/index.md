@@ -10,17 +10,15 @@ A leak found by [HeapAnalyzer](../-heap-analyzer/index.md), either an [Applicati
 
 | Name | Summary |
 |---|---|
-| [className](class-name.md) | `abstract val className: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Class name of the leaking object. The class name format is the same as what would be returned by [Class.getName](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#getName()). |
-| [classSimpleName](class-simple-name.md) | `val classSimpleName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Returns [className](class-name.md) stripped of any string content before the last period (included). |
-| [groupHash](group-hash.md) | `val groupHash: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>A unique SHA1 hash that represents this group of leaks. |
-| [leakTrace](leak-trace.md) | `abstract val leakTrace: `[`LeakTrace`](../-leak-trace/index.md)<br>Shortest path from GC roots to the leaking object. |
-| [retainedHeapByteSize](retained-heap-byte-size.md) | `abstract val retainedHeapByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`?`<br>The number of bytes which would be freed if all references to the leaking object were released. Null if the retained heap size was not computed. |
+| [leakTraces](leak-traces.md) | `abstract val leakTraces: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`LeakTrace`](../-leak-trace/index.md)`>`<br>Group of leak traces which share the same leak signature. |
+| [shortDescription](short-description.md) | `abstract val shortDescription: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [signature](signature.md) | `abstract val signature: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>A unique SHA1 hash that represents this group of leak traces. |
+| [totalRetainedHeapByteSize](total-retained-heap-byte-size.md) | `val totalRetainedHeapByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`?`<br>Sum of [LeakTrace.retainedHeapByteSize](../-leak-trace/retained-heap-byte-size.md) for all elements in [leakTraces](leak-traces.md). Null if the retained heap size was not computed. |
 
 ### Functions
 
 | Name | Summary |
 |---|---|
-| [createGroupHash](create-group-hash.md) | `abstract fun createGroupHash(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [toString](to-string.md) | `open fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 
 ### Inheritors
