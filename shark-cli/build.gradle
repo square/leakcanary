@@ -13,19 +13,8 @@ dependencies {
   implementation deps.kotlin.stdlib
 }
 
-def mainClass = 'shark.MainKt'
-
 application {
-  mainClassName = mainClass
-}
-
-jar {
-  manifest {
-    attributes 'Main-Class': mainClass
-  }
-  from {
-    configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-  }
+  mainClassName = 'shark.MainKt'
 }
 
 apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
