@@ -23,7 +23,7 @@ extra:
 * Generate the Dokka docs
 ```
 rm -rf docs/api
-./gradlew shark:dokka shark-android:dokka leakcanary-android-core:dokka leakcanary-android-instrumentation:dokka leakcanary-android-process:dokka shark-graph:dokka shark-hprof:dokka leakcanary-object-watcher-android:dokka shark-log:dokka leakcanary-object-watcher:dokka
+./gradlew leakcanary-android-core:dokka leakcanary-android-instrumentation:dokka leakcanary-android-process:dokka leakcanary-object-watcher-android:dokka leakcanary-object-watcher:dokka shark-android:dokka shark-graph:dokka shark-hprof:dokka shark-log:dokka shark:dokka
 ```
 
 * Update `docs/changelog.md` after checking out all changes:
@@ -80,7 +80,7 @@ git merge --no-ff release_{{ leak_canary.next_release }}
 ```
 * Update `VERSION_NAME` in `gradle.properties` (increase version and add `-SNAPSHOT`)
 ```gradle
-VERSION_NAME = "2.0-alpha-4-SNAPSHOT"
+VERSION_NAME = "REPLACE_WITH_NEXT_VERSION_NUMBER-SNAPSHOT"
 ```
 
 * Commit your changes
@@ -93,12 +93,12 @@ git commit -am "Prepare for next development iteration"
 git push
 ```
 
-* Go to [Milestones](https://github.com/square/leakcanary/milestones), rename the current release to the version just released, and create a new *Next Release* milestone.
+* Go to [Milestones](https://github.com/square/leakcanary/milestones), close the corresponding milestones and create a new milestone.
 * Wait for the release to be available [on Maven Central](https://repo1.maven.org/maven2/com/squareup/leakcanary/leakcanary-android/).
 * Redeploy the docs: `mkdocs serve` to check locally, `mkdocs gh-deploy` to deploy.
 * Go to the [Draft a new release](https://github.com/square/leakcanary/releases/new) page, enter the release name (v{{ leak_canary.next_release }}) as tag and title, and have the description point to the changelog. You can find the direct anchor URL from the [Change Log](https://square.github.io/leakcanary/changelog) page on the doc site.
 ```
 See [Change Log](https://square.github.io/leakcanary/changelog#version-20-alpha-2-2019-05-21)
 ```
-* Add the CLIP zip from `shark-cli/build/distributions/` to the release. Update the documentation to point to it.
+* Add the CLIP zip from `shark-cli/build/distributions/` to the release.
 * Tell your friends, update all of your apps, and tweet the new release. As a nice extra touch, mention external contributions.

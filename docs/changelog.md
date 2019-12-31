@@ -1,5 +1,134 @@
 # Change Log
 
+## Version 2.1 (2019-12-31)
+
+A special New Year's Eve release 🥳, the next release will be in another decade 😎!
+
+Many thanks to
+[@adamfit](https://github.com/adamfit),
+[@alexander-smityuk](https://github.com/alexander-smityuk),
+[@Armaxis](https://github.com/Armaxis),
+[@BraisGabin](https://github.com/BraisGabin),
+[@devism](https://github.com/devism),
+[@ditclear](https://github.com/ditclear),
+[@mzgreen](https://github.com/mzgreen),
+[@jrodbx](https://github.com/jrodbx),
+[@jstefanowski](https://github.com/jstefanowski),
+[@Maragues](https://github.com/Maragues),
+[@pyricau](https://github.com/pyricau)
+for the contributions, bug reports and feature requests.
+
+### A Gradle plugin for obfuscated apps
+
+It's fairly common for teams to have a QA build that is tested before making the release build. Usually that build will be obfuscated (via Proguard or R8), but also add LeakCanary to detect leaks during QA. This leads to obfuscated leak traces, which are hard to understand 🤯. Check out our new [Gradle deobfuscation plugin](recipes.md#using-leakcanary-with-obfuscated-apps) and rejoice!
+
+### UI <strike>twix</strike> tweaks
+
+In 2.0 we changed the LeakCanary UI and UX, and built a foundation on which 2.1 extends.
+
+![ui](images/screenshot-2.0.png)
+
+* Since 2.0, Leaks are grouped by their distinct signature. In 2.1 there's a `New` tag that will show until you open up a leak. There's also a `Library Leak` tag for leaks that are known to be caused by a bug in the Android Framework or Google libraries, and the library leak description now shows up in the UI.
+* The type of the Java objects (class, instance, array) is now displayed in the LeakTrace, e.g. see `FontsContract class` and `ExampleApplication instance` above.
+* The type of the GC root now shows up at the root of the leak trace. Makes sense!
+* The leak result notification has an importance now set to MAX so that it'll show up right in your face. If you turn it off, the canary will haunt you in your dreams 🐤👻. To save your sanity and your device battery, automatic heap dumps now won't happen more often than once per minute.
+* The resource id name for `View` instances is now displayed in the leak trace. You shouldn't look at the [implementation](https://github.com/square/leakcanary/pull/1663).
+
+```
+├─ android.widget.TextView instance
+│    View.mID = R.id.helper_text
+```
+
+### Documentation goodies
+
+* The [Fundamentals](fundamentals.md) page was entirely rewritten, split into 3 pages and moved to its own tab. Please read it and provide feedback!
+* At Square, we have been uploading leaks to Bugsnag for 3 years now, so that no leak ever gets missed. Follow [this recipe](recipes.md#uploading-to-bugsnag)!
+* Did you know you can [run LeakCanary in a JVM](recipes.md#detecting-leaks-in-jvm-applications)?
+
+### API <strike>breaking</strike> bettering changes
+
+* The APIs of the `Leak` and `LeakTrace` classes have significantly changed, e.g. all `LeakTrace` instances with an identical signature are grouped under the same Leak object. Despite these breaking changes, this release version is a minor update. Oh noes, what about semantic versioning 😱? Ask Don Quixote.
+* You can now customize the way LeakCanary finds the leaking objects in the heap dump. For example, here's the configuration SharkCli uses to find leaks in heap dumps of apps that don't even have the LeakCanary dependency:
+
+```kotlin
+LeakCanary.config = LeakCanary.config.copy(
+    leakingObjectFinder = FilteringLeakingObjectFinder(
+        AndroidObjectInspectors.appLeakingObjectFilters
+    )
+)
+```
+
+* LeakCanary automatically disables itself in tests by detecting that the `org.junit.Test` is in the classpath. Unfortunately, some apps ship Junit in their app debug classpath (e.g. when using OkHttp MockWebServer). You can now customize which class is used to detect tests:
+
+```xml
+<resources>
+  <string name="leak_canary_test_class_name">assertk.Assert</string>
+</resources>
+```
+
+### Interactive CLI
+
+[Shark CLI](https://github.com/square/leakcanary/releases/download/v2.1/shark-cli-2.1.zip) was rewritten on top of [Clikt](https://github.com/ajalt/clikt):
+
+```bash
+$ shark-cli
+Usage: shark-cli [OPTIONS] COMMAND [ARGS]...
+
+                 ^`.                 .=""=.
+ ^_              \  \               / _  _ \
+ \ \             {   \             |  d  b  |
+ {  \           /     `~~~--__     \   /\   /
+ {   \___----~~'              `~~-_/'-=\/=-'\,
+  \                         /// a  `~.      \ \
+  / /~~~~-, ,__.    ,      ///  __,,,,)      \ |
+  \/      \/    `~~~;   ,---~~-_`/ \        / \/
+                   /   /            '.    .'
+                  '._.'             _|`~~`|_
+                                    /|\  /|\
+
+Options:
+  -p, --process NAME              Full or partial name of a process, e.g.
+                                  "example" would match "com.example.app"
+  -d, --device ID                 device/emulator id
+  -m, --obfuscation-mapping PATH  path to obfuscation mapping file
+  --verbose / --no-verbose        provide additional details as to what
+                                  shark-cli is doing
+  -h, --hprof FILE                path to a .hprof file
+  --help                          Show this message and exit
+
+Commands:
+  interactive   Explore a heap dump.
+  analyze       Analyze a heap dump.
+  dump-process  Dump the heap and pull the hprof file.
+  strip-hprof   Replace all primitive arrays from the provided heap dump with
+                arrays of zeroes and generate a new "-stripped.hprof" file.
+```
+
+There's a new `interactive` command which enables exploring the heap dump from the command line:
+
+```bash
+$ shark-cli -h heapdump.hprof interactive
+Enter command [help]:
+help
+
+Available commands:
+  analyze                   Analyze the heap dump.
+  class NAME@ID             Show class with a matching NAME and Object ID.
+  instance CLASS_NAME@ID    Show instance with a matching CLASS_NAME and Object
+ID.
+  array CLASS_NAME@ID       Show array instance with a matching CLASS_NAME and
+Object ID.
+  ->instance CLASS_NAME@ID  Show path from GC Roots to instance.
+  ~>instance CLASS_NAME@ID  Show path from GC Roots to instance, highlighting
+suspect references.
+  help                      Show this message.
+  exit                      Exit this interactive prompt.
+```
+
+We're currently exploring the idea of adding [support for SQL queries](https://twitter.com/Piwai/status/1211795647273160704), feedback welcome!
+
+For more details, see the [2.1 Milestone](https://github.com/square/leakcanary/milestone/15) and the [full diff](https://github.com/square/leakcanary/compare/v2.0...v2.1).
+
 ## Version 2.0 (2019-11-27)
 
 In the past 7 months, LeakCanary went through 3 alphas and 5 betas, encompassing 23 contributors over 493 commits, 35826 insertions and 10156 deletions.

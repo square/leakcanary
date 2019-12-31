@@ -8,7 +8,7 @@ For example, an Android activity instance is no longer needed after its `onDestr
 
 Most memory leaks are caused by bugs related to the lifecycle of objects. Here are a few common Android mistakes:
 
-* Adding a `Fragment` to the backstack without clearing its view fields in `Fragment.onDestroyView()`
+* Adding a `Fragment` to the backstack without clearing its view fields in `Fragment.onDestroyView()` (see this great [StackOverflow answer](https://stackoverflow.com/a/59504797/703646))
 * Storing an Activity context as a field in an object that survives activity recreation due to configuration changes.
 * Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister when the lifecycle reaches its end.
 
