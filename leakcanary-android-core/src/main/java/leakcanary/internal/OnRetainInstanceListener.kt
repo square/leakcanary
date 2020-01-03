@@ -6,9 +6,7 @@ internal sealed class RetainInstanceChange {
 }
 
 /**
- * Listener set in [LeakCanary.Config] and called by LeakCanary on a background thread when
- * the number of retained instances changes.
- *
+ * Called by LeakCanary when the number of retained instances updates .
  */
 internal interface OnRetainInstanceListener {
 

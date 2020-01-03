@@ -32,7 +32,7 @@ class MainActivity : Activity() {
     val app = application as ExampleApplication
     val leakedView = findViewById<View>(R.id.helper_text)
 
-    findViewById<Button>(R.id.button).setOnClickListener { recreate() }
+    findViewById<Button>(R.id.recreate_activity_button).setOnClickListener { recreate() }
 
     when (Random.nextInt(4)) {
       // Leak from application class

@@ -35,7 +35,7 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
       HeapAnalysisTable.insert(db, heapAnalysis)
     }
 
-     val (contentTitle, screenToShow) = when (heapAnalysis) {
+    val (contentTitle, screenToShow) = when (heapAnalysis) {
       is HeapAnalysisFailure -> application.getString(
           R.string.leak_canary_analysis_failed
       ) to HeapAnalysisFailureScreen(id)
@@ -79,7 +79,6 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
    * to direct them to Logcat where a much more detailed report will be printed.
    */
   private fun showToast(heapAnalysis: HeapAnalysis) {
-    // Post the Toast into main thread and wrap it with try-catch in case Toast crashes (it happens)
     handler.post {
       val toastText: String = when (heapAnalysis) {
         is HeapAnalysisSuccess -> {
@@ -107,14 +106,15 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
    */
   private fun printIntentInfo() {
     val leakClass = LeakActivity::class.java
-    val message = """====================================
-ANDROID TV LAUNCH INTENT
-====================================
-Run the following adb command to display the list of leaks:
-
-adb shell am start -n "${application.packageName}/${leakClass.name.replace(leakClass.simpleName, "LeakLauncherActivity")}"
-//===================================="""
-    SharkLog.d { message }
+    SharkLog.d {
+      """====================================
+  ANDROID TV LAUNCH INTENT
+  ====================================
+  Run the following adb command to display the list of leaks:
+  
+  adb shell am start -n "${application.packageName}/${leakClass.`package`?.name}.LeakLauncherActivity"
+  ===================================="""
+    }
   }
 
   companion object {

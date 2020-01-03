@@ -17,7 +17,6 @@ import leakcanary.internal.RetainInstanceChange.Reset
  * [LeakCanary.Config.retainedVisibleThreshold] to any value other than 1 will be aware of retain
  * instances changes. If user set threshold for heap dump to 1 then this listener becomes no-op,
  * as any retain instance change will trigger the heap dump with its own toast.
- *
  */
 internal class TvOnRetainInstanceListener(private val application: Application) : OnRetainInstanceListener {
 
@@ -53,13 +52,8 @@ internal class TvOnRetainInstanceListener(private val application: Application) 
             "\nBackground the app to trigger heap dump immediately"
       }
 
-    // Post the Toast into main thread and wrap it with try-catch in case Toast crashes (it happens)
     handler.post {
-      try {
-        Toast.makeText(application, text, Toast.LENGTH_LONG).show()
-      } catch (exception: Exception) {
-        // Toasts are prone to crashing, ignore
-      }
+      Toast.makeText(application, text, Toast.LENGTH_LONG).show()
     }
   }
 
