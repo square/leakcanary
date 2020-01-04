@@ -274,7 +274,7 @@ class BugsnagLeakUploader(applicationContext: Application) :
   private fun MetaData.addLeak(leak: Leak) {
     addToTab("Leak", "libraryLeak", leak is LibraryLeak)
     if (leak is LibraryLeak) {
-      addToTab("Leak", "libraryLeakPattern", leak.pattern)
+      addToTab("Leak", "libraryLeakPattern", leak.pattern.toString())
       addToTab("Leak", "libraryLeakDescription", leak.description)
     }
   }
