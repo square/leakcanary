@@ -104,7 +104,7 @@ object LeakCanary {
      *
      * Defaults to [AndroidMetadataExtractor]
      */
-    val metatadaExtractor: MetadataExtractor = AndroidMetadataExtractor,
+    val metadataExtractor: MetadataExtractor = AndroidMetadataExtractor,
 
     /**
      * Whether to compute the retained heap size, which is the total number of bytes in memory that
