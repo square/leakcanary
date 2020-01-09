@@ -80,7 +80,7 @@ internal class HeapAnalyzerService : ForegroundService(
         referenceMatchers = config.referenceMatchers,
         computeRetainedHeapSize = config.computeRetainedHeapSize,
         objectInspectors = config.objectInspectors,
-        metadataExtractor = config.metatadaExtractor,
+        metadataExtractor = config.metadataExtractor,
         proguardMapping = proguardMappingReader?.readProguardMapping()
     )
   }
