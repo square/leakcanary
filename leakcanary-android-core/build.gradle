@@ -12,8 +12,10 @@ dependencies {
   testImplementation deps.junit
   testImplementation deps.mockito
   testImplementation deps.mockito_kotlin
-
+  androidTestImplementation deps.androidx.test.espresso
+  androidTestImplementation deps.androidx.test.rules
   androidTestImplementation deps.androidx.test.runner
+  androidTestImplementation project(':shark-hprof-test')
 }
 
 def gitSha() {
