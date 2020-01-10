@@ -87,18 +87,6 @@ class ReferenceMatcherTest {
     assertThat(leak.pattern).isEqualTo(matcher.pattern)
   }
 
-  @Test fun excludedLollipopThread() {
-    hprofFile.writeLollipopJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
-
-    val matcher = LibraryLeakReferenceMatcher(JavaLocalPattern("kroutine"))
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        referenceMatchers = listOf(matcher)
-    )
-
-    val leak = analysis.libraryLeaks[0]
-    assertThat(leak.pattern).isEqualTo(matcher.pattern)
-  }
-
   @Test fun overrideSuperclassExclusion() {
     hprofFile.dump {
       "GcRoot" clazz {

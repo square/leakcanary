@@ -1,3 +1,4 @@
+
 package shark
 
 import shark.GcRoot.JavaFrame
@@ -135,27 +136,6 @@ fun File.writeJavaLocalLeak(
 
     val leaking = "Leaking" watchedInstance {}
     gcRoot(JavaFrame(id = leaking.value, threadSerialNumber = 42, frameNumber = 0))
-  }
-}
-
-fun File.writeLollipopJavaLocalLeak(
-  threadClass: String,
-  threadName: String
-) {
-  dump {
-    val threadLocalValues = "java.lang.ThreadLocal\$Values" instance {
-      field["table"] = objectArray("Leaking" watchedInstance {})
-    }
-
-    val threadClassId =
-      clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class, "localValues" to ReferenceHolder::class))
-    val myThreadClassId = clazz(className = threadClass, superclassId = threadClassId)
-    val threadInstance = instance(myThreadClassId, listOf(string(threadName), threadLocalValues))
-    gcRoot(
-        ThreadObject(
-            id = threadInstance.value, threadSerialNumber = 42, stackTraceSerialNumber = 0
-        )
-    )
   }
 }
 
