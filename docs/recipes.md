@@ -51,7 +51,8 @@ LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 In Java, you can use [ConfigBuilder](/leakcanary/api/leakcanary-android-core/leakcanary/-config-builder/) instead:
 ```
 LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
-   .computeRetainedHeapSize(false);
+   .retainedVisibleThreshold(3)
+   .build();
 LeakCanary.setConfig(config);
 ```
 

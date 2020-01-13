@@ -11,16 +11,14 @@ import shark.ReferenceMatcher
  * Usage:
  * ```
  * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
- *    .dumpHeap(false)
  *    .retainedVisibleThreshold(3)
- *    .maxStoredHeapDumps(10)
  *    .build();
  * LeakCanary.setConfig(config);
  * ```
  *
  * For idiomatic Kotlin use `copy()` method instead:
  * ```
- * LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
+ * LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
  * ```
  */
 @Suppress("TooManyFunctions")

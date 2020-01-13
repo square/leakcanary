@@ -188,13 +188,14 @@ object LeakCanary {
    * a mutated copy, e.g.:
    *
    * ```
-   * LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
+   * LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
    * ```
    *
    * In Java, you can use [ConfigBuilder] instead:
    * ```
    * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
-   *    .computeRetainedHeapSize(false);
+   *    .retainedVisibleThreshold(3)
+   *    .build();
    * LeakCanary.setConfig(config);
    * ```
    */
