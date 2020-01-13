@@ -1,3 +1,5 @@
+@file:Suppress("NEWER_VERSION_IN_SINCE_KOTLIN")
+
 package leakcanary
 
 import android.content.Intent
@@ -170,7 +172,16 @@ object LeakCanary {
      */
     @Deprecated("This is a no-op, set a custom leakingObjectFinder instead")
     val useExperimentalLeakFinders: Boolean = false
-  )
+  ) {
+
+    /**
+     * Construct a new Config via [ConfigBuilder].
+     * Note: this method is intended to be used from Java code only. For idiomatic Kotlin use
+     * `copy()` to modify [LeakCanary.config].
+     */
+    @SinceKotlin("999.9") // Hide from Kotlin code, this method is only for Java code
+    fun newBuilder() = ConfigBuilder(this)
+  }
 
   /**
    * The current LeakCanary configuration. Can be updated at any time, usually by replacing it with
@@ -179,8 +190,15 @@ object LeakCanary {
    * ```
    * LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
    * ```
+   *
+   * In Java, you can use [ConfigBuilder] instead:
+   * ```
+   * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
+   *    .computeRetainedHeapSize(false);
+   * LeakCanary.setConfig(config);
+   * ```
    */
-  @Volatile
+  @JvmStatic @Volatile
   var config: Config = if (AppWatcher.isInstalled) Config() else InternalLeakCanary.noInstallConfig
     set(newConfig) {
       val previousConfig = field
