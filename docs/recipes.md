@@ -48,7 +48,7 @@ To customize the heap dumping & analysis, update [LeakCanary.config](/leakcanary
 LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 ```
 
-Java callers can use [ConfigBuilder](/leakcanary/api/leakcanary-android-core/leakcanary/-config-builder/) instead:
+In Java, you can use [ConfigBuilder](/leakcanary/api/leakcanary-android-core/leakcanary/-config-builder/) instead:
 ```
 LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
    .computeRetainedHeapSize(false);

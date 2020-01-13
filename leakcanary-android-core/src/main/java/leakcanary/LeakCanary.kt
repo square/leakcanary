@@ -175,9 +175,11 @@ object LeakCanary {
   ) {
 
     /**
-     * Construct a new Config via [ConfigBuilder]
+     * Construct a new Config via [ConfigBuilder].
+     * Note: this method is intended to be used from Java code only. For idiomatic Kotlin use
+     * `copy()` to modify [LeakCanary.config].
      */
-    @SinceKotlin("999.9") // Hide from Kotlin code, this is needed only for Java callers
+    @SinceKotlin("999.9") // Hide from Kotlin code, this method is only for Java code
     fun newBuilder() = ConfigBuilder(this)
   }
 
@@ -189,7 +191,7 @@ object LeakCanary {
    * LeakCanary.config = LeakCanary.config.copy(computeRetainedHeapSize = true)
    * ```
    *
-   * Java callers can use [ConfigBuilder] instead:
+   * In Java, you can use [ConfigBuilder] instead:
    * ```
    * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
    *    .computeRetainedHeapSize(false);
