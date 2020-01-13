@@ -48,6 +48,13 @@ To customize the heap dumping & analysis, update [LeakCanary.config](/leakcanary
 LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 ```
 
+Java callers can use [ConfigBuilder](/leakcanary/api/leakcanary-android-core/leakcanary/-config-builder/) instead:
+```
+LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
+   .computeRetainedHeapSize(false);
+LeakCanary.setConfig(config);
+```
+
 The LeakCanary UI can be configured by overriding the following resources:
 
 * `mipmap/leak_canary_icon` see [Icon and label](#icon-and-label)
