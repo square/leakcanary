@@ -8,6 +8,7 @@ extra:
     next_release: '2.2'
 
 site_name: LeakCanary
+site_url: https://square.github.io/leakcanary/
 repo_name: LeakCanary
 repo_url: https://github.com/square/leakcanary
 site_description: "A memory leak detection library for Android"
