@@ -161,6 +161,15 @@ class InstrumentationLeakDetector {
       )
     }
 
+    var previousFileLength: Long
+    var fileLength = heapDumpFile.length()
+    do {
+      SharkLog.d { "Waiting 200ms for heap to be done dumping" }
+      Thread.sleep(200)
+      previousFileLength = fileLength
+      fileLength = heapDumpFile.length()
+    } while (previousFileLength != fileLength)
+
     refWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
 
     val listener = shark.OnAnalysisProgressListener.NO_OP

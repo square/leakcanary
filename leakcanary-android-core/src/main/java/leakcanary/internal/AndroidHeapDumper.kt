@@ -86,7 +86,15 @@ internal class AndroidHeapDumper(
 
     return try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
-      if (heapDumpFile.length() == 0L) {
+      var previousFileLength: Long
+      var fileLength = heapDumpFile.length()
+      do {
+        SharkLog.d { "Waiting 200ms for heap to be done dumping" }
+        Thread.sleep(200)
+        previousFileLength = fileLength
+        fileLength = heapDumpFile.length()
+      } while (previousFileLength != fileLength)
+      if (fileLength == 0L) {
         SharkLog.d { "Dumped heap file is 0 byte length" }
         null
       } else {
