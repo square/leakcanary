@@ -1,6 +1,8 @@
 package leakcanary.internal
 
+import android.app.Activity
 import android.app.Application
+import android.app.Application.ActivityLifecycleCallbacks
 import android.app.UiModeManager
 import android.content.ComponentName
 import android.content.Context.UI_MODE_SERVICE
@@ -105,10 +107,12 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
   val onRetainInstanceListener by lazy {
     when (formFactor) {
-      TV -> TvOnRetainInstanceListener(application)
+      TV -> TvOnRetainInstanceListener()
       else -> DefaultOnRetainInstanceListener()
     }
   }
+
+  var resumedActivity: Activity? = null
 
   override fun invoke(application: Application) {
     this.application = application
@@ -133,9 +137,24 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       this.applicationVisible = applicationVisible
       heapDumpTrigger.onApplicationVisibilityChanged(applicationVisible)
     }
+    registerResumedActivityListener(application)
     addDynamicShortcut(application)
 
     disableDumpHeapInTests()
+  }
+
+  private fun registerResumedActivityListener(application: Application) {
+    application.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks by noOpDelegate() {
+      override fun onActivityResumed(activity: Activity) {
+        resumedActivity = activity
+      }
+
+      override fun onActivityPaused(activity: Activity) {
+        if (resumedActivity === activity) {
+          resumedActivity = null
+        }
+      }
+    })
   }
 
   private fun disableDumpHeapInTests() {

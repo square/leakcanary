@@ -80,6 +80,11 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
    */
   private fun showToast(heapAnalysis: HeapAnalysis) {
     handler.post {
+      val resumedActivity = InternalLeakCanary.resumedActivity
+      if (resumedActivity == null) {
+        SharkLog.d { "Can't display Toast, activity is backgrounded" }
+        return@post
+      }
       val toastText: String = when (heapAnalysis) {
         is HeapAnalysisSuccess -> {
           val leakTypeCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
@@ -92,7 +97,7 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
         is HeapAnalysisFailure -> application.getString(R.string.leak_canary_tv_analysis_failure)
       }
       Toast.makeText(
-          application,
+          resumedActivity,
           toastText,
           Toast.LENGTH_LONG
       ).show()
