@@ -107,7 +107,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
   val onRetainInstanceListener by lazy {
     when (formFactor) {
-      TV -> TvOnRetainInstanceListener()
+      TV -> TvOnRetainInstanceListener(application)
       else -> DefaultOnRetainInstanceListener()
     }
   }

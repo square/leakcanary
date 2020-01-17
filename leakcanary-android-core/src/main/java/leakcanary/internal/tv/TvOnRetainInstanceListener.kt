@@ -1,69 +1,64 @@
 package leakcanary.internal.tv
 
+import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
+import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.OnRetainInstanceListener
-import leakcanary.internal.RetainInstanceChange
-import leakcanary.internal.RetainInstanceChange.CountChanged
-import leakcanary.internal.RetainInstanceChange.Reset
+import leakcanary.internal.RetainInstanceEvent
+import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
+import leakcanary.internal.RetainInstanceEvent.CountChanged.DebuggerIsAttached
+import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
+import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
 import shark.SharkLog
 
 /**
- * [OnRetainInstanceListener] implementation for Android TV devices which keeps track of the current
- * retained instances count and displays a helpful Toast message on current state of it.
+ * [OnRetainInstanceListener] implementation for Android TV devices which displays a helpful
+ * Toast message on current state of retained instances.
  * It will notify user when heap dump is going to happen, so that users who set the
  * [LeakCanary.Config.retainedVisibleThreshold] to any value other than 1 will be aware of retain
- * instances changes. If user set threshold for heap dump to 1 then this listener becomes no-op,
- * as any retain instance change will trigger the heap dump with its own toast.
+ * instances changes. Additionally, it notifies about debugger being attached and whether heap dump
+ * happened recently.
  */
-internal class TvOnRetainInstanceListener : OnRetainInstanceListener {
+internal class TvOnRetainInstanceListener(private val application: Application) :
+    OnRetainInstanceListener {
 
-  private var lastRetainedCount = 0
   private val handler = Handler(Looper.getMainLooper())
 
-  override fun onChange(change: RetainInstanceChange) {
-    when (change) {
-      is CountChanged -> onCountChanged(change.retainedCount)
-      Reset -> onReset()
+  override fun onEvent(event: RetainInstanceEvent) {
+    val message = when (event) {
+      NoMoreObjects -> {
+        application.getString(R.string.leak_canary_notification_no_retained_object_title)
+      }
+      is BelowThreshold -> {
+        application.getString(
+            R.string.leak_canary_tv_toast_retained_objects,
+            event.retainedCount,
+            LeakCanary.config.retainedVisibleThreshold
+        )
+      }
+      is DebuggerIsAttached -> {
+        application.getString(R.string.leak_canary_notification_retained_debugger_attached)
+      }
+      is DumpHappenedRecently -> {
+        application.getString(R.string.leak_canary_notification_retained_dump_wait)
+      }
     }
+    displayToast("LeakCanary: $message")
   }
 
-  private fun onCountChanged(retainedCount: Int) {
-    // Do nothing if count hasn't changed
-    if (retainedCount == lastRetainedCount) return
-
-    // Remember new retained count
-    lastRetainedCount = retainedCount
-
-    // Construct message: either about dumping a heap or on when it will happen
-    val retainedVisibleThreshold = LeakCanary.config.retainedVisibleThreshold
-
-    // Don't display any toast if single retain instance triggers a heap dump
-    if (retainedVisibleThreshold == 1) return
-
-    var text = "Retained objects: $retainedCount."
-    text +=
-      if (retainedCount >= retainedVisibleThreshold) {
-        " Dumping the heap..."
-      } else {
-        "Heap dump threshold is $retainedVisibleThreshold" +
-            "\nBackground the app to trigger heap dump immediately"
-      }
-
+  private fun displayToast(text: String) {
     handler.post {
       val resumedActivity = InternalLeakCanary.resumedActivity
       if (resumedActivity == null) {
         SharkLog.d { "Can't display Toast, activity is backgrounded" }
         return@post
       }
-      Toast.makeText(resumedActivity, text, Toast.LENGTH_LONG).show()
+      Toast.makeText(resumedActivity, text, Toast.LENGTH_LONG)
+          .show()
     }
-  }
-
-  private fun onReset() {
-    lastRetainedCount = 0
   }
 }
