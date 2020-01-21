@@ -18,9 +18,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="MissingTranslation">
   <string name="app_name">Example App</string>
-  <string name="helper_text"> - Rotate the screen 5 times to create 5 leaks and trigger a foreground heap dump\n
-    - Press the button to recreate activity 5 times to create 5 leaks and trigger a foreground heap dump\n
-    - Press back to cause a leak and trigger a background heap dump
+  <string name="helper_text"><b>Press back</b> to cause a leak and trigger a <b>background heap dump</b> OR <b>cause 5 leaks</b> doing one of the following to trigger a <b>foreground heap dump</b>:\n
+    - <b>Rotate the screen</b> to trigger configuration change and cause 1 leak\n
+    - <b>Press the button</b> to recreate activity and cause 1 leak
   </string>
   <string name="recreate_activity_button_text">Recreate &amp; Leak Activity</string>
 </resources>

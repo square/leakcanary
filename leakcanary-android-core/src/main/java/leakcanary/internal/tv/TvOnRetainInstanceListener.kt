@@ -3,7 +3,6 @@ package leakcanary.internal.tv
 import android.app.Application
 import android.os.Handler
 import android.os.Looper
-import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
 import leakcanary.internal.InternalLeakCanary
@@ -47,18 +46,11 @@ internal class TvOnRetainInstanceListener(private val application: Application) 
         application.getString(R.string.leak_canary_notification_retained_dump_wait)
       }
     }
-    displayToast("LeakCanary: $message")
-  }
+    SharkLog.d { message }
 
-  private fun displayToast(text: String) {
     handler.post {
-      val resumedActivity = InternalLeakCanary.resumedActivity
-      if (resumedActivity == null) {
-        SharkLog.d { "Can't display Toast, activity is backgrounded" }
-        return@post
-      }
-      Toast.makeText(resumedActivity, text, Toast.LENGTH_LONG)
-          .show()
+      val resumedActivity = InternalLeakCanary.resumedActivity ?: return@post
+      TvToast.makeText(resumedActivity, message).show()
     }
   }
 }

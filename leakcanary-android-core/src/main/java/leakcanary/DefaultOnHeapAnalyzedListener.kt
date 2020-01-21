@@ -3,7 +3,6 @@ package leakcanary
 import android.app.Application
 import android.os.Handler
 import android.os.Looper
-import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
@@ -16,6 +15,7 @@ import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
 import leakcanary.internal.activity.screen.HeapDumpScreen
 import leakcanary.internal.activity.screen.HeapDumpsScreen
 import leakcanary.internal.navigation.Screen
+import leakcanary.internal.tv.TvToast
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
@@ -26,7 +26,7 @@ import shark.SharkLog
  * show a notification summarizing the result.
  */
 class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHeapAnalyzedListener {
-  private val handler = Handler(Looper.getMainLooper())
+  private val mainHandler = Handler(Looper.getMainLooper())
 
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
     SharkLog.d { "$heapAnalysis" }
@@ -79,35 +79,26 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
    * to direct them to Logcat where a much more detailed report will be printed.
    */
   private fun showToast(heapAnalysis: HeapAnalysis) {
-    handler.post {
-      val resumedActivity = InternalLeakCanary.resumedActivity
-      if (resumedActivity == null) {
-        SharkLog.d { "Can't display Toast, activity is backgrounded" }
-        return@post
-      }
-      val toastText: String = when (heapAnalysis) {
+    mainHandler.post {
+      val resumedActivity = InternalLeakCanary.resumedActivity ?: return@post
+      val message: String = when (heapAnalysis) {
         is HeapAnalysisSuccess -> {
-          val leakTypeCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
           application.getString(
               R.string.leak_canary_tv_analysis_success,
-              leakTypeCount,
+              heapAnalysis.applicationLeaks.size,
               heapAnalysis.libraryLeaks.size
           )
         }
         is HeapAnalysisFailure -> application.getString(R.string.leak_canary_tv_analysis_failure)
       }
-      Toast.makeText(
-          resumedActivity,
-          toastText,
-          Toast.LENGTH_LONG
-      ).show()
+      TvToast.makeText(resumedActivity, message).show()
     }
   }
 
   /**
-   * Android TV with API 26+ has a bug where launcher icon doesn't appear, so users won't know how
+   * Android TV with API 26+ has a bug where the launcher icon doesn't appear, so users won't know how
    * to launch LeakCanary Activity.
-   * This method would print an adb command that launched LeakCanary into the logcat
+   * This method prints an adb command that launched LeakCanary into the logcat
    */
   private fun printIntentInfo() {
     val leakClass = LeakActivity::class.java
