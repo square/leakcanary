@@ -29,5 +29,12 @@
       android:layout_marginBottom="16dp"
       android:text="@string/helper_text"
       />
+  <Button
+      android:id="@+id/recreate_activity_button"
+      android:layout_width="wrap_content"
+      android:layout_gravity="center"
+      android:layout_height="wrap_content"
+      android:text="@string/recreate_activity_button_text"
+      />
 
 </LinearLayout>

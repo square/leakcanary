@@ -31,5 +31,6 @@
   <dimen name="leak_canary_row_min">48dp</dimen>
   <dimen name="leak_canary_row_title_margin_top">14.5dp</dimen>
   <dimen name="leak_canary_toast_icon_size">64dp</dimen>
+  <dimen name="leak_canary_toast_icon_tv_padding">10dp</dimen>
 
 </resources>

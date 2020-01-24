@@ -19,6 +19,10 @@
     package="com.example.leakcanary"
     >
 
+  <!-- Features required to run on Android TV -->
+  <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+  <uses-feature android:name="android.software.leanback" android:required="false" />
+
   <application
       android:name=".ExampleApplication"
       android:allowBackup="false"
@@ -27,12 +31,14 @@
       >
     <activity
         android:name=".MainActivity"
+        android:banner="@drawable/leak_canary_sample_icon"
         >
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
 
         <category android:name="android.intent.category.LAUNCHER"/>
         <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
       </intent-filter>
     </activity>
   </application>

@@ -17,8 +17,6 @@ package leakcanary.internal
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.app.Activity
-import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
@@ -30,7 +28,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
-import leakcanary.internal.InternalLeakCanary.noOpDelegate
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import shark.SharkLog
 import java.io.File
@@ -43,23 +40,6 @@ internal class AndroidHeapDumper(
 
   private val context: Context = context.applicationContext
   private val mainHandler: Handler = Handler(Looper.getMainLooper())
-
-  private var resumedActivity: Activity? = null
-
-  init {
-    val application = context.applicationContext as Application
-    application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks by noOpDelegate()  {
-      override fun onActivityResumed(activity: Activity) {
-        resumedActivity = activity
-      }
-
-      override fun onActivityPaused(activity: Activity) {
-        if (resumedActivity === activity) {
-          resumedActivity = null
-        }
-      }
-    })
-  }
 
   override fun dumpHeap(): File? {
     val heapDumpFile = leakDirectoryProvider.newHeapDumpFile() ?: return null
@@ -104,7 +84,7 @@ internal class AndroidHeapDumper(
 
   private fun showToast(waitingForToast: FutureResult<Toast?>) {
     mainHandler.post(Runnable {
-      val resumedActivity = resumedActivity
+      val resumedActivity = InternalLeakCanary.resumedActivity
       if (resumedActivity == null) {
         waitingForToast.set(null)
         return@Runnable

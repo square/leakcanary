@@ -49,6 +49,7 @@
         android:name="leakcanary.internal.activity.LeakLauncherActivity"
         android:enabled="@bool/leak_canary_add_launcher_icon"
         android:icon="@mipmap/leak_canary_icon"
+        android:banner="@drawable/leak_canary_tv_icon"
         android:label="@string/leak_canary_display_activity_label"
         android:targetActivity="leakcanary.internal.activity.LeakActivity"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
@@ -57,6 +58,8 @@
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
+        <!-- Android TV launcher intent -->
+        <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
       </intent-filter>
     </activity-alias>
 

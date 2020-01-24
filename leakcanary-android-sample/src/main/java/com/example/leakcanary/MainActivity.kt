@@ -19,6 +19,7 @@ import android.app.Activity
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
+import android.widget.Button
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
 
@@ -30,6 +31,8 @@ class MainActivity : Activity() {
 
     val app = application as ExampleApplication
     val leakedView = findViewById<View>(R.id.helper_text)
+
+    findViewById<Button>(R.id.recreate_activity_button).setOnClickListener { recreate() }
 
     when (Random.nextInt(4)) {
       // Leak from application class

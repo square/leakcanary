@@ -1,13 +1,18 @@
 package leakcanary.internal
 
+import android.app.Activity
 import android.app.Application
+import android.app.Application.ActivityLifecycleCallbacks
+import android.app.UiModeManager
 import android.content.ComponentName
+import android.content.Context.UI_MODE_SERVICE
 import android.content.Intent
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
 import android.content.pm.PackageManager.DONT_KILL_APP
 import android.content.pm.ShortcutInfo.Builder
 import android.content.pm.ShortcutManager
+import android.content.res.Configuration
 import android.graphics.drawable.Icon
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
@@ -21,7 +26,11 @@ import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.OnHeapAnalyzedListener
 import leakcanary.OnObjectRetainedListener
+import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
+import leakcanary.internal.InternalLeakCanary.FormFactor.TV
+import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
 import leakcanary.internal.activity.LeakActivity
+import leakcanary.internal.tv.TvOnRetainInstanceListener
 import shark.SharkLog
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
@@ -76,6 +85,35 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
         onHeapAnalyzedListener = OnHeapAnalyzedListener {}
     )
 
+  internal enum class FormFactor {
+    MOBILE,
+    TV,
+    WATCH,
+  }
+
+  val formFactor by lazy {
+    val currentModeType =
+      (application.getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType
+    return@lazy when (currentModeType) {
+      Configuration.UI_MODE_TYPE_TELEVISION -> TV
+      Configuration.UI_MODE_TYPE_WATCH -> WATCH
+      else -> MOBILE
+    }
+  }
+
+  val isInstantApp by lazy {
+    VERSION.SDK_INT >= VERSION_CODES.O && application.packageManager.isInstantApp
+  }
+
+  val onRetainInstanceListener by lazy {
+    when (formFactor) {
+      TV -> TvOnRetainInstanceListener(application)
+      else -> DefaultOnRetainInstanceListener()
+    }
+  }
+
+  var resumedActivity: Activity? = null
+
   override fun invoke(application: Application) {
     this.application = application
 
@@ -99,9 +137,24 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       this.applicationVisible = applicationVisible
       heapDumpTrigger.onApplicationVisibilityChanged(applicationVisible)
     }
+    registerResumedActivityListener(application)
     addDynamicShortcut(application)
 
     disableDumpHeapInTests()
+  }
+
+  private fun registerResumedActivityListener(application: Application) {
+    application.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks by noOpDelegate() {
+      override fun onActivityResumed(activity: Activity) {
+        resumedActivity = activity
+      }
+
+      override fun onActivityPaused(activity: Activity) {
+        if (resumedActivity === activity) {
+          resumedActivity = null
+        }
+      }
+    })
   }
 
   private fun disableDumpHeapInTests() {
@@ -123,7 +176,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     if (!application.resources.getBoolean(R.bool.leak_canary_add_dynamic_shortcut)) {
       return
     }
-    if (VERSION.SDK_INT >= VERSION_CODES.O && application.packageManager.isInstantApp) {
+    if (isInstantApp) {
       // Instant Apps don't have access to ShortcutManager
       return
     }

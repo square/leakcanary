@@ -13,9 +13,14 @@ import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
 import leakcanary.ObjectWatcher
+import leakcanary.internal.InternalLeakCanary.onRetainInstanceListener
 import leakcanary.internal.NotificationReceiver.Action.CANCEL_NOTIFICATION
 import leakcanary.internal.NotificationReceiver.Action.DUMP_HEAP
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
+import leakcanary.internal.RetainInstanceEvent.CountChanged.DebuggerIsAttached
+import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
+import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
+import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
 import shark.AndroidResourceIdNames
 import shark.SharkLog
 
@@ -105,6 +110,7 @@ internal class HeapDumpTrigger(
     if (checkRetainedCount(retainedReferenceCount, config.retainedVisibleThreshold)) return
 
     if (!config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached) {
+      onRetainInstanceListener.onEvent(DebuggerIsAttached)
       showRetainedCountNotification(
           objectCount = retainedReferenceCount,
           contentText = application.getString(
@@ -122,6 +128,7 @@ internal class HeapDumpTrigger(
     val now = SystemClock.uptimeMillis()
     val elapsedSinceLastDumpMillis = now - lastHeapDumpUptimeMillis
     if (elapsedSinceLastDumpMillis < WAIT_BETWEEN_HEAP_DUMPS_MILLIS) {
+      onRetainInstanceListener.onEvent(DumpHappenedRecently)
       showRetainedCountNotification(
           objectCount = retainedReferenceCount,
           contentText = application.getString(R.string.leak_canary_notification_retained_dump_wait)
@@ -237,6 +244,7 @@ internal class HeapDumpTrigger(
     if (retainedKeysCount == 0) {
       SharkLog.d { "Check for retained object found no objects remaining" }
       if (countChanged) {
+        onRetainInstanceListener.onEvent(NoMoreObjects)
         showNoMoreRetainedObjectNotification()
       }
       return true
@@ -244,6 +252,9 @@ internal class HeapDumpTrigger(
 
     if (retainedKeysCount < retainedVisibleThreshold) {
       if (applicationVisible || applicationInvisibleLessThanWatchPeriod) {
+        if (countChanged) {
+          onRetainInstanceListener.onEvent(BelowThreshold(retainedKeysCount))
+        }
         showRetainedCountNotification(
             objectCount = retainedKeysCount,
             contentText = application.getString(
