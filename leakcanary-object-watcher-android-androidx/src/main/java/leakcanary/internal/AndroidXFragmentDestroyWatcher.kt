@@ -16,6 +16,7 @@
 package leakcanary.internal
 
 import android.app.Activity
+import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
@@ -28,6 +29,14 @@ internal class AndroidXFragmentDestroyWatcher(
 ) : (Activity) -> Unit {
 
   private val fragmentLifecycleCallbacks = object : FragmentManager.FragmentLifecycleCallbacks() {
+
+    override fun onFragmentCreated(
+      fm: FragmentManager,
+      fragment: Fragment,
+      savedInstanceState: Bundle?
+    ) {
+      ViewModelClearedWatcher.install(fragment, objectWatcher, configProvider)
+    }
 
     override fun onFragmentViewDestroyed(
       fm: FragmentManager,
@@ -58,6 +67,7 @@ internal class AndroidXFragmentDestroyWatcher(
     if (activity is FragmentActivity) {
       val supportFragmentManager = activity.supportFragmentManager
       supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, true)
+      ViewModelClearedWatcher.install(activity, objectWatcher, configProvider)
     }
   }
 }
