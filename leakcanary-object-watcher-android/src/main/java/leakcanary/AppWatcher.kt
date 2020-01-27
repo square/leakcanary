@@ -106,6 +106,9 @@ object AppWatcher {
    * or LeakCanary to run outside of the main process then you can call this method to install
    * [AppWatcher].
    */
-  fun manualInstall(application: Application) = InternalAppWatcher.install(application)
+  fun manualInstall(application: Application) {
+    config = Config(enabled = true)
+    InternalAppWatcher.install(application)
+  }
 
 }
