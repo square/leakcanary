@@ -107,7 +107,7 @@ object AppWatcher {
    * [AppWatcher].
    */
   fun manualInstall(application: Application) {
-    config = Config(enabled = true)
+    config = Config()
     InternalAppWatcher.install(application)
   }
 
