@@ -107,7 +107,7 @@ object AppWatcher {
    * [AppWatcher].
    */
   fun manualInstall(application: Application) {
-    config = config.copy(enabled = InternalAppWatcher.isDebuggableBuild)
+    config = config.copy(enabled = true)
     InternalAppWatcher.install(application)
   }
 
