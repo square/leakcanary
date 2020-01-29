@@ -56,7 +56,7 @@ object AppWatcher {
    * a mutated copy, e.g.:
    *
    * ```
-   * LeakCanary.config = LeakCanary.config.copy(enabled = false)
+   * AppWatcher.config = AppWatcher.config.copy(enabled = false)
    * ```
    */
   @Volatile
