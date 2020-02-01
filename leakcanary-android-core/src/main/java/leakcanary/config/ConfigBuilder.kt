@@ -1,5 +1,8 @@
-package leakcanary
+package leakcanary.config
 
+import leakcanary.LeakCanary
+import leakcanary.LeakCanary.Config
+import leakcanary.OnHeapAnalyzedListener
 import shark.LeakingObjectFinder
 import shark.MetadataExtractor
 import shark.ObjectInspector
@@ -22,7 +25,7 @@ import shark.ReferenceMatcher
  * ```
  */
 @Suppress("TooManyFunctions")
-class ConfigBuilder(config: LeakCanary.Config) {
+class ConfigBuilder(config: Config) {
   private var dumpHeap: Boolean = config.dumpHeap
   private var dumpHeapWhenDebugging: Boolean = config.dumpHeapWhenDebugging
   private var retainedVisibleThreshold: Int = config.retainedVisibleThreshold
@@ -80,18 +83,18 @@ class ConfigBuilder(config: LeakCanary.Config) {
   fun leakingObjectFinder(leakingObjectFinder: LeakingObjectFinder) =
     apply { this.leakingObjectFinder = leakingObjectFinder }
 
-  fun build(): LeakCanary.Config =
+  fun build(): Config =
     LeakCanary.config.copy(
-        dumpHeap = this.dumpHeap,
-        dumpHeapWhenDebugging = this.dumpHeapWhenDebugging,
-        retainedVisibleThreshold = this.retainedVisibleThreshold,
-        referenceMatchers = this.referenceMatchers,
-        objectInspectors = this.objectInspectors,
-        onHeapAnalyzedListener = this.onHeapAnalyzedListener,
-        metadataExtractor = this.metadataExtractor,
-        computeRetainedHeapSize = this.computeRetainedHeapSize,
-        maxStoredHeapDumps = this.maxStoredHeapDumps,
-        requestWriteExternalStoragePermission = this.requestWriteExternalStoragePermission,
-        leakingObjectFinder = this.leakingObjectFinder
+        dumpHeap = dumpHeap,
+        dumpHeapWhenDebugging = dumpHeapWhenDebugging,
+        retainedVisibleThreshold = retainedVisibleThreshold,
+        referenceMatchers = referenceMatchers,
+        objectInspectors = objectInspectors,
+        onHeapAnalyzedListener = onHeapAnalyzedListener,
+        metadataExtractor = metadataExtractor,
+        computeRetainedHeapSize = computeRetainedHeapSize,
+        maxStoredHeapDumps = maxStoredHeapDumps,
+        requestWriteExternalStoragePermission = requestWriteExternalStoragePermission,
+        leakingObjectFinder = leakingObjectFinder
     )
 }

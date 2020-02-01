@@ -1,9 +1,8 @@
-@file:Suppress("NEWER_VERSION_IN_SINCE_KOTLIN")
-
 package leakcanary
 
 import android.content.Intent
 import leakcanary.LeakCanary.config
+import leakcanary.config.ConfigBuilder
 import leakcanary.internal.InternalLeakCanary
 import shark.AndroidMetadataExtractor
 import shark.AndroidObjectInspectors
@@ -179,6 +178,7 @@ object LeakCanary {
      * Note: this method is intended to be used from Java code only. For idiomatic Kotlin use
      * `copy()` to modify [LeakCanary.config].
      */
+    @Suppress("NEWER_VERSION_IN_SINCE_KOTLIN")
     @SinceKotlin("999.9") // Hide from Kotlin code, this method is only for Java code
     fun newBuilder() = ConfigBuilder(this)
   }

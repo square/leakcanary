@@ -2,6 +2,7 @@ package leakcanary
 
 import android.app.Application
 import leakcanary.AppWatcher.objectWatcher
+import leakcanary.appwatcherconfig.ConfigBuilder
 import leakcanary.internal.InternalAppWatcher
 import shark.SharkLog
 import java.util.concurrent.TimeUnit
@@ -14,6 +15,11 @@ import java.util.concurrent.TimeUnit
  */
 object AppWatcher {
 
+  /**
+   * AppWatcher configuration data class. Properties can be updated via [copy].
+   *
+   * @see [config]
+   */
   data class Config(
     /**
      * Whether AppWatcher should watch objects (by keeping weak references to them).
@@ -57,17 +63,35 @@ object AppWatcher {
      * Default to 5 seconds.
      */
     val watchDurationMillis: Long = TimeUnit.SECONDS.toMillis(5)
-  )
+  ) {
+
+    /**
+     * Construct a new Config via [ConfigBuilder].
+     * Note: this method is intended to be used from Java code only. For idiomatic Kotlin use
+     * `copy()` to modify [AppWatcher.config].
+     */
+    @Suppress("NEWER_VERSION_IN_SINCE_KOTLIN")
+    @SinceKotlin("999.9") // Hide from Kotlin code, this method is only for Java code
+    fun newBuilder(): ConfigBuilder = ConfigBuilder(this)
+  }
 
   /**
    * The current AppWatcher configuration. Can be updated at any time, usually by replacing it with
    * a mutated copy, e.g.:
    *
    * ```
-   * AppWatcher.config = AppWatcher.config.copy(enabled = false)
+   * AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
+   * ```
+   *
+   * In Java, you can use [ConfigBuilder] instead:
+   * ```
+   * AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
+   *    .watchFragmentViews(false)
+   *    .build();
+   * AppWatcher.setConfig(config);
    * ```
    */
-  @Volatile
+  @JvmStatic @Volatile
   var config: Config = if (isInstalled) Config() else Config(enabled = false)
     set(newConfig) {
       val previousConfig = field
