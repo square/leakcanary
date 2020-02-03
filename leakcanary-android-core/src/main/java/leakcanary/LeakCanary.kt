@@ -1,5 +1,3 @@
-@file:Suppress("NEWER_VERSION_IN_SINCE_KOTLIN")
-
 package leakcanary
 
 import android.content.Intent
@@ -175,12 +173,102 @@ object LeakCanary {
   ) {
 
     /**
-     * Construct a new Config via [ConfigBuilder].
+     * Construct a new Config via [LeakCanary.Config.Builder].
      * Note: this method is intended to be used from Java code only. For idiomatic Kotlin use
      * `copy()` to modify [LeakCanary.config].
      */
+    @Suppress("NEWER_VERSION_IN_SINCE_KOTLIN")
     @SinceKotlin("999.9") // Hide from Kotlin code, this method is only for Java code
-    fun newBuilder() = ConfigBuilder(this)
+    fun newBuilder() = Builder(this)
+
+    /**
+     * Builder for [LeakCanary.Config] intended to be used only from Java code.
+     *
+     * Usage:
+     * ```
+     * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
+     *    .retainedVisibleThreshold(3)
+     *    .build();
+     * LeakCanary.setConfig(config);
+     * ```
+     *
+     * For idiomatic Kotlin use `copy()` method instead:
+     * ```
+     * LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
+     * ```
+     */
+    @Suppress("TooManyFunctions")
+    class Builder internal constructor(config: Config) {
+      private var dumpHeap = config.dumpHeap
+      private var dumpHeapWhenDebugging = config.dumpHeapWhenDebugging
+      private var retainedVisibleThreshold = config.retainedVisibleThreshold
+      private var referenceMatchers = config.referenceMatchers
+      private var objectInspectors = config.objectInspectors
+      private var onHeapAnalyzedListener = config.onHeapAnalyzedListener
+      private var metadataExtractor = config.metadataExtractor
+      private var computeRetainedHeapSize = config.computeRetainedHeapSize
+      private var maxStoredHeapDumps = config.maxStoredHeapDumps
+      private var requestWriteExternalStoragePermission = config.requestWriteExternalStoragePermission
+      private var leakingObjectFinder = config.leakingObjectFinder
+
+      /** @see [LeakCanary.Config.dumpHeap] */
+      fun dumpHeap(dumpHeap: Boolean) =
+        apply { this.dumpHeap = dumpHeap }
+
+      /** @see [LeakCanary.Config.dumpHeapWhenDebugging] */
+      fun dumpHeapWhenDebugging(dumpHeapWhenDebugging: Boolean) =
+        apply { this.dumpHeapWhenDebugging = dumpHeapWhenDebugging }
+
+      /** @see [LeakCanary.Config.retainedVisibleThreshold] */
+      fun retainedVisibleThreshold(retainedVisibleThreshold: Int) =
+        apply { this.retainedVisibleThreshold = retainedVisibleThreshold }
+
+      /** @see [LeakCanary.Config.referenceMatchers] */
+      fun referenceMatchers(referenceMatchers: List<ReferenceMatcher>) =
+        apply { this.referenceMatchers = referenceMatchers }
+
+      /** @see [LeakCanary.Config.objectInspectors] */
+      fun objectInspectors(objectInspectors: List<ObjectInspector>) =
+        apply { this.objectInspectors = objectInspectors }
+
+      /** @see [LeakCanary.Config.onHeapAnalyzedListener] */
+      fun onHeapAnalyzedListener(onHeapAnalyzedListener: OnHeapAnalyzedListener) =
+        apply { this.onHeapAnalyzedListener = onHeapAnalyzedListener }
+
+      /** @see [LeakCanary.Config.metadataExtractor] */
+      fun metadataExtractor(metadataExtractor: MetadataExtractor) =
+        apply { this.metadataExtractor = metadataExtractor }
+
+      /** @see [LeakCanary.Config.computeRetainedHeapSize] */
+      fun computeRetainedHeapSize(computeRetainedHeapSize: Boolean) =
+        apply { this.computeRetainedHeapSize = computeRetainedHeapSize }
+
+      /** @see [LeakCanary.Config.maxStoredHeapDumps] */
+      fun maxStoredHeapDumps(maxStoredHeapDumps: Int) =
+        apply { this.maxStoredHeapDumps = maxStoredHeapDumps }
+
+      /** @see [LeakCanary.Config.requestWriteExternalStoragePermission] */
+      fun requestWriteExternalStoragePermission(requestWriteExternalStoragePermission: Boolean) =
+        apply { this.requestWriteExternalStoragePermission = requestWriteExternalStoragePermission }
+
+      /** @see [LeakCanary.Config.leakingObjectFinder] */
+      fun leakingObjectFinder(leakingObjectFinder: LeakingObjectFinder) =
+        apply { this.leakingObjectFinder = leakingObjectFinder }
+
+      fun build() = config.copy(
+          dumpHeap = dumpHeap,
+          dumpHeapWhenDebugging = dumpHeapWhenDebugging,
+          retainedVisibleThreshold = retainedVisibleThreshold,
+          referenceMatchers = referenceMatchers,
+          objectInspectors = objectInspectors,
+          onHeapAnalyzedListener = onHeapAnalyzedListener,
+          metadataExtractor = metadataExtractor,
+          computeRetainedHeapSize = computeRetainedHeapSize,
+          maxStoredHeapDumps = maxStoredHeapDumps,
+          requestWriteExternalStoragePermission = requestWriteExternalStoragePermission,
+          leakingObjectFinder = leakingObjectFinder
+      )
+    }
   }
 
   /**
@@ -191,7 +279,7 @@ object LeakCanary {
    * LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
    * ```
    *
-   * In Java, you can use [ConfigBuilder] instead:
+   * In Java, you can use [LeakCanary.Config.Builder] instead:
    * ```
    * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
    *    .retainedVisibleThreshold(3)
