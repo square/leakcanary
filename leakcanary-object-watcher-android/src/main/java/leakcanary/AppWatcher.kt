@@ -2,7 +2,6 @@ package leakcanary
 
 import android.app.Application
 import leakcanary.AppWatcher.objectWatcher
-import leakcanary.appwatcherconfig.ConfigBuilder
 import leakcanary.internal.InternalAppWatcher
 import shark.SharkLog
 import java.util.concurrent.TimeUnit
@@ -66,13 +65,72 @@ object AppWatcher {
   ) {
 
     /**
-     * Construct a new Config via [ConfigBuilder].
+     * Construct a new Config via [AppWatcher.Config.Builder].
      * Note: this method is intended to be used from Java code only. For idiomatic Kotlin use
      * `copy()` to modify [AppWatcher.config].
      */
     @Suppress("NEWER_VERSION_IN_SINCE_KOTLIN")
     @SinceKotlin("999.9") // Hide from Kotlin code, this method is only for Java code
-    fun newBuilder(): ConfigBuilder = ConfigBuilder(this)
+    fun newBuilder(): Builder = Builder(this)
+
+    /**
+     * Builder for [Config] intended to be used only from Java code.
+     *
+     * Usage:
+     * ```
+     * AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
+     *    .watchFragmentViews(false)
+     *    .build();
+     * AppWatcher.setConfig(config);
+     * ```
+     *
+     * For idiomatic Kotlin use `copy()` method instead:
+     * ```
+     * AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
+     * ```
+     */
+    @Suppress("TooManyFunctions")
+    class Builder internal constructor(config: Config) {
+      private var enabled = config.enabled
+      private var watchActivities = config.watchActivities
+      private var watchFragments = config.watchFragments
+      private var watchFragmentViews = config.watchFragmentViews
+      private var watchViewModels = config.watchViewModels
+      private var watchDurationMillis = config.watchDurationMillis
+
+      /** @see [Config.enabled] */
+      fun enabled(enabled: Boolean) =
+        apply { this.enabled = enabled }
+
+      /** @see [Config.watchActivities] */
+      fun watchActivities(watchActivities: Boolean) =
+        apply { this.watchActivities = watchActivities }
+
+      /** @see [Config.watchFragments] */
+      fun watchFragments(watchFragments: Boolean) =
+        apply { this.watchFragments = watchFragments }
+
+      /** @see [Config.watchFragmentViews] */
+      fun watchFragmentViews(watchFragmentViews: Boolean) =
+        apply { this.watchFragmentViews = watchFragmentViews }
+
+      /** @see [Config.watchViewModels] */
+      fun watchViewModels(watchViewModels: Boolean) =
+        apply { this.watchViewModels = watchViewModels }
+
+      /** @see [Config.watchDurationMillis] */
+      fun watchDurationMillis(watchDurationMillis: Long) =
+        apply { this.watchDurationMillis = watchDurationMillis }
+
+      fun build() = config.copy(
+          enabled = enabled,
+          watchActivities = watchActivities,
+          watchFragments = watchFragments,
+          watchFragmentViews = watchFragmentViews,
+          watchViewModels = watchViewModels,
+          watchDurationMillis = watchDurationMillis
+      )
+    }
   }
 
   /**
@@ -83,7 +141,7 @@ object AppWatcher {
    * AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
    * ```
    *
-   * In Java, you can use [ConfigBuilder] instead:
+   * In Java, you can use [AppWatcher.Config.Builder] instead:
    * ```
    * AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
    *    .watchFragmentViews(false)
