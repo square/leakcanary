@@ -2,12 +2,21 @@
 
 # config
 
-`var config: `[`AppWatcher.Config`](-config/index.md)
+`@JvmStatic var config: `[`AppWatcher.Config`](-config/index.md)
 
 The current AppWatcher configuration. Can be updated at any time, usually by replacing it with
 a mutated copy, e.g.:
 
 ```
-LeakCanary.config = LeakCanary.config.copy(enabled = false)
+AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
+```
+
+In Java, you can use [AppWatcher.Config.Builder](-config/-builder/index.md) instead:
+
+```
+AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
+   .watchFragmentViews(false)
+   .build();
+AppWatcher.setConfig(config);
 ```
 

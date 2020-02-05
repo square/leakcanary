@@ -4,8 +4,8 @@
 
 extra:
   leak_canary:
-    release: '2.1'
-    next_release: '2.2'
+    release: '2.2'
+    next_release: '2.3'
 
 site_name: LeakCanary
 site_url: https://square.github.io/leakcanary/

@@ -13,7 +13,7 @@ watch any other object that you expect to be unreachable.
 
 | Name | Summary |
 |---|---|
-| [Config](-config/index.md) | `data class Config` |
+| [Config](-config/index.md) | `data class Config`<br>AppWatcher configuration data class. Properties can be updated via [copy](#). |
 
 ### Properties
 
