@@ -42,7 +42,8 @@ internal class HeapDumpScreen(
             activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
           }
         } else {
-          val signatures = heapAnalysis.allLeaks.map { it.signature }.toSet()
+          val signatures = heapAnalysis.allLeaks.map { it.signature }
+              .toSet()
           val leakReadStatus = LeakTable.retrieveLeakReadStatuses(db, signatures)
           val heapDumpFileExist = heapAnalysis.heapDumpFile.exists()
           updateUi { onSuccessRetrieved(heapAnalysis, leakReadStatus, heapDumpFileExist) }
@@ -93,11 +94,14 @@ internal class HeapDumpScreen(
           val view = convertView ?: parent.inflate(R.layout.leak_canary_leak_header)
           val textView = view.findViewById<TextView>(R.id.leak_canary_header_text)
           textView.movementMethod = LinkMovementMethod.getInstance()
-          val titleText = """
-      Explore <a href="explore_hprof">Heap Dump</a><br><br>
-      Share <a href="share">Heap Dump analysis</a><br><br>
-      Share <a href="share_hprof">Heap Dump file</a><br><br>
-    """.trimIndent() +
+
+          val explore =
+            if (heapDumpFileExist) """Explore <a href="explore_hprof">Heap Dump</a><br><br>""" else ""
+          val shareAnalysis = """Share <a href="share">Heap Dump analysis</a><br><br>"""
+          val shareFile =
+            if (heapDumpFileExist) """Share <a href="share_hprof">Heap Dump file</a><br><br>""" else ""
+
+          val titleText = explore + shareAnalysis + shareFile +
               (heapAnalysis.metadata + mapOf(
                   "Analysis duration" to "${heapAnalysis.analysisDurationMillis} ms"
                   , "Heap dump file path" to heapAnalysis.heapDumpFile.absolutePath
