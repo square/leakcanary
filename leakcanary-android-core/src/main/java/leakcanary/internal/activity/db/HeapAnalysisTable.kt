@@ -3,7 +3,6 @@ package leakcanary.internal.activity.db
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import android.os.AsyncTask
-import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.internal.Serializables
 import leakcanary.internal.toByteArray
@@ -140,11 +139,34 @@ internal object HeapAnalysisTable {
   }
 
   fun deleteAll(db: SQLiteDatabase) {
-    val leakDirectoryProvider = InternalLeakCanary.leakDirectoryProvider
-    AsyncTask.SERIAL_EXECUTOR.execute { leakDirectoryProvider.clearLeakDirectory() }
     db.inTransaction {
-      db.delete("heap_analysis", null, null)
-      LeakTable.deleteAll(db)
+      rawQuery(
+          """
+              SELECT
+              id,
+              object
+              FROM heap_analysis
+              """, null
+      )
+          .use { cursor ->
+            val all = mutableListOf<Pair<Long, HeapAnalysis>>()
+            while (cursor.moveToNext()) {
+              val id = cursor.getLong(0)
+              val analysis = Serializables.fromByteArray<HeapAnalysis>(cursor.getBlob(1))
+              if (analysis != null) {
+                all += id to analysis
+              }
+            }
+            all.forEach { (id, _) ->
+              db.delete("heap_analysis", "id=$id", null)
+              LeakTable.deleteByHeapAnalysisId(db, id)
+            }
+            AsyncTask.SERIAL_EXECUTOR.execute {
+              all.forEach { (_, analysis) ->
+                analysis.heapDumpFile.delete()
+              }
+            }
+          }
     }
   }
 

@@ -101,23 +101,6 @@ internal class LeakDirectoryProvider constructor(
     return File(storageDirectory, fileName)
   }
 
-  fun clearLeakDirectory() {
-    val allFilesExceptPending =
-      listFiles(FilenameFilter { _, filename ->
-        true
-      })
-    for (file in allFilesExceptPending) {
-      val path = file.absolutePath
-      val deleted = file.delete()
-      if (deleted) {
-        filesDeletedClearDirectory += path
-      }
-      if (!deleted) {
-        SharkLog.d { "Could not delete file ${file.path}" }
-      }
-    }
-  }
-
   @TargetApi(M) fun hasStoragePermission(): Boolean {
     if (SDK_INT < M) {
       return true
@@ -201,7 +184,6 @@ internal class LeakDirectoryProvider constructor(
   companion object {
 
     private val filesDeletedTooOld = mutableListOf<String>()
-    private val filesDeletedClearDirectory = mutableListOf<String>()
     val filesDeletedRemoveLeak = mutableListOf<String>()
 
     private const val HPROF_SUFFIX = ".hprof"
@@ -210,7 +192,6 @@ internal class LeakDirectoryProvider constructor(
       val path = file.absolutePath
       return when {
         filesDeletedTooOld.contains(path) -> "older than all other hprof files"
-        filesDeletedClearDirectory.contains(path) -> "hprof directory cleared"
         filesDeletedRemoveLeak.contains(path) -> "leak manually removed"
         else -> "unknown"
       }
