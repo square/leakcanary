@@ -215,9 +215,4 @@ internal object LeakTable {
       WHERE leak.id = lt.leak_id)
     """)
   }
-
-  fun deleteAll(db: SQLiteDatabase) {
-    db.delete("leak", null, null)
-    LeakTraceTable.deleteAll(db)
-  }
 }
