@@ -1,5 +1,34 @@
 # Change Log
 
+## Version 2.2 (2020-02-05)
+
+First release of the decade!
+
+Many thanks to
+[@AndroidInternal](https://github.com/AndroidInternal),
+[@Armaxis](https://github.com/Armaxis),
+[@lic2050](https://github.com/lic2050),
+[@mzgreen](https://github.com/mzgreen),
+[@orenktaboola](https://github.com/orenktaboola),
+[@personshelldon](https://github.com/personshelldon),
+[@Plastix](https://github.com/Plastix),
+[@pyricau](https://github.com/pyricau)
+for the contributions, bug reports and feature requests.
+
+### ViewModel leak detection
+
+TODO
+
+### Android TV
+
+TODO
+
+### Java-friendly Config builders
+
+TODO
+
+For more details, see the [2.2 Milestone](https://github.com/square/leakcanary/milestone/16) and the [full diff](https://github.com/square/leakcanary/compare/v2.1...v2.2).
+
 ## Version 2.1 (2019-12-31)
 
 A special New Year's Eve release 🥳, the next release will be in another decade 😎!
@@ -11,10 +40,10 @@ Many thanks to
 [@BraisGabin](https://github.com/BraisGabin),
 [@devism](https://github.com/devism),
 [@ditclear](https://github.com/ditclear),
-[@mzgreen](https://github.com/mzgreen),
 [@jrodbx](https://github.com/jrodbx),
 [@jstefanowski](https://github.com/jstefanowski),
 [@Maragues](https://github.com/Maragues),
+[@mzgreen](https://github.com/mzgreen),
 [@pyricau](https://github.com/pyricau)
 for the contributions, bug reports and feature requests.
 

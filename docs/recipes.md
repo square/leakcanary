@@ -42,7 +42,7 @@ To customize the detection of retained objects at runtime, update [AppWatcher.co
 AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
 ```
 
-In Java, you can use [AppWatcher.Config.Builder](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/appwatcherconfig/-app-watcher/config/builder/) instead:
+In Java, you can use [AppWatcher.Config.Builder](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/appwatcherconfig/-app-watcher/-config/builder/) instead:
 ```
 AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
    .watchFragmentViews(false)
@@ -56,7 +56,7 @@ To customize the heap dumping & analysis, update [LeakCanary.config](/leakcanary
 LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 ```
 
-In Java, you can use [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary/config/-leak-canary/config/builder/) instead:
+In Java, you can use [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary/config/-leak-canary/-config/builder/) instead:
 ```
 LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
    .retainedVisibleThreshold(3)
