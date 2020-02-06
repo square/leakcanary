@@ -13,6 +13,8 @@
         <meta name="description" content="A memory leak detection library for Android">
       
       
+        <link rel="canonical" href="https://square.github.io/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/watch-view-models/">
+      
       
         <meta name="author" content="Square, Inc.">
       
@@ -35,18 +37,18 @@
       
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
-      <link rel="shortcut icon" href="../../../../../../images/logo.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.5.0">
+      <link rel="shortcut icon" href="../../../../../../../images/logo.png">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.6.0">
     
     
       
-        <title>Metatada extractor - LeakCanary</title>
+        <title>Watch view models - LeakCanary</title>
       
     
     
-      <link rel="stylesheet" href="../../../../../../assets/stylesheets/application.1b62728e.css">
+      <link rel="stylesheet" href="../../../../../../../assets/stylesheets/application.1b62728e.css">
       
-        <link rel="stylesheet" href="../../../../../../assets/stylesheets/application-palette.a8b3c06d.css">
+        <link rel="stylesheet" href="../../../../../../../assets/stylesheets/application-palette.a8b3c06d.css">
       
       
         
@@ -55,16 +57,16 @@
       
     
     
-      <script src="../../../../../../assets/javascripts/modernizr.268332fc.js"></script>
+      <script src="../../../../../../../assets/javascripts/modernizr.268332fc.js"></script>
     
     
       
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono&display=fallback">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
       
     
-    <link rel="stylesheet" href="../../../../../../assets/fonts/material-icons.css">
+    <link rel="stylesheet" href="../../../../../../../assets/fonts/material-icons.css">
     
     
     
@@ -76,7 +78,7 @@
   }
   ga.l = +new Date
   /* Setup integration and send page view */
-  ga("create", "UA-142834539-1", "auto")
+  ga("create", "None", "auto")
   ga("set", "anonymizeIp", true)
   ga("send", "pageview")
   /* Register handler to log search on blur */
@@ -114,7 +116,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#metatadaextractor" tabindex="1" class="md-skip">
+      <a href="#watchviewmodels" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -123,9 +125,9 @@
   <nav class="md-header-nav md-grid">
     <div class="md-flex">
       <div class="md-flex__cell md-flex__cell--shrink">
-        <a href="../../../../../.." title="LeakCanary" class="md-header-nav__button md-logo">
+        <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-header-nav__button md-logo">
           
-            <img src="../../../../../../images/logo.png" width="24" height="24">
+            <img src="../../../../../../../images/logo.png" width="24" height="24">
           
         </a>
       </div>
@@ -140,7 +142,7 @@
             </span>
             <span class="md-header-nav__topic">
               
-                Metatada extractor
+                Watch view models
               
             </span>
           
@@ -215,7 +217,7 @@
         
   <li class="md-tabs__item">
     
-      <a href="../../../../../.." class="md-tabs__link md-tabs__link--active">
+      <a href="../../../../../../.." class="md-tabs__link md-tabs__link--active">
         Overview
       </a>
     
@@ -229,7 +231,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../../../../../fundamentals/" class="md-tabs__link">
+        <a href="../../../../../../../fundamentals/" class="md-tabs__link">
           Fundamentals
         </a>
       
@@ -242,7 +244,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../../../../../recipes/" class="md-tabs__link">
+        <a href="../../../../../../../recipes/" class="md-tabs__link">
           Help & Community
         </a>
       
@@ -255,7 +257,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../../../../../shark/" class="md-tabs__link">
+        <a href="../../../../../../../shark/" class="md-tabs__link">
           Shark
         </a>
       
@@ -268,7 +270,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../../" class="md-tabs__link">
+        <a href="../../../../../../leakcanary-android-core/leakcanary/" class="md-tabs__link">
           LeakCanary API
         </a>
       
@@ -291,9 +293,9 @@
                   <div class="md-sidebar__inner">
                     <nav class="md-nav md-nav--primary" data-md-level="0">
   <label class="md-nav__title md-nav__title--site" for="__drawer">
-    <a href="../../../../../.." title="LeakCanary" class="md-nav__button md-logo">
+    <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-nav__button md-logo">
       
-        <img src="../../../../../../images/logo.png" width="48" height="48">
+        <img src="../../../../../../../images/logo.png" width="48" height="48">
       
     </a>
     LeakCanary
@@ -327,7 +329,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../.." title="Overview" class="md-nav__link">
+    <a href="../../../../../../.." title="Overview" class="md-nav__link">
       Overview
     </a>
   </li>
@@ -339,7 +341,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../getting_started/" title="Getting Started" class="md-nav__link">
+    <a href="../../../../../../../getting_started/" title="Getting Started" class="md-nav__link">
       Getting Started
     </a>
   </li>
@@ -370,7 +372,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../fundamentals/" title="Introduction" class="md-nav__link">
+    <a href="../../../../../../../fundamentals/" title="Introduction" class="md-nav__link">
       Introduction
     </a>
   </li>
@@ -382,7 +384,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-nav__link">
+    <a href="../../../../../../../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-nav__link">
       How LeakCanary works
     </a>
   </li>
@@ -394,7 +396,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../fundamentals-fixing-a-memory-leak/" title="Fixing a memory leak" class="md-nav__link">
+    <a href="../../../../../../../fundamentals-fixing-a-memory-leak/" title="Fixing a memory leak" class="md-nav__link">
       Fixing a memory leak
     </a>
   </li>
@@ -430,7 +432,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../recipes/" title="Code recipes" class="md-nav__link">
+    <a href="../../../../../../../recipes/" title="Code recipes" class="md-nav__link">
       Code recipes
     </a>
   </li>
@@ -442,7 +444,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../faq/" title="FAQ" class="md-nav__link">
+    <a href="../../../../../../../faq/" title="FAQ" class="md-nav__link">
       FAQ
     </a>
   </li>
@@ -454,7 +456,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../support/" title="Support" class="md-nav__link">
+    <a href="../../../../../../../support/" title="Support" class="md-nav__link">
       Support
     </a>
   </li>
@@ -466,7 +468,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../upgrading-to-leakcanary-2.0/" title="Upgrading to LeakCanary 2" class="md-nav__link">
+    <a href="../../../../../../../upgrading-to-leakcanary-2.0/" title="Upgrading to LeakCanary 2" class="md-nav__link">
       Upgrading to LeakCanary 2
     </a>
   </li>
@@ -478,7 +480,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../recorded-presentations/" title="Recorded Presentations" class="md-nav__link">
+    <a href="../../../../../../../recorded-presentations/" title="Recorded Presentations" class="md-nav__link">
       Recorded Presentations
     </a>
   </li>
@@ -490,7 +492,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../blog-articles/" title="Blog Articles" class="md-nav__link">
+    <a href="../../../../../../../blog-articles/" title="Blog Articles" class="md-nav__link">
       Blog Articles
     </a>
   </li>
@@ -533,7 +535,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../how_to_help/" title="How to help" class="md-nav__link">
+    <a href="../../../../../../../how_to_help/" title="How to help" class="md-nav__link">
       How to help
     </a>
   </li>
@@ -545,7 +547,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../code_of_conduct/" title="Code of Conduct" class="md-nav__link">
+    <a href="../../../../../../../code_of_conduct/" title="Code of Conduct" class="md-nav__link">
       Code of Conduct
     </a>
   </li>
@@ -557,7 +559,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../dev-env/" title="Dev Environment" class="md-nav__link">
+    <a href="../../../../../../../dev-env/" title="Dev Environment" class="md-nav__link">
       Dev Environment
     </a>
   </li>
@@ -569,7 +571,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../releasing/" title="Releasing" class="md-nav__link">
+    <a href="../../../../../../../releasing/" title="Releasing" class="md-nav__link">
       Releasing
     </a>
   </li>
@@ -610,7 +612,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../shark/" title="Overview" class="md-nav__link">
+    <a href="../../../../../../../shark/" title="Overview" class="md-nav__link">
       Overview
     </a>
   </li>
@@ -641,7 +643,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../shark/shark/" title="Shark" class="md-nav__link">
+    <a href="../../../../../../shark/shark/" title="Shark" class="md-nav__link">
       Shark
     </a>
   </li>
@@ -653,7 +655,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../shark-android/shark/" title="Extension: Shark Android" class="md-nav__link">
+    <a href="../../../../../../shark-android/shark/" title="Extension: Shark Android" class="md-nav__link">
       Extension: Shark Android
     </a>
   </li>
@@ -665,7 +667,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../shark-graph/shark/" title="Core: Graph" class="md-nav__link">
+    <a href="../../../../../../shark-graph/shark/" title="Core: Graph" class="md-nav__link">
       Core: Graph
     </a>
   </li>
@@ -677,7 +679,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../shark-hprof/shark/" title="Core: Hprof" class="md-nav__link">
+    <a href="../../../../../../shark-hprof/shark/" title="Core: Hprof" class="md-nav__link">
       Core: Hprof
     </a>
   </li>
@@ -689,7 +691,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../shark-log/shark/" title="Core: Logs" class="md-nav__link">
+    <a href="../../../../../../shark-log/shark/" title="Core: Logs" class="md-nav__link">
       Core: Logs
     </a>
   </li>
@@ -730,7 +732,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../" title="LeakCanary" class="md-nav__link">
+    <a href="../../../../../../leakcanary-android-core/leakcanary/" title="LeakCanary" class="md-nav__link">
       LeakCanary
     </a>
   </li>
@@ -742,7 +744,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" title="ObjectWatcher Android" class="md-nav__link">
+    <a href="../../../../" title="ObjectWatcher Android" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -754,7 +756,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-android-instrumentation/leakcanary/" title="Extension: Instrumentation tests" class="md-nav__link">
+    <a href="../../../../../../leakcanary-android-instrumentation/leakcanary/" title="Extension: Instrumentation tests" class="md-nav__link">
       Extension: Instrumentation tests
     </a>
   </li>
@@ -766,7 +768,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-android-process/leakcanary/" title="Extension: Separate process" class="md-nav__link">
+    <a href="../../../../../../leakcanary-android-process/leakcanary/" title="Extension: Separate process" class="md-nav__link">
       Extension: Separate process
     </a>
   </li>
@@ -778,7 +780,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher/leakcanary/" title="Core: ObjectWatcher" class="md-nav__link">
+    <a href="../../../../../../leakcanary-object-watcher/leakcanary/" title="Core: ObjectWatcher" class="md-nav__link">
       Core: ObjectWatcher
     </a>
   </li>
@@ -795,7 +797,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../changelog/" title="Change Log" class="md-nav__link">
+    <a href="../../../../../../../changelog/" title="Change Log" class="md-nav__link">
       Change Log
     </a>
   </li>
@@ -829,16 +831,15 @@
               
                 
 				  
-				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20api/leakcanary-android-core/leakcanary/-leak-canary/-config/metatada-extractor/%20page">Report it</a></span>
+				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/watch-view-models/%20page">Report it</a></span>
                   
                 
                 
-                <p><a href="../../../../">leakcanary-android-core</a> / <a href="../../../">leakcanary</a> / <a href="../../">LeakCanary</a> / <a href="../">Config</a> / <a href="./">metatadaExtractor</a></p>
-<h1 id="metatadaextractor">metatadaExtractor<a class="headerlink" href="#metatadaextractor" title="Permanent link">&para;</a></h1>
-<p><code>val metatadaExtractor: MetadataExtractor</code></p>
-<p>Extracts metadata from a hprof to be reported in <a href="#">HeapAnalysisSuccess.metadata</a>.
-Called on a background thread during heap analysis.</p>
-<p>Defaults to <a href="#">AndroidMetadataExtractor</a></p>
+                <p><a href="../../../../../">leakcanary-object-watcher-android</a> / <a href="../../../../">leakcanary</a> / <a href="../../../">AppWatcher</a> / <a href="../../">Config</a> / <a href="../">Builder</a> / <a href="./">watchViewModels</a></p>
+<h1 id="watchviewmodels">watchViewModels<a class="headerlink" href="#watchviewmodels" title="Permanent link">&para;</a></h1>
+<p><code>fun watchViewModels(watchViewModels:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>):</code><a href="../"><code>AppWatcher.Config.Builder</code></a></p>
+<p><strong>See Also</strong></p>
+<p><a href="../../watch-view-models/">Config.watchViewModels</a></p>
                 
                   
                 
@@ -877,9 +878,9 @@ Called on a background thread during heap analysis.</p>
       
     </div>
     
-      <script src="../../../../../../assets/javascripts/application.a8b5e56f.js"></script>
+      <script src="../../../../../../../assets/javascripts/application.808e90bb.js"></script>
       
-      <script>app.initialize({version:"1.0.4",url:{base:"../../../../../.."}})</script>
+      <script>app.initialize({version:"1.0.4",url:{base:"../../../../../../.."}})</script>
       
     
   </body>

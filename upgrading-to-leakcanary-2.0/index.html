@@ -13,6 +13,8 @@
         <meta name="description" content="A memory leak detection library for Android">
       
       
+        <link rel="canonical" href="https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/">
+      
       
         <meta name="author" content="Square, Inc.">
       
@@ -36,7 +38,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../images/logo.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.5.0">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.6.0">
     
     
       
@@ -60,7 +62,7 @@
     
       
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono&display=fallback">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
       
     
@@ -76,7 +78,7 @@
   }
   ga.l = +new Date
   /* Setup integration and send page view */
-  ga("create", "UA-142834539-1", "auto")
+  ga("create", "None", "auto")
   ga("set", "anonymizeIp", true)
   ga("send", "pageview")
   /* Register handler to log search on blur */
@@ -123,7 +125,7 @@
   <nav class="md-header-nav md-grid">
     <div class="md-flex">
       <div class="md-flex__cell md-flex__cell--shrink">
-        <a href=".." title="LeakCanary" class="md-header-nav__button md-logo">
+        <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-header-nav__button md-logo">
           
             <img src="../images/logo.png" width="24" height="24">
           
@@ -293,7 +295,7 @@
                   <div class="md-sidebar__inner">
                     <nav class="md-nav md-nav--primary" data-md-level="0">
   <label class="md-nav__title md-nav__title--site" for="__drawer">
-    <a href=".." title="LeakCanary" class="md-nav__button md-logo">
+    <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-nav__button md-logo">
       
         <img src="../images/logo.png" width="48" height="48">
       
@@ -1394,7 +1396,7 @@
 
 <h3 id="now">Now<a class="headerlink" href="#now" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.1&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.2&#39;</span>
 <span class="o">}</span>
 </pre></div>
 
@@ -1443,7 +1445,7 @@
 <p>If you were using <code>RefWatcher</code> in non debug code, you now get a compile error because the no-op artifact is gone. <a href="/leakcanary/api/leakcanary-object-watcher/leakcanary/-object-watcher/">ObjectWatcher</a> now lives in the <code>object-watcher</code> artifact, which is suitable for production. You have two options:</p>
 <h3 id="option-1-add-object-watcher-android-to-release-builds">Option 1: Add <code>object-watcher-android</code> to release builds.<a class="headerlink" href="#option-1-add-object-watcher-android-to-release-builds" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.1&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.2&#39;</span>
 <span class="o">}</span>
 </pre></div>
 
@@ -1699,7 +1701,7 @@
       
     </div>
     
-      <script src="../assets/javascripts/application.a8b5e56f.js"></script>
+      <script src="../assets/javascripts/application.808e90bb.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
       

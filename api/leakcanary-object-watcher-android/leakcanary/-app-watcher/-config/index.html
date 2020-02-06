@@ -13,6 +13,8 @@
         <meta name="description" content="A memory leak detection library for Android">
       
       
+        <link rel="canonical" href="https://square.github.io/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/">
+      
       
         <meta name="author" content="Square, Inc.">
       
@@ -36,7 +38,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../../../../../images/logo.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.5.0">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.6.0">
     
     
       
@@ -60,7 +62,7 @@
     
       
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono&display=fallback">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
       
     
@@ -76,7 +78,7 @@
   }
   ga.l = +new Date
   /* Setup integration and send page view */
-  ga("create", "UA-142834539-1", "auto")
+  ga("create", "None", "auto")
   ga("set", "anonymizeIp", true)
   ga("send", "pageview")
   /* Register handler to log search on blur */
@@ -123,7 +125,7 @@
   <nav class="md-header-nav md-grid">
     <div class="md-flex">
       <div class="md-flex__cell md-flex__cell--shrink">
-        <a href="../../../../.." title="LeakCanary" class="md-header-nav__button md-logo">
+        <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-header-nav__button md-logo">
           
             <img src="../../../../../images/logo.png" width="24" height="24">
           
@@ -291,7 +293,7 @@
                   <div class="md-sidebar__inner">
                     <nav class="md-nav md-nav--primary" data-md-level="0">
   <label class="md-nav__title md-nav__title--site" for="__drawer">
-    <a href="../../../../.." title="LeakCanary" class="md-nav__button md-logo">
+    <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-nav__button md-logo">
       
         <img src="../../../../../images/logo.png" width="48" height="48">
       
@@ -822,6 +824,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    Types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#constructors" class="md-nav__link">
     Constructors
   </a>
@@ -831,6 +840,13 @@
         <li class="md-nav__item">
   <a href="#properties" class="md-nav__link">
     Properties
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
@@ -859,6 +875,24 @@
                 <p><a href="../../../">leakcanary-object-watcher-android</a> / <a href="../../">leakcanary</a> / <a href="../">AppWatcher</a> / <a href="./">Config</a></p>
 <h1 id="config">Config<a class="headerlink" href="#config" title="Permanent link">&para;</a></h1>
 <p><code>data class Config</code></p>
+<p>AppWatcher configuration data class. Properties can be updated via <a href="#">copy</a>.</p>
+<p><strong>See Also</strong></p>
+<p><a href="../config/">config</a></p>
+<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-builder/">Builder</a></td>
+<td><code>class Builder</code><br>Builder for <a href="./">Config</a> intended to be used only from Java code.</td>
+</tr>
+</tbody>
+</table>
 <h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -870,7 +904,7 @@
 <tbody>
 <tr>
 <td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>Config(enabled:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= InternalAppWatcher.isDebuggableBuild, watchActivities:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= true, watchFragments:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= true, watchFragmentViews:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= true, watchDurationMillis:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>= TimeUnit.SECONDS.toMillis(5))</code></td>
+<td><code>Config(enabled:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= InternalAppWatcher.isDebuggableBuild, watchActivities:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= true, watchFragments:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= true, watchFragmentViews:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= true, watchViewModels:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= true, watchDurationMillis:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>= TimeUnit.SECONDS.toMillis(5))</code><br>AppWatcher configuration data class. Properties can be updated via <a href="#">copy</a>.</td>
 </tr>
 </tbody>
 </table>
@@ -902,6 +936,25 @@
 <tr>
 <td><a href="watch-fragment-views/">watchFragmentViews</a></td>
 <td><code>val watchFragmentViews:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>Whether AppWatcher should automatically watch destroyed fragment view instances.</td>
+</tr>
+<tr>
+<td><a href="watch-view-models/">watchViewModels</a></td>
+<td><code>val watchViewModels:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>Whether AppWatcher should automatically watch cleared <a href="#">androidx.lifecycle.ViewModel</a> instances.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="new-builder/">newBuilder</a><br>(Kotlin 999.9)</td>
+<td><code>fun newBuilder():</code><a href="-builder/"><code>AppWatcher.Config.Builder</code></a><br>Construct a new Config via <a href="-builder/">AppWatcher.Config.Builder</a>. Note: this method is intended to be used from Java code only. For idiomatic Kotlin use <code>copy()</code> to modify <a href="../config/">AppWatcher.config</a>.</td>
 </tr>
 </tbody>
 </table>
@@ -943,7 +996,7 @@
       
     </div>
     
-      <script src="../../../../../assets/javascripts/application.a8b5e56f.js"></script>
+      <script src="../../../../../assets/javascripts/application.808e90bb.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:"../../../../.."}})</script>
       

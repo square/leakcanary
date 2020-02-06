@@ -13,6 +13,8 @@
         <meta name="description" content="A memory leak detection library for Android">
       
       
+        <link rel="canonical" href="https://square.github.io/leakcanary/recipes/">
+      
       
         <meta name="author" content="Square, Inc.">
       
@@ -36,7 +38,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../images/logo.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.5.0">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.6.0">
     
     
       
@@ -60,7 +62,7 @@
     
       
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono&display=fallback">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
       
     
@@ -76,7 +78,7 @@
   }
   ga.l = +new Date
   /* Setup integration and send page view */
-  ga("create", "UA-142834539-1", "auto")
+  ga("create", "None", "auto")
   ga("set", "anonymizeIp", true)
   ga("send", "pageview")
   /* Register handler to log search on blur */
@@ -123,7 +125,7 @@
   <nav class="md-header-nav md-grid">
     <div class="md-flex">
       <div class="md-flex__cell md-flex__cell--shrink">
-        <a href=".." title="LeakCanary" class="md-header-nav__button md-logo">
+        <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-header-nav__button md-logo">
           
             <img src="../images/logo.png" width="24" height="24">
           
@@ -293,7 +295,7 @@
                   <div class="md-sidebar__inner">
                     <nav class="md-nav md-nav--primary" data-md-level="0">
   <label class="md-nav__title md-nav__title--site" for="__drawer">
-    <a href=".." title="LeakCanary" class="md-nav__button md-logo">
+    <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-nav__button md-logo">
       
         <img src="../images/logo.png" width="48" height="48">
       
@@ -491,6 +493,13 @@
         <li class="md-nav__item">
   <a href="#running-leakcanary-in-instrumentation-tests" class="md-nav__link">
     Running LeakCanary in instrumentation tests
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#android-tv" class="md-nav__link">
+    Android TV
   </a>
   
 </li>
@@ -1004,6 +1013,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#android-tv" class="md-nav__link">
+    Android TV
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#icon-and-label" class="md-nav__link">
     Icon and label
   </a>
@@ -1138,10 +1154,22 @@
 <div class="codehilite"><pre><span></span>AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
 </pre></div>
 
+<p>In Java, you can use <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/">AppWatcher.Config.Builder</a> instead:
+<div class="codehilite"><pre><span></span>AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
+   .watchFragmentViews(false)
+   .build();
+AppWatcher.setConfig(config);
+</pre></div></p>
 <p>To customize the heap dumping &amp; analysis, update <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
 <div class="codehilite"><pre><span></span>LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 </pre></div>
 
+<p>In Java, you can use <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/">LeakCanary.Config.Builder</a> instead:
+<div class="codehilite"><pre><span></span>LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
+   .retainedVisibleThreshold(3)
+   .build();
+LeakCanary.setConfig(config);
+</pre></div></p>
 <p>The LeakCanary UI can be configured by overriding the following resources:</p>
 <ul>
 <li><code>mipmap/leak_canary_icon</code> see <a href="#icon-and-label">Icon and label</a></li>
@@ -1197,6 +1225,16 @@
 </pre></div>
 
 <p>You can extend <code>FailTestOnLeakRunListener</code> to customize the behavior.</p>
+<h2 id="android-tv">Android TV<a class="headerlink" href="#android-tv" title="Permanent link">&para;</a></h2>
+<p>LeakCanary works on Android TV devices (FireTV, Nexus player, Nvidia Shield, MiBox, etc.) without any additional setup. However, there are couple things you need to be aware of:</p>
+<ul>
+<li>Android TV doesn&rsquo;t have notifications. LeakCanary will display Toast messages when objects become retained and when leak analysis completes. You can also check Logcat for more details.</li>
+<li>Due to lack of notifications, the only way to <strong>manually</strong> trigger a heap dump is to background the app.  </li>
+<li>There&rsquo;s a <a href="https://issuetracker.google.com/issues/141429184">bug on API 26+ devices</a> that prevents the activity that displays leaks from appearing in apps list. As a workaround, LeakCanary prints an <code>adb shell</code> command in Logcat after heap dump analysis that launches leak list activity:
+    <div class="codehilite"><pre><span></span>adb shell am start -n &quot;com.your.package.name/leakcanary.internal.activity.LeakLauncherActivity&quot;
+</pre></div></li>
+<li>Some Android TV devices have very little memory available per app process and this might impact LeakCanary. <a href="#running-the-leakcanary-analysis-in-a-separate-process">Running the LeakCanary analysis in a separate process</a> might help in such cases.</li>
+</ul>
 <h2 id="icon-and-label">Icon and label<a class="headerlink" href="#icon-and-label" title="Permanent link">&para;</a></h2>
 <p>The activity that displays leaks comes with a default icon and label, which you can change by providing <code>R.mipmap.leak_canary_icon</code> and <code>R.string.leak_canary_display_activity_label</code> in your app:</p>
 <div class="codehilite"><pre><span></span>res/
@@ -1255,7 +1293,7 @@
 <p>Create a <a href="https://app.bugsnag.com/user/new/">Bugsnag account</a>, create a new project for leak reporting and grab an <strong>API key</strong>. Make sure the app has the <code>android.permission.INTERNET</code> permission then add the <a href="https://docs.bugsnag.com/platforms/android/">latest version</a> of the Bugsnag Android client library to <code>build.gradle</code>:</p>
 <div class="codehilite"><pre><span></span><span class="n">dependencies</span> <span class="o">{</span>
   <span class="c1">// debugImplementation because LeakCanary should only run in debug builds.</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.1&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.2&#39;</span>
   <span class="n">debugImplementation</span> <span class="s2">&quot;com.bugsnag:bugsnag-android:$bugsnagVersion&quot;</span>
 <span class="o">}</span>
 </pre></div>
@@ -1538,8 +1576,8 @@ configurations {
 <p>While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.</p>
 <p>Add the ObjectWatcher and Shark dependencies to your build file:</p>
 <div class="codehilite"><pre><span></span><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.1&#39;</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.1&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.2&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.2&#39;</span>
 <span class="o">}</span>
 </pre></div>
 
@@ -1705,7 +1743,7 @@ configurations {
       
     </div>
     
-      <script src="../assets/javascripts/application.a8b5e56f.js"></script>
+      <script src="../assets/javascripts/application.808e90bb.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
       
