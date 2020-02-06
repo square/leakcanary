@@ -1588,10 +1588,7 @@ for the contributions, bug reports and feature requests.</p>
 <p><a href="https://developer.android.com/topic/libraries/architecture/viewmodel">Android ViewModels</a> are really cool! Their lifecycle is much nicer than fragments or activities, but sometimes mistakes happen. LeakCanary will now automatically detect ViewModel leaks and report any ViewModel instance retained after its <code>onCleared()</code> method was called.</p>
 <h3 id="android-tv">Android TV<a class="headerlink" href="#android-tv" title="Permanent link">&para;</a></h3>
 <p><img alt="tv ui" src="../images/android-tv-leaks.png" /></p>
-<p>LeakCanary is finally coming to big screens near you! </p>
-<p>Best part - no additional setup is required, just enable it like you would for a <a href="../getting_started/">mobile device</a>. </p>
-<p>Now whenever there&rsquo;s a leak - you will see a helpful Toast appear with all the details.  </p>
-<p>Make sure to check out our new <a href="../recipes/#android-tv">Android TV</a> section and chill! </p>
+<p>LeakCanary is finally coming to big screens near you! Best part - no additional setup is required, just enable it like you would for a <a href="../getting_started/">mobile device</a>. Now whenever there&rsquo;s a leak - you will see a helpful Toast appear with all the details. Make sure to check out our new <a href="../recipes/#android-tv">Android TV</a> section and chill! </p>
 <h3 id="java-friendly-config-builders">Java-friendly Config builders<a class="headerlink" href="#java-friendly-config-builders" title="Permanent link">&para;</a></h3>
 <p><a href="https://github.com/square/leakcanary/issues/1714">It was brought to our attention</a> that configuring <code>LeakCanary</code> and <code>AppWatcher</code> was a miserable experience from Java code. Well, not anymore!</p>
 <p>Now you can use <code>LeakCanary.Config.Builder</code> and <code>AppWatcher.Config.Builder</code> to have idiomatic Java when updating the configurations. For example:</p>
