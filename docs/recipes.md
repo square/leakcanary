@@ -136,7 +136,7 @@ Run the instrumentation tests:
 
 You can extend `FailTestOnLeakRunListener` to customize the behavior.
 
-## Android TV setup
+## Android TV
 
 LeakCanary works on Android TV devices (FireTV, Nexus player, Nvidia Shield, MiBox, etc.) without any additional setup. However, there are couple things you need to be aware of:
 - Android TV doesn't have notifications. LeakCanary will display Toast messages when instances become retained and when leak analysis completes. You can also check Logcat for more details.

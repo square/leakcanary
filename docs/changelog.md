@@ -21,11 +21,31 @@ TODO
 
 ### Android TV
 
-TODO
+![tv ui](images/android-tv-leaks.png)
+
+LeakCanary is finally coming to big screens near you! 
+
+Best part - no additional setup is required, just enable it like you would for a [mobile device](getting_started.md). 
+
+Now whenever there's a leak - you will see a helpful Toast appear with all the details.  
+
+Make sure to check out our new [Android TV](recipes.md#android-tv) section and chill! 
 
 ### Java-friendly Config builders
 
-TODO
+[It was brought to our attention](https://github.com/square/leakcanary/issues/1714) that configuring `LeakCanary` and `AppWatcher` is a miserable experience from Java code. Well, not anymore!
+
+Now you can use `LeakCanary.Config.Builder` and `AppWatcher.Config.Builder` to have idiomatic Java when updating the configurations. For example:
+
+```
+LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
+  .retainedVisibleThreshold(3)
+  .computeRetainedHeapSize(false)
+  .build();
+LeakCanary.setConfig(config);
+```
+
+If you have noticed any other problems when using LeakCanary from Java, please [file an issue](https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+enhancement&template=3-feature.md&title=)! We take Java-interop seriously and will be happy to improve LeakCanary's API! 
 
 For more details, see the [2.2 Milestone](https://github.com/square/leakcanary/milestone/16) and the [full diff](https://github.com/square/leakcanary/compare/v2.1...v2.2).
 
@@ -179,7 +199,7 @@ One major difference: when the app is in foreground, LeakCanary 2 will not trigg
 ### Random facts
 
 * You can customize the Leaks launcher icon and label: [learn more here](recipes.md#icon-and-label).
-* If you long press on your main activity launcher icon, you should see a LeakCanary dynamic shortcut. You can then long press that to drop it on your home screen, and the launcher shows that it's the leaks launcher for your app.
+* If you ` press on your main activity launcher icon, you should see a LeakCanary dynamic shortcut. You can then long press that to drop it on your home screen, and the launcher shows that it's the leaks launcher for your app.
 * Out of the box, LeakCanary tracks all fragments flavors: AOSP, Support Library and Android X.
 * From within the leak screen, you can share a leak to stack overflow. You can also share a heap dump, or import and analyze a heap dump from another device.
 * You can run LeakCanary from your computer command line, on any debuggable app even if that app doesn't have LeakCanary: [learn more here](shark.md##shark-cli).
