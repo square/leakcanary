@@ -42,7 +42,7 @@ To customize the detection of retained objects at runtime, update [AppWatcher.co
 AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
 ```
 
-In Java, you can use [AppWatcher.Config.Builder](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/appwatcherconfig/-app-watcher/-config/builder/) instead:
+In Java, you can use [AppWatcher.Config.Builder](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/) instead:
 ```
 AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
    .watchFragmentViews(false)
@@ -56,7 +56,7 @@ To customize the heap dumping & analysis, update [LeakCanary.config](/leakcanary
 LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 ```
 
-In Java, you can use [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary/config/-leak-canary/-config/builder/) instead:
+In Java, you can use [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/) instead:
 ```
 LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
    .retainedVisibleThreshold(3)
@@ -139,13 +139,14 @@ You can extend `FailTestOnLeakRunListener` to customize the behavior.
 ## Android TV
 
 LeakCanary works on Android TV devices (FireTV, Nexus player, Nvidia Shield, MiBox, etc.) without any additional setup. However, there are couple things you need to be aware of:
-- Android TV doesn't have notifications. LeakCanary will display Toast messages when instances become retained and when leak analysis completes. You can also check Logcat for more details.
-- Due to lack of notifications, the only way to trigger a heap dump **manually** is to background the app.
-- There's a [bug on API 26+ devices](https://issuetracker.google.com/issues/141429184) that prevents the activity that displays leaks from appearing in apps list. As a workaround, LeakCanary prints an `adb shell` command in Logcat after heap dump analysis that launches leak list activity:
-  ```
-  adb shell am start -n "com.your.package.name/leakcanary.internal.activity.LeakLauncherActivity"
-  ``` 
-- Some Android TV devices have very little memory available per app process and this might impact LeakCanary. [Running the LeakCanary analysis in a separate process](#running-the-leakcanary-analysis-in-a-separate-process) might help in such cases.
+
+-   Android TV doesn't have notifications. LeakCanary will display Toast messages when objects become retained and when leak analysis completes. You can also check Logcat for more details.
+-   Due to lack of notifications, the only way to **manually** trigger a heap dump is to background the app.  
+-   There's a [bug on API 26+ devices](https://issuetracker.google.com/issues/141429184) that prevents the activity that displays leaks from appearing in apps list. As a workaround, LeakCanary prints an `adb shell` command in Logcat after heap dump analysis that launches leak list activity:
+    ```
+    adb shell am start -n "com.your.package.name/leakcanary.internal.activity.LeakLauncherActivity"
+    ``` 
+-   Some Android TV devices have very little memory available per app process and this might impact LeakCanary. [Running the LeakCanary analysis in a separate process](#running-the-leakcanary-analysis-in-a-separate-process) might help in such cases.
 
 ## Icon and label
 
