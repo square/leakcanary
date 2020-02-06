@@ -1516,7 +1516,7 @@ configurations {
 </pre></div>
 
 <h2 id="extracting-metadata-from-the-heap-dump">Extracting metadata from the heap dump<a class="headerlink" href="#extracting-metadata-from-the-heap-dump" title="Permanent link">&para;</a></h2>
-<p><a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/metatada-extractor/">LeakCanary.Config.metatadaExtractor</a> extracts metadata from a heap dump. The metadata is then available in <code>HeapAnalysisSuccess.metadata</code>. <code>LeakCanary.Config.metatadaExtractor</code> defaults to <code>AndroidMetadataExtractor</code> but you can replace it to extract additional metadata from the hprof.</p>
+<p><a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/metadata-extractor/">LeakCanary.Config.metadataExtractor</a> extracts metadata from a heap dump. The metadata is then available in <code>HeapAnalysisSuccess.metadata</code>. <code>LeakCanary.Config.metadataExtractor</code> defaults to <code>AndroidMetadataExtractor</code> but you can replace it to extract additional metadata from the hprof.</p>
 <p>For example, if you want to include the app version name in your heap analysis reports, you need to first store it in memory (e.g. in a static field) and then you can retrieve it in <code>MetadataExtractor</code>.</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1532,7 +1532,7 @@ configurations {
     <span class="n">savedVersionName</span> <span class="p">=</span> <span class="n">packageInfo</span><span class="p">.</span><span class="n">versionName</span>
 
     <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span>
-        <span class="n">metatadaExtractor</span> <span class="p">=</span> <span class="n">MetadataExtractor</span> <span class="p">{</span> <span class="n">graph</span> <span class="p">-&gt;</span>
+        <span class="n">metadataExtractor</span> <span class="p">=</span> <span class="n">MetadataExtractor</span> <span class="p">{</span> <span class="n">graph</span> <span class="p">-&gt;</span>
           <span class="k">val</span> <span class="py">companionClass</span> <span class="p">=</span>
             <span class="n">graph</span><span class="p">.</span><span class="n">findClassByName</span><span class="p">(</span><span class="s">&quot;com.example.DebugExampleApplication&quot;</span><span class="p">)</span><span class="o">!!</span>
 
