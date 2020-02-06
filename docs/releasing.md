@@ -40,7 +40,8 @@ git commit -am "Prepare {{ leak_canary.next_release }} release"
 
 * Perform a clean build
 ```
-./gradlew clean build
+./gradlew clean
+./gradlew build
 ```
 
 * Create a tag and push it
