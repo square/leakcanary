@@ -23,13 +23,7 @@ for the contributions, bug reports and feature requests.
 
 ![tv ui](images/android-tv-leaks.png)
 
-LeakCanary is finally coming to big screens near you! 
-
-Best part - no additional setup is required, just enable it like you would for a [mobile device](getting_started.md). 
-
-Now whenever there's a leak - you will see a helpful Toast appear with all the details.  
-
-Make sure to check out our new [Android TV](recipes.md#android-tv) section and chill! 
+LeakCanary is finally coming to big screens near you! Best part - no additional setup is required, just enable it like you would for a [mobile device](getting_started.md). Now whenever there's a leak - you will see a helpful Toast appear with all the details. Make sure to check out our new [Android TV](recipes.md#android-tv) section and chill! 
 
 ### Java-friendly Config builders
 
