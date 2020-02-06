@@ -2,7 +2,7 @@
 
 ## Version 2.2 (2020-02-05)
 
-First release of the decade!
+We've got some good stuff for the first release of the decade!
 
 Many thanks to
 [@AndroidInternal](https://github.com/AndroidInternal),
@@ -17,7 +17,7 @@ for the contributions, bug reports and feature requests.
 
 ### ViewModel leak detection
 
-TODO
+[Android ViewModels](https://developer.android.com/topic/libraries/architecture/viewmodel) are really cool! Their lifecycle is much nicer than fragments or activities, but sometimes mistakes happen. LeakCanary will now automatically detect ViewModel leaks and report any ViewModel instance retained after its `onCleared()` method was called.
 
 ### Android TV
 
@@ -33,7 +33,7 @@ Make sure to check out our new [Android TV](recipes.md#android-tv) section and c
 
 ### Java-friendly Config builders
 
-[It was brought to our attention](https://github.com/square/leakcanary/issues/1714) that configuring `LeakCanary` and `AppWatcher` is a miserable experience from Java code. Well, not anymore!
+[It was brought to our attention](https://github.com/square/leakcanary/issues/1714) that configuring `LeakCanary` and `AppWatcher` was a miserable experience from Java code. Well, not anymore!
 
 Now you can use `LeakCanary.Config.Builder` and `AppWatcher.Config.Builder` to have idiomatic Java when updating the configurations. For example:
 
@@ -45,7 +45,7 @@ LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
 LeakCanary.setConfig(config);
 ```
 
-If you have noticed any other problems when using LeakCanary from Java, please [file an issue](https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+enhancement&template=3-feature.md&title=)! We take Java-interop seriously and will be happy to improve LeakCanary's API! 
+If you notice any other problems when using LeakCanary from Java, please [file an issue](https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+enhancement&template=3-feature.md&title=)! We take Java-interop seriously and will be happy to improve LeakCanary's API! 
 
 For more details, see the [2.2 Milestone](https://github.com/square/leakcanary/milestone/16) and the [full diff](https://github.com/square/leakcanary/compare/v2.1...v2.2).
 
