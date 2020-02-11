@@ -20,6 +20,7 @@ import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongObjectScatterMap
+import shark.internal.hppc.LongScatterSet
 import kotlin.reflect.KClass
 
 /**
@@ -36,7 +37,7 @@ internal class HprofInMemoryIndex private constructor(
   private val primitiveArrayIndex: SortedBytesMap,
   private val gcRoots: List<GcRoot>,
   private val proguardMapping: ProguardMapping?,
-  val primitiveWrapperTypes: Set<Long>
+  val primitiveWrapperTypes: LongScatterSet
 ) {
 
   fun fieldName(
@@ -243,7 +244,7 @@ internal class HprofInMemoryIndex private constructor(
     /**
      * Class ids for primitive wrapper types
      */
-    private val primitiveWrapperTypes = mutableSetOf<Long>()
+    private val primitiveWrapperTypes = LongScatterSet()
 
     /**
      * String ids for class names of primitive wrapper types

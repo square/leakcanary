@@ -74,12 +74,6 @@ class HeapValue(
     get() = if (holder is LongHolder) holder.value else null
 
   /**
-   * This [HeapValue] as a [Long] if it represents an object reference, or null otherwise.
-   */
-  val asObjectId: Long?
-    get() = if (holder is ReferenceHolder) holder.value else null
-
-  /**
    * This [HeapValue] as a [Long] if it represents a non null object reference, or null otherwise.
    */
   val asNonNullObjectId: Long?

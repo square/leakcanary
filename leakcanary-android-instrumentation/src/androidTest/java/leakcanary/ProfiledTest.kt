@@ -13,7 +13,9 @@ import shark.OnAnalysisProgressListener.Step
 import shark.SharkLog
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.system.measureTimeMillis
 
+@Suppress("ConstantConditionIf")
 class ProfiledTest {
 
   @Ignore
@@ -30,24 +32,33 @@ class ProfiledTest {
         .copyTo(FileOutputStream(heapDumpFile))
 
     SharkLog.d { "Waiting, please start profiler" }
-    Profiler.waitForSamplingStart()
+    if (ATTACH_PROFILER) Profiler.waitForSamplingStart()
 
-    val analyzer = HeapAnalyzer(object : OnAnalysisProgressListener {
-      override fun onAnalysisProgress(step: Step) {
-        Log.d("LeakCanary", step.name)
+    val times = if (ATTACH_PROFILER) 1 else 10
+    repeat(times) {
+      val time = measureTimeMillis {
+        val analyzer = HeapAnalyzer(object : OnAnalysisProgressListener {
+          override fun onAnalysisProgress(step: Step) {
+            Log.d("LeakCanary", step.name)
+          }
+        })
+        analyzer.analyze(
+            heapDumpFile = heapDumpFile,
+            leakingObjectFinder = KeyedWeakReferenceFinder,
+            referenceMatchers = AndroidReferenceMatchers.appDefaults,
+            objectInspectors = AndroidObjectInspectors.appDefaults,
+            computeRetainedHeapSize = true
+        )
       }
-    })
-    val result = analyzer.analyze(
-        heapDumpFile = heapDumpFile,
-        leakingObjectFinder = KeyedWeakReferenceFinder,
-        referenceMatchers = AndroidReferenceMatchers.appDefaults,
-        objectInspectors = AndroidObjectInspectors.appDefaults,
-        computeRetainedHeapSize = true
-    )
-    SharkLog.d { result.toString() }
+      SharkLog.d { "Measured profileAnalysis time = $time" }
+    }
+
     // Giving time to stop CPU profiler (otherwise trace won't succeed)
-    Profiler.waitForSamplingStop()
+    if (ATTACH_PROFILER) Profiler.waitForSamplingStop()
   }
 
+  companion object {
+    const val ATTACH_PROFILER = false
+  }
 }
 

@@ -386,13 +386,11 @@ sealed class HeapObject {
      * This may trigger IO reads.
      */
     fun readFields(): Sequence<HeapField> {
-      val fieldReader by lazy {
-        hprofGraph.createFieldValuesReader(readRecord())
-      }
+      val fieldReader = hprofGraph.createFieldValuesReader(readRecord())
       return instanceClass.classHierarchy
           .map { heapClass ->
             heapClass.readRecord()
-                .fields.asSequence()
+                .fields
                 .map { fieldRecord ->
                   val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord)
                   val fieldValue = fieldReader.readValue(fieldRecord)

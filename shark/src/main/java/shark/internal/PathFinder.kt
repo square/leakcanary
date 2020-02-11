@@ -41,6 +41,7 @@ import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
 import shark.ValueHolder
+import shark.ValueHolder.ReferenceHolder
 import shark.internal.ReferencePathNode.ChildNode.LibraryLeakChildNode
 import shark.internal.ReferencePathNode.ChildNode.NormalNode
 import shark.internal.ReferencePathNode.LibraryLeakNode
@@ -89,8 +90,8 @@ internal class PathFinder(
     /**
      * Enables fast checking of whether a node is already in the queue.
      */
-    val toVisitSet = HashSet<Long>()
-    val toVisitLastSet = HashSet<Long>()
+    val toVisitSet = LongScatterSet()
+    val toVisitLastSet = LongScatterSet()
 
     val visitedSet = LongScatterSet()
 
@@ -376,7 +377,7 @@ internal class PathFinder(
         continue
       }
 
-      val objectId = staticField.value.asObjectId!!
+      val objectId = (staticField.value.holder as ReferenceHolder).value
 
       if (computeRetainedHeapSize) {
         undominateWithSkips(objectId)
@@ -428,7 +429,7 @@ internal class PathFinder(
     fieldNamesAndValues.sortBy { it.name }
 
     fieldNamesAndValues.forEach { field ->
-      val objectId = field.value.asObjectId!!
+      val objectId = (field.value.holder as ReferenceHolder).value
       if (computeRetainedHeapSize) {
         updateDominatorWithSkips(parent.objectId, objectId)
       }
@@ -560,9 +561,9 @@ internal class PathFinder(
         // String internal array is never enqueued
         if (graphObject.instanceClassName == "java.lang.String") {
           updateDominator(parentObjectId, objectId, true)
-          val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectId
-          if (valueId != null) {
-            updateDominator(parentObjectId, valueId, true)
+          val value = graphObject["java.lang.String", "value"]?.value
+          if (value?.holder is ReferenceHolder) {
+            updateDominator(parentObjectId, (value.holder as ReferenceHolder).value, true)
           }
         } else {
           updateDominator(parentObjectId, objectId, false)
@@ -670,9 +671,9 @@ internal class PathFinder(
         // String internal array is never enqueued
         if (graphObject.instanceClassName == "java.lang.String") {
           undominate(objectId, true)
-          val valueId = graphObject["java.lang.String", "value"]?.value?.asObjectId
-          if (valueId != null) {
-            undominate(valueId, true)
+          val value = graphObject["java.lang.String", "value"]?.value
+          if (value?.holder is ReferenceHolder) {
+            undominate((value.holder as ReferenceHolder).value, true)
           }
         } else {
           undominate(objectId, false)
