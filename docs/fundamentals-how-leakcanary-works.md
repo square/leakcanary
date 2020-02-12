@@ -106,12 +106,12 @@ In the example above, the signature of the leak would be computed as:
 
 ```kotlin
 val leakSignature = sha1Hash(
-    "com.example.leakcanary.LeakingSingle.leakedView" +
+    "com.example.leakcanary.LeakingSingleton.leakedView" +
     "java.util.ArrayList.elementData" +
     "java.lang.Object[].[x]"
 )
 println(leakSignature)
-// d962211eda4d45ac50d88d8f212224116a664968
+// dbfa277d7e5624792e8b60bc950cd164190a11aa
 ```
 
 What's next? Learn how to [fix a memory leak](fundamentals-fixing-a-memory-leak.md)!
