@@ -1,1 +1,1 @@
-See https://square.github.io/leakcanary/contributing
+See https://square.github.io/leakcanary/how_to_help/
