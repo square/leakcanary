@@ -16,13 +16,14 @@ buildscript {
       androidGradlePlugin: "com.android.tools.build:gradle:3.6.2",
       androidx: [
           annotation: 'androidx.annotation:annotation:1.0.2',
+          benchmark: 'androidx.benchmark:benchmark-junit4:1.0.0',
           core: 'androidx.core:core:1.0.1',
           fragment: 'androidx.fragment:fragment:1.0.0',
           test: [
               core: 'androidx.test:core:1.0.0',
               espresso: 'androidx.test.espresso:espresso-core:3.1.0',
               rules: 'androidx.test:rules:1.1.0',
-              runner: 'androidx.test:runner:1.1.0',
+              runner: 'androidx.test:runner:1.2.0',
               orchestrator: 'androidx.test:orchestrator:1.1.0',
           ],
       ],
@@ -54,6 +55,7 @@ buildscript {
     classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
     classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
     classpath deps.detekt
+    classpath "androidx.benchmark:benchmark-gradle-plugin:1.0.0"
   }
 }
 

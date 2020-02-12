@@ -1,0 +1,42 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'androidx.benchmark'
+
+dependencies {
+  api project(':leakcanary-android-core')
+
+  implementation deps.androidx.test.runner
+  implementation deps.kotlin.stdlib
+
+  androidTestImplementation deps.androidx.test.core
+  androidTestImplementation deps.androidx.test.espresso
+  androidTestImplementation deps.androidx.test.rules
+  androidTestImplementation deps.androidx.fragment
+  androidTestImplementation deps.androidx.benchmark
+}
+
+android {
+  compileSdkVersion versions.compileSdk
+  defaultConfig {
+    minSdkVersion versions.minSdk
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunner "androidx.benchmark.junit4.AndroidBenchmarkRunner"
+    testInstrumentationRunnerArgument 'androidx.benchmark.suppressErrors', 'LOW-BATTERY,UNLOCKED'
+  }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    // junit references java.lang.management
+    ignore 'InvalidPackage'
+    check 'Interoperability'
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+
+  kotlinOptions {
+    jvmTarget = JavaVersion.VERSION_1_8.toString()
+  }
+}
+
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
