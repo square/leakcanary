@@ -5,7 +5,9 @@
 
 ## Watching objects with a lifecycle
 
-In your application, you may have other objects with a lifecycle, such as fragments, services, Dagger components, etc. Use [AppWatcher.objectWatcher](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to watch instances that should be garbage collected:
+The default configuration of LeakCanary will automatically watch Activity, Fragment, Fragment View and ViewModel instances.
+
+In your application, you may have other objects with a lifecycle, such as services, Dagger components, etc. Use [AppWatcher.objectWatcher](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/) to watch instances that should be garbage collected:
 
 ```kotlin
 class MyService : Service {
