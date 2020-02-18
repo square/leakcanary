@@ -23,6 +23,7 @@ buildscript {
               espresso: 'androidx.test.espresso:espresso-core:3.1.0',
               rules: 'androidx.test:rules:1.1.0',
               runner: 'androidx.test:runner:1.1.0',
+              orchestrator: 'androidx.test:orchestrator:1.1.0',
           ],
       ],
       android_support: 'com.android.support:support-v4:28.0.0',

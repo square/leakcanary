@@ -25,6 +25,7 @@ dependencies {
   androidTestImplementation deps.androidx.test.espresso
   androidTestImplementation deps.androidx.test.rules
   androidTestImplementation deps.androidx.test.runner
+  androidTestUtil deps.androidx.test.orchestrator
 }
 
 android {
@@ -44,8 +45,14 @@ android {
     versionName "1.0"
 
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    testInstrumentationRunnerArgument "listener",
-        "leakcanary.FailTestOnLeakRunListener"
+    testInstrumentationRunnerArgument "listener", "leakcanary.FailTestOnLeakRunListener"
+
+    // Run ./gradlew leakcanary-android-sample:connectedCheck -Porchestrator
+    if (project.hasProperty('orchestrator')) {
+      testOptions {
+        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+      }
+    }
   }
 
   buildTypes {
