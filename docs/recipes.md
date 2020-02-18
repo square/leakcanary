@@ -139,7 +139,12 @@ android {
     // ...
 
     testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-    testInstrumentationRunnerArgument "listener", "leakcanary.FailTestOnLeakRunListener"
+    testInstrumentationRunnerArgument "listener", "leakcanary.FailTestOnLeakRunListener"	
+
+    // If you're using Android Test Orchestrator
+    testOptions {
+      execution 'ANDROIDX_TEST_ORCHESTRATOR'
+    }
   }
 }
 ```
