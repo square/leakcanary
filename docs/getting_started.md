@@ -12,6 +12,11 @@ dependencies {
 }
 ```
 
+Add external storage permission in your `AndroidManifest.xml` file
+```
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+```
+
 **That's it, there is no code change needed!** You can confirm that LeakCanary is running on startup by filtering on the `LeakCanary` tag in Logcat:
 
 ```
