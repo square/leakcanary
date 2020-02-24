@@ -20,9 +20,9 @@
   <string name="leak_canary_about_message"><![CDATA[This is a dev extension for
   <b>%1$s</b> (<i>%2$s</i>), automatically added by the LeakCanary library.<br><br>
   <a href="https://github.com/square/leakcanary">LeakCanary</a> is a memory leak detection library for Android, created
-  and open source by <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> at <a href="https://square.github.io">Square</a>.<br><br>
+  and open sourced by <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> at <a href="https://square.github.io">Square</a>.<br><br>
   You can learn more about memory leaks at <a href="https://squ.re/leaks">https://squ.re/leaks</a>.<br><br>
-  We welcome contributions from the community, please do not hesitate to
+  We welcome contributions from the community - please do not hesitate to
   <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br>
 ]]></string>
   <string name="leak_canary_analysis_failed">Heap analysis failed</string>
@@ -51,7 +51,7 @@
   <string name="leak_canary_share_with">Share with…</string>
   <string name="leak_canary_display_activity_label">Leaks</string>
   <string name="leak_canary_storage_permission_activity_label">Storage permission</string>
-  <string name="leak_canary_toast_heap_dump">LeakCanary is dumping the memory to investigate leaks.</string>
+  <string name="leak_canary_toast_heap_dump">LeakCanary is dumping memory to investigate leaks.</string>
   <string name="leak_canary_delete">Delete</string>
   <string name="leak_canary_delete_all">Delete all</string>
   <string name="leak_canary_delete_all_leaks_title">Are you sure you want to delete all leaks?</string>
@@ -86,7 +86,7 @@
   <string name="leak_canary_options_menu_render_heap_dump">Render Heap Dump</string>
   <string name="leak_canary_help_title">Tap here to learn more</string>
   <string name="leak_canary_test_class_name" translatable="false">org.junit.Test</string>
-  <string name="leak_canary_tv_analysis_success">Heap Analysis performed, %1$d application leaks, %2$d library leaks. See details in Logcat</string>
+  <string name="leak_canary_tv_analysis_success">Heap Analysis performed: %1$d application leaks, %2$d library leaks. See details in Logcat</string>
   <string name="leak_canary_tv_analysis_failure">Heap Analysis failed, see details in Logcat</string>
   <string name="leak_canary_tv_toast_retained_objects">%1$d retained objects. Heap dump threshold is %2$d.\nBackground the app to trigger heap dump immediately</string>
 </resources>
