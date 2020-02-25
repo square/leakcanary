@@ -1,6 +1,9 @@
 package shark.internal
 
+import java.util.EnumSet
+import kotlin.math.max
 import shark.GcRoot
+import shark.GcRoot.StickyClass
 import shark.HprofHeader
 import shark.HprofRecordReader
 import shark.HprofRecordTag
@@ -26,6 +29,7 @@ import shark.HprofRecordTag.ROOT_UNKNOWN
 import shark.HprofRecordTag.ROOT_UNREACHABLE
 import shark.HprofRecordTag.ROOT_VM_INTERNAL
 import shark.HprofRecordTag.STRING_IN_UTF8
+import shark.HprofVersion
 import shark.HprofVersion.ANDROID
 import shark.OnHprofRecordTagListener
 import shark.PrimitiveType
@@ -41,10 +45,8 @@ import shark.internal.hppc.IntObjectPair
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongObjectPair
 import shark.internal.hppc.LongObjectScatterMap
-import shark.internal.hppc.to
-import java.util.EnumSet
-import kotlin.math.max
 import shark.internal.hppc.LongScatterSet
+import shark.internal.hppc.to
 
 /**
  * This class is not thread safe, should be used from a single thread.
@@ -65,7 +67,8 @@ internal class HprofInMemoryIndex private constructor(
   private val bytesForPrimitiveArraySize: Int,
   private val useForwardSlashClassPackageSeparator: Boolean,
   val classFieldsReader: ClassFieldsReader,
-  private val classFieldsIndexSize: Int
+  private val classFieldsIndexSize: Int,
+  private val stickyClassGcRootIds: LongScatterSet,
 ) {
 
   val classCount: Int
@@ -104,6 +107,15 @@ internal class HprofInMemoryIndex private constructor(
     }
   }
 
+  /**
+   * Returns the first class that matches the provided name, prioritizing system classes (as held
+   * by sticky class gc roots).
+   *
+   * On Android, all currently loaded classes are sticky. The heap dump may also contain classes
+   * that were unloaded but not garbage collected yet, leading to classes being present twice
+   * in the heap dump. To work around that we prioritize classes that are held by a sticky class GC
+   * root.
+   */
   fun classId(className: String): Long? {
     val internalClassName = if (useForwardSlashClassPackageSeparator) {
       // JVM heap dumps use "/" for package separators (vs "." for Android heap dumps)
@@ -113,12 +125,22 @@ internal class HprofInMemoryIndex private constructor(
     // Note: this performs two linear scans over arrays
     val hprofStringId = hprofStringCache.entrySequence()
       .firstOrNull { it.second == internalClassName }
-      ?.first
-    return hprofStringId?.let { stringId ->
-      classNames.entrySequence()
-        .firstOrNull { it.second == stringId }
-        ?.first
+      ?.first ?: return null
+
+    val classNamesIterator = classNames.entrySequence().iterator()
+
+    var firstNonStickyMatchingClass: Long? = null
+    while(classNamesIterator.hasNext()) {
+      val (classId, classNameStringId) = classNamesIterator.next()
+      if (hprofStringId == classNameStringId) {
+        if (classId in stickyClassGcRootIds) {
+          return classId
+        } else {
+          firstNonStickyMatchingClass = classId
+        }
+      }
     }
+    return firstNonStickyMatchingClass
   }
 
   fun indexedClassSequence(): Sequence<LongObjectPair<IndexedClass>> {
@@ -311,7 +333,8 @@ internal class HprofInMemoryIndex private constructor(
     val bytesForInstanceSize: Int,
     val bytesForObjectArraySize: Int,
     val bytesForPrimitiveArraySize: Int,
-    val classFieldsTotalBytes: Int
+    val classFieldsTotalBytes: Int,
+    val stickyClassGcRootIds: LongScatterSet,
   ) : OnHprofRecordTagListener {
 
     private val identifierSize = if (longIdentifiers) 8 else 4
@@ -360,9 +383,12 @@ internal class HprofInMemoryIndex private constructor(
       initialCapacity = primitiveArrayCount
     )
 
-    private val gcRoots = mutableListOf<GcRoot>()
-
-    private val stickyClassGcRootIds = LongScatterSet()
+    // Pre seeding gc roots with the sticky class gc roots we've already parsed.
+    private val gcRoots: MutableList<GcRoot> = ArrayList<GcRoot>(stickyClassGcRootIds.size()).apply {
+      stickyClassGcRootIds.elementSequence().forEach {classId ->
+        add(StickyClass(classId))
+      }
+    }
 
     private fun HprofRecordReader.copyToClassFields(byteCount: Int) {
       for (i in 1..byteCount) {
@@ -429,16 +455,8 @@ internal class HprofInMemoryIndex private constructor(
           }
         }
         ROOT_STICKY_CLASS -> {
-          reader.readStickyClassGcRootRecord().apply {
-            // StickyClass has only 1 field: id. Our API 23 emulators in CI are creating heap
-            // dumps with duplicated sticky class roots, up to 30K times for some objects.
-            // There's no point in keeping all these in our list of roots, 1 per each is enough
-            // so we deduplicate with stickyClassGcRootIds.
-            if (id != ValueHolder.NULL_REFERENCE && id !in stickyClassGcRootIds) {
-              stickyClassGcRootIds += id
-              gcRoots += this
-            }
-          }
+          // We already parse these gc roots in the initial scan.
+          reader.skipId()
         }
         ROOT_THREAD_BLOCK -> {
           reader.readThreadBlockGcRootRecord().apply {
@@ -642,7 +660,8 @@ internal class HprofInMemoryIndex private constructor(
         bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
         useForwardSlashClassPackageSeparator = hprofHeader.version != ANDROID,
         classFieldsReader = ClassFieldsReader(identifierSize, classFieldBytes),
-        classFieldsIndexSize = classFieldsIndexSize
+        classFieldsIndexSize = classFieldsIndexSize,
+        stickyClassGcRootIds = stickyClassGcRootIds,
       )
     }
   }
@@ -676,9 +695,16 @@ internal class HprofInMemoryIndex private constructor(
       var objectArrayCount = 0
       var primitiveArrayCount = 0
       var classFieldsTotalBytes = 0
+      val stickyClassGcRootIds = LongScatterSet()
 
       val bytesRead = reader.readRecords(
-        EnumSet.of(CLASS_DUMP, INSTANCE_DUMP, OBJECT_ARRAY_DUMP, PRIMITIVE_ARRAY_DUMP)
+        EnumSet.of(
+          CLASS_DUMP,
+          INSTANCE_DUMP,
+          OBJECT_ARRAY_DUMP,
+          PRIMITIVE_ARRAY_DUMP,
+          ROOT_STICKY_CLASS
+        )
       ) { tag, _, reader ->
         val bytesReadStart = reader.bytesRead
         when (tag) {
@@ -706,6 +732,16 @@ internal class HprofInMemoryIndex private constructor(
             reader.skipPrimitiveArrayDumpRecord()
             maxPrimitiveArraySize = max(maxPrimitiveArraySize, reader.bytesRead - bytesReadStart)
           }
+          ROOT_STICKY_CLASS -> {
+            // StickyClass has only 1 field: id. Our API 23 emulators in CI are creating heap
+            // dumps with duplicated sticky class roots, up to 30K times for some objects.
+            // There's no point in keeping all these in our list of roots, 1 per each is enough
+            // so we deduplicate with stickyClassGcRootIds.
+            val id = reader.readStickyClassGcRootRecord().id
+            if (id != ValueHolder.NULL_REFERENCE) {
+              stickyClassGcRootIds += id
+            }
+          }
         }
       }
 
@@ -725,7 +761,8 @@ internal class HprofInMemoryIndex private constructor(
         bytesForInstanceSize = bytesForInstanceSize,
         bytesForObjectArraySize = bytesForObjectArraySize,
         bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
-        classFieldsTotalBytes = classFieldsTotalBytes
+        classFieldsTotalBytes = classFieldsTotalBytes,
+        stickyClassGcRootIds
       )
 
       val recordTypes = EnumSet.of(

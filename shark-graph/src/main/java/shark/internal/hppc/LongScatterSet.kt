@@ -60,6 +60,29 @@ internal class LongScatterSet(expectedElements: Int = 4) {
     ensureCapacity(expectedElements)
   }
 
+  fun elementSequence(): Sequence<Long> {
+    val max = mask + 1
+    var slot = -1
+    return generateSequence {
+      if (slot < max) {
+        var existing: Long
+        slot++
+        while (slot < max) {
+          existing = keys[slot]
+          if (existing != 0L) {
+            return@generateSequence existing
+          }
+          slot++
+        }
+      }
+      if (slot == max && hasEmptyKey) {
+        slot++
+        return@generateSequence 0L
+      }
+      return@generateSequence null
+    }
+  }
+
   private fun hashKey(key: Long): Int {
     return HPPC.mixPhi(key)
   }
