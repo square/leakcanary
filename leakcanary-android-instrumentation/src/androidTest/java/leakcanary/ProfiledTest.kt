@@ -2,8 +2,7 @@ package leakcanary
 
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
-import leakcanary.Profiler.runWithSampling
-import org.junit.Ignore
+import leakcanary.Profiler.runWithProfilerSampling
 import org.junit.Test
 import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
@@ -17,7 +16,6 @@ import java.io.FileOutputStream
 
 class ProfiledTest {
 
-  @Ignore
   @Test fun analyzeLargeDump() {
     profileAnalysis("large-dump.hprof")
   }
@@ -30,7 +28,7 @@ class ProfiledTest {
     context.assets.open(fileName)
         .copyTo(FileOutputStream(heapDumpFile))
 
-    runWithSampling {
+    runWithProfilerSampling {
       val analyzer = HeapAnalyzer(object : OnAnalysisProgressListener {
         override fun onAnalysisProgress(step: Step) {
           Log.d("LeakCanary", step.name)

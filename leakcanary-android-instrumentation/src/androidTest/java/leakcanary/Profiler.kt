@@ -1,6 +1,10 @@
 package leakcanary
 
+import android.os.Debug
 import shark.SharkLog
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Helper class for working with Android Studio's Profiler
@@ -22,7 +26,6 @@ internal object Profiler {
     SharkLog.d { "Sampling started! Proceeding..." }
   }
 
-
   /**
    * Wait until CPU Sampling stops.
    * Calling this on main thread can lead to ANR if you try to interact with UI while it's waiting for
@@ -41,11 +44,52 @@ internal object Profiler {
    * and finally waits for sampling to stop. See [waitForSamplingStart] and [waitForSamplingStop]
    * for more details.
    */
-  fun <T> runWithSampling(block:() -> T): T {
+  fun <T> runWithProfilerSampling(block: () -> T): T {
     waitForSamplingStart()
     val result = block()
     waitForSamplingStop()
     return result
+  }
+
+  private const val TRACES_FOLDER = "/sdcard/traces/"
+  private const val TRACE_NAME_PATTERN = "yyyy-MM-dd_HH-mm-ss_SSS'.trace'"
+  private const val BUFFER_SIZE = 50 * 1024 * 1024
+  private const val TRACE_INTERVAL_US = 1000
+
+  /**
+   * Executes the given function [block] with method tracing to SD card and returns the result of
+   * the function execution.
+   * Tracing is performed with [Debug.startMethodTracingSampling] which uses sampling with
+   * [TRACE_INTERVAL_US] microseconds interval.
+   * Trace file will be stored in [TRACES_FOLDER] and can be pulled via `adb pull` command.
+   * See Logcat output for an exact command to retrieve trace file
+   */
+  fun <T> runWithMethodTracing(block: () -> T): T {
+    java.io.File(TRACES_FOLDER).mkdirs()
+    val fileName = SimpleDateFormat(TRACE_NAME_PATTERN, Locale.US).format(Date())
+    Debug.startMethodTracingSampling(
+        "$TRACES_FOLDER$fileName",
+        BUFFER_SIZE,
+        TRACE_INTERVAL_US
+    )
+    val result = block()
+    Debug.stopMethodTracing()
+    SharkLog.d { "Method tracing complete! Run following command to retrieve your trace:" }
+    SharkLog.d { "adb pull $TRACES_FOLDER$fileName ~/Downloads/ " }
+    return result
+  }
+
+  /**
+   * Executes the given function [block] twice (without and with method tracing to SD card) and
+   * returns the result of the function execution.
+   * First execution of [block] is done to warm up code and load any necessary libs. Second
+   * execution is measured with [runWithMethodTracing]
+   */
+  fun <T> benchmarkWithMethodTracing(block:() -> T): T {
+    SharkLog.d { "Dry run to warm up the code." }
+    block()
+    SharkLog.d { "Run with sampling" }
+    return runWithMethodTracing(block)
   }
 
   private inline fun sleepUntil(condition: () -> Boolean) {
