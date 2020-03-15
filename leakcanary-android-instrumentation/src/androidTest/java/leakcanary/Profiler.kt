@@ -34,6 +34,20 @@ internal object Profiler {
     SharkLog.d { "Sampling stopped! Proceeding..." }
   }
 
+  /**
+   * Executes the given function [block] with CPU sampling via Profiler and returns the result of
+   * the function execution.
+   * First, it awaits for Profiler to be attached at start of sampling, then executes [block]
+   * and finally waits for sampling to stop. See [waitForSamplingStart] and [waitForSamplingStop]
+   * for more details.
+   */
+  fun <T> runWithSampling(block:() -> T): T {
+    waitForSamplingStart()
+    val result = block()
+    waitForSamplingStop()
+    return result
+  }
+
   private inline fun sleepUntil(condition: () -> Boolean) {
     while (true) {
       if (condition()) return else Thread.sleep(SLEEP_TIME_MILLIS)
