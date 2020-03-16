@@ -177,6 +177,7 @@ class SharkCliCommand : CliktCommand(
           .start()
           .also { it.waitFor(10, SECONDS) }
 
+      val output = process.inputStream.bufferedReader().readText()
       if (process.exitValue() != 0) {
         val command = arguments.joinToString(" ")
         val errorOutput = process.errorStream.bufferedReader()
@@ -185,8 +186,7 @@ class SharkCliCommand : CliktCommand(
             "Failed command: '$command', error output:\n```$errorOutput```"
         )
       }
-      return process.inputStream.bufferedReader()
-          .readText()
+      return output
     }
   }
 
