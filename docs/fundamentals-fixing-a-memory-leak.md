@@ -111,7 +111,7 @@ class MainActivity : Activity() {
 
 ```
 
-Let's pretend that we don't know about this bad code. We just joined a new company that has an existing Android app, we set up LeakCanary, and soon enough tit produces a leak trace that looks like this:
+Let's pretend that we don't know about this bad code. We just joined a new company that has an existing Android app, we set up LeakCanary, and soon enough it produces a leak trace that looks like this:
 
 ```
 ┬───
