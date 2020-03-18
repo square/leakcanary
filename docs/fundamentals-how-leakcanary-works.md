@@ -32,7 +32,7 @@ D LeakCanary: Rescheduling check for retained objects in 2000ms because found
 
 ## Dumping the heap
 
-When the count of retained objects reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored onto the Android file system. This freezes the app for a short amount of time, during which LeakCanary displays the following toast:
+When the count of retained objects reaches a threshold, LeakCanary dumps the Java heap into a `.hprof` file stored onto the Android file system (see [Where does LeakCanary store heap dumps?](faq.md#where-does-leakcanary-store-heap-dumps)). This freezes the app for a short amount of time, during which LeakCanary displays the following toast:
 
 ![toast](images/dumping-toast.png)
 
