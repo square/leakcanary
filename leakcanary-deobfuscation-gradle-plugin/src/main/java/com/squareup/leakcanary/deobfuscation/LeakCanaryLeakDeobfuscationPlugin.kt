@@ -77,6 +77,12 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
         ) ?: findTaskProviderOrNull(
             project,
             "transformClassesAndResourcesWithProguardFor${variant.name.capitalize()}"
+        ) ?: findTaskProviderOrNull(
+            project,
+            "minify${variant.name.capitalize()}WithR8"
+        ) ?: findTaskProviderOrNull(
+            project,
+            "minify${variant.name.capitalize()}WithProguard"
         ) ?: throwMissingMinifiedVariantException()
 
       it.dependsOn(mappingGeneratingTaskProvider)
