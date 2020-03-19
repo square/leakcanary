@@ -138,6 +138,10 @@ Run the instrumentation tests:
 
 You can extend `FailTestOnLeakRunListener` to customize the behavior.
 
+!!! bug "Obfuscated instrumentation tests"
+	When running instrumentation tests against obfuscated release builds, the LeakCanary classes end up spread over the test APK and the main APK. Unfortunately there is
+	a [bug](https://issuetracker.google.com/issues/126429384) in the Android Gradle Plugin that leads to runtime crashes when running tests, because code from the main APK is changed without the using code in the test APK being updated accordingly. If you run into this issue, setting up the [Keeper plugin](https://slackhq.github.io/keeper/) should fix it.
+
 ## Android TV
 
 LeakCanary works on Android TV devices (FireTV, Nexus player, Nvidia Shield, MiBox, etc.) without any additional setup. However, there are couple things you need to be aware of:
