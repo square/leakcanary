@@ -176,6 +176,11 @@ internal abstract class NavigatingActivity : Activity() {
       else -> super.onOptionsItemSelected(item)
     }
 
+  override fun onDestroy() {
+    super.onDestroy()
+    currentView.notifyScreenExiting()
+  }
+
   companion object {
     val NO_MENU: ((Menu) -> Unit) = {}
   }
