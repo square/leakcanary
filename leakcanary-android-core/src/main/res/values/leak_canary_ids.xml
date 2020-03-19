@@ -21,4 +21,5 @@
   <item type="id" name="leak_canary_notification_analyzing_heap" />
   <item type="id" name="leak_canary_notification_retained_objects" />
   <item type="id" name="leak_canary_notification_no_retained_object_on_tap" />
+  <item type="id" name="leak_canary_notification_on_screen_exit" />
 </resources>

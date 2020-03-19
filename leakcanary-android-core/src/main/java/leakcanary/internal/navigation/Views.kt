@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import com.squareup.leakcanary.core.R
 
 internal fun ViewGroup.inflate(layoutResId: Int) = LayoutInflater.from(context)
     .inflate(layoutResId, this, false)!!
@@ -36,4 +37,21 @@ internal fun Context.getColorCompat(id: Int): Int {
   } else {
     resources.getColor(id)
   }
+}
+
+internal fun View.onScreenExiting(block: () -> Unit) {
+  @Suppress("UNCHECKED_CAST")
+  var callbacks = getTag(R.id.leak_canary_notification_on_screen_exit) as MutableList<() -> Unit>?
+  if (callbacks == null) {
+    callbacks = mutableListOf<() -> Unit>()
+    setTag(R.id.leak_canary_notification_on_screen_exit, callbacks)
+  }
+  callbacks.add(block)
+}
+
+internal fun View.notifyScreenExiting() {
+  @Suppress("UNCHECKED_CAST")
+  val callbacks = getTag(R.id.leak_canary_notification_on_screen_exit)
+      as MutableList<() -> Unit>?
+  callbacks?.forEach { it.invoke() }
 }

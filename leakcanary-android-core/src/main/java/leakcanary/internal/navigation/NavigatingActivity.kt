@@ -92,6 +92,7 @@ internal abstract class NavigatingActivity : Activity() {
 
     currentView.startAnimation(loadAnimation(this, R.anim.leak_canary_exit_alpha))
     container.removeView(currentView)
+    currentView.notifyScreenExiting()
 
     backstack.clear()
 
@@ -108,6 +109,7 @@ internal abstract class NavigatingActivity : Activity() {
 
     currentView.startAnimation(loadAnimation(this, R.anim.leak_canary_exit_forward))
     container.removeView(currentView)
+    currentView.notifyScreenExiting()
     val backstackFrame = BackstackFrame(currentScreen, currentView)
     backstack.add(backstackFrame)
 
@@ -124,6 +126,7 @@ internal abstract class NavigatingActivity : Activity() {
 
     currentView.startAnimation(loadAnimation(this, R.anim.leak_canary_exit_backward))
     container.removeView(currentView)
+    currentView.notifyScreenExiting()
 
     val latest = backstack.removeAt(backstack.size - 1)
     currentScreen = latest.screen
