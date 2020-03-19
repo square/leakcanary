@@ -35,6 +35,11 @@ D/LeakCanary: JUnit detected in classpath, app is running tests => disabling hea
 D/LeakCanary: Updated LeakCanary.config: Config(dumpHeap=false)
 ```
 
+## Where does LeakCanary store heap dumps?
+
+The default behavior is to store heap dumps in a `leakcanary` folder under the app directory. If the app has been granted the `android.permission.WRITE_EXTERNAL_STORAGE` permission, then heap dumps will be stored
+in a `leakcanary-com.example` folder (where `com.example` is your app package name) under the `Download` folder of the external storage. If the app has not been granted the `android.permission.WRITE_EXTERNAL_STORAGE` permission but that permission is listed in `AndroidManifest.xml` then LeakCanary will show a notification that can be tapped to grant permission.
+
 ## How can I dig beyond the leak trace?
 
 Sometimes the leak trace isn't enough and you need to dig into a heap dump with [MAT](http://eclipse.org/mat/) or [YourKit](https://www.yourkit.com/).
