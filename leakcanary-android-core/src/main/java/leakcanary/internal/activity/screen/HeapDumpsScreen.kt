@@ -13,15 +13,24 @@ import leakcanary.internal.activity.db.HeapAnalysisTable.Projection
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.ui.SimpleListAdapter
 import leakcanary.internal.activity.ui.TimeFormatter
+import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
+import leakcanary.internal.navigation.onScreenExiting
 
 internal class HeapDumpsScreen : Screen() {
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_heap_dumps_screen).apply {
+
+      val unsubscribeRefresh = HeapAnalysisTable.onUpdate {
+        activity<NavigatingActivity>().refreshCurrentScreen()
+      }
+
+      onScreenExiting { unsubscribeRefresh() }
+
       onCreateOptionsMenu { menu ->
         menu.add(R.string.leak_canary_delete_all)
             .setOnMenuItemClickListener {

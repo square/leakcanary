@@ -121,6 +121,16 @@ internal abstract class NavigatingActivity : Activity() {
     screenUpdated()
   }
 
+  fun refreshCurrentScreen() {
+    onCreateOptionsMenu = NO_MENU
+    container.removeView(currentView)
+    currentView.notifyScreenExiting()
+    currentView = currentScreen.createView(container)
+    container.addView(currentView)
+
+    screenUpdated()
+  }
+
   fun goBack() {
     onCreateOptionsMenu = NO_MENU
 

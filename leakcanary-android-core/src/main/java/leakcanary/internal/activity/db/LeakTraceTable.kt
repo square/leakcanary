@@ -41,8 +41,4 @@ internal object LeakTraceTable {
   ) {
     db.delete("leak_trace", "heap_analysis_id=$heapAnalysisId", null)
   }
-
-  fun deleteAll(db: SQLiteDatabase) {
-    db.delete("leak_trace", null, null)
-  }
 }

@@ -3,6 +3,8 @@ package leakcanary.internal.activity.db
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import android.os.AsyncTask
+import android.os.Handler
+import android.os.Looper
 import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.internal.Serializables
 import leakcanary.internal.toByteArray
@@ -14,6 +16,10 @@ import shark.SharkLog
 import java.io.File
 
 internal object HeapAnalysisTable {
+
+  private val updateListeners = mutableListOf<() -> Unit>()
+
+  private val mainHandler = Handler(Looper.getMainLooper())
 
   @Language("RoomSql")
   const val create = """CREATE TABLE heap_analysis
@@ -27,6 +33,13 @@ internal object HeapAnalysisTable {
 
   @Language("RoomSql")
   const val drop = "DROP TABLE IF EXISTS heap_analysis"
+
+  fun onUpdate(block: () -> Unit): () -> Unit {
+    updateListeners.add(block)
+    return {
+      updateListeners.remove(block)
+    }
+  }
 
   fun insert(
     db: SQLiteDatabase,
@@ -58,6 +71,17 @@ internal object HeapAnalysisTable {
             }
       }
       heapAnalysisId
+    }.apply { notifyUpdateOnMainThread() }
+  }
+
+  private fun notifyUpdateOnMainThread() {
+    if (Looper.getMainLooper().thread === Thread.currentThread()) {
+      throw UnsupportedOperationException(
+          "Should not be called from the main thread"
+      )
+    }
+    mainHandler.post {
+      updateListeners.forEach { it() }
     }
   }
 
@@ -136,6 +160,7 @@ internal object HeapAnalysisTable {
       db.delete("heap_analysis", "id=$heapAnalysisId", null)
       LeakTable.deleteByHeapAnalysisId(db, heapAnalysisId)
     }
+    notifyUpdateOnMainThread()
   }
 
   fun deleteAll(db: SQLiteDatabase) {
@@ -168,6 +193,7 @@ internal object HeapAnalysisTable {
             }
           }
     }
+    notifyUpdateOnMainThread()
   }
 
   class Projection(
