@@ -51,7 +51,7 @@ internal class HprofExplorerScreen(
     container.inflate(R.layout.leak_canary_hprof_explorer).apply {
       container.activity.title = resources.getString(R.string.leak_canary_loading_title)
 
-      lateinit var closeable: Closeable
+      var closeable: Closeable? = null
 
       addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(view: View) {
@@ -59,7 +59,7 @@ internal class HprofExplorerScreen(
 
         override fun onViewDetachedFromWindow(view: View) {
           Io.execute {
-            closeable.close()
+            closeable?.close()
           }
         }
       })
