@@ -5,6 +5,8 @@ import android.os.Looper
 import android.view.View
 import android.view.View.OnAttachStateChangeListener
 import leakcanary.internal.activity.db.Io.OnIo
+import leakcanary.internal.navigation.activity
+import leakcanary.internal.navigation.onScreenExiting
 import java.util.concurrent.Executors
 
 internal object Io {
@@ -34,14 +36,9 @@ internal object Io {
   ) {
     checkMainThread()
     val viewWrapper: VolatileObjectRef<View> = VolatileObjectRef(view)
-    view.addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
-      override fun onViewAttachedToWindow(v: View?) {
-      }
-
-      override fun onViewDetachedFromWindow(v: View?) {
-        viewWrapper.element = null
-      }
-    })
+    view.onScreenExiting {
+      viewWrapper.element = null
+    }
     serialExecutor.execute backgroundExecute@{
       if (viewWrapper.element == null) {
         return@backgroundExecute

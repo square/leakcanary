@@ -32,9 +32,7 @@ internal object Db {
       block(dbBlock)
       val updateUi = dbBlock.updateUi
       if (updateUi != null) {
-        updateUi {
-          updateUi()
-        }
+        updateUi(updateUi)
       }
     }
   }
