@@ -7,19 +7,29 @@ import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
+import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.LeakTable.AllLeaksProjection
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.ui.SimpleListAdapter
 import leakcanary.internal.activity.ui.TimeFormatter
+import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
+import leakcanary.internal.navigation.onScreenExiting
 
 internal class LeaksScreen : Screen() {
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_list).apply {
+
+      val unsubscribeRefresh = HeapAnalysisTable.onUpdate {
+        activity<NavigatingActivity>().refreshCurrentScreen()
+      }
+
+      onScreenExiting { unsubscribeRefresh() }
+
       executeOnDb {
         val projections = LeakTable.retrieveAllLeaks(db)
         updateUi { onGroupsRetrieved(projections) }
