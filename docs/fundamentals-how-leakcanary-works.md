@@ -114,4 +114,59 @@ println(leakSignature)
 // dbfa277d7e5624792e8b60bc950cd164190a11aa
 ```
 
+## Library leaks
+
+LeakCanary separates the leaks it finds in your app into two categories: **Application Leaks** and **Library Leaks**.
+
+A **Library Leak** is a leak caused by a known bug in 3rd party code that you do not have control over. This leak is impacting your application, but unfortunately fixing it may not be in your control so we separate them out.
+
+You can see the two categories of leak in the result printed in **Logcat**:
+
+```
+====================================
+HEAP ANALYSIS RESULT
+====================================
+0 APPLICATION LEAKS
+
+====================================
+1 LIBRARY LEAK
+
+...
+┬───
+│ GC Root: Local variable in native code
+│
+...
+```
+
+The LeakCanary UI adds a <span style="border-radius: 20px; background: #4e462f; padding-left: 8px; padding-right: 8px; padding-top: 2px; padding-bottom: 2px; color: #ffcc32;">Library Leak</span> tag:
+
+![Library Leak](images/library-leak.png)
+
+LeakCanary ships with a database of known leaks, which it recognizes by pattern matching on reference names, for example:
+
+```
+Leak pattern: instance field android.app.Activity$1#this$0
+Description: Android Q added a new IRequestFinishCallback$Stub class [...]
+┬───
+│ GC Root: Global variable in native code
+│
+├─ android.app.Activity$1 instance
+│    Leaking: UNKNOWN
+│    Anonymous subclass of android.app.IRequestFinishCallback$Stub
+│    ↓ Activity$1.this$0
+│                 ~~~~~~
+╰→ leakcanary.internal.activity.LeakActivity instance
+```
+
+!!! quote "What did I do to cause this leak?"
+    Nothing wrong! Most likely you used an API the way it was intended but the implementation has a bug that is causing this leak.
+
+!!! quote "Is there anything I can do to prevent it?"
+    Maybe! Some Library Leaks can be fixed using reflection, others by exercising a code path that makes the leak go away. This type of fix tends to be hacky, so beware! Your best option might be to find the bug report or file one, and insist that it must get fixed.
+
+!!! quote "Since I can't do much about this leak, is there a way I can ask LeakCanary to ignore it?"
+	There's no way for LeakCanary to know whether a leak is a Library Leak or not prior to dumping the heap and analyzing it. If we didn't show the result notification when a Library Leak is found then you'd start wondering what happened to the LeakCanary analysis after the dumping toast.
+
+You can see the full list of known leaks in the [AndroidReferenceMatchers](https://github.com/square/leakcanary/blob/master/shark-android/src/main/java/shark/AndroidReferenceMatchers.kt#L49) class. If you find an Android SDK leak that isn't recognized, please [report it](faq.md#can-a-leak-be-caused-by-the-android-sdk). You can also [customize the list of known Library Leaks](recipes.md#matching-known-library-leaks).
+
 What's next? Learn how to [fix a memory leak](fundamentals-fixing-a-memory-leak.md)!
