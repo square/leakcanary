@@ -1,5 +1,7 @@
 # Code Recipes
 
+This page contains code recipes to customize LeakCanary to your needs. Read through the section titles and cook your own meal! Also don't forget to check out the [FAQ](faq.md).
+
 !!! bug
     If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new/choose). Your feedback help us make LeakCanary better for the entire community.
 
@@ -23,7 +25,7 @@ class MyService : Service {
 
 ## Configuration
 
-LeakCanary has a default configuration that should work well for most apps. You can also customize it to your needs. The LeakCanary configuration is held by two singleton objects (`AppWatcher` and `LeakCanary`) and can be updated at any time. Most developers configure LeakCanary in their **debug** [Application](https://developer.android.com/reference/android/app/Application) class:
+LeakCanary has a default configuration that works well for most apps. You can also customize it to your needs. The LeakCanary configuration is held by two singleton objects (`AppWatcher` and `LeakCanary`) and can be updated at any time. Most developers configure LeakCanary in their **debug** [Application](https://developer.android.com/reference/android/app/Application) class:
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
@@ -36,7 +38,7 @@ class DebugExampleApplication : ExampleApplication() {
 ```
 
 !!! info
-    You can create a debug application class in your `src/debug/java` folder. Don't forget to also register it in `src/debug/AndroidManifest.xml`.
+    Create a debug application class in your `src/debug/java` folder. Don't forget to also register it in `src/debug/AndroidManifest.xml`.
 
 To customize the detection of retained objects at runtime, update [AppWatcher.config](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/):
 
@@ -44,7 +46,7 @@ To customize the detection of retained objects at runtime, update [AppWatcher.co
 AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
 ```
 
-In Java, you can use [AppWatcher.Config.Builder](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/) instead:
+In Java, use [AppWatcher.Config.Builder](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/) instead:
 ```
 AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
    .watchFragmentViews(false)
@@ -58,7 +60,7 @@ To customize the heap dumping & analysis, update [LeakCanary.config](/leakcanary
 LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 ```
 
-In Java, you can use [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/) instead:
+In Java, use [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/) instead:
 ```
 LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
    .retainedVisibleThreshold(3)
@@ -66,7 +68,7 @@ LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
 LeakCanary.setConfig(config);
 ```
 
-The LeakCanary UI can be configured by overriding the following resources:
+Configure the LeakCanary UI by overriding the following resources:
 
 * `mipmap/leak_canary_icon` see [Icon and label](#icon-and-label)
 * `string/leak_canary_display_activity_label` see [Icon and label](#icon-and-label)
