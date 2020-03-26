@@ -19,6 +19,8 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
@@ -28,18 +30,18 @@ import java.io.File
 @CacheableTask
 open class CopyObfuscationMappingFileTask : DefaultTask() {
 
+  @Input
   var variantName: String = ""
 
-  @Input
+  @InputFile
   @PathSensitive(PathSensitivity.RELATIVE)
   var mappingFile: File? = null
 
-  @Input
+  @InputDirectory
   @PathSensitive(PathSensitivity.RELATIVE)
   var mergeAssetsDirectory: File? = null
 
   @get:OutputFile
-  @get:PathSensitive(PathSensitivity.RELATIVE)
   val leakCanaryAssetsOutputFile: File
     get() = File(mergeAssetsDirectory, "leakCanaryObfuscationMapping.txt")
 
