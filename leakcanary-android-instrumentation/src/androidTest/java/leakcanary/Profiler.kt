@@ -79,19 +79,6 @@ internal object Profiler {
     return result
   }
 
-  /**
-   * Executes the given function [block] twice (without and with method tracing to SD card) and
-   * returns the result of the function execution.
-   * First execution of [block] is done to warm up code and load any necessary libs. Second
-   * execution is measured with [runWithMethodTracing]
-   */
-  fun <T> benchmarkWithMethodTracing(block:() -> T): T {
-    SharkLog.d { "Dry run to warm up the code." }
-    block()
-    SharkLog.d { "Run with sampling" }
-    return runWithMethodTracing(block)
-  }
-
   private inline fun sleepUntil(condition: () -> Boolean) {
     while (true) {
       if (condition()) return else Thread.sleep(SLEEP_TIME_MILLIS)

@@ -3,6 +3,7 @@ package leakcanary
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import leakcanary.Profiler.runWithProfilerSampling
+import org.junit.Ignore
 import org.junit.Test
 import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
@@ -16,6 +17,7 @@ import java.io.FileOutputStream
 
 class ProfiledTest {
 
+  @Ignore
   @Test fun analyzeLargeDump() {
     profileAnalysis("large-dump.hprof")
   }
