@@ -27,7 +27,7 @@ class ProductionUsageDetectorTest {
         .run()
         .expect(
             """
-            build.gradle:4: Error: LeakCanary should not be used in production. [ProductionUsagePattern]
+            build.gradle:4: Error: LeakCanary should not be used in production. Please use debugImplementation instead. [ProductionUsagePattern]
               implementation 'com.squareup.leakcanary:leakcanary-android:2.2'
               ~~~~~~~~~~~~~~
             1 errors, 0 warnings
