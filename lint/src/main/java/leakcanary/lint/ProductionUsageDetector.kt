@@ -24,7 +24,9 @@ class ProductionUsageDetector : Detector(), Detector.GradleScanner {
   companion object {
     const val BLOCK_NAME = "dependencies"
     const val DEPENDENCY_PREFIX = "com.squareup.leakcanary"
-    const val DESIRED_ENVIRONMENT = "debug"
+    const val RELEASE_ENVIRONMENT = "release"
+    const val IMPLEMENTATION = "implementation"
+    const val API = "api"
     const val MESSAGE = "LeakCanary should not be used in production."
     const val DETAIL_MESSAGE = "$MESSAGE Please use debugImplementation instead."
     const val ISSUE_ID = "ProductionUsagePattern"
@@ -40,11 +42,8 @@ class ProductionUsageDetector : Detector(), Detector.GradleScanner {
     valueCookie: Any,
     statementCookie: Any
   ) {
-    if (parent == BLOCK_NAME) {
-      if (value.contains(DEPENDENCY_PREFIX) &&
-          property.contains(DESIRED_ENVIRONMENT)
-              .not()
-      ) {
+    if (parent == BLOCK_NAME && value.contains(DEPENDENCY_PREFIX)) {
+      if (property == IMPLEMENTATION || property == API || property.contains(RELEASE_ENVIRONMENT)) {
         context.report(
             ISSUE_PROD_USAGE_PATTERN, context.getLocation(propertyCookie), DETAIL_MESSAGE
         )
