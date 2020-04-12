@@ -46,7 +46,7 @@ class ProductionUsageDetector : Detector(), Detector.GradleScanner {
               .not()
       ) {
         context.report(
-            ISSUE_PROD_USAGE_PATTERN, context.getLocation(propertyCookie), MESSAGE
+            ISSUE_PROD_USAGE_PATTERN, context.getLocation(propertyCookie), DETAIL_MESSAGE
         )
       }
     }
