@@ -5,6 +5,7 @@ dependencies {
   api project(':leakcanary-android-core')
 
   implementation deps.kotlin.stdlib
+  lintPublish project(":lint")
 }
 
 android {
