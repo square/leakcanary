@@ -13,7 +13,7 @@ buildscript {
       // relies on), we're sticking a bit older because most apps will be using a more recent version
       // and they'll automatically resolve to higher version without having to necessarily resort to a
       // resolution strategy.
-      androidGradlePlugin: "com.android.tools.build:gradle:3.6.1",
+      androidGradlePlugin: "com.android.tools.build:gradle:3.6.2",
       androidx: [
           annotation: 'androidx.annotation:annotation:1.0.2',
           core: 'androidx.core:core:1.0.1',
