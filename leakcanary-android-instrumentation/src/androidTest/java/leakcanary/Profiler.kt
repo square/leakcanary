@@ -74,7 +74,7 @@ internal object Profiler {
     )
     val result = block()
     Debug.stopMethodTracing()
-    SharkLog.d { "Method tracing complete! Run following command to retrieve your trace:" }
+    SharkLog.d { "Method tracing complete! Run the following command to retrieve the trace:" }
     SharkLog.d { "adb pull $TRACES_FOLDER$fileName ~/Downloads/ " }
     return result
   }

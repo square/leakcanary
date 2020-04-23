@@ -40,7 +40,7 @@ object Benchmark {
       SharkLog.d { "BenchmarkCode, iteration ${it + 1}/$times, duration ${end-start}" }
       total += (end-start)
     }
-    SharkLog.d { "BenchmarkCode complete. Iterations:$times, avg duration ${total/times}" }
+    SharkLog.d { "BenchmarkCode complete. Iterations: $times, average duration ${total/times} ms" }
     return result
   }
 }
