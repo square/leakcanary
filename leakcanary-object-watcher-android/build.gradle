@@ -8,6 +8,7 @@ dependencies {
 
   testImplementation deps.assertj_core
   testImplementation deps.junit
+  testImplementation deps.kotlin.reflect
 }
 
 android {
