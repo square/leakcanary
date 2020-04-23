@@ -157,9 +157,12 @@ data class LeakTrace(
 
   internal fun fromV20(retainedHeapByteSize: Int?) = LeakTrace(
       gcRootType = elements!!.first().gcRootTypeFromV20(),
-      referencePath = elements.subList(
-          0, elements.lastIndex - 1
-      ).map { it.referencePathElementFromV20() },
+      referencePath = when {
+        elements.isEmpty() -> emptyList()
+        else -> elements
+                .subList(0, elements.lastIndex - 1)
+                .map { it.referencePathElementFromV20() }
+      },
       leakingObject = elements.last().originObjectFromV20(),
       retainedHeapByteSize = retainedHeapByteSize
   )
