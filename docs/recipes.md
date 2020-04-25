@@ -105,6 +105,18 @@ In your leak reporting code:
 val retainedInstanceCount = AppWatcher.objectWatcher.retainedObjectCount
 ```
 
+## LeakCanary in release builds
+
+We **do not recommend** including LeakCanary in your production build. To avoid accidentally including the `com.squareup.leakcanary:leakcanary-android` dependency in a release build, LeakCanary crashes during initialization if the APK is not debuggable.
+If necessary this check can be disabled by overriding the `bool/leak_canary_allow_in_non_debuggable_build` resource, e.g. by creating a file under `res/values` with the following contents:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <bool name="leak_canary_allow_in_non_debuggable_build">true</bool>
+</resources>
+```
+
 ## Running LeakCanary in instrumentation tests
 
 Running leak detection in UI tests means you can detect memory leaks automatically in Continuous Integration prior to those leaks being merged into the codebase. However, as LeakCanary runs with a 5 seconds delay and freezes the VM to take a heap dump, this can introduce flakiness to the UI tests. Therefore it is automatically disabled by setting `LeakCanary.config.dumpHeap` to `false` when JUnit is on the runtime classpath.
