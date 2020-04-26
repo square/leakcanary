@@ -1,10 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/leak_canary_about_text"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:paddingLeft="16dp"
-    android:paddingRight="16dp"
-    android:paddingBottom="16dp"
-    />
+    android:layout_height="match_parent"
+    >
+  <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+      android:id="@+id/leak_canary_about_text"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:paddingBottom="16dp"
+      android:paddingLeft="16dp"
+      android:paddingRight="16dp"
+      />
 
+  <TextView
+      android:id="@+id/leak_canary_about_heap_dump_text"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_alignParentBottom="true"
+      android:paddingBottom="16dp"
+      android:paddingLeft="16dp"
+      android:paddingRight="16dp"
+      android:textStyle="italic"
+      />
+
+</RelativeLayout>
