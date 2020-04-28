@@ -9,7 +9,9 @@ dependencies {
 
   implementation deps.kotlin.stdlib
 
+  testImplementation deps.assertj_core
   testImplementation deps.junit
+  testImplementation deps.kotlin.reflect
   testImplementation deps.mockito
   testImplementation deps.mockito_kotlin
   androidTestImplementation deps.androidx.test.espresso
