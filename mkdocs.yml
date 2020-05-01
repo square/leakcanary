@@ -68,7 +68,6 @@ nav:
     - 'Blog Articles': blog-articles.md
     - 'Stack Overflow ⏏': https://stackoverflow.com/questions/tagged/leakcanary?sort=active
     - 'Contributing':
-        - 'How to help': how_to_help.md
         - 'Code of Conduct': code_of_conduct.md
         - 'Dev Environment': dev-env.md
         - 'Releasing': releasing.md
@@ -87,6 +86,7 @@ nav:
     - 'Extension: Separate process': api/leakcanary-android-process/leakcanary/index.md
     - 'Core: ObjectWatcher': api/leakcanary-object-watcher/leakcanary/index.md
   - 'Change Log': changelog.md
+  - 'How to help 🙏': how_to_help.md
 
 # Google Analytics. Add export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-XXXXXXXXX-X" to your ~/.bashrc
 google_analytics:
