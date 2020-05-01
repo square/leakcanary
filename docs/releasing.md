@@ -1,5 +1,11 @@
 # Releasing LeakCanary
 
+* Make sure you have the docsite Google Analytics key set up in your `~/.bashrc`:
+
+```
+export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-142834539-1"
+```
+
 * Create a local release branch from `master`
 ```
 git checkout master
