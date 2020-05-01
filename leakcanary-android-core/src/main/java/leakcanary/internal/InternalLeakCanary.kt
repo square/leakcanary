@@ -7,6 +7,7 @@ import android.app.UiModeManager
 import android.content.ComponentName
 import android.content.Context.UI_MODE_SERVICE
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
 import android.content.pm.PackageManager.DONT_KILL_APP
@@ -66,6 +67,10 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     }
   }
 
+  private val isDebuggableBuild by lazy {
+    (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+  }
+
   val leakDirectoryProvider: LeakDirectoryProvider by lazy {
     LeakDirectoryProvider(application, {
       LeakCanary.config.maxStoredHeapDumps
@@ -117,6 +122,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   override fun invoke(application: Application) {
     this.application = application
 
+    checkRunningInDebuggableBuild()
+
     AppWatcher.objectWatcher.addOnObjectRetainedListener(this)
 
     val heapDumper = AndroidHeapDumper(application, leakDirectoryProvider)
@@ -141,6 +148,28 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     addDynamicShortcut(application)
 
     disableDumpHeapInTests()
+  }
+
+  private fun checkRunningInDebuggableBuild() {
+    if (isDebuggableBuild) {
+      return
+    }
+
+    if (application.resources.getBoolean(R.bool.leak_canary_allow_in_non_debuggable_build)) {
+      // AppWatcher is disabled by default for non-debuggable builds, but we have a developer opt-in.
+      AppWatcher.config = AppWatcher.config.copy(enabled = true)
+    } else {
+      throw Error("""
+        LeakCanary in non-debuggable build
+        
+        LeakCanary should only be used in debug builds, but this APK is not debuggable.
+        Please follow the instructions on the "Getting started" page to only include LeakCanary in
+        debug builds: https://square.github.io/leakcanary/getting_started/
+        
+        If you're sure you want to include LeakCanary in a non-debuggable build, follow the 
+        instructions here: https://square.github.io/leakcanary/recipes/#leakcanary-in-release-builds
+      """.trimIndent())
+    }
   }
 
   private fun registerResumedActivityListener(application: Application) {

@@ -2,4 +2,5 @@
 <resources>
   <bool name="leak_canary_add_dynamic_shortcut">true</bool>
   <bool name="leak_canary_add_launcher_icon">true</bool>
+  <bool name="leak_canary_allow_in_non_debuggable_build">false</bool>
 </resources>
