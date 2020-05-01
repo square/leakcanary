@@ -177,16 +177,19 @@ class SharkCliCommand : CliktCommand(
           .start()
           .also { it.waitFor(10, SECONDS) }
 
+      // See https://github.com/square/leakcanary/issues/1711
+      // On Windows, the process doesn't always exit; calling to readText() makes it finish, so
+      // we're reading the output before checking for the exit value
+      val output = process.inputStream.bufferedReader().readText()
       if (process.exitValue() != 0) {
         val command = arguments.joinToString(" ")
         val errorOutput = process.errorStream.bufferedReader()
             .readText()
         throw CliktError(
-            "Failed command: '$command', error output:\n```$errorOutput```"
+            "Failed command: '$command', error output:\n---\n$errorOutput---"
         )
       }
-      return process.inputStream.bufferedReader()
-          .readText()
+      return output
     }
   }
 
