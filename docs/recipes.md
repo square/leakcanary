@@ -90,9 +90,9 @@ Sometimes it's necessary to disable LeakCanary temporarily, for example for a pr
 
 	If instead you set `LeakCanary.Config.dumpHeap` to false, `AppWatcher.objectWatcher` will still keep track of retained objects, and LeakCanary will look for these objects when you change `LeakCanary.Config.dumpHeap` back to true.
 
-## Counting retained instances in production
+## Counting retained instances in release builds
 
-The `com.squareup.leakcanary:leakcanary-android` dependency should only be used in debug builds. It depends on `com.squareup.leakcanary:leakcanary-object-watcher-android` which you can use in production to track and count retained instances.
+The `com.squareup.leakcanary:leakcanary-android` dependency should only be used in debug builds. It depends on `com.squareup.leakcanary:leakcanary-object-watcher-android` which you can use in release builds to track and count retained instances.
 
 In your `build.gradle`:
 
@@ -109,8 +109,7 @@ val retainedInstanceCount = AppWatcher.objectWatcher.retainedObjectCount
 
 ## LeakCanary in release builds
 
-We **do not recommend** including LeakCanary in your production build. To avoid accidentally including the `com.squareup.leakcanary:leakcanary-android` dependency in a release build, LeakCanary crashes during initialization if the APK is not debuggable.
-If necessary this check can be disabled by overriding the `bool/leak_canary_allow_in_non_debuggable_build` resource, e.g. by creating a file under `res/values` with the following contents:
+We **do not recommend** including LeakCanary in release builds, as it could negatively impact the experience of your customers. To avoid accidentally including the `com.squareup.leakcanary:leakcanary-android` dependency in a release build, LeakCanary crashes during initialization if the APK is not debuggable. You may have a good reason to create a non debuggable build that includes LeakCanary, for example for a QA build. If necessary, the crashing check can be disabled by overriding the `bool/leak_canary_allow_in_non_debuggable_build` resource, e.g. by creating a file under `res/values` with the following contents:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -553,7 +552,7 @@ leakCanary {
 ```
 
 And that's all. Now you can run LeakCanary on an obfuscated app and leak traces will be automatically deobfuscated.
-**Important:** never use this plugin on a variant that you release for production. This plugin copies obfuscation mapping file and puts it inside the .apk, so if you use it on production build then the obfuscation becomes pointless because the code can be easily deobfuscated using mapping file.
+**Important:** never use this plugin on a release variant. This plugin copies obfuscation mapping file and puts it inside the .apk, so if you use it on release build then the obfuscation becomes pointless because the code can be easily deobfuscated using mapping file.
 
 ## Detecting leaks in JVM applications
 

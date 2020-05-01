@@ -79,7 +79,7 @@ val objectWatcher: ObjectWatcher = AppWatcher.objectWatcher
 
 ## Compile errors because RefWatcher is used in release code
 
-If you were using `RefWatcher` in non debug code, you now get a compile error because the no-op artifact is gone. [ObjectWatcher](/leakcanary/api/leakcanary-object-watcher/leakcanary/-object-watcher/) now lives in the `object-watcher` artifact, which is suitable for production. You have two options:
+If you were using `RefWatcher` in non debug code, you now get a compile error because the no-op artifact is gone. [ObjectWatcher](/leakcanary/api/leakcanary-object-watcher/leakcanary/-object-watcher/) now lives in the `object-watcher` artifact, which is suitable for release builds. You have two options:
 
 ### Option 1: Add `object-watcher-android` to release builds.
 
