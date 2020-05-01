@@ -23,8 +23,13 @@
   and open sourced by <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> at <a href="https://square.github.io">Square</a>.<br><br>
   You can learn more about memory leaks at <a href="https://squ.re/leaks">https://squ.re/leaks</a>.<br><br>
   We welcome contributions from the community - please do not hesitate to
-  <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br>
+  <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br><br>
 ]]></string>
+  <string name="leak_canary_heap_dump_disabled_text">Heap dumping is currently disabled, because <i>%s</i>.</string>
+  <string name="leak_canary_heap_dump_enabled_text">Heap dumping is currently enabled.</string>
+  <string name="leak_canary_heap_dump_disabled_by_app">LeakCanary.Config.dumpHeap is set to false</string>
+  <string name="leak_canary_heap_dump_disabled_running_tests">tests are running</string>
+  <string name="leak_canary_heap_dump_disabled_build_non_debuggable">the debugger is attached and LeakCanary.Config.dumpHeapWhenDebugging is set to false</string>
   <string name="leak_canary_analysis_failed">Heap analysis failed</string>
   <string name="leak_canary_analysis_success_notification">Found %1$d retained objects grouped as %2$d distinct leaks</string>
   <string name="leak_canary_class_has_leaked">%1$s Leaked</string>
