@@ -194,9 +194,9 @@ res/
 </resources>
 ```
 
-## Uploading to a server
+## Customizing the handling of analysis results
 
-You can change the default behavior to upload the analysis result to a server of your choosing.
+You can change the default behavior of what to do when LeakCanary is done analyzing a heap dump, for example to upload the analysis result to a server of your choosing.
 
 Create a custom [OnHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/) that delegates to [DefaultOnHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-default-on-heap-analyzed-listener/): 
 
@@ -213,6 +213,9 @@ class LeakUploader : OnHeapAnalyzedListener {
   }
 }
 ```
+
+!!! info
+    `HeapAnalysis.toString()` returns a large string describing the analysis result and metadata. This string is formatted to be printable to Logcat and shareable on sites like StackOverflow.
 
 Set [LeakCanary.config.onHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/):
 
