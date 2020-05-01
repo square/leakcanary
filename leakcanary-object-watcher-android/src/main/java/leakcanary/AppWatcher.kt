@@ -141,7 +141,7 @@ object AppWatcher {
    * AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
    * ```
    *
-   * In Java, you can use [AppWatcher.Config.Builder] instead:
+   * In Java, use [AppWatcher.Config.Builder] instead:
    * ```
    * AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
    *    .watchFragmentViews(false)

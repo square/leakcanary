@@ -279,7 +279,7 @@ object LeakCanary {
    * LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
    * ```
    *
-   * In Java, you can use [LeakCanary.Config.Builder] instead:
+   * In Java, use [LeakCanary.Config.Builder] instead:
    * ```
    * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
    *    .retainedVisibleThreshold(3)
