@@ -543,7 +543,6 @@ And then you need to apply and configure the plugin in your app (or library) spe
 
 ```groovy
 apply plugin: 'com.android.application'
-// LeakCanary plugin should be added after android application or android library plugin
 apply plugin: 'com.squareup.leakcanary.deobfuscation'
 
 leakCanary {

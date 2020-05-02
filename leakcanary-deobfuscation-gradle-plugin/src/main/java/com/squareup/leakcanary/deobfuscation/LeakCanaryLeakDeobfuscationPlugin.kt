@@ -21,6 +21,7 @@ import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.api.BaseVariant
 import com.android.build.gradle.api.LibraryVariant
+import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.DomainObjectSet
 import org.gradle.api.GradleException
@@ -28,18 +29,24 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.UnknownTaskException
+import org.gradle.api.plugins.AppliedPlugin
 import org.gradle.api.tasks.TaskProvider
 
 class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
 
   override fun apply(project: Project) {
-    val variants = findAndroidVariants(project)
-    val leakCanaryExtension = createLeakCanaryExtension(project)
-    variants.all { variant ->
-      if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
-        setupTasks(project, variant)
+    val leakCanaryPluginAction = Action<AppliedPlugin> {
+      val leakCanaryExtension = createLeakCanaryExtension(project)
+      val variants = findAndroidVariants(project)
+      variants.all { variant ->
+        if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
+          setupTasks(project, variant)
+        }
       }
     }
+
+    project.pluginManager.withPlugin("com.android.application", leakCanaryPluginAction)
+    project.pluginManager.withPlugin("com.android.library", leakCanaryPluginAction)
   }
 
   private fun findAndroidVariants(project: Project): DomainObjectSet<BaseVariant> {
