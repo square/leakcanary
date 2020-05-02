@@ -77,8 +77,8 @@ internal class LeakScreen(
 
     activity.title = String.format(
         resources.getQuantityText(
-                R.plurals.leak_canary_group_screen_title, leak.leakTraces.size
-            )
+            R.plurals.leak_canary_group_screen_title, leak.leakTraces.size
+        )
             .toString(), leak.leakTraces.size, leak.shortDescription
     )
 
@@ -204,12 +204,12 @@ internal class LeakScreen(
       when (urlSpan) {
         "share" -> {
           {
-            share(leakToString(leakTrace, analysis))
+            share(LeakTraceWrapper.wrap(leakToString(leakTrace, analysis), 80))
           }
         }
         "share_stack_overflow" -> {
           {
-            shareToStackOverflow(leakToString(leakTrace, analysis))
+            shareToStackOverflow(LeakTraceWrapper.wrap(leakToString(leakTrace, analysis), 80))
           }
         }
         "open_analysis" -> {
