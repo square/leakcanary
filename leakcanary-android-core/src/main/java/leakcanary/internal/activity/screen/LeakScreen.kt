@@ -144,7 +144,8 @@ private fun View.onLeakTraceSelected(analysis: HeapAnalysisSuccess, heapAnalysis
       References <b><u>underlined</u></b> are the likely causes of the leak.
       Learn more at <a href="https://squ.re/leaks">https://squ.re/leaks</a>
     """.trimIndent() + if (selectedLeak is LibraryLeak) "<br><br>" +
-        "A <font color='#FFCC32'>Library Leak</font> is a leak coming from the Android Framework or Google libraries.<br><br>" +
+        "A <font color='#FFCC32'>Library Leak</font> is a leak caused by a known bug in 3rd party code that you do not have control over. " +
+        "(<a href=\"https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks\">Learn More</a>)<br><br>" +
         "<b>Leak pattern</b>: ${selectedLeak.pattern}<br><br>" +
         "<b>Description</b>: ${selectedLeak.description}" else ""
 
