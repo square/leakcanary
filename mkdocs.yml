@@ -6,6 +6,15 @@ extra:
   leak_canary:
     release: '2.2'
     next_release: '2.3'
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://square.github.io/
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/Piwai
+    - icon: fontawesome/brands/stack-overflow
+      link: https://stackoverflow.com/questions/tagged/leakcanary?sort=active
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/joinsquare/
 
 site_name: LeakCanary
 site_url: https://square.github.io/leakcanary/
