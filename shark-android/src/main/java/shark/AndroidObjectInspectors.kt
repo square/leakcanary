@@ -269,21 +269,21 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.support.v4.app.Fragment" &&
-          heapObject["android.support.v4.app.Fragment", "mFragmentManager"]!!.value.isNullReference
+          heapObject instanceOf ANDROID_SUPPORT_FRAGMENT_CLASS_NAME &&
+          heapObject[ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mFragmentManager"]!!.value.isNullReference
     }
 
     override fun inspect(
       reporter: ObjectReporter
     ) {
-      reporter.whenInstanceOf("android.support.v4.app.Fragment") { instance ->
-        val fragmentManager = instance["android.support.v4.app.Fragment", "mFragmentManager"]!!
+      reporter.whenInstanceOf(ANDROID_SUPPORT_FRAGMENT_CLASS_NAME) { instance ->
+        val fragmentManager = instance[ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
           leakingReasons += fragmentManager describedWithValue "null"
         } else {
           notLeakingReasons += fragmentManager describedWithValue "not null"
         }
-        val mTag = instance["android.support.v4.app.Fragment", "mTag"]?.value?.readAsJavaString()
+        val mTag = instance[ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
           labels += "Fragment.mTag=$mTag"
         }
@@ -515,6 +515,12 @@ enum class AndroidObjectInspectors : ObjectInspector {
             }
           }
   }
+
+  // Using a string builder to prevent Jetifier from changing this string to Android X Fragment
+  @Suppress("VariableNaming", "PropertyName")
+  internal val ANDROID_SUPPORT_FRAGMENT_CLASS_NAME =
+    StringBuilder("android.").append("support.v4.app.Fragment")
+        .toString()
 }
 
 private infix fun HeapField.describedWithValue(valueDescription: String): String {
