@@ -159,7 +159,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       // AppWatcher is disabled by default for non-debuggable builds, but we have a developer opt-in.
       AppWatcher.config = AppWatcher.config.copy(enabled = true)
     } else {
-      throw Error("""
+      throw Error(
+          """
         LeakCanary in non-debuggable build
         
         LeakCanary should only be used in debug builds, but this APK is not debuggable.
@@ -168,7 +169,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
         
         If you're sure you want to include LeakCanary in a non-debuggable build, follow the 
         instructions here: https://square.github.io/leakcanary/recipes/#leakcanary-in-release-builds
-      """.trimIndent())
+      """.trimIndent()
+      )
     }
   }
 
@@ -193,6 +195,15 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       if (isRunningTests) {
         SharkLog.d { "$testClassName detected in classpath, app is running tests => disabling heap dumping & analysis" }
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
+      }
+      if (AppWatcher.config.enabled) {
+        if (LeakCanary.config.dumpHeap) {
+          SharkLog.d { "LeakCanary is running and ready to detect leaks" }
+        } else {
+          SharkLog.d { "LeakCanary heap dumping is disabled: LeakCanary.config.dumpHeap = false" }
+        }
+      } else {
+        SharkLog.d { "LeakCanary object watching is disabled: AppWatcher.config.enabled = false" }
       }
     }
   }
