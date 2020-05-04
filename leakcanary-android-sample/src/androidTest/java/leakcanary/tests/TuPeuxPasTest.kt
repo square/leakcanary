@@ -19,7 +19,7 @@ import org.junit.Test
  * ./gradlew leakcanary-sample:connectedCheck
  *
  * To set this up, we installed a special ObjectWatcher dedicated to detecting leaks in
- * instrumentation tests in [InstrumentationExampleApplication], and then added the FailTestOnLeakRunListener
+ * instrumentation tests in InstrumentationLeakDetector, and then added the FailTestOnLeakRunListener
  * to the config of our build.gradle:
  *
  * testInstrumentationRunnerArgument "listener", "leakcanary.FailTestOnLeakRunListener"
