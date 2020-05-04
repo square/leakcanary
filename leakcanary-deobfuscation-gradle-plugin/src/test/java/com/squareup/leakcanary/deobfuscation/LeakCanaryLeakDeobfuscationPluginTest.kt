@@ -115,8 +115,8 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     buildFile.writeText(
       """
         plugins {
-          id 'com.android.application'
           id 'com.squareup.leakcanary.deobfuscation'
+          id 'com.android.application'
         }
         
         allprojects {
@@ -162,28 +162,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
       }
     }
     assertThat(obfuscationMappingEntry == null).isTrue()
-  }
-
-  @Test
-  fun `should throw if android plugin is not applied before deobfuscation plugin`() {
-    buildFile.writeText(
-      """
-        plugins {
-          id 'com.squareup.leakcanary.deobfuscation'
-        }
-      """.trimIndent()
-    )
-
-    val result = GradleRunner.create()
-      .withProjectDir(tempFolder.root)
-      .withPluginClasspath()
-      .buildAndFail()
-
-    assertThat(
-      result.output.contains(
-    "LeakCanary deobfuscation plugin can be used only in Android application or library module."
-      )
-    ).isTrue()
   }
 
   @Test
