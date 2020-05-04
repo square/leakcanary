@@ -17,17 +17,18 @@ remote_branch: gh-pages
 
 copyright: 'Copyright &copy; 2015 Square, Inc.'
 
-
 theme:
   name: 'material'
   custom_dir: 'docs/theme'
   logo: 'images/logo.png'
+  icon:
+    repo: fontawesome/brands/github
   favicon: 'images/logo.png'
   palette:
     primary: 'deep-orange'
     accent: 'deep-purple'
-  feature:
-    tabs: true
+  features:
+    - tabs
 
 markdown_extensions:
   - smarty
@@ -71,6 +72,7 @@ nav:
         - 'Code of Conduct': code_of_conduct.md
         - 'Dev Environment': dev-env.md
         - 'Releasing': releasing.md
+        - 'How to help': how_to_help.md
   - 'Shark':
     - 'Overview': shark.md
     - 'Shark API':
@@ -86,7 +88,6 @@ nav:
     - 'Extension: Separate process': api/leakcanary-android-process/leakcanary/index.md
     - 'Core: ObjectWatcher': api/leakcanary-object-watcher/leakcanary/index.md
   - 'Change Log': changelog.md
-  - 'How to help 🙏': how_to_help.md
 
 # Google Analytics. Add export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-XXXXXXXXX-X" to your ~/.bashrc
 google_analytics:
