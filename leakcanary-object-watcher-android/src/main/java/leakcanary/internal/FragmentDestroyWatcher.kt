@@ -33,7 +33,11 @@ internal object FragmentDestroyWatcher {
   private const val ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME =
     "leakcanary.internal.AndroidXFragmentDestroyWatcher"
 
-  private const val ANDROID_SUPPORT_FRAGMENT_CLASS_NAME = "android.support.v4.app.Fragment"
+  // Using a string builder to prevent Jetifier from changing this string to Android X Fragment
+  @Suppress("VariableNaming", "PropertyName")
+  private val ANDROID_SUPPORT_FRAGMENT_CLASS_NAME =
+    StringBuilder("android.").append("support.v4.app.Fragment")
+        .toString()
   private const val ANDROID_SUPPORT_FRAGMENT_DESTROY_WATCHER_CLASS_NAME =
     "leakcanary.internal.AndroidSupportFragmentDestroyWatcher"
 
