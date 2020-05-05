@@ -74,12 +74,27 @@ class HeapAnalyzer constructor(
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
+    obfuscationChecker: ObfuscationChecker = ReflectionObfuscationChecker(),
     proguardMapping: ProguardMapping? = null
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
     if (!heapDumpFile.exists()) {
       val exception = IllegalArgumentException("File does not exist: $heapDumpFile")
+      return HeapAnalysisFailure(
+          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
+          HeapAnalysisException(exception)
+      )
+    }
+
+    if (obfuscationChecker.isCodeObfuscated() && proguardMapping == null) {
+      val exception = IllegalStateException(
+          """
+Looks like you're running LeakCanary on obfuscated build and proguard mapping is missing. Please
+turn off obfuscation or if you want to run LeakCanary on obfuscated builds then follow 
+the instructions: https://square.github.io/leakcanary/recipes/#using-leakcanary-with-obfuscated-apps
+          """
+      )
       return HeapAnalysisFailure(
           heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
           HeapAnalysisException(exception)

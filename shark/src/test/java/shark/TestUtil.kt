@@ -15,7 +15,10 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   referenceMatchers: List<ReferenceMatcher> = defaultReferenceMatchers,
   metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
   proguardMapping: ProguardMapping? = null,
-  leakFilters: List<LeakingObjectFilter> = ObjectInspectors.jdkLeakingObjectFilters
+  leakFilters: List<LeakingObjectFilter> = ObjectInspectors.jdkLeakingObjectFilters,
+  obfuscationChecker: ObfuscationChecker = object: ObfuscationChecker {
+    override fun isCodeObfuscated(): Boolean = false // assume no obfuscation in tests
+  }
 ): T {
   val inspectors = if (ObjectInspectors.KEYED_WEAK_REFERENCE !in objectInspectors) {
     objectInspectors + ObjectInspectors.KEYED_WEAK_REFERENCE
@@ -30,6 +33,7 @@ fun <T : HeapAnalysis> File.checkForLeaks(
       computeRetainedHeapSize = computeRetainedHeapSize,
       objectInspectors = inspectors,
       metadataExtractor = metadataExtractor,
+      obfuscationChecker = obfuscationChecker,
       proguardMapping = proguardMapping
   )
   if (result is HeapAnalysisFailure) {
