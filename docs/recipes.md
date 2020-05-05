@@ -3,7 +3,7 @@
 This page contains code recipes to customize LeakCanary to your needs. Read through the section titles and cook your own meal! Also don't forget to check out the [FAQ](faq.md).
 
 !!! bug
-    If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new/choose). Your feedback help us make LeakCanary better for the entire community.
+    If you think a recipe might be missing or you're not sure that what you're trying to achieve is possible with the current APIs, please [file an issue](https://github.com/square/leakcanary/issues/new/choose). Your feedback helps us make LeakCanary better for the entire community.
 
 ## Watching objects with a lifecycle
 
@@ -18,7 +18,10 @@ class MyService : Service {
 
   override fun onDestroy() {
     super.onDestroy()
-    AppWatcher.objectWatcher.watch(this, "MyService received Service#onDestroy() callback")
+    AppWatcher.objectWatcher.watch(
+      watchedObject = this,
+      description = "MyService received Service#onDestroy() callback"
+    )
   }
 }
 ```
@@ -42,31 +45,32 @@ class DebugExampleApplication : ExampleApplication() {
 
 To customize the detection of retained objects at runtime, update [AppWatcher.config](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/):
 
-```
+```kotlin
 AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
-```
-
-In Java, use [AppWatcher.Config.Builder](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/) instead:
-```
-AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
-   .watchFragmentViews(false)
-   .build();
-AppWatcher.setConfig(config);
 ```
 
 To customize the heap dumping & analysis, update [LeakCanary.config](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/config/):
 
-```
+```kotlin
 LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 ```
 
-In Java, use [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/) instead:
-```
-LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
-   .retainedVisibleThreshold(3)
-   .build();
-LeakCanary.setConfig(config);
-```
+!!! info "Java"
+    In Java, use [AppWatcher.Config.Builder](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/) and [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/) instead:
+    
+    ```java
+    AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
+       .watchFragmentViews(false)
+       .build();
+    AppWatcher.setConfig(config);
+    ```
+    
+    ```java
+    LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
+       .retainedVisibleThreshold(3)
+       .build();
+    LeakCanary.setConfig(config);
+    ```
 
 Configure the LeakCanary UI by overriding the following resources:
 
@@ -665,7 +669,7 @@ objectWatcher.watch(
 )
 ```
 
-If you end up using LeakCanary on a JVM, the community will definitely benefit from you experience, so don't hesitate to [let us know](https://github.com/square/leakcanary/issues/)!
+If you end up using LeakCanary on a JVM, the community will definitely benefit from your experience, so don't hesitate to [let us know](https://github.com/square/leakcanary/issues/)!
 
 
 

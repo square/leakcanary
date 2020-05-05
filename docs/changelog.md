@@ -1,5 +1,8 @@
 # Change Log
 
+!!! info
+    To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
+
 ## Version 2.2 (2020-02-05)
 
 We've got some good stuff for the first release of the decade!

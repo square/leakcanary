@@ -5,8 +5,8 @@ import android.content.pm.ApplicationInfo
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import leakcanary.Clock
 import leakcanary.AppWatcher
+import leakcanary.Clock
 import leakcanary.ObjectWatcher
 import leakcanary.OnObjectRetainedListener
 import shark.SharkLog
@@ -63,7 +63,6 @@ internal object InternalAppWatcher {
 
   fun install(application: Application) {
     SharkLog.logger = DefaultCanaryLog()
-    SharkLog.d { "Installing AppWatcher" }
     checkMainThread()
     if (this::application.isInitialized) {
       return
