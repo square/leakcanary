@@ -11,7 +11,6 @@ import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.LeakTraceReference.ReferenceType.LOCAL
 import shark.ValueHolder.ReferenceHolder
 import java.io.File
-import java.lang.IllegalStateException
 
 class HeapAnalyzerTest {
 
@@ -155,17 +154,5 @@ class HeapAnalyzerTest {
 
     val leaks = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
     assertThat(leaks.applicationLeaks).hasSize(1)
-  }
-
-  @Test fun failsOnObfuscatedCode() {
-    hprofFile.writeMultipleActivityLeaks(0)
-
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisFailure>(
-        obfuscationChecker = object: ObfuscationChecker {
-          override fun isCodeObfuscated(): Boolean = true
-        }
-    )
-
-    assertThat(analysis.exception.cause).isInstanceOf(IllegalStateException::class.java)
   }
 }
