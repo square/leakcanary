@@ -268,6 +268,7 @@ sealed class HeapObject {
   /**
    * An instance in the heap dump.
    */
+  @Suppress("TooManyFunctions")
   class HeapInstance internal constructor(
     private val hprofGraph: HprofHeapGraph,
     internal val indexedObject: IndexedInstance,
@@ -360,6 +361,27 @@ sealed class HeapObject {
       fieldName: String
     ): HeapField? {
       return readFields().firstOrNull { field -> field.declaringClass.name == declaringClassName && field.name == fieldName }
+    }
+
+    /**
+     * Returns a [HeapField] object that reflects the specified declared
+     * field of the instance represented by this [HeapInstance] object, or throws given [exception]
+     * if this field does not exist. The [declaringClassName] specifies the class in which
+     * the desired field is declared, and the [fieldName] parameter specifies the simple name
+     * of the desired field.
+     *
+     * Also available as a convenience operator: [get]
+     *
+     * This may trigger IO reads.
+     */
+    fun readFieldOrThrow(
+      declaringClassName: String,
+      fieldName: String,
+      exception: Throwable
+    ): HeapField {
+      return readFields().firstOrNull { field ->
+        field.declaringClass.name == declaringClassName && field.name == fieldName
+      } ?: throw exception
     }
 
     /**
