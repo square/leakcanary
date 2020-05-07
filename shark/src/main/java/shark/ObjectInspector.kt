@@ -38,14 +38,5 @@ interface ObjectInspector {
           block(reporter)
         }
       }
-
-    val obfuscationException = IllegalStateException(
-        """
-The heap dump may contain obfuscated class names. If that's the case then the heap analysis 
-is unable to proceed without a mapping file to deobfuscate class names. You can turn off
-obfuscation or run LeakCanary on obfuscated builds by following the instructions at 
-https://square.github.io/leakcanary/recipes/#using-leakcanary-with-obfuscated-apps
-        """
-    )
   }
 }
