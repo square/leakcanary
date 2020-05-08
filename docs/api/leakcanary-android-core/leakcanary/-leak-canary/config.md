@@ -11,7 +11,7 @@ a mutated copy, e.g.:
 LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 ```
 
-In Java, you can use [LeakCanary.Config.Builder](-config/-builder/index.md) instead:
+In Java, use [LeakCanary.Config.Builder](-config/-builder/index.md) instead:
 
 ```
 LeakCanary.Config config = LeakCanary.getConfig().newBuilder()

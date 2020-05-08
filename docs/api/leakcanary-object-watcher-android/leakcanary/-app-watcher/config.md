@@ -11,7 +11,7 @@ a mutated copy, e.g.:
 AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
 ```
 
-In Java, you can use [AppWatcher.Config.Builder](-config/-builder/index.md) instead:
+In Java, use [AppWatcher.Config.Builder](-config/-builder/index.md) instead:
 
 ```
 AppWatcher.Config config = AppWatcher.getConfig().newBuilder()

@@ -3,6 +3,55 @@
 !!! info
     To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
 
+## Version 2.3 (2020-04-08)
+
+This is a minor release on the feature front, but a large release on the documentation front!
+
+Many thanks to
+[@adamfit](https://github.com/adamfit),
+[@Amokrane](https://github.com/Amokrane),
+[@Armaxis](https://github.com/Armaxis),
+[@artnc](https://github.com/artnc),
+[@burakeregar](https://github.com/burakeregar),
+[@ClaasJG](https://github.com/ClaasJG),
+[@clementcontet](https://github.com/clementcontet),
+[@ckesc](https://github.com/ckesc),
+[@cketti](https://github.com/cketti),
+[@fbenbassat](https://github.com/fbenbassat),
+[@Guneetgstar](https://github.com/Guneetgstar),
+[@Igorxp5](https://github.com/Igorxp5),
+[@JLLeitschuh](https://github.com/JLLeitschuh),
+[@KidAndroid](https://github.com/KidAndroid),
+[@ligi](https://github.com/ligi),
+[@mzgreen](https://github.com/mzgreen),
+[@pyricau](https://github.com/pyricau),
+[@sprintuu](https://github.com/sprintuu),
+[@tevjef](https://github.com/tevjef),
+[@thrlr123](https://github.com/thrlr123)
+for the contributions, bug reports and feature requests.
+
+We [asked for help](https://twitter.com/Piwai/status/1253454280758980609) and immediately started seeing more contributions. Thanks all! Check out the [How to help](how_to_help.md) page.
+
+### LeakCanary will now crash in release builds
+
+Despite the documentation insisting on using `debugImplementation`, we've seen apps ship LeakCanary [in release builds](https://twitter.com/Piwai/status/1245524534712602624). Mistakes happen, so we've decided to make that mistake harder to miss by making LeakCanary **crash when included in release builds** ([#1804](https://github.com/square/leakcanary/issues/1804)). Learn More: [LeakCanary in release builds](https://square.github.io/leakcanary/recipes/#leakcanary-in-release-builds).
+
+### Doc site 🛀💥
+
+The doc site content has changed quite a bit! We applied advice from [Google's tech writing guide](https://developers.google.com/tech-writing/). If you've been confused by Library Leaks before, check out see the new [Categorizing leaks](fundamentals-how-leakcanary-works.md#categorizing-leaks) section. Take a look around, let us know what you think. 
+
+### Bug fixes and improvements 😉
+
+* The new [deobfuscation Gradle plugin](https://square.github.io/leakcanary/recipes/#using-leakcanary-with-obfuscated-apps) wasn't working [with Gradle 3.6](https://github.com/square/leakcanary/issues/1761), this is now fixed. Also removed the requirement for the plugin to be [applied after AGP](https://github.com/square/leakcanary/pull/1816).
+* Fixed two crashes in the LeakCanary UI found by a sneaky monkey runner 🙈 [#1768](https://github.com/square/leakcanary/issues/1768) & [#1769](https://github.com/square/leakcanary/issues/1769)
+* The LeakCanary UI updates immediately when a heap analysis is added or deleted [#1742](https://github.com/square/leakcanary/issues/1742)
+* Fixes a crash when migrating from LeakCanary 2.0 []#1800](https://github.com/square/leakcanary/pull/1800)
+* The *About* section of the LeakCanary now surfaces whether heap dumping is [currently enabled](https://github.com/square/leakcanary/issues/1803).
+* Fixed process [not exiting](https://github.com/square/leakcanary/issues/1711) in SharkCLI on Windows.
+* Improved [error message](https://github.com/square/leakcanary/pull/1823) when obfuscation mappings appears to be missing.
+
+For more details, see the [2.3 Milestone](https://github.com/square/leakcanary/milestone/17) and the [full diff](https://github.com/square/leakcanary/compare/v2.2...v2.3).
+
 ## Version 2.2 (2020-02-05)
 
 We've got some good stuff for the first release of the decade!
