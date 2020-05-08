@@ -2,7 +2,7 @@
 
 ## Can a leak be caused by the Android SDK?
 
-Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to recognize, called Library Leaks (see [Categorizing leaks](fundamentals-how-leakcanary-works.md#categorizing-leaks)).
+Yes. There are a number of known memory leaks that have been fixed over time in AOSP as well as in manufacturer implementations. When such a leak occurs, there is little you can do as an app developer to fix it. For that reason, LeakCanary has a built-in list of known Android leaks to recognize, called Library Leaks (see [Categorizing leaks](fundamentals-how-leakcanary-works.md#4-categorizing-leaks)).
 
 If you find a new one, please [create an issue](https://github.com/square/leakcanary/issues/new/choose) (choose **🤖Leak in Android SDK / support library**) and follow these steps:
 

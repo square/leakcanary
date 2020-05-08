@@ -34,21 +34,23 @@ We [asked for help](https://twitter.com/Piwai/status/1253454280758980609) and im
 
 ### LeakCanary will now crash in release builds
 
-Despite the documentation insisting on using `debugImplementation`, we've seen apps ship LeakCanary [in release builds](https://twitter.com/Piwai/status/1245524534712602624). Mistakes happen, so we've decided to make that mistake harder to miss by making LeakCanary **crash when included in release builds** ([#1804](https://github.com/square/leakcanary/issues/1804)). Learn More: [LeakCanary in release builds](https://square.github.io/leakcanary/recipes/#leakcanary-in-release-builds).
+Despite the documentation insisting on using `debugImplementation`, we've seen apps [ship LeakCanary](https://twitter.com/Piwai/status/1245524534712602624) in **release builds**. Mistakes happen, so we've made that mistake [harder to miss](https://github.com/square/leakcanary/issues/1804) by making LeakCanary **crash when included in release builds**.
+
+Learn More: [LeakCanary in release builds](recipes.md#leakcanary-in-release-builds).
 
 ### Doc site 🛀💥
 
-The doc site content has changed quite a bit! We applied advice from [Google's tech writing guide](https://developers.google.com/tech-writing/). If you've been confused by Library Leaks before, check out see the new [Categorizing leaks](fundamentals-how-leakcanary-works.md#categorizing-leaks) section. Take a look around, let us know what you think. 
+The doc site content has changed quite a bit! We applied advice from [Google's tech writing guide](https://developers.google.com/tech-writing/). If you've been confused by *Library Leaks* before, check out see the new [Categorizing leaks](fundamentals-how-leakcanary-works.md#4-categorizing-leaks) section. Take a look around, let us know what you think.
 
 ### Bug fixes and improvements 😉
 
-* The new [deobfuscation Gradle plugin](https://square.github.io/leakcanary/recipes/#using-leakcanary-with-obfuscated-apps) wasn't working [with Gradle 3.6](https://github.com/square/leakcanary/issues/1761), this is now fixed. Also removed the requirement for the plugin to be [applied after AGP](https://github.com/square/leakcanary/pull/1816).
-* Fixed two crashes in the LeakCanary UI found by a sneaky monkey runner 🙈 [#1768](https://github.com/square/leakcanary/issues/1768) & [#1769](https://github.com/square/leakcanary/issues/1769)
-* The LeakCanary UI updates immediately when a heap analysis is added or deleted [#1742](https://github.com/square/leakcanary/issues/1742)
-* Fixes a crash when migrating from LeakCanary 2.0 []#1800](https://github.com/square/leakcanary/pull/1800)
+* The new [deobfuscation Gradle plugin](recipes.md#using-leakcanary-with-obfuscated-apps) wasn't working [with Gradle 3.6](https://github.com/square/leakcanary/issues/1761), this is now fixed. Also removed the requirement for the plugin to be [applied after AGP](https://github.com/square/leakcanary/pull/1816).
+* Fixed 2 crashes ([#1768](https://github.com/square/leakcanary/issues/1768) & [#1769](https://github.com/square/leakcanary/issues/1769)) in the LeakCanary UI found by a sneaky monkey runner 🙈.
+* The LeakCanary UI updates [immediately](https://github.com/square/leakcanary/issues/1742) when a heap analysis is added or deleted.
+* Fixed a crash when [updating from LeakCanary 2.0](https://github.com/square/leakcanary/pull/1800).
 * The *About* section of the LeakCanary now surfaces whether heap dumping is [currently enabled](https://github.com/square/leakcanary/issues/1803).
 * Fixed process [not exiting](https://github.com/square/leakcanary/issues/1711) in SharkCLI on Windows.
-* Improved [error message](https://github.com/square/leakcanary/pull/1823) when obfuscation mappings appears to be missing.
+* Improved [error message](https://github.com/square/leakcanary/pull/1823) when obfuscation mappings appear to be missing.
 
 For more details, see the [2.3 Milestone](https://github.com/square/leakcanary/milestone/17) and the [full diff](https://github.com/square/leakcanary/compare/v2.2...v2.3).
 
