@@ -270,14 +270,17 @@ enum class AndroidObjectInspectors : ObjectInspector {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
           heapObject instanceOf ANDROID_SUPPORT_FRAGMENT_CLASS_NAME &&
-          heapObject[ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mFragmentManager"]!!.value.isNullReference
+          heapObject.getOrThrow(
+              ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mFragmentManager"
+          ).value.isNullReference
     }
 
     override fun inspect(
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf(ANDROID_SUPPORT_FRAGMENT_CLASS_NAME) { instance ->
-        val fragmentManager = instance[ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mFragmentManager"]!!
+        val fragmentManager =
+          instance.getOrThrow(ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mFragmentManager")
         if (fragmentManager.value.isNullReference) {
           leakingReasons += fragmentManager describedWithValue "null"
         } else {
@@ -295,14 +298,17 @@ enum class AndroidObjectInspectors : ObjectInspector {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
           heapObject instanceOf "androidx.fragment.app.Fragment" &&
-          heapObject["androidx.fragment.app.Fragment", "mFragmentManager"]!!.value.isNullReference
+          heapObject.getOrThrow(
+              "androidx.fragment.app.Fragment", "mFragmentManager"
+          ).value.isNullReference
     }
 
     override fun inspect(
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("androidx.fragment.app.Fragment") { instance ->
-        val fragmentManager = instance["androidx.fragment.app.Fragment", "mFragmentManager"]!!
+        val fragmentManager =
+          instance.getOrThrow("androidx.fragment.app.Fragment", "mFragmentManager")
         if (fragmentManager.value.isNullReference) {
           leakingReasons += fragmentManager describedWithValue "null"
         } else {
@@ -345,7 +351,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
           heapObject instanceOf "mortar.Presenter" &&
-          heapObject["mortar.Presenter", "view"]!!.value.isNullReference
+          heapObject.getOrThrow("mortar.Presenter", "view").value.isNullReference
     }
 
     override fun inspect(
@@ -355,7 +361,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         // Bugs in view code tends to cause Mortar presenters to still have a view when they actually
         // should be unreachable, so in that case we don't know their reachability status. However,
         // when the view is null, we're pretty sure they  never leaking.
-        val view = instance["mortar.Presenter", "view"]!!
+        val view = instance.getOrThrow("mortar.Presenter", "view")
         if (view.value.isNullReference) {
           leakingReasons += view describedWithValue "null"
         } else {
@@ -369,13 +375,13 @@ enum class AndroidObjectInspectors : ObjectInspector {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
           heapObject instanceOf "mortar.MortarScope" &&
-          heapObject["mortar.MortarScope", "dead"]!!.value.asBoolean!!
+          heapObject.getOrThrow("mortar.MortarScope", "dead").value.asBoolean!!
     }
 
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("mortar.MortarScope") { instance ->
-        val dead = instance["mortar.MortarScope", "dead"]!!.value.asBoolean!!
-        val scopeName = instance["mortar.MortarScope", "name"]!!.value.readAsJavaString()
+        val dead = instance.getOrThrow("mortar.MortarScope", "dead").value.asBoolean!!
+        val scopeName = instance.getOrThrow("mortar.MortarScope", "name").value.readAsJavaString()
         if (dead) {
           leakingReasons += "mortar.MortarScope.dead is true for scope $scopeName"
         } else {
@@ -389,15 +395,17 @@ enum class AndroidObjectInspectors : ObjectInspector {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
           heapObject instanceOf "com.squareup.coordinators.Coordinator" &&
-          !heapObject["com.squareup.coordinators.Coordinator", "attached"]!!.value.asBoolean!!
+          !heapObject.getOrThrow(
+              "com.squareup.coordinators.Coordinator", "attached"
+          ).value.asBoolean!!
     }
 
     override fun inspect(
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
-        val attached = instance["com.squareup.coordinators.Coordinator", "attached"]
-        if (attached!!.value.asBoolean!!) {
+        val attached = instance.getOrThrow("com.squareup.coordinators.Coordinator", "attached")
+        if (attached.value.asBoolean!!) {
           notLeakingReasons += attached describedWithValue "true"
         } else {
           leakingReasons += attached describedWithValue "false"
@@ -566,7 +574,7 @@ internal fun HeapInstance.unwrapActivityContext(): HeapInstance? {
       val mBase = context["android.content.ContextWrapper", "mBase"]!!.value
 
       if (mBase.isNonNullReference) {
-        var parentContext = context
+        val parentContext = context
         context = mBase.asObject!!.asInstance!!
         if (context instanceOf "android.app.Activity") {
           return context
@@ -594,4 +602,22 @@ internal fun HeapInstance.unwrapActivityContext(): HeapInstance? {
     }
   }
   return null
+}
+
+/**
+ * Same as [HeapInstance.readField] but throws if the field doesnt exist
+ */
+internal fun HeapInstance.getOrThrow(
+  declaringClassName: String,
+  fieldName: String
+): HeapField {
+  return this[declaringClassName, fieldName] ?: throw IllegalStateException(
+      """
+$instanceClassName is expected to have a $declaringClassName.$fieldName field which cannot be found. 
+This might be due to the app code being obfuscated. If that's the case, then the heap analysis 
+is unable to proceed without a mapping file to deobfuscate class names. 
+You can run LeakCanary on obfuscated builds by following the instructions at 
+https://square.github.io/leakcanary/recipes/#using-leakcanary-with-obfuscated-apps
+      """
+  )
 }
