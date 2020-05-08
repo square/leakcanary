@@ -1,14 +1,12 @@
 
 
 
-
 <!doctype html>
 <html lang="en" class="no-js">
   <head>
     
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
-      <meta http-equiv="x-ua-compatible" content="ie=edge">
       
         <meta name="description" content="A memory leak detection library for Android">
       
@@ -18,27 +16,8 @@
       
         <meta name="author" content="Square, Inc.">
       
-      
-        <meta name="lang:clipboard.copy" content="Copy to clipboard">
-      
-        <meta name="lang:clipboard.copied" content="Copied to clipboard">
-      
-        <meta name="lang:search.language" content="en">
-      
-        <meta name="lang:search.pipeline.stopwords" content="True">
-      
-        <meta name="lang:search.pipeline.trimmer" content="True">
-      
-        <meta name="lang:search.result.none" content="No matching documents">
-      
-        <meta name="lang:search.result.one" content="1 matching document">
-      
-        <meta name="lang:search.result.other" content="# matching documents">
-      
-        <meta name="lang:search.tokenizer" content="[\s\-]+">
-      
       <link rel="shortcut icon" href="../images/logo.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.6.0">
+      <meta name="generator" content="mkdocs-1.1, mkdocs-material-5.1.5">
     
     
       
@@ -46,9 +25,9 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/application.1b62728e.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.df84b5fe.min.css">
       
-        <link rel="stylesheet" href="../assets/stylesheets/application-palette.a8b3c06d.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.8435c73a.min.css">
       
       
         
@@ -57,116 +36,101 @@
       
     
     
-      <script src="../assets/javascripts/modernizr.268332fc.js"></script>
-    
     
       
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
-        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
       
     
-    <link rel="stylesheet" href="../assets/fonts/material-icons.css">
     
     
     
       
         
-<script>
-  window.ga = window.ga || function() {
-    (ga.q = ga.q || []).push(arguments)
-  }
-  ga.l = +new Date
-  /* Setup integration and send page view */
-  ga("create", "None", "auto")
-  ga("set", "anonymizeIp", true)
-  ga("send", "pageview")
-  /* Register handler to log search on blur */
-  document.addEventListener("DOMContentLoaded", () => {
-    if (document.forms.search) {
-      var query = document.forms.search.query
-      query.addEventListener("blur", function() {
-        if (this.value) {
-          var path = document.location.pathname;
-          ga("send", "pageview", path + "?q=" + this.value)
-        }
-      })
-    }
-  })
-</script>
+<link rel="preconnect dns-prefetch" href="https://www.google-analytics.com">
+<script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-142834539-1","auto"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){if(this.value){var e=document.location.pathname;ga("send","pageview",e+"?q="+this.value)}})}),document.addEventListener("DOMContentSwitch",function(){ga("send","pageview")})</script>
 <script async src="https://www.google-analytics.com/analytics.js"></script>
       
     
     
   </head>
   
+  
     
     
     <body dir="ltr" data-md-color-primary="deep-orange" data-md-color-accent="deep-purple">
   
-    <svg class="md-svg">
-      <defs>
-        
-        
-          <svg xmlns="http://www.w3.org/2000/svg" width="416" height="448" viewBox="0 0 416 448" id="__github"><path fill="currentColor" d="M160 304q0 10-3.125 20.5t-10.75 19T128 352t-18.125-8.5-10.75-19T96 304t3.125-20.5 10.75-19T128 256t18.125 8.5 10.75 19T160 304zm160 0q0 10-3.125 20.5t-10.75 19T288 352t-18.125-8.5-10.75-19T256 304t3.125-20.5 10.75-19T288 256t18.125 8.5 10.75 19T320 304zm40 0q0-30-17.25-51T296 232q-10.25 0-48.75 5.25Q229.5 240 208 240t-39.25-2.75Q130.75 232 120 232q-29.5 0-46.75 21T56 304q0 22 8 38.375t20.25 25.75 30.5 15 35 7.375 37.25 1.75h42q20.5 0 37.25-1.75t35-7.375 30.5-15 20.25-25.75T360 304zm56-44q0 51.75-15.25 82.75-9.5 19.25-26.375 33.25t-35.25 21.5-42.5 11.875-42.875 5.5T212 416q-19.5 0-35.5-.75t-36.875-3.125-38.125-7.5-34.25-12.875T37 371.5t-21.5-28.75Q0 312 0 260q0-59.25 34-99-6.75-20.5-6.75-42.5 0-29 12.75-54.5 27 0 47.5 9.875t47.25 30.875Q171.5 96 212 96q37 0 70 8 26.25-20.5 46.75-30.25T376 64q12.75 25.5 12.75 54.5 0 21.75-6.75 42 34 40 34 99.5z"/></svg>
-        
-      </defs>
-    </svg>
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
-    
-      <a href="#1-find-the-leak-trace" tabindex="1" class="md-skip">
-        Skip to content
-      </a>
-    
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#1-find-the-leak-trace" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-announce">
+          <div class="md-announce__inner md-grid md-typeset">
+             
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.3</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+
+          </div>
+        </aside>
+      
+    </div>
     
       <header class="md-header" data-md-component="header">
-  <nav class="md-header-nav md-grid">
-    <div class="md-flex">
-      <div class="md-flex__cell md-flex__cell--shrink">
-        <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-header-nav__button md-logo">
-          
-            <img src="../images/logo.png" width="24" height="24">
-          
-        </a>
-      </div>
-      <div class="md-flex__cell md-flex__cell--shrink">
-        <label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
-      </div>
-      <div class="md-flex__cell md-flex__cell--stretch">
-        <div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
-          
-            <span class="md-header-nav__topic">
-              LeakCanary
-            </span>
-            <span class="md-header-nav__topic">
-              
-                Fixing a memory leak
-              
-            </span>
-          
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-header-nav__button md-logo" aria-label="LeakCanary">
+      
+  <img src="../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            LeakCanary
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Fixing a memory leak
+            
+          </span>
         </div>
-      </div>
-      <div class="md-flex__cell md-flex__cell--shrink">
-        
-          <label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
-          
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
 <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
-      <label class="md-icon md-search__icon" for="__search"></label>
-      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
-        &#xE5CD;
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
       </button>
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
-        <div class="md-search-result" data-md-component="result">
+        <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
-            Type to start searching
+            Initializing search
           </div>
           <ol class="md-search-result__list"></ol>
         </div>
@@ -174,45 +138,35 @@
     </div>
   </div>
 </div>
+    
+    
+      <div class="md-header-nav__source">
         
-      </div>
-      
-        <div class="md-flex__cell md-flex__cell--shrink">
-          <div class="md-header-nav__source">
-            
-
-
-  
-
-<a href="https://github.com/square/leakcanary/" title="Go to repository" class="md-source" data-md-source="github">
-  
-    <div class="md-source__icon">
-      <svg viewBox="0 0 24 24" width="24" height="24">
-        <use xlink:href="#__github" width="24" height="24"></use>
-      </svg>
-    </div>
-  
+<a href="https://github.com/square/leakcanary/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
   <div class="md-source__repository">
     LeakCanary
   </div>
 </a>
-          </div>
-        </div>
-      
-    </div>
+      </div>
+    
   </nav>
 </header>
     
-    <div class="md-container">
+    <div class="md-container" data-md-component="container">
       
         
       
       
         
+          
 
   
 
-<nav class="md-tabs md-tabs--active" data-md-component="tabs">
+<nav class="md-tabs md-tabs--active" aria-label="Tabs" data-md-component="tabs">
   <div class="md-tabs__inner md-grid">
     <ul class="md-tabs__list">
       
@@ -285,38 +239,32 @@
     </ul>
   </div>
 </nav>
+        
       
-      <main class="md-main" role="main">
-        <div class="md-main__inner md-grid" data-md-component="container">
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
           
             
               <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary" data-md-level="0">
-  <label class="md-nav__title md-nav__title--site" for="__drawer">
-    <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-nav__button md-logo">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-nav__button md-logo" aria-label="LeakCanary">
       
-        <img src="../images/logo.png" width="48" height="48">
-      
+  <img src="../images/logo.png" alt="logo">
+
     </a>
     LeakCanary
   </label>
   
     <div class="md-nav__source">
       
-
-
-  
-
-<a href="https://github.com/square/leakcanary/" title="Go to repository" class="md-source" data-md-source="github">
-  
-    <div class="md-source__icon">
-      <svg viewBox="0 0 24 24" width="24" height="24">
-        <use xlink:href="#__github" width="24" height="24"></use>
-      </svg>
-    </div>
-  
+<a href="https://github.com/square/leakcanary/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
   <div class="md-source__repository">
     LeakCanary
   </div>
@@ -358,13 +306,19 @@
 
   <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
     
     <label class="md-nav__link" for="nav-3">
       Fundamentals
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+    <nav class="md-nav" aria-label="Fundamentals" data-md-level="1">
       <label class="md-nav__title" for="nav-3">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Fundamentals
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -403,11 +357,14 @@
 
   <li class="md-nav__item md-nav__item--active">
     
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Fixing a memory leak
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
       </label>
     
     <a href="./" title="Fixing a memory leak" class="md-nav__link md-nav__link--active">
@@ -415,11 +372,16 @@
     </a>
     
       
-<nav class="md-nav md-nav--secondary">
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
   
-    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
@@ -430,15 +392,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-narrow-down-the-leak-trace" class="md-nav__link">
-    2. Narrow down the leak trace
+  <a href="#2-narrow-down-the-suspect-references" class="md-nav__link">
+    2. Narrow down the suspect references
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-find-the-cause" class="md-nav__link">
-    3. Find the cause
+  <a href="#3-find-the-reference-causing-the-leak" class="md-nav__link">
+    3. Find the reference causing the leak
   </a>
   
 </li>
@@ -449,10 +411,6 @@
   </a>
   
 </li>
-      
-      
-      
-      
       
     </ul>
   
@@ -473,13 +431,19 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
     
     <label class="md-nav__link" for="nav-4">
       Help & Community
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+    <nav class="md-nav" aria-label="Help & Community" data-md-level="1">
       <label class="md-nav__title" for="nav-4">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Help & Community
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -576,29 +540,23 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8">
     
     <label class="md-nav__link" for="nav-4-8">
       Contributing
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
+    <nav class="md-nav" aria-label="Contributing" data-md-level="2">
       <label class="md-nav__title" for="nav-4-8">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Contributing
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../how_to_help/" title="How to help" class="md-nav__link">
-      How to help
-    </a>
-  </li>
-
         
           
           
@@ -636,6 +594,18 @@
   </li>
 
         
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../how_to_help/" title="How to help" class="md-nav__link">
+      How to help
+    </a>
+  </li>
+
+        
       </ul>
     </nav>
   </li>
@@ -653,13 +623,19 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
     
     <label class="md-nav__link" for="nav-5">
       Shark
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+    <nav class="md-nav" aria-label="Shark" data-md-level="1">
       <label class="md-nav__title" for="nav-5">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Shark
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -684,13 +660,19 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2">
     
     <label class="md-nav__link" for="nav-5-2">
       Shark API
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="2">
+    <nav class="md-nav" aria-label="Shark API" data-md-level="2">
       <label class="md-nav__title" for="nav-5-2">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Shark API
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -773,13 +755,19 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
     
     <label class="md-nav__link" for="nav-6">
       LeakCanary API
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+    <nav class="md-nav" aria-label="LeakCanary API" data-md-level="1">
       <label class="md-nav__title" for="nav-6">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         LeakCanary API
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -873,11 +861,16 @@
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
-<nav class="md-nav md-nav--secondary">
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
   
-    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
@@ -888,15 +881,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-narrow-down-the-leak-trace" class="md-nav__link">
-    2. Narrow down the leak trace
+  <a href="#2-narrow-down-the-suspect-references" class="md-nav__link">
+    2. Narrow down the suspect references
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-find-the-cause" class="md-nav__link">
-    3. Find the cause
+  <a href="#3-find-the-reference-causing-the-leak" class="md-nav__link">
+    3. Find the reference causing the leak
   </a>
   
 </li>
@@ -907,10 +900,6 @@
   </a>
   
 </li>
-      
-      
-      
-      
       
     </ul>
   
@@ -923,40 +912,43 @@
           <div class="md-content">
             <article class="md-content__inner md-typeset">
               
-                
-				  
-				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20fundamentals-fixing-a-memory-leak/%20page">Report</a> or <a href="https://github.com/square/leakcanary/edit/master/docs/fundamentals-fixing-a-memory-leak.md">edit</a></span>
-                  
-                
-                
-                  <h1>Fixing a memory leak</h1>
-                
-                <p>A memory leak is a programming error that causes an application to keep a reference to an object that is no longer needed. Somewhere in the code, there&rsquo;s a reference that should have been cleared and wasn&rsquo;t.</p>
-<p>There are 4 steps to fixing a memory leak:</p>
+  
+    
+  <span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20fundamentals-fixing-a-memory-leak/%20page">Report</a> or <a href="https://github.com/square/leakcanary/edit/master/docs/fundamentals-fixing-a-memory-leak.md">edit</a></span>
+    
+  
+  
+    
+  
+  
+    <h1>Fixing a memory leak</h1>
+  
+  <p>A memory leak is a programming error that causes an application to keep a reference to an object that is no longer needed. Somewhere in the code, there&rsquo;s a reference that should have been cleared and wasn&rsquo;t.</p>
+<p>Follow these 4 steps to fix memory leaks:</p>
 <ol>
-<li>Find the leak trace</li>
-<li>Narrow down the leak trace</li>
-<li>Find the cause</li>
-<li>Fix the leak</li>
+<li>Find the leak trace.</li>
+<li>Narrow down the suspect references.</li>
+<li>Find the reference causing the leak.</li>
+<li>Fix the leak.</li>
 </ol>
 <p>LeakCanary helps you with the first two steps. The last two steps are up to you!</p>
 <h2 id="1-find-the-leak-trace">1. Find the leak trace<a class="headerlink" href="#1-find-the-leak-trace" title="Permanent link">&para;</a></h2>
-<p>A <strong>leak trace</strong> is the <em>best strong reference path from garbage collection roots to the retained object</em>, ie the path of references that is holding an object in memory, therefore preventing it from being garbage collected.</p>
-<p>For example, if we store a helper singleton in a static field:</p>
-<div class="codehilite"><pre><span></span><span class="kd">class</span> <span class="nc">Helper</span> <span class="p">{</span>
+<p>A <strong>leak trace</strong> is a shorter name for the <em>best strong reference path from garbage collection roots to the retained object</em>, ie the path of references that is holding an object in memory, therefore preventing it from being garbage collected.</p>
+<p>For example, let&rsquo;s store a helper singleton in a static field:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">Helper</span> <span class="p">{</span>
 <span class="p">}</span>
 
 <span class="kd">class</span> <span class="nc">Utils</span> <span class="p">{</span>
   <span class="kd">public</span> <span class="kd">static</span> <span class="n">Helper</span> <span class="n">helper</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Helper</span><span class="p">();</span>
 <span class="p">}</span>
-</pre></div>
+</code></pre></div>
 
-<p>And then we tell LeakCanary that we expect that singleton instance to be garbage collected soon:</p>
-<div class="codehilite"><pre><span></span>AppWatcher.objectWatcher.watch(Utils.helper)
-</pre></div>
+<p>Let&rsquo;s tell LeakCanary that the singleton instance is expected to be garbage collected:</p>
+<div class="highlight"><pre><span></span><code>AppWatcher.objectWatcher.watch(Utils.helper)
+</code></pre></div>
 
-<p>The leak trace for that singleton could look like this:</p>
-<div class="codehilite"><pre><span></span>┬───
+<p>The leak trace for that singleton looks like this:</p>
+<div class="highlight"><pre><span></span><code>┬───
 │ GC Root: Local variable in native code
 │
 ├─ dalvik.system.PathClassLoader instance
@@ -966,44 +958,45 @@
 ├─ com.example.Utils class
 │    ↓ static Utils.helper
 ╰→ java.example.Helper
-</pre></div>
+</code></pre></div>
 
-<p>Let&rsquo;s break it down! At the top, we can see that a <code>PathClassLoader</code> instance is held by a garbage collection (GC) root, more specifically a local variable in native code. GC roots are special objects that are always reachable, ie they cannot be garbage collected. There are four kinds of GC roots worth mentioning:</p>
+<p>Let&rsquo;s break it down! At the top, a <code>PathClassLoader</code> instance is held by a <strong>garbage collection (GC) root</strong>, more specifically a local variable in native code. GC roots are special objects that are always reachable, ie they cannot be garbage collected. There are 4 main types of GC root:</p>
 <ul>
 <li><strong>Local variables</strong>, which belong to the stack of a thread.</li>
 <li>Instances of <strong>active Java threads</strong>.</li>
 <li><strong>System Classes</strong>, which never unload.</li>
 <li><strong>Native references</strong>, which are controlled by native code.</li>
 </ul>
-<div class="codehilite"><pre><span></span>┬───
+<div class="highlight"><pre><span></span><code>┬───
 │ GC Root: Local variable in native code
 │
 ├─ dalvik.system.PathClassLoader instance
-</pre></div>
+</code></pre></div>
 
 <p>A line starting with <code>├─</code> represents a Java object (either a class, an object array or an instance), and a line starting with <code>│    ↓</code> represents a reference to the Java object on the next line.</p>
-<p>We can see that <code>PathClassLoader</code> has a <code>runtimeInternalObjects</code> field which is a reference to an array of <code>Object</code>. </p>
-<div class="codehilite"><pre><span></span>├─ dalvik.system.PathClassLoader instance
+<p><code>PathClassLoader</code> has a <code>runtimeInternalObjects</code> field that is a reference to an array of <code>Object</code>:</p>
+<div class="highlight"><pre><span></span><code>├─ dalvik.system.PathClassLoader instance
 │    ↓ PathClassLoader.runtimeInternalObjects
 ├─ java.lang.Object[] array
-</pre></div>
+</code></pre></div>
 
-<p>The element at position 43 in that array of <code>Object</code> is a reference to our <code>Utils</code> class.</p>
-<div class="codehilite"><pre><span></span>├─ java.lang.Object[] array
+<p>The element at position 43 in that array of <code>Object</code> is a reference to the <code>Utils</code> class.</p>
+<div class="highlight"><pre><span></span><code>├─ java.lang.Object[] array
 │    ↓ Object[].[43]
 ├─ com.example.Utils class
-</pre></div>
+</code></pre></div>
 
-<p>A line starting with <code>╰→</code> represents the leaking object. The leaking object was passed to <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to confirm it would be garbage collected, and it ended up not being garbage collected which triggered LeakCanary.</p>
-<p>We can see that our <code>Utils</code> class has a static <code>helper</code> field which is a reference to the leaking object, our Helper singleton instance. </p>
-<div class="codehilite"><pre><span></span>├─ com.example.Utils class
+<p>A line starting with <code>╰→</code> represents the leaking object, ie the object that is passed to <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher.watch()</a>.</p>
+<p>The <code>Utils</code> class has a static <code>helper</code> field which is a reference to the leaking object, which is the Helper singleton instance:</p>
+<div class="highlight"><pre><span></span><code>├─ com.example.Utils class
 │    ↓ static Utils.helper
 ╰→ java.example.Helper instance
-</pre></div>
+</code></pre></div>
 
-<h2 id="2-narrow-down-the-leak-trace">2. Narrow down the leak trace<a class="headerlink" href="#2-narrow-down-the-leak-trace" title="Permanent link">&para;</a></h2>
-<p>Now, let&rsquo;s write some bad Android code:</p>
-<div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">ExampleApplication</span> <span class="p">:</span> <span class="n">Application</span><span class="p">()</span> <span class="p">{</span>
+<h2 id="2-narrow-down-the-suspect-references">2. Narrow down the suspect references<a class="headerlink" href="#2-narrow-down-the-suspect-references" title="Permanent link">&para;</a></h2>
+<p>A leak trace is a path of references. Initially, all references in that path are suspected of causing the leak, but LeakCanary can automatically narrow down the suspect references. To understand what that means, let&rsquo;s go through that process manually.</p>
+<p>Here&rsquo;s an example of bad Android code:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ExampleApplication</span> <span class="p">:</span> <span class="n">Application</span><span class="p">()</span> <span class="p">{</span>
   <span class="k">val</span> <span class="py">leakedViews</span> <span class="p">=</span> <span class="n">mutableListOf</span><span class="p">&lt;</span><span class="n">View</span><span class="p">&gt;()</span>
 <span class="p">}</span>
 
@@ -1015,14 +1008,14 @@
     <span class="k">val</span> <span class="py">textView</span> <span class="p">=</span> <span class="n">findViewById</span><span class="p">&lt;</span><span class="n">View</span><span class="p">&gt;(</span><span class="n">R</span><span class="p">.</span><span class="n">id</span><span class="p">.</span><span class="n">helper_text</span><span class="p">)</span>
 
     <span class="k">val</span> <span class="py">app</span> <span class="p">=</span> <span class="n">application</span> <span class="k">as</span> <span class="n">ExampleApplication</span>
-    <span class="c1">// What a Terrible Failure!</span>
+    <span class="c1">// This creates a leak, What a Terrible Failure!</span>
     <span class="n">app</span><span class="p">.</span><span class="n">leakedViews</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">textView</span><span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
-</pre></div>
+</code></pre></div>
 
-<p>Let&rsquo;s pretend that we don&rsquo;t know about this bad code. We just joined a new company that has an existing Android app, we set up LeakCanary, and soon enough tit produces a leak trace that looks like this:</p>
-<div class="codehilite"><pre><span></span>┬───
+<p>LeakCanary produces a leak trace that looks like this:</p>
+<div class="highlight"><pre><span></span><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -1036,10 +1029,14 @@
 ├─ android.widget.TextView instance
 │    ↓ TextView.mContext
 ╰→ com.example.leakcanary.MainActivity instance
-</pre></div>
+</code></pre></div>
 
-<p>In words: the <code>FontsContract</code> class is a system class and has an <code>sContext</code> static field which references the <code>ExampleApplication</code> instance which has a <code>leakedViews</code> field which references an array list which references an array (the array backing the array list implementation) which contains a <code>TextView</code> which has an <code>mContext</code> field which references a destroyed instance of <code>MainActivity</code>. Let&rsquo;s highlight all references we are currently suspecting of causing this leak:</p>
-<div class="codehilite"><pre><span></span>┬───
+<p>Here&rsquo;s how to read that leak trace:</p>
+<blockquote>
+<p>The <code>FontsContract</code> class is a system class (see <code>GC Root: System class</code>) and has an <code>sContext</code> static field which references an <code>ExampleApplication</code> instance which has a <code>leakedViews</code> field which references an <code>ArrayList</code> instance which references an array (the array backing the array list implementation) which has an element that references a <code>TextView</code> which has an <code>mContext</code> field which references a destroyed instance of <code>MainActivity</code>.</p>
+</blockquote>
+<p>LeakCanary highlights all references suspected of causing this leak using ~~~ underlines. Initially, all references are suspect:</p>
+<div class="highlight"><pre><span></span><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -1059,10 +1056,10 @@
 │    ↓ TextView.mContext
 │               ~~~~~~~~
 ╰→ com.example.leakcanary.MainActivity instance
-</pre></div>
+</code></pre></div>
 
-<p>Our next step is to <strong>reason about the state and lifecycle</strong> of the objects in the leak trace: we know that in an Android app the Application instance is a singleton that is never garbage collected, so it&rsquo;s never leaking. From that, we can conclude that the leak is not caused by <code>FontsContract.sContext</code>. Let&rsquo;s update our suspected references:</p>
-<div class="codehilite"><pre><span></span>┬───
+<p>Then, LeakCanary makes deductions about the <strong>state</strong> and the <strong>lifecycle</strong> of the objects in the leak trace. In an Android app the <code>Application</code> instance is a singleton that is never garbage collected, so it&rsquo;s never leaking (<code>Leaking: NO (Application is a singleton)</code>). From that, LeakCanary concludes that the leak is not caused by <code>FontsContract.sContext</code> (removal of corresponding <code>~~~</code>). Here&rsquo;s the updated leak trace:</p>
+<div class="highlight"><pre><span></span><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -1081,10 +1078,10 @@
 │    ↓ TextView.mContext
 │               ~~~~~~~~
 ╰→ com.example.leakcanary.MainActivity instance
-</pre></div>
+</code></pre></div>
 
-<p>We also know that the <code>TexView</code> instance references our destroyed activity instance via it&rsquo;s <code>mContext</code> field. Views should not survive the lifecycle of their context, so we know that this text view is leaking:</p>
-<div class="codehilite"><pre><span></span>┬───
+<p>The <code>TexView</code> instance references the destroyed <code>MainActivity</code> instance via it&rsquo;s <code>mContext</code> field. Views should not survive the lifecycle of their context, so LeakCanary knows that this <code>TexView</code> instance is leaking (<code>Leaking: YES (View.mContext references a destroyed activity)</code>), and therefore that the leak is not caused by <code>TextView.mContext</code> (removal of corresponding <code>~~~</code>). Here&rsquo;s the updated leak trace:</p>
+<div class="highlight"><pre><span></span><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -1103,12 +1100,12 @@
 │    Leaking: YES (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
 ╰→ com.example.leakcanary.MainActivity instance
-</pre></div>
+</code></pre></div>
 
-<p>Reasoning about the state and lifecycle of the objects in the leak trace help us narrow down the list of suspect references. The good news here is that most of that reasoning is automated, e.g. LeakCanary already knows that the Application class is a singleton and that Views should not survive the lifecycle of their context and will narrow down the list of suspects references for you. You can help LeakCanary help you by providing additional <code>ObjectInspector</code> implementations, see <a href="../recipes/#identifying-leaking-objects-and-labeling-objects">Identifying leaking objects and labeling objects</a>.</p>
-<h2 id="3-find-the-cause">3. Find the cause<a class="headerlink" href="#3-find-the-cause" title="Permanent link">&para;</a></h2>
-<p>So far, our investigation has taught us that there are 3 suspect references in our leak trace: <code>ExampleApplication.leakedViews</code>, <code>ArrayList.elementData</code> and <code>Object[].[0]</code>:</p>
-<div class="codehilite"><pre><span></span>┬───
+<p>To summarize, LeakCanary inspects the state of objects in the leak trace to figure out if these objects are leaking (<code>Leaking: YES</code> vs <code>Leaking: NO</code>), and leverages that information to narrow down the suspect references. You can provide custom <code>ObjectInspector</code> implementations to improve how LeakCanary works in your codebase (see <a href="../recipes/#identifying-leaking-objects-and-labeling-objects">Identifying leaking objects and labeling objects</a>).</p>
+<h2 id="3-find-the-reference-causing-the-leak">3. Find the reference causing the leak<a class="headerlink" href="#3-find-the-reference-causing-the-leak" title="Permanent link">&para;</a></h2>
+<p>In the previous example, LeakCanary narrowed down the suspect references to <code>ExampleApplication.leakedViews</code>, <code>ArrayList.elementData</code> and <code>Object[].[0]</code>:</p>
+<div class="highlight"><pre><span></span><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -1127,19 +1124,17 @@
 │    Leaking: YES (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
 ╰→ com.example.leakcanary.MainActivity instance
-</pre></div>
+</code></pre></div>
 
-<p><code>ArrayList.elementData</code> and <code>Object[].[0]</code> are implementation details of <code>ArrayList</code>, and it&rsquo;s unlikely that there&rsquo;s a bug in the <code>ArrayList</code> implementation instead, so we know the problem is somewhere else, ie the only remaining reference: <code>ExampleApplication.leakedViews</code>.</p>
+<p><code>ArrayList.elementData</code> and <code>Object[].[0]</code> are implementation details of <code>ArrayList</code>, and it&rsquo;s unlikely that there&rsquo;s a bug in the <code>ArrayList</code> implementation, so the reference causing the leak is the only remaining reference: <code>ExampleApplication.leakedViews</code>.</p>
 <h2 id="4-fix-the-leak">4. Fix the leak<a class="headerlink" href="#4-fix-the-leak" title="Permanent link">&para;</a></h2>
-<p>Once we&rsquo;ve found the reference that&rsquo;s causing the leak, we need to figure out what that reference is about, when it should have been cleared and why it hasn&rsquo;t been. Sometimes it&rsquo;s obvious, like in this example. Sometimes we lack enough information to figure it out. You could either <a href="../recipes/#identifying-leaking-objects-and-labeling-objects">add labels</a>, or explore the hprof directly (see <a href="faq.md/#how-can-i-dig-beyond-the-leak-trace">How can I dig beyond the leak trace?</a>).</p>
+<p>Once you find the reference causing the leak, you need to figure out what that reference is about, when it should have been cleared and why it hasn&rsquo;t been. Sometimes it&rsquo;s obvious, like in the previous example. Sometimes you need more information to figure it out. You can <a href="../recipes/#identifying-leaking-objects-and-labeling-objects">add labels</a>, or explore the hprof directly (see <a href="faq.md/#how-can-i-dig-beyond-the-leak-trace">How can I dig beyond the leak trace?</a>).</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Memory leaks cannot be fixed by replacing strong references with weak references. It&rsquo;s a common solution when attempting to quickly address memory issues, however it never works. The bugs that were causing references to be kept longer than necessary are still there. On top of that, it creates more bugs as some objects will now be garbage collected sooner than they should. It also makes the code much harder to maintain.</p>
 </div>
-<p>What&rsquo;s next? Try the <a href="../recipes/">code recipes</a>!</p>
-                
-                  
-                
+<p>What&rsquo;s next? Customize LeakCanary to your needs with <a href="../recipes/">code recipes</a>!</p>
+  
 
               
                 
@@ -1155,34 +1150,34 @@
 <footer class="md-footer">
   
     <div class="md-footer-nav">
-      <nav class="md-footer-nav__inner md-grid">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
         
-          <a href="../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-            <div class="md-flex__cell md-flex__cell--shrink">
-              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+          <a href="../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
             </div>
-            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
-              <span class="md-flex__ellipsis">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
                 How LeakCanary works
-              </span>
+              </div>
             </div>
           </a>
         
         
-          <a href="../recipes/" title="Code recipes" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
-            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
-              <span class="md-flex__ellipsis">
+          <a href="../recipes/" title="Code recipes" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
                 Code recipes
-              </span>
+              </div>
             </div>
-            <div class="md-flex__cell md-flex__cell--shrink">
-              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
             </div>
           </a>
         
@@ -1197,22 +1192,70 @@
             Copyright &copy; 2015 Square, Inc.
           </div>
         
-        powered by
-        <a href="https://www.mkdocs.org">MkDocs</a>
-        and
-        <a href="https://squidfunk.github.io/mkdocs-material/">
-          Material for MkDocs</a>
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
       </div>
       
+  <div class="md-footer-social">
+    
+      
+      
+        
+        
+      
+      <a href="https://square.github.io/" target="_blank" rel="noopener" title="square.github.io" class="md-footer-social__link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+      </a>
+    
+      
+      
+        
+        
+      
+      <a href="https://twitter.com/Piwai" target="_blank" rel="noopener" title="twitter.com" class="md-footer-social__link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+      </a>
+    
+      
+      
+        
+        
+      
+      <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" target="_blank" rel="noopener" title="stackoverflow.com" class="md-footer-social__link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M290.7 311L95 269.7 86.8 309l195.7 41zm51-87L188.2 95.7l-25.5 30.8 153.5 128.3zm-31.2 39.7L129.2 179l-16.7 36.5L293.7 300zM262 32l-32 24 119.3 160.3 32-24zm20.5 328h-200v39.7h200zm39.7 80H42.7V320h-40v160h359.5V320h-40z"/></svg>
+      </a>
+    
+      
+      
+        
+        
+      
+      <a href="https://www.linkedin.com/company/joinsquare/" target="_blank" rel="noopener" title="www.linkedin.com" class="md-footer-social__link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"/></svg>
+      </a>
+    
+  </div>
+
     </div>
   </div>
 </footer>
       
     </div>
     
-      <script src="../assets/javascripts/application.808e90bb.js"></script>
+      <script src="../assets/javascripts/vendor.83fe6e3c.min.js"></script>
+      <script src="../assets/javascripts/bundle.7e1cb91c.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
-      <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
+      <script>
+        app = initialize({
+          base: "..",
+          features: ["tabs"],
+          search: Object.assign({
+            worker: "../assets/javascripts/worker/search.37585f48.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
       
     
   </body>

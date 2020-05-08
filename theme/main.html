@@ -1,29 +1,31 @@
 {% extends "base.html" %}
 
+{% block announce %} 
+   Upgrade to <a href="{{ base_url }}/changelog/">LeakCanary <strong>{{config.extra.leak_canary.release}}</strong></a> 🐤 Want to help?  <a href="{{ base_url }}/how_to_help/">Here's how you can contribute<a> 🙏
+{% endblock %}
+
 {% block content %}
-                {% if page.edit_url %}
-				  {% if "/api/" in page.edit_url %}
-				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20{{ page.url }}%20page">Report it</a></span>
-                  {% else %}
-				<span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20{{ page.url }}%20page">Report</a> or <a href="{{ page.edit_url }}">edit</a></span>
-                  {% endif %}
-                {% endif %}
-                {% if not "\x3ch1" in page.content %}
-                  <h1>{{ page.title | default(config.site_name, true)}}</h1>
-                {% endif %}
-                {{ page.content }}
-                {% block source %}
-                  {% if page and page.meta and page.meta.source %}
-                    <h2 id="__source">{{ lang.t("meta.source") }}</h2>
-                    {% set repo = config.repo_url %}
-                    {% if repo | last == "/" %}
-                      {% set repo = repo[:-1] %}
-                    {% endif %}
-                    {% set path = page.meta.path | default([""]) %}
-                    {% set file = page.meta.source %}
-                    <a href="{{ [repo, path, file] | join('/') }}" title="{{ file }}" class="md-source-file">
-                      {{ file }}
-                    </a>
-                  {% endif %}
-                {% endblock %}
+  {% if page.edit_url %}
+    {% if "/api/" in page.edit_url %}
+  <span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20{{ page.url }}%20page">Report it</a></span>
+    {% else %}
+  <span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20{{ page.url }}%20page">Report</a> or <a href="{{ page.edit_url }}">edit</a></span>
+    {% endif %}
+  {% endif %}
+  {% block source %}
+    {% if page and page.meta and page.meta.source %}
+      {% include "partials/source-link.html" %}
+    {% endif %}
+  {% endblock %}
+  {% if not "\x3ch1" in page.content %}
+    <h1>{{ page.title | default(config.site_name, true)}}</h1>
+  {% endif %}
+  {{ page.content }}
+  {% if page and page.meta %}
+    {% if page.meta.git_revision_date_localized or
+          page.meta.revision_date
+    %}
+      {% include "partials/source-date.html" %}
+    {% endif %}
+  {% endif %}
 {% endblock %}
