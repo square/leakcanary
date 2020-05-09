@@ -9,6 +9,7 @@ import android.widget.AdapterView.OnItemSelectedListener
 import android.widget.ListView
 import android.widget.Spinner
 import android.widget.TextView
+import android.util.Patterns
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.DisplayLeakAdapter
 import leakcanary.internal.SquigglySpan
@@ -127,7 +128,19 @@ internal class LeakScreen(
     spinner.setSelection(selectedLeakTraceIndex)
   }
 
-
+private fun parseLinks(str: String):String {
+    val words = str.split(" ")
+    var parsedString = ""
+    for (word in words) {
+      parsedString += if (Patterns.WEB_URL.matcher(word).matches()) {
+        "<a href=\"${word}\">${word}</a>";
+      } else {
+        word
+      }
+      if (words.indexOf(word) != words.size - 1) parsedString += " "
+    }
+    return parsedString
+}
 private fun View.onLeakTraceSelected(analysis: HeapAnalysisSuccess, heapAnalysisId: Long, leakTraceIndex: Int) {
   val selectedLeak = analysis.allLeaks.first { it.signature == leakSignature }
   val leakTrace = selectedLeak.leakTraces[leakTraceIndex]
@@ -147,7 +160,7 @@ private fun View.onLeakTraceSelected(analysis: HeapAnalysisSuccess, heapAnalysis
         "A <font color='#FFCC32'>Library Leak</font> is a leak caused by a known bug in 3rd party code that you do not have control over. " +
         "(<a href=\"https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks\">Learn More</a>)<br><br>" +
         "<b>Leak pattern</b>: ${selectedLeak.pattern}<br><br>" +
-        "<b>Description</b>: ${selectedLeak.description}" else ""
+        "<b>Description</b>: ${parseLinks(selectedLeak.description)}" else ""
 
     val title = Html.fromHtml(titleText) as SpannableStringBuilder
     SquigglySpan.replaceUnderlineSpans(title, context)
