@@ -34,6 +34,11 @@ The Shark Command Line Interface (CLI) enables you to analyze heaps directly fro
 
 Download it [here](https://github.com/square/leakcanary/releases/download/v{{ leak_canary.release }}/shark-cli-{{ leak_canary.release }}.zip)!
 
+Or install via brew ([what's brew](https://brew.sh/))
+```(bash)
+brew install leakcanary-shark
+```
+
 Usage instructions:
 
 ```
