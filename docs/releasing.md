@@ -108,4 +108,10 @@ git push
 See [Change Log](https://square.github.io/leakcanary/changelog#version-20-alpha-2-2019-05-21)
 ```
 * Add the CLIP zip from `shark-cli/build/distributions/` to the release.
+* Make a pull request to [brew](https://brew.sh/). Just execute 
+```(bash)
+brew bump-formula-pr --url https://github.com/square/leakcanary/releases/download/v{{ leak_canary.next_release }}/shark-cli-{{ leak_canary.next_release }}.zip leakcanary-shark
+```
+(The url parameter should point at zip from this new release).   
+In case of problems, read [brew docs](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request).  
 * Tell your friends, update all of your apps, and tweet the new release. As a nice extra touch, mention external contributions.
