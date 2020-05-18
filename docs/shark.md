@@ -32,17 +32,27 @@ A few more things:
 
 The Shark Command Line Interface (CLI) enables you to analyze heaps directly from your computer. It can dump the heap of an app installed on a connected Android device, analyze it, and even strip a heap dump of any sensitive data (e.g. PII, passwords or encryption keys) which is useful when sharing a heap dump.
 
-Download it [here](https://github.com/square/leakcanary/releases/download/v{{ leak_canary.release }}/shark-cli-{{ leak_canary.release }}.zip)!
+Install it via [Homebrew](https://brew.sh/):
 
-Or install via brew ([what's brew](https://brew.sh/))
-```(bash)
+```bash
 brew install leakcanary-shark
 ```
 
-Usage instructions:
+You can also download it [here](https://github.com/square/leakcanary/releases/download/v{{ leak_canary.release }}/shark-cli-{{ leak_canary.release }}.zip).
+
+You can then look for leaks in apps on any connected device, for example: 
 
 ```
-$ ./bin/shark-cli
+$ shark-cli --device emulator-5554 --process com.example.app.debug analyze
+```
+
+!!! info
+    `shark-cli` works with all debuggable apps, even if they don't include the `leakcanary-android` dependency.
+
+Run `shark-cli` to see usage instructions:
+
+```
+$ shark-cli
 
 Usage: shark-cli [OPTIONS] COMMAND [ARGS]...
 
@@ -59,23 +69,23 @@ Usage: shark-cli [OPTIONS] COMMAND [ARGS]...
                                       /|\  /|\
 
 Options:
-  -h, --help  Show this message and exit
+  -p, --process TEXT              Full or partial name of a process, e.g.
+                                  "example" would match "com.example.app"
+  -d, --device ID                 device/emulator id
+  -m, --obfuscation-mapping PATH  path to obfuscation mapping file
+  --verbose / --no-verbose        provide additional details as to what
+                                  shark-cli is doing
+  -h, --hprof FILE                path to a .hprof file
+  --help                          Show this message and exit
 
 Commands:
-  analyze-process  Dumps the heap for the provided partial PROCESS_NAME, pulls
-                   the hprof file and analyzes it. (Usage: shark-cli
-                   analyze-process [--device ID --obfuscation-mapping PATH]
-                   PROCESS_NAME)
-  dump-process     Dumps the heap for the provided partial PROCESS_NAME and
-                   pulls the hprof file. (Usage: shark-cli dump-process
-                   [--device ID] PROCESS_NAME)
-  analyze-hprof    Analyzes the provided HPROF_FILE_PATH. (Usage: shark-cli
-                   analyze-hprof [--obfuscation-mapping PATH] HPROF_FILE_PATH)
-  strip-hprof      Replaces all primitive arrays from the provided
-                   HPROF_FILE_PATH with arrays of zeroes and generates a new
-                   "-stripped.hprof" file. (Usage: shark-cli strip-hprof
-                   HPROF_FILE_PATH)
+  interactive   Explore a heap dump.
+  analyze       Analyze a heap dump.
+  dump-process  Dump the heap and pull the hprof file.
+  strip-hprof   Replace all primitive arrays from the provided heap dump with
+                arrays of zeroes and generate a new "-stripped.hprof" file.
 ```
+
 
 ## Shark code examples
 
