@@ -10,6 +10,7 @@ import com.github.ajalt.clikt.parameters.groups.cooccurring
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.versionOption
 import com.github.ajalt.clikt.parameters.types.file
 import shark.DumpProcessCommand.Companion.dumpHeap
 import shark.SharkCliCommand.HeapDumpSource.HprofFileSource
@@ -18,12 +19,15 @@ import shark.SharkLog.Logger
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.util.Properties
 import java.util.concurrent.TimeUnit.SECONDS
 
 class SharkCliCommand : CliktCommand(
     name = "shark-cli",
     // This ASCII art is a remix of a shark from -David "TAZ" Baltazar- and chick from jgs.
     help = """
+    |Version: $versionName
+    |
     |```
     |$S                ^`.                 .=""=.
     |$S^_              \  \               / _  _ \
@@ -66,6 +70,10 @@ class SharkCliCommand : CliktCommand(
       folderOkay = false,
       readable = true
   )
+
+  init {
+    versionOption(versionName)
+  }
 
   class CommandParams(
     val source: HeapDumpSource,
@@ -191,6 +199,18 @@ class SharkCliCommand : CliktCommand(
       }
       return output
     }
+
+    private val versionName = run {
+      val properties = Properties()
+      properties.load(
+          SharkCliCommand::class.java.getResourceAsStream("/version.properties")
+              ?: throw IllegalStateException("version.properties missing")
+      )
+      properties.getProperty("version_name") ?: throw IllegalStateException(
+          "version_name property missing"
+      )
+    }
+
   }
 
 }

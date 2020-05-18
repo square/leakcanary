@@ -4,6 +4,9 @@ apply plugin: 'application'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
+// Workaround for https://stackoverflow.com/questions/48988778
+// /cannot-inline-bytecode-built-with-jvm-target-1-8-into-bytecode-that-is-being-bui
+compileKotlin.kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8.toString()
 
 dependencies {
   api project(':shark-android')
@@ -18,3 +21,22 @@ application {
 }
 
 apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
+
+def generatedVersionDir = "${buildDir}/generated-version"
+
+sourceSets {
+  main {
+    output.dir(generatedVersionDir, builtBy: 'generateVersionProperties')
+  }
+}
+
+task generateVersionProperties {
+  doLast {
+    def propertiesFile = file "$generatedVersionDir/version.properties"
+    propertiesFile.parentFile.mkdirs()
+    def properties = new Properties()
+    properties.setProperty("version_name", rootProject.VERSION_NAME.toString())
+    propertiesFile.withWriter { properties.store(it, null) }
+  }
+}
+processResources.dependsOn generateVersionProperties
