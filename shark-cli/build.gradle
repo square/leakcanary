@@ -4,6 +4,8 @@ apply plugin: 'application'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
+// Workaround for https://stackoverflow.com/questions/48988778
+// /cannot-inline-bytecode-built-with-jvm-target-1-8-into-bytecode-that-is-being-bui
 compileKotlin.kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8.toString()
 
 dependencies {
@@ -19,7 +21,6 @@ application {
 }
 
 apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
-
 
 def generatedVersionDir = "${buildDir}/generated-version"
 

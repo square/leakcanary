@@ -19,7 +19,7 @@ import shark.SharkLog.Logger
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.util.*
+import java.util.Properties
 import java.util.concurrent.TimeUnit.SECONDS
 
 class SharkCliCommand : CliktCommand(
@@ -202,8 +202,13 @@ class SharkCliCommand : CliktCommand(
 
     private val versionName = run {
       val properties = Properties()
-      properties.load(SharkCliCommand::class.java.getResourceAsStream("/version.properties"))
-      properties.getProperty("version_name", "no version")
+      properties.load(
+          SharkCliCommand::class.java.getResourceAsStream("/version.properties")
+              ?: throw IllegalStateException("version.properties missing")
+      )
+      properties.getProperty("version_name") ?: throw IllegalStateException(
+          "version_name property missing"
+      )
     }
 
   }
