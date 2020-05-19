@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.squareup.leakcanary.plumber">
+  <application>
+    <provider
+        android:name="leakcanary.internal.PlumberInstaller"
+        android:authorities="${applicationId}.plumber-installer"
+        android:enabled="@bool/leak_canary_plumber_auto_install"
+        android:exported="false" />
+  </application>
+</manifest>

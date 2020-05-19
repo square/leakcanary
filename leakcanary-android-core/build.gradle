@@ -6,6 +6,7 @@ dependencies {
   api project(':leakcanary-object-watcher-android')
   api project(':leakcanary-object-watcher-android-androidx')
   api project(':leakcanary-object-watcher-android-support-fragments')
+  implementation project(':plumber-android')
 
   implementation deps.kotlin.stdlib
 

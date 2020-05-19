@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <bool name="leak_canary_plumber_auto_install">true</bool>
+</resources>
