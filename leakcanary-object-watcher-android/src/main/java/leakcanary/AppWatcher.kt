@@ -21,13 +21,6 @@ object AppWatcher {
    */
   data class Config(
     /**
-     * Whether AppWatcher should watch objects (by keeping weak references to them).
-     *
-     * Default to true in debuggable builds and false is non debuggable builds.
-     */
-    val enabled: Boolean = InternalAppWatcher.isDebuggableBuild,
-
-    /**
      * Whether AppWatcher should automatically watch destroyed activity instances.
      *
      * Defaults to true.
@@ -61,7 +54,17 @@ object AppWatcher {
      *
      * Default to 5 seconds.
      */
-    val watchDurationMillis: Long = TimeUnit.SECONDS.toMillis(5)
+    val watchDurationMillis: Long = TimeUnit.SECONDS.toMillis(5),
+
+    /**
+     * Deprecated, this didn't need to be a part of the API.
+     * Used to indicate whether AppWatcher should watch objects (by keeping weak references to
+     * them). Currently a no-op.
+     *
+     * If you do need to stop watching objects, simply don't pass them to [objectWatcher].
+     */
+    @Deprecated("This didn't need to be a part of LeakCanary's API. No-Op.")
+    val enabled: Boolean = true
   ) {
 
     /**
@@ -91,16 +94,15 @@ object AppWatcher {
      */
     @Suppress("TooManyFunctions")
     class Builder internal constructor(config: Config) {
-      private var enabled = config.enabled
       private var watchActivities = config.watchActivities
       private var watchFragments = config.watchFragments
       private var watchFragmentViews = config.watchFragmentViews
       private var watchViewModels = config.watchViewModels
       private var watchDurationMillis = config.watchDurationMillis
 
-      /** @see [Config.enabled] */
-      fun enabled(enabled: Boolean) =
-        apply { this.enabled = enabled }
+      /** Deprecated. @see [Config.enabled] */
+      @Deprecated("see [Config.enabled]", replaceWith = ReplaceWith(""))
+      fun enabled(enabled: Boolean) = this
 
       /** @see [Config.watchActivities] */
       fun watchActivities(watchActivities: Boolean) =
@@ -123,7 +125,6 @@ object AppWatcher {
         apply { this.watchDurationMillis = watchDurationMillis }
 
       fun build() = config.copy(
-          enabled = enabled,
           watchActivities = watchActivities,
           watchFragments = watchFragments,
           watchFragmentViews = watchFragmentViews,
@@ -150,7 +151,7 @@ object AppWatcher {
    * ```
    */
   @JvmStatic @Volatile
-  var config: Config = if (isInstalled) Config() else Config(enabled = false)
+  var config: Config = Config()
     set(newConfig) {
       val previousConfig = field
       field = newConfig
@@ -198,7 +199,6 @@ object AppWatcher {
    */
   fun manualInstall(application: Application) {
     InternalAppWatcher.install(application)
-    config = config.copy(enabled = InternalAppWatcher.isDebuggableBuild)
   }
 
 }

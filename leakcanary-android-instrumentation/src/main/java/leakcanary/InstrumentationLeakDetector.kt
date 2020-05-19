@@ -192,7 +192,6 @@ class InstrumentationLeakDetector {
      * running.
      */
     fun updateConfig() {
-      AppWatcher.config = AppWatcher.config.copy(enabled = true)
       LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
     }
   }

@@ -155,10 +155,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       return
     }
 
-    if (application.resources.getBoolean(R.bool.leak_canary_allow_in_non_debuggable_build)) {
-      // AppWatcher is disabled by default for non-debuggable builds, but we have a developer opt-in.
-      AppWatcher.config = AppWatcher.config.copy(enabled = true)
-    } else {
+    if (!application.resources.getBoolean(R.bool.leak_canary_allow_in_non_debuggable_build)) {
       throw Error(
           """
         LeakCanary in non-debuggable build
@@ -196,14 +193,10 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
         SharkLog.d { "$testClassName detected in classpath, app is running tests => disabling heap dumping & analysis" }
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
       }
-      if (AppWatcher.config.enabled) {
-        if (LeakCanary.config.dumpHeap) {
-          SharkLog.d { "LeakCanary is running and ready to detect leaks" }
-        } else {
-          SharkLog.d { "LeakCanary heap dumping is disabled: LeakCanary.config.dumpHeap = false" }
-        }
+      if (LeakCanary.config.dumpHeap) {
+        SharkLog.d { "LeakCanary is running and ready to detect leaks" }
       } else {
-        SharkLog.d { "LeakCanary object watching is disabled: AppWatcher.config.enabled = false" }
+        SharkLog.d { "LeakCanary heap dumping is disabled: LeakCanary.config.dumpHeap = false" }
       }
     }
   }

@@ -22,17 +22,11 @@ internal sealed class AppWatcherInstaller : ContentProvider() {
    * When using the `leakcanary-android-process` artifact instead of `leakcanary-android`,
    * [LeakCanaryProcess] automatically sets up the LeakCanary code
    */
-  internal class LeakCanaryProcess : AppWatcherInstaller() {
-    override fun onCreate(): Boolean {
-      super.onCreate()
-      AppWatcher.config = AppWatcher.config.copy(enabled = false)
-      return true
-    }
-  }
+  internal class LeakCanaryProcess : AppWatcherInstaller()
 
   override fun onCreate(): Boolean {
     val application = context!!.applicationContext as Application
-    InternalAppWatcher.install(application)
+    AppWatcher.manualInstall(application)
     return true
   }
 
