@@ -85,14 +85,11 @@ Configure the LeakCanary UI by overriding the following resources:
 Sometimes it's necessary to disable LeakCanary temporarily, for example for a product demo or when running performance tests. You have different options, depending on what you're trying to achieve:
 
 * Create a build variant that does not include the LeakCanary dependencies, see [Setting up LeakCanary for different product flavors](#setting-up-leakcanary-for-different-product-flavors).
-* Disable the tracking of retained objects: `AppWatcher.config = AppWatcher.config.copy(enabled = false)`.
 * Disable the heap dumping & analysis: `LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)`.
 * Hide the leak display activity launcher icon: override `R.bool.leak_canary_add_launcher_icon` or call `LeakCanary.showLeakDisplayActivityLauncherIcon(false)`
 
 !!! info
-    When you set `AppWatcher.config.enabled` to false, `AppWatcher.objectWatcher` will stop creating weak references to destroyed objects.
-
-	If instead you set `LeakCanary.Config.dumpHeap` to false, `AppWatcher.objectWatcher` will still keep track of retained objects, and LeakCanary will look for these objects when you change `LeakCanary.Config.dumpHeap` back to true.
+    When you set `LeakCanary.Config.dumpHeap` to `false`, `AppWatcher.objectWatcher` will still keep track of retained objects, and LeakCanary will look for these objects when you change `LeakCanary.Config.dumpHeap` back to `true`.
 
 ## Counting retained instances in release builds
 
@@ -102,7 +99,7 @@ In your `build.gradle`:
 
 ```gradle
 dependencies {
-  implementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-5'
+  implementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:{{ leak_canary.release }}'
 }
 ```
 
