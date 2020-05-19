@@ -671,5 +671,11 @@ objectWatcher.watch(
 
 If you end up using LeakCanary on a JVM, the community will definitely benefit from your experience, so don't hesitate to [let us know](https://github.com/square/leakcanary/issues/)!
 
+## PackageManager.getLaunchIntentForPackage() returns LeakLauncherActivity
+
+LeakCanary adds a main activity that has a [Intent#CATEGORY_LAUNCHER](https://developer.android.com/reference/android/content/Intent#CATEGORY_LAUNCHER) category. <a href="https://developer.android.com/reference/android/content/pm/PackageManager#getLaunchIntentForPackage(java.lang.String)">PackageManager.getLaunchIntentForPackage()</a> looks for a main activity in the category `Intent#CATEGORY_INFO`, and next for a main activity in the category `Intent#CATEGORY_LAUNCHER`. `PackageManager.getLaunchIntentForPackage()` returns the first activity that matches in the merged manifest of your app. If your app relies on `PackageManager.getLaunchIntentForPackage()`, you have two options:
+
+* Add `Intent#CATEGORY_INFO` to your main activity intent filter, so that it gets picked up first. This is what the Android documentation recommends.
+* Disable the leakcanary launcher activity by setting the `leak_canary_add_launcher_icon` resource boolean to false.
 
 
