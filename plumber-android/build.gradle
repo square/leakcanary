@@ -2,6 +2,8 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 dependencies {
+  api project(':shark-log')
+
   implementation deps.kotlin.stdlib
 }
 

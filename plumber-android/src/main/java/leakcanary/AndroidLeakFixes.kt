@@ -11,12 +11,14 @@ import android.os.Looper
 import android.os.Process
 import android.os.UserManager
 import android.view.accessibility.AccessibilityNodeInfo
+import shark.SharkLog
 import java.lang.reflect.Array
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
 import java.util.EnumSet
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit.SECONDS
 
 /**
  * A collection of hacks to fix leaks in the Android Framework and other Google Android libraries.
@@ -39,8 +41,8 @@ enum class AndroidLeakFixes {
       backgroundExecutor.execute {
         try {
           val clazz = Class.forName("android.media.session.MediaSessionLegacyHelper")
-          val getHelper = clazz.getDeclaredMethod("getHelper", Context::class.java)
-          getHelper.invoke(null, application)
+          val getHelperMethod = clazz.getDeclaredMethod("getHelper", Context::class.java)
+          getHelperMethod.invoke(null, application)
         } catch (ignored: Exception) {
         }
       }
@@ -122,57 +124,52 @@ enum class AndroidLeakFixes {
   },
 
   /**
-   * Google Play Services start a GoogleApiHandler thread which keeps a local reference to its
-   * last handled message after recycling it. That message is obtained by a dialog which sets on
-   * an OnClickListener on it and then never recycles it, expecting it to be garbage collected
-   * but it ends up being held by the GoogleApiHandler thread.
+   * HandlerThread instances keep local reference to their last handled message after recycling it.
+   * That message is obtained by a dialog which sets on an OnClickListener on it and then never
+   * recycles it, expecting it to be garbage collected but it ends up being held by the
+   * HandlerThread.
    */
-  GOOGLE_API_HANDLER_THREAD {
+  FLUSH_HANDLER_THREADS {
     override fun apply(application: Application) {
-      // 30 seconds is an arbitrary delay to give time to Play Services to start the thread.
-      backgroundExecutor.schedule({
-        val thread = findGoogleApiHandlerThread()
-        if (thread != null) {
-          // Unfortunately Looper.getQueue() is API 23. Looper.myQueue() is API 1.
-          // So we have to post to the handler thread to be able to obtain the queue for that
-          // thread from within that Thread.
-          // When the Google API thread becomes idle, we post a message to force it to move.
-          // Source: https://developer.squareup.com/blog/a-small-leak-will-sink-a-great-ship/
-          val flushHandler = Handler(thread.looper)
-          flushHandler.post {
-            Looper.myQueue()
-                .addIdleHandler {
-                  flushHandler.sendMessageDelayed(flushHandler.obtainMessage(), 1000)
-                  true
+      val flushedThreadIds = mutableSetOf<Int>()
+      // Wait 2 seconds then look for handler threads every 3 seconds.
+      backgroundExecutor.scheduleWithFixedDelay({
+        val newHandlerThreadsById = findAllHandlerThreads()
+            .mapNotNull { thread ->
+              val threadId = thread.threadId
+              if (threadId == -1 || threadId in flushedThreadIds) {
+                null
+              } else {
+                threadId to thread
+              }
+            }
+        flushedThreadIds += newHandlerThreadsById.map { it.first }
+        newHandlerThreadsById
+            .map { it.second }
+            .forEach { handlerThread ->
+              SharkLog.d { "Setting up flushing for $handlerThread" }
+              var scheduleFlush = true
+              val flushHandler = Handler(handlerThread.looper)
+              flushHandler.onEachIdle {
+                if (scheduleFlush) {
+                  scheduleFlush = false
+                  // When the Handler thread becomes idle, we post a message to force it to move.
+                  // Source: https://developer.squareup.com/blog/a-small-leak-will-sink-a-great-ship/
+                  try {
+                    flushHandler.postDelayed({
+                      // Right after this postDelayed executes, the idle handler will likely be called
+                      // again (if the queue is otherwise empty), so we'll need to schedule a flush
+                      // again.
+                      scheduleFlush = true
+                    }, 1000)
+                  } catch (ignored: RuntimeException) {
+                    // If the thread is quitting, posting to it will throw. There is no safe and atomic way
+                    // to check if a thread is quitting first then post it it.
+                  }
                 }
-          }
-        }
-      }, 30, TimeUnit.SECONDS)
-    }
-
-    private fun findGoogleApiHandlerThread(): HandlerThread? {
-      // https://stackoverflow.com/a/1323480
-      var rootGroup = Thread.currentThread()
-          .threadGroup
-      var lookForRoot = true
-      while (lookForRoot) {
-        val parentGroup = rootGroup.parent
-        if (parentGroup != null) {
-          rootGroup = parentGroup
-        } else {
-          lookForRoot = false
-        }
-      }
-      var threads = arrayOfNulls<Thread>(rootGroup.activeCount())
-      while (rootGroup.enumerate(threads, true) == threads.size) {
-        threads = arrayOfNulls(threads.size * 2)
-      }
-      for (thread in threads) {
-        if (thread is HandlerThread && thread.getName() == "GoogleApiHandler") {
-          return thread
-        }
-      }
-      return null
+              }
+            }
+      }, 2, 3, TimeUnit.SECONDS)
     }
   },
 
@@ -191,13 +188,13 @@ enum class AndroidLeakFixes {
       if (SDK_INT >= 28) {
         return
       }
-      // Starve the pool on activity destroy
-      application.onActivityDestroyed {
+      // Starve the pool every 5 seconds.
+      backgroundExecutor.scheduleAtFixedRate({
         val maxPoolSize = 50
         for (i in 0 until maxPoolSize) {
           AccessibilityNodeInfo.obtain()
         }
-      }
+      }, 5, 5, SECONDS)
     }
   },
 
@@ -215,16 +212,47 @@ enum class AndroidLeakFixes {
     }
 
     private val backgroundExecutor =
-      Executors.newScheduledThreadPool(1) { runnable ->
+      // Single thread => avoid dealing with concurrency (aside from background vs main thread)
+      Executors.newSingleThreadScheduledExecutor { runnable ->
         val thread = object : Thread() {
           override fun run() {
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
             runnable.run()
           }
         }
-        thread.name = "duck-tape-android-leaks"
+        thread.name = "plumber-android-leaks"
         thread
       }
+
+    private fun Handler.onEachIdle(onIdle: () -> Unit) {
+      try {
+        // Unfortunately Looper.getQueue() is API 23. Looper.myQueue() is API 1.
+        // So we have to post to the handler thread to be able to obtain the queue for that
+        // thread from within that thread.
+        post {
+          Looper
+              .myQueue()
+              .addIdleHandler {
+                onIdle()
+                true
+              }
+        }
+      } catch (ignored: RuntimeException) {
+        // If the thread is quitting, posting to it will throw. There is no safe and atomic way
+        // to check if a thread is quitting first then post it it.
+      }
+    }
+
+    private fun findAllHandlerThreads(): List<HandlerThread> {
+      // Based on https://stackoverflow.com/a/1323480
+      var rootGroup = Thread.currentThread().threadGroup!!
+      while (rootGroup.parent != null) rootGroup = rootGroup.parent
+      var threads = arrayOfNulls<Thread>(rootGroup.activeCount())
+      while (rootGroup.enumerate(threads, true) == threads.size) {
+        threads = arrayOfNulls(threads.size * 2)
+      }
+      return threads.mapNotNull { if (it is HandlerThread) it else null }
+    }
 
     internal fun Application.onActivityDestroyed(block: (Activity) -> Unit) {
       registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks
