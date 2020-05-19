@@ -323,7 +323,7 @@ object LeakCanary {
 
   /**
    * Dynamically shows / hides the launcher icon for the leak display activity.
-   * Note: you can change the default value by overriding the leak_canary_add_launcher_icon
+   * Note: you can change the default value by overriding the `leak_canary_add_launcher_icon`
    * boolean resource:
    *
    * ```

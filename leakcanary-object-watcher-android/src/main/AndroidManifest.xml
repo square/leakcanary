@@ -8,6 +8,7 @@
     <provider
         android:name="leakcanary.internal.AppWatcherInstaller$MainProcess"
         android:authorities="${applicationId}.leakcanary-installer"
+        android:enabled="@bool/leak_canary_watcher_auto_install"
         android:exported="false"/>
   </application>
 </manifest>

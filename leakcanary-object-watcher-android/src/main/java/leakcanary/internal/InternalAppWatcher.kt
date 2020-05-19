@@ -58,11 +58,11 @@ internal object InternalAppWatcher {
   )
 
   fun install(application: Application) {
-    SharkLog.logger = DefaultCanaryLog()
     checkMainThread()
     if (this::application.isInitialized) {
       return
     }
+    SharkLog.logger = DefaultCanaryLog()
     InternalAppWatcher.application = application
 
     val configProvider = { AppWatcher.config }
