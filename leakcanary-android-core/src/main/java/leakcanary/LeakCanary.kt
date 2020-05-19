@@ -3,6 +3,7 @@ package leakcanary
 import android.content.Intent
 import leakcanary.LeakCanary.config
 import leakcanary.internal.InternalLeakCanary
+import leakcanary.internal.activity.LeakActivity
 import shark.AndroidMetadataExtractor
 import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
@@ -208,7 +209,8 @@ object LeakCanary {
       private var metadataExtractor = config.metadataExtractor
       private var computeRetainedHeapSize = config.computeRetainedHeapSize
       private var maxStoredHeapDumps = config.maxStoredHeapDumps
-      private var requestWriteExternalStoragePermission = config.requestWriteExternalStoragePermission
+      private var requestWriteExternalStoragePermission =
+        config.requestWriteExternalStoragePermission
       private var leakingObjectFinder = config.leakingObjectFinder
 
       /** @see [LeakCanary.Config.dumpHeap] */
@@ -288,7 +290,7 @@ object LeakCanary {
    * ```
    */
   @JvmStatic @Volatile
-  var config: Config = if (AppWatcher.isInstalled) Config() else InternalLeakCanary.noInstallConfig
+  var config: Config = Config()
     set(newConfig) {
       val previousConfig = field
       field = newConfig
@@ -319,7 +321,7 @@ object LeakCanary {
   /**
    * Returns a new [Intent] that can be used to programmatically launch the leak display activity.
    */
-  fun newLeakDisplayActivityIntent() = InternalLeakCanary.leakDisplayActivityIntent
+  fun newLeakDisplayActivityIntent() = LeakActivity.createIntent(InternalLeakCanary.application)
 
   /**
    * Dynamically shows / hides the launcher icon for the leak display activity.

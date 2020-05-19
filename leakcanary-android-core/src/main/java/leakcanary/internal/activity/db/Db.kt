@@ -4,11 +4,13 @@ import android.database.sqlite.SQLiteDatabase
 import android.view.View
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db.OnDb
+import leakcanary.internal.activity.db.Db.dbHelper
 import leakcanary.internal.activity.db.Io.OnIo
 
 internal object Db {
 
-  private val dbHelper = LeaksDbHelper(InternalLeakCanary.application)
+  // Accessed on the IO thread only.
+  private var dbHelper: LeaksDbHelper? = null
 
   interface OnDb : OnIo {
     val db: SQLiteDatabase
@@ -26,9 +28,12 @@ internal object Db {
     view: View,
     block: OnDb.() -> Unit
   ) {
-
+    val appContext = view.context.applicationContext
     Io.execute(view) {
-      val dbBlock = DbContext(dbHelper.writableDatabase)
+      if (dbHelper == null) {
+        dbHelper = LeaksDbHelper(appContext)
+      }
+      val dbBlock = DbContext(dbHelper!!.writableDatabase)
       block(dbBlock)
       val updateUi = dbBlock.updateUi
       if (updateUi != null) {
@@ -40,7 +45,7 @@ internal object Db {
   fun closeDatabase() {
     // Closing on the serial IO thread to ensure we don't close while using the db.
     Io.execute {
-      dbHelper.close()
+      dbHelper?.close()
     }
   }
 

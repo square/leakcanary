@@ -26,6 +26,7 @@
   <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br><br>
 ]]></string>
   <string name="leak_canary_heap_dump_disabled_text">Heap dumping is currently disabled, because <i>%s</i>.</string>
+  <string name="leak_canary_heap_dump_not_installed_text">AppWatcher is not installed.</string>
   <string name="leak_canary_heap_dump_enabled_text">Heap dumping is currently enabled.</string>
   <string name="leak_canary_heap_dump_disabled_by_app">LeakCanary.Config.dumpHeap is set to false</string>
   <string name="leak_canary_heap_dump_disabled_running_tests">tests are running</string>

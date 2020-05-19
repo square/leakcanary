@@ -67,7 +67,7 @@ internal class RenderHeapDumpScreen(
       onCreateOptionsMenu { menu ->
         menu.add(R.string.leak_canary_options_menu_generate_hq_bitmap)
             .setOnMenuItemClickListener {
-              val leakDirectoryProvider = InternalLeakCanary.leakDirectoryProvider
+              val leakDirectoryProvider = InternalLeakCanary.createLeakDirectoryProvider(context)
               if (!leakDirectoryProvider.hasStoragePermission()) {
                 Toast.makeText(
                     context,

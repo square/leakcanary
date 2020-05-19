@@ -25,8 +25,19 @@ import shark.SharkLog
  * Default [OnHeapAnalyzedListener] implementation, which will store the analysis to disk and
  * show a notification summarizing the result.
  */
-class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHeapAnalyzedListener {
+class DefaultOnHeapAnalyzedListener private constructor(private val applicationProvider: () -> Application) :
+    OnHeapAnalyzedListener {
+
+  // Kept this constructor for backward compatibility of public API.
+  @Deprecated(
+      message = "Use DefaultOnHeapAnalyzedListener.create() instead",
+      replaceWith = ReplaceWith("DefaultOnHeapAnalyzedListener.create()")
+  )
+  constructor(application: Application) : this({ application })
+
   private val mainHandler = Handler(Looper.getMainLooper())
+
+  private val application: Application by lazy { applicationProvider() }
 
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
     SharkLog.d { "$heapAnalysis" }
@@ -91,7 +102,8 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
         }
         is HeapAnalysisFailure -> application.getString(R.string.leak_canary_tv_analysis_failure)
       }
-      TvToast.makeText(resumedActivity, message).show()
+      TvToast.makeText(resumedActivity, message)
+          .show()
     }
   }
 
@@ -115,6 +127,6 @@ class DefaultOnHeapAnalyzedListener(private val application: Application) : OnHe
 
   companion object {
     fun create(): OnHeapAnalyzedListener =
-      DefaultOnHeapAnalyzedListener(InternalLeakCanary.application)
+      DefaultOnHeapAnalyzedListener { InternalLeakCanary.application }
   }
 }

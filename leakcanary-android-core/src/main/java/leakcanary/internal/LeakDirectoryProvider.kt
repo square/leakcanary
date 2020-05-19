@@ -41,11 +41,7 @@ internal class LeakDirectoryProvider constructor(
   private val maxStoredHeapDumps: () -> Int,
   private val requestExternalStoragePermission: () -> Boolean
 ) {
-
   private val context: Context = context.applicationContext
-
-  @Volatile private var writeExternalStorageGranted: Boolean = false
-  @Volatile private var permissionNotificationDisplayed: Boolean = false
 
   fun listFiles(filter: FilenameFilter): MutableList<File> {
     if (!hasStoragePermission() && requestExternalStoragePermission()) {
@@ -182,6 +178,8 @@ internal class LeakDirectoryProvider constructor(
   }
 
   companion object {
+    @Volatile private var writeExternalStorageGranted: Boolean = false
+    @Volatile private var permissionNotificationDisplayed: Boolean = false
 
     private val filesDeletedTooOld = mutableListOf<String>()
     val filesDeletedRemoveLeak = mutableListOf<String>()
