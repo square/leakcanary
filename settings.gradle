@@ -1,4 +1,4 @@
-include ':duck-tape-android'
+include ':plumber-android'
 include ':leakcanary-android'
 include ':leakcanary-android-core'
 include ':leakcanary-android-instrumentation'

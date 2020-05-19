@@ -5,17 +5,17 @@ import android.content.ContentProvider
 import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
-import leakcanary.DuckTapeAndroid
+import leakcanary.AndroidLeakFixes
 
 /**
- * Content providers are loaded before the application class is created. [DuckTapeInstaller] is
- * used to install [leakcanary.DuckTapeAndroid] fixes on application start.
+ * Content providers are loaded before the application class is created. [PlumberInstaller] is
+ * used to install [leakcanary.AndroidLeakFixes] fixes on application start.
  */
-internal class DuckTapeInstaller : ContentProvider() {
+internal class PlumberInstaller : ContentProvider() {
 
   override fun onCreate(): Boolean {
     val application = context!!.applicationContext as Application
-    DuckTapeAndroid.values().forEach { it.apply(application) }
+    AndroidLeakFixes.applyFixes(application)
     return true
   }
 

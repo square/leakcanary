@@ -14,13 +14,14 @@ import android.view.accessibility.AccessibilityNodeInfo
 import java.lang.reflect.Array
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
+import java.util.EnumSet
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
  * A collection of hacks to fix leaks in the Android Framework and other Google Android libraries.
  */
-enum class DuckTapeAndroid {
+enum class AndroidLeakFixes {
 
   /**
    * MediaSessionLegacyHelper is a static singleton and did not use the application context.
@@ -202,9 +203,17 @@ enum class DuckTapeAndroid {
 
   ;
 
-  abstract fun apply(application: Application)
+  protected abstract fun apply(application: Application)
 
   companion object {
+
+    fun applyFixes(
+      application: Application,
+      fixes: Set<AndroidLeakFixes> = EnumSet.allOf(AndroidLeakFixes::class.java)
+    ) {
+      fixes.forEach { it.apply(application) }
+    }
+
     private val backgroundExecutor =
       Executors.newScheduledThreadPool(1) { runnable ->
         val thread = object : Thread() {
