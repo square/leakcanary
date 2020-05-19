@@ -6,6 +6,7 @@ dependencies {
 }
 
 android {
+  resourcePrefix 'leak_canary_plumber'
   compileSdkVersion versions.compileSdk
   defaultConfig {
     minSdkVersion versions.minSdk
