@@ -19,7 +19,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Modifier
 import java.lang.reflect.Proxy
-import java.util.*
+import java.util.EnumSet
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.SECONDS
