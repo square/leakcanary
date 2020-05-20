@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
 import android.content.Context
-import android.media.MediaScannerConnection
 import android.os.Build.MANUFACTURER
 import android.os.Build.VERSION.SDK_INT
 import android.os.Handler
@@ -13,13 +12,11 @@ import android.os.Looper
 import android.os.Process
 import android.os.UserManager
 import android.view.accessibility.AccessibilityNodeInfo
-import android.widget.ShareActionProvider
 import android.widget.TextView
 import shark.SharkLog
 import java.lang.reflect.Array
 import java.lang.reflect.Field
 import java.lang.reflect.InvocationHandler
-import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.lang.reflect.Proxy
 import java.util.*
@@ -206,54 +203,13 @@ enum class AndroidLeakFixes {
   },
 
   /**
-   * ActivityChooserModel holds a static reference to the last set ActivityChooserModelPolicy
-   * which can be an activity context.
-   * Tracked here: https://code.google.com/p/android/issues/detail?id=172659
-   */
-  ACTIVITY_CHOOSER {
-    override fun apply(application: Application) {
-      if (SDK_INT >= 28) {
-        return
-      }
-
-      backgroundExecutor.execute {
-        val activityChooserModelClass: Class<*>
-        val activityChooserGetterMethod: Method
-        val activityChooserSetterMethod: Method
-        try {
-          activityChooserModelClass = Class.forName("android.widget.ActivityChooserModel")
-          activityChooserGetterMethod = activityChooserModelClass
-            .getDeclaredMethod("get", Context::class.java, String::class.java)
-          activityChooserGetterMethod.isAccessible = true
-          val onChooseActivityListenerClass = activityChooserModelClass
-            .declaredClasses
-            .first { clazz -> clazz.simpleName == "OnChooseActivityListener" }
-          activityChooserSetterMethod = activityChooserModelClass
-            .getDeclaredMethod("setOnChooseActivityListener", onChooseActivityListenerClass)
-          activityChooserSetterMethod.isAccessible = true
-        } catch (ignored: Exception) {
-          return@execute
-        }
-
-        application.onActivityDestroyed {
-          try {
-            val activityChooser = activityChooserGetterMethod
-              .invoke(null, application, ShareActionProvider.DEFAULT_SHARE_HISTORY_FILE_NAME)
-            activityChooserSetterMethod.invoke(activityChooser, null)
-          } catch (ignored: Exception) {
-            // Silent
-          }
-        }
-      }
-    }
-  },
-
-  /**
    * ConnectivityManager has a sInstance field that is set when the first ConnectivityManager instance is created.
    * ConnectivityManager has a mContext field.
    * When calling activity.getSystemService(Context.CONNECTIVITY_SERVICE) , the first ConnectivityManager instance
    * is created with the activity context and stored in sInstance.
    * That activity context then leaks forever.
+   *
+   * This fix makes sure the connectivity manager is created with the application context.
    *
    * Tracked here: https://code.google.com/p/android/issues/detail?id=198852
    * Introduced here: https://github.com/android/platform_frameworks_base/commit/e0bef71662d81caaaa0d7214fb0bef5d39996a69
@@ -274,8 +230,9 @@ enum class AndroidLeakFixes {
 
   /**
    * ClipboardUIManager is a static singleton that leaks an activity context.
+   * This fix makes sure the manager is called with an application context.
    */
-  CLIPBOARD_MANAGER {
+  SAMSUNG_CLIPBOARD_MANAGER {
     override fun apply(application: Application) {
       if (MANUFACTURER != SAMSUNG || SDK_INT !in 19..21) {
         return
@@ -293,30 +250,9 @@ enum class AndroidLeakFixes {
   },
 
   /**
-   * The static method MediaScannerConnection.scanFile() takes an activity context
-   * but the service might not disconnect after the activity has been destroyed.
-   *
-   * Tracked here: https://code.google.com/p/android/issues/detail?id=173788
-   */
-  MEDIA_SCANNER {
-    override fun apply(application: Application) {
-      if (SDK_INT > 22) {
-        return
-      }
-
-      try {
-        MediaScannerConnection(application, null).apply {
-          connect()
-          disconnect()
-        }
-      } catch (ignored: Exception) {
-        // Silent
-      }
-    }
-  },
-
-  /**
    * A static helper for EditText bubble popups leaks a reference to the latest focused view.
+   *
+   * This fix clears it when the activity is destroyed.
    */
   BUBBLE_POPUP {
     override fun apply(application: Application) {
@@ -347,6 +283,8 @@ enum class AndroidLeakFixes {
 
   /**
    * mLastHoveredView is a static field in TextView that leaks the last hovered view.
+   *
+   * This fix clears it when the activity is destroyed.
    */
   LAST_HOVERED_VIEW {
     override fun apply(application: Application) {
@@ -375,7 +313,9 @@ enum class AndroidLeakFixes {
   },
 
   /**
-   * Samsung added a static mContext field to ActivityManager, holds a reference to the activity.
+   * Samsung added a static mContext field to ActivityManager, holding a reference to the activity.
+   *
+   * This fix clears the field when an activity is destroyed if it refers to this specific activity.
    *
    * Observed here: https://github.com/square/leakcanary/issues/177
    */
@@ -396,7 +336,7 @@ enum class AndroidLeakFixes {
           if ((contextField.modifiers or Modifier.STATIC) != contextField.modifiers) {
             return@execute
           }
-        } catch (e: Exception) {
+        } catch (ignored: Exception) {
           return@execute
         }
 
