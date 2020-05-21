@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.os.Build.MANUFACTURER
 import android.os.Build.VERSION.SDK_INT
 import android.os.Handler
 import android.os.HandlerThread
@@ -11,9 +12,12 @@ import android.os.Looper
 import android.os.Process
 import android.os.UserManager
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.TextView
 import shark.SharkLog
 import java.lang.reflect.Array
+import java.lang.reflect.Field
 import java.lang.reflect.InvocationHandler
+import java.lang.reflect.Modifier
 import java.lang.reflect.Proxy
 import java.util.EnumSet
 import java.util.concurrent.Executors
@@ -198,11 +202,165 @@ enum class AndroidLeakFixes {
     }
   },
 
+  /**
+   * ConnectivityManager has a sInstance field that is set when the first ConnectivityManager instance is created.
+   * ConnectivityManager has a mContext field.
+   * When calling activity.getSystemService(Context.CONNECTIVITY_SERVICE) , the first ConnectivityManager instance
+   * is created with the activity context and stored in sInstance.
+   * That activity context then leaks forever.
+   *
+   * This fix makes sure the connectivity manager is created with the application context.
+   *
+   * Tracked here: https://code.google.com/p/android/issues/detail?id=198852
+   * Introduced here: https://github.com/android/platform_frameworks_base/commit/e0bef71662d81caaaa0d7214fb0bef5d39996a69
+   */
+  CONNECTIVITY_MANAGER {
+    override fun apply(application: Application) {
+      if (SDK_INT > 23) {
+        return
+      }
+
+      try {
+        application.getSystemService(Context.CONNECTIVITY_SERVICE)
+      } catch (ignored: Exception) {
+        // Silent
+      }
+    }
+  },
+
+  /**
+   * ClipboardUIManager is a static singleton that leaks an activity context.
+   * This fix makes sure the manager is called with an application context.
+   */
+  SAMSUNG_CLIPBOARD_MANAGER {
+    override fun apply(application: Application) {
+      if (MANUFACTURER != SAMSUNG || SDK_INT !in 19..21) {
+        return
+      }
+
+      try {
+        val managerClass = Class.forName("android.sec.clipboard.ClipboardUIManager")
+        val instanceMethod = managerClass.getDeclaredMethod("getInstance", Context::class.java)
+        instanceMethod.isAccessible = true
+        instanceMethod.invoke(null, application)
+      } catch (ignored: Exception) {
+        // Silent
+      }
+    }
+  },
+
+  /**
+   * A static helper for EditText bubble popups leaks a reference to the latest focused view.
+   *
+   * This fix clears it when the activity is destroyed.
+   */
+  BUBBLE_POPUP {
+    override fun apply(application: Application) {
+      if (MANUFACTURER != LG || SDK_INT !in 19..21) {
+        return
+      }
+
+      backgroundExecutor.execute {
+        val helperField: Field
+        try {
+          val helperClass = Class.forName("android.widget.BubblePopupHelper")
+          helperField = helperClass.getDeclaredField("sHelper")
+          helperField.isAccessible = true
+        } catch (ignored: Exception) {
+          return@execute
+        }
+
+        application.onActivityDestroyed {
+          try {
+            helperField.set(null, null)
+          } catch (ignored: Exception) {
+            // Silent
+          }
+        }
+      }
+    }
+  },
+
+  /**
+   * mLastHoveredView is a static field in TextView that leaks the last hovered view.
+   *
+   * This fix clears it when the activity is destroyed.
+   */
+  LAST_HOVERED_VIEW {
+    override fun apply(application: Application) {
+      if (MANUFACTURER != SAMSUNG || SDK_INT !in 19..21) {
+        return
+      }
+
+      backgroundExecutor.execute {
+        val field: Field
+        try {
+          field = TextView::class.java.getDeclaredField("mLastHoveredView")
+          field.isAccessible = true
+        } catch (ignored: Exception) {
+          return@execute
+        }
+
+        application.onActivityDestroyed {
+          try {
+            field.set(null, null)
+          } catch (ignored: Exception) {
+            // Silent
+          }
+        }
+      }
+    }
+  },
+
+  /**
+   * Samsung added a static mContext field to ActivityManager, holding a reference to the activity.
+   *
+   * This fix clears the field when an activity is destroyed if it refers to this specific activity.
+   *
+   * Observed here: https://github.com/square/leakcanary/issues/177
+   */
+  ACTIVITY_MANAGER {
+    override fun apply(application: Application) {
+      if (MANUFACTURER != SAMSUNG || SDK_INT != 22) {
+        return
+      }
+
+      backgroundExecutor.execute {
+        val contextField: Field
+        try {
+          contextField = application
+            .getSystemService(Context.ACTIVITY_SERVICE)
+            .javaClass
+            .getDeclaredField("mContext")
+          contextField.isAccessible = true
+          if ((contextField.modifiers or Modifier.STATIC) != contextField.modifiers) {
+            return@execute
+          }
+        } catch (ignored: Exception) {
+          return@execute
+        }
+
+        application.onActivityDestroyed { activity ->
+          try {
+            if (contextField.get(null) == activity) {
+              contextField.set(null, null)
+            }
+          } catch (ignored: Exception) {
+            // Silent
+          }
+        }
+      }
+    }
+  },
+
   ;
 
   protected abstract fun apply(application: Application)
 
   companion object {
+
+    private const val SAMSUNG = "samsung"
+    private const val LG = "LGE"
 
     fun applyFixes(
       application: Application,
