@@ -24,10 +24,6 @@ internal object InternalAppWatcher {
 
   private val onAppWatcherInstalled: (Application) -> Unit
 
-  val isDebuggableBuild by lazy {
-    (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-  }
-
   lateinit var application: Application
 
   private val clock = object : Clock {
@@ -58,15 +54,15 @@ internal object InternalAppWatcher {
   val objectWatcher = ObjectWatcher(
       clock = clock,
       checkRetainedExecutor = checkRetainedExecutor,
-      isEnabled = { AppWatcher.config.enabled }
+      isEnabled = { true }
   )
 
   fun install(application: Application) {
-    SharkLog.logger = DefaultCanaryLog()
     checkMainThread()
     if (this::application.isInitialized) {
       return
     }
+    SharkLog.logger = DefaultCanaryLog()
     InternalAppWatcher.application = application
 
     val configProvider = { AppWatcher.config }

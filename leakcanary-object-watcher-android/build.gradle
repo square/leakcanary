@@ -12,6 +12,7 @@ dependencies {
 }
 
 android {
+  resourcePrefix 'leak_canary_watcher_'
   compileSdkVersion versions.compileSdk
 
   defaultConfig {

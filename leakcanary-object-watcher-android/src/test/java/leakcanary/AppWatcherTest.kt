@@ -23,6 +23,9 @@ class AppWatcherTest {
   }
 
   private fun configBuilderFunctions() = AppWatcher.Config.Builder::class.memberFunctions
+      .filter { member ->
+        member.annotations.none { it is Deprecated }
+      }
       .map { it.name }
       .subtract(listOf("build", "equals", "hashCode", "toString"))
 

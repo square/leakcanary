@@ -134,7 +134,7 @@ internal class LeakActivity : NavigatingActivity() {
       contentResolver.openFileDescriptor(fileUri, "r")
           ?.fileDescriptor?.let { fileDescriptor ->
         val inputStream = FileInputStream(fileDescriptor)
-        InternalLeakCanary.leakDirectoryProvider
+        InternalLeakCanary.createLeakDirectoryProvider(this)
             .newHeapDumpFile()
             ?.let { target ->
               inputStream.use { input ->

@@ -5,6 +5,7 @@ import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.app.UiModeManager
 import android.content.ComponentName
+import android.content.Context
 import android.content.Context.UI_MODE_SERVICE
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -42,7 +43,17 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
   private lateinit var heapDumpTrigger: HeapDumpTrigger
 
-  lateinit var application: Application
+  // You're wrong https://discuss.kotlinlang.org/t/object-or-top-level-property-name-warning/6621/7
+  @Suppress("ObjectPropertyName")
+  private var _application: Application? = null
+
+  val application: Application
+    get() {
+      check(_application != null) {
+        "LeakCanary not installed, see AppWatcher.manualInstall()"
+      }
+      return _application!!
+    }
 
   // BuildConfig.LIBRARY_VERSION is stripped so this static var is how we keep it around to find
   // it later when parsing the heap dump.
@@ -71,24 +82,14 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
   }
 
-  val leakDirectoryProvider: LeakDirectoryProvider by lazy {
-    LeakDirectoryProvider(application, {
+  fun createLeakDirectoryProvider(context: Context): LeakDirectoryProvider {
+    val appContext = context.applicationContext
+    return LeakDirectoryProvider(appContext, {
       LeakCanary.config.maxStoredHeapDumps
     }, {
       LeakCanary.config.requestWriteExternalStoragePermission
     })
   }
-
-  val leakDisplayActivityIntent: Intent
-    get() = LeakActivity.createIntent(application)
-
-  val noInstallConfig: Config
-    get() = Config(
-        dumpHeap = false,
-        referenceMatchers = emptyList(),
-        objectInspectors = emptyList(),
-        onHeapAnalyzedListener = OnHeapAnalyzedListener {}
-    )
 
   internal enum class FormFactor {
     MOBILE,
@@ -120,13 +121,13 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   var resumedActivity: Activity? = null
 
   override fun invoke(application: Application) {
-    this.application = application
+    _application = application
 
     checkRunningInDebuggableBuild()
 
     AppWatcher.objectWatcher.addOnObjectRetainedListener(this)
 
-    val heapDumper = AndroidHeapDumper(application, leakDirectoryProvider)
+    val heapDumper = AndroidHeapDumper(application, createLeakDirectoryProvider(application))
 
     val gcTrigger = GcTrigger.Default
 
@@ -155,10 +156,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       return
     }
 
-    if (application.resources.getBoolean(R.bool.leak_canary_allow_in_non_debuggable_build)) {
-      // AppWatcher is disabled by default for non-debuggable builds, but we have a developer opt-in.
-      AppWatcher.config = AppWatcher.config.copy(enabled = true)
-    } else {
+    if (!application.resources.getBoolean(R.bool.leak_canary_allow_in_non_debuggable_build)) {
       throw Error(
           """
         LeakCanary in non-debuggable build
@@ -196,14 +194,10 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
         SharkLog.d { "$testClassName detected in classpath, app is running tests => disabling heap dumping & analysis" }
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
       }
-      if (AppWatcher.config.enabled) {
-        if (LeakCanary.config.dumpHeap) {
-          SharkLog.d { "LeakCanary is running and ready to detect leaks" }
-        } else {
-          SharkLog.d { "LeakCanary heap dumping is disabled: LeakCanary.config.dumpHeap = false" }
-        }
+      if (LeakCanary.config.dumpHeap) {
+        SharkLog.d { "LeakCanary is running and ready to detect leaks" }
       } else {
-        SharkLog.d { "LeakCanary object watching is disabled: AppWatcher.config.enabled = false" }
+        SharkLog.d { "LeakCanary heap dumping is disabled: LeakCanary.config.dumpHeap = false" }
       }
     }
   }
@@ -290,7 +284,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       return
     }
 
-    val intent = leakDisplayActivityIntent
+    val intent = LeakCanary.newLeakDisplayActivityIntent()
     intent.action = "Dummy Action because Android is stupid"
     val shortcut = Builder(application, DYNAMIC_SHORTCUT_ID)
         .setLongLabel(longLabel)
