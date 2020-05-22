@@ -126,6 +126,8 @@ internal class LeakScreen(
       }
     }
     spinner.setSelection(selectedLeakTraceIndex)
+
+    spinner.isEnabled = leak.leakTraces.size > 1
   }
 
 private fun parseLinks(str: String):String {
