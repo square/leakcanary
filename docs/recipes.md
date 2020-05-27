@@ -484,6 +484,7 @@ class DebugExampleApplication : ExampleApplication() {
 
   companion object {
     @JvmStatic
+    @Keep
     lateinit var savedVersionName: String
   }
 
