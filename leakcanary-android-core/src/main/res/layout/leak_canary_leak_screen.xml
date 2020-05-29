@@ -12,6 +12,13 @@
       />
 
   <include
+      android:id="@+id/leak_canary_single_leak_trace_row"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      layout="@layout/leak_canary_simple_row"
+      />
+
+  <include
       layout="@layout/leak_canary_leak_chips"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
