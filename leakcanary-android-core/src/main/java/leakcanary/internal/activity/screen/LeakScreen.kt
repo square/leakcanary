@@ -37,29 +37,31 @@ internal class LeakScreen(
   private val selectedHeapAnalysisId: Long? = null
 ) : Screen() {
   override fun createView(container: ViewGroup) =
-    container.inflate(R.layout.leak_canary_leak_screen).apply {
-      activity.title = resources.getString(R.string.leak_canary_loading_title)
-      executeOnDb {
-        val leak = LeakTable.retrieveLeakBySignature(db, leakSignature)
+    container.inflate(R.layout.leak_canary_leak_screen)
+        .apply {
+          activity.title = resources.getString(R.string.leak_canary_loading_title)
+          executeOnDb {
+            val leak = LeakTable.retrieveLeakBySignature(db, leakSignature)
 
-        if (leak == null) {
-          updateUi {
-            activity.title = resources.getString(R.string.leak_canary_leak_not_found)
+            if (leak == null) {
+              updateUi {
+                activity.title = resources.getString(R.string.leak_canary_leak_not_found)
+              }
+            } else {
+              val selectedLeakIndex =
+                if (selectedHeapAnalysisId == null) 0 else leak.leakTraces.indexOfFirst { it.heapAnalysisId == selectedHeapAnalysisId }
+
+              val heapAnalysisId = leak.leakTraces[selectedLeakIndex].heapAnalysisId
+              val selectedHeapAnalysis =
+                HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, heapAnalysisId)!!
+
+              updateUi {
+                onLeaksRetrieved(leak, selectedLeakIndex, selectedHeapAnalysis)
+              }
+              LeakTable.markAsRead(db, leakSignature)
+            }
           }
-        } else {
-          val selectedLeakIndex =
-            if (selectedHeapAnalysisId == null) 0 else leak.leakTraces.indexOfFirst { it.heapAnalysisId == selectedHeapAnalysisId }
-
-          val heapAnalysisId = leak.leakTraces[selectedLeakIndex].heapAnalysisId
-          val selectedHeapAnalysis = HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, heapAnalysisId)!!
-
-          updateUi {
-            onLeaksRetrieved(leak, selectedLeakIndex, selectedHeapAnalysis)
-          }
-          LeakTable.markAsRead(db, leakSignature)
         }
-      }
-    }
 
   private fun View.onLeaksRetrieved(
     leak: LeakProjection,
@@ -76,7 +78,8 @@ internal class LeakScreen(
     activity.title = String.format(
         resources.getQuantityText(
             R.plurals.leak_canary_group_screen_title, leak.leakTraces.size
-        ).toString(), leak.leakTraces.size, leak.shortDescription
+        )
+            .toString(), leak.leakTraces.size, leak.shortDescription
     )
 
     val singleLeakTraceRow = findViewById<View>(R.id.leak_canary_single_leak_trace_row)
@@ -141,7 +144,10 @@ internal class LeakScreen(
     }
   }
 
-  private fun bindSimpleRow(view: View, leakTrace: LeakTraceProjection) {
+  private fun bindSimpleRow(
+    view: View,
+    leakTrace: LeakTraceProjection
+  ) {
     val titleView = view.findViewById<TextView>(R.id.leak_canary_row_text)
     val timeView = view.findViewById<TextView>(R.id.leak_canary_row_small_text)
 
@@ -150,11 +156,13 @@ internal class LeakScreen(
     timeView.text = TimeFormatter.formatTimestamp(view.context, leakTrace.createdAtTimeMillis)
   }
 
-private fun parseLinks(str: String):String {
+  private fun parseLinks(str: String): String {
     val words = str.split(" ")
     var parsedString = ""
     for (word in words) {
-      parsedString += if (Patterns.WEB_URL.matcher(word).matches()) {
+      parsedString += if (Patterns.WEB_URL.matcher(word)
+              .matches()
+      ) {
         "<a href=\"${word}\">${word}</a>";
       } else {
         word
@@ -162,10 +170,15 @@ private fun parseLinks(str: String):String {
       if (words.indexOf(word) != words.size - 1) parsedString += " "
     }
     return parsedString
-}
-private fun View.onLeakTraceSelected(analysis: HeapAnalysisSuccess, heapAnalysisId: Long, leakTraceIndex: Int) {
-  val selectedLeak = analysis.allLeaks.first { it.signature == leakSignature }
-  val leakTrace = selectedLeak.leakTraces[leakTraceIndex]
+  }
+
+  private fun View.onLeakTraceSelected(
+    analysis: HeapAnalysisSuccess,
+    heapAnalysisId: Long,
+    leakTraceIndex: Int
+  ) {
+    val selectedLeak = analysis.allLeaks.first { it.signature == leakSignature }
+    val leakTrace = selectedLeak.leakTraces[leakTraceIndex]
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)
     listView.alpha = 0f
@@ -224,8 +237,12 @@ private fun View.onLeakTraceSelected(analysis: HeapAnalysisSuccess, heapAnalysis
 
 METADATA
 
-${if (analysis.metadata.isNotEmpty()) analysis.metadata.map { "${it.key}: ${it.value}" }.joinToString(
-      "\n"
-  ) else ""}
+${if (analysis.metadata.isNotEmpty())
+    analysis.metadata
+        .map { "${it.key}: ${it.value}" }
+        .joinToString("\n")
+  else
+    ""
+  }
 Analysis duration: ${analysis.analysisDurationMillis} ms"""
 }
