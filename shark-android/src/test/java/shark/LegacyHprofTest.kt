@@ -3,6 +3,9 @@ package shark
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.GcRoot.StickyClass
+import shark.HprofRecord.HeapDumpRecord.GcRootRecord
+import shark.HprofRecord.LoadClassRecord
+import shark.HprofRecord.StringRecord
 import shark.LeakTrace.GcRootType
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.DESTROYED
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_ACTIVITY
@@ -114,6 +117,82 @@ class LegacyHprofTest {
     assertThat(analysis.applicationLeaks).hasSize(1)
     val leak = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leak.leakingObject.className).isEqualTo("com.example.leakcanary.MainActivity")
+  }
+
+  @Test fun duplicatedClassesIgnoresUnloadedClasses() {
+    val expectedDuplicatedClassNames = setOf(
+        "leakcanary.internal.DebuggerControl",
+        "shark.AndroidResourceIdNames\$Companion",
+        "shark.GraphContext",
+        "shark.AndroidResourceIdNames\$Companion\$readFromHeap$1",
+        "leakcanary.internal.HeapDumpTrigger\$saveResourceIdNamesToMemory$1",
+        "leakcanary.internal.HeapDumpTrigger\$saveResourceIdNamesToMemory$2",
+        "shark.AndroidResourceIdNames",
+        "leakcanary.internal.FutureResult",
+        "leakcanary.internal.AndroidHeapDumper\$showToast$1",
+        "android.widget.Toast\$TN",
+        "android.widget.Toast\$TN$1",
+        "android.widget.Toast\$TN$2",
+        "leakcanary.internal.AndroidHeapDumper\$showToast$1$1",
+        "com.squareup.leakcanary.core.R\$dimen",
+        "com.squareup.leakcanary.core.R\$layout",
+        "android.text.style.WrapTogetherSpan[]"
+    )
+    val file = fileFromResources("unloaded_classes-stripped.hprof")
+    val duplicateRootClassObjectIdByClassName = Hprof.open(file)
+        .use { hprof ->
+          val stickyClasses = mutableListOf<Long>()
+          val classesAndNameStringId = mutableMapOf<Long, Long>()
+          val stringRecordById = mutableMapOf<Long, String>()
+
+          hprof.reader.readHprofRecords(setOf(HprofRecord::class), object : OnHprofRecordListener {
+            override fun onHprofRecord(
+              position: Long,
+              record: HprofRecord
+            ) {
+              when (record) {
+                is GcRootRecord -> if (record.gcRoot is StickyClass) stickyClasses += record.gcRoot.id
+                is StringRecord -> stringRecordById[record.id] = record.string
+                is LoadClassRecord -> classesAndNameStringId[record.id] = record.classNameStringId
+              }
+            }
+          })
+
+          val duplicatedClassObjectIdsByNameStringId =
+            classesAndNameStringId.entries
+                .groupBy { (_, className) -> className }
+                .mapValues { (_, value) -> value.map { (key, _) -> key } }
+                .filter { (_, values) -> values.size > 1 }
+
+          val actualDuplicatedClassNames = duplicatedClassObjectIdsByNameStringId.keys
+              .map { stringRecordById.getValue(it) }
+              .toSet()
+          assertThat(actualDuplicatedClassNames).isEqualTo(expectedDuplicatedClassNames)
+
+          val duplicateRootClassObjectIdByClassName = duplicatedClassObjectIdsByNameStringId
+              .mapKeys { (key, _) -> stringRecordById.getValue(key) }
+              .mapValues { (_, value) -> value.single { it in stickyClasses } }
+
+          duplicateRootClassObjectIdByClassName
+        }
+
+    Hprof.open(file)
+        .use { hprof ->
+          val graph = HprofHeapGraph.indexHprof(hprof)
+
+          val expectedDuplicatedRootClassObjectIds =
+            duplicateRootClassObjectIdByClassName.values.toSortedSet()
+
+          val actualDuplicatedRootClassObjectIds = duplicateRootClassObjectIdByClassName.keys
+              .map { className ->
+                graph.findClassByName(className)!!.objectId
+              }
+              .toSortedSet()
+
+          assertThat(actualDuplicatedRootClassObjectIds).isEqualTo(
+              expectedDuplicatedRootClassObjectIds
+          )
+        }
   }
 
   private fun analyzeHprof(fileName: String): HeapAnalysisSuccess {

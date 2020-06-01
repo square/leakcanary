@@ -1,7 +1,10 @@
 package shark.internal
 
 import shark.GcRoot
+import shark.GcRoot.StickyClass
 import shark.Hprof
+import shark.Hprof.HprofVersion
+import shark.Hprof.HprofVersion.ANDROID
 import shark.HprofRecord
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassSkipContentRecord
@@ -190,6 +193,7 @@ internal class HprofInMemoryIndex private constructor(
   }
 
   private class Builder(
+    hprofVersion: HprofVersion,
     longIdentifiers: Boolean,
     fileLength: Long,
     classCount: Int,
@@ -201,6 +205,14 @@ internal class HprofInMemoryIndex private constructor(
 
     private val identifierSize = if (longIdentifiers) 8 else 4
     private val positionSize = byteSizeForUnsigned(fileLength)
+
+    /**
+     * On Android, all currently loaded classes are sticky. The heap dump may also contain classes
+     * that were unloaded but not garbage collected yet, leading to classes being present twice
+     * in the heap dump. To work around that we ignore class that aren't held by a sticky class GC
+     * root.
+     */
+    private val keepOnlyStickyClasses = hprofVersion == ANDROID
 
     /**
      * Map of string id to string
@@ -240,6 +252,8 @@ internal class HprofInMemoryIndex private constructor(
         initialCapacity = primitiveArrayCount
     )
 
+    private val stickyClasses = mutableSetOf<Long>()
+
     /**
      * Class ids for primitive wrapper types
      */
@@ -275,14 +289,22 @@ internal class HprofInMemoryIndex private constructor(
           if (gcRoot.id != ValueHolder.NULL_REFERENCE && gcRoot::class in indexedGcRootsTypes) {
             gcRoots += gcRoot
           }
+          if (keepOnlyStickyClasses && gcRoot is StickyClass) {
+            stickyClasses += gcRoot.id
+          }
         }
         is ClassSkipContentRecord -> {
-          classIndex.append(record.id)
-              .apply {
-                writeTruncatedLong(position, positionSize)
-                writeId(record.superclassId)
-                writeInt(record.instanceSize)
-              }
+          if (!keepOnlyStickyClasses || record.id in stickyClasses) {
+            classIndex.append(record.id)
+                .apply {
+                  writeTruncatedLong(position, positionSize)
+                  writeId(record.superclassId)
+                  writeInt(record.instanceSize)
+                }
+          } else {
+            // Unloaded class
+            classNames.remove(record.id)
+          }
         }
         is InstanceSkipContentRecord -> {
           instanceIndex.append(record.id)
@@ -363,6 +385,8 @@ internal class HprofInMemoryIndex private constructor(
       val reader = hprof.reader
 
       // First pass to count and correctly size arrays once and for all.
+      // The counts may be a bit higher than the actual number of objects we keep as unreachable
+      // reloaded classes may be included in this count but will be ignored.
       var classCount = 0
       var instanceCount = 0
       var objectArrayCount = 0
@@ -384,8 +408,14 @@ internal class HprofInMemoryIndex private constructor(
       hprof.moveReaderTo(reader.startPosition)
       val indexBuilderListener =
         Builder(
-            reader.identifierByteSize == 8, hprof.fileLength, classCount, instanceCount,
-            objectArrayCount, primitiveArrayCount, indexedGcRootTypes
+            hprofVersion = hprof.hprofVersion,
+            longIdentifiers = reader.identifierByteSize == 8,
+            fileLength = hprof.fileLength,
+            classCount = classCount,
+            instanceCount = instanceCount,
+            objectArrayCount = objectArrayCount,
+            primitiveArrayCount = primitiveArrayCount,
+            indexedGcRootsTypes = indexedGcRootTypes
         )
 
       reader.readHprofRecords(recordTypes, indexBuilderListener)

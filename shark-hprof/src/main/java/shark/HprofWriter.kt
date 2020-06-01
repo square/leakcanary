@@ -433,7 +433,7 @@ class HprofWriter private constructor(
        */
       identifierByteSize: Int = 4,
       /** Version of the opened hprof, which is tied to the runtime where the heap was dumped. */
-      hprofVersion: HprofVersion = HprofVersion.ANDROID
+      hprofVersion: HprofVersion = HprofVersion.JDK_6
     ): HprofWriter {
       val sink = Okio.buffer(Okio.sink(hprofFile.outputStream()))
       sink.writeUtf8(hprofVersion.versionString)
