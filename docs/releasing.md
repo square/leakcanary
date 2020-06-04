@@ -32,6 +32,11 @@ rm -rf docs/api
 ./gradlew leakcanary-android-core:dokka leakcanary-android-instrumentation:dokka leakcanary-android-process:dokka leakcanary-object-watcher-android:dokka leakcanary-object-watcher:dokka shark-android:dokka shark-graph:dokka shark-hprof:dokka shark-log:dokka shark:dokka
 ```
 
+* Confirm all API changes are intentional
+```
+git diff docs/api
+```
+
 * Update `docs/changelog.md` after checking out all changes:
     * https://github.com/square/leakcanary/compare/v{{ leak_canary.release }}...master
 * Take one last look
