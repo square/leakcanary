@@ -99,6 +99,12 @@ class HprofReader constructor(
   private val typeSizes =
     PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to identifierByteSize)
 
+  private val reusedInstanceSkipContentRecord = InstanceSkipContentRecord(0, 0, 0)
+  private val reusedClassSkipContentRecord = ClassSkipContentRecord(0, 0, 0, 0, 0, 0, 0, 0, 0)
+  private val reusedObjectArraySkipContentRecord = ObjectArraySkipContentRecord(0, 0, 0, 0)
+  private val reusedPrimitiveArraySkipContentRecord =
+    PrimitiveArraySkipContentRecord(0, 0, 0, BOOLEAN)
+
   /**
    * Reads all hprof records from [source].
    * Assumes the [reader] was has a source that currently points to the start position of hprof
@@ -493,7 +499,11 @@ class HprofReader constructor(
                 }
               }
               else -> throw IllegalStateException(
-                  "Unknown tag ${"0x%02x".format(heapDumpTag)} at $heapDumpTagPosition after ${"0x%02x".format(previousTag)} at $previousTagPosition"
+                  "Unknown tag ${"0x%02x".format(
+                      heapDumpTag
+                  )} at $heapDumpTagPosition after ${"0x%02x".format(
+                      previousTag
+                  )} at $previousTagPosition"
               )
             }
             previousTag = heapDumpTag
@@ -540,11 +550,11 @@ class HprofReader constructor(
     val classId = readId()
     val remainingBytesInInstance = readInt()
     skip(remainingBytesInInstance)
-    return InstanceSkipContentRecord(
-        id = id,
-        stackTraceSerialNumber = stackTraceSerialNumber,
-        classId = classId
-    )
+    return reusedInstanceSkipContentRecord.apply {
+      this.id = id
+      this.stackTraceSerialNumber = stackTraceSerialNumber
+      this.classId = classId
+    }
   }
 
   /**
@@ -661,17 +671,17 @@ class HprofReader constructor(
     val fieldCount = readUnsignedShort()
     // Each field takes id + byte.
     skip((identifierByteSize + 1) * fieldCount)
-    return ClassSkipContentRecord(
-        id = id,
-        stackTraceSerialNumber = stackTraceSerialNumber,
-        superclassId = superclassId,
-        classLoaderId = classLoaderId,
-        signersId = signersId,
-        protectionDomainId = protectionDomainId,
-        instanceSize = instanceSize,
-        staticFieldCount = staticFieldCount,
-        fieldCount = fieldCount
-    )
+    return reusedClassSkipContentRecord.apply {
+      this.id = id
+      this.stackTraceSerialNumber = stackTraceSerialNumber
+      this.superclassId = superclassId
+      this.classLoaderId = classLoaderId
+      this.signersId = signersId
+      this.protectionDomainId = protectionDomainId
+      this.instanceSize = instanceSize
+      this.staticFieldCount = staticFieldCount
+      this.fieldCount = fieldCount
+    }
   }
 
   /**
@@ -721,7 +731,12 @@ class HprofReader constructor(
     val arrayLength = readInt()
     val type = PrimitiveType.primitiveTypeByHprofType.getValue(readUnsignedByte())
     skip(arrayLength * type.byteSize)
-    return PrimitiveArraySkipContentRecord(id, stackTraceSerialNumber, arrayLength, type)
+    return reusedPrimitiveArraySkipContentRecord.apply {
+      this.id = id
+      this.stackTraceSerialNumber = stackTraceSerialNumber
+      this.size = arrayLength
+      this.type = type
+    }
   }
 
   /**
@@ -754,12 +769,12 @@ class HprofReader constructor(
     val arrayLength = readInt()
     val arrayClassId = readId()
     skip(identifierByteSize * arrayLength)
-    return ObjectArraySkipContentRecord(
-        id = id,
-        stackTraceSerialNumber = stackTraceSerialNumber,
-        arrayClassId = arrayClassId,
-        size = arrayLength
-    )
+    return reusedObjectArraySkipContentRecord.apply {
+      this.id = id
+      this.stackTraceSerialNumber = stackTraceSerialNumber
+      this.arrayClassId = arrayClassId
+      this.size = arrayLength
+    }
   }
 
   /**
@@ -853,7 +868,8 @@ class HprofReader constructor(
 
   private fun readBoolean(): Boolean {
     position += BOOLEAN_SIZE
-    return source.readByte().toInt() != 0
+    return source.readByte()
+        .toInt() != 0
   }
 
   private fun readByteArray(byteCount: Int): ByteArray {
@@ -988,6 +1004,7 @@ class HprofReader constructor(
     internal const val STACK_TRACE = 0x05
     internal const val ALLOC_SITES = 0x06
     internal const val HEAP_SUMMARY = 0x07
+
     // TODO Maybe parse this?
     internal const val START_THREAD = 0x0a
     internal const val END_THREAD = 0x0b
