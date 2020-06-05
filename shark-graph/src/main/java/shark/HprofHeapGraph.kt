@@ -21,6 +21,14 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticField
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import shark.internal.FieldValuesReader
 import shark.internal.HprofInMemoryIndex
 import shark.internal.IndexedObject
@@ -150,6 +158,19 @@ class HprofHeapGraph internal constructor(
     }
   }
 
+  internal fun readObjectArrayByteSize(
+    objectId: Long,
+    indexedObject: IndexedObjectArray
+  ): Int {
+    val cachedRecord = objectCache[objectId] as ObjectArrayDumpRecord?
+    if (cachedRecord != null) {
+      return cachedRecord.elementIds.size * identifierByteSize
+    }
+    hprof.moveReaderTo(indexedObject.position)
+    val thinRecord = hprof.reader.readObjectArraySkipContentRecord()
+    return thinRecord.size * identifierByteSize
+  }
+
   internal fun readPrimitiveArrayDumpRecord(
     objectId: Long,
     indexedObject: IndexedPrimitiveArray
@@ -157,6 +178,28 @@ class HprofHeapGraph internal constructor(
     return readObjectRecord(objectId, indexedObject) {
       hprof.reader.readPrimitiveArrayDumpRecord()
     }
+  }
+
+  internal fun readPrimitiveArrayByteSize(
+    objectId: Long,
+    indexedObject: IndexedPrimitiveArray
+  ): Int {
+    val cachedRecord = objectCache[objectId] as PrimitiveArrayDumpRecord?
+    if (cachedRecord != null) {
+      return when (cachedRecord) {
+        is BooleanArrayDump -> cachedRecord.array.size * PrimitiveType.BOOLEAN.byteSize
+        is CharArrayDump -> cachedRecord.array.size * PrimitiveType.CHAR.byteSize
+        is FloatArrayDump -> cachedRecord.array.size * PrimitiveType.FLOAT.byteSize
+        is DoubleArrayDump -> cachedRecord.array.size * PrimitiveType.DOUBLE.byteSize
+        is ByteArrayDump -> cachedRecord.array.size * PrimitiveType.BYTE.byteSize
+        is ShortArrayDump -> cachedRecord.array.size * PrimitiveType.SHORT.byteSize
+        is IntArrayDump -> cachedRecord.array.size * PrimitiveType.INT.byteSize
+        is LongArrayDump -> cachedRecord.array.size * PrimitiveType.LONG.byteSize
+      }
+    }
+    hprof.moveReaderTo(indexedObject.position)
+    val thinRecord = hprof.reader.readPrimitiveArraySkipContentRecord()
+    return  thinRecord.size * thinRecord.type.byteSize
   }
 
   internal fun readClassDumpRecord(
