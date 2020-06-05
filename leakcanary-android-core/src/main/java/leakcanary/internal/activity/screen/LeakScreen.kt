@@ -77,8 +77,8 @@ internal class LeakScreen(
 
     activity.title = String.format(
         resources.getQuantityText(
-            R.plurals.leak_canary_group_screen_title, leak.leakTraces.size
-        )
+                R.plurals.leak_canary_group_screen_title, leak.leakTraces.size
+            )
             .toString(), leak.leakTraces.size, leak.shortDescription
     )
 
@@ -237,12 +237,13 @@ internal class LeakScreen(
 
 METADATA
 
-${if (analysis.metadata.isNotEmpty())
+${if (analysis.metadata.isNotEmpty()) {
     analysis.metadata
         .map { "${it.key}: ${it.value}" }
         .joinToString("\n")
-  else
+  } else {
     ""
+  }
   }
 Analysis duration: ${analysis.analysisDurationMillis} ms"""
 }
