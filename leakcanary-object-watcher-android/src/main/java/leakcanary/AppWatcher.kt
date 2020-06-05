@@ -92,7 +92,6 @@ object AppWatcher {
      * AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
      * ```
      */
-    @Suppress("TooManyFunctions")
     class Builder internal constructor(config: Config) {
       private var watchActivities = config.watchActivities
       private var watchFragments = config.watchFragments

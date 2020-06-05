@@ -198,7 +198,6 @@ object LeakCanary {
      * LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
      * ```
      */
-    @Suppress("TooManyFunctions")
     class Builder internal constructor(config: Config) {
       private var dumpHeap = config.dumpHeap
       private var dumpHeapWhenDebugging = config.dumpHeapWhenDebugging

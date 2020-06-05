@@ -33,7 +33,6 @@ import java.util.UUID
 import kotlin.random.Random
 import kotlin.reflect.KClass
 
-@Suppress("TooManyFunctions")
 class HprofWriterHelper constructor(
   private val writer: HprofWriter
 ) : Closeable {

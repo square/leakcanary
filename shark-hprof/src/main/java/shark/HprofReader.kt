@@ -74,7 +74,7 @@ import kotlin.reflect.KClass
  * The Android Hprof format differs in some ways from that reference. This parser implementation
  * is largely adapted from https://android.googlesource.com/platform/tools/base/+/studio-master-dev/perflib/src/main/java/com/android/tools/perflib
  */
-@Suppress("LargeClass", "TooManyFunctions")
+@Suppress("LargeClass")
 class HprofReader constructor(
   private var source: BufferedSource,
   /**

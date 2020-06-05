@@ -42,7 +42,6 @@ import kotlin.reflect.KClass
 /**
  * A [HeapGraph] that reads from an indexed [Hprof]. Create a new instance with [indexHprof].
  */
-@Suppress("TooManyFunctions")
 class HprofHeapGraph internal constructor(
   private val hprof: Hprof,
   private val index: HprofInMemoryIndex

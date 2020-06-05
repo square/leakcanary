@@ -42,7 +42,6 @@ import shark.ValueHolder.ShortHolder
 import java.io.File
 import java.util.Locale
 
-@Suppress("TooManyFunctions")
 class InteractiveCommand : CliktCommand(
     name = "interactive",
     help = "Explore a heap dump."
