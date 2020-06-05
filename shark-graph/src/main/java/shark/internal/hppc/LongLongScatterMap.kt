@@ -24,7 +24,7 @@ import java.util.Locale
  * See https://github.com/carrotsearch/hppc .
  */
 @Suppress("TooManyFunctions")
-class LongLongScatterMap {
+class LongLongScatterMap constructor(expectedElements: Int = 4) {
 
   interface ForEachCallback {
     fun onEntry(key: Long, value: Long)
@@ -72,7 +72,7 @@ class LongLongScatterMap {
     get() = size == 0
 
   init {
-    ensureCapacity(4)
+    ensureCapacity(expectedElements)
   }
 
   operator fun set(

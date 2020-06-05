@@ -217,7 +217,7 @@ internal class HprofInMemoryIndex private constructor(
     /**
      * class id to string id
      */
-    private val classNames = LongLongScatterMap()
+    private val classNames = LongLongScatterMap(expectedElements = classCount)
 
     private val classIndex = UnsortedByteEntries(
         bytesPerValue = positionSize + identifierSize + 4,
