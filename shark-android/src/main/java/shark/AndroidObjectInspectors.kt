@@ -176,9 +176,27 @@ enum class AndroidObjectInspectors : ObjectInspector {
     override fun inspect(
       reporter: ObjectReporter
     ) {
-      reporter.whenInstanceOf("android.content.ContextWrapper") { instance ->
-        // Activity is already taken care of
-        if (!(instance instanceOf "android.app.Activity")) {
+      val instance = reporter.heapObject
+      if (instance !is HeapInstance) {
+        return
+      }
+
+      // We're looking for ContextWrapper instances that are not Activity, Application or Service.
+      // So we stop whenever we find any of those 4 classes, and then only keep ContextWrapper.
+      val matchingClassName = instance.instanceClass.classHierarchy.map { it.name }
+          .firstOrNull {
+            when (it) {
+              "android.content.ContextWrapper",
+              "android.app.Activity",
+              "android.app.Application",
+              "android.app.Service"
+              -> true
+              else -> false
+            }
+          }
+
+      if (matchingClassName == "android.content.ContextWrapper") {
+        reporter.run {
           val activityContext = instance.unwrapActivityContext()
           if (activityContext != null) {
             val mDestroyed = activityContext["android.app.Activity", "mDestroyed"]
