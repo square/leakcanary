@@ -10,7 +10,8 @@ import shark.internal.KeyedWeakReferenceMirror
 object KeyedWeakReferenceFinder : LeakingObjectFinder {
 
   override fun findLeakingObjectIds(graph: HeapGraph): Set<Long> =
-    findKeyedWeakReferences(graph).map { it.referent.value }.toSet()
+    findKeyedWeakReferences(graph).map { it.referent.value }
+        .toSet()
 
   internal fun findKeyedWeakReferences(graph: HeapGraph): List<KeyedWeakReferenceMirror> {
     return graph.context.getOrPut(KEYED_WEAK_REFERENCE.name) {
@@ -29,10 +30,13 @@ object KeyedWeakReferenceFinder : LeakingObjectFinder {
         }
       }
 
+      val keyedWeakReferenceClassId = keyedWeakReferenceClass?.objectId ?: 0
+      val legacyKeyedWeakReferenceClassId =
+        graph.findClassByName("com.squareup.leakcanary.KeyedWeakReference")?.objectId ?: 0
+
       val addedToContext: List<KeyedWeakReferenceMirror> = graph.instances
           .filter { instance ->
-            val className = instance.instanceClassName
-            className == "leakcanary.KeyedWeakReference" || className == "com.squareup.leakcanary.KeyedWeakReference"
+            instance.instanceClassId == keyedWeakReferenceClassId || instance.instanceClassId == legacyKeyedWeakReferenceClassId
           }
           .map {
             KeyedWeakReferenceMirror.fromInstance(

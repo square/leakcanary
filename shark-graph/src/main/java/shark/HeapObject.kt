@@ -306,6 +306,12 @@ sealed class HeapObject {
       get() = hprofGraph.findObjectById(indexedObject.classId) as HeapClass
 
     /**
+     * The heap identifier of the class of this instance.
+     */
+    val instanceClassId: Long
+      get() = indexedObject.classId
+
+    /**
      * Reads and returns the underlying [InstanceDumpRecord].
      *
      * This may trigger IO reads.
@@ -493,7 +499,7 @@ sealed class HeapObject {
      * The total byte shallow size of elements in this array.
      */
     fun readByteSize(): Int {
-      return readRecord().elementIds.size * hprofGraph.identifierByteSize
+      return hprofGraph.readObjectArrayByteSize(objectId, indexedObject)
     }
 
     /**
@@ -536,16 +542,7 @@ sealed class HeapObject {
      * The total byte shallow size of elements in this array.
      */
     fun readByteSize(): Int {
-      return when (val record = readRecord()) {
-        is BooleanArrayDump -> record.array.size * PrimitiveType.BOOLEAN.byteSize
-        is CharArrayDump -> record.array.size * PrimitiveType.CHAR.byteSize
-        is FloatArrayDump -> record.array.size * PrimitiveType.FLOAT.byteSize
-        is DoubleArrayDump -> record.array.size * PrimitiveType.DOUBLE.byteSize
-        is ByteArrayDump -> record.array.size * PrimitiveType.BYTE.byteSize
-        is ShortArrayDump -> record.array.size * PrimitiveType.SHORT.byteSize
-        is IntArrayDump -> record.array.size * PrimitiveType.INT.byteSize
-        is LongArrayDump -> record.array.size * PrimitiveType.LONG.byteSize
-      }
+      return hprofGraph.readPrimitiveArrayByteSize(objectId, indexedObject)
     }
 
     /**

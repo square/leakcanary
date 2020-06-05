@@ -42,6 +42,7 @@ import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.createSHA1Hash
+import shark.internal.hppc.LongLongScatterMap.ForEachCallback
 import shark.internal.lastSegment
 import java.io.File
 import java.util.ArrayList
@@ -303,22 +304,27 @@ class HeapAnalyzer constructor(
     }
 
     // Compute the size of each dominated instance and add to dominator
-    dominatedInstances.forEach { instanceId, dominatorId ->
-      // Avoid double reporting as those sizes will move up to the root dominator
-      if (instanceId !in leakingInstanceIds) {
-        val currentSize = sizeByDominator.getValue(dominatorId)
-        val nativeSize = nativeSizes.getValue(instanceId)
-        val shallowSize = when (val objectRecord = graph.findObjectById(instanceId)) {
-          is HeapInstance -> objectRecord.byteSize
-          is HeapObjectArray -> objectRecord.readByteSize()
-          is HeapPrimitiveArray -> objectRecord.readByteSize()
-          is HeapClass -> throw IllegalStateException(
-              "Unexpected class record $objectRecord"
-          )
+    dominatedInstances.forEach(object : ForEachCallback {
+      override fun onEntry(
+        instanceId: Long,
+        dominatorId: Long
+      ) {
+        // Avoid double reporting as those sizes will move up to the root dominator
+        if (instanceId !in leakingInstanceIds) {
+          val currentSize = sizeByDominator.getValue(dominatorId)
+          val nativeSize = nativeSizes.getValue(instanceId)
+          val shallowSize = when (val objectRecord = graph.findObjectById(instanceId)) {
+            is HeapInstance -> objectRecord.byteSize
+            is HeapObjectArray -> objectRecord.readByteSize()
+            is HeapPrimitiveArray -> objectRecord.readByteSize()
+            is HeapClass -> throw IllegalStateException(
+                "Unexpected class record $objectRecord"
+            )
+          }
+          sizeByDominator[dominatorId] = currentSize + nativeSize + shallowSize
         }
-        sizeByDominator[dominatorId] = currentSize + nativeSize + shallowSize
       }
-    }
+    })
 
     // Move retained sizes from dominated leaking instance to dominators leaking instances.
     // Keep doing this until nothing moves.

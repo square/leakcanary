@@ -117,7 +117,8 @@ internal class HprofInMemoryIndex private constructor(
 
           val primitiveArray = IndexedPrimitiveArray(
               position = array.readTruncatedLong(positionSize),
-              primitiveType = PrimitiveType.values()[array.readByte().toInt()]
+              primitiveType = PrimitiveType.values()[array.readByte()
+                  .toInt()]
           )
           id to primitiveArray
         }
@@ -162,7 +163,8 @@ internal class HprofInMemoryIndex private constructor(
     if (array != null) {
       return IndexedPrimitiveArray(
           position = array.readTruncatedLong(positionSize),
-          primitiveType = PrimitiveType.values()[array.readByte().toInt()]
+          primitiveType = PrimitiveType.values()[array.readByte()
+              .toInt()]
       )
     }
     return null
@@ -196,7 +198,7 @@ internal class HprofInMemoryIndex private constructor(
     instanceCount: Int,
     objectArrayCount: Int,
     primitiveArrayCount: Int,
-    private val indexedGcRootsTypes: Set<KClass<out GcRoot>>
+    private val indexedGcRootsTypes: Set<Class<out GcRoot>>
   ) : OnHprofRecordListener {
 
     private val identifierSize = if (longIdentifiers) 8 else 4
@@ -217,7 +219,7 @@ internal class HprofInMemoryIndex private constructor(
     /**
      * class id to string id
      */
-    private val classNames = LongLongScatterMap()
+    private val classNames = LongLongScatterMap(expectedElements = classCount)
 
     private val classIndex = UnsortedByteEntries(
         bytesPerValue = positionSize + identifierSize + 4,
@@ -272,7 +274,9 @@ internal class HprofInMemoryIndex private constructor(
         }
         is GcRootRecord -> {
           val gcRoot = record.gcRoot
-          if (gcRoot.id != ValueHolder.NULL_REFERENCE && gcRoot::class in indexedGcRootsTypes) {
+          if (gcRoot.id != ValueHolder.NULL_REFERENCE
+              && indexedGcRootsTypes.contains(gcRoot.javaClass)
+          ) {
             gcRoots += gcRoot
           }
         }
@@ -385,7 +389,8 @@ internal class HprofInMemoryIndex private constructor(
       val indexBuilderListener =
         Builder(
             reader.identifierByteSize == 8, hprof.fileLength, classCount, instanceCount,
-            objectArrayCount, primitiveArrayCount, indexedGcRootTypes
+            objectArrayCount, primitiveArrayCount, indexedGcRootTypes.map { it.java }
+            .toSet()
         )
 
       reader.readHprofRecords(recordTypes, indexBuilderListener)

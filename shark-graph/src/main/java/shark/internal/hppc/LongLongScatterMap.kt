@@ -24,7 +24,12 @@ import java.util.Locale
  * See https://github.com/carrotsearch/hppc .
  */
 @Suppress("TooManyFunctions")
-class LongLongScatterMap {
+class LongLongScatterMap constructor(expectedElements: Int = 4) {
+
+  interface ForEachCallback {
+    fun onEntry(key: Long, value: Long)
+  }
+
   /**
    * The array holding keys.
    */
@@ -67,7 +72,7 @@ class LongLongScatterMap {
     get() = size == 0
 
   init {
-    ensureCapacity(4)
+    ensureCapacity(expectedElements)
   }
 
   operator fun set(
@@ -175,7 +180,7 @@ class LongLongScatterMap {
     return getSlotValue(slot)
   }
 
-  fun forEach(block: (Long, Long) -> Unit) {
+  fun forEach(forEachCallback: ForEachCallback) {
     val max = mask + 1
     var slot = -1
 
@@ -186,7 +191,7 @@ class LongLongScatterMap {
         while (slot < max) {
           existing = keys[slot]
           if (existing != 0L) {
-            block(existing, values[slot])
+            forEachCallback.onEntry(existing, values[slot])
             continue@exitWhile
           }
           slot++
@@ -195,7 +200,7 @@ class LongLongScatterMap {
 
       if (slot == max && hasEmptyKey) {
         slot++
-        block(0L, values[max])
+        forEachCallback.onEntry(0L, values[max])
         continue@exitWhile
       }
       break@exitWhile
