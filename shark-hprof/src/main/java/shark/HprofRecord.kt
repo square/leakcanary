@@ -9,12 +9,31 @@ sealed class HprofRecord {
     val string: String
   ) : HprofRecord()
 
+  /**
+   * To limit object allocation while parsing, [HprofReader] uses a single instance which is
+   * reused after each call to [OnHprofRecordListener.onHprofRecord].
+   */
   class LoadClassRecord(
-    val classSerialNumber: Int,
-    val id: Long,
-    val stackTraceSerialNumber: Int,
-    val classNameStringId: Long
-  ) : HprofRecord()
+    classSerialNumber: Int,
+    id: Long,
+    stackTraceSerialNumber: Int,
+    classNameStringId: Long
+  ) : HprofRecord() {
+    var classSerialNumber: Int
+      internal set
+    var id: Long
+      internal set
+    var stackTraceSerialNumber: Int
+      internal set
+    var classNameStringId: Long
+      internal set
+    init {
+      this.classSerialNumber = classSerialNumber
+      this.id = id
+      this.stackTraceSerialNumber = stackTraceSerialNumber
+      this.classNameStringId = classNameStringId
+    }
+  }
 
   /**
    * Terminates a series of heap dump segments. Concatenation of heap dump segments equals a

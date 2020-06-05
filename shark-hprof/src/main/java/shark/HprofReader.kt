@@ -104,6 +104,7 @@ class HprofReader constructor(
   private val reusedObjectArraySkipContentRecord = ObjectArraySkipContentRecord(0, 0, 0, 0)
   private val reusedPrimitiveArraySkipContentRecord =
     PrimitiveArraySkipContentRecord(0, 0, 0, BOOLEAN)
+  private val reusedLoadClassRecord = LoadClassRecord(0, 0, 0, 0)
 
   /**
    * Reads all hprof records from [source].
@@ -172,13 +173,13 @@ class HprofReader constructor(
             val id = readId()
             val stackTraceSerialNumber = readInt()
             val classNameStringId = readId()
-            val record = LoadClassRecord(
-                classSerialNumber = classSerialNumber,
-                id = id,
-                stackTraceSerialNumber = stackTraceSerialNumber,
-                classNameStringId = classNameStringId
-            )
-            listener.onHprofRecord(recordPosition, record)
+            reusedLoadClassRecord.apply {
+              this.classSerialNumber = classSerialNumber
+              this.id = id
+              this.stackTraceSerialNumber = stackTraceSerialNumber
+              this.classNameStringId = classNameStringId
+            }
+            listener.onHprofRecord(recordPosition, reusedLoadClassRecord)
           } else {
             skip(length)
           }
