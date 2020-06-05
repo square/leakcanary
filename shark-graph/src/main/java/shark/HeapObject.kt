@@ -306,6 +306,12 @@ sealed class HeapObject {
       get() = hprofGraph.findObjectById(indexedObject.classId) as HeapClass
 
     /**
+     * The heap identifier of the class of this instance.
+     */
+    val instanceClassId: Long
+      get() = indexedObject.classId
+
+    /**
      * Reads and returns the underlying [InstanceDumpRecord].
      *
      * This may trigger IO reads.
