@@ -36,7 +36,7 @@ import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
-import shark.internal.LruCache
+import shark.internal.SwitchingLongLruCache
 import kotlin.reflect.KClass
 
 /**
@@ -101,7 +101,7 @@ class HprofHeapGraph internal constructor(
   // LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
   // This is based on running InstrumentationLeakDetectorTest a bunch of time on a
   // Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
-  private val objectCache = LruCache<Long, ObjectRecord>(3000)
+  private val objectCache = SwitchingLongLruCache<ObjectRecord>(3000)
 
   override fun findObjectById(objectId: Long): HeapObject {
     return findObjectByIdOrNull(objectId) ?: throw IllegalArgumentException(
