@@ -7,7 +7,7 @@
 
 SLUG="square/leakcanary"
 JDK="oraclejdk8"
-BRANCH="master"
+BRANCH="main"
 
 set -e
 

@@ -259,7 +259,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
   }
 
   /**
-   * Strategy that provides access to files living under a narrow whitelist of
+   * Strategy that provides access to files living under a narrow allowlist of
    * filesystem roots. It will throw [SecurityException] if callers try
    * accessing files outside the configured roots.
    *
