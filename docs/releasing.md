@@ -6,9 +6,9 @@
 export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-142834539-1"
 ```
 
-* Create a local release branch from `master`
+* Create a local release branch from `main`
 ```
-git checkout master
+git checkout main
 git pull
 git checkout -b release_{{ leak_canary.next_release }}
 ```
@@ -38,7 +38,7 @@ git diff docs/api
 ```
 
 * Update `docs/changelog.md` after checking out all changes:
-    * https://github.com/square/leakcanary/compare/v{{ leak_canary.release }}...master
+    * https://github.com/square/leakcanary/compare/v{{ leak_canary.release }}...main
 * Take one last look
 ```
 git diff
@@ -84,9 +84,9 @@ SONATYPE_NEXUS_PASSWORD=
     * Check the box next to the `comsquareup-XXXX` entry, click **Close** then **Confirm**
     * Wait a bit, hit **Refresh**, until the *Status* for that column changes to *Closed*.
     * Check the box next to the `comsquareup-XXXX` entry, click **Release** then **Confirm**
-* Merge the release branch to master
+* Merge the release branch to main
 ```
-git checkout master
+git checkout main
 git pull
 git merge --no-ff release_{{ leak_canary.next_release }}
 ```

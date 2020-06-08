@@ -64,7 +64,7 @@ On Android, content providers are created after the Application instance is crea
 
 ## How do I use the SNAPSHOT version?
 
-Update your dependencies to the latest SNAPSHOT (see [build.gradle](https://github.com/square/leakcanary/blob/master/build.gradle)):
+Update your dependencies to the latest SNAPSHOT (see [build.gradle](https://github.com/square/leakcanary/blob/main/build.gradle)):
 
 ```gradle
 dependencies {
@@ -83,7 +83,7 @@ repositories {
 }
 ```
 
-Status of the snapshot build: [![Build Status](https://travis-ci.org/square/leakcanary.svg?branch=master)](https://travis-ci.org/square/leakcanary)
+Status of the snapshot build: [![Build Status](https://travis-ci.org/square/leakcanary.svg?branch=main)](https://travis-ci.org/square/leakcanary)
 
 ## Who's behind LeakCanary?
 
