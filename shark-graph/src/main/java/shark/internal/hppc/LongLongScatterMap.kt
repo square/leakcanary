@@ -23,7 +23,6 @@ import java.util.Locale
  *
  * See https://github.com/carrotsearch/hppc .
  */
-@Suppress("TooManyFunctions")
 class LongLongScatterMap constructor(expectedElements: Int = 4) {
 
   interface ForEachCallback {

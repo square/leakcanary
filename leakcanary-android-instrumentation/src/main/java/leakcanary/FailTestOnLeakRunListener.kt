@@ -15,13 +15,14 @@
  */
 package leakcanary
 
-import android.app.Instrumentation
+import android.app.Activity
+import android.app.Application
+import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
 import android.util.Log
-import androidx.test.internal.runner.listener.InstrumentationResultPrinter
-import androidx.test.internal.runner.listener.InstrumentationResultPrinter.REPORT_VALUE_RESULT_FAILURE
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
+import leakcanary.internal.TestResultPublisher
 import org.junit.runner.Description
 import org.junit.runner.Result
 import org.junit.runner.notification.Failure
@@ -30,6 +31,10 @@ import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
 import shark.SharkLog
+import java.lang.reflect.InvocationHandler
+import java.lang.reflect.Proxy
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit.SECONDS
 
 /**
  *
@@ -43,23 +48,58 @@ import shark.SharkLog
  * @see InstrumentationLeakDetector
  */
 open class FailTestOnLeakRunListener : RunListener() {
-  private lateinit var bundle: Bundle
+  private var _currentTestDescription: Description? = null
+  private val currentTestDescription: Description
+    get() = _currentTestDescription!!
+
   private var skipLeakDetectionReason: String? = null
 
+  private lateinit var testResultPublisher: TestResultPublisher
+
+  @Volatile
+  private var allActivitiesDestroyedLatch: CountDownLatch? = null
+
+  override fun testRunStarted(description: Description) {
+    InstrumentationLeakDetector.updateConfig()
+    testResultPublisher = TestResultPublisher.install()
+    trackActivities()
+  }
+
+  private fun trackActivities() {
+    val instrumentation = getInstrumentation()!!
+    val application = instrumentation.targetContext.applicationContext as Application
+    application.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks by noOpDelegate() {
+
+      var activitiesWaitingForDestroyed = 0
+
+      override fun onActivityCreated(
+        activity: Activity,
+        savedInstanceState: Bundle?
+      ) {
+        if (activitiesWaitingForDestroyed == 0) {
+          allActivitiesDestroyedLatch = CountDownLatch(1)
+        }
+        activitiesWaitingForDestroyed++
+      }
+
+      override fun onActivityDestroyed(activity: Activity) {
+        activitiesWaitingForDestroyed--
+        if (activitiesWaitingForDestroyed == 0) {
+          allActivitiesDestroyedLatch!!.countDown()
+        }
+      }
+    })
+  }
+
+  override fun testRunFinished(result: Result) {
+  }
+
   override fun testStarted(description: Description) {
+    _currentTestDescription = description
     skipLeakDetectionReason = skipLeakDetectionReason(description)
     if (skipLeakDetectionReason != null) {
       return
     }
-    val testClass = description.className
-    val testName = description.methodName
-
-    bundle = Bundle()
-    bundle.putString(
-        Instrumentation.REPORT_KEY_IDENTIFIER, FailTestOnLeakRunListener::class.java.name
-    )
-    bundle.putString(InstrumentationResultPrinter.REPORT_KEY_NAME_CLASS, testClass)
-    bundle.putString(InstrumentationResultPrinter.REPORT_KEY_NAME_TEST, testName)
   }
 
   /**
@@ -84,21 +124,21 @@ open class FailTestOnLeakRunListener : RunListener() {
   }
 
   override fun testFinished(description: Description) {
-    detectLeaks()
-    AppWatcher.objectWatcher.clearWatchedObjects()
-  }
-
-  override fun testRunStarted(description: Description) {
-    InstrumentationLeakDetector.updateConfig()
-  }
-
-  override fun testRunFinished(result: Result) {}
-
-  private fun detectLeaks() {
-    if (skipLeakDetectionReason != null) {
+    if (skipLeakDetectionReason == null) {
+      detectLeaks()
+    } else {
       SharkLog.d { "Skipping leak detection because the test $skipLeakDetectionReason" }
       skipLeakDetectionReason = null
-      return
+    }
+    AppWatcher.objectWatcher.clearWatchedObjects()
+    _currentTestDescription = null
+    testResultPublisher.publishTestFinished()
+  }
+
+  private fun detectLeaks() {
+    val allActivitiesDestroyed = allActivitiesDestroyedLatch?.await(2, SECONDS) ?: true
+    if (!allActivitiesDestroyed) {
+      SharkLog.d { "Leak detection proceeding with some activities still not in destroyed state" }
     }
 
     val leakDetector = InstrumentationLeakDetector()
@@ -130,10 +170,19 @@ open class FailTestOnLeakRunListener : RunListener() {
   }
 
   /**
-   * Reports that the test has failed, with the provided [message].
+   * Reports that the test has failed, with the provided [trace].
    */
-  protected fun failTest(message: String) {
-    bundle.putString(InstrumentationResultPrinter.REPORT_KEY_STACK, message)
-    getInstrumentation().sendStatus(REPORT_VALUE_RESULT_FAILURE, bundle)
+  protected fun failTest(trace: String) {
+    testResultPublisher.publishTestFailure(currentTestDescription, trace)
+  }
+
+  private inline fun <reified T : Any> noOpDelegate(): T {
+    val javaClass = T::class.java
+    val noOpHandler = InvocationHandler { _, _, _ ->
+      // no op
+    }
+    return Proxy.newProxyInstance(
+        javaClass.classLoader, arrayOf(javaClass), noOpHandler
+    ) as T
   }
 }

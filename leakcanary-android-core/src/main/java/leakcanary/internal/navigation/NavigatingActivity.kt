@@ -14,7 +14,6 @@ import com.squareup.leakcanary.core.R
 /**
  * A simple backstack navigating activity
  */
-@Suppress("TooManyFunctions")
 internal abstract class NavigatingActivity : Activity() {
 
   private lateinit var backstack: ArrayList<BackstackFrame>

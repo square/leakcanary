@@ -60,7 +60,6 @@ import java.util.LinkedHashMap
  * identified as "to visit last" and then visiting them as needed if no path is
  * found.
  */
-@Suppress("TooManyFunctions")
 internal class PathFinder(
   private val graph: HeapGraph,
   private val listener: OnAnalysisProgressListener,

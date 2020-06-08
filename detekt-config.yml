@@ -91,10 +91,10 @@ complexity:
     #LeakCanary - increased from 11 to 12
     active: true
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
-    thresholdInFiles: 12
-    thresholdInClasses: 12
-    thresholdInInterfaces: 12
-    thresholdInObjects: 12
+    thresholdInFiles: 50
+    thresholdInClasses: 50
+    thresholdInInterfaces: 11
+    thresholdInObjects: 50
     thresholdInEnums: 12
     ignoreDeprecated: false
     ignorePrivate: false

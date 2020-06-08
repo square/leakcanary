@@ -45,7 +45,7 @@ import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
 import shark.LeakTraceObject.LeakingStatus.UNKNOWN
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 
-@Suppress("DEPRECATION", "TooManyFunctions")
+@Suppress("DEPRECATION")
 internal class DisplayLeakAdapter constructor(
   context: Context,
   private val leakTrace: LeakTrace,

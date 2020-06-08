@@ -24,7 +24,6 @@ import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
 import shark.AndroidResourceIdNames
 import shark.SharkLog
 
-@Suppress("TooManyFunctions")
 internal class HeapDumpTrigger(
   private val application: Application,
   private val backgroundHandler: Handler,

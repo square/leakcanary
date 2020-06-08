@@ -25,7 +25,6 @@ import kotlin.reflect.KClass
 /**
  * This class is not thread safe, should be used from a single thread.
  */
-@Suppress("TooManyFunctions")
 internal class HprofInMemoryIndex private constructor(
   private val positionSize: Int,
   private val hprofStringCache: LongObjectScatterMap<String>,
