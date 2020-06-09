@@ -963,6 +963,23 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  MULTI_WINDOW_DECOR_SUPPORT__MWINDOW {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+          "com.android.internal.policy.MultiWindowDecorSupport", "mWindow",
+          description = """DecorView isn't leaking but its mDecorViewSupport field holds
+            |a MultiWindowDecorSupport which has a mWindow field which holds a leaking PhoneWindow.
+            |DecorView.mDecorViewSupport doesn't exist in AOSP.
+            |Filed here: https://github.com/square/leakcanary/issues/1819
+          """.trimMargin()
+      ) {
+        manufacturer == SAMSUNG && sdkInt in 26..29
+      }
+    }
+  },
+
   // OTHER MANUFACTURERS
 
   GESTURE_BOOST_MANAGER {
