@@ -60,8 +60,8 @@ class LegacyHprofTest {
         .use { hprof ->
           val graph = HprofHeapGraph.indexHprof(hprof)
           graph.findClassByName("java.lang.Thread")!!.instances.map { instance ->
-            instance["java.lang.Thread", "name"]!!.value.readAsJavaString()!!
-          }
+                instance["java.lang.Thread", "name"]!!.value.readAsJavaString()!!
+              }
               .toList()
         }
     return threadNames
@@ -85,7 +85,12 @@ class LegacyHprofTest {
     val contextWrapperStatuses = Hprof.open(fileFromResources("leak_asynctask_o.hprof"))
         .use { hprof ->
           val graph = HprofHeapGraph.indexHprof(hprof)
-          graph.instances.filter { it instanceOf "android.content.ContextWrapper" && !(it instanceOf "android.app.Activity") }
+          graph.instances.filter {
+                it instanceOf "android.content.ContextWrapper"
+                    && !(it instanceOf "android.app.Activity")
+                    && !(it instanceOf "android.app.Application")
+                    && !(it instanceOf "android.app.Service")
+              }
               .map { instance ->
                 val reporter = ObjectReporter(instance)
                 AndroidObjectInspectors.CONTEXT_WRAPPER.inspect(reporter)
@@ -105,7 +110,7 @@ class LegacyHprofTest {
         }
     assertThat(contextWrapperStatuses.filter { it == DESTROYED }).hasSize(12)
     assertThat(contextWrapperStatuses.filter { it == NOT_DESTROYED }).hasSize(6)
-    assertThat(contextWrapperStatuses.filter { it == NOT_ACTIVITY }).hasSize(1)
+    assertThat(contextWrapperStatuses.filter { it == NOT_ACTIVITY }).hasSize(0)
   }
 
   @Test fun gcRootInNonPrimaryHeap() {
