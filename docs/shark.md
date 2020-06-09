@@ -140,19 +140,30 @@ dependencies {
 ```
 
 ```kotlin
-val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
-val analysis = heapAnalyzer.checkForLeaks(
-    heapDumpFile = heapDumpFile,
-    leakFinders = listOf(ObjectInspector { _, reporter ->
-      reporter.whenInstanceOf("com.example.ThingWithLifecycle") { instance ->
-        val field = instance["com.example.ThingWithLifecycle", "destroyed"]!!
-        val destroyed = field.value.asBoolean!!
-        if (destroyed) {
-          leakingReasons += "ThingWithLifecycle.destroyed = true"
-        }
-      }
-    })
-)
+// Marks any instance of com.example.ThingWithLifecycle with
+// ThingWithLifecycle.destroyed=true as leaking
+val leakingObjectFilter = object : LeakingObjectFilter {
+  override fun isLeakingObject(heapObject: HeapObject): Boolean {
+    return if (heapObject instanceOf "com.example.ThingWithLifecycle") {
+      val instance = heapObject as HeapInstance
+      val destroyedField = instance["com.example.ThingWithLifecycle", "destroyed"]!!
+      destroyedField.value.asBoolean!!
+    } else false
+  }
+}
+
+val leakingObjectFinder = FilteringLeakingObjectFinder(listOf(leakingObjectFilter))
+
+val heapAnalysis = Hprof.open(heapDumpFile)
+    .use { hprof ->
+      val heapGraph = HprofHeapGraph.indexHprof(hprof)
+      val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
+      heapAnalyzer.analyze(
+          heapDumpFile = heapDumpFile,
+          graph = heapGraph,
+          leakingObjectFinder = leakingObjectFinder,
+      )
+    }
 println(analysis)
 ```
 
