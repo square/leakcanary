@@ -1,3 +1,4 @@
+
 # Change Log
 
 !!! info
@@ -61,9 +62,10 @@ The branch name `master` comes from the *master / slave* terminology. We renamed
 ### Bug fixes and improvements 🐛🔨
 
 * URLs in *Library Leak* descriptions are [now clickable](https://github.com/square/leakcanary/issues/1844)
-* Fixed [ordering issues](https://github.com/square/leakcanary/issues/1832) causing improper config with manual setup. A related change is that [AppWatcher.Config.enabled] is now deprecated.
+* Fixed [ordering issues](https://github.com/square/leakcanary/issues/1832) causing improper config with manual setup. A related change is that `AppWatcher.Config.enabled` is now deprecated.
 * Fixed possible [OutOfMemoryError failure](https://github.com/square/leakcanary/issues/1798) when computing retained size: we were loading to memory large arrays from the heap dump just to get their size.
 
+For more details, see the [2.4 Milestone](https://github.com/square/leakcanary/milestone/18) and the [full diff](https://github.com/square/leakcanary/compare/v2.3...v2.4).
 
 ## Version 2.3 (2020-04-08)
 
