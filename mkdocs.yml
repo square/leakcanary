@@ -20,6 +20,7 @@ site_name: LeakCanary
 site_url: https://square.github.io/leakcanary/
 repo_name: LeakCanary
 repo_url: https://github.com/square/leakcanary
+edit_uri: edit/main/docs/
 site_description: "A memory leak detection library for Android"
 site_author: Square, Inc.
 remote_branch: gh-pages
