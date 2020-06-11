@@ -3,6 +3,68 @@
 !!! info
     To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
 
+## Version 2.4 (2020-06-10)
+
+Please thank
+[@0x109](https://github.com/0x109),
+[@andersu](https://github.com/andersu),
+[@antoniomerlin](https://github.com/antoniomerlin),
+[@bishiboosh](https://github.com/bishiboosh),
+[@ckesc](https://github.com/ckesc),
+[@jrodbx](https://github.com/jrodbx),
+[@LouisCAD](https://github.com/LouisCAD),
+[@marcardar](https://github.com/marcardar),
+[@OlivierGenez](https://github.com/OlivierGenez),
+[@pyricau](https://github.com/pyricau),
+[@runningcode](https://github.com/runningcode),
+[@seljad](https://github.com/seljad),
+[@worldsnas](https://github.com/worldsnas)
+for their contributions, bug reports and feature requests.
+
+### `plumber-android` is a new artifact that fixes known Android leaks 🚽🔧
+
+LeakCanary reports all leaks, including leaks caused by a known bug in 3rd party code that you do not have control over (reported as [Library leaks](fundamentals-how-leakcanary-works.md#4-categorizing-leaks)). That can be annoying! LeakCanary now ships with a new dependency, `plumber-android`, which performs hacks at runtime to fix some of these known leaks. This releases has fixes for **11 known leaks**, but this is just the beginning. Contributions welcome! 🙏
+
+Note that since the `leakcanary-android` dependency is usually added as a `debugImplementation` dependency, the `plumber-android` is transitively added only in debug builds, so it will not fix leaks in your release builds. You can add the dependency directly as `implementation` to get these fixes in release builds as well:
+
+```groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:plumber-android:2.4'
+}
+```
+
+!!! warning
+    While several of these fixes already ship in release builds of Square apps, this is the first official release of `plumber-android`, so you should consider it **experimental**. 
+
+### Analyzing leaks from the CLI is easier than ever 🍺
+
+The [Shark CLI](shark.md#shark-cli) can now be installed via [Homebrew](https://brew.sh/)
+
+```
+brew install leakcanary-shark
+```
+
+You can then look for leaks in apps on any connected device, for example:
+
+```
+$ shark-cli --device emulator-5554 --process com.example.app.debug analyze
+```
+
+### Support for Android Test Orchestrator 🎼
+
+If you set up LeakCanary to report test failures when detecting leaks in [instrumentation tests](recipes.md#running-leakcanary-in-instrumentation-tests), it [now works](https://github.com/square/leakcanary/issues/1046) with Android Test Orchestrator as well. No change required, LeakCanary will automatically detect thatAndroid Test Orchestrator is running and hook into it.
+
+### No more `master` branch
+
+The branch name `master` comes from the *master / slave* terminology. We renamed the default branch to `main`, a small step towards making the LeakCanary community a safer space. Here's a good [thread on this topic](https://twitter.com/mislav/status/1270388510684598272).
+
+### Bug fixes and improvements 🐛🔨
+
+* URLs in *Library Leak* descriptions are [now clickable](https://github.com/square/leakcanary/issues/1844)
+* Fixed [ordering issues](https://github.com/square/leakcanary/issues/1832) causing improper config with manual setup. A related change is that [AppWatcher.Config.enabled] is now deprecated.
+* Fixed possible [OutOfMemoryError failure](https://github.com/square/leakcanary/issues/1798) when computing retained size: we were loading to memory large arrays from the heap dump just to get their size.
+
+
 ## Version 2.3 (2020-04-08)
 
 This is a minor release on the feature front, but a large release on the documentation front!
