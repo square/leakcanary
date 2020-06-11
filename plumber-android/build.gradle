@@ -5,6 +5,9 @@ dependencies {
   api project(':shark-log')
 
   implementation deps.kotlin.stdlib
+
+  api deps.androidx.startup
+
   // Optional dependency
   compileOnly deps.androidx.fragment
 }

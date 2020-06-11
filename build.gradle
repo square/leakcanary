@@ -25,6 +25,7 @@ buildscript {
               runner: 'androidx.test:runner:1.1.0',
               orchestrator: 'androidx.test:orchestrator:1.1.0',
           ],
+          startup: 'androidx.startup:startup-runtime:1.0.0-alpha01'
       ],
       android_support: 'com.android.support:support-v4:28.0.0',
       clikt: 'com.github.ajalt:clikt:2.3.0',
