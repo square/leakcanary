@@ -9,7 +9,7 @@
         android:exported="false"
         tools:node="merge">
       <meta-data
-          android:name="leakcanary.internal.AppWatcherInitializer"
+          android:name="leakcanary.internal.PlumberInitializer"
           android:value="androidx.startup" />
     </provider>
 

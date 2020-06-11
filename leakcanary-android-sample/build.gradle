@@ -18,6 +18,8 @@ dependencies {
 
   implementation deps.kotlin.stdlib
 
+  implementation project(':plumber-android')
+
   testImplementation deps.junit
   testImplementation deps.robolectric
 
