@@ -2,4 +2,4 @@
 
 # classNameStringId
 
-`val classNameStringId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)
+`var classNameStringId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)

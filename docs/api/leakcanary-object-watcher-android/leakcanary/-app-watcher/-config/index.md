@@ -20,13 +20,13 @@ AppWatcher configuration data class. Properties can be updated via [copy](#).
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `Config(enabled: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = InternalAppWatcher.isDebuggableBuild, watchActivities: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = true, watchFragments: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = true, watchFragmentViews: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = true, watchViewModels: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = true, watchDurationMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)` = TimeUnit.SECONDS.toMillis(5))`<br>AppWatcher configuration data class. Properties can be updated via [copy](#). |
+| [&lt;init&gt;](-init-.md) | `Config(watchActivities: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = true, watchFragments: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = true, watchFragmentViews: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = true, watchViewModels: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = true, watchDurationMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)` = TimeUnit.SECONDS.toMillis(5), enabled: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = true)`<br>AppWatcher configuration data class. Properties can be updated via [copy](#). |
 
 ### Properties
 
 | Name | Summary |
 |---|---|
-| [enabled](enabled.md) | `val enabled: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Whether AppWatcher should watch objects (by keeping weak references to them). |
+| [enabled](enabled.md) | `val ~~enabled~~: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Deprecated, this didn't need to be a part of the API. Used to indicate whether AppWatcher should watch objects (by keeping weak references to them). Currently a no-op. |
 | [watchActivities](watch-activities.md) | `val watchActivities: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Whether AppWatcher should automatically watch destroyed activity instances. |
 | [watchDurationMillis](watch-duration-millis.md) | `val watchDurationMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>How long to wait before reporting a watched object as retained. |
 | [watchFragments](watch-fragments.md) | `val watchFragments: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Whether AppWatcher should automatically watch destroyed fragment instances. |

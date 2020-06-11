@@ -11,7 +11,7 @@ show a notification summarizing the result.
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `DefaultOnHeapAnalyzedListener(application: Application)`<br>Default [OnHeapAnalyzedListener](../-on-heap-analyzed-listener/index.md) implementation, which will store the analysis to disk and show a notification summarizing the result. |
+| [&lt;init&gt;](-init-.md) | `DefaultOnHeapAnalyzedListener(application: Application)` |
 
 ### Functions
 
