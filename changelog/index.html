@@ -1776,9 +1776,10 @@ for their contributions, bug reports and feature requests.</p>
 <h3 id="bug-fixes-and-improvements">Bug fixes and improvements 🐛🔨<a class="headerlink" href="#bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
 <ul>
 <li>URLs in <em>Library Leak</em> descriptions are <a href="https://github.com/square/leakcanary/issues/1844">now clickable</a></li>
-<li>Fixed <a href="https://github.com/square/leakcanary/issues/1832">ordering issues</a> causing improper config with manual setup. A related change is that [AppWatcher.Config.enabled] is now deprecated.</li>
+<li>Fixed <a href="https://github.com/square/leakcanary/issues/1832">ordering issues</a> causing improper config with manual setup. A related change is that <code>AppWatcher.Config.enabled</code> is now deprecated.</li>
 <li>Fixed possible <a href="https://github.com/square/leakcanary/issues/1798">OutOfMemoryError failure</a> when computing retained size: we were loading to memory large arrays from the heap dump just to get their size.</li>
 </ul>
+<p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/18">2.4 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.3...v2.4">full diff</a>.</p>
 <h2 id="version-23-2020-04-08">Version 2.3 (2020-04-08)<a class="headerlink" href="#version-23-2020-04-08" title="Permanent link">&para;</a></h2>
 <p>This is a minor release on the feature front, but a large release on the documentation front!</p>
 <p>Many thanks to
