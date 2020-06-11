@@ -4,8 +4,8 @@
 
 extra:
   leak_canary:
-    release: '2.3'
-    next_release: '2.4'
+    release: '2.4'
+    next_release: '2.5'
   social:
     - icon: fontawesome/brands/github-alt
       link: https://square.github.io/

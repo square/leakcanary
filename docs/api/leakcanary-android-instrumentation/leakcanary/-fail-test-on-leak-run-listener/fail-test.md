@@ -2,7 +2,7 @@
 
 # failTest
 
-`protected fun failTest(message: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+`protected fun failTest(trace: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
 
-Reports that the test has failed, with the provided [message](fail-test.md#leakcanary.FailTestOnLeakRunListener$failTest(kotlin.String)/message).
+Reports that the test has failed, with the provided [trace](fail-test.md#leakcanary.FailTestOnLeakRunListener$failTest(kotlin.String)/trace).
 

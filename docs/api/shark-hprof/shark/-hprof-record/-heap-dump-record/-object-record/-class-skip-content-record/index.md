@@ -7,6 +7,9 @@
 This isn't a real record type as found in the heap dump. It's an alternative to
 [ClassDumpRecord](../-class-dump-record/index.md) for when you don't need the class content.
 
+To limit object allocation while parsing, [HprofReader](../../../../-hprof-reader/index.md) uses a single instance which is
+reused after each call to [OnHprofRecordListener.onHprofRecord](../../../../-on-hprof-record-listener/on-hprof-record.md).
+
 ### Constructors
 
 | Name | Summary |
@@ -17,12 +20,12 @@ This isn't a real record type as found in the heap dump. It's an alternative to
 
 | Name | Summary |
 |---|---|
-| [classLoaderId](class-loader-id.md) | `val classLoaderId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
-| [fieldCount](field-count.md) | `val fieldCount: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
-| [id](id.md) | `val id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
-| [instanceSize](instance-size.md) | `val instanceSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
-| [protectionDomainId](protection-domain-id.md) | `val protectionDomainId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
-| [signersId](signers-id.md) | `val signersId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
-| [stackTraceSerialNumber](stack-trace-serial-number.md) | `val stackTraceSerialNumber: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
-| [staticFieldCount](static-field-count.md) | `val staticFieldCount: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
-| [superclassId](superclass-id.md) | `val superclassId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [classLoaderId](class-loader-id.md) | `var classLoaderId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [fieldCount](field-count.md) | `var fieldCount: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+| [id](id.md) | `var id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [instanceSize](instance-size.md) | `var instanceSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+| [protectionDomainId](protection-domain-id.md) | `var protectionDomainId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [signersId](signers-id.md) | `var signersId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [stackTraceSerialNumber](stack-trace-serial-number.md) | `var stackTraceSerialNumber: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+| [staticFieldCount](static-field-count.md) | `var staticFieldCount: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+| [superclassId](superclass-id.md) | `var superclassId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |

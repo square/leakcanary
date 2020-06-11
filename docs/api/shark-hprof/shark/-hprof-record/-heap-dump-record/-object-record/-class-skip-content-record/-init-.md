@@ -7,3 +7,6 @@
 This isn't a real record type as found in the heap dump. It's an alternative to
 [ClassDumpRecord](../-class-dump-record/index.md) for when you don't need the class content.
 
+To limit object allocation while parsing, [HprofReader](../../../../-hprof-reader/index.md) uses a single instance which is
+reused after each call to [OnHprofRecordListener.onHprofRecord](../../../../-on-hprof-record-listener/on-hprof-record.md).
+

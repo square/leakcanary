@@ -2,4 +2,4 @@
 
 # type
 
-`val type: `[`PrimitiveType`](../../../../-primitive-type/index.md)
+`var type: `[`PrimitiveType`](../../../../-primitive-type/index.md)

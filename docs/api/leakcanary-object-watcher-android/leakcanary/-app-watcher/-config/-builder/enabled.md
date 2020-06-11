@@ -2,9 +2,8 @@
 
 # enabled
 
-`fun enabled(enabled: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+`fun ~~enabled~~(enabled: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+**Deprecated:** see [Config.enabled]
 
-**See Also**
-
-[Config.enabled](../enabled.md)
+Deprecated. @see [Config.enabled](../enabled.md)
 

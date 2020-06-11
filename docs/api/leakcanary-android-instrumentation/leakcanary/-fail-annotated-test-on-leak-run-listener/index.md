@@ -28,7 +28,7 @@ is used.
 
 | Name | Summary |
 |---|---|
-| [failTest](../-fail-test-on-leak-run-listener/fail-test.md) | `fun failTest(message: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Reports that the test has failed, with the provided [message](../-fail-test-on-leak-run-listener/fail-test.md#leakcanary.FailTestOnLeakRunListener$failTest(kotlin.String)/message). |
+| [failTest](../-fail-test-on-leak-run-listener/fail-test.md) | `fun failTest(trace: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Reports that the test has failed, with the provided [trace](../-fail-test-on-leak-run-listener/fail-test.md#leakcanary.FailTestOnLeakRunListener$failTest(kotlin.String)/trace). |
 | [onAnalysisPerformed](../-fail-test-on-leak-run-listener/on-analysis-performed.md) | `open fun onAnalysisPerformed(heapAnalysis: HeapAnalysis): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Called when a heap analysis has been performed and a result is available. |
 | [testAssumptionFailure](../-fail-test-on-leak-run-listener/test-assumption-failure.md) | `open fun testAssumptionFailure(failure: Failure): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
 | [testFailure](../-fail-test-on-leak-run-listener/test-failure.md) | `open fun testFailure(failure: Failure): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |

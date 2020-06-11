@@ -13,6 +13,7 @@ An instance in the heap dump.
 | [byteSize](byte-size.md) | `val byteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
 | [graph](graph.md) | `val graph: `[`HeapGraph`](../../-heap-graph/index.md)<br>The graph of objects in the heap, which you can use to navigate the heap. |
 | [instanceClass](instance-class.md) | `val instanceClass: `[`HeapObject.HeapClass`](../-heap-class/index.md)<br>The class of this instance. |
+| [instanceClassId](instance-class-id.md) | `val instanceClassId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>The heap identifier of the class of this instance. |
 | [instanceClassName](instance-class-name.md) | `val instanceClassName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>The name of the class of this instance, identical to [Class.getName](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#getName()). |
 | [instanceClassSimpleName](instance-class-simple-name.md) | `val instanceClassSimpleName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Returns [instanceClassName](instance-class-name.md) stripped of any string content before the last period (included). |
 | [isPrimitiveWrapper](is-primitive-wrapper.md) | `val isPrimitiveWrapper: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Whether this is an instance of a primitive wrapper type. |

@@ -25,7 +25,7 @@ look for retained objects, trigger a heap dump if needed and perform an analysis
 
 | Name | Summary |
 |---|---|
-| [failTest](fail-test.md) | `fun failTest(message: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Reports that the test has failed, with the provided [message](fail-test.md#leakcanary.FailTestOnLeakRunListener$failTest(kotlin.String)/message). |
+| [failTest](fail-test.md) | `fun failTest(trace: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Reports that the test has failed, with the provided [trace](fail-test.md#leakcanary.FailTestOnLeakRunListener$failTest(kotlin.String)/trace). |
 | [onAnalysisPerformed](on-analysis-performed.md) | `open fun onAnalysisPerformed(heapAnalysis: HeapAnalysis): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Called when a heap analysis has been performed and a result is available. |
 | [skipLeakDetectionReason](skip-leak-detection-reason.md) | `open fun skipLeakDetectionReason(description: Description): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?`<br>Can be overridden to skip leak detection based on the description provided when a test is started. Return null to continue leak detection, or a string describing the reason for skipping otherwise. |
 | [testAssumptionFailure](test-assumption-failure.md) | `open fun testAssumptionFailure(failure: Failure): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
