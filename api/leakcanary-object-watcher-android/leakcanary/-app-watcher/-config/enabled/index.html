@@ -77,7 +77,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.3</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.4</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -824,9 +824,12 @@
   
   <p><a href="../../../../">leakcanary-object-watcher-android</a> / <a href="../../../">leakcanary</a> / <a href="../../">AppWatcher</a> / <a href="../">Config</a> / <a href="./">enabled</a></p>
 <h1 id="enabled">enabled<a class="headerlink" href="#enabled" title="Permanent link">&para;</a></h1>
-<p><code>val enabled:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a></p>
-<p>Whether AppWatcher should watch objects (by keeping weak references to them).</p>
-<p>Default to true in debuggable builds and false is non debuggable builds.</p>
+<p><code>val ~~enabled~~:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a>
+<strong>Deprecated:</strong> This didn&rsquo;t need to be a part of LeakCanary&rsquo;s API. No-Op.</p>
+<p>Deprecated, this didn&rsquo;t need to be a part of the API.
+Used to indicate whether AppWatcher should watch objects (by keeping weak references to
+them). Currently a no-op.</p>
+<p>If you do need to stop watching objects, simply don&rsquo;t pass them to <a href="../../object-watcher/">objectWatcher</a>.</p>
   
 
               

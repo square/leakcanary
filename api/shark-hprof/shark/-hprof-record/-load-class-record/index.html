@@ -77,7 +77,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.3</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.4</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -849,6 +849,8 @@
   <p><a href="../../../">shark-hprof</a> / <a href="../../">shark</a> / <a href="../">HprofRecord</a> / <a href="./">LoadClassRecord</a></p>
 <h1 id="loadclassrecord">LoadClassRecord<a class="headerlink" href="#loadclassrecord" title="Permanent link">&para;</a></h1>
 <p><code>class LoadClassRecord :</code><a href="../"><code>HprofRecord</code></a></p>
+<p>To limit object allocation while parsing, <a href="../../-hprof-reader/">HprofReader</a> uses a single instance which is
+reused after each call to <a href="../../-on-hprof-record-listener/on-hprof-record/">OnHprofRecordListener.onHprofRecord</a>.</p>
 <h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -860,7 +862,7 @@
 <tbody>
 <tr>
 <td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>LoadClassRecord(classSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>, id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, stackTraceSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>, classNameStringId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>)</code></td>
+<td><code>LoadClassRecord(classSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>, id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, stackTraceSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>, classNameStringId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>)</code><br>To limit object allocation while parsing, <a href="../../-hprof-reader/">HprofReader</a> uses a single instance which is reused after each call to <a href="../../-on-hprof-record-listener/on-hprof-record/">OnHprofRecordListener.onHprofRecord</a>.</td>
 </tr>
 </tbody>
 </table>
@@ -875,19 +877,19 @@
 <tbody>
 <tr>
 <td><a href="class-name-string-id/">classNameStringId</a></td>
-<td><code>val classNameStringId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td><code>var classNameStringId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
 </tr>
 <tr>
 <td><a href="class-serial-number/">classSerialNumber</a></td>
-<td><code>val classSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
+<td><code>var classSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
 </tr>
 <tr>
 <td><a href="id/">id</a></td>
-<td><code>val id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td><code>var id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
 </tr>
 <tr>
 <td><a href="stack-trace-serial-number/">stackTraceSerialNumber</a></td>
-<td><code>val stackTraceSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
+<td><code>var stackTraceSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
 </tr>
 </tbody>
 </table>

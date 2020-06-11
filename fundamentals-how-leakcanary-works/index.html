@@ -77,7 +77,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.3</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.4</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -1079,7 +1079,7 @@ Description: Android Q added a new IRequestFinishCallback$Stub class [...]
 <p class="admonition-title">Since I can&rsquo;t do much about this leak, is there a way I can ask LeakCanary to ignore it?</p>
 <p>There&rsquo;s no way for LeakCanary to know whether a leak is a Library Leak prior to dumping the heap and analyzing it. If LeakCanary didn&rsquo;t show the result notification when a Library Leak is found then you&rsquo;d start wondering what happened to the LeakCanary analysis after the dumping toast.</p>
 </div>
-<p>You can see the full list of known leaks in the <a href="https://github.com/square/leakcanary/blob/master/shark-android/src/main/java/shark/AndroidReferenceMatchers.kt#L49">AndroidReferenceMatchers</a> class. If you find an Android SDK leak that isn&rsquo;t recognized, please <a href="../faq/#can-a-leak-be-caused-by-the-android-sdk">report it</a>. You can also <a href="../recipes/#matching-known-library-leaks">customize the list of known Library Leaks</a>.</p>
+<p>You can see the full list of known leaks in the <a href="https://github.com/square/leakcanary/blob/main/shark-android/src/main/java/shark/AndroidReferenceMatchers.kt#L49">AndroidReferenceMatchers</a> class. If you find an Android SDK leak that isn&rsquo;t recognized, please <a href="../faq/#can-a-leak-be-caused-by-the-android-sdk">report it</a>. You can also <a href="../recipes/#matching-known-library-leaks">customize the list of known Library Leaks</a>.</p>
 <p>What&rsquo;s next? Learn how to <a href="../fundamentals-fixing-a-memory-leak/">fix a memory leak</a>!</p>
   
 

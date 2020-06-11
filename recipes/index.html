@@ -77,7 +77,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.3</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.4</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -552,6 +552,13 @@
         <li class="md-nav__item">
   <a href="#detecting-leaks-in-jvm-applications" class="md-nav__link">
     Detecting leaks in JVM applications
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#packagemanagergetlaunchintentforpackage-returns-leaklauncheractivity" class="md-nav__link">
+    PackageManager.getLaunchIntentForPackage() returns LeakLauncherActivity
   </a>
   
 </li>
@@ -1103,6 +1110,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#packagemanagergetlaunchintentforpackage-returns-leaklauncheractivity" class="md-nav__link">
+    PackageManager.getLaunchIntentForPackage() returns LeakLauncherActivity
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1197,20 +1211,18 @@
 <p>Sometimes it&rsquo;s necessary to disable LeakCanary temporarily, for example for a product demo or when running performance tests. You have different options, depending on what you&rsquo;re trying to achieve:</p>
 <ul>
 <li>Create a build variant that does not include the LeakCanary dependencies, see <a href="#setting-up-leakcanary-for-different-product-flavors">Setting up LeakCanary for different product flavors</a>.</li>
-<li>Disable the tracking of retained objects: <code>AppWatcher.config = AppWatcher.config.copy(enabled = false)</code>.</li>
 <li>Disable the heap dumping &amp; analysis: <code>LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)</code>.</li>
 <li>Hide the leak display activity launcher icon: override <code>R.bool.leak_canary_add_launcher_icon</code> or call <code>LeakCanary.showLeakDisplayActivityLauncherIcon(false)</code></li>
 </ul>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p>When you set <code>AppWatcher.config.enabled</code> to false, <code>AppWatcher.objectWatcher</code> will stop creating weak references to destroyed objects.</p>
-<p>If instead you set <code>LeakCanary.Config.dumpHeap</code> to false, <code>AppWatcher.objectWatcher</code> will still keep track of retained objects, and LeakCanary will look for these objects when you change <code>LeakCanary.Config.dumpHeap</code> back to true.</p>
+<p>When you set <code>LeakCanary.Config.dumpHeap</code> to <code>false</code>, <code>AppWatcher.objectWatcher</code> will still keep track of retained objects, and LeakCanary will look for these objects when you change <code>LeakCanary.Config.dumpHeap</code> back to <code>true</code>.</p>
 </div>
 <h2 id="counting-retained-instances-in-release-builds">Counting retained instances in release builds<a class="headerlink" href="#counting-retained-instances-in-release-builds" title="Permanent link">&para;</a></h2>
 <p>The <code>com.squareup.leakcanary:leakcanary-android</code> dependency should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in release builds to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code>dependencies {
-  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.0-beta-5&#39;
+  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.4&#39;
 }
 </code></pre></div>
 
@@ -1238,7 +1250,12 @@
     // ...
 
     testInstrumentationRunner &quot;android.support.test.runner.AndroidJUnitRunner&quot;
-    testInstrumentationRunnerArgument &quot;listener&quot;, &quot;leakcanary.FailTestOnLeakRunListener&quot;
+    testInstrumentationRunnerArgument &quot;listener&quot;, &quot;leakcanary.FailTestOnLeakRunListener&quot;    
+
+    // If you&#39;re using Android Test Orchestrator
+    testOptions {
+      execution &#39;ANDROIDX_TEST_ORCHESTRATOR&#39;
+    }
   }
 }
 </code></pre></div>
@@ -1325,7 +1342,7 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
 <p>Create a <a href="https://app.bugsnag.com/user/new/">Bugsnag account</a>, create a new project for leak reporting and grab an <strong>API key</strong>. Make sure the app has the <code>android.permission.INTERNET</code> permission then add the <a href="https://docs.bugsnag.com/platforms/android/">latest version</a> of the Bugsnag Android client library to <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
   <span class="c1">// debugImplementation because LeakCanary should only run in debug builds.</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.3&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.4&#39;</span>
   <span class="n">debugImplementation</span> <span class="s2">&quot;com.bugsnag:bugsnag-android:$bugsnagVersion&quot;</span>
 <span class="o">}</span>
 </code></pre></div>
@@ -1607,8 +1624,8 @@ configurations {
 <p>While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.</p>
 <p>Add the ObjectWatcher and Shark dependencies to your build file:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.3&#39;</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.3&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.4&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.4&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
 
@@ -1701,6 +1718,12 @@ configurations {
 </code></pre></div>
 
 <p>If you end up using LeakCanary on a JVM, the community will definitely benefit from your experience, so don&rsquo;t hesitate to <a href="https://github.com/square/leakcanary/issues/">let us know</a>!</p>
+<h2 id="packagemanagergetlaunchintentforpackage-returns-leaklauncheractivity">PackageManager.getLaunchIntentForPackage() returns LeakLauncherActivity<a class="headerlink" href="#packagemanagergetlaunchintentforpackage-returns-leaklauncheractivity" title="Permanent link">&para;</a></h2>
+<p>LeakCanary adds a main activity that has a <a href="https://developer.android.com/reference/android/content/Intent#CATEGORY_LAUNCHER">Intent#CATEGORY_LAUNCHER</a> category. <a href="https://developer.android.com/reference/android/content/pm/PackageManager#getLaunchIntentForPackage(java.lang.String)">PackageManager.getLaunchIntentForPackage()</a> looks for a main activity in the category <code>Intent#CATEGORY_INFO</code>, and next for a main activity in the category <code>Intent#CATEGORY_LAUNCHER</code>. <code>PackageManager.getLaunchIntentForPackage()</code> returns the first activity that matches in the merged manifest of your app. If your app relies on <code>PackageManager.getLaunchIntentForPackage()</code>, you have two options:</p>
+<ul>
+<li>Add <code>Intent#CATEGORY_INFO</code> to your main activity intent filter, so that it gets picked up first. This is what the Android documentation recommends.</li>
+<li>Disable the leakcanary launcher activity by setting the <code>leak_canary_add_launcher_icon</code> resource boolean to false.</li>
+</ul>
   
 
               

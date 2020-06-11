@@ -77,7 +77,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.3</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.4</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -909,7 +909,7 @@ watch any other object that you expect to be unreachable.</p>
 <tbody>
 <tr>
 <td><a href="manual-install/">manualInstall</a></td>
-<td><code>fun manualInstall(application: Application):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br><a href="./">AppWatcher</a> is automatically installed on main process start by <a href="#">leakcanary.internal.AppWatcherInstaller</a> which is registered in the AndroidManifest.xml of your app. If you disabled <a href="#">leakcanary.internal.AppWatcherInstaller</a> or you need AppWatcher or LeakCanary to run outside of the main process then you can call this method to install <a href="./">AppWatcher</a>.</td>
+<td><code>fun manualInstall(application: Application):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br><a href="./">AppWatcher</a> is automatically installed in the main process on startup. You can disable this behavior by overriding the <code>leak_canary_watcher_auto_install</code> boolean resource:</td>
 </tr>
 </tbody>
 </table>

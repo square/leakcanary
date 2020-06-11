@@ -77,7 +77,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.3</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.4</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -1001,7 +1001,7 @@
 <div class="highlight"><pre><span></span><code>brew install leakcanary-shark
 </code></pre></div>
 
-<p>You can also download it <a href="https://github.com/square/leakcanary/releases/download/v2.3/shark-cli-2.3.zip">here</a>.</p>
+<p>You can also download it <a href="https://github.com/square/leakcanary/releases/download/v2.4/shark-cli-2.4.zip">here</a>.</p>
 <p>You can then look for leaks in apps on any connected device, for example: </p>
 <div class="highlight"><pre><span></span><code>$ shark-cli --device emulator-5554 --process com.example.app.debug analyze
 </code></pre></div>
@@ -1088,19 +1088,30 @@ Commands:
 <span class="o">}</span>
 </code></pre></div>
 
-<div class="highlight"><pre><span></span><code><span class="k">val</span> <span class="py">heapAnalyzer</span> <span class="p">=</span> <span class="n">HeapAnalyzer</span><span class="p">(</span><span class="n">AnalyzerProgressListener</span><span class="p">.</span><span class="n">NONE</span><span class="p">)</span>
-<span class="k">val</span> <span class="py">analysis</span> <span class="p">=</span> <span class="n">heapAnalyzer</span><span class="p">.</span><span class="n">checkForLeaks</span><span class="p">(</span>
-    <span class="n">heapDumpFile</span> <span class="p">=</span> <span class="n">heapDumpFile</span><span class="p">,</span>
-    <span class="n">leakFinders</span> <span class="p">=</span> <span class="n">listOf</span><span class="p">(</span><span class="n">ObjectInspector</span> <span class="p">{</span> <span class="n">_</span><span class="p">,</span> <span class="n">reporter</span> <span class="p">-&gt;</span>
-      <span class="n">reporter</span><span class="p">.</span><span class="n">whenInstanceOf</span><span class="p">(</span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">)</span> <span class="p">{</span> <span class="n">instance</span> <span class="p">-&gt;</span>
-        <span class="k">val</span> <span class="py">field</span> <span class="p">=</span> <span class="n">instance</span><span class="p">[</span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">,</span> <span class="s">&quot;destroyed&quot;</span><span class="p">]</span><span class="o">!!</span>
-        <span class="k">val</span> <span class="py">destroyed</span> <span class="p">=</span> <span class="n">field</span><span class="p">.</span><span class="n">value</span><span class="p">.</span><span class="n">asBoolean</span><span class="o">!!</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">destroyed</span><span class="p">)</span> <span class="p">{</span>
-          <span class="n">leakingReasons</span> <span class="p">+=</span> <span class="s">&quot;ThingWithLifecycle.destroyed = true&quot;</span>
-        <span class="p">}</span>
-      <span class="p">}</span>
-    <span class="p">})</span>
-<span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="c1">// Marks any instance of com.example.ThingWithLifecycle with</span>
+<span class="c1">// ThingWithLifecycle.destroyed=true as leaking</span>
+<span class="k">val</span> <span class="py">leakingObjectFilter</span> <span class="p">=</span> <span class="k">object</span> <span class="p">:</span> <span class="nc">LeakingObjectFilter</span> <span class="p">{</span>
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">isLeakingObject</span><span class="p">(</span><span class="n">heapObject</span><span class="p">:</span> <span class="n">HeapObject</span><span class="p">):</span> <span class="n">Boolean</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">if</span> <span class="p">(</span><span class="n">heapObject</span> <span class="n">instanceOf</span> <span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">val</span> <span class="py">instance</span> <span class="p">=</span> <span class="n">heapObject</span> <span class="k">as</span> <span class="n">HeapInstance</span>
+      <span class="k">val</span> <span class="py">destroyedField</span> <span class="p">=</span> <span class="n">instance</span><span class="p">[</span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">,</span> <span class="s">&quot;destroyed&quot;</span><span class="p">]</span><span class="o">!!</span>
+      <span class="n">destroyedField</span><span class="p">.</span><span class="n">value</span><span class="p">.</span><span class="n">asBoolean</span><span class="o">!!</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">false</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">val</span> <span class="py">leakingObjectFinder</span> <span class="p">=</span> <span class="n">FilteringLeakingObjectFinder</span><span class="p">(</span><span class="n">listOf</span><span class="p">(</span><span class="n">leakingObjectFilter</span><span class="p">))</span>
+
+<span class="k">val</span> <span class="py">heapAnalysis</span> <span class="p">=</span> <span class="n">Hprof</span><span class="p">.</span><span class="k">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
+    <span class="p">.</span><span class="n">use</span> <span class="p">{</span> <span class="n">hprof</span> <span class="p">-&gt;</span>
+      <span class="k">val</span> <span class="py">heapGraph</span> <span class="p">=</span> <span class="n">HprofHeapGraph</span><span class="p">.</span><span class="n">indexHprof</span><span class="p">(</span><span class="n">hprof</span><span class="p">)</span>
+      <span class="k">val</span> <span class="py">heapAnalyzer</span> <span class="p">=</span> <span class="n">HeapAnalyzer</span><span class="p">(</span><span class="n">AnalyzerProgressListener</span><span class="p">.</span><span class="n">NONE</span><span class="p">)</span>
+      <span class="n">heapAnalyzer</span><span class="p">.</span><span class="n">analyze</span><span class="p">(</span>
+          <span class="n">heapDumpFile</span> <span class="p">=</span> <span class="n">heapDumpFile</span><span class="p">,</span>
+          <span class="n">graph</span> <span class="p">=</span> <span class="n">heapGraph</span><span class="p">,</span>
+          <span class="n">leakingObjectFinder</span> <span class="p">=</span> <span class="n">leakingObjectFinder</span><span class="p">,</span>
+      <span class="p">)</span>
+    <span class="p">}</span>
 <span class="n">println</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
 </code></pre></div>
 

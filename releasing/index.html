@@ -77,7 +77,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.3</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.4</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -846,35 +846,40 @@
 
 <ul>
 <li>
-<p>Create a local release branch from <code>master</code>
-<div class="highlight"><pre><span></span><code>git checkout master
+<p>Create a local release branch from <code>main</code>
+<div class="highlight"><pre><span></span><code>git checkout main
 git pull
-git checkout -b release_2.4
+git checkout -b release_2.5
 </code></pre></div></p>
 </li>
 <li>
 <p>Update <code>VERSION_NAME</code> in <code>gradle.properties</code> (remove <code>-SNAPSHOT</code>)
-<div class="highlight"><pre><span></span><code>VERSION_NAME = &quot;2.4&quot;
+<div class="highlight"><pre><span></span><code>VERSION_NAME = &quot;2.5&quot;
 </code></pre></div></p>
 </li>
 <li>
 <p>Update the current version and next version in <code>mkdocs.yml</code>:
 <div class="highlight"><pre><span></span><code>extra:
   leak_canary:
-    release: &#39;2.4&#39;
+    release: &#39;2.5&#39;
     next_release: &#39;REPLACE_WITH_NEXT_VERSION_NUMBER&#39;
 </code></pre></div></p>
 </li>
 <li>
 <p>Generate the Dokka docs
 <div class="highlight"><pre><span></span><code>rm -rf docs/api
-./gradlew leakcanary-android-core:dokka leakcanary-android-instrumentation:dokka leakcanary-android-process:dokka leakcanary-object-watcher-android:dokka leakcanary-object-watcher:dokka shark-android:dokka shark-graph:dokka shark-hprof:dokka shark-log:dokka shark:dokka
+./gradlew leakcanary-android-core:dokka leakcanary-android-instrumentation:dokka leakcanary-android-process:dokka leakcanary-object-watcher-android:dokka leakcanary-object-watcher:dokka shark-android:dokka shark-graph:dokka shark-hprof:dokka shark-log:dokka shark:dokka plumber-android:dokka
+</code></pre></div></p>
+</li>
+<li>
+<p>Confirm all API changes are intentional
+<div class="highlight"><pre><span></span><code>git diff docs/api
 </code></pre></div></p>
 </li>
 <li>
 <p>Update <code>docs/changelog.md</code> after checking out all changes:</p>
 <ul>
-<li><a href="https://github.com/square/leakcanary/compare/v2.3...master">https://github.com/square/leakcanary/compare/v2.3...master</a></li>
+<li><a href="https://github.com/square/leakcanary/compare/v2.4...main">https://github.com/square/leakcanary/compare/v2.4...main</a></li>
 </ul>
 </li>
 <li>
@@ -884,7 +889,7 @@ git checkout -b release_2.4
 </li>
 <li>
 <p>Commit all local changes
-<div class="highlight"><pre><span></span><code>git commit -am &quot;Prepare 2.4 release&quot;
+<div class="highlight"><pre><span></span><code>git commit -am &quot;Prepare 2.5 release&quot;
 </code></pre></div></p>
 </li>
 <li>
@@ -895,8 +900,8 @@ git checkout -b release_2.4
 </li>
 <li>
 <p>Create a tag and push it
-<div class="highlight"><pre><span></span><code>git tag v2.4
-git push origin v2.4
+<div class="highlight"><pre><span></span><code>git tag v2.5
+git push origin v2.5
 </code></pre></div></p>
 </li>
 <li>
@@ -926,10 +931,10 @@ SONATYPE_NEXUS_PASSWORD=
 <li>Check the box next to the <code>comsquareup-XXXX</code> entry, click <strong>Release</strong> then <strong>Confirm</strong></li>
 </ul>
 </li>
-<li>Merge the release branch to master
-<div class="highlight"><pre><span></span><code>git checkout master
+<li>Merge the release branch to main
+<div class="highlight"><pre><span></span><code>git checkout main
 git pull
-git merge --no-ff release_2.4
+git merge --no-ff release_2.5
 </code></pre></div></li>
 <li>
 <p>Update <code>VERSION_NAME</code> in <code>gradle.properties</code> (increase version and add <code>-SNAPSHOT</code>)
@@ -951,13 +956,13 @@ git merge --no-ff release_2.4
 </li>
 <li>Wait for the release to be available <a href="https://repo1.maven.org/maven2/com/squareup/leakcanary/leakcanary-android/">on Maven Central</a>.</li>
 <li>Redeploy the docs: <code>mkdocs serve</code> to check locally, <code>mkdocs gh-deploy</code> to deploy.</li>
-<li>Go to the <a href="https://github.com/square/leakcanary/releases/new">Draft a new release</a> page, enter the release name (v2.4) as tag and title, and have the description point to the changelog. You can find the direct anchor URL from the <a href="https://square.github.io/leakcanary/changelog">Change Log</a> page on the doc site.
+<li>Go to the <a href="https://github.com/square/leakcanary/releases/new">Draft a new release</a> page, enter the release name (v2.5) as tag and title, and have the description point to the changelog. You can find the direct anchor URL from the <a href="https://square.github.io/leakcanary/changelog">Change Log</a> page on the doc site.
 <div class="highlight"><pre><span></span><code>See [Change Log](https://square.github.io/leakcanary/changelog#version-20-alpha-2-2019-05-21)
 </code></pre></div></li>
 <li>Add the CLIP zip from <code>shark-cli/build/distributions/</code> to the release.</li>
 <li>Make a pull request to <a href="https://brew.sh/">brew</a>. Just execute 
-<code>(bash)
-brew bump-formula-pr --url https://github.com/square/leakcanary/releases/download/v2.4/shark-cli-2.4.zip leakcanary-shark</code>
+<div class="highlight"><pre><span></span><code>brew bump-formula-pr --url https://github.com/square/leakcanary/releases/download/v2.5/shark-cli-2.5.zip leakcanary-shark
+</code></pre></div>
 (The url parameter should point at zip from this new release). <br />
 In case of problems, read <a href="https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request">brew docs</a>.  </li>
 <li>Tell your friends, update all of your apps, and tweet the new release. As a nice extra touch, mention external contributions.</li>

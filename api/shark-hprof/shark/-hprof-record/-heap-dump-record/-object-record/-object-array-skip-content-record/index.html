@@ -77,7 +77,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../../changelog/">LeakCanary <strong>2.3</strong></a> 🐤 Want to help?  <a href="../../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../../changelog/">LeakCanary <strong>2.4</strong></a> 🐤 Want to help?  <a href="../../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -851,6 +851,8 @@
 <p><code>class ObjectArraySkipContentRecord :</code><a href="../"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></p>
 <p>This isn&rsquo;t a real record type as found in the heap dump. It&rsquo;s an alternative to
 <a href="../-object-array-dump-record/">ObjectArrayDumpRecord</a> for when you don&rsquo;t need the array content.</p>
+<p>To limit object allocation while parsing, <a href="../../../../-hprof-reader/">HprofReader</a> uses a single instance which is
+reused after each call to <a href="../../../../-on-hprof-record-listener/on-hprof-record/">OnHprofRecordListener.onHprofRecord</a>.</p>
 <h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -877,19 +879,19 @@
 <tbody>
 <tr>
 <td><a href="array-class-id/">arrayClassId</a></td>
-<td><code>val arrayClassId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td><code>var arrayClassId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
 </tr>
 <tr>
 <td><a href="id/">id</a></td>
-<td><code>val id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td><code>var id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
 </tr>
 <tr>
 <td><a href="size/">size</a></td>
-<td><code>val size:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
+<td><code>var size:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
 </tr>
 <tr>
 <td><a href="stack-trace-serial-number/">stackTraceSerialNumber</a></td>
-<td><code>val stackTraceSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
+<td><code>var stackTraceSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
 </tr>
 </tbody>
 </table>
