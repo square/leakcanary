@@ -23,7 +23,7 @@ import java.util.Locale
  *
  * See https://github.com/carrotsearch/hppc .
  */
-class LongObjectScatterMap<T> {
+internal class LongObjectScatterMap<T> {
   /**
    * The array holding keys.
    */

@@ -15,7 +15,6 @@ import shark.HeapAnalyzer
 import shark.KeyedWeakReferenceFinder
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step
-import shark.internal.hppc.LongObjectScatterMap
 import java.io.File
 import java.io.FileOutputStream
 
@@ -30,15 +29,6 @@ class BenchmarkTest {
     benchmarkRule.measureRepeated {
       for (i in 0..3000) {
         cache.put(i + 1500L, "Haha $i")
-      }
-    }
-  }
-
-  @Test fun scatterTest() {
-    val cache = LongObjectScatterMap<String>()
-    benchmarkRule.measureRepeated {
-      for (i in 0..3000) {
-        cache[i + 1500L] = "Haha $i"
       }
     }
   }
