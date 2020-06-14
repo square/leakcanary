@@ -32,15 +32,22 @@ object Benchmark {
   fun <T> benchmarkCode(times: Int = 10, block:() -> T): T {
     // Warm-up run, no benchmarking
     val result = block()
-    var total = 0L
+    val measurements = mutableListOf<Long>()
     repeat(times) {
       val start = SystemClock.uptimeMillis()
       block()
       val end = SystemClock.uptimeMillis()
       SharkLog.d { "BenchmarkCode, iteration ${it + 1}/$times, duration ${end-start}" }
-      total += (end-start)
+      measurements.add(end - start)
     }
-    SharkLog.d { "BenchmarkCode complete. Iterations: $times, average duration ${total/times} ms" }
+    measurements.sort()
+    val median: Double = if (times % 2 == 0) {
+      (measurements[times / 2] + measurements[times / 2 - 1]).toDouble() / 2
+    } else {
+      measurements[times / 2].toDouble()
+    }
+    SharkLog.d { "BenchmarkCode complete, $times iterations. Durations (ms): median $median, " +
+        "min ${measurements.first()}, max ${measurements.last()}" }
     return result
   }
 }
