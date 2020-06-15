@@ -8,11 +8,11 @@ dependencies {
   implementation deps.androidx.test.runner
   implementation deps.kotlin.stdlib
 
-  androidTestImplementation deps.androidx.test.core
-  androidTestImplementation deps.androidx.test.espresso
-  androidTestImplementation deps.androidx.test.rules
-  androidTestImplementation deps.androidx.fragment
   androidTestImplementation deps.androidx.benchmark
+  androidTestImplementation deps.androidx.fragment
+  androidTestImplementation deps.androidx.test.ext
+  androidTestImplementation deps.androidx.test.rules
+  androidTestImplementation deps.androidx.test.runner
 }
 
 android {
