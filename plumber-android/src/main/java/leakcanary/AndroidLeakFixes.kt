@@ -49,6 +49,7 @@ enum class AndroidLeakFixes {
           val getHelperMethod = clazz.getDeclaredMethod("getHelper", Context::class.java)
           getHelperMethod.invoke(null, application)
         } catch (ignored: Exception) {
+          SharkLog.d(ignored) { "Could not fix the $name leak" }
         }
       }
     }
@@ -80,9 +81,11 @@ enum class AndroidLeakFixes {
           sCached = sCachedField.get(null)
           // Can't happen in current Android source, but hidden APIs can change.
           if (sCached == null || !sCached.javaClass.isArray) {
+            SharkLog.d { "Could not fix the $name leak, sCached=$sCached" }
             return@execute
           }
         } catch (ignored: Exception) {
+          SharkLog.d(ignored) { "Could not fix the $name leak" }
           return@execute
         }
 
@@ -124,6 +127,7 @@ enum class AndroidLeakFixes {
         val getMethod = UserManager::class.java.getDeclaredMethod("get", Context::class.java)
         getMethod.invoke(null, application)
       } catch (ignored: Exception) {
+        SharkLog.d(ignored) { "Could not fix the $name leak" }
       }
     }
   },
@@ -224,7 +228,7 @@ enum class AndroidLeakFixes {
       try {
         application.getSystemService(Context.CONNECTIVITY_SERVICE)
       } catch (ignored: Exception) {
-        // Silent
+        SharkLog.d(ignored) { "Could not fix the $name leak" }
       }
     }
   },
@@ -245,7 +249,7 @@ enum class AndroidLeakFixes {
         instanceMethod.isAccessible = true
         instanceMethod.invoke(null, application)
       } catch (ignored: Exception) {
-        // Silent
+        SharkLog.d(ignored) { "Could not fix the $name leak" }
       }
     }
   },
@@ -268,6 +272,7 @@ enum class AndroidLeakFixes {
           helperField = helperClass.getDeclaredField("sHelper")
           helperField.isAccessible = true
         } catch (ignored: Exception) {
+          SharkLog.d(ignored) { "Could not fix the $name leak" }
           return@execute
         }
 
@@ -275,7 +280,7 @@ enum class AndroidLeakFixes {
           try {
             helperField.set(null, null)
           } catch (ignored: Exception) {
-            // Silent
+            SharkLog.d(ignored) { "Could not fix the $name leak" }
           }
         }
       }
@@ -299,6 +304,7 @@ enum class AndroidLeakFixes {
           field = TextView::class.java.getDeclaredField("mLastHoveredView")
           field.isAccessible = true
         } catch (ignored: Exception) {
+          SharkLog.d(ignored) { "Could not fix the $name leak" }
           return@execute
         }
 
@@ -306,7 +312,7 @@ enum class AndroidLeakFixes {
           try {
             field.set(null, null)
           } catch (ignored: Exception) {
-            // Silent
+            SharkLog.d(ignored) { "Could not fix the $name leak" }
           }
         }
       }
@@ -335,9 +341,11 @@ enum class AndroidLeakFixes {
               .getDeclaredField("mContext")
           contextField.isAccessible = true
           if ((contextField.modifiers or Modifier.STATIC) != contextField.modifiers) {
+            SharkLog.d { "Could not fix the $name leak, contextField=$contextField" }
             return@execute
           }
         } catch (ignored: Exception) {
+          SharkLog.d(ignored) { "Could not fix the $name leak" }
           return@execute
         }
 
@@ -347,7 +355,7 @@ enum class AndroidLeakFixes {
               contextField.set(null, null)
             }
           } catch (ignored: Exception) {
-            // Silent
+            SharkLog.d(ignored) { "Could not fix the $name leak" }
           }
         }
       }
