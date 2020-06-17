@@ -378,6 +378,8 @@ enum class AndroidLeakFixes {
 
   protected abstract fun apply(application: Application)
 
+  private var applied = false
+
   companion object {
 
     private const val SAMSUNG = "samsung"
@@ -388,7 +390,14 @@ enum class AndroidLeakFixes {
       fixes: Set<AndroidLeakFixes> = EnumSet.allOf(AndroidLeakFixes::class.java)
     ) {
       checkMainThread()
-      fixes.forEach { it.apply(application) }
+      fixes.forEach { fix ->
+        if (!fix.applied) {
+          fix.apply(application)
+          fix.applied = true
+        } else {
+          SharkLog.d { "${fix.name} leak fix already applied." }
+        }
+      }
     }
 
     private val backgroundExecutor =
