@@ -1141,6 +1141,23 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  RAZER_TEXT_KEY_LISTENER__MCONTEXT {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+          "android.text.method.TextKeyListener", "mContext",
+          description =
+          """
+            In AOSP, TextKeyListener instances are held in a TextKeyListener.sInstances static
+            array. The Razer implementation added a mContext field, creating activity leaks.
+          """.trimIndent()
+      ) {
+        manufacturer == RAZER && sdkInt == 28
+      }
+    }
+  },
+
   // ######## Ignored references (not leaks) ########
 
   REFERENCES {
@@ -1235,6 +1252,7 @@ enum class AndroidReferenceMatchers {
     const val ONE_PLUS = "OnePlus"
     const val HUAWEI = "HUAWEI"
     const val VIVO = "vivo"
+    const val RAZER = "Razer"
     const val SHARP = "SHARP"
 
     /**
