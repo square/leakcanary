@@ -1259,6 +1259,7 @@ enum class AndroidReferenceMatchers {
      * Returns a list of [ReferenceMatcher] that only contains [IgnoredReferenceMatcher] and no
      * [LibraryLeakReferenceMatcher].
      */
+    @JvmStatic
     val ignoredReferencesOnly: List<ReferenceMatcher>
       get() = buildKnownReferences(
           EnumSet.of(
@@ -1273,6 +1274,7 @@ enum class AndroidReferenceMatchers {
     /**
      * @see [AndroidReferenceMatchers]
      */
+    @JvmStatic
     val appDefaults: List<ReferenceMatcher>
       get() = buildKnownReferences(EnumSet.allOf(AndroidReferenceMatchers::class.java))
 
@@ -1280,6 +1282,7 @@ enum class AndroidReferenceMatchers {
      * Builds a list of [ReferenceMatcher] from the [referenceMatchers] set of
      * [AndroidReferenceMatchers].
      */
+    @JvmStatic
     fun buildKnownReferences(referenceMatchers: Set<AndroidReferenceMatchers>): List<ReferenceMatcher> {
       val resultSet = mutableListOf<ReferenceMatcher>()
       referenceMatchers.forEach {
@@ -1296,6 +1299,7 @@ enum class AndroidReferenceMatchers {
      * Creates a [LibraryLeakReferenceMatcher] that matches a [StaticFieldPattern].
      * [description] should convey what we know about this library leak.
      */
+    @JvmStatic
     fun staticFieldLeak(
       className: String,
       fieldName: String,
@@ -1309,6 +1313,7 @@ enum class AndroidReferenceMatchers {
      * Creates a [LibraryLeakReferenceMatcher] that matches a [InstanceFieldPattern].
      * [description] should convey what we know about this library leak.
      */
+    @JvmStatic
     fun instanceFieldLeak(
       className: String,
       fieldName: String,
@@ -1318,6 +1323,7 @@ enum class AndroidReferenceMatchers {
       return libraryLeak(InstanceFieldPattern(className, fieldName), description, patternApplies)
     }
 
+    @JvmStatic
     fun nativeGlobalVariableLeak(
       className: String,
       description: String = "",
@@ -1344,6 +1350,7 @@ enum class AndroidReferenceMatchers {
     /**
      * Creates a [IgnoredReferenceMatcher] that matches a [InstanceFieldPattern].
      */
+    @JvmStatic
     fun ignoredInstanceField(
       className: String,
       fieldName: String
@@ -1354,6 +1361,7 @@ enum class AndroidReferenceMatchers {
     /**
      * Creates a [IgnoredReferenceMatcher] that matches a [JavaLocalPattern].
      */
+    @JvmStatic
     fun ignoredJavaLocal(
       threadName: String
     ): IgnoredReferenceMatcher {
