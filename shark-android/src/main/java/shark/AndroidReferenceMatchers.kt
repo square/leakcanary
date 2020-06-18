@@ -831,7 +831,7 @@ enum class AndroidReferenceMatchers {
       references += instanceFieldLeak(
           "android.app.SemAppIconSolution", "mContext"
       ) {
-        manufacturer == SAMSUNG && sdkInt == 28
+        manufacturer == SAMSUNG && sdkInt in 28..29
       }
     }
   },
