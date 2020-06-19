@@ -165,15 +165,19 @@ enum class AndroidLeakFixes {
                   // When the Handler thread becomes idle, we post a message to force it to move.
                   // Source: https://developer.squareup.com/blog/a-small-leak-will-sink-a-great-ship/
                   try {
-                    flushHandler.postDelayed({
+                    val posted = flushHandler.postDelayed({
                       // Right after this postDelayed executes, the idle handler will likely be called
                       // again (if the queue is otherwise empty), so we'll need to schedule a flush
                       // again.
                       scheduleFlush = true
                     }, 1000)
+                    if (!posted) {
+                      SharkLog.d { "Failed to post to ${handlerThread.name}" }
+                    }
                   } catch (ignored: RuntimeException) {
-                    // If the thread is quitting, posting to it will throw. There is no safe and atomic way
+                    // If the thread is quitting, posting to it may throw. There is no safe and atomic way
                     // to check if a thread is quitting first then post it it.
+                    SharkLog.d(ignored) { "Failed to post to ${handlerThread.name}" }
                   }
                 }
               }
