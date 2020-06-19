@@ -1120,7 +1120,7 @@ enum class AndroidReferenceMatchers {
             field which references a decor context which references a destroyed activity.
           """.trimIndent()
       ) {
-        manufacturer == SHARP && sdkInt == 28
+        manufacturer == SHARP && sdkInt == 29
       }
     }
   },
