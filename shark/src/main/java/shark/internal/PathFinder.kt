@@ -40,6 +40,7 @@ import shark.ReferencePattern
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
+import shark.SharkLog
 import shark.ValueHolder
 import shark.internal.ReferencePathNode.ChildNode.LibraryLeakChildNode
 import shark.internal.ReferencePathNode.ChildNode.NormalNode
@@ -85,6 +86,7 @@ internal class PathFinder(
      * then [LibraryLeakNode].
      */
     val toVisitLastQueue: Deque<ReferencePathNode> = ArrayDeque()
+
     /**
      * Enables fast checking of whether a node is already in the queue.
      */
@@ -116,39 +118,44 @@ internal class PathFinder(
     val threadNames = mutableMapOf<String, ReferenceMatcher>()
     val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
 
-    referenceMatchers.filter {
+    val appliedRefMatchers = referenceMatchers.filter {
       (it is IgnoredReferenceMatcher || (it is LibraryLeakReferenceMatcher && it.patternApplies(
           graph
       )))
     }
-        .forEach { referenceMatcher ->
-          when (val pattern = referenceMatcher.pattern) {
-            is ReferencePattern.JavaLocalPattern -> {
-              threadNames[pattern.threadName] = referenceMatcher
-            }
-            is StaticFieldPattern -> {
-              val mapOrNull = staticFieldNameByClassName[pattern.className]
-              val map = if (mapOrNull != null) mapOrNull else {
-                val newMap = mutableMapOf<String, ReferenceMatcher>()
-                staticFieldNameByClassName[pattern.className] = newMap
-                newMap
-              }
-              map[pattern.fieldName] = referenceMatcher
-            }
-            is InstanceFieldPattern -> {
-              val mapOrNull = fieldNameByClassName[pattern.className]
-              val map = if (mapOrNull != null) mapOrNull else {
-                val newMap = mutableMapOf<String, ReferenceMatcher>()
-                fieldNameByClassName[pattern.className] = newMap
-                newMap
-              }
-              map[pattern.fieldName] = referenceMatcher
-            }
-            is NativeGlobalVariablePattern -> {
-              jniGlobals[pattern.className] = referenceMatcher
-            }
-          }
+
+    SharkLog.d {
+      "Accounting for known reference patterns:\n${appliedRefMatchers.joinToString("\n")}"
+    }
+
+    appliedRefMatchers.forEach { referenceMatcher ->
+      when (val pattern = referenceMatcher.pattern) {
+        is ReferencePattern.JavaLocalPattern -> {
+          threadNames[pattern.threadName] = referenceMatcher
         }
+        is StaticFieldPattern -> {
+          val mapOrNull = staticFieldNameByClassName[pattern.className]
+          val map = if (mapOrNull != null) mapOrNull else {
+            val newMap = mutableMapOf<String, ReferenceMatcher>()
+            staticFieldNameByClassName[pattern.className] = newMap
+            newMap
+          }
+          map[pattern.fieldName] = referenceMatcher
+        }
+        is InstanceFieldPattern -> {
+          val mapOrNull = fieldNameByClassName[pattern.className]
+          val map = if (mapOrNull != null) mapOrNull else {
+            val newMap = mutableMapOf<String, ReferenceMatcher>()
+            fieldNameByClassName[pattern.className] = newMap
+            newMap
+          }
+          map[pattern.fieldName] = referenceMatcher
+        }
+        is NativeGlobalVariablePattern -> {
+          jniGlobals[pattern.className] = referenceMatcher
+        }
+      }
+    }
     this.fieldNameByClassName = fieldNameByClassName
     this.staticFieldNameByClassName = staticFieldNameByClassName
     this.threadNameReferenceMatchers = threadNames
