@@ -103,6 +103,9 @@ class HprofHeapGraph internal constructor(
   // Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
   private val objectCache = LruCache<Long, ObjectRecord>(3000)
 
+  // java.lang.Object is the most accessed class in Heap, so we want to memoize a reference to it
+  private val javaLangObjectClass: HeapClass? = findClassByName("java.lang.Object")
+
   override fun findObjectById(objectId: Long): HeapObject {
     return findObjectByIdOrNull(objectId) ?: throw IllegalArgumentException(
         "Object id $objectId not found in heap dump."
@@ -110,6 +113,8 @@ class HprofHeapGraph internal constructor(
   }
 
   override fun findObjectByIdOrNull(objectId: Long): HeapObject? {
+    if (objectId == javaLangObjectClass?.objectId) return javaLangObjectClass
+
     val indexedObject = index.indexedObjectOrNull(objectId) ?: return null
     return wrapIndexedObject(indexedObject, objectId)
   }
