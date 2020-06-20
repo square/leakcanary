@@ -69,7 +69,7 @@ object LeakCanary {
     val retainedVisibleThreshold: Int = 5,
 
     /**
-     * Known patterns of references in the heap, lister here either to ignore them
+     * Known patterns of references in the heap, added here either to ignore them
      * ([IgnoredReferenceMatcher]) or to mark them as library leaks ([LibraryLeakReferenceMatcher]).
      *
      * When adding your own custom [LibraryLeakReferenceMatcher] instances, you'll most
