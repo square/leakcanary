@@ -32,11 +32,11 @@ internal class SortedBytesMap(
     return keyIndex >= 0
   }
 
-  fun entrySequence(): Sequence<Pair<Long, ByteSubArray>> {
+  fun entrySequence(): Sequence<LongPair<ByteSubArray>> {
     return (0 until size).asSequence()
         .map { keyIndex ->
           val valueIndex = keyIndex * bytesPerEntry + bytesPerKey
-          keyAt(keyIndex) to ByteSubArray(sortedEntries, valueIndex, bytesPerValue, longIdentifiers)
+          keyAt(keyIndex) longTo ByteSubArray(sortedEntries, valueIndex, bytesPerValue, longIdentifiers)
         }
   }
 

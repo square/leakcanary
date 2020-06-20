@@ -113,6 +113,60 @@ class LongScatterSet {
     }
   }
 
+  fun remove(key: Long): Boolean {
+    return if (key == 0L) {
+      val hadEmptyKey = hasEmptyKey
+      hasEmptyKey = false
+      hadEmptyKey
+    } else {
+      val keys = this.keys
+      val mask = this.mask
+      var slot = hashKey(key) and mask
+      var existing: Long = keys[slot]
+      while (existing != 0L) {
+        if (existing == key) {
+          shiftConflictingKeys(slot)
+          return true
+        }
+        slot = slot + 1 and mask
+        existing = keys[slot]
+      }
+      false
+    }
+  }
+
+  /**
+   * Shift all the slot-conflicting keys allocated to (and including) `slot`.
+   */
+  private fun shiftConflictingKeys(inputGapSlot: Int) {
+    var gapSlot = inputGapSlot
+    val keys = keys
+    val mask = mask
+    // Perform shifts of conflicting keys to fill in the gap.
+    var distance = 0
+    while (true) {
+      val slot = (gapSlot + (++distance)) and mask
+      val existing = keys[slot]
+      if (existing == 0L) {
+        break
+      }
+      val idealSlot = hashKey(existing)
+      val shift = (slot - idealSlot) and mask
+      if (shift >= distance) {
+        // Entry at this position was originally at or before the gap slot.
+        // Move the conflict-shifted entry to the gap's position and repeat the procedure
+        // for any entries to the right of the current position, treating it
+        // as the new gap.
+        keys[gapSlot] = existing
+        gapSlot = slot
+        distance = 0
+      }
+    }
+    // Mark the last found gap slot without a conflict as empty.
+    keys[gapSlot] = 0L
+    assigned--
+  }
+
   fun release() {
     assigned = 0
     hasEmptyKey = false
@@ -191,5 +245,15 @@ class LongScatterSet {
 
     // Rehash old keys, including the pending key.
     rehash(prevKeys)
+  }
+
+  companion object {
+
+    fun Set<Long>.toLongScatterSet(): LongScatterSet {
+      val longScatterSet = LongScatterSet()
+      longScatterSet.ensureCapacity(size)
+      forEach { longScatterSet.add(it) }
+      return longScatterSet
+    }
   }
 }
