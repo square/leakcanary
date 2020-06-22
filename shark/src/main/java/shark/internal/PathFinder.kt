@@ -446,9 +446,7 @@ internal class PathFinder(
       }
     }
 
-    val fieldNamesAndValues = instance.readFields()
-        .filter { it.value.isNonNullReference }
-        .toMutableList()
+    val fieldNamesAndValues = instance.readAllFieldsOfReferenceType()
 
     fieldNamesAndValues.sortBy { it.name }
 

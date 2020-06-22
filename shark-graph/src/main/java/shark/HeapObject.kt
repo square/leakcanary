@@ -5,23 +5,10 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import shark.PrimitiveType.BOOLEAN
-import shark.PrimitiveType.BYTE
-import shark.PrimitiveType.CHAR
-import shark.PrimitiveType.DOUBLE
-import shark.PrimitiveType.FLOAT
-import shark.PrimitiveType.INT
-import shark.PrimitiveType.LONG
-import shark.PrimitiveType.SHORT
 import shark.ValueHolder.ReferenceHolder
+import shark.internal.FieldValuesReader
 import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
@@ -406,6 +393,31 @@ sealed class HeapObject {
                 }
           }
           .flatten()
+    }
+
+    fun readAllFieldsOfReferenceType(): MutableList<HeapField> {
+      var fieldReader: FieldValuesReader? = null
+      val result = mutableListOf<HeapField>()
+      for (heapClass in instanceClass.classHierarchy.toList()) {
+        for (fieldRecord in heapClass.readRecord().fields) {
+          // Initialize field reader if it's not yet initialized. Replaces `lazy` without synchronization
+          if (fieldReader == null) {
+            fieldReader = hprofGraph.createFieldValuesReader(readRecord())
+          }
+
+          // Skip all fields that are not references
+          if (fieldRecord.type != PrimitiveType.REFERENCE_HPROF_TYPE) {
+            fieldReader.skipValue(fieldRecord)
+          } else {
+            val fieldValue = ReferenceHolder(fieldReader.readId())
+            if (!fieldValue.isNull) {
+              val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord)
+              result.add(HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue)))
+            }
+          }
+        }
+      }
+      return result
     }
 
     /**
