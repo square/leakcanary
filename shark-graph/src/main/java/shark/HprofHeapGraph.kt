@@ -171,6 +171,7 @@ class HprofHeapGraph internal constructor(
       return cachedRecord.elementIds.size * identifierByteSize
     }
     hprof.moveReaderTo(indexedObject.position)
+    hprof.loadRecord(indexedObject.recordSize)
     val thinRecord = hprof.reader.readObjectArraySkipContentRecord()
     return thinRecord.size * identifierByteSize
   }
@@ -202,6 +203,7 @@ class HprofHeapGraph internal constructor(
       }
     }
     hprof.moveReaderTo(indexedObject.position)
+    hprof.loadRecord(indexedObject.recordSize)
     val thinRecord = hprof.reader.readPrimitiveArraySkipContentRecord()
     return  thinRecord.size * thinRecord.type.byteSize
   }
@@ -235,6 +237,7 @@ class HprofHeapGraph internal constructor(
       return objectRecordOrNull as T
     }
     hprof.moveReaderTo(indexedObject.position)
+    hprof.loadRecord(indexedObject.recordSize)
     return readBlock().apply { objectCache.put(objectId, this) }
   }
 
@@ -290,6 +293,7 @@ class HprofHeapGraph internal constructor(
       )
     ): HeapGraph {
       val index = HprofInMemoryIndex.createReadingHprof(hprof, proguardMapping, indexedGcRootTypes)
+      hprof.readFullRecords = true
       return HprofHeapGraph(hprof, index)
     }
   }

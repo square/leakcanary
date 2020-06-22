@@ -76,7 +76,7 @@ import kotlin.reflect.KClass
  */
 @Suppress("LargeClass")
 class HprofReader constructor(
-  private var source: BufferedSource,
+  internal var source: BufferedSource,
   /**
    * Size of Hprof identifiers. Identifiers are used to represent UTF8 strings, objects,
    * stack traces, etc. They can have the same size as host pointers or sizeof(void*), but are not
@@ -546,15 +546,18 @@ class HprofReader constructor(
    * Reads an instance record after a instance dump tag, skipping its content.
    */
   fun readInstanceSkipContentRecord(): InstanceSkipContentRecord {
+    val startPosition = position
     val id = readId()
     val stackTraceSerialNumber = readInt()
     val classId = readId()
     val remainingBytesInInstance = readInt()
     skip(remainingBytesInInstance)
+    val recordSize = position - startPosition
     return reusedInstanceSkipContentRecord.apply {
       this.id = id
       this.stackTraceSerialNumber = stackTraceSerialNumber
       this.classId = classId
+      this.recordSize = recordSize
     }
   }
 
@@ -629,6 +632,7 @@ class HprofReader constructor(
    * Reads a class record after a class dump tag, skipping its content.
    */
   fun readClassSkipContentRecord(): ClassSkipContentRecord {
+    val startPosition = position
     val id = readId()
     // stack trace serial number
     val stackTraceSerialNumber = readInt()
@@ -672,6 +676,8 @@ class HprofReader constructor(
     val fieldCount = readUnsignedShort()
     // Each field takes id + byte.
     skip((identifierByteSize + 1) * fieldCount)
+
+    val recordSize = position - startPosition
     return reusedClassSkipContentRecord.apply {
       this.id = id
       this.stackTraceSerialNumber = stackTraceSerialNumber
@@ -682,6 +688,7 @@ class HprofReader constructor(
       this.instanceSize = instanceSize
       this.staticFieldCount = staticFieldCount
       this.fieldCount = fieldCount
+      this.recordSize = recordSize
     }
   }
 
@@ -726,25 +733,27 @@ class HprofReader constructor(
    * Reads a primitive array record after a primitive array dump tag, skipping its content.
    */
   fun readPrimitiveArraySkipContentRecord(): PrimitiveArraySkipContentRecord {
+    val startPosition = position
     val id = readId()
     val stackTraceSerialNumber = readInt()
     // length
     val arrayLength = readInt()
     val type = PrimitiveType.primitiveTypeByHprofType.getValue(readUnsignedByte())
     skip(arrayLength * type.byteSize)
+    val recordSize = position - startPosition
     return reusedPrimitiveArraySkipContentRecord.apply {
       this.id = id
       this.stackTraceSerialNumber = stackTraceSerialNumber
       this.size = arrayLength
       this.type = type
+      this.recordSize = recordSize
     }
   }
 
   /**
    * Reads a full object array record after a object array dump tag.
    */
-  fun readObjectArrayDumpRecord(
-  ): ObjectArrayDumpRecord {
+  fun readObjectArrayDumpRecord(): ObjectArrayDumpRecord {
     val id = readId()
     // stack trace serial number
     val stackTraceSerialNumber = readInt()
@@ -762,19 +771,21 @@ class HprofReader constructor(
   /**
    * Reads an object array record after a object array dump tag, skipping its content.
    */
-  fun readObjectArraySkipContentRecord(
-  ): ObjectArraySkipContentRecord {
+  fun readObjectArraySkipContentRecord(): ObjectArraySkipContentRecord {
+    val startPosition = position
     val id = readId()
     // stack trace serial number
     val stackTraceSerialNumber = readInt()
     val arrayLength = readInt()
     val arrayClassId = readId()
     skip(identifierByteSize * arrayLength)
+    val recordSize = position - startPosition
     return reusedObjectArraySkipContentRecord.apply {
       this.id = id
       this.stackTraceSerialNumber = stackTraceSerialNumber
       this.arrayClassId = arrayClassId
       this.size = arrayLength
+      this.recordSize = recordSize
     }
   }
 

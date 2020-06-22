@@ -39,7 +39,7 @@ buildscript {
       mockito: 'org.mockito:mockito-core:2.7.5',
       mockito_kotlin: 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0',
       okio: 'com.squareup.okio:okio:2.2.2',
-      okio_1x: 'com.squareup.okio:okio:1.0.0',
+      okio_1x: 'com.squareup.okio:okio:1.14.0',
       robolectric: 'org.robolectric:robolectric:4.0-alpha-3',
   ]
   repositories {

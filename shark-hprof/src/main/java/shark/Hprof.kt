@@ -1,5 +1,6 @@
 package shark
 
+import okio.Buffer
 import okio.BufferedSource
 import okio.Okio
 import shark.Hprof.Companion.open
@@ -10,6 +11,12 @@ import java.nio.channels.FileChannel
 /**
  * An opened Hprof file which can be read via [reader]. Open a new hprof with [open], and don't
  * forget to call [close] once done.
+ *
+ * The default behavior for [reader] is to start at the beginning of the hprof file and move
+ * forward as one reads through it. If you need to start reading from further back in the file,
+ * you can use [moveReaderTo]. However, if you need to constantly read at different positions
+ * with random access, it's not efficient. If you know the size of the records you want to read,
+ * set [readFullRecords] to true, then call [moveReaderTo] followed by [loadRecord].
  */
 class Hprof private constructor(
   private val channel: FileChannel,
@@ -25,23 +32,78 @@ class Hprof private constructor(
   val fileLength: Long
 ) : Closeable {
 
+  private val randomAccessBuffer = Buffer()
+
+  /**
+   * When true, enables a more efficient way of reading records with random access.
+   *
+   * Default is false.
+   */
+  var readFullRecords: Boolean = false
+    set(setToRandomAccess) {
+      if (setToRandomAccess == field) {
+        return
+      }
+      require(randomAccessBuffer.size() == 0L)
+      if (setToRandomAccess) {
+        reader.source = randomAccessBuffer
+        reader.position = 0
+      } else {
+        reader.source = source
+        // This ensures moveReaderTo actually moves.
+        reader.position = reader.startPosition + 1
+        moveReaderTo(reader.startPosition)
+      }
+      field = setToRandomAccess
+    }
+
   override fun close() {
     source.close()
   }
 
   /**
-   * Moves [reader] to a new position in the hprof file. This is transparent to the reader, and
-   * will not reset [HprofReader.position].
+   * Moves [reader] to a new position in the hprof file.
+   * When [readFullRecords] is true, you MUST call [loadRecord] right after [moveReaderTo] or the
+   * next read will throw.
    */
   fun moveReaderTo(newPosition: Long) {
-    val currentPosition = reader.position
+    if (readFullRecords) {
+      require(randomAccessBuffer.size() == 0L) {
+        "?"
+      }
+    } else {
+      val currentPosition = reader.position
 
-    if (currentPosition == newPosition) {
+      if (currentPosition == newPosition) {
+        return
+      }
+      source.buffer()
+          .clear()
+      channel.position(newPosition)
+    }
+    reader.position = newPosition
+  }
+
+  /**
+   * If [readFullRecords] is true, loads the backing reader buffer with exactly
+   * [byteCount] bytes, all of which must then be read.
+   * If [readFullRecords] is false, this is a no-op.
+   */
+  fun loadRecord(byteCount: Long) {
+    if (!readFullRecords) {
       return
     }
-    source.buffer().clear()
-    channel.position(newPosition)
-    reader.position = newPosition
+    require(byteCount > 0L) {
+      ""
+    }
+    var mutablePos = reader.position
+    var mutableByteCount = byteCount
+
+    while (mutableByteCount > 0L) {
+      val bytesRead = channel.transferTo(mutablePos, mutableByteCount, randomAccessBuffer)
+      mutablePos += bytesRead
+      mutableByteCount -= bytesRead
+    }
   }
 
   /**

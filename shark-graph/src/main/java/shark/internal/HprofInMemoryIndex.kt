@@ -20,6 +20,7 @@ import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongObjectScatterMap
+import kotlin.math.max
 import kotlin.reflect.KClass
 
 /**
@@ -35,7 +36,11 @@ internal class HprofInMemoryIndex private constructor(
   private val primitiveArrayIndex: SortedBytesMap,
   private val gcRoots: List<GcRoot>,
   private val proguardMapping: ProguardMapping?,
-  val primitiveWrapperTypes: Set<Long>
+  val primitiveWrapperTypes: Set<Long>,
+  private val bytesForClassSize: Int,
+  private val bytesForInstanceSize: Int,
+  private val bytesForObjectArraySize: Int,
+  private val bytesForPrimitiveArraySize: Int
 ) {
 
   fun fieldName(
@@ -77,7 +82,8 @@ internal class HprofInMemoryIndex private constructor(
           id to IndexedClass(
               position = array.readTruncatedLong(positionSize),
               superclassId = array.readId(),
-              instanceSize = array.readInt()
+              instanceSize = array.readInt(),
+              recordSize = array.readTruncatedLong(bytesForClassSize)
           )
         }
   }
@@ -89,7 +95,8 @@ internal class HprofInMemoryIndex private constructor(
           val array = it.second
           val instance = IndexedInstance(
               position = array.readTruncatedLong(positionSize),
-              classId = array.readId()
+              classId = array.readId(),
+              recordSize = array.readTruncatedLong(bytesForInstanceSize)
           )
           id to instance
         }
@@ -102,7 +109,8 @@ internal class HprofInMemoryIndex private constructor(
           val array = it.second
           val objectArray = IndexedObjectArray(
               position = array.readTruncatedLong(positionSize),
-              arrayClassId = array.readId()
+              arrayClassId = array.readId(),
+              recordSize = array.readTruncatedLong(bytesForObjectArraySize)
           )
           id to objectArray
         }
@@ -117,7 +125,8 @@ internal class HprofInMemoryIndex private constructor(
           val primitiveArray = IndexedPrimitiveArray(
               position = array.readTruncatedLong(positionSize),
               primitiveType = PrimitiveType.values()[array.readByte()
-                  .toInt()]
+                  .toInt()],
+              recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
           )
           id to primitiveArray
         }
@@ -141,21 +150,24 @@ internal class HprofInMemoryIndex private constructor(
       return IndexedClass(
           position = array.readTruncatedLong(positionSize),
           superclassId = array.readId(),
-          instanceSize = array.readInt()
+          instanceSize = array.readInt(),
+          recordSize = array.readTruncatedLong(bytesForClassSize)
       )
     }
     array = instanceIndex[objectId]
     if (array != null) {
       return IndexedInstance(
           position = array.readTruncatedLong(positionSize),
-          classId = array.readId()
+          classId = array.readId(),
+          recordSize = array.readTruncatedLong(bytesForInstanceSize)
       )
     }
     array = objectArrayIndex[objectId]
     if (array != null) {
       return IndexedObjectArray(
           position = array.readTruncatedLong(positionSize),
-          arrayClassId = array.readId()
+          arrayClassId = array.readId(),
+          recordSize = array.readTruncatedLong(bytesForObjectArraySize)
       )
     }
     array = primitiveArrayIndex[objectId]
@@ -163,7 +175,8 @@ internal class HprofInMemoryIndex private constructor(
       return IndexedPrimitiveArray(
           position = array.readTruncatedLong(positionSize),
           primitiveType = PrimitiveType.values()[array.readByte()
-              .toInt()]
+              .toInt()],
+          recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
       )
     }
     return null
@@ -197,7 +210,11 @@ internal class HprofInMemoryIndex private constructor(
     instanceCount: Int,
     objectArrayCount: Int,
     primitiveArrayCount: Int,
-    private val indexedGcRootsTypes: Set<Class<out GcRoot>>
+    private val indexedGcRootsTypes: Set<Class<out GcRoot>>,
+    val bytesForClassSize: Int,
+    val bytesForInstanceSize: Int,
+    val bytesForObjectArraySize: Int,
+    val bytesForPrimitiveArraySize: Int
   ) : OnHprofRecordListener {
 
     private val identifierSize = if (longIdentifiers) 8 else 4
@@ -221,22 +238,22 @@ internal class HprofInMemoryIndex private constructor(
     private val classNames = LongLongScatterMap(expectedElements = classCount)
 
     private val classIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + identifierSize + 4,
+        bytesPerValue = positionSize + identifierSize + 4 + bytesForClassSize,
         longIdentifiers = longIdentifiers,
         initialCapacity = classCount
     )
     private val instanceIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + identifierSize,
+        bytesPerValue = positionSize + identifierSize + bytesForInstanceSize,
         longIdentifiers = longIdentifiers,
         initialCapacity = instanceCount
     )
     private val objectArrayIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + identifierSize,
+        bytesPerValue = positionSize + identifierSize + bytesForObjectArraySize,
         longIdentifiers = longIdentifiers,
         initialCapacity = objectArrayCount
     )
     private val primitiveArrayIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + 1,
+        bytesPerValue = positionSize + 1 + bytesForPrimitiveArraySize,
         longIdentifiers = longIdentifiers,
         initialCapacity = primitiveArrayCount
     )
@@ -285,6 +302,7 @@ internal class HprofInMemoryIndex private constructor(
                 writeTruncatedLong(position, positionSize)
                 writeId(record.superclassId)
                 writeInt(record.instanceSize)
+                writeTruncatedLong(record.recordSize, bytesForClassSize)
               }
         }
         is InstanceSkipContentRecord -> {
@@ -292,6 +310,7 @@ internal class HprofInMemoryIndex private constructor(
               .apply {
                 writeTruncatedLong(position, positionSize)
                 writeId(record.classId)
+                writeTruncatedLong(record.recordSize, bytesForInstanceSize)
               }
         }
         is ObjectArraySkipContentRecord -> {
@@ -299,6 +318,7 @@ internal class HprofInMemoryIndex private constructor(
               .apply {
                 writeTruncatedLong(position, positionSize)
                 writeId(record.arrayClassId)
+                writeTruncatedLong(record.recordSize, bytesForObjectArraySize)
               }
         }
         is PrimitiveArraySkipContentRecord -> {
@@ -306,6 +326,7 @@ internal class HprofInMemoryIndex private constructor(
               .apply {
                 writeTruncatedLong(position, positionSize)
                 writeByte(record.type.ordinal.toByte())
+                writeTruncatedLong(record.recordSize, bytesForPrimitiveArraySize)
               }
         }
       }
@@ -320,12 +341,20 @@ internal class HprofInMemoryIndex private constructor(
       val sortedClassIndex = classIndex.moveToSortedMap()
       // Passing references to avoid copying the underlying data structures.
       return HprofInMemoryIndex(
-          positionSize,
-          hprofStringCache, classNames, sortedClassIndex, sortedInstanceIndex,
-          sortedObjectArrayIndex,
-          sortedPrimitiveArrayIndex, gcRoots,
-          proguardMapping,
-          primitiveWrapperTypes
+          positionSize = positionSize,
+          hprofStringCache = hprofStringCache,
+          classNames = classNames,
+          classIndex = sortedClassIndex,
+          instanceIndex = sortedInstanceIndex,
+          objectArrayIndex = sortedObjectArrayIndex,
+          primitiveArrayIndex = sortedPrimitiveArrayIndex,
+          gcRoots = gcRoots,
+          proguardMapping = proguardMapping,
+          primitiveWrapperTypes = primitiveWrapperTypes,
+          bytesForClassSize = bytesForClassSize,
+          bytesForInstanceSize = bytesForInstanceSize,
+          bytesForObjectArraySize = bytesForObjectArraySize,
+          bytesForPrimitiveArraySize = bytesForPrimitiveArraySize
       )
     }
 
@@ -366,30 +395,60 @@ internal class HprofInMemoryIndex private constructor(
       val reader = hprof.reader
 
       // First pass to count and correctly size arrays once and for all.
+      var maxClassSize = 0L
+      var maxInstanceSize = 0L
+      var maxObjectArraySize = 0L
+      var maxPrimitiveArraySize = 0L
       var classCount = 0
       var instanceCount = 0
       var objectArrayCount = 0
       var primitiveArrayCount = 0
       reader.readHprofRecords(setOf(
-          LoadClassRecord::class,
+          ClassSkipContentRecord::class,
           InstanceSkipContentRecord::class,
           ObjectArraySkipContentRecord::class,
           PrimitiveArraySkipContentRecord::class
-      ), OnHprofRecordListener { position, record ->
+      ), OnHprofRecordListener { _, record ->
         when (record) {
-          is LoadClassRecord -> classCount++
-          is InstanceSkipContentRecord -> instanceCount++
-          is ObjectArraySkipContentRecord -> objectArrayCount++
-          is PrimitiveArraySkipContentRecord -> primitiveArrayCount++
+          is ClassSkipContentRecord -> {
+            classCount++
+            maxClassSize = max(maxClassSize, record.recordSize)
+          }
+          is InstanceSkipContentRecord -> {
+            instanceCount++
+            maxInstanceSize = max(maxInstanceSize, record.recordSize)
+          }
+          is ObjectArraySkipContentRecord -> {
+            objectArrayCount++
+            maxObjectArraySize = max(maxObjectArraySize, record.recordSize)
+          }
+          is PrimitiveArraySkipContentRecord -> {
+            primitiveArrayCount++
+            maxPrimitiveArraySize = max(maxPrimitiveArraySize, record.recordSize)
+          }
         }
       })
+
+      val bytesForClassSize = byteSizeForUnsigned(maxClassSize)
+      val bytesForInstanceSize = byteSizeForUnsigned(maxInstanceSize)
+      val bytesForObjectArraySize = byteSizeForUnsigned(maxObjectArraySize)
+      val bytesForPrimitiveArraySize = byteSizeForUnsigned(maxPrimitiveArraySize)
 
       hprof.moveReaderTo(reader.startPosition)
       val indexBuilderListener =
         Builder(
-            reader.identifierByteSize == 8, hprof.fileLength, classCount, instanceCount,
-            objectArrayCount, primitiveArrayCount, indexedGcRootTypes.map { it.java }
-            .toSet()
+            longIdentifiers = reader.identifierByteSize == 8,
+            fileLength = hprof.fileLength,
+            classCount = classCount,
+            instanceCount = instanceCount,
+            objectArrayCount = objectArrayCount,
+            primitiveArrayCount = primitiveArrayCount,
+            indexedGcRootsTypes = indexedGcRootTypes.map { it.java }
+                .toSet(),
+            bytesForClassSize = bytesForClassSize,
+            bytesForInstanceSize = bytesForInstanceSize,
+            bytesForObjectArraySize = bytesForObjectArraySize,
+            bytesForPrimitiveArraySize = bytesForPrimitiveArraySize
         )
 
       reader.readHprofRecords(recordTypes, indexBuilderListener)
