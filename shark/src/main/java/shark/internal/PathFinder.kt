@@ -19,12 +19,15 @@ import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
 import shark.GcRoot.ThreadObject
+import shark.HeapField
 import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
+import shark.HeapValue
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.IgnoredReferenceMatcher
 import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
@@ -34,7 +37,15 @@ import shark.LibraryLeakReferenceMatcher
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
+import shark.PrimitiveType
+import shark.PrimitiveType.BOOLEAN
+import shark.PrimitiveType.BYTE
+import shark.PrimitiveType.CHAR
+import shark.PrimitiveType.DOUBLE
+import shark.PrimitiveType.FLOAT
 import shark.PrimitiveType.INT
+import shark.PrimitiveType.LONG
+import shark.PrimitiveType.SHORT
 import shark.ReferenceMatcher
 import shark.ReferencePattern
 import shark.ReferencePattern.InstanceFieldPattern
@@ -446,7 +457,7 @@ internal class PathFinder(
       }
     }
 
-    val fieldNamesAndValues = instance.readAllFieldsOfReferenceType()
+    val fieldNamesAndValues = instance.readAllNonNullFieldsOfReferenceType()
 
     fieldNamesAndValues.sortBy { it.name }
 
@@ -478,6 +489,50 @@ internal class PathFinder(
       }
     }
   }
+
+  private fun HeapInstance.readAllNonNullFieldsOfReferenceType(): MutableList<HeapField> {
+    var fieldReader: FieldValuesReader? = null
+    val result = mutableListOf<HeapField>()
+    var skipBytesCount = 0
+    for (heapClass in instanceClass.classHierarchy.toList()) {
+      for (fieldRecord in heapClass.readRecord().fields) {
+        if (fieldRecord.type != PrimitiveType.REFERENCE_HPROF_TYPE) {
+          // Skip all fields that are not references. Track how many bytes to skip
+          skipBytesCount += graph.getRecordSize(fieldRecord)
+        } else {
+          // Initialize field reader if it's not yet initialized. Replaces `lazy` without synchronization
+          if (fieldReader == null) {
+            fieldReader = graph.createFieldValuesReader(readRecord())
+          }
+
+          // Skip the accumulated bytes offset
+          fieldReader.skipBytes(skipBytesCount)
+          skipBytesCount = 0
+
+          val fieldValue = ReferenceHolder(fieldReader.readId())
+          if (!fieldValue.isNull) {
+            val fieldName = graph.fieldName(heapClass.objectId, fieldRecord)
+            result.add(HeapField(heapClass, fieldName, HeapValue(graph, fieldValue)))
+          }
+        }
+      }
+    }
+    return result
+  }
+
+  private fun HeapGraph.getRecordSize(field: FieldRecord) =
+    when (field.type) {
+      PrimitiveType.REFERENCE_HPROF_TYPE -> identifierByteSize
+      BOOLEAN.hprofType -> 1
+      CHAR.hprofType -> 2
+      FLOAT.hprofType -> 4
+      DOUBLE.hprofType -> 8
+      BYTE.hprofType -> 1
+      SHORT.hprofType -> 2
+      INT.hprofType -> 4
+      LONG.hprofType -> 8
+      else -> throw IllegalStateException("Unknown type ${field.type}")
+    }
 
   private fun State.visitObjectArray(
     objectArray: HeapObjectArray,

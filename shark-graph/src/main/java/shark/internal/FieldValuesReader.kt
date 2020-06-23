@@ -22,7 +22,7 @@ import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
 
-internal class FieldValuesReader(
+class FieldValuesReader(
   private val record: InstanceDumpRecord,
   private val identifierByteSize: Int
 ) {
@@ -99,54 +99,8 @@ internal class FieldValuesReader(
     return string[0]
   }
 
-  fun skipValue(field: FieldRecord) {
-    when (field.type) {
-      PrimitiveType.REFERENCE_HPROF_TYPE -> skipId()
-      BOOLEAN_TYPE -> skipBoolean()
-      CHAR_TYPE -> skipChar()
-      FLOAT_TYPE -> skipInt()
-      DOUBLE_TYPE -> skipLong()
-      BYTE_TYPE -> skipByte()
-      SHORT_TYPE -> skipShort()
-      INT_TYPE -> skipInt()
-      LONG_TYPE -> skipLong()
-      else -> throw IllegalStateException("Unknown type ${field.type}")
-    }
-  }
-
-  private fun skipId() {
-    // As long as we don't interpret IDs, reading signed values here is fine.
-    when (identifierByteSize) {
-      1 -> skipByte()
-      2 -> skipShort()
-      4 -> skipInt()
-      8 -> skipLong()
-      else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
-    }
-  }
-
-  private fun skipBoolean() {
-    position++
-  }
-
-  private fun skipByte() {
-    position++
-  }
-
-  private fun skipInt() {
-    position += 4
-  }
-
-  private fun skipShort() {
-    position += 2
-  }
-
-  private fun skipLong() {
-    position += 8
-  }
-
-  private fun skipChar() {
-    position += 2
+  fun skipBytes(count: Int) {
+    position += count
   }
 
   companion object {

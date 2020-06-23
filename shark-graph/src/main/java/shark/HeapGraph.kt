@@ -4,6 +4,9 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import shark.internal.FieldValuesReader
 
 /**
  * Enables navigation through the heap graph of objects.
@@ -75,4 +78,17 @@ interface HeapGraph {
    * Returns true if the provided [objectId] exists in the heap dump.
    */
   fun objectExists(objectId: Long): Boolean
+
+  /**
+   * Returns name of the field corresponding to provided [classId] in the [fieldRecord].
+   */
+  fun fieldName(
+    classId: Long,
+    fieldRecord: FieldRecord
+  ): String
+
+  /**
+   * Creates a new [FieldValuesReader] that can read fields from provided [record].
+   */
+  fun createFieldValuesReader(record: InstanceDumpRecord): FieldValuesReader
 }
