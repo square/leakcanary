@@ -21,8 +21,10 @@ import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.hppc.LongLongScatterMap
+import shark.internal.hppc.LongObjectPair
 import shark.internal.hppc.LongObjectScatterMap
 import shark.internal.hppc.LongScatterSet
+import shark.internal.hppc.to
 import kotlin.math.max
 import kotlin.reflect.KClass
 
@@ -88,12 +90,12 @@ internal class HprofInMemoryIndex private constructor(
     }
   }
 
-  fun indexedClassSequence(): Sequence<LongPair<IndexedClass>> {
+  fun indexedClassSequence(): Sequence<LongObjectPair<IndexedClass>> {
     return classIndex.entrySequence()
         .map {
           val id = it.first
           val array = it.second
-          id longTo IndexedClass(
+          id to IndexedClass(
               position = array.readTruncatedLong(positionSize),
               superclassId = array.readId(),
               instanceSize = array.readInt(),
@@ -102,7 +104,7 @@ internal class HprofInMemoryIndex private constructor(
         }
   }
 
-  fun indexedInstanceSequence(): Sequence<LongPair<IndexedInstance>> {
+  fun indexedInstanceSequence(): Sequence<LongObjectPair<IndexedInstance>> {
     return instanceIndex.entrySequence()
         .map {
           val id = it.first
@@ -112,11 +114,11 @@ internal class HprofInMemoryIndex private constructor(
               classId = array.readId(),
               recordSize = array.readTruncatedLong(bytesForInstanceSize)
           )
-          id longTo instance
+          id to instance
         }
   }
 
-  fun indexedObjectArraySequence(): Sequence<LongPair<IndexedObjectArray>> {
+  fun indexedObjectArraySequence(): Sequence<LongObjectPair<IndexedObjectArray>> {
     return objectArrayIndex.entrySequence()
         .map {
           val id = it.first
@@ -126,11 +128,11 @@ internal class HprofInMemoryIndex private constructor(
               arrayClassId = array.readId(),
               recordSize = array.readTruncatedLong(bytesForObjectArraySize)
           )
-          id longTo objectArray
+          id to objectArray
         }
   }
 
-  fun indexedPrimitiveArraySequence(): Sequence<LongPair<IndexedPrimitiveArray>> {
+  fun indexedPrimitiveArraySequence(): Sequence<LongObjectPair<IndexedPrimitiveArray>> {
     return primitiveArrayIndex.entrySequence()
         .map {
           val id = it.first
@@ -142,11 +144,11 @@ internal class HprofInMemoryIndex private constructor(
                   .toInt()],
               recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
           )
-          id longTo primitiveArray
+          id to primitiveArray
         }
   }
 
-  fun indexedObjectSequence(): Sequence<LongPair<IndexedObject>> {
+  fun indexedObjectSequence(): Sequence<LongObjectPair<IndexedObject>> {
     return indexedClassSequence() +
         indexedInstanceSequence() +
         indexedObjectArraySequence() +

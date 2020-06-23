@@ -16,8 +16,6 @@
 
 package shark.internal.hppc
 
-import shark.internal.LongLongPair
-import shark.internal.longTo
 import java.util.Locale
 
 /**
@@ -218,14 +216,14 @@ class LongLongScatterMap constructor(expectedElements: Int = 4) {
         while (slot < max) {
           existing = keys[slot]
           if (existing != 0L) {
-            return@generateSequence existing longTo values[slot]
+            return@generateSequence existing to values[slot]
           }
           slot++
         }
       }
       if (slot == max && hasEmptyKey) {
         slot++
-        return@generateSequence 0L longTo values[max]
+        return@generateSequence 0L to values[max]
       }
       return@generateSequence null
     }

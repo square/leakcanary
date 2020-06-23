@@ -1,10 +1,10 @@
-package shark.internal
+package shark.internal.hppc
 
 /**
  * Replacement to a traditional Pair<Long, Object> that doesn't box long.
  * Class is purposefully not made as a `data class` to decrease memory footprint of the object.
  */
-class LongPair<out B>(
+class LongObjectPair<out B>(
   val first: Long,
   val second: B
 ) {
@@ -13,7 +13,7 @@ class LongPair<out B>(
     if (this === other) return true
     if (javaClass != other?.javaClass) return false
 
-    other as LongPair<*>
+    other as LongObjectPair<*>
 
     if (first != other.first) return false
     if (second != other.second) return false
@@ -28,7 +28,7 @@ class LongPair<out B>(
   }
 
   override fun toString(): String {
-    return "LongPair(first=$first, second=$second)"
+    return "LongObjectPair(first=$first, second=$second)"
   }
 }
 
@@ -60,10 +60,10 @@ class LongLongPair(
   }
 
   override fun toString(): String {
-    return "LongPair(first=$first, second=$second)"
+    return "LongLongPair(first=$first, second=$second)"
   }
 }
 
-infix fun <B> Long.longTo(that: B): LongPair<B> = LongPair(this, that)
+infix fun <B> Long.to(that: B): LongObjectPair<B> = LongObjectPair(this, that)
 
-infix fun Long.longTo(that: Long): LongLongPair = LongLongPair(this, that)
+infix fun Long.to(that: Long): LongLongPair = LongLongPair(this, that)

@@ -51,7 +51,6 @@ import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongScatterSet
-import shark.internal.hppc.LongScatterSet.Companion.toLongScatterSet
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -203,6 +202,13 @@ internal class PathFinder(
     } else {
       0
     }
+  }
+
+  private fun Set<Long>.toLongScatterSet(): LongScatterSet {
+    val longScatterSet = LongScatterSet()
+    longScatterSet.ensureCapacity(size)
+    forEach { longScatterSet.add(it) }
+    return longScatterSet
   }
 
   private fun State.findPathsFromGcRoots(): PathFindingResults {

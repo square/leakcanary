@@ -246,14 +246,4 @@ class LongScatterSet {
     // Rehash old keys, including the pending key.
     rehash(prevKeys)
   }
-
-  companion object {
-
-    fun Set<Long>.toLongScatterSet(): LongScatterSet {
-      val longScatterSet = LongScatterSet()
-      longScatterSet.ensureCapacity(size)
-      forEach { longScatterSet.add(it) }
-      return longScatterSet
-    }
-  }
 }

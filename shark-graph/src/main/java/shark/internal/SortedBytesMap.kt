@@ -1,5 +1,8 @@
 package shark.internal
 
+import shark.internal.hppc.LongObjectPair
+import shark.internal.hppc.to
+
 /**
  * A read only map of `id` => `byte array` sorted by id, where `id` is a long if [longIdentifiers]
  * is true and an int otherwise. Each entry has a value byte array of size [bytesPerValue].
@@ -32,11 +35,11 @@ internal class SortedBytesMap(
     return keyIndex >= 0
   }
 
-  fun entrySequence(): Sequence<LongPair<ByteSubArray>> {
+  fun entrySequence(): Sequence<LongObjectPair<ByteSubArray>> {
     return (0 until size).asSequence()
         .map { keyIndex ->
           val valueIndex = keyIndex * bytesPerEntry + bytesPerKey
-          keyAt(keyIndex) longTo ByteSubArray(sortedEntries, valueIndex, bytesPerValue, longIdentifiers)
+          keyAt(keyIndex) to ByteSubArray(sortedEntries, valueIndex, bytesPerValue, longIdentifiers)
         }
   }
 
