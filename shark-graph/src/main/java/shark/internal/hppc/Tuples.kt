@@ -4,7 +4,7 @@ package shark.internal.hppc
  * Replacement to a traditional Pair<Long, Object> that doesn't box long.
  * Class is purposefully not made as a `data class` to decrease memory footprint of the object.
  */
-class LongObjectPair<out B>(
+internal class LongObjectPair<out B>(
   val first: Long,
   val second: B
 ) {
@@ -36,7 +36,7 @@ class LongObjectPair<out B>(
  * Replacement to a traditional Pair<Long, Long> that doesn't box long.
  * Class is purposefully not made as a `data class` to decrease memory footprint of the object.
  */
-class LongLongPair(
+internal class LongLongPair(
   val first: Long,
   val second: Long
 ) {
@@ -64,6 +64,6 @@ class LongLongPair(
   }
 }
 
-infix fun <B> Long.to(that: B): LongObjectPair<B> = LongObjectPair(this, that)
+internal infix fun <B> Long.to(that: B): LongObjectPair<B> = LongObjectPair(this, that)
 
-infix fun Long.to(that: Long): LongLongPair = LongLongPair(this, that)
+internal infix fun Long.to(that: Long): LongLongPair = LongLongPair(this, that)

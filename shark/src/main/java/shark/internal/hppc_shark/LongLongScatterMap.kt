@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package shark.internal.hppc
+package shark.internal.hppc_shark
 
 import java.util.Locale
 
@@ -266,7 +266,11 @@ internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
     if (expectedElements > resizeAt) {
       val prevKeys = this.keys
       val prevValues = this.values
-      allocateBuffers(HHPC.minBufferSize(expectedElements, loadFactor))
+      allocateBuffers(
+          HHPC.minBufferSize(
+              expectedElements, loadFactor
+          )
+      )
       if (!isEmpty) {
         rehash(prevKeys, prevValues)
       }
@@ -333,7 +337,8 @@ internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
       )
     }
 
-    this.resizeAt = HHPC.expandAtCount(arraySize, loadFactor)
+    this.resizeAt =
+      HHPC.expandAtCount(arraySize, loadFactor)
     this.mask = arraySize - 1
   }
 
@@ -355,7 +360,9 @@ internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
     // Try to allocate new buffers first. If we OOM, we leave in a consistent state.
     val prevKeys = this.keys
     val prevValues = this.values
-    allocateBuffers(HHPC.nextBufferSize(mask + 1, size, loadFactor))
+    allocateBuffers(
+        HHPC.nextBufferSize(mask + 1, size, loadFactor)
+    )
 
     // We have succeeded at allocating new data so insert the pending key/value at
     // the free slot in the old arrays before rehashing.
