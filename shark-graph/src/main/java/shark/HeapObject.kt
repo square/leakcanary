@@ -386,7 +386,7 @@ sealed class HeapObject {
             heapClass.readRecord()
                 .fields.asSequence()
                 .map { fieldRecord ->
-                  val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord)
+                  val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord.nameStringId)
                   val fieldValue = fieldReader.readValue(fieldRecord)
                   HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue))
                 }

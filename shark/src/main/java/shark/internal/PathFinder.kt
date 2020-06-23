@@ -491,6 +491,7 @@ internal class PathFinder(
   }
 
   private fun HeapInstance.readAllNonNullFieldsOfReferenceType(): MutableList<HeapField> {
+    val hprofGraph = graph // DO NOT REMOVE! Getter performs typecast which is expensive!
     var fieldReader: FieldValuesReader? = null
     val result = mutableListOf<HeapField>()
     var skipBytesCount = 0
@@ -498,11 +499,11 @@ internal class PathFinder(
       for (fieldRecord in heapClass.readRecord().fields) {
         if (fieldRecord.type != PrimitiveType.REFERENCE_HPROF_TYPE) {
           // Skip all fields that are not references. Track how many bytes to skip
-          skipBytesCount += graph.getRecordSize(fieldRecord)
+          skipBytesCount += hprofGraph.getRecordSize(fieldRecord)
         } else {
           // Initialize field reader if it's not yet initialized. Replaces `lazy` without synchronization
           if (fieldReader == null) {
-            fieldReader = graph.createFieldValuesReader(readRecord())
+            fieldReader = hprofGraph.createFieldValuesReader(readRecord())
           }
 
           // Skip the accumulated bytes offset
@@ -511,8 +512,8 @@ internal class PathFinder(
 
           val fieldValue = ReferenceHolder(fieldReader.readId())
           if (!fieldValue.isNull) {
-            val fieldName = graph.fieldName(heapClass.objectId, fieldRecord)
-            result.add(HeapField(heapClass, fieldName, HeapValue(graph, fieldValue)))
+            val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord.nameStringId)
+            result.add(HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue)))
           }
         }
       }

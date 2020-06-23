@@ -127,9 +127,9 @@ class HprofHeapGraph internal constructor(
 
   override fun fieldName(
     classId: Long,
-    fieldRecord: FieldRecord
+    nameStringId: Long
   ): String {
-    return index.fieldName(classId, fieldRecord.nameStringId)
+    return index.fieldName(classId, nameStringId)
   }
 
   override fun createFieldValuesReader(record: InstanceDumpRecord) =

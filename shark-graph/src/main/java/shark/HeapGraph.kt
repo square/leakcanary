@@ -80,11 +80,11 @@ interface HeapGraph {
   fun objectExists(objectId: Long): Boolean
 
   /**
-   * Returns name of the field corresponding to provided [classId] in the [fieldRecord].
+   * Returns name of the field corresponding for the provided [classId] and [nameStringId].
    */
   fun fieldName(
     classId: Long,
-    fieldRecord: FieldRecord
+    nameStringId: Long
   ): String
 
   /**
