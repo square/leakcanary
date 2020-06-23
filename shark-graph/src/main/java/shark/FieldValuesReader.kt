@@ -1,8 +1,7 @@
-package shark.internal
+package shark
 
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import shark.PrimitiveType
 import shark.PrimitiveType.BOOLEAN
 import shark.PrimitiveType.BYTE
 import shark.PrimitiveType.CHAR
@@ -11,7 +10,6 @@ import shark.PrimitiveType.FLOAT
 import shark.PrimitiveType.INT
 import shark.PrimitiveType.LONG
 import shark.PrimitiveType.SHORT
-import shark.ValueHolder
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
 import shark.ValueHolder.CharHolder
@@ -21,6 +19,9 @@ import shark.ValueHolder.IntHolder
 import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
+import shark.internal.readInt
+import shark.internal.readLong
+import shark.internal.readShort
 
 class FieldValuesReader(
   private val record: InstanceDumpRecord,

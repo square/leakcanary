@@ -15,6 +15,7 @@
  */
 package shark.internal
 
+import shark.FieldValuesReader
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
