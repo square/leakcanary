@@ -168,7 +168,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.app.Activity" &&
+          heapObject instanceOf "android.content.ContextWrapper" &&
           heapObject.unwrapActivityContext()
               ?.get("android.app.Activity", "mDestroyed")?.value?.asBoolean == true
     }
