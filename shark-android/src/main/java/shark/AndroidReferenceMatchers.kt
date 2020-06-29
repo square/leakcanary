@@ -711,21 +711,6 @@ enum class AndroidReferenceMatchers {
     }
   },
 
-  CONTEXT_IMPL__M_AUTOFILL_CLIENT {
-    override fun add(references: MutableList<ReferenceMatcher>) {
-      references += instanceFieldLeak(
-          "android.app.ContextImpl", "mAutofillClient",
-          description = """
-            Activity.attachBaseContext() sets itself as the AutofillClient on its base context but
-            nothing unsets it when the activity is destroy.
-            https://issuetracker.google.com/issues/159308651
-      """.trimIndent()
-      ) {
-        sdkInt == 29
-      }
-    }
-  },
-
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG
