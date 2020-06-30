@@ -591,6 +591,39 @@ internal class PathFinder(
     }
   }
 
+  /**
+   * Every time we find a new object as we traverse the graph, we call this method.
+   *
+   * This is a twist on the traditional dominator tree / retained size algorithms: dominators here
+   * can only be retained instances, which means we don't need to track that many dominators.
+   *
+   * Here's how it works:
+   *
+   * - If [objectId] has no dominator known yet but has already been added to visit, then we know
+   * we've been here for that object already. We did not add this object to the map of dominated
+   * instances in the previous visit so it can't be dominated any more and we can stop there.
+   *
+   * - The parent of [objectId] has already been visited. If that parent is not a retained
+   * instance and has no known retained instance dominator, it cannot be dominated by a retained
+   * instance and therefore [objectId] cannot be dominated either.
+   *
+   * - The potential dominator of [objectId] is: either its parent if that parent is a retained
+   * object, or its parent's dominator (which therefore is a retained object).
+   *
+   * - If [objectId] has no known dominator, we set that potential dominator as its dominator.
+   *
+   * - If [objectId] has a known dominator, we now must find the common parent dominator between
+   * those two dominators. To find that common dominator, we compute the dominator chain for each
+   * dominator and the first found dominator is set as [objectId]'s dominator. If no common
+   * dominator was found, [objectId] cannot be dominated.
+   *
+   * @param neverEnqueued whether [updateDominator] is called right before [objectId] being added
+   * to the queue. There are a number of objects that are never added to the queue because we know
+   * they can't lead to leaks. When we mark objects as undominated and [neverEnqueued] is true,
+   * we also add these objects to visitedSet so that the next visit to [updateDominator] can be
+   * skipped early. If [neverEnqueued] is false then they'll be added to [State.toVisitSet] when
+   * enqueued.
+   */
   @Suppress("ComplexCondition")
   private fun State.updateDominator(
     parent: Long,
