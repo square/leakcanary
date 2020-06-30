@@ -1,7 +1,6 @@
 package shark
 
 import shark.HprofRecord.HeapDumpEndRecord
-import shark.HprofRecord.HeapDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
@@ -39,14 +38,10 @@ class HprofDeobfuscator {
         ".hprof", "-deobfuscated.hprof"
     ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-deobfuscated" })
   ): File {
-
     val proguardMapping =
       ProguardMappingReader(proguardMappingFile.inputStream()).readProguardMapping()
 
-    val hprofStringCache = mutableMapOf<Long, String>()
-    val classNames = mutableMapOf<Long, Long>()
-
-    val maxId = readHprofRecords(inputHprofFile, hprofStringCache, classNames)
+    val (hprofStringCache, classNames, maxId) = readHprofRecords(inputHprofFile)
 
     return writeHprofRecords(
       inputHprofFile,
@@ -62,13 +57,13 @@ class HprofDeobfuscator {
    * Reads StringRecords and LoadClassRecord from an Hprof file and tracks maximum HprofRecord id
    * value.
    *
-   * @return maximum id value
+   * @return a Triple of: hprofStringCache map, classNames map and maxId value
    */
   private fun readHprofRecords(
-    inputHprofFile: File,
-    hprofStringCache: MutableMap<Long, String>,
-    classNames: MutableMap<Long, Long>
-  ): Long {
+    inputHprofFile: File
+  ): Triple<Map<Long, String>, Map<Long, Long>, Long> {
+    val hprofStringCache = mutableMapOf<Long, String>()
+    val classNames = mutableMapOf<Long, Long>()
 
     var maxId: Long = 0
 
@@ -102,7 +97,7 @@ class HprofDeobfuscator {
           })
       }
 
-    return maxId
+    return Triple(hprofStringCache, classNames, maxId)
   }
 
   @Suppress("LongParameterList")
@@ -110,8 +105,8 @@ class HprofDeobfuscator {
     inputHprofFile: File,
     outputHprofFile: File,
     proguardMapping: ProguardMapping,
-    hprofStringCache: MutableMap<Long, String>,
-    classNames: MutableMap<Long, Long>,
+    hprofStringCache: Map<Long, String>,
+    classNames: Map<Long, Long>,
     firstId: Long
   ): File {
     var id = firstId
@@ -139,23 +134,13 @@ class HprofDeobfuscator {
                     createDeobfuscatedStringRecord(record, proguardMapping, hprofStringCache)
                   )
                 }
-                is HeapDumpRecord -> {
-                  when (record) {
-                    is ObjectRecord -> {
-                      when (record) {
-                        is ClassDumpRecord -> {
-                          val recordsToWrite = createDeobfuscatedClassDumpRecord(
-                            record, proguardMapping, hprofStringCache, classNames, id
-                          )
-                          id += recordsToWrite.size
-                          recordsToWrite.forEach {
-                            writer.write(it)
-                          }
-                        }
-                        else -> writer.write(record)
-                      }
-                    }
-                    else -> writer.write(record)
+                is ClassDumpRecord -> {
+                  val (recordsToWrite, maxId) = createDeobfuscatedClassDumpRecord(
+                    record, proguardMapping, hprofStringCache, classNames, id
+                  )
+                  id = maxId
+                  recordsToWrite.forEach {
+                    writer.write(it)
                   }
                 }
                 else -> writer.write(record)
@@ -170,7 +155,7 @@ class HprofDeobfuscator {
   private fun createDeobfuscatedStringRecord(
     record: StringRecord,
     proguardMapping: ProguardMapping,
-    hprofStringCache: MutableMap<Long, String>
+    hprofStringCache: Map<Long, String>
   ): StringRecord {
     val obfuscatedName = hprofStringCache[record.id]!!
     return StringRecord(
@@ -182,29 +167,36 @@ class HprofDeobfuscator {
    * Deobfuscated ClassDumpRecord's field names. Different classes can have fields with the same
    * names. We need to generate new StringRecords in such cases.
    *
-   * @return a list of HprofRecords to write.
+   * @return a Pair of: list of HprofRecords to write and new maxId value
    */
   private fun createDeobfuscatedClassDumpRecord(
     record: ClassDumpRecord,
     proguardMapping: ProguardMapping,
-    hprofStringCache: MutableMap<Long, String>,
-    classNames: MutableMap<Long, Long>,
+    hprofStringCache: Map<Long, String>,
+    classNames: Map<Long, Long>,
     maxId: Long
-  ): List<HprofRecord> {
+  ): Pair<List<HprofRecord>, Long> {
     val recordsToWrite = mutableListOf<HprofRecord>()
 
     var id = maxId
 
+    var deobfuscatedFieldsCount = 0
     val newFields = record.fields.map { field ->
       val className = hprofStringCache[classNames[record.id]]!!
       val fieldName = hprofStringCache[field.nameStringId]!!
       val deobfuscatedName =
         proguardMapping.deobfuscateFieldName(className, fieldName)
 
-      val newStringRecord = StringRecord(id++, deobfuscatedName)
-      recordsToWrite.add(newStringRecord)
+      if(fieldName != deobfuscatedName) {
+        deobfuscatedFieldsCount++
 
-      FieldRecord(newStringRecord.id, field.type)
+        val newStringRecord = StringRecord(id++, deobfuscatedName)
+        recordsToWrite.add(newStringRecord)
+
+        FieldRecord(newStringRecord.id, field.type)
+      } else {
+        field
+      }
     }
     val newStaticFields = record.staticFields.map { field ->
       val className = hprofStringCache[classNames[record.id]]!!
@@ -212,26 +204,36 @@ class HprofDeobfuscator {
       val deobfuscatedName =
         proguardMapping.deobfuscateFieldName(className, fieldName)
 
-      val newStringRecord = StringRecord(id++, deobfuscatedName)
-      recordsToWrite.add(newStringRecord)
+      if(fieldName != deobfuscatedName) {
+        deobfuscatedFieldsCount++
 
-      StaticFieldRecord(newStringRecord.id, field.type, field.value)
+        val newStringRecord = StringRecord(id++, deobfuscatedName)
+        recordsToWrite.add(newStringRecord)
+
+        StaticFieldRecord(newStringRecord.id, field.type, field.value)
+      } else {
+        field
+      }
     }
 
-    recordsToWrite.add(
-      ClassDumpRecord(
-        record.id,
-        record.stackTraceSerialNumber,
-        record.superclassId,
-        record.classLoaderId,
-        record.signersId,
-        record.protectionDomainId,
-        record.instanceSize,
-        newStaticFields,
-        newFields
+    if(deobfuscatedFieldsCount == 0) {
+      recordsToWrite.add(record)
+    } else {
+      recordsToWrite.add(
+        ClassDumpRecord(
+          record.id,
+          record.stackTraceSerialNumber,
+          record.superclassId,
+          record.classLoaderId,
+          record.signersId,
+          record.protectionDomainId,
+          record.instanceSize,
+          newStaticFields,
+          newFields
+        )
       )
-    )
+    }
 
-    return recordsToWrite
+    return Pair(recordsToWrite, id)
   }
 }
