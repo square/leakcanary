@@ -19,6 +19,7 @@ import shark.AndroidObjectInspectors.Companion.appDefaults
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapInstance
 import java.util.EnumSet
+import kotlin.math.absoluteValue
 
 /**
  * A set of default [ObjectInspector]s that knows about common AOSP and library
@@ -361,6 +362,19 @@ enum class AndroidObjectInspectors : ObjectInspector {
         } else {
           notLeakingReasons += mQuitting describedWithValue "false"
         }
+
+        val queueHead = instance["android.os.MessageQueue", "mMessages"]!!.valueAsInstance
+        if (queueHead != null) {
+          val targetHandler = queueHead["android.os.Message", "target"]!!.valueAsInstance
+          if (targetHandler != null) {
+            val looper = targetHandler["android.os.Handler", "mLooper"]!!.valueAsInstance
+            if (looper != null) {
+              val thread = looper["android.os.Looper", "mThread"]!!.valueAsInstance!!
+              val threadName = thread[Thread::class, "name"]!!.value.readAsJavaString()
+              labels += "HandlerThread: \"$threadName\""
+            }
+          }
+        }
       }
     }
   },
@@ -482,6 +496,31 @@ enum class AndroidObjectInspectors : ObjectInspector {
         } else {
           notLeakingReasons += mDestroyed describedWithValue "false"
         }
+      }
+    }
+  },
+
+  MESSAGE {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.os.Message") { instance ->
+        labels += "Message.what = ${instance["android.os.Message", "what"]!!.value.asInt}"
+
+        val heapDumpUptimeMillis = KeyedWeakReferenceFinder.heapDumpUptimeMillis(instance.graph)
+        val whenUptimeMillis = instance["android.os.Message", "when"]!!.value.asLong!!
+
+        labels += if (heapDumpUptimeMillis != null) {
+          val diffMs = whenUptimeMillis - heapDumpUptimeMillis
+          if (diffMs > 0) {
+            "Message.when = $whenUptimeMillis ($diffMs ms after heap dump)"
+          } else {
+            "Message.when = $whenUptimeMillis (${diffMs.absoluteValue} ms before heap dump)"
+          }
+        } else {
+          "Message.when = $whenUptimeMillis"
+        }
+
+        labels += "Message.obj = ${instance["android.os.Message", "obj"]!!.value.asObject}"
+        labels += "Message.callback = ${instance["android.os.Message", "callback"]!!.value.asObject}"
       }
     }
   },
