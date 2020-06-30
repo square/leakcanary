@@ -146,6 +146,8 @@ open class FailTestOnLeakRunListener : RunListener() {
 
     if (result is AnalysisPerformed) {
       onAnalysisPerformed(heapAnalysis = result.heapAnalysis)
+    } else {
+      SharkLog.d { "No heap analysis performed" }
     }
   }
 
@@ -158,12 +160,18 @@ open class FailTestOnLeakRunListener : RunListener() {
   protected open fun onAnalysisPerformed(heapAnalysis: HeapAnalysis) {
     when (heapAnalysis) {
       is HeapAnalysisFailure -> {
-        failTest(Log.getStackTraceString(heapAnalysis.exception))
+        failTest(
+            "$currentTestDescription failed because heap analysis failed:\n" + Log.getStackTraceString(
+                heapAnalysis.exception
+            )
+        )
       }
       is HeapAnalysisSuccess -> {
         val applicationLeaks = heapAnalysis.applicationLeaks
         if (applicationLeaks.isNotEmpty()) {
-          failTest("Test failed because application memory leaks were detected:\n$heapAnalysis")
+          failTest("$currentTestDescription failed because application memory leaks were detected:\n$heapAnalysis")
+        } else {
+          SharkLog.d { "Heap analysis found 0 application leaks:\n$heapAnalysis" }
         }
       }
     }
@@ -173,6 +181,7 @@ open class FailTestOnLeakRunListener : RunListener() {
    * Reports that the test has failed, with the provided [trace].
    */
   protected fun failTest(trace: String) {
+    SharkLog.d { trace }
     testResultPublisher.publishTestFailure(currentTestDescription, trace)
   }
 

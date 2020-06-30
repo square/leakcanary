@@ -177,9 +177,6 @@ class InstrumentationLeakDetector {
         computeRetainedHeapSize = config.computeRetainedHeapSize,
         objectInspectors = config.objectInspectors
     )
-
-    SharkLog.d { "Heap Analysis:\n$heapAnalysis" }
-
     return AnalysisPerformed(heapAnalysis)
   }
 
