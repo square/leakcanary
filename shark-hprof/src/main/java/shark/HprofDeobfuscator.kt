@@ -26,7 +26,7 @@ class HprofDeobfuscator {
    * @see HprofDeobfuscator
    */
   fun deobfuscate(
-    proguardMappingFile: File,
+    proguardMapping: ProguardMapping,
     inputHprofFile: File,
     /**
      * Optional output file. Defaults to a file in the same directory as [inputHprofFile], with
@@ -38,9 +38,6 @@ class HprofDeobfuscator {
         ".hprof", "-deobfuscated.hprof"
     ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-deobfuscated" })
   ): File {
-    val proguardMapping =
-      ProguardMappingReader(proguardMappingFile.inputStream()).readProguardMapping()
-
     val (hprofStringCache, classNames, maxId) = readHprofRecords(inputHprofFile)
 
     return writeHprofRecords(
@@ -180,23 +177,16 @@ class HprofDeobfuscator {
 
     var id = maxId
 
-    var deobfuscatedFieldsCount = 0
     val newFields = record.fields.map { field ->
       val className = hprofStringCache[classNames[record.id]]!!
       val fieldName = hprofStringCache[field.nameStringId]!!
       val deobfuscatedName =
         proguardMapping.deobfuscateFieldName(className, fieldName)
 
-      if(fieldName != deobfuscatedName) {
-        deobfuscatedFieldsCount++
+      val newStringRecord = StringRecord(id++, deobfuscatedName)
+      recordsToWrite.add(newStringRecord)
 
-        val newStringRecord = StringRecord(id++, deobfuscatedName)
-        recordsToWrite.add(newStringRecord)
-
-        FieldRecord(newStringRecord.id, field.type)
-      } else {
-        field
-      }
+      FieldRecord(newStringRecord.id, field.type)
     }
     val newStaticFields = record.staticFields.map { field ->
       val className = hprofStringCache[classNames[record.id]]!!
@@ -204,35 +194,25 @@ class HprofDeobfuscator {
       val deobfuscatedName =
         proguardMapping.deobfuscateFieldName(className, fieldName)
 
-      if(fieldName != deobfuscatedName) {
-        deobfuscatedFieldsCount++
+      val newStringRecord = StringRecord(id++, deobfuscatedName)
+      recordsToWrite.add(newStringRecord)
 
-        val newStringRecord = StringRecord(id++, deobfuscatedName)
-        recordsToWrite.add(newStringRecord)
-
-        StaticFieldRecord(newStringRecord.id, field.type, field.value)
-      } else {
-        field
-      }
+      StaticFieldRecord(newStringRecord.id, field.type, field.value)
     }
 
-    if(deobfuscatedFieldsCount == 0) {
-      recordsToWrite.add(record)
-    } else {
-      recordsToWrite.add(
-        ClassDumpRecord(
-          record.id,
-          record.stackTraceSerialNumber,
-          record.superclassId,
-          record.classLoaderId,
-          record.signersId,
-          record.protectionDomainId,
-          record.instanceSize,
-          newStaticFields,
-          newFields
-        )
+    recordsToWrite.add(
+      ClassDumpRecord(
+        record.id,
+        record.stackTraceSerialNumber,
+        record.superclassId,
+        record.classLoaderId,
+        record.signersId,
+        record.protectionDomainId,
+        record.instanceSize,
+        newStaticFields,
+        newFields
       )
-    }
+    )
 
     return Pair(recordsToWrite, id)
   }

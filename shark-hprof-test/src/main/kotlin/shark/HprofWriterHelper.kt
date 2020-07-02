@@ -138,6 +138,61 @@ class HprofWriterHelper constructor(
     return classDump.id
   }
 
+  fun stringRecord(
+    name: String
+  ): StringRecord {
+    val stringRecord = StringRecord(id, name)
+    writer.write(stringRecord)
+    return stringRecord
+  }
+
+  fun clazz(
+    classNameRecord: StringRecord,
+    superclassId: Long = -1L, // -1 defaults to java.lang.Object
+    staticFields: List<Pair<Long, ValueHolder>> = emptyList(),
+    fields: List<Pair<Long, KClass<out ValueHolder>>> = emptyList()
+  ): Long {
+    val loadClass = LoadClassRecord(1, id, 1, classNameRecord.id)
+    writer.write(loadClass)
+
+    val staticFieldRecords = staticFields.map {
+      StaticFieldRecord(it.first, typeOf(it.second), it.second)
+    }
+
+    val fieldRecords = fields.map {
+      FieldRecord(it.first, typeOf(it.second))
+    }
+
+    var instanceSize = fieldRecords.sumBy {
+      typeSizes.getValue(it.type)
+    }
+
+    var nextUpId = if (superclassId == -1L) objectClassId else superclassId
+    while (nextUpId != 0L) {
+      val nextUp = classDumps[nextUpId]!!
+      instanceSize += nextUp.fields.sumBy {
+        typeSizes.getValue(it.type)
+      }
+      nextUpId = nextUp.superclassId
+    }
+    val classDump = ClassDumpRecord(
+        id = loadClass.id,
+        stackTraceSerialNumber = 1,
+        superclassId = if (superclassId == -1L) objectClassId else superclassId,
+        classLoaderId = 0,
+        signersId = 0,
+        protectionDomainId = 0,
+        instanceSize = instanceSize,
+        staticFields = staticFieldRecords,
+        fields = fieldRecords
+    )
+    classDumps[loadClass.id] = classDump
+    writer.write(classDump)
+    val gcRoot = StickyClass(classDump.id)
+    gcRoot(gcRoot)
+    return classDump.id
+  }
+
   fun gcRoot(gcRoot: GcRoot) {
     val gcRootRecord = GcRootRecord(gcRoot = gcRoot)
     writer.write(gcRootRecord)

@@ -16,8 +16,10 @@ class DeobfuscateHprofCommand : CliktCommand(
         ?: throw PrintMessage("Error: Missing obfuscation mapping file")
     val heapDumpFile = retrieveHeapDumpFile(params)
     SharkLog.d { "Deobfuscating heap dump $heapDumpFile" }
+    val proguardMapping =
+      ProguardMappingReader(obfuscationMappingFile.inputStream()).readProguardMapping()
     val deobfuscator = HprofDeobfuscator()
-    val outputFile = deobfuscator.deobfuscate(obfuscationMappingFile, heapDumpFile)
+    val outputFile = deobfuscator.deobfuscate(proguardMapping, heapDumpFile)
     echo("Created deobfuscated hprof to $outputFile")
   }
 }
