@@ -399,6 +399,8 @@ internal class PathFinder(
         continue
       }
 
+      // Note: instead of calling staticField.value.asObjectId!! we cast holder to ReferenceHolder
+      // and access value directly. This allows us to avoid unnecessary boxing of Long.
       val objectId = (staticField.value.holder as ReferenceHolder).value
 
       if (computeRetainedHeapSize) {
