@@ -1,6 +1,7 @@
 package leakcanary.internal.activity
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -63,7 +64,11 @@ internal fun View.shareToStackOverflow(content: String) {
   Toast.makeText(context, R.string.leak_canary_leak_copied, Toast.LENGTH_LONG)
       .show()
   val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(STACKOVERFLOW_QUESTION_URL))
-  activity.startActivity(browserIntent)
+  try {
+    activity.startActivity(browserIntent)
+  } catch (e: ActivityNotFoundException) {
+    Toast.makeText(context, e.toString(), Toast.LENGTH_LONG).show();
+  }
 }
 
 internal fun View.shareToGitHubIssue(failure: HeapAnalysisFailure) {
@@ -90,7 +95,11 @@ internal fun View.shareToGitHubIssue(failure: HeapAnalysisFailure) {
   Toast.makeText(context, R.string.leak_canary_failure_copied, Toast.LENGTH_LONG)
       .show()
   val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(NEW_ISSUE_URL))
-  activity.startActivity(browserIntent)
+  try {
+    activity.startActivity(browserIntent)
+  } catch (e: ActivityNotFoundException) {
+    Toast.makeText(context, e.toString(), Toast.LENGTH_LONG).show();
+  }
 }
 
 private const val STACKOVERFLOW_QUESTION_URL =
