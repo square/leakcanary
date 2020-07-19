@@ -371,7 +371,6 @@ internal class HeapDumpTrigger(
             )
         )
         .setAutoCancel(true)
-        // TODO: Add Action to open About Screen
         .setContentIntent(NotificationReceiver.pendingIntent(application, CANCEL_NOTIFICATION))
     val notification =
         Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
