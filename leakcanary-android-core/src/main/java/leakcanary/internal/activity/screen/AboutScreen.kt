@@ -82,7 +82,7 @@ internal class AboutScreen : Screen() {
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = heapDumpSwitchChecked)
     }
 
-    private companion object HeapDumpPolicy {
+    companion object HeapDumpPolicy {
     enum class HeapDumpStatus {
       ENABLED,
       DISABLED_DEBUGGER_ATTACHED,
