@@ -12,6 +12,20 @@
       android:paddingRight="16dp"
       />
 
+  <Switch
+      android:id="@+id/leak_canary_about_heap_dump_switch_button"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_above="@+id/leak_canary_about_heap_dump_text"
+      android:paddingBottom="16dp"
+      android:paddingLeft="16dp"
+      android:paddingRight="16dp"
+      android:checked="true"
+      android:text="@string/leak_canary_about_enable_heap_dump"
+      android:textOn="@string/leak_canary_about_enable_heap_dump_textOn"
+      android:textOff="@string/leak_canary_about_enable_heap_dump_textOff"
+      />
+
   <TextView
       android:id="@+id/leak_canary_about_heap_dump_text"
       android:layout_width="match_parent"
