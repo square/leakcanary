@@ -78,14 +78,6 @@ interface HeapGraph {
   fun objectExists(objectId: Long): Boolean
 
   /**
-   * Returns name of the field corresponding for the provided [classId] and [nameStringId].
-   */
-  fun fieldName(
-    classId: Long,
-    nameStringId: Long
-  ): String
-
-  /**
    * Creates a new [FieldValuesReader] that can read fields from provided [record].
    */
   fun createFieldValuesReader(record: InstanceDumpRecord): FieldValuesReader

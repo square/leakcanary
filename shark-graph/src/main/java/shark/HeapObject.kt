@@ -2,6 +2,7 @@ package shark
 
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
@@ -206,6 +207,13 @@ sealed class HeapObject {
     }
 
     /**
+     * Returns the name of the field declared in this class for the specified [fieldRecord].
+     */
+    fun fieldName(fieldRecord: FieldRecord): String {
+      return hprofGraph.fieldName(objectId, fieldRecord)
+    }
+
+    /**
      * The static fields of this class, as a sequence of [HeapField].
      *
      * This may trigger IO reads.
@@ -386,7 +394,7 @@ sealed class HeapObject {
             heapClass.readRecord()
                 .fields.asSequence()
                 .map { fieldRecord ->
-                  val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord.nameStringId)
+                  val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord)
                   val fieldValue = fieldReader.readValue(fieldRecord)
                   HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue))
                 }

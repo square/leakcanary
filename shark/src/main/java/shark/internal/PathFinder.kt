@@ -492,7 +492,9 @@ internal class PathFinder(
   }
 
   private fun HeapInstance.readAllNonNullFieldsOfReferenceType(): MutableList<HeapField> {
-    val hprofGraph = graph // DO NOT REMOVE! Getter performs typecast which is expensive!
+    // Assigning to local variable to avoid repeated lookup and cast:
+    // HeapInstance.graph casts HeapInstance.hprofGraph to HeapGraph in its getter
+    val hprofGraph = graph
     var fieldReader: FieldValuesReader? = null
     val result = mutableListOf<HeapField>()
     var skipBytesCount = 0
@@ -513,7 +515,7 @@ internal class PathFinder(
 
           val fieldValue = ReferenceHolder(fieldReader.readId())
           if (!fieldValue.isNull) {
-            val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord.nameStringId)
+            val fieldName = heapClass.fieldName(fieldRecord)
             result.add(HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue)))
           }
         }
