@@ -43,8 +43,8 @@ import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.createSHA1Hash
-import shark.internal.hppc_shark.LongLongScatterMap.ForEachCallback
-import shark.internal.hppc_shark.LongScatterSet
+import shark.internal.hppcshark.LongLongScatterMap.ForEachCallback
+import shark.internal.hppcshark.LongScatterSet
 import shark.internal.lastSegment
 import java.io.File
 import java.util.ArrayList

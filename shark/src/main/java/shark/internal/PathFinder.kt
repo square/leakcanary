@@ -49,8 +49,8 @@ import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
-import shark.internal.hppc_shark.LongLongScatterMap
-import shark.internal.hppc_shark.LongScatterSet
+import shark.internal.hppcshark.LongLongScatterMap
+import shark.internal.hppcshark.LongScatterSet
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap

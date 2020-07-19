@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package shark.internal.hppc_shark
+package shark.internal.hppcshark
 
 import java.util.Locale
 
