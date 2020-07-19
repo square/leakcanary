@@ -25,10 +25,14 @@
   We welcome contributions from the community - please do not hesitate to
   <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br><br>
 ]]></string>
+  <string name="leak_canary_about_enable_heap_dump">Enable Heap Dump</string>
+  <string name="leak_canary_about_enable_heap_dump_textOn">Enable</string>
+  <string name="leak_canary_about_enable_heap_dump_textOff">Disable</string>
   <string name="leak_canary_heap_dump_disabled_text">Heap dumping is currently disabled, because <i>%s</i>.</string>
   <string name="leak_canary_heap_dump_not_installed_text">AppWatcher is not installed.</string>
   <string name="leak_canary_heap_dump_enabled_text">Heap dumping is currently enabled.</string>
   <string name="leak_canary_heap_dump_disabled_by_app">LeakCanary.Config.dumpHeap is set to false</string>
+  <string name="leak_canary_heap_dump_disabled_from_ui">Heap dump is disabled from UI</string>
   <string name="leak_canary_heap_dump_disabled_running_tests">tests are running</string>
   <string name="leak_canary_heap_dump_disabled_build_non_debuggable">the debugger is attached and LeakCanary.Config.dumpHeapWhenDebugging is set to false</string>
   <string name="leak_canary_analysis_failed">Heap analysis failed</string>

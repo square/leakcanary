@@ -4,6 +4,7 @@ import android.content.res.Resources
 import android.text.Html
 import android.text.method.LinkMovementMethod
 import android.view.ViewGroup
+import android.widget.Switch
 import android.widget.TextView
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
@@ -12,6 +13,7 @@ import leakcanary.LeakCanary
 import leakcanary.internal.DebuggerControl
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_BY_DEVELOPER
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_DEBUGGER_ATTACHED
+import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_UI
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_RUNNING_TESTS
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.ENABLED
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.NOT_INSTALLED
@@ -19,7 +21,10 @@ import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.inflate
 
+private var heapDumpSwitchChecked = true
+
 internal class AboutScreen : Screen() {
+
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_about_screen)
         .apply {
@@ -39,6 +44,13 @@ internal class AboutScreen : Screen() {
 
           val heapDumpText = findViewById<TextView>(R.id.leak_canary_about_heap_dump_text)
           heapDumpText.text = getHeapDumpStatusMessage(resources)
+          val heapDumpSwitchView = findViewById<Switch>(R.id.leak_canary_about_heap_dump_switch_button)
+          heapDumpSwitchView.isChecked = heapDumpSwitchChecked
+          heapDumpSwitchView.setOnCheckedChangeListener { _, isChecked ->
+              heapDumpSwitchChecked = isChecked
+              updateConfig()
+              heapDumpText.text = getHeapDumpStatusMessage(resources)
+           }
         }
 
   private fun getHeapDumpStatusMessage(resources: Resources) =
@@ -53,13 +65,24 @@ internal class AboutScreen : Screen() {
           resources.getString(R.string.leak_canary_heap_dump_disabled_text),
           resources.getString(R.string.leak_canary_heap_dump_disabled_by_app)
       )
+      DISABLED_FROM_UI -> String.format(
+            resources.getString(R.string.leak_canary_heap_dump_disabled_text),
+            resources.getString(R.string.leak_canary_heap_dump_disabled_from_ui)
+        )
       DISABLED_RUNNING_TESTS -> String.format(
           resources.getString(R.string.leak_canary_heap_dump_disabled_text),
           resources.getString(R.string.leak_canary_heap_dump_disabled_running_tests)
       )
     }
 
-  private companion object HeapDumpPolicy {
+    /**
+     * Updates leak canary config to enable/disable heap dump depending upon the Toggle switch from the about screen.
+     */
+    private fun updateConfig() {
+        LeakCanary.config = LeakCanary.config.copy(dumpHeap = heapDumpSwitchChecked)
+    }
+
+    private companion object HeapDumpPolicy {
     enum class HeapDumpStatus {
       ENABLED,
       DISABLED_DEBUGGER_ATTACHED,
@@ -76,6 +99,8 @@ internal class AboutScreen : Screen() {
         !config.dumpHeap ->
           if (isRunningTests(resources)) {
             DISABLED_RUNNING_TESTS
+          } else if (!heapDumpSwitchChecked) {
+              DISABLED_FROM_UI
           } else {
             DISABLED_BY_DEVELOPER
           }
