@@ -103,13 +103,13 @@ internal class HeapDumpTrigger(
       val resources = application.resources
       val heapDumpStatus = AboutScreen.getHeapDumpStatus(resources = resources)
       val message = when(heapDumpStatus) {
-        AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_UI -> "Heap Dump is disabled from the About Screen"
+        AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_ABOUT_SCREEN -> "Heap Dump is disabled from the About Screen"
         else -> "LeakCanary.Config.dumpHeap is false"
       }
 
       SharkLog.d { "Ignoring check for retained objects scheduled because $reason: $message" }
 
-      if (heapDumpStatus == AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_UI) {
+      if (heapDumpStatus == AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_ABOUT_SCREEN) {
         showHeapDumpDisabledNotification()
 
       }
@@ -367,13 +367,12 @@ internal class HeapDumpTrigger(
         )
         .setContentText(
             application.getString(
-                R.string.leak_canary_notification_no_retained_object_content
+                R.string.leak_canary_notification_heap_dump_tap_to_dismiss
             )
         )
         .setAutoCancel(true)
         .setContentIntent(NotificationReceiver.pendingIntent(application, CANCEL_NOTIFICATION))
-    val notification =
-        Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
+    val notification = Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
     notificationManager.notify(R.id.leak_canary_notification_heap_dump_disabled, notification)
   }
 

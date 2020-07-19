@@ -13,7 +13,7 @@ import leakcanary.LeakCanary
 import leakcanary.internal.DebuggerControl
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_BY_DEVELOPER
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_DEBUGGER_ATTACHED
-import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_UI
+import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_ABOUT_SCREEN
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_RUNNING_TESTS
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.ENABLED
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.NOT_INSTALLED
@@ -65,7 +65,7 @@ internal class AboutScreen : Screen() {
           resources.getString(R.string.leak_canary_heap_dump_disabled_text),
           resources.getString(R.string.leak_canary_heap_dump_disabled_by_app)
       )
-      DISABLED_FROM_UI -> String.format(
+      DISABLED_FROM_ABOUT_SCREEN -> String.format(
             resources.getString(R.string.leak_canary_heap_dump_disabled_text),
             resources.getString(R.string.leak_canary_heap_dump_disabled_from_ui)
         )
@@ -87,7 +87,7 @@ internal class AboutScreen : Screen() {
       ENABLED,
       DISABLED_DEBUGGER_ATTACHED,
       DISABLED_BY_DEVELOPER,
-      DISABLED_FROM_UI,
+      DISABLED_FROM_ABOUT_SCREEN,
       DISABLED_RUNNING_TESTS,
       NOT_INSTALLED
     }
@@ -100,7 +100,7 @@ internal class AboutScreen : Screen() {
           if (isRunningTests(resources)) {
             DISABLED_RUNNING_TESTS
           } else if (!heapDumpSwitchChecked) {
-              DISABLED_FROM_UI
+              DISABLED_FROM_ABOUT_SCREEN
           } else {
             DISABLED_BY_DEVELOPER
           }
