@@ -64,6 +64,7 @@ internal class AboutScreen : Screen() {
       ENABLED,
       DISABLED_DEBUGGER_ATTACHED,
       DISABLED_BY_DEVELOPER,
+      DISABLED_FROM_UI,
       DISABLED_RUNNING_TESTS,
       NOT_INSTALLED
     }
