@@ -111,7 +111,6 @@ internal class HeapDumpTrigger(
 
       if (heapDumpStatus == AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_ABOUT_SCREEN) {
         showHeapDumpDisabledNotification()
-
       }
       return
     }
