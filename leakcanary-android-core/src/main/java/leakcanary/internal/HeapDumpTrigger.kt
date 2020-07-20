@@ -56,10 +56,6 @@ internal class HeapDumpTrigger(
     dismissNoRetainedOnTapNotification()
   }
 
-  private val scheduleDismissHeapDumpDisabledNotification = {
-    dismissHeapDumpDisabledNotification()
-  }
-
   /**
    * When the app becomes invisible, we don't dump the heap immediately. Instead we wait in case
    * the app came back to the foreground, but also to wait for new leaks that typically occur on
@@ -355,7 +351,6 @@ internal class HeapDumpTrigger(
   }
 
   private fun showHeapDumpDisabledNotification() {
-    backgroundHandler.removeCallbacks(scheduleDismissHeapDumpDisabledNotification)
     if (!Notifications.canShowNotification) {
       return
     }
@@ -383,11 +378,6 @@ internal class HeapDumpTrigger(
   private fun dismissNoRetainedOnTapNotification() {
     backgroundHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
     notificationManager.cancel(R.id.leak_canary_notification_no_retained_object_on_tap)
-  }
-
-  private fun dismissHeapDumpDisabledNotification() {
-    backgroundHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
-    notificationManager.cancel(R.id.leak_canary_notification_retained_objects)
   }
 
   companion object {
