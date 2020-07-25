@@ -95,4 +95,5 @@
   <string name="leak_canary_tv_analysis_success">Heap Analysis performed: %1$d application leaks, %2$d library leaks. See details in Logcat</string>
   <string name="leak_canary_tv_analysis_failure">Heap Analysis failed, see details in Logcat</string>
   <string name="leak_canary_tv_toast_retained_objects">%1$d retained objects. Heap dump threshold is %2$d.\nBackground the app to trigger heap dump immediately</string>
+  <string name="leak_canary_leak_missing_browser_error">Missing browser</string>
 </resources>
