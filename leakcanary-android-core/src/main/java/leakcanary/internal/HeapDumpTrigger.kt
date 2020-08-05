@@ -21,6 +21,8 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.DebuggerIsAttached
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
+import leakcanary.internal.activity.LeakActivity
+import leakcanary.internal.activity.screen.AboutScreen
 import shark.AndroidResourceIdNames
 import shark.SharkLog
 
@@ -96,6 +98,7 @@ internal class HeapDumpTrigger(
     // A tick will be rescheduled when this is turned back on.
     if (!config.dumpHeap) {
       SharkLog.d { "Ignoring check for retained objects scheduled because $reason: LeakCanary.Config.dumpHeap is false" }
+      showHeapDumpDisabledNotification()
       return
     }
 
@@ -336,6 +339,24 @@ internal class HeapDumpTrigger(
     val notification =
       Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
     notificationManager.notify(R.id.leak_canary_notification_retained_objects, notification)
+  }
+
+  private fun showHeapDumpDisabledNotification() {
+    backgroundHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
+    if (!Notifications.canShowNotification) {
+      return
+    }
+    @Suppress("DEPRECATION")
+    val builder = Notification.Builder(application)
+            .setContentTitle(
+                    application.getString(R.string.leak_canary_notification_heap_dump_disabled)
+            )
+            .setContentText(application.getString(R.string.leak_canary_notification_message))
+            .setAutoCancel(true)
+            .setContentIntent(LeakActivity.createPendingIntent(application, arrayListOf(AboutScreen())))
+    val notification =
+            Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
+    notificationManager.notify(R.id.leak_canary_notification_heap_dump_disabled, notification)
   }
 
   private fun dismissRetainedCountNotification() {
