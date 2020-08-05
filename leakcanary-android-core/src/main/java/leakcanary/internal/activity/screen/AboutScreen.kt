@@ -39,6 +39,10 @@ internal class AboutScreen : Screen() {
 
           val heapDumpText = findViewById<TextView>(R.id.leak_canary_about_heap_dump_text)
           heapDumpText.text = getHeapDumpStatusMessage(resources)
+          heapDumpText.setOnClickListener {
+            LeakCanary.config = LeakCanary.config.copy(dumpHeap = !LeakCanary.config.dumpHeap)
+            heapDumpText.text = getHeapDumpStatusMessage(resources)
+          }
         }
 
   private fun getHeapDumpStatusMessage(resources: Resources) =
