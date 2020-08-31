@@ -7,5 +7,6 @@ fun main(args: Array<String>) =
       InteractiveCommand(),
       AnalyzeCommand(),
       DumpProcessCommand(),
-      StripHprofCommand()
+      StripHprofCommand(),
+      DeobfuscateHprofCommand()
   ).main(args)

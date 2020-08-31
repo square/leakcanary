@@ -13,6 +13,7 @@ dependencies {
   testImplementation deps.assertj_core
   testImplementation deps.junit
   testImplementation project(':shark-test')
+  testImplementation project(':shark-hprof-test')
 }
 
 apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
