@@ -168,7 +168,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.app.Activity" &&
+          heapObject instanceOf "android.content.ContextWrapper" &&
           heapObject.unwrapActivityContext()
               ?.get("android.app.Activity", "mDestroyed")?.value?.asBoolean == true
     }
@@ -213,6 +213,40 @@ enum class AndroidObjectInspectors : ObjectInspector {
             labels += "${instance.instanceClassSimpleName} does not wrap an activity context"
           }
         }
+      }
+    }
+  },
+
+  APPLICATION_PACKAGE_MANAGER {
+    override val leakingObjectFilter = { heapObject: HeapObject ->
+      heapObject is HeapInstance &&
+          heapObject instanceOf "android.app.ApplicationContextManager" &&
+          heapObject["android.app.ApplicationContextManager", "mContext"]!!
+              .valueAsInstance!!.outerContextIsLeaking()
+    }
+
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.app.ApplicationContextManager") { instance ->
+        val outerContext = instance["android.app.ApplicationContextManager", "mContext"]!!
+            .valueAsInstance!!["android.app.ContextImpl", "mOuterContext"]!!
+            .valueAsInstance!!
+        inspectContextImplOuterContext(outerContext, instance, "ApplicationContextManager.mContext")
+      }
+    }
+  },
+
+  CONTEXT_IMPL {
+    override val leakingObjectFilter = { heapObject: HeapObject ->
+      heapObject is HeapInstance &&
+          heapObject instanceOf "android.app.ContextImpl" &&
+          heapObject.outerContextIsLeaking()
+    }
+
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.app.ContextImpl") { instance ->
+        val outerContext = instance["android.app.ContextImpl", "mOuterContext"]!!
+            .valueAsInstance!!
+        inspectContextImplOuterContext(outerContext, instance)
       }
     }
   },
@@ -547,6 +581,42 @@ enum class AndroidObjectInspectors : ObjectInspector {
   internal val ANDROID_SUPPORT_FRAGMENT_CLASS_NAME =
     StringBuilder("android.").append("support.v4.app.Fragment")
         .toString()
+}
+
+private fun HeapInstance.outerContextIsLeaking() =
+  this["android.app.ContextImpl", "mOuterContext"]!!
+      .valueAsInstance!!
+      .run {
+        this instanceOf "android.app.Activity" &&
+            this["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true
+      }
+
+private fun ObjectReporter.inspectContextImplOuterContext(
+  outerContext: HeapInstance,
+  contextImpl: HeapInstance,
+  prefix: String = "ContextImpl"
+) {
+  if (outerContext instanceOf "android.app.Activity") {
+    val mDestroyed = outerContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean
+    if (mDestroyed != null) {
+      if (mDestroyed) {
+        leakingReasons += "$prefix.mOuterContext is an instance of" +
+            " ${outerContext.instanceClassName} with Activity.mDestroyed true"
+      } else {
+        notLeakingReasons += "$prefix.mOuterContext is an instance of " +
+            "${outerContext.instanceClassName} with Activity.mDestroyed false"
+      }
+    } else {
+      labels += "$prefix.mOuterContext is an instance of ${outerContext.instanceClassName}"
+    }
+  } else if (outerContext instanceOf "android.app.Application") {
+    notLeakingReasons += "$prefix.mOuterContext is an instance of" +
+        " ${outerContext.instanceClassName} which extends android.app.Application"
+  } else if (outerContext.objectId == contextImpl.objectId) {
+    labels += "$prefix.mOuterContext == ContextImpl.this: not tied to any particular lifecycle"
+  } else {
+    labels += "$prefix.mOuterContext is an instance of ${outerContext.instanceClassName}"
+  }
 }
 
 private infix fun HeapField.describedWithValue(valueDescription: String): String {
