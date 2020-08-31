@@ -559,8 +559,11 @@ leakCanary {
 }
 ```
 
-And that's all. Now you can run LeakCanary on an obfuscated app and leak traces will be automatically deobfuscated.
+Now you can run LeakCanary on an obfuscated app and leak traces will be automatically deobfuscated.
+
 **Important:** never use this plugin on a release variant. This plugin copies obfuscation mapping file and puts it inside the .apk, so if you use it on release build then the obfuscation becomes pointless because the code can be easily deobfuscated using mapping file.
+
+**Warning:** R8 (Google Proguard replacement) can now understand Kotlin language constructs but the side effect is that mapping files can get very large (a couple dozen megabytes). It means that the size of .apk containing copied mapping file will increase as well. This is another reason for not using this plugin on a release variant.
 
 ## Detecting leaks in JVM applications
 
