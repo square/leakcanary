@@ -29,7 +29,7 @@ import leakcanary.OnObjectRetainedListener
 import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
-import leakcanary.internal.activity.screen.heapDumpSwitchChecked
+import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.getHeapDumpSwitchStatus
 import leakcanary.internal.tv.TvOnRetainInstanceListener
 import shark.SharkLog
 import java.lang.reflect.InvocationHandler
@@ -146,7 +146,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     registerResumedActivityListener(application)
     addDynamicShortcut(application)
 
-    disableDumpHeapIfNeeded()
+    disableDumpHeapIfNeeded(application)
   }
 
   private fun checkRunningInDebuggableBuild() {
@@ -184,17 +184,18 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     })
   }
 
-  private fun disableDumpHeapIfNeeded() {
+  private fun disableDumpHeapIfNeeded(context: Context) {
     // This is called before Application.onCreate(), so if the class is loaded through a secondary
     // dex it might not be available yet.
     Handler().post {
+      val heapDumpSwitchChecked = getHeapDumpSwitchStatus(context)
       val disableHeapDump = isRunningTests || !heapDumpSwitchChecked
       if (disableHeapDump) {
         if (isRunningTests) {
           SharkLog.d { "$testClassName detected in classpath, app is running tests => disabling heap dumping & analysis" }
         }
         if (!heapDumpSwitchChecked) {
-          SharkLog.d { "Heapdump turned off from About screen => disabling heap dumping & analysis" }
+          SharkLog.d { "Heap dumping turned off from About screen => disabling heap dumping & analysis" }
         }
         LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
       }

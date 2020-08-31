@@ -17,9 +17,9 @@ import leakcanary.internal.InternalLeakCanary.onRetainInstanceListener
 import leakcanary.internal.NotificationReceiver.Action.CANCEL_NOTIFICATION
 import leakcanary.internal.NotificationReceiver.Action.DUMP_HEAP
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
+import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DebuggerIsAttached
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
-import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
 import leakcanary.internal.activity.screen.AboutScreen
 import shark.AndroidResourceIdNames
@@ -97,8 +97,9 @@ internal class HeapDumpTrigger(
     // A tick will be rescheduled when this is turned back on.
     if (!config.dumpHeap) {
       val resources = application.resources
-      val heapDumpStatus = AboutScreen.getHeapDumpStatus(resources = resources)
-      val message = when(heapDumpStatus) {
+      val heapDumpStatus =
+        AboutScreen.getHeapDumpStatus(resources = resources, context = application)
+      val message = when (heapDumpStatus) {
         AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_ABOUT_SCREEN -> "Heap Dump is disabled from the About Screen"
         else -> "LeakCanary.Config.dumpHeap is false"
       }
