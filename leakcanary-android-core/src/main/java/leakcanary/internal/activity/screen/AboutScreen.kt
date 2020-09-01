@@ -1,6 +1,5 @@
 package leakcanary.internal.activity.screen
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.res.Resources
@@ -30,6 +29,7 @@ import java.util.concurrent.ScheduledExecutorService
 
 private const val HEAP_DUMP_SHARED_PREFERENCES = "HEAP_DUMP_SHARED_PREFERENCES"
 private const val HEAP_DUMP_SWITCH_ENABLED = "HEAP_DUMP_SWITCH_ENABLED"
+private const val HEAP_DUMP_SHARED_PREFERENCES_THREAD_NAME = "shared-preferences"
 
 internal class AboutScreen : Screen() {
 
@@ -131,6 +131,8 @@ internal class AboutScreen : Screen() {
       NOT_INSTALLED
     }
 
+    // Shared preferences should be read on a background thread as reading them on UI Thread will
+    // invoke Strict mode violation.
     val sharedPreferenceBackgroundExecutor: ScheduledExecutorService =
       Executors.newSingleThreadScheduledExecutor { runnable ->
         val thread = object : Thread() {
@@ -139,7 +141,7 @@ internal class AboutScreen : Screen() {
             runnable.run()
           }
         }
-        thread.name = "shared-preference"
+        thread.name = HEAP_DUMP_SHARED_PREFERENCES_THREAD_NAME
         thread
       }
 
