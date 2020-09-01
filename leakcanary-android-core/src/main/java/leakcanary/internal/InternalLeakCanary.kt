@@ -30,6 +30,7 @@ import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
 import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.getHeapDumpSwitchStatus
+import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.sharedPreferenceBackgroundExecutor
 import leakcanary.internal.tv.TvOnRetainInstanceListener
 import shark.SharkLog
 import java.lang.reflect.InvocationHandler
@@ -185,25 +186,33 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   }
 
   private fun disableDumpHeapIfNeeded(context: Context) {
+    disableDumpHeapInTests()
+    disableDumpHeapAboutScreen(context)
+    if (LeakCanary.config.dumpHeap) {
+      SharkLog.d { "LeakCanary is running and ready to detect leaks" }
+    } else {
+      SharkLog.d { "LeakCanary heap dumping is disabled: LeakCanary.config.dumpHeap = false" }
+    }
+  }
+
+  private fun disableDumpHeapAboutScreen(context: Context) {
+    sharedPreferenceBackgroundExecutor.execute {
+      val disableHeapDump = !getHeapDumpSwitchStatus(context)
+      if (disableHeapDump) {
+        SharkLog.d { "Heap dumping turned off from About screen => disabling heap dumping & analysis" }
+        LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
+      }
+    }
+  }
+
+  private fun disableDumpHeapInTests() {
     // This is called before Application.onCreate(), so if the class is loaded through a secondary
     // dex it might not be available yet.
     Handler().post {
-      val heapDumpSwitchChecked = getHeapDumpSwitchStatus(context)
-      val disableHeapDump = isRunningTests || !heapDumpSwitchChecked
-      if (disableHeapDump) {
-        if (isRunningTests) {
-          SharkLog.d { "$testClassName detected in classpath, app is running tests => disabling heap dumping & analysis" }
-        }
-        if (!heapDumpSwitchChecked) {
-          SharkLog.d { "Heap dumping turned off from About screen => disabling heap dumping & analysis" }
-        }
-        LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
+      if (isRunningTests) {
+        SharkLog.d { "$testClassName detected in classpath, app is running tests => disabling heap dumping & analysis" }
       }
-      if (LeakCanary.config.dumpHeap) {
-        SharkLog.d { "LeakCanary is running and ready to detect leaks" }
-      } else {
-        SharkLog.d { "LeakCanary heap dumping is disabled: LeakCanary.config.dumpHeap = false" }
-      }
+      LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
     }
   }
 
