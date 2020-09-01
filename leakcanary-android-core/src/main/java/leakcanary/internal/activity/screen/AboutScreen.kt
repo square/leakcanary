@@ -3,6 +3,7 @@ package leakcanary.internal.activity.screen
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.res.Resources
+import android.os.Process
 import android.text.Html
 import android.text.method.LinkMovementMethod
 import android.view.ViewGroup
@@ -22,11 +23,24 @@ import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpSt
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.inflate
+import java.util.concurrent.Executors
 
 private const val HEAP_DUMP_SHARED_PREFERENCES = "HEAP_DUMP_SHARED_PREFERENCES"
 private const val HEAP_DUMP_SWITCH_ENABLED = "HEAP_DUMP_SWITCH_ENABLED"
 
 internal class AboutScreen : Screen() {
+
+  private val backgroundExecutor =
+    Executors.newSingleThreadScheduledExecutor { runnable ->
+      val thread = object : Thread() {
+        override fun run() {
+          Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+          runnable.run()
+        }
+      }
+      thread.name = "heap-dump-shared-prefs"
+      thread
+    }
 
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_about_screen)
@@ -46,16 +60,27 @@ internal class AboutScreen : Screen() {
               )
           )
 
-          val heapDumpText = findViewById<TextView>(R.id.leak_canary_about_heap_dump_text)
-          heapDumpText.text = getHeapDumpStatusMessage(resources, context)
+          val heapDumpTextView = findViewById<TextView>(R.id.leak_canary_about_heap_dump_text)
+          updateHeapDumpTextView(heapDumpTextView, context, resources, ::getHeapDumpStatusMessage)
           val heapDumpSwitchView =
             findViewById<Switch>(R.id.leak_canary_about_heap_dump_switch_button)
           heapDumpSwitchView.isChecked = getHeapDumpSwitchStatus(context)
           heapDumpSwitchView.setOnCheckedChangeListener { _, checked ->
             updateHeapDumpConfig(checked, context)
-            heapDumpText.text = getHeapDumpStatusMessage(resources, context)
+            updateHeapDumpTextView(heapDumpTextView, context, resources, ::getHeapDumpStatusMessage)
           }
         }
+
+  private fun updateHeapDumpTextView(
+    heapDumpTextView: TextView,
+    context: Context,
+    resources: Resources,
+    getHeapDumpStatusMessage: (resources: Resources, context: Context) -> String
+  ) {
+    backgroundExecutor.execute {
+      heapDumpTextView.text = getHeapDumpStatusMessage(resources, context)
+    }
+  }
 
   private fun getHeapDumpStatusMessage(
     resources: Resources,
@@ -107,37 +132,36 @@ internal class AboutScreen : Screen() {
       NOT_INSTALLED
     }
 
-    fun getHeapDumpSwitchStatus(context: Context): Boolean {
-      return context.getSharedPreferences(HEAP_DUMP_SHARED_PREFERENCES, MODE_PRIVATE)
+    fun getHeapDumpSwitchStatus(context: Context) =
+      context.getSharedPreferences(HEAP_DUMP_SHARED_PREFERENCES, MODE_PRIVATE)
           .getBoolean(HEAP_DUMP_SWITCH_ENABLED, true)
-    }
-
-    fun getHeapDumpStatus(
-      resources: Resources,
-      context: Context
-    ): HeapDumpStatus {
-      val config = LeakCanary.config
-      return when {
-        !AppWatcher.isInstalled -> NOT_INSTALLED
-        !config.dumpHeap ->
-          if (isRunningTests(resources)) {
-            DISABLED_RUNNING_TESTS
-          } else if (!getHeapDumpSwitchStatus(context)) {
-            DISABLED_FROM_ABOUT_SCREEN
-          } else {
-            DISABLED_BY_DEVELOPER
-          }
-        !config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached -> DISABLED_DEBUGGER_ATTACHED
-        else -> ENABLED
-      }
-    }
-
-    private fun isRunningTests(resources: Resources) =
-      try {
-        Class.forName(resources.getString(R.string.leak_canary_test_class_name))
-        true
-      } catch (e: Exception) {
-        false
-      }
   }
+
+  private fun getHeapDumpStatus(
+    resources: Resources,
+    context: Context
+  ): HeapDumpStatus {
+    val config = LeakCanary.config
+    return when {
+      !AppWatcher.isInstalled -> NOT_INSTALLED
+      !config.dumpHeap ->
+        if (isRunningTests(resources)) {
+          DISABLED_RUNNING_TESTS
+        } else if (!getHeapDumpSwitchStatus(context)) {
+          DISABLED_FROM_ABOUT_SCREEN
+        } else {
+          DISABLED_BY_DEVELOPER
+        }
+      !config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached -> DISABLED_DEBUGGER_ATTACHED
+      else -> ENABLED
+    }
+  }
+
+  private fun isRunningTests(resources: Resources) =
+    try {
+      Class.forName(resources.getString(R.string.leak_canary_test_class_name))
+      true
+    } catch (e: Exception) {
+      false
+    }
 }
