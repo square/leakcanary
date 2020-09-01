@@ -146,7 +146,8 @@ internal class AboutScreen : Screen() {
       }
 
     fun getHeapDumpSwitchStatus(context: Context) =
-      context.getSharedPreferences(HEAP_DUMP_SHARED_PREFERENCES, MODE_PRIVATE)
+      context
+          .getSharedPreferences(HEAP_DUMP_SHARED_PREFERENCES, MODE_PRIVATE)
           .getBoolean(HEAP_DUMP_SWITCH_ENABLED, true)
 
     fun getHeapDumpStatus(
