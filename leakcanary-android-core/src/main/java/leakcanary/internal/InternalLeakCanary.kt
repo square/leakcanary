@@ -188,6 +188,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   private fun disableDumpHeapIfNeeded(context: Context) {
     disableDumpHeapInTests()
     disableDumpHeapAboutScreen(context)
+
     if (LeakCanary.config.dumpHeap) {
       SharkLog.d { "LeakCanary is running and ready to detect leaks" }
     } else {
