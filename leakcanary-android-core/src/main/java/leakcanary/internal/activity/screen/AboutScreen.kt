@@ -1,8 +1,10 @@
 package leakcanary.internal.activity.screen
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.res.Resources
+import android.os.Handler
 import android.os.Process
 import android.text.Html
 import android.text.method.LinkMovementMethod
@@ -53,8 +55,12 @@ internal class AboutScreen : Screen() {
           updateHeapDumpTextView(heapDumpTextView, context, resources, ::getHeapDumpStatusMessage)
           val heapDumpSwitchView =
             findViewById<Switch>(R.id.leak_canary_about_heap_dump_switch_button)
+          val uiHandler = Handler()
           sharedPreferenceBackgroundExecutor.execute {
-            heapDumpSwitchView.isChecked = getHeapDumpSwitchStatus(context)
+            val checked = getHeapDumpSwitchStatus(context)
+            uiHandler.post {
+              heapDumpSwitchView.isChecked = checked
+            }
           }
           heapDumpSwitchView.setOnCheckedChangeListener { _, checked ->
             updateHeapDumpConfig(checked, context)
