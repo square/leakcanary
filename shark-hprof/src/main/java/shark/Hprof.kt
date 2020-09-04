@@ -13,19 +13,20 @@ import java.io.File
     replaceWith = ReplaceWith("shark.HprofFile")
 )
 class Hprof private constructor(
-  val file: HprofFile
+  val file: File,
+  val header: HprofHeader
 ) : Closeable {
 
-  val reader = HprofReader(file)
+  val reader: HprofReader = HprofReader(this)
 
   val heapDumpTimestamp: Long
-    get() = file.heapDumpTimestamp
+    get() = header.heapDumpTimestamp
 
   val hprofVersion: HprofVersion
-    get() = HprofVersion.valueOf(file.version.name)
+    get() = HprofVersion.valueOf(header.version.name)
 
   val fileLength: Long
-    get() = file.length
+    get() = file.length()
 
   private val closeables = mutableListOf<Closeable>()
 
@@ -47,6 +48,7 @@ class Hprof private constructor(
     JDK1_2_BETA4,
     JDK_6,
     ANDROID;
+
     val versionString: String
       get() = shark.HprofVersion.valueOf(name).versionString
   }
@@ -56,6 +58,6 @@ class Hprof private constructor(
         message = "Replaced by non closable HprofFile",
         replaceWith = ReplaceWith("shark.HprofFile.hprofFile(hprofFile)")
     )
-    fun open(hprofFile: File) = Hprof(HprofFile.hprofFile(hprofFile))
+    fun open(hprofFile: File): Hprof = Hprof(hprofFile, HprofHeader.parseHeaderOf(hprofFile))
   }
 }

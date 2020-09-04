@@ -36,7 +36,7 @@ import kotlin.reflect.KClass
  * A [HeapGraph] that reads from an [HprofFile] indexed with [HprofIndex].
  */
 class HprofHeapGraph internal constructor(
-  private val hprof: HprofFile,
+  private val header: HprofHeader,
   private val reader: HprofRandomAccessReader,
   private val index: HprofInMemoryIndex
 ) : CloseableHeapGraph {
@@ -45,7 +45,7 @@ class HprofHeapGraph internal constructor(
   private val reusedPrimitiveArraySkipContentRecord =
     PrimitiveArraySkipContentRecord(0, 0, 0, PrimitiveType.BOOLEAN)
 
-  override val identifierByteSize: Int get() = hprof.identifierByteSize
+  override val identifierByteSize: Int get() = header.identifierByteSize
 
   override val context = GraphContext()
 
@@ -275,8 +275,8 @@ class HprofHeapGraph internal constructor(
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): CloseableHeapGraph {
-      val hprofFile = HprofFile.hprofFile(this)
-      val index = HprofIndex.memoryIndex(hprofFile, proguardMapping, indexedGcRootTypes)
+      val header = HprofHeader.parseHeaderOf(this)
+      val index = HprofIndex.memoryIndex(this, header, proguardMapping, indexedGcRootTypes)
       return index.openHeapGraph()
     }
 
@@ -292,7 +292,7 @@ class HprofHeapGraph internal constructor(
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): HeapGraph {
-      val index = HprofIndex.memoryIndex(hprof.file, proguardMapping, indexedGcRootTypes)
+      val index = HprofIndex.memoryIndex(hprof.file, hprof.header, proguardMapping, indexedGcRootTypes)
       val graph = index.openHeapGraph()
       hprof.attachClosable(graph)
       return graph

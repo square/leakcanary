@@ -65,25 +65,20 @@ import java.nio.charset.Charset
  * Reads hprof content from an Okio [BufferedSource].
  *
  * Not thread safe, should be used from a single thread.
- *
- * Binary Dump Format reference: http://hg.openjdk.java.net/jdk6/jdk6/jdk/raw-file/tip/src/share/demo/jvmti/hprof/manual.html#mozTocId848088
- *
- * The Android Hprof format differs in some ways from that reference. This parser implementation
- * is largely adapted from https://android.googlesource.com/platform/tools/base/+/studio-master-dev/perflib/src/main/java/com/android/tools/perflib
  */
 @Suppress("LargeClass", "TooManyFunctions")
 class HprofRecordReader internal constructor(
-  hprof: HprofFile,
+  header: HprofHeader,
   private val source: BufferedSource
 ) {
 
+  /**
+   * How many bytes this reader has read from [source]. Can only increase.
+   */
   var bytesRead = 0L
     private set
 
-  val sourceExhausted
-    get() = source.exhausted()
-
-  private val identifierByteSize = hprof.identifierByteSize
+  private val identifierByteSize = header.identifierByteSize
 
   private val typeSizes: IntArray
 
@@ -99,10 +94,6 @@ class HprofRecordReader internal constructor(
   }
 
   fun sizeOf(type: Int) = typeSizes[type]
-
-  fun resetBytesRead() {
-    bytesRead = 0L
-  }
 
   fun readStringRecord(length: Long) = StringRecord(
       id = readId(),

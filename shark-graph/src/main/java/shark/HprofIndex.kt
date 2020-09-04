@@ -9,34 +9,40 @@ import shark.GcRoot.NativeStack
 import shark.GcRoot.StickyClass
 import shark.GcRoot.ThreadBlock
 import shark.GcRoot.ThreadObject
+import shark.HprofRandomAccessReader.Companion.openRandomAccessReaderFor
 import shark.internal.HprofInMemoryIndex
+import java.io.File
 import kotlin.reflect.KClass
 
 /**
  * An index on a [HprofFile]. See [openHeapGraph].
  */
 class HprofIndex private constructor(
-  private val hprof: HprofFile,
+  private val file: File,
+  private val header: HprofHeader,
   private val index: HprofInMemoryIndex
 ) {
 
   /**
    * Opens a [CloseableHeapGraph] which you can use to navigate the indexed hprof and then close.
    */
-  fun openHeapGraph(): CloseableHeapGraph = HprofHeapGraph(hprof, hprof.randomAccessReader(), index)
+  fun openHeapGraph(): CloseableHeapGraph {
+    val reader = openRandomAccessReaderFor(file, header)
+    return HprofHeapGraph(header, reader, index)
+  }
 
   companion object {
-
     /**
      * Creates an in memory index of [hprof].
      */
     fun memoryIndex(
-      hprof: HprofFile,
+      hprofFile: File,
+      hprofHeader: HprofHeader,
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = defaultIndexedGcRootTypes()
     ): HprofIndex {
-      val index = HprofInMemoryIndex.createReadingHprof(hprof, proguardMapping, indexedGcRootTypes)
-      return HprofIndex(hprof, index)
+      val index = HprofInMemoryIndex.indexHprof(hprofFile, hprofHeader, proguardMapping, indexedGcRootTypes)
+      return HprofIndex(hprofFile, hprofHeader, index)
     }
 
     fun defaultIndexedGcRootTypes() = setOf(

@@ -12,7 +12,6 @@ import android.graphics.Paint.Style.STROKE
 import android.graphics.Rect
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.navigation.getColorCompat
-import shark.HprofFile
 import shark.HprofRecord
 import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
@@ -31,6 +30,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecord.StringRecord
+import shark.HprofStreamingReader.Companion.createStreamingReaderFor
 import shark.OnHprofRecordListener
 import java.io.File
 
@@ -101,10 +101,10 @@ internal object HeapDumpRenderer {
 
     var lastPosition = 0L
 
-    val reader = HprofFile.hprofFile(heapDumpFile).streamingReader()
+    val reader = createStreamingReaderFor(heapDumpFile)
     val hprofStringCache = mutableMapOf<Long, String>()
     val classNames = mutableMapOf<Long, Long>()
-    reader.readHprofRecordsAsStream(
+    reader.readHprofRecords(
         setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
       lastPosition = position
       when (record) {

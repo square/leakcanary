@@ -1,5 +1,6 @@
 package shark
 
+import shark.HprofHeader.Companion.parseHeaderOf
 import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -15,6 +16,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRe
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackFrameRecord
 import shark.HprofRecord.StringRecord
+import shark.HprofStreamingReader.Companion.createStreamingReaderFor
 import java.io.File
 
 /**
@@ -64,8 +66,8 @@ class HprofDeobfuscator {
 
     var maxId: Long = 0
 
-    val reader = HprofFile.hprofFile(inputHprofFile).streamingReader()
-    reader.readHprofRecordsAsStream(setOf(HprofRecord::class),
+    val reader = createStreamingReaderFor(inputHprofFile)
+    reader.readHprofRecords(setOf(HprofRecord::class),
         OnHprofRecordListener { _, record ->
           when (record) {
             is StringRecord -> {
@@ -105,14 +107,14 @@ class HprofDeobfuscator {
   ): File {
     var id = firstId
 
-    val hprof = HprofFile.hprofFile(inputHprofFile)
-    val reader = hprof.streamingReader()
+    val hprofHeader = parseHeaderOf(inputHprofFile)
+    val reader = createStreamingReaderFor(inputHprofFile, hprofHeader)
     HprofWriter.open(
         outputHprofFile,
-        identifierByteSize = hprof.identifierByteSize,
-        hprofVersion = hprof.version
+        identifierByteSize = hprofHeader.identifierByteSize,
+        hprofVersion = hprofHeader.version
     ).use { writer ->
-      reader.readHprofRecordsAsStream(setOf(HprofRecord::class),
+      reader.readHprofRecords(setOf(HprofRecord::class),
           OnHprofRecordListener { _,
             record ->
             // HprofWriter automatically emits HeapDumpEndRecord, because it flushes

@@ -2,6 +2,7 @@ package shark.internal
 
 import shark.GcRoot
 import shark.HprofFile
+import shark.HprofHeader
 import shark.HprofRecord
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassSkipContentRecord
@@ -10,6 +11,9 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecor
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
+import shark.HprofStreamingReader
+import shark.HprofStreamingReader.Companion
+import shark.HprofStreamingReader.Companion.createStreamingReaderFor
 import shark.OnHprofRecordListener
 import shark.PrimitiveType
 import shark.ProguardMapping
@@ -20,6 +24,7 @@ import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongObjectScatterMap
+import java.io.File
 import kotlin.math.max
 import kotlin.reflect.KClass
 
@@ -378,8 +383,9 @@ internal class HprofInMemoryIndex private constructor(
       return byteCount
     }
 
-    fun createReadingHprof(
-      hprof: HprofFile,
+    fun indexHprof(
+      hprofFile: File,
+      hprofHeader: HprofHeader,
       proguardMapping: ProguardMapping?,
       indexedGcRootTypes: Set<KClass<out GcRoot>>
     ): HprofInMemoryIndex {
@@ -403,9 +409,10 @@ internal class HprofInMemoryIndex private constructor(
       var objectArrayCount = 0
       var primitiveArrayCount = 0
 
-      val reader = hprof.streamingReader()
 
-      reader.readHprofRecordsAsStream(setOf(
+      val reader = createStreamingReaderFor(hprofFile, hprofHeader)
+
+      reader.readHprofRecords(setOf(
           ClassSkipContentRecord::class,
           InstanceSkipContentRecord::class,
           ObjectArraySkipContentRecord::class,
@@ -437,8 +444,8 @@ internal class HprofInMemoryIndex private constructor(
       val bytesForPrimitiveArraySize = byteSizeForUnsigned(maxPrimitiveArraySize)
 
       val indexBuilderListener = Builder(
-          longIdentifiers = hprof.identifierByteSize == 8,
-          fileLength = hprof.length,
+          longIdentifiers = hprofHeader.identifierByteSize == 8,
+          fileLength = hprofFile.length(),
           classCount = classCount,
           instanceCount = instanceCount,
           objectArrayCount = objectArrayCount,
@@ -451,7 +458,7 @@ internal class HprofInMemoryIndex private constructor(
           bytesForPrimitiveArraySize = bytesForPrimitiveArraySize
       )
 
-      reader.readHprofRecordsAsStream(recordTypes, indexBuilderListener)
+      reader.readHprofRecords(recordTypes, indexBuilderListener)
       return indexBuilderListener.buildIndex(proguardMapping)
     }
 

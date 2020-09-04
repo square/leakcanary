@@ -2,21 +2,20 @@ package shark
 
 import okio.Buffer
 import java.io.Closeable
+import java.io.File
 
-class HprofRandomAccessReader internal constructor(
-  hprof: HprofFile
+class HprofRandomAccessReader private constructor(
+  private val source: RandomAccessSource,
+  hprofHeader: HprofHeader
 ) : Closeable {
-
-  private val buffer =  Buffer()
-  private val reader = HprofRecordReader(hprof, buffer)
-  private val channel = hprof.file.inputStream().channel
+  private val buffer = Buffer()
+  private val reader = HprofRecordReader(hprofHeader, buffer)
 
   fun <T> read(
     position: Long,
     byteCount: Long,
     block: HprofRecordReader.() -> T
   ): T {
-    println("read at position $position byteCount $byteCount")
     require(byteCount > 0L) {
       "byteCount $byteCount must be > 0"
     }
@@ -24,7 +23,7 @@ class HprofRandomAccessReader internal constructor(
     var mutableByteCount = byteCount
 
     while (mutableByteCount > 0L) {
-      val bytesRead = channel.transferTo(mutablePos, mutableByteCount, buffer)
+      val bytesRead = source.read(buffer, mutablePos, mutableByteCount)
       check(bytesRead > 0) {
         "Requested $mutableByteCount bytes after reading ${mutablePos - position}, got 0 bytes instead."
       }
@@ -39,6 +38,33 @@ class HprofRandomAccessReader internal constructor(
   }
 
   override fun close() {
-    channel.close()
+    source.close()
+  }
+
+  companion object {
+
+    fun openRandomAccessReaderFor(
+      hprofFile: File,
+      header: HprofHeader = HprofHeader.parseHeaderOf(hprofFile)
+    ): HprofRandomAccessReader {
+      val channel = hprofFile.inputStream().channel
+      val source = object : RandomAccessSource {
+        override fun read(
+          sink: Buffer,
+          position: Long,
+          byteCount: Long
+        ) = channel.transferTo(position, byteCount, sink)
+
+        override fun close() = channel.close()
+      }
+      return HprofRandomAccessReader(source, header)
+    }
+
+    fun createRandomAccessReaderFor(
+      hprofSource: RandomAccessSource,
+      hprofHeader: HprofHeader
+    ): HprofRandomAccessReader {
+      return HprofRandomAccessReader(hprofSource, hprofHeader)
+    }
   }
 }

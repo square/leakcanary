@@ -203,7 +203,7 @@ class HprofWriterTest {
     val readRecords = mutableListOf<HprofRecord>()
     HprofFile.hprofFile(hprofFile)
         .streamingReader()
-        .readHprofRecordsAsStream(setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
+        .readHprofRecords(setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
           readRecords += record
         })
     return readRecords
