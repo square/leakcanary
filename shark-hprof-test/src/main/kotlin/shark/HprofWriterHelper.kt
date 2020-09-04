@@ -343,7 +343,8 @@ class HprofWriterHelper constructor(
 }
 
 fun File.dump(block: HprofWriterHelper.() -> Unit) {
-  HprofWriterHelper(HprofWriter.open(this))
+  // TODO Change the approach => HprofFile provides a writer.
+  HprofWriterHelper(HprofWriter.open(this, 4, HprofVersion.ANDROID))
       .use(block)
 }
 

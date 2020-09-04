@@ -21,6 +21,7 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
+import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.LeakTrace.GcRootType
 import shark.LeakTraceObject.LeakingStatus
 import shark.LeakTraceObject.LeakingStatus.LEAKING
@@ -88,15 +89,13 @@ class HeapAnalyzer constructor(
 
     return try {
       listener.onAnalysisProgress(PARSING_HEAP_DUMP)
-      Hprof.open(heapDumpFile)
-          .use { hprof ->
-            val graph = HprofHeapGraph.indexHprof(hprof, proguardMapping)
-            val helpers =
-              FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
-            helpers.analyzeGraph(
-                metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
-            )
-          }
+      heapDumpFile.openHeapGraph(proguardMapping).use { graph ->
+        val helpers =
+          FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
+        helpers.analyzeGraph(
+            metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
+        )
+      }
     } catch (exception: Throwable) {
       HeapAnalysisFailure(
           heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),

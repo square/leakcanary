@@ -4,12 +4,16 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
+import shark.ValueHolder.BooleanHolder
+import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
 import java.io.File
 
@@ -23,13 +27,87 @@ class HprofWriterTest {
     get() = ++lastId
 
   @Test
+  fun writeAndReadStringRecord() {
+    val hprofFile = testFolder.newFile("temp.hprof")
+    val record = StringRecord(id, MAGIC_WAND_CLASS_NAME)
+    hprofFile.writeRecords(listOf(record))
+
+    val readRecords = readAllRecords(hprofFile)
+
+    assertThat(readRecords).hasSize(1)
+    assertThat(readRecords[0]).isInstanceOf(StringRecord::class.java)
+    assertThat((readRecords[0] as StringRecord).id).isEqualTo(record.id)
+    assertThat((readRecords[0] as StringRecord).string).isEqualTo(record.string)
+  }
+
+  @Test
+  fun writeAndReadClassRecord() {
+    val hprofFile = testFolder.newFile("temp.hprof")
+    val className = StringRecord(id, MAGIC_WAND_CLASS_NAME)
+    val loadClassRecord = LoadClassRecord(1, id, 1, className.id)
+    val classDump = ClassDumpRecord(
+        id = loadClassRecord.id,
+        stackTraceSerialNumber = 1,
+        superclassId = 0,
+        classLoaderId = 0,
+        signersId = 0,
+        protectionDomainId = 0,
+        instanceSize = 0,
+        staticFields = emptyList(),
+        fields = emptyList()
+    )
+    hprofFile.writeRecords(listOf(className, loadClassRecord, classDump))
+    hprofFile.openHeapGraph().use { graph: HeapGraph ->
+      assertThat(graph.findClassByName(className.string)).isNotNull
+    }
+  }
+
+  @Test
+  fun writeAndReadStaticField() {
+    val hprofFile = testFolder.newFile("temp.hprof")
+    val className = StringRecord(id, MAGIC_WAND_CLASS_NAME)
+    val field1Name = StringRecord(id, "field1")
+    val field2Name = StringRecord(id, "field2")
+    val loadClassRecord = LoadClassRecord(1, id, 1, className.id)
+    val classDump = ClassDumpRecord(
+        id = loadClassRecord.id,
+        stackTraceSerialNumber = 1,
+        superclassId = 0,
+        classLoaderId = 0,
+        signersId = 0,
+        protectionDomainId = 0,
+        instanceSize = 0,
+        staticFields = listOf(
+            StaticFieldRecord(field1Name.id, PrimitiveType.BOOLEAN.hprofType, BooleanHolder(true)),
+            StaticFieldRecord(field2Name.id, PrimitiveType.INT.hprofType, IntHolder(42))
+        ),
+        fields = emptyList()
+    )
+    hprofFile.writeRecords(
+        listOf(className, field1Name, field2Name, loadClassRecord, classDump)
+    )
+    hprofFile.openHeapGraph().use { graph: HeapGraph ->
+      val heapClass = graph.findClassByName(className.string)!!
+      val staticFields = heapClass.readStaticFields().toList()
+      assertThat(staticFields).hasSize(2)
+      assertThat(staticFields[0].name).isEqualTo(field1Name.string)
+      assertThat(staticFields[0].value.asBoolean).isEqualTo(true)
+      assertThat(staticFields[1].name).isEqualTo(field2Name.string)
+      assertThat(staticFields[1].value.asInt).isEqualTo(42)
+    }
+  }
+
+  @Test
   fun writeAndReadHprof() {
     val hprofFile = testFolder.newFile("temp.hprof")
     val records = createRecords()
 
     hprofFile.writeRecords(records)
 
-    hprofFile.readHprof { graph ->
+    val readRecords = readAllRecords(hprofFile)
+    assertThat(readRecords).hasSameSizeAs(records + HeapDumpEndRecord)
+
+    hprofFile.openHeapGraph().use { graph: HeapGraph ->
       val treasureChestClass = graph.findClassByName(
           TREASURE_CHEST_CLASS_NAME
       )!!
@@ -112,7 +190,8 @@ class HprofWriterTest {
   private fun File.writeRecords(
     records: List<HprofRecord>
   ) {
-    HprofWriter.open(this)
+    // TODO Change the approach => HprofFile provides a writer.
+    HprofWriter.open(this, 4, HprofVersion.ANDROID)
         .use { writer ->
           records.forEach { record ->
             writer.write(record)
@@ -120,11 +199,14 @@ class HprofWriterTest {
         }
   }
 
-  fun File.readHprof(block: (HeapGraph) -> Unit) {
-    Hprof.open(this)
-        .use { hprof ->
-          block(HprofHeapGraph.indexHprof(hprof))
-        }
+  private fun readAllRecords(hprofFile: File): MutableList<HprofRecord> {
+    val readRecords = mutableListOf<HprofRecord>()
+    HprofFile.hprofFile(hprofFile)
+        .streamingReader()
+        .readHprofRecordsAsStream(setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
+          readRecords += record
+        })
+    return readRecords
   }
 
   companion object {

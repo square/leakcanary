@@ -1,7 +1,7 @@
 package shark.internal
 
 import shark.GcRoot
-import shark.Hprof
+import shark.HprofFile
 import shark.HprofRecord
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassSkipContentRecord
@@ -379,7 +379,7 @@ internal class HprofInMemoryIndex private constructor(
     }
 
     fun createReadingHprof(
-      hprof: Hprof,
+      hprof: HprofFile,
       proguardMapping: ProguardMapping?,
       indexedGcRootTypes: Set<KClass<out GcRoot>>
     ): HprofInMemoryIndex {
@@ -392,7 +392,6 @@ internal class HprofInMemoryIndex private constructor(
           PrimitiveArraySkipContentRecord::class,
           GcRootRecord::class
       )
-      val reader = hprof.reader
 
       // First pass to count and correctly size arrays once and for all.
       var maxClassSize = 0L
@@ -403,7 +402,10 @@ internal class HprofInMemoryIndex private constructor(
       var instanceCount = 0
       var objectArrayCount = 0
       var primitiveArrayCount = 0
-      reader.readHprofRecords(setOf(
+
+      val reader = hprof.streamingReader()
+
+      reader.readHprofRecordsAsStream(setOf(
           ClassSkipContentRecord::class,
           InstanceSkipContentRecord::class,
           ObjectArraySkipContentRecord::class,
@@ -434,25 +436,22 @@ internal class HprofInMemoryIndex private constructor(
       val bytesForObjectArraySize = byteSizeForUnsigned(maxObjectArraySize)
       val bytesForPrimitiveArraySize = byteSizeForUnsigned(maxPrimitiveArraySize)
 
-      hprof.moveReaderTo(reader.startPosition)
-      val indexBuilderListener =
-        Builder(
-            longIdentifiers = reader.identifierByteSize == 8,
-            fileLength = hprof.fileLength,
-            classCount = classCount,
-            instanceCount = instanceCount,
-            objectArrayCount = objectArrayCount,
-            primitiveArrayCount = primitiveArrayCount,
-            indexedGcRootsTypes = indexedGcRootTypes.map { it.java }
-                .toSet(),
-            bytesForClassSize = bytesForClassSize,
-            bytesForInstanceSize = bytesForInstanceSize,
-            bytesForObjectArraySize = bytesForObjectArraySize,
-            bytesForPrimitiveArraySize = bytesForPrimitiveArraySize
-        )
+      val indexBuilderListener = Builder(
+          longIdentifiers = hprof.identifierByteSize == 8,
+          fileLength = hprof.length,
+          classCount = classCount,
+          instanceCount = instanceCount,
+          objectArrayCount = objectArrayCount,
+          primitiveArrayCount = primitiveArrayCount,
+          indexedGcRootsTypes = indexedGcRootTypes.map { it.java }
+              .toSet(),
+          bytesForClassSize = bytesForClassSize,
+          bytesForInstanceSize = bytesForInstanceSize,
+          bytesForObjectArraySize = bytesForObjectArraySize,
+          bytesForPrimitiveArraySize = bytesForPrimitiveArraySize
+      )
 
-      reader.readHprofRecords(recordTypes, indexBuilderListener)
-
+      reader.readHprofRecordsAsStream(recordTypes, indexBuilderListener)
       return indexBuilderListener.buildIndex(proguardMapping)
     }
 

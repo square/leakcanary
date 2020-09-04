@@ -41,12 +41,12 @@ class HprofDeobfuscator {
     val (hprofStringCache, classNames, maxId) = readHprofRecords(inputHprofFile)
 
     return writeHprofRecords(
-      inputHprofFile,
-      outputHprofFile,
-      proguardMapping,
-      hprofStringCache,
-      classNames,
-      maxId + 1
+        inputHprofFile,
+        outputHprofFile,
+        proguardMapping,
+        hprofStringCache,
+        classNames,
+        maxId + 1
     )
   }
 
@@ -64,36 +64,33 @@ class HprofDeobfuscator {
 
     var maxId: Long = 0
 
-    Hprof.open(inputHprofFile)
-      .use { hprof ->
-        hprof.reader.readHprofRecords(setOf(HprofRecord::class),
-          OnHprofRecordListener { _, record ->
-            when (record) {
-              is StringRecord -> {
-                maxId = maxId.coerceAtLeast(record.id)
-                hprofStringCache[record.id] = record.string
-              }
-              is LoadClassRecord -> {
-                maxId = maxId.coerceAtLeast(record.id)
-                classNames[record.id] = record.classNameStringId
-              }
-              is StackFrameRecord -> maxId = maxId.coerceAtLeast(record.id)
-              is ObjectRecord -> {
-                maxId = when (record) {
-                  is ClassDumpRecord -> maxId.coerceAtLeast(record.id)
-                  is ClassSkipContentRecord -> maxId.coerceAtLeast(record.id)
-                  is InstanceDumpRecord -> maxId.coerceAtLeast(record.id)
-                  is InstanceSkipContentRecord -> maxId.coerceAtLeast(record.id)
-                  is ObjectArrayDumpRecord -> maxId.coerceAtLeast(record.id)
-                  is ObjectArraySkipContentRecord -> maxId.coerceAtLeast(record.id)
-                  is PrimitiveArrayDumpRecord -> maxId.coerceAtLeast(record.id)
-                  is PrimitiveArraySkipContentRecord -> maxId.coerceAtLeast(record.id)
-                }
+    val reader = HprofFile.hprofFile(inputHprofFile).streamingReader()
+    reader.readHprofRecordsAsStream(setOf(HprofRecord::class),
+        OnHprofRecordListener { _, record ->
+          when (record) {
+            is StringRecord -> {
+              maxId = maxId.coerceAtLeast(record.id)
+              hprofStringCache[record.id] = record.string
+            }
+            is LoadClassRecord -> {
+              maxId = maxId.coerceAtLeast(record.id)
+              classNames[record.id] = record.classNameStringId
+            }
+            is StackFrameRecord -> maxId = maxId.coerceAtLeast(record.id)
+            is ObjectRecord -> {
+              maxId = when (record) {
+                is ClassDumpRecord -> maxId.coerceAtLeast(record.id)
+                is ClassSkipContentRecord -> maxId.coerceAtLeast(record.id)
+                is InstanceDumpRecord -> maxId.coerceAtLeast(record.id)
+                is InstanceSkipContentRecord -> maxId.coerceAtLeast(record.id)
+                is ObjectArrayDumpRecord -> maxId.coerceAtLeast(record.id)
+                is ObjectArraySkipContentRecord -> maxId.coerceAtLeast(record.id)
+                is PrimitiveArrayDumpRecord -> maxId.coerceAtLeast(record.id)
+                is PrimitiveArraySkipContentRecord -> maxId.coerceAtLeast(record.id)
               }
             }
-          })
-      }
-
+          }
+        })
     return Triple(hprofStringCache, classNames, maxId)
   }
 
@@ -108,43 +105,41 @@ class HprofDeobfuscator {
   ): File {
     var id = firstId
 
-    Hprof.open(inputHprofFile)
-      .use { hprof ->
-        val reader = hprof.reader
-        HprofWriter.open(
-          outputHprofFile,
-          identifierByteSize = reader.identifierByteSize,
-          hprofVersion = hprof.hprofVersion
-        ).use { writer ->
-          reader.readHprofRecords(setOf(HprofRecord::class),
-            OnHprofRecordListener { _,
-              record ->
-              // HprofWriter automatically emits HeapDumpEndRecord, because it flushes
-              // all continuous heap dump sub records as one heap dump record.
-              if (record is HeapDumpEndRecord) {
-                return@OnHprofRecordListener
-              }
-
-              when (record) {
-                is StringRecord -> {
-                  writer.write(
-                    createDeobfuscatedStringRecord(record, proguardMapping, hprofStringCache)
-                  )
-                }
-                is ClassDumpRecord -> {
-                  val (recordsToWrite, maxId) = createDeobfuscatedClassDumpRecord(
-                    record, proguardMapping, hprofStringCache, classNames, id
-                  )
-                  id = maxId
-                  recordsToWrite.forEach {
-                    writer.write(it)
-                  }
-                }
-                else -> writer.write(record)
-              }
-            })
+    val hprof = HprofFile.hprofFile(inputHprofFile)
+    val reader = hprof.streamingReader()
+    HprofWriter.open(
+        outputHprofFile,
+        identifierByteSize = hprof.identifierByteSize,
+        hprofVersion = hprof.version
+    ).use { writer ->
+      reader.readHprofRecordsAsStream(setOf(HprofRecord::class),
+          OnHprofRecordListener { _,
+            record ->
+            // HprofWriter automatically emits HeapDumpEndRecord, because it flushes
+            // all continuous heap dump sub records as one heap dump record.
+            if (record is HeapDumpEndRecord) {
+              return@OnHprofRecordListener
             }
-      }
+
+            when (record) {
+              is StringRecord -> {
+                writer.write(
+                    createDeobfuscatedStringRecord(record, proguardMapping, hprofStringCache)
+                )
+              }
+              is ClassDumpRecord -> {
+                val (recordsToWrite, maxId) = createDeobfuscatedClassDumpRecord(
+                    record, proguardMapping, hprofStringCache, classNames, id
+                )
+                id = maxId
+                recordsToWrite.forEach {
+                  writer.write(it)
+                }
+              }
+              else -> writer.write(record)
+            }
+          })
+    }
 
     return outputHprofFile
   }
@@ -156,7 +151,7 @@ class HprofDeobfuscator {
   ): StringRecord {
     val obfuscatedName = hprofStringCache[record.id]!!
     return StringRecord(
-      record.id, proguardMapping.deobfuscateClassName(obfuscatedName)
+        record.id, proguardMapping.deobfuscateClassName(obfuscatedName)
     )
   }
 
@@ -201,17 +196,17 @@ class HprofDeobfuscator {
     }
 
     recordsToWrite.add(
-      ClassDumpRecord(
-        record.id,
-        record.stackTraceSerialNumber,
-        record.superclassId,
-        record.classLoaderId,
-        record.signersId,
-        record.protectionDomainId,
-        record.instanceSize,
-        newStaticFields,
-        newFields
-      )
+        ClassDumpRecord(
+            record.id,
+            record.stackTraceSerialNumber,
+            record.superclassId,
+            record.classLoaderId,
+            record.signersId,
+            record.protectionDomainId,
+            record.instanceSize,
+            newStaticFields,
+            newFields
+        )
     )
 
     return Pair(recordsToWrite, id)

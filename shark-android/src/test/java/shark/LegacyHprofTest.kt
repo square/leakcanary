@@ -2,7 +2,7 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.GcRoot.StickyClass
+import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.LeakTrace.GcRootType
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.DESTROYED
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_ACTIVITY
@@ -56,15 +56,12 @@ class LegacyHprofTest {
   }
 
   private fun readThreadNames(hprofFile: File): List<String> {
-    val threadNames = Hprof.open(hprofFile)
-        .use { hprof ->
-          val graph = HprofHeapGraph.indexHprof(hprof)
-          graph.findClassByName("java.lang.Thread")!!.instances.map { instance ->
-                instance["java.lang.Thread", "name"]!!.value.readAsJavaString()!!
-              }
-              .toList()
-        }
-    return threadNames
+    return hprofFile.openHeapGraph().use { graph ->
+      graph.findClassByName("java.lang.Thread")!!.instances.map { instance ->
+        instance["java.lang.Thread", "name"]!!.value.readAsJavaString()!!
+      }
+          .toList()
+    }
   }
 
   @Test fun androidO() {
@@ -86,11 +83,11 @@ class LegacyHprofTest {
         .use { hprof ->
           val graph = HprofHeapGraph.indexHprof(hprof)
           graph.instances.filter {
-                it instanceOf "android.content.ContextWrapper"
-                    && !(it instanceOf "android.app.Activity")
-                    && !(it instanceOf "android.app.Application")
-                    && !(it instanceOf "android.app.Service")
-              }
+            it instanceOf "android.content.ContextWrapper"
+                && !(it instanceOf "android.app.Activity")
+                && !(it instanceOf "android.app.Application")
+                && !(it instanceOf "android.app.Service")
+          }
               .map { instance ->
                 val reporter = ObjectReporter(instance)
                 AndroidObjectInspectors.CONTEXT_WRAPPER.inspect(reporter)

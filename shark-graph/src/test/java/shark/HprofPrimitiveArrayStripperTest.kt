@@ -5,6 +5,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.HeapObject.HeapPrimitiveArray
+import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import shark.PrimitiveType.BOOLEAN
@@ -32,7 +33,7 @@ class HprofPrimitiveArrayStripperTest {
 
     val strippedFile = stripper.stripPrimitiveArrays(hprofFile)
 
-    strippedFile.readHprof { graph ->
+    strippedFile.openHeapGraph().use { graph ->
       val booleanArrays = graph.objects
           .filter { it is HeapPrimitiveArray && it.primitiveType == BOOLEAN }
           .map { it.readRecord() as BooleanArrayDump }
@@ -61,12 +62,4 @@ class HprofPrimitiveArrayStripperTest {
           }
         }
   }
-
-  fun File.readHprof(block: (HeapGraph) -> Unit) {
-    Hprof.open(this)
-        .use { hprof ->
-          block(HprofHeapGraph.indexHprof(hprof))
-        }
-  }
-
 }

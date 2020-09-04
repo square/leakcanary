@@ -1,25 +1,16 @@
 package shark
 
-import shark.GcRoot.JavaFrame
-import shark.GcRoot.JniGlobal
-import shark.GcRoot.JniLocal
-import shark.GcRoot.JniMonitor
-import shark.GcRoot.MonitorUsed
-import shark.GcRoot.NativeStack
-import shark.GcRoot.StickyClass
-import shark.GcRoot.ThreadBlock
-import shark.GcRoot.ThreadObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.HprofHeapGraph.Companion.indexHprof
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -29,6 +20,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord
 import shark.internal.FieldValuesReader
 import shark.internal.HprofInMemoryIndex
 import shark.internal.IndexedObject
@@ -37,17 +29,23 @@ import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.LruCache
+import java.io.File
 import kotlin.reflect.KClass
 
 /**
- * A [HeapGraph] that reads from an indexed [Hprof]. Create a new instance with [indexHprof].
+ * A [HeapGraph] that reads from an [HprofFile] indexed with [HprofIndex].
  */
 class HprofHeapGraph internal constructor(
-  private val hprof: Hprof,
+  private val hprof: HprofFile,
+  private val reader: HprofRandomAccessReader,
   private val index: HprofInMemoryIndex
-) : HeapGraph {
+) : CloseableHeapGraph {
 
-  override val identifierByteSize: Int get() = hprof.reader.identifierByteSize
+  private val reusedObjectArraySkipContentRecord = ObjectArraySkipContentRecord(0, 0, 0, 0)
+  private val reusedPrimitiveArraySkipContentRecord =
+    PrimitiveArraySkipContentRecord(0, 0, 0, PrimitiveType.BOOLEAN)
+
+  override val identifierByteSize: Int get() = hprof.identifierByteSize
 
   override val context = GraphContext()
 
@@ -132,6 +130,10 @@ class HprofHeapGraph internal constructor(
     return index.objectIdIsIndexed(objectId)
   }
 
+  override fun close() {
+    reader.close()
+  }
+
   internal fun fieldName(
     classId: Long,
     fieldRecord: FieldRecord
@@ -158,7 +160,7 @@ class HprofHeapGraph internal constructor(
     indexedObject: IndexedObjectArray
   ): ObjectArrayDumpRecord {
     return readObjectRecord(objectId, indexedObject) {
-      hprof.reader.readObjectArrayDumpRecord()
+      readObjectArrayDumpRecord()
     }
   }
 
@@ -170,9 +172,10 @@ class HprofHeapGraph internal constructor(
     if (cachedRecord != null) {
       return cachedRecord.elementIds.size * identifierByteSize
     }
-    hprof.moveReaderTo(indexedObject.position)
-    hprof.loadRecord(indexedObject.recordSize)
-    val thinRecord = hprof.reader.readObjectArraySkipContentRecord()
+    reader.read(indexedObject.position, indexedObject.recordSize) {
+      reusedObjectArraySkipContentRecord.read()
+    }
+    val thinRecord = reusedObjectArraySkipContentRecord
     return thinRecord.size * identifierByteSize
   }
 
@@ -181,7 +184,7 @@ class HprofHeapGraph internal constructor(
     indexedObject: IndexedPrimitiveArray
   ): PrimitiveArrayDumpRecord {
     return readObjectRecord(objectId, indexedObject) {
-      hprof.reader.readPrimitiveArrayDumpRecord()
+      readPrimitiveArrayDumpRecord()
     }
   }
 
@@ -202,10 +205,11 @@ class HprofHeapGraph internal constructor(
         is LongArrayDump -> cachedRecord.array.size * PrimitiveType.LONG.byteSize
       }
     }
-    hprof.moveReaderTo(indexedObject.position)
-    hprof.loadRecord(indexedObject.recordSize)
-    val thinRecord = hprof.reader.readPrimitiveArraySkipContentRecord()
-    return  thinRecord.size * thinRecord.type.byteSize
+    reader.read(indexedObject.position, indexedObject.recordSize) {
+      reusedPrimitiveArraySkipContentRecord.read()
+    }
+    val thinRecord = reusedPrimitiveArraySkipContentRecord
+    return thinRecord.size * thinRecord.type.byteSize
   }
 
   internal fun readClassDumpRecord(
@@ -213,7 +217,7 @@ class HprofHeapGraph internal constructor(
     indexedObject: IndexedClass
   ): ClassDumpRecord {
     return readObjectRecord(objectId, indexedObject) {
-      hprof.reader.readClassDumpRecord()
+      readClassDumpRecord()
     }
   }
 
@@ -222,23 +226,23 @@ class HprofHeapGraph internal constructor(
     indexedObject: IndexedInstance
   ): InstanceDumpRecord {
     return readObjectRecord(objectId, indexedObject) {
-      hprof.reader.readInstanceDumpRecord()
+      readInstanceDumpRecord()
     }
   }
 
   private fun <T : ObjectRecord> readObjectRecord(
     objectId: Long,
     indexedObject: IndexedObject,
-    readBlock: () -> T
+    readBlock: HprofRecordReader.() -> T
   ): T {
     val objectRecordOrNull = objectCache[objectId]
     @Suppress("UNCHECKED_CAST")
     if (objectRecordOrNull != null) {
       return objectRecordOrNull as T
     }
-    hprof.moveReaderTo(indexedObject.position)
-    hprof.loadRecord(indexedObject.recordSize)
-    return readBlock().apply { objectCache.put(objectId, this) }
+    return reader.read(indexedObject.position, indexedObject.recordSize) {
+      readBlock()
+    }.apply { objectCache.put(objectId, this) }
   }
 
   private fun wrapIndexedObject(
@@ -261,41 +265,37 @@ class HprofHeapGraph internal constructor(
   }
 
   companion object {
+    /**
+     * A facility for opening a [CloseableHeapGraph] from a [File].
+     * This first parses the file headers with [HprofFile.hprofFile], then indexes the file content
+     * with [HprofIndex.memoryIndex] and then opens a [CloseableHeapGraph] from the index, which
+     * you are responsible for closing after using.
+     */
+    fun File.openHeapGraph(
+      proguardMapping: ProguardMapping? = null,
+      indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
+    ): CloseableHeapGraph {
+      val hprofFile = HprofFile.hprofFile(this)
+      val index = HprofIndex.memoryIndex(hprofFile, proguardMapping, indexedGcRootTypes)
+      return index.openHeapGraph()
+    }
+
+    @Deprecated(
+        "Replaced by HprofIndex.memoryIndex().openHeapGraph() or File.openHeapGraph()",
+        replaceWith = ReplaceWith(
+            "HprofIndex.memoryIndex(hprof, proguardMapping, indexedGcRootTypes)" +
+                ".openHeapGraph()"
+        )
+    )
     fun indexHprof(
       hprof: Hprof,
       proguardMapping: ProguardMapping? = null,
-      indexedGcRootTypes: Set<KClass<out GcRoot>> = setOf(
-          JniGlobal::class,
-          JavaFrame::class,
-          JniLocal::class,
-          MonitorUsed::class,
-          NativeStack::class,
-          StickyClass::class,
-          ThreadBlock::class,
-          // ThreadObject points to threads, which we need to find the thread that a JavaLocalPattern
-          // belongs to
-          ThreadObject::class,
-          JniMonitor::class
-          /*
-          Not included here:
-
-          VmInternal: Ignoring because we've got 150K of it, but is this the right thing
-          to do? What's VmInternal exactly? History does not go further than
-          https://android.googlesource.com/platform/dalvik2/+/refs/heads/master/hit/src/com/android/hit/HprofParser.java#77
-          We should log to figure out what objects VmInternal points to.
-
-          ReferenceCleanup: We used to keep it, but the name doesn't seem like it should create a leak.
-
-          Unknown: it's unknown, should we care?
-
-          We definitely don't care about those for leak finding: InternedString, Finalizing, Debugger, Unreachable
-           */
-      )
+      indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): HeapGraph {
-      val index = HprofInMemoryIndex.createReadingHprof(hprof, proguardMapping, indexedGcRootTypes)
-      hprof.readFullRecords = true
-      return HprofHeapGraph(hprof, index)
+      val index = HprofIndex.memoryIndex(hprof.file, proguardMapping, indexedGcRootTypes)
+      val graph = index.openHeapGraph()
+      hprof.attachClosable(graph)
+      return graph
     }
   }
-
 }
