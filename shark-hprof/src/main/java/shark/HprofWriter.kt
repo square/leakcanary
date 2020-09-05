@@ -447,7 +447,7 @@ class HprofWriter private constructor(
       hprofSink: Sink,
       hprofHeader: HprofHeader = HprofHeader()
     ): HprofWriter {
-      val sink = Okio.buffer(hprofSink)
+      val sink = if (hprofSink is BufferedSink) hprofSink else Okio.buffer(hprofSink)
       sink.writeUtf8(hprofHeader.version.versionString)
       sink.writeByte(0)
       sink.writeInt(hprofHeader.identifierByteSize)

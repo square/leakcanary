@@ -1,5 +1,6 @@
 package shark
 
+import okio.BufferedSource
 import okio.Okio
 import okio.Source
 import shark.HprofRecord.HeapDumpEndRecord
@@ -73,7 +74,9 @@ class StreamingHprofReader private constructor(
       PrimitiveArraySkipContentRecord(0, 0, 0, BOOLEAN)
     val reusedLoadClassRecord = LoadClassRecord(0, 0, 0, 0)
 
-    return Okio.buffer(sourceProvider.openStreamingSource()).use { source ->
+    val rawSource = sourceProvider.openStreamingSource()
+    val bufferedSource = if (rawSource is BufferedSource) rawSource else Okio.buffer(rawSource)
+    return bufferedSource.use { source ->
       val reader = HprofRecordReader(header, source)
       reader.skip(header.recordsPosition)
 
