@@ -5,13 +5,10 @@ import java.io.File
 
 /**
  * Hprof is deprecated, and we offer partial backward compatibility. Any code that was
- * previously using HprofReader directly now has to call [HprofFile.streamingReader] or
- * [HprofFile.randomAccessReader]
+ * previously using HprofReader directly now has to call [StreamingHprofReader.readerFor] or
+ * [HprofRandomAcccessReader.readerFor]
  */
-@Deprecated(
-    "Replaced by HprofFile",
-    replaceWith = ReplaceWith("shark.HprofFile")
-)
+@Deprecated("Replaced by HprofStreamingReader.readerFor or HprofRandomAccessReader.openReaderFor")
 class Hprof private constructor(
   val file: File,
   val header: HprofHeader
@@ -54,10 +51,7 @@ class Hprof private constructor(
   }
 
   companion object {
-    @Deprecated(
-        message = "Replaced by non closable HprofFile",
-        replaceWith = ReplaceWith("shark.HprofFile.hprofFile(hprofFile)")
-    )
+    @Deprecated(message = "Replaced by HprofStreamingReader.readerFor or HprofRandomAccessReader.openReaderFor")
     fun open(hprofFile: File): Hprof = Hprof(hprofFile, HprofHeader.parseHeaderOf(hprofFile))
   }
 }

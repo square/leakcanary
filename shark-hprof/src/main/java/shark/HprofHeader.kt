@@ -1,6 +1,7 @@
 package shark
 
 import okio.Okio
+import okio.Source
 import java.io.File
 
 /**
@@ -31,27 +32,35 @@ data class HprofHeader(
         .toMap()
 
     /**
-     * Reads the header of the provided [file] and returns it as a [HprofHeader]
+     * Reads the header of the provided [hprofFile] and returns it as a [HprofHeader]
      */
     fun parseHeaderOf(hprofFile: File): HprofHeader {
       val fileLength = hprofFile.length()
       if (fileLength == 0L) {
         throw IllegalArgumentException("Hprof file is 0 byte length")
       }
-      val inputStream = hprofFile.inputStream()
-      val source = Okio.buffer(Okio.source(inputStream))
-      val endOfVersionString = source.indexOf(0)
-      val versionName = source.readUtf8(endOfVersionString)
+      return Okio.source(hprofFile.inputStream()).use {
+        parseHeaderOf(it)
+      }
+    }
+
+    /**
+     * Reads the header of the provided [source] and returns it as a [HprofHeader].
+     * This does not close the [source].
+     */
+    fun parseHeaderOf(source: Source): HprofHeader {
+      val bufferedSource = Okio.buffer(source)
+      val endOfVersionString = bufferedSource.indexOf(0)
+      val versionName = bufferedSource.readUtf8(endOfVersionString)
 
       val version = supportedVersions[versionName]
       checkNotNull(version) {
         "Unsupported Hprof version [$versionName] not in supported list ${supportedVersions.keys}"
       }
       // Skip the 0 at the end of the version string.
-      source.skip(1)
-      val identifierByteSize = source.readInt()
-      val heapDumpTimestamp = source.readLong()
-      source.close()
+      bufferedSource.skip(1)
+      val identifierByteSize = bufferedSource.readInt()
+      val heapDumpTimestamp = bufferedSource.readLong()
       return HprofHeader(heapDumpTimestamp, version, identifierByteSize)
     }
   }

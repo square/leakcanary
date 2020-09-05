@@ -4,7 +4,7 @@ import okio.Buffer
 import java.io.Closeable
 import java.io.File
 
-class HprofRandomAccessReader private constructor(
+class RandomAccessHprofReader private constructor(
   private val source: RandomAccessSource,
   hprofHeader: HprofHeader
 ) : Closeable {
@@ -43,28 +43,20 @@ class HprofRandomAccessReader private constructor(
 
   companion object {
 
-    fun openRandomAccessReaderFor(
+    fun openReaderFor(
       hprofFile: File,
-      header: HprofHeader = HprofHeader.parseHeaderOf(hprofFile)
-    ): HprofRandomAccessReader {
-      val channel = hprofFile.inputStream().channel
-      val source = object : RandomAccessSource {
-        override fun read(
-          sink: Buffer,
-          position: Long,
-          byteCount: Long
-        ) = channel.transferTo(position, byteCount, sink)
-
-        override fun close() = channel.close()
-      }
-      return HprofRandomAccessReader(source, header)
+      hprofHeader: HprofHeader = HprofHeader.parseHeaderOf(hprofFile)
+    ): RandomAccessHprofReader {
+      val sourceProvider = FileSourceProvider(hprofFile)
+      return openReaderFor(sourceProvider, hprofHeader)
     }
 
-    fun createRandomAccessReaderFor(
-      hprofSource: RandomAccessSource,
-      hprofHeader: HprofHeader
-    ): HprofRandomAccessReader {
-      return HprofRandomAccessReader(hprofSource, hprofHeader)
+    fun openReaderFor(
+      hprofSourceProvider: RandomAccessSourceProvider,
+      hprofHeader: HprofHeader = hprofSourceProvider.openRandomAccessSource()
+          .use { HprofHeader.parseHeaderOf(it.asStreamingSource()) }
+    ): RandomAccessHprofReader {
+      return RandomAccessHprofReader(hprofSourceProvider.openRandomAccessSource(), hprofHeader)
     }
   }
 }

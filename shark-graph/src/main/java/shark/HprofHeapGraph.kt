@@ -33,11 +33,11 @@ import java.io.File
 import kotlin.reflect.KClass
 
 /**
- * A [HeapGraph] that reads from an [HprofFile] indexed with [HprofIndex].
+ * A [HeapGraph] that reads from an Hprof file indexed by [HprofIndex].
  */
 class HprofHeapGraph internal constructor(
   private val header: HprofHeader,
-  private val reader: HprofRandomAccessReader,
+  private val reader: RandomAccessHprofReader,
   private val index: HprofInMemoryIndex
 ) : CloseableHeapGraph {
 
@@ -267,8 +267,8 @@ class HprofHeapGraph internal constructor(
   companion object {
     /**
      * A facility for opening a [CloseableHeapGraph] from a [File].
-     * This first parses the file headers with [HprofFile.hprofFile], then indexes the file content
-     * with [HprofIndex.memoryIndex] and then opens a [CloseableHeapGraph] from the index, which
+     * This first parses the file headers with [HprofHeader.parseHeaderOf], then indexes the file content
+     * with [HprofIndex.indexRecordsOf] and then opens a [CloseableHeapGraph] from the index, which
      * you are responsible for closing after using.
      */
     fun File.openHeapGraph(
@@ -276,7 +276,7 @@ class HprofHeapGraph internal constructor(
       indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): CloseableHeapGraph {
       val header = HprofHeader.parseHeaderOf(this)
-      val index = HprofIndex.memoryIndex(this, header, proguardMapping, indexedGcRootTypes)
+      val index = HprofIndex.indexRecordsOf(this, header, proguardMapping, indexedGcRootTypes)
       return index.openHeapGraph()
     }
 
@@ -292,7 +292,7 @@ class HprofHeapGraph internal constructor(
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): HeapGraph {
-      val index = HprofIndex.memoryIndex(hprof.file, hprof.header, proguardMapping, indexedGcRootTypes)
+      val index = HprofIndex.indexRecordsOf(hprof.file, hprof.header, proguardMapping, indexedGcRootTypes)
       val graph = index.openHeapGraph()
       hprof.attachClosable(graph)
       return graph

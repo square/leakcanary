@@ -119,13 +119,13 @@ class HprofWriter private constructor(
   private fun BufferedSink.write(record: HprofRecord) {
     when (record) {
       is StringRecord -> {
-        writeNonHeapRecord(HprofStreamingReader.STRING_IN_UTF8) {
+        writeNonHeapRecord(StreamingHprofReader.STRING_IN_UTF8) {
           writeId(record.id)
           writeUtf8(record.string)
         }
       }
       is LoadClassRecord -> {
-        writeNonHeapRecord(HprofStreamingReader.LOAD_CLASS) {
+        writeNonHeapRecord(StreamingHprofReader.LOAD_CLASS) {
           writeInt(record.classSerialNumber)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
@@ -133,7 +133,7 @@ class HprofWriter private constructor(
         }
       }
       is StackTraceRecord -> {
-        writeNonHeapRecord(HprofStreamingReader.STACK_TRACE) {
+        writeNonHeapRecord(StreamingHprofReader.STACK_TRACE) {
           writeInt(record.stackTraceSerialNumber)
           writeInt(record.threadSerialNumber)
           writeInt(record.stackFrameIds.size)
@@ -144,80 +144,80 @@ class HprofWriter private constructor(
         with(workBuffer) {
           when (val gcRoot = record.gcRoot) {
             is Unknown -> {
-              writeByte(HprofStreamingReader.ROOT_UNKNOWN)
+              writeByte(StreamingHprofReader.ROOT_UNKNOWN)
               writeId(gcRoot.id)
             }
             is JniGlobal -> {
               writeByte(
-                  HprofStreamingReader.ROOT_JNI_GLOBAL
+                  StreamingHprofReader.ROOT_JNI_GLOBAL
               )
               writeId(gcRoot.id)
               writeId(gcRoot.jniGlobalRefId)
             }
             is JniLocal -> {
-              writeByte(HprofStreamingReader.ROOT_JNI_LOCAL)
+              writeByte(StreamingHprofReader.ROOT_JNI_LOCAL)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
               writeInt(gcRoot.frameNumber)
             }
             is JavaFrame -> {
-              writeByte(HprofStreamingReader.ROOT_JAVA_FRAME)
+              writeByte(StreamingHprofReader.ROOT_JAVA_FRAME)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
               writeInt(gcRoot.frameNumber)
             }
             is NativeStack -> {
-              writeByte(HprofStreamingReader.ROOT_NATIVE_STACK)
+              writeByte(StreamingHprofReader.ROOT_NATIVE_STACK)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
             }
             is StickyClass -> {
-              writeByte(HprofStreamingReader.ROOT_STICKY_CLASS)
+              writeByte(StreamingHprofReader.ROOT_STICKY_CLASS)
               writeId(gcRoot.id)
             }
             is ThreadBlock -> {
-              writeByte(HprofStreamingReader.ROOT_THREAD_BLOCK)
+              writeByte(StreamingHprofReader.ROOT_THREAD_BLOCK)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
             }
             is MonitorUsed -> {
-              writeByte(HprofStreamingReader.ROOT_MONITOR_USED)
+              writeByte(StreamingHprofReader.ROOT_MONITOR_USED)
               writeId(gcRoot.id)
             }
             is ThreadObject -> {
-              writeByte(HprofStreamingReader.ROOT_THREAD_OBJECT)
+              writeByte(StreamingHprofReader.ROOT_THREAD_OBJECT)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
               writeInt(gcRoot.stackTraceSerialNumber)
             }
             is ReferenceCleanup -> {
-              writeByte(HprofStreamingReader.ROOT_REFERENCE_CLEANUP)
+              writeByte(StreamingHprofReader.ROOT_REFERENCE_CLEANUP)
               writeId(gcRoot.id)
             }
             is VmInternal -> {
-              writeByte(HprofStreamingReader.ROOT_VM_INTERNAL)
+              writeByte(StreamingHprofReader.ROOT_VM_INTERNAL)
               writeId(gcRoot.id)
             }
             is JniMonitor -> {
-              writeByte(HprofStreamingReader.ROOT_JNI_MONITOR)
+              writeByte(StreamingHprofReader.ROOT_JNI_MONITOR)
               writeId(gcRoot.id)
               writeInt(gcRoot.stackTraceSerialNumber)
               writeInt(gcRoot.stackDepth)
             }
             is InternedString -> {
-              writeByte(HprofStreamingReader.ROOT_INTERNED_STRING)
+              writeByte(StreamingHprofReader.ROOT_INTERNED_STRING)
               writeId(gcRoot.id)
             }
             is Finalizing -> {
-              writeByte(HprofStreamingReader.ROOT_FINALIZING)
+              writeByte(StreamingHprofReader.ROOT_FINALIZING)
               writeId(gcRoot.id)
             }
             is Debugger -> {
-              writeByte(HprofStreamingReader.ROOT_DEBUGGER)
+              writeByte(StreamingHprofReader.ROOT_DEBUGGER)
               writeId(gcRoot.id)
             }
             is Unreachable -> {
-              writeByte(HprofStreamingReader.ROOT_UNREACHABLE)
+              writeByte(StreamingHprofReader.ROOT_UNREACHABLE)
               writeId(gcRoot.id)
             }
           }
@@ -225,7 +225,7 @@ class HprofWriter private constructor(
       }
       is ClassDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofStreamingReader.CLASS_DUMP)
+          writeByte(StreamingHprofReader.CLASS_DUMP)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeId(record.superclassId)
@@ -255,7 +255,7 @@ class HprofWriter private constructor(
       }
       is InstanceDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofStreamingReader.INSTANCE_DUMP)
+          writeByte(StreamingHprofReader.INSTANCE_DUMP)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeId(record.classId)
@@ -265,7 +265,7 @@ class HprofWriter private constructor(
       }
       is ObjectArrayDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofStreamingReader.OBJECT_ARRAY_DUMP)
+          writeByte(StreamingHprofReader.OBJECT_ARRAY_DUMP)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeInt(record.elementIds.size)
@@ -275,7 +275,7 @@ class HprofWriter private constructor(
       }
       is PrimitiveArrayDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofStreamingReader.PRIMITIVE_ARRAY_DUMP)
+          writeByte(StreamingHprofReader.PRIMITIVE_ARRAY_DUMP)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
 
@@ -325,7 +325,7 @@ class HprofWriter private constructor(
       }
       is HeapDumpInfoRecord -> {
         with(workBuffer) {
-          writeByte(HprofStreamingReader.HEAP_DUMP_INFO)
+          writeByte(StreamingHprofReader.HEAP_DUMP_INFO)
           writeInt(record.heapId)
           writeId(record.heapNameStringId)
         }
@@ -392,9 +392,9 @@ class HprofWriter private constructor(
 
   private fun BufferedSink.flushHeapBuffer() {
     if (workBuffer.size() > 0) {
-      writeTagHeader(HprofStreamingReader.HEAP_DUMP, workBuffer.size())
+      writeTagHeader(StreamingHprofReader.HEAP_DUMP, workBuffer.size())
       writeAll(workBuffer)
-      writeTagHeader(HprofStreamingReader.HEAP_DUMP_END, 0)
+      writeTagHeader(StreamingHprofReader.HEAP_DUMP_END, 0)
     }
   }
 

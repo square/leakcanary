@@ -9,16 +9,15 @@ import shark.GcRoot.NativeStack
 import shark.GcRoot.StickyClass
 import shark.GcRoot.ThreadBlock
 import shark.GcRoot.ThreadObject
-import shark.HprofRandomAccessReader.Companion.openRandomAccessReaderFor
 import shark.internal.HprofInMemoryIndex
 import java.io.File
 import kotlin.reflect.KClass
 
 /**
- * An index on a [HprofFile]. See [openHeapGraph].
+ * An index on a Hprof file. See [openHeapGraph].
  */
 class HprofIndex private constructor(
-  private val file: File,
+  private val sourceProvider: RandomAccessSourceProvider,
   private val header: HprofHeader,
   private val index: HprofInMemoryIndex
 ) {
@@ -27,22 +26,39 @@ class HprofIndex private constructor(
    * Opens a [CloseableHeapGraph] which you can use to navigate the indexed hprof and then close.
    */
   fun openHeapGraph(): CloseableHeapGraph {
-    val reader = openRandomAccessReaderFor(file, header)
+    val reader = RandomAccessHprofReader.openReaderFor(sourceProvider, header)
     return HprofHeapGraph(header, reader, index)
   }
 
   companion object {
     /**
-     * Creates an in memory index of [hprof].
+     * Creates an in memory index of [hprofFile].
      */
-    fun memoryIndex(
+    fun indexRecordsOf(
       hprofFile: File,
+      hprofHeader: HprofHeader = HprofHeader.parseHeaderOf(hprofFile),
+      proguardMapping: ProguardMapping? = null,
+      indexedGcRootTypes: Set<KClass<out GcRoot>> = defaultIndexedGcRootTypes()
+    ): HprofIndex {
+      return indexRecordsOf(
+          FileSourceProvider(hprofFile), hprofHeader, proguardMapping, indexedGcRootTypes
+      )
+    }
+
+    fun indexRecordsOf(
+      sourceProvider: DualSourceProvider,
       hprofHeader: HprofHeader,
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = defaultIndexedGcRootTypes()
     ): HprofIndex {
-      val index = HprofInMemoryIndex.indexHprof(hprofFile, hprofHeader, proguardMapping, indexedGcRootTypes)
-      return HprofIndex(hprofFile, hprofHeader, index)
+      val reader = StreamingHprofReader.readerFor(sourceProvider, hprofHeader)
+      val index = HprofInMemoryIndex.indexHprof(
+          reader = reader,
+          hprofHeader = hprofHeader,
+          proguardMapping = proguardMapping,
+          indexedGcRootTypes = indexedGcRootTypes
+      )
+      return HprofIndex(sourceProvider, hprofHeader, index)
     }
 
     fun defaultIndexedGcRootTypes() = setOf(

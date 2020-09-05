@@ -9,7 +9,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import shark.HprofStreamingReader.Companion.createStreamingReaderFor
 import java.io.File
 
 /**
@@ -35,14 +34,14 @@ class HprofPrimitiveArrayStripper {
     ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-stripped" })
   ): File {
     val header = HprofHeader.parseHeaderOf(inputHprofFile)
-    val reader = createStreamingReaderFor(inputHprofFile, header)
+    val reader = StreamingHprofReader.readerFor(inputHprofFile, header)
     HprofWriter.open(
         outputHprofFile,
         identifierByteSize = header.identifierByteSize,
         hprofVersion = header.version
     )
         .use { writer ->
-          reader.readHprofRecords(setOf(HprofRecord::class),
+          reader.readRecords(setOf(HprofRecord::class),
               OnHprofRecordListener { _,
                 record ->
                 // HprofWriter automatically emits HeapDumpEndRecord, because it flushes

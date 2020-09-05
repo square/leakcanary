@@ -64,6 +64,13 @@ import java.nio.charset.Charset
 /**
  * Reads hprof content from an Okio [BufferedSource].
  *
+ * Binary Dump Format reference: http://hg.openjdk.java.net/jdk6/jdk6/jdk/raw-file/tip/src/share
+ * /demo/jvmti/hprof/manual.html#mozTocId848088
+ *
+ * The Android Hprof format differs in some ways from that reference. This parser implementation
+ * is largely adapted from https://android.googlesource.com/platform/tools/base/+/studio-master-dev
+ * /perflib/src/main/java/com/android/tools/perflib
+ *
  * Not thread safe, should be used from a single thread.
  */
 @Suppress("LargeClass", "TooManyFunctions")

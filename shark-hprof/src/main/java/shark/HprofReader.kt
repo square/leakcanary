@@ -1,9 +1,8 @@
 package shark
 
-import shark.HprofStreamingReader.Companion.createStreamingReaderFor
 import kotlin.reflect.KClass
 
-@Deprecated("Replaced by HprofFile")
+@Deprecated("Replaced by HprofStreamingReader.readerFor or HprofRandomAccessReader.openReaderFor")
 class HprofReader internal constructor(
   private val hprof: Hprof
 ) {
@@ -17,7 +16,7 @@ class HprofReader internal constructor(
     recordTypes: Set<KClass<out HprofRecord>>,
     listener: OnHprofRecordListener
   ) {
-    val reader = createStreamingReaderFor(hprof.file, hprof.header)
-    reader.readHprofRecords(recordTypes, listener)
+    val reader = StreamingHprofReader.readerFor(hprof.file, hprof.header)
+    reader.readRecords(recordTypes, listener)
   }
 }

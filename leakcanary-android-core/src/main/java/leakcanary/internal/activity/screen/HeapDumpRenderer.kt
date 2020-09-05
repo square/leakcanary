@@ -30,7 +30,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecord.StringRecord
-import shark.HprofStreamingReader.Companion.createStreamingReaderFor
+import shark.StreamingHprofReader
 import shark.OnHprofRecordListener
 import java.io.File
 
@@ -101,10 +101,10 @@ internal object HeapDumpRenderer {
 
     var lastPosition = 0L
 
-    val reader = createStreamingReaderFor(heapDumpFile)
+    val reader = StreamingHprofReader.readerFor(heapDumpFile)
     val hprofStringCache = mutableMapOf<Long, String>()
     val classNames = mutableMapOf<Long, Long>()
-    reader.readHprofRecords(
+    reader.readRecords(
         setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
       lastPosition = position
       when (record) {
