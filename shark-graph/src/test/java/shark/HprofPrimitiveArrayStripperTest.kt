@@ -26,7 +26,7 @@ class HprofPrimitiveArrayStripperTest {
     val stripper = HprofPrimitiveArrayStripper()
 
     val strippedBuffer = Buffer()
-    val strippedFile = stripper.stripPrimitiveArrays(hprofBytes, strippedBuffer)
+    stripper.stripPrimitiveArrays(hprofBytes, strippedBuffer)
 
     val strippedSource = ByteArraySourceProvider(strippedBuffer.readByteArray())
 

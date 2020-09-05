@@ -3,7 +3,6 @@ package shark
 import okio.Buffer
 import okio.BufferedSink
 import okio.Okio
-import okio.Sink
 import shark.GcRoot.Debugger
 import shark.GcRoot.Finalizing
 import shark.GcRoot.InternedString
@@ -38,7 +37,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecord.StringRecord
-import shark.HprofWriter.Companion.open
 import shark.PrimitiveType.BOOLEAN
 import shark.PrimitiveType.BYTE
 import shark.PrimitiveType.CHAR
@@ -440,23 +438,22 @@ class HprofWriter private constructor(
       hprofFile: File,
       hprofHeader: HprofHeader = HprofHeader()
     ): HprofWriter {
-      return openWriterFor(Okio.sink(hprofFile.outputStream()), hprofHeader)
+      return openWriterFor(Okio.buffer(Okio.sink(hprofFile.outputStream())), hprofHeader)
     }
 
     fun openWriterFor(
-      hprofSink: Sink,
+      hprofSink: BufferedSink,
       hprofHeader: HprofHeader = HprofHeader()
     ): HprofWriter {
-      val sink = if (hprofSink is BufferedSink) hprofSink else Okio.buffer(hprofSink)
-      sink.writeUtf8(hprofHeader.version.versionString)
-      sink.writeByte(0)
-      sink.writeInt(hprofHeader.identifierByteSize)
-      sink.writeLong(hprofHeader.heapDumpTimestamp)
-      return HprofWriter(sink, hprofHeader)
+      hprofSink.writeUtf8(hprofHeader.version.versionString)
+      hprofSink.writeByte(0)
+      hprofSink.writeInt(hprofHeader.identifierByteSize)
+      hprofSink.writeLong(hprofHeader.heapDumpTimestamp)
+      return HprofWriter(hprofSink, hprofHeader)
     }
 
     @Deprecated(
-        "Replaced by a version that takes a non deprecated HprofVersion",
+        "Replaced by HprofWriter.openWriterFor()",
         ReplaceWith(
             "shark.HprofWriter.openWriterFor(hprofFile)"
         )

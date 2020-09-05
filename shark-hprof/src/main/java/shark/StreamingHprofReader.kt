@@ -74,9 +74,7 @@ class StreamingHprofReader private constructor(
       PrimitiveArraySkipContentRecord(0, 0, 0, BOOLEAN)
     val reusedLoadClassRecord = LoadClassRecord(0, 0, 0, 0)
 
-    val rawSource = sourceProvider.openStreamingSource()
-    val bufferedSource = if (rawSource is BufferedSource) rawSource else Okio.buffer(rawSource)
-    return bufferedSource.use { source ->
+    return sourceProvider.openStreamingSource().use { source ->
       val reader = HprofRecordReader(header, source)
       reader.skip(header.recordsPosition)
 

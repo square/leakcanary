@@ -1,6 +1,7 @@
 package shark
 
 import okio.Buffer
+import okio.BufferedSource
 import okio.Okio
 import okio.Source
 import okio.Timeout
@@ -15,8 +16,8 @@ interface RandomAccessSource : Closeable {
     byteCount: Long
   ): Long
 
-  fun asStreamingSource(): Source {
-    return object : Source {
+  fun asStreamingSource(): BufferedSource {
+    return Okio.buffer(object : Source {
       var position = 0L
 
       override fun timeout() = Timeout.NONE
@@ -40,6 +41,6 @@ interface RandomAccessSource : Closeable {
         return bytesRead
       }
 
-    }
+    })
   }
 }

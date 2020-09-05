@@ -1,5 +1,6 @@
 package shark
 
+import okio.BufferedSink
 import okio.Okio
 import okio.Sink
 import shark.HprofRecord.HeapDumpEndRecord
@@ -37,7 +38,7 @@ class HprofPrimitiveArrayStripper {
   ): File {
     stripPrimitiveArrays(
         hprofSourceProvider = FileSourceProvider(inputHprofFile),
-        hprofSink = Okio.sink(outputHprofFile.outputStream())
+        hprofSink = Okio.buffer(Okio.sink(outputHprofFile.outputStream()))
     )
     return outputHprofFile
   }
@@ -47,7 +48,7 @@ class HprofPrimitiveArrayStripper {
    */
   fun stripPrimitiveArrays(
     hprofSourceProvider: StreamingSourceProvider,
-    hprofSink: Sink
+    hprofSink: BufferedSink
   ) {
     val header = hprofSourceProvider.openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
     val reader = StreamingHprofReader.readerFor(hprofSourceProvider, header)

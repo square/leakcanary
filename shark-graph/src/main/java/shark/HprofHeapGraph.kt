@@ -275,7 +275,7 @@ class HprofHeapGraph internal constructor(
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): CloseableHeapGraph {
-      return FileSourceProvider(this).openHeapGraph()
+      return FileSourceProvider(this).openHeapGraph(proguardMapping, indexedGcRootTypes)
     }
 
     fun DualSourceProvider.openHeapGraph(
@@ -288,9 +288,9 @@ class HprofHeapGraph internal constructor(
     }
 
     @Deprecated(
-        "Replaced by HprofIndex.memoryIndex().openHeapGraph() or File.openHeapGraph()",
+        "Replaced by HprofIndex.indexRecordsOf().openHeapGraph() or File.openHeapGraph()",
         replaceWith = ReplaceWith(
-            "HprofIndex.memoryIndex(hprof, proguardMapping, indexedGcRootTypes)" +
+            "HprofIndex.indexRecordsOf(hprof, proguardMapping, indexedGcRootTypes)" +
                 ".openHeapGraph()"
         )
     )
