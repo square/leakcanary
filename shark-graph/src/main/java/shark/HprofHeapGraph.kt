@@ -1,5 +1,7 @@
 package shark
 
+import okio.Sink
+import okio.Source
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -273,7 +275,14 @@ class HprofHeapGraph internal constructor(
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): CloseableHeapGraph {
-      val header = HprofHeader.parseHeaderOf(this)
+      return FileSourceProvider(this).openHeapGraph()
+    }
+
+    fun DualSourceProvider.openHeapGraph(
+      proguardMapping: ProguardMapping? = null,
+      indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
+    ): CloseableHeapGraph {
+      val header = openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
       val index = HprofIndex.indexRecordsOf(this, header, proguardMapping, indexedGcRootTypes)
       return index.openHeapGraph()
     }

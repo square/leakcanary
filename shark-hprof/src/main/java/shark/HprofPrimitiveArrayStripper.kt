@@ -1,5 +1,7 @@
 package shark
 
+import okio.Okio
+import okio.Sink
 import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -33,10 +35,24 @@ class HprofPrimitiveArrayStripper {
         ".hprof", "-stripped.hprof"
     ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-stripped" })
   ): File {
-    val header = HprofHeader.parseHeaderOf(inputHprofFile)
-    val reader = StreamingHprofReader.readerFor(inputHprofFile, header)
+    stripPrimitiveArrays(
+        hprofSourceProvider = FileSourceProvider(inputHprofFile),
+        hprofSink = Okio.sink(outputHprofFile.outputStream())
+    )
+    return outputHprofFile
+  }
+
+  /**
+   * @see HprofPrimitiveArrayStripper
+   */
+  fun stripPrimitiveArrays(
+    hprofSourceProvider: StreamingSourceProvider,
+    hprofSink: Sink
+  ) {
+    val header = hprofSourceProvider.openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
+    val reader = StreamingHprofReader.readerFor(hprofSourceProvider, header)
     HprofWriter.openWriterFor(
-        outputHprofFile,
+        hprofSink,
         hprofHeader = HprofHeader(
             identifierByteSize = header.identifierByteSize,
             version = header.version
@@ -94,7 +110,6 @@ class HprofPrimitiveArrayStripper {
                 )
               })
         }
-    return outputHprofFile
   }
 
 }

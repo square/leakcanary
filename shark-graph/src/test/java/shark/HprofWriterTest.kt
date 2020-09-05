@@ -1,9 +1,7 @@
 package shark
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -15,12 +13,8 @@ import shark.HprofRecord.StringRecord
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
-import java.io.File
 
 class HprofWriterTest {
-
-  @get:Rule
-  var testFolder = TemporaryFolder()
 
   private var lastId = 0L
   private val id: Long
@@ -28,11 +22,10 @@ class HprofWriterTest {
 
   @Test
   fun writeAndReadStringRecord() {
-    val hprofFile = testFolder.newFile("temp.hprof")
     val record = StringRecord(id, MAGIC_WAND_CLASS_NAME)
-    hprofFile.writeRecords(listOf(record))
+    val bytes = listOf(record).asHprofBytes()
 
-    val readRecords = readAllRecords(hprofFile)
+    val readRecords = bytes.readAllRecords()
 
     assertThat(readRecords).hasSize(1)
     assertThat(readRecords[0]).isInstanceOf(StringRecord::class.java)
@@ -42,7 +35,6 @@ class HprofWriterTest {
 
   @Test
   fun writeAndReadClassRecord() {
-    val hprofFile = testFolder.newFile("temp.hprof")
     val className = StringRecord(id, MAGIC_WAND_CLASS_NAME)
     val loadClassRecord = LoadClassRecord(1, id, 1, className.id)
     val classDump = ClassDumpRecord(
@@ -56,15 +48,15 @@ class HprofWriterTest {
         staticFields = emptyList(),
         fields = emptyList()
     )
-    hprofFile.writeRecords(listOf(className, loadClassRecord, classDump))
-    hprofFile.openHeapGraph().use { graph: HeapGraph ->
+
+    val bytes = listOf(className, loadClassRecord, classDump).asHprofBytes()
+    bytes.openHeapGraph().use { graph: HeapGraph ->
       assertThat(graph.findClassByName(className.string)).isNotNull
     }
   }
 
   @Test
   fun writeAndReadStaticField() {
-    val hprofFile = testFolder.newFile("temp.hprof")
     val className = StringRecord(id, MAGIC_WAND_CLASS_NAME)
     val field1Name = StringRecord(id, "field1")
     val field2Name = StringRecord(id, "field2")
@@ -83,10 +75,9 @@ class HprofWriterTest {
         ),
         fields = emptyList()
     )
-    hprofFile.writeRecords(
-        listOf(className, field1Name, field2Name, loadClassRecord, classDump)
-    )
-    hprofFile.openHeapGraph().use { graph: HeapGraph ->
+    val bytes = listOf(className, field1Name, field2Name, loadClassRecord, classDump)
+        .asHprofBytes()
+    bytes.openHeapGraph().use { graph: HeapGraph ->
       val heapClass = graph.findClassByName(className.string)!!
       val staticFields = heapClass.readStaticFields().toList()
       assertThat(staticFields).hasSize(2)
@@ -99,15 +90,14 @@ class HprofWriterTest {
 
   @Test
   fun writeAndReadHprof() {
-    val hprofFile = testFolder.newFile("temp.hprof")
     val records = createRecords()
 
-    hprofFile.writeRecords(records)
+    val bytes = records.asHprofBytes()
 
-    val readRecords = readAllRecords(hprofFile)
+    val readRecords = bytes.readAllRecords()
     assertThat(readRecords).hasSameSizeAs(records + HeapDumpEndRecord)
 
-    hprofFile.openHeapGraph().use { graph: HeapGraph ->
+    bytes.openHeapGraph().use { graph: HeapGraph ->
       val treasureChestClass = graph.findClassByName(
           TREASURE_CHEST_CLASS_NAME
       )!!
@@ -187,20 +177,9 @@ class HprofWriterTest {
     )
   }
 
-  private fun File.writeRecords(
-    records: List<HprofRecord>
-  ) {
-    HprofWriter.openWriterFor(this)
-        .use { writer ->
-          records.forEach { record ->
-            writer.write(record)
-          }
-        }
-  }
-
-  private fun readAllRecords(hprofFile: File): MutableList<HprofRecord> {
+  private fun DualSourceProvider.readAllRecords(): MutableList<HprofRecord> {
     val readRecords = mutableListOf<HprofRecord>()
-    StreamingHprofReader.readerFor(hprofFile)
+    StreamingHprofReader.readerFor(this)
         .readRecords(setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
           readRecords += record
         })

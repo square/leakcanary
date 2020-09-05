@@ -7,5 +7,7 @@ targetCompatibility = JavaVersion.VERSION_1_7
 dependencies {
     implementation deps.kotlin.stdlib
     implementation deps.junit
+    implementation deps.okio
+
     implementation project(':shark-hprof')
 }

@@ -1,5 +1,6 @@
 package shark
 
+import okio.Buffer
 import shark.GcRoot.StickyClass
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -345,4 +346,15 @@ class HprofWriterHelper constructor(
 fun File.dump(block: HprofWriterHelper.() -> Unit) {
   HprofWriterHelper(HprofWriter.openWriterFor(this))
       .use(block)
+}
+
+fun List<HprofRecord>.asHprofBytes(): DualSourceProvider {
+  val buffer = Buffer()
+  HprofWriter.openWriterFor(buffer)
+      .use { writer ->
+        forEach { record ->
+          writer.write(record)
+        }
+      }
+  return ByteArraySourceProvider(buffer.readByteArray())
 }
