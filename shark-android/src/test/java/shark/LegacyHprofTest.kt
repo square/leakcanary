@@ -46,7 +46,7 @@ class LegacyHprofTest {
 
   @Test fun androidMStripped() {
     val stripper = HprofPrimitiveArrayStripper()
-    val sourceHprof = fileFromResources("leak_asynctask_m.hprof")
+    val sourceHprof = "leak_asynctask_m.hprof".classpathFile()
     val strippedHprof = stripper.stripPrimitiveArrays(sourceHprof)
 
     assertThat(readThreadNames(sourceHprof)).contains("AsyncTask #1")
@@ -79,7 +79,7 @@ class LegacyHprofTest {
   }
 
   @Test fun androidOCountActivityWrappingContexts() {
-    val contextWrapperStatuses = Hprof.open(fileFromResources("leak_asynctask_o.hprof"))
+    val contextWrapperStatuses = Hprof.open("leak_asynctask_o.hprof".classpathFile())
         .use { hprof ->
           val graph = HprofHeapGraph.indexHprof(hprof)
           graph.instances.filter {
@@ -119,15 +119,9 @@ class LegacyHprofTest {
   }
 
   private fun analyzeHprof(fileName: String): HeapAnalysisSuccess {
-    return analyzeHprof(fileFromResources(fileName))
+    return analyzeHprof(fileName.classpathFile())
   }
 
-  private fun fileFromResources(fileName: String): File {
-    val classLoader = Thread.currentThread()
-        .contextClassLoader
-    val url = classLoader.getResource(fileName)
-    return File(url.path)
-  }
 
   private fun analyzeHprof(hprofFile: File): HeapAnalysisSuccess {
     SharkLog.logger = object : Logger {

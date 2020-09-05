@@ -36,6 +36,7 @@ buildscript {
           stdlib: "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}",
           reflect: "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
       ],
+      kotlin_statistics: 'org.nield:kotlin-statistics:1.2.1',
       mockito: 'org.mockito:mockito-core:2.7.5',
       mockito_kotlin: 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0',
       okio: 'com.squareup.okio:okio:2.2.2',

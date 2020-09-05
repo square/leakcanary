@@ -32,33 +32,22 @@ class HprofIndex private constructor(
 
   companion object {
     /**
-     * Creates an in memory index of [hprofFile].
+     * Creates an in memory index of an hprof source provided by [hprofSourceProvider].
      */
     fun indexRecordsOf(
-      hprofFile: File,
-      hprofHeader: HprofHeader = HprofHeader.parseHeaderOf(hprofFile),
-      proguardMapping: ProguardMapping? = null,
-      indexedGcRootTypes: Set<KClass<out GcRoot>> = defaultIndexedGcRootTypes()
-    ): HprofIndex {
-      return indexRecordsOf(
-          FileSourceProvider(hprofFile), hprofHeader, proguardMapping, indexedGcRootTypes
-      )
-    }
-
-    fun indexRecordsOf(
-      sourceProvider: DualSourceProvider,
+      hprofSourceProvider: DualSourceProvider,
       hprofHeader: HprofHeader,
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = defaultIndexedGcRootTypes()
     ): HprofIndex {
-      val reader = StreamingHprofReader.readerFor(sourceProvider, hprofHeader)
+      val reader = StreamingHprofReader.readerFor(hprofSourceProvider, hprofHeader)
       val index = HprofInMemoryIndex.indexHprof(
           reader = reader,
           hprofHeader = hprofHeader,
           proguardMapping = proguardMapping,
           indexedGcRootTypes = indexedGcRootTypes
       )
-      return HprofIndex(sourceProvider, hprofHeader, index)
+      return HprofIndex(hprofSourceProvider, hprofHeader, index)
     }
 
     fun defaultIndexedGcRootTypes() = setOf(

@@ -299,8 +299,10 @@ class HprofHeapGraph internal constructor(
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): HeapGraph {
+
+
       val index =
-        HprofIndex.indexRecordsOf(hprof.file, hprof.header, proguardMapping, indexedGcRootTypes)
+        HprofIndex.indexRecordsOf(FileSourceProvider(hprof.file), hprof.header, proguardMapping, indexedGcRootTypes)
       val graph = index.openHeapGraph()
       hprof.attachClosable(graph)
       return graph
