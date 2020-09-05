@@ -360,7 +360,7 @@ class HprofRecordReader internal constructor(
   /**
    * Reads a class record after a class dump tag, skipping its content.
    */
-  fun ClassSkipContentRecord.read() {
+  fun ClassSkipContentRecord.read(): ClassSkipContentRecord {
     val bytesReadStart = bytesRead
     this.id = readId()
     // stack trace serial number
@@ -406,12 +406,13 @@ class HprofRecordReader internal constructor(
     // Each field takes id + byte.
     skip((identifierByteSize + 1) * fieldCount)
     recordSize = bytesRead - bytesReadStart
+    return this
   }
 
   /**
    * Reads an instance record after a instance dump tag, skipping its content.
    */
-  fun InstanceSkipContentRecord.read() {
+  fun InstanceSkipContentRecord.read(): InstanceSkipContentRecord {
     val bytesReadStart = bytesRead
     id = readId()
     stackTraceSerialNumber = readInt()
@@ -419,12 +420,13 @@ class HprofRecordReader internal constructor(
     val remainingBytesInInstance = readInt()
     skip(remainingBytesInInstance)
     recordSize = bytesRead - bytesReadStart
+    return this
   }
 
   /**
    * Reads an object array record after a object array dump tag, skipping its content.
    */
-  fun ObjectArraySkipContentRecord.read() {
+  fun ObjectArraySkipContentRecord.read(): ObjectArraySkipContentRecord {
     val bytesReadStart = bytesRead
     id = readId()
     // stack trace serial number
@@ -433,12 +435,13 @@ class HprofRecordReader internal constructor(
     arrayClassId = readId()
     skip(identifierByteSize * size)
     recordSize = bytesRead - bytesReadStart
+    return this
   }
 
   /**
    * Reads a primitive array record after a primitive array dump tag, skipping its content.
    */
-  fun PrimitiveArraySkipContentRecord.read() {
+  fun PrimitiveArraySkipContentRecord.read(): PrimitiveArraySkipContentRecord {
     val bytesReadStart = bytesRead
     id = readId()
     stackTraceSerialNumber = readInt()
@@ -447,6 +450,7 @@ class HprofRecordReader internal constructor(
     type = PrimitiveType.primitiveTypeByHprofType.getValue(readUnsignedByte())
     skip(size * type.byteSize)
     recordSize = bytesRead - bytesReadStart
+    return this
   }
 
   fun skipInstanceDumpRecord() {

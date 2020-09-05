@@ -108,10 +108,12 @@ class HprofDeobfuscator {
 
     val hprofHeader = parseHeaderOf(inputHprofFile)
     val reader = StreamingHprofReader.readerFor(inputHprofFile, hprofHeader)
-    HprofWriter.open(
+    HprofWriter.openWriterFor(
         outputHprofFile,
-        identifierByteSize = hprofHeader.identifierByteSize,
-        hprofVersion = hprofHeader.version
+        hprofHeader = HprofHeader(
+            identifierByteSize = hprofHeader.identifierByteSize,
+            version = hprofHeader.version
+        )
     ).use { writer ->
       reader.readRecords(setOf(HprofRecord::class),
           OnHprofRecordListener { _,

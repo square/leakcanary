@@ -19,15 +19,14 @@ class MetadataExtractorTest {
   }
 
   @Test fun extractStaticStringField() {
-    HprofWriter.open(hprofFile)
-        .helper {
-          val helloString = string("Hello")
-          clazz(
-              "World", staticFields = listOf(
-              "message" to helloString
-          )
-          )
-        }
+    hprofFile.dump {
+      val helloString = string("Hello")
+      clazz(
+          "World", staticFields = listOf(
+          "message" to helloString
+      )
+      )
+    }
 
     val extractor = object : MetadataExtractor {
       override fun extractMetadata(graph: HeapGraph): Map<String, String> {

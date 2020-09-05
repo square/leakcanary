@@ -55,7 +55,7 @@ class HprofPrimitiveArrayStripperTest {
   private fun File.writeRecords(
     records: List<HprofRecord>
   ) {
-    HprofWriter.open(this)
+    HprofWriter.openWriterFor(this)
         .use { writer ->
           records.forEach { record ->
             writer.write(record)

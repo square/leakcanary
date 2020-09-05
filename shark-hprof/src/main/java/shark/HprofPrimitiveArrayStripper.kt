@@ -35,10 +35,12 @@ class HprofPrimitiveArrayStripper {
   ): File {
     val header = HprofHeader.parseHeaderOf(inputHprofFile)
     val reader = StreamingHprofReader.readerFor(inputHprofFile, header)
-    HprofWriter.open(
+    HprofWriter.openWriterFor(
         outputHprofFile,
-        identifierByteSize = header.identifierByteSize,
-        hprofVersion = header.version
+        hprofHeader = HprofHeader(
+            identifierByteSize = header.identifierByteSize,
+            version = header.version
+        )
     )
         .use { writer ->
           reader.readRecords(setOf(HprofRecord::class),

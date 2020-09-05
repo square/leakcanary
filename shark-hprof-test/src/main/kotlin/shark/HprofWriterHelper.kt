@@ -49,7 +49,7 @@ class HprofWriterHelper constructor(
       UUID(weakRefKeyRandom.nextLong(), weakRefKeyRandom.nextLong()).toString()
 
   private val typeSizes =
-    PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to writer.identifierByteSize)
+    PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to writer.hprofHeader.identifierByteSize)
 
   private val classDumps = mutableMapOf<Long, ClassDumpRecord>()
 
@@ -343,12 +343,6 @@ class HprofWriterHelper constructor(
 }
 
 fun File.dump(block: HprofWriterHelper.() -> Unit) {
-  // TODO Change the approach => HprofFile provides a writer.
-  HprofWriterHelper(HprofWriter.open(this, 4, HprofVersion.ANDROID))
-      .use(block)
-}
-
-fun HprofWriter.helper(block: HprofWriterHelper.() -> Unit) {
-  HprofWriterHelper(this)
+  HprofWriterHelper(HprofWriter.openWriterFor(this))
       .use(block)
 }

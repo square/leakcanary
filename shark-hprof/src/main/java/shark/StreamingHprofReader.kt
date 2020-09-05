@@ -25,6 +25,10 @@ import shark.PrimitiveType.INT
 import java.io.File
 import kotlin.reflect.KClass
 
+/**
+ * Reads the entire content of a Hprof source in one fell swoop.
+ * Call [readerFor] to obtain a new instance.
+ */
 class StreamingHprofReader private constructor(
   private val sourceProvider: StreamingSourceProvider,
   private val header: HprofHeader

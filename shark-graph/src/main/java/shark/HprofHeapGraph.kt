@@ -172,10 +172,9 @@ class HprofHeapGraph internal constructor(
     if (cachedRecord != null) {
       return cachedRecord.elementIds.size * identifierByteSize
     }
-    reader.read(indexedObject.position, indexedObject.recordSize) {
+    val thinRecord = reader.readRecord(indexedObject.position, indexedObject.recordSize) {
       reusedObjectArraySkipContentRecord.read()
     }
-    val thinRecord = reusedObjectArraySkipContentRecord
     return thinRecord.size * identifierByteSize
   }
 
@@ -205,10 +204,9 @@ class HprofHeapGraph internal constructor(
         is LongArrayDump -> cachedRecord.array.size * PrimitiveType.LONG.byteSize
       }
     }
-    reader.read(indexedObject.position, indexedObject.recordSize) {
+    val thinRecord = reader.readRecord(indexedObject.position, indexedObject.recordSize) {
       reusedPrimitiveArraySkipContentRecord.read()
     }
-    val thinRecord = reusedPrimitiveArraySkipContentRecord
     return thinRecord.size * thinRecord.type.byteSize
   }
 
@@ -240,7 +238,7 @@ class HprofHeapGraph internal constructor(
     if (objectRecordOrNull != null) {
       return objectRecordOrNull as T
     }
-    return reader.read(indexedObject.position, indexedObject.recordSize) {
+    return reader.readRecord(indexedObject.position, indexedObject.recordSize) {
       readBlock()
     }.apply { objectCache.put(objectId, this) }
   }
@@ -292,7 +290,8 @@ class HprofHeapGraph internal constructor(
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): HeapGraph {
-      val index = HprofIndex.indexRecordsOf(hprof.file, hprof.header, proguardMapping, indexedGcRootTypes)
+      val index =
+        HprofIndex.indexRecordsOf(hprof.file, hprof.header, proguardMapping, indexedGcRootTypes)
       val graph = index.openHeapGraph()
       hprof.attachClosable(graph)
       return graph

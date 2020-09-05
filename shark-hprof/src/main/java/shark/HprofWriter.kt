@@ -3,6 +3,7 @@ package shark
 import okio.Buffer
 import okio.BufferedSink
 import okio.Okio
+import okio.Sink
 import shark.GcRoot.Debugger
 import shark.GcRoot.Finalizing
 import shark.GcRoot.InternedString
@@ -61,13 +62,28 @@ import java.io.File
 /**
  * Generates Hprof files.
  *
- * Call [open] to create an instance, [write] to add instances and [close] when you're done.
+ * Call [openWriterFor] to obtain a new instance.
+ *
+ * Call [write] to add records and [close] when you're done.
  */
 class HprofWriter private constructor(
   private val sink: BufferedSink,
-  val identifierByteSize: Int,
-  val hprofVersion: HprofVersion
+  val hprofHeader: HprofHeader
 ) : Closeable {
+
+  @Deprecated(
+      "Replaced by HprofWriter.hprofHeader.identifierByteSize",
+      ReplaceWith("hprofHeader.identifierByteSize")
+  )
+  val identifierByteSize: Int
+    get() = hprofHeader.identifierByteSize
+
+  @Deprecated(
+      "Replaced by HprofWriter.hprofHeader.version",
+      ReplaceWith("hprofHeader.version")
+  )
+  val hprofVersion: Hprof.HprofVersion
+    get() = Hprof.HprofVersion.valueOf(hprofHeader.version.name)
 
   private val workBuffer = Buffer()
 
@@ -409,7 +425,7 @@ class HprofWriter private constructor(
   }
 
   private fun BufferedSink.writeId(id: Long) {
-    when (identifierByteSize) {
+    when (hprofHeader.identifierByteSize) {
       1 -> writeByte(id.toInt())
       2 -> writeShort(id.toInt())
       4 -> writeInt(id.toInt())
@@ -420,40 +436,41 @@ class HprofWriter private constructor(
 
   companion object {
 
-    /**
-     * Opens a new file for writing hprof records. Don't forget to call [close] once done.
-     */
-    fun open(
+    fun openWriterFor(
       hprofFile: File,
-      /**
-       * Size of Hprof identifiers. Identifiers are used to represent UTF8 strings, objects,
-       * stack traces, etc. They can have the same size as host pointers or sizeof(void*), but are
-       * not required to be.
-       */
-      identifierByteSize: Int = 4,
-      /** Version of the opened hprof, which is tied to the runtime where the heap was dumped. */
-      hprofVersion: HprofVersion = HprofVersion.ANDROID
+      hprofHeader: HprofHeader = HprofHeader()
     ): HprofWriter {
-      val sink = Okio.buffer(Okio.sink(hprofFile.outputStream()))
-      sink.writeUtf8(hprofVersion.versionString)
+      return openWriterFor(Okio.sink(hprofFile.outputStream()), hprofHeader)
+    }
+
+    fun openWriterFor(
+      hprofSink: Sink,
+      hprofHeader: HprofHeader = HprofHeader()
+    ): HprofWriter {
+      val sink = Okio.buffer(hprofSink)
+      sink.writeUtf8(hprofHeader.version.versionString)
       sink.writeByte(0)
-      sink.writeInt(identifierByteSize)
-      val heapDumpTimestamp = System.currentTimeMillis()
-      sink.writeLong(heapDumpTimestamp)
-      return HprofWriter(sink, identifierByteSize, hprofVersion)
+      sink.writeInt(hprofHeader.identifierByteSize)
+      sink.writeLong(hprofHeader.heapDumpTimestamp)
+      return HprofWriter(sink, hprofHeader)
     }
 
     @Deprecated(
         "Replaced by a version that takes a non deprecated HprofVersion",
         ReplaceWith(
-            "shark.HprofWriter.open(hprofFile, identifierByteSize, shark.HprofVersion.valueOf(hprofVersion.name))"
+            "shark.HprofWriter.openWriterFor(hprofFile)"
         )
     )
-    // TODO Keep
-    fun ffopen(
+    fun open(
       hprofFile: File,
       identifierByteSize: Int = 4,
       hprofVersion: Hprof.HprofVersion = Hprof.HprofVersion.ANDROID
-    ): HprofWriter = open(hprofFile, identifierByteSize, HprofVersion.valueOf(hprofVersion.name))
+    ): HprofWriter = openWriterFor(
+        hprofFile,
+        HprofHeader(
+            version = HprofVersion.valueOf(hprofVersion.name),
+            identifierByteSize = identifierByteSize
+        )
+    )
   }
 }

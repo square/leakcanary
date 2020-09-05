@@ -190,8 +190,7 @@ class HprofWriterTest {
   private fun File.writeRecords(
     records: List<HprofRecord>
   ) {
-    // TODO Change the approach => HprofFile provides a writer.
-    HprofWriter.open(this, 4, HprofVersion.ANDROID)
+    HprofWriter.openWriterFor(this)
         .use { writer ->
           records.forEach { record ->
             writer.write(record)

@@ -9,15 +9,15 @@ import java.io.File
  */
 data class HprofHeader(
   /** Unix timestamp at which the heap was dumped. */
-  val heapDumpTimestamp: Long,
+  val heapDumpTimestamp: Long = System.currentTimeMillis(),
   /** Hprof version, which is tied to the runtime where the heap was dumped. */
-  val version: HprofVersion,
+  val version: HprofVersion = HprofVersion.ANDROID,
   /**
    * Size of Hprof identifiers. Identifiers are used to represent UTF8 strings, objects,
    * stack traces, etc. They can have the same size as host pointers or sizeof(void*), but are not
    * required to be.
    */
-  val identifierByteSize: Int
+  val identifierByteSize: Int = 4
 ) {
   /**
    * How many bytes from the beginning of the file can we find the hprof records at.
