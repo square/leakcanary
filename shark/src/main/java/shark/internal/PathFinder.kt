@@ -513,7 +513,7 @@ internal class PathFinder(
           fieldReader.skipBytes(skipBytesCount)
           skipBytesCount = 0
 
-          val fieldValue = ReferenceHolder(fieldReader.readId())
+          val fieldValue = fieldReader.readValue(fieldRecord) as ReferenceHolder
           if (!fieldValue.isNull) {
             val fieldName = heapClass.fieldName(fieldRecord)
             result.add(HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue)))

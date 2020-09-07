@@ -45,7 +45,7 @@ class FieldValuesReader(
     }
   }
 
-  fun readId(): Long {
+  private fun readId(): Long {
     // As long as we don't interpret IDs, reading signed values here is fine.
     return when (identifierByteSize) {
       1 -> readByte().toLong()
