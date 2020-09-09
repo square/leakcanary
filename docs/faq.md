@@ -25,7 +25,7 @@ D/LeakCanary: Installing AppWatcher
 
 If you do not see `Installing AppWatcher` in the logs, check your dependencies (`./gradlew app:dependencies`) and make sure LeakCanary is there.
 
-Note that LeakCanary is automatically disabled in tests (see [Running LeakCanary in instrumentation tests](recipes.md/#running-leakcanary-in-instrumentation-tests)):
+Note that LeakCanary is automatically disabled in tests (see [Running LeakCanary in instrumentation tests](recipes.md#running-leakcanary-in-instrumentation-tests)):
 
 ```
 $ adb logcat | grep LeakCanary
