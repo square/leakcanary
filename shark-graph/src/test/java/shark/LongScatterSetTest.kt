@@ -1,131 +1,142 @@
 package shark
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Ignore
+import org.assertj.core.api.Assertions
 import org.junit.Test
+import shark.LongScatterSetAssertion.Companion.assertThat
 import shark.internal.hppc.HHPC
 import shark.internal.hppc.LongScatterSet
 
 class LongScatterSetTest {
 
-  @Test fun `verify add operation`() {
+  @Test fun `verify LongScatterSet#add operation works correctly`() {
     val set = LongScatterSet()
-    verifyAddOperation(set)
+    runAssertionsForAddOperation(set)
   }
 
-  @Test fun `verify remove operation`() {
+  @Test fun `verify LongScatterSet#remove operation works correctly`() {
     val set = LongScatterSet()
-    verifyRemoveOperation(set)
+    runAssertionsForRemoveOperation(set)
   }
 
-  @Test fun `verify release operation`() {
+  @Test fun `verify LongScatterSet#release operation works correctly`() {
     val set = LongScatterSet()
     set.add(42)
     set.release()
 
-    assertFalse(42 in set)
-    assertEquals(0, set.size())
+    assertThat(set)
+        .isEmpty()
+        .doesNotContain(42)
   }
 
-  @Test fun `verify ensureCapacity does not break operations`() {
-    // Ensure capacity before adding/removing elements
-    verifyAddOperation(LongScatterSet().apply { ensureCapacity(10) })
-    verifyRemoveOperation(LongScatterSet().apply { ensureCapacity(10) })
+  @Test fun `verify LongScatterSet#ensureCapacity does not break Set when called before those operations`() {
+    val setForAddOperation = LongScatterSet().apply { ensureCapacity(10) }
+    val setForRemoveOperation = LongScatterSet().apply { ensureCapacity(10) }
 
-    // Ensure capacity after adding/removing elements
-    val set = LongScatterSet()
-    set.add(42)
-    set.add(10)
-    set.ensureCapacity(100)
-
-    assertTrue(42 in set)
-    assertTrue(10 in set)
-    assertEquals(2, set.size())
+    // Verify that calling ensureCapacity doesn't affect add/remove operations
+    runAssertionsForAddOperation(setForAddOperation)
+    runAssertionsForRemoveOperation(setForRemoveOperation)
   }
 
-  @Ignore(value = "Takes ~20 seconds on MacBook Pro 2019, disabled so it doesn't waste CI time.")
-  @Test(expected = RuntimeException::class)
-  fun `verify out of memory is handled`() {
-    val set = LongScatterSet()
-    for (i in Long.MIN_VALUE..Long.MAX_VALUE) {
-      set += i
+  @Test fun `verify LongScatterSet#ensureCapacity does not break Set when called after those operations`() {
+    val set = LongScatterSet().apply {
+      add(42)
+      add(10)
+      ensureCapacity(100)
     }
+
+    // Verify that calling ensureCapacity didn't change any data in set
+    assertThat(set)
+        .contains(10, 42)
+        .hasSize(2)
   }
 
-  private fun verifyRemoveOperation(set: LongScatterSet) {
+  private fun runAssertionsForRemoveOperation(set: LongScatterSet) {
+    require(set.size() == 0) { "Set should be empty in order to run the assertions on it" }
+
     val testValues = listOf(42, 0, Long.MIN_VALUE, Long.MAX_VALUE, -1)
 
-    // First, check removing unique values on empty list
+    // First, verify removing unique values from an empty set
     testValues.forEach { value ->
       set.remove(value)
-      assertFalse(value in set)
-      assertEquals(0, set.size())
+      assertThat(set)
+          .isEmpty()
+          .doesNotContain(value)
     }
 
-    // Check removing unique values on filled list
+    // Add test values to the set
     testValues.forEach { set += it }
 
+    // Verify removing unique values from non-empty set
     testValues.forEachIndexed { index: Int, value: Long ->
-      // Values is in the set at first
-      assertTrue(value in set)
+      // Value should be in the set at first
+      assertThat(set).contains(value)
 
+      // Now remove the value from set
       set.remove(value)
 
-      // Value is removed, size decreased, other elements are still there
-      assertFalse(value in set)
-      assertEquals(testValues.size - index - 1, set.size())
+      // Value is removed -> size should decrease, other elements should still be in set
+      assertThat(set)
+          .doesNotContain(value)
+          .hasSize(testValues.size - index - 1)
       for (i in index + 1 until testValues.size) {
-        assertTrue(testValues[i] in set)
+        assertThat(set).contains(testValues[i])
       }
     }
 
-    // Check removing same element twice
+    // Verify removing same element twice works correctly.
     set.add(42)
     set.remove(42)
     set.remove(42)
-    assertFalse(42 in set)
-    assertEquals(0, set.size())
 
-    // Check removing elements with same hash. Remove in reverse order than inserting
+    assertThat(set)
+        .isEmpty()
+        .doesNotContain(42)
+
+    // Verify removing elements with matching hash. Remove in reverse order than inserting
     set += 11
     set += 14723950898
 
     set.remove(14723950898)
     set.remove(11)
-    assertFalse(11 in set)
-    assertFalse(14723950898 in set)
+    assertThat(set)
+        .isEmpty()
+        .doesNotContain(11, 14723950898)
   }
 
-  private fun verifyAddOperation(set: LongScatterSet) {
-    // First, check adding unique values + having matching hashKeys
-    // Values 11 and 14723950898 give same hash when using HHPC.mixPhi()
-    assertEquals(HHPC.mixPhi(11), HHPC.mixPhi(14723950898))
+  private fun runAssertionsForAddOperation(set: LongScatterSet) {
+    require(set.size() == 0) { "Set should be empty in order to run the assertions on it" }
+
+    // First, verify adding unique values, as well as values that have matching hashKeys
+    // Values 11 and 14723950898 have same hash when it's calculated via HHPC.mixPhi()
+    Assertions.assertThat(HHPC.mixPhi(14723950898)).isEqualTo(HHPC.mixPhi(11))
 
     val testValues = listOf(42, 0, Long.MIN_VALUE, Long.MAX_VALUE, -1, 11, 14723950898)
 
+    // Verify that adding elements to set actually adds them
     testValues.forEachIndexed { index: Int, value: Long ->
-      // Values is not yet in the set
-      assertFalse(value in set)
-      assertEquals(index, set.size())
+      // Verify that value is not yet in the set
+      assertThat(set)
+          .doesNotContain(value)
+          .hasSize(index)
 
+      // Add element to the set
       set.add(value)
 
-      // Size increases by one, element and all previous elements should be in the set
-      assertEquals(index + 1, set.size())
+      // Size should increase by one, element and all previous elements should still be in the set
+      assertThat(set).hasSize(index + 1)
       for (i in 0 until index + 1) {
-        assertTrue(testValues[i] in set)
+        assertThat(set).contains(testValues[i])
       }
     }
 
-    // Check the += operator
+    // Verify that += operator works exactly like add()
     set += 30
-    assertTrue(30 in set)
+    assertThat(set).contains(30)
 
-    // Check adding element that was already there
+    // Verify that adding same element twice - or element that already is in set - doesn't duplicate it
     val currentSize = set.size()
     set.add(testValues.first())
-    assertEquals(currentSize, set.size())
+    assertThat(set)
+        .hasSize(currentSize)
   }
 }
