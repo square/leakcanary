@@ -10,6 +10,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecor
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
+import shark.HprofVersion.ANDROID
 import shark.StreamingHprofReader
 import shark.OnHprofRecordListener
 import shark.PrimitiveType
@@ -41,7 +42,8 @@ internal class HprofInMemoryIndex private constructor(
   private val bytesForClassSize: Int,
   private val bytesForInstanceSize: Int,
   private val bytesForObjectArraySize: Int,
-  private val bytesForPrimitiveArraySize: Int
+  private val bytesForPrimitiveArraySize: Int,
+  private val useForwardSlashClassPackageSeparator: Boolean
 ) {
 
   fun fieldName(
@@ -60,13 +62,23 @@ internal class HprofInMemoryIndex private constructor(
     // String, primitive types
     val classNameStringId = classNames[classId]
     val classNameString = hprofStringById(classNameStringId)
-    return proguardMapping?.deobfuscateClassName(classNameString) ?: classNameString
+    return (proguardMapping?.deobfuscateClassName(classNameString) ?: classNameString).run {
+      if (useForwardSlashClassPackageSeparator) {
+        // JVM heap dumps use "/" for package separators (vs "." for Android heap dumps)
+        replace('/', '.')
+      } else this
+    }
   }
 
   fun classId(className: String): Long? {
+    val internalClassName = if (useForwardSlashClassPackageSeparator) {
+      // JVM heap dumps use "/" for package separators (vs "." for Android heap dumps)
+      className.replace('.', '/')
+    } else className
+
     // Note: this performs two linear scans over arrays
     val hprofStringId = hprofStringCache.entrySequence()
-        .firstOrNull { it.second == className }
+        .firstOrNull { it.second == internalClassName }
         ?.first
     return hprofStringId?.let { stringId ->
       classNames.entrySequence()
@@ -280,8 +292,7 @@ internal class HprofInMemoryIndex private constructor(
           if (PRIMITIVE_WRAPPER_TYPES.contains(record.string)) {
             primitiveWrapperClassNames.add(record.id)
           }
-          // JVM heap dumps use "/" for package separators (vs "." for Android heap dumps)
-          hprofStringCache[record.id] = record.string.replace('/', '.')
+          hprofStringCache[record.id] = record.string
         }
         is LoadClassRecord -> {
           classNames[record.id] = record.classNameStringId
@@ -334,7 +345,8 @@ internal class HprofInMemoryIndex private constructor(
     }
 
     fun buildIndex(
-      proguardMapping: ProguardMapping?
+      proguardMapping: ProguardMapping?,
+      hprofHeader: HprofHeader
     ): HprofInMemoryIndex {
       val sortedInstanceIndex = instanceIndex.moveToSortedMap()
       val sortedObjectArrayIndex = objectArrayIndex.moveToSortedMap()
@@ -355,7 +367,8 @@ internal class HprofInMemoryIndex private constructor(
           bytesForClassSize = bytesForClassSize,
           bytesForInstanceSize = bytesForInstanceSize,
           bytesForObjectArraySize = bytesForObjectArraySize,
-          bytesForPrimitiveArraySize = bytesForPrimitiveArraySize
+          bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
+          useForwardSlashClassPackageSeparator = hprofHeader.version != ANDROID
       )
     }
 
@@ -405,7 +418,7 @@ internal class HprofInMemoryIndex private constructor(
       var objectArrayCount = 0
       var primitiveArrayCount = 0
 
-     val bytesRead = reader.readRecords(setOf(
+      val bytesRead = reader.readRecords(setOf(
           ClassSkipContentRecord::class,
           InstanceSkipContentRecord::class,
           ObjectArraySkipContentRecord::class,
@@ -452,7 +465,7 @@ internal class HprofInMemoryIndex private constructor(
       )
 
       reader.readRecords(recordTypes, indexBuilderListener)
-      return indexBuilderListener.buildIndex(proguardMapping)
+      return indexBuilderListener.buildIndex(proguardMapping, hprofHeader)
     }
 
   }

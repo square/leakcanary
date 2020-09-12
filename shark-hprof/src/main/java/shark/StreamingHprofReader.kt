@@ -1,7 +1,5 @@
 package shark
 
-import okio.BufferedSource
-import okio.Okio
 import okio.Source
 import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord

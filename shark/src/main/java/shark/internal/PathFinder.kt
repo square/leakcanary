@@ -506,7 +506,11 @@ internal class PathFinder(
           // We deprioritize thread objects because on Lollipop the thread local values are stored
           // as a field.
           (node is RootNode && node.gcRoot is ThreadObject) ||
-          (node is NormalNode && node.parent is RootNode && node.parent.gcRoot is JavaFrame)
+          (node is NormalNode && node.parent is RootNode && node.parent.gcRoot is JavaFrame) ||
+          // Once we've emptied the toVisitQueue() we shouldn't add anything back to it, so that
+          // we now stick to shortests paths among toVisitLast entries.
+          // This check shouldn't apply to the initial feeding of root nodes though.
+          (toVisitQueue.isEmpty() && node !is RootNode)
 
     if (toVisitLastSet.contains(node.objectId)) {
       // Already enqueued => shorter or equal distance amongst library leak ref patterns.
