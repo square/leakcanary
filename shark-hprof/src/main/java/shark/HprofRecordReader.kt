@@ -58,7 +58,6 @@ import shark.ValueHolder.IntHolder
 import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
-import java.io.Closeable
 import java.nio.charset.Charset
 
 /**
@@ -556,7 +555,9 @@ class HprofRecordReader internal constructor(
   }
 
   fun readCharArray(arrayLength: Int): CharArray {
-    return readString(CHAR_SIZE * arrayLength, Charsets.UTF_16BE).toCharArray()
+    return CharArray(arrayLength) {
+      readChar()
+    }
   }
 
   fun readString(

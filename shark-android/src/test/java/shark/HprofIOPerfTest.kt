@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.nield.kotlinstatistics.median
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.PrimitiveType.INT
 import java.io.File
 import kotlin.math.floor
 
@@ -12,6 +13,121 @@ import kotlin.math.floor
  * regressions.
  */
 class HprofIOPerfTest {
+
+  @Test fun `HeapObjectArray#readByteSize() reads only size of array`() {
+    val hprofFile = "leak_asynctask_o.hprof".classpathFile()
+    val arrayId = hprofFile.openHeapGraph().use { graph ->
+      graph.objectArrays.maxBy { it.readRecord().elementIds.size * graph.identifierByteSize }!!.objectId
+    }
+
+    val source = MetricsDualSourceProvider(hprofFile)
+
+    val bytesRead = source.openHeapGraph().use { graph ->
+      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      graph.findObjectById(arrayId).asObjectArray!!.readByteSize()
+      bytesReadMetrics.sum()
+    }
+
+    assertThat(bytesRead).isEqualTo(INT.byteSize)
+  }
+
+  @Test fun `HeapObjectArray#readByteSize() correctly reads size of array`() {
+    val hprofFile = "leak_asynctask_o.hprof".classpathFile()
+    hprofFile.openHeapGraph().use { graph ->
+      graph.objectArrays.forEach { array ->
+        assertThat(array.readByteSize()).isEqualTo(
+            array.readRecord().elementIds.size * graph.identifierByteSize
+        )
+      }
+    }
+  }
+
+  @Test fun `HeapPrimitiveArray#readByteSize() reads only size of array`() {
+    val hprofFile = "leak_asynctask_o.hprof".classpathFile()
+    val arrayId = hprofFile.openHeapGraph().use { graph ->
+      graph.primitiveArrays.maxBy { it.readRecord().size * it.primitiveType.byteSize }!!.objectId
+    }
+
+    val source = MetricsDualSourceProvider(hprofFile)
+
+    val bytesRead = source.openHeapGraph().use { graph ->
+      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      graph.findObjectById(arrayId).asPrimitiveArray!!.readByteSize()
+      bytesReadMetrics.sum()
+    }
+
+    assertThat(bytesRead).isEqualTo(INT.byteSize)
+  }
+
+  @Test fun `HeapPrimitiveArray#readByteSize() correctly reads size of array`() {
+    val hprofFile = "leak_asynctask_o.hprof".classpathFile()
+    hprofFile.openHeapGraph().use { graph ->
+      graph.primitiveArrays.forEach { array ->
+        assertThat(array.readByteSize()).isEqualTo(
+            array.readRecord().size * array.primitiveType.byteSize
+        )
+      }
+    }
+  }
+
+  @Test fun `HeapInstance#byteSize reads 0 bytes`() {
+    val hprofFile = "leak_asynctask_o.hprof".classpathFile()
+
+    val source = MetricsDualSourceProvider(hprofFile)
+
+    val bytesRead = source.openHeapGraph().use { graph ->
+      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      graph.instances.first().byteSize
+      bytesReadMetrics.sum()
+    }
+
+    assertThat(bytesRead).isEqualTo(0)
+  }
+
+  @Test fun `consecutive call to HeapObject#readRecord() reads 0 bytes`() {
+    val hprofFile = "leak_asynctask_o.hprof".classpathFile()
+
+    val source = MetricsDualSourceProvider(hprofFile)
+
+    val bytesRead = source.openHeapGraph().use { graph ->
+      graph.objects.first().readRecord()
+      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      graph.objects.first().readRecord()
+      bytesReadMetrics.sum()
+    }
+
+    assertThat(bytesRead).isEqualTo(0)
+  }
+
+  @Test fun `HeapObject#readRecord() reads 0 bytes when reading from LRU`() {
+    val hprofFile = "leak_asynctask_o.hprof".classpathFile()
+
+    val source = MetricsDualSourceProvider(hprofFile)
+
+    val bytesRead = source.openHeapGraph().use { graph ->
+      graph.objects.take(HPROF_HEAP_GRAPH_LRU_OBJECT_CACHE_SIZE).forEach { it.readRecord() }
+      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      graph.objects.take(HPROF_HEAP_GRAPH_LRU_OBJECT_CACHE_SIZE).forEach { it.readRecord() }
+      bytesReadMetrics.sum()
+    }
+
+    assertThat(bytesRead).isEqualTo(0)
+  }
+
+  @Test fun `HeapObject#readRecord() reads bytes when reading evicted object`() {
+    val hprofFile = "leak_asynctask_o.hprof".classpathFile()
+
+    val source = MetricsDualSourceProvider(hprofFile)
+
+    val bytesRead = source.openHeapGraph().use { graph ->
+      graph.objects.take(HPROF_HEAP_GRAPH_LRU_OBJECT_CACHE_SIZE + 1).forEach { it.readRecord() }
+      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      graph.objects.first().readRecord()
+      bytesReadMetrics.sum()
+    }
+
+    assertThat(bytesRead).isGreaterThan(0)
+  }
 
   @Test fun `analyze() creates 4 separate sources`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
@@ -61,7 +177,7 @@ class HprofIOPerfTest {
     val medianBytesRead = randomAccessReads.median()
     val totalBytesRead = randomAccessReads.sum()
     assertThat(listOf(readsCount, medianBytesRead, totalBytesRead))
-        .isEqualTo(listOf(28589, 40.0, 1849534))
+        .isEqualTo(listOf(28588, 40.0, 1849412))
   }
 
   @Test fun `freeze leak_asynctask_m hprof random access metrics`() {
@@ -74,7 +190,7 @@ class HprofIOPerfTest {
     val medianBytesRead = randomAccessReads.median()
     val totalBytesRead = randomAccessReads.sum()
     assertThat(listOf(readsCount, medianBytesRead, totalBytesRead))
-        .isEqualTo(listOf(27198, 40.0, 2705246))
+        .isEqualTo(listOf(27196, 40.0, 2705000))
   }
 
   @Test fun `freeze leak_asynctask_pre_m hprof random access metrics`() {
@@ -86,7 +202,7 @@ class HprofIOPerfTest {
     val size = randomAccessReads.size
     val median = randomAccessReads.median()
     val sum = randomAccessReads.sum()
-    assertThat(listOf(size, median, sum)).isEqualTo(listOf(20063, 32.0, 1105886))
+    assertThat(listOf(size, median, sum)).isEqualTo(listOf(20061, 32.0, 1105739))
   }
 
   private fun trackAnalyzeIoReadMetrics(hprofFile: File): List<List<Int>> {
@@ -124,5 +240,6 @@ class HprofIOPerfTest {
 
   companion object {
     private const val OKIO_SEGMENT_SIZE = 8192
+    private const val HPROF_HEAP_GRAPH_LRU_OBJECT_CACHE_SIZE = 3000
   }
 }

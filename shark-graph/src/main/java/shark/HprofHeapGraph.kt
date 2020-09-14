@@ -1,7 +1,5 @@
 package shark
 
-import okio.Sink
-import okio.Source
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -12,7 +10,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -22,7 +19,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord
 import shark.internal.FieldValuesReader
 import shark.internal.HprofInMemoryIndex
 import shark.internal.IndexedObject
@@ -42,10 +38,6 @@ class HprofHeapGraph internal constructor(
   private val reader: RandomAccessHprofReader,
   private val index: HprofInMemoryIndex
 ) : CloseableHeapGraph {
-
-  private val reusedObjectArraySkipContentRecord = ObjectArraySkipContentRecord(0, 0, 0, 0)
-  private val reusedPrimitiveArraySkipContentRecord =
-    PrimitiveArraySkipContentRecord(0, 0, 0, PrimitiveType.BOOLEAN)
 
   override val identifierByteSize: Int get() = header.identifierByteSize
 
@@ -174,10 +166,12 @@ class HprofHeapGraph internal constructor(
     if (cachedRecord != null) {
       return cachedRecord.elementIds.size * identifierByteSize
     }
-    val thinRecord = reader.readRecord(indexedObject.position, indexedObject.recordSize) {
-      reusedObjectArraySkipContentRecord.read()
+    val position = indexedObject.position + identifierByteSize + PrimitiveType.INT.byteSize
+    val size = PrimitiveType.INT.byteSize.toLong()
+    val thinRecordSize = reader.readRecord(position, size) {
+      readInt()
     }
-    return thinRecord.size * identifierByteSize
+    return thinRecordSize * identifierByteSize
   }
 
   internal fun readPrimitiveArrayDumpRecord(
@@ -206,10 +200,11 @@ class HprofHeapGraph internal constructor(
         is LongArrayDump -> cachedRecord.array.size * PrimitiveType.LONG.byteSize
       }
     }
-    val thinRecord = reader.readRecord(indexedObject.position, indexedObject.recordSize) {
-      reusedPrimitiveArraySkipContentRecord.read()
+    val position = indexedObject.position + identifierByteSize + PrimitiveType.INT.byteSize
+    val size = reader.readRecord(position, PrimitiveType.INT.byteSize.toLong()) {
+      readInt()
     }
-    return thinRecord.size * thinRecord.type.byteSize
+    return size * indexedObject.primitiveType.byteSize
   }
 
   internal fun readClassDumpRecord(
@@ -300,9 +295,10 @@ class HprofHeapGraph internal constructor(
       indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
     ): HeapGraph {
 
-
       val index =
-        HprofIndex.indexRecordsOf(FileSourceProvider(hprof.file), hprof.header, proguardMapping, indexedGcRootTypes)
+        HprofIndex.indexRecordsOf(
+            FileSourceProvider(hprof.file), hprof.header, proguardMapping, indexedGcRootTypes
+        )
       val graph = index.openHeapGraph()
       hprof.attachClosable(graph)
       return graph
