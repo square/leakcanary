@@ -7,14 +7,18 @@ import okio.buffer
 import okio.source
 import java.io.File
 
-class MetricsDualSourceProvider(val file: File) : DualSourceProvider {
+class MetricsDualSourceProvider(
+  private val realSourceProvider: DualSourceProvider
+) : DualSourceProvider {
+
+  constructor(file: File) : this(FileSourceProvider(file))
 
   val sourcesMetrics = mutableListOf<MutableList<Int>>()
 
   override fun openStreamingSource(): BufferedSource {
     val sourceMetrics = mutableListOf<Int>()
     sourcesMetrics += sourceMetrics
-    val fileSource = file.source()
+    val fileSource = realSourceProvider.openStreamingSource()
     return object : Source {
       override fun read(
         sink: Buffer,
@@ -35,19 +39,19 @@ class MetricsDualSourceProvider(val file: File) : DualSourceProvider {
   override fun openRandomAccessSource(): RandomAccessSource {
     val sourceMetrics = mutableListOf<Int>()
     sourcesMetrics += sourceMetrics
-    val channel = file.inputStream().channel
+    val randomAccessSource = realSourceProvider.openRandomAccessSource()
     return object : RandomAccessSource {
       override fun read(
         sink: Buffer,
         position: Long,
         byteCount: Long
       ): Long {
-        val bytesRead = channel.transferTo(position, byteCount, sink)
+        val bytesRead = randomAccessSource.read(sink, position, byteCount)
         sourceMetrics += bytesRead.toInt()
         return bytesRead
       }
 
-      override fun close() = channel.close()
+      override fun close() = randomAccessSource.close()
     }
   }
 

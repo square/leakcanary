@@ -90,10 +90,7 @@ class HprofHeapGraph internal constructor(
       HeapPrimitiveArray(this, indexedObject, objectId)
     }
 
-  // LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
-  // This is based on running InstrumentationLeakDetectorTest a bunch of time on a
-  // Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
-  private val objectCache = LruCache<Long, ObjectRecord>(3000)
+  private val objectCache = LruCache<Long, ObjectRecord>(INTERNAL_LRU_CACHE_SIZE)
 
   // java.lang.Object is the most accessed class in Heap, so we want to memoize a reference to it
   private val javaLangObjectClass: HeapClass? = findClassByName("java.lang.Object")
@@ -260,6 +257,17 @@ class HprofHeapGraph internal constructor(
   }
 
   companion object {
+
+    /**
+     * This is not a public API, it's only public so that we can evaluate the effectiveness of
+     * different cache size in tests in a different module.
+     *
+     * LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
+     * This is based on running InstrumentationLeakDetectorTest a bunch of time on a
+     * Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
+     */
+    var INTERNAL_LRU_CACHE_SIZE = 3000
+
     /**
      * A facility for opening a [CloseableHeapGraph] from a [File].
      * This first parses the file headers with [HprofHeader.parseHeaderOf], then indexes the file content
