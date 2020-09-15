@@ -1,7 +1,7 @@
 package shark.internal
 
 import shark.GcRoot
-import shark.Hprof
+import shark.HprofHeader
 import shark.HprofRecord
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassSkipContentRecord
@@ -10,6 +10,8 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecor
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
+import shark.HprofVersion.ANDROID
+import shark.StreamingHprofReader
 import shark.OnHprofRecordListener
 import shark.PrimitiveType
 import shark.ProguardMapping
@@ -20,6 +22,7 @@ import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongObjectScatterMap
+import kotlin.math.max
 import kotlin.reflect.KClass
 
 /**
@@ -35,7 +38,12 @@ internal class HprofInMemoryIndex private constructor(
   private val primitiveArrayIndex: SortedBytesMap,
   private val gcRoots: List<GcRoot>,
   private val proguardMapping: ProguardMapping?,
-  val primitiveWrapperTypes: Set<Long>
+  val primitiveWrapperTypes: Set<Long>,
+  private val bytesForClassSize: Int,
+  private val bytesForInstanceSize: Int,
+  private val bytesForObjectArraySize: Int,
+  private val bytesForPrimitiveArraySize: Int,
+  private val useForwardSlashClassPackageSeparator: Boolean
 ) {
 
   fun fieldName(
@@ -54,13 +62,23 @@ internal class HprofInMemoryIndex private constructor(
     // String, primitive types
     val classNameStringId = classNames[classId]
     val classNameString = hprofStringById(classNameStringId)
-    return proguardMapping?.deobfuscateClassName(classNameString) ?: classNameString
+    return (proguardMapping?.deobfuscateClassName(classNameString) ?: classNameString).run {
+      if (useForwardSlashClassPackageSeparator) {
+        // JVM heap dumps use "/" for package separators (vs "." for Android heap dumps)
+        replace('/', '.')
+      } else this
+    }
   }
 
   fun classId(className: String): Long? {
+    val internalClassName = if (useForwardSlashClassPackageSeparator) {
+      // JVM heap dumps use "/" for package separators (vs "." for Android heap dumps)
+      className.replace('.', '/')
+    } else className
+
     // Note: this performs two linear scans over arrays
     val hprofStringId = hprofStringCache.entrySequence()
-        .firstOrNull { it.second == className }
+        .firstOrNull { it.second == internalClassName }
         ?.first
     return hprofStringId?.let { stringId ->
       classNames.entrySequence()
@@ -77,7 +95,8 @@ internal class HprofInMemoryIndex private constructor(
           id to IndexedClass(
               position = array.readTruncatedLong(positionSize),
               superclassId = array.readId(),
-              instanceSize = array.readInt()
+              instanceSize = array.readInt(),
+              recordSize = array.readTruncatedLong(bytesForClassSize)
           )
         }
   }
@@ -89,7 +108,8 @@ internal class HprofInMemoryIndex private constructor(
           val array = it.second
           val instance = IndexedInstance(
               position = array.readTruncatedLong(positionSize),
-              classId = array.readId()
+              classId = array.readId(),
+              recordSize = array.readTruncatedLong(bytesForInstanceSize)
           )
           id to instance
         }
@@ -102,7 +122,8 @@ internal class HprofInMemoryIndex private constructor(
           val array = it.second
           val objectArray = IndexedObjectArray(
               position = array.readTruncatedLong(positionSize),
-              arrayClassId = array.readId()
+              arrayClassId = array.readId(),
+              recordSize = array.readTruncatedLong(bytesForObjectArraySize)
           )
           id to objectArray
         }
@@ -117,7 +138,8 @@ internal class HprofInMemoryIndex private constructor(
           val primitiveArray = IndexedPrimitiveArray(
               position = array.readTruncatedLong(positionSize),
               primitiveType = PrimitiveType.values()[array.readByte()
-                  .toInt()]
+                  .toInt()],
+              recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
           )
           id to primitiveArray
         }
@@ -141,21 +163,24 @@ internal class HprofInMemoryIndex private constructor(
       return IndexedClass(
           position = array.readTruncatedLong(positionSize),
           superclassId = array.readId(),
-          instanceSize = array.readInt()
+          instanceSize = array.readInt(),
+          recordSize = array.readTruncatedLong(bytesForClassSize)
       )
     }
     array = instanceIndex[objectId]
     if (array != null) {
       return IndexedInstance(
           position = array.readTruncatedLong(positionSize),
-          classId = array.readId()
+          classId = array.readId(),
+          recordSize = array.readTruncatedLong(bytesForInstanceSize)
       )
     }
     array = objectArrayIndex[objectId]
     if (array != null) {
       return IndexedObjectArray(
           position = array.readTruncatedLong(positionSize),
-          arrayClassId = array.readId()
+          arrayClassId = array.readId(),
+          recordSize = array.readTruncatedLong(bytesForObjectArraySize)
       )
     }
     array = primitiveArrayIndex[objectId]
@@ -163,7 +188,8 @@ internal class HprofInMemoryIndex private constructor(
       return IndexedPrimitiveArray(
           position = array.readTruncatedLong(positionSize),
           primitiveType = PrimitiveType.values()[array.readByte()
-              .toInt()]
+              .toInt()],
+          recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
       )
     }
     return null
@@ -192,16 +218,20 @@ internal class HprofInMemoryIndex private constructor(
 
   private class Builder(
     longIdentifiers: Boolean,
-    fileLength: Long,
+    maxPosition: Long,
     classCount: Int,
     instanceCount: Int,
     objectArrayCount: Int,
     primitiveArrayCount: Int,
-    private val indexedGcRootsTypes: Set<Class<out GcRoot>>
+    private val indexedGcRootsTypes: Set<Class<out GcRoot>>,
+    val bytesForClassSize: Int,
+    val bytesForInstanceSize: Int,
+    val bytesForObjectArraySize: Int,
+    val bytesForPrimitiveArraySize: Int
   ) : OnHprofRecordListener {
 
     private val identifierSize = if (longIdentifiers) 8 else 4
-    private val positionSize = byteSizeForUnsigned(fileLength)
+    private val positionSize = byteSizeForUnsigned(maxPosition)
 
     /**
      * Map of string id to string
@@ -221,22 +251,22 @@ internal class HprofInMemoryIndex private constructor(
     private val classNames = LongLongScatterMap(expectedElements = classCount)
 
     private val classIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + identifierSize + 4,
+        bytesPerValue = positionSize + identifierSize + 4 + bytesForClassSize,
         longIdentifiers = longIdentifiers,
         initialCapacity = classCount
     )
     private val instanceIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + identifierSize,
+        bytesPerValue = positionSize + identifierSize + bytesForInstanceSize,
         longIdentifiers = longIdentifiers,
         initialCapacity = instanceCount
     )
     private val objectArrayIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + identifierSize,
+        bytesPerValue = positionSize + identifierSize + bytesForObjectArraySize,
         longIdentifiers = longIdentifiers,
         initialCapacity = objectArrayCount
     )
     private val primitiveArrayIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + 1,
+        bytesPerValue = positionSize + 1 + bytesForPrimitiveArraySize,
         longIdentifiers = longIdentifiers,
         initialCapacity = primitiveArrayCount
     )
@@ -262,8 +292,7 @@ internal class HprofInMemoryIndex private constructor(
           if (PRIMITIVE_WRAPPER_TYPES.contains(record.string)) {
             primitiveWrapperClassNames.add(record.id)
           }
-          // JVM heap dumps use "/" for package separators (vs "." for Android heap dumps)
-          hprofStringCache[record.id] = record.string.replace('/', '.')
+          hprofStringCache[record.id] = record.string
         }
         is LoadClassRecord -> {
           classNames[record.id] = record.classNameStringId
@@ -285,6 +314,7 @@ internal class HprofInMemoryIndex private constructor(
                 writeTruncatedLong(position, positionSize)
                 writeId(record.superclassId)
                 writeInt(record.instanceSize)
+                writeTruncatedLong(record.recordSize, bytesForClassSize)
               }
         }
         is InstanceSkipContentRecord -> {
@@ -292,6 +322,7 @@ internal class HprofInMemoryIndex private constructor(
               .apply {
                 writeTruncatedLong(position, positionSize)
                 writeId(record.classId)
+                writeTruncatedLong(record.recordSize, bytesForInstanceSize)
               }
         }
         is ObjectArraySkipContentRecord -> {
@@ -299,6 +330,7 @@ internal class HprofInMemoryIndex private constructor(
               .apply {
                 writeTruncatedLong(position, positionSize)
                 writeId(record.arrayClassId)
+                writeTruncatedLong(record.recordSize, bytesForObjectArraySize)
               }
         }
         is PrimitiveArraySkipContentRecord -> {
@@ -306,13 +338,15 @@ internal class HprofInMemoryIndex private constructor(
               .apply {
                 writeTruncatedLong(position, positionSize)
                 writeByte(record.type.ordinal.toByte())
+                writeTruncatedLong(record.recordSize, bytesForPrimitiveArraySize)
               }
         }
       }
     }
 
     fun buildIndex(
-      proguardMapping: ProguardMapping?
+      proguardMapping: ProguardMapping?,
+      hprofHeader: HprofHeader
     ): HprofInMemoryIndex {
       val sortedInstanceIndex = instanceIndex.moveToSortedMap()
       val sortedObjectArrayIndex = objectArrayIndex.moveToSortedMap()
@@ -320,12 +354,21 @@ internal class HprofInMemoryIndex private constructor(
       val sortedClassIndex = classIndex.moveToSortedMap()
       // Passing references to avoid copying the underlying data structures.
       return HprofInMemoryIndex(
-          positionSize,
-          hprofStringCache, classNames, sortedClassIndex, sortedInstanceIndex,
-          sortedObjectArrayIndex,
-          sortedPrimitiveArrayIndex, gcRoots,
-          proguardMapping,
-          primitiveWrapperTypes
+          positionSize = positionSize,
+          hprofStringCache = hprofStringCache,
+          classNames = classNames,
+          classIndex = sortedClassIndex,
+          instanceIndex = sortedInstanceIndex,
+          objectArrayIndex = sortedObjectArrayIndex,
+          primitiveArrayIndex = sortedPrimitiveArrayIndex,
+          gcRoots = gcRoots,
+          proguardMapping = proguardMapping,
+          primitiveWrapperTypes = primitiveWrapperTypes,
+          bytesForClassSize = bytesForClassSize,
+          bytesForInstanceSize = bytesForInstanceSize,
+          bytesForObjectArraySize = bytesForObjectArraySize,
+          bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
+          useForwardSlashClassPackageSeparator = hprofHeader.version != ANDROID
       )
     }
 
@@ -349,8 +392,9 @@ internal class HprofInMemoryIndex private constructor(
       return byteCount
     }
 
-    fun createReadingHprof(
-      hprof: Hprof,
+    fun indexHprof(
+      reader: StreamingHprofReader,
+      hprofHeader: HprofHeader,
       proguardMapping: ProguardMapping?,
       indexedGcRootTypes: Set<KClass<out GcRoot>>
     ): HprofInMemoryIndex {
@@ -363,38 +407,65 @@ internal class HprofInMemoryIndex private constructor(
           PrimitiveArraySkipContentRecord::class,
           GcRootRecord::class
       )
-      val reader = hprof.reader
 
       // First pass to count and correctly size arrays once and for all.
+      var maxClassSize = 0L
+      var maxInstanceSize = 0L
+      var maxObjectArraySize = 0L
+      var maxPrimitiveArraySize = 0L
       var classCount = 0
       var instanceCount = 0
       var objectArrayCount = 0
       var primitiveArrayCount = 0
-      reader.readHprofRecords(setOf(
-          LoadClassRecord::class,
+
+      val bytesRead = reader.readRecords(setOf(
+          ClassSkipContentRecord::class,
           InstanceSkipContentRecord::class,
           ObjectArraySkipContentRecord::class,
           PrimitiveArraySkipContentRecord::class
-      ), OnHprofRecordListener { position, record ->
+      ), OnHprofRecordListener { _, record ->
         when (record) {
-          is LoadClassRecord -> classCount++
-          is InstanceSkipContentRecord -> instanceCount++
-          is ObjectArraySkipContentRecord -> objectArrayCount++
-          is PrimitiveArraySkipContentRecord -> primitiveArrayCount++
+          is ClassSkipContentRecord -> {
+            classCount++
+            maxClassSize = max(maxClassSize, record.recordSize)
+          }
+          is InstanceSkipContentRecord -> {
+            instanceCount++
+            maxInstanceSize = max(maxInstanceSize, record.recordSize)
+          }
+          is ObjectArraySkipContentRecord -> {
+            objectArrayCount++
+            maxObjectArraySize = max(maxObjectArraySize, record.recordSize)
+          }
+          is PrimitiveArraySkipContentRecord -> {
+            primitiveArrayCount++
+            maxPrimitiveArraySize = max(maxPrimitiveArraySize, record.recordSize)
+          }
         }
       })
 
-      hprof.moveReaderTo(reader.startPosition)
-      val indexBuilderListener =
-        Builder(
-            reader.identifierByteSize == 8, hprof.fileLength, classCount, instanceCount,
-            objectArrayCount, primitiveArrayCount, indexedGcRootTypes.map { it.java }
-            .toSet()
-        )
+      val bytesForClassSize = byteSizeForUnsigned(maxClassSize)
+      val bytesForInstanceSize = byteSizeForUnsigned(maxInstanceSize)
+      val bytesForObjectArraySize = byteSizeForUnsigned(maxObjectArraySize)
+      val bytesForPrimitiveArraySize = byteSizeForUnsigned(maxPrimitiveArraySize)
 
-      reader.readHprofRecords(recordTypes, indexBuilderListener)
+      val indexBuilderListener = Builder(
+          longIdentifiers = hprofHeader.identifierByteSize == 8,
+          maxPosition = bytesRead,
+          classCount = classCount,
+          instanceCount = instanceCount,
+          objectArrayCount = objectArrayCount,
+          primitiveArrayCount = primitiveArrayCount,
+          indexedGcRootsTypes = indexedGcRootTypes.map { it.java }
+              .toSet(),
+          bytesForClassSize = bytesForClassSize,
+          bytesForInstanceSize = bytesForInstanceSize,
+          bytesForObjectArraySize = bytesForObjectArraySize,
+          bytesForPrimitiveArraySize = bytesForPrimitiveArraySize
+      )
 
-      return indexBuilderListener.buildIndex(proguardMapping)
+      reader.readRecords(recordTypes, indexBuilderListener)
+      return indexBuilderListener.buildIndex(proguardMapping, hprofHeader)
     }
 
   }

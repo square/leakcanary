@@ -22,8 +22,7 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HeapValue
-import shark.Hprof
-import shark.HprofHeapGraph
+import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
@@ -65,9 +64,8 @@ internal class HprofExplorerScreen(
       })
 
       executeOnIo {
-        val hprof = Hprof.open(heapDumpFile)
-        closeable = hprof
-        val graph = HprofHeapGraph.indexHprof(hprof)
+        val graph = heapDumpFile.openHeapGraph()
+        closeable = graph
         updateUi {
           container.activity.title =
             resources.getString(R.string.leak_canary_explore_heap_dump)

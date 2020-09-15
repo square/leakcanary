@@ -128,6 +128,8 @@ sealed class HprofRecord {
           internal set
         var fieldCount: Int
           internal set
+        var recordSize: Long = 0
+          internal set
 
         init {
           this.id = id
@@ -166,11 +168,11 @@ sealed class HprofRecord {
       ) : ObjectRecord() {
         var id: Long
           internal set
-
         var stackTraceSerialNumber: Int
           internal set
-
         var classId: Long
+          internal set
+        var recordSize: Long = 0
           internal set
 
         init {
@@ -207,6 +209,8 @@ sealed class HprofRecord {
         var arrayClassId: Long
           internal set
         var size: Int
+          internal set
+        var recordSize: Long = 0
           internal set
 
         init {
@@ -315,6 +319,8 @@ sealed class HprofRecord {
         var size: Int
           internal set
         var type: PrimitiveType
+          internal set
+        var recordSize: Long = 0
           internal set
 
         init {

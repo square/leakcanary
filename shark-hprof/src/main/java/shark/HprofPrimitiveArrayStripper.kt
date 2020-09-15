@@ -1,5 +1,7 @@
 package shark
 
+import okio.BufferedSink
+import okio.Okio
 import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -33,68 +35,81 @@ class HprofPrimitiveArrayStripper {
         ".hprof", "-stripped.hprof"
     ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-stripped" })
   ): File {
-    Hprof.open(inputHprofFile)
-        .use { hprof ->
-          val reader = hprof.reader
-          HprofWriter.open(
-              outputHprofFile,
-              identifierByteSize = reader.identifierByteSize,
-              hprofVersion = hprof.hprofVersion
-          )
-              .use { writer ->
-                reader.readHprofRecords(setOf(HprofRecord::class),
-                    OnHprofRecordListener { _,
-                      record ->
-                      // HprofWriter automatically emits HeapDumpEndRecord, because it flushes
-                      // all continuous heap dump sub records as one heap dump record.
-                      if (record is HeapDumpEndRecord) {
-                        return@OnHprofRecordListener
-                      }
-                      writer.write(
-                          when (record) {
-                            is BooleanArrayDump -> BooleanArrayDump(
-                                record.id, record.stackTraceSerialNumber,
-                                BooleanArray(record.array.size)
-                            )
-                            is CharArrayDump -> CharArrayDump(
-                                record.id, record.stackTraceSerialNumber,
-                                CharArray(record.array.size) {
-                                  '?'
-                                }
-                            )
-                            is FloatArrayDump -> FloatArrayDump(
-                                record.id, record.stackTraceSerialNumber,
-                                FloatArray(record.array.size)
-                            )
-                            is DoubleArrayDump -> DoubleArrayDump(
-                                record.id, record.stackTraceSerialNumber,
-                                DoubleArray(record.array.size)
-                            )
-                            is ByteArrayDump -> ByteArrayDump(
-                                record.id, record.stackTraceSerialNumber,
-                                ByteArray(record.array.size)
-                            )
-                            is ShortArrayDump -> ShortArrayDump(
-                                record.id, record.stackTraceSerialNumber,
-                                ShortArray(record.array.size)
-                            )
-                            is IntArrayDump -> IntArrayDump(
-                                record.id, record.stackTraceSerialNumber,
-                                IntArray(record.array.size)
-                            )
-                            is LongArrayDump -> LongArrayDump(
-                                record.id, record.stackTraceSerialNumber,
-                                LongArray(record.array.size)
-                            )
-                            else -> {
-                              record
-                            }
+    stripPrimitiveArrays(
+        hprofSourceProvider = FileSourceProvider(inputHprofFile),
+        hprofSink = Okio.buffer(Okio.sink(outputHprofFile.outputStream()))
+    )
+    return outputHprofFile
+  }
+
+  /**
+   * @see HprofPrimitiveArrayStripper
+   */
+  fun stripPrimitiveArrays(
+    hprofSourceProvider: StreamingSourceProvider,
+    hprofSink: BufferedSink
+  ) {
+    val header = hprofSourceProvider.openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
+    val reader = StreamingHprofReader.readerFor(hprofSourceProvider, header)
+    HprofWriter.openWriterFor(
+        hprofSink,
+        hprofHeader = HprofHeader(
+            identifierByteSize = header.identifierByteSize,
+            version = header.version
+        )
+    )
+        .use { writer ->
+          reader.readRecords(setOf(HprofRecord::class),
+              OnHprofRecordListener { _,
+                record ->
+                // HprofWriter automatically emits HeapDumpEndRecord, because it flushes
+                // all continuous heap dump sub records as one heap dump record.
+                if (record is HeapDumpEndRecord) {
+                  return@OnHprofRecordListener
+                }
+                writer.write(
+                    when (record) {
+                      is BooleanArrayDump -> BooleanArrayDump(
+                          record.id, record.stackTraceSerialNumber,
+                          BooleanArray(record.array.size)
+                      )
+                      is CharArrayDump -> CharArrayDump(
+                          record.id, record.stackTraceSerialNumber,
+                          CharArray(record.array.size) {
+                            '?'
                           }
                       )
-                    })
-              }
+                      is FloatArrayDump -> FloatArrayDump(
+                          record.id, record.stackTraceSerialNumber,
+                          FloatArray(record.array.size)
+                      )
+                      is DoubleArrayDump -> DoubleArrayDump(
+                          record.id, record.stackTraceSerialNumber,
+                          DoubleArray(record.array.size)
+                      )
+                      is ByteArrayDump -> ByteArrayDump(
+                          record.id, record.stackTraceSerialNumber,
+                          ByteArray(record.array.size)
+                      )
+                      is ShortArrayDump -> ShortArrayDump(
+                          record.id, record.stackTraceSerialNumber,
+                          ShortArray(record.array.size)
+                      )
+                      is IntArrayDump -> IntArrayDump(
+                          record.id, record.stackTraceSerialNumber,
+                          IntArray(record.array.size)
+                      )
+                      is LongArrayDump -> LongArrayDump(
+                          record.id, record.stackTraceSerialNumber,
+                          LongArray(record.array.size)
+                      )
+                      else -> {
+                        record
+                      }
+                    }
+                )
+              })
         }
-    return outputHprofFile
   }
 
 }

@@ -105,6 +105,13 @@ internal class PathFinder(
 
     val queuesNotEmpty: Boolean
       get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
+
+    /**
+     * A marker for when we're done exploring the graph of higher priority references and start
+     * visiting the lower priority references, at which point we won't add any reference to
+     * the high priority queue anymore.
+     */
+    var visitingLast = false
   }
 
   private val fieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
@@ -230,11 +237,12 @@ internal class PathFinder(
   }
 
   private fun State.poll(): ReferencePathNode {
-    return if (!toVisitQueue.isEmpty()) {
+    return if (!visitingLast && !toVisitQueue.isEmpty()) {
       val removedNode = toVisitQueue.poll()
       toVisitSet.remove(removedNode.objectId)
       removedNode
     } else {
+      visitingLast = true
       val removedNode = toVisitLastQueue.poll()
       toVisitLastSet.remove(removedNode.objectId)
       removedNode
@@ -502,6 +510,7 @@ internal class PathFinder(
     }
 
     val visitLast =
+      visitingLast ||
       node is LibraryLeakNode ||
           // We deprioritize thread objects because on Lollipop the thread local values are stored
           // as a field.

@@ -10,6 +10,7 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
+import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
@@ -131,11 +132,9 @@ class InteractiveCommand : CliktCommand(
       ProguardMappingReader(it.inputStream()).readProguardMapping()
     }
 
-    Hprof.open(heapDumpFile)
-        .use { hprof ->
-          val graph = HprofHeapGraph.indexHprof(hprof, proguardMapping)
-          block(graph, heapDumpFile)
-        }
+    heapDumpFile.openHeapGraph().use { graph ->
+      block(graph, heapDumpFile)
+    }
   }
 
   private fun setupConsole(graph: HeapGraph): ConsoleReader {

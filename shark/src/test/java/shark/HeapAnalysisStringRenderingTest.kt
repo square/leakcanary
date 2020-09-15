@@ -31,7 +31,7 @@ class HeapAnalysisStringRenderingTest {
       |====================================
       |STACKTRACE
       |
-      |java.lang.IllegalArgumentException: Hprof file is 0 byte length
+      |java.lang.IllegalArgumentException: Source has no available bytes
       |.*
       |====================================
       |METADATA

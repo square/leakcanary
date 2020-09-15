@@ -12,7 +12,6 @@ import android.graphics.Paint.Style.STROKE
 import android.graphics.Rect
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.navigation.getColorCompat
-import shark.Hprof
 import shark.HprofRecord
 import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
@@ -31,6 +30,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecord.StringRecord
+import shark.StreamingHprofReader
 import shark.OnHprofRecordListener
 import java.io.File
 
@@ -101,181 +101,178 @@ internal object HeapDumpRenderer {
 
     var lastPosition = 0L
 
-    Hprof.open(heapDumpFile)
-        .use { hprof ->
-          val hprofStringCache = mutableMapOf<Long, String>()
-          val classNames = mutableMapOf<Long, Long>()
-          hprof.reader.readHprofRecords(
-              setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
-            lastPosition = position
-            when (record) {
-              is StringRecord -> {
-                hprofStringCache[record.id] = record.string
-              }
-              is LoadClassRecord -> {
-                classNames[record.id] = record.classNameStringId
-              }
-            }
-            val localCurrentRecord = currentRecord
-            when {
-              localCurrentRecord is HeapDumpInfoRecord -> {
-                val colorForHeapInfo =
-                  when (hprofStringCache[localCurrentRecord.heapNameStringId]) {
-                    // The primary heap on which your app allocates memory.
-                    "app" -> appHeapColor
-                    // The system boot image, containing classes that are preloaded during boot time.
-                    // Allocations here are guaranteed to never move or go away.
-                    "image" -> imageHeapColor
-                    // The copy-on-write heap where an app process is forked from in the Android system.
-                    "zygote" -> zygoteHeapColor
-                    // JNI heap: The heap that shows where Java Native Interface (JNI) references are allocated and released.
-                    // default heap: When no heap is specified by the system
-                    else -> otherColor
-                  }
-                recordPositions.add(colorForHeapInfo to position)
-                currentRecord = record
-              }
-              localCurrentRecord is InstanceDumpRecord
-                  && hprofStringCache[classNames[localCurrentRecord.classId]] == "java.lang.String"
-                  && (record !is InstanceDumpRecord || hprofStringCache[classNames[record.classId]]
-                  != "java.lang.String")
-              -> {
-                recordPositions.add(stringColor to position)
-                currentRecord = record
-              }
-              currentRecord == null -> {
-                recordPositions.add(otherColor to position)
-                currentRecord = record
-              }
-              currentRecord!!::class != record::class -> {
-                recordPositions.add(colors.getValue(currentRecord!!::class) to position)
-                currentRecord = record
-              }
-            }
-          })
-          val heapLength = lastPosition
-
-          val width = sourceWidth
-          var height: Int
-          val bytesPerPixel: Double
-
-          if (sourceBytesPerPixel > 0) {
-            bytesPerPixel = sourceBytesPerPixel.toDouble()
-            height = Math.ceil((heapLength / bytesPerPixel) / width)
-                .toInt()
-          } else {
-            height = sourceHeight
-            bytesPerPixel = heapLength * 1.0 / (width * height)
-          }
-
-          val bitmap: Bitmap =
-            Bitmap.createBitmap(width, height, ARGB_8888)
-
-          val canvas = Canvas(bitmap)
-
-          val legend = mapOf(
-              "Hprof string" to hprofStringColor,
-              "Class name" to loadClassColor,
-              "App heap" to appHeapColor,
-              "Image heap" to imageHeapColor,
-              "Zygote heap" to zygoteHeapColor,
-              "Other heap" to otherColor,
-              "Class content" to classDumpColor,
-              "Instance" to instanceColor,
-              "String" to stringColor,
-              "Object array" to objectArrayColor,
-              "Boolean array" to booleanArrayColor,
-              "Char array" to charArrayColor,
-              "Float array" to floatArrayColor,
-              "Double array" to doubleArrayColor,
-              "Byte array" to byteArrayColor,
-              "Short array" to shortArrayColor,
-              "Int array" to intArrayColor,
-              "Long array" to longArrayColor,
-              "Stack trace" to stackTraceColor,
-              "Heap End" to otherColor
-          )
-
-          val legendTextPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-
-          legendTextPaint.color = Color.WHITE
-          legendTextPaint.style = FILL
-          canvas.drawPaint(legendTextPaint)
-
-          val legendSquareFillPaint = Paint()
-          legendSquareFillPaint.style = FILL
-          val legendSquareStrokePaint = Paint()
-          legendSquareStrokePaint.style = STROKE
-          legendSquareStrokePaint.strokeWidth = 0.8f.dp
-          legendSquareStrokePaint.color = Color.BLACK
-
-          legendTextPaint.color = Color.BLACK
-          legendTextPaint.textSize = 16.dp
-
-          val metrics = legendTextPaint.fontMetrics
-          val textHeight = metrics.descent - metrics.ascent
-
-          val xBounds = Rect()
-          legendTextPaint.getTextBounds("x", 0, 1, xBounds)
-          val squareSize = xBounds.height()
-          val squarePaddingTop = (textHeight - squareSize) / 2
-          val squareToTextPadding = 4.dp
-          val blockToBlockPadding = 8.dp
-
-          var maxTextWidth = 0f
-          for (name in legend.keys) {
-            maxTextWidth = Math.max(maxTextWidth, legendTextPaint.measureText(name))
-          }
-
-          val padding = 8.dp
-          var blockLeft = padding
-          var blockTop = padding
-          val legendWidth = width - 2 * padding
-          for ((name, color) in legend) {
-            if (blockLeft + squareSize + squareToTextPadding + maxTextWidth > legendWidth) {
-              blockLeft = padding
-              blockTop += textHeight
-            }
-
-            legendSquareFillPaint.color = color
-            canvas.drawRect(
-                blockLeft, blockTop + squarePaddingTop, blockLeft + squareSize,
-                blockTop + squarePaddingTop + squareSize,
-                legendSquareFillPaint
-            )
-            canvas.drawRect(
-                blockLeft, blockTop + squarePaddingTop, blockLeft + squareSize,
-                blockTop + squarePaddingTop + squareSize,
-                legendSquareStrokePaint
-            )
-            blockLeft += squareSize + squareToTextPadding
-            canvas.drawText(name, blockLeft, blockTop - metrics.ascent, legendTextPaint)
-            blockLeft += maxTextWidth
-            blockLeft += blockToBlockPadding
-          }
-          val legendHeight = blockTop + textHeight + padding
-          val source = Rect(0, 0, width, legendHeight.toInt())
-          val destination = Rect(0, (height - legendHeight).toInt(), width, height)
-          canvas.drawBitmap(bitmap, source, destination, null)
-          height -= legendHeight.toInt()
-
-          val pixelPaint = Paint()
-          pixelPaint.style = FILL
-
-          var recordIndex = 0
-          for (y in 0 until height) {
-            for (x in 0 until width) {
-              val bitmapPosition = y * width + x
-              val heapPosition = (bitmapPosition * bytesPerPixel).toInt()
-              while (heapPosition > recordPositions[recordIndex].second && recordIndex < recordPositions.lastIndex) {
-                recordIndex++
-              }
-              pixelPaint.color = recordPositions[recordIndex].first
-              canvas.drawPoint(x.toFloat(), y.toFloat(), pixelPaint)
-            }
-          }
-          return bitmap
+    val reader = StreamingHprofReader.readerFor(heapDumpFile)
+    val hprofStringCache = mutableMapOf<Long, String>()
+    val classNames = mutableMapOf<Long, Long>()
+    reader.readRecords(
+        setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
+      lastPosition = position
+      when (record) {
+        is StringRecord -> {
+          hprofStringCache[record.id] = record.string
         }
+        is LoadClassRecord -> {
+          classNames[record.id] = record.classNameStringId
+        }
+      }
+      val localCurrentRecord = currentRecord
+      when {
+        localCurrentRecord is HeapDumpInfoRecord -> {
+          val colorForHeapInfo =
+            when (hprofStringCache[localCurrentRecord.heapNameStringId]) {
+              // The primary heap on which your app allocates memory.
+              "app" -> appHeapColor
+              // The system boot image, containing classes that are preloaded during boot time.
+              // Allocations here are guaranteed to never move or go away.
+              "image" -> imageHeapColor
+              // The copy-on-write heap where an app process is forked from in the Android system.
+              "zygote" -> zygoteHeapColor
+              // JNI heap: The heap that shows where Java Native Interface (JNI) references are allocated and released.
+              // default heap: When no heap is specified by the system
+              else -> otherColor
+            }
+          recordPositions.add(colorForHeapInfo to position)
+          currentRecord = record
+        }
+        localCurrentRecord is InstanceDumpRecord
+            && hprofStringCache[classNames[localCurrentRecord.classId]] == "java.lang.String"
+            && (record !is InstanceDumpRecord || hprofStringCache[classNames[record.classId]]
+            != "java.lang.String")
+        -> {
+          recordPositions.add(stringColor to position)
+          currentRecord = record
+        }
+        currentRecord == null -> {
+          recordPositions.add(otherColor to position)
+          currentRecord = record
+        }
+        currentRecord!!::class != record::class -> {
+          recordPositions.add(colors.getValue(currentRecord!!::class) to position)
+          currentRecord = record
+        }
+      }
+    })
+    val heapLength = lastPosition
 
+    val width = sourceWidth
+    var height: Int
+    val bytesPerPixel: Double
+
+    if (sourceBytesPerPixel > 0) {
+      bytesPerPixel = sourceBytesPerPixel.toDouble()
+      height = Math.ceil((heapLength / bytesPerPixel) / width)
+          .toInt()
+    } else {
+      height = sourceHeight
+      bytesPerPixel = heapLength * 1.0 / (width * height)
+    }
+
+    val bitmap: Bitmap =
+      Bitmap.createBitmap(width, height, ARGB_8888)
+
+    val canvas = Canvas(bitmap)
+
+    val legend = mapOf(
+        "Hprof string" to hprofStringColor,
+        "Class name" to loadClassColor,
+        "App heap" to appHeapColor,
+        "Image heap" to imageHeapColor,
+        "Zygote heap" to zygoteHeapColor,
+        "Other heap" to otherColor,
+        "Class content" to classDumpColor,
+        "Instance" to instanceColor,
+        "String" to stringColor,
+        "Object array" to objectArrayColor,
+        "Boolean array" to booleanArrayColor,
+        "Char array" to charArrayColor,
+        "Float array" to floatArrayColor,
+        "Double array" to doubleArrayColor,
+        "Byte array" to byteArrayColor,
+        "Short array" to shortArrayColor,
+        "Int array" to intArrayColor,
+        "Long array" to longArrayColor,
+        "Stack trace" to stackTraceColor,
+        "Heap End" to otherColor
+    )
+
+    val legendTextPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    legendTextPaint.color = Color.WHITE
+    legendTextPaint.style = FILL
+    canvas.drawPaint(legendTextPaint)
+
+    val legendSquareFillPaint = Paint()
+    legendSquareFillPaint.style = FILL
+    val legendSquareStrokePaint = Paint()
+    legendSquareStrokePaint.style = STROKE
+    legendSquareStrokePaint.strokeWidth = 0.8f.dp
+    legendSquareStrokePaint.color = Color.BLACK
+
+    legendTextPaint.color = Color.BLACK
+    legendTextPaint.textSize = 16.dp
+
+    val metrics = legendTextPaint.fontMetrics
+    val textHeight = metrics.descent - metrics.ascent
+
+    val xBounds = Rect()
+    legendTextPaint.getTextBounds("x", 0, 1, xBounds)
+    val squareSize = xBounds.height()
+    val squarePaddingTop = (textHeight - squareSize) / 2
+    val squareToTextPadding = 4.dp
+    val blockToBlockPadding = 8.dp
+
+    var maxTextWidth = 0f
+    for (name in legend.keys) {
+      maxTextWidth = Math.max(maxTextWidth, legendTextPaint.measureText(name))
+    }
+
+    val padding = 8.dp
+    var blockLeft = padding
+    var blockTop = padding
+    val legendWidth = width - 2 * padding
+    for ((name, color) in legend) {
+      if (blockLeft + squareSize + squareToTextPadding + maxTextWidth > legendWidth) {
+        blockLeft = padding
+        blockTop += textHeight
+      }
+
+      legendSquareFillPaint.color = color
+      canvas.drawRect(
+          blockLeft, blockTop + squarePaddingTop, blockLeft + squareSize,
+          blockTop + squarePaddingTop + squareSize,
+          legendSquareFillPaint
+      )
+      canvas.drawRect(
+          blockLeft, blockTop + squarePaddingTop, blockLeft + squareSize,
+          blockTop + squarePaddingTop + squareSize,
+          legendSquareStrokePaint
+      )
+      blockLeft += squareSize + squareToTextPadding
+      canvas.drawText(name, blockLeft, blockTop - metrics.ascent, legendTextPaint)
+      blockLeft += maxTextWidth
+      blockLeft += blockToBlockPadding
+    }
+    val legendHeight = blockTop + textHeight + padding
+    val source = Rect(0, 0, width, legendHeight.toInt())
+    val destination = Rect(0, (height - legendHeight).toInt(), width, height)
+    canvas.drawBitmap(bitmap, source, destination, null)
+    height -= legendHeight.toInt()
+
+    val pixelPaint = Paint()
+    pixelPaint.style = FILL
+
+    var recordIndex = 0
+    for (y in 0 until height) {
+      for (x in 0 until width) {
+        val bitmapPosition = y * width + x
+        val heapPosition = (bitmapPosition * bytesPerPixel).toInt()
+        while (heapPosition > recordPositions[recordIndex].second && recordIndex < recordPositions.lastIndex) {
+          recordIndex++
+        }
+        pixelPaint.color = recordPositions[recordIndex].first
+        canvas.drawPoint(x.toFloat(), y.toFloat(), pixelPaint)
+      }
+    }
+    return bitmap
   }
 }

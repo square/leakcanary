@@ -11,6 +11,7 @@ dependencies {
 
   testImplementation deps.assertj_core
   testImplementation deps.junit
+  testImplementation deps.kotlin_statistics
   testImplementation deps.mockito
   testImplementation deps.mockito_kotlin
   testImplementation deps.okio

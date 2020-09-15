@@ -1,5 +1,6 @@
 package shark
 
+import okio.Buffer
 import shark.GcRoot.StickyClass
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -49,7 +50,7 @@ class HprofWriterHelper constructor(
       UUID(weakRefKeyRandom.nextLong(), weakRefKeyRandom.nextLong()).toString()
 
   private val typeSizes =
-    PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to writer.identifierByteSize)
+    PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to writer.hprofHeader.identifierByteSize)
 
   private val classDumps = mutableMapOf<Long, ClassDumpRecord>()
 
@@ -343,11 +344,17 @@ class HprofWriterHelper constructor(
 }
 
 fun File.dump(block: HprofWriterHelper.() -> Unit) {
-  HprofWriterHelper(HprofWriter.open(this))
+  HprofWriterHelper(HprofWriter.openWriterFor(this))
       .use(block)
 }
 
-fun HprofWriter.helper(block: HprofWriterHelper.() -> Unit) {
-  HprofWriterHelper(this)
-      .use(block)
+fun List<HprofRecord>.asHprofBytes(): DualSourceProvider {
+  val buffer = Buffer()
+  HprofWriter.openWriterFor(buffer)
+      .use { writer ->
+        forEach { record ->
+          writer.write(record)
+        }
+      }
+  return ByteArraySourceProvider(buffer.readByteArray())
 }

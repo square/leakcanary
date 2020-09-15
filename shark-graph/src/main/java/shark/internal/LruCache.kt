@@ -29,7 +29,7 @@ internal class LruCache<K, V>(
       "maxSize=$maxSize <= 0"
     }
     this.cache = object : LinkedHashMap<K, V>(maxSize, 0.75f, true) {
-      override fun removeEldestEntry(eldest: MutableEntry<K, V>?) = if (size >= maxSize) {
+      override fun removeEldestEntry(eldest: MutableEntry<K, V>?) = if (size > maxSize) {
         evictionCount++
         true
       } else {
