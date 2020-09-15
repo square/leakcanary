@@ -185,8 +185,6 @@ enum class AndroidReferenceMatchers {
           + " has been shown to happen in both Dalvik and ART.")
 
       references += instanceFieldLeak("android.os.Message", "obj", description)
-      references += instanceFieldLeak("android.os.Message", "next", description)
-      references += instanceFieldLeak("android.os.Message", "target", description)
     }
   },
 
