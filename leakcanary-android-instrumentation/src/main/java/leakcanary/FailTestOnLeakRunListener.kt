@@ -60,7 +60,6 @@ open class FailTestOnLeakRunListener : RunListener() {
   private var allActivitiesDestroyedLatch: CountDownLatch? = null
 
   override fun testRunStarted(description: Description) {
-    InstrumentationLeakDetector.updateConfig()
     testResultPublisher = TestResultPublisher.install()
     trackActivities()
   }

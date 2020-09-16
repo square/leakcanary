@@ -25,16 +25,15 @@
   We welcome contributions from the community - please do not hesitate to
   <a href="https://github.com/square/leakcanary/issues">report an issue</a> or open a pull request!<br><br>
 ]]></string>
-  <string name="leak_canary_about_enable_heap_dump">Enable Heap Dump</string>
+  <string name="leak_canary_about_enable_heap_dump">Dump heap automatically</string>
   <string name="leak_canary_about_enable_heap_dump_textOn">Enable</string>
   <string name="leak_canary_about_enable_heap_dump_textOff">Disable</string>
-  <string name="leak_canary_heap_dump_disabled_text">Heap dumping is currently disabled, because <i>%s</i>.</string>
-  <string name="leak_canary_heap_dump_not_installed_text">AppWatcher is not installed.</string>
-  <string name="leak_canary_heap_dump_enabled_text">Heap dumping is currently enabled.</string>
+  <string name="leak_canary_heap_dump_disabled_text">LeakCanary is currently disabled: <i>%s</i>.</string>
+  <string name="leak_canary_heap_dump_not_installed_text">AppWatcher is not installed</string>
+  <string name="leak_canary_heap_dump_enabled_text">LeakCanary is running and ready to detect memory leaks.</string>
   <string name="leak_canary_heap_dump_disabled_by_app">LeakCanary.Config.dumpHeap is set to false</string>
-  <string name="leak_canary_heap_dump_disabled_from_ui">Heap dump is disabled from About Screen</string>
-  <string name="leak_canary_heap_dump_disabled_running_tests">tests are running</string>
-  <string name="leak_canary_heap_dump_disabled_build_non_debuggable">the debugger is attached and LeakCanary.Config.dumpHeapWhenDebugging is set to false</string>
+  <string name="leak_canary_heap_dump_disabled_from_ui">heap dumping disabled from LeakCanary About screen</string>
+  <string name="leak_canary_heap_dump_disabled_running_tests">test class "%s" was found in classpath</string>
   <string name="leak_canary_analysis_failed">Heap analysis failed</string>
   <string name="leak_canary_analysis_success_notification">Found %1$d retained objects grouped as %2$d distinct leaks</string>
   <string name="leak_canary_class_has_leaked">%1$s Leaked</string>
@@ -57,8 +56,6 @@
   <string name="leak_canary_notification_retained_dump_failed">Failed to dump heap</string>
   <string name="leak_canary_notification_retained_dump_wait">Last heap dump was less than a minute ago</string>
   <string name="leak_canary_notification_retained_title">%d retained objects, tap to dump heap</string>
-  <string name="leak_canary_notification_heap_dump_disabled">Heap Dump was not triggered.</string>
-  <string name="leak_canary_notification_heap_dump_tap_to_dismiss">Heap Dump is disabled from the About Screen. Tap to dismiss.</string>
   <string name="leak_canary_notification_retained_visible">App visible, waiting until %d retained objects</string>
   <string name="leak_canary_share_with">Share with…</string>
   <string name="leak_canary_display_activity_label">Leaks</string>

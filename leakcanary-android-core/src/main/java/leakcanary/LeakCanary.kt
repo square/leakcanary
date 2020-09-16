@@ -2,6 +2,7 @@ package leakcanary
 
 import android.content.Intent
 import leakcanary.LeakCanary.config
+import leakcanary.internal.HeapDumpControl
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.LeakActivity
 import shark.AndroidMetadataExtractor
@@ -294,6 +295,7 @@ object LeakCanary {
       val previousConfig = field
       field = newConfig
       logConfigChange(previousConfig, newConfig)
+      HeapDumpControl.updateICanHasHeap()
     }
 
   private fun logConfigChange(

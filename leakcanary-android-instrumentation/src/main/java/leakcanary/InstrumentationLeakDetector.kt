@@ -19,7 +19,6 @@ import android.os.Debug
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import leakcanary.GcTrigger.Default.runGc
-import leakcanary.InstrumentationLeakDetector.Companion.updateConfig
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
 import org.junit.runner.notification.RunListener
@@ -33,12 +32,8 @@ import java.io.File
 /**
  * [InstrumentationLeakDetector] can be used to detect memory leaks in instrumentation tests.
  *
- * To use it, you need to:
- *
- *  - Call [updateConfig] so that [AppWatcher] will watch objects and [LeakCanary] will not dump
- *  the heap on retained objects
- *  - Add an instrumentation test listener (e.g. [FailTestOnLeakRunListener]) that will invoke
- * [detectLeaks].
+ * To use it, you need to add an instrumentation test listener (e.g. [FailTestOnLeakRunListener])
+ * that will invoke [detectLeaks].
  *
  * ### Add an instrumentation test listener
  *
@@ -182,14 +177,10 @@ class InstrumentationLeakDetector {
 
   companion object {
 
-    /**
-     * Configures [AppWatcher] to watch objects and [LeakCanary] to not dump the heap on retained
-     * objects so that instrumentation tests run smoothly, and we can look for leaks at the end of
-     * a test. This is automatically called by [FailTestOnLeakRunListener] when the tests start
-     * running.
-     */
-    fun updateConfig() {
-      LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
-    }
+    @Deprecated(
+        "This is a no-op as LeakCanary automatically detects tests",
+        replaceWith = ReplaceWith("")
+    )
+    fun updateConfig() = Unit
   }
 }

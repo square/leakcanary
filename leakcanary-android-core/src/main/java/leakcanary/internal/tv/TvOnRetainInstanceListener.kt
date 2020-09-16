@@ -9,8 +9,8 @@ import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.OnRetainInstanceListener
 import leakcanary.internal.RetainInstanceEvent
 import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
-import leakcanary.internal.RetainInstanceEvent.CountChanged.DebuggerIsAttached
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
+import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
 import shark.SharkLog
 
@@ -39,8 +39,8 @@ internal class TvOnRetainInstanceListener(private val application: Application) 
             LeakCanary.config.retainedVisibleThreshold
         )
       }
-      is DebuggerIsAttached -> {
-        application.getString(R.string.leak_canary_notification_retained_debugger_attached)
+      is DumpingDisabled -> {
+        event.reason
       }
       is DumpHappenedRecently -> {
         application.getString(R.string.leak_canary_notification_retained_dump_wait)

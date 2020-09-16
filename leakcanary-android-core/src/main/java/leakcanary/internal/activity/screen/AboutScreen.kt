@@ -1,10 +1,6 @@
 package leakcanary.internal.activity.screen
 
 import android.content.Context
-import android.content.Context.MODE_PRIVATE
-import android.content.res.Resources
-import android.os.Handler
-import android.os.Process
 import android.text.Html
 import android.text.method.LinkMovementMethod
 import android.view.ViewGroup
@@ -12,31 +8,17 @@ import android.widget.Switch
 import android.widget.TextView
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
-import leakcanary.AppWatcher
-import leakcanary.LeakCanary
-import leakcanary.internal.DebuggerControl
-import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_BY_DEVELOPER
-import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_DEBUGGER_ATTACHED
-import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_FROM_ABOUT_SCREEN
-import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.DISABLED_RUNNING_TESTS
-import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.ENABLED
-import leakcanary.internal.activity.screen.AboutScreen.HeapDumpPolicy.HeapDumpStatus.NOT_INSTALLED
+import leakcanary.internal.HeapDumpControl
+import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
+import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.inflate
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-
-private const val HEAP_DUMP_SHARED_PREFERENCES = "HEAP_DUMP_SHARED_PREFERENCES"
-private const val HEAP_DUMP_SWITCH_ENABLED = "HEAP_DUMP_SWITCH_ENABLED"
-private const val HEAP_DUMP_SHARED_PREFERENCES_THREAD_NAME = "shared-preferences"
 
 internal class AboutScreen : Screen() {
-
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_about_screen)
         .apply {
-
           activity.title =
             resources.getString(R.string.leak_canary_about_title, BuildConfig.LIBRARY_VERSION)
           val aboutTextView = findViewById<TextView>(R.id.leak_canary_about_text)
@@ -52,130 +34,38 @@ internal class AboutScreen : Screen() {
           )
 
           val heapDumpTextView = findViewById<TextView>(R.id.leak_canary_about_heap_dump_text)
-          updateHeapDumpTextView(heapDumpTextView, context, resources, ::getHeapDumpStatusMessage)
+          updateHeapDumpTextView(heapDumpTextView)
           val heapDumpSwitchView =
             findViewById<Switch>(R.id.leak_canary_about_heap_dump_switch_button)
-          val uiHandler = Handler()
-          sharedPreferenceBackgroundExecutor.execute {
-            val checked = getHeapDumpSwitchStatus(context)
-            uiHandler.post {
-              heapDumpSwitchView.isChecked = checked
-            }
-          }
+          heapDumpSwitchView.isChecked = context.dumpEnabledInAboutScreen
           heapDumpSwitchView.setOnCheckedChangeListener { _, checked ->
-            updateHeapDumpConfig(checked, context)
-            updateHeapDumpTextView(heapDumpTextView, context, resources, ::getHeapDumpStatusMessage)
+            // Updating the value wouldn't normally immediately trigger a heap dump, however
+            // by updating the view we also have a side effect of querying which will notify
+            // the heap dumper if the value has become positive.
+            context.dumpEnabledInAboutScreen = checked
+            updateHeapDumpTextView(heapDumpTextView)
           }
         }
 
-  private fun updateHeapDumpTextView(
-    heapDumpTextView: TextView,
-    context: Context,
-    resources: Resources,
-    getHeapDumpStatusMessage: (resources: Resources, context: Context) -> String
-  ) {
-    sharedPreferenceBackgroundExecutor.execute {
-      heapDumpTextView.text = getHeapDumpStatusMessage(resources, context)
-    }
-  }
-
-  private fun getHeapDumpStatusMessage(
-    resources: Resources,
-    context: Context
-  ) =
-    when (getHeapDumpStatus(resources, context)) {
-      NOT_INSTALLED -> resources.getString(R.string.leak_canary_heap_dump_not_installed_text)
-      ENABLED -> resources.getString(R.string.leak_canary_heap_dump_enabled_text)
-      DISABLED_DEBUGGER_ATTACHED -> String.format(
-          resources.getString(R.string.leak_canary_heap_dump_disabled_text),
-          resources.getString(R.string.leak_canary_heap_dump_disabled_build_non_debuggable)
+  private fun updateHeapDumpTextView(view: TextView) {
+    view.text = when (val iCanHasHeap = HeapDumpControl.iCanHasHeap()) {
+      is Yup -> view.resources.getString(R.string.leak_canary_heap_dump_enabled_text)
+      is Nope -> view.resources.getString(
+          R.string.leak_canary_heap_dump_disabled_text, iCanHasHeap.reason()
       )
-      DISABLED_BY_DEVELOPER -> String.format(
-          resources.getString(R.string.leak_canary_heap_dump_disabled_text),
-          resources.getString(R.string.leak_canary_heap_dump_disabled_by_app)
-      )
-      DISABLED_FROM_ABOUT_SCREEN -> String.format(
-          resources.getString(R.string.leak_canary_heap_dump_disabled_text),
-          resources.getString(R.string.leak_canary_heap_dump_disabled_from_ui)
-      )
-      DISABLED_RUNNING_TESTS -> String.format(
-          resources.getString(R.string.leak_canary_heap_dump_disabled_text),
-          resources.getString(R.string.leak_canary_heap_dump_disabled_running_tests)
-      )
+
     }
-
-  /**
-   * Updates leak canary config to enable/disable heap dump depending upon the Toggle switch from the about screen.
-   */
-  private fun updateHeapDumpConfig(
-    checked: Boolean,
-    context: Context
-  ) {
-    LeakCanary.config = LeakCanary.config.copy(dumpHeap = checked)
-    sharedPreferenceBackgroundExecutor.execute {
-      context
-          .getSharedPreferences(HEAP_DUMP_SHARED_PREFERENCES, MODE_PRIVATE)
-          .edit()
-          .putBoolean(HEAP_DUMP_SWITCH_ENABLED, checked)
-          .apply()
-    }
-  }
-
-  companion object HeapDumpPolicy {
-    enum class HeapDumpStatus {
-      ENABLED,
-      DISABLED_DEBUGGER_ATTACHED,
-      DISABLED_BY_DEVELOPER,
-      DISABLED_FROM_ABOUT_SCREEN,
-      DISABLED_RUNNING_TESTS,
-      NOT_INSTALLED
-    }
-
-    // Shared preferences should be read on a background thread as reading them on UI Thread will
-    // invoke Strict mode violation.
-    val sharedPreferenceBackgroundExecutor: ScheduledExecutorService =
-      Executors.newSingleThreadScheduledExecutor { runnable ->
-        val thread = object : Thread() {
-          override fun run() {
-            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
-            runnable.run()
-          }
-        }
-        thread.name = HEAP_DUMP_SHARED_PREFERENCES_THREAD_NAME
-        thread
-      }
-
-    fun getHeapDumpSwitchStatus(context: Context) =
-      context
-          .getSharedPreferences(HEAP_DUMP_SHARED_PREFERENCES, MODE_PRIVATE)
-          .getBoolean(HEAP_DUMP_SWITCH_ENABLED, true)
-
-    fun getHeapDumpStatus(
-      resources: Resources,
-      context: Context
-    ): HeapDumpStatus {
-      val config = LeakCanary.config
-      return when {
-        !AppWatcher.isInstalled -> NOT_INSTALLED
-        !config.dumpHeap ->
-          if (isRunningTests(resources)) {
-            DISABLED_RUNNING_TESTS
-          } else if (!getHeapDumpSwitchStatus(context)) {
-            DISABLED_FROM_ABOUT_SCREEN
-          } else {
-            DISABLED_BY_DEVELOPER
-          }
-        !config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached -> DISABLED_DEBUGGER_ATTACHED
-        else -> ENABLED
-      }
-    }
-
-    private fun isRunningTests(resources: Resources) =
-      try {
-        Class.forName(resources.getString(R.string.leak_canary_test_class_name))
-        true
-      } catch (e: Exception) {
-        false
-      }
   }
 }
+
+internal var Context.dumpEnabledInAboutScreen: Boolean
+  get() {
+    return getSharedPreferences("LeakCanaryHeapDumpPrefs", Context.MODE_PRIVATE)
+        .getBoolean("AboutScreenDumpEnabled", true)
+  }
+  set(value) {
+    getSharedPreferences("LeakCanaryHeapDumpPrefs", Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean("AboutScreenDumpEnabled", value)
+        .apply()
+  }
