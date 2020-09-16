@@ -3,8 +3,8 @@ package leakcanary.internal
 internal sealed class RetainInstanceEvent {
   object NoMoreObjects : RetainInstanceEvent()
   sealed class CountChanged : RetainInstanceEvent() {
-    data class BelowThreshold(val retainedCount: Int) : RetainInstanceEvent()
-    object DebuggerIsAttached : RetainInstanceEvent()
+    class BelowThreshold(val retainedCount: Int) : RetainInstanceEvent()
+    class DumpingDisabled(val reason: String) : RetainInstanceEvent()
     object DumpHappenedRecently : RetainInstanceEvent()
   }
 }

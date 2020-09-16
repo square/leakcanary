@@ -25,13 +25,12 @@ import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
-import leakcanary.LeakCanary.Config
-import leakcanary.OnHeapAnalyzedListener
 import leakcanary.OnObjectRetainedListener
+import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
+import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
 import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
-import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.tv.TvOnRetainInstanceListener
 import shark.SharkLog
 import java.lang.reflect.InvocationHandler
@@ -64,19 +63,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   @Volatile
   var applicationVisible = false
     private set
-
-  private val testClassName by lazy {
-    application.getString(R.string.leak_canary_test_class_name)
-  }
-
-  private val isRunningTests by lazy {
-    try {
-      Class.forName(testClassName)
-      true
-    } catch (e: Exception) {
-      false
-    }
-  }
 
   private val isDebuggableBuild by lazy {
     (application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
@@ -148,7 +134,17 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     registerResumedActivityListener(application)
     addDynamicShortcut(application)
 
-    disableDumpHeapInTests()
+    // We post so that the log happens after Application.onCreate()
+    Handler().post {
+      SharkLog.d {
+        when (val iCanHasHeap = HeapDumpControl.iCanHasHeap()) {
+          is Yup -> application.getString(R.string.leak_canary_heap_dump_enabled_text)
+          is Nope -> application.getString(
+              R.string.leak_canary_heap_dump_disabled_text, iCanHasHeap.reason()
+          )
+        }
+      }
+    }
   }
 
   private fun checkRunningInDebuggableBuild() {
@@ -184,22 +180,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
         }
       }
     })
-  }
-
-  private fun disableDumpHeapInTests() {
-    // This is called before Application.onCreate(), so if the class is loaded through a secondary
-    // dex it might not be available yet.
-    Handler().post {
-      if (isRunningTests) {
-        SharkLog.d { "$testClassName detected in classpath, app is running tests => disabling heap dumping & analysis" }
-        LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
-      }
-      if (LeakCanary.config.dumpHeap) {
-        SharkLog.d { "LeakCanary is running and ready to detect leaks" }
-      } else {
-        SharkLog.d { "LeakCanary heap dumping is disabled: LeakCanary.config.dumpHeap = false" }
-      }
-    }
   }
 
   @Suppress("ReturnCount")
@@ -305,9 +285,11 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     }
   }
 
-  override fun onObjectRetained() {
+  override fun onObjectRetained() = scheduleRetainedObjectCheck()
+
+  fun scheduleRetainedObjectCheck() {
     if (this::heapDumpTrigger.isInitialized) {
-      heapDumpTrigger.onObjectRetained()
+      heapDumpTrigger.scheduleRetainedObjectCheck()
     }
   }
 

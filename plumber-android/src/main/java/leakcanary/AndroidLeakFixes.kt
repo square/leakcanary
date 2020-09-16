@@ -160,7 +160,7 @@ enum class AndroidLeakFixes {
               var scheduleFlush = true
               val flushHandler = Handler(handlerThread.looper)
               flushHandler.onEachIdle {
-                if (scheduleFlush) {
+                if (handlerThread.isAlive && scheduleFlush) {
                   scheduleFlush = false
                   // When the Handler thread becomes idle, we post a message to force it to move.
                   // Source: https://developer.squareup.com/blog/a-small-leak-will-sink-a-great-ship/
