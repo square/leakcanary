@@ -190,7 +190,7 @@ class HprofIOPerfTest {
     val medianBytesRead = randomAccessReads.median()
     val totalBytesRead = randomAccessReads.sum()
     assertThat(listOf(readsCount, medianBytesRead, totalBytesRead))
-        .isEqualTo(listOf(27196, 40.0, 2705000))
+        .isEqualTo(listOf(27196, 40.0, 2704951))
   }
 
   @Test fun `freeze leak_asynctask_pre_m hprof random access metrics`() {
@@ -202,7 +202,7 @@ class HprofIOPerfTest {
     val size = randomAccessReads.size
     val median = randomAccessReads.median()
     val sum = randomAccessReads.sum()
-    assertThat(listOf(size, median, sum)).isEqualTo(listOf(20061, 32.0, 1105739))
+    assertThat(listOf(size, median, sum)).isEqualTo(listOf(20062, 32.0, 1105917))
   }
 
   private fun trackAnalyzeIoReadMetrics(hprofFile: File): List<List<Int>> {
