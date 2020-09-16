@@ -49,7 +49,12 @@ internal object Notifications {
     if (!canShowNotification) {
       return
     }
-    val builder = Notification.Builder(context)
+
+    val builder = if (SDK_INT >= O) {
+      Notification.Builder(context, type.name)
+    } else Notification.Builder(context)
+
+    builder
         .setContentText(contentText)
         .setContentTitle(contentTitle)
         .setAutoCancel(true)
@@ -82,6 +87,7 @@ internal object Notifications {
         notificationManager.createNotificationChannel(notificationChannel)
       }
       builder.setChannelId(type.name)
+      builder.setGroup(type.name)
     }
 
     return if (SDK_INT < JELLY_BEAN) {
