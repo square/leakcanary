@@ -391,18 +391,17 @@ class HeapAnalyzer constructor(
     }
 
     deduplicatedPaths.forEachIndexed { index, (retainedObjectNode, retainedSize) ->
-      val pathHeapObjects = mutableListOf<HeapObject>()
       val shortestChildPath = mutableListOf<ChildNode>()
-      var node: ReferencePathNode = retainedObjectNode
+      var node = retainedObjectNode
       while (node is ChildNode) {
         shortestChildPath.add(0, node)
-        pathHeapObjects.add(0, graph.findObjectById(node.objectId))
         node = node.parent
       }
       val rootNode = node as RootNode
-      pathHeapObjects.add(0, graph.findObjectById(rootNode.objectId))
 
-      val leakTraceObjects = buildLeakTraceObjects(objectInspectors, pathHeapObjects)
+      val shortestPath = listOf(rootNode) + shortestChildPath
+
+      val leakTraceObjects = buildLeakTraceObjects(objectInspectors, shortestPath)
 
       val referencePath = buildReferencePath(shortestChildPath, leakTraceObjects)
 
@@ -413,11 +412,8 @@ class HeapAnalyzer constructor(
           retainedHeapByteSize = if (retainedSizes == null) null else retainedSize
       )
 
-      val firstLibraryLeakNode = if (rootNode is LibraryLeakNode) {
-        rootNode
-      } else {
-        shortestChildPath.firstOrNull { it is LibraryLeakNode } as LibraryLeakNode?
-      }
+      val firstLibraryLeakNode =
+        shortestPath.firstOrNull { it is LibraryLeakNode } as LibraryLeakNode?
 
       if (firstLibraryLeakNode != null) {
         val matcher = firstLibraryLeakNode.matcher
@@ -439,10 +435,12 @@ class HeapAnalyzer constructor(
     return applicationLeaks to libraryLeaks
   }
 
-  private fun buildLeakTraceObjects(
+  private fun FindLeakInput.buildLeakTraceObjects(
     objectInspectors: List<ObjectInspector>,
-    pathHeapObjects: List<HeapObject>
+    shortestPath: List<ReferencePathNode>
   ): List<LeakTraceObject> {
+    val pathHeapObjects = shortestPath.map { graph.findObjectById(it.objectId) }
+
     val leakReporters = pathHeapObjects.map { heapObject ->
       ObjectReporter(heapObject)
     }
@@ -458,6 +456,14 @@ class HeapAnalyzer constructor(
 
     return pathHeapObjects.mapIndexed { index, heapObject ->
       val leakReporter = leakReporters[index]
+      val nextNode = if (index + 1 < shortestPath.size) {
+        shortestPath[index + 1]
+      } else {
+        null
+      }
+      if (nextNode is LibraryLeakNode) {
+        leakReporter.labels += "Library leak match: ${nextNode.matcher.pattern}"
+      }
       val (leakStatus, leakStatusReason) = leakStatuses[index]
       val className = recordClassName(heapObject)
 
