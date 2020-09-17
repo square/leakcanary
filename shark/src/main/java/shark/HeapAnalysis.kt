@@ -21,6 +21,11 @@ sealed class HeapAnalysis : Serializable {
   abstract val createdAtTimeMillis: Long
 
   /**
+   * Total time spent dumping the heap.
+   */
+  abstract val dumpDurationMillis: Long
+
+  /**
    * Total time spent analyzing the heap.
    */
   abstract val analysisDurationMillis: Long
@@ -34,13 +39,14 @@ sealed class HeapAnalysis : Serializable {
  * The analysis performed by [HeapAnalyzer] did not complete successfully.
  */
 data class HeapAnalysisFailure(
-  override val heapDumpFile: File,
-  override val createdAtTimeMillis: Long,
-  override val analysisDurationMillis: Long,
-  /**
-   * An exception wrapping the actual exception that was thrown.
-   */
-  val exception: HeapAnalysisException
+    override val heapDumpFile: File,
+    override val createdAtTimeMillis: Long,
+    override val dumpDurationMillis: Long,
+    override val analysisDurationMillis: Long,
+    /**
+     * An exception wrapping the actual exception that was thrown.
+     */
+    val exception: HeapAnalysisException
 ) : HeapAnalysis() {
 
   override fun toString(): String {
@@ -73,15 +79,16 @@ Heap dump timestamp: $createdAtTimeMillis
  * The result of a successful heap analysis performed by [HeapAnalyzer].
  */
 data class HeapAnalysisSuccess(
-  override val heapDumpFile: File,
-  override val createdAtTimeMillis: Long,
-  override val analysisDurationMillis: Long,
-  val metadata: Map<String, String>,
-  /**
+    override val heapDumpFile: File,
+    override val createdAtTimeMillis: Long,
+    override val dumpDurationMillis: Long,
+    override val analysisDurationMillis: Long,
+    val metadata: Map<String, String>,
+    /**
    * The list of [ApplicationLeak] found in the heap dump by [HeapAnalyzer].
    */
   val applicationLeaks: List<ApplicationLeak>,
-  /**
+    /**
    * The list of [LibraryLeak] found in the heap dump by [HeapAnalyzer].
    */
   val libraryLeaks: List<LibraryLeak>
@@ -120,6 +127,7 @@ ${if (metadata.isNotEmpty()) "\n" + metadata.map { "${it.key}: ${it.value}" }.jo
 Analysis duration: $analysisDurationMillis ms
 Heap dump file path: ${heapDumpFile.absolutePath}
 Heap dump timestamp: $createdAtTimeMillis
+Heap dump duration: ${if (dumpDurationMillis > -1) "$dumpDurationMillis ms" else "UNKNOWN"}
 ===================================="""
   }
 
@@ -154,6 +162,7 @@ Heap dump timestamp: $createdAtTimeMillis
       return HeapAnalysisSuccess(
           heapDumpFile = fromV20.heapDumpFile,
           createdAtTimeMillis = fromV20.createdAtTimeMillis,
+          dumpDurationMillis = fromV20.dumpDurationMillis,
           analysisDurationMillis = fromV20.analysisDurationMillis,
           metadata = fromV20.metadata,
           applicationLeaks = applicationLeaks,

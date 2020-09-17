@@ -74,6 +74,7 @@ class HeapAnalysisStringRenderingTest {
       |Analysis duration: \d* ms
       |Heap dump file path: ${hprofFile.absolutePath}
       |Heap dump timestamp: \d*
+      |Heap dump duration: UNKNOWN
       |===================================="""
   }
 
@@ -115,6 +116,7 @@ class HeapAnalysisStringRenderingTest {
       |Analysis duration: \d* ms
       |Heap dump file path: ${hprofFile.absolutePath}
       |Heap dump timestamp: \d*
+      |Heap dump duration: UNKNOWN
       |===================================="""
   }
 

@@ -156,8 +156,8 @@ internal class HeapDumpTrigger(
     saveResourceIdNamesToMemory()
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-    val heapDumpFile = heapDumper.dumpHeap()
-    if (heapDumpFile == null) {
+    val heapDumpResult = heapDumper.dumpHeap()
+    if (heapDumpResult == null) {
       if (retry) {
         SharkLog.d { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
         scheduleRetainedObjectCheck(
@@ -177,7 +177,11 @@ internal class HeapDumpTrigger(
     lastDisplayedRetainedObjectCount = 0
     lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
     objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-    HeapAnalyzerService.runAnalysis(application, heapDumpFile)
+    HeapAnalyzerService.runAnalysis(
+        context = application,
+        heapDumpFile = heapDumpResult.file,
+        heapDumpDurationMills = heapDumpResult.durationMillis
+    )
   }
 
   private fun saveResourceIdNamesToMemory() {

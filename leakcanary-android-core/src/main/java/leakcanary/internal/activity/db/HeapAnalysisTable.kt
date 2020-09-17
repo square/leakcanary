@@ -26,6 +26,7 @@ internal object HeapAnalysisTable {
         (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         created_at_time_millis INTEGER,
+        dump_duration_millis INTEGER DEFAULT -1,
         leak_count INTEGER DEFAULT 0,
         exception_summary TEXT DEFAULT NULL,
         object BLOB
@@ -47,6 +48,7 @@ internal object HeapAnalysisTable {
   ): Long {
     val values = ContentValues()
     values.put("created_at_time_millis", heapAnalysis.createdAtTimeMillis)
+    values.put("dump_duration_millis", heapAnalysis.dumpDurationMillis)
     values.put("object", heapAnalysis.toByteArray())
     when (heapAnalysis) {
       is HeapAnalysisSuccess -> {
@@ -92,8 +94,7 @@ internal object HeapAnalysisTable {
     db.inTransaction {
       return db.rawQuery(
           """
-              SELECT
-              object
+              SELECT object
               FROM heap_analysis
               WHERE id=$id
               """, null

@@ -75,15 +75,19 @@ class HeapAnalyzer constructor(
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-    proguardMapping: ProguardMapping? = null
+    proguardMapping: ProguardMapping? = null,
+    heapDumpDurationMillis: Long = -1
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
     if (!heapDumpFile.exists()) {
       val exception = IllegalArgumentException("File does not exist: $heapDumpFile")
       return HeapAnalysisFailure(
-          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-          HeapAnalysisException(exception)
+          heapDumpFile = heapDumpFile,
+          createdAtTimeMillis = System.currentTimeMillis(),
+          dumpDurationMillis = heapDumpDurationMillis,
+          analysisDurationMillis = since(analysisStartNanoTime),
+          exception = HeapAnalysisException(exception)
       )
     }
 
@@ -93,13 +97,20 @@ class HeapAnalyzer constructor(
         val helpers =
           FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
         helpers.analyzeGraph(
-            metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
+            metadataExtractor = metadataExtractor,
+            leakingObjectFinder = leakingObjectFinder,
+            heapDumpFile = heapDumpFile,
+            dumpDurationMillis = heapDumpDurationMillis,
+            analysisStartNanoTime = analysisStartNanoTime
         )
       }
     } catch (exception: Throwable) {
       HeapAnalysisFailure(
-          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-          HeapAnalysisException(exception)
+          heapDumpFile = heapDumpFile,
+          createdAtTimeMillis = System.currentTimeMillis(),
+          dumpDurationMillis = heapDumpDurationMillis,
+          analysisDurationMillis = since(analysisStartNanoTime),
+          exception = HeapAnalysisException(exception)
       )
     }
   }
@@ -111,19 +122,27 @@ class HeapAnalyzer constructor(
     referenceMatchers: List<ReferenceMatcher> = emptyList(),
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
-    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP
+    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
+    heapDumpDurationMillis: Long = -1
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
     return try {
       val helpers =
         FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
       helpers.analyzeGraph(
-          metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
+          metadataExtractor = metadataExtractor,
+          leakingObjectFinder = leakingObjectFinder,
+          heapDumpFile = heapDumpFile,
+          dumpDurationMillis = heapDumpDurationMillis,
+          analysisStartNanoTime = analysisStartNanoTime
       )
     } catch (exception: Throwable) {
       HeapAnalysisFailure(
-          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-          HeapAnalysisException(exception)
+          heapDumpFile = heapDumpFile,
+          createdAtTimeMillis = System.currentTimeMillis(),
+          dumpDurationMillis = heapDumpDurationMillis,
+          analysisDurationMillis = since(analysisStartNanoTime),
+          exception = HeapAnalysisException(exception)
       )
     }
   }
@@ -132,6 +151,7 @@ class HeapAnalyzer constructor(
     metadataExtractor: MetadataExtractor,
     leakingObjectFinder: LeakingObjectFinder,
     heapDumpFile: File,
+    dumpDurationMillis: Long,
     analysisStartNanoTime: Long
   ): HeapAnalysisSuccess {
     listener.onAnalysisProgress(EXTRACTING_METADATA)
@@ -145,6 +165,7 @@ class HeapAnalyzer constructor(
     return HeapAnalysisSuccess(
         heapDumpFile = heapDumpFile,
         createdAtTimeMillis = System.currentTimeMillis(),
+        dumpDurationMillis = dumpDurationMillis,
         analysisDurationMillis = since(analysisStartNanoTime),
         metadata = metadata,
         applicationLeaks = applicationLeaks,

@@ -29,8 +29,8 @@ import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
+import leakcanary.internal.utils.measureDurationMillis
 import shark.SharkLog
-import java.io.File
 import java.util.concurrent.TimeUnit.SECONDS
 
 internal class AndroidHeapDumper(
@@ -41,7 +41,7 @@ internal class AndroidHeapDumper(
   private val context: Context = context.applicationContext
   private val mainHandler: Handler = Handler(Looper.getMainLooper())
 
-  override fun dumpHeap(): File? {
+  override fun dumpHeap(): DumpHeapResult? {
     val heapDumpFile = leakDirectoryProvider.newHeapDumpFile() ?: return null
 
     val waitingForToast = FutureResult<Toast?>()
@@ -65,12 +65,14 @@ internal class AndroidHeapDumper(
     val toast = waitingForToast.get()
 
     return try {
-      Debug.dumpHprofData(heapDumpFile.absolutePath)
+      val durationMillis = measureDurationMillis {
+        Debug.dumpHprofData(heapDumpFile.absolutePath)
+      }
       if (heapDumpFile.length() == 0L) {
         SharkLog.d { "Dumped heap file is 0 byte length" }
         null
       } else {
-        heapDumpFile
+        DumpHeapResult(file = heapDumpFile, durationMillis = durationMillis)
       }
     } catch (e: Exception) {
       SharkLog.d(e) { "Could not dump heap" }

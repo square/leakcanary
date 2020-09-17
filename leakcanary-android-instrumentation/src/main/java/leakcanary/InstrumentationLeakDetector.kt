@@ -28,6 +28,7 @@ import shark.HeapAnalysisFailure
 import shark.HeapAnalyzer
 import shark.SharkLog
 import java.io.File
+import kotlin.system.measureTimeMillis
 
 /**
  * [InstrumentationLeakDetector] can be used to detect memory leaks in instrumentation tests.
@@ -143,14 +144,20 @@ class InstrumentationLeakDetector {
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
 
+    val heapDumpDurationMillis: Long
+
     try {
-      Debug.dumpHprofData(heapDumpFile.absolutePath)
+      heapDumpDurationMillis = measureTimeMillis {
+        Debug.dumpHprofData(heapDumpFile.absolutePath)
+      }
     } catch (exception: Exception) {
       SharkLog.d(exception) { "Could not dump heap" }
       return AnalysisPerformed(
           HeapAnalysisFailure(
-              heapDumpFile, analysisDurationMillis = 0,
+              heapDumpFile = heapDumpFile,
               createdAtTimeMillis = System.currentTimeMillis(),
+              dumpDurationMillis = -1,
+              analysisDurationMillis = 0,
               exception = HeapAnalysisException(exception)
           )
       )
@@ -167,6 +174,7 @@ class InstrumentationLeakDetector {
     val heapAnalyzer = HeapAnalyzer(listener)
     val heapAnalysis = heapAnalyzer.analyze(
         heapDumpFile = heapDumpFile,
+        heapDumpDurationMillis = heapDumpDurationMillis,
         leakingObjectFinder = config.leakingObjectFinder,
         referenceMatchers = config.referenceMatchers,
         computeRetainedHeapSize = config.computeRetainedHeapSize,
