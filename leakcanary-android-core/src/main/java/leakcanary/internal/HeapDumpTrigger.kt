@@ -156,32 +156,34 @@ internal class HeapDumpTrigger(
     saveResourceIdNamesToMemory()
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-    val heapDumpResult = heapDumper.dumpHeap()
-    if (heapDumpResult == null) {
-      if (retry) {
-        SharkLog.d { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
-        scheduleRetainedObjectCheck(
-            delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS
-        )
-      } else {
-        SharkLog.d { "Failed to dump heap, will not automatically retry" }
-      }
-      showRetainedCountNotification(
-          objectCount = retainedReferenceCount,
-          contentText = application.getString(
-              R.string.leak_canary_notification_retained_dump_failed
+    when (val heapDumpResult = heapDumper.dumpHeap()) {
+      is NoHeapDump -> {
+        if (retry) {
+          SharkLog.d { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
+          scheduleRetainedObjectCheck(
+              delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS
           )
-      )
-      return
+        } else {
+          SharkLog.d { "Failed to dump heap, will not automatically retry" }
+        }
+        showRetainedCountNotification(
+            objectCount = retainedReferenceCount,
+            contentText = application.getString(
+                R.string.leak_canary_notification_retained_dump_failed
+            )
+        )
+      }
+      is HeapDump -> {
+        lastDisplayedRetainedObjectCount = 0
+        lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
+        objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
+        HeapAnalyzerService.runAnalysis(
+            context = application,
+            heapDumpFile = heapDumpResult.file,
+            heapDumpDurationMillis = heapDumpResult.durationMillis
+        )
+      }
     }
-    lastDisplayedRetainedObjectCount = 0
-    lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
-    objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-    HeapAnalyzerService.runAnalysis(
-        context = application,
-        heapDumpFile = heapDumpResult.file,
-        heapDumpDurationMills = heapDumpResult.durationMillis
-    )
   }
 
   private fun saveResourceIdNamesToMemory() {

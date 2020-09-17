@@ -94,7 +94,8 @@ internal object HeapAnalysisTable {
     db.inTransaction {
       return db.rawQuery(
           """
-              SELECT object
+              SELECT
+              object
               FROM heap_analysis
               WHERE id=$id
               """, null

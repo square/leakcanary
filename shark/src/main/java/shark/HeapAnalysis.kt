@@ -32,6 +32,7 @@ sealed class HeapAnalysis : Serializable {
 
   companion object {
     private const val serialVersionUID: Long = -8657286725869987172
+    const val DUMP_DURATION_UNKNOWN: Long = -1
   }
 }
 
@@ -39,14 +40,14 @@ sealed class HeapAnalysis : Serializable {
  * The analysis performed by [HeapAnalyzer] did not complete successfully.
  */
 data class HeapAnalysisFailure(
-    override val heapDumpFile: File,
-    override val createdAtTimeMillis: Long,
-    override val dumpDurationMillis: Long,
-    override val analysisDurationMillis: Long,
-    /**
-     * An exception wrapping the actual exception that was thrown.
-     */
-    val exception: HeapAnalysisException
+  override val heapDumpFile: File,
+  override val createdAtTimeMillis: Long,
+  override val dumpDurationMillis: Long = DUMP_DURATION_UNKNOWN,
+  override val analysisDurationMillis: Long,
+  /**
+   * An exception wrapping the actual exception that was thrown.
+   */
+  val exception: HeapAnalysisException
 ) : HeapAnalysis() {
 
   override fun toString(): String {
@@ -79,16 +80,16 @@ Heap dump timestamp: $createdAtTimeMillis
  * The result of a successful heap analysis performed by [HeapAnalyzer].
  */
 data class HeapAnalysisSuccess(
-    override val heapDumpFile: File,
-    override val createdAtTimeMillis: Long,
-    override val dumpDurationMillis: Long,
-    override val analysisDurationMillis: Long,
-    val metadata: Map<String, String>,
-    /**
+  override val heapDumpFile: File,
+  override val createdAtTimeMillis: Long,
+  override val dumpDurationMillis: Long = DUMP_DURATION_UNKNOWN,
+  override val analysisDurationMillis: Long,
+  val metadata: Map<String, String>,
+  /**
    * The list of [ApplicationLeak] found in the heap dump by [HeapAnalyzer].
    */
   val applicationLeaks: List<ApplicationLeak>,
-    /**
+  /**
    * The list of [LibraryLeak] found in the heap dump by [HeapAnalyzer].
    */
   val libraryLeaks: List<LibraryLeak>
@@ -127,7 +128,7 @@ ${if (metadata.isNotEmpty()) "\n" + metadata.map { "${it.key}: ${it.value}" }.jo
 Analysis duration: $analysisDurationMillis ms
 Heap dump file path: ${heapDumpFile.absolutePath}
 Heap dump timestamp: $createdAtTimeMillis
-Heap dump duration: ${if (dumpDurationMillis > -1) "$dumpDurationMillis ms" else "UNKNOWN"}
+Heap dump duration: ${if (dumpDurationMillis != DUMP_DURATION_UNKNOWN) "$dumpDurationMillis ms" else "Unknown"}
 ===================================="""
   }
 
@@ -162,7 +163,6 @@ Heap dump duration: ${if (dumpDurationMillis > -1) "$dumpDurationMillis ms" else
       return HeapAnalysisSuccess(
           heapDumpFile = fromV20.heapDumpFile,
           createdAtTimeMillis = fromV20.createdAtTimeMillis,
-          dumpDurationMillis = fromV20.dumpDurationMillis,
           analysisDurationMillis = fromV20.analysisDurationMillis,
           metadata = fromV20.metadata,
           applicationLeaks = applicationLeaks,
@@ -247,6 +247,7 @@ ${super.toString()}
 
   /** This field is kept to support backward compatible deserialization. */
   private val leakTrace: LeakTrace? = null
+
   /** This field is kept to support backward compatible deserialization. */
   private val retainedHeapByteSize: Int? = null
 
@@ -282,6 +283,7 @@ data class ApplicationLeak(
 
   /** This field is kept to support backward compatible deserialization. */
   private val leakTrace: LeakTrace? = null
+
   /** This field is kept to support backward compatible deserialization. */
   private val retainedHeapByteSize: Int? = null
 

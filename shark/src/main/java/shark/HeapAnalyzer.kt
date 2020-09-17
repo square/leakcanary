@@ -75,8 +75,7 @@ class HeapAnalyzer constructor(
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-    proguardMapping: ProguardMapping? = null,
-    heapDumpDurationMillis: Long = -1
+    proguardMapping: ProguardMapping? = null
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -85,7 +84,6 @@ class HeapAnalyzer constructor(
       return HeapAnalysisFailure(
           heapDumpFile = heapDumpFile,
           createdAtTimeMillis = System.currentTimeMillis(),
-          dumpDurationMillis = heapDumpDurationMillis,
           analysisDurationMillis = since(analysisStartNanoTime),
           exception = HeapAnalysisException(exception)
       )
@@ -97,18 +95,13 @@ class HeapAnalyzer constructor(
         val helpers =
           FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
         helpers.analyzeGraph(
-            metadataExtractor = metadataExtractor,
-            leakingObjectFinder = leakingObjectFinder,
-            heapDumpFile = heapDumpFile,
-            dumpDurationMillis = heapDumpDurationMillis,
-            analysisStartNanoTime = analysisStartNanoTime
+            metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
         )
       }
     } catch (exception: Throwable) {
       HeapAnalysisFailure(
           heapDumpFile = heapDumpFile,
           createdAtTimeMillis = System.currentTimeMillis(),
-          dumpDurationMillis = heapDumpDurationMillis,
           analysisDurationMillis = since(analysisStartNanoTime),
           exception = HeapAnalysisException(exception)
       )
@@ -122,25 +115,19 @@ class HeapAnalyzer constructor(
     referenceMatchers: List<ReferenceMatcher> = emptyList(),
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
-    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-    heapDumpDurationMillis: Long = -1
+    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
     return try {
       val helpers =
         FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
       helpers.analyzeGraph(
-          metadataExtractor = metadataExtractor,
-          leakingObjectFinder = leakingObjectFinder,
-          heapDumpFile = heapDumpFile,
-          dumpDurationMillis = heapDumpDurationMillis,
-          analysisStartNanoTime = analysisStartNanoTime
+          metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
       )
     } catch (exception: Throwable) {
       HeapAnalysisFailure(
           heapDumpFile = heapDumpFile,
           createdAtTimeMillis = System.currentTimeMillis(),
-          dumpDurationMillis = heapDumpDurationMillis,
           analysisDurationMillis = since(analysisStartNanoTime),
           exception = HeapAnalysisException(exception)
       )
@@ -151,7 +138,6 @@ class HeapAnalyzer constructor(
     metadataExtractor: MetadataExtractor,
     leakingObjectFinder: LeakingObjectFinder,
     heapDumpFile: File,
-    dumpDurationMillis: Long,
     analysisStartNanoTime: Long
   ): HeapAnalysisSuccess {
     listener.onAnalysisProgress(EXTRACTING_METADATA)
@@ -165,7 +151,6 @@ class HeapAnalyzer constructor(
     return HeapAnalysisSuccess(
         heapDumpFile = heapDumpFile,
         createdAtTimeMillis = System.currentTimeMillis(),
-        dumpDurationMillis = dumpDurationMillis,
         analysisDurationMillis = since(analysisStartNanoTime),
         metadata = metadata,
         applicationLeaks = applicationLeaks,

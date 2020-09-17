@@ -25,10 +25,10 @@ import org.junit.runner.notification.RunListener
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
 import shark.HeapAnalyzer
 import shark.SharkLog
 import java.io.File
-import kotlin.system.measureTimeMillis
 
 /**
  * [InstrumentationLeakDetector] can be used to detect memory leaks in instrumentation tests.
@@ -147,16 +147,15 @@ class InstrumentationLeakDetector {
     val heapDumpDurationMillis: Long
 
     try {
-      heapDumpDurationMillis = measureTimeMillis {
-        Debug.dumpHprofData(heapDumpFile.absolutePath)
-      }
+      Debug.dumpHprofData(heapDumpFile.absolutePath)
+      heapDumpDurationMillis = SystemClock.uptimeMillis() - heapDumpUptimeMillis
     } catch (exception: Exception) {
       SharkLog.d(exception) { "Could not dump heap" }
       return AnalysisPerformed(
           HeapAnalysisFailure(
               heapDumpFile = heapDumpFile,
               createdAtTimeMillis = System.currentTimeMillis(),
-              dumpDurationMillis = -1,
+              dumpDurationMillis = SystemClock.uptimeMillis() - heapDumpUptimeMillis,
               analysisDurationMillis = 0,
               exception = HeapAnalysisException(exception)
           )
@@ -172,15 +171,17 @@ class InstrumentationLeakDetector {
     SystemClock.sleep(2000)
 
     val heapAnalyzer = HeapAnalyzer(listener)
-    val heapAnalysis = heapAnalyzer.analyze(
+    val fullHeapAnalysis = when (val heapAnalysis = heapAnalyzer.analyze(
         heapDumpFile = heapDumpFile,
-        heapDumpDurationMillis = heapDumpDurationMillis,
         leakingObjectFinder = config.leakingObjectFinder,
         referenceMatchers = config.referenceMatchers,
         computeRetainedHeapSize = config.computeRetainedHeapSize,
         objectInspectors = config.objectInspectors
-    )
-    return AnalysisPerformed(heapAnalysis)
+    )) {
+      is HeapAnalysisSuccess -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
+      is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
+    }
+    return AnalysisPerformed(fullHeapAnalysis)
   }
 
   companion object {

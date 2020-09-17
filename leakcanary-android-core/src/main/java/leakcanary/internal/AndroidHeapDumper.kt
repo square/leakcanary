@@ -41,15 +41,15 @@ internal class AndroidHeapDumper(
   private val context: Context = context.applicationContext
   private val mainHandler: Handler = Handler(Looper.getMainLooper())
 
-  override fun dumpHeap(): DumpHeapResult? {
-    val heapDumpFile = leakDirectoryProvider.newHeapDumpFile() ?: return null
+  override fun dumpHeap(): DumpHeapResult {
+    val heapDumpFile = leakDirectoryProvider.newHeapDumpFile() ?: return NoHeapDump
 
     val waitingForToast = FutureResult<Toast?>()
     showToast(waitingForToast)
 
     if (!waitingForToast.wait(5, SECONDS)) {
       SharkLog.d { "Did not dump heap, too much time waiting for Toast." }
-      return null
+      return NoHeapDump
     }
 
     val notificationManager =
@@ -70,14 +70,14 @@ internal class AndroidHeapDumper(
       }
       if (heapDumpFile.length() == 0L) {
         SharkLog.d { "Dumped heap file is 0 byte length" }
-        null
+        NoHeapDump
       } else {
-        DumpHeapResult(file = heapDumpFile, durationMillis = durationMillis)
+        HeapDump(file = heapDumpFile, durationMillis = durationMillis)
       }
     } catch (e: Exception) {
       SharkLog.d(e) { "Could not dump heap" }
       // Abort heap dump
-      null
+      NoHeapDump
     } finally {
       cancelToast(toast)
       notificationManager.cancel(R.id.leak_canary_notification_dumping_heap)
