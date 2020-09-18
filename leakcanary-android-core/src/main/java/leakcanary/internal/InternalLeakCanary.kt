@@ -1,5 +1,6 @@
 package leakcanary.internal
 
+import android.annotation.TargetApi
 import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
@@ -185,7 +186,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     })
   }
 
-  @Suppress("ReturnCount")
   private fun addDynamicShortcut(application: Application) {
     if (VERSION.SDK_INT < VERSION_CODES.N_MR1) {
       return
@@ -200,7 +200,9 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
     // Dynamic shortcuts can't be created during direct boot, defer the shortcut creation to a later time.
     val userManager = application.getSystemService(UserManager::class.java)!!
-    if (!userManager.isUserUnlocked) {
+    if (userManager.isUserUnlocked) {
+      addDynamicShortcutWhenUserUnlocked(application)
+    } else {
       application.registerReceiver(object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
           if (intent.action != Intent.ACTION_USER_UNLOCKED) {
@@ -208,11 +210,15 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
           }
 
           application.unregisterReceiver(this)
-          addDynamicShortcut(application)
+          addDynamicShortcutWhenUserUnlocked(application)
         }
       }, IntentFilter(Intent.ACTION_USER_UNLOCKED))
     }
+  }
 
+  @Suppress("ReturnCount")
+  @TargetApi(VERSION_CODES.N_MR1)
+  private fun addDynamicShortcutWhenUserUnlocked(application: Application) {
     val shortcutManager = application.getSystemService(ShortcutManager::class.java)!!
     val dynamicShortcuts = shortcutManager.dynamicShortcuts
 
