@@ -53,17 +53,26 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf("android.view.View") { instance ->
         // This skips edge cases like Toast$TN.mNextView holding on to an unattached and unparented
         // next toast view
-        val mParentRef = instance["android.view.View", "mParent"]!!.value
-        val mParentSet = mParentRef.isNonNullReference
+        var rootParent = instance["android.view.View", "mParent"]!!.valueAsInstance
+        var rootView: HeapInstance? = null
+        while (rootParent != null && rootParent instanceOf "android.view.View") {
+          rootView = rootParent
+          rootParent = rootParent["android.view.View", "mParent"]!!.valueAsInstance
+        }
+
+        val heldByViewRootImpl = rootParent != null
+
         val mWindowAttachCount =
           instance["android.view.View", "mWindowAttachCount"]?.value!!.asInt!!
         val viewDetached = instance["android.view.View", "mAttachInfo"]!!.value.isNullReference
         val mContext = instance["android.view.View", "mContext"]!!.value.asObject!!.asInstance!!
 
-        val activityContext = mContext.unwrapActivityContext()
-        labels += if (activityContext == null) {
-          "mContext instance of ${mContext.instanceClassName}, not wrapping activity"
-        } else {
+        val androidComponentContext = mContext.unwrapComponentContext()
+        val activityContext =
+          if (androidComponentContext != null && androidComponentContext instanceOf "android.app.Activity") androidComponentContext else null
+        labels += if (androidComponentContext == null) {
+          "mContext instance of ${mContext.instanceClassName}, not wrapping known Android context"
+        } else if (activityContext != null) {
           val activityDescription =
             "with mDestroyed = " + (activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
                 ?: "UNKNOWN")
@@ -72,40 +81,38 @@ enum class AndroidObjectInspectors : ObjectInspector {
           } else {
             "mContext instance of ${mContext.instanceClassName}, wrapping activity ${activityContext.instanceClassName} $activityDescription"
           }
+        } else if (androidComponentContext == mContext) {
+          // No need to add "instance of Application / Service", devs know their own classes.
+          "mContext instance of ${mContext.instanceClassName}"
+        } else {
+          "mContext instance of ${mContext.instanceClassName}, wrapping ${androidComponentContext.instanceClassName}"
         }
         if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
           leakingReasons += "View.mContext references a destroyed activity"
         } else {
-          if (mParentSet && mWindowAttachCount > 0) {
+          if (heldByViewRootImpl && mWindowAttachCount > 0) {
             if (viewDetached) {
-              leakingReasons += "View detached and has parent"
+              leakingReasons += "View detached yet still part of window view hierarchy"
             } else {
-              val viewParent = mParentRef.asObject!!.asInstance!!
-              if (viewParent instanceOf "android.view.View") {
-                if (viewParent["android.view.View", "mAttachInfo"]!!.value.isNullReference) {
-                  leakingReasons += "View attached but parent ${viewParent.instanceClassName} detached (attach disorder)"
-                } else {
-                  notLeakingReasons += "View attached"
-                  labels += "View.parent ${viewParent.instanceClassName} attached as well"
-                }
+              if (rootView != null && rootView["android.view.View", "mAttachInfo"]!!.value.isNullReference) {
+                leakingReasons += "View attached but root view ${rootView.instanceClassName} detached (attach disorder)"
               } else {
                 notLeakingReasons += "View attached"
-                labels += "Parent ${viewParent.instanceClassName} not a android.view.View"
               }
             }
           }
         }
 
-        labels += if (mParentSet) {
-          "View#mParent is set"
+        labels += if (heldByViewRootImpl) {
+          "View is part of a window view hierarchy"
         } else {
-          "View#mParent is null"
+          "View not part of a window view hierarchy"
         }
 
         labels += if (viewDetached) {
-          "View#mAttachInfo is null (view detached)"
+          "View.mAttachInfo is null (view detached)"
         } else {
-          "View#mAttachInfo is not null (view attached)"
+          "View.mAttachInfo is not null (view attached)"
         }
 
         AndroidResourceIdNames.readFromHeap(instance.graph)
@@ -169,7 +176,6 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.content.ContextWrapper" &&
           heapObject.unwrapActivityContext()
               ?.get("android.app.Activity", "mDestroyed")?.value?.asBoolean == true
     }
@@ -198,20 +204,26 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
       if (matchingClassName == "android.content.ContextWrapper") {
         reporter.run {
-          val activityContext = instance.unwrapActivityContext()
-          if (activityContext != null) {
-            val mDestroyed = activityContext["android.app.Activity", "mDestroyed"]
-            if (mDestroyed != null) {
-              if (mDestroyed.value.asBoolean!!) {
-                leakingReasons += "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed true"
-              } else {
-                // We can't assume it's not leaking, because this context might have a shorter lifecycle
-                // than the activity. So we'll just add a label.
-                labels += "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed false"
+          val componentContext = instance.unwrapComponentContext()
+          if (componentContext != null) {
+            if (componentContext instanceOf "android.app.Activity") {
+              val mDestroyed = componentContext["android.app.Activity", "mDestroyed"]
+              if (mDestroyed != null) {
+                if (mDestroyed.value.asBoolean!!) {
+                  leakingReasons += "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed true"
+                } else {
+                  // We can't assume it's not leaking, because this context might have a shorter lifecycle
+                  // than the activity. So we'll just add a label.
+                  labels += "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed false"
+                }
               }
+            } else if (componentContext instanceOf "android.app.Application") {
+              labels += "${instance.instanceClassSimpleName} wraps an Application context"
+            } else {
+              labels += "${instance.instanceClassSimpleName} wraps a Service context"
             }
           } else {
-            labels += "${instance.instanceClassSimpleName} does not wrap an activity context"
+            labels += "${instance.instanceClassSimpleName} does not wrap a known Android context"
           }
         }
       }
@@ -686,44 +698,91 @@ private fun ObjectReporter.applyFromField(
  * Recursively unwraps `this` [HeapInstance] as a ContextWrapper until an Activity is found in which case it is
  * returned. Returns null if no activity was found.
  */
-@Suppress("NestedBlockDepth")
 internal fun HeapInstance.unwrapActivityContext(): HeapInstance? {
-  if (this instanceOf "android.app.Activity") {
+  return unwrapComponentContext().let { context ->
+    if (context != null && context instanceOf "android.app.Activity") {
+      context
+    } else {
+      null
+    }
+  }
+}
+
+/**
+ * Recursively unwraps `this` [HeapInstance] as a ContextWrapper until an known Android component
+ * context is found in which case it is returned. Returns null if no activity was found.
+ */
+@Suppress("NestedBlockDepth", "ReturnCount")
+internal fun HeapInstance.unwrapComponentContext(): HeapInstance? {
+  val matchingClassName = instanceClass.classHierarchy.map { it.name }
+      .firstOrNull {
+        when (it) {
+          "android.content.ContextWrapper",
+          "android.app.Activity",
+          "android.app.Application",
+          "android.app.Service"
+          -> true
+          else -> false
+        }
+      }
+      ?: return null
+
+  if (matchingClassName != "android.content.ContextWrapper") {
     return this
   }
-  if (this instanceOf "android.content.ContextWrapper") {
-    var context = this
-    val visitedInstances = mutableListOf<Long>()
-    var keepUnwrapping = true
-    while (keepUnwrapping) {
-      visitedInstances += context.objectId
-      keepUnwrapping = false
-      val mBase = context["android.content.ContextWrapper", "mBase"]!!.value
 
-      if (mBase.isNonNullReference) {
-        val parentContext = context
-        context = mBase.asObject!!.asInstance!!
-        if (context instanceOf "android.app.Activity") {
-          return context
-        } else {
-          if (parentContext instanceOf "com.android.internal.policy.DecorContext") {
-            // mBase isn't an activity, let's unwrap DecorContext.mPhoneWindow.mContext instead
-            val mPhoneWindowField =
-              parentContext["com.android.internal.policy.DecorContext", "mPhoneWindow"]
-            if (mPhoneWindowField != null) {
-              val phoneWindow = mPhoneWindowField.valueAsInstance!!
-              context = phoneWindow["android.view.Window", "mContext"]!!.valueAsInstance!!
-              if (context instanceOf "android.app.Activity") {
-                return context
-              }
+  var context = this
+  val visitedInstances = mutableListOf<Long>()
+  var keepUnwrapping = true
+  while (keepUnwrapping) {
+    visitedInstances += context.objectId
+    keepUnwrapping = false
+    val mBase = context["android.content.ContextWrapper", "mBase"]!!.value
+
+    if (mBase.isNonNullReference) {
+      val wrapperContext = context
+      context = mBase.asObject!!.asInstance!!
+
+      val contextMatchingClassName = context.instanceClass.classHierarchy.map { it.name }
+          .firstOrNull {
+            when (it) {
+              "android.content.ContextWrapper",
+              "android.app.Activity",
+              "android.app.Application",
+              "android.app.Service"
+              -> true
+              else -> false
             }
           }
-          if (context instanceOf "android.content.ContextWrapper" &&
-              // Avoids infinite loops
-              context.objectId !in visitedInstances
-          ) {
-            keepUnwrapping = true
+
+      var isContextWrapper = contextMatchingClassName == "android.content.ContextWrapper"
+
+      if (contextMatchingClassName == "android.app.Activity") {
+        return context
+      } else {
+        if (wrapperContext instanceOf "com.android.internal.policy.DecorContext") {
+          // mBase isn't an activity, let's unwrap DecorContext.mPhoneWindow.mContext instead
+          val mPhoneWindowField =
+            wrapperContext["com.android.internal.policy.DecorContext", "mPhoneWindow"]
+          if (mPhoneWindowField != null) {
+            val phoneWindow = mPhoneWindowField.valueAsInstance!!
+            context = phoneWindow["android.view.Window", "mContext"]!!.valueAsInstance!!
+            if (context instanceOf "android.app.Activity") {
+              return context
+            }
+            isContextWrapper = context instanceOf "android.content.ContextWrapper"
           }
+        }
+        if (contextMatchingClassName == "android.app.Service" ||
+            contextMatchingClassName == "android.app.Application"
+        ) {
+          return context
+        }
+        if (isContextWrapper &&
+            // Avoids infinite loops
+            context.objectId !in visitedInstances
+        ) {
+          keepUnwrapping = true
         }
       }
     }
