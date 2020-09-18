@@ -67,26 +67,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val viewDetached = instance["android.view.View", "mAttachInfo"]!!.value.isNullReference
         val mContext = instance["android.view.View", "mContext"]!!.value.asObject!!.asInstance!!
 
-        val androidComponentContext = mContext.unwrapComponentContext()
-        val activityContext =
-          if (androidComponentContext != null && androidComponentContext instanceOf "android.app.Activity") androidComponentContext else null
-        labels += if (androidComponentContext == null) {
-          "mContext instance of ${mContext.instanceClassName}, not wrapping known Android context"
-        } else if (activityContext != null) {
-          val activityDescription =
-            "with mDestroyed = " + (activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
-                ?: "UNKNOWN")
-          if (activityContext == mContext) {
-            "mContext instance of ${activityContext.instanceClassName} $activityDescription"
-          } else {
-            "mContext instance of ${mContext.instanceClassName}, wrapping activity ${activityContext.instanceClassName} $activityDescription"
-          }
-        } else if (androidComponentContext == mContext) {
-          // No need to add "instance of Application / Service", devs know their own classes.
-          "mContext instance of ${mContext.instanceClassName}"
-        } else {
-          "mContext instance of ${mContext.instanceClassName}, wrapping ${androidComponentContext.instanceClassName}"
-        }
+        val activityContext = mContext.unwrapActivityContext()
         if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
           leakingReasons += "View.mContext references a destroyed activity"
         } else {
@@ -166,6 +147,41 @@ enum class AndroidObjectInspectors : ObjectInspector {
             leakingReasons += field describedWithValue "true"
           } else {
             notLeakingReasons += field describedWithValue "false"
+          }
+        }
+      }
+    }
+  },
+
+  CONTEXT_FIELD {
+    override fun inspect(reporter: ObjectReporter) {
+      val instance = reporter.heapObject
+      if (instance !is HeapInstance) {
+        return
+      }
+      instance.readFields().forEach { field ->
+        val fieldInstance = field.valueAsInstance
+        if (fieldInstance != null && fieldInstance instanceOf "android.content.Context") {
+          reporter.run {
+            val componentContext = fieldInstance.unwrapComponentContext()
+            labels += if (componentContext == null) {
+              "${field.name} instance of ${fieldInstance.instanceClassName}, not wrapping known Android context"
+            } else if (componentContext instanceOf "android.app.Activity") {
+              val activityDescription =
+                "with mDestroyed = " + (componentContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
+                    ?: "UNKNOWN")
+              if (componentContext == fieldInstance) {
+                "${field.name} instance of ${fieldInstance.instanceClassName} $activityDescription"
+              } else {
+                "${field.name} instance of ${fieldInstance.instanceClassName}, " +
+                    "wrapping activity ${componentContext.instanceClassName} $activityDescription"
+              }
+            } else if (componentContext == fieldInstance) {
+              // No need to add "instance of Application / Service", devs know their own classes.
+              "${field.name} instance of ${fieldInstance.instanceClassName}"
+            } else {
+              "${field.name} instance of ${fieldInstance.instanceClassName}, wrapping ${componentContext.instanceClassName}"
+            }
           }
         }
       }
