@@ -4,10 +4,12 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.app.UiModeManager
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Context.UI_MODE_SERVICE
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
@@ -20,6 +22,7 @@ import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.HandlerThread
+import androidx.core.os.UserManagerCompat
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
@@ -193,6 +196,20 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     if (isInstantApp) {
       // Instant Apps don't have access to ShortcutManager
       return
+    }
+
+    // Dynamic shortcuts can't be created during direct boot, defer the shortcut creation to a later time.
+    if (!UserManagerCompat.isUserUnlocked(application)) {
+      application.registerReceiver(object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+          if (intent.action != Intent.ACTION_USER_UNLOCKED) {
+            return
+          }
+
+          application.unregisterReceiver(this)
+          addDynamicShortcut(application)
+        }
+      }, IntentFilter(Intent.ACTION_USER_UNLOCKED))
     }
 
     val shortcutManager = application.getSystemService(ShortcutManager::class.java)!!
