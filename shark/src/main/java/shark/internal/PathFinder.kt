@@ -26,7 +26,6 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.IgnoredReferenceMatcher
 import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
@@ -52,15 +51,6 @@ import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
 import shark.SharkLog
 import shark.ValueHolder
-import shark.ValueHolder.BooleanHolder
-import shark.ValueHolder.ByteHolder
-import shark.ValueHolder.CharHolder
-import shark.ValueHolder.DoubleHolder
-import shark.ValueHolder.FloatHolder
-import shark.ValueHolder.IntHolder
-import shark.ValueHolder.LongHolder
-import shark.ValueHolder.ReferenceHolder
-import shark.ValueHolder.ShortHolder
 import shark.internal.ReferencePathNode.ChildNode.LibraryLeakChildNode
 import shark.internal.ReferencePathNode.ChildNode.NormalNode
 import shark.internal.ReferencePathNode.LibraryLeakNode
@@ -521,7 +511,7 @@ internal class PathFinder(
 
           val objectId = fieldReader.readId()
           if (objectId != 0L) {
-            result.add(objectId to heapClass.fieldName(fieldRecord))
+            result.add(objectId to heapClass.instanceFieldName(fieldRecord))
           }
         }
       }
