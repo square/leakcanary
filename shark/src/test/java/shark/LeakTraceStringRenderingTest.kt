@@ -8,6 +8,7 @@ import org.junit.rules.TemporaryFolder
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapInstance
 import shark.ReferencePattern.InstanceFieldPattern
+import shark.ReferencePattern.StaticFieldPattern
 import java.io.File
 
 class LeakTraceStringRenderingTest {
@@ -187,8 +188,40 @@ class LeakTraceStringRenderingTest {
     │                    ~~~~~~~~~
     ├─ ClassA instance
     │    Leaking: UNKNOWN
+    │    Library leak match: instance field ClassA#leak
     │    ↓ ClassA.leak
     │             ~~~~
+    ╰→ Leaking instance
+    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
+    """
+  }
+
+  @Test fun rendersRootExclusion() {
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["leak"] = "Leaking" watchedInstance {}
+      }
+    }
+
+    val analysis =
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+          referenceMatchers = listOf(
+              LibraryLeakReferenceMatcher(pattern = StaticFieldPattern("GcRoot", "leak"))
+          )
+      )
+
+    analysis rendersLibraryLeak """
+    ┬───
+    │ GC Root: System class
+    │
+    ├─ GcRoot class
+    │    Leaking: UNKNOWN
+    │    Library leak match: static field GcRoot#leak
+    │    ↓ static GcRoot.leak
+    │                    ~~~~
     ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
