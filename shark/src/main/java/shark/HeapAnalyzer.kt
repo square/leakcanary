@@ -82,8 +82,10 @@ class HeapAnalyzer constructor(
     if (!heapDumpFile.exists()) {
       val exception = IllegalArgumentException("File does not exist: $heapDumpFile")
       return HeapAnalysisFailure(
-          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-          HeapAnalysisException(exception)
+          heapDumpFile = heapDumpFile,
+          createdAtTimeMillis = System.currentTimeMillis(),
+          analysisDurationMillis = since(analysisStartNanoTime),
+          exception = HeapAnalysisException(exception)
       )
     }
 
@@ -98,8 +100,10 @@ class HeapAnalyzer constructor(
       }
     } catch (exception: Throwable) {
       HeapAnalysisFailure(
-          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-          HeapAnalysisException(exception)
+          heapDumpFile = heapDumpFile,
+          createdAtTimeMillis = System.currentTimeMillis(),
+          analysisDurationMillis = since(analysisStartNanoTime),
+          exception = HeapAnalysisException(exception)
       )
     }
   }
@@ -122,8 +126,10 @@ class HeapAnalyzer constructor(
       )
     } catch (exception: Throwable) {
       HeapAnalysisFailure(
-          heapDumpFile, System.currentTimeMillis(), since(analysisStartNanoTime),
-          HeapAnalysisException(exception)
+          heapDumpFile = heapDumpFile,
+          createdAtTimeMillis = System.currentTimeMillis(),
+          analysisDurationMillis = since(analysisStartNanoTime),
+          exception = HeapAnalysisException(exception)
       )
     }
   }

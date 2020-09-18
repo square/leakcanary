@@ -36,13 +36,11 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
               } else {
                 null
               }
-            }
-                .map {
-                  if (it is HeapAnalysisSuccess) {
-                    HeapAnalysisSuccess.upgradeFrom20Deserialized(it)
-                  } else it
-                }
-                .toList()
+            }.map {
+              if (it is HeapAnalysisSuccess) {
+                HeapAnalysisSuccess.upgradeFrom20Deserialized(it)
+              } else it
+            }.toList()
           }
       recreateDb(db)
       db.inTransaction {
@@ -51,6 +49,8 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
           put("is_read", 1)
         }, null, null)
       }
+    } else if (oldVersion == 23) {
+      db.execSQL("ALTER TABLE heap_analysis ADD COLUMN dump_duration_millis INTEGER DEFAULT -1")
     } else {
       throw IllegalStateException("Database migration from $oldVersion not supported")
     }
@@ -72,7 +72,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
   }
 
   companion object {
-    internal const val VERSION = 23
+    internal const val VERSION = 24
     internal const val DATABASE_NAME = "leaks.db"
   }
 }

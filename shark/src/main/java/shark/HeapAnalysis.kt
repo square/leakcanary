@@ -21,12 +21,18 @@ sealed class HeapAnalysis : Serializable {
   abstract val createdAtTimeMillis: Long
 
   /**
+   * Total time spent dumping the heap.
+   */
+  abstract val dumpDurationMillis: Long
+
+  /**
    * Total time spent analyzing the heap.
    */
   abstract val analysisDurationMillis: Long
 
   companion object {
     private const val serialVersionUID: Long = -8657286725869987172
+    const val DUMP_DURATION_UNKNOWN: Long = -1
   }
 }
 
@@ -36,6 +42,7 @@ sealed class HeapAnalysis : Serializable {
 data class HeapAnalysisFailure(
   override val heapDumpFile: File,
   override val createdAtTimeMillis: Long,
+  override val dumpDurationMillis: Long = DUMP_DURATION_UNKNOWN,
   override val analysisDurationMillis: Long,
   /**
    * An exception wrapping the actual exception that was thrown.
@@ -75,6 +82,7 @@ Heap dump timestamp: $createdAtTimeMillis
 data class HeapAnalysisSuccess(
   override val heapDumpFile: File,
   override val createdAtTimeMillis: Long,
+  override val dumpDurationMillis: Long = DUMP_DURATION_UNKNOWN,
   override val analysisDurationMillis: Long,
   val metadata: Map<String, String>,
   /**
@@ -120,6 +128,7 @@ ${if (metadata.isNotEmpty()) "\n" + metadata.map { "${it.key}: ${it.value}" }.jo
 Analysis duration: $analysisDurationMillis ms
 Heap dump file path: ${heapDumpFile.absolutePath}
 Heap dump timestamp: $createdAtTimeMillis
+Heap dump duration: ${if (dumpDurationMillis != DUMP_DURATION_UNKNOWN) "$dumpDurationMillis ms" else "Unknown"}
 ===================================="""
   }
 
@@ -238,6 +247,7 @@ ${super.toString()}
 
   /** This field is kept to support backward compatible deserialization. */
   private val leakTrace: LeakTrace? = null
+
   /** This field is kept to support backward compatible deserialization. */
   private val retainedHeapByteSize: Int? = null
 
@@ -273,6 +283,7 @@ data class ApplicationLeak(
 
   /** This field is kept to support backward compatible deserialization. */
   private val leakTrace: LeakTrace? = null
+
   /** This field is kept to support backward compatible deserialization. */
   private val retainedHeapByteSize: Int? = null
 

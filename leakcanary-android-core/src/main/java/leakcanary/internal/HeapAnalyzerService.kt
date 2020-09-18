@@ -25,6 +25,7 @@ import leakcanary.LeakCanary.Config
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
 import shark.HeapAnalyzer
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
@@ -52,6 +53,7 @@ internal class HeapAnalyzerService : ForegroundService(
     // Since we're running in the main process we should be careful not to impact it.
     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
     val heapDumpFile = intent.getSerializableExtra(HEAPDUMP_FILE_EXTRA) as File
+    val heapDumpDurationMillis = intent.getLongExtra(HEAPDUMP_DURATION_MILLIS, -1)
 
     val config = LeakCanary.config
     val heapAnalysis = if (heapDumpFile.exists()) {
@@ -59,8 +61,12 @@ internal class HeapAnalyzerService : ForegroundService(
     } else {
       missingFileFailure(heapDumpFile)
     }
+    val fullHeapAnalysis = when (heapAnalysis) {
+      is HeapAnalysisSuccess -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
+      is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
+    }
     onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
-    config.onHeapAnalyzedListener.onHeapAnalyzed(heapAnalysis)
+    config.onHeapAnalyzedListener.onHeapAnalyzed(fullHeapAnalysis)
   }
 
   private fun analyzeHeap(
@@ -85,7 +91,9 @@ internal class HeapAnalyzerService : ForegroundService(
     )
   }
 
-  private fun missingFileFailure(heapDumpFile: File): HeapAnalysisFailure {
+  private fun missingFileFailure(
+      heapDumpFile: File
+  ): HeapAnalysisFailure {
     val deletedReason = LeakDirectoryProvider.hprofDeleteReason(heapDumpFile)
     val exception = IllegalStateException(
         "Hprof file $heapDumpFile missing, deleted because: $deletedReason"
@@ -110,14 +118,19 @@ internal class HeapAnalyzerService : ForegroundService(
 
   companion object {
     private const val HEAPDUMP_FILE_EXTRA = "HEAPDUMP_FILE_EXTRA"
+    private const val HEAPDUMP_DURATION_MILLIS = "HEAPDUMP_DURATION_MILLIS"
     private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
 
     fun runAnalysis(
       context: Context,
-      heapDumpFile: File
+      heapDumpFile: File,
+      heapDumpDurationMillis: Long? = null
     ) {
       val intent = Intent(context, HeapAnalyzerService::class.java)
       intent.putExtra(HEAPDUMP_FILE_EXTRA, heapDumpFile)
+      heapDumpDurationMillis?.let {
+        intent.putExtra(HEAPDUMP_DURATION_MILLIS, heapDumpDurationMillis)
+      }
       startForegroundService(context, intent)
     }
 

@@ -25,6 +25,7 @@ import org.junit.runner.notification.RunListener
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
 import shark.HeapAnalyzer
 import shark.SharkLog
 import java.io.File
@@ -143,14 +144,19 @@ class InstrumentationLeakDetector {
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
 
+    val heapDumpDurationMillis: Long
+
     try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
+      heapDumpDurationMillis = SystemClock.uptimeMillis() - heapDumpUptimeMillis
     } catch (exception: Exception) {
       SharkLog.d(exception) { "Could not dump heap" }
       return AnalysisPerformed(
           HeapAnalysisFailure(
-              heapDumpFile, analysisDurationMillis = 0,
+              heapDumpFile = heapDumpFile,
               createdAtTimeMillis = System.currentTimeMillis(),
+              dumpDurationMillis = SystemClock.uptimeMillis() - heapDumpUptimeMillis,
+              analysisDurationMillis = 0,
               exception = HeapAnalysisException(exception)
           )
       )
@@ -165,14 +171,17 @@ class InstrumentationLeakDetector {
     SystemClock.sleep(2000)
 
     val heapAnalyzer = HeapAnalyzer(listener)
-    val heapAnalysis = heapAnalyzer.analyze(
+    val fullHeapAnalysis = when (val heapAnalysis = heapAnalyzer.analyze(
         heapDumpFile = heapDumpFile,
         leakingObjectFinder = config.leakingObjectFinder,
         referenceMatchers = config.referenceMatchers,
         computeRetainedHeapSize = config.computeRetainedHeapSize,
         objectInspectors = config.objectInspectors
-    )
-    return AnalysisPerformed(heapAnalysis)
+    )) {
+      is HeapAnalysisSuccess -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
+      is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
+    }
+    return AnalysisPerformed(fullHeapAnalysis)
   }
 
   companion object {

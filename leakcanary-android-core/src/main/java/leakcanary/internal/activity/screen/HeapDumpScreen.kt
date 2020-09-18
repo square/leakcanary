@@ -24,6 +24,7 @@ import leakcanary.internal.navigation.goBack
 import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
+import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
 import shark.LibraryLeak
 
@@ -101,11 +102,18 @@ internal class HeapDumpScreen(
           val shareFile =
             if (heapDumpFileExist) """Share <a href="share_hprof">Heap Dump file</a><br><br>""" else ""
 
+          val dumpDurationMillis =
+            if (heapAnalysis.dumpDurationMillis != HeapAnalysis.DUMP_DURATION_UNKNOWN) {
+              "${heapAnalysis.dumpDurationMillis} ms"
+            } else {
+              "Unknown"
+            }
           val titleText = explore + shareAnalysis + shareFile +
               (heapAnalysis.metadata + mapOf(
-                  "Analysis duration" to "${heapAnalysis.analysisDurationMillis} ms"
-                  , "Heap dump file path" to heapAnalysis.heapDumpFile.absolutePath
-                  , "Heap dump timestamp" to "${heapAnalysis.createdAtTimeMillis}"
+                  "Analysis duration" to "${heapAnalysis.analysisDurationMillis} ms",
+                  "Heap dump file path" to heapAnalysis.heapDumpFile.absolutePath,
+                  "Heap dump timestamp" to "${heapAnalysis.createdAtTimeMillis}",
+                  "Heap dump duration" to dumpDurationMillis
               ))
                   .map { "<b>${it.key}:</b> ${it.value}" }
                   .joinToString("<br>")
