@@ -22,6 +22,7 @@ import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.UserManager
 import androidx.core.os.UserManagerCompat
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
@@ -199,7 +200,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     }
 
     // Dynamic shortcuts can't be created during direct boot, defer the shortcut creation to a later time.
-    if (!UserManagerCompat.isUserUnlocked(application)) {
+    val userManager = application.getSystemService(UserManager::class.java)!!
+    if (!userManager.isUserUnlocked) {
       application.registerReceiver(object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
           if (intent.action != Intent.ACTION_USER_UNLOCKED) {
