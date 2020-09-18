@@ -15,20 +15,18 @@
  */
 package shark.internal
 
-import shark.FieldValuesReader
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
 import shark.GcRoot.ThreadObject
-import shark.HeapField
 import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.HeapValue
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.IgnoredReferenceMatcher
 import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
@@ -54,7 +52,15 @@ import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
 import shark.SharkLog
 import shark.ValueHolder
+import shark.ValueHolder.BooleanHolder
+import shark.ValueHolder.ByteHolder
+import shark.ValueHolder.CharHolder
+import shark.ValueHolder.DoubleHolder
+import shark.ValueHolder.FloatHolder
+import shark.ValueHolder.IntHolder
+import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
+import shark.ValueHolder.ShortHolder
 import shark.internal.ReferencePathNode.ChildNode.LibraryLeakChildNode
 import shark.internal.ReferencePathNode.ChildNode.NormalNode
 import shark.internal.ReferencePathNode.LibraryLeakNode
@@ -460,27 +466,27 @@ internal class PathFinder(
 
     val fieldNamesAndValues = instance.readAllNonNullFieldsOfReferenceType()
 
-    fieldNamesAndValues.sortBy { it.name }
+    fieldNamesAndValues.sortBy { it.second }
 
-    fieldNamesAndValues.forEach { field ->
-      val objectId = (field.value.holder as ReferenceHolder).value
+    fieldNamesAndValues.forEach { pair ->
+      val (objectId, name) = pair
       if (computeRetainedHeapSize) {
         updateDominatorWithSkips(parent.objectId, objectId)
       }
 
-      val node = when (val referenceMatcher = fieldReferenceMatchers[field.name]) {
+      val node = when (val referenceMatcher = fieldReferenceMatchers[name]) {
         null -> NormalNode(
             objectId = objectId,
             parent = parent,
             refFromParentType = INSTANCE_FIELD,
-            refFromParentName = field.name
+            refFromParentName = name
         )
         is LibraryLeakReferenceMatcher ->
           LibraryLeakChildNode(
               objectId = objectId,
               parent = parent,
               refFromParentType = INSTANCE_FIELD,
-              refFromParentName = field.name,
+              refFromParentName = name,
               matcher = referenceMatcher
           )
         is IgnoredReferenceMatcher -> null
@@ -491,12 +497,12 @@ internal class PathFinder(
     }
   }
 
-  private fun HeapInstance.readAllNonNullFieldsOfReferenceType(): MutableList<HeapField> {
+  private fun HeapInstance.readAllNonNullFieldsOfReferenceType(): MutableList<Pair<Long, String>> {
     // Assigning to local variable to avoid repeated lookup and cast:
     // HeapInstance.graph casts HeapInstance.hprofGraph to HeapGraph in its getter
     val hprofGraph = graph
-    var fieldReader: FieldValuesReader? = null
-    val result = mutableListOf<HeapField>()
+    var fieldReader: FieldIdReader? = null
+    val result = mutableListOf<Pair<Long, String>>()
     var skipBytesCount = 0
     for (heapClass in instanceClass.classHierarchy.toList()) {
       for (fieldRecord in heapClass.readRecord().fields) {
@@ -504,19 +510,18 @@ internal class PathFinder(
           // Skip all fields that are not references. Track how many bytes to skip
           skipBytesCount += hprofGraph.getRecordSize(fieldRecord)
         } else {
-          // Initialize field reader if it's not yet initialized. Replaces `lazy` without synchronization
+          // Initialize id reader if it's not yet initialized. Replaces `lazy` without synchronization
           if (fieldReader == null) {
-            fieldReader = hprofGraph.createFieldValuesReader(readRecord())
+            fieldReader = FieldIdReader(readRecord(), hprofGraph.identifierByteSize)
           }
 
           // Skip the accumulated bytes offset
           fieldReader.skipBytes(skipBytesCount)
           skipBytesCount = 0
 
-          val fieldValue = fieldReader.readValue(fieldRecord) as ReferenceHolder
-          if (!fieldValue.isNull) {
-            val fieldName = heapClass.fieldName(fieldRecord)
-            result.add(HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue)))
+          val objectId = fieldReader.readId()
+          if (objectId != 0L) {
+            result.add(objectId to heapClass.fieldName(fieldRecord))
           }
         }
       }

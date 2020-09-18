@@ -6,7 +6,6 @@ import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
@@ -19,6 +18,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import shark.internal.FieldValuesReader
 import shark.internal.HprofInMemoryIndex
 import shark.internal.IndexedObject
 import shark.internal.IndexedObject.IndexedClass
@@ -138,7 +138,7 @@ class HprofHeapGraph internal constructor(
     return index.fieldName(classId, fieldRecord.nameStringId)
   }
 
-  override fun createFieldValuesReader(record: InstanceDumpRecord) =
+  internal fun createFieldValuesReader(record: InstanceDumpRecord) =
     FieldValuesReader(record, identifierByteSize)
 
   internal fun className(classId: Long): String {

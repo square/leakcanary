@@ -210,7 +210,7 @@ sealed class HeapObject {
      * Returns the name of the field declared in this class for the specified [fieldRecord].
      */
     fun fieldName(fieldRecord: FieldRecord): String {
-      return hprofGraph.fieldName(objectId, fieldRecord)
+      return hprofGraph.fieldName(objectId, fieldRecord.nameStringId)
     }
 
     /**
@@ -394,7 +394,7 @@ sealed class HeapObject {
             heapClass.readRecord()
                 .fields.asSequence()
                 .map { fieldRecord ->
-                  val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord)
+                  val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord.nameStringId)
                   val fieldValue = fieldReader.readValue(fieldRecord)
                   HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue))
                 }

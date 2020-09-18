@@ -1,7 +1,8 @@
-package shark
+package shark.internal
 
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
+import shark.PrimitiveType
 import shark.PrimitiveType.BOOLEAN
 import shark.PrimitiveType.BYTE
 import shark.PrimitiveType.CHAR
@@ -10,6 +11,7 @@ import shark.PrimitiveType.FLOAT
 import shark.PrimitiveType.INT
 import shark.PrimitiveType.LONG
 import shark.PrimitiveType.SHORT
+import shark.ValueHolder
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
 import shark.ValueHolder.CharHolder
@@ -19,11 +21,8 @@ import shark.ValueHolder.IntHolder
 import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
-import shark.internal.readInt
-import shark.internal.readLong
-import shark.internal.readShort
 
-class FieldValuesReader(
+internal class FieldValuesReader(
   private val record: InstanceDumpRecord,
   private val identifierByteSize: Int
 ) {
@@ -98,10 +97,6 @@ class FieldValuesReader(
     val string = String(record.fieldValues, position, 2, Charsets.UTF_16BE)
     position += 2
     return string[0]
-  }
-
-  fun skipBytes(count: Int) {
-    position += count
   }
 
   companion object {
