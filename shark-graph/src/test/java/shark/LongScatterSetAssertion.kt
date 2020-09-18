@@ -9,25 +9,29 @@ import shark.internal.hppc.LongScatterSet
  */
 internal class LongScatterSetAssertion(private val actual: LongScatterSet) {
 
-  fun contains(vararg values: Long) = apply {
-    values.forEach {
-      assertThat(it in actual).isTrue()
-    }
+  fun contains(value: Long) = apply {
+    assertThat(value in actual).isTrue()
   }
 
-  fun doesNotContain(vararg values: Long) = apply {
-    values.forEach {
-      assertThat(it in actual).isFalse()
-    }
+  fun contains(values: List<Long>) = apply {
+    values.forEach { contains(it) }
   }
 
-  fun isEmpty() = apply {
-    assertThat(actual.size()).isZero()
+  fun containsExactly(value: Long) = apply {
+    hasSize(1)
+    contains(value)
+  }
+
+  fun containsExactly(values: List<Long>) = apply {
+    hasSize(values.size)
+    contains(values)
   }
 
   fun hasSize(expected: Int) = apply {
     assertThat(actual.size()).isEqualTo(expected)
   }
+
+  fun isEmpty() = hasSize(0)
 
   companion object {
     fun assertThat(actual: LongScatterSet): LongScatterSetAssertion =

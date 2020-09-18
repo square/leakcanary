@@ -1,65 +1,75 @@
 package shark
 
+import org.assertj.core.api.Assertions
 import org.junit.Test
 import shark.LongScatterSetAssertion.Companion.assertThat
+import shark.internal.hppc.HHPC.mixPhi
 import shark.internal.hppc.LongScatterSet
 
 class LongScatterSetTest {
 
   @Test fun `new set is empty`() {
-    assertThat(LongScatterSet()).isEmpty()
+    assertThat(LongScatterSet())
+        .isEmpty()
   }
 
-  @Test fun `adding elements`() {
+  @Test fun `LongScatterSet#add() adds elements`() {
     val set = LongScatterSet()
 
     TEST_VALUES_LIST.forEach { set.add(it) }
 
     assertThat(set)
-        .contains(*TEST_VALUES_LIST.toLongArray())
-        .hasSize(TEST_VALUES_LIST.size)
+        .containsExactly(TEST_VALUES_LIST)
   }
 
   @Test fun `+= operator works as addition`() {
     val set = LongScatterSet()
 
-    set.add(TEST_VALUE)
+    set += TEST_VALUE
 
     assertThat(set)
-        .contains(TEST_VALUE)
-        .hasSize(1)
+        .containsExactly(TEST_VALUE)
   }
 
-  @Test fun `adding element twice doesn't cause duplicates`() {
+  @Test fun `when adding element twice, it is only added once`() {
     val set = LongScatterSet()
 
     set.add(TEST_VALUE)
     set.add(TEST_VALUE)
 
     assertThat(set)
-        .contains(TEST_VALUE)
-        .hasSize(1)
+        .containsExactly(TEST_VALUE)
   }
 
-  @Test fun `adding elements with matching hash`() {
+  /**
+   * [LongScatterSet] calculates hash for its values using [mixPhi] function.
+   * Inevitably, there can be collisions when two different values have same hash value;
+   * [LongScatterSet] should handle such collisions properly.
+   * There are two tests that verify adding and removing operations for values with matching hash value;
+   * current test verifies that values we use in those tests actually do have matching hashes.
+   */
+  @Test fun `11 and 14_723_950_898 have same hash`() {
+    Assertions.assertThat(mixPhi(11))
+        .isEqualTo(mixPhi(14_723_950_898))
+  }
+
+  @Test fun `elements with equal hash can be added`() {
     val set = LongScatterSet()
 
-    set += SAME_MIX_PHI_1
-    set += SAME_MIX_PHI_2
+    set.add(SAME_MIX_PHI_1)
+    set.add(SAME_MIX_PHI_2)
 
     assertThat(set)
-        .contains(SAME_MIX_PHI_1, SAME_MIX_PHI_2)
-        .hasSize(2)
+        .containsExactly(listOf(SAME_MIX_PHI_1, SAME_MIX_PHI_2))
   }
 
-  @Test fun `removing elements`() {
+  @Test fun `LongScatterSet#remove() removes elements`() {
     val set = LongScatterSet()
     TEST_VALUES_LIST.forEach { set.add(it) }
 
     TEST_VALUES_LIST.forEach { set.remove(it) }
 
     assertThat(set)
-        .doesNotContain(*TEST_VALUES_LIST.toLongArray())
         .isEmpty()
   }
 
@@ -69,44 +79,34 @@ class LongScatterSetTest {
     set.remove(TEST_VALUE)
 
     assertThat(set)
-        .doesNotContain(TEST_VALUE)
         .isEmpty()
   }
 
-  @Test fun `removing elements with matching hash`() {
+  @Test fun `elements with equal hash can be removed`() {
     val set = LongScatterSet()
     set.add(SAME_MIX_PHI_1)
     set.add(SAME_MIX_PHI_2)
 
     set.remove(SAME_MIX_PHI_2)
-    set.remove(SAME_MIX_PHI_1)
 
     assertThat(set)
-        .doesNotContain(SAME_MIX_PHI_1, SAME_MIX_PHI_2)
-        .isEmpty()
+        .containsExactly(SAME_MIX_PHI_1)
   }
 
-  @Test fun `release operation cleans set`() {
+  @Test fun `LongScatterSet#release() empties set`() {
     val set = LongScatterSet()
     set.add(TEST_VALUE)
 
     set.release()
 
     assertThat(set)
-        .doesNotContain(TEST_VALUE)
         .isEmpty()
   }
 
-  @Test fun `setting initial capacity before operations`() {
-    val set = LongScatterSet()
-    set.ensureCapacity(TEST_CAPACITY)
-
-    set.add(TEST_VALUE)
-    set.remove(TEST_VALUE)
-
-    assertThat(set).isEmpty()
-  }
-
+  /**
+   * Verifies that calling [LongScatterSet.ensureCapacity] after elements has been added to set
+   * does not damage the data in set
+   */
   @Test fun `setting initial capacity after operations`() {
     val set = LongScatterSet()
     set.add(TEST_VALUE)
@@ -114,8 +114,7 @@ class LongScatterSetTest {
     set.ensureCapacity(TEST_CAPACITY)
 
     assertThat(set)
-        .contains(TEST_VALUE)
-        .hasSize(1)
+        .containsExactly(TEST_VALUE)
   }
 
   @Test fun `adding a lot of elements causes resizing`() {
@@ -123,7 +122,7 @@ class LongScatterSetTest {
     (1..100L).forEach { set.add(it) }
 
     assertThat(set)
-        .contains(*(1..100L).toList().toLongArray())
+        .containsExactly((1..100L).toList())
   }
 
   companion object {
