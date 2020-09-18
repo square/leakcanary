@@ -78,6 +78,18 @@ class LegacyHprofTest {
     NOT_ACTIVITY
   }
 
+  @Test fun `AndroidObjectInspectors#CONTEXT_FIELD labels Context fields`() {
+    val toastLabels = "leak_asynctask_o.hprof".classpathFile().openHeapGraph().use { graph ->
+      graph.instances.filter { it.instanceClassName == "android.widget.Toast" }
+          .map { instance ->
+            ObjectReporter(instance).apply {
+              AndroidObjectInspectors.CONTEXT_FIELD.inspect(this)
+            }.labels.joinToString(",")
+          }.toList()
+    }
+    assertThat(toastLabels).containsExactly("mContext instance of com.example.leakcanary.ExampleApplication")
+  }
+
   @Test fun androidOCountActivityWrappingContexts() {
     val contextWrapperStatuses = Hprof.open("leak_asynctask_o.hprof".classpathFile())
         .use { hprof ->
@@ -121,7 +133,6 @@ class LegacyHprofTest {
   private fun analyzeHprof(fileName: String): HeapAnalysisSuccess {
     return analyzeHprof(fileName.classpathFile())
   }
-
 
   private fun analyzeHprof(hprofFile: File): HeapAnalysisSuccess {
     SharkLog.logger = object : Logger {
