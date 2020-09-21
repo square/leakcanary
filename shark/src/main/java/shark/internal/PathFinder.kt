@@ -494,7 +494,11 @@ internal class PathFinder(
     var fieldReader: FieldIdReader? = null
     val result = mutableListOf<Pair<Long, String>>()
     var skipBytesCount = 0
-    for (heapClass in instanceClass.classHierarchy.toList()) {
+
+    // In pre-M there were no ref fields in java.lang.Object; and FieldIdReader wouldn't be created
+    // Android M added shadow$_klass_ reference to class, so now it triggers extra record read.
+    // Solution: skip heap class for java.lang.Object completely when reading the records
+    for (heapClass in instanceClass.classHierarchy.toList().dropLast(1)) {
       for (fieldRecord in heapClass.readRecord().fields) {
         if (fieldRecord.type != PrimitiveType.REFERENCE_HPROF_TYPE) {
           // Skip all fields that are not references. Track how many bytes to skip
