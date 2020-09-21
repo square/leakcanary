@@ -202,7 +202,7 @@ class HprofIOPerfTest {
     val size = randomAccessReads.size
     val median = randomAccessReads.median()
     val sum = randomAccessReads.sum()
-    assertThat(listOf(size, median, sum)).isEqualTo(listOf(20079, 32.0, 1107595))
+    assertThat(listOf(size, median, sum)).isEqualTo(listOf(16078, 36.0, 1012333))
   }
 
   private fun trackAnalyzeIoReadMetrics(hprofFile: File): List<List<Int>> {
