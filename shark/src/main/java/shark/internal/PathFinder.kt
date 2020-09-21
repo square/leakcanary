@@ -495,10 +495,7 @@ internal class PathFinder(
     val result = mutableListOf<Pair<Long, String>>()
     var skipBytesCount = 0
 
-    // In pre-M there were no ref fields in java.lang.Object; and FieldIdReader wouldn't be created
-    // Android M added shadow$_klass_ reference to class, so now it triggers extra record read.
-    // Solution: skip heap class for java.lang.Object completely when reading the records
-    for (heapClass in instanceClass.classHierarchy.toList().dropLast(1)) {
+    for (heapClass in instanceClass.classHierarchyWithoutJavaLangObject()) {
       for (fieldRecord in heapClass.readRecord().fields) {
         if (fieldRecord.type != PrimitiveType.REFERENCE_HPROF_TYPE) {
           // Skip all fields that are not references. Track how many bytes to skip
@@ -519,6 +516,28 @@ internal class PathFinder(
           }
         }
       }
+    }
+    return result
+  }
+
+  /**
+   * Returns class hierarchy for an instance, but without it's root element, which is always
+   * java.lang.Object.
+   * Alternative would be calling `instanceClass.classHierarchy.toList().dropLast(1)`; this version
+   * doesn't use Sequences and doesn't create extra list to drop one element.
+   * Why do we want class hierarchy without java.lang.Object?
+   * In pre-M there were no ref fields in java.lang.Object; and FieldIdReader wouldn't be created
+   * Android M added shadow$_klass_ reference to class, so now it triggers extra record read.
+   * Solution: skip heap class for java.lang.Object completely when reading the records
+   */
+  private fun HeapClass.classHierarchyWithoutJavaLangObject(): List<HeapClass> {
+    val result = mutableListOf<HeapClass>()
+    var parent: HeapClass? = this
+    var nextParent = parent?.superclass
+    while (parent != null && nextParent != null) {
+      result += parent
+      parent = nextParent
+      nextParent = parent.superclass
     }
     return result
   }
