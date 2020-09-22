@@ -51,6 +51,7 @@ import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
 import shark.SharkLog
 import shark.ValueHolder
+import shark.ValueHolder.ReferenceHolder
 import shark.internal.ReferencePathNode.ChildNode.LibraryLeakChildNode
 import shark.internal.ReferencePathNode.ChildNode.NormalNode
 import shark.internal.ReferencePathNode.LibraryLeakNode
@@ -58,7 +59,9 @@ import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppcshark.LongLongScatterMap
+import shark.internal.hppcshark.LongObjectPair
 import shark.internal.hppcshark.LongScatterSet
+import shark.internal.hppcshark.to
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -487,12 +490,12 @@ internal class PathFinder(
     }
   }
 
-  private fun HeapInstance.readAllNonNullFieldsOfReferenceType(): MutableList<Pair<Long, String>> {
+  private fun HeapInstance.readAllNonNullFieldsOfReferenceType(): MutableList<LongObjectPair<String>> {
     // Assigning to local variable to avoid repeated lookup and cast:
     // HeapInstance.graph casts HeapInstance.hprofGraph to HeapGraph in its getter
     val hprofGraph = graph
     var fieldReader: FieldIdReader? = null
-    val result = mutableListOf<Pair<Long, String>>()
+    val result = mutableListOf<LongObjectPair<String>>()
     var skipBytesCount = 0
 
     for (heapClass in instanceClass.classHierarchyWithoutJavaLangObject()) {
