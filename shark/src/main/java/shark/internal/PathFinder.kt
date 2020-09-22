@@ -25,6 +25,7 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.IgnoredReferenceMatcher
 import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
@@ -34,7 +35,15 @@ import shark.LibraryLeakReferenceMatcher
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
+import shark.PrimitiveType
+import shark.PrimitiveType.BOOLEAN
+import shark.PrimitiveType.BYTE
+import shark.PrimitiveType.CHAR
+import shark.PrimitiveType.DOUBLE
+import shark.PrimitiveType.FLOAT
 import shark.PrimitiveType.INT
+import shark.PrimitiveType.LONG
+import shark.PrimitiveType.SHORT
 import shark.ReferenceMatcher
 import shark.ReferencePattern
 import shark.ReferencePattern.InstanceFieldPattern
@@ -50,7 +59,9 @@ import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppcshark.LongLongScatterMap
+import shark.internal.hppcshark.LongObjectPair
 import shark.internal.hppcshark.LongScatterSet
+import shark.internal.hppcshark.to
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -446,31 +457,29 @@ internal class PathFinder(
       }
     }
 
-    val fieldNamesAndValues = instance.readFields()
-        .filter { it.value.isNonNullReference }
-        .toMutableList()
+    val fieldNamesAndValues = instance.readAllNonNullFieldsOfReferenceType()
 
-    fieldNamesAndValues.sortBy { it.name }
+    fieldNamesAndValues.sortBy { it.second }
 
-    fieldNamesAndValues.forEach { field ->
-      val objectId = (field.value.holder as ReferenceHolder).value
+    fieldNamesAndValues.forEach { pair ->
+      val (objectId, name) = pair
       if (computeRetainedHeapSize) {
         updateDominatorWithSkips(parent.objectId, objectId)
       }
 
-      val node = when (val referenceMatcher = fieldReferenceMatchers[field.name]) {
+      val node = when (val referenceMatcher = fieldReferenceMatchers[name]) {
         null -> NormalNode(
             objectId = objectId,
             parent = parent,
             refFromParentType = INSTANCE_FIELD,
-            refFromParentName = field.name
+            refFromParentName = name
         )
         is LibraryLeakReferenceMatcher ->
           LibraryLeakChildNode(
               objectId = objectId,
               parent = parent,
               refFromParentType = INSTANCE_FIELD,
-              refFromParentName = field.name,
+              refFromParentName = name,
               matcher = referenceMatcher
           )
         is IgnoredReferenceMatcher -> null
@@ -480,6 +489,75 @@ internal class PathFinder(
       }
     }
   }
+
+  private fun HeapInstance.readAllNonNullFieldsOfReferenceType(): MutableList<LongObjectPair<String>> {
+    // Assigning to local variable to avoid repeated lookup and cast:
+    // HeapInstance.graph casts HeapInstance.hprofGraph to HeapGraph in its getter
+    val hprofGraph = graph
+    var fieldReader: FieldIdReader? = null
+    val result = mutableListOf<LongObjectPair<String>>()
+    var skipBytesCount = 0
+
+    for (heapClass in instanceClass.classHierarchyWithoutJavaLangObject()) {
+      for (fieldRecord in heapClass.readRecord().fields) {
+        if (fieldRecord.type != PrimitiveType.REFERENCE_HPROF_TYPE) {
+          // Skip all fields that are not references. Track how many bytes to skip
+          skipBytesCount += hprofGraph.getRecordSize(fieldRecord)
+        } else {
+          // Initialize id reader if it's not yet initialized. Replaces `lazy` without synchronization
+          if (fieldReader == null) {
+            fieldReader = FieldIdReader(readRecord(), hprofGraph.identifierByteSize)
+          }
+
+          // Skip the accumulated bytes offset
+          fieldReader.skipBytes(skipBytesCount)
+          skipBytesCount = 0
+
+          val objectId = fieldReader.readId()
+          if (objectId != 0L) {
+            result.add(objectId to heapClass.instanceFieldName(fieldRecord))
+          }
+        }
+      }
+    }
+    return result
+  }
+
+  /**
+   * Returns class hierarchy for an instance, but without it's root element, which is always
+   * java.lang.Object.
+   * Alternative would be calling `instanceClass.classHierarchy.toList().dropLast(1)`; this version
+   * doesn't use Sequences and doesn't create extra list to drop one element.
+   * Why do we want class hierarchy without java.lang.Object?
+   * In pre-M there were no ref fields in java.lang.Object; and FieldIdReader wouldn't be created
+   * Android M added shadow$_klass_ reference to class, so now it triggers extra record read.
+   * Solution: skip heap class for java.lang.Object completely when reading the records
+   */
+  private fun HeapClass.classHierarchyWithoutJavaLangObject(): List<HeapClass> {
+    val result = mutableListOf<HeapClass>()
+    var parent: HeapClass? = this
+    var nextParent = parent?.superclass
+    while (parent != null && nextParent != null) {
+      result += parent
+      parent = nextParent
+      nextParent = parent.superclass
+    }
+    return result
+  }
+
+  private fun HeapGraph.getRecordSize(field: FieldRecord) =
+    when (field.type) {
+      PrimitiveType.REFERENCE_HPROF_TYPE -> identifierByteSize
+      BOOLEAN.hprofType -> 1
+      CHAR.hprofType -> 2
+      FLOAT.hprofType -> 4
+      DOUBLE.hprofType -> 8
+      BYTE.hprofType -> 1
+      SHORT.hprofType -> 2
+      INT.hprofType -> 4
+      LONG.hprofType -> 8
+      else -> throw IllegalStateException("Unknown type ${field.type}")
+    }
 
   private fun State.visitObjectArray(
     objectArray: HeapObjectArray,

@@ -2,25 +2,12 @@ package shark
 
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import shark.PrimitiveType.BOOLEAN
-import shark.PrimitiveType.BYTE
-import shark.PrimitiveType.CHAR
-import shark.PrimitiveType.DOUBLE
-import shark.PrimitiveType.FLOAT
-import shark.PrimitiveType.INT
-import shark.PrimitiveType.LONG
-import shark.PrimitiveType.SHORT
 import shark.ValueHolder.ReferenceHolder
 import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
@@ -217,6 +204,13 @@ sealed class HeapObject {
      */
     override fun readRecord(): ClassDumpRecord {
       return hprofGraph.readClassDumpRecord(objectId, indexedObject)
+    }
+
+    /**
+     * Returns the name of the field declared in this class for the specified [fieldRecord].
+     */
+    fun instanceFieldName(fieldRecord: FieldRecord): String {
+      return hprofGraph.fieldName(objectId, fieldRecord)
     }
 
     /**
