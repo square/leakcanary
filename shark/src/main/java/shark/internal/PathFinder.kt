@@ -42,14 +42,15 @@ import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
 import shark.SharkLog
 import shark.ValueHolder
+import shark.ValueHolder.ReferenceHolder
 import shark.internal.ReferencePathNode.ChildNode.LibraryLeakChildNode
 import shark.internal.ReferencePathNode.ChildNode.NormalNode
 import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
-import shark.internal.hppc.LongLongScatterMap
-import shark.internal.hppc.LongScatterSet
+import shark.internal.hppcshark.LongLongScatterMap
+import shark.internal.hppcshark.LongScatterSet
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -73,7 +74,7 @@ internal class PathFinder(
   )
 
   private class State(
-    val leakingObjectIds: Set<Long>,
+    val leakingObjectIds: LongScatterSet,
     val sizeOfObjectInstances: Int,
     val computeRetainedHeapSize: Boolean
   ) {
@@ -90,8 +91,8 @@ internal class PathFinder(
     /**
      * Enables fast checking of whether a node is already in the queue.
      */
-    val toVisitSet = HashSet<Long>()
-    val toVisitLastSet = HashSet<Long>()
+    val toVisitSet = LongScatterSet()
+    val toVisitLastSet = LongScatterSet()
 
     val visitedSet = LongScatterSet()
 
@@ -177,7 +178,8 @@ internal class PathFinder(
 
     val sizeOfObjectInstances = determineSizeOfObjectInstances(graph)
 
-    val state = State(leakingObjectIds, sizeOfObjectInstances, computeRetainedHeapSize)
+    val state =
+      State(leakingObjectIds.toLongScatterSet(), sizeOfObjectInstances, computeRetainedHeapSize)
 
     return state.findPathsFromGcRoots()
   }
@@ -202,6 +204,13 @@ internal class PathFinder(
     }
   }
 
+  private fun Set<Long>.toLongScatterSet(): LongScatterSet {
+    val longScatterSet = LongScatterSet()
+    longScatterSet.ensureCapacity(size)
+    forEach { longScatterSet.add(it) }
+    return longScatterSet
+  }
+
   private fun State.findPathsFromGcRoots(): PathFindingResults {
     enqueueGcRoots()
 
@@ -218,7 +227,7 @@ internal class PathFinder(
       if (node.objectId in leakingObjectIds) {
         shortestPathsToLeakingObjects.add(node)
         // Found all refs, stop searching (unless computing retained size)
-        if (shortestPathsToLeakingObjects.size == leakingObjectIds.size) {
+        if (shortestPathsToLeakingObjects.size == leakingObjectIds.size()) {
           if (computeRetainedHeapSize) {
             listener.onAnalysisProgress(FINDING_DOMINATORS)
           } else {
@@ -390,7 +399,9 @@ internal class PathFinder(
         continue
       }
 
-      val objectId = staticField.value.asObjectId!!
+      // Note: instead of calling staticField.value.asObjectId!! we cast holder to ReferenceHolder
+      // and access value directly. This allows us to avoid unnecessary boxing of Long.
+      val objectId = (staticField.value.holder as ReferenceHolder).value
 
       if (computeRetainedHeapSize) {
         undominateWithSkips(objectId)
@@ -442,7 +453,7 @@ internal class PathFinder(
     fieldNamesAndValues.sortBy { it.name }
 
     fieldNamesAndValues.forEach { field ->
-      val objectId = field.value.asObjectId!!
+      val objectId = (field.value.holder as ReferenceHolder).value
       if (computeRetainedHeapSize) {
         updateDominatorWithSkips(parent.objectId, objectId)
       }

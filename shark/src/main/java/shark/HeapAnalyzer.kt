@@ -43,7 +43,8 @@ import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.createSHA1Hash
-import shark.internal.hppc.LongLongScatterMap.ForEachCallback
+import shark.internal.hppcshark.LongLongScatterMap.ForEachCallback
+import shark.internal.hppcshark.LongScatterSet
 import shark.internal.lastSegment
 import java.io.File
 import java.util.ArrayList
@@ -305,7 +306,7 @@ class HeapAnalyzer constructor(
     val sizeByDominator = LinkedHashMap<Long, Int>().withDefault { 0 }
 
     // Update sizeByDominator to include self size for leaking instances
-    val leakingInstanceIds = mutableSetOf<Long>()
+    val leakingInstanceIds = LongScatterSet()
     pathsToLeakingInstances.forEach { pathNode ->
       val leakingInstanceObjectId = pathNode.objectId
       leakingInstanceIds.add(leakingInstanceObjectId)

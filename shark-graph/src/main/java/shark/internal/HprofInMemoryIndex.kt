@@ -21,7 +21,10 @@ import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.hppc.LongLongScatterMap
+import shark.internal.hppc.LongObjectPair
 import shark.internal.hppc.LongObjectScatterMap
+import shark.internal.hppc.LongScatterSet
+import shark.internal.hppc.to
 import kotlin.math.max
 import kotlin.reflect.KClass
 
@@ -38,7 +41,7 @@ internal class HprofInMemoryIndex private constructor(
   private val primitiveArrayIndex: SortedBytesMap,
   private val gcRoots: List<GcRoot>,
   private val proguardMapping: ProguardMapping?,
-  val primitiveWrapperTypes: Set<Long>,
+  val primitiveWrapperTypes: LongScatterSet,
   private val bytesForClassSize: Int,
   private val bytesForInstanceSize: Int,
   private val bytesForObjectArraySize: Int,
@@ -87,7 +90,7 @@ internal class HprofInMemoryIndex private constructor(
     }
   }
 
-  fun indexedClassSequence(): Sequence<Pair<Long, IndexedClass>> {
+  fun indexedClassSequence(): Sequence<LongObjectPair<IndexedClass>> {
     return classIndex.entrySequence()
         .map {
           val id = it.first
@@ -101,7 +104,7 @@ internal class HprofInMemoryIndex private constructor(
         }
   }
 
-  fun indexedInstanceSequence(): Sequence<Pair<Long, IndexedInstance>> {
+  fun indexedInstanceSequence(): Sequence<LongObjectPair<IndexedInstance>> {
     return instanceIndex.entrySequence()
         .map {
           val id = it.first
@@ -115,7 +118,7 @@ internal class HprofInMemoryIndex private constructor(
         }
   }
 
-  fun indexedObjectArraySequence(): Sequence<Pair<Long, IndexedObjectArray>> {
+  fun indexedObjectArraySequence(): Sequence<LongObjectPair<IndexedObjectArray>> {
     return objectArrayIndex.entrySequence()
         .map {
           val id = it.first
@@ -129,7 +132,7 @@ internal class HprofInMemoryIndex private constructor(
         }
   }
 
-  fun indexedPrimitiveArraySequence(): Sequence<Pair<Long, IndexedPrimitiveArray>> {
+  fun indexedPrimitiveArraySequence(): Sequence<LongObjectPair<IndexedPrimitiveArray>> {
     return primitiveArrayIndex.entrySequence()
         .map {
           val id = it.first
@@ -145,7 +148,7 @@ internal class HprofInMemoryIndex private constructor(
         }
   }
 
-  fun indexedObjectSequence(): Sequence<Pair<Long, IndexedObject>> {
+  fun indexedObjectSequence(): Sequence<LongObjectPair<IndexedObject>> {
     return indexedClassSequence() +
         indexedInstanceSequence() +
         indexedObjectArraySequence() +
@@ -274,7 +277,7 @@ internal class HprofInMemoryIndex private constructor(
     /**
      * Class ids for primitive wrapper types
      */
-    private val primitiveWrapperTypes = mutableSetOf<Long>()
+    private val primitiveWrapperTypes = LongScatterSet()
 
     /**
      * String ids for class names of primitive wrapper types
