@@ -10,10 +10,22 @@ import shark.HeapObject.HeapPrimitiveArray
  */
 interface HeapGraph {
   val identifierByteSize: Int
+
   /**
    * In memory store that can be used to store objects this [HeapGraph] instance.
    */
   val context: GraphContext
+
+  val objectCount: Int
+
+  val classCount: Int
+
+  val instanceCount: Int
+
+  val objectArrayCount: Int
+
+  val primitiveArrayCount: Int
+
   /**
    * All GC roots which type matches types known to this heap graph and which point to non null
    * references. You can retrieve the object that a GC Root points to by calling [findObjectById]
@@ -21,30 +33,35 @@ interface HeapGraph {
    * GC roots can point to objects that don't exist in the heap dump.
    */
   val gcRoots: List<GcRoot>
+
   /**
    * Sequence of all objects in the heap dump.
    *
    * This sequence does not trigger any IO reads.
    */
   val objects: Sequence<HeapObject>
+
   /**
    * Sequence of all classes in the heap dump.
    *
    * This sequence does not trigger any IO reads.
    */
   val classes: Sequence<HeapClass>
+
   /**
    * Sequence of all instances in the heap dump.
    *
    * This sequence does not trigger any IO reads.
    */
   val instances: Sequence<HeapInstance>
+
   /**
    * Sequence of all object arrays in the heap dump.
    *
    * This sequence does not trigger any IO reads.
    */
   val objectArrays: Sequence<HeapObjectArray>
+
   /**
    * Sequence of all primitive arrays in the heap dump.
    *

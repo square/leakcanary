@@ -181,7 +181,7 @@ class HprofIOPerfTest {
     .isEqualTo(
             listOf(
                 25710, 42.0, 1749038,
-                45140, 36.0, 2510709
+                27152, 44.0, 1807225
             )
         )
   }
@@ -200,7 +200,7 @@ class HprofIOPerfTest {
         .isEqualTo(
             listOf(
                 22667, 40.0, 2554813,
-                86068, 36.0, 4883521
+                22813, 40.0, 2555657
             )
         )
   }
@@ -219,7 +219,7 @@ class HprofIOPerfTest {
         .isEqualTo(
             listOf(
                 16079, 36.0, 1012375,
-                29612, 32.0, 1483387
+                16151, 36.0, 1012852
             )
         )
   }

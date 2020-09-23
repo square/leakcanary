@@ -49,6 +49,18 @@ internal class HprofInMemoryIndex private constructor(
   private val useForwardSlashClassPackageSeparator: Boolean
 ) {
 
+  val classCount: Int
+    get() = classIndex.size
+
+  val instanceCount: Int
+    get() = instanceIndex.size
+
+  val objectArrayCount: Int
+    get() = objectArrayIndex.size
+
+  val primitiveArrayCount: Int
+    get() = primitiveArrayIndex.size
+
   fun fieldName(
     classId: Long,
     id: Long

@@ -42,7 +42,6 @@ class RetainedSizeTest {
         }
       }
     }
-
     val retainedSize = firstRetainedSize()
 
     // 8 bytes for long

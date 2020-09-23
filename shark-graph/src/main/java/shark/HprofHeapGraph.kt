@@ -43,6 +43,21 @@ class HprofHeapGraph internal constructor(
 
   override val context = GraphContext()
 
+  override val objectCount: Int
+    get() = classCount + instanceCount + objectArrayCount + primitiveArrayCount
+
+  override val classCount: Int
+    get() = index.classCount
+
+  override val instanceCount: Int
+    get() = index.instanceCount
+
+  override val objectArrayCount: Int
+    get() = index.objectArrayCount
+
+  override val primitiveArrayCount: Int
+    get() = index.primitiveArrayCount
+
   override val gcRoots: List<GcRoot>
     get() = index.gcRoots()
 

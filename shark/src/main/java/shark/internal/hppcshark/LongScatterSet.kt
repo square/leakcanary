@@ -23,7 +23,7 @@ import java.util.Locale
  *
  * See https://github.com/carrotsearch/hppc .
  */
-internal class LongScatterSet {
+internal class LongScatterSet(expectedElements: Int = 4) {
   /** The hash array holding keys.  */
   private var keys: LongArray = longArrayOf()
   /**
@@ -53,7 +53,7 @@ internal class LongScatterSet {
   private val loadFactor = 0.75
 
   init {
-    ensureCapacity(4)
+    ensureCapacity(expectedElements)
   }
 
   private fun hashKey(key: Long): Int {

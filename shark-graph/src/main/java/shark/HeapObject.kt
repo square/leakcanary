@@ -97,6 +97,15 @@ sealed class HeapObject {
       get() = indexedObject.instanceSize
 
     /**
+     * The total byte size for the record of this class in the heap dump. This gives an
+     * approximation of the shallow size of the class in memory.
+     */
+    val recordSize: Int
+      get() {
+        return indexedObject.recordSize.toInt()
+      }
+
+    /**
      * Returns true if this class is an array class, and false otherwise.
      */
     val isArrayClass: Boolean
