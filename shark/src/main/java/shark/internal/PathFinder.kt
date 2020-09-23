@@ -87,7 +87,8 @@ internal class PathFinder(
   private class State(
     val leakingObjectIds: LongScatterSet,
     val sizeOfObjectInstances: Int,
-    val computeRetainedHeapSize: Boolean
+    val computeRetainedHeapSize: Boolean,
+    val javaLangObjectId: Long
   ) {
 
     /** Set of objects to visit */
@@ -187,16 +188,22 @@ internal class PathFinder(
   ): PathFindingResults {
     listener.onAnalysisProgress(FINDING_PATHS_TO_RETAINED_OBJECTS)
 
-    val sizeOfObjectInstances = determineSizeOfObjectInstances(graph)
+    val objectClass = graph.findClassByName("java.lang.Object")
+    val sizeOfObjectInstances = determineSizeOfObjectInstances(objectClass, graph)
+    val javaLangObjectId = objectClass?.objectId ?: -1
 
     val state =
-      State(leakingObjectIds.toLongScatterSet(), sizeOfObjectInstances, computeRetainedHeapSize)
+      State(
+          leakingObjectIds = leakingObjectIds.toLongScatterSet(),
+          sizeOfObjectInstances = sizeOfObjectInstances,
+          computeRetainedHeapSize = computeRetainedHeapSize,
+          javaLangObjectId = javaLangObjectId
+      )
 
     return state.findPathsFromGcRoots()
   }
 
-  private fun determineSizeOfObjectInstances(graph: HeapGraph): Int {
-    val objectClass = graph.findClassByName("java.lang.Object")
+  private fun determineSizeOfObjectInstances(objectClass: HeapClass?, graph: HeapGraph): Int {
     return if (objectClass != null) {
       // In Android 16 ClassDumpRecord.instanceSize for java.lang.Object can be 8 yet there are 0
       // fields. This is likely because there is extra per instance data that isn't coming from
@@ -456,8 +463,10 @@ internal class PathFinder(
         }
       }
     }
-
-    val fieldNamesAndValues = instance.readAllNonNullFieldsOfReferenceType()
+    val classHierarchy =
+      instance.instanceClass.classHierarchyWithoutJavaLangObject(javaLangObjectId)
+    val fieldNamesAndValues =
+      instance.readAllNonNullFieldsOfReferenceType(classHierarchy)
 
     fieldNamesAndValues.sortBy { it.second }
 
@@ -490,7 +499,9 @@ internal class PathFinder(
     }
   }
 
-  private fun HeapInstance.readAllNonNullFieldsOfReferenceType(): MutableList<LongObjectPair<String>> {
+  private fun HeapInstance.readAllNonNullFieldsOfReferenceType(
+    classHierarchy: List<HeapClass>
+  ): MutableList<LongObjectPair<String>> {
     // Assigning to local variable to avoid repeated lookup and cast:
     // HeapInstance.graph casts HeapInstance.hprofGraph to HeapGraph in its getter
     val hprofGraph = graph
@@ -498,7 +509,7 @@ internal class PathFinder(
     val result = mutableListOf<LongObjectPair<String>>()
     var skipBytesCount = 0
 
-    for (heapClass in instanceClass.classHierarchyWithoutJavaLangObject()) {
+    for (heapClass in classHierarchy) {
       for (fieldRecord in heapClass.readRecord().fields) {
         if (fieldRecord.type != PrimitiveType.REFERENCE_HPROF_TYPE) {
           // Skip all fields that are not references. Track how many bytes to skip
@@ -526,21 +537,20 @@ internal class PathFinder(
   /**
    * Returns class hierarchy for an instance, but without it's root element, which is always
    * java.lang.Object.
-   * Alternative would be calling `instanceClass.classHierarchy.toList().dropLast(1)`; this version
-   * doesn't use Sequences and doesn't create extra list to drop one element.
    * Why do we want class hierarchy without java.lang.Object?
    * In pre-M there were no ref fields in java.lang.Object; and FieldIdReader wouldn't be created
    * Android M added shadow$_klass_ reference to class, so now it triggers extra record read.
    * Solution: skip heap class for java.lang.Object completely when reading the records
+   * @param javaLangObjectId ID of the java.lang.Object to run comparison against
    */
-  private fun HeapClass.classHierarchyWithoutJavaLangObject(): List<HeapClass> {
+  private fun HeapClass.classHierarchyWithoutJavaLangObject(
+    javaLangObjectId: Long
+  ): List<HeapClass> {
     val result = mutableListOf<HeapClass>()
     var parent: HeapClass? = this
-    var nextParent = parent?.superclass
-    while (parent != null && nextParent != null) {
+    while (parent != null && parent.objectId != javaLangObjectId) {
       result += parent
-      parent = nextParent
-      nextParent = parent.superclass
+      parent = parent.superclass
     }
     return result
   }
