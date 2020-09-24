@@ -130,6 +130,8 @@ sealed class HprofRecord {
           internal set
         var recordSize: Long = 0
           internal set
+        var hasRefFields: Boolean = false
+          internal set
 
         init {
           this.id = id

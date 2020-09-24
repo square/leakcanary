@@ -241,7 +241,10 @@ internal class PathFinder(
     return state.findPathsFromGcRoots()
   }
 
-  private fun determineSizeOfObjectInstances(objectClass: HeapClass?, graph: HeapGraph): Int {
+  private fun determineSizeOfObjectInstances(
+    objectClass: HeapClass?,
+    graph: HeapGraph
+  ): Int {
     return if (objectClass != null) {
       // In Android 16 ClassDumpRecord.instanceSize for java.lang.Object can be 8 yet there are 0
       // fields. This is likely because there is extra per instance data that isn't coming from
@@ -677,6 +680,9 @@ internal class PathFinder(
               true
             }
             graphObject.instanceClass.instanceByteSize <= sizeOfObjectInstances -> true
+            graphObject.instanceClass.classHierarchy.all { heapClass ->
+              heapClass.objectId == javaLangObjectId || !heapClass.hasReferenceInstanceFields
+            } -> true
             else -> false
           }
         is HeapObjectArray -> when {

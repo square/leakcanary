@@ -10,7 +10,8 @@ internal sealed class IndexedObject {
     override val position: Long,
     val superclassId: Long,
     val instanceSize: Int,
-    override val recordSize: Long
+    override val recordSize: Long,
+    val hasRefFields: Boolean
   ) : IndexedObject()
 
   class IndexedInstance(

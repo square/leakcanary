@@ -402,8 +402,24 @@ class HprofRecordReader internal constructor(
     }
 
     fieldCount = readUnsignedShort()
+
+    var remainingFields = 0
+    var foundRef = false
+    for (i in 0 until fieldCount) {
+      skip(identifierByteSize)
+      val type = readUnsignedByte()
+      if (type == PrimitiveType.REFERENCE_HPROF_TYPE) {
+        foundRef = true
+        remainingFields = (fieldCount - i) - 1
+        break
+      }
+    }
+    hasRefFields = foundRef
+
     // Each field takes id + byte.
-    skip((identifierByteSize + 1) * fieldCount)
+    if (remainingFields > 0) {
+      skip((identifierByteSize + 1) * remainingFields)
+    }
     recordSize = bytesRead - bytesReadStart
     return this
   }
