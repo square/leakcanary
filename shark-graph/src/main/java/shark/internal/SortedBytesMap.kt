@@ -19,7 +19,7 @@ internal class SortedBytesMap(
   private val bytesPerKey = if (longIdentifiers) 8 else 4
   private val bytesPerEntry = bytesPerKey + bytesPerValue
 
-  private val size = sortedEntries.size / bytesPerEntry
+  val size = sortedEntries.size / bytesPerEntry
 
   operator fun get(key: Long): ByteSubArray? {
     val keyIndex = binarySearch(key)
