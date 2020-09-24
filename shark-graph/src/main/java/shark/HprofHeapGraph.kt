@@ -19,6 +19,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import shark.HprofVersion.ANDROID
 import shark.internal.FieldValuesReader
 import shark.internal.HprofInMemoryIndex
 import shark.internal.IndexedObject
@@ -63,46 +64,55 @@ class HprofHeapGraph internal constructor(
 
   override val objects: Sequence<HeapObject>
     get() {
+      var objectIndex = 0
       return index.indexedObjectSequence()
           .map {
-            wrapIndexedObject(it.second, it.first)
+            wrapIndexedObject(objectIndex++, it.second, it.first)
           }
     }
 
   override val classes: Sequence<HeapClass>
     get() {
+      var objectIndex = 0
       return index.indexedClassSequence()
           .map {
             val objectId = it.first
             val indexedObject = it.second
-            HeapClass(this, indexedObject, objectId)
+            HeapClass(this, indexedObject, objectId, objectIndex++)
           }
     }
 
   override val instances: Sequence<HeapInstance>
     get() {
+      var objectIndex = classCount
       return index.indexedInstanceSequence()
           .map {
             val objectId = it.first
             val indexedObject = it.second
             val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
-            HeapInstance(this, indexedObject, objectId, isPrimitiveWrapper)
+            HeapInstance(this, indexedObject, objectId, objectIndex++, isPrimitiveWrapper)
           }
     }
 
   override val objectArrays: Sequence<HeapObjectArray>
-    get() = index.indexedObjectArraySequence().map {
-      val objectId = it.first
-      val indexedObject = it.second
-      val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
-      HeapObjectArray(this, indexedObject, objectId, isPrimitiveWrapper)
+    get() {
+      var objectIndex = classCount + instanceCount
+      return index.indexedObjectArraySequence().map {
+        val objectId = it.first
+        val indexedObject = it.second
+        val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
+        HeapObjectArray(this, indexedObject, objectId, objectIndex++, isPrimitiveWrapper)
+      }
     }
 
   override val primitiveArrays: Sequence<HeapPrimitiveArray>
-    get() = index.indexedPrimitiveArraySequence().map {
-      val objectId = it.first
-      val indexedObject = it.second
-      HeapPrimitiveArray(this, indexedObject, objectId)
+    get() {
+      var objectIndex = classCount + instanceCount + objectArrayCount
+      return index.indexedPrimitiveArraySequence().map {
+        val objectId = it.first
+        val indexedObject = it.second
+        HeapPrimitiveArray(this, indexedObject, objectId, objectIndex++)
+      }
     }
 
   private val objectCache = LruCache<Long, ObjectRecord>(INTERNAL_LRU_CACHE_SIZE)
@@ -116,15 +126,31 @@ class HprofHeapGraph internal constructor(
     )
   }
 
+  override fun findObjectByIndex(objectIndex: Int): HeapObject {
+    require(objectIndex in 0 until objectCount) {
+      "$objectIndex should be in range [0, $objectCount["
+    }
+    val (objectId, indexedObject) = index.objectAtIndex(objectIndex)
+    return wrapIndexedObject(objectIndex, indexedObject, objectId)
+  }
+
   override fun findObjectByIdOrNull(objectId: Long): HeapObject? {
     if (objectId == javaLangObjectClass?.objectId) return javaLangObjectClass
 
-    val indexedObject = index.indexedObjectOrNull(objectId) ?: return null
-    return wrapIndexedObject(indexedObject, objectId)
+    val (objectIndex, indexedObject) = index.indexedObjectOrNull(objectId) ?: return null
+    return wrapIndexedObject(objectIndex, indexedObject, objectId)
   }
 
   override fun findClassByName(className: String): HeapClass? {
-    val classId = index.classId(className)
+    val heapDumpClassName = if (header.version != ANDROID &&
+        className.endsWith("[]") &&
+        !HeapObject.primitiveArrayClassesByName.containsKey(className)
+    ) {
+      "[L${className.substring(0, className.length - 2)};"
+    } else {
+      className
+    }
+    val classId = index.classId(heapDumpClassName)
     return if (classId == null) {
       null
     } else {
@@ -253,21 +279,22 @@ class HprofHeapGraph internal constructor(
   }
 
   private fun wrapIndexedObject(
+    objectIndex: Int,
     indexedObject: IndexedObject,
     objectId: Long
   ): HeapObject {
     return when (indexedObject) {
-      is IndexedClass -> HeapClass(this, indexedObject, objectId)
+      is IndexedClass -> HeapClass(this, indexedObject, objectId, objectIndex)
       is IndexedInstance -> {
         val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
-        HeapInstance(this, indexedObject, objectId, isPrimitiveWrapper)
+        HeapInstance(this, indexedObject, objectId, objectIndex, isPrimitiveWrapper)
       }
       is IndexedObjectArray -> {
         val isPrimitiveWrapperArray =
           index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
-        HeapObjectArray(this, indexedObject, objectId, isPrimitiveWrapperArray)
+        HeapObjectArray(this, indexedObject, objectId, objectIndex, isPrimitiveWrapperArray)
       }
-      is IndexedPrimitiveArray -> HeapPrimitiveArray(this, indexedObject, objectId)
+      is IndexedPrimitiveArray -> HeapPrimitiveArray(this, indexedObject, objectId, objectIndex)
     }
   }
 

@@ -2,6 +2,7 @@ package shark.internal
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.ValueHolder
 
 @Suppress("UsePropertyAccessSyntax")
 class DominatorTreeTest {
@@ -48,7 +49,7 @@ class DominatorTreeTest {
 
     val sizes = tree.computeRetainedSizes(setOf(root), `10 bytes per object`)
 
-    assertThat(sizes[root]).isEqualTo(10)
+    assertThat(sizes[root]).isEqualTo(10 to 1)
   }
 
   @Test fun `size of dominator includes dominated`() {
@@ -58,7 +59,7 @@ class DominatorTreeTest {
 
     val sizes = tree.computeRetainedSizes(setOf(root), `10 bytes per object`)
 
-    assertThat(sizes[root]).isEqualTo(20)
+    assertThat(sizes[root]).isEqualTo(20 to 2)
   }
 
   @Test fun `size of chain of dominators is additive`() {
@@ -69,8 +70,8 @@ class DominatorTreeTest {
 
     val sizes = tree.computeRetainedSizes(setOf(root, child), `10 bytes per object`)
 
-    assertThat(sizes[root]).isEqualTo(30)
-    assertThat(sizes[child]).isEqualTo(20)
+    assertThat(sizes[root]).isEqualTo(30 to 3)
+    assertThat(sizes[child]).isEqualTo(20 to 2)
   }
 
   @Test fun `diamond dominators don't dominate`() {
@@ -84,9 +85,9 @@ class DominatorTreeTest {
 
     val sizes = tree.computeRetainedSizes(setOf(root, child1, child2), `10 bytes per object`)
 
-    assertThat(sizes[child1]).isEqualTo(10)
-    assertThat(sizes[child2]).isEqualTo(10)
-    assertThat(sizes[root]).isEqualTo(40)
+    assertThat(sizes[child1]).isEqualTo(10 to 1)
+    assertThat(sizes[child2]).isEqualTo(10 to 1)
+    assertThat(sizes[root]).isEqualTo(40 to 4)
   }
 
   @Test fun `two dominators dominated by common ancestor`() {
@@ -100,9 +101,9 @@ class DominatorTreeTest {
 
     val sizes = tree.computeRetainedSizes(setOf(root, child1, child2), `10 bytes per object`)
 
-    assertThat(sizes[child1]).isEqualTo(10)
-    assertThat(sizes[child2]).isEqualTo(10)
-    assertThat(sizes[root]).isEqualTo(40)
+    assertThat(sizes[child1]).isEqualTo(10 to 1)
+    assertThat(sizes[child2]).isEqualTo(10 to 1)
+    assertThat(sizes[root]).isEqualTo(40 to 4)
   }
 
   @Test fun `two dominators dominated by lowest common ancestor`() {
@@ -118,10 +119,10 @@ class DominatorTreeTest {
     val sizes =
       tree.computeRetainedSizes(setOf(root, child, grandChild1, grandChild2), `10 bytes per object`)
 
-    assertThat(sizes[grandChild1]).isEqualTo(10)
-    assertThat(sizes[grandChild1]).isEqualTo(10)
-    assertThat(sizes[child]).isEqualTo(40)
-    assertThat(sizes[root]).isEqualTo(50)
+    assertThat(sizes[grandChild1]).isEqualTo(10 to 1)
+    assertThat(sizes[grandChild1]).isEqualTo(10 to 1)
+    assertThat(sizes[child]).isEqualTo(40 to 4)
+    assertThat(sizes[root]).isEqualTo(50 to 5)
   }
 
   @Test fun `two separate trees do not share size`() {
@@ -138,8 +139,8 @@ class DominatorTreeTest {
     val sizes =
       tree.computeRetainedSizes(setOf(root1, root2), `10 bytes per object`)
 
-    assertThat(sizes[root1]).isEqualTo(110)
-    assertThat(sizes[root2]).isEqualTo(110)
+    assertThat(sizes[root1]).isEqualTo(110 to 11)
+    assertThat(sizes[root2]).isEqualTo(110 to 11)
   }
 
   @Test fun `no common descendant does not include size`() {
@@ -155,8 +156,8 @@ class DominatorTreeTest {
     val sizes =
       tree.computeRetainedSizes(setOf(root1, root2), `10 bytes per object`)
 
-    assertThat(sizes[root1]).isEqualTo(100)
-    assertThat(sizes[root2]).isEqualTo(10)
+    assertThat(sizes[root1]).isEqualTo(100 to 10)
+    assertThat(sizes[root2]).isEqualTo(10 to 1)
   }
 
   @Test fun `only compute retained size for retained objects`() {
@@ -175,5 +176,25 @@ class DominatorTreeTest {
     }
 
     assertThat(objectsWithComputedSize).containsOnly(child, grandChild)
+  }
+
+  @Test fun `null ref dominates all`() {
+    val tree = DominatorTree()
+    val root1 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
+    val root2 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
+    val root3 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
+    val child = newObjectId()
+    tree.updateDominated(child, root1)
+    tree.updateDominated(child, root2)
+    val grandChild = newObjectId().apply { tree.updateDominated(this, child) }
+
+    val fullDominatorTree = tree.buildFullDominatorTree(`10 bytes per object`)
+
+    assertThat(fullDominatorTree.getValue(root1).retainedSize).isEqualTo(10)
+    assertThat(fullDominatorTree.getValue(root2).retainedSize).isEqualTo(10)
+    assertThat(fullDominatorTree.getValue(root3).retainedSize).isEqualTo(10)
+    assertThat(fullDominatorTree.getValue(child).retainedSize).isEqualTo(20)
+    assertThat(fullDominatorTree.getValue(grandChild).retainedSize).isEqualTo(10)
+    assertThat(fullDominatorTree.getValue(ValueHolder.NULL_REFERENCE).retainedSize).isEqualTo(50)
   }
 }

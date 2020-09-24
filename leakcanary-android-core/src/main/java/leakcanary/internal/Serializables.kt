@@ -1,5 +1,6 @@
 package leakcanary.internal
 
+import shark.SharkLog
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
@@ -19,6 +20,7 @@ internal object Serializables {
     return try {
       ObjectInputStream(inputStream).readObject() as? T
     } catch (ignored: Throwable) {
+      SharkLog.d(ignored) { "Could not deserialize bytes, ignoring" }
       null
     }
   }

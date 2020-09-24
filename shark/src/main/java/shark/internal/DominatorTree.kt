@@ -1,6 +1,7 @@
 package shark.internal
 
 import shark.ValueHolder
+import shark.internal.ObjectDominators.DominatorNode
 import shark.internal.hppcshark.LongLongScatterMap
 import shark.internal.hppcshark.LongLongScatterMap.ForEachCallback
 import shark.internal.hppcshark.LongScatterSet
@@ -90,6 +91,64 @@ internal class DominatorTree(expectedElements: Int = 4) {
     return hasDominator
   }
 
+  private class MutableDominatorNode {
+    var shallowSize = 0
+    var retainedSize = 0
+    var retainedCount = 0
+    val dominated = mutableListOf<Long>()
+  }
+
+  fun buildFullDominatorTree(computeSize: (Long) -> Int): Map<Long, DominatorNode> {
+    val dominators = mutableMapOf<Long, MutableDominatorNode>()
+    dominated.forEach(object : ForEachCallback {
+      override fun onEntry(
+        key: Long,
+        value: Long
+      ) {
+        // create entry for dominated
+        dominators.getOrPut(key) {
+          MutableDominatorNode()
+        }
+        // If dominator is null ref then we still have an entry for that, to collect all dominator
+        // roots.
+        dominators.getOrPut(value) {
+          MutableDominatorNode()
+        }.dominated += key
+      }
+    })
+
+    val allReachableObjectIds = dominators.keys.toSet() - ValueHolder.NULL_REFERENCE
+
+    val retainedSizes = computeRetainedSizes(allReachableObjectIds) { objectId ->
+      val shallowSize = computeSize(objectId)
+      dominators.getValue(objectId).shallowSize = shallowSize
+      shallowSize
+    }
+
+    dominators.forEach { (objectId, node) ->
+      if (objectId != ValueHolder.NULL_REFERENCE) {
+        val (retainedSize, retainedCount) = retainedSizes.getValue(objectId)
+        node.retainedSize = retainedSize
+        node.retainedCount = retainedCount
+      }
+    }
+
+    val rootDominator = dominators.getValue(ValueHolder.NULL_REFERENCE)
+    rootDominator.retainedSize = rootDominator.dominated.map { dominators[it]!!.retainedSize }.sum()
+    rootDominator.retainedCount = rootDominator.dominated.map { dominators[it]!!.retainedCount }.sum()
+
+    // Sort children with largest retained first
+    dominators.values.forEach { node ->
+      node.dominated.sortBy { -dominators.getValue(it).retainedSize }
+    }
+
+    return dominators.mapValues { (_, node) ->
+      DominatorNode(
+          node.shallowSize, node.retainedSize, node.retainedCount, node.dominated
+      )
+    }
+  }
+
   /**
    * Computes the size retained by [retainedObjectIds] using the dominator tree built using
    * [updateDominatedAsRoot]. The shallow size of each object is provided by [computeSize].
@@ -98,10 +157,10 @@ internal class DominatorTree(expectedElements: Int = 4) {
   fun computeRetainedSizes(
     retainedObjectIds: Set<Long>,
     computeSize: (Long) -> Int
-  ): Map<Long, Int> {
-    val nodeRetainedSizes = mutableMapOf<Long, Int>()
+  ): Map<Long, Pair<Int, Int>> {
+    val nodeRetainedSizes = mutableMapOf<Long, Pair<Int, Int>>()
     retainedObjectIds.forEach { objectId ->
-      nodeRetainedSizes[objectId] = 0
+      nodeRetainedSizes[objectId] = 0 to 0
     }
 
     dominated.forEach(object : ForEachCallback {
@@ -113,9 +172,9 @@ internal class DominatorTree(expectedElements: Int = 4) {
         var instanceSize = -1
 
         // If the entry is a node, add its size to nodeRetainedSizes
-        nodeRetainedSizes[key]?.let { currentRetainedSize ->
+        nodeRetainedSizes[key]?.let { (currentRetainedSize, currentRetainedCount) ->
           instanceSize = computeSize(key)
-          nodeRetainedSizes[key] = currentRetainedSize + instanceSize
+          nodeRetainedSizes[key] = currentRetainedSize + instanceSize to currentRetainedCount + 1
         }
 
         if (value != ValueHolder.NULL_REFERENCE) {
@@ -134,8 +193,8 @@ internal class DominatorTree(expectedElements: Int = 4) {
                 instanceSize = computeSize(key)
               }
               // Update retained size for that node
-              val currentRetainedSize = nodeRetainedSizes.getValue(dominator)
-              nodeRetainedSizes[dominator] = currentRetainedSize + instanceSize
+              val (currentRetainedSize, currentRetainedCount) = nodeRetainedSizes.getValue(dominator)
+              nodeRetainedSizes[dominator] = (currentRetainedSize + instanceSize) to currentRetainedCount + 1
               dominatedByNextNode.clear()
             } else {
               dominatedByNextNode += dominator

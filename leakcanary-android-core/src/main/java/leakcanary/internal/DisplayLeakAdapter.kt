@@ -52,14 +52,14 @@ internal class DisplayLeakAdapter constructor(
   private val header: CharSequence
 ) : BaseAdapter() {
 
-  private val classNameColorHexString: String
+  private val highlightColorHexString: String
   private val leakColorHexString: String
   private val referenceColorHexString: String
   private val extraColorHexString: String
   private val helpColorHexString: String
 
   init {
-    classNameColorHexString = hexStringColor(context, R.color.leak_canary_class_name)
+    highlightColorHexString = hexStringColor(context, R.color.leak_canary_class_name)
     leakColorHexString = hexStringColor(context, R.color.leak_canary_leak)
     referenceColorHexString = hexStringColor(context, R.color.leak_canary_reference)
     extraColorHexString = hexStringColor(context, R.color.leak_canary_extra)
@@ -160,30 +160,38 @@ internal class DisplayLeakAdapter constructor(
   private fun LeakTraceObject.asHtmlString(typeName: String): String {
     val packageEnd = className.lastIndexOf('.')
 
+    val extra: (String) -> String = { "<font color='$extraColorHexString'>$it</font>" }
+
     val styledClassName = styledClassSimpleName()
     var htmlString =
-      if (packageEnd != -1) "<font color='$extraColorHexString'>${className.substring(
+      if (packageEnd != -1) "${extra(className.substring(
           0, packageEnd
-      )}</font>.$styledClassName" else styledClassName
-    htmlString += " <font color='$extraColorHexString'>$typeName</font><br>"
+      ))}.$styledClassName" else styledClassName
+    htmlString += " ${extra(typeName)}<br>"
 
     val reachabilityString = when (leakingStatus) {
-      UNKNOWN -> "UNKNOWN"
-      NOT_LEAKING -> "NO (${leakingStatusReason})"
-      LEAKING -> "YES (${leakingStatusReason})"
+      UNKNOWN -> extra("UNKNOWN")
+      NOT_LEAKING -> extra("NO (${leakingStatusReason})")
+      LEAKING -> "YES" + extra(" (${leakingStatusReason})")
     }
 
-    htmlString += "$INDENTATION<font color='$extraColorHexString'>Leaking: $reachabilityString</font><br>"
+    htmlString += "$INDENTATION${extra("Leaking: ")}$reachabilityString<br>"
+
+    if (retainedHeapByteSize != null) {
+      htmlString += "${INDENTATION}${extra("Retaining ")}$retainedHeapByteSize${extra(
+          " bytes in "
+      )}$retainedObjectCount${extra(" objects")}<br>"
+    }
 
     labels.forEach { label ->
-      htmlString += "$INDENTATION<font color='$extraColorHexString'>$label</font><br>"
+      htmlString += "$INDENTATION${extra(label)}<br>"
     }
     return htmlString
   }
 
   private fun LeakTraceObject.styledClassSimpleName(): String {
     val simpleName = classSimpleName.replace("[]", "[ ]")
-    return "<font color='$classNameColorHexString'>$simpleName</font>"
+    return "<font color='$highlightColorHexString'>$simpleName</font>"
   }
 
   @Suppress("ReturnCount")

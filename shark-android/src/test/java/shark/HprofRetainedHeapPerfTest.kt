@@ -9,6 +9,7 @@ import shark.AndroidReferenceMatchers.Companion.buildKnownReferences
 import shark.AndroidReferenceMatchers.FINALIZER_WATCHDOG_DAEMON
 import shark.AndroidReferenceMatchers.REFERENCES
 import shark.GcRoot.ThreadObject
+import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.OnAnalysisProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.EXTRACTING_METADATA
@@ -17,6 +18,7 @@ import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.FINDING_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
+import shark.internal.ObjectDominators
 import java.io.File
 import java.util.EnumSet
 import java.util.concurrent.CountDownLatch
@@ -48,8 +50,9 @@ class HprofRetainedHeapPerfTest {
       baselineHeap to heapWithIndex
     }
 
-    val retained =
-      heapWithIndex.retainedHeap(ANALYSIS_THREAD) - baselineHeap.retainedHeap(ANALYSIS_THREAD)
+    val (analysisRetained, dominators) = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
+
+    val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
     assertThat(retained).isEqualTo(4.8 MB +-5 % margin)
   }
@@ -64,8 +67,9 @@ class HprofRetainedHeapPerfTest {
       baselineHeap to heapWithIndex
     }
 
-    val retained =
-      heapWithIndex.retainedHeap(ANALYSIS_THREAD) - baselineHeap.retainedHeap(ANALYSIS_THREAD)
+    val (analysisRetained, dominators) = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
+
+    val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
     assertThat(retained).isEqualTo(8.2 MB +-5 % margin)
   }
@@ -101,9 +105,10 @@ class HprofRetainedHeapPerfTest {
       baselineHeap
     }
 
-    val retainedBeforeAnalysis = baselineHeap.retainedHeap(ANALYSIS_THREAD)
+    val retainedBeforeAnalysis = baselineHeap.retainedHeap(ANALYSIS_THREAD).first
     val retained = stepsToHeapDumpFile.mapValues {
-      it.value.retainedHeap(ANALYSIS_THREAD) - retainedBeforeAnalysis
+      val retainedPair = it.value.retainedHeap(ANALYSIS_THREAD, computeDominators = true)
+      retainedPair.first - retainedBeforeAnalysis to retainedPair.second
     }
 
     assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(4.70 MB +-5 % margin)
@@ -160,42 +165,73 @@ class HprofRetainedHeapPerfTest {
     return result
   }
 
-  private infix fun Map<OnAnalysisProgressListener.Step, Bytes>.after(step: OnAnalysisProgressListener.Step): Bytes {
+  private infix fun Map<OnAnalysisProgressListener.Step, Pair<Bytes, String>>.after(step: OnAnalysisProgressListener.Step): Pair<Bytes, String> {
     val values = OnAnalysisProgressListener.Step.values()
     for (nextOrdinal in step.ordinal + 1 until values.size) {
-      val nextStepRetained = this[values[nextOrdinal]]
-      if (nextStepRetained != null) {
-        return nextStepRetained
+      val pair = this[values[nextOrdinal]]
+      if (pair != null) {
+        val (nextStepRetained, dominatorTree) = pair
+
+        return nextStepRetained to "\n$nextStepRetained retained by analysis thread after step ${step.name} not valid\n" + dominatorTree
       }
     }
     error("No step in $this after $step")
   }
 
-  private fun File.retainedHeap(threadName: String): Bytes {
+  private fun File.retainedHeap(
+    threadName: String,
+    computeDominators: Boolean = false
+  ): Pair<Bytes, String> {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
-    val analysis = heapAnalyzer.analyze(
-        heapDumpFile = this,
-        referenceMatchers = buildKnownReferences(EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)),
-        leakingObjectFinder = LeakingObjectFinder { graph ->
-          setOf(graph.gcRoots.first { gcRoot ->
-            gcRoot is ThreadObject &&
-                graph.objectExists(gcRoot.id) &&
-                graph.findObjectById(gcRoot.id)
-                    .asInstance!!["java.lang.Thread", "name"]!!
-                    .value.readAsJavaString() == threadName
-          }.id)
-        },
-        computeRetainedHeapSize = true
-    )
-    check(analysis is HeapAnalysisSuccess) {
-      "Expected success not $analysis"
+
+    val (analysis, dominatorTree) = openHeapGraph().use { graph ->
+      val analysis = heapAnalyzer.analyze(
+          heapDumpFile = this,
+          graph = graph,
+          referenceMatchers = buildKnownReferences(
+              EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
+          ),
+          leakingObjectFinder = LeakingObjectFinder { graph ->
+            setOf(graph.gcRoots.first { gcRoot ->
+              gcRoot is ThreadObject &&
+                  graph.objectExists(gcRoot.id) &&
+                  graph.findObjectById(gcRoot.id)
+                      .asInstance!!["java.lang.Thread", "name"]!!
+                      .value.readAsJavaString() == threadName
+            }.id)
+          },
+          computeRetainedHeapSize = true
+      )
+      check(analysis is HeapAnalysisSuccess) {
+        "Expected success not $analysis"
+      }
+
+      val dominatorTree = if (computeDominators) {
+        val weakAndFinalizerRefs = EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
+        val ignoredRefs = buildKnownReferences(weakAndFinalizerRefs).map { matcher ->
+          matcher as IgnoredReferenceMatcher
+        }
+        ObjectDominators().renderDominatorTree(
+            graph, ignoredRefs, 200, threadName, true
+        )
+      } else ""
+      analysis to dominatorTree
     }
-    return analysis.applicationLeaks.single().leakTraces.single().retainedHeapByteSize!!.bytes
+
+    return analysis.applicationLeaks.single().leakTraces.single().retainedHeapByteSize!!.bytes to dominatorTree
   }
 
-  class BytesAssert(bytes: Bytes) : AbstractIntegerAssert<BytesAssert>(
+  class BytesAssert(
+    bytes: Bytes,
+    description: String
+  ) : AbstractIntegerAssert<BytesAssert>(
       bytes.count, BytesAssert::class.java
   ) {
+
+    init {
+      describedAs(description)
+    }
+
     fun isEqualTo(expected: BytesWithError): BytesAssert {
       val errorPercentage = expected.error.percentage.absoluteValue
       return isBetween(
@@ -205,7 +241,9 @@ class HprofRetainedHeapPerfTest {
     }
   }
 
-  private fun assertThat(bytes: Bytes?) = BytesAssert(bytes!!)
+  private fun assertThat(bytes: Bytes) = BytesAssert(bytes, "")
+
+  private fun assertThat(pair: Pair<Bytes, String>) = BytesAssert(pair.first, pair.second)
 
   data class Bytes(val count: Int)
 

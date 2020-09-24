@@ -71,7 +71,9 @@ internal class LeakTraceElement : Serializable {
         LEAKING -> LeakingStatus.LEAKING
         UNKNOWN -> LeakingStatus.UNKNOWN
       },
-      leakingStatusReason = leakStatusReason!!
+      leakingStatusReason = leakStatusReason!!,
+      retainedHeapByteSize = null,
+      retainedObjectCount = null
   )
 
   companion object {

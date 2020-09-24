@@ -194,6 +194,17 @@ sealed class Leak : Serializable {
     }
 
   /**
+   * Sum of [LeakTrace.retainedObjectCount] for all elements in [leakTraces].
+   * Null if the retained heap size was not computed.
+   */
+  val totalRetainedObjectCount: Int?
+    get() = if (leakTraces.first().retainedObjectCount == null) {
+      null
+    } else {
+      leakTraces.sumBy { it.retainedObjectCount!! }
+    }
+
+  /**
    * A unique SHA1 hash that represents this group of leak traces.
    *
    * For [ApplicationLeak] this is based on [LeakTrace.signature] and for [LibraryLeak] this is
