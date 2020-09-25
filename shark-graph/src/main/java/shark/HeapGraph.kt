@@ -77,6 +77,13 @@ interface HeapGraph {
   fun findObjectById(objectId: Long): HeapObject
 
   /**
+   * Returns the [HeapObject] corresponding to the provided [objectIndex], and throws
+   * [IllegalArgumentException] if [objectIndex] is less than 0 or more than [objectCount] - 1.
+   */
+  @Throws(IllegalArgumentException::class)
+  fun findObjectByIndex(objectIndex: Int): HeapObject
+
+  /**
    * Returns the [HeapObject] corresponding to the provided [objectId] or null if it cannot be
    * found.
    */

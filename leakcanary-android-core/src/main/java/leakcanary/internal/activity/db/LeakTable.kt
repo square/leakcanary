@@ -213,6 +213,7 @@ internal object LeakTable {
       SELECT *
       FROM leak_trace lt
       WHERE leak.id = lt.leak_id)
-    """)
+    """
+    )
   }
 }

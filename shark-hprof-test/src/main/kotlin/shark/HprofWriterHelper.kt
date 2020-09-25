@@ -348,6 +348,16 @@ fun File.dump(block: HprofWriterHelper.() -> Unit) {
       .use(block)
 }
 
+fun dump(
+  hprofHeader: HprofHeader = HprofHeader(),
+  block: HprofWriterHelper.() -> Unit
+): DualSourceProvider {
+  val buffer = Buffer()
+  HprofWriterHelper(HprofWriter.openWriterFor(buffer))
+      .use(block)
+  return ByteArraySourceProvider(buffer.readByteArray())
+}
+
 fun List<HprofRecord>.asHprofBytes(): DualSourceProvider {
   val buffer = Buffer()
   HprofWriter.openWriterFor(buffer)

@@ -25,13 +25,34 @@ data class LeakTrace(
    */
   val gcRootType: GcRootType,
   val referencePath: List<LeakTraceReference>,
-  val leakingObject: LeakTraceObject,
+  val leakingObject: LeakTraceObject
+) : Serializable {
+
   /**
-   * The minimum number of bytes which would be freed if all references to the leaking object were
-   * released. Null if the retained heap size was not computed.
+   * The minimum number of bytes which would be freed if the leak was fixed.
+   * Null if the retained heap size was not computed.
    */
   val retainedHeapByteSize: Int?
-) : Serializable {
+    get() {
+      val allObjects = listOf(leakingObject) + referencePath.map { it.originObject }
+      return allObjects.filter { it.leakingStatus == LEAKING }
+          .mapNotNull { it.retainedHeapByteSize }
+          // The minimum released is the max held by a leaking object.
+          .max()
+    }
+
+  /**
+   * The minimum number of objects which would be unreachable if the leak was fixed. Null if the
+   * retained heap size was not computed.
+   */
+  val retainedObjectCount: Int?
+    get() {
+      val allObjects = listOf(leakingObject) + referencePath.map { it.originObject }
+      return allObjects.filter { it.leakingStatus == LEAKING }
+          .mapNotNull { it.retainedObjectCount }
+          // The minimum released is the max held by a leaking object.
+          .max()
+    }
 
   /**
    * A part of [referencePath] that contains the references suspected to cause the leak.
@@ -83,10 +104,11 @@ data class LeakTrace(
       """.trimIndent()
 
     referencePath.forEachIndexed { index, element ->
-      val leakStatus = when (referencePath[index].originObject.leakingStatus) {
+      val originObject = element.originObject
+      val leakStatus = when (originObject.leakingStatus) {
         UNKNOWN -> "UNKNOWN"
-        NOT_LEAKING -> "NO (${referencePath[index].originObject.leakingStatusReason})"
-        LEAKING -> "YES (${referencePath[index].originObject.leakingStatusReason})"
+        NOT_LEAKING -> "NO (${originObject.leakingStatusReason})"
+        LEAKING -> "YES (${originObject.leakingStatusReason})"
       }
 
       /**
@@ -94,14 +116,17 @@ data class LeakTrace(
        * element in the leaktrace.
        */
       val typeName =
-        if (index == 0 && gcRootType == JAVA_FRAME) "thread" else element.originObject.typeName
+        if (index == 0 && gcRootType == JAVA_FRAME) "thread" else originObject.typeName
 
-      result += "\n├─ ${element.originObject.className} $typeName"
+      result += "\n├─ ${originObject.className} $typeName"
       if (showLeakingStatus) {
         result += "\n│    Leaking: $leakStatus"
       }
+      if (originObject.retainedHeapByteSize != null) {
+        result += "\n│    Retaining ${originObject.retainedHeapByteSize} bytes in ${originObject.retainedObjectCount} objects"
+      }
 
-      for (label in element.originObject.labels) {
+      for (label in originObject.labels) {
         result += "\n│    $label"
       }
       result += getNextElementString(this, element, index, showLeakingStatus)
@@ -112,6 +137,10 @@ data class LeakTrace(
     if (showLeakingStatus) {
       result += "\n$ZERO_WIDTH_SPACE"
       result += "     Leaking: YES (${leakingObject.leakingStatusReason})"
+    }
+    if (leakingObject.retainedHeapByteSize != null) {
+      result += "\n$ZERO_WIDTH_SPACE"
+      result += "     Retaining ${leakingObject.retainedHeapByteSize} bytes in ${leakingObject.retainedObjectCount} objects"
     }
     for (label in leakingObject.labels) {
       result += "\n$ZERO_WIDTH_SPACE"
@@ -160,11 +189,10 @@ data class LeakTrace(
       referencePath = when {
         elements.isEmpty() -> emptyList()
         else -> elements
-                .subList(0, elements.lastIndex - 1)
-                .map { it.referencePathElementFromV20() }
+            .subList(0, elements.lastIndex - 1)
+            .map { it.referencePathElementFromV20() }
       },
-      leakingObject = elements.last().originObjectFromV20(),
-      retainedHeapByteSize = retainedHeapByteSize
+      leakingObject = elements.last().originObjectFromV20()
   )
 
   companion object {
@@ -191,7 +219,7 @@ data class LeakTrace(
     }
 
     private const val ZERO_WIDTH_SPACE = '\u200b'
-    private const val serialVersionUID: Long = -6315725584154386429
+    private const val serialVersionUID = -6315725584154386429
 
   }
 }

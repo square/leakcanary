@@ -20,6 +20,7 @@ import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
+import shark.internal.hppc.IntObjectPair
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongObjectPair
 import shark.internal.hppc.LongObjectScatterMap
@@ -171,36 +172,84 @@ internal class HprofInMemoryIndex private constructor(
     return gcRoots
   }
 
-  @Suppress("ReturnCount")
-  fun indexedObjectOrNull(objectId: Long): IndexedObject? {
-    var array: ByteSubArray? = classIndex[objectId]
-    if (array != null) {
-      return IndexedClass(
+  fun objectAtIndex(index: Int): LongObjectPair<IndexedObject> {
+    require(index > 0)
+    if (index < classIndex.size) {
+      val objectId = classIndex.keyAt(index)
+      val array= classIndex.getAtIndex(index)
+      return objectId to IndexedClass(
           position = array.readTruncatedLong(positionSize),
           superclassId = array.readId(),
           instanceSize = array.readInt(),
           recordSize = array.readTruncatedLong(bytesForClassSize)
       )
     }
-    array = instanceIndex[objectId]
-    if (array != null) {
-      return IndexedInstance(
+    var shiftedIndex = index - classIndex.size
+    if (shiftedIndex < instanceIndex.size) {
+      val objectId = instanceIndex.keyAt(shiftedIndex)
+      val array= instanceIndex.getAtIndex(shiftedIndex)
+      return objectId to IndexedInstance(
           position = array.readTruncatedLong(positionSize),
           classId = array.readId(),
           recordSize = array.readTruncatedLong(bytesForInstanceSize)
       )
     }
-    array = objectArrayIndex[objectId]
-    if (array != null) {
-      return IndexedObjectArray(
+    shiftedIndex -= instanceIndex.size
+    if (shiftedIndex < objectArrayIndex.size) {
+      val objectId = objectArrayIndex.keyAt(shiftedIndex)
+      val array= objectArrayIndex.getAtIndex(shiftedIndex)
+      return objectId to IndexedObjectArray(
           position = array.readTruncatedLong(positionSize),
           arrayClassId = array.readId(),
           recordSize = array.readTruncatedLong(bytesForObjectArraySize)
       )
     }
-    array = primitiveArrayIndex[objectId]
-    if (array != null) {
-      return IndexedPrimitiveArray(
+    shiftedIndex -= objectArrayIndex.size
+    require(index < primitiveArrayIndex.size)
+    val objectId = primitiveArrayIndex.keyAt(shiftedIndex)
+    val array= primitiveArrayIndex.getAtIndex(shiftedIndex)
+    return objectId to IndexedPrimitiveArray(
+        position = array.readTruncatedLong(positionSize),
+        primitiveType = PrimitiveType.values()[array.readByte()
+            .toInt()],
+        recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
+    )
+  }
+
+  @Suppress("ReturnCount")
+  fun indexedObjectOrNull(objectId: Long): IntObjectPair<IndexedObject>? {
+    var index = classIndex.indexOf(objectId)
+    if (index >= 0) {
+      val array= classIndex.getAtIndex(index)
+      return index to IndexedClass(
+          position = array.readTruncatedLong(positionSize),
+          superclassId = array.readId(),
+          instanceSize = array.readInt(),
+          recordSize = array.readTruncatedLong(bytesForClassSize)
+      )
+    }
+    index = instanceIndex.indexOf(objectId)
+    if (index >= 0) {
+      val array= instanceIndex.getAtIndex(index)
+      return classIndex.size + index to IndexedInstance(
+          position = array.readTruncatedLong(positionSize),
+          classId = array.readId(),
+          recordSize = array.readTruncatedLong(bytesForInstanceSize)
+      )
+    }
+    index = objectArrayIndex.indexOf(objectId)
+    if (index >= 0) {
+      val array= objectArrayIndex.getAtIndex(index)
+      return classIndex.size + instanceIndex.size + index to IndexedObjectArray(
+          position = array.readTruncatedLong(positionSize),
+          arrayClassId = array.readId(),
+          recordSize = array.readTruncatedLong(bytesForObjectArraySize)
+      )
+    }
+    index = primitiveArrayIndex.indexOf(objectId)
+    if (index >= 0) {
+      val array= primitiveArrayIndex.getAtIndex(index)
+      return classIndex.size + instanceIndex.size + index + primitiveArrayIndex.size to IndexedPrimitiveArray(
           position = array.readTruncatedLong(positionSize),
           primitiveType = PrimitiveType.values()[array.readByte()
               .toInt()],

@@ -91,27 +91,25 @@ internal object HeapAnalysisTable {
     db: SQLiteDatabase,
     id: Long
   ): T? {
-    db.inTransaction {
-      return db.rawQuery(
-          """
+    return db.rawQuery(
+        """
               SELECT
               object
               FROM heap_analysis
               WHERE id=$id
               """, null
-      )
-          .use { cursor ->
-            if (cursor.moveToNext()) {
-              val analysis = Serializables.fromByteArray<T>(cursor.getBlob(0))
-              if (analysis == null) {
-                delete(db, id, null)
-              }
-              analysis
-            } else {
-              null
+    )
+        .use { cursor ->
+          if (cursor.moveToNext()) {
+            val analysis = Serializables.fromByteArray<T>(cursor.getBlob(0))
+            if (analysis == null) {
+              delete(db, id, null)
             }
-          } ?: return null
-    }
+            analysis
+          } else {
+            null
+          }
+        }
   }
 
   fun retrieveAll(db: SQLiteDatabase): List<Projection> {
