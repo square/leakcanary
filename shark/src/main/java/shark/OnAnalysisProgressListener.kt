@@ -2,8 +2,10 @@ package shark
 
 /**
  * Reports progress from the [HeapAnalyzer] as they occur, as [Step] values.
+ *
+ * This is a functional interface with which you can create a [OnAnalysisProgressListener] from a lambda.
  */
-interface OnAnalysisProgressListener {
+fun interface OnAnalysisProgressListener {
 
   // These steps are defined in the order in which they occur.
   enum class Step {
@@ -27,24 +29,5 @@ interface OnAnalysisProgressListener {
      * A no-op [OnAnalysisProgressListener]
      */
     val NO_OP = OnAnalysisProgressListener {}
-
-    /**
-     * Utility function to create a [OnAnalysisProgressListener] from the passed in [block] lambda
-     * instead of using the anonymous `object : OnAnalysisProgressListener` syntax.
-     *
-     * Usage:
-     *
-     * ```kotlin
-     * val listener = OnAnalysisProgressListener {
-     *
-     * }
-     * ```
-     */
-    inline operator fun invoke(crossinline block: (Step) -> Unit): OnAnalysisProgressListener =
-      object : OnAnalysisProgressListener {
-        override fun onAnalysisProgress(step: Step) {
-          block(step)
-        }
-      }
   }
 }
