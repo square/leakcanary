@@ -12,8 +12,10 @@ import shark.GcRoot.ThreadObject
 import shark.OnAnalysisProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.EXTRACTING_METADATA
+import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.FINDING_RETAINED_OBJECTS
+import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import java.io.File
 import java.util.EnumSet
@@ -108,6 +110,8 @@ class HprofRetainedHeapPerfTest {
     assertThat(retained after EXTRACTING_METADATA).isEqualTo(4.75 MB +-5 % margin)
     assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(4.85 MB +-5 % margin)
     assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(6.25 MB +-5 % margin)
+    assertThat(retained after FINDING_DOMINATORS).isEqualTo(6.25 MB +-5 % margin)
+    assertThat(retained after INSPECTING_OBJECTS).isEqualTo(6.26 MB +-5 % margin)
     assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(6.26 MB +-5 % margin)
     assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(5.18 MB +-5 % margin)
   }
