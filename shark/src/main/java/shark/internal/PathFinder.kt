@@ -686,7 +686,7 @@ internal class PathFinder(
             else -> false
           }
         is HeapObjectArray -> when {
-          graphObject.isPrimitiveWrapperArray -> {
+          graphObject.isSkippablePrimitiveWrapperArray -> {
             // Same optimization as we did for String above, as we know primitive wrapper arrays
             // aren't interesting.
             true
@@ -708,3 +708,18 @@ internal class PathFinder(
     }
   }
 }
+
+private val skippablePrimitiveWrapperArrayTypes = setOf(
+    Boolean::class,
+    Char::class,
+    Float::class,
+    Double::class,
+    Byte::class,
+    Short::class,
+    Int::class,
+    Long::class
+).map { it.javaObjectType.name + "[]" }
+
+internal val HeapObjectArray.isSkippablePrimitiveWrapperArray: Boolean
+  get() = arrayClassName in skippablePrimitiveWrapperArrayTypes
+
