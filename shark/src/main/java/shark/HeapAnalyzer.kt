@@ -92,12 +92,24 @@ class HeapAnalyzer constructor(
 
     return try {
       listener.onAnalysisProgress(PARSING_HEAP_DUMP)
-      heapDumpFile.openHeapGraph(proguardMapping).use { graph ->
+      val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
+      sourceProvider.openHeapGraph(proguardMapping).use { graph ->
         val helpers =
           FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
-        helpers.analyzeGraph(
+        val result = helpers.analyzeGraph(
             metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
         )
+        val lruCacheStats = (graph as HprofHeapGraph).lruCacheStats()
+        val randomAccessStats =
+          "RandomAccess[" +
+              "bytes=${sourceProvider.randomAccessByteReads}," +
+              "reads=${sourceProvider.randomAccessReadCount}," +
+              "travel=${sourceProvider.randomAccessByteTravel}," +
+              "range=${sourceProvider.byteTravelRange}," +
+              "size=${heapDumpFile.length()}" +
+              "]"
+        val stats = "$lruCacheStats $randomAccessStats"
+        result.copy(metadata = result.metadata + ("Stats" to stats))
       }
     } catch (exception: Throwable) {
       HeapAnalysisFailure(

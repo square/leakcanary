@@ -19,7 +19,7 @@ class LegacyHprofTest {
     val leak2 = analysis.applicationLeaks[1].leakTraces.first()
     assertThat(leak1.leakingObject.className).isEqualTo("android.graphics.Bitmap")
     assertThat(leak2.leakingObject.className).isEqualTo("com.example.leakcanary.MainActivity")
-    assertThat(analysis.metadata).isEqualTo(
+    assertThat(analysis.metadata).containsAllEntriesOf(
         mapOf(
             "App process name" to "com.example.leakcanary",
             "Build.MANUFACTURER" to "Genymotion",

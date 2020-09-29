@@ -134,6 +134,12 @@ class HprofHeapGraph internal constructor(
   // java.lang.Object is the most accessed class in Heap, so we want to memoize a reference to it
   private val javaLangObjectClass: HeapClass? = findClassByName("java.lang.Object")
 
+  /**
+   * This is only public so that we can publish stats. Accessing this requires casting
+   * [HeapGraph] to [HprofHeapGraph] so it's really not a public API. May change at any time!
+   */
+  fun lruCacheStats(): String = objectCache.toString()
+
   override fun findObjectById(objectId: Long): HeapObject {
     return findObjectByIdOrNull(objectId) ?: throw IllegalArgumentException(
         "Object id $objectId not found in heap dump."
