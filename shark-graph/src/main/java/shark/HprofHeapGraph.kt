@@ -1,5 +1,21 @@
 package shark
 
+import shark.GcRoot.Debugger
+import shark.GcRoot.Finalizing
+import shark.GcRoot.InternedString
+import shark.GcRoot.JavaFrame
+import shark.GcRoot.JniGlobal
+import shark.GcRoot.JniLocal
+import shark.GcRoot.JniMonitor
+import shark.GcRoot.MonitorUsed
+import shark.GcRoot.NativeStack
+import shark.GcRoot.ReferenceCleanup
+import shark.GcRoot.StickyClass
+import shark.GcRoot.ThreadBlock
+import shark.GcRoot.ThreadObject
+import shark.GcRoot.Unknown
+import shark.GcRoot.Unreachable
+import shark.GcRoot.VmInternal
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -177,6 +193,18 @@ class HprofHeapGraph internal constructor(
     reader.close()
   }
 
+  internal fun classDumpStaticFields(indexedClass: IndexedClass): List<StaticFieldRecord> {
+    return index.classFieldsReader.classDumpStaticFields(indexedClass)
+  }
+
+  internal fun classDumpFields(indexedClass: IndexedClass): List<FieldRecord> {
+    return index.classFieldsReader.classDumpFields(indexedClass)
+  }
+
+  internal fun classDumpHasReferenceFields(indexedClass: IndexedClass): Boolean {
+    return index.classFieldsReader.classDumpHasReferenceFields(indexedClass)
+  }
+
   internal fun fieldName(
     classId: Long,
     fieldRecord: FieldRecord
@@ -350,14 +378,14 @@ class HprofHeapGraph internal constructor(
      */
     fun File.openHeapGraph(
       proguardMapping: ProguardMapping? = null,
-      indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
+      indexedGcRootTypes: Set<HprofRecordTag> = HprofIndex.defaultIndexedGcRootTags()
     ): CloseableHeapGraph {
       return FileSourceProvider(this).openHeapGraph(proguardMapping, indexedGcRootTypes)
     }
 
     fun DualSourceProvider.openHeapGraph(
       proguardMapping: ProguardMapping? = null,
-      indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
+      indexedGcRootTypes: Set<HprofRecordTag> = HprofIndex.defaultIndexedGcRootTags()
     ): CloseableHeapGraph {
       val header = openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
       val index = HprofIndex.indexRecordsOf(this, header, proguardMapping, indexedGcRootTypes)
@@ -374,16 +402,48 @@ class HprofHeapGraph internal constructor(
     fun indexHprof(
       hprof: Hprof,
       proguardMapping: ProguardMapping? = null,
-      indexedGcRootTypes: Set<KClass<out GcRoot>> = HprofIndex.defaultIndexedGcRootTypes()
+      indexedGcRootTypes: Set<KClass<out GcRoot>> = deprecatedDefaultIndexedGcRootTypes()
     ): HeapGraph {
-
+      val indexedRootTags = indexedGcRootTypes.map {
+        when (it) {
+          Unknown::class -> HprofRecordTag.ROOT_UNKNOWN
+          JniGlobal::class -> HprofRecordTag.ROOT_JNI_GLOBAL
+          JniLocal::class -> HprofRecordTag.ROOT_JNI_LOCAL
+          JavaFrame::class -> HprofRecordTag.ROOT_JAVA_FRAME
+          NativeStack::class -> HprofRecordTag.ROOT_NATIVE_STACK
+          StickyClass::class -> HprofRecordTag.ROOT_STICKY_CLASS
+          ThreadBlock::class -> HprofRecordTag.ROOT_THREAD_BLOCK
+          MonitorUsed::class -> HprofRecordTag.ROOT_MONITOR_USED
+          ThreadObject::class -> HprofRecordTag.ROOT_THREAD_OBJECT
+          InternedString::class -> HprofRecordTag.ROOT_INTERNED_STRING
+          Finalizing::class -> HprofRecordTag.ROOT_FINALIZING
+          Debugger::class -> HprofRecordTag.ROOT_DEBUGGER
+          ReferenceCleanup::class -> HprofRecordTag.ROOT_REFERENCE_CLEANUP
+          VmInternal::class -> HprofRecordTag.ROOT_VM_INTERNAL
+          JniMonitor::class -> HprofRecordTag.ROOT_JNI_MONITOR
+          Unreachable::class -> HprofRecordTag.ROOT_UNREACHABLE
+          else -> error("Unknown root $it")
+        }
+      }.toSet()
       val index =
         HprofIndex.indexRecordsOf(
-            FileSourceProvider(hprof.file), hprof.header, proguardMapping, indexedGcRootTypes
+            FileSourceProvider(hprof.file), hprof.header, proguardMapping, indexedRootTags
         )
       val graph = index.openHeapGraph()
       hprof.attachClosable(graph)
       return graph
     }
+
+    private fun deprecatedDefaultIndexedGcRootTypes() = setOf(
+        JniGlobal::class,
+        JavaFrame::class,
+        JniLocal::class,
+        MonitorUsed::class,
+        NativeStack::class,
+        StickyClass::class,
+        ThreadBlock::class,
+        ThreadObject::class,
+        JniMonitor::class
+    )
   }
 }

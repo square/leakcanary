@@ -3,6 +3,7 @@ package shark
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
@@ -135,7 +136,7 @@ sealed class HeapObject {
       get() = indexedObject.recordSize.toInt()
 
     val hasReferenceInstanceFields: Boolean
-      get() = indexedObject.hasRefFields
+      get() = hprofGraph.classDumpHasReferenceFields(indexedObject)
 
     /**
      * Returns true if this class is an array class, and false otherwise.
@@ -159,12 +160,11 @@ sealed class HeapObject {
      * @see instanceByteSize
      */
     fun readFieldsByteSize(): Int {
-      return readRecord()
-          .fields.sumBy {
-            if (it.type == PrimitiveType.REFERENCE_HPROF_TYPE) {
-              hprofGraph.identifierByteSize
-            } else PrimitiveType.byteSizeByHprofType.getValue(it.type)
-          }
+      return readRecordFields().sumBy {
+        if (it.type == PrimitiveType.REFERENCE_HPROF_TYPE) {
+          hprofGraph.identifierByteSize
+        } else PrimitiveType.byteSizeByHprofType.getValue(it.type)
+      }
     }
 
     /**
@@ -254,6 +254,10 @@ sealed class HeapObject {
       return hprofGraph.readClassDumpRecord(objectId, indexedObject)
     }
 
+    fun readRecordStaticFields() = hprofGraph.classDumpStaticFields(indexedObject)
+
+    fun readRecordFields() = hprofGraph.classDumpFields(indexedObject)
+
     /**
      * Returns the name of the field declared in this class for the specified [fieldRecord].
      */
@@ -267,7 +271,7 @@ sealed class HeapObject {
      * This may trigger IO reads.
      */
     fun readStaticFields(): Sequence<HeapField> {
-      return readRecord().staticFields.asSequence()
+      return readRecordStaticFields().asSequence()
           .map { fieldRecord ->
             HeapField(
                 this, hprofGraph.staticFieldName(objectId, fieldRecord),
@@ -286,12 +290,10 @@ sealed class HeapObject {
      * This may trigger IO reads.
      */
     fun readStaticField(fieldName: String): HeapField? {
-      for (fieldRecord in readRecord().staticFields) {
-        if (hprofGraph.staticFieldName(objectId, fieldRecord) == fieldName) {
-          return HeapField(
-              this, hprofGraph.staticFieldName(objectId, fieldRecord),
-              HeapValue(hprofGraph, fieldRecord.value)
-          )
+      for (fieldRecord in readRecordStaticFields()) {
+        val recordFieldName = hprofGraph.staticFieldName(objectId, fieldRecord)
+        if (recordFieldName == fieldName) {
+          return HeapField(this, fieldName, HeapValue(hprofGraph, fieldRecord.value))
         }
       }
       return null
@@ -445,8 +447,7 @@ sealed class HeapObject {
       }
       return instanceClass.classHierarchy
           .map { heapClass ->
-            heapClass.readRecord()
-                .fields.asSequence()
+            heapClass.readRecordFields().asSequence()
                 .map { fieldRecord ->
                   val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord)
                   val fieldValue = fieldReader.readValue(fieldRecord)

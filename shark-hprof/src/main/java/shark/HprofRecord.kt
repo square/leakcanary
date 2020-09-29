@@ -9,31 +9,12 @@ sealed class HprofRecord {
     val string: String
   ) : HprofRecord()
 
-  /**
-   * To limit object allocation while parsing, [HprofReader] uses a single instance which is
-   * reused after each call to [OnHprofRecordListener.onHprofRecord].
-   */
   class LoadClassRecord(
-    classSerialNumber: Int,
-    id: Long,
-    stackTraceSerialNumber: Int,
-    classNameStringId: Long
-  ) : HprofRecord() {
-    var classSerialNumber: Int
-      internal set
-    var id: Long
-      internal set
-    var stackTraceSerialNumber: Int
-      internal set
-    var classNameStringId: Long
-      internal set
-    init {
-      this.classSerialNumber = classSerialNumber
-      this.id = id
-      this.stackTraceSerialNumber = stackTraceSerialNumber
-      this.classNameStringId = classNameStringId
-    }
-  }
+    val classSerialNumber: Int,
+    val id: Long,
+    val stackTraceSerialNumber: Int,
+    val classNameStringId: Long
+  ) : HprofRecord()
 
   /**
    * Terminates a series of heap dump segments. Concatenation of heap dump segments equals a
@@ -92,60 +73,6 @@ sealed class HprofRecord {
         )
       }
 
-      /**
-       * This isn't a real record type as found in the heap dump. It's an alternative to
-       * [ClassDumpRecord] for when you don't need the class content.
-       *
-       * To limit object allocation while parsing, [HprofReader] uses a single instance which is
-       * reused after each call to [OnHprofRecordListener.onHprofRecord].
-       */
-      class ClassSkipContentRecord(
-        id: Long,
-        stackTraceSerialNumber: Int,
-        superclassId: Long,
-        classLoaderId: Long,
-        signersId: Long,
-        protectionDomainId: Long,
-        instanceSize: Int,
-        staticFieldCount: Int,
-        fieldCount: Int
-      ) : ObjectRecord() {
-        var id: Long
-          internal set
-        var stackTraceSerialNumber: Int
-          internal set
-        var superclassId: Long
-          internal set
-        var classLoaderId: Long
-          internal set
-        var signersId: Long
-          internal set
-        var protectionDomainId: Long
-          internal set
-        var instanceSize: Int
-          internal set
-        var staticFieldCount: Int
-          internal set
-        var fieldCount: Int
-          internal set
-        var recordSize: Long = 0
-          internal set
-        var hasRefFields: Boolean = false
-          internal set
-
-        init {
-          this.id = id
-          this.stackTraceSerialNumber = stackTraceSerialNumber
-          this.superclassId = superclassId
-          this.classLoaderId = classLoaderId
-          this.signersId = signersId
-          this.protectionDomainId = protectionDomainId
-          this.instanceSize = instanceSize
-          this.staticFieldCount = staticFieldCount
-          this.fieldCount = fieldCount
-        }
-      }
-
       class InstanceDumpRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
@@ -156,72 +83,12 @@ sealed class HprofRecord {
         val fieldValues: ByteArray
       ) : ObjectRecord()
 
-      /**
-       * This isn't a real record type as found in the heap dump. It's an alternative to
-       * [InstanceDumpRecord] for when you don't need the instance content.
-       *
-       * To limit object allocation while parsing, [HprofReader] uses a single instance which is
-       * reused after each call to [OnHprofRecordListener.onHprofRecord].
-       */
-      class InstanceSkipContentRecord(
-        id: Long,
-        stackTraceSerialNumber: Int,
-        classId: Long
-      ) : ObjectRecord() {
-        var id: Long
-          internal set
-        var stackTraceSerialNumber: Int
-          internal set
-        var classId: Long
-          internal set
-        var recordSize: Long = 0
-          internal set
-
-        init {
-          this.id = id
-          this.stackTraceSerialNumber = stackTraceSerialNumber
-          this.classId = classId
-        }
-      }
-
       class ObjectArrayDumpRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
         val arrayClassId: Long,
         val elementIds: LongArray
       ) : ObjectRecord()
-
-      /**
-       * This isn't a real record type as found in the heap dump. It's an alternative to
-       * [ObjectArrayDumpRecord] for when you don't need the array content.
-       *
-       * To limit object allocation while parsing, [HprofReader] uses a single instance which is
-       * reused after each call to [OnHprofRecordListener.onHprofRecord].
-       */
-      class ObjectArraySkipContentRecord(
-        id: Long,
-        stackTraceSerialNumber: Int,
-        arrayClassId: Long,
-        size: Int
-      ) : ObjectRecord() {
-        var id: Long
-          internal set
-        var stackTraceSerialNumber: Int
-          internal set
-        var arrayClassId: Long
-          internal set
-        var size: Int
-          internal set
-        var recordSize: Long = 0
-          internal set
-
-        init {
-          this.id = id
-          this.stackTraceSerialNumber = stackTraceSerialNumber
-          this.arrayClassId = arrayClassId
-          this.size = size
-        }
-      }
 
       sealed class PrimitiveArrayDumpRecord : ObjectRecord() {
         abstract val id: Long
@@ -298,38 +165,6 @@ sealed class HprofRecord {
         ) : PrimitiveArrayDumpRecord() {
           override val size: Int
             get() = array.size
-        }
-      }
-
-      /**
-       * This isn't a real record type as found in the heap dump. It's an alternative to
-       * [PrimitiveArrayDumpRecord] for when you don't need the array content.
-       *
-       * To limit object allocation while parsing, [HprofReader] uses a single instance which is
-       * reused after each call to [OnHprofRecordListener.onHprofRecord].
-       */
-      class PrimitiveArraySkipContentRecord(
-        id: Long,
-        stackTraceSerialNumber: Int,
-        size: Int,
-        type: PrimitiveType
-      ) : ObjectRecord() {
-        var id: Long
-          internal set
-        var stackTraceSerialNumber: Int
-          internal set
-        var size: Int
-          internal set
-        var type: PrimitiveType
-          internal set
-        var recordSize: Long = 0
-          internal set
-
-        init {
-          this.id = id
-          this.stackTraceSerialNumber = stackTraceSerialNumber
-          this.size = size
-          this.type = type
         }
       }
     }

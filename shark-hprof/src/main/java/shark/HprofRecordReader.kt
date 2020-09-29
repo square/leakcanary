@@ -17,16 +17,12 @@ import shark.GcRoot.ThreadObject
 import shark.GcRoot.Unknown
 import shark.GcRoot.Unreachable
 import shark.GcRoot.VmInternal
-import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.HeapDumpInfoRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassSkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceSkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -36,7 +32,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackFrameRecord
 import shark.HprofRecord.StackTraceRecord
@@ -106,12 +101,12 @@ class HprofRecordReader internal constructor(
       string = readUtf8(length - identifierByteSize)
   )
 
-  fun LoadClassRecord.read() {
-    classSerialNumber = readInt()
-    id = readId()
-    stackTraceSerialNumber = readInt()
+  fun readLoadClassRecord() = LoadClassRecord(
+    classSerialNumber = readInt(),
+    id = readId(),
+    stackTraceSerialNumber = readInt(),
     classNameStringId = readId()
-  }
+  )
 
   fun readStackFrameRecord() = StackFrameRecord(
       id = readId(),
@@ -128,89 +123,59 @@ class HprofRecordReader internal constructor(
       stackFrameIds = readIdArray(readInt())
   )
 
-  fun readUnknownGcRootRecord() = GcRootRecord(
-      gcRoot = Unknown(id = readId())
+  fun readUnknownGcRootRecord() = Unknown(id = readId())
+
+  fun readJniGlobalGcRootRecord() = JniGlobal(
+      id = readId(),
+      jniGlobalRefId = readId()
   )
 
-  fun readJniGlobalGcRootRecord() = GcRootRecord(
-      gcRoot = JniGlobal(
-          id = readId(),
-          jniGlobalRefId = readId()
-      )
+  fun readJniLocalGcRootRecord() = JniLocal(
+      id = readId(),
+      threadSerialNumber = readInt(),
+      frameNumber = readInt()
   )
 
-  fun readJniLocalGcRootRecord() = GcRootRecord(
-      gcRoot = JniLocal(
-          id = readId(),
-          threadSerialNumber = readInt(),
-          frameNumber = readInt()
-      )
+  fun readJavaFrameGcRootRecord() = JavaFrame(
+      id = readId(),
+      threadSerialNumber = readInt(),
+      frameNumber = readInt()
   )
 
-  fun readJavaFrameGcRootRecord() = GcRootRecord(
-      gcRoot = JavaFrame(
-          id = readId(),
-          threadSerialNumber = readInt(),
-          frameNumber = readInt()
-      )
+  fun readNativeStackGcRootRecord() = NativeStack(
+      id = readId(),
+      threadSerialNumber = readInt()
   )
 
-  fun readNativeStackGcRootRecord() = GcRootRecord(
-      gcRoot = NativeStack(
-          id = readId(),
-          threadSerialNumber = readInt()
-      )
+  fun readStickyClassGcRootRecord() = StickyClass(id = readId())
+
+  fun readThreadBlockGcRootRecord() = ThreadBlock(id = readId(), threadSerialNumber = readInt())
+
+  fun readMonitorUsedGcRootRecord() =  MonitorUsed(id = readId())
+
+  fun readThreadObjectGcRootRecord() = ThreadObject(
+      id = readId(),
+      threadSerialNumber = readInt(),
+      stackTraceSerialNumber = readInt()
   )
 
-  fun readStickyClassGcRootRecord() = GcRootRecord(
-      gcRoot = StickyClass(id = readId())
+  fun readInternedStringGcRootRecord() = InternedString(id = readId())
+
+  fun readFinalizingGcRootRecord() = Finalizing(id = readId())
+
+  fun readDebuggerGcRootRecord() = Debugger(id = readId())
+
+  fun readReferenceCleanupGcRootRecord() = ReferenceCleanup(id = readId())
+
+  fun readVmInternalGcRootRecord() = VmInternal(id = readId())
+
+  fun readJniMonitorGcRootRecord() = JniMonitor(
+      id = readId(),
+      stackTraceSerialNumber = readInt(),
+      stackDepth = readInt()
   )
 
-  fun readThreadBlockGcRootRecord() = GcRootRecord(
-      gcRoot = ThreadBlock(id = readId(), threadSerialNumber = readInt())
-  )
-
-  fun readMonitorUsedGcRootRecord() = GcRootRecord(
-      gcRoot = MonitorUsed(id = readId())
-  )
-
-  fun readThreadObjectGcRootRecord() = GcRootRecord(
-      gcRoot = ThreadObject(
-          id = readId(),
-          threadSerialNumber = readInt(),
-          stackTraceSerialNumber = readInt()
-      )
-  )
-
-  fun readInternedStringGcRootRecord() = GcRootRecord(gcRoot = InternedString(id = readId()))
-
-  fun readFinalizingGcRootRecord() = GcRootRecord(
-      gcRoot = Finalizing(id = readId())
-  )
-
-  fun readDebuggerGcRootRecord() = GcRootRecord(
-      gcRoot = Debugger(id = readId())
-  )
-
-  fun readReferenceCleanupGcRootRecord() = GcRootRecord(
-      gcRoot = ReferenceCleanup(id = readId())
-  )
-
-  fun readVmInternalGcRootRecord() = GcRootRecord(
-      gcRoot = VmInternal(id = readId())
-  )
-
-  fun readJniMonitorGcRootRecord() = GcRootRecord(
-      gcRoot = JniMonitor(
-          id = readId(),
-          stackTraceSerialNumber = readInt(),
-          stackDepth = readInt()
-      )
-  )
-
-  fun readUnreachableGcRootRecord() = GcRootRecord(
-      gcRoot = Unreachable(id = readId())
-  )
+  fun readUnreachableGcRootRecord() = Unreachable(id = readId())
 
   /**
    * Reads a full instance record after a instance dump tag.
@@ -356,30 +321,12 @@ class HprofRecordReader internal constructor(
     )
   }
 
-  /**
-   * Reads a class record after a class dump tag, skipping its content.
-   */
-  fun ClassSkipContentRecord.read(): ClassSkipContentRecord {
-    val bytesReadStart = bytesRead
-    this.id = readId()
-    // stack trace serial number
-    stackTraceSerialNumber = readInt()
-    superclassId = readId()
-    // class loader object ID
-    classLoaderId = readId()
-    // signers object ID
-    signersId = readId()
-    // protection domain object ID
-    protectionDomainId = readId()
-    // reserved
-    readId()
-    // reserved
-    readId()
+  fun skipClassDumpHeader() {
+    skip(INT_SIZE * 2 + identifierByteSize * 7)
+    skipClassDumpConstantPool()
+  }
 
-    // instance size (in bytes)
-    // Useful to compute retained size
-    instanceSize = readInt()
-
+  fun skipClassDumpConstantPool() {
     // Skip over the constant pool
     val constantPoolCount = readUnsignedShort()
     for (i in 0 until constantPoolCount) {
@@ -387,8 +334,10 @@ class HprofRecordReader internal constructor(
       skip(SHORT.byteSize)
       skip(sizeOf(readUnsignedByte()))
     }
+  }
 
-    staticFieldCount = readUnsignedShort()
+  fun skipClassDumpStaticFields() {
+    val staticFieldCount = readUnsignedShort()
     for (i in 0 until staticFieldCount) {
       skip(identifierByteSize)
       val type = readUnsignedByte()
@@ -400,72 +349,11 @@ class HprofRecordReader internal constructor(
           }
       )
     }
-
-    fieldCount = readUnsignedShort()
-
-    var remainingFields = 0
-    var foundRef = false
-    for (i in 0 until fieldCount) {
-      skip(identifierByteSize)
-      val type = readUnsignedByte()
-      if (type == PrimitiveType.REFERENCE_HPROF_TYPE) {
-        foundRef = true
-        remainingFields = (fieldCount - i) - 1
-        break
-      }
-    }
-    hasRefFields = foundRef
-
-    // Each field takes id + byte.
-    if (remainingFields > 0) {
-      skip((identifierByteSize + 1) * remainingFields)
-    }
-    recordSize = bytesRead - bytesReadStart
-    return this
   }
 
-  /**
-   * Reads an instance record after a instance dump tag, skipping its content.
-   */
-  fun InstanceSkipContentRecord.read(): InstanceSkipContentRecord {
-    val bytesReadStart = bytesRead
-    id = readId()
-    stackTraceSerialNumber = readInt()
-    classId = readId()
-    val remainingBytesInInstance = readInt()
-    skip(remainingBytesInInstance)
-    recordSize = bytesRead - bytesReadStart
-    return this
-  }
-
-  /**
-   * Reads an object array record after a object array dump tag, skipping its content.
-   */
-  fun ObjectArraySkipContentRecord.read(): ObjectArraySkipContentRecord {
-    val bytesReadStart = bytesRead
-    id = readId()
-    // stack trace serial number
-    stackTraceSerialNumber = readInt()
-    size = readInt()
-    arrayClassId = readId()
-    skip(identifierByteSize * size)
-    recordSize = bytesRead - bytesReadStart
-    return this
-  }
-
-  /**
-   * Reads a primitive array record after a primitive array dump tag, skipping its content.
-   */
-  fun PrimitiveArraySkipContentRecord.read(): PrimitiveArraySkipContentRecord {
-    val bytesReadStart = bytesRead
-    id = readId()
-    stackTraceSerialNumber = readInt()
-    // length
-    size = readInt()
-    type = PrimitiveType.primitiveTypeByHprofType.getValue(readUnsignedByte())
-    skip(size * type.byteSize)
-    recordSize = bytesRead - bytesReadStart
-    return this
+  fun skipClassDumpFields() {
+    val fieldCount = readUnsignedShort()
+    skip((identifierByteSize + 1) * fieldCount)
   }
 
   fun skipInstanceDumpRecord() {

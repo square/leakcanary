@@ -5,6 +5,7 @@ import org.junit.Test
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.ValueHolder.CharHolder
 
 class HprofHeapGraphTest {
 
@@ -42,4 +43,14 @@ class HprofHeapGraphTest {
     }
   }
 
+  @Test fun `char is correctly converted back`() {
+    val heapDump = dump {
+      "SomeClass" clazz { staticField["myChar"] = CharHolder('p') }
+    }
+    val myChar = heapDump.openHeapGraph().use { graph ->
+      val myClass = graph.findClassByName("SomeClass")!!
+      myClass.readStaticField("myChar")!!.value.asChar!!
+    }
+    assertThat(myChar).isEqualTo('p')
+  }
 }

@@ -6,16 +6,13 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassSkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceSkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackFrameRecord
 import shark.HprofRecord.StringRecord
+import shark.StreamingRecordReaderAdapter.Companion.asStreamingRecordReader
 import java.io.File
 
 /**
@@ -65,7 +62,7 @@ class HprofDeobfuscator {
 
     var maxId: Long = 0
 
-    val reader = StreamingHprofReader.readerFor(inputHprofFile)
+    val reader = StreamingHprofReader.readerFor(inputHprofFile).asStreamingRecordReader()
     reader.readRecords(setOf(HprofRecord::class),
         OnHprofRecordListener { _, record ->
           when (record) {
@@ -81,13 +78,9 @@ class HprofDeobfuscator {
             is ObjectRecord -> {
               maxId = when (record) {
                 is ClassDumpRecord -> maxId.coerceAtLeast(record.id)
-                is ClassSkipContentRecord -> maxId.coerceAtLeast(record.id)
                 is InstanceDumpRecord -> maxId.coerceAtLeast(record.id)
-                is InstanceSkipContentRecord -> maxId.coerceAtLeast(record.id)
                 is ObjectArrayDumpRecord -> maxId.coerceAtLeast(record.id)
-                is ObjectArraySkipContentRecord -> maxId.coerceAtLeast(record.id)
                 is PrimitiveArrayDumpRecord -> maxId.coerceAtLeast(record.id)
-                is PrimitiveArraySkipContentRecord -> maxId.coerceAtLeast(record.id)
               }
             }
           }
@@ -107,7 +100,8 @@ class HprofDeobfuscator {
     var id = firstId
 
     val hprofHeader = parseHeaderOf(inputHprofFile)
-    val reader = StreamingHprofReader.readerFor(inputHprofFile, hprofHeader)
+    val reader =
+      StreamingHprofReader.readerFor(inputHprofFile, hprofHeader).asStreamingRecordReader()
     HprofWriter.openWriterFor(
         outputHprofFile,
         hprofHeader = HprofHeader(

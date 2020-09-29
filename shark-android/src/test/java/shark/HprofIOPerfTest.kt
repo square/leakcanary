@@ -3,6 +3,7 @@ package shark
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.nield.kotlinstatistics.median
+import shark.HeapObject.HeapClass
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.PrimitiveType.INT
 import java.io.File
@@ -178,10 +179,10 @@ class HprofIOPerfTest {
             metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
         )
     )
-    .isEqualTo(
+        .isEqualTo(
             listOf(
-                25491, 42.0, 1726799,
-                26933, 42.0, 1784986
+                19676, 40.0, 1016798,
+                21115, 40.0, 1074786
             )
         )
   }
@@ -199,8 +200,8 @@ class HprofIOPerfTest {
     )
         .isEqualTo(
             listOf(
-                22491, 40.0, 2535319,
-                22637, 40.0, 2536163
+                17383, 40.0, 1951122,
+                17528, 40.0, 1951862
             )
         )
   }
@@ -218,8 +219,8 @@ class HprofIOPerfTest {
     )
         .isEqualTo(
             listOf(
-                15863, 36.0, 992644,
-                15935, 36.0, 993121
+                11767, 32.0, 553258,
+                11838, 32.0, 553626
             )
         )
   }
