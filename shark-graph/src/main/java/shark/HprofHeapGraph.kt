@@ -89,8 +89,7 @@ class HprofHeapGraph internal constructor(
           .map {
             val objectId = it.first
             val indexedObject = it.second
-            val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
-            HeapInstance(this, indexedObject, objectId, objectIndex++, isPrimitiveWrapper)
+            HeapInstance(this, indexedObject, objectId, objectIndex++)
           }
     }
 
@@ -100,8 +99,7 @@ class HprofHeapGraph internal constructor(
       return index.indexedObjectArraySequence().map {
         val objectId = it.first
         val indexedObject = it.second
-        val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
-        HeapObjectArray(this, indexedObject, objectId, objectIndex++, isPrimitiveWrapper)
+        HeapObjectArray(this, indexedObject, objectId, objectIndex++)
       }
     }
 
@@ -142,11 +140,24 @@ class HprofHeapGraph internal constructor(
   }
 
   override fun findClassByName(className: String): HeapClass? {
-    val heapDumpClassName = if (header.version != ANDROID &&
-        className.endsWith("[]") &&
-        !HeapObject.primitiveArrayClassesByName.containsKey(className)
-    ) {
-      "[L${className.substring(0, className.length - 2)};"
+    val heapDumpClassName = if (header.version != ANDROID) {
+      val indexOfArrayChar = className.indexOf('[')
+      if (indexOfArrayChar != -1) {
+        val dimensions = (className.length - indexOfArrayChar) / 2
+        val componentClassName = className.substring(0, indexOfArrayChar)
+        "[".repeat(dimensions) + when (componentClassName) {
+          "char" -> 'C'
+          "float" -> 'F'
+          "double" -> 'D'
+          "byte" -> 'B'
+          "short" -> 'S'
+          "int" -> 'I'
+          "long" -> 'J'
+          else -> "L$componentClassName;"
+        }
+      } else {
+        className
+      }
     } else {
       className
     }
@@ -184,7 +195,29 @@ class HprofHeapGraph internal constructor(
     FieldValuesReader(record, identifierByteSize)
 
   internal fun className(classId: Long): String {
-    return index.className(classId)
+    val hprofClassName = index.className(classId)
+    if (header.version != ANDROID) {
+      if (hprofClassName.startsWith('[')) {
+        val arrayCharLastIndex = hprofClassName.lastIndexOf('[')
+        val brackets = "[]".repeat(arrayCharLastIndex + 1)
+        return when (val typeChar = hprofClassName[arrayCharLastIndex + 1]) {
+          'L' -> {
+            val classNameStart = arrayCharLastIndex + 2
+            hprofClassName.substring(classNameStart, hprofClassName.length - 1) + brackets
+          }
+          'Z' -> "boolean$brackets"
+          'C' -> "char$brackets"
+          'F' -> "float$brackets"
+          'D' -> "double$brackets"
+          'B' -> "byte$brackets"
+          'S' -> "short$brackets"
+          'I' -> "int$brackets"
+          'J' -> "long$brackets"
+          else -> error("Unexpected type char $typeChar")
+        }
+      }
+    }
+    return hprofClassName
   }
 
   internal fun readObjectArrayDumpRecord(
@@ -284,15 +317,14 @@ class HprofHeapGraph internal constructor(
     objectId: Long
   ): HeapObject {
     return when (indexedObject) {
-      is IndexedClass -> HeapClass(this, indexedObject, objectId, objectIndex)
+      is IndexedClass -> {
+        HeapClass(this, indexedObject, objectId, objectIndex)
+      }
       is IndexedInstance -> {
-        val isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId)
-        HeapInstance(this, indexedObject, objectId, objectIndex, isPrimitiveWrapper)
+        HeapInstance(this, indexedObject, objectId, objectIndex)
       }
       is IndexedObjectArray -> {
-        val isPrimitiveWrapperArray =
-          index.primitiveWrapperTypes.contains(indexedObject.arrayClassId)
-        HeapObjectArray(this, indexedObject, objectId, objectIndex, isPrimitiveWrapperArray)
+        HeapObjectArray(this, indexedObject, objectId, objectIndex)
       }
       is IndexedPrimitiveArray -> HeapPrimitiveArray(this, indexedObject, objectId, objectIndex)
     }

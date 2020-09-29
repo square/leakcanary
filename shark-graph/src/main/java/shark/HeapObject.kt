@@ -90,15 +90,31 @@ sealed class HeapObject {
       get() = hprofGraph
 
     /**
+     * Whether this is class is a primitive wrapper type
+     */
+    val isPrimitiveWrapperClass: Boolean
+      get() = (name in primitiveWrapperClassNames)
+
+    /**
      * The name of this class, identical to [Class.getName].
+     * If this class is an array class, the name has a suffix of brackets for each dimension of
+     * the array, e.g. `com.Foo[][]` is a class for 2 dimensional arrays of `com.Foo`.
+     *
+     * The behavior for primitive types changes depending on the VM that dumped the heap. JVM
+     * heap dumps don't have any [HeapClass] object for primitive types, instead the
+     * `java.land.Class` class has 9 instances (the 8 primitive types and `void`). Android heap
+     * dumps have an [HeapClass] object for primitive type and the `java.land.Class` class has no
+     * instance.
+     *
+     * If this is an array class, you can find the component type by removing the brackets at the
+     * end, e.g. `name.substringBefore('[')`. Be careful when doing this for JVM heap dumps though,
+     * as if the component type is a primitive type there will not be a [HeapClass] object for it.
+     * This is especially tricky with N dimension primitive type arrays, which are instances of
+     * [HeapObjectArray] (vs single dimension primitive type arrays which are instances of
+     * [HeapPrimitiveArray]).
      */
     val name: String
-      get() = hprofGraph.className(objectId).run {
-        // JVM name
-        if (startsWith("[L")) {
-          substring(2, length - 1) + "[]"
-        } else this
-      }
+      get() = hprofGraph.className(objectId)
 
     /**
      * Returns [name] stripped of any string content before the last period (included).
@@ -128,7 +144,7 @@ sealed class HeapObject {
       get() = name.endsWith("[]")
 
     val isPrimitiveArrayClass: Boolean
-      get() = name in primitiveArrayClassesByName
+      get() = name in primitiveTypesByPrimitiveArrayClassName
 
     val isObjectArrayClass: Boolean
       get() = isArrayClass && !isPrimitiveArrayClass
@@ -188,7 +204,7 @@ sealed class HeapObject {
      * Returns true if [superclass] is a superclass of this [HeapClass].
      */
     infix fun subclassOf(superclass: HeapClass): Boolean {
-      return classHierarchy.any { it.objectId == superclass.objectId }
+      return superclass.objectId != objectId && classHierarchy.any { it.objectId == superclass.objectId }
     }
 
     /**
@@ -208,12 +224,19 @@ sealed class HeapObject {
         emptySequence()
       }
 
+    /**
+     * Primitive arrays are one dimensional arrays of a primitive type.
+     * N-dimension arrays of primitive types (e.g. int[][]) are object arrays pointing to primitive
+     * arrays.
+     */
     val primitiveArrayInstances: Sequence<HeapPrimitiveArray>
-      get() = if (isPrimitiveArrayClass) {
-        val primitiveType = primitiveArrayClassesByName[name]
-        hprofGraph.primitiveArrays.filter { it.primitiveType == primitiveType }
-      } else {
-        emptySequence()
+      get() {
+        val primitiveType = primitiveTypesByPrimitiveArrayClassName[name]
+        return if (primitiveType != null) {
+          hprofGraph.primitiveArrays.filter { it.primitiveType == primitiveType }
+        } else {
+          emptySequence()
+        }
       }
 
     /**
@@ -291,12 +314,14 @@ sealed class HeapObject {
     private val hprofGraph: HprofHeapGraph,
     internal val indexedObject: IndexedInstance,
     override val objectId: Long,
-    override val objectIndex: Int,
+    override val objectIndex: Int
+  ) : HeapObject() {
+
     /**
      * Whether this is an instance of a primitive wrapper type.
      */
     val isPrimitiveWrapper: Boolean
-  ) : HeapObject() {
+      get() = instanceClassName in primitiveWrapperClassNames
 
     override val graph: HeapGraph
       get() = hprofGraph
@@ -494,8 +519,7 @@ sealed class HeapObject {
     private val hprofGraph: HprofHeapGraph,
     internal val indexedObject: IndexedObjectArray,
     override val objectId: Long,
-    override val objectIndex: Int,
-    val isPrimitiveWrapperArray: Boolean
+    override val objectIndex: Int
   ) : HeapObject() {
 
     override val graph: HeapGraph
@@ -505,12 +529,7 @@ sealed class HeapObject {
      * The name of the class of this array, identical to [Class.getName].
      */
     val arrayClassName: String
-      get() = hprofGraph.className(indexedObject.arrayClassId).run {
-        // JVM name
-        if (startsWith("[L")) {
-          substring(2, length - 1) + "[]"
-        } else this
-      }
+      get() = hprofGraph.className(indexedObject.arrayClassId)
 
     /**
      * Returns [arrayClassName] stripped of any string content before the last period (included).
@@ -615,9 +634,17 @@ sealed class HeapObject {
 
   companion object {
 
-    internal val primitiveArrayClassesByName = PrimitiveType.values()
+    internal val primitiveTypesByPrimitiveArrayClassName = PrimitiveType.values()
         .map { "${it.name.toLowerCase(Locale.US)}[]" to it }
         .toMap()
+
+    private val primitiveWrapperClassNames = setOf<String>(
+        Boolean::class.javaObjectType.name, Char::class.javaObjectType.name,
+        Float::class.javaObjectType.name,
+        Double::class.javaObjectType.name, Byte::class.javaObjectType.name,
+        Short::class.javaObjectType.name,
+        Int::class.javaObjectType.name, Long::class.javaObjectType.name
+    )
 
     private fun classSimpleName(className: String): String {
       val separator = className.lastIndexOf('.')

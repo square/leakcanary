@@ -44,7 +44,7 @@ class LegacyHprofTest {
     val analysis = analyzeHprof("gcroot_unknown_object.hprof")
 
     assertThat(analysis.applicationLeaks).hasSize(2)
-    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(5306170)
+    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(5306218)
   }
 
   @Test fun androidMStripped() {

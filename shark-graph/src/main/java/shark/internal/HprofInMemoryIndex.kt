@@ -24,7 +24,6 @@ import shark.internal.hppc.IntObjectPair
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongObjectPair
 import shark.internal.hppc.LongObjectScatterMap
-import shark.internal.hppc.LongScatterSet
 import shark.internal.hppc.to
 import kotlin.math.max
 import kotlin.reflect.KClass
@@ -42,7 +41,6 @@ internal class HprofInMemoryIndex private constructor(
   private val primitiveArrayIndex: SortedBytesMap,
   private val gcRoots: List<GcRoot>,
   private val proguardMapping: ProguardMapping?,
-  val primitiveWrapperTypes: LongScatterSet,
   private val bytesForClassSize: Int,
   private val bytesForInstanceSize: Int,
   private val bytesForObjectArraySize: Int,
@@ -351,16 +349,6 @@ internal class HprofInMemoryIndex private constructor(
         initialCapacity = primitiveArrayCount
     )
 
-    /**
-     * Class ids for primitive wrapper types
-     */
-    private val primitiveWrapperTypes = LongScatterSet()
-
-    /**
-     * String ids for class names of primitive wrapper types
-     */
-    private val primitiveWrapperClassNames = mutableSetOf<Long>()
-
     private val gcRoots = mutableListOf<GcRoot>()
 
     override fun onHprofRecord(
@@ -369,16 +357,10 @@ internal class HprofInMemoryIndex private constructor(
     ) {
       when (record) {
         is StringRecord -> {
-          if (PRIMITIVE_WRAPPER_TYPES.contains(record.string)) {
-            primitiveWrapperClassNames.add(record.id)
-          }
           hprofStringCache[record.id] = record.string
         }
         is LoadClassRecord -> {
           classNames[record.id] = record.classNameStringId
-          if (primitiveWrapperClassNames.contains(record.classNameStringId)) {
-            primitiveWrapperTypes.add(record.id)
-          }
         }
         is GcRootRecord -> {
           val gcRoot = record.gcRoot
@@ -456,7 +438,6 @@ internal class HprofInMemoryIndex private constructor(
           primitiveArrayIndex = sortedPrimitiveArrayIndex,
           gcRoots = gcRoots,
           proguardMapping = proguardMapping,
-          primitiveWrapperTypes = primitiveWrapperTypes,
           bytesForClassSize = bytesForClassSize,
           bytesForInstanceSize = bytesForInstanceSize,
           bytesForObjectArraySize = bytesForObjectArraySize,
@@ -469,12 +450,6 @@ internal class HprofInMemoryIndex private constructor(
   }
 
   companion object {
-
-    private val PRIMITIVE_WRAPPER_TYPES = setOf<String>(
-        Boolean::class.java.name, Char::class.java.name, Float::class.java.name,
-        Double::class.java.name, Byte::class.java.name, Short::class.java.name,
-        Int::class.java.name, Long::class.java.name
-    )
 
     private fun byteSizeForUnsigned(maxValue: Long): Int {
       var value = maxValue
@@ -569,6 +544,5 @@ internal class HprofInMemoryIndex private constructor(
       reader.readRecords(recordTypes, indexBuilderListener)
       return indexBuilderListener.buildIndex(proguardMapping, hprofHeader)
     }
-
   }
 }
