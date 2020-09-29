@@ -1,17 +1,7 @@
 package shark
 
-import shark.GcRoot.JavaFrame
-import shark.GcRoot.JniGlobal
-import shark.GcRoot.JniLocal
-import shark.GcRoot.JniMonitor
-import shark.GcRoot.MonitorUsed
-import shark.GcRoot.NativeStack
-import shark.GcRoot.StickyClass
-import shark.GcRoot.ThreadBlock
-import shark.GcRoot.ThreadObject
 import shark.internal.HprofInMemoryIndex
-import java.io.File
-import kotlin.reflect.KClass
+import java.util.EnumSet
 
 /**
  * An index on a Hprof file. See [openHeapGraph].
@@ -38,30 +28,30 @@ class HprofIndex private constructor(
       hprofSourceProvider: DualSourceProvider,
       hprofHeader: HprofHeader,
       proguardMapping: ProguardMapping? = null,
-      indexedGcRootTypes: Set<KClass<out GcRoot>> = defaultIndexedGcRootTypes()
+      indexedGcRootTags: Set<HprofRecordTag> = defaultIndexedGcRootTags()
     ): HprofIndex {
       val reader = StreamingHprofReader.readerFor(hprofSourceProvider, hprofHeader)
       val index = HprofInMemoryIndex.indexHprof(
           reader = reader,
           hprofHeader = hprofHeader,
           proguardMapping = proguardMapping,
-          indexedGcRootTypes = indexedGcRootTypes
+          indexedGcRootTags = indexedGcRootTags
       )
       return HprofIndex(hprofSourceProvider, hprofHeader, index)
     }
 
-    fun defaultIndexedGcRootTypes() = setOf(
-        JniGlobal::class,
-        JavaFrame::class,
-        JniLocal::class,
-        MonitorUsed::class,
-        NativeStack::class,
-        StickyClass::class,
-        ThreadBlock::class,
+    fun defaultIndexedGcRootTags() = EnumSet.of(
+        HprofRecordTag.ROOT_JNI_GLOBAL,
+        HprofRecordTag.ROOT_JAVA_FRAME,
+        HprofRecordTag.ROOT_JNI_LOCAL,
+        HprofRecordTag.ROOT_MONITOR_USED,
+        HprofRecordTag.ROOT_NATIVE_STACK,
+        HprofRecordTag.ROOT_STICKY_CLASS,
+        HprofRecordTag.ROOT_THREAD_BLOCK,
         // ThreadObject points to threads, which we need to find the thread that a JavaLocalPattern
         // belongs to
-        ThreadObject::class,
-        JniMonitor::class
+        HprofRecordTag.ROOT_THREAD_OBJECT,
+        HprofRecordTag.ROOT_JNI_MONITOR
         /*
         Not included here:
 

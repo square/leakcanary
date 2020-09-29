@@ -1,9 +1,9 @@
 package shark
 
 /**
- * Listener passed in to [HprofReader.readHprofRecords], gets notified for each [HprofRecord]
+ * Listener passed in to [StreamingHprofReader.readRecords], gets notified for each [HprofRecord]
  * found in the heap dump which types is in the set of the recordTypes parameter passed to
- * [HprofReader.readHprofRecords].
+ * [StreamingHprofReader.readRecords].
  */
 interface OnHprofRecordListener {
   fun onHprofRecord(

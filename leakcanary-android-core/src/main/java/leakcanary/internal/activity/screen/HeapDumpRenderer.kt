@@ -32,6 +32,7 @@ import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecord.StringRecord
 import shark.StreamingHprofReader
 import shark.OnHprofRecordListener
+import shark.StreamingRecordReaderAdapter.Companion.asStreamingRecordReader
 import java.io.File
 
 internal object HeapDumpRenderer {
@@ -101,7 +102,7 @@ internal object HeapDumpRenderer {
 
     var lastPosition = 0L
 
-    val reader = StreamingHprofReader.readerFor(heapDumpFile)
+    val reader = StreamingHprofReader.readerFor(heapDumpFile).asStreamingRecordReader()
     val hprofStringCache = mutableMapOf<Long, String>()
     val classNames = mutableMapOf<Long, Long>()
     reader.readRecords(

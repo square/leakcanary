@@ -11,6 +11,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import shark.StreamingRecordReaderAdapter.Companion.asStreamingRecordReader
 import java.io.File
 
 /**
@@ -50,7 +51,8 @@ class HprofPrimitiveArrayStripper {
     hprofSink: BufferedSink
   ) {
     val header = hprofSourceProvider.openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
-    val reader = StreamingHprofReader.readerFor(hprofSourceProvider, header)
+    val reader =
+      StreamingHprofReader.readerFor(hprofSourceProvider, header).asStreamingRecordReader()
     HprofWriter.openWriterFor(
         hprofSink,
         hprofHeader = HprofHeader(

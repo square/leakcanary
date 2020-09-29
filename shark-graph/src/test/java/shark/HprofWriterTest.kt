@@ -10,6 +10,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticField
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
+import shark.StreamingRecordReaderAdapter.Companion.asStreamingRecordReader
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
@@ -179,7 +180,7 @@ class HprofWriterTest {
 
   private fun DualSourceProvider.readAllRecords(): MutableList<HprofRecord> {
     val readRecords = mutableListOf<HprofRecord>()
-    StreamingHprofReader.readerFor(this)
+    StreamingHprofReader.readerFor(this).asStreamingRecordReader()
         .readRecords(setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
           readRecords += record
         })

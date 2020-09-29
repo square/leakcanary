@@ -530,7 +530,7 @@ internal class PathFinder(
     var skipBytesCount = 0
 
     for (heapClass in classHierarchy) {
-      for (fieldRecord in heapClass.readRecord().fields) {
+      for (fieldRecord in heapClass.readRecordFields()) {
         if (fieldRecord.type != PrimitiveType.REFERENCE_HPROF_TYPE) {
           // Skip all fields that are not references. Track how many bytes to skip
           skipBytesCount += hprofGraph.getRecordSize(fieldRecord)
