@@ -1,5 +1,9 @@
 package leakcanary.internal.activity.screen
 
+import android.R.drawable
+import android.R.string
+import android.app.AlertDialog
+import android.app.AlertDialog.Builder
 import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.method.LinkMovementMethod
@@ -11,6 +15,7 @@ import android.widget.BaseAdapter
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
+import com.squareup.leakcanary.core.R.layout
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.executeOnDb
@@ -92,56 +97,7 @@ internal class HeapDumpScreen(
         parent: ViewGroup
       ) = when (getItemViewType(position)) {
         METADATA -> {
-          val view = convertView ?: parent.inflate(R.layout.leak_canary_leak_header)
-          val textView = view.findViewById<TextView>(R.id.leak_canary_header_text)
-          textView.movementMethod = LinkMovementMethod.getInstance()
-
-          val explore =
-            if (heapDumpFileExist) """Explore <a href="explore_hprof">Heap Dump</a><br><br>""" else ""
-          val shareAnalysis = """Share <a href="share">Heap Dump analysis</a><br><br>"""
-          val shareFile =
-            if (heapDumpFileExist) """Share <a href="share_hprof">Heap Dump file</a><br><br>""" else ""
-
-          val dumpDurationMillis =
-            if (heapAnalysis.dumpDurationMillis != HeapAnalysis.DUMP_DURATION_UNKNOWN) {
-              "${heapAnalysis.dumpDurationMillis} ms"
-            } else {
-              "Unknown"
-            }
-          val titleText = explore + shareAnalysis + shareFile +
-              (heapAnalysis.metadata + mapOf(
-                  "Analysis duration" to "${heapAnalysis.analysisDurationMillis} ms",
-                  "Heap dump file path" to heapAnalysis.heapDumpFile.absolutePath,
-                  "Heap dump timestamp" to "${heapAnalysis.createdAtTimeMillis}",
-                  "Heap dump duration" to dumpDurationMillis
-              ))
-                  .map { "<b>${it.key}:</b> ${it.value}" }
-                  .joinToString("<br>")
-          val title = Html.fromHtml(titleText) as SpannableStringBuilder
-
-          UiUtils.replaceUrlSpanWithAction(title) { urlSpan ->
-            when (urlSpan) {
-              "explore_hprof" -> {
-                {
-                  goTo(HprofExplorerScreen(heapAnalysis.heapDumpFile))
-                }
-              }
-              "share" -> {
-                {
-                  share(heapAnalysis.toString())
-                }
-              }
-              "share_hprof" -> {
-                {
-                  shareHeapDump(heapAnalysis.heapDumpFile)
-                }
-              }
-              else -> null
-            }
-          }
-
-          textView.text = title
-          view
+          bindMetadataRow(convertView, parent, heapDumpFileExist, heapAnalysis)
         }
         LEAK_TITLE -> {
           val view = convertView ?: parent.inflate(R.layout.leak_canary_heap_dump_leak_title)
@@ -202,6 +158,76 @@ internal class HeapDumpScreen(
         goTo(LeakScreen(leaks[position - 2].signature, analysisId))
       }
     }
+  }
+
+  private fun View.bindMetadataRow(
+    convertView: View?,
+    parent: ViewGroup,
+    heapDumpFileExist: Boolean,
+    heapAnalysis: HeapAnalysisSuccess
+  ): View {
+    val view = convertView ?: parent.inflate(layout.leak_canary_leak_header)
+    val textView = view.findViewById<TextView>(R.id.leak_canary_header_text)
+    textView.movementMethod = LinkMovementMethod.getInstance()
+
+    val explore =
+      if (heapDumpFileExist) """Explore <a href="explore_hprof">Heap Dump</a><br><br>""" else ""
+    val shareAnalysis = """Share <a href="share">Heap Dump analysis</a><br><br>"""
+    val shareFile =
+      if (heapDumpFileExist) """Share <a href="share_hprof">Heap Dump file</a><br><br>""" else ""
+
+    val seeMetadata = "See <a href=\"metadata\">Metadata</a>"
+
+    val dumpDurationMillis =
+      if (heapAnalysis.dumpDurationMillis != HeapAnalysis.DUMP_DURATION_UNKNOWN) {
+        "${heapAnalysis.dumpDurationMillis} ms"
+      } else {
+        "Unknown"
+      }
+    val metadata = (heapAnalysis.metadata + mapOf(
+        "Analysis duration" to "${heapAnalysis.analysisDurationMillis} ms",
+        "Heap dump file path" to heapAnalysis.heapDumpFile.absolutePath,
+        "Heap dump timestamp" to "${heapAnalysis.createdAtTimeMillis}",
+        "Heap dump duration" to dumpDurationMillis
+    ))
+        .map { "<b>${it.key}:</b> ${it.value}" }
+        .joinToString("<br>")
+    val titleText = explore + shareAnalysis + shareFile + seeMetadata
+    val title = Html.fromHtml(titleText) as SpannableStringBuilder
+
+    UiUtils.replaceUrlSpanWithAction(title) { urlSpan ->
+      when (urlSpan) {
+        "explore_hprof" -> {
+          {
+            goTo(HprofExplorerScreen(heapAnalysis.heapDumpFile))
+          }
+        }
+        "share" -> {
+          {
+            share(heapAnalysis.toString())
+          }
+        }
+        "share_hprof" -> {
+          {
+            shareHeapDump(heapAnalysis.heapDumpFile)
+          }
+        }
+        "metadata" -> {
+          {
+            Builder(context)
+                .setIcon(drawable.ic_dialog_info)
+                .setTitle("Metadata")
+                .setMessage(Html.fromHtml(metadata))
+                .setPositiveButton(string.ok, null)
+                .show()
+          }
+        }
+        else -> null
+      }
+    }
+
+    textView.text = title
+    return view
   }
 
   companion object {
