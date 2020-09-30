@@ -71,6 +71,7 @@ class HeapAnalysisStringRenderingTest {
       |
       |Please include this in bug reports and Stack Overflow questions.
       |
+      |Stats: .*
       |Analysis duration: \d* ms
       |Heap dump file path: ${hprofFile.absolutePath}
       |Heap dump timestamp: \d*
@@ -113,6 +114,7 @@ class HeapAnalysisStringRenderingTest {
       |
       |Please include this in bug reports and Stack Overflow questions.
       |
+      |Stats: .*
       |Analysis duration: \d* ms
       |Heap dump file path: ${hprofFile.absolutePath}
       |Heap dump timestamp: \d*

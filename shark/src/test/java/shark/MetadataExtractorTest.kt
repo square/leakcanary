@@ -40,6 +40,6 @@ class MetadataExtractorTest {
 
     val metadata = analysis.metadata
 
-    assertThat(metadata).isEqualTo(mapOf("World message" to "Hello"))
+    assertThat(metadata).containsAllEntriesOf(mapOf("World message" to "Hello"))
   }
 }
