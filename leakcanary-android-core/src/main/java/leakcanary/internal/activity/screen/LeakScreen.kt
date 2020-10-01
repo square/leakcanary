@@ -31,6 +31,7 @@ import leakcanary.internal.navigation.inflate
 import shark.HeapAnalysisSuccess
 import shark.LeakTrace
 import shark.LibraryLeak
+import shark.SharkLog
 
 internal class LeakScreen(
   private val leakSignature: String,
@@ -188,6 +189,7 @@ internal class LeakScreen(
     val titleText = """
       Open <a href="open_analysis">Heap Dump</a><br><br>
       Share leak trace <a href="share">as text</a> or on <a href="share_stack_overflow">Stack Overflow</a><br><br>
+      Print leak trace <a href="print">to Logcat</a> (tag: LeakCanary)<br><br>
       Share <a href="share_hprof">Heap Dump file</a><br><br>
       References <b><u>underlined</u></b> are the likely causes of the leak.
       Learn more at <a href="https://squ.re/leaks">https://squ.re/leaks</a>
@@ -210,6 +212,11 @@ internal class LeakScreen(
         "share_stack_overflow" -> {
           {
             shareToStackOverflow(LeakTraceWrapper.wrap(leakToString(leakTrace, analysis), 80))
+          }
+        }
+        "print" -> {
+          {
+            SharkLog.d { "\u200B\n" + LeakTraceWrapper.wrap(leakToString(leakTrace, analysis), 120) }
           }
         }
         "open_analysis" -> {

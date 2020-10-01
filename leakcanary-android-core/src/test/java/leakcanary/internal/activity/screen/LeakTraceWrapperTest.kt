@@ -1,81 +1,210 @@
 package leakcanary.internal.activity.screen
 
-import org.junit.Assert.assertEquals
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
 class LeakTraceWrapperTest {
-  @Test
-  fun `A simple example`() {
-    val string = """
-│  A word and a pk.g 
-        """
-    val wrappedString = LeakTraceWrapper.wrap(string, 10)
 
-    assertEquals("""
-│  A word
-│  and a
-│  pk.g
-""", wrappedString)
+  @Test fun `short string stays identical`() {
+    val string = "12\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 4)
+
+    assertThat(wrapped).isEqualTo(string)
   }
 
-  @Test
-  fun `Underline is positioned under a word on a line that will not be wrapped`() {
+  @Test fun `string at width stays identical`() {
+    val string = "1234\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 4)
+
+    assertThat(wrapped).isEqualTo(string)
+  }
+
+  @Test fun `string at width no newline stays identical`() {
+    val string = "1234"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 4)
+
+    assertThat(wrapped).isEqualTo(string)
+  }
+
+  @Test fun `string wrapped without newline stays has no trailing newline`() {
+    val string = "12 34"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 4)
+
+    assertThat(wrapped).isEqualTo("12\n34")
+  }
+
+  @Test fun `wrap line at space removing space`() {
+    val string = "12 34\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 4)
+
+    assertThat(wrapped).isEqualTo("12\n34\n")
+  }
+
+  @Test fun `wrap line at space keeps prefix`() {
+    val prefix = "│   "
+    val string = "${prefix}12 34\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, prefix.length + 4)
+
+    assertThat(wrapped).isEqualTo("${prefix}12\n${prefix}34\n")
+  }
+
+  @Test fun `wrap line at space keeps non breaking space`() {
+    val string = "\u200B 12 34\n"
+    val wrapped = LeakTraceWrapper.wrap(string, 5)
+
+    assertThat(wrapped).isEqualTo("\u200B 12\n\u200B 34\n")
+  }
+
+  @Test fun `wrap line at period keeping period`() {
+    val string = "12.34\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 4)
+
+    assertThat(wrapped).isEqualTo("12.\n34\n")
+  }
+
+  @Test fun `two periods wraps at last period`() {
+    val string = "1.2.34\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 5)
+
+    assertThat(wrapped).isEqualTo("1.2.\n34\n")
+  }
+
+  @Test fun `no space or period is wrapped at max width`() {
+    val string = "1234\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 2)
+
+    assertThat(wrapped).isEqualTo("12\n34\n")
+  }
+
+  @Test fun `two consecutive periods wraps at last period`() {
+    val string = "12..34\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 5)
+
+    assertThat(wrapped).isEqualTo("12..\n34\n")
+  }
+
+  @Test fun `period and space wraps at last`() {
+    val string = "12. 34\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 5)
+
+    assertThat(wrapped).isEqualTo("12.\n34\n")
+  }
+
+  @Test fun `space and period wraps at last`() {
+    val string = "12 .34\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 5)
+
+    assertThat(wrapped).isEqualTo("12 .\n34\n")
+  }
+
+  @Test fun `period and separated space wraps at last`() {
+    val string = "1.2 34\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 5)
+
+    assertThat(wrapped).isEqualTo("1.2\n34\n")
+  }
+
+  @Test fun `several spaces are all removed`() {
+    val string = "12  34\n"
+
+    val wrapped = LeakTraceWrapper.wrap(string, 5)
+
+    assertThat(wrapped).isEqualTo("12\n34\n")
+  }
+
+  @Test fun `several periods all keeping period`() {
+    val string = "12...34\n"
+    val wrapped = LeakTraceWrapper.wrap(string, 4)
+    assertThat(wrapped).isEqualTo("12..\n.34\n")
+  }
+
+  @Test fun `prefix applied to all lines`() {
+    val prefix = "│  "
+    val part1 = "A word"
+    val part2 = "and a"
+    val part3 = "pk.g"
+    val string = "\n${prefix}$part1 $part2 $part3"
+    val wrappedString = LeakTraceWrapper.wrap(string, prefix.length + part1.length + 1)
+
+    assertThat(wrappedString).isEqualTo(
+        """
+${prefix}$part1
+${prefix}$part2
+${prefix}$part3"""
+    )
+  }
+
+  @Test fun `underline is positioned under a word on a line that will not be wrapped`() {
     val string = """
 │  A word and a pk.g
 │         ~~~      
         """
     val wrappedString = LeakTraceWrapper.wrap(string, 10)
 
-    assertEquals("""
+    assertThat(wrappedString).isEqualTo(
+        """
 │  A word
 │  and a
 │  ~~~
 │  pk.g
-""", wrappedString)
+"""
+    )
   }
 
-  @Test
-  fun `Underline is positioned under a word on last line`() {
+  @Test fun `underline is positioned under a word on last line`() {
     val string = """
 │  A word and a pk.g
-│               ~~           
+│                  ~           
         """
     val wrappedString = LeakTraceWrapper.wrap(string, 10)
 
-    assertEquals("""
+    assertThat(wrappedString).isEqualTo(
+        """
 │  A word
 │  and a
 │  pk.g
-│  ~~
-""", wrappedString)
+│     ~
+"""
+    )
   }
 
-  @Test
-  fun `A more complex example with underline`() {
+  @Test fun `underline within multiline string`() {
     val string = """
 ├─ com.example.FooFooFooFooFooFooFoo instance
 │    Leaking: UNKNOWN
-│  ↓ FooFooFooFooFooFooFoo.barbarbarbarbarbarbarbar
-│                          ~~~~~~~~~~~~~~~~~~~~~
+│    ↓ FooFooFooFooFooFooFoo.barbarbarbarbarbarbarbar
+│                            ~~~~~~~~~~~~~~~~~~~~~~~~
 """
 
     val wrappedString = LeakTraceWrapper.wrap(string, 30)
 
-    assertEquals(
+    assertThat(wrappedString).isEqualTo(
         """
 ├─ com.example.
-├─ FooFooFooFooFooFooFoo
-├─ instance
+│  FooFooFooFooFooFooFoo
+│  instance
 │    Leaking: UNKNOWN
-│  ↓ FooFooFooFooFooFooFoo.
-│  barbarbarbarbarbarbarbar
-│  ~~~~~~~~~~~~~~~~~~~~~
-""", wrappedString
+│    ↓ FooFooFooFooFooFooFoo.
+│    barbarbarbarbarbarbarbar
+│    ~~~~~~~~~~~~~~~~~~~~~~~~
+"""
     )
   }
 
-  @Test
-  fun `A real leak trace is correctly wrapped`() {
+  @Test fun `a real leak trace is correctly wrapped`() {
     val string = """
 ┬───
 │ GC Root: System class
@@ -112,7 +241,7 @@ class LeakTraceWrapperTest {
 
     val wrappedString = LeakTraceWrapper.wrap(string, 80)
 
-    assertEquals(
+    assertThat(wrappedString).isEqualTo(
         """
 ┬───
 │ GC Root: System class
@@ -149,37 +278,7 @@ class LeakTraceWrapperTest {
 ​     key = b3dd6589-560d-48dc-9fbb-ab8300e5752b
 ​     watchDurationMillis = 5117
 ​     retainedDurationMillis = 110
-""", wrappedString
-    )
-  }
-
-  @Test
-  fun `Splitting by dot character and keeping it, then splitting by space, works as expected`() {
-    val string = "com.package is an application"
-
-    val splitted = string.splitAndKeep('.')
-
-    assertEquals(listOf("com.", "package is an application"), splitted)
-
-    val splitted2 = splitted.flatMap {
-      it.split(' ')
-    }
-
-    assertEquals(listOf("com.", "package", "is", "an", "application"), splitted2)
-  }
-
-  @Test
-  fun `Splitting by dot character and keeping it, works as expected`() {
-    val string =
-      "UserProfile_Fragment.transaction↓ UserProfile_Fragment.transaction↓ UserProfile_Fragment.transaction"
-
-    val splitted = string.splitAndKeep('.')
-
-    assertEquals(
-        listOf(
-            "UserProfile_Fragment.", "transaction↓ UserProfile_Fragment.",
-            "transaction↓ UserProfile_Fragment.", "transaction"
-        ), splitted
+"""
     )
   }
 }
