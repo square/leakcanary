@@ -24,7 +24,10 @@ unless there's a bug and you temporarily want to remove an inspector.
 | [VIEW](-v-i-e-w/index.md) |  |
 | [EDITOR](-e-d-i-t-o-r/index.md) |  |
 | [ACTIVITY](-a-c-t-i-v-i-t-y/index.md) |  |
+| [CONTEXT_FIELD](-c-o-n-t-e-x-t_-f-i-e-l-d/index.md) |  |
 | [CONTEXT_WRAPPER](-c-o-n-t-e-x-t_-w-r-a-p-p-e-r/index.md) |  |
+| [APPLICATION_PACKAGE_MANAGER](-a-p-p-l-i-c-a-t-i-o-n_-p-a-c-k-a-g-e_-m-a-n-a-g-e-r/index.md) |  |
+| [CONTEXT_IMPL](-c-o-n-t-e-x-t_-i-m-p-l/index.md) |  |
 | [DIALOG](-d-i-a-l-o-g/index.md) |  |
 | [APPLICATION](-a-p-p-l-i-c-a-t-i-o-n/index.md) |  |
 | [INPUT_METHOD_MANAGER](-i-n-p-u-t_-m-e-t-h-o-d_-m-a-n-a-g-e-r/index.md) |  |
@@ -38,6 +41,7 @@ unless there's a bug and you temporarily want to remove an inspector.
 | [MAIN_THREAD](-m-a-i-n_-t-h-r-e-a-d/index.md) |  |
 | [VIEW_ROOT_IMPL](-v-i-e-w_-r-o-o-t_-i-m-p-l/index.md) |  |
 | [WINDOW](-w-i-n-d-o-w/index.md) |  |
+| [MESSAGE](-m-e-s-s-a-g-e/index.md) |  |
 | [TOAST](-t-o-a-s-t/index.md) |  |
 
 ### Companion Object Properties

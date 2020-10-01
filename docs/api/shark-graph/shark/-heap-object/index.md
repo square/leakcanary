@@ -25,6 +25,8 @@ An object in the heap dump.
 | [asPrimitiveArray](as-primitive-array.md) | `val asPrimitiveArray: `[`HeapObject.HeapPrimitiveArray`](-heap-primitive-array/index.md)`?`<br>This [HeapObject](./index.md) as a [HeapPrimitiveArray](-heap-primitive-array/index.md) if it is one, or null otherwise |
 | [graph](graph.md) | `abstract val graph: `[`HeapGraph`](../-heap-graph/index.md)<br>The graph of objects in the heap, which you can use to navigate the heap. |
 | [objectId](object-id.md) | `abstract val objectId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>The heap identifier of this object. |
+| [objectIndex](object-index.md) | `abstract val objectIndex: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)<br>An positive object index that's specific to how Shark stores objects in memory. The index starts at 0 and ends at [HeapGraph.objectCount](../-heap-graph/object-count.md) - 1. There are no gaps, every index value corresponds to an object. Classes are first, then instances, then object arrays then primitive arrays. |
+| [recordSize](record-size.md) | `abstract val recordSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)<br>The total byte size for the record of this object in the heap dump. |
 
 ### Functions
 

@@ -6,6 +6,7 @@
         inputHprofFile.parent, inputHprofFile.name.replace(
         ".hprof", "-stripped.hprof"
     ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-stripped" })): `[`File`](https://docs.oracle.com/javase/6/docs/api/java/io/File.html)
+`fun stripPrimitiveArrays(hprofSourceProvider: `[`StreamingSourceProvider`](../-streaming-source-provider/index.md)`, hprofSink: BufferedSink): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
 
 **See Also**
 

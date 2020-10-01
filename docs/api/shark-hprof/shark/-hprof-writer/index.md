@@ -6,14 +6,17 @@
 
 Generates Hprof files.
 
-Call [open](open.md) to create an instance, [write](write.md) to add instances and [close](close.md) when you're done.
+Call [openWriterFor](open-writer-for.md) to obtain a new instance.
+
+Call [write](write.md) to add records and [close](close.md) when you're done.
 
 ### Properties
 
 | Name | Summary |
 |---|---|
-| [hprofVersion](hprof-version.md) | `val hprofVersion: `[`Hprof.HprofVersion`](../-hprof/-hprof-version/index.md) |
-| [identifierByteSize](identifier-byte-size.md) | `val identifierByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+| [hprofHeader](hprof-header.md) | `val hprofHeader: `[`HprofHeader`](../-hprof-header/index.md) |
+| [hprofVersion](hprof-version.md) | `val ~~hprofVersion~~: `[`Hprof.HprofVersion`](../-hprof/-hprof-version/index.md) |
+| [identifierByteSize](identifier-byte-size.md) | `val ~~identifierByteSize~~: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
 
 ### Functions
 
@@ -27,4 +30,5 @@ Call [open](open.md) to create an instance, [write](write.md) to add instances a
 
 | Name | Summary |
 |---|---|
-| [open](open.md) | `fun open(hprofFile: `[`File`](https://docs.oracle.com/javase/6/docs/api/java/io/File.html)`, identifierByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)` = 4, hprofVersion: `[`Hprof.HprofVersion`](../-hprof/-hprof-version/index.md)` = HprofVersion.ANDROID): `[`HprofWriter`](./index.md)<br>Opens a new file for writing hprof records. Don't forget to call [close](close.md) once done. |
+| [open](open.md) | `fun ~~open~~(hprofFile: `[`File`](https://docs.oracle.com/javase/6/docs/api/java/io/File.html)`, identifierByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)` = 4, hprofVersion: `[`Hprof.HprofVersion`](../-hprof/-hprof-version/index.md)` = Hprof.HprofVersion.ANDROID): `[`HprofWriter`](./index.md) |
+| [openWriterFor](open-writer-for.md) | `fun openWriterFor(hprofFile: `[`File`](https://docs.oracle.com/javase/6/docs/api/java/io/File.html)`, hprofHeader: `[`HprofHeader`](../-hprof-header/index.md)` = HprofHeader()): `[`HprofWriter`](./index.md)<br>`fun openWriterFor(hprofSink: BufferedSink, hprofHeader: `[`HprofHeader`](../-hprof-header/index.md)` = HprofHeader()): `[`HprofWriter`](./index.md) |

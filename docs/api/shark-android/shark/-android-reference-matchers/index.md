@@ -85,6 +85,7 @@ Most app developers should use [appDefaults](app-defaults.md). However, you can 
 | [DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER](-d-e-v-i-c-e_-p-o-l-i-c-y_-m-a-n-a-g-e-r__-s-e-t-t-i-n-g-s_-o-b-s-e-r-v-e-r.md) |  |
 | [EXTENDED_STATUS_BAR_MANAGER](-e-x-t-e-n-d-e-d_-s-t-a-t-u-s_-b-a-r_-m-a-n-a-g-e-r.md) |  |
 | [OEM_SCENE_CALL_BLOCKER](-o-e-m_-s-c-e-n-e_-c-a-l-l_-b-l-o-c-k-e-r.md) |  |
+| [RAZER_TEXT_KEY_LISTENER__MCONTEXT](-r-a-z-e-r_-t-e-x-t_-k-e-y_-l-i-s-t-e-n-e-r__-m-c-o-n-t-e-x-t.md) |  |
 | [REFERENCES](-r-e-f-e-r-e-n-c-e-s.md) |  |
 | [FINALIZER_WATCHDOG_DAEMON](-f-i-n-a-l-i-z-e-r_-w-a-t-c-h-d-o-g_-d-a-e-m-o-n.md) |  |
 | [MAIN](-m-a-i-n.md) |  |
@@ -106,6 +107,7 @@ Most app developers should use [appDefaults](app-defaults.md). However, you can 
 | [MOTOROLA](-m-o-t-o-r-o-l-a.md) | `const val MOTOROLA: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [NVIDIA](-n-v-i-d-i-a.md) | `const val NVIDIA: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [ONE_PLUS](-o-n-e_-p-l-u-s.md) | `const val ONE_PLUS: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [RAZER](-r-a-z-e-r.md) | `const val RAZER: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [SAMSUNG](-s-a-m-s-u-n-g.md) | `const val SAMSUNG: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [SHARP](-s-h-a-r-p.md) | `const val SHARP: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [VIVO](-v-i-v-o.md) | `const val VIVO: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |

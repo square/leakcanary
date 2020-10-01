@@ -3,6 +3,3 @@
 # heapDumpTimestamp
 
 `val heapDumpTimestamp: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)
-
-Unix timestamp at which the heap was dumped.
-

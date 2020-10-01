@@ -2,7 +2,7 @@
 
 # appDefaults
 
-`val appDefaults: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<ReferenceMatcher>`
+`@JvmStatic val appDefaults: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<ReferenceMatcher>`
 
 **See Also**
 

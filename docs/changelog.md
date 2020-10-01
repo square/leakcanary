@@ -4,6 +4,81 @@
 !!! info
     To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
 
+## Version 2.5 (2020-10-01)
+
+Please thank 
+[@Amokrane](https://github.com/Amokrane),
+[@Armaxis](https://github.com/Armaxis),
+[@askont](https://github.com/askont),
+[@chao2zhang](https://github.com/chao2zhang),
+[@daniil-shevtsov](https://github.com/daniil-shevtsov),
+[@eygraber](https://github.com/eygraber),
+[@msfjarvis](https://github.com/msfjarvis),
+[@mzgreen](https://github.com/mzgreen),
+[@lchen8](https://github.com/lchen8),
+[@rpattabi](https://github.com/rpattabi),
+[@sahil2441](https://github.com/sahil2441),
+[@SylvainGirod](https://github.com/SylvainGirod),
+[@vhow](https://github.com/vhow)
+for their contributions, bug reports and feature requests 🙏 🙏 🙏.
+
+### Heap analysis is twice at fast 🐤💨
+
+No one asked, so we delivered! We rewrote several core components in Shark (LeakCanary's heap analyzer) to dramatically reduce IO reads and allocations while keeping memory constant. More details on twitter: [thread by @ArtemChubaryan](https://twitter.com/ArtemChubaryan/status/1311078061895553030) and [thread by @Piwai](https://twitter.com/Piwai/status/1311085280753926144).
+
+### Compute retained size within the leak trace
+
+Previously, LeakCanary computed the retained size for the leaking object (the last object in the leak trace). However, the bad reference causing objects to leak is often higher up in the leak trace and everything that it holds onto is actually leaking. So LeakCanary now computes the retained size for [all the objects in the leaktrace that have a LEAKING or UNKNOWN status](https://github.com/square/leakcanary/issues/1880):
+
+```
+┬───
+│ GC Root: System class
+│
+├─ com.example.MySingleton class
+│    Leaking: NO (a class is never leaking)
+│    ↓ static MySingleton.leakedView
+│                         ~~~~~~~~~~
+├─ android.widget.TextView instance
+│    Leaking: YES (View.mContext references a destroyed activity)
+│    Retaining 46326 bytes in 942 objects
+│    ↓ TextView.mContext
+╰→ com.example.MainActivity instance
+​     Leaking: YES (Activity#mDestroyed is true)
+​     Retaining 1432 bytes in 36 objects
+```
+
+### Disable LeakCanary from the UI
+
+New toggle to disable [heap dumping](https://github.com/square/leakcanary/issues/1886), which can be useful for QA, or when doing a product demo. LeakCanary will still show a notification when an object is retained.
+
+![disable heap dumping](images/disable_dumping.png)
+
+### Deobfuscating hprof files
+
+The [Shark CLI](shark.md#shark-cli) can now [deobfuscate heap dumps](https://github.com/square/leakcanary/issues/1698):
+
+```
+brew install leakcanary-shark
+
+shark-cli --hprof heapdump.hprof -m mapping.txt deobfuscate-hprof
+```
+
+### Bug fixes and improvements 🐛🔨
+
+* Heap analysis text results now [wrap to a max width](https://github.com/square/leakcanary/issues/1811) when sharing them from the LeakCanary activity or printing to logcat. This will make it harder to miss details that are lost at the end of long lines of text.
+* The `leak_canary_watcher_auto_install`, `leak_canary_allow_in_non_debuggable_build` and `leak_canary_plumber_auto_install` resource booleans were [meant to be public](https://github.com/square/leakcanary/issues/1863).
+* We sprinkled a few `@JvmStatic` to [help Java consummers](https://github.com/square/leakcanary/issues/1870).
+* Fixed [crash when no browser installed](https://github.com/square/leakcanary/pull/1893).
+* Use distinct [group for LeakCanary notifications](https://github.com/square/leakcanary/issues/1845).
+* The heap analysis result now includes the [heap dump duration](https://github.com/square/leakcanary/pull/1931) because it looks like Android 11 heap dumps are [sometimes super slow](https://issuetracker.google.com/issues/168634429.). We also added more [perf related metrics](https://github.com/square/leakcanary/issues/1929).
+* [Disable logging](https://github.com/square/leakcanary/issues/1910) when AppWatcher runs in release builds.
+* Highlight library leak patterns [directly within the leak traces](https://github.com/square/leakcanary/issues/1916).
+* Improved inspections for [Context, View](https://github.com/square/leakcanary/issues/1912) and [ContextImpl](https://github.com/square/leakcanary/pull/1884).
+
+
+For more details, see the [2.5 Milestone](https://github.com/square/leakcanary/milestone/19) and the [full diff](https://github.com/square/leakcanary/compare/v2.4...v2.5).
+
+
 ## Version 2.4 (2020-06-10)
 
 Please thank

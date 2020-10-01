@@ -12,7 +12,7 @@ A Hprof record. These data structure map 1:1 with how records are written in hpr
 |---|---|
 | [HeapDumpEndRecord](-heap-dump-end-record.md) | `object HeapDumpEndRecord : `[`HprofRecord`](./index.md)<br>Terminates a series of heap dump segments. Concatenation of heap dump segments equals a heap dump. |
 | [HeapDumpRecord](-heap-dump-record/index.md) | `sealed class HeapDumpRecord : `[`HprofRecord`](./index.md) |
-| [LoadClassRecord](-load-class-record/index.md) | `class LoadClassRecord : `[`HprofRecord`](./index.md)<br>To limit object allocation while parsing, [HprofReader](../-hprof-reader/index.md) uses a single instance which is reused after each call to [OnHprofRecordListener.onHprofRecord](../-on-hprof-record-listener/on-hprof-record.md). |
+| [LoadClassRecord](-load-class-record/index.md) | `class LoadClassRecord : `[`HprofRecord`](./index.md) |
 | [StackFrameRecord](-stack-frame-record/index.md) | `class StackFrameRecord : `[`HprofRecord`](./index.md) |
 | [StackTraceRecord](-stack-trace-record/index.md) | `class StackTraceRecord : `[`HprofRecord`](./index.md) |
 | [StringRecord](-string-record/index.md) | `class StringRecord : `[`HprofRecord`](./index.md) |
@@ -23,7 +23,7 @@ A Hprof record. These data structure map 1:1 with how records are written in hpr
 |---|---|
 | [HeapDumpEndRecord](-heap-dump-end-record.md) | `object HeapDumpEndRecord : `[`HprofRecord`](./index.md)<br>Terminates a series of heap dump segments. Concatenation of heap dump segments equals a heap dump. |
 | [HeapDumpRecord](-heap-dump-record/index.md) | `sealed class HeapDumpRecord : `[`HprofRecord`](./index.md) |
-| [LoadClassRecord](-load-class-record/index.md) | `class LoadClassRecord : `[`HprofRecord`](./index.md)<br>To limit object allocation while parsing, [HprofReader](../-hprof-reader/index.md) uses a single instance which is reused after each call to [OnHprofRecordListener.onHprofRecord](../-on-hprof-record-listener/on-hprof-record.md). |
+| [LoadClassRecord](-load-class-record/index.md) | `class LoadClassRecord : `[`HprofRecord`](./index.md) |
 | [StackFrameRecord](-stack-frame-record/index.md) | `class StackFrameRecord : `[`HprofRecord`](./index.md) |
 | [StackTraceRecord](-stack-trace-record/index.md) | `class StackTraceRecord : `[`HprofRecord`](./index.md) |
 | [StringRecord](-string-record/index.md) | `class StringRecord : `[`HprofRecord`](./index.md) |
