@@ -7,6 +7,7 @@ import android.app.AlertDialog.Builder
 import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.method.LinkMovementMethod
+import android.util.Log
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
@@ -32,6 +33,7 @@ import leakcanary.internal.navigation.onCreateOptionsMenu
 import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
 import shark.LibraryLeak
+import shark.SharkLog
 
 internal class HeapDumpScreen(
   private val analysisId: Long
@@ -173,6 +175,7 @@ internal class HeapDumpScreen(
     val explore =
       if (heapDumpFileExist) """Explore <a href="explore_hprof">Heap Dump</a><br><br>""" else ""
     val shareAnalysis = """Share <a href="share">Heap Dump analysis</a><br><br>"""
+    val printAnalysis = """Print analysis <a href="print">to Logcat</a> (tag: LeakCanary)<br><br>"""
     val shareFile =
       if (heapDumpFileExist) """Share <a href="share_hprof">Heap Dump file</a><br><br>""" else ""
 
@@ -192,7 +195,7 @@ internal class HeapDumpScreen(
     ))
         .map { "<b>${it.key}:</b> ${it.value}" }
         .joinToString("<br>")
-    val titleText = explore + shareAnalysis + shareFile + seeMetadata
+    val titleText = explore + shareAnalysis + printAnalysis + shareFile + seeMetadata
     val title = Html.fromHtml(titleText) as SpannableStringBuilder
 
     UiUtils.replaceUrlSpanWithAction(title) { urlSpan ->
@@ -204,7 +207,12 @@ internal class HeapDumpScreen(
         }
         "share" -> {
           {
-            share(heapAnalysis.toString())
+            share(LeakTraceWrapper.wrap(heapAnalysis.toString(), 80))
+          }
+        }
+        "print" -> {
+          {
+            SharkLog.d { "\u200B\n" + LeakTraceWrapper.wrap(heapAnalysis.toString(), 120) }
           }
         }
         "share_hprof" -> {
