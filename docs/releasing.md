@@ -15,7 +15,7 @@ git checkout -b release_{{ leak_canary.next_release }}
 
 * Update `VERSION_NAME` in `gradle.properties` (remove `-SNAPSHOT`)
 ```gradle
-VERSION_NAME = "{{ leak_canary.next_release }}"
+VERSION_NAME={{ leak_canary.next_release }}
 ```
 
 * Update the current version and next version in `mkdocs.yml`:
@@ -92,7 +92,7 @@ git merge --no-ff release_{{ leak_canary.next_release }}
 ```
 * Update `VERSION_NAME` in `gradle.properties` (increase version and add `-SNAPSHOT`)
 ```gradle
-VERSION_NAME = "REPLACE_WITH_NEXT_VERSION_NUMBER-SNAPSHOT"
+VERSION_NAME=REPLACE_WITH_NEXT_VERSION_NUMBER-SNAPSHOT
 ```
 
 * Commit your changes
