@@ -13,8 +13,18 @@ fun interface OnObjectRetainedListener {
   fun onObjectRetained()
 
   companion object {
-
-    @Deprecated("Leverage Kotlin SAM lambda expression")
+    /**
+     * Utility function to create a [OnObjectRetainedListener] from the passed in [block] lambda
+     * instead of using the anonymous `object : OnObjectRetainedListener` syntax.
+     *
+     * Usage:
+     *
+     * ```kotlin
+     * val listener = OnObjectRetainedListener {
+     *
+     * }
+     * ```
+     */
     inline operator fun invoke(crossinline block: () -> Unit): OnObjectRetainedListener =
       object : OnObjectRetainedListener {
         override fun onObjectRetained() {

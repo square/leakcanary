@@ -17,8 +17,18 @@ fun interface OnHprofRecordListener {
   )
 
   companion object {
-
-    @Deprecated("Leverage Kotlin SAM lambda expression")
+    /**
+     * Utility function to create a [OnHprofRecordListener] from the passed in [block] lambda
+     * instead of using the anonymous `object : OnHprofRecordListener` syntax.
+     *
+     * Usage:
+     *
+     * ```kotlin
+     * val listener = OnHprofRecordListener { position, record ->
+     *
+     * }
+     * ```
+     */
     inline operator fun invoke(crossinline block: (Long, HprofRecord) -> Unit): OnHprofRecordListener =
       object : OnHprofRecordListener {
         override fun onHprofRecord(

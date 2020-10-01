@@ -15,7 +15,18 @@ fun interface MetadataExtractor {
      */
     val NO_OP = MetadataExtractor { emptyMap() }
 
-    @Deprecated("Leverage Kotlin SAM lambda expression")
+    /**
+     * Utility function to create a [MetadataExtractor] from the passed in [block] lambda instead of
+     * using the anonymous `object : MetadataExtractor` syntax.
+     *
+     * Usage:
+     *
+     * ```kotlin
+     * val inspector = MetadataExtractor { graph ->
+     *
+     * }
+     * ```
+     */
     inline operator fun invoke(crossinline block: (HeapGraph) -> Map<String, String>): MetadataExtractor =
       object : MetadataExtractor {
         override fun extractMetadata(graph: HeapGraph): Map<String, String> = block(graph)

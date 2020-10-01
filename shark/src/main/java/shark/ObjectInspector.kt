@@ -16,8 +16,18 @@ fun interface ObjectInspector {
   fun inspect(reporter: ObjectReporter)
 
   companion object {
-
-    @Deprecated("Leverage Kotlin SAM lambda expression")
+    /**
+     * Utility function to create a [ObjectInspector] from the passed in [block] lambda instead of
+     * using the anonymous `object : OnHeapAnalyzedListener` syntax.
+     *
+     * Usage:
+     *
+     * ```kotlin
+     * val inspector = ObjectInspector { reporter ->
+     *
+     * }
+     * ```
+     */
     inline operator fun invoke(crossinline block: (ObjectReporter) -> Unit): ObjectInspector =
       object : ObjectInspector {
         override fun inspect(

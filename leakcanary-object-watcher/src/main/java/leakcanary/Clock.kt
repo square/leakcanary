@@ -12,8 +12,18 @@ fun interface Clock {
   fun uptimeMillis(): Long
 
   companion object {
-
-    @Deprecated("Leverage Kotlin SAM lambda expression")
+    /**
+     * Utility function to create a [Clock] from the passed in [block] lambda
+     * instead of using the anonymous `object : Clock` syntax.
+     *
+     * Usage:
+     *
+     * ```kotlin
+     * val clock = Clock {
+     *
+     * }
+     * ```
+     */
     inline operator fun invoke(crossinline block: () -> Long): Clock =
       object : Clock {
         override fun uptimeMillis(): Long = block()

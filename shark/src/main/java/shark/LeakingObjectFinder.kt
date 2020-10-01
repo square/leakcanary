@@ -14,8 +14,18 @@ fun interface LeakingObjectFinder {
   fun findLeakingObjectIds(graph: HeapGraph): Set<Long>
 
   companion object {
-
-    @Deprecated("Leverage Kotlin SAM lambda expression")
+    /**
+     * Utility function to create a [LeakingObjectFinder] from the passed in [block] lambda
+     * instead of using the anonymous `object : LeakingObjectFinder` syntax.
+     *
+     * Usage:
+     *
+     * ```kotlin
+     * val listener = LeakingObjectFinder {
+     *
+     * }
+     * ```
+     */
     inline operator fun invoke(crossinline block: (HeapGraph) -> Set<Long>): LeakingObjectFinder =
       object : LeakingObjectFinder {
         override fun findLeakingObjectIds(graph: HeapGraph): Set<Long> = block(graph)

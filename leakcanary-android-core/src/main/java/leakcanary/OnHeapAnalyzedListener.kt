@@ -24,8 +24,18 @@ fun interface OnHeapAnalyzedListener {
   fun onHeapAnalyzed(heapAnalysis: HeapAnalysis)
 
   companion object {
-
-    @Deprecated("Leverage Kotlin SAM lambda expression")
+    /**
+     * Utility function to create a [OnHeapAnalyzedListener] from the passed in [block] lambda
+     * instead of using the anonymous `object : OnHeapAnalyzedListener` syntax.
+     *
+     * Usage:
+     *
+     * ```kotlin
+     * val listener = OnHeapAnalyzedListener {
+     *
+     * }
+     * ```
+     */
     inline operator fun invoke(crossinline block: (HeapAnalysis) -> Unit): OnHeapAnalyzedListener =
       object : OnHeapAnalyzedListener {
         override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
