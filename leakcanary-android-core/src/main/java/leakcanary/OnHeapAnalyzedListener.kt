@@ -22,4 +22,15 @@ fun interface OnHeapAnalyzedListener {
    * @see OnHeapAnalyzedListener
    */
   fun onHeapAnalyzed(heapAnalysis: HeapAnalysis)
+
+  companion object {
+
+    @Deprecated("Leverage Kotlin SAM lambda expression")
+    inline operator fun invoke(crossinline block: (HeapAnalysis) -> Unit): OnHeapAnalyzedListener =
+      object : OnHeapAnalyzedListener {
+        override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
+          block(heapAnalysis)
+        }
+      }
+  }
 }

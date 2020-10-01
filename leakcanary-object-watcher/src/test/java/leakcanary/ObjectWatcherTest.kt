@@ -15,9 +15,7 @@ class ObjectWatcherTest {
     override fun uptimeMillis(): Long {
       return time
     }
-  }, checkRetainedExecutor).apply {
-    addOnObjectRetainedListener{}
-  }
+  }, checkRetainedExecutor).apply { addOnObjectRetainedListener(OnObjectRetainedListener {}) }
   var time: Long = 0
 
   var ref: Any? = Any()

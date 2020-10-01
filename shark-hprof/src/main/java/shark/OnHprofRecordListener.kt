@@ -15,4 +15,18 @@ fun interface OnHprofRecordListener {
     position: Long,
     record: HprofRecord
   )
+
+  companion object {
+
+    @Deprecated("Leverage Kotlin SAM lambda expression")
+    inline operator fun invoke(crossinline block: (Long, HprofRecord) -> Unit): OnHprofRecordListener =
+      object : OnHprofRecordListener {
+        override fun onHprofRecord(
+          position: Long,
+          record: HprofRecord
+        ) {
+          block(position, record)
+        }
+      }
+  }
 }

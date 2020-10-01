@@ -15,4 +15,16 @@ fun interface ObjectInspector {
    */
   fun inspect(reporter: ObjectReporter)
 
+  companion object {
+
+    @Deprecated("Leverage Kotlin SAM lambda expression")
+    inline operator fun invoke(crossinline block: (ObjectReporter) -> Unit): ObjectInspector =
+      object : ObjectInspector {
+        override fun inspect(
+          reporter: ObjectReporter
+        ) {
+          block(reporter)
+        }
+      }
+  }
 }

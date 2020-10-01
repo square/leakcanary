@@ -29,5 +29,13 @@ fun interface OnAnalysisProgressListener {
      * A no-op [OnAnalysisProgressListener]
      */
     val NO_OP = OnAnalysisProgressListener {}
+
+    @Deprecated("Leverage Kotlin SAM lambda expression")
+    inline operator fun invoke(crossinline block: (Step) -> Unit): OnAnalysisProgressListener =
+      object : OnAnalysisProgressListener {
+        override fun onAnalysisProgress(step: Step) {
+          block(step)
+        }
+      }
   }
 }
