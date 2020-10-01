@@ -2,4 +2,6 @@
 
 # identifierByteSize
 
-`val identifierByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)
+`val ~~identifierByteSize~~: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)
+**Deprecated:** Replaced by HprofWriter.hprofHeader.identifierByteSize
+

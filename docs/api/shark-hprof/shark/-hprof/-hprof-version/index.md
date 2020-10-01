@@ -2,9 +2,8 @@
 
 # HprofVersion
 
-`enum class HprofVersion`
-
-Supported hprof versions
+`enum class ~~HprofVersion~~`
+**Deprecated:** Moved to top level class
 
 ### Enum Values
 

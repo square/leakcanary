@@ -6,12 +6,8 @@
 
 [InstrumentationLeakDetector](index.md) can be used to detect memory leaks in instrumentation tests.
 
-To use it, you need to:
-
-* Call [updateConfig](update-config.md) so that [AppWatcher](#) will watch objects and [LeakCanary](#) will not dump
-the heap on retained objects
-* Add an instrumentation test listener (e.g. [FailTestOnLeakRunListener](../-fail-test-on-leak-run-listener/index.md)) that will invoke
-[detectLeaks](detect-leaks.md).
+To use it, you need to add an instrumentation test listener (e.g. [FailTestOnLeakRunListener](../-fail-test-on-leak-run-listener/index.md))
+that will invoke [detectLeaks](detect-leaks.md).
 
 ### Add an instrumentation test listener
 

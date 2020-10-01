@@ -2,7 +2,7 @@
 
 # ignoredReferencesOnly
 
-`val ignoredReferencesOnly: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<ReferenceMatcher>`
+`@JvmStatic val ignoredReferencesOnly: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<ReferenceMatcher>`
 
 Returns a list of [ReferenceMatcher](#) that only contains [IgnoredReferenceMatcher](#) and no
 [LibraryLeakReferenceMatcher](#).

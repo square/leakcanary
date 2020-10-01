@@ -2,4 +2,6 @@
 
 # hprofVersion
 
-`val hprofVersion: `[`Hprof.HprofVersion`](../-hprof/-hprof-version/index.md)
+`val ~~hprofVersion~~: `[`Hprof.HprofVersion`](../-hprof/-hprof-version/index.md)
+**Deprecated:** Replaced by HprofWriter.hprofHeader.version
+

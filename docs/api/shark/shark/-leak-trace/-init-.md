@@ -2,7 +2,7 @@
 
 # &lt;init&gt;
 
-`LeakTrace(gcRootType: `[`LeakTrace.GcRootType`](-gc-root-type/index.md)`, referencePath: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`LeakTraceReference`](../-leak-trace-reference/index.md)`>, leakingObject: `[`LeakTraceObject`](../-leak-trace-object/index.md)`, retainedHeapByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`?)`
+`LeakTrace(gcRootType: `[`LeakTrace.GcRootType`](-gc-root-type/index.md)`, referencePath: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`LeakTraceReference`](../-leak-trace-reference/index.md)`>, leakingObject: `[`LeakTraceObject`](../-leak-trace-object/index.md)`)`
 
 The best strong reference path from a GC root to the leaking object. "Best" here means the
 shortest prioritized path. A large number of distinct paths can generally be found leading

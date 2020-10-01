@@ -14,6 +14,7 @@ A leak found by [HeapAnalyzer](../-heap-analyzer/index.md), either an [Applicati
 | [shortDescription](short-description.md) | `abstract val shortDescription: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [signature](signature.md) | `abstract val signature: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>A unique SHA1 hash that represents this group of leak traces. |
 | [totalRetainedHeapByteSize](total-retained-heap-byte-size.md) | `val totalRetainedHeapByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`?`<br>Sum of [LeakTrace.retainedHeapByteSize](../-leak-trace/retained-heap-byte-size.md) for all elements in [leakTraces](leak-traces.md). Null if the retained heap size was not computed. |
+| [totalRetainedObjectCount](total-retained-object-count.md) | `val totalRetainedObjectCount: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`?`<br>Sum of [LeakTrace.retainedObjectCount](../-leak-trace/retained-object-count.md) for all elements in [leakTraces](leak-traces.md). Null if the retained heap size was not computed. |
 
 ### Functions
 

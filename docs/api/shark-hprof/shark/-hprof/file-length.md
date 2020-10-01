@@ -3,6 +3,3 @@
 # fileLength
 
 `val fileLength: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)
-
-Length of the hprof file, in bytes.
-

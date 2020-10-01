@@ -14,7 +14,14 @@ compatibility.
 |---|---|
 | [analysisDurationMillis](analysis-duration-millis.md) | `abstract val analysisDurationMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>Total time spent analyzing the heap. |
 | [createdAtTimeMillis](created-at-time-millis.md) | `abstract val createdAtTimeMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>The [System.currentTimeMillis](https://docs.oracle.com/javase/6/docs/api/java/lang/System.html#currentTimeMillis()) when this [HeapAnalysis](./index.md) instance was created. |
+| [dumpDurationMillis](dump-duration-millis.md) | `abstract val dumpDurationMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>Total time spent dumping the heap. |
 | [heapDumpFile](heap-dump-file.md) | `abstract val heapDumpFile: `[`File`](https://docs.oracle.com/javase/6/docs/api/java/io/File.html)<br>The hprof file that was analyzed. |
+
+### Companion Object Properties
+
+| Name | Summary |
+|---|---|
+| [DUMP_DURATION_UNKNOWN](-d-u-m-p_-d-u-r-a-t-i-o-n_-u-n-k-n-o-w-n.md) | `const val DUMP_DURATION_UNKNOWN: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
 
 ### Inheritors
 
