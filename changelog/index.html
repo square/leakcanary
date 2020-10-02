@@ -721,8 +721,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#heap-analysis-is-twice-at-fast" class="md-nav__link">
-    Heap analysis is twice at fast 🐤💨
+  <a href="#heap-analysis-is-twice-as-fast" class="md-nav__link">
+    Heap analysis is twice as fast 🐤💨
   </a>
   
 </li>
@@ -1229,8 +1229,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#heap-analysis-is-twice-at-fast" class="md-nav__link">
-    Heap analysis is twice at fast 🐤💨
+  <a href="#heap-analysis-is-twice-as-fast" class="md-nav__link">
+    Heap analysis is twice as fast 🐤💨
   </a>
   
 </li>
@@ -1739,8 +1739,8 @@
 <a href="https://github.com/SylvainGirod">@SylvainGirod</a>,
 <a href="https://github.com/vhow">@vhow</a>
 for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
-<h3 id="heap-analysis-is-twice-at-fast">Heap analysis is twice at fast 🐤💨<a class="headerlink" href="#heap-analysis-is-twice-at-fast" title="Permanent link">&para;</a></h3>
-<p>No one asked, so we delivered! We rewrote several core components in Shark (LeakCanary&rsquo;s heap analyzer) to dramatically reduce IO reads and allocations while keeping memory constant. More details on twitter: <a href="https://twitter.com/ArtemChubaryan/status/1311078061895553030">thread by @ArtemChubaryan</a> and <a href="https://twitter.com/Piwai/status/1311085280753926144">thread by @Piwai</a>.</p>
+<h3 id="heap-analysis-is-twice-as-fast">Heap analysis is twice as fast 🐤💨<a class="headerlink" href="#heap-analysis-is-twice-as-fast" title="Permanent link">&para;</a></h3>
+<p>No one asked, so we delivered! We rewrote several core components in Shark (LeakCanary&rsquo;s heap analyzer) to dramatically reduce IO reads and allocations while keeping memory constant. More details on Twitter: <a href="https://twitter.com/ArtemChubaryan/status/1311078061895553030">thread by @ArtemChubaryan</a> and <a href="https://twitter.com/Piwai/status/1311085280753926144">thread by @Piwai</a>.</p>
 <h3 id="compute-retained-size-within-the-leak-trace">Compute retained size within the leak trace<a class="headerlink" href="#compute-retained-size-within-the-leak-trace" title="Permanent link">&para;</a></h3>
 <p>Previously, LeakCanary computed the retained size for the leaking object (the last object in the leak trace). However, the bad reference causing objects to leak is often higher up in the leak trace and everything that it holds onto is actually leaking. So LeakCanary now computes the retained size for <a href="https://github.com/square/leakcanary/issues/1880">all the objects in the leaktrace that have a LEAKING or UNKNOWN status</a>:</p>
 <div class="highlight"><pre><span></span><code>┬───
@@ -1776,7 +1776,7 @@ shark-cli --hprof heapdump.hprof -m mapping.txt deobfuscate-hprof
 <li>We sprinkled a few <code>@JvmStatic</code> to <a href="https://github.com/square/leakcanary/issues/1870">help Java consummers</a>.</li>
 <li>Fixed <a href="https://github.com/square/leakcanary/pull/1893">crash when no browser installed</a>.</li>
 <li>Use distinct <a href="https://github.com/square/leakcanary/issues/1845">group for LeakCanary notifications</a>.</li>
-<li>The heap analysis result now includes the <a href="https://github.com/square/leakcanary/pull/1931">heap dump duration</a> because it looks like Android 11 heap dumps are <a href="https://issuetracker.google.com/issues/168634429.">sometimes super slow</a>. We also added more <a href="https://github.com/square/leakcanary/issues/1929">perf related metrics</a>.</li>
+<li>The heap analysis result now includes the <a href="https://github.com/square/leakcanary/pull/1931">heap dump duration</a> because it looks like Android 11 heap dumps are <a href="https://issuetracker.google.com/issues/168634429">sometimes super slow</a>. We also added more <a href="https://github.com/square/leakcanary/issues/1929">perf related metrics</a>.</li>
 <li><a href="https://github.com/square/leakcanary/issues/1910">Disable logging</a> when AppWatcher runs in release builds.</li>
 <li>Highlight library leak patterns <a href="https://github.com/square/leakcanary/issues/1916">directly within the leak traces</a>.</li>
 <li>Improved inspections for <a href="https://github.com/square/leakcanary/issues/1912">Context, View</a> and <a href="https://github.com/square/leakcanary/pull/1884">ContextImpl</a>.</li>

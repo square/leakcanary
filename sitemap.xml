@@ -1,111 +1,111 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url>
      <loc>https://square.github.io/leakcanary/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/getting_started/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/fundamentals/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/fundamentals-fixing-a-memory-leak/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/recipes/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/faq/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/support/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/recorded-presentations/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/blog-articles/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/code_of_conduct/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/dev-env/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/releasing/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/how_to_help/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/shark/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/shark/shark/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/shark-android/shark/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/shark-graph/shark/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/shark-hprof/shark/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/shark-log/shark/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/leakcanary-android-core/leakcanary/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/leakcanary-object-watcher-android/leakcanary/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/leakcanary-android-instrumentation/leakcanary/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/leakcanary-android-process/leakcanary/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/api/leakcanary-object-watcher/leakcanary/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://square.github.io/leakcanary/changelog/</loc>
-     <lastmod>2020-10-01</lastmod>
+     <lastmod>2020-10-02</lastmod>
      <changefreq>daily</changefreq>
     </url>
 </urlset>
