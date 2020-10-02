@@ -22,9 +22,9 @@ Please thank
 [@vhow](https://github.com/vhow)
 for their contributions, bug reports and feature requests 🙏 🙏 🙏.
 
-### Heap analysis is twice at fast 🐤💨
+### Heap analysis is twice as fast 🐤💨
 
-No one asked, so we delivered! We rewrote several core components in Shark (LeakCanary's heap analyzer) to dramatically reduce IO reads and allocations while keeping memory constant. More details on twitter: [thread by @ArtemChubaryan](https://twitter.com/ArtemChubaryan/status/1311078061895553030) and [thread by @Piwai](https://twitter.com/Piwai/status/1311085280753926144).
+No one asked, so we delivered! We rewrote several core components in Shark (LeakCanary's heap analyzer) to dramatically reduce IO reads and allocations while keeping memory constant. More details on Twitter: [thread by @ArtemChubaryan](https://twitter.com/ArtemChubaryan/status/1311078061895553030) and [thread by @Piwai](https://twitter.com/Piwai/status/1311085280753926144).
 
 ### Compute retained size within the leak trace
 
@@ -70,7 +70,7 @@ shark-cli --hprof heapdump.hprof -m mapping.txt deobfuscate-hprof
 * We sprinkled a few `@JvmStatic` to [help Java consummers](https://github.com/square/leakcanary/issues/1870).
 * Fixed [crash when no browser installed](https://github.com/square/leakcanary/pull/1893).
 * Use distinct [group for LeakCanary notifications](https://github.com/square/leakcanary/issues/1845).
-* The heap analysis result now includes the [heap dump duration](https://github.com/square/leakcanary/pull/1931) because it looks like Android 11 heap dumps are [sometimes super slow](https://issuetracker.google.com/issues/168634429.). We also added more [perf related metrics](https://github.com/square/leakcanary/issues/1929).
+* The heap analysis result now includes the [heap dump duration](https://github.com/square/leakcanary/pull/1931) because it looks like Android 11 heap dumps are [sometimes super slow](https://issuetracker.google.com/issues/168634429). We also added more [perf related metrics](https://github.com/square/leakcanary/issues/1929).
 * [Disable logging](https://github.com/square/leakcanary/issues/1910) when AppWatcher runs in release builds.
 * Highlight library leak patterns [directly within the leak traces](https://github.com/square/leakcanary/issues/1916).
 * Improved inspections for [Context, View](https://github.com/square/leakcanary/issues/1912) and [ContextImpl](https://github.com/square/leakcanary/pull/1884).
