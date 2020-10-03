@@ -33,7 +33,7 @@ internal class RenderHeapDumpScreen(
       container.activity.title = resources.getString(R.string.leak_canary_loading_title)
 
       executeOnIo {
-        val byteCount = humanReadableByteCount(heapDumpFile.length(), false)
+        val byteCount = humanReadableByteCount(heapDumpFile.length(), si = true)
         updateUi {
           container.activity.title =
             resources.getString(R.string.leak_canary_heap_dump_screen_title, byteCount)
