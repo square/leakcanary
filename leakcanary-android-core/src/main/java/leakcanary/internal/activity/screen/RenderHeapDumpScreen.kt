@@ -19,6 +19,7 @@ import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
+import leakcanary.internal.utils.humanReadableByteCount
 import shark.SharkLog
 import java.io.File
 import java.io.FileOutputStream
@@ -33,7 +34,7 @@ internal class RenderHeapDumpScreen(
       container.activity.title = resources.getString(R.string.leak_canary_loading_title)
 
       executeOnIo {
-        val byteCount = humanReadableByteCount(heapDumpFile.length(), false)
+        val byteCount = humanReadableByteCount(heapDumpFile.length(), si = true)
         updateUi {
           container.activity.title =
             resources.getString(R.string.leak_canary_heap_dump_screen_title, byteCount)
@@ -128,18 +129,6 @@ internal class RenderHeapDumpScreen(
             }
       }
     }
-
-  // https://stackoverflow.com/a/3758880
-  fun humanReadableByteCount(
-    bytes: Long,
-    si: Boolean
-  ): String {
-    val unit = if (si) 1000 else 1024
-    if (bytes < unit) return "$bytes B"
-    val exp = (Math.log(bytes.toDouble()) / Math.log(unit.toDouble())).toInt()
-    val pre = (if (si) "kMGTPE" else "KMGTPE")[exp - 1] + if (si) "" else "i"
-    return String.format("%.1f %sB", bytes / Math.pow(unit.toDouble(), exp.toDouble()), pre)
-  }
 
   fun savePng(
     imageFile: File,

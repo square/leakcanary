@@ -37,6 +37,7 @@ import leakcanary.internal.DisplayLeakConnectorView.Type.START
 import leakcanary.internal.DisplayLeakConnectorView.Type.START_LAST_REACHABLE
 import leakcanary.internal.navigation.getColorCompat
 import leakcanary.internal.navigation.inflate
+import leakcanary.internal.utils.humanReadableByteCount
 import shark.LeakTrace
 import shark.LeakTrace.GcRootType.JAVA_FRAME
 import shark.LeakTraceObject
@@ -177,9 +178,10 @@ internal class DisplayLeakAdapter constructor(
 
     htmlString += "$INDENTATION${extra("Leaking: ")}$reachabilityString<br>"
 
-    if (retainedHeapByteSize != null) {
-      htmlString += "${INDENTATION}${extra("Retaining ")}$retainedHeapByteSize${extra(
-          " bytes in "
+    retainedHeapByteSize?.let {
+      val humanReadableRetainedHeapSize = humanReadableByteCount(it.toLong(), si = true)
+      htmlString += "${INDENTATION}${extra("Retaining ")}$humanReadableRetainedHeapSize${extra(
+          " in "
       )}$retainedObjectCount${extra(" objects")}<br>"
     }
 

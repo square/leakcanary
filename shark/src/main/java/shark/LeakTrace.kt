@@ -7,6 +7,8 @@ import shark.LeakTraceObject.LeakingStatus.UNKNOWN
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.internal.createSHA1Hash
 import java.io.Serializable
+import kotlin.math.ln
+import kotlin.math.pow
 
 /**
  * The best strong reference path from a GC root to the leaking object. "Best" here means the
@@ -96,6 +98,18 @@ data class LeakTrace(
 
   fun toSimplePathString(): String = leakTraceAsString(showLeakingStatus = false)
 
+  // https://stackoverflow.com/a/3758880
+  private fun humanReadableByteCount(
+          bytes: Long,
+          si: Boolean
+  ): String {
+    val unit = if (si) 1000 else 1024
+    if (bytes < unit) return "$bytes B"
+    val exp = (ln(bytes.toDouble()) / ln(unit.toDouble())).toInt()
+    val pre = (if (si) "kMGTPE" else "KMGTPE")[exp - 1] + if (si) "" else "i"
+    return String.format("%.1f %sB", bytes / unit.toDouble().pow(exp.toDouble()), pre)
+  }
+
   private fun leakTraceAsString(showLeakingStatus: Boolean): String {
     var result = """
         ┬───
@@ -123,7 +137,8 @@ data class LeakTrace(
         result += "\n│    Leaking: $leakStatus"
       }
       if (originObject.retainedHeapByteSize != null) {
-        result += "\n│    Retaining ${originObject.retainedHeapByteSize} bytes in ${originObject.retainedObjectCount} objects"
+        val humanReadableRetainedHeapSize = humanReadableByteCount(originObject.retainedHeapByteSize.toLong(), si = true)
+        result += "\n│    Retaining $humanReadableRetainedHeapSize in ${originObject.retainedObjectCount} objects"
       }
 
       for (label in originObject.labels) {
@@ -140,7 +155,8 @@ data class LeakTrace(
     }
     if (leakingObject.retainedHeapByteSize != null) {
       result += "\n$ZERO_WIDTH_SPACE"
-      result += "     Retaining ${leakingObject.retainedHeapByteSize} bytes in ${leakingObject.retainedObjectCount} objects"
+      val humanReadableRetainedHeapSize = humanReadableByteCount(leakingObject.retainedHeapByteSize.toLong(), si = true)
+      result += "     Retaining $humanReadableRetainedHeapSize in ${leakingObject.retainedObjectCount} objects"
     }
     for (label in leakingObject.labels) {
       result += "\n$ZERO_WIDTH_SPACE"
