@@ -240,7 +240,7 @@ In the previous example, LeakCanary narrowed down the suspect references to `Exa
 
 ## 4. Fix the leak
 
-Once you find the reference causing the leak, you need to figure out what that reference is about, when it should have been cleared and why it hasn't been. Sometimes it's obvious, like in the previous example. Sometimes you need more information to figure it out. You can [add labels](recipes.md#identifying-leaking-objects-and-labeling-objects), or explore the hprof directly (see [How can I dig beyond the leak trace?](faq.md/#how-can-i-dig-beyond-the-leak-trace)).
+Once you find the reference causing the leak, you need to figure out what that reference is about, when it should have been cleared and why it hasn't been. Sometimes it's obvious, like in the previous example. Sometimes you need more information to figure it out. You can [add labels](recipes.md#identifying-leaking-objects-and-labeling-objects), or explore the hprof directly (see [How can I dig beyond the leak trace?](faq.md#how-can-i-dig-beyond-the-leak-trace)).
 
 
 !!! warning
