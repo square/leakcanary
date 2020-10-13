@@ -15,6 +15,7 @@ buildscript {
 
 dependencies {
   debugImplementation project(':leakcanary-android')
+  releaseImplementation project(':leakcanary-android-release')
 
   implementation deps.kotlin.stdlib
 
