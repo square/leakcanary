@@ -5,6 +5,7 @@ dependencies {
   api project(':shark-android')
 
   implementation deps.kotlin.stdlib
+  implementation deps.okio
 }
 
 def gitSha() {

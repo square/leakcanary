@@ -16,6 +16,8 @@ buildscript {
 dependencies {
   debugImplementation project(':leakcanary-android')
   releaseImplementation project(':leakcanary-android-release')
+  // Optional
+  releaseImplementation project(':leakcanary-object-watcher-android')
 
   implementation deps.kotlin.stdlib
 
@@ -39,7 +41,7 @@ android {
 
   defaultConfig {
     applicationId "com.example.leakcanary"
-    minSdkVersion versions.minSdk
+    minSdkVersion 16
     targetSdkVersion versions.compileSdk
 
     versionCode 1
@@ -66,8 +68,9 @@ android {
     } else {
       debug
     }
-
-    release
+    release {
+      signingConfig signingConfigs.debug
+    }
   }
 
   dexOptions {
