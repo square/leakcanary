@@ -22,6 +22,7 @@ internal class LeakReference : Serializable {
         LOCAL -> LeakTraceReference.ReferenceType.LOCAL
         ARRAY_ENTRY -> LeakTraceReference.ReferenceType.ARRAY_ENTRY
       },
+      owningClassName = originObject.className,
       referenceName = name!!
   )
 

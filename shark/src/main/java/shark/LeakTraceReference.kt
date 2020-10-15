@@ -4,6 +4,7 @@ import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
 import shark.LeakTraceReference.ReferenceType.LOCAL
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
+import shark.internal.lastSegment
 import java.io.Serializable
 
 /**
@@ -17,6 +18,8 @@ data class LeakTraceReference(
 
   val referenceType: ReferenceType,
 
+  val owningClassName: String,
+
   val referenceName: String
 
 ) : Serializable {
@@ -27,6 +30,13 @@ data class LeakTraceReference(
     LOCAL,
     ARRAY_ENTRY
   }
+
+  /**
+   * Returns {@link #className} without the package, ie stripped of any string content before the
+   * last period (included).
+   */
+  val owningClassSimpleName: String get() = owningClassName.lastSegment('.')
+
 
   val referenceDisplayName: String
     get() {

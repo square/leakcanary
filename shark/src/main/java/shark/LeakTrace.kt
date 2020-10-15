@@ -220,7 +220,7 @@ data class LeakTrace(
     ): String {
       val static = if (reference.referenceType == STATIC_FIELD) " static" else ""
       val referenceLine =
-        "    ↓$static ${reference.originObject.classSimpleName}.${reference.referenceDisplayName}"
+        "    ↓$static ${reference.owningClassSimpleName}.${reference.referenceDisplayName}"
 
       return if (showLeakingStatus && leakTrace.referencePathElementIsSuspect(index)) {
         val lengthBeforeReferenceName = referenceLine.lastIndexOf('.') + 1

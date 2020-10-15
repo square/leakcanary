@@ -295,7 +295,7 @@ class HeapAnalyzer constructor(
     fun asList() = listOf(root) + childPath
   }
 
-  private fun buildLeakTraces(
+  private fun FindLeakInput.buildLeakTraces(
     shortestPaths: List<ShortestPath>,
     inspectedObjectsByPath: List<List<InspectedObject>>,
     retainedSizes: Map<Long, Pair<Int, Int>>?
@@ -424,7 +424,7 @@ class HeapAnalyzer constructor(
     }
   }
 
-  private fun buildReferencePath(
+  private fun FindLeakInput.buildReferencePath(
     shortestChildPath: List<ChildNode>,
     leakTraceObjects: List<LeakTraceObject>
   ): List<LeakTraceReference> {
@@ -432,6 +432,11 @@ class HeapAnalyzer constructor(
       LeakTraceReference(
           originObject = leakTraceObjects[index],
           referenceType = childNode.refFromParentType,
+          owningClassName = if (childNode.owningClassId != 0L) {
+            graph.findObjectById(childNode.owningClassId).asClass!!.name
+          } else {
+            leakTraceObjects[index].className
+          },
           referenceName = childNode.refFromParentName
       )
     }

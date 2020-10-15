@@ -44,6 +44,7 @@ import shark.LeakTraceObject
 import shark.LeakTraceObject.LeakingStatus.LEAKING
 import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
 import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceReference
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 
 @Suppress("DEPRECATION")
@@ -144,7 +145,7 @@ internal class DisplayLeakAdapter constructor(
         val staticPrefix = if (referencePath.referenceType == STATIC_FIELD) "static " else ""
 
         val htmlString = leakTraceObject.asHtmlString(typeName) +
-            "$INDENTATION$staticPrefix${leakTraceObject.styledClassSimpleName()}.$referenceName"
+            "$INDENTATION$staticPrefix${referencePath.styledOwningClassSimpleName()}.$referenceName"
 
         val builder = Html.fromHtml(htmlString) as SpannableStringBuilder
         if (isSuspect) {
@@ -193,6 +194,11 @@ internal class DisplayLeakAdapter constructor(
 
   private fun LeakTraceObject.styledClassSimpleName(): String {
     val simpleName = classSimpleName.replace("[]", "[ ]")
+    return "<font color='$highlightColorHexString'>$simpleName</font>"
+  }
+
+  private fun LeakTraceReference.styledOwningClassSimpleName(): String {
+    val simpleName = owningClassSimpleName.replace("[]", "[ ]")
     return "<font color='$highlightColorHexString'>$simpleName</font>"
   }
 
