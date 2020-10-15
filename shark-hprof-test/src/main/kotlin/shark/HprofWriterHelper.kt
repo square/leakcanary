@@ -353,7 +353,7 @@ fun dump(
   block: HprofWriterHelper.() -> Unit
 ): DualSourceProvider {
   val buffer = Buffer()
-  HprofWriterHelper(HprofWriter.openWriterFor(buffer))
+  HprofWriterHelper(HprofWriter.openWriterFor(buffer, hprofHeader))
       .use(block)
   return ByteArraySourceProvider(buffer.readByteArray())
 }

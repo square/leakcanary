@@ -21,13 +21,9 @@ class LabelerTest {
   @Test fun stringContentAsLabel() {
     hprofFile.writeSinglePathToString("World")
 
-    val labeler = object : ObjectInspector {
-      override fun inspect(
-        reporter: ObjectReporter
-      ) {
-        reporter.whenInstanceOf("java.lang.String") { instance ->
-          labels += "Hello ${instance.readAsJavaString()}"
-        }
+    val labeler = ObjectInspector { reporter ->
+      reporter.whenInstanceOf("java.lang.String") { instance ->
+        labels += "Hello ${instance.readAsJavaString()}"
       }
     }
 
@@ -36,6 +32,23 @@ class LabelerTest {
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
 
     assertThat(leakTrace.leakingObject.labels).contains("Hello World")
+  }
+
+  @Test fun labelOnUnreachableObject() {
+    val heapDump = dump {
+      "com.example.SomeClass" watchedInstance {
+      }
+    }
+
+    val labeler = ObjectInspector { reporter ->
+      reporter.whenInstanceOf("java.lang.Object") { instance ->
+        labels += instance.instanceClassSimpleName
+      }
+    }
+
+    val analysis = heapDump.checkForLeaks<HeapAnalysisSuccess>(objectInspectors = listOf(labeler))
+
+    assertThat(analysis.unreachableObjects[0].labels).contains("SomeClass")
   }
 
   @Test fun threadNameLabel() {
