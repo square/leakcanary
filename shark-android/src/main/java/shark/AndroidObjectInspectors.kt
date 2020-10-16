@@ -42,8 +42,28 @@ enum class AndroidObjectInspectors : ObjectInspector {
       if (heapObject is HeapInstance && heapObject instanceOf "android.view.View") {
         val mContext = heapObject["android.view.View", "mContext"]!!.value.asObject!!.asInstance!!
         val activityContext = mContext.unwrapActivityContext()
-        (activityContext != null &&
+        val mContextIsDestroyedActivity = (activityContext != null &&
             activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true)
+        if (mContextIsDestroyedActivity) {
+          true
+        } else {
+          val viewDetached = heapObject["android.view.View", "mAttachInfo"]!!.value.isNullReference
+          if (viewDetached) {
+            val mWindowAttachCount =
+              heapObject["android.view.View", "mWindowAttachCount"]?.value!!.asInt!!
+            if (mWindowAttachCount > 0) {
+              var rootParent = heapObject["android.view.View", "mParent"]!!.valueAsInstance
+              var rootView: HeapInstance? = null
+              while (rootParent != null && rootParent instanceOf "android.view.View") {
+                rootView = rootParent
+                rootParent = rootParent["android.view.View", "mParent"]!!.valueAsInstance
+              }
+              val partOfWindowHierarchy = rootParent != null || (rootView != null &&
+                  rootView.instanceClassName == "com.android.internal.policy.DecorView")
+              partOfWindowHierarchy
+            } else false
+          } else false
+        }
       } else false
     }
 
@@ -60,7 +80,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
           rootParent = rootParent["android.view.View", "mParent"]!!.valueAsInstance
         }
 
-        val heldByViewRootImpl = rootParent != null
+        val partOfWindowHierarchy = rootParent != null || (rootView != null &&
+            rootView.instanceClassName == "com.android.internal.policy.DecorView")
 
         val mWindowAttachCount =
           instance["android.view.View", "mWindowAttachCount"]?.value!!.asInt!!
@@ -71,7 +92,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
           leakingReasons += "View.mContext references a destroyed activity"
         } else {
-          if (heldByViewRootImpl && mWindowAttachCount > 0) {
+          if (partOfWindowHierarchy && mWindowAttachCount > 0) {
             if (viewDetached) {
               leakingReasons += "View detached yet still part of window view hierarchy"
             } else {
@@ -84,7 +105,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
           }
         }
 
-        labels += if (heldByViewRootImpl) {
+        labels += if (partOfWindowHierarchy) {
           "View is part of a window view hierarchy"
         } else {
           "View not part of a window view hierarchy"
@@ -165,7 +186,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
           reporter.run {
             val componentContext = fieldInstance.unwrapComponentContext()
             labels += if (componentContext == null) {
-              "${field.name} instance of ${fieldInstance.instanceClassName}, not wrapping known Android context"
+              "${field.name} instance of ${fieldInstance.instanceClassName}"
             } else if (componentContext instanceOf "android.app.Activity") {
               val activityDescription =
                 "with mDestroyed = " + (componentContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
