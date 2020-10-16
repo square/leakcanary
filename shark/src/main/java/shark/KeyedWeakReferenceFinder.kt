@@ -23,8 +23,7 @@ object KeyedWeakReferenceFinder : LeakingObjectFinder {
       }
       if (heapDumpUptimeMillis == null) {
         SharkLog.d {
-          "leakcanary.KeyedWeakReference.heapDumpUptimeMillis field not found, " +
-              "this must be a heap dump from an older version of LeakCanary."
+          "leakcanary.KeyedWeakReference.heapDumpUptimeMillis field not found"
         }
       }
       heapDumpUptimeMillis
