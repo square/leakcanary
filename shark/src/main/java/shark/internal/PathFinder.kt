@@ -492,24 +492,25 @@ internal class PathFinder(
     val fieldNamesAndValues =
       instance.readAllNonNullFieldsOfReferenceType(classHierarchy)
 
-    fieldNamesAndValues.sortBy { it.second }
+    fieldNamesAndValues.sortBy { it.fieldName }
 
-    fieldNamesAndValues.forEach { pair ->
-      val (objectId, name) = pair
-      val node = when (val referenceMatcher = fieldReferenceMatchers[name]) {
+    fieldNamesAndValues.forEach { instanceRefField ->
+      val node = when (val referenceMatcher = fieldReferenceMatchers[instanceRefField.fieldName]) {
         null -> NormalNode(
-            objectId = objectId,
+            objectId = instanceRefField.refObjectId,
             parent = parent,
             refFromParentType = INSTANCE_FIELD,
-            refFromParentName = name
+            refFromParentName = instanceRefField.fieldName,
+            owningClassId = instanceRefField.declaringClassId
         )
         is LibraryLeakReferenceMatcher ->
           LibraryLeakChildNode(
-              objectId = objectId,
+              objectId = instanceRefField.refObjectId,
               parent = parent,
               refFromParentType = INSTANCE_FIELD,
-              refFromParentName = name,
-              matcher = referenceMatcher
+              refFromParentName = instanceRefField.fieldName,
+              matcher = referenceMatcher,
+              owningClassId = instanceRefField.declaringClassId
           )
         is IgnoredReferenceMatcher -> null
       }
@@ -519,14 +520,20 @@ internal class PathFinder(
     }
   }
 
+  private class InstanceRefField(
+    val declaringClassId: Long,
+    val refObjectId: Long,
+    val fieldName: String
+  )
+
   private fun HeapInstance.readAllNonNullFieldsOfReferenceType(
     classHierarchy: List<HeapClass>
-  ): MutableList<LongObjectPair<String>> {
+  ): MutableList<InstanceRefField> {
     // Assigning to local variable to avoid repeated lookup and cast:
     // HeapInstance.graph casts HeapInstance.hprofGraph to HeapGraph in its getter
     val hprofGraph = graph
     var fieldReader: FieldIdReader? = null
-    val result = mutableListOf<LongObjectPair<String>>()
+    val result = mutableListOf<InstanceRefField>()
     var skipBytesCount = 0
 
     for (heapClass in classHierarchy) {
@@ -546,7 +553,11 @@ internal class PathFinder(
 
           val objectId = fieldReader.readId()
           if (objectId != 0L) {
-            result.add(objectId to heapClass.instanceFieldName(fieldRecord))
+            result.add(
+                InstanceRefField(
+                    heapClass.objectId, objectId, heapClass.instanceFieldName(fieldRecord)
+                )
+            )
           }
         }
       }

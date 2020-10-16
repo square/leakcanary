@@ -9,6 +9,7 @@ import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapInstance
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.StaticFieldPattern
+import shark.ValueHolder.ReferenceHolder
 import java.io.File
 
 class LeakTraceStringRenderingTest {
@@ -280,6 +281,39 @@ class LeakTraceStringRenderingTest {
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
     """
+  }
+
+  @Test fun renderFieldFromSuperClass() {
+    hprofFile.dump {
+      val leakingInstance = "Leaking" watchedInstance {}
+      val parentClassId = clazz("com.ParentClass", fields = listOf("leak" to ReferenceHolder::class))
+      val childClassId = clazz("com.ChildClass", superclassId = parentClassId)
+      "GcRoot" clazz {
+        staticField["child"] = instance(childClassId, listOf(leakingInstance))
+      }
+    }
+
+    val analysis =
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+
+    analysis renders """
+    ┬───
+    │ GC Root: System class
+    │
+    ├─ GcRoot class
+    │    Leaking: UNKNOWN
+    │    ↓ static GcRoot.child
+    │                    ~~~~~
+    ├─ com.ChildClass instance
+    │    Leaking: UNKNOWN
+    │    ↓ ParentClass.leak
+    │                  ~~~~
+    ╰→ Leaking instance
+    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
+        """
   }
 
   private infix fun HeapAnalysisSuccess.renders(expectedString: String) {
