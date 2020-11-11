@@ -1,0 +1,99 @@
+public final class shark/AnalyzeCommand : com/github/ajalt/clikt/core/CliktCommand {
+	public static final field Companion Lshark/AnalyzeCommand$Companion;
+	public fun <init> ()V
+	public fun run ()V
+}
+
+public final class shark/AnalyzeCommand$Companion {
+	public final fun analyze (Lcom/github/ajalt/clikt/core/CliktCommand;Ljava/io/File;Ljava/io/File;)V
+}
+
+public final class shark/DeobfuscateHprofCommand : com/github/ajalt/clikt/core/CliktCommand {
+	public fun <init> ()V
+	public fun run ()V
+}
+
+public final class shark/DumpProcessCommand : com/github/ajalt/clikt/core/CliktCommand {
+	public static final field Companion Lshark/DumpProcessCommand$Companion;
+	public fun <init> ()V
+	public fun run ()V
+}
+
+public final class shark/DumpProcessCommand$Companion {
+	public final fun dumpHeap (Lcom/github/ajalt/clikt/core/CliktCommand;Ljava/lang/String;Ljava/lang/String;)Ljava/io/File;
+}
+
+public final class shark/InteractiveCommand : com/github/ajalt/clikt/core/CliktCommand {
+	public fun <init> ()V
+	public fun run ()V
+}
+
+public final class shark/InteractiveCommand$COMMAND : java/lang/Enum {
+	public static final field ANALYZE Lshark/InteractiveCommand$COMMAND;
+	public static final field ARRAY Lshark/InteractiveCommand$COMMAND;
+	public static final field CLASS Lshark/InteractiveCommand$COMMAND;
+	public static final field Companion Lshark/InteractiveCommand$COMMAND$Companion;
+	public static final field DETAILED_PATH_TO_INSTANCE Lshark/InteractiveCommand$COMMAND;
+	public static final field EXIT Lshark/InteractiveCommand$COMMAND;
+	public static final field HELP Lshark/InteractiveCommand$COMMAND;
+	public static final field INSTANCE Lshark/InteractiveCommand$COMMAND;
+	public static final field PATH_TO_INSTANCE Lshark/InteractiveCommand$COMMAND;
+	public final fun getCommandName ()Ljava/lang/String;
+	public final fun getHelp ()Ljava/lang/String;
+	public final fun getPattern ()Ljava/lang/String;
+	public final fun getPatternHelp ()Ljava/lang/String;
+	public final fun getSuffix ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lshark/InteractiveCommand$COMMAND;
+	public static fun values ()[Lshark/InteractiveCommand$COMMAND;
+}
+
+public final class shark/InteractiveCommand$COMMAND$Companion {
+	public final fun matchesCommand (Ljava/lang/String;Lshark/InteractiveCommand$COMMAND;)Z
+}
+
+public final class shark/MainKt {
+	public static final fun main ([Ljava/lang/String;)V
+}
+
+public final class shark/SharkCliCommand : com/github/ajalt/clikt/core/CliktCommand {
+	public static final field Companion Lshark/SharkCliCommand$Companion;
+	public fun <init> ()V
+	public fun run ()V
+}
+
+public final class shark/SharkCliCommand$CommandParams {
+	public fun <init> (Lshark/SharkCliCommand$HeapDumpSource;Ljava/io/File;)V
+	public final fun getObfuscationMappingPath ()Ljava/io/File;
+	public final fun getSource ()Lshark/SharkCliCommand$HeapDumpSource;
+}
+
+public final class shark/SharkCliCommand$Companion {
+	public final fun echo (Lcom/github/ajalt/clikt/core/CliktCommand;Ljava/lang/Object;ZZLjava/lang/String;)V
+	public static synthetic fun echo$default (Lshark/SharkCliCommand$Companion;Lcom/github/ajalt/clikt/core/CliktCommand;Ljava/lang/Object;ZZLjava/lang/String;ILjava/lang/Object;)V
+	public final fun echoNewline (Lcom/github/ajalt/clikt/core/CliktCommand;)V
+	public final fun getSharkCliParams (Lcom/github/ajalt/clikt/core/Context;)Lshark/SharkCliCommand$CommandParams;
+	public final fun retrieveHeapDumpFile (Lcom/github/ajalt/clikt/core/CliktCommand;Lshark/SharkCliCommand$CommandParams;)Ljava/io/File;
+	public final fun runCommand (Ljava/io/File;[Ljava/lang/String;)Ljava/lang/String;
+	public final fun setSharkCliParams (Lcom/github/ajalt/clikt/core/Context;Lshark/SharkCliCommand$CommandParams;)V
+}
+
+public abstract class shark/SharkCliCommand$HeapDumpSource {
+}
+
+public final class shark/SharkCliCommand$HeapDumpSource$HprofFileSource : shark/SharkCliCommand$HeapDumpSource {
+	public fun <init> (Ljava/io/File;)V
+	public final fun getFile ()Ljava/io/File;
+}
+
+public final class shark/SharkCliCommand$HeapDumpSource$ProcessSource : shark/SharkCliCommand$HeapDumpSource {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getDeviceId ()Ljava/lang/String;
+	public final fun getProcessName ()Ljava/lang/String;
+}
+
+public final class shark/StripHprofCommand : com/github/ajalt/clikt/core/CliktCommand {
+	public fun <init> ()V
+	public fun run ()V
+}
+

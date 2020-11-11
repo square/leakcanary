@@ -1,0 +1,13 @@
+public final class shark/SharkLog {
+	public static final field INSTANCE Lshark/SharkLog;
+	public final fun d (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public final fun d (Lkotlin/jvm/functions/Function0;)V
+	public final fun getLogger ()Lshark/SharkLog$Logger;
+	public final fun setLogger (Lshark/SharkLog$Logger;)V
+}
+
+public abstract interface class shark/SharkLog$Logger {
+	public abstract fun d (Ljava/lang/String;)V
+	public abstract fun d (Ljava/lang/Throwable;Ljava/lang/String;)V
+}
+

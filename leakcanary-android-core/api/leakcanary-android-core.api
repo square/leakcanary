@@ -1,0 +1,91 @@
+public final class com/squareup/leakcanary/core/BuildConfig {
+	public static final field BUILD_TYPE Ljava/lang/String;
+	public static final field DEBUG Z
+	public static final field GIT_SHA Ljava/lang/String;
+	public static final field LIBRARY_PACKAGE_NAME Ljava/lang/String;
+	public static final field LIBRARY_VERSION Ljava/lang/String;
+	public static final field VERSION_CODE I
+	public static final field VERSION_NAME Ljava/lang/String;
+	public fun <init> ()V
+}
+
+public final class leakcanary/DefaultOnHeapAnalyzedListener : leakcanary/OnHeapAnalyzedListener {
+	public static final field Companion Lleakcanary/DefaultOnHeapAnalyzedListener$Companion;
+	public fun <init> (Landroid/app/Application;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun onHeapAnalyzed (Lshark/HeapAnalysis;)V
+}
+
+public final class leakcanary/DefaultOnHeapAnalyzedListener$Companion {
+	public final fun create ()Lleakcanary/OnHeapAnalyzedListener;
+}
+
+public final class leakcanary/LeakCanary {
+	public static final field INSTANCE Lleakcanary/LeakCanary;
+	public final fun dumpHeap ()V
+	public static final fun getConfig ()Lleakcanary/LeakCanary$Config;
+	public final fun newLeakDisplayActivityIntent ()Landroid/content/Intent;
+	public static final fun setConfig (Lleakcanary/LeakCanary$Config;)V
+	public final fun showLeakDisplayActivityLauncherIcon (Z)V
+}
+
+public final class leakcanary/LeakCanary$Config {
+	public fun <init> ()V
+	public fun <init> (ZZILjava/util/List;Ljava/util/List;Lleakcanary/OnHeapAnalyzedListener;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Z)V
+	public synthetic fun <init> (ZZILjava/util/List;Ljava/util/List;Lleakcanary/OnHeapAnalyzedListener;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component10 ()Z
+	public final fun component11 ()Lshark/LeakingObjectFinder;
+	public final fun component12 ()Z
+	public final fun component2 ()Z
+	public final fun component3 ()I
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Lleakcanary/OnHeapAnalyzedListener;
+	public final fun component7 ()Lshark/MetadataExtractor;
+	public final fun component8 ()Z
+	public final fun component9 ()I
+	public final fun copy (ZZILjava/util/List;Ljava/util/List;Lleakcanary/OnHeapAnalyzedListener;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Z)Lleakcanary/LeakCanary$Config;
+	public static synthetic fun copy$default (Lleakcanary/LeakCanary$Config;ZZILjava/util/List;Ljava/util/List;Lleakcanary/OnHeapAnalyzedListener;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;ZILjava/lang/Object;)Lleakcanary/LeakCanary$Config;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getComputeRetainedHeapSize ()Z
+	public final fun getDumpHeap ()Z
+	public final fun getDumpHeapWhenDebugging ()Z
+	public final fun getLeakingObjectFinder ()Lshark/LeakingObjectFinder;
+	public final fun getMaxStoredHeapDumps ()I
+	public final fun getMetadataExtractor ()Lshark/MetadataExtractor;
+	public final fun getObjectInspectors ()Ljava/util/List;
+	public final fun getOnHeapAnalyzedListener ()Lleakcanary/OnHeapAnalyzedListener;
+	public final fun getReferenceMatchers ()Ljava/util/List;
+	public final fun getRequestWriteExternalStoragePermission ()Z
+	public final fun getRetainedVisibleThreshold ()I
+	public final fun getUseExperimentalLeakFinders ()Z
+	public fun hashCode ()I
+	public final fun newBuilder ()Lleakcanary/LeakCanary$Config$Builder;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class leakcanary/LeakCanary$Config$Builder {
+	public final fun build ()Lleakcanary/LeakCanary$Config;
+	public final fun computeRetainedHeapSize (Z)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun dumpHeap (Z)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun dumpHeapWhenDebugging (Z)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun leakingObjectFinder (Lshark/LeakingObjectFinder;)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun maxStoredHeapDumps (I)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun metadataExtractor (Lshark/MetadataExtractor;)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun objectInspectors (Ljava/util/List;)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun onHeapAnalyzedListener (Lleakcanary/OnHeapAnalyzedListener;)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun referenceMatchers (Ljava/util/List;)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun requestWriteExternalStoragePermission (Z)Lleakcanary/LeakCanary$Config$Builder;
+	public final fun retainedVisibleThreshold (I)Lleakcanary/LeakCanary$Config$Builder;
+}
+
+public abstract interface class leakcanary/OnHeapAnalyzedListener {
+	public static final field Companion Lleakcanary/OnHeapAnalyzedListener$Companion;
+	public abstract fun onHeapAnalyzed (Lshark/HeapAnalysis;)V
+}
+
+public final class leakcanary/OnHeapAnalyzedListener$Companion {
+	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lleakcanary/OnHeapAnalyzedListener;
+}
+

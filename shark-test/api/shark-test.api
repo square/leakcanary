@@ -1,0 +1,10 @@
+public final class shark/HeapDumpRule : org/junit/rules/ExternalResource {
+	public fun <init> ()V
+	public final fun dumpHeap ()Ljava/io/File;
+}
+
+public final class shark/JvmTestHeapDumper {
+	public static final field INSTANCE Lshark/JvmTestHeapDumper;
+	public final fun dumpHeap (Ljava/lang/String;)V
+}
+

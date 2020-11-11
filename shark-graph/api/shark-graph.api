@@ -1,0 +1,215 @@
+public abstract interface class shark/CloseableHeapGraph : java/io/Closeable, shark/HeapGraph {
+}
+
+public final class shark/GraphContext {
+	public fun <init> ()V
+	public final fun contains (Ljava/lang/String;)Z
+	public final fun get (Ljava/lang/String;)Ljava/lang/Object;
+	public final fun getOrPut (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public final fun minusAssign (Ljava/lang/String;)V
+	public final fun set (Ljava/lang/String;Ljava/lang/Object;)V
+}
+
+public final class shark/HeapField {
+	public fun <init> (Lshark/HeapObject$HeapClass;Ljava/lang/String;Lshark/HeapValue;)V
+	public final fun getDeclaringClass ()Lshark/HeapObject$HeapClass;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getValue ()Lshark/HeapValue;
+	public final fun getValueAsClass ()Lshark/HeapObject$HeapClass;
+	public final fun getValueAsInstance ()Lshark/HeapObject$HeapInstance;
+	public final fun getValueAsObjectArray ()Lshark/HeapObject$HeapObjectArray;
+	public final fun getValueAsPrimitiveArray ()Lshark/HeapObject$HeapPrimitiveArray;
+}
+
+public abstract interface class shark/HeapGraph {
+	public abstract fun findClassByName (Ljava/lang/String;)Lshark/HeapObject$HeapClass;
+	public abstract fun findObjectById (J)Lshark/HeapObject;
+	public abstract fun findObjectByIdOrNull (J)Lshark/HeapObject;
+	public abstract fun findObjectByIndex (I)Lshark/HeapObject;
+	public abstract fun getClassCount ()I
+	public abstract fun getClasses ()Lkotlin/sequences/Sequence;
+	public abstract fun getContext ()Lshark/GraphContext;
+	public abstract fun getGcRoots ()Ljava/util/List;
+	public abstract fun getIdentifierByteSize ()I
+	public abstract fun getInstanceCount ()I
+	public abstract fun getInstances ()Lkotlin/sequences/Sequence;
+	public abstract fun getObjectArrayCount ()I
+	public abstract fun getObjectArrays ()Lkotlin/sequences/Sequence;
+	public abstract fun getObjectCount ()I
+	public abstract fun getObjects ()Lkotlin/sequences/Sequence;
+	public abstract fun getPrimitiveArrayCount ()I
+	public abstract fun getPrimitiveArrays ()Lkotlin/sequences/Sequence;
+	public abstract fun objectExists (J)Z
+}
+
+public abstract class shark/HeapObject {
+	public static final field Companion Lshark/HeapObject$Companion;
+	public final fun getAsClass ()Lshark/HeapObject$HeapClass;
+	public final fun getAsInstance ()Lshark/HeapObject$HeapInstance;
+	public final fun getAsObjectArray ()Lshark/HeapObject$HeapObjectArray;
+	public final fun getAsPrimitiveArray ()Lshark/HeapObject$HeapPrimitiveArray;
+	public abstract fun getGraph ()Lshark/HeapGraph;
+	public abstract fun getObjectId ()J
+	public abstract fun getObjectIndex ()I
+	public abstract fun getRecordSize ()I
+	public abstract fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
+}
+
+public final class shark/HeapObject$Companion {
+}
+
+public final class shark/HeapObject$HeapClass : shark/HeapObject {
+	public final fun get (Ljava/lang/String;)Lshark/HeapField;
+	public final fun getClassHierarchy ()Lkotlin/sequences/Sequence;
+	public final fun getDirectInstances ()Lkotlin/sequences/Sequence;
+	public fun getGraph ()Lshark/HeapGraph;
+	public final fun getHasReferenceInstanceFields ()Z
+	public final fun getInstanceByteSize ()I
+	public final fun getInstances ()Lkotlin/sequences/Sequence;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getObjectArrayInstances ()Lkotlin/sequences/Sequence;
+	public fun getObjectId ()J
+	public fun getObjectIndex ()I
+	public final fun getPrimitiveArrayInstances ()Lkotlin/sequences/Sequence;
+	public fun getRecordSize ()I
+	public final fun getSimpleName ()Ljava/lang/String;
+	public final fun getSubclasses ()Lkotlin/sequences/Sequence;
+	public final fun getSuperclass ()Lshark/HeapObject$HeapClass;
+	public final fun instanceFieldName (Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord$FieldRecord;)Ljava/lang/String;
+	public final fun isArrayClass ()Z
+	public final fun isObjectArrayClass ()Z
+	public final fun isPrimitiveArrayClass ()Z
+	public final fun isPrimitiveWrapperClass ()Z
+	public final fun readFieldsByteSize ()I
+	public fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord;
+	public synthetic fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
+	public final fun readRecordFields ()Ljava/util/List;
+	public final fun readRecordStaticFields ()Ljava/util/List;
+	public final fun readStaticField (Ljava/lang/String;)Lshark/HeapField;
+	public final fun readStaticFields ()Lkotlin/sequences/Sequence;
+	public final fun subclassOf (Lshark/HeapObject$HeapClass;)Z
+	public final fun superclassOf (Lshark/HeapObject$HeapClass;)Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HeapObject$HeapInstance : shark/HeapObject {
+	public final fun get (Ljava/lang/String;Ljava/lang/String;)Lshark/HeapField;
+	public final fun get (Lkotlin/reflect/KClass;Ljava/lang/String;)Lshark/HeapField;
+	public final fun getByteSize ()I
+	public fun getGraph ()Lshark/HeapGraph;
+	public final fun getInstanceClass ()Lshark/HeapObject$HeapClass;
+	public final fun getInstanceClassId ()J
+	public final fun getInstanceClassName ()Ljava/lang/String;
+	public final fun getInstanceClassSimpleName ()Ljava/lang/String;
+	public fun getObjectId ()J
+	public fun getObjectIndex ()I
+	public fun getRecordSize ()I
+	public final fun instanceOf (Ljava/lang/String;)Z
+	public final fun instanceOf (Lkotlin/reflect/KClass;)Z
+	public final fun instanceOf (Lshark/HeapObject$HeapClass;)Z
+	public final fun isPrimitiveWrapper ()Z
+	public final fun readAsJavaString ()Ljava/lang/String;
+	public final fun readField (Ljava/lang/String;Ljava/lang/String;)Lshark/HeapField;
+	public final fun readField (Lkotlin/reflect/KClass;Ljava/lang/String;)Lshark/HeapField;
+	public final fun readFields ()Lkotlin/sequences/Sequence;
+	public fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$InstanceDumpRecord;
+	public synthetic fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HeapObject$HeapObjectArray : shark/HeapObject {
+	public final fun getArrayClass ()Lshark/HeapObject$HeapClass;
+	public final fun getArrayClassName ()Ljava/lang/String;
+	public final fun getArrayClassSimpleName ()Ljava/lang/String;
+	public fun getGraph ()Lshark/HeapGraph;
+	public fun getObjectId ()J
+	public fun getObjectIndex ()I
+	public fun getRecordSize ()I
+	public final fun readByteSize ()I
+	public final fun readElements ()Lkotlin/sequences/Sequence;
+	public fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ObjectArrayDumpRecord;
+	public synthetic fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HeapObject$HeapPrimitiveArray : shark/HeapObject {
+	public final fun getArrayClass ()Lshark/HeapObject$HeapClass;
+	public final fun getArrayClassName ()Ljava/lang/String;
+	public fun getGraph ()Lshark/HeapGraph;
+	public fun getObjectId ()J
+	public fun getObjectIndex ()I
+	public final fun getPrimitiveType ()Lshark/PrimitiveType;
+	public fun getRecordSize ()I
+	public final fun readByteSize ()I
+	public fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord;
+	public synthetic fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HeapValue {
+	public fun <init> (Lshark/HeapGraph;Lshark/ValueHolder;)V
+	public final fun getAsBoolean ()Ljava/lang/Boolean;
+	public final fun getAsByte ()Ljava/lang/Byte;
+	public final fun getAsChar ()Ljava/lang/Character;
+	public final fun getAsDouble ()Ljava/lang/Double;
+	public final fun getAsFloat ()Ljava/lang/Float;
+	public final fun getAsInt ()Ljava/lang/Integer;
+	public final fun getAsLong ()Ljava/lang/Long;
+	public final fun getAsNonNullObjectId ()Ljava/lang/Long;
+	public final fun getAsObject ()Lshark/HeapObject;
+	public final fun getAsObjectId ()Ljava/lang/Long;
+	public final fun getAsShort ()Ljava/lang/Short;
+	public final fun getGraph ()Lshark/HeapGraph;
+	public final fun getHolder ()Lshark/ValueHolder;
+	public final fun isNonNullReference ()Z
+	public final fun isNullReference ()Z
+	public final fun readAsJavaString ()Ljava/lang/String;
+}
+
+public final class shark/HprofHeapGraph : shark/CloseableHeapGraph {
+	public static final field Companion Lshark/HprofHeapGraph$Companion;
+	public fun close ()V
+	public fun findClassByName (Ljava/lang/String;)Lshark/HeapObject$HeapClass;
+	public fun findObjectById (J)Lshark/HeapObject;
+	public fun findObjectByIdOrNull (J)Lshark/HeapObject;
+	public fun findObjectByIndex (I)Lshark/HeapObject;
+	public fun getClassCount ()I
+	public fun getClasses ()Lkotlin/sequences/Sequence;
+	public fun getContext ()Lshark/GraphContext;
+	public fun getGcRoots ()Ljava/util/List;
+	public fun getIdentifierByteSize ()I
+	public fun getInstanceCount ()I
+	public fun getInstances ()Lkotlin/sequences/Sequence;
+	public fun getObjectArrayCount ()I
+	public fun getObjectArrays ()Lkotlin/sequences/Sequence;
+	public fun getObjectCount ()I
+	public fun getObjects ()Lkotlin/sequences/Sequence;
+	public fun getPrimitiveArrayCount ()I
+	public fun getPrimitiveArrays ()Lkotlin/sequences/Sequence;
+	public final fun lruCacheStats ()Ljava/lang/String;
+	public fun objectExists (J)Z
+}
+
+public final class shark/HprofHeapGraph$Companion {
+	public final fun getINTERNAL_LRU_CACHE_SIZE ()I
+	public final fun indexHprof (Lshark/Hprof;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/HeapGraph;
+	public static synthetic fun indexHprof$default (Lshark/HprofHeapGraph$Companion;Lshark/Hprof;Lshark/ProguardMapping;Ljava/util/Set;ILjava/lang/Object;)Lshark/HeapGraph;
+	public final fun openHeapGraph (Ljava/io/File;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/CloseableHeapGraph;
+	public final fun openHeapGraph (Lshark/DualSourceProvider;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/CloseableHeapGraph;
+	public static synthetic fun openHeapGraph$default (Lshark/HprofHeapGraph$Companion;Ljava/io/File;Lshark/ProguardMapping;Ljava/util/Set;ILjava/lang/Object;)Lshark/CloseableHeapGraph;
+	public static synthetic fun openHeapGraph$default (Lshark/HprofHeapGraph$Companion;Lshark/DualSourceProvider;Lshark/ProguardMapping;Ljava/util/Set;ILjava/lang/Object;)Lshark/CloseableHeapGraph;
+	public final fun setINTERNAL_LRU_CACHE_SIZE (I)V
+}
+
+public final class shark/HprofIndex {
+	public static final field Companion Lshark/HprofIndex$Companion;
+	public synthetic fun <init> (Lshark/RandomAccessSourceProvider;Lshark/HprofHeader;Lshark/internal/HprofInMemoryIndex;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun openHeapGraph ()Lshark/CloseableHeapGraph;
+}
+
+public final class shark/HprofIndex$Companion {
+	public final fun defaultIndexedGcRootTags ()Ljava/util/EnumSet;
+	public final fun indexRecordsOf (Lshark/DualSourceProvider;Lshark/HprofHeader;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/HprofIndex;
+	public static synthetic fun indexRecordsOf$default (Lshark/HprofIndex$Companion;Lshark/DualSourceProvider;Lshark/HprofHeader;Lshark/ProguardMapping;Ljava/util/Set;ILjava/lang/Object;)Lshark/HprofIndex;
+}
+
