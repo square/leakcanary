@@ -1,5 +1,6 @@
 include ':plumber-android'
 include ':leakcanary-android'
+include ':leakcanary-android-benchmark'
 include ':leakcanary-android-core'
 include ':leakcanary-android-instrumentation'
 include ':leakcanary-android-process'
