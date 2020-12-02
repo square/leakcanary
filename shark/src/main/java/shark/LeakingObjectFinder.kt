@@ -1,14 +1,12 @@
 package shark
 
-import shark.ObjectInspector.Companion.invoke
-
 /**
  * Finds the objects that are leaking, for which Shark will compute
  * leak traces.
  *
- * You can create a [LeakingObjectFinder] from a lambda by calling [invoke].
+ * This is a functional interface with which you can create a [LeakingObjectFinder] from a lambda.
  */
-interface LeakingObjectFinder {
+fun interface LeakingObjectFinder {
 
   /**
    * For a given heap graph, returns a set of object ids for the objects that are leaking.
@@ -31,8 +29,6 @@ interface LeakingObjectFinder {
     inline operator fun invoke(crossinline block: (HeapGraph) -> Set<Long>): LeakingObjectFinder =
       object : LeakingObjectFinder {
         override fun findLeakingObjectIds(graph: HeapGraph): Set<Long> = block(graph)
-
       }
   }
-
 }

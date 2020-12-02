@@ -2,8 +2,10 @@ package shark
 
 /**
  * Reports progress from the [HeapAnalyzer] as they occur, as [Step] values.
+ *
+ * This is a functional interface with which you can create a [OnAnalysisProgressListener] from a lambda.
  */
-interface OnAnalysisProgressListener {
+fun interface OnAnalysisProgressListener {
 
   // These steps are defined in the order in which they occur.
   enum class Step {

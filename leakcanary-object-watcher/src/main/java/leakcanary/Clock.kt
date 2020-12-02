@@ -3,9 +3,9 @@ package leakcanary
 /**
  * An interface to abstract the SystemClock.uptimeMillis() Android API in non Android artifacts.
  *
- * You can create a [Clock] from a lambda by calling [invoke].
+ * This is a functional interface with which you can create a [Clock] from a lambda.
  */
-interface Clock {
+fun interface Clock {
   /**
    * On Android VMs, this should return android.os.SystemClock.uptimeMillis().
    */
