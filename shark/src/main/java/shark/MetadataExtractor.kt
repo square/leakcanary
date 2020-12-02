@@ -1,14 +1,11 @@
 package shark
 
-import shark.MetadataExtractor.Companion.invoke
-import shark.ObjectInspector.Companion.invoke
-
 /**
  * Extracts metadata from a hprof to be reported in [HeapAnalysisSuccess.metadata].
  *
- * You can create a [MetadataExtractor] from a lambda by calling [invoke].
+ * This is a functional interface with which you can create a [MetadataExtractor] from a lambda.
  */
-interface MetadataExtractor {
+fun interface MetadataExtractor {
   fun extractMetadata(graph: HeapGraph): Map<String, String>
 
   companion object {
@@ -35,5 +32,4 @@ interface MetadataExtractor {
         override fun extractMetadata(graph: HeapGraph): Map<String, String> = block(graph)
       }
   }
-
 }

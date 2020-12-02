@@ -1,16 +1,22 @@
 package leakcanary
 
-import leakcanary.OnHeapAnalyzedListener.Companion.invoke
 import shark.HeapAnalysis
-import shark.ObjectInspector.Companion.invoke
 
 /**
  * Listener set in [LeakCanary.Config] and called by LeakCanary on a background thread when the
  * heap analysis is complete.
  *
- * You can create a [OnHeapAnalyzedListener] from a lambda by calling [invoke].
+ * This is a functional interface with which you can create a [OnHeapAnalyzedListener] from a lambda.
+ *
+ * Usage:
+ *
+ * ```kotlin
+ * val listener = OnHeapAnalyzedListener { heapAnalysis ->
+ *   process(heapAnalysis)
+ * }
+ * ```
  */
-interface OnHeapAnalyzedListener {
+fun interface OnHeapAnalyzedListener {
 
   /**
    * @see OnHeapAnalyzedListener
