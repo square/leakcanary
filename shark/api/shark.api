@@ -1,0 +1,462 @@
+public final class shark/AppSingletonInspector : shark/ObjectInspector {
+	public fun <init> ([Ljava/lang/String;)V
+	public fun inspect (Lshark/ObjectReporter;)V
+}
+
+public final class shark/ApplicationLeak : shark/Leak {
+	public static final field Companion Lshark/ApplicationLeak$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lshark/ApplicationLeak;
+	public static synthetic fun copy$default (Lshark/ApplicationLeak;Ljava/util/List;ILjava/lang/Object;)Lshark/ApplicationLeak;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getLeakTraces ()Ljava/util/List;
+	public fun getShortDescription ()Ljava/lang/String;
+	public fun getSignature ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ApplicationLeak$Companion {
+}
+
+public final class shark/FilteringLeakingObjectFinder : shark/LeakingObjectFinder {
+	public fun <init> (Ljava/util/List;)V
+	public fun findLeakingObjectIds (Lshark/HeapGraph;)Ljava/util/Set;
+}
+
+public abstract interface class shark/FilteringLeakingObjectFinder$LeakingObjectFilter {
+	public abstract fun isLeakingObject (Lshark/HeapObject;)Z
+}
+
+public abstract class shark/HeapAnalysis : java/io/Serializable {
+	public static final field Companion Lshark/HeapAnalysis$Companion;
+	public static final field DUMP_DURATION_UNKNOWN J
+	public abstract fun getAnalysisDurationMillis ()J
+	public abstract fun getCreatedAtTimeMillis ()J
+	public abstract fun getDumpDurationMillis ()J
+	public abstract fun getHeapDumpFile ()Ljava/io/File;
+}
+
+public final class shark/HeapAnalysis$Companion {
+}
+
+public final class shark/HeapAnalysisException : java/lang/RuntimeException {
+	public static final field Companion Lshark/HeapAnalysisException$Companion;
+	public fun <init> (Ljava/lang/Throwable;)V
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HeapAnalysisException$Companion {
+}
+
+public final class shark/HeapAnalysisFailure : shark/HeapAnalysis {
+	public static final field Companion Lshark/HeapAnalysisFailure$Companion;
+	public fun <init> (Ljava/io/File;JJJLshark/HeapAnalysisException;)V
+	public synthetic fun <init> (Ljava/io/File;JJJLshark/HeapAnalysisException;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/io/File;
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun component4 ()J
+	public final fun component5 ()Lshark/HeapAnalysisException;
+	public final fun copy (Ljava/io/File;JJJLshark/HeapAnalysisException;)Lshark/HeapAnalysisFailure;
+	public static synthetic fun copy$default (Lshark/HeapAnalysisFailure;Ljava/io/File;JJJLshark/HeapAnalysisException;ILjava/lang/Object;)Lshark/HeapAnalysisFailure;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAnalysisDurationMillis ()J
+	public fun getCreatedAtTimeMillis ()J
+	public fun getDumpDurationMillis ()J
+	public final fun getException ()Lshark/HeapAnalysisException;
+	public fun getHeapDumpFile ()Ljava/io/File;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HeapAnalysisFailure$Companion {
+}
+
+public final class shark/HeapAnalysisSuccess : shark/HeapAnalysis {
+	public static final field Companion Lshark/HeapAnalysisSuccess$Companion;
+	public fun <init> (Ljava/io/File;JJJLjava/util/Map;Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/io/File;JJJLjava/util/Map;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/io/File;
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun component4 ()J
+	public final fun component5 ()Ljava/util/Map;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/util/List;
+	public final fun copy (Ljava/io/File;JJJLjava/util/Map;Ljava/util/List;Ljava/util/List;)Lshark/HeapAnalysisSuccess;
+	public static synthetic fun copy$default (Lshark/HeapAnalysisSuccess;Ljava/io/File;JJJLjava/util/Map;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lshark/HeapAnalysisSuccess;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAllLeaks ()Lkotlin/sequences/Sequence;
+	public fun getAnalysisDurationMillis ()J
+	public final fun getApplicationLeaks ()Ljava/util/List;
+	public fun getCreatedAtTimeMillis ()J
+	public fun getDumpDurationMillis ()J
+	public fun getHeapDumpFile ()Ljava/io/File;
+	public final fun getLibraryLeaks ()Ljava/util/List;
+	public final fun getMetadata ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HeapAnalysisSuccess$Companion {
+	public final fun upgradeFrom20Deserialized (Lshark/HeapAnalysisSuccess;)Lshark/HeapAnalysisSuccess;
+}
+
+public final class shark/HeapAnalyzer {
+	public fun <init> (Lshark/OnAnalysisProgressListener;)V
+	public final fun analyze (Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;)Lshark/HeapAnalysis;
+	public final fun analyze (Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;)Lshark/HeapAnalysis;
+	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;ILjava/lang/Object;)Lshark/HeapAnalysis;
+	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;ILjava/lang/Object;)Lshark/HeapAnalysis;
+}
+
+public final class shark/IgnoredReferenceMatcher : shark/ReferenceMatcher {
+	public fun <init> (Lshark/ReferencePattern;)V
+	public fun getPattern ()Lshark/ReferencePattern;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/KeyedWeakReferenceFinder : shark/LeakingObjectFinder {
+	public static final field INSTANCE Lshark/KeyedWeakReferenceFinder;
+	public fun findLeakingObjectIds (Lshark/HeapGraph;)Ljava/util/Set;
+	public final fun heapDumpUptimeMillis (Lshark/HeapGraph;)Ljava/lang/Long;
+}
+
+public abstract class shark/Leak : java/io/Serializable {
+	public static final field Companion Lshark/Leak$Companion;
+	public abstract fun getLeakTraces ()Ljava/util/List;
+	public abstract fun getShortDescription ()Ljava/lang/String;
+	public abstract fun getSignature ()Ljava/lang/String;
+	public final fun getTotalRetainedHeapByteSize ()Ljava/lang/Integer;
+	public final fun getTotalRetainedObjectCount ()Ljava/lang/Integer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/Leak$Companion {
+}
+
+public final class shark/LeakTrace : java/io/Serializable {
+	public static final field Companion Lshark/LeakTrace$Companion;
+	public fun <init> (Lshark/LeakTrace$GcRootType;Ljava/util/List;Lshark/LeakTraceObject;)V
+	public final fun component1 ()Lshark/LeakTrace$GcRootType;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Lshark/LeakTraceObject;
+	public final fun copy (Lshark/LeakTrace$GcRootType;Ljava/util/List;Lshark/LeakTraceObject;)Lshark/LeakTrace;
+	public static synthetic fun copy$default (Lshark/LeakTrace;Lshark/LeakTrace$GcRootType;Ljava/util/List;Lshark/LeakTraceObject;ILjava/lang/Object;)Lshark/LeakTrace;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getGcRootType ()Lshark/LeakTrace$GcRootType;
+	public final fun getLeakingObject ()Lshark/LeakTraceObject;
+	public final fun getReferencePath ()Ljava/util/List;
+	public final fun getRetainedHeapByteSize ()Ljava/lang/Integer;
+	public final fun getRetainedObjectCount ()Ljava/lang/Integer;
+	public final fun getSignature ()Ljava/lang/String;
+	public final fun getSuspectReferenceSubpath ()Lkotlin/sequences/Sequence;
+	public fun hashCode ()I
+	public final fun referencePathElementIsSuspect (I)Z
+	public final fun toSimplePathString ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/LeakTrace$Companion {
+}
+
+public final class shark/LeakTrace$GcRootType : java/lang/Enum {
+	public static final field Companion Lshark/LeakTrace$GcRootType$Companion;
+	public static final field JAVA_FRAME Lshark/LeakTrace$GcRootType;
+	public static final field JNI_GLOBAL Lshark/LeakTrace$GcRootType;
+	public static final field JNI_LOCAL Lshark/LeakTrace$GcRootType;
+	public static final field JNI_MONITOR Lshark/LeakTrace$GcRootType;
+	public static final field MONITOR_USED Lshark/LeakTrace$GcRootType;
+	public static final field NATIVE_STACK Lshark/LeakTrace$GcRootType;
+	public static final field STICKY_CLASS Lshark/LeakTrace$GcRootType;
+	public static final field THREAD_BLOCK Lshark/LeakTrace$GcRootType;
+	public static final field THREAD_OBJECT Lshark/LeakTrace$GcRootType;
+	public final fun getDescription ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTrace$GcRootType;
+	public static fun values ()[Lshark/LeakTrace$GcRootType;
+}
+
+public final class shark/LeakTrace$GcRootType$Companion {
+	public final fun fromGcRoot (Lshark/GcRoot;)Lshark/LeakTrace$GcRootType;
+}
+
+public final class shark/LeakTraceObject : java/io/Serializable {
+	public static final field Companion Lshark/LeakTraceObject$Companion;
+	public fun <init> (Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;Ljava/util/Set;Lshark/LeakTraceObject$LeakingStatus;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;)V
+	public final fun component1 ()Lshark/LeakTraceObject$ObjectType;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/Set;
+	public final fun component4 ()Lshark/LeakTraceObject$LeakingStatus;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/Integer;
+	public final fun component7 ()Ljava/lang/Integer;
+	public final fun copy (Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;Ljava/util/Set;Lshark/LeakTraceObject$LeakingStatus;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;)Lshark/LeakTraceObject;
+	public static synthetic fun copy$default (Lshark/LeakTraceObject;Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;Ljava/util/Set;Lshark/LeakTraceObject$LeakingStatus;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;ILjava/lang/Object;)Lshark/LeakTraceObject;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClassName ()Ljava/lang/String;
+	public final fun getClassSimpleName ()Ljava/lang/String;
+	public final fun getLabels ()Ljava/util/Set;
+	public final fun getLeakingStatus ()Lshark/LeakTraceObject$LeakingStatus;
+	public final fun getLeakingStatusReason ()Ljava/lang/String;
+	public final fun getRetainedHeapByteSize ()Ljava/lang/Integer;
+	public final fun getRetainedObjectCount ()Ljava/lang/Integer;
+	public final fun getType ()Lshark/LeakTraceObject$ObjectType;
+	public final fun getTypeName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/LeakTraceObject$Companion {
+}
+
+public final class shark/LeakTraceObject$LeakingStatus : java/lang/Enum {
+	public static final field LEAKING Lshark/LeakTraceObject$LeakingStatus;
+	public static final field NOT_LEAKING Lshark/LeakTraceObject$LeakingStatus;
+	public static final field UNKNOWN Lshark/LeakTraceObject$LeakingStatus;
+	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTraceObject$LeakingStatus;
+	public static fun values ()[Lshark/LeakTraceObject$LeakingStatus;
+}
+
+public final class shark/LeakTraceObject$ObjectType : java/lang/Enum {
+	public static final field ARRAY Lshark/LeakTraceObject$ObjectType;
+	public static final field CLASS Lshark/LeakTraceObject$ObjectType;
+	public static final field INSTANCE Lshark/LeakTraceObject$ObjectType;
+	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTraceObject$ObjectType;
+	public static fun values ()[Lshark/LeakTraceObject$ObjectType;
+}
+
+public final class shark/LeakTraceReference : java/io/Serializable {
+	public static final field Companion Lshark/LeakTraceReference$Companion;
+	public fun <init> (Lshark/LeakTraceObject;Lshark/LeakTraceReference$ReferenceType;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Lshark/LeakTraceObject;
+	public final fun component2 ()Lshark/LeakTraceReference$ReferenceType;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Lshark/LeakTraceObject;Lshark/LeakTraceReference$ReferenceType;Ljava/lang/String;Ljava/lang/String;)Lshark/LeakTraceReference;
+	public static synthetic fun copy$default (Lshark/LeakTraceReference;Lshark/LeakTraceObject;Lshark/LeakTraceReference$ReferenceType;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lshark/LeakTraceReference;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOriginObject ()Lshark/LeakTraceObject;
+	public final fun getOwningClassName ()Ljava/lang/String;
+	public final fun getOwningClassSimpleName ()Ljava/lang/String;
+	public final fun getReferenceDisplayName ()Ljava/lang/String;
+	public final fun getReferenceGenericName ()Ljava/lang/String;
+	public final fun getReferenceName ()Ljava/lang/String;
+	public final fun getReferenceType ()Lshark/LeakTraceReference$ReferenceType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/LeakTraceReference$Companion {
+}
+
+public final class shark/LeakTraceReference$ReferenceType : java/lang/Enum {
+	public static final field ARRAY_ENTRY Lshark/LeakTraceReference$ReferenceType;
+	public static final field INSTANCE_FIELD Lshark/LeakTraceReference$ReferenceType;
+	public static final field LOCAL Lshark/LeakTraceReference$ReferenceType;
+	public static final field STATIC_FIELD Lshark/LeakTraceReference$ReferenceType;
+	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTraceReference$ReferenceType;
+	public static fun values ()[Lshark/LeakTraceReference$ReferenceType;
+}
+
+public abstract interface class shark/LeakingObjectFinder {
+	public static final field Companion Lshark/LeakingObjectFinder$Companion;
+	public abstract fun findLeakingObjectIds (Lshark/HeapGraph;)Ljava/util/Set;
+}
+
+public final class shark/LeakingObjectFinder$Companion {
+	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lshark/LeakingObjectFinder;
+}
+
+public final class shark/LibraryLeak : shark/Leak {
+	public static final field Companion Lshark/LibraryLeak$Companion;
+	public fun <init> (Ljava/util/List;Lshark/ReferencePattern;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Lshark/ReferencePattern;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/util/List;Lshark/ReferencePattern;Ljava/lang/String;)Lshark/LibraryLeak;
+	public static synthetic fun copy$default (Lshark/LibraryLeak;Ljava/util/List;Lshark/ReferencePattern;Ljava/lang/String;ILjava/lang/Object;)Lshark/LibraryLeak;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public fun getLeakTraces ()Ljava/util/List;
+	public final fun getPattern ()Lshark/ReferencePattern;
+	public fun getShortDescription ()Ljava/lang/String;
+	public fun getSignature ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/LibraryLeak$Companion {
+}
+
+public final class shark/LibraryLeakReferenceMatcher : shark/ReferenceMatcher {
+	public fun <init> (Lshark/ReferencePattern;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lshark/ReferencePattern;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lshark/ReferencePattern;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lkotlin/jvm/functions/Function1;
+	public final fun copy (Lshark/ReferencePattern;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/LibraryLeakReferenceMatcher;
+	public static synthetic fun copy$default (Lshark/LibraryLeakReferenceMatcher;Lshark/ReferencePattern;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lshark/LibraryLeakReferenceMatcher;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public fun getPattern ()Lshark/ReferencePattern;
+	public final fun getPatternApplies ()Lkotlin/jvm/functions/Function1;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class shark/MetadataExtractor {
+	public static final field Companion Lshark/MetadataExtractor$Companion;
+	public abstract fun extractMetadata (Lshark/HeapGraph;)Ljava/util/Map;
+}
+
+public final class shark/MetadataExtractor$Companion {
+	public final fun getNO_OP ()Lshark/MetadataExtractor;
+	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lshark/MetadataExtractor;
+}
+
+public abstract interface class shark/ObjectInspector {
+	public static final field Companion Lshark/ObjectInspector$Companion;
+	public abstract fun inspect (Lshark/ObjectReporter;)V
+}
+
+public final class shark/ObjectInspector$Companion {
+	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lshark/ObjectInspector;
+}
+
+public abstract class shark/ObjectInspectors : java/lang/Enum, shark/ObjectInspector {
+	public static final field ANONYMOUS_CLASS Lshark/ObjectInspectors;
+	public static final field CLASS Lshark/ObjectInspectors;
+	public static final field CLASSLOADER Lshark/ObjectInspectors;
+	public static final field Companion Lshark/ObjectInspectors$Companion;
+	public static final field KEYED_WEAK_REFERENCE Lshark/ObjectInspectors;
+	public static final field THREAD Lshark/ObjectInspectors;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/ObjectInspectors;
+	public static fun values ()[Lshark/ObjectInspectors;
+}
+
+public final class shark/ObjectInspectors$Companion {
+	public final fun createLeakingObjectFilters (Ljava/util/Set;)Ljava/util/List;
+	public final fun getJdkDefaults ()Ljava/util/List;
+	public final fun getJdkLeakingObjectFilters ()Ljava/util/List;
+}
+
+public final class shark/ObjectReporter {
+	public fun <init> (Lshark/HeapObject;)V
+	public final fun getHeapObject ()Lshark/HeapObject;
+	public final fun getLabels ()Ljava/util/LinkedHashSet;
+	public final fun getLeakingReasons ()Ljava/util/Set;
+	public final fun getLikelyLeakingReasons ()Ljava/util/Set;
+	public final fun getNotLeakingReasons ()Ljava/util/Set;
+	public final fun whenInstanceOf (Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
+	public final fun whenInstanceOf (Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function2;)V
+}
+
+public abstract interface class shark/OnAnalysisProgressListener {
+	public static final field Companion Lshark/OnAnalysisProgressListener$Companion;
+	public abstract fun onAnalysisProgress (Lshark/OnAnalysisProgressListener$Step;)V
+}
+
+public final class shark/OnAnalysisProgressListener$Companion {
+	public final fun getNO_OP ()Lshark/OnAnalysisProgressListener;
+	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lshark/OnAnalysisProgressListener;
+}
+
+public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {
+	public static final field BUILDING_LEAK_TRACES Lshark/OnAnalysisProgressListener$Step;
+	public static final field COMPUTING_NATIVE_RETAINED_SIZE Lshark/OnAnalysisProgressListener$Step;
+	public static final field COMPUTING_RETAINED_SIZE Lshark/OnAnalysisProgressListener$Step;
+	public static final field EXTRACTING_METADATA Lshark/OnAnalysisProgressListener$Step;
+	public static final field FINDING_DOMINATORS Lshark/OnAnalysisProgressListener$Step;
+	public static final field FINDING_PATHS_TO_RETAINED_OBJECTS Lshark/OnAnalysisProgressListener$Step;
+	public static final field FINDING_RETAINED_OBJECTS Lshark/OnAnalysisProgressListener$Step;
+	public static final field INSPECTING_OBJECTS Lshark/OnAnalysisProgressListener$Step;
+	public static final field PARSING_HEAP_DUMP Lshark/OnAnalysisProgressListener$Step;
+	public static final field REPORTING_HEAP_ANALYSIS Lshark/OnAnalysisProgressListener$Step;
+	public static fun valueOf (Ljava/lang/String;)Lshark/OnAnalysisProgressListener$Step;
+	public static fun values ()[Lshark/OnAnalysisProgressListener$Step;
+}
+
+public abstract class shark/ReferenceMatcher {
+	public abstract fun getPattern ()Lshark/ReferencePattern;
+}
+
+public abstract class shark/ReferencePattern : java/io/Serializable {
+	public static final field Companion Lshark/ReferencePattern$Companion;
+}
+
+public final class shark/ReferencePattern$Companion {
+}
+
+public final class shark/ReferencePattern$InstanceFieldPattern : shark/ReferencePattern {
+	public static final field Companion Lshark/ReferencePattern$InstanceFieldPattern$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lshark/ReferencePattern$InstanceFieldPattern;
+	public static synthetic fun copy$default (Lshark/ReferencePattern$InstanceFieldPattern;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lshark/ReferencePattern$InstanceFieldPattern;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClassName ()Ljava/lang/String;
+	public final fun getFieldName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ReferencePattern$InstanceFieldPattern$Companion {
+}
+
+public final class shark/ReferencePattern$JavaLocalPattern : shark/ReferencePattern {
+	public static final field Companion Lshark/ReferencePattern$JavaLocalPattern$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lshark/ReferencePattern$JavaLocalPattern;
+	public static synthetic fun copy$default (Lshark/ReferencePattern$JavaLocalPattern;Ljava/lang/String;ILjava/lang/Object;)Lshark/ReferencePattern$JavaLocalPattern;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getThreadName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ReferencePattern$JavaLocalPattern$Companion {
+}
+
+public final class shark/ReferencePattern$NativeGlobalVariablePattern : shark/ReferencePattern {
+	public static final field Companion Lshark/ReferencePattern$NativeGlobalVariablePattern$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lshark/ReferencePattern$NativeGlobalVariablePattern;
+	public static synthetic fun copy$default (Lshark/ReferencePattern$NativeGlobalVariablePattern;Ljava/lang/String;ILjava/lang/Object;)Lshark/ReferencePattern$NativeGlobalVariablePattern;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClassName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ReferencePattern$NativeGlobalVariablePattern$Companion {
+}
+
+public final class shark/ReferencePattern$StaticFieldPattern : shark/ReferencePattern {
+	public static final field Companion Lshark/ReferencePattern$StaticFieldPattern$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lshark/ReferencePattern$StaticFieldPattern;
+	public static synthetic fun copy$default (Lshark/ReferencePattern$StaticFieldPattern;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lshark/ReferencePattern$StaticFieldPattern;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClassName ()Ljava/lang/String;
+	public final fun getFieldName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ReferencePattern$StaticFieldPattern$Companion {
+}
+
+public final class shark/internal/ObjectDominators {
+	public fun <init> ()V
+	public final fun renderDominatorTree (Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;Z)Ljava/lang/String;
+	public static synthetic fun renderDominatorTree$default (Lshark/internal/ObjectDominators;Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;ZILjava/lang/Object;)Ljava/lang/String;
+}
+

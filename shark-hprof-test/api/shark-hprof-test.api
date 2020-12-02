@@ -1,0 +1,58 @@
+public final class shark/HprofWriterHelper : java/io/Closeable {
+	public fun <init> (Lshark/HprofWriter;)V
+	public final fun arrayClass (Ljava/lang/String;)J
+	public final fun clazz (Ljava/lang/String;JLjava/util/List;Ljava/util/List;)J
+	public final fun clazz (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)J
+	public final fun clazz (Lshark/HprofRecord$StringRecord;JLjava/util/List;Ljava/util/List;)J
+	public static synthetic fun clazz$default (Lshark/HprofWriterHelper;Ljava/lang/String;JLjava/util/List;Ljava/util/List;ILjava/lang/Object;)J
+	public static synthetic fun clazz$default (Lshark/HprofWriterHelper;Lshark/HprofRecord$StringRecord;JLjava/util/List;Ljava/util/List;ILjava/lang/Object;)J
+	public fun close ()V
+	public final fun gcRoot (Lshark/GcRoot;)V
+	public final fun getCharArrayDump (Ljava/lang/String;)Lshark/ValueHolder$ReferenceHolder;
+	public final fun instance (JLjava/util/List;)Lshark/ValueHolder$ReferenceHolder;
+	public final fun instance (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/ValueHolder$ReferenceHolder;
+	public static synthetic fun instance$default (Lshark/HprofWriterHelper;JLjava/util/List;ILjava/lang/Object;)Lshark/ValueHolder$ReferenceHolder;
+	public final fun keyedWeakReference (Lshark/ValueHolder$ReferenceHolder;)Lshark/ValueHolder$ReferenceHolder;
+	public final fun objectArray (J[J)J
+	public final fun objectArray ([Lshark/ValueHolder$ReferenceHolder;)Lshark/ValueHolder$ReferenceHolder;
+	public final fun objectArrayOf (J[Lshark/ValueHolder$ReferenceHolder;)Lshark/ValueHolder$ReferenceHolder;
+	public final fun string (Ljava/lang/String;)Lshark/ValueHolder$ReferenceHolder;
+	public final fun stringRecord (Ljava/lang/String;)Lshark/HprofRecord$StringRecord;
+	public final fun watchedInstance (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/ValueHolder$ReferenceHolder;
+}
+
+public final class shark/HprofWriterHelper$ClassDefinition {
+	public fun <init> (Lshark/HprofWriterHelper;)V
+	public final fun getStaticField ()Ljava/util/LinkedHashMap;
+}
+
+public final class shark/HprofWriterHelper$InstanceAndClassDefinition {
+	public fun <init> (Lshark/HprofWriterHelper;)V
+	public final fun getField ()Ljava/util/LinkedHashMap;
+	public final fun getStaticField ()Ljava/util/LinkedHashMap;
+}
+
+public final class shark/HprofWriterHelperKt {
+	public static final fun asHprofBytes (Ljava/util/List;)Lshark/DualSourceProvider;
+	public static final fun dump (Ljava/io/File;Lkotlin/jvm/functions/Function1;)V
+	public static final fun dump (Lshark/HprofHeader;Lkotlin/jvm/functions/Function1;)Lshark/DualSourceProvider;
+	public static synthetic fun dump$default (Lshark/HprofHeader;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lshark/DualSourceProvider;
+}
+
+public final class shark/ProguardMappingHelper {
+	public fun <init> (Lshark/ProguardMapping;)V
+	public final fun clazz (Lkotlin/Pair;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun clazz$default (Lshark/ProguardMappingHelper;Lkotlin/Pair;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun field (Lshark/ProguardMappingHelper$Class;Lkotlin/jvm/functions/Function0;)V
+}
+
+public final class shark/ProguardMappingHelper$Class {
+	public fun <init> (Lshark/ProguardMappingHelper;Lkotlin/Pair;)V
+	public final fun getFieldMappings ()Ljava/util/Set;
+	public final fun getNameMapping ()Lkotlin/Pair;
+}
+
+public final class shark/ProguardMappingHelperKt {
+	public static final fun create (Lshark/ProguardMapping;Lkotlin/jvm/functions/Function1;)Lshark/ProguardMapping;
+}
+

@@ -1,0 +1,737 @@
+public final class shark/ByteArraySourceProvider : shark/DualSourceProvider {
+	public fun <init> ([B)V
+	public fun openRandomAccessSource ()Lshark/RandomAccessSource;
+	public fun openStreamingSource ()Lokio/BufferedSource;
+}
+
+public final class shark/ConstantMemoryMetricsDualSourceProvider : shark/DualSourceProvider {
+	public fun <init> (Lshark/DualSourceProvider;)V
+	public final fun getByteTravelRange ()J
+	public final fun getRandomAccessByteReads ()J
+	public final fun getRandomAccessByteTravel ()J
+	public final fun getRandomAccessReadCount ()J
+	public fun openRandomAccessSource ()Lshark/RandomAccessSource;
+	public fun openStreamingSource ()Lokio/BufferedSource;
+}
+
+public abstract interface class shark/DualSourceProvider : shark/RandomAccessSourceProvider, shark/StreamingSourceProvider {
+}
+
+public final class shark/FileSourceProvider : shark/DualSourceProvider {
+	public fun <init> (Ljava/io/File;)V
+	public fun openRandomAccessSource ()Lshark/RandomAccessSource;
+	public fun openStreamingSource ()Lokio/BufferedSource;
+}
+
+public abstract class shark/GcRoot {
+	public abstract fun getId ()J
+}
+
+public final class shark/GcRoot$Debugger : shark/GcRoot {
+	public fun <init> (J)V
+	public fun getId ()J
+}
+
+public final class shark/GcRoot$Finalizing : shark/GcRoot {
+	public fun <init> (J)V
+	public fun getId ()J
+}
+
+public final class shark/GcRoot$InternedString : shark/GcRoot {
+	public fun <init> (J)V
+	public fun getId ()J
+}
+
+public final class shark/GcRoot$JavaFrame : shark/GcRoot {
+	public fun <init> (JII)V
+	public final fun getFrameNumber ()I
+	public fun getId ()J
+	public final fun getThreadSerialNumber ()I
+}
+
+public final class shark/GcRoot$JniGlobal : shark/GcRoot {
+	public fun <init> (JJ)V
+	public fun getId ()J
+	public final fun getJniGlobalRefId ()J
+}
+
+public final class shark/GcRoot$JniLocal : shark/GcRoot {
+	public fun <init> (JII)V
+	public final fun getFrameNumber ()I
+	public fun getId ()J
+	public final fun getThreadSerialNumber ()I
+}
+
+public final class shark/GcRoot$JniMonitor : shark/GcRoot {
+	public fun <init> (JII)V
+	public fun getId ()J
+	public final fun getStackDepth ()I
+	public final fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/GcRoot$MonitorUsed : shark/GcRoot {
+	public fun <init> (J)V
+	public fun getId ()J
+}
+
+public final class shark/GcRoot$NativeStack : shark/GcRoot {
+	public fun <init> (JI)V
+	public fun getId ()J
+	public final fun getThreadSerialNumber ()I
+}
+
+public final class shark/GcRoot$ReferenceCleanup : shark/GcRoot {
+	public fun <init> (J)V
+	public fun getId ()J
+}
+
+public final class shark/GcRoot$StickyClass : shark/GcRoot {
+	public fun <init> (J)V
+	public fun getId ()J
+}
+
+public final class shark/GcRoot$ThreadBlock : shark/GcRoot {
+	public fun <init> (JI)V
+	public fun getId ()J
+	public final fun getThreadSerialNumber ()I
+}
+
+public final class shark/GcRoot$ThreadObject : shark/GcRoot {
+	public fun <init> (JII)V
+	public fun getId ()J
+	public final fun getStackTraceSerialNumber ()I
+	public final fun getThreadSerialNumber ()I
+}
+
+public final class shark/GcRoot$Unknown : shark/GcRoot {
+	public fun <init> (J)V
+	public fun getId ()J
+}
+
+public final class shark/GcRoot$Unreachable : shark/GcRoot {
+	public fun <init> (J)V
+	public fun getId ()J
+}
+
+public final class shark/GcRoot$VmInternal : shark/GcRoot {
+	public fun <init> (J)V
+	public fun getId ()J
+}
+
+public final class shark/Hprof : java/io/Closeable {
+	public static final field Companion Lshark/Hprof$Companion;
+	public synthetic fun <init> (Ljava/io/File;Lshark/HprofHeader;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun attachClosable (Ljava/io/Closeable;)V
+	public fun close ()V
+	public final fun getFile ()Ljava/io/File;
+	public final fun getFileLength ()J
+	public final fun getHeader ()Lshark/HprofHeader;
+	public final fun getHeapDumpTimestamp ()J
+	public final fun getHprofVersion ()Lshark/Hprof$HprofVersion;
+	public final fun getReader ()Lshark/HprofReader;
+}
+
+public final class shark/Hprof$Companion {
+	public final fun open (Ljava/io/File;)Lshark/Hprof;
+}
+
+public final class shark/Hprof$HprofVersion : java/lang/Enum {
+	public static final field ANDROID Lshark/Hprof$HprofVersion;
+	public static final field JDK1_2_BETA3 Lshark/Hprof$HprofVersion;
+	public static final field JDK1_2_BETA4 Lshark/Hprof$HprofVersion;
+	public static final field JDK_6 Lshark/Hprof$HprofVersion;
+	public final fun getVersionString ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lshark/Hprof$HprofVersion;
+	public static fun values ()[Lshark/Hprof$HprofVersion;
+}
+
+public final class shark/HprofDeobfuscator {
+	public fun <init> ()V
+	public final fun deobfuscate (Lshark/ProguardMapping;Ljava/io/File;Ljava/io/File;)Ljava/io/File;
+	public static synthetic fun deobfuscate$default (Lshark/HprofDeobfuscator;Lshark/ProguardMapping;Ljava/io/File;Ljava/io/File;ILjava/lang/Object;)Ljava/io/File;
+}
+
+public final class shark/HprofHeader {
+	public static final field Companion Lshark/HprofHeader$Companion;
+	public fun <init> ()V
+	public fun <init> (JLshark/HprofVersion;I)V
+	public synthetic fun <init> (JLshark/HprofVersion;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()J
+	public final fun component2 ()Lshark/HprofVersion;
+	public final fun component3 ()I
+	public final fun copy (JLshark/HprofVersion;I)Lshark/HprofHeader;
+	public static synthetic fun copy$default (Lshark/HprofHeader;JLshark/HprofVersion;IILjava/lang/Object;)Lshark/HprofHeader;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHeapDumpTimestamp ()J
+	public final fun getIdentifierByteSize ()I
+	public final fun getRecordsPosition ()I
+	public final fun getVersion ()Lshark/HprofVersion;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HprofHeader$Companion {
+	public final fun parseHeaderOf (Ljava/io/File;)Lshark/HprofHeader;
+	public final fun parseHeaderOf (Lokio/BufferedSource;)Lshark/HprofHeader;
+}
+
+public final class shark/HprofPrimitiveArrayStripper {
+	public fun <init> ()V
+	public final fun stripPrimitiveArrays (Ljava/io/File;Ljava/io/File;)Ljava/io/File;
+	public final fun stripPrimitiveArrays (Lshark/StreamingSourceProvider;Lokio/BufferedSink;)V
+	public static synthetic fun stripPrimitiveArrays$default (Lshark/HprofPrimitiveArrayStripper;Ljava/io/File;Ljava/io/File;ILjava/lang/Object;)Ljava/io/File;
+}
+
+public final class shark/HprofReader {
+	public final fun getIdentifierByteSize ()I
+	public final fun getStartPosition ()J
+	public final fun readHprofRecords (Ljava/util/Set;Lshark/OnHprofRecordListener;)V
+}
+
+public abstract class shark/HprofRecord {
+}
+
+public final class shark/HprofRecord$HeapDumpEndRecord : shark/HprofRecord {
+	public static final field INSTANCE Lshark/HprofRecord$HeapDumpEndRecord;
+}
+
+public abstract class shark/HprofRecord$HeapDumpRecord : shark/HprofRecord {
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$GcRootRecord : shark/HprofRecord$HeapDumpRecord {
+	public fun <init> (Lshark/GcRoot;)V
+	public final fun getGcRoot ()Lshark/GcRoot;
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$HeapDumpInfoRecord : shark/HprofRecord$HeapDumpRecord {
+	public fun <init> (IJ)V
+	public final fun getHeapId ()I
+	public final fun getHeapNameStringId ()J
+}
+
+public abstract class shark/HprofRecord$HeapDumpRecord$ObjectRecord : shark/HprofRecord$HeapDumpRecord {
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord : shark/HprofRecord$HeapDumpRecord$ObjectRecord {
+	public fun <init> (JIJJJJILjava/util/List;Ljava/util/List;)V
+	public final fun getClassLoaderId ()J
+	public final fun getFields ()Ljava/util/List;
+	public final fun getId ()J
+	public final fun getInstanceSize ()I
+	public final fun getProtectionDomainId ()J
+	public final fun getSignersId ()J
+	public final fun getStackTraceSerialNumber ()I
+	public final fun getStaticFields ()Ljava/util/List;
+	public final fun getSuperclassId ()J
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord$FieldRecord {
+	public fun <init> (JI)V
+	public final fun component1 ()J
+	public final fun component2 ()I
+	public final fun copy (JI)Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord$FieldRecord;
+	public static synthetic fun copy$default (Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord$FieldRecord;JIILjava/lang/Object;)Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord$FieldRecord;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNameStringId ()J
+	public final fun getType ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord$StaticFieldRecord {
+	public fun <init> (JILshark/ValueHolder;)V
+	public final fun component1 ()J
+	public final fun component2 ()I
+	public final fun component3 ()Lshark/ValueHolder;
+	public final fun copy (JILshark/ValueHolder;)Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord$StaticFieldRecord;
+	public static synthetic fun copy$default (Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord$StaticFieldRecord;JILshark/ValueHolder;ILjava/lang/Object;)Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord$StaticFieldRecord;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNameStringId ()J
+	public final fun getType ()I
+	public final fun getValue ()Lshark/ValueHolder;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$InstanceDumpRecord : shark/HprofRecord$HeapDumpRecord$ObjectRecord {
+	public fun <init> (JIJ[B)V
+	public final fun getClassId ()J
+	public final fun getFieldValues ()[B
+	public final fun getId ()J
+	public final fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$ObjectArrayDumpRecord : shark/HprofRecord$HeapDumpRecord$ObjectRecord {
+	public fun <init> (JIJ[J)V
+	public final fun getArrayClassId ()J
+	public final fun getElementIds ()[J
+	public final fun getId ()J
+	public final fun getStackTraceSerialNumber ()I
+}
+
+public abstract class shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord : shark/HprofRecord$HeapDumpRecord$ObjectRecord {
+	public abstract fun getId ()J
+	public abstract fun getSize ()I
+	public abstract fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord$BooleanArrayDump : shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord {
+	public fun <init> (JI[Z)V
+	public final fun getArray ()[Z
+	public fun getId ()J
+	public fun getSize ()I
+	public fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord$ByteArrayDump : shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord {
+	public fun <init> (JI[B)V
+	public final fun getArray ()[B
+	public fun getId ()J
+	public fun getSize ()I
+	public fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord$CharArrayDump : shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord {
+	public fun <init> (JI[C)V
+	public final fun getArray ()[C
+	public fun getId ()J
+	public fun getSize ()I
+	public fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord$DoubleArrayDump : shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord {
+	public fun <init> (JI[D)V
+	public final fun getArray ()[D
+	public fun getId ()J
+	public fun getSize ()I
+	public fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord$FloatArrayDump : shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord {
+	public fun <init> (JI[F)V
+	public final fun getArray ()[F
+	public fun getId ()J
+	public fun getSize ()I
+	public fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord$IntArrayDump : shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord {
+	public fun <init> (JI[I)V
+	public final fun getArray ()[I
+	public fun getId ()J
+	public fun getSize ()I
+	public fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord$LongArrayDump : shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord {
+	public fun <init> (JI[J)V
+	public final fun getArray ()[J
+	public fun getId ()J
+	public fun getSize ()I
+	public fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord$ShortArrayDump : shark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord {
+	public fun <init> (JI[S)V
+	public final fun getArray ()[S
+	public fun getId ()J
+	public fun getSize ()I
+	public fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$LoadClassRecord : shark/HprofRecord {
+	public fun <init> (IJIJ)V
+	public final fun getClassNameStringId ()J
+	public final fun getClassSerialNumber ()I
+	public final fun getId ()J
+	public final fun getStackTraceSerialNumber ()I
+}
+
+public final class shark/HprofRecord$StackFrameRecord : shark/HprofRecord {
+	public fun <init> (JJJJII)V
+	public final fun getClassSerialNumber ()I
+	public final fun getId ()J
+	public final fun getLineNumber ()I
+	public final fun getMethodNameStringId ()J
+	public final fun getMethodSignatureStringId ()J
+	public final fun getSourceFileNameStringId ()J
+}
+
+public final class shark/HprofRecord$StackTraceRecord : shark/HprofRecord {
+	public fun <init> (II[J)V
+	public final fun getStackFrameIds ()[J
+	public final fun getStackTraceSerialNumber ()I
+	public final fun getThreadSerialNumber ()I
+}
+
+public final class shark/HprofRecord$StringRecord : shark/HprofRecord {
+	public fun <init> (JLjava/lang/String;)V
+	public final fun getId ()J
+	public final fun getString ()Ljava/lang/String;
+}
+
+public final class shark/HprofRecordReader {
+	public static final field Companion Lshark/HprofRecordReader$Companion;
+	public final fun getBytesRead ()J
+	public final fun readBoolean ()Z
+	public final fun readBooleanArray (I)[Z
+	public final fun readByte ()B
+	public final fun readByteArray (I)[B
+	public final fun readChar ()C
+	public final fun readCharArray (I)[C
+	public final fun readClassDumpRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord;
+	public final fun readDebuggerGcRootRecord ()Lshark/GcRoot$Debugger;
+	public final fun readDouble ()D
+	public final fun readDoubleArray (I)[D
+	public final fun readFinalizingGcRootRecord ()Lshark/GcRoot$Finalizing;
+	public final fun readFloat ()F
+	public final fun readFloatArray (I)[F
+	public final fun readHeapDumpInfoRecord ()Lshark/HprofRecord$HeapDumpRecord$HeapDumpInfoRecord;
+	public final fun readId ()J
+	public final fun readIdArray (I)[J
+	public final fun readInstanceDumpRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$InstanceDumpRecord;
+	public final fun readInt ()I
+	public final fun readIntArray (I)[I
+	public final fun readInternedStringGcRootRecord ()Lshark/GcRoot$InternedString;
+	public final fun readJavaFrameGcRootRecord ()Lshark/GcRoot$JavaFrame;
+	public final fun readJniGlobalGcRootRecord ()Lshark/GcRoot$JniGlobal;
+	public final fun readJniLocalGcRootRecord ()Lshark/GcRoot$JniLocal;
+	public final fun readJniMonitorGcRootRecord ()Lshark/GcRoot$JniMonitor;
+	public final fun readLoadClassRecord ()Lshark/HprofRecord$LoadClassRecord;
+	public final fun readLong ()J
+	public final fun readLongArray (I)[J
+	public final fun readMonitorUsedGcRootRecord ()Lshark/GcRoot$MonitorUsed;
+	public final fun readNativeStackGcRootRecord ()Lshark/GcRoot$NativeStack;
+	public final fun readObjectArrayDumpRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ObjectArrayDumpRecord;
+	public final fun readPrimitiveArrayDumpRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord;
+	public final fun readReferenceCleanupGcRootRecord ()Lshark/GcRoot$ReferenceCleanup;
+	public final fun readShort ()S
+	public final fun readShortArray (I)[S
+	public final fun readStackFrameRecord ()Lshark/HprofRecord$StackFrameRecord;
+	public final fun readStackTraceRecord ()Lshark/HprofRecord$StackTraceRecord;
+	public final fun readStickyClassGcRootRecord ()Lshark/GcRoot$StickyClass;
+	public final fun readString (ILjava/nio/charset/Charset;)Ljava/lang/String;
+	public final fun readStringRecord (J)Lshark/HprofRecord$StringRecord;
+	public final fun readThreadBlockGcRootRecord ()Lshark/GcRoot$ThreadBlock;
+	public final fun readThreadObjectGcRootRecord ()Lshark/GcRoot$ThreadObject;
+	public final fun readUnknownGcRootRecord ()Lshark/GcRoot$Unknown;
+	public final fun readUnreachableGcRootRecord ()Lshark/GcRoot$Unreachable;
+	public final fun readUnsignedByte ()I
+	public final fun readUnsignedInt ()J
+	public final fun readUnsignedShort ()I
+	public final fun readUtf8 (J)Ljava/lang/String;
+	public final fun readValue (I)Lshark/ValueHolder;
+	public final fun readVmInternalGcRootRecord ()Lshark/GcRoot$VmInternal;
+	public final fun sizeOf (I)I
+	public final fun skip (I)V
+	public final fun skip (J)V
+	public final fun skipClassDumpConstantPool ()V
+	public final fun skipClassDumpFields ()V
+	public final fun skipClassDumpHeader ()V
+	public final fun skipClassDumpRecord ()V
+	public final fun skipClassDumpStaticFields ()V
+	public final fun skipHeapDumpInfoRecord ()V
+	public final fun skipInstanceDumpRecord ()V
+	public final fun skipObjectArrayDumpRecord ()V
+	public final fun skipPrimitiveArrayDumpRecord ()V
+}
+
+public final class shark/HprofRecordReader$Companion {
+}
+
+public final class shark/HprofRecordTag : java/lang/Enum {
+	public static final field ALLOC_SITES Lshark/HprofRecordTag;
+	public static final field CLASS_DUMP Lshark/HprofRecordTag;
+	public static final field CONTROL_SETTINGS Lshark/HprofRecordTag;
+	public static final field CPU_SAMPLES Lshark/HprofRecordTag;
+	public static final field Companion Lshark/HprofRecordTag$Companion;
+	public static final field END_THREAD Lshark/HprofRecordTag;
+	public static final field HEAP_DUMP Lshark/HprofRecordTag;
+	public static final field HEAP_DUMP_END Lshark/HprofRecordTag;
+	public static final field HEAP_DUMP_INFO Lshark/HprofRecordTag;
+	public static final field HEAP_DUMP_SEGMENT Lshark/HprofRecordTag;
+	public static final field HEAP_SUMMARY Lshark/HprofRecordTag;
+	public static final field INSTANCE_DUMP Lshark/HprofRecordTag;
+	public static final field LOAD_CLASS Lshark/HprofRecordTag;
+	public static final field OBJECT_ARRAY_DUMP Lshark/HprofRecordTag;
+	public static final field PRIMITIVE_ARRAY_DUMP Lshark/HprofRecordTag;
+	public static final field PRIMITIVE_ARRAY_NODATA Lshark/HprofRecordTag;
+	public static final field ROOT_DEBUGGER Lshark/HprofRecordTag;
+	public static final field ROOT_FINALIZING Lshark/HprofRecordTag;
+	public static final field ROOT_INTERNED_STRING Lshark/HprofRecordTag;
+	public static final field ROOT_JAVA_FRAME Lshark/HprofRecordTag;
+	public static final field ROOT_JNI_GLOBAL Lshark/HprofRecordTag;
+	public static final field ROOT_JNI_LOCAL Lshark/HprofRecordTag;
+	public static final field ROOT_JNI_MONITOR Lshark/HprofRecordTag;
+	public static final field ROOT_MONITOR_USED Lshark/HprofRecordTag;
+	public static final field ROOT_NATIVE_STACK Lshark/HprofRecordTag;
+	public static final field ROOT_REFERENCE_CLEANUP Lshark/HprofRecordTag;
+	public static final field ROOT_STICKY_CLASS Lshark/HprofRecordTag;
+	public static final field ROOT_THREAD_BLOCK Lshark/HprofRecordTag;
+	public static final field ROOT_THREAD_OBJECT Lshark/HprofRecordTag;
+	public static final field ROOT_UNKNOWN Lshark/HprofRecordTag;
+	public static final field ROOT_UNREACHABLE Lshark/HprofRecordTag;
+	public static final field ROOT_VM_INTERNAL Lshark/HprofRecordTag;
+	public static final field STACK_FRAME Lshark/HprofRecordTag;
+	public static final field STACK_TRACE Lshark/HprofRecordTag;
+	public static final field START_THREAD Lshark/HprofRecordTag;
+	public static final field STRING_IN_UTF8 Lshark/HprofRecordTag;
+	public static final field UNLOAD_CLASS Lshark/HprofRecordTag;
+	public final fun getTag ()I
+	public static fun valueOf (Ljava/lang/String;)Lshark/HprofRecordTag;
+	public static fun values ()[Lshark/HprofRecordTag;
+}
+
+public final class shark/HprofRecordTag$Companion {
+	public final fun getRootTags ()Ljava/util/EnumSet;
+}
+
+public final class shark/HprofVersion : java/lang/Enum {
+	public static final field ANDROID Lshark/HprofVersion;
+	public static final field JDK1_2_BETA3 Lshark/HprofVersion;
+	public static final field JDK1_2_BETA4 Lshark/HprofVersion;
+	public static final field JDK_6 Lshark/HprofVersion;
+	public final fun getVersionString ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lshark/HprofVersion;
+	public static fun values ()[Lshark/HprofVersion;
+}
+
+public final class shark/HprofWriter : java/io/Closeable {
+	public static final field Companion Lshark/HprofWriter$Companion;
+	public synthetic fun <init> (Lokio/BufferedSink;Lshark/HprofHeader;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun close ()V
+	public final fun getHprofHeader ()Lshark/HprofHeader;
+	public final fun getHprofVersion ()Lshark/Hprof$HprofVersion;
+	public final fun getIdentifierByteSize ()I
+	public final fun valuesToBytes (Ljava/util/List;)[B
+	public final fun write (Lshark/HprofRecord;)V
+}
+
+public final class shark/HprofWriter$Companion {
+	public final fun open (Ljava/io/File;ILshark/Hprof$HprofVersion;)Lshark/HprofWriter;
+	public static synthetic fun open$default (Lshark/HprofWriter$Companion;Ljava/io/File;ILshark/Hprof$HprofVersion;ILjava/lang/Object;)Lshark/HprofWriter;
+	public final fun openWriterFor (Ljava/io/File;Lshark/HprofHeader;)Lshark/HprofWriter;
+	public final fun openWriterFor (Lokio/BufferedSink;Lshark/HprofHeader;)Lshark/HprofWriter;
+	public static synthetic fun openWriterFor$default (Lshark/HprofWriter$Companion;Ljava/io/File;Lshark/HprofHeader;ILjava/lang/Object;)Lshark/HprofWriter;
+	public static synthetic fun openWriterFor$default (Lshark/HprofWriter$Companion;Lokio/BufferedSink;Lshark/HprofHeader;ILjava/lang/Object;)Lshark/HprofWriter;
+}
+
+public abstract interface class shark/OnHprofRecordListener {
+	public static final field Companion Lshark/OnHprofRecordListener$Companion;
+	public abstract fun onHprofRecord (JLshark/HprofRecord;)V
+}
+
+public final class shark/OnHprofRecordListener$Companion {
+	public final fun invoke (Lkotlin/jvm/functions/Function2;)Lshark/OnHprofRecordListener;
+}
+
+public abstract interface class shark/OnHprofRecordTagListener {
+	public static final field Companion Lshark/OnHprofRecordTagListener$Companion;
+	public abstract fun onHprofRecord (Lshark/HprofRecordTag;JLshark/HprofRecordReader;)V
+}
+
+public final class shark/OnHprofRecordTagListener$Companion {
+	public final fun invoke (Lkotlin/jvm/functions/Function3;)Lshark/OnHprofRecordTagListener;
+}
+
+public final class shark/PrimitiveType : java/lang/Enum {
+	public static final field BOOLEAN Lshark/PrimitiveType;
+	public static final field BYTE Lshark/PrimitiveType;
+	public static final field CHAR Lshark/PrimitiveType;
+	public static final field Companion Lshark/PrimitiveType$Companion;
+	public static final field DOUBLE Lshark/PrimitiveType;
+	public static final field FLOAT Lshark/PrimitiveType;
+	public static final field INT Lshark/PrimitiveType;
+	public static final field LONG Lshark/PrimitiveType;
+	public static final field REFERENCE_HPROF_TYPE I
+	public static final field SHORT Lshark/PrimitiveType;
+	public final fun getByteSize ()I
+	public final fun getHprofType ()I
+	public static fun valueOf (Ljava/lang/String;)Lshark/PrimitiveType;
+	public static fun values ()[Lshark/PrimitiveType;
+}
+
+public final class shark/PrimitiveType$Companion {
+	public final fun getByteSizeByHprofType ()Ljava/util/Map;
+	public final fun getPrimitiveTypeByHprofType ()Ljava/util/Map;
+}
+
+public final class shark/ProguardMapping {
+	public fun <init> ()V
+	public final fun addMapping (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun deobfuscateClassName (Ljava/lang/String;)Ljava/lang/String;
+	public final fun deobfuscateFieldName (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class shark/ProguardMappingReader {
+	public static final field Companion Lshark/ProguardMappingReader$Companion;
+	public fun <init> (Ljava/io/InputStream;)V
+	public final fun readProguardMapping ()Lshark/ProguardMapping;
+}
+
+public final class shark/ProguardMappingReader$Companion {
+}
+
+public final class shark/RandomAccessHprofReader : java/io/Closeable {
+	public static final field Companion Lshark/RandomAccessHprofReader$Companion;
+	public synthetic fun <init> (Lshark/RandomAccessSource;Lshark/HprofHeader;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun close ()V
+	public final fun readRecord (JJLkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+}
+
+public final class shark/RandomAccessHprofReader$Companion {
+	public final fun openReaderFor (Ljava/io/File;Lshark/HprofHeader;)Lshark/RandomAccessHprofReader;
+	public final fun openReaderFor (Lshark/RandomAccessSourceProvider;Lshark/HprofHeader;)Lshark/RandomAccessHprofReader;
+	public static synthetic fun openReaderFor$default (Lshark/RandomAccessHprofReader$Companion;Ljava/io/File;Lshark/HprofHeader;ILjava/lang/Object;)Lshark/RandomAccessHprofReader;
+	public static synthetic fun openReaderFor$default (Lshark/RandomAccessHprofReader$Companion;Lshark/RandomAccessSourceProvider;Lshark/HprofHeader;ILjava/lang/Object;)Lshark/RandomAccessHprofReader;
+}
+
+public abstract interface class shark/RandomAccessSource : java/io/Closeable {
+	public abstract fun asStreamingSource ()Lokio/BufferedSource;
+	public abstract fun read (Lokio/Buffer;JJ)J
+}
+
+public final class shark/RandomAccessSource$DefaultImpls {
+	public static fun asStreamingSource (Lshark/RandomAccessSource;)Lokio/BufferedSource;
+}
+
+public abstract interface class shark/RandomAccessSourceProvider {
+	public abstract fun openRandomAccessSource ()Lshark/RandomAccessSource;
+}
+
+public final class shark/StreamingHprofReader {
+	public static final field Companion Lshark/StreamingHprofReader$Companion;
+	public synthetic fun <init> (Lshark/StreamingSourceProvider;Lshark/HprofHeader;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun readRecords (Ljava/util/Set;Lshark/OnHprofRecordTagListener;)J
+}
+
+public final class shark/StreamingHprofReader$Companion {
+	public final fun readerFor (Ljava/io/File;Lshark/HprofHeader;)Lshark/StreamingHprofReader;
+	public final fun readerFor (Lshark/StreamingSourceProvider;Lshark/HprofHeader;)Lshark/StreamingHprofReader;
+	public static synthetic fun readerFor$default (Lshark/StreamingHprofReader$Companion;Ljava/io/File;Lshark/HprofHeader;ILjava/lang/Object;)Lshark/StreamingHprofReader;
+	public static synthetic fun readerFor$default (Lshark/StreamingHprofReader$Companion;Lshark/StreamingSourceProvider;Lshark/HprofHeader;ILjava/lang/Object;)Lshark/StreamingHprofReader;
+}
+
+public final class shark/StreamingRecordReaderAdapter {
+	public static final field Companion Lshark/StreamingRecordReaderAdapter$Companion;
+	public fun <init> (Lshark/StreamingHprofReader;)V
+	public final fun readRecords (Ljava/util/Set;Lshark/OnHprofRecordListener;)J
+}
+
+public final class shark/StreamingRecordReaderAdapter$Companion {
+	public final fun asHprofTags (Ljava/util/Set;)Ljava/util/EnumSet;
+	public final fun asStreamingRecordReader (Lshark/StreamingHprofReader;)Lshark/StreamingRecordReaderAdapter;
+}
+
+public abstract interface class shark/StreamingSourceProvider {
+	public abstract fun openStreamingSource ()Lokio/BufferedSource;
+}
+
+public abstract class shark/ValueHolder {
+	public static final field Companion Lshark/ValueHolder$Companion;
+	public static final field NULL_REFERENCE J
+}
+
+public final class shark/ValueHolder$BooleanHolder : shark/ValueHolder {
+	public fun <init> (Z)V
+	public final fun component1 ()Z
+	public final fun copy (Z)Lshark/ValueHolder$BooleanHolder;
+	public static synthetic fun copy$default (Lshark/ValueHolder$BooleanHolder;ZILjava/lang/Object;)Lshark/ValueHolder$BooleanHolder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ValueHolder$ByteHolder : shark/ValueHolder {
+	public fun <init> (B)V
+	public final fun component1 ()B
+	public final fun copy (B)Lshark/ValueHolder$ByteHolder;
+	public static synthetic fun copy$default (Lshark/ValueHolder$ByteHolder;BILjava/lang/Object;)Lshark/ValueHolder$ByteHolder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()B
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ValueHolder$CharHolder : shark/ValueHolder {
+	public fun <init> (C)V
+	public final fun component1 ()C
+	public final fun copy (C)Lshark/ValueHolder$CharHolder;
+	public static synthetic fun copy$default (Lshark/ValueHolder$CharHolder;CILjava/lang/Object;)Lshark/ValueHolder$CharHolder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()C
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ValueHolder$Companion {
+}
+
+public final class shark/ValueHolder$DoubleHolder : shark/ValueHolder {
+	public fun <init> (D)V
+	public final fun component1 ()D
+	public final fun copy (D)Lshark/ValueHolder$DoubleHolder;
+	public static synthetic fun copy$default (Lshark/ValueHolder$DoubleHolder;DILjava/lang/Object;)Lshark/ValueHolder$DoubleHolder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ValueHolder$FloatHolder : shark/ValueHolder {
+	public fun <init> (F)V
+	public final fun component1 ()F
+	public final fun copy (F)Lshark/ValueHolder$FloatHolder;
+	public static synthetic fun copy$default (Lshark/ValueHolder$FloatHolder;FILjava/lang/Object;)Lshark/ValueHolder$FloatHolder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ValueHolder$IntHolder : shark/ValueHolder {
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lshark/ValueHolder$IntHolder;
+	public static synthetic fun copy$default (Lshark/ValueHolder$IntHolder;IILjava/lang/Object;)Lshark/ValueHolder$IntHolder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ValueHolder$LongHolder : shark/ValueHolder {
+	public fun <init> (J)V
+	public final fun component1 ()J
+	public final fun copy (J)Lshark/ValueHolder$LongHolder;
+	public static synthetic fun copy$default (Lshark/ValueHolder$LongHolder;JILjava/lang/Object;)Lshark/ValueHolder$LongHolder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ValueHolder$ReferenceHolder : shark/ValueHolder {
+	public fun <init> (J)V
+	public final fun component1 ()J
+	public final fun copy (J)Lshark/ValueHolder$ReferenceHolder;
+	public static synthetic fun copy$default (Lshark/ValueHolder$ReferenceHolder;JILjava/lang/Object;)Lshark/ValueHolder$ReferenceHolder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()J
+	public fun hashCode ()I
+	public final fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ValueHolder$ShortHolder : shark/ValueHolder {
+	public fun <init> (S)V
+	public final fun component1 ()S
+	public final fun copy (S)Lshark/ValueHolder$ShortHolder;
+	public static synthetic fun copy$default (Lshark/ValueHolder$ShortHolder;SILjava/lang/Object;)Lshark/ValueHolder$ShortHolder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()S
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+

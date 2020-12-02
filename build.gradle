@@ -35,6 +35,7 @@ buildscript {
       detekt: 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.6.0',
       junit: 'junit:junit:4.12',
       kotlin: [
+          binaryCompatibilityValidatorPlugin: "org.jetbrains.kotlinx:binary-compatibility-validator:0.2.3",
           gradlePlugin: "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlinCompiler}",
           stdlib: "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlinLib}",
           reflect: "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlinLib}"
@@ -50,6 +51,8 @@ buildscript {
     google()
     maven { url 'https://plugins.gradle.org/m2/' }
     jcenter()
+    // For binary compatibility validator.
+    maven { url "https://kotlin.bintray.com/kotlinx" }
   }
   dependencies {
     classpath deps.kotlin.gradlePlugin
@@ -58,7 +61,20 @@ buildscript {
     classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
     classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
     classpath deps.detekt
+    classpath deps.kotlin.binaryCompatibilityValidatorPlugin
   }
+}
+
+// We use JetBrain's Kotlin Binary Compatibility Validator to track changes to our public binary
+// APIs.
+// When making a change that results in a public ABI change, the apiCheck task will fail. When this
+// happens, run ./gradlew apiDump to generate updated *.api files, and add those to your commit.
+// See https://github.com/Kotlin/binary-compatibility-validator
+apply plugin: 'binary-compatibility-validator'
+
+apiValidation {
+  // Ignore all sample projects, since they're not part of our API.
+  ignoredProjects += ["leakcanary-android-sample"]
 }
 
 subprojects {

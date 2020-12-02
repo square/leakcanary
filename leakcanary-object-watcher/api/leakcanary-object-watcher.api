@@ -1,0 +1,59 @@
+public abstract interface class leakcanary/Clock {
+	public static final field Companion Lleakcanary/Clock$Companion;
+	public abstract fun uptimeMillis ()J
+}
+
+public final class leakcanary/Clock$Companion {
+	public final fun invoke (Lkotlin/jvm/functions/Function0;)Lleakcanary/Clock;
+}
+
+public abstract interface class leakcanary/GcTrigger {
+	public abstract fun runGc ()V
+}
+
+public final class leakcanary/GcTrigger$Default : leakcanary/GcTrigger {
+	public static final field INSTANCE Lleakcanary/GcTrigger$Default;
+	public fun runGc ()V
+}
+
+public final class leakcanary/KeyedWeakReference : java/lang/ref/WeakReference {
+	public static final field Companion Lleakcanary/KeyedWeakReference$Companion;
+	public fun <init> (Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;JLjava/lang/ref/ReferenceQueue;)V
+	public final fun getDescription ()Ljava/lang/String;
+	public static final fun getHeapDumpUptimeMillis ()J
+	public final fun getKey ()Ljava/lang/String;
+	public final fun getRetainedUptimeMillis ()J
+	public final fun getWatchUptimeMillis ()J
+	public static final fun setHeapDumpUptimeMillis (J)V
+	public final fun setRetainedUptimeMillis (J)V
+}
+
+public final class leakcanary/KeyedWeakReference$Companion {
+	public final fun getHeapDumpUptimeMillis ()J
+	public final fun setHeapDumpUptimeMillis (J)V
+}
+
+public final class leakcanary/ObjectWatcher {
+	public fun <init> (Lleakcanary/Clock;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function0;)V
+	public synthetic fun <init> (Lleakcanary/Clock;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun addOnObjectRetainedListener (Lleakcanary/OnObjectRetainedListener;)V
+	public final fun clearObjectsWatchedBefore (J)V
+	public final fun clearWatchedObjects ()V
+	public final fun getHasRetainedObjects ()Z
+	public final fun getHasWatchedObjects ()Z
+	public final fun getRetainedObjectCount ()I
+	public final fun getRetainedObjects ()Ljava/util/List;
+	public final fun removeOnObjectRetainedListener (Lleakcanary/OnObjectRetainedListener;)V
+	public final fun watch (Ljava/lang/Object;)V
+	public final fun watch (Ljava/lang/Object;Ljava/lang/String;)V
+}
+
+public abstract interface class leakcanary/OnObjectRetainedListener {
+	public static final field Companion Lleakcanary/OnObjectRetainedListener$Companion;
+	public abstract fun onObjectRetained ()V
+}
+
+public final class leakcanary/OnObjectRetainedListener$Companion {
+	public final fun invoke (Lkotlin/jvm/functions/Function0;)Lleakcanary/OnObjectRetainedListener;
+}
+

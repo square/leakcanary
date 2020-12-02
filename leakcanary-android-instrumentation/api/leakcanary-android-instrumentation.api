@@ -1,0 +1,52 @@
+public final class com/squareup/leakcanary/instrumentation/BuildConfig {
+	public static final field BUILD_TYPE Ljava/lang/String;
+	public static final field DEBUG Z
+	public static final field LIBRARY_PACKAGE_NAME Ljava/lang/String;
+	public static final field VERSION_CODE I
+	public static final field VERSION_NAME Ljava/lang/String;
+	public fun <init> ()V
+}
+
+public final class leakcanary/FailAnnotatedTestOnLeakRunListener : leakcanary/FailTestOnLeakRunListener {
+	public fun <init> ()V
+}
+
+public abstract interface annotation class leakcanary/FailTestOnLeak : java/lang/annotation/Annotation {
+}
+
+public class leakcanary/FailTestOnLeakRunListener : org/junit/runner/notification/RunListener {
+	public fun <init> ()V
+	protected final fun failTest (Ljava/lang/String;)V
+	protected fun onAnalysisPerformed (Lshark/HeapAnalysis;)V
+	protected fun skipLeakDetectionReason (Lorg/junit/runner/Description;)Ljava/lang/String;
+	public fun testAssumptionFailure (Lorg/junit/runner/notification/Failure;)V
+	public fun testFailure (Lorg/junit/runner/notification/Failure;)V
+	public fun testFinished (Lorg/junit/runner/Description;)V
+	public fun testIgnored (Lorg/junit/runner/Description;)V
+	public fun testRunFinished (Lorg/junit/runner/Result;)V
+	public fun testRunStarted (Lorg/junit/runner/Description;)V
+	public fun testStarted (Lorg/junit/runner/Description;)V
+}
+
+public final class leakcanary/InstrumentationLeakDetector {
+	public static final field Companion Lleakcanary/InstrumentationLeakDetector$Companion;
+	public fun <init> ()V
+	public final fun detectLeaks ()Lleakcanary/InstrumentationLeakDetector$Result;
+}
+
+public final class leakcanary/InstrumentationLeakDetector$Companion {
+	public final fun updateConfig ()V
+}
+
+public abstract class leakcanary/InstrumentationLeakDetector$Result {
+}
+
+public final class leakcanary/InstrumentationLeakDetector$Result$AnalysisPerformed : leakcanary/InstrumentationLeakDetector$Result {
+	public fun <init> (Lshark/HeapAnalysis;)V
+	public final fun getHeapAnalysis ()Lshark/HeapAnalysis;
+}
+
+public final class leakcanary/InstrumentationLeakDetector$Result$NoAnalysis : leakcanary/InstrumentationLeakDetector$Result {
+	public static final field INSTANCE Lleakcanary/InstrumentationLeakDetector$Result$NoAnalysis;
+}
+
