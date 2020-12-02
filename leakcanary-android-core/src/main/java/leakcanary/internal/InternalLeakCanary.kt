@@ -1,13 +1,16 @@
 package leakcanary.internal
 
+import android.annotation.TargetApi
 import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.app.UiModeManager
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Context.UI_MODE_SERVICE
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
@@ -20,6 +23,7 @@ import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.UserManager
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
@@ -182,7 +186,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     })
   }
 
-  @Suppress("ReturnCount")
   private fun addDynamicShortcut(application: Application) {
     if (VERSION.SDK_INT < VERSION_CODES.N_MR1) {
       return
@@ -195,6 +198,27 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       return
     }
 
+    // Dynamic shortcuts can't be created during direct boot, defer the shortcut creation to a later time.
+    val userManager = application.getSystemService(UserManager::class.java)!!
+    if (userManager.isUserUnlocked) {
+      addDynamicShortcutWhenUserUnlocked(application)
+    } else {
+      application.registerReceiver(object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+          if (intent.action != Intent.ACTION_USER_UNLOCKED) {
+            return
+          }
+
+          application.unregisterReceiver(this)
+          addDynamicShortcutWhenUserUnlocked(application)
+        }
+      }, IntentFilter(Intent.ACTION_USER_UNLOCKED))
+    }
+  }
+
+  @Suppress("ReturnCount")
+  @TargetApi(VERSION_CODES.N_MR1)
+  private fun addDynamicShortcutWhenUserUnlocked(application: Application) {
     val shortcutManager = application.getSystemService(ShortcutManager::class.java)!!
     val dynamicShortcuts = shortcutManager.dynamicShortcuts
 

@@ -19,6 +19,8 @@
     package="com.example.leakcanary"
     >
 
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
   <!-- Features required to run on Android TV -->
   <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
   <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -41,5 +43,13 @@
         <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
       </intent-filter>
     </activity>
+    <receiver
+        android:name=".DirectBootReceiver"
+        android:exported="true"
+        android:directBootAware="true" >
+      <intent-filter>
+        <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+      </intent-filter>
+    </receiver>
   </application>
 </manifest>
