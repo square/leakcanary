@@ -10,7 +10,6 @@ import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.NotifyingNope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.SilentNope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
-import leakcanary.internal.activity.screen.dumpEnabledInAboutScreen
 
 internal object HeapDumpControl {
 
@@ -55,7 +54,7 @@ internal object HeapDumpControl {
     val dumpHeap = if (!AppWatcher.isInstalled) {
       // Can't use a resource, we don't have an Application instance when not installed
       SilentNope { "AppWatcher is not installed." }
-    } else if (!app.dumpEnabledInAboutScreen) {
+    } else if (!InternalLeakCanary.dumpEnabledInAboutScreen) {
       NotifyingNope {
         app.getString(R.string.leak_canary_heap_dump_disabled_from_ui)
       }

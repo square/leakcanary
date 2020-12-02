@@ -20,6 +20,7 @@ import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.StrictMode
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
@@ -105,6 +106,26 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   }
 
   var resumedActivity: Activity? = null
+
+  private val heapDumpPrefs by lazy {
+    val oldPolicy = StrictMode.allowThreadDiskReads()
+    application.getSharedPreferences("LeakCanaryHeapDumpPrefs", Context.MODE_PRIVATE)
+            .also {
+              StrictMode.setThreadPolicy(oldPolicy)
+            }
+  }
+
+  internal var dumpEnabledInAboutScreen: Boolean
+    get() {
+      return heapDumpPrefs
+                .getBoolean("AboutScreenDumpEnabled", true)
+    }
+    set(value) {
+      heapDumpPrefs
+                .edit()
+                .putBoolean("AboutScreenDumpEnabled", value)
+                .apply()
+    }
 
   override fun invoke(application: Application) {
     _application = application
