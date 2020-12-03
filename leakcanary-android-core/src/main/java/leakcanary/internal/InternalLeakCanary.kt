@@ -108,11 +108,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   var resumedActivity: Activity? = null
 
   private val heapDumpPrefs by lazy {
-    val oldPolicy = StrictMode.allowThreadDiskReads()
     application.getSharedPreferences("LeakCanaryHeapDumpPrefs", Context.MODE_PRIVATE)
-            .also {
-              StrictMode.setThreadPolicy(oldPolicy)
-            }
   }
 
   internal var dumpEnabledInAboutScreen: Boolean
@@ -157,12 +153,17 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
     // We post so that the log happens after Application.onCreate()
     Handler().post {
-      SharkLog.d {
-        when (val iCanHasHeap = HeapDumpControl.iCanHasHeap()) {
-          is Yup -> application.getString(R.string.leak_canary_heap_dump_enabled_text)
-          is Nope -> application.getString(
+      // https://github.com/square/leakcanary/issues/1981
+      // We post to a background handler because HeapDumpControl.iCanHasHeap() checks a shared pref
+      // which blocks until loaded and that creates a StrictMode violation.
+      backgroundHandler.post {
+        SharkLog.d {
+          when (val iCanHasHeap = HeapDumpControl.iCanHasHeap()) {
+            is Yup -> application.getString(R.string.leak_canary_heap_dump_enabled_text)
+            is Nope -> application.getString(
               R.string.leak_canary_heap_dump_disabled_text, iCanHasHeap.reason()
-          )
+            )
+          }
         }
       }
     }
