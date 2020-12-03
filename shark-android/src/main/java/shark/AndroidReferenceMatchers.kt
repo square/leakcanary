@@ -660,20 +660,6 @@ enum class AndroidReferenceMatchers {
     }
   },
 
-  WINDOW_MANAGER_GLOBAL {
-    override fun add(references: MutableList<ReferenceMatcher>) {
-      references += instanceFieldLeak(
-        "android.view.WindowManagerGlobal", "mRoots",
-        description = """
-              ViewRootImpl references a destroyed activity yet it's not detached (still has a view)
-               and WindowManagerGlobal still references it.
-            """.trimIndent()
-      ) {
-        sdkInt == 27
-      }
-    }
-  },
-
   CONTROLLED_INPUT_CONNECTION_WRAPPER {
     override fun add(references: MutableList<ReferenceMatcher>) {
       references += nativeGlobalVariableLeak(

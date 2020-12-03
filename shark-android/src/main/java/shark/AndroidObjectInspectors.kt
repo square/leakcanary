@@ -544,9 +544,24 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
   VIEW_ROOT_IMPL {
     override val leakingObjectFilter = { heapObject: HeapObject ->
-      heapObject is HeapInstance &&
-        heapObject instanceOf "android.view.ViewRootImpl" &&
-        heapObject["android.view.ViewRootImpl", "mView"]!!.value.isNullReference
+      if (heapObject is HeapInstance &&
+        heapObject instanceOf "android.view.ViewRootImpl"
+      ) {
+        if (heapObject["android.view.ViewRootImpl", "mView"]!!.value.isNullReference) {
+          true
+        } else {
+          val mContextField = heapObject["android.view.ViewRootImpl", "mContext"]
+          if (mContextField != null) {
+            val mContext = mContextField.valueAsInstance!!
+            val activityContext = mContext.unwrapActivityContext()
+            (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true)
+          } else {
+            false
+          }
+        }
+      } else {
+        false
+      }
     }
 
     override fun inspect(reporter: ObjectReporter) {
@@ -555,8 +570,30 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (mViewField.value.isNullReference) {
           leakingReasons += mViewField describedWithValue "null"
         } else {
-          notLeakingReasons += mViewField describedWithValue "not null"
+          // ViewRootImpl.mContext wasn't always here.
+          val mContextField = instance["android.view.ViewRootImpl", "mContext"]
+          if (mContextField != null) {
+            val mContext = mContextField.valueAsInstance!!
+            val activityContext = mContext.unwrapActivityContext()
+            if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
+              leakingReasons += "ViewRootImpl.mContext references a destroyed activity, did you forget to cancel toasts or dismiss dialogs?"
+            }
+          }
+          labels += mViewField describedWithValue "not null"
         }
+        val mWindowAttributes =
+          instance["android.view.ViewRootImpl", "mWindowAttributes"]!!.valueAsInstance!!
+        val mTitle =
+          mWindowAttributes["android.view.WindowManager\$LayoutParams", "mTitle"]!!.valueAsInstance!!.readAsJavaString()!!
+        labels += "mWindowAttributes.mTitle = \"$mTitle\""
+
+        val type =
+          mWindowAttributes["android.view.WindowManager\$LayoutParams", "type"]!!.value.asInt!!
+        // android.view.WindowManager.LayoutParams.TYPE_TOAST
+        val details = if (type == 2005) {
+          " (Toast)"
+        } else ""
+        labels += "mWindowAttributes.type = $type$details"
       }
     }
   },
