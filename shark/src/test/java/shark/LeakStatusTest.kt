@@ -46,6 +46,17 @@ class LeakStatusTest {
     assertThat(leakTrace.leakingObject.leakingStatus).isEqualTo(LEAKING)
   }
 
+  @Test fun unreachableInstanceLeaking() {
+    val heapDump = dump {
+      "SomeClass" watchedInstance {
+      }
+    }
+
+    val analysis = heapDump.checkForLeaks<HeapAnalysisSuccess>()
+
+    assertThat(analysis.unreachableObjects[0].leakingStatus).isEqualTo(LEAKING)
+  }
+
   @Test fun defaultsToUnknown() {
     hprofFile.dump {
       "GcRoot" clazz {

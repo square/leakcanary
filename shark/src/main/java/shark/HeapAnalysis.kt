@@ -92,7 +92,8 @@ data class HeapAnalysisSuccess(
   /**
    * The list of [LibraryLeak] found in the heap dump by [HeapAnalyzer].
    */
-  val libraryLeaks: List<LibraryLeak>
+  val libraryLeaks: List<LibraryLeak>,
+  val unreachableObjects: List<LeakTraceObject>
 ) : HeapAnalysis() {
   /**
    * The list of [Leak] found in the heap dump by [HeapAnalyzer], ie all [applicationLeaks] and
@@ -117,6 +118,13 @@ ${libraryLeaks.size} LIBRARY LEAKS
 A Library Leak is a leak caused by a known bug in 3rd party code that you do not have control over.
 See https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks
 ${if (libraryLeaks.isNotEmpty()) "\n" + libraryLeaks.joinToString(
+        "\n\n"
+    ) + "\n" else ""}====================================
+${unreachableObjects.size} UNREACHABLE OBJECTS
+
+An unreachable object is still in memory but LeakCanary could not find a strong reference path
+from GC roots.
+${if (unreachableObjects.isNotEmpty()) "\n" + unreachableObjects.joinToString(
         "\n\n"
     ) + "\n" else ""}====================================
 METADATA
@@ -166,7 +174,8 @@ Heap dump duration: ${if (dumpDurationMillis != DUMP_DURATION_UNKNOWN) "$dumpDur
           analysisDurationMillis = fromV20.analysisDurationMillis,
           metadata = fromV20.metadata,
           applicationLeaks = applicationLeaks,
-          libraryLeaks = libraryLeaks
+          libraryLeaks = libraryLeaks,
+          unreachableObjects = listOf()
       )
     }
   }

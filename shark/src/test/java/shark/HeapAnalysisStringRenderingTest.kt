@@ -20,7 +20,8 @@ class HeapAnalysisStringRenderingTest {
   }
 
   @Test fun emptyFile() {
-    val analysis = hprofFile.checkForLeaks<HeapAnalysis>()
+    val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
+    val analysis = heapAnalyzer.analyze(hprofFile, leakingObjectFinder = { error("never called") })
 
     analysis renders """
       |====================================
@@ -67,11 +68,15 @@ class HeapAnalysisStringRenderingTest {
       |A Library Leak is a leak caused by a known bug in 3rd party code that you do not have control over.
       |See https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks
       |====================================
+      |0 UNREACHABLE OBJECTS
+      |
+      |An unreachable object is still in memory but LeakCanary could not find a strong reference path
+      |from GC roots.
+      |====================================
       |METADATA
       |
       |Please include this in bug reports and Stack Overflow questions.
       |
-      |Stats: .*
       |Analysis duration: \d* ms
       |Heap dump file path: ${hprofFile.absolutePath}
       |Heap dump timestamp: \d*
@@ -110,11 +115,15 @@ class HeapAnalysisStringRenderingTest {
       |A Library Leak is a leak caused by a known bug in 3rd party code that you do not have control over.
       |See https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks
       |====================================
+      |0 UNREACHABLE OBJECTS
+      |
+      |An unreachable object is still in memory but LeakCanary could not find a strong reference path
+      |from GC roots.
+      |====================================
       |METADATA
       |
       |Please include this in bug reports and Stack Overflow questions.
       |
-      |Stats: .*
       |Analysis duration: \d* ms
       |Heap dump file path: ${hprofFile.absolutePath}
       |Heap dump timestamp: \d*

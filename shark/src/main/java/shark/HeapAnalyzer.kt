@@ -40,6 +40,7 @@ import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.internal.AndroidNativeSizeMapper
 import shark.internal.DominatorTree
 import shark.internal.PathFinder
+import shark.internal.PathFinder.PathFindingResults
 import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.LibraryLeakNode
@@ -159,7 +160,7 @@ class HeapAnalyzer constructor(
     listener.onAnalysisProgress(FINDING_RETAINED_OBJECTS)
     val leakingObjectIds = leakingObjectFinder.findLeakingObjectIds(graph)
 
-    val (applicationLeaks, libraryLeaks) = findLeaks(leakingObjectIds)
+    val (applicationLeaks, libraryLeaks, unreachableObjects) = findLeaks(leakingObjectIds)
 
     return HeapAnalysisSuccess(
         heapDumpFile = heapDumpFile,
@@ -167,16 +168,23 @@ class HeapAnalyzer constructor(
         analysisDurationMillis = since(analysisStartNanoTime),
         metadata = metadata,
         applicationLeaks = applicationLeaks,
-        libraryLeaks = libraryLeaks
+        libraryLeaks = libraryLeaks,
+        unreachableObjects = unreachableObjects
     )
   }
 
-  private fun FindLeakInput.findLeaks(leakingObjectIds: Set<Long>): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
+  private data class LeaksAndUnreachableObjects(
+    val applicationLeaks: List<ApplicationLeak>,
+    val libraryLeaks: List<LibraryLeak>,
+    val unreachableObjects: List<LeakTraceObject>
+  )
+
+  private fun FindLeakInput.findLeaks(leakingObjectIds: Set<Long>): LeaksAndUnreachableObjects {
     val pathFinder = PathFinder(graph, listener, referenceMatchers)
     val pathFindingResults =
       pathFinder.findPathsFromGcRoots(leakingObjectIds, computeRetainedHeapSize)
 
-    SharkLog.d { "Found ${leakingObjectIds.size} retained objects" }
+    val unreachableObjects = findUnreachableObjects(pathFindingResults, leakingObjectIds)
 
     val shortestPaths =
       deduplicateShortestPaths(pathFindingResults.pathsToLeakingObjects)
@@ -189,7 +197,45 @@ class HeapAnalyzer constructor(
       } else {
         null
       }
-    return buildLeakTraces(shortestPaths, inspectedObjectsByPath, retainedSizes)
+    val (applicationLeaks, libraryLeaks) = buildLeakTraces(
+        shortestPaths, inspectedObjectsByPath, retainedSizes
+    )
+    return LeaksAndUnreachableObjects(applicationLeaks, libraryLeaks, unreachableObjects)
+  }
+
+  private fun FindLeakInput.findUnreachableObjects(
+    pathFindingResults: PathFindingResults,
+    leakingObjectIds: Set<Long>
+  ): List<LeakTraceObject> {
+    val reachableLeakingObjectIds =
+      pathFindingResults.pathsToLeakingObjects.map { it.objectId }.toSet()
+
+    val unreachableLeakingObjectIds = leakingObjectIds - reachableLeakingObjectIds
+
+    val unreachableObjectReporters = unreachableLeakingObjectIds.map { objectId ->
+      ObjectReporter(heapObject = graph.findObjectById(objectId))
+    }
+
+    objectInspectors.forEach { inspector ->
+      unreachableObjectReporters.forEach { reporter ->
+        inspector.inspect(reporter)
+      }
+    }
+
+    val unreachableInspectedObjects = unreachableObjectReporters.map { reporter ->
+      val reason = resolveStatus(reporter, leakingWins = true).let { (status, reason) ->
+        when (status) {
+          LEAKING -> reason
+          UNKNOWN -> "This is a leaking object"
+          NOT_LEAKING -> "This is a leaking object. Conflicts with $reason"
+        }
+      }
+      InspectedObject(
+          reporter.heapObject, LEAKING, reason, reporter.labels
+      )
+    }
+
+    return buildLeakTraceObjects(unreachableInspectedObjects, null)
   }
 
   internal sealed class TrieNode {
