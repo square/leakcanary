@@ -3,6 +3,9 @@ package leakcanary
 import leakcanary.HeapAnalysisCondition.Result.StartAnalysis
 import leakcanary.HeapAnalysisCondition.Result.StopAnalysis
 
+/**
+ * see [evaluate].
+ */
 abstract class HeapAnalysisCondition {
 
   /**
@@ -15,6 +18,10 @@ abstract class HeapAnalysisCondition {
    */
   abstract fun evaluate(): Result
 
+  /**
+   * Enables implementations of [HeapAnalysisCondition] to notify the engine that conditions
+   * have changed and they should be reevaluated.
+   */
   interface Trigger {
     fun conditionChanged(reason: String)
   }

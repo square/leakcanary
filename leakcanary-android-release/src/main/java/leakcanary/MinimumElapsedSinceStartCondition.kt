@@ -43,6 +43,9 @@ class MinimumElapsedSinceStartCondition(
     SystemClock.elapsedRealtime() - readProcessForkRealtimeMillis()
   }
 
+  /**
+   * See https://dev.to/pyricau/android-vitals-when-did-my-app-start-24p4#process-fork-time
+   */
   private fun readProcessForkRealtimeMillis(): Long {
     val myPid = Process.myPid()
     val ticksAtProcessStart = readProcessStartTicks(myPid)

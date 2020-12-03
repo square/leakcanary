@@ -25,7 +25,7 @@ class MinimumMemoryCondition(
     uiHandler.removeCallbacks(postedRetry)
     val activityManager = application.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
-    if (Build.VERSION.SDK_INT >= 19 &&  activityManager.isLowRamDevice) {
+    if (Build.VERSION.SDK_INT >= 19 && activityManager.isLowRamDevice) {
       return Result.StopAnalysis("low ram device")
     }
     activityManager.getMemoryInfo(memoryInfo)

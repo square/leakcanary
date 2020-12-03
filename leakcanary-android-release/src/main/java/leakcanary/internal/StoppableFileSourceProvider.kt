@@ -27,7 +27,6 @@ internal class StoppableFileSourceProvider(
         }
         return realSource.read(sink, byteCount)
       }
-
     }.buffer()
   }
 

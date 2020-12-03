@@ -33,6 +33,7 @@ class ReleaseExampleApplication : ExampleApplication() {
       }
     }
     val analyzer = ConditionalHeapAnalyzer(this, listener = listener)
+    analyzer.removeAllHeapDumpFiles()
     analyzer.start()
   }
 }

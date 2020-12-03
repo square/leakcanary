@@ -8,6 +8,9 @@ import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Handler
 import android.os.Looper
 
+/**
+ * Tracks whether the app is in background, based on the app's importance.
+ */
 internal class BackgroundListener(
   private val callback: (Boolean) -> Unit
 ) : ActivityLifecycleCallbacks by noOpDelegate() {

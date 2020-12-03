@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 private const val LAST_START_TIMESTAMP_KEY = "last_start_timestamp"
 
 /**
- * Returns [Result.StartAnalysis] once per period and then returns [Result.StopAnalysis].
+ * Returns [Result.StartAnalysis] once per period (of time) and then returns [Result.StopAnalysis].
  * This condition should be last in the chain, and ensures that we don't repeatedly try dumping
  * the heap.
  */
