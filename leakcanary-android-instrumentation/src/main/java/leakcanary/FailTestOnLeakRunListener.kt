@@ -54,7 +54,7 @@ open class FailTestOnLeakRunListener : RunListener() {
 
   private var skipLeakDetectionReason: String? = null
 
-  private lateinit var testResultPublisher: TestResultPublisher
+  private var testResultPublisher: TestResultPublisher? = null
 
   @Volatile
   private var allActivitiesDestroyedLatch: CountDownLatch? = null
@@ -131,7 +131,7 @@ open class FailTestOnLeakRunListener : RunListener() {
     }
     AppWatcher.objectWatcher.clearWatchedObjects()
     _currentTestDescription = null
-    testResultPublisher.publishTestFinished()
+    testResultPublisher?.publishTestFinished()
   }
 
   private fun detectLeaks() {
@@ -181,7 +181,7 @@ open class FailTestOnLeakRunListener : RunListener() {
    */
   protected fun failTest(trace: String) {
     SharkLog.d { trace }
-    testResultPublisher.publishTestFailure(currentTestDescription, trace)
+    testResultPublisher?.publishTestFailure(currentTestDescription, trace)
   }
 
   private inline fun <reified T : Any> noOpDelegate(): T {
