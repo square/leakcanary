@@ -38,9 +38,9 @@ data class LeakTrace(
     get() {
       val allObjects = listOf(leakingObject) + referencePath.map { it.originObject }
       return allObjects.filter { it.leakingStatus == LEAKING }
-          .mapNotNull { it.retainedHeapByteSize }
-          // The minimum released is the max held by a leaking object.
-          .max()
+        .mapNotNull { it.retainedHeapByteSize }
+        // The minimum released is the max held by a leaking object.
+        .max()
     }
 
   /**
@@ -51,9 +51,9 @@ data class LeakTrace(
     get() {
       val allObjects = listOf(leakingObject) + referencePath.map { it.originObject }
       return allObjects.filter { it.leakingStatus == LEAKING }
-          .mapNotNull { it.retainedObjectCount }
-          // The minimum released is the max held by a leaking object.
-          .max()
+        .mapNotNull { it.retainedObjectCount }
+        // The minimum released is the max held by a leaking object.
+        .max()
     }
 
   /**
@@ -62,9 +62,9 @@ data class LeakTrace(
    */
   val suspectReferenceSubpath
     get() = referencePath.asSequence()
-        .filterIndexed { index, _ ->
-          referencePathElementIsSuspect(index)
-        }
+      .filterIndexed { index, _ ->
+        referencePathElementIsSuspect(index)
+      }
 
   /**
    * A SHA1 hash that represents this leak trace. This can be useful to group together similar
@@ -74,10 +74,10 @@ data class LeakTrace(
    */
   val signature: String
     get() = suspectReferenceSubpath
-        .joinToString(separator = "") { element ->
-          element.originObject.className + element.referenceGenericName
-        }
-        .createSHA1Hash()
+      .joinToString(separator = "") { element ->
+        element.originObject.className + element.referenceGenericName
+      }
+      .createSHA1Hash()
 
   /**
    * Returns true if the [referencePath] element at the provided [index] contains a reference
@@ -89,7 +89,7 @@ data class LeakTrace(
     return when (referencePath[index].originObject.leakingStatus) {
       UNKNOWN -> true
       NOT_LEAKING -> index == referencePath.lastIndex ||
-          referencePath[index + 1].originObject.leakingStatus != NOT_LEAKING
+        referencePath[index + 1].originObject.leakingStatus != NOT_LEAKING
       else -> false
     }
   }
@@ -100,8 +100,8 @@ data class LeakTrace(
 
   // https://stackoverflow.com/a/3758880
   private fun humanReadableByteCount(
-          bytes: Long,
-          si: Boolean
+    bytes: Long,
+    si: Boolean
   ): String {
     val unit = if (si) 1000 else 1024
     if (bytes < unit) return "$bytes B"
@@ -137,7 +137,8 @@ data class LeakTrace(
         result += "\n│    Leaking: $leakStatus"
       }
       if (originObject.retainedHeapByteSize != null) {
-        val humanReadableRetainedHeapSize = humanReadableByteCount(originObject.retainedHeapByteSize.toLong(), si = true)
+        val humanReadableRetainedHeapSize =
+          humanReadableByteCount(originObject.retainedHeapByteSize.toLong(), si = true)
         result += "\n│    Retaining $humanReadableRetainedHeapSize in ${originObject.retainedObjectCount} objects"
       }
 
@@ -155,7 +156,8 @@ data class LeakTrace(
     }
     if (leakingObject.retainedHeapByteSize != null) {
       result += "\n$ZERO_WIDTH_SPACE"
-      val humanReadableRetainedHeapSize = humanReadableByteCount(leakingObject.retainedHeapByteSize.toLong(), si = true)
+      val humanReadableRetainedHeapSize =
+        humanReadableByteCount(leakingObject.retainedHeapByteSize.toLong(), si = true)
       result += "     Retaining $humanReadableRetainedHeapSize in ${leakingObject.retainedObjectCount} objects"
     }
     for (label in leakingObject.labels) {
@@ -174,7 +176,7 @@ data class LeakTrace(
     STICKY_CLASS("System class"),
     THREAD_BLOCK("Thread block"),
     MONITOR_USED(
-        "Monitor (anything that called the wait() or notify() methods, or that is synchronized.)"
+      "Monitor (anything that called the wait() or notify() methods, or that is synchronized.)"
     ),
     THREAD_OBJECT("Thread object"),
     JNI_MONITOR("Root JNI monitor"),
@@ -193,7 +195,6 @@ data class LeakTrace(
         is GcRoot.JniMonitor -> JNI_MONITOR
         else -> throw IllegalStateException("Unexpected gc root $gcRoot")
       }
-
     }
   }
 
@@ -201,14 +202,14 @@ data class LeakTrace(
   private val elements: List<LeakTraceElement>? = null
 
   internal fun fromV20(retainedHeapByteSize: Int?) = LeakTrace(
-      gcRootType = elements!!.first().gcRootTypeFromV20(),
-      referencePath = when {
-        elements.isEmpty() -> emptyList()
-        else -> elements
-            .subList(0, elements.lastIndex - 1)
-            .map { it.referencePathElementFromV20() }
-      },
-      leakingObject = elements.last().originObjectFromV20()
+    gcRootType = elements!!.first().gcRootTypeFromV20(),
+    referencePath = when {
+      elements.isEmpty() -> emptyList()
+      else -> elements
+        .subList(0, elements.lastIndex - 1)
+        .map { it.referencePathElementFromV20() }
+    },
+    leakingObject = elements.last().originObjectFromV20()
   )
 
   companion object {
@@ -236,6 +237,5 @@ data class LeakTrace(
 
     private const val ZERO_WIDTH_SPACE = '\u200b'
     private const val serialVersionUID = -6315725584154386429
-
   }
 }

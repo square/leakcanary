@@ -58,7 +58,7 @@ internal object Io {
   private fun checkMainThread() {
     if (Looper.getMainLooper().thread !== Thread.currentThread()) {
       throw UnsupportedOperationException(
-          "Should be called from the main thread, not ${Thread.currentThread()}"
+        "Should be called from the main thread, not ${Thread.currentThread()}"
       )
     }
   }

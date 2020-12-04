@@ -72,7 +72,7 @@ class MinimumElapsedSinceStartCondition(
       reader.readLine()
     }
     val fields = stat.substringAfter(") ")
-        .split(' ')
+      .split(' ')
     return fields[19].toLong()
   }
 }

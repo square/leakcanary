@@ -33,7 +33,6 @@ internal class FutureResult<T> {
     } catch (e: InterruptedException) {
       throw RuntimeException("Did not expect thread to be interrupted", e)
     }
-
   }
 
   fun get(): T {

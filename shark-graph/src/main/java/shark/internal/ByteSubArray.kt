@@ -81,22 +81,22 @@ internal fun ByteArray.readInt(index: Int): Int {
   var pos = index
   val array = this
   return (array[pos++] and 0xff shl 24
-      or (array[pos++] and 0xff shl 16)
-      or (array[pos++] and 0xff shl 8)
-      or (array[pos] and 0xff))
+    or (array[pos++] and 0xff shl 16)
+    or (array[pos++] and 0xff shl 8)
+    or (array[pos] and 0xff))
 }
 
 internal fun ByteArray.readLong(index: Int): Long {
   var pos = index
   val array = this
   return (array[pos++] and 0xffL shl 56
-      or (array[pos++] and 0xffL shl 48)
-      or (array[pos++] and 0xffL shl 40)
-      or (array[pos++] and 0xffL shl 32)
-      or (array[pos++] and 0xffL shl 24)
-      or (array[pos++] and 0xffL shl 16)
-      or (array[pos++] and 0xffL shl 8)
-      or (array[pos] and 0xffL))
+    or (array[pos++] and 0xffL shl 48)
+    or (array[pos++] and 0xffL shl 40)
+    or (array[pos++] and 0xffL shl 32)
+    or (array[pos++] and 0xffL shl 24)
+    or (array[pos++] and 0xffL shl 16)
+    or (array[pos++] and 0xffL shl 8)
+    or (array[pos] and 0xffL))
 }
 
 @Suppress("NOTHING_TO_INLINE") // Syntactic sugar.

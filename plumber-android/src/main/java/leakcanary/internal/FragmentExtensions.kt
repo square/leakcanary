@@ -20,14 +20,14 @@ internal fun Activity.onAndroidXFragmentViewDestroyed(block: () -> Unit) {
   }
   if (this is FragmentActivity) {
     supportFragmentManager.registerFragmentLifecycleCallbacks(
-        object : FragmentManager.FragmentLifecycleCallbacks() {
-          override fun onFragmentViewDestroyed(
-            fm: FragmentManager,
-            fragment: Fragment
-          ) {
-            block()
-          }
-        }, true
+      object : FragmentManager.FragmentLifecycleCallbacks() {
+        override fun onFragmentViewDestroyed(
+          fm: FragmentManager,
+          fragment: Fragment
+        ) {
+          block()
+        }
+      }, true
     )
   }
 }

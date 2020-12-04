@@ -74,9 +74,9 @@ internal class DisplayLeakConnectorView(
 
     type = NODE_UNKNOWN
     circleY = resources.getDimensionPixelSize(R.dimen.leak_canary_connector_center_y)
-        .toFloat()
+      .toFloat()
     strokeSize = resources.getDimensionPixelSize(R.dimen.leak_canary_connector_stroke_size)
-        .toFloat()
+      .toFloat()
 
     classNamePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     classNamePaint.color = context.getColorCompat(R.color.leak_canary_class_name)
@@ -89,10 +89,10 @@ internal class DisplayLeakConnectorView(
     leakPaint.strokeWidth = strokeSize
 
     val pathLines = resources.getDimensionPixelSize(R.dimen.leak_canary_connector_leak_dash_line)
-        .toFloat()
+      .toFloat()
 
     val pathGaps = resources.getDimensionPixelSize(R.dimen.leak_canary_connector_leak_dash_gap)
-        .toFloat()
+      .toFloat()
     leakPaint.pathEffect = DashPathEffect(floatArrayOf(pathLines, pathGaps), 0f)
 
     clearPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -121,13 +121,13 @@ internal class DisplayLeakConnectorView(
       when (type) {
         NODE_UNKNOWN -> drawItems(cacheCanvas, leakPaint, leakPaint)
         NODE_UNREACHABLE, NODE_REACHABLE -> drawItems(
-            cacheCanvas, referencePaint, referencePaint
+          cacheCanvas, referencePaint, referencePaint
         )
         NODE_FIRST_UNREACHABLE -> drawItems(
-            cacheCanvas, leakPaint, referencePaint
+          cacheCanvas, leakPaint, referencePaint
         )
         NODE_LAST_REACHABLE -> drawItems(
-            cacheCanvas, referencePaint, leakPaint
+          cacheCanvas, referencePaint, leakPaint
         )
         START -> {
           drawStartLine(cacheCanvas)
@@ -139,7 +139,7 @@ internal class DisplayLeakConnectorView(
         }
         END -> drawItems(cacheCanvas, referencePaint, null)
         END_FIRST_UNREACHABLE -> drawItems(
-            cacheCanvas, leakPaint, null
+          cacheCanvas, leakPaint, null
         )
         GC_ROOT -> drawGcRoot(cacheCanvas)
         else -> throw UnsupportedOperationException("Unknown type " + type!!)
@@ -196,8 +196,8 @@ internal class DisplayLeakConnectorView(
     cacheCanvas.translate(halfWidth, translateY)
     cacheCanvas.rotate(45f)
     cacheCanvas.drawLine(
-        0f, halfWidth, halfWidth + halfStrokeSize, halfWidth,
-        paint
+      0f, halfWidth, halfWidth + halfStrokeSize, halfWidth,
+      paint
     )
     cacheCanvas.drawLine(halfWidth, 0f, halfWidth, halfWidth, paint)
     cacheCanvas.rotate(-45f)
@@ -235,7 +235,7 @@ internal class DisplayLeakConnectorView(
   companion object {
 
     private val SQRT_TWO = sqrt(2.0)
-        .toFloat()
+      .toFloat()
     private val CLEAR_XFER_MODE = PorterDuffXfermode(CLEAR)
   }
 }

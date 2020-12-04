@@ -18,7 +18,8 @@ class FailAnnotatedTestOnLeakRunListenerTest {
       javaClass.getMethod("detectsLeak").getAnnotation(FailTestOnLeak::class.java)
     val description = Description.createTestDescription("test", "Test mechanism", annotation)
     val listener = FailAnnotatedTestOnLeakRunListener()
-    val method = listener.javaClass.getDeclaredMethod("skipLeakDetectionReason", Description::class.java)
+    val method =
+      listener.javaClass.getDeclaredMethod("skipLeakDetectionReason", Description::class.java)
     method.isAccessible = true
     val result = method.invoke(listener, description)
     assertNull(result)
@@ -28,7 +29,8 @@ class FailAnnotatedTestOnLeakRunListenerTest {
   fun skipsLeakDetectionWithoutAnnotation() {
     val description = Description.createTestDescription("test", "Test mechanism")
     val listener = FailAnnotatedTestOnLeakRunListener()
-    val method = listener.javaClass.getDeclaredMethod("skipLeakDetectionReason", Description::class.java)
+    val method =
+      listener.javaClass.getDeclaredMethod("skipLeakDetectionReason", Description::class.java)
     method.isAccessible = true
     val result = method.invoke(listener, description)
     assertEquals("test is not annotated with @FailTestOnLeak", result)

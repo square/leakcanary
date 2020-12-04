@@ -15,15 +15,15 @@ internal class LeakReference : Serializable {
   private val name: String? = null
 
   fun fromV20(originObject: LeakTraceObject) = LeakTraceReference(
-      originObject = originObject,
-      referenceType = when (type!!) {
-        INSTANCE_FIELD -> LeakTraceReference.ReferenceType.INSTANCE_FIELD
-        STATIC_FIELD -> LeakTraceReference.ReferenceType.STATIC_FIELD
-        LOCAL -> LeakTraceReference.ReferenceType.LOCAL
-        ARRAY_ENTRY -> LeakTraceReference.ReferenceType.ARRAY_ENTRY
-      },
-      owningClassName = originObject.className,
-      referenceName = name!!
+    originObject = originObject,
+    referenceType = when (type!!) {
+      INSTANCE_FIELD -> LeakTraceReference.ReferenceType.INSTANCE_FIELD
+      STATIC_FIELD -> LeakTraceReference.ReferenceType.STATIC_FIELD
+      LOCAL -> LeakTraceReference.ReferenceType.LOCAL
+      ARRAY_ENTRY -> LeakTraceReference.ReferenceType.ARRAY_ENTRY
+    },
+    owningClassName = originObject.className,
+    referenceName = name!!
   )
 
   companion object {

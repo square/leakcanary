@@ -37,7 +37,7 @@ class HprofIOPerfTest {
     hprofFile.openHeapGraph().use { graph ->
       graph.objectArrays.forEach { array ->
         assertThat(array.readByteSize()).isEqualTo(
-            array.readRecord().elementIds.size * graph.identifierByteSize
+          array.readRecord().elementIds.size * graph.identifierByteSize
         )
       }
     }
@@ -65,7 +65,7 @@ class HprofIOPerfTest {
     hprofFile.openHeapGraph().use { graph ->
       graph.primitiveArrays.forEach { array ->
         assertThat(array.readByteSize()).isEqualTo(
-            array.readRecord().size * array.primitiveType.byteSize
+          array.readRecord().size * array.primitiveType.byteSize
         )
       }
     }
@@ -174,17 +174,17 @@ class HprofIOPerfTest {
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
     assertThat(
-        listOf(
-            metrics.first.readsCount, metrics.first.medianBytesRead, metrics.first.totalBytesRead,
-            metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
-        )
+      listOf(
+        metrics.first.readsCount, metrics.first.medianBytesRead, metrics.first.totalBytesRead,
+        metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
+      )
     )
-        .isEqualTo(
-            listOf(
-                19704, 40.0, 1029289,
-                21144, 40.0, 1087313
-            )
+      .isEqualTo(
+        listOf(
+          19704, 40.0, 1029289,
+          21144, 40.0, 1087313
         )
+      )
   }
 
   @Test fun `freeze leak_asynctask_m hprof random access metrics`() {
@@ -193,17 +193,17 @@ class HprofIOPerfTest {
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
     assertThat(
-        listOf(
-            metrics.first.readsCount, metrics.first.medianBytesRead, metrics.first.totalBytesRead,
-            metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
-        )
+      listOf(
+        metrics.first.readsCount, metrics.first.medianBytesRead, metrics.first.totalBytesRead,
+        metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
+      )
     )
-        .isEqualTo(
-            listOf(
-                17403, 40.0, 1961113,
-                17548, 40.0, 1961853
-            )
+      .isEqualTo(
+        listOf(
+          17403, 40.0, 1961113,
+          17548, 40.0, 1961853
         )
+      )
   }
 
   @Test fun `freeze leak_asynctask_pre_m hprof random access metrics`() {
@@ -212,17 +212,17 @@ class HprofIOPerfTest {
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
     assertThat(
-        listOf(
-            metrics.first.readsCount, metrics.first.medianBytesRead, metrics.first.totalBytesRead,
-            metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
-        )
+      listOf(
+        metrics.first.readsCount, metrics.first.medianBytesRead, metrics.first.totalBytesRead,
+        metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
+      )
     )
-        .isEqualTo(
-            listOf(
-                11768, 32.0, 553704,
-                11839, 32.0, 554072
-            )
+      .isEqualTo(
+        listOf(
+          11768, 32.0, 553704,
+          11839, 32.0, 554072
         )
+      )
   }
 
   class Reads(reads: List<Int>) {
@@ -235,9 +235,9 @@ class HprofIOPerfTest {
     return trackAnalyzeIoReadMetrics(hprofFile).run {
       Reads(this[3])
     } to trackAnalyzeIoReadMetrics(
-        hprofFile,
-        computeRetainedHeapSize = true,
-        printResult = true
+      hprofFile,
+      computeRetainedHeapSize = true,
+      printResult = true
     ).run {
       Reads(this[3])
     }
@@ -252,15 +252,15 @@ class HprofIOPerfTest {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = source.openHeapGraph().use { graph ->
       heapAnalyzer.analyze(
-          heapDumpFile = hprofFile,
-          graph = graph,
-          leakingObjectFinder = FilteringLeakingObjectFinder(
-              AndroidObjectInspectors.appLeakingObjectFilters
-          ),
-          referenceMatchers = AndroidReferenceMatchers.appDefaults,
-          computeRetainedHeapSize = computeRetainedHeapSize,
-          objectInspectors = AndroidObjectInspectors.appDefaults,
-          metadataExtractor = AndroidMetadataExtractor
+        heapDumpFile = hprofFile,
+        graph = graph,
+        leakingObjectFinder = FilteringLeakingObjectFinder(
+          AndroidObjectInspectors.appLeakingObjectFilters
+        ),
+        referenceMatchers = AndroidReferenceMatchers.appDefaults,
+        computeRetainedHeapSize = computeRetainedHeapSize,
+        objectInspectors = AndroidObjectInspectors.appDefaults,
+        metadataExtractor = AndroidMetadataExtractor
       )
     }
     check(analysis is HeapAnalysisSuccess) {

@@ -32,17 +32,17 @@ class HprofPrimitiveArrayStripperTest {
 
     strippedSource.openHeapGraph().use { graph ->
       val booleanArrays = graph.objects
-          .filter { it is HeapPrimitiveArray && it.primitiveType == BOOLEAN }
-          .map { it.readRecord() as BooleanArrayDump }
-          .toList()
+        .filter { it is HeapPrimitiveArray && it.primitiveType == BOOLEAN }
+        .map { it.readRecord() as BooleanArrayDump }
+        .toList()
       assertThat(booleanArrays).hasSize(1)
       assertThat(booleanArrays[0].id).isEqualTo(booleanArray.id)
       assertThat(booleanArrays[0].array).isEqualTo(booleanArrayOf(false, false, false, false))
 
       val charArrays = graph.objects
-          .filter { it is HeapPrimitiveArray && it.primitiveType == CHAR }
-          .map { it.readRecord() as CharArrayDump }
-          .toList()
+        .filter { it is HeapPrimitiveArray && it.primitiveType == CHAR }
+        .map { it.readRecord() as CharArrayDump }
+        .toList()
       assertThat(charArrays).hasSize(1)
       assertThat(charArrays[0].id).isEqualTo(charArray.id)
       assertThat(charArrays[0].array).isEqualTo("????????????".toCharArray())

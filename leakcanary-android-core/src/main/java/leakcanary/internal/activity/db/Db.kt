@@ -48,7 +48,6 @@ internal object Db {
       dbHelper?.close()
     }
   }
-
 }
 
 internal fun View.executeOnDb(block: OnDb.() -> Unit) {

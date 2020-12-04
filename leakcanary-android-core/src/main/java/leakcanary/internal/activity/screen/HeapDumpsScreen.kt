@@ -33,27 +33,27 @@ internal class HeapDumpsScreen : Screen() {
 
       onCreateOptionsMenu { menu ->
         menu.add(R.string.leak_canary_delete_all)
-            .setOnMenuItemClickListener {
-              AlertDialog.Builder(context)
-                  .setIcon(android.R.drawable.ic_dialog_alert)
-                  .setTitle(R.string.leak_canary_delete_all)
-                  .setMessage(R.string.leak_canary_delete_all_leaks_title)
-                  .setPositiveButton(android.R.string.ok) { _, _ ->
-                    executeOnDb {
-                      HeapAnalysisTable.deleteAll(db)
-                      updateUi {
-                        val listView = findViewById<ListView>(R.id.leak_canary_list)
-                        listView.adapter =
-                          SimpleListAdapter(
-                              R.layout.leak_canary_simple_row, emptyList<Any>()
-                          ) { _, _ -> }
-                      }
-                    }
+          .setOnMenuItemClickListener {
+            AlertDialog.Builder(context)
+              .setIcon(android.R.drawable.ic_dialog_alert)
+              .setTitle(R.string.leak_canary_delete_all)
+              .setMessage(R.string.leak_canary_delete_all_leaks_title)
+              .setPositiveButton(android.R.string.ok) { _, _ ->
+                executeOnDb {
+                  HeapAnalysisTable.deleteAll(db)
+                  updateUi {
+                    val listView = findViewById<ListView>(R.id.leak_canary_list)
+                    listView.adapter =
+                      SimpleListAdapter(
+                        R.layout.leak_canary_simple_row, emptyList<Any>()
+                      ) { _, _ -> }
                   }
-                  .setNegativeButton(android.R.string.cancel, null)
-                  .show()
-              true
-            }
+                }
+              }
+              .setNegativeButton(android.R.string.cancel, null)
+              .show()
+            true
+          }
       }
 
       findViewById<View>(R.id.leak_canary_import_heap_dump).setOnClickListener {
@@ -73,7 +73,7 @@ internal class HeapDumpsScreen : Screen() {
 
   private fun View.onAnalysesRetrieved(projections: List<Projection>) {
     activity.title = resources.getString(
-        R.string.leak_canary_heap_analysis_list_screen_title, projections.size
+      R.string.leak_canary_heap_analysis_list_screen_title, projections.size
     )
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)
@@ -102,11 +102,10 @@ internal class HeapDumpsScreen : Screen() {
         timeView.text = TimeFormatter.formatTimestamp(view.context, projection.createdAtTimeMillis)
 
         val count = projection.exceptionSummary ?: resources.getQuantityString(
-            R.plurals.leak_canary_distinct_leaks,
-            projection.leakCount, projection.leakCount
+          R.plurals.leak_canary_distinct_leaks,
+          projection.leakCount, projection.leakCount
         )
         countView.text = count
       }
   }
-
 }

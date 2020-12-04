@@ -27,12 +27,12 @@ import shark.SharkLog
  * show a notification summarizing the result.
  */
 class DefaultOnHeapAnalyzedListener private constructor(private val applicationProvider: () -> Application) :
-    OnHeapAnalyzedListener {
+  OnHeapAnalyzedListener {
 
   // Kept this constructor for backward compatibility of public API.
   @Deprecated(
-      message = "Use DefaultOnHeapAnalyzedListener.create() instead",
-      replaceWith = ReplaceWith("DefaultOnHeapAnalyzedListener.create()")
+    message = "Use DefaultOnHeapAnalyzedListener.create() instead",
+    replaceWith = ReplaceWith("DefaultOnHeapAnalyzedListener.create()")
   )
   constructor(application: Application) : this({ application })
 
@@ -49,13 +49,13 @@ class DefaultOnHeapAnalyzedListener private constructor(private val applicationP
 
     val (contentTitle, screenToShow) = when (heapAnalysis) {
       is HeapAnalysisFailure -> application.getString(
-          R.string.leak_canary_analysis_failed
+        R.string.leak_canary_analysis_failed
       ) to HeapAnalysisFailureScreen(id)
       is HeapAnalysisSuccess -> {
         val retainedObjectCount = heapAnalysis.allLeaks.sumBy { it.leakTraces.size }
         val leakTypeCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
         application.getString(
-            R.string.leak_canary_analysis_success_notification, retainedObjectCount, leakTypeCount
+          R.string.leak_canary_analysis_success_notification, retainedObjectCount, leakTypeCount
         ) to HeapDumpScreen(id)
       }
     }
@@ -73,15 +73,15 @@ class DefaultOnHeapAnalyzedListener private constructor(private val applicationP
     contentTitle: String
   ) {
     val pendingIntent = LeakActivity.createPendingIntent(
-        application, arrayListOf(HeapDumpsScreen(), screenToShow)
+      application, arrayListOf(HeapDumpsScreen(), screenToShow)
     )
 
     val contentText = application.getString(R.string.leak_canary_notification_message)
 
     Notifications.showNotification(
-        application, contentTitle, contentText, pendingIntent,
-        R.id.leak_canary_notification_analysis_result,
-        LEAKCANARY_MAX
+      application, contentTitle, contentText, pendingIntent,
+      R.id.leak_canary_notification_analysis_result,
+      LEAKCANARY_MAX
     )
   }
 
@@ -96,15 +96,15 @@ class DefaultOnHeapAnalyzedListener private constructor(private val applicationP
       val message: String = when (heapAnalysis) {
         is HeapAnalysisSuccess -> {
           application.getString(
-              R.string.leak_canary_tv_analysis_success,
-              heapAnalysis.applicationLeaks.size,
-              heapAnalysis.libraryLeaks.size
+            R.string.leak_canary_tv_analysis_success,
+            heapAnalysis.applicationLeaks.size,
+            heapAnalysis.libraryLeaks.size
           )
         }
         is HeapAnalysisFailure -> application.getString(R.string.leak_canary_tv_analysis_failure)
       }
       TvToast.makeText(resumedActivity, message)
-          .show()
+        .show()
     }
   }
 

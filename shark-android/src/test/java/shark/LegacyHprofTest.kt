@@ -20,12 +20,12 @@ class LegacyHprofTest {
     assertThat(leak1.leakingObject.className).isEqualTo("android.graphics.Bitmap")
     assertThat(leak2.leakingObject.className).isEqualTo("com.example.leakcanary.MainActivity")
     assertThat(analysis.metadata).containsAllEntriesOf(
-        mapOf(
-            "App process name" to "com.example.leakcanary",
-            "Build.MANUFACTURER" to "Genymotion",
-            "Build.VERSION.SDK_INT" to "19",
-            "LeakCanary version" to "Unknown"
-        )
+      mapOf(
+        "App process name" to "com.example.leakcanary",
+        "Build.MANUFACTURER" to "Genymotion",
+        "Build.VERSION.SDK_INT" to "19",
+        "LeakCanary version" to "Unknown"
+      )
     )
     assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(193431)
   }
@@ -63,7 +63,7 @@ class LegacyHprofTest {
       graph.findClassByName("java.lang.Thread")!!.instances.map { instance ->
         instance["java.lang.Thread", "name"]!!.value.readAsJavaString()!!
       }
-          .toList()
+        .toList()
     }
   }
 
@@ -85,42 +85,44 @@ class LegacyHprofTest {
   @Test fun `AndroidObjectInspectors#CONTEXT_FIELD labels Context fields`() {
     val toastLabels = "leak_asynctask_o.hprof".classpathFile().openHeapGraph().use { graph ->
       graph.instances.filter { it.instanceClassName == "android.widget.Toast" }
-          .map { instance ->
-            ObjectReporter(instance).apply {
-              AndroidObjectInspectors.CONTEXT_FIELD.inspect(this)
-            }.labels.joinToString(",")
-          }.toList()
+        .map { instance ->
+          ObjectReporter(instance).apply {
+            AndroidObjectInspectors.CONTEXT_FIELD.inspect(this)
+          }.labels.joinToString(",")
+        }.toList()
     }
-    assertThat(toastLabels).containsExactly("mContext instance of com.example.leakcanary.ExampleApplication")
+    assertThat(toastLabels).containsExactly(
+      "mContext instance of com.example.leakcanary.ExampleApplication"
+    )
   }
 
   @Test fun androidOCountActivityWrappingContexts() {
     val contextWrapperStatuses = Hprof.open("leak_asynctask_o.hprof".classpathFile())
-        .use { hprof ->
-          val graph = HprofHeapGraph.indexHprof(hprof)
-          graph.instances.filter {
-            it instanceOf "android.content.ContextWrapper"
-                && !(it instanceOf "android.app.Activity")
-                && !(it instanceOf "android.app.Application")
-                && !(it instanceOf "android.app.Service")
-          }
-              .map { instance ->
-                val reporter = ObjectReporter(instance)
-                AndroidObjectInspectors.CONTEXT_WRAPPER.inspect(reporter)
-                if (reporter.leakingReasons.size == 1) {
-                  DESTROYED
-                } else if (reporter.labels.size == 1) {
-                  if ("Activity.mDestroyed false" in reporter.labels.first()) {
-                    NOT_DESTROYED
-                  } else {
-                    NOT_ACTIVITY
-                  }
-                } else throw IllegalStateException(
-                    "Unexpected, should have 1 leaking status ${reporter.leakingReasons} or one label ${reporter.labels}"
-                )
-              }
-              .toList()
+      .use { hprof ->
+        val graph = HprofHeapGraph.indexHprof(hprof)
+        graph.instances.filter {
+          it instanceOf "android.content.ContextWrapper"
+            && !(it instanceOf "android.app.Activity")
+            && !(it instanceOf "android.app.Application")
+            && !(it instanceOf "android.app.Service")
         }
+          .map { instance ->
+            val reporter = ObjectReporter(instance)
+            AndroidObjectInspectors.CONTEXT_WRAPPER.inspect(reporter)
+            if (reporter.leakingReasons.size == 1) {
+              DESTROYED
+            } else if (reporter.labels.size == 1) {
+              if ("Activity.mDestroyed false" in reporter.labels.first()) {
+                NOT_DESTROYED
+              } else {
+                NOT_ACTIVITY
+              }
+            } else throw IllegalStateException(
+              "Unexpected, should have 1 leaking status ${reporter.leakingReasons} or one label ${reporter.labels}"
+            )
+          }
+          .toList()
+      }
     assertThat(contextWrapperStatuses.filter { it == DESTROYED }).hasSize(12)
     assertThat(contextWrapperStatuses.filter { it == NOT_DESTROYED }).hasSize(6)
     assertThat(contextWrapperStatuses.filter { it == NOT_ACTIVITY }).hasSize(0)
@@ -151,18 +153,17 @@ class LegacyHprofTest {
         println(message)
         throwable.printStackTrace()
       }
-
     }
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = heapAnalyzer.analyze(
-        heapDumpFile = hprofFile,
-        leakingObjectFinder = FilteringLeakingObjectFinder(
-            AndroidObjectInspectors.appLeakingObjectFilters
-        ),
-        referenceMatchers = AndroidReferenceMatchers.appDefaults,
-        computeRetainedHeapSize = true,
-        objectInspectors = AndroidObjectInspectors.appDefaults,
-        metadataExtractor = AndroidMetadataExtractor
+      heapDumpFile = hprofFile,
+      leakingObjectFinder = FilteringLeakingObjectFinder(
+        AndroidObjectInspectors.appLeakingObjectFilters
+      ),
+      referenceMatchers = AndroidReferenceMatchers.appDefaults,
+      computeRetainedHeapSize = true,
+      objectInspectors = AndroidObjectInspectors.appDefaults,
+      metadataExtractor = AndroidMetadataExtractor
     )
     println(analysis)
     return analysis as HeapAnalysisSuccess

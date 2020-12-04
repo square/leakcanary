@@ -77,22 +77,22 @@ internal object HeapDumpRenderer {
     val intArrayColor = context.getColorCompat(R.color.leak_canary_heap_int_array)
     val longArrayColor = context.getColorCompat(R.color.leak_canary_heap_long_array)
     val colors = mapOf(
-        StringRecord::class to hprofStringColor,
-        LoadClassRecord::class to loadClassColor,
-        ClassDumpRecord::class to classDumpColor,
-        InstanceDumpRecord::class to instanceColor,
-        ObjectArrayDumpRecord::class to objectArrayColor,
-        BooleanArrayDump::class to booleanArrayColor,
-        CharArrayDump::class to charArrayColor,
-        FloatArrayDump::class to floatArrayColor,
-        DoubleArrayDump::class to doubleArrayColor,
-        ByteArrayDump::class to byteArrayColor,
-        ShortArrayDump::class to shortArrayColor,
-        IntArrayDump::class to intArrayColor,
-        LongArrayDump::class to longArrayColor,
-        StackTraceRecord::class to stackTraceColor,
-        HeapDumpEndRecord::class to otherColor,
-        GcRootRecord::class to otherColor
+      StringRecord::class to hprofStringColor,
+      LoadClassRecord::class to loadClassColor,
+      ClassDumpRecord::class to classDumpColor,
+      InstanceDumpRecord::class to instanceColor,
+      ObjectArrayDumpRecord::class to objectArrayColor,
+      BooleanArrayDump::class to booleanArrayColor,
+      CharArrayDump::class to charArrayColor,
+      FloatArrayDump::class to floatArrayColor,
+      DoubleArrayDump::class to doubleArrayColor,
+      ByteArrayDump::class to byteArrayColor,
+      ShortArrayDump::class to shortArrayColor,
+      IntArrayDump::class to intArrayColor,
+      LongArrayDump::class to longArrayColor,
+      StackTraceRecord::class to stackTraceColor,
+      HeapDumpEndRecord::class to otherColor,
+      GcRootRecord::class to otherColor
     )
 
     val appHeapColor = context.getColorCompat(R.color.leak_canary_heap_app)
@@ -106,7 +106,7 @@ internal object HeapDumpRenderer {
     val hprofStringCache = mutableMapOf<Long, String>()
     val classNames = mutableMapOf<Long, Long>()
     reader.readRecords(
-        setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
+      setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
       lastPosition = position
       when (record) {
         is StringRecord -> {
@@ -136,9 +136,9 @@ internal object HeapDumpRenderer {
           currentRecord = record
         }
         localCurrentRecord is InstanceDumpRecord
-            && hprofStringCache[classNames[localCurrentRecord.classId]] == "java.lang.String"
-            && (record !is InstanceDumpRecord || hprofStringCache[classNames[record.classId]]
-            != "java.lang.String")
+          && hprofStringCache[classNames[localCurrentRecord.classId]] == "java.lang.String"
+          && (record !is InstanceDumpRecord || hprofStringCache[classNames[record.classId]]
+          != "java.lang.String")
         -> {
           recordPositions.add(stringColor to position)
           currentRecord = record
@@ -162,7 +162,7 @@ internal object HeapDumpRenderer {
     if (sourceBytesPerPixel > 0) {
       bytesPerPixel = sourceBytesPerPixel.toDouble()
       height = Math.ceil((heapLength / bytesPerPixel) / width)
-          .toInt()
+        .toInt()
     } else {
       height = sourceHeight
       bytesPerPixel = heapLength * 1.0 / (width * height)
@@ -174,26 +174,26 @@ internal object HeapDumpRenderer {
     val canvas = Canvas(bitmap)
 
     val legend = mapOf(
-        "Hprof string" to hprofStringColor,
-        "Class name" to loadClassColor,
-        "App heap" to appHeapColor,
-        "Image heap" to imageHeapColor,
-        "Zygote heap" to zygoteHeapColor,
-        "Other heap" to otherColor,
-        "Class content" to classDumpColor,
-        "Instance" to instanceColor,
-        "String" to stringColor,
-        "Object array" to objectArrayColor,
-        "Boolean array" to booleanArrayColor,
-        "Char array" to charArrayColor,
-        "Float array" to floatArrayColor,
-        "Double array" to doubleArrayColor,
-        "Byte array" to byteArrayColor,
-        "Short array" to shortArrayColor,
-        "Int array" to intArrayColor,
-        "Long array" to longArrayColor,
-        "Stack trace" to stackTraceColor,
-        "Heap End" to otherColor
+      "Hprof string" to hprofStringColor,
+      "Class name" to loadClassColor,
+      "App heap" to appHeapColor,
+      "Image heap" to imageHeapColor,
+      "Zygote heap" to zygoteHeapColor,
+      "Other heap" to otherColor,
+      "Class content" to classDumpColor,
+      "Instance" to instanceColor,
+      "String" to stringColor,
+      "Object array" to objectArrayColor,
+      "Boolean array" to booleanArrayColor,
+      "Char array" to charArrayColor,
+      "Float array" to floatArrayColor,
+      "Double array" to doubleArrayColor,
+      "Byte array" to byteArrayColor,
+      "Short array" to shortArrayColor,
+      "Int array" to intArrayColor,
+      "Long array" to longArrayColor,
+      "Stack trace" to stackTraceColor,
+      "Heap End" to otherColor
     )
 
     val legendTextPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -239,14 +239,14 @@ internal object HeapDumpRenderer {
 
       legendSquareFillPaint.color = color
       canvas.drawRect(
-          blockLeft, blockTop + squarePaddingTop, blockLeft + squareSize,
-          blockTop + squarePaddingTop + squareSize,
-          legendSquareFillPaint
+        blockLeft, blockTop + squarePaddingTop, blockLeft + squareSize,
+        blockTop + squarePaddingTop + squareSize,
+        legendSquareFillPaint
       )
       canvas.drawRect(
-          blockLeft, blockTop + squarePaddingTop, blockLeft + squareSize,
-          blockTop + squarePaddingTop + squareSize,
-          legendSquareStrokePaint
+        blockLeft, blockTop + squarePaddingTop, blockLeft + squareSize,
+        blockTop + squarePaddingTop + squareSize,
+        legendSquareStrokePaint
       )
       blockLeft += squareSize + squareToTextPadding
       canvas.drawText(name, blockLeft, blockTop - metrics.ascent, legendTextPaint)

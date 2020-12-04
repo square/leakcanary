@@ -258,17 +258,17 @@ object LeakCanary {
         apply { this.leakingObjectFinder = leakingObjectFinder }
 
       fun build() = config.copy(
-          dumpHeap = dumpHeap,
-          dumpHeapWhenDebugging = dumpHeapWhenDebugging,
-          retainedVisibleThreshold = retainedVisibleThreshold,
-          referenceMatchers = referenceMatchers,
-          objectInspectors = objectInspectors,
-          onHeapAnalyzedListener = onHeapAnalyzedListener,
-          metadataExtractor = metadataExtractor,
-          computeRetainedHeapSize = computeRetainedHeapSize,
-          maxStoredHeapDumps = maxStoredHeapDumps,
-          requestWriteExternalStoragePermission = requestWriteExternalStoragePermission,
-          leakingObjectFinder = leakingObjectFinder
+        dumpHeap = dumpHeap,
+        dumpHeapWhenDebugging = dumpHeapWhenDebugging,
+        retainedVisibleThreshold = retainedVisibleThreshold,
+        referenceMatchers = referenceMatchers,
+        objectInspectors = objectInspectors,
+        onHeapAnalyzedListener = onHeapAnalyzedListener,
+        metadataExtractor = metadataExtractor,
+        computeRetainedHeapSize = computeRetainedHeapSize,
+        maxStoredHeapDumps = maxStoredHeapDumps,
+        requestWriteExternalStoragePermission = requestWriteExternalStoragePermission,
+        leakingObjectFinder = leakingObjectFinder
       )
     }
   }
@@ -338,7 +338,7 @@ object LeakCanary {
    */
   fun showLeakDisplayActivityLauncherIcon(showLauncherIcon: Boolean) {
     InternalLeakCanary.setEnabledBlocking(
-        "leakcanary.internal.activity.LeakLauncherActivity", showLauncherIcon
+      "leakcanary.internal.activity.LeakLauncherActivity", showLauncherIcon
     )
   }
 

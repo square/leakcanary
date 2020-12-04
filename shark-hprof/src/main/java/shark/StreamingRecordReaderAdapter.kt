@@ -61,7 +61,7 @@ class StreamingRecordReaderAdapter(private val streamingHprofReader: StreamingHp
   ): Long {
     val recordTags = recordTypes.asHprofTags()
     return streamingHprofReader.readRecords(
-        recordTags, OnHprofRecordTagListener { tag, length, reader ->
+      recordTags, OnHprofRecordTagListener { tag, length, reader ->
       when (tag) {
         STRING_IN_UTF8 -> {
           val recordPosition = reader.bytesRead
@@ -262,5 +262,4 @@ class StreamingRecordReaderAdapter(private val streamingHprofReader: StreamingHp
       }
     }
   }
-
 }

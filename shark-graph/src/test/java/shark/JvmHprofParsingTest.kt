@@ -24,15 +24,15 @@ class JvmHprofParsingTest {
 
     hprofFile.openHeapGraph().use { graph ->
       val testInstances = graph.instances
-          .filter { it.instanceClassName == JvmHprofParsingTest::class.name }
-          .toList()
+        .filter { it.instanceClassName == JvmHprofParsingTest::class.name }
+        .toList()
 
       assertThat(testInstances).hasSize(1)
       val test = testInstances[0]
       val folderPath = test[JvmHprofParsingTest::class.name, "testFolder"]!!
-          .valueAsInstance!![TemporaryFolder::class.name, "folder"]!!
-          .valueAsInstance!![File::class.name, "path"]!!
-          .value.readAsJavaString()!!
+        .valueAsInstance!![TemporaryFolder::class.name, "folder"]!!
+        .valueAsInstance!![File::class.name, "path"]!!
+        .value.readAsJavaString()!!
 
       assertThat(folderPath).isEqualTo(testFolder.root.path)
     }
@@ -117,7 +117,7 @@ class JvmHprofParsingTest {
 
       val array = arrayClass.primitiveArrayInstances.single {
         it.primitiveType == INT && it.readRecord()
-            .run { size == 42 && (this as IntArrayDump).array[0] == 0xDad }
+          .run { size == 42 && (this as IntArrayDump).array[0] == 0xDad }
       }
       assertThat(array.arrayClassName).isEqualTo(expectedArrayClassName)
     }
@@ -149,7 +149,6 @@ class JvmHprofParsingTest {
     check(retained::class::class.isInstance(KClass::class))
     return hprofFile
   }
-
 }
 
 private val KClass<out Any>.name: String

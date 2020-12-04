@@ -32,5 +32,4 @@ class ObjectWatcherTest {
     runGc()
     assertThat(objectWatcher.hasRetainedObjects).isTrue()
   }
-
 }

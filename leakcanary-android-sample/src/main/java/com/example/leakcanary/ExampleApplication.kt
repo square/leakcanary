@@ -29,11 +29,11 @@ open class ExampleApplication : Application() {
 
   private fun enabledStrictMode() {
     StrictMode.setThreadPolicy(
-        StrictMode.ThreadPolicy.Builder()
-            .detectAll()
-            .penaltyLog()
-            .penaltyDeath()
-            .build()
+      StrictMode.ThreadPolicy.Builder()
+        .detectAll()
+        .penaltyLog()
+        .penaltyDeath()
+        .build()
     )
   }
 }

@@ -41,7 +41,7 @@ internal class ViewModelClearedWatcher(
     if (viewModelMap != null && configProvider().watchViewModels) {
       viewModelMap.values.forEach { viewModel ->
         objectWatcher.watch(
-            viewModel, "${viewModel::class.java.name} received ViewModel#onCleared() callback"
+          viewModel, "${viewModel::class.java.name} received ViewModel#onCleared() callback"
         )
       }
     }

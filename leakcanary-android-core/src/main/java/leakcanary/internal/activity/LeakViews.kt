@@ -23,7 +23,7 @@ internal fun View.share(content: String) {
   intent.type = "text/plain"
   intent.putExtra(Intent.EXTRA_TEXT, content)
   activity.startActivity(
-      Intent.createChooser(intent, resources.getString(R.string.leak_canary_share_with))
+    Intent.createChooser(intent, resources.getString(R.string.leak_canary_share_with))
   )
 }
 
@@ -32,9 +32,9 @@ internal fun View.shareHeapDump(heapDumpFile: File) {
   AsyncTask.SERIAL_EXECUTOR.execute {
     heapDumpFile.setReadable(true, false)
     val heapDumpUri = LeakCanaryFileProvider.getUriForFile(
-        activity,
-        "com.squareup.leakcanary.fileprovider." + activity.packageName,
-        heapDumpFile
+      activity,
+      "com.squareup.leakcanary.fileprovider." + activity.packageName,
+      heapDumpFile
     )
     activity.runOnUiThread { startShareIntentChooser(heapDumpUri) }
   }
@@ -45,7 +45,7 @@ private fun View.startShareIntentChooser(uri: Uri) {
   intent.type = "application/octet-stream"
   intent.putExtra(Intent.EXTRA_STREAM, uri)
   activity.startActivity(
-      Intent.createChooser(intent, resources.getString(R.string.leak_canary_share_with))
+    Intent.createChooser(intent, resources.getString(R.string.leak_canary_share_with))
   )
 }
 
@@ -55,20 +55,20 @@ internal fun View.shareToStackOverflow(content: String) {
   // violated StrictMode if on the main thread
   AsyncTask.execute {
     clipboard.setPrimaryClip(
-        ClipData.newPlainText(
-            context.getString(R.string.leak_canary_leak_clipdata_label),
-            "```\n$content```"
-        )
+      ClipData.newPlainText(
+        context.getString(R.string.leak_canary_leak_clipdata_label),
+        "```\n$content```"
+      )
     )
   }
   Toast.makeText(context, R.string.leak_canary_leak_copied, Toast.LENGTH_LONG)
-      .show()
+    .show()
   val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(STACKOVERFLOW_QUESTION_URL))
   try {
     activity.startActivity(browserIntent)
   } catch (e: ActivityNotFoundException) {
     Toast.makeText(context, R.string.leak_canary_leak_missing_browser_error, Toast.LENGTH_LONG)
-            .show();
+      .show();
   }
 }
 
@@ -78,9 +78,9 @@ internal fun View.shareToGitHubIssue(failure: HeapAnalysisFailure) {
   // violated StrictMode if on the main thread
   AsyncTask.execute {
     clipboard.setPrimaryClip(
-        ClipData.newPlainText(
-            context.getString(R.string.leak_canary_failure_clipdata_label),
-            """```
+      ClipData.newPlainText(
+        context.getString(R.string.leak_canary_failure_clipdata_label),
+        """```
           |${failure.exception}
           |Build.VERSION.SDK_INT: ${Build.VERSION.SDK_INT}
           |Build.MANUFACTURER: ${Build.MANUFACTURER}
@@ -90,17 +90,17 @@ internal fun View.shareToGitHubIssue(failure: HeapAnalysisFailure) {
           |Heap dump timestamp: ${failure.createdAtTimeMillis}
           |```
         """.trimMargin()
-        )
+      )
     )
   }
   Toast.makeText(context, R.string.leak_canary_failure_copied, Toast.LENGTH_LONG)
-      .show()
+    .show()
   val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(NEW_ISSUE_URL))
   try {
     activity.startActivity(browserIntent)
   } catch (e: ActivityNotFoundException) {
     Toast.makeText(context, R.string.leak_canary_leak_missing_browser_error, Toast.LENGTH_LONG)
-            .show();
+      .show();
   }
 }
 

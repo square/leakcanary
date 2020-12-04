@@ -10,7 +10,7 @@ import android.view.ViewGroup
 import com.squareup.leakcanary.core.R
 
 internal fun ViewGroup.inflate(layoutResId: Int) = LayoutInflater.from(context)
-    .inflate(layoutResId, this, false)!!
+  .inflate(layoutResId, this, false)!!
 
 internal val View.activity
   get() = context as Activity
@@ -52,6 +52,6 @@ internal fun View.onScreenExiting(block: () -> Unit) {
 internal fun View.notifyScreenExiting() {
   @Suppress("UNCHECKED_CAST")
   val callbacks = getTag(R.id.leak_canary_notification_on_screen_exit)
-      as MutableList<() -> Unit>?
+    as MutableList<() -> Unit>?
   callbacks?.forEach { it.invoke() }
 }

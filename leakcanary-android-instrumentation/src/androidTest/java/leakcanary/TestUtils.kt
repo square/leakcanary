@@ -15,14 +15,14 @@ object TestUtils {
 
     if (heapAnalysis !is HeapAnalysisSuccess) {
       throw AssertionError(
-          "Expected analysis success not $heapAnalysis"
+        "Expected analysis success not $heapAnalysis"
       )
     }
 
     val applicationLeaks = heapAnalysis.applicationLeaks
     if (applicationLeaks.size != 1) {
       throw AssertionError(
-          "Expected exactly one leak in $heapAnalysis"
+        "Expected exactly one leak in $heapAnalysis"
       )
     }
 
@@ -32,7 +32,7 @@ object TestUtils {
     val className = leakTrace.leakingObject.className
     if (className != expectedLeakClass.name) {
       throw AssertionError(
-          "Expected a leak of $expectedLeakClass, not $className in $heapAnalysis"
+        "Expected a leak of $expectedLeakClass, not $className in $heapAnalysis"
       )
     }
   }

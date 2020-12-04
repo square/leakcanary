@@ -26,6 +26,7 @@ import java.util.Locale
 internal class LongScatterSet(expectedElements: Int = 4) {
   /** The hash array holding keys.  */
   private var keys: LongArray = longArrayOf()
+
   /**
    * The number of stored keys (assigned key slots), excluding the special
    * "empty" key, if any.
@@ -34,6 +35,7 @@ internal class LongScatterSet(expectedElements: Int = 4) {
    * @see .hasEmptyKey
    */
   private var assigned = 0
+
   /**
    * Mask for slot scans in [.keys].
    */
@@ -43,10 +45,12 @@ internal class LongScatterSet(expectedElements: Int = 4) {
    * Expand (rehash) [.keys] when [.assigned] hits this value.
    */
   private var resizeAt = 0
+
   /**
    * Special treatment for the "empty slot" key marker.
    */
   private var hasEmptyKey = false
+
   /**
    * The load factor for [.keys].
    */
@@ -177,9 +181,9 @@ internal class LongScatterSet(expectedElements: Int = 4) {
     if (expectedElements > resizeAt) {
       val prevKeys = this.keys
       allocateBuffers(
-          HHPC.minBufferSize(
-              expectedElements, loadFactor
-          )
+        HHPC.minBufferSize(
+          expectedElements, loadFactor
+        )
       )
       if (size() != 0) {
         rehash(prevKeys)
@@ -222,12 +226,12 @@ internal class LongScatterSet(expectedElements: Int = 4) {
     } catch (e: OutOfMemoryError) {
       this.keys = prevKeys
       throw RuntimeException(
-          String.format(
-              Locale.ROOT,
-              "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
-              size(),
-              arraySize
-          ), e
+        String.format(
+          Locale.ROOT,
+          "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
+          size(),
+          arraySize
+        ), e
       )
     }
 
@@ -243,9 +247,9 @@ internal class LongScatterSet(expectedElements: Int = 4) {
     // Try to allocate new buffers first. If we OOM, we leave in a consistent state.
     val prevKeys = this.keys
     allocateBuffers(
-        HHPC.nextBufferSize(
-            mask + 1, size(), loadFactor
-        )
+      HHPC.nextBufferSize(
+        mask + 1, size(), loadFactor
+      )
     )
 
     // We have succeeded at allocating new data so insert the pending key/value at

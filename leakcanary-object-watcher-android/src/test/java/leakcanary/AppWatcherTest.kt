@@ -9,8 +9,8 @@ class AppWatcherTest {
 
   @Test fun appWatcherLoads_notInstalled() {
     assertThat(AppWatcher.isInstalled)
-        .describedAs("Ensure AppWatcher doesn't crash in JUnit tests")
-        .isFalse()
+      .describedAs("Ensure AppWatcher doesn't crash in JUnit tests")
+      .isFalse()
   }
 
   /**
@@ -19,20 +19,20 @@ class AppWatcherTest {
    */
   @Test fun `AppWatcher Config Builder matches AppWatcher Config`() {
     assertThat(configProperties())
-        .containsExactlyInAnyOrderElementsOf(configBuilderFunctions())
+      .containsExactlyInAnyOrderElementsOf(configBuilderFunctions())
   }
 
   private fun configBuilderFunctions() = AppWatcher.Config.Builder::class.memberFunctions
-      .filter { member ->
-        member.annotations.none { it is Deprecated }
-      }
-      .map { it.name }
-      .subtract(listOf("build", "equals", "hashCode", "toString"))
+    .filter { member ->
+      member.annotations.none { it is Deprecated }
+    }
+    .map { it.name }
+    .subtract(listOf("build", "equals", "hashCode", "toString"))
 
   private fun configProperties() = AppWatcher.Config::class.memberProperties
-      .filter { member ->
-        // Ignore deprecated fields, we don't need builders for those
-        member.annotations.none { it is Deprecated }
-      }
-      .map { it.name }
+    .filter { member ->
+      // Ignore deprecated fields, we don't need builders for those
+      member.annotations.none { it is Deprecated }
+    }
+    .map { it.name }
 }

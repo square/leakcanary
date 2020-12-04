@@ -23,8 +23,8 @@ fun File.writeSinglePathToInstance() {
     val leaking = instance(clazz("Leaking"))
     keyedWeakReference(leaking)
     clazz(
-        "GcRoot", staticFields = listOf(
-        "shortestPath" to leaking
+      "GcRoot", staticFields = listOf(
+      "shortestPath" to leaking
     )
     )
   }
@@ -35,8 +35,8 @@ fun File.writeSinglePathToString(value: String = "Hi") {
     val leaking = string(value)
     keyedWeakReference(leaking)
     clazz(
-        "GcRoot", staticFields = listOf(
-        "shortestPath" to leaking
+      "GcRoot", staticFields = listOf(
+      "shortestPath" to leaking
     )
     )
   }
@@ -51,12 +51,12 @@ fun File.writeSinglePathsToCharArrays(values: List<String>) {
       arrays.add(leaking.value)
     }
     clazz(
-        className = "GcRoot",
-        staticFields = listOf(
-            "arrays" to ReferenceHolder(
-                objectArray(clazz("char[][]"), arrays.toLongArray())
-            )
+      className = "GcRoot",
+      staticFields = listOf(
+        "arrays" to ReferenceHolder(
+          objectArray(clazz("char[][]"), arrays.toLongArray())
         )
+      )
     )
 
   }
@@ -67,13 +67,13 @@ fun File.writeTwoPathsToInstance() {
     val leaking = instance(clazz("Leaking"))
     keyedWeakReference(leaking)
     val hasLeaking = instance(
-        clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
-        fields = listOf(leaking)
+      clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
+      fields = listOf(leaking)
     )
     clazz(
-        "GcRoot", staticFields = listOf(
-        "shortestPath" to leaking,
-        "longestPath" to hasLeaking
+      "GcRoot", staticFields = listOf(
+      "shortestPath" to leaking,
+      "longestPath" to hasLeaking
     )
     )
   }
@@ -82,12 +82,12 @@ fun File.writeTwoPathsToInstance() {
 fun File.writeMultipleActivityLeaks(leakCount: Int) {
   dump {
     val activityClassId = clazz(
-        className = "android.app.Activity",
-        fields = listOf("mDestroyed" to BooleanHolder::class)
+      className = "android.app.Activity",
+      fields = listOf("mDestroyed" to BooleanHolder::class)
     )
     val exampleActivityClassId = clazz(
-        superclassId = activityClassId,
-        className = "com.example.ExampleActivity"
+      superclassId = activityClassId,
+      className = "com.example.ExampleActivity"
     )
     val activityArrayClassId = arrayClass("com.example.ExampleActivity")
 
@@ -97,13 +97,13 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
     }
 
     clazz(
-        className = "com.example.ActivityHolder",
-        staticFields = listOf(
-            "activities" to
-                objectArrayOf(
-                    activityArrayClassId, *destroyedActivities.toTypedArray()
-                )
-        )
+      className = "com.example.ActivityHolder",
+      staticFields = listOf(
+        "activities" to
+          objectArrayOf(
+            activityArrayClassId, *destroyedActivities.toTypedArray()
+          )
+      )
     )
     destroyedActivities.forEach { instanceId ->
       keyedWeakReference(instanceId)
@@ -121,9 +121,9 @@ fun File.writeJavaLocalLeak(
     val myThreadClassId = clazz(className = threadClass, superclassId = threadClassId)
     val threadInstance = instance(myThreadClassId, listOf(string(threadName)))
     gcRoot(
-        ThreadObject(
-            id = threadInstance.value, threadSerialNumber = 42, stackTraceSerialNumber = 0
-        )
+      ThreadObject(
+        id = threadInstance.value, threadSerialNumber = 42, stackTraceSerialNumber = 0
+      )
     )
 
     val leaking = "Leaking" watchedInstance {}
@@ -141,21 +141,21 @@ fun File.writeTwoPathJavaLocalShorterLeak(
     val myThreadClassId = clazz(className = threadClass, superclassId = threadClassId)
     val threadInstance = instance(myThreadClassId, listOf(string(threadName)))
     gcRoot(
-        ThreadObject(
-            id = threadInstance.value, threadSerialNumber = 42, stackTraceSerialNumber = 0
-        )
+      ThreadObject(
+        id = threadInstance.value, threadSerialNumber = 42, stackTraceSerialNumber = 0
+      )
     )
 
     val leaking = "Leaking" watchedInstance {}
     gcRoot(JavaFrame(id = leaking.value, threadSerialNumber = 42, frameNumber = 0))
 
     val hasLeaking = instance(
-        clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
-        fields = listOf(leaking)
+      clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
+      fields = listOf(leaking)
     )
     clazz(
-        "GcRoot", staticFields = listOf(
-        "longestPath" to hasLeaking
+      "GcRoot", staticFields = listOf(
+      "longestPath" to hasLeaking
     )
     )
   }

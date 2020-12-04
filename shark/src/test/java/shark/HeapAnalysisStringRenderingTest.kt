@@ -136,5 +136,4 @@ class HeapAnalysisStringRenderingTest {
       Pattern.compile("^" + multilineRegexString.trimMargin() + "$", Pattern.DOTALL)
     assertThat(toString()).matches(regex)
   }
-
 }

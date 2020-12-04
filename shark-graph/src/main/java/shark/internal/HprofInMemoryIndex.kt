@@ -111,73 +111,73 @@ internal class HprofInMemoryIndex private constructor(
 
     // Note: this performs two linear scans over arrays
     val hprofStringId = hprofStringCache.entrySequence()
-        .firstOrNull { it.second == internalClassName }
-        ?.first
+      .firstOrNull { it.second == internalClassName }
+      ?.first
     return hprofStringId?.let { stringId ->
       classNames.entrySequence()
-          .firstOrNull { it.second == stringId }
-          ?.first
+        .firstOrNull { it.second == stringId }
+        ?.first
     }
   }
 
   fun indexedClassSequence(): Sequence<LongObjectPair<IndexedClass>> {
     return classIndex.entrySequence()
-        .map {
-          val id = it.first
-          val array = it.second
-          id to array.readClass()
-        }
+      .map {
+        val id = it.first
+        val array = it.second
+        id to array.readClass()
+      }
   }
 
   fun indexedInstanceSequence(): Sequence<LongObjectPair<IndexedInstance>> {
     return instanceIndex.entrySequence()
-        .map {
-          val id = it.first
-          val array = it.second
-          val instance = IndexedInstance(
-              position = array.readTruncatedLong(positionSize),
-              classId = array.readId(),
-              recordSize = array.readTruncatedLong(bytesForInstanceSize)
-          )
-          id to instance
-        }
+      .map {
+        val id = it.first
+        val array = it.second
+        val instance = IndexedInstance(
+          position = array.readTruncatedLong(positionSize),
+          classId = array.readId(),
+          recordSize = array.readTruncatedLong(bytesForInstanceSize)
+        )
+        id to instance
+      }
   }
 
   fun indexedObjectArraySequence(): Sequence<LongObjectPair<IndexedObjectArray>> {
     return objectArrayIndex.entrySequence()
-        .map {
-          val id = it.first
-          val array = it.second
-          val objectArray = IndexedObjectArray(
-              position = array.readTruncatedLong(positionSize),
-              arrayClassId = array.readId(),
-              recordSize = array.readTruncatedLong(bytesForObjectArraySize)
-          )
-          id to objectArray
-        }
+      .map {
+        val id = it.first
+        val array = it.second
+        val objectArray = IndexedObjectArray(
+          position = array.readTruncatedLong(positionSize),
+          arrayClassId = array.readId(),
+          recordSize = array.readTruncatedLong(bytesForObjectArraySize)
+        )
+        id to objectArray
+      }
   }
 
   fun indexedPrimitiveArraySequence(): Sequence<LongObjectPair<IndexedPrimitiveArray>> {
     return primitiveArrayIndex.entrySequence()
-        .map {
-          val id = it.first
-          val array = it.second
+      .map {
+        val id = it.first
+        val array = it.second
 
-          val primitiveArray = IndexedPrimitiveArray(
-              position = array.readTruncatedLong(positionSize),
-              primitiveType = PrimitiveType.values()[array.readByte()
-                  .toInt()],
-              recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
-          )
-          id to primitiveArray
-        }
+        val primitiveArray = IndexedPrimitiveArray(
+          position = array.readTruncatedLong(positionSize),
+          primitiveType = PrimitiveType.values()[array.readByte()
+            .toInt()],
+          recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
+        )
+        id to primitiveArray
+      }
   }
 
   fun indexedObjectSequence(): Sequence<LongObjectPair<IndexedObject>> {
     return indexedClassSequence() +
-        indexedInstanceSequence() +
-        indexedObjectArraySequence() +
-        indexedPrimitiveArraySequence()
+      indexedInstanceSequence() +
+      indexedObjectArraySequence() +
+      indexedPrimitiveArraySequence()
   }
 
   fun gcRoots(): List<GcRoot> {
@@ -196,9 +196,9 @@ internal class HprofInMemoryIndex private constructor(
       val objectId = instanceIndex.keyAt(shiftedIndex)
       val array = instanceIndex.getAtIndex(shiftedIndex)
       return objectId to IndexedInstance(
-          position = array.readTruncatedLong(positionSize),
-          classId = array.readId(),
-          recordSize = array.readTruncatedLong(bytesForInstanceSize)
+        position = array.readTruncatedLong(positionSize),
+        classId = array.readId(),
+        recordSize = array.readTruncatedLong(bytesForInstanceSize)
       )
     }
     shiftedIndex -= instanceIndex.size
@@ -206,9 +206,9 @@ internal class HprofInMemoryIndex private constructor(
       val objectId = objectArrayIndex.keyAt(shiftedIndex)
       val array = objectArrayIndex.getAtIndex(shiftedIndex)
       return objectId to IndexedObjectArray(
-          position = array.readTruncatedLong(positionSize),
-          arrayClassId = array.readId(),
-          recordSize = array.readTruncatedLong(bytesForObjectArraySize)
+        position = array.readTruncatedLong(positionSize),
+        arrayClassId = array.readId(),
+        recordSize = array.readTruncatedLong(bytesForObjectArraySize)
       )
     }
     shiftedIndex -= objectArrayIndex.size
@@ -216,10 +216,10 @@ internal class HprofInMemoryIndex private constructor(
     val objectId = primitiveArrayIndex.keyAt(shiftedIndex)
     val array = primitiveArrayIndex.getAtIndex(shiftedIndex)
     return objectId to IndexedPrimitiveArray(
-        position = array.readTruncatedLong(positionSize),
-        primitiveType = PrimitiveType.values()[array.readByte()
-            .toInt()],
-        recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
+      position = array.readTruncatedLong(positionSize),
+      primitiveType = PrimitiveType.values()[array.readByte()
+        .toInt()],
+      recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
     )
   }
 
@@ -234,28 +234,28 @@ internal class HprofInMemoryIndex private constructor(
     if (index >= 0) {
       val array = instanceIndex.getAtIndex(index)
       return classIndex.size + index to IndexedInstance(
-          position = array.readTruncatedLong(positionSize),
-          classId = array.readId(),
-          recordSize = array.readTruncatedLong(bytesForInstanceSize)
+        position = array.readTruncatedLong(positionSize),
+        classId = array.readId(),
+        recordSize = array.readTruncatedLong(bytesForInstanceSize)
       )
     }
     index = objectArrayIndex.indexOf(objectId)
     if (index >= 0) {
       val array = objectArrayIndex.getAtIndex(index)
       return classIndex.size + instanceIndex.size + index to IndexedObjectArray(
-          position = array.readTruncatedLong(positionSize),
-          arrayClassId = array.readId(),
-          recordSize = array.readTruncatedLong(bytesForObjectArraySize)
+        position = array.readTruncatedLong(positionSize),
+        arrayClassId = array.readId(),
+        recordSize = array.readTruncatedLong(bytesForObjectArraySize)
       )
     }
     index = primitiveArrayIndex.indexOf(objectId)
     if (index >= 0) {
       val array = primitiveArrayIndex.getAtIndex(index)
       return classIndex.size + instanceIndex.size + index + primitiveArrayIndex.size to IndexedPrimitiveArray(
-          position = array.readTruncatedLong(positionSize),
-          primitiveType = PrimitiveType.values()[array.readByte()
-              .toInt()],
-          recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
+        position = array.readTruncatedLong(positionSize),
+        primitiveType = PrimitiveType.values()[array.readByte()
+          .toInt()],
+        recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
       )
     }
     return null
@@ -270,11 +270,11 @@ internal class HprofInMemoryIndex private constructor(
     val fieldsIndex = readTruncatedLong(classFieldsIndexSize).toInt()
 
     return IndexedClass(
-        position = position,
-        superclassId = superclassId,
-        instanceSize = instanceSize,
-        recordSize = recordSize,
-        fieldsIndex = fieldsIndex
+      position = position,
+      superclassId = superclassId,
+      instanceSize = instanceSize,
+      recordSize = recordSize,
+      fieldsIndex = fieldsIndex
     )
   }
 
@@ -339,24 +339,24 @@ internal class HprofInMemoryIndex private constructor(
     private var classFieldsIndex = 0
 
     private val classIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + identifierSize + 4 + bytesForClassSize + classFieldsIndexSize,
-        longIdentifiers = longIdentifiers,
-        initialCapacity = classCount
+      bytesPerValue = positionSize + identifierSize + 4 + bytesForClassSize + classFieldsIndexSize,
+      longIdentifiers = longIdentifiers,
+      initialCapacity = classCount
     )
     private val instanceIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + identifierSize + bytesForInstanceSize,
-        longIdentifiers = longIdentifiers,
-        initialCapacity = instanceCount
+      bytesPerValue = positionSize + identifierSize + bytesForInstanceSize,
+      longIdentifiers = longIdentifiers,
+      initialCapacity = instanceCount
     )
     private val objectArrayIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + identifierSize + bytesForObjectArraySize,
-        longIdentifiers = longIdentifiers,
-        initialCapacity = objectArrayCount
+      bytesPerValue = positionSize + identifierSize + bytesForObjectArraySize,
+      longIdentifiers = longIdentifiers,
+      initialCapacity = objectArrayCount
     )
     private val primitiveArrayIndex = UnsortedByteEntries(
-        bytesPerValue = positionSize + 1 + bytesForPrimitiveArraySize,
-        longIdentifiers = longIdentifiers,
-        initialCapacity = primitiveArrayCount
+      bytesPerValue = positionSize + 1 + bytesForPrimitiveArraySize,
+      longIdentifiers = longIdentifiers,
+      initialCapacity = primitiveArrayCount
     )
 
     private val gcRoots = mutableListOf<GcRoot>()
@@ -369,7 +369,7 @@ internal class HprofInMemoryIndex private constructor(
 
     private fun lastClassFieldsShort() =
       ((classFieldBytes[classFieldsIndex - 2].toInt() and 0xff shl 8) or
-          (classFieldBytes[classFieldsIndex - 1].toInt() and 0xff)).toShort()
+        (classFieldBytes[classFieldsIndex - 1].toInt() and 0xff)).toShort()
 
     @Suppress("LongMethod")
     override fun onHprofRecord(
@@ -544,13 +544,13 @@ internal class HprofInMemoryIndex private constructor(
           val recordSize = reader.bytesRead - bytesReadStart
 
           classIndex.append(id)
-              .apply {
-                writeTruncatedLong(bytesReadStart, positionSize)
-                writeId(superclassId)
-                writeInt(instanceSize)
-                writeTruncatedLong(recordSize, bytesForClassSize)
-                writeTruncatedLong(startPosition.toLong(), classFieldsIndexSize)
-              }
+            .apply {
+              writeTruncatedLong(bytesReadStart, positionSize)
+              writeId(superclassId)
+              writeInt(instanceSize)
+              writeTruncatedLong(recordSize, bytesForClassSize)
+              writeTruncatedLong(startPosition.toLong(), classFieldsIndexSize)
+            }
           require(startPosition + fieldsSize == classFieldsIndex) {
             "Expected $classFieldsIndex to have moved by $fieldsSize and be equal to ${startPosition + fieldsSize}"
           }
@@ -564,11 +564,11 @@ internal class HprofInMemoryIndex private constructor(
           reader.skip(remainingBytesInInstance)
           val recordSize = reader.bytesRead - bytesReadStart
           instanceIndex.append(id)
-              .apply {
-                writeTruncatedLong(bytesReadStart, positionSize)
-                writeId(classId)
-                writeTruncatedLong(recordSize, bytesForInstanceSize)
-              }
+            .apply {
+              writeTruncatedLong(bytesReadStart, positionSize)
+              writeId(classId)
+              writeTruncatedLong(recordSize, bytesForInstanceSize)
+            }
         }
         OBJECT_ARRAY_DUMP -> {
           val bytesReadStart = reader.bytesRead
@@ -579,11 +579,11 @@ internal class HprofInMemoryIndex private constructor(
           reader.skip(identifierSize * size)
           val recordSize = reader.bytesRead - bytesReadStart
           objectArrayIndex.append(id)
-              .apply {
-                writeTruncatedLong(bytesReadStart, positionSize)
-                writeId(arrayClassId)
-                writeTruncatedLong(recordSize, bytesForObjectArraySize)
-              }
+            .apply {
+              writeTruncatedLong(bytesReadStart, positionSize)
+              writeId(arrayClassId)
+              writeTruncatedLong(recordSize, bytesForObjectArraySize)
+            }
         }
         PRIMITIVE_ARRAY_DUMP -> {
           val bytesReadStart = reader.bytesRead
@@ -594,11 +594,11 @@ internal class HprofInMemoryIndex private constructor(
           reader.skip(size * type.byteSize)
           val recordSize = reader.bytesRead - bytesReadStart
           primitiveArrayIndex.append(id)
-              .apply {
-                writeTruncatedLong(bytesReadStart, positionSize)
-                writeByte(type.ordinal.toByte())
-                writeTruncatedLong(recordSize, bytesForPrimitiveArraySize)
-              }
+            .apply {
+              writeTruncatedLong(bytesReadStart, positionSize)
+              writeByte(type.ordinal.toByte())
+              writeTruncatedLong(recordSize, bytesForPrimitiveArraySize)
+            }
         }
       }
     }
@@ -617,25 +617,24 @@ internal class HprofInMemoryIndex private constructor(
       val sortedClassIndex = classIndex.moveToSortedMap()
       // Passing references to avoid copying the underlying data structures.
       return HprofInMemoryIndex(
-          positionSize = positionSize,
-          hprofStringCache = hprofStringCache,
-          classNames = classNames,
-          classIndex = sortedClassIndex,
-          instanceIndex = sortedInstanceIndex,
-          objectArrayIndex = sortedObjectArrayIndex,
-          primitiveArrayIndex = sortedPrimitiveArrayIndex,
-          gcRoots = gcRoots,
-          proguardMapping = proguardMapping,
-          bytesForClassSize = bytesForClassSize,
-          bytesForInstanceSize = bytesForInstanceSize,
-          bytesForObjectArraySize = bytesForObjectArraySize,
-          bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
-          useForwardSlashClassPackageSeparator = hprofHeader.version != ANDROID,
-          classFieldsReader = ClassFieldsReader(identifierSize, classFieldBytes),
-          classFieldsIndexSize = classFieldsIndexSize
+        positionSize = positionSize,
+        hprofStringCache = hprofStringCache,
+        classNames = classNames,
+        classIndex = sortedClassIndex,
+        instanceIndex = sortedInstanceIndex,
+        objectArrayIndex = sortedObjectArrayIndex,
+        primitiveArrayIndex = sortedPrimitiveArrayIndex,
+        gcRoots = gcRoots,
+        proguardMapping = proguardMapping,
+        bytesForClassSize = bytesForClassSize,
+        bytesForInstanceSize = bytesForInstanceSize,
+        bytesForObjectArraySize = bytesForObjectArraySize,
+        bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
+        useForwardSlashClassPackageSeparator = hprofHeader.version != ANDROID,
+        classFieldsReader = ClassFieldsReader(identifierSize, classFieldBytes),
+        classFieldsIndexSize = classFieldsIndexSize
       )
     }
-
   }
 
   companion object {
@@ -669,36 +668,36 @@ internal class HprofInMemoryIndex private constructor(
       var classFieldsTotalBytes = 0
 
       val bytesRead = reader.readRecords(
-          EnumSet.of(CLASS_DUMP, INSTANCE_DUMP, OBJECT_ARRAY_DUMP, PRIMITIVE_ARRAY_DUMP),
-          OnHprofRecordTagListener { tag, _, reader ->
-            val bytesReadStart = reader.bytesRead
-            when (tag) {
-              CLASS_DUMP -> {
-                classCount++
-                reader.skipClassDumpHeader()
-                val bytesReadStaticFieldStart = reader.bytesRead
-                reader.skipClassDumpStaticFields()
-                reader.skipClassDumpFields()
-                maxClassSize = max(maxClassSize, reader.bytesRead - bytesReadStart)
-                classFieldsTotalBytes += (reader.bytesRead - bytesReadStaticFieldStart).toInt()
-              }
-              INSTANCE_DUMP -> {
-                instanceCount++
-                reader.skipInstanceDumpRecord()
-                maxInstanceSize = max(maxInstanceSize, reader.bytesRead - bytesReadStart)
-              }
-              OBJECT_ARRAY_DUMP -> {
-                objectArrayCount++
-                reader.skipObjectArrayDumpRecord()
-                maxObjectArraySize = max(maxObjectArraySize, reader.bytesRead - bytesReadStart)
-              }
-              PRIMITIVE_ARRAY_DUMP -> {
-                primitiveArrayCount++
-                reader.skipPrimitiveArrayDumpRecord()
-                maxPrimitiveArraySize = max(maxPrimitiveArraySize, reader.bytesRead - bytesReadStart)
-              }
+        EnumSet.of(CLASS_DUMP, INSTANCE_DUMP, OBJECT_ARRAY_DUMP, PRIMITIVE_ARRAY_DUMP),
+        OnHprofRecordTagListener { tag, _, reader ->
+          val bytesReadStart = reader.bytesRead
+          when (tag) {
+            CLASS_DUMP -> {
+              classCount++
+              reader.skipClassDumpHeader()
+              val bytesReadStaticFieldStart = reader.bytesRead
+              reader.skipClassDumpStaticFields()
+              reader.skipClassDumpFields()
+              maxClassSize = max(maxClassSize, reader.bytesRead - bytesReadStart)
+              classFieldsTotalBytes += (reader.bytesRead - bytesReadStaticFieldStart).toInt()
             }
-          })
+            INSTANCE_DUMP -> {
+              instanceCount++
+              reader.skipInstanceDumpRecord()
+              maxInstanceSize = max(maxInstanceSize, reader.bytesRead - bytesReadStart)
+            }
+            OBJECT_ARRAY_DUMP -> {
+              objectArrayCount++
+              reader.skipObjectArrayDumpRecord()
+              maxObjectArraySize = max(maxObjectArraySize, reader.bytesRead - bytesReadStart)
+            }
+            PRIMITIVE_ARRAY_DUMP -> {
+              primitiveArrayCount++
+              reader.skipPrimitiveArrayDumpRecord()
+              maxPrimitiveArraySize = max(maxPrimitiveArraySize, reader.bytesRead - bytesReadStart)
+            }
+          }
+        })
 
       val bytesForClassSize = byteSizeForUnsigned(maxClassSize)
       val bytesForInstanceSize = byteSizeForUnsigned(maxInstanceSize)
@@ -706,26 +705,26 @@ internal class HprofInMemoryIndex private constructor(
       val bytesForPrimitiveArraySize = byteSizeForUnsigned(maxPrimitiveArraySize)
 
       val indexBuilderListener = Builder(
-          longIdentifiers = hprofHeader.identifierByteSize == 8,
-          maxPosition = bytesRead,
-          classCount = classCount,
-          instanceCount = instanceCount,
-          objectArrayCount = objectArrayCount,
-          primitiveArrayCount = primitiveArrayCount,
-          bytesForClassSize = bytesForClassSize,
-          bytesForInstanceSize = bytesForInstanceSize,
-          bytesForObjectArraySize = bytesForObjectArraySize,
-          bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
-          classFieldsTotalBytes = classFieldsTotalBytes
+        longIdentifiers = hprofHeader.identifierByteSize == 8,
+        maxPosition = bytesRead,
+        classCount = classCount,
+        instanceCount = instanceCount,
+        objectArrayCount = objectArrayCount,
+        primitiveArrayCount = primitiveArrayCount,
+        bytesForClassSize = bytesForClassSize,
+        bytesForInstanceSize = bytesForInstanceSize,
+        bytesForObjectArraySize = bytesForObjectArraySize,
+        bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
+        classFieldsTotalBytes = classFieldsTotalBytes
       )
 
       val recordTypes = EnumSet.of(
-          STRING_IN_UTF8,
-          LOAD_CLASS,
-          CLASS_DUMP,
-          INSTANCE_DUMP,
-          OBJECT_ARRAY_DUMP,
-          PRIMITIVE_ARRAY_DUMP
+        STRING_IN_UTF8,
+        LOAD_CLASS,
+        CLASS_DUMP,
+        INSTANCE_DUMP,
+        OBJECT_ARRAY_DUMP,
+        PRIMITIVE_ARRAY_DUMP
       ) + HprofRecordTag.rootTags.intersect(indexedGcRootTags)
 
       reader.readRecords(recordTypes, indexBuilderListener)

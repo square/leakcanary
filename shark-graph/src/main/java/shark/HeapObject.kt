@@ -272,12 +272,12 @@ sealed class HeapObject {
      */
     fun readStaticFields(): Sequence<HeapField> {
       return readRecordStaticFields().asSequence()
-          .map { fieldRecord ->
-            HeapField(
-                this, hprofGraph.staticFieldName(objectId, fieldRecord),
-                HeapValue(hprofGraph, fieldRecord.value)
-            )
-          }
+        .map { fieldRecord ->
+          HeapField(
+            this, hprofGraph.staticFieldName(objectId, fieldRecord),
+            HeapValue(hprofGraph, fieldRecord.value)
+          )
+        }
     }
 
     /**
@@ -446,15 +446,15 @@ sealed class HeapObject {
         hprofGraph.createFieldValuesReader(readRecord())
       }
       return instanceClass.classHierarchy
-          .map { heapClass ->
-            heapClass.readRecordFields().asSequence()
-                .map { fieldRecord ->
-                  val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord)
-                  val fieldValue = fieldReader.readValue(fieldRecord)
-                  HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue))
-                }
-          }
-          .flatten()
+        .map { heapClass ->
+          heapClass.readRecordFields().asSequence()
+            .map { fieldRecord ->
+              val fieldName = hprofGraph.fieldName(heapClass.objectId, fieldRecord)
+              val fieldValue = fieldReader.readValue(fieldRecord)
+              HeapField(heapClass, fieldName, HeapValue(hprofGraph, fieldValue))
+            }
+        }
+        .flatten()
     }
 
     /**
@@ -502,8 +502,8 @@ sealed class HeapObject {
           return String(valueRecord.array, Charset.forName("UTF-8"))
         }
         else -> throw UnsupportedOperationException(
-            "'value' field ${this["java.lang.String", "value"]!!.value} was expected to be either" +
-                " a char or byte array in string instance with id $objectId"
+          "'value' field ${this["java.lang.String", "value"]!!.value} was expected to be either" +
+            " a char or byte array in string instance with id $objectId"
         )
       }
     }
@@ -570,7 +570,7 @@ sealed class HeapObject {
      */
     fun readElements(): Sequence<HeapValue> {
       return readRecord().elementIds.asSequence()
-          .map { HeapValue(hprofGraph, ReferenceHolder(it)) }
+        .map { HeapValue(hprofGraph, ReferenceHolder(it)) }
     }
 
     override fun toString(): String {
@@ -636,15 +636,15 @@ sealed class HeapObject {
   companion object {
 
     internal val primitiveTypesByPrimitiveArrayClassName = PrimitiveType.values()
-        .map { "${it.name.toLowerCase(Locale.US)}[]" to it }
-        .toMap()
+      .map { "${it.name.toLowerCase(Locale.US)}[]" to it }
+      .toMap()
 
     private val primitiveWrapperClassNames = setOf<String>(
-        Boolean::class.javaObjectType.name, Char::class.javaObjectType.name,
-        Float::class.javaObjectType.name,
-        Double::class.javaObjectType.name, Byte::class.javaObjectType.name,
-        Short::class.javaObjectType.name,
-        Int::class.javaObjectType.name, Long::class.javaObjectType.name
+      Boolean::class.javaObjectType.name, Char::class.javaObjectType.name,
+      Float::class.javaObjectType.name,
+      Double::class.javaObjectType.name, Byte::class.javaObjectType.name,
+      Short::class.javaObjectType.name,
+      Int::class.javaObjectType.name, Long::class.javaObjectType.name
     )
 
     private fun classSimpleName(className: String): String {
@@ -656,5 +656,4 @@ sealed class HeapObject {
       }
     }
   }
-
 }

@@ -55,9 +55,9 @@ class AndroidResourceIdNames private constructor(
         }
       }
       val resourceIds = idToNamePairs.map { it.first }
-          .toIntArray()
+        .toIntArray()
       val names = idToNamePairs.map { it.second }
-          .toTypedArray()
+        .toTypedArray()
       holderField = AndroidResourceIdNames(resourceIds, names)
     }
 
@@ -82,9 +82,9 @@ class AndroidResourceIdNames private constructor(
             val resourceIds =
               (instance[className, "resourceIds"]!!.valueAsPrimitiveArray!!.readRecord() as IntArrayDump).array
             val names = instance[className, "names"]!!.valueAsObjectArray!!.readElements()
-                .map { it.readAsJavaString()!! }
-                .toList()
-                .toTypedArray()
+              .map { it.readAsJavaString()!! }
+              .toList()
+              .toTypedArray()
             AndroidResourceIdNames(resourceIds, names)
           }
         }
@@ -95,5 +95,4 @@ class AndroidResourceIdNames private constructor(
       holderField = null
     }
   }
-
 }

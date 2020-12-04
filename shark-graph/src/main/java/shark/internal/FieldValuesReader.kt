@@ -109,5 +109,4 @@ internal class FieldValuesReader(
     private val INT_TYPE = INT.hprofType
     private val LONG_TYPE = LONG.hprofType
   }
-
 }

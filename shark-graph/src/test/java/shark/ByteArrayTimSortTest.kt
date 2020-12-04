@@ -52,7 +52,7 @@ class ByteArrayTimSortTest {
     class Entry(val eightBytes: ByteArray) : Comparable<Entry> {
       override fun compareTo(other: Entry): Int {
         val compared = readInt(eightBytes, 0).compareTo(readInt(other.eightBytes, 0))
-        if (compared == 0){
+        if (compared == 0) {
           return readInt(eightBytes, 4).compareTo(readInt(other.eightBytes, 4))
         }
         return compared
@@ -68,9 +68,9 @@ class ByteArrayTimSortTest {
     val androidSortedAsBytes = ByteArray(entryCount * entrySize)
 
     for (i in 0 until entryCount) {
-        System.arraycopy(
-            androidSorted[i]!!.eightBytes, 0, androidSortedAsBytes, i * entrySize, entrySize
-        )
+      System.arraycopy(
+        androidSorted[i]!!.eightBytes, 0, androidSortedAsBytes, i * entrySize, entrySize
+      )
     }
 
     ByteArrayTimSort.sort(librarySorted, entrySize, object : ByteArrayComparator {
@@ -81,9 +81,12 @@ class ByteArrayTimSortTest {
         o2Array: ByteArray,
         o2Index: Int
       ): Int {
-        val compared = readInt(o1Array, o1Index * entrySize).compareTo(readInt(o2Array, o2Index * entrySize))
+        val compared =
+          readInt(o1Array, o1Index * entrySize).compareTo(readInt(o2Array, o2Index * entrySize))
         if (compared == 0) {
-          return readInt(o1Array, o1Index * entrySize + 4).compareTo(readInt(o2Array, o2Index * entrySize + 4))
+          return readInt(o1Array, o1Index * entrySize + 4).compareTo(
+            readInt(o2Array, o2Index * entrySize + 4)
+          )
         }
         return compared
       }
@@ -98,12 +101,11 @@ class ByteArrayTimSortTest {
   ): Int {
     var pos = index
     return (array[pos++] and 0xff shl 24
-        or (array[pos++] and 0xff shl 16)
-        or (array[pos++] and 0xff shl 8)
-        or (array[pos] and 0xff))
+      or (array[pos++] and 0xff shl 16)
+      or (array[pos++] and 0xff shl 8)
+      or (array[pos] and 0xff))
   }
 
   @Suppress("NOTHING_TO_INLINE") // Syntactic sugar.
   private inline infix fun Byte.and(other: Int): Int = toInt() and other
-
 }

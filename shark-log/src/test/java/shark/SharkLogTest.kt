@@ -10,7 +10,10 @@ class SharkLogTest {
 
   private class StreamLogger(private val stream: PrintStream) : Logger {
     override fun d(message: String) = stream.print(message)
-    override fun d(throwable: Throwable, message: String) = stream.print("$message ${throwable.message}")
+    override fun d(
+      throwable: Throwable,
+      message: String
+    ) = stream.print("$message ${throwable.message}")
   }
 
   @Test fun `logging works when logger is set`() {

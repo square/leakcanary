@@ -13,7 +13,7 @@ import androidx.test.orchestrator.listeners.OrchestrationListenerManager.TestEve
 import org.junit.runner.Description
 
 internal class OrchestratorTestResultPublisher(listener: OrchestratedInstrumentationListener) :
-    TestResultPublisher {
+  TestResultPublisher {
 
   private var sendTestFinished: (() -> Unit)? = null
 
@@ -65,8 +65,8 @@ internal class OrchestratorTestResultPublisher(listener: OrchestratedInstrumenta
   ) {
     val result = Bundle()
     val failure = ParcelableFailure(
-        ParcelableDescription(description),
-        RuntimeException(trace)
+      ParcelableDescription(description),
+      RuntimeException(trace)
     )
     result.putParcelable("failure", failure)
     result.putString(KEY_TEST_EVENT, TEST_FAILURE.toString())

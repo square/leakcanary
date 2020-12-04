@@ -21,14 +21,20 @@ class ProguardMapping {
    * Returns deobfuscated field name or original string if there is no
    * mapping for given obfuscated name.
    */
-  fun deobfuscateFieldName(obfuscatedClass: String, obfuscatedField: String): String {
+  fun deobfuscateFieldName(
+    obfuscatedClass: String,
+    obfuscatedField: String
+  ): String {
     return obfuscatedToClearNamesMap["$obfuscatedClass.$obfuscatedField"] ?: return obfuscatedField
   }
 
   /**
    * Adds entry to the obfuscatedToClearNamesMap map.
    */
-  fun addMapping(obfuscatedName: String, clearName: String) {
+  fun addMapping(
+    obfuscatedName: String,
+    clearName: String
+  ) {
     obfuscatedToClearNamesMap[obfuscatedName] = clearName
   }
 }

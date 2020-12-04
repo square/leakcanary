@@ -16,29 +16,29 @@ class ProguardMappingTest {
         """.trimIndent()
 
     val proguardMapping =
-        ProguardMappingReader(proguardMappingText.byteInputStream(Charsets.UTF_8))
-            .readProguardMapping()
+      ProguardMappingReader(proguardMappingText.byteInputStream(Charsets.UTF_8))
+        .readProguardMapping()
 
     assertThat(
-        proguardMapping.deobfuscateClassName("com.test.ObfuscatedClassName1")
+      proguardMapping.deobfuscateClassName("com.test.ObfuscatedClassName1")
     ).isEqualTo("com.test.ClearClassName1")
 
     assertThat(
-        proguardMapping.deobfuscateFieldName(
-            "com.test.ObfuscatedClassName1",
-            "obfuscatedFieldName1"
-        )
+      proguardMapping.deobfuscateFieldName(
+        "com.test.ObfuscatedClassName1",
+        "obfuscatedFieldName1"
+      )
     ).isEqualTo("clearFieldName1")
 
     assertThat(
-        proguardMapping.deobfuscateClassName("com.test.ObfuscatedClassName2")
+      proguardMapping.deobfuscateClassName("com.test.ObfuscatedClassName2")
     ).isEqualTo("com.test.ClearClassName2")
 
     assertThat(
-        proguardMapping.deobfuscateFieldName(
-            "com.test.ObfuscatedClassName2",
-            "obfuscatedFieldName2"
-        )
+      proguardMapping.deobfuscateFieldName(
+        "com.test.ObfuscatedClassName2",
+        "obfuscatedFieldName2"
+      )
     ).isEqualTo("clearFieldName2")
   }
 }

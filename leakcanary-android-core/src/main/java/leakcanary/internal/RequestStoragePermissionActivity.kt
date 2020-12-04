@@ -54,7 +54,7 @@ internal class RequestStoragePermissionActivity : Activity() {
   ) {
     if (!hasStoragePermission()) {
       Toast.makeText(application, R.string.leak_canary_permission_not_granted, LENGTH_LONG)
-          .show()
+        .show()
     }
     finish()
   }

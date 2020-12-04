@@ -119,15 +119,15 @@ class RetainedSizeTest {
       "GcRoot" clazz {
         staticField["shortestPath"] = "Leaking" watchedInstance {
           field["answer"] = objectArrayOf(
+            intWrapperClass,
+            instance(
               intWrapperClass,
-              instance(
-                  intWrapperClass,
-                  fields = listOf<ValueHolder>(IntHolder(4))
-              ),
-              instance(
-                  intWrapperClass,
-                  fields = listOf<ValueHolder>(IntHolder(2))
-              )
+              fields = listOf<ValueHolder>(IntHolder(4))
+            ),
+            instance(
+              intWrapperClass,
+              fields = listOf<ValueHolder>(IntHolder(2))
+            )
           )
         }
       }
@@ -273,17 +273,17 @@ class RetainedSizeTest {
       val referenceClass =
         clazz("java.lang.ref.Reference", fields = listOf("referent" to ReferenceHolder::class))
       val cleanerClass = clazz(
-          "sun.misc.Cleaner", clazz("java.lang.ref.PhantomReference", referenceClass),
-          fields = listOf("thunk" to ReferenceHolder::class)
+        "sun.misc.Cleaner", clazz("java.lang.ref.PhantomReference", referenceClass),
+        fields = listOf("thunk" to ReferenceHolder::class)
       )
 
       instance(
-          cleanerClass,
-          fields = listOf("libcore.util.NativeAllocationRegistry\$CleanerThunk" instance {
-            field["this\$0"] = "libcore.util.NativeAllocationRegistry" instance {
-              field["size"] = LongHolder(nativeBitmapSize.toLong())
-            }
-          }, bitmap)
+        cleanerClass,
+        fields = listOf("libcore.util.NativeAllocationRegistry\$CleanerThunk" instance {
+          field["this\$0"] = "libcore.util.NativeAllocationRegistry" instance {
+            field["size"] = LongHolder(nativeBitmapSize.toLong())
+          }
+        }, bitmap)
       )
 
       "GcRoot" clazz {
@@ -308,8 +308,7 @@ class RetainedSizeTest {
 
   private fun firstRetainedSize(): Int {
     return retainedInstances()
-        .map { it.totalRetainedHeapByteSize!! }
-        .first()
+      .map { it.totalRetainedHeapByteSize!! }
+      .first()
   }
-
 }

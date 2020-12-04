@@ -273,12 +273,12 @@ internal class LongObjectScatterMap<T> {
       this.keys = prevKeys
       this.values = prevValues
       throw RuntimeException(
-          String.format(
-              Locale.ROOT,
-              "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
-              this.mask + 1,
-              arraySize
-          ), e
+        String.format(
+          Locale.ROOT,
+          "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
+          this.mask + 1,
+          arraySize
+        ), e
       )
     }
 

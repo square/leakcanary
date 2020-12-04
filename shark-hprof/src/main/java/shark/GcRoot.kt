@@ -128,5 +128,4 @@ sealed class GcRoot {
    * An object that is unreachable from any other root, but not a root itself.
    */
   class Unreachable(override val id: Long) : GcRoot()
-
 }

@@ -13,17 +13,17 @@ class LeakCanaryConfigTest {
    */
   @Test fun `LeakCanary Config Builder matches LeakCanary Config`() {
     assertThat(configProperties())
-        .containsExactlyInAnyOrderElementsOf(configBuilderFunctions())
+      .containsExactlyInAnyOrderElementsOf(configBuilderFunctions())
   }
 
   private fun configBuilderFunctions() = LeakCanary.Config.Builder::class.memberFunctions
-      .map { it.name }
-      .subtract(listOf("build", "equals", "hashCode", "toString"))
+    .map { it.name }
+    .subtract(listOf("build", "equals", "hashCode", "toString"))
 
   private fun configProperties() = LeakCanary.Config::class.memberProperties
-      .filter { member ->
-        // Ignore deprecated fields, we don't need builders for those
-        member.annotations.none { it is Deprecated }
-      }
-      .map { it.name }
+    .filter { member ->
+      // Ignore deprecated fields, we don't need builders for those
+      member.annotations.none { it is Deprecated }
+    }
+    .map { it.name }
 }

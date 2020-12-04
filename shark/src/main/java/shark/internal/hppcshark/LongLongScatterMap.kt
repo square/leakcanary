@@ -26,7 +26,10 @@ import java.util.Locale
 internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
 
   interface ForEachCallback {
-    fun onEntry(key: Long, value: Long)
+    fun onEntry(
+      key: Long,
+      value: Long
+    )
   }
 
   /**
@@ -183,7 +186,7 @@ internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
     val max = mask + 1
     var slot = -1
 
-    exitWhile@while (true) {
+    exitWhile@ while (true) {
       if (slot < max) {
         var existing: Long
         slot++
@@ -267,9 +270,9 @@ internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
       val prevKeys = this.keys
       val prevValues = this.values
       allocateBuffers(
-          HHPC.minBufferSize(
-              expectedElements, loadFactor
-          )
+        HHPC.minBufferSize(
+          expectedElements, loadFactor
+        )
       )
       if (!isEmpty) {
         rehash(prevKeys, prevValues)
@@ -328,12 +331,12 @@ internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
       this.keys = prevKeys
       this.values = prevValues
       throw RuntimeException(
-          String.format(
-              Locale.ROOT,
-              "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
-              this.mask + 1,
-              arraySize
-          ), e
+        String.format(
+          Locale.ROOT,
+          "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
+          this.mask + 1,
+          arraySize
+        ), e
       )
     }
 
@@ -361,7 +364,7 @@ internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
     val prevKeys = this.keys
     val prevValues = this.values
     allocateBuffers(
-        HHPC.nextBufferSize(mask + 1, size, loadFactor)
+      HHPC.nextBufferSize(mask + 1, size, loadFactor)
     )
 
     // We have succeeded at allocating new data so insert the pending key/value at

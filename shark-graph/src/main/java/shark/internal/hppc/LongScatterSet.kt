@@ -26,6 +26,7 @@ import java.util.Locale
 internal class LongScatterSet {
   /** The hash array holding keys.  */
   private var keys: LongArray = longArrayOf()
+
   /**
    * The number of stored keys (assigned key slots), excluding the special
    * "empty" key, if any.
@@ -34,6 +35,7 @@ internal class LongScatterSet {
    * @see .hasEmptyKey
    */
   private var assigned = 0
+
   /**
    * Mask for slot scans in [.keys].
    */
@@ -43,10 +45,12 @@ internal class LongScatterSet {
    * Expand (rehash) [.keys] when [.assigned] hits this value.
    */
   private var resizeAt = 0
+
   /**
    * Special treatment for the "empty slot" key marker.
    */
   private var hasEmptyKey = false
+
   /**
    * The load factor for [.keys].
    */
@@ -218,12 +222,12 @@ internal class LongScatterSet {
     } catch (e: OutOfMemoryError) {
       this.keys = prevKeys
       throw RuntimeException(
-          String.format(
-              Locale.ROOT,
-              "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
-              size(),
-              arraySize
-          ), e
+        String.format(
+          Locale.ROOT,
+          "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
+          size(),
+          arraySize
+        ), e
       )
     }
 

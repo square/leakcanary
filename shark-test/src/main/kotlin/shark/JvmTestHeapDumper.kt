@@ -7,9 +7,9 @@ object JvmTestHeapDumper {
   private val hotspotMBean: HotSpotDiagnosticMXBean by lazy {
     val mBeanServer = ManagementFactory.getPlatformMBeanServer()
     ManagementFactory.newPlatformMXBeanProxy(
-        mBeanServer,
-        "com.sun.management:type=HotSpotDiagnostic",
-        HotSpotDiagnosticMXBean::class.java
+      mBeanServer,
+      "com.sun.management:type=HotSpotDiagnostic",
+      HotSpotDiagnosticMXBean::class.java
     )
   }
 
@@ -19,5 +19,4 @@ object JvmTestHeapDumper {
     val live = true
     hotspotMBean.dumpHeap(fileName, live)
   }
-
 }

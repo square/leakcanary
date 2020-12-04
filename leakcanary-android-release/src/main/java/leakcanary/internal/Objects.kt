@@ -9,6 +9,6 @@ inline fun <reified T : Any> noOpDelegate(): T {
     // no op
   }
   return Proxy.newProxyInstance(
-      javaClass.classLoader, arrayOf(javaClass), noOpHandler
+    javaClass.classLoader, arrayOf(javaClass), noOpHandler
   ) as T
 }

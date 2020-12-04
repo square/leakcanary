@@ -36,9 +36,9 @@ internal abstract class NavigatingActivity : Activity() {
         @Suppress("UNCHECKED_CAST")
         val screens = intent.getSerializableExtra("screens") as List<Screen>
         screens.dropLast(1)
-            .forEach { screen ->
-              backstack.add(BackstackFrame(screen))
-            }
+          .forEach { screen ->
+            backstack.add(BackstackFrame(screen))
+          }
         screens.last()
       } else {
         getLauncherScreen()
@@ -47,7 +47,7 @@ internal abstract class NavigatingActivity : Activity() {
       currentScreen = savedInstanceState.getSerializable("currentScreen") as Screen
       @Suppress("UNCHECKED_CAST")
       backstack = savedInstanceState.getParcelableArrayList<Parcelable>(
-          "backstack"
+        "backstack"
       ) as ArrayList<BackstackFrame>
     }
     currentView = currentScreen.createView(container)
@@ -62,9 +62,9 @@ internal abstract class NavigatingActivity : Activity() {
       goTo(intent.getSerializableExtra("screen") as Screen)
       backstack.clear()
       screens.dropLast(1)
-          .forEach { screen ->
-            backstack.add(BackstackFrame(screen))
-          }
+        .forEach { screen ->
+          backstack.add(BackstackFrame(screen))
+        }
     }
   }
 
@@ -150,8 +150,8 @@ internal abstract class NavigatingActivity : Activity() {
   private fun screenUpdated() {
     invalidateOptionsMenu()
     val actionBar = actionBar
-        ?: // https://github.com/square/leakcanary/issues/967
-        return
+      ?: // https://github.com/square/leakcanary/issues/967
+      return
     val homeEnabled = backstack.size > 0
     actionBar.setDisplayHomeAsUpEnabled(homeEnabled)
     actionBar.setHomeButtonEnabled(homeEnabled)
@@ -183,5 +183,4 @@ internal abstract class NavigatingActivity : Activity() {
   companion object {
     val NO_MENU: ((Menu) -> Unit) = {}
   }
-
 }

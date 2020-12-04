@@ -140,7 +140,7 @@ class LeakTraceWrapperTest {
     val wrappedString = LeakTraceWrapper.wrap(string, prefix.length + part1.length + 1)
 
     assertThat(wrappedString).isEqualTo(
-        """
+      """
 ${prefix}$part1
 ${prefix}$part2
 ${prefix}$part3"""
@@ -155,7 +155,7 @@ ${prefix}$part3"""
     val wrappedString = LeakTraceWrapper.wrap(string, 10)
 
     assertThat(wrappedString).isEqualTo(
-        """
+      """
 │  A word
 │  and a
 │  ~~~
@@ -172,7 +172,7 @@ ${prefix}$part3"""
     val wrappedString = LeakTraceWrapper.wrap(string, 10)
 
     assertThat(wrappedString).isEqualTo(
-        """
+      """
 │  A word
 │  and a
 │  pk.g
@@ -192,7 +192,7 @@ ${prefix}$part3"""
     val wrappedString = LeakTraceWrapper.wrap(string, 30)
 
     assertThat(wrappedString).isEqualTo(
-        """
+      """
 ├─ com.example.
 │  FooFooFooFooFooFooFoo
 │  instance
@@ -242,7 +242,7 @@ ${prefix}$part3"""
     val wrappedString = LeakTraceWrapper.wrap(string, 80)
 
     assertThat(wrappedString).isEqualTo(
-        """
+      """
 ┬───
 │ GC Root: System class
 │

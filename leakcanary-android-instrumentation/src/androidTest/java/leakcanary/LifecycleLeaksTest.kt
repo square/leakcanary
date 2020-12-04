@@ -29,18 +29,18 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
 
   @get:Rule
   override val activityRule = activityTestRule<TestActivity>(
-      initialTouchMode = false,
-      launchActivity = false
+    initialTouchMode = false,
+    launchActivity = false
   )
 
   @Before fun setUp() {
     AppWatcher.objectWatcher
-        .clearWatchedObjects()
+      .clearWatchedObjects()
   }
 
   @After fun tearDown() {
     AppWatcher.objectWatcher
-        .clearWatchedObjects()
+      .clearWatchedObjects()
   }
 
   @Test fun activityLeakDetected() {

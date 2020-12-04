@@ -38,7 +38,7 @@ fun main() {
       val row = stats[index]
       for (computeRetainedHeapSize in computeRetainedHeapSizeList) {
         val (randomAccessReads, lruRetainedSize) = trackAnalyzeMetrics(
-            hprofFile, bytes, tmpHeapDumpFolder, computeRetainedHeapSize, lruCacheSize
+          hprofFile, bytes, tmpHeapDumpFolder, computeRetainedHeapSize, lruCacheSize
         )
         val bytesRead = randomAccessReads.sum()
         val readCount = randomAccessReads.size
@@ -77,7 +77,7 @@ private fun trackAnalyzeMetrics(
   lruCacheSize: Int
 ): Pair<List<Int>, Int> {
   println(
-      "Analysing ${hprofFile.name} computeRetainedHeapSize=$computeRetainedHeapSize lruCacheSize=$lruCacheSize"
+    "Analysing ${hprofFile.name} computeRetainedHeapSize=$computeRetainedHeapSize lruCacheSize=$lruCacheSize"
   )
 
   val source = MetricsDualSourceProvider(ByteArraySourceProvider(bytes))
@@ -85,15 +85,15 @@ private fun trackAnalyzeMetrics(
   val heapAfterAnalysis = withLruCacheSize(lruCacheSize) {
     source.openHeapGraph().use { graph ->
       val analysis = heapAnalyzer.analyze(
-          heapDumpFile = hprofFile,
-          graph = graph,
-          leakingObjectFinder = FilteringLeakingObjectFinder(
-              AndroidObjectInspectors.appLeakingObjectFilters
-          ),
-          referenceMatchers = AndroidReferenceMatchers.appDefaults,
-          computeRetainedHeapSize = computeRetainedHeapSize,
-          objectInspectors = AndroidObjectInspectors.appDefaults,
-          metadataExtractor = AndroidMetadataExtractor
+        heapDumpFile = hprofFile,
+        graph = graph,
+        leakingObjectFinder = FilteringLeakingObjectFinder(
+          AndroidObjectInspectors.appLeakingObjectFilters
+        ),
+        referenceMatchers = AndroidReferenceMatchers.appDefaults,
+        computeRetainedHeapSize = computeRetainedHeapSize,
+        objectInspectors = AndroidObjectInspectors.appDefaults,
+        metadataExtractor = AndroidMetadataExtractor
       )
       check(analysis is HeapAnalysisSuccess) {
         "Expected success not $analysis"
@@ -104,14 +104,14 @@ private fun trackAnalyzeMetrics(
   val randomAccessReads = source.sourcesMetrics[3]
 
   val lruCacheAnalysis = heapAnalyzer.analyze(
-      heapDumpFile = heapAfterAnalysis,
-      referenceMatchers = AndroidReferenceMatchers.buildKnownReferences(
-          EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
-      ),
-      leakingObjectFinder = LeakingObjectFinder { graph ->
-        setOf(graph.findClassByName("shark.internal.LruCache")!!.instances.single().objectId)
-      },
-      computeRetainedHeapSize = true
+    heapDumpFile = heapAfterAnalysis,
+    referenceMatchers = AndroidReferenceMatchers.buildKnownReferences(
+      EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
+    ),
+    leakingObjectFinder = LeakingObjectFinder { graph ->
+      setOf(graph.findClassByName("shark.internal.LruCache")!!.instances.single().objectId)
+    },
+    computeRetainedHeapSize = true
   )
   check(lruCacheAnalysis is HeapAnalysisSuccess) {
     "Expected success not $lruCacheAnalysis"
@@ -120,7 +120,7 @@ private fun trackAnalyzeMetrics(
     lruCacheAnalysis.allLeaks.single().leakTraces.single().retainedHeapByteSize!!
 
   println(
-      "${randomAccessReads.sum()} bytes in ${randomAccessReads.size} reads, retaining $lruRetainedSize bytes in cache"
+    "${randomAccessReads.sum()} bytes in ${randomAccessReads.size} reads, retaining $lruRetainedSize bytes in cache"
   )
 
   return randomAccessReads to lruRetainedSize

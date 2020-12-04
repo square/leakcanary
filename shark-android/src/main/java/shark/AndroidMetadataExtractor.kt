@@ -8,10 +8,10 @@ object AndroidMetadataExtractor : MetadataExtractor {
     val processName = readProcessName(graph)
 
     return mapOf(
-        "Build.VERSION.SDK_INT" to build.sdkInt.toString(),
-        "Build.MANUFACTURER" to build.manufacturer,
-        "LeakCanary version" to leakCanaryVersion,
-        "App process name" to processName
+      "Build.VERSION.SDK_INT" to build.sdkInt.toString(),
+      "Build.MANUFACTURER" to build.manufacturer,
+      "LeakCanary version" to leakCanaryVersion,
+      "App process name" to processName
     )
   }
 
@@ -22,15 +22,15 @@ object AndroidMetadataExtractor : MetadataExtractor {
 
   private fun readProcessName(graph: HeapGraph): String {
     val activityThread = graph.findClassByName("android.app.ActivityThread")
-        ?.get("sCurrentActivityThread")
-        ?.valueAsInstance
+      ?.get("sCurrentActivityThread")
+      ?.valueAsInstance
     val appBindData = activityThread?.get("android.app.ActivityThread", "mBoundApplication")
-        ?.valueAsInstance
+      ?.valueAsInstance
     val appInfo = appBindData?.get("android.app.ActivityThread\$AppBindData", "appInfo")
-        ?.valueAsInstance
+      ?.valueAsInstance
 
     return appInfo?.get(
-        "android.content.pm.ApplicationInfo", "processName"
+      "android.content.pm.ApplicationInfo", "processName"
     )?.valueAsInstance?.readAsJavaString() ?: "Unknown"
   }
 }

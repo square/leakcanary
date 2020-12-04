@@ -81,15 +81,15 @@ internal class HeapAnalysisFailureScreen(
 
     onCreateOptionsMenu { menu ->
       menu.add(R.string.leak_canary_delete)
-          .setOnMenuItemClickListener {
-            executeOnDb {
-              HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
-              updateUi {
-                goBack()
-              }
+        .setOnMenuItemClickListener {
+          executeOnDb {
+            HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
+            updateUi {
+              goBack()
             }
-            true
           }
+          true
+        }
     }
   }
 }

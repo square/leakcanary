@@ -42,29 +42,29 @@ class ObjectDominators {
 
     val root = dominatorTree.getValue(ValueHolder.NULL_REFERENCE)
     stringBuilder.append(
-        "Total retained: ${root.retainedSize} bytes in ${root.retainedCount} objects. Root dominators: ${root.dominatedObjectIds.size}\n\n"
+      "Total retained: ${root.retainedSize} bytes in ${root.retainedCount} objects. Root dominators: ${root.dominatedObjectIds.size}\n\n"
     )
 
     val rootIds = if (threadName != null) {
       setOf(graph.gcRoots.first { gcRoot ->
         gcRoot is ThreadObject &&
-            graph.objectExists(gcRoot.id) &&
-            graph.findObjectById(gcRoot.id)
-                .asInstance!!["java.lang.Thread", "name"]!!
-                .value.readAsJavaString() == threadName
+          graph.objectExists(gcRoot.id) &&
+          graph.findObjectById(gcRoot.id)
+            .asInstance!!["java.lang.Thread", "name"]!!
+            .value.readAsJavaString() == threadName
       }.id)
     } else {
       root.dominatedObjectIds.filter { dominatorTree.getValue(it).retainedSize > minRetainedSize }
     }
 
     rootIds
-        .forEach { objectId ->
-          printTree(
-              stringBuilder, graph, dominatorTree, objectId, minRetainedSize, 0, "", true,
-              printStringContent
-          )
-          stringBuilder.append("\n")
-        }
+      .forEach { objectId ->
+        printTree(
+          stringBuilder, graph, dominatorTree, objectId, minRetainedSize, 0, "", true,
+          printStringContent
+        )
+        stringBuilder.append("\n")
+      }
     return stringBuilder.toString()
   }
 
@@ -100,12 +100,12 @@ class ObjectDominators {
       ""
     }
     val stringContent = if (
-        printStringContent &&
-        heapObject is HeapInstance &&
-            heapObject.instanceClassName == "java.lang.String"
+      printStringContent &&
+      heapObject is HeapInstance &&
+      heapObject.instanceClassName == "java.lang.String"
     ) " \"${heapObject.readAsJavaString()}\"" else ""
     stringBuilder.append(
-        "$prefix$anchor$className #${heapObject.objectIndex} Retained: $size$count$stringContent\n"
+      "$prefix$anchor$className #${heapObject.objectIndex} Retained: $size$count$stringContent\n"
     )
 
     val newPrefix = when {
@@ -123,10 +123,10 @@ class ObjectDominators {
 
     largeChildren.forEachIndexed { index, objectId ->
       printTree(
-          stringBuilder,
-          graph, tree, objectId, minSize, depth + 1, newPrefix,
-          index == lastIndex,
-          printStringContent
+        stringBuilder,
+        graph, tree, objectId, minSize, depth + 1, newPrefix,
+        index == lastIndex,
+        printStringContent
       )
     }
     if (largeChildren.size < node.dominatedObjectIds.size) {
@@ -138,8 +138,10 @@ class ObjectDominators {
     graph: HeapGraph,
     ignoredRefs: List<IgnoredReferenceMatcher>
   ): Map<Long, DominatorNode> {
-    val pathFinder = PathFinder(graph,
-        OnAnalysisProgressListener.NO_OP, ignoredRefs)
+    val pathFinder = PathFinder(
+      graph,
+      OnAnalysisProgressListener.NO_OP, ignoredRefs
+    )
     val nativeSizeMapper = AndroidNativeSizeMapper(graph)
     val nativeSizes = nativeSizeMapper.mapNativeSizes()
     val shallowSizeCalculator = ShallowSizeCalculator(graph)

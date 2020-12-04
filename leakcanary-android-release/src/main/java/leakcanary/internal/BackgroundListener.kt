@@ -17,11 +17,12 @@ internal class BackgroundListener(
 
   private val handler = Handler(Looper.getMainLooper())
 
-  private val checkAppInBackground: Runnable = object: Runnable {
+  private val checkAppInBackground: Runnable = object : Runnable {
     private val memoryOutState = RunningAppProcessInfo()
     override fun run() {
       ActivityManager.getMyMemoryState(memoryOutState)
-      val appInBackgroundNow = memoryOutState.importance >= RunningAppProcessInfo.IMPORTANCE_BACKGROUND
+      val appInBackgroundNow =
+        memoryOutState.importance >= RunningAppProcessInfo.IMPORTANCE_BACKGROUND
       updateBackgroundState(appInBackgroundNow)
       if (!appInBackgroundNow) {
         handler.removeCallbacks(this)

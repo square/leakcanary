@@ -114,13 +114,13 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   internal var dumpEnabledInAboutScreen: Boolean
     get() {
       return heapDumpPrefs
-                .getBoolean("AboutScreenDumpEnabled", true)
+        .getBoolean("AboutScreenDumpEnabled", true)
     }
     set(value) {
       heapDumpPrefs
-                .edit()
-                .putBoolean("AboutScreenDumpEnabled", value)
-                .apply()
+        .edit()
+        .putBoolean("AboutScreenDumpEnabled", value)
+        .apply()
     }
 
   override fun invoke(application: Application) {
@@ -141,8 +141,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     val backgroundHandler = Handler(handlerThread.looper)
 
     heapDumpTrigger = HeapDumpTrigger(
-        application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger, heapDumper,
-        configProvider
+      application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger, heapDumper,
+      configProvider
     )
     application.registerVisibilityListener { applicationVisible ->
       this.applicationVisible = applicationVisible
@@ -176,7 +176,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
     if (!application.resources.getBoolean(R.bool.leak_canary_allow_in_non_debuggable_build)) {
       throw Error(
-          """
+        """
         LeakCanary in non-debuggable build
         
         LeakCanary should only be used in debug builds, but this APK is not debuggable.
@@ -231,16 +231,16 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     mainIntent.addCategory(Intent.CATEGORY_LAUNCHER)
     mainIntent.setPackage(application.packageName)
     val activities = application.packageManager.queryIntentActivities(mainIntent, 0)
-        .filter {
-          it.activityInfo.name != "leakcanary.internal.activity.LeakLauncherActivity"
-        }
+      .filter {
+        it.activityInfo.name != "leakcanary.internal.activity.LeakLauncherActivity"
+      }
 
     if (activities.isEmpty()) {
       return
     }
 
     val firstMainActivity = activities.first()
-        .activityInfo
+      .activityInfo
 
     // Displayed on long tap on app icon
     val longLabel: String
@@ -289,20 +289,20 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     val intent = LeakCanary.newLeakDisplayActivityIntent()
     intent.action = "Dummy Action because Android is stupid"
     val shortcut = Builder(application, DYNAMIC_SHORTCUT_ID)
-        .setLongLabel(longLabel)
-        .setShortLabel(shortLabel)
-        .setActivity(componentName)
-        .setIcon(Icon.createWithResource(application, R.mipmap.leak_canary_icon))
-        .setIntent(intent)
-        .build()
+      .setLongLabel(longLabel)
+      .setShortLabel(shortLabel)
+      .setActivity(componentName)
+      .setIcon(Icon.createWithResource(application, R.mipmap.leak_canary_icon))
+      .setIntent(intent)
+      .build()
 
     try {
       shortcutManager.addDynamicShortcuts(listOf(shortcut))
     } catch (ignored: Throwable) {
       SharkLog.d(ignored) {
         "Could not add dynamic shortcut. " +
-            "shortcutCount=$shortcutCount, " +
-            "maxShortcutCountPerActivity=${shortcutManager.maxShortcutCountPerActivity}"
+          "shortcutCount=$shortcutCount, " +
+          "maxShortcutCountPerActivity=${shortcutManager.maxShortcutCountPerActivity}"
       }
     }
   }
@@ -338,7 +338,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       // no op
     }
     return Proxy.newProxyInstance(
-        javaClass.classLoader, arrayOf(javaClass), noOpHandler
+      javaClass.classLoader, arrayOf(javaClass), noOpHandler
     ) as T
   }
 

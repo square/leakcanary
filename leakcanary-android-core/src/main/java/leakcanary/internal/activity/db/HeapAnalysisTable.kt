@@ -66,11 +66,11 @@ internal object HeapAnalysisTable {
       val heapAnalysisId = db.insertOrThrow("heap_analysis", null, values)
       if (heapAnalysis is HeapAnalysisSuccess) {
         heapAnalysis.allLeaks
-            .forEach { leakingInstance ->
-              LeakTable.insert(
-                  db, heapAnalysisId, leakingInstance
-              )
-            }
+          .forEach { leakingInstance ->
+            LeakTable.insert(
+              db, heapAnalysisId, leakingInstance
+            )
+          }
       }
       heapAnalysisId
     }.apply { notifyUpdateOnMainThread() }
@@ -79,7 +79,7 @@ internal object HeapAnalysisTable {
   private fun notifyUpdateOnMainThread() {
     if (Looper.getMainLooper().thread === Thread.currentThread()) {
       throw UnsupportedOperationException(
-          "Should not be called from the main thread"
+        "Should not be called from the main thread"
       )
     }
     mainHandler.post {
@@ -92,29 +92,29 @@ internal object HeapAnalysisTable {
     id: Long
   ): T? {
     return db.rawQuery(
-        """
+      """
               SELECT
               object
               FROM heap_analysis
               WHERE id=$id
               """, null
     )
-        .use { cursor ->
-          if (cursor.moveToNext()) {
-            val analysis = Serializables.fromByteArray<T>(cursor.getBlob(0))
-            if (analysis == null) {
-              delete(db, id, null)
-            }
-            analysis
-          } else {
-            null
+      .use { cursor ->
+        if (cursor.moveToNext()) {
+          val analysis = Serializables.fromByteArray<T>(cursor.getBlob(0))
+          if (analysis == null) {
+            delete(db, id, null)
           }
+          analysis
+        } else {
+          null
         }
+      }
   }
 
   fun retrieveAll(db: SQLiteDatabase): List<Projection> {
     return db.rawQuery(
-        """
+      """
           SELECT
           id
           , created_at_time_millis
@@ -124,19 +124,19 @@ internal object HeapAnalysisTable {
           ORDER BY created_at_time_millis DESC
           """, null
     )
-        .use { cursor ->
-          val all = mutableListOf<Projection>()
-          while (cursor.moveToNext()) {
-            val summary = Projection(
-                id = cursor.getLong(0),
-                createdAtTimeMillis = cursor.getLong(1),
-                leakCount = cursor.getInt(2),
-                exceptionSummary = cursor.getString(3)
-            )
-            all.add(summary)
-          }
-          all
+      .use { cursor ->
+        val all = mutableListOf<Projection>()
+        while (cursor.moveToNext()) {
+          val summary = Projection(
+            id = cursor.getLong(0),
+            createdAtTimeMillis = cursor.getLong(1),
+            leakCount = cursor.getInt(2),
+            exceptionSummary = cursor.getString(3)
+          )
+          all.add(summary)
         }
+        all
+      }
   }
 
   fun delete(
@@ -166,32 +166,32 @@ internal object HeapAnalysisTable {
   fun deleteAll(db: SQLiteDatabase) {
     db.inTransaction {
       rawQuery(
-          """
+        """
               SELECT
               id,
               object
               FROM heap_analysis
               """, null
       )
-          .use { cursor ->
-            val all = mutableListOf<Pair<Long, HeapAnalysis>>()
-            while (cursor.moveToNext()) {
-              val id = cursor.getLong(0)
-              val analysis = Serializables.fromByteArray<HeapAnalysis>(cursor.getBlob(1))
-              if (analysis != null) {
-                all += id to analysis
-              }
-            }
-            all.forEach { (id, _) ->
-              db.delete("heap_analysis", "id=$id", null)
-              LeakTable.deleteByHeapAnalysisId(db, id)
-            }
-            AsyncTask.SERIAL_EXECUTOR.execute {
-              all.forEach { (_, analysis) ->
-                analysis.heapDumpFile.delete()
-              }
+        .use { cursor ->
+          val all = mutableListOf<Pair<Long, HeapAnalysis>>()
+          while (cursor.moveToNext()) {
+            val id = cursor.getLong(0)
+            val analysis = Serializables.fromByteArray<HeapAnalysis>(cursor.getBlob(1))
+            if (analysis != null) {
+              all += id to analysis
             }
           }
+          all.forEach { (id, _) ->
+            db.delete("heap_analysis", "id=$id", null)
+            LeakTable.deleteByHeapAnalysisId(db, id)
+          }
+          AsyncTask.SERIAL_EXECUTOR.execute {
+            all.forEach { (_, analysis) ->
+              analysis.heapDumpFile.delete()
+            }
+          }
+        }
     }
     notifyUpdateOnMainThread()
   }
@@ -202,5 +202,4 @@ internal object HeapAnalysisTable {
     val leakCount: Int,
     val exceptionSummary: String?
   )
-
 }

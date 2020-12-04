@@ -44,7 +44,7 @@ internal object InternalAppWatcher {
     val internalLeakCanary = try {
       val leakCanaryListener = Class.forName("leakcanary.internal.InternalLeakCanary")
       leakCanaryListener.getDeclaredField("INSTANCE")
-          .get(null)
+        .get(null)
     } catch (ignored: Throwable) {
       NoLeakCanary
     }
@@ -56,9 +56,9 @@ internal object InternalAppWatcher {
     mainHandler.postDelayed(it, AppWatcher.config.watchDurationMillis)
   }
   val objectWatcher = ObjectWatcher(
-      clock = clock,
-      checkRetainedExecutor = checkRetainedExecutor,
-      isEnabled = { true }
+    clock = clock,
+    checkRetainedExecutor = checkRetainedExecutor,
+    isEnabled = { true }
   )
 
   fun install(application: Application) {
@@ -83,14 +83,14 @@ internal object InternalAppWatcher {
       // no op
     }
     return Proxy.newProxyInstance(
-        javaClass.classLoader, arrayOf(javaClass), noOpHandler
+      javaClass.classLoader, arrayOf(javaClass), noOpHandler
     ) as T
   }
 
   private fun checkMainThread() {
     if (Looper.getMainLooper().thread !== Thread.currentThread()) {
       throw UnsupportedOperationException(
-          "Should be called from the main thread, not ${Thread.currentThread()}"
+        "Should be called from the main thread, not ${Thread.currentThread()}"
       )
     }
   }

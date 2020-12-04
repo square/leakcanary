@@ -80,10 +80,12 @@ private constructor(
    * random data, and lower for highly structured data.
    */
   private var minGallop = MIN_GALLOP
+
   /**
    * Temp storage for merges.
    */
   private var tmp: ByteArray? = null // Actual runtime type will be Object[], regardless of T
+
   /**
    * A stack of pending runs yet to be merged.  Run i starts at
    * address base[i] and extends for len[i] elements.  It's always
@@ -102,11 +104,11 @@ private constructor(
     // Allocate temp storage (which may be increased later if necessary)
     val len = a.size / entrySize
     val newArray = ByteArray(
-        entrySize *
-            if (len < 2 * INITIAL_TMP_STORAGE_LENGTH)
-              len.ushr(1)
-            else
-              INITIAL_TMP_STORAGE_LENGTH
+      entrySize *
+        if (len < 2 * INITIAL_TMP_STORAGE_LENGTH)
+          len.ushr(1)
+        else
+          INITIAL_TMP_STORAGE_LENGTH
     )
     tmp = newArray
     /*
@@ -387,7 +389,7 @@ private constructor(
       }
     } else if (len1 == 0) {
       throw IllegalArgumentException(
-          "Comparison method violates its general contract!"
+        "Comparison method violates its general contract!"
       )
     } else {
       if (DEBUG) assert(len2 == 0)
@@ -497,7 +499,7 @@ private constructor(
           cursor1 -= count1
           len1 -= count1
           System.arraycopy(
-              a, (cursor1 + 1) * entrySize, a, (dest + 1) * entrySize, count1 * entrySize
+            a, (cursor1 + 1) * entrySize, a, (dest + 1) * entrySize, count1 * entrySize
           )
           if (len1 == 0)
             break@outer
@@ -517,7 +519,7 @@ private constructor(
           cursor2 -= count2
           len2 -= count2
           System.arraycopy(
-              tmp, (cursor2 + 1) * entrySize, a, (dest + 1) * entrySize, count2 * entrySize
+            tmp, (cursor2 + 1) * entrySize, a, (dest + 1) * entrySize, count2 * entrySize
           )
           if (len2 <= 1)
           // len2 == 1 || len2 == 0
@@ -551,7 +553,7 @@ private constructor(
       }
     } else if (len2 == 0) {
       throw IllegalArgumentException(
-          "Comparison method violates its general contract!"
+        "Comparison method violates its general contract!"
       )
     } else {
       if (DEBUG) assert(len1 == 0)
@@ -608,11 +610,13 @@ private constructor(
      * of the array being sorted and the minimum merge sequence length.
      */
     private val MIN_MERGE = 32
+
     /**
      * When we get into galloping mode, we stay there until both runs win less
      * often than MIN_GALLOP consecutive times.
      */
     private val MIN_GALLOP = 7
+
     /**
      * Maximum initial size of tmp array, which is used for merging.  The array
      * can grow to accommodate demand.
@@ -621,6 +625,7 @@ private constructor(
      * when sorting smaller arrays.  This change was required for performance.
      */
     private val INITIAL_TMP_STORAGE_LENGTH = 256
+
     /**
      * Asserts have been placed in if-statements for performace. To enable them,
      * set this field to true and enable them in VM with a command line flag.
@@ -695,8 +700,8 @@ private constructor(
     ) {
       if (start < 0 || end > len) {
         throw ArrayIndexOutOfBoundsException(
-            "start < 0 || end > len."
-                + " start=" + start + ", end=" + end + ", len=" + len
+          "start < 0 || end > len."
+            + " start=" + start + ", end=" + end + ", len=" + len
         )
       }
       if (start > end) {
@@ -925,7 +930,7 @@ private constructor(
      */
     private fun gallopLeft(
       keyArray: ByteArray,
-        // Index already divided by entrySize
+      // Index already divided by entrySize
       keyIndex: Int,
       a: ByteArray,
       base: Int,
@@ -956,8 +961,8 @@ private constructor(
         // Gallop left until a[base+hint-ofs] < key <= a[base+hint-lastOfs]
         val maxOfs = hint + 1
         while (ofs < maxOfs && c.compare(
-                entrySize, keyArray, keyIndex, a, base + hint - ofs
-            ) <= 0
+            entrySize, keyArray, keyIndex, a, base + hint - ofs
+          ) <= 0
         ) {
           lastOfs = ofs
           ofs = ofs * 2 + 1
@@ -1005,7 +1010,7 @@ private constructor(
      */
     private fun gallopRight(
       keyArray: ByteArray,
-        // Index already divided by entrySize
+      // Index already divided by entrySize
       keyIndex: Int,
       a: ByteArray,
       base: Int,
@@ -1037,8 +1042,8 @@ private constructor(
         // Gallop right until a[b+hint + lastOfs] <= key < a[b+hint + ofs]
         val maxOfs = len - hint
         while (ofs < maxOfs && c.compare(
-                entrySize, keyArray, keyIndex, a, base + hint + ofs
-            ) >= 0
+            entrySize, keyArray, keyIndex, a, base + hint + ofs
+          ) >= 0
         ) {
           lastOfs = ofs
           ofs = ofs * 2 + 1

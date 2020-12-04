@@ -61,7 +61,7 @@ data class HeapAnalysisConfig(
    * delegates the decision to [AndroidObjectInspectors.appLeakingObjectFilters].
    */
   val leakingObjectFinder: LeakingObjectFinder = FilteringLeakingObjectFinder(
-      AndroidObjectInspectors.appLeakingObjectFilters
+    AndroidObjectInspectors.appLeakingObjectFilters
   ),
 
   /**

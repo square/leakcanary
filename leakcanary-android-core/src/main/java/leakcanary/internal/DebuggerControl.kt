@@ -25,5 +25,4 @@ internal object DebuggerControl {
 
   val isDebuggerAttached: Boolean
     get() = Debug.isDebuggerConnected()
-
 }

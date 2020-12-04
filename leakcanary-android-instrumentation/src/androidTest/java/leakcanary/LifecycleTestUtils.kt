@@ -32,7 +32,7 @@ inline fun <reified T : Activity> activityTestRule(
   initialTouchMode: Boolean,
   launchActivity: Boolean
 ): ActivityTestRule<T> = ActivityTestRule(
-    T::class.java, initialTouchMode, launchActivity
+  T::class.java, initialTouchMode, launchActivity
 )
 
 fun <R> triggersOnActivityCreated(block: () -> R): R {
@@ -59,18 +59,18 @@ fun <T : FragmentActivity, R> HasActivityTestRule<T>.triggersOnActivityDestroyed
   return waitForTriggered(block) { triggered ->
     val testActivity = activity
     testActivity.application.registerActivityLifecycleCallbacks(
-        object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
-          override fun onActivityDestroyed(activity: Activity) {
-            if (activity == testActivity) {
-              activity.application.unregisterActivityLifecycleCallbacks(this)
-              Looper.myQueue()
-                  .addIdleHandler {
-                    triggered()
-                    false
-                  }
-            }
+      object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
+        override fun onActivityDestroyed(activity: Activity) {
+          if (activity == testActivity) {
+            activity.application.unregisterActivityLifecycleCallbacks(this)
+            Looper.myQueue()
+              .addIdleHandler {
+                triggered()
+                false
+              }
           }
-        })
+        }
+      })
   }
 }
 
@@ -78,16 +78,16 @@ fun <T : FragmentActivity, R> HasActivityTestRule<T>.triggersOnFragmentCreated(b
   return waitForTriggered(block) { triggered ->
     val fragmentManager = activity.supportFragmentManager
     fragmentManager.registerFragmentLifecycleCallbacks(
-        object : FragmentManager.FragmentLifecycleCallbacks() {
-          override fun onFragmentCreated(
-            fm: FragmentManager,
-            fragment: Fragment,
-            savedInstanceState: Bundle?
-          ) {
-            fragmentManager.unregisterFragmentLifecycleCallbacks(this)
-            triggered()
-          }
-        }, false
+      object : FragmentManager.FragmentLifecycleCallbacks() {
+        override fun onFragmentCreated(
+          fm: FragmentManager,
+          fragment: Fragment,
+          savedInstanceState: Bundle?
+        ) {
+          fragmentManager.unregisterFragmentLifecycleCallbacks(this)
+          triggered()
+        }
+      }, false
     )
   }
 }
@@ -96,15 +96,15 @@ fun <T : FragmentActivity, R> HasActivityTestRule<T>.triggersOnFragmentViewDestr
   return waitForTriggered(block) { triggered ->
     val fragmentManager = activity.supportFragmentManager
     fragmentManager.registerFragmentLifecycleCallbacks(
-        object : FragmentManager.FragmentLifecycleCallbacks() {
-          override fun onFragmentViewDestroyed(
-            fm: FragmentManager,
-            fragment: Fragment
-          ) {
-            fragmentManager.unregisterFragmentLifecycleCallbacks(this)
-            triggered()
-          }
-        }, false
+      object : FragmentManager.FragmentLifecycleCallbacks() {
+        override fun onFragmentViewDestroyed(
+          fm: FragmentManager,
+          fragment: Fragment
+        ) {
+          fragmentManager.unregisterFragmentLifecycleCallbacks(this)
+          triggered()
+        }
+      }, false
     )
   }
 }
@@ -128,7 +128,7 @@ inline fun <reified T : Any> noOpDelegate(): T {
     // no op
   }
   return Proxy.newProxyInstance(
-      javaClass.classLoader, arrayOf(javaClass), noOpHandler
+    javaClass.classLoader, arrayOf(javaClass), noOpHandler
   ) as T
 }
 
@@ -136,16 +136,16 @@ fun <T> getOnMainSync(block: () -> T): T {
   val resultHolder = AtomicReference<T>()
   val latch = CountDownLatch(1)
   InstrumentationRegistry.getInstrumentation()
-      .runOnMainSync {
-        resultHolder.set(block())
-        latch.countDown()
-      }
+    .runOnMainSync {
+      resultHolder.set(block())
+      latch.countDown()
+    }
   latch.await()
   return resultHolder.get()
 }
 
 fun runOnMainSync(block: () -> Unit) = InstrumentationRegistry.getInstrumentation()
-    .runOnMainSync(block)
+  .runOnMainSync(block)
 
 fun <T : ViewModel> ViewModelStoreOwner.installViewModel(modelClass: KClass<T>): T =
   ViewModelProvider(this, object : Factory {
@@ -154,22 +154,25 @@ fun <T : ViewModel> ViewModelStoreOwner.installViewModel(modelClass: KClass<T>):
 
 fun FragmentActivity.addFragmentNow(fragment: Fragment) {
   supportFragmentManager
-      .beginTransaction()
-      .add(0, fragment)
-      .commitNow()
+    .beginTransaction()
+    .add(0, fragment)
+    .commitNow()
 }
 
-fun FragmentActivity.replaceWithBackStack(fragment: Fragment, @IdRes containerViewId: Int) {
+fun FragmentActivity.replaceWithBackStack(
+  fragment: Fragment,
+  @IdRes containerViewId: Int
+) {
   supportFragmentManager
-      .beginTransaction()
-      .addToBackStack(null)
-      .replace(containerViewId, fragment)
-      .commit()
+    .beginTransaction()
+    .addToBackStack(null)
+    .replace(containerViewId, fragment)
+    .commit()
 }
 
 fun FragmentActivity.removeFragmentNow(fragment: Fragment) {
   supportFragmentManager
-      .beginTransaction()
-      .remove(fragment)
-      .commitNow()
+    .beginTransaction()
+    .remove(fragment)
+    .commitNow()
 }

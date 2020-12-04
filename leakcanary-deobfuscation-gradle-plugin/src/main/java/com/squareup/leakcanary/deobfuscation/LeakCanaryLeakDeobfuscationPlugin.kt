@@ -79,17 +79,17 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
 
       val mappingGeneratingTaskProvider =
         findTaskProviderOrNull(
-            project,
-            "transformClassesAndResourcesWithR8For${variant.name.capitalize()}"
+          project,
+          "transformClassesAndResourcesWithR8For${variant.name.capitalize()}"
         ) ?: findTaskProviderOrNull(
-            project,
-            "transformClassesAndResourcesWithProguardFor${variant.name.capitalize()}"
+          project,
+          "transformClassesAndResourcesWithProguardFor${variant.name.capitalize()}"
         ) ?: findTaskProviderOrNull(
-            project,
-            "minify${variant.name.capitalize()}WithR8"
+          project,
+          "minify${variant.name.capitalize()}WithR8"
         ) ?: findTaskProviderOrNull(
-            project,
-            "minify${variant.name.capitalize()}WithProguard"
+          project,
+          "minify${variant.name.capitalize()}WithProguard"
         ) ?: throwMissingMinifiedVariantException()
 
       it.dependsOn(mappingGeneratingTaskProvider)

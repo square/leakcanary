@@ -144,44 +144,44 @@ enum class AndroidLeakFixes {
       // Wait 2 seconds then look for handler threads every 3 seconds.
       backgroundExecutor.scheduleWithFixedDelay({
         val newHandlerThreadsById = findAllHandlerThreads()
-            .mapNotNull { thread ->
-              val threadId = thread.threadId
-              if (threadId == -1 || threadId in flushedThreadIds) {
-                null
-              } else {
-                threadId to thread
-              }
+          .mapNotNull { thread ->
+            val threadId = thread.threadId
+            if (threadId == -1 || threadId in flushedThreadIds) {
+              null
+            } else {
+              threadId to thread
             }
+          }
         flushedThreadIds += newHandlerThreadsById.map { it.first }
         newHandlerThreadsById
-            .map { it.second }
-            .forEach { handlerThread ->
-              SharkLog.d { "Setting up flushing for $handlerThread" }
-              var scheduleFlush = true
-              val flushHandler = Handler(handlerThread.looper)
-              flushHandler.onEachIdle {
-                if (handlerThread.isAlive && scheduleFlush) {
-                  scheduleFlush = false
-                  // When the Handler thread becomes idle, we post a message to force it to move.
-                  // Source: https://developer.squareup.com/blog/a-small-leak-will-sink-a-great-ship/
-                  try {
-                    val posted = flushHandler.postDelayed({
-                      // Right after this postDelayed executes, the idle handler will likely be called
-                      // again (if the queue is otherwise empty), so we'll need to schedule a flush
-                      // again.
-                      scheduleFlush = true
-                    }, 1000)
-                    if (!posted) {
-                      SharkLog.d { "Failed to post to ${handlerThread.name}" }
-                    }
-                  } catch (ignored: RuntimeException) {
-                    // If the thread is quitting, posting to it may throw. There is no safe and atomic way
-                    // to check if a thread is quitting first then post it it.
-                    SharkLog.d(ignored) { "Failed to post to ${handlerThread.name}" }
+          .map { it.second }
+          .forEach { handlerThread ->
+            SharkLog.d { "Setting up flushing for $handlerThread" }
+            var scheduleFlush = true
+            val flushHandler = Handler(handlerThread.looper)
+            flushHandler.onEachIdle {
+              if (handlerThread.isAlive && scheduleFlush) {
+                scheduleFlush = false
+                // When the Handler thread becomes idle, we post a message to force it to move.
+                // Source: https://developer.squareup.com/blog/a-small-leak-will-sink-a-great-ship/
+                try {
+                  val posted = flushHandler.postDelayed({
+                    // Right after this postDelayed executes, the idle handler will likely be called
+                    // again (if the queue is otherwise empty), so we'll need to schedule a flush
+                    // again.
+                    scheduleFlush = true
+                  }, 1000)
+                  if (!posted) {
+                    SharkLog.d { "Failed to post to ${handlerThread.name}" }
                   }
+                } catch (ignored: RuntimeException) {
+                  // If the thread is quitting, posting to it may throw. There is no safe and atomic way
+                  // to check if a thread is quitting first then post it it.
+                  SharkLog.d(ignored) { "Failed to post to ${handlerThread.name}" }
                 }
               }
             }
+          }
       }, 2, 3, TimeUnit.SECONDS)
     }
   },
@@ -340,9 +340,9 @@ enum class AndroidLeakFixes {
         val contextField: Field
         try {
           contextField = application
-              .getSystemService(Context.ACTIVITY_SERVICE)
-              .javaClass
-              .getDeclaredField("mContext")
+            .getSystemService(Context.ACTIVITY_SERVICE)
+            .javaClass
+            .getDeclaredField("mContext")
           contextField.isAccessible = true
           if ((contextField.modifiers or Modifier.STATIC) != contextField.modifiers) {
             SharkLog.d { "Could not fix the $name leak, contextField=$contextField" }
@@ -432,11 +432,11 @@ enum class AndroidLeakFixes {
         // thread from within that thread.
         post {
           Looper
-              .myQueue()
-              .addIdleHandler {
-                onIdle()
-                true
-              }
+            .myQueue()
+            .addIdleHandler {
+              onIdle()
+              true
+            }
         }
       } catch (ignored: RuntimeException) {
         // If the thread is quitting, posting to it will throw. There is no safe and atomic way
@@ -470,14 +470,14 @@ enum class AndroidLeakFixes {
         // no op
       }
       return Proxy.newProxyInstance(
-          javaClass.classLoader, arrayOf(javaClass), noOpHandler
+        javaClass.classLoader, arrayOf(javaClass), noOpHandler
       ) as T
     }
 
     internal fun checkMainThread() {
       if (Looper.getMainLooper().thread !== Thread.currentThread()) {
         throw UnsupportedOperationException(
-            "Should be called from the main thread, not ${Thread.currentThread()}"
+          "Should be called from the main thread, not ${Thread.currentThread()}"
         )
       }
     }

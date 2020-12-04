@@ -20,7 +20,10 @@ internal object TvToast {
    * @param text The text to show. Can be formatted text.
    */
   @SuppressLint("ShowToast")
-  fun makeText(activity: Activity, text: CharSequence): Toast {
+  fun makeText(
+    activity: Activity,
+    text: CharSequence
+  ): Toast {
     val toast: Toast = Toast.makeText(activity, text, Toast.LENGTH_LONG)
     val textView = toast.view.findViewById<TextView>(android.R.id.message)
     textView.setCompoundDrawablesWithIntrinsicBounds(R.drawable.leak_canary_icon, 0, 0, 0)

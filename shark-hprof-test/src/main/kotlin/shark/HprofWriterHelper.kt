@@ -57,33 +57,33 @@ class HprofWriterHelper constructor(
   private val objectClassId = clazz(superclassId = 0, className = "java.lang.Object")
   private val objectArrayClassId = arrayClass("java.lang.Object")
   private val stringClassId = clazz(
-      className = "java.lang.String", fields = listOf(
-      "value" to ReferenceHolder::class,
-      "count" to IntHolder::class
+    className = "java.lang.String", fields = listOf(
+    "value" to ReferenceHolder::class,
+    "count" to IntHolder::class
   )
   )
 
   private val referenceClassId = clazz(
-      className = "java.lang.ref.Reference",
-      fields = listOf(
-          "referent" to ReferenceHolder::class
-      )
+    className = "java.lang.ref.Reference",
+    fields = listOf(
+      "referent" to ReferenceHolder::class
+    )
   )
 
   private val weakReferenceClassId = clazz(
-      className = "java.lang.ref.WeakReference",
-      superclassId = referenceClassId
+    className = "java.lang.ref.WeakReference",
+    superclassId = referenceClassId
   )
   private val keyedWeakReferenceClassId = clazz(
-      superclassId = weakReferenceClassId,
-      className = "leakcanary.KeyedWeakReference",
-      staticFields = listOf("heapDumpUptimeMillis" to LongHolder(30000)),
-      fields = listOf(
-          "key" to ReferenceHolder::class,
-          "name" to ReferenceHolder::class,
-          "watchUptimeMillis" to LongHolder::class,
-          "retainedUptimeMillis" to LongHolder::class
-      )
+    superclassId = weakReferenceClassId,
+    className = "leakcanary.KeyedWeakReference",
+    staticFields = listOf("heapDumpUptimeMillis" to LongHolder(30000)),
+    fields = listOf(
+      "key" to ReferenceHolder::class,
+      "name" to ReferenceHolder::class,
+      "watchUptimeMillis" to LongHolder::class,
+      "retainedUptimeMillis" to LongHolder::class
+    )
   )
 
   fun clazz(
@@ -122,15 +122,15 @@ class HprofWriterHelper constructor(
       nextUpId = nextUp.superclassId
     }
     val classDump = ClassDumpRecord(
-        id = loadClass.id,
-        stackTraceSerialNumber = 1,
-        superclassId = if (superclassId == -1L) objectClassId else superclassId,
-        classLoaderId = 0,
-        signersId = 0,
-        protectionDomainId = 0,
-        instanceSize = instanceSize,
-        staticFields = staticFieldRecords,
-        fields = fieldRecords
+      id = loadClass.id,
+      stackTraceSerialNumber = 1,
+      superclassId = if (superclassId == -1L) objectClassId else superclassId,
+      classLoaderId = 0,
+      signersId = 0,
+      protectionDomainId = 0,
+      instanceSize = instanceSize,
+      staticFields = staticFieldRecords,
+      fields = fieldRecords
     )
     classDumps[loadClass.id] = classDump
     writer.write(classDump)
@@ -177,15 +177,15 @@ class HprofWriterHelper constructor(
       nextUpId = nextUp.superclassId
     }
     val classDump = ClassDumpRecord(
-        id = loadClass.id,
-        stackTraceSerialNumber = 1,
-        superclassId = if (superclassId == -1L) objectClassId else superclassId,
-        classLoaderId = 0,
-        signersId = 0,
-        protectionDomainId = 0,
-        instanceSize = instanceSize,
-        staticFields = staticFieldRecords,
-        fields = fieldRecords
+      id = loadClass.id,
+      stackTraceSerialNumber = 1,
+      superclassId = if (superclassId == -1L) objectClassId else superclassId,
+      classLoaderId = 0,
+      signersId = 0,
+      protectionDomainId = 0,
+      instanceSize = instanceSize,
+      staticFields = staticFieldRecords,
+      fields = fieldRecords
     )
     classDumps[loadClass.id] = classDump
     writer.write(classDump)
@@ -207,8 +207,8 @@ class HprofWriterHelper constructor(
     string: String
   ): ReferenceHolder {
     return instance(
-        stringClassId,
-        fields = listOf(string.charArrayDump, IntHolder(string.length))
+      stringClassId,
+      fields = listOf(string.charArrayDump, IntHolder(string.length))
     )
   }
 
@@ -217,14 +217,14 @@ class HprofWriterHelper constructor(
   ): ReferenceHolder {
     val referenceKey = string(weakRefKey)
     return instance(
-        classId = keyedWeakReferenceClassId,
-        fields = listOf(
-            referenceKey,
-            string("its lifecycle has ended"),
-            LongHolder(5000),
-            LongHolder(20000),
-            ReferenceHolder(referentInstanceId.value)
-        )
+      classId = keyedWeakReferenceClassId,
+      fields = listOf(
+        referenceKey,
+        string("its lifecycle has ended"),
+        LongHolder(5000),
+        LongHolder(20000),
+        ReferenceHolder(referentInstanceId.value)
+      )
     )
   }
 
@@ -233,10 +233,10 @@ class HprofWriterHelper constructor(
     fields: List<ValueHolder> = emptyList()
   ): ReferenceHolder {
     val instanceDump = InstanceDumpRecord(
-        id = id,
-        stackTraceSerialNumber = 1,
-        classId = classId,
-        fieldValues = writer.valuesToBytes(fields)
+      id = id,
+      stackTraceSerialNumber = 1,
+      classId = classId,
+      fieldValues = writer.valuesToBytes(fields)
     )
     writer.write(instanceDump)
     return ReferenceHolder(instanceDump.id)
@@ -345,7 +345,7 @@ class HprofWriterHelper constructor(
 
 fun File.dump(block: HprofWriterHelper.() -> Unit) {
   HprofWriterHelper(HprofWriter.openWriterFor(this))
-      .use(block)
+    .use(block)
 }
 
 fun dump(
@@ -354,17 +354,17 @@ fun dump(
 ): DualSourceProvider {
   val buffer = Buffer()
   HprofWriterHelper(HprofWriter.openWriterFor(buffer, hprofHeader))
-      .use(block)
+    .use(block)
   return ByteArraySourceProvider(buffer.readByteArray())
 }
 
 fun List<HprofRecord>.asHprofBytes(): DualSourceProvider {
   val buffer = Buffer()
   HprofWriter.openWriterFor(buffer)
-      .use { writer ->
-        forEach { record ->
-          writer.write(record)
-        }
+    .use { writer ->
+      forEach { record ->
+        writer.write(record)
       }
+    }
   return ByteArraySourceProvider(buffer.readByteArray())
 }

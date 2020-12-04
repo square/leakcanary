@@ -15,7 +15,10 @@ internal class DefaultCanaryLog : Logger {
     }
   }
 
-  override fun d(throwable: Throwable, message: String) {
+  override fun d(
+    throwable: Throwable,
+    message: String
+  ) {
     d("$message\n${Log.getStackTraceString(throwable)}")
   }
 }

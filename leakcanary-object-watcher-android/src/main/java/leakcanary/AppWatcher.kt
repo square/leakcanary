@@ -124,11 +124,11 @@ object AppWatcher {
         apply { this.watchDurationMillis = watchDurationMillis }
 
       fun build() = config.copy(
-          watchActivities = watchActivities,
-          watchFragments = watchFragments,
-          watchFragmentViews = watchFragmentViews,
-          watchViewModels = watchViewModels,
-          watchDurationMillis = watchDurationMillis
+        watchActivities = watchActivities,
+        watchFragments = watchFragments,
+        watchFragmentViews = watchFragmentViews,
+        watchViewModels = watchViewModels,
+        watchDurationMillis = watchDurationMillis
       )
     }
   }
@@ -205,5 +205,4 @@ object AppWatcher {
   fun manualInstall(application: Application) {
     InternalAppWatcher.install(application)
   }
-
 }

@@ -152,7 +152,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
     if (lastDot >= 0) {
       val extension = file.name.substring(lastDot + 1)
       val mime = MimeTypeMap.getSingleton()
-          .getMimeTypeFromExtension(extension)
+        .getMimeTypeFromExtension(extension)
       if (mime != null) {
         return mime
       }
@@ -290,7 +290,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
         root.canonicalFile
       } catch (e: IOException) {
         throw IllegalArgumentException(
-            "Failed to resolve canonical path for $root", e
+          "Failed to resolve canonical path for $root", e
         )
       }
     }
@@ -308,8 +308,8 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       for (root in mRoots.entries) {
         val rootPath = root.value.path
         if (path.startsWith(
-                rootPath
-            ) && (mostSpecific == null || rootPath.length > mostSpecific.value.path.length)
+            rootPath
+          ) && (mostSpecific == null || rootPath.length > mostSpecific.value.path.length)
         ) {
           mostSpecific = root
         }
@@ -317,7 +317,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
 
       if (mostSpecific == null) {
         throw IllegalArgumentException(
-            "Failed to find configured root that contains $path"
+          "Failed to find configured root that contains $path"
         )
       }
 
@@ -332,10 +332,10 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       // Encode the tag and path separately
       path = Uri.encode(mostSpecific.key) + '/'.toString() + Uri.encode(path, "/")
       return Uri.Builder()
-          .scheme("content")
-          .authority(mAuthority)
-          .encodedPath(path)
-          .build()
+        .scheme("content")
+        .authority(mAuthority)
+        .encodedPath(path)
+        .build()
     }
 
     override fun getFileForUri(uri: Uri): File {
@@ -428,11 +428,11 @@ internal class LeakCanaryFileProvider : ContentProvider() {
             strat = parsePathStrategy(context, authority)
           } catch (e: IOException) {
             throw IllegalArgumentException(
-                "Failed to parse $META_DATA_FILE_PROVIDER_PATHS meta-data", e
+              "Failed to parse $META_DATA_FILE_PROVIDER_PATHS meta-data", e
             )
           } catch (e: XmlPullParserException) {
             throw IllegalArgumentException(
-                "Failed to parse $META_DATA_FILE_PROVIDER_PATHS meta-data", e
+              "Failed to parse $META_DATA_FILE_PROVIDER_PATHS meta-data", e
             )
           }
           sCache[authority] = strat!!
@@ -455,11 +455,11 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       val strat = SimplePathStrategy(authority)
 
       val info = context.packageManager
-          .resolveContentProvider(authority, PackageManager.GET_META_DATA)!!
+        .resolveContentProvider(authority, PackageManager.GET_META_DATA)!!
       val resourceParser = info.loadXmlMetaData(
-          context.packageManager, META_DATA_FILE_PROVIDER_PATHS
+        context.packageManager, META_DATA_FILE_PROVIDER_PATHS
       ) ?: throw IllegalArgumentException(
-          "Missing $META_DATA_FILE_PROVIDER_PATHS meta-data"
+        "Missing $META_DATA_FILE_PROVIDER_PATHS meta-data"
       )
 
       var type = 0
@@ -533,18 +533,18 @@ internal class LeakCanaryFileProvider : ContentProvider() {
         modeBits = ParcelFileDescriptor.MODE_READ_ONLY
       } else if ("w" == mode || "wt" == mode) {
         modeBits = (ParcelFileDescriptor.MODE_WRITE_ONLY
-            or ParcelFileDescriptor.MODE_CREATE
-            or ParcelFileDescriptor.MODE_TRUNCATE)
+          or ParcelFileDescriptor.MODE_CREATE
+          or ParcelFileDescriptor.MODE_TRUNCATE)
       } else if ("wa" == mode) {
         modeBits = (ParcelFileDescriptor.MODE_WRITE_ONLY
-            or ParcelFileDescriptor.MODE_CREATE
-            or ParcelFileDescriptor.MODE_APPEND)
+          or ParcelFileDescriptor.MODE_CREATE
+          or ParcelFileDescriptor.MODE_APPEND)
       } else if ("rw" == mode) {
         modeBits = ParcelFileDescriptor.MODE_READ_WRITE or ParcelFileDescriptor.MODE_CREATE
       } else if ("rwt" == mode) {
         modeBits = (ParcelFileDescriptor.MODE_READ_WRITE
-            or ParcelFileDescriptor.MODE_CREATE
-            or ParcelFileDescriptor.MODE_TRUNCATE)
+          or ParcelFileDescriptor.MODE_CREATE
+          or ParcelFileDescriptor.MODE_TRUNCATE)
       } else {
         throw IllegalArgumentException("Invalid mode: $mode")
       }

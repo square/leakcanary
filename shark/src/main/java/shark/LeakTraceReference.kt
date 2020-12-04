@@ -37,7 +37,6 @@ data class LeakTraceReference(
    */
   val owningClassSimpleName: String get() = owningClassName.lastSegment('.')
 
-
   val referenceDisplayName: String
     get() {
       return when (referenceType) {
@@ -60,5 +59,4 @@ data class LeakTraceReference(
   companion object {
     private const val serialVersionUID = 1L
   }
-
 }

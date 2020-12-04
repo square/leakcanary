@@ -9,7 +9,7 @@ import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
 
 internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
-    context, DATABASE_NAME, null, VERSION
+  context, DATABASE_NAME, null, VERSION
 ) {
 
   override fun onCreate(db: SQLiteDatabase) {
@@ -29,19 +29,19 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     } else if (oldVersion == 19) {
       // Migration from LeakCanary 2.0
       val allAnalysis = db.rawQuery("SELECT object FROM heap_analysis", null)
-          .use { cursor ->
-            generateSequence {
-              if (cursor.moveToNext()) {
-                Serializables.fromByteArray<HeapAnalysis>(cursor.getBlob(0))
-              } else {
-                null
-              }
-            }.map {
-              if (it is HeapAnalysisSuccess) {
-                HeapAnalysisSuccess.upgradeFrom20Deserialized(it)
-              } else it
-            }.toList()
-          }
+        .use { cursor ->
+          generateSequence {
+            if (cursor.moveToNext()) {
+              Serializables.fromByteArray<HeapAnalysis>(cursor.getBlob(0))
+            } else {
+              null
+            }
+          }.map {
+            if (it is HeapAnalysisSuccess) {
+              HeapAnalysisSuccess.upgradeFrom20Deserialized(it)
+            } else it
+          }.toList()
+        }
       recreateDb(db)
       db.inTransaction {
         allAnalysis.forEach { HeapAnalysisTable.insert(db, it) }

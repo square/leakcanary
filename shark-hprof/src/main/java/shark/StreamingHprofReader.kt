@@ -291,11 +291,15 @@ class StreamingHprofReader private constructor(
                   }
                 }
                 else -> throw IllegalStateException(
-                    "Unknown tag ${"0x%02x".format(
-                        heapDumpTag
-                    )} at $heapDumpTagPosition after ${"0x%02x".format(
-                        previousTag
-                    )} at $previousTagPosition"
+                  "Unknown tag ${
+                    "0x%02x".format(
+                      heapDumpTag
+                    )
+                  } at $heapDumpTagPosition after ${
+                    "0x%02x".format(
+                      previousTag
+                    )
+                  } at $previousTagPosition"
                 )
               }
               previousTag = heapDumpTag
@@ -315,8 +319,6 @@ class StreamingHprofReader private constructor(
       reader.bytesRead
     }
   }
-
-
 
   companion object {
 
@@ -340,7 +342,7 @@ class StreamingHprofReader private constructor(
     fun readerFor(
       hprofSourceProvider: StreamingSourceProvider,
       hprofHeader: HprofHeader = hprofSourceProvider.openStreamingSource()
-          .use { HprofHeader.parseHeaderOf(it) }
+        .use { HprofHeader.parseHeaderOf(it) }
     ): StreamingHprofReader {
       return StreamingHprofReader(hprofSourceProvider, hprofHeader)
     }

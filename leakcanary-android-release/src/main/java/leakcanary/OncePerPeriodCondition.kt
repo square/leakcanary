@@ -40,7 +40,7 @@ class OncePerPeriodCondition(
       val remainingMillis = periodMillis - elapsed
       uiHandler.postDelayed(postedRetry, remainingMillis)
       StopAnalysis(
-          "Not enough time elapsed since last analysis: elapsed $elapsed < period $periodMillis"
+        "Not enough time elapsed since last analysis: elapsed $elapsed < period $periodMillis"
       )
     }
   }

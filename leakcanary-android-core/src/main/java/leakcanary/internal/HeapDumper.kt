@@ -25,12 +25,15 @@ internal interface HeapDumper {
    * not be dumped.
    */
   fun dumpHeap(): DumpHeapResult
-
 }
 
 /** Dump heap result holding the file and the dump heap duration */
 internal sealed class DumpHeapResult
 
-internal data class HeapDump(val file: File, val durationMillis: Long): DumpHeapResult()
-internal object NoHeapDump: DumpHeapResult()
+internal data class HeapDump(
+  val file: File,
+  val durationMillis: Long
+) : DumpHeapResult()
+
+internal object NoHeapDump : DumpHeapResult()
 

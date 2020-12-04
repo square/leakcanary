@@ -51,7 +51,7 @@ internal class HeapDumpScreen(
           }
         } else {
           val signatures = heapAnalysis.allLeaks.map { it.signature }
-              .toSet()
+            .toSet()
           val leakReadStatus = LeakTable.retrieveLeakReadStatuses(db, signatures)
           val heapDumpFileExist = heapAnalysis.heapDumpFile.exists()
           updateUi { onSuccessRetrieved(heapAnalysis, leakReadStatus, heapDumpFileExist) }
@@ -69,28 +69,28 @@ internal class HeapDumpScreen(
 
     onCreateOptionsMenu { menu ->
       menu.add(R.string.leak_canary_delete)
-          .setOnMenuItemClickListener {
-            executeOnDb {
-              HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
-              updateUi {
-                goBack()
-              }
+        .setOnMenuItemClickListener {
+          executeOnDb {
+            HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
+            updateUi {
+              goBack()
             }
-            true
           }
+          true
+        }
       if (heapDumpFileExist) {
         menu.add(R.string.leak_canary_options_menu_render_heap_dump)
-            .setOnMenuItemClickListener {
-              goTo(RenderHeapDumpScreen(heapAnalysis.heapDumpFile))
-              true
-            }
+          .setOnMenuItemClickListener {
+            goTo(RenderHeapDumpScreen(heapAnalysis.heapDumpFile))
+            true
+          }
       }
     }
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)
 
     val leaks = heapAnalysis.allLeaks.sortedByDescending { it.leakTraces.size }
-        .toList()
+      .toList()
 
     listView.adapter = object : BaseAdapter() {
       override fun getView(
@@ -105,8 +105,8 @@ internal class HeapDumpScreen(
           val view = convertView ?: parent.inflate(R.layout.leak_canary_heap_dump_leak_title)
           val leaksTextView = view.findViewById<TextView>(R.id.leak_canary_heap_dump_leaks)
           leaksTextView.text = resources.getQuantityString(
-              R.plurals.leak_canary_distinct_leaks,
-              leaks.size, leaks.size
+            R.plurals.leak_canary_distinct_leaks,
+            leaks.size, leaks.size
           )
           view
         }
@@ -188,13 +188,13 @@ internal class HeapDumpScreen(
         "Unknown"
       }
     val metadata = (heapAnalysis.metadata + mapOf(
-        "Analysis duration" to "${heapAnalysis.analysisDurationMillis} ms",
-        "Heap dump file path" to heapAnalysis.heapDumpFile.absolutePath,
-        "Heap dump timestamp" to "${heapAnalysis.createdAtTimeMillis}",
-        "Heap dump duration" to dumpDurationMillis
+      "Analysis duration" to "${heapAnalysis.analysisDurationMillis} ms",
+      "Heap dump file path" to heapAnalysis.heapDumpFile.absolutePath,
+      "Heap dump timestamp" to "${heapAnalysis.createdAtTimeMillis}",
+      "Heap dump duration" to dumpDurationMillis
     ))
-        .map { "<b>${it.key}:</b> ${it.value}" }
-        .joinToString("<br>")
+      .map { "<b>${it.key}:</b> ${it.value}" }
+      .joinToString("<br>")
     val titleText = explore + shareAnalysis + printAnalysis + shareFile + seeMetadata
     val title = Html.fromHtml(titleText) as SpannableStringBuilder
 
@@ -223,11 +223,11 @@ internal class HeapDumpScreen(
         "metadata" -> {
           {
             Builder(context)
-                .setIcon(drawable.ic_dialog_info)
-                .setTitle("Metadata")
-                .setMessage(Html.fromHtml(metadata))
-                .setPositiveButton(string.ok, null)
-                .show()
+              .setIcon(drawable.ic_dialog_info)
+              .setTitle("Metadata")
+              .setMessage(Html.fromHtml(metadata))
+              .setPositiveButton(string.ok, null)
+              .show()
           }
         }
         else -> null

@@ -39,30 +39,30 @@ internal class LeakScreen(
 ) : Screen() {
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_leak_screen)
-        .apply {
-          activity.title = resources.getString(R.string.leak_canary_loading_title)
-          executeOnDb {
-            val leak = LeakTable.retrieveLeakBySignature(db, leakSignature)
+      .apply {
+        activity.title = resources.getString(R.string.leak_canary_loading_title)
+        executeOnDb {
+          val leak = LeakTable.retrieveLeakBySignature(db, leakSignature)
 
-            if (leak == null) {
-              updateUi {
-                activity.title = resources.getString(R.string.leak_canary_leak_not_found)
-              }
-            } else {
-              val selectedLeakIndex =
-                if (selectedHeapAnalysisId == null) 0 else leak.leakTraces.indexOfFirst { it.heapAnalysisId == selectedHeapAnalysisId }
-
-              val heapAnalysisId = leak.leakTraces[selectedLeakIndex].heapAnalysisId
-              val selectedHeapAnalysis =
-                HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, heapAnalysisId)!!
-
-              updateUi {
-                onLeaksRetrieved(leak, selectedLeakIndex, selectedHeapAnalysis)
-              }
-              LeakTable.markAsRead(db, leakSignature)
+          if (leak == null) {
+            updateUi {
+              activity.title = resources.getString(R.string.leak_canary_leak_not_found)
             }
+          } else {
+            val selectedLeakIndex =
+              if (selectedHeapAnalysisId == null) 0 else leak.leakTraces.indexOfFirst { it.heapAnalysisId == selectedHeapAnalysisId }
+
+            val heapAnalysisId = leak.leakTraces[selectedLeakIndex].heapAnalysisId
+            val selectedHeapAnalysis =
+              HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, heapAnalysisId)!!
+
+            updateUi {
+              onLeaksRetrieved(leak, selectedLeakIndex, selectedHeapAnalysis)
+            }
+            LeakTable.markAsRead(db, leakSignature)
           }
         }
+      }
 
   private fun View.onLeaksRetrieved(
     leak: LeakProjection,
@@ -77,10 +77,10 @@ internal class LeakScreen(
     libraryLeakChipView.visibility = if (isLibraryLeak) View.VISIBLE else View.GONE
 
     activity.title = String.format(
-        resources.getQuantityText(
-            R.plurals.leak_canary_group_screen_title, leak.leakTraces.size
-        )
-            .toString(), leak.leakTraces.size, leak.shortDescription
+      resources.getQuantityText(
+        R.plurals.leak_canary_group_screen_title, leak.leakTraces.size
+      )
+        .toString(), leak.leakTraces.size, leak.shortDescription
     )
 
     val singleLeakTraceRow = findViewById<View>(R.id.leak_canary_single_leak_trace_row)
@@ -128,15 +128,15 @@ internal class LeakScreen(
                 lastSelectedLeakTraceIndex = position
                 lastSelectedHeapAnalysis = newSelectedHeapAnalysis
                 onLeakTraceSelected(
-                    newSelectedHeapAnalysis, selectedHeapAnalysisId,
-                    selectedLeakTrace.leakTraceIndex
+                  newSelectedHeapAnalysis, selectedHeapAnalysisId,
+                  selectedLeakTrace.leakTraceIndex
                 )
               }
             }
           } else {
             lastSelectedLeakTraceIndex = position
             onLeakTraceSelected(
-                lastSelectedHeapAnalysis, selectedHeapAnalysisId, selectedLeakTrace.leakTraceIndex
+              lastSelectedHeapAnalysis, selectedHeapAnalysisId, selectedLeakTrace.leakTraceIndex
             )
           }
         }
@@ -162,7 +162,7 @@ internal class LeakScreen(
     var parsedString = ""
     for (word in words) {
       parsedString += if (Patterns.WEB_URL.matcher(word)
-              .matches()
+          .matches()
       ) {
         "<a href=\"${word}\">${word}</a>";
       } else {
@@ -184,7 +184,7 @@ internal class LeakScreen(
     val listView = findViewById<ListView>(R.id.leak_canary_list)
     listView.alpha = 0f
     listView.animate()
-        .alpha(1f)
+      .alpha(1f)
 
     val titleText = """
       Open <a href="open_analysis">Heap Dump</a><br><br>
@@ -194,10 +194,10 @@ internal class LeakScreen(
       References <b><u>underlined</u></b> are the likely causes of the leak.
       Learn more at <a href="https://squ.re/leaks">https://squ.re/leaks</a>
     """.trimIndent() + if (selectedLeak is LibraryLeak) "<br><br>" +
-        "A <font color='#FFCC32'>Library Leak</font> is a leak caused by a known bug in 3rd party code that you do not have control over. " +
-        "(<a href=\"https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks\">Learn More</a>)<br><br>" +
-        "<b>Leak pattern</b>: ${selectedLeak.pattern}<br><br>" +
-        "<b>Description</b>: ${parseLinks(selectedLeak.description)}" else ""
+      "A <font color='#FFCC32'>Library Leak</font> is a leak caused by a known bug in 3rd party code that you do not have control over. " +
+      "(<a href=\"https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks\">Learn More</a>)<br><br>" +
+      "<b>Leak pattern</b>: ${selectedLeak.pattern}<br><br>" +
+      "<b>Description</b>: ${parseLinks(selectedLeak.description)}" else ""
 
     val title = Html.fromHtml(titleText) as SpannableStringBuilder
     SquigglySpan.replaceUnderlineSpans(title, context)
@@ -216,7 +216,11 @@ internal class LeakScreen(
         }
         "print" -> {
           {
-            SharkLog.d { "\u200B\n" + LeakTraceWrapper.wrap(leakToString(leakTrace, analysis), 120) }
+            SharkLog.d {
+              "\u200B\n" + LeakTraceWrapper.wrap(
+                leakToString(leakTrace, analysis), 120
+              )
+            }
           }
         }
         "open_analysis" -> {
@@ -244,13 +248,14 @@ internal class LeakScreen(
 
 METADATA
 
-${if (analysis.metadata.isNotEmpty()) {
-    analysis.metadata
+${
+    if (analysis.metadata.isNotEmpty()) {
+      analysis.metadata
         .map { "${it.key}: ${it.value}" }
         .joinToString("\n")
-  } else {
-    ""
-  }
+    } else {
+      ""
+    }
   }
 Analysis duration: ${analysis.analysisDurationMillis} ms"""
 }

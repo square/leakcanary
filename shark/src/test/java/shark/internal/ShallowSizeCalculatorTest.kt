@@ -32,7 +32,7 @@ class ShallowSizeCalculatorTest {
     val instanceSize = hprofFile.openHeapGraph().use { graph ->
       val calculator = ShallowSizeCalculator(graph)
       calculator.computeShallowSize(
-          graph.findClassByName("SomeClass")!!.instances.single().objectId
+        graph.findClassByName("SomeClass")!!.instances.single().objectId
       )
     }
 
@@ -49,7 +49,7 @@ class ShallowSizeCalculatorTest {
     val instanceSize = hprofFile.openHeapGraph().use { graph ->
       val calculator = ShallowSizeCalculator(graph)
       calculator.computeShallowSize(
-          graph.findClassByName("SomeClass")!!.instances.single().objectId
+        graph.findClassByName("SomeClass")!!.instances.single().objectId
       )
     }
 
@@ -66,7 +66,7 @@ class ShallowSizeCalculatorTest {
     val instanceSize = hprofFile.openHeapGraph().use { graph ->
       val calculator = ShallowSizeCalculator(graph)
       calculator.computeShallowSize(
-          graph.findClassByName("SomeClass")!!.instances.single().objectId
+        graph.findClassByName("SomeClass")!!.instances.single().objectId
       )
     }
     assertThat(instanceSize).isEqualTo(4)
@@ -101,8 +101,7 @@ class ShallowSizeCalculatorTest {
     val bytesForFieldValue = 4
 
     assertThat(classSize).isEqualTo(
-        EMPTY_CLASS_SIZE + bytesForFieldId + bytesForFieldType + bytesForFieldValue
+      EMPTY_CLASS_SIZE + bytesForFieldId + bytesForFieldType + bytesForFieldValue
     )
   }
-
 }

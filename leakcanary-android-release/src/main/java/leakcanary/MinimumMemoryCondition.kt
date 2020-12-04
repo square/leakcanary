@@ -15,7 +15,7 @@ class MinimumMemoryCondition(
 
   private val postedRetry = Runnable {
     trigger.conditionChanged(
-        "$tryAgainDelayMillis ms passed since last memory check"
+      "$tryAgainDelayMillis ms passed since last memory check"
     )
   }
 
@@ -35,7 +35,6 @@ class MinimumMemoryCondition(
     }
     val systemAvailableMemory = memoryInfo.availMem - memoryInfo.threshold
 
-
     val runtime = Runtime.getRuntime()
     val appUsedMemory = runtime.totalMemory() - runtime.freeMemory()
     val appAvailableMemory = runtime.maxMemory() - appUsedMemory
@@ -46,9 +45,8 @@ class MinimumMemoryCondition(
     } else {
       uiHandler.postDelayed(postedRetry, tryAgainDelayMillis)
       Result.StopAnalysis(
-          "Not enough free memory: available $availableMemory < min $minRequiredAvailableMemoryBytes"
+        "Not enough free memory: available $availableMemory < min $minRequiredAvailableMemoryBytes"
       )
     }
   }
-
 }

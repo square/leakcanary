@@ -39,15 +39,15 @@ class HprofWriterTest {
     val className = StringRecord(id, MAGIC_WAND_CLASS_NAME)
     val loadClassRecord = LoadClassRecord(1, id, 1, className.id)
     val classDump = ClassDumpRecord(
-        id = loadClassRecord.id,
-        stackTraceSerialNumber = 1,
-        superclassId = 0,
-        classLoaderId = 0,
-        signersId = 0,
-        protectionDomainId = 0,
-        instanceSize = 0,
-        staticFields = emptyList(),
-        fields = emptyList()
+      id = loadClassRecord.id,
+      stackTraceSerialNumber = 1,
+      superclassId = 0,
+      classLoaderId = 0,
+      signersId = 0,
+      protectionDomainId = 0,
+      instanceSize = 0,
+      staticFields = emptyList(),
+      fields = emptyList()
     )
 
     val bytes = listOf(className, loadClassRecord, classDump).asHprofBytes()
@@ -63,21 +63,21 @@ class HprofWriterTest {
     val field2Name = StringRecord(id, "field2")
     val loadClassRecord = LoadClassRecord(1, id, 1, className.id)
     val classDump = ClassDumpRecord(
-        id = loadClassRecord.id,
-        stackTraceSerialNumber = 1,
-        superclassId = 0,
-        classLoaderId = 0,
-        signersId = 0,
-        protectionDomainId = 0,
-        instanceSize = 0,
-        staticFields = listOf(
-            StaticFieldRecord(field1Name.id, PrimitiveType.BOOLEAN.hprofType, BooleanHolder(true)),
-            StaticFieldRecord(field2Name.id, PrimitiveType.INT.hprofType, IntHolder(42))
-        ),
-        fields = emptyList()
+      id = loadClassRecord.id,
+      stackTraceSerialNumber = 1,
+      superclassId = 0,
+      classLoaderId = 0,
+      signersId = 0,
+      protectionDomainId = 0,
+      instanceSize = 0,
+      staticFields = listOf(
+        StaticFieldRecord(field1Name.id, PrimitiveType.BOOLEAN.hprofType, BooleanHolder(true)),
+        StaticFieldRecord(field2Name.id, PrimitiveType.INT.hprofType, IntHolder(42))
+      ),
+      fields = emptyList()
     )
     val bytes = listOf(className, field1Name, field2Name, loadClassRecord, classDump)
-        .asHprofBytes()
+      .asHprofBytes()
     bytes.openHeapGraph().use { graph: HeapGraph ->
       val heapClass = graph.findClassByName(className.string)!!
       val staticFields = heapClass.readStaticFields().toList()
@@ -100,13 +100,13 @@ class HprofWriterTest {
 
     bytes.openHeapGraph().use { graph: HeapGraph ->
       val treasureChestClass = graph.findClassByName(
-          TREASURE_CHEST_CLASS_NAME
+        TREASURE_CHEST_CLASS_NAME
       )!!
       val baguetteInstance =
         treasureChestClass[CONTENT_FIELD_NAME]!!.value.asObject!!.asInstance!!
 
       assertThat(
-          baguetteInstance[BAGUETTE_CLASS_NAME, ANSWER_FIELD_NAME]!!.value.asInt!!
+        baguetteInstance[BAGUETTE_CLASS_NAME, ANSWER_FIELD_NAME]!!.value.asInt!!
       ).isEqualTo(42)
     }
   }
@@ -116,74 +116,74 @@ class HprofWriterTest {
     val baguetteClassName = StringRecord(id, BAGUETTE_CLASS_NAME)
     val answerFieldName = StringRecord(id, ANSWER_FIELD_NAME)
     val treasureChestClassName = StringRecord(
-        id,
-        TREASURE_CHEST_CLASS_NAME
+      id,
+      TREASURE_CHEST_CLASS_NAME
     )
     val contentFieldName = StringRecord(id, CONTENT_FIELD_NAME)
     val loadMagicWandClass = LoadClassRecord(1, id, 1, magicWandClassName.id)
     val loadBaguetteClass = LoadClassRecord(1, id, 1, baguetteClassName.id)
     val loadTreasureChestClass = LoadClassRecord(1, id, 1, treasureChestClassName.id)
     val magicWandClassDump = ClassDumpRecord(
-        id = loadMagicWandClass.id,
-        stackTraceSerialNumber = 1,
-        superclassId = 0,
-        classLoaderId = 0,
-        signersId = 0,
-        protectionDomainId = 0,
-        instanceSize = 0,
-        staticFields = emptyList(),
-        fields = emptyList()
+      id = loadMagicWandClass.id,
+      stackTraceSerialNumber = 1,
+      superclassId = 0,
+      classLoaderId = 0,
+      signersId = 0,
+      protectionDomainId = 0,
+      instanceSize = 0,
+      staticFields = emptyList(),
+      fields = emptyList()
     )
     val baguetteClassDump = ClassDumpRecord(
-        id = loadBaguetteClass.id,
-        stackTraceSerialNumber = 1,
-        superclassId = loadMagicWandClass.id,
-        classLoaderId = 0,
-        signersId = 0,
-        protectionDomainId = 0,
-        instanceSize = 0,
-        staticFields = emptyList(),
-        fields = listOf(FieldRecord(answerFieldName.id, PrimitiveType.INT.hprofType))
+      id = loadBaguetteClass.id,
+      stackTraceSerialNumber = 1,
+      superclassId = loadMagicWandClass.id,
+      classLoaderId = 0,
+      signersId = 0,
+      protectionDomainId = 0,
+      instanceSize = 0,
+      staticFields = emptyList(),
+      fields = listOf(FieldRecord(answerFieldName.id, PrimitiveType.INT.hprofType))
     )
 
     val baguetteInstanceDump = InstanceDumpRecord(
-        id = id,
-        stackTraceSerialNumber = 1,
-        classId = loadBaguetteClass.id,
-        fieldValues = byteArrayOf(0x0, 0x0, 0x0, 0x2a)
+      id = id,
+      stackTraceSerialNumber = 1,
+      classId = loadBaguetteClass.id,
+      fieldValues = byteArrayOf(0x0, 0x0, 0x0, 0x2a)
     )
 
     val treasureChestClassDump = ClassDumpRecord(
-        id = loadTreasureChestClass.id,
-        stackTraceSerialNumber = 1,
-        superclassId = 0,
-        classLoaderId = 0,
-        signersId = 0,
-        protectionDomainId = 0,
-        instanceSize = 0,
-        staticFields = listOf(
-            StaticFieldRecord(
-                contentFieldName.id, PrimitiveType.REFERENCE_HPROF_TYPE,
-                ReferenceHolder(baguetteInstanceDump.id)
-            )
-        ),
-        fields = emptyList()
+      id = loadTreasureChestClass.id,
+      stackTraceSerialNumber = 1,
+      superclassId = 0,
+      classLoaderId = 0,
+      signersId = 0,
+      protectionDomainId = 0,
+      instanceSize = 0,
+      staticFields = listOf(
+        StaticFieldRecord(
+          contentFieldName.id, PrimitiveType.REFERENCE_HPROF_TYPE,
+          ReferenceHolder(baguetteInstanceDump.id)
+        )
+      ),
+      fields = emptyList()
     )
 
     return listOf(
-        magicWandClassName, baguetteClassName, answerFieldName, treasureChestClassName,
-        contentFieldName, loadMagicWandClass,
-        loadBaguetteClass, loadTreasureChestClass,
-        magicWandClassDump, baguetteClassDump, baguetteInstanceDump, treasureChestClassDump
+      magicWandClassName, baguetteClassName, answerFieldName, treasureChestClassName,
+      contentFieldName, loadMagicWandClass,
+      loadBaguetteClass, loadTreasureChestClass,
+      magicWandClassDump, baguetteClassDump, baguetteInstanceDump, treasureChestClassDump
     )
   }
 
   private fun DualSourceProvider.readAllRecords(): MutableList<HprofRecord> {
     val readRecords = mutableListOf<HprofRecord>()
     StreamingHprofReader.readerFor(this).asStreamingRecordReader()
-        .readRecords(setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
-          readRecords += record
-        })
+      .readRecords(setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
+        readRecords += record
+      })
     return readRecords
   }
 

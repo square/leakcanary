@@ -40,11 +40,10 @@ internal object TimeFormatter {
       }
       else -> {
         DateUtils.formatDateTime(
-            context, timestampMillis,
-            DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
+          context, timestampMillis,
+          DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_DATE
         )
       }
     }
   }
-
 }

@@ -38,7 +38,7 @@ interface GcTrigger {
       // System.gc() does not garbage collect every time. Runtime.gc() is
       // more likely to perform a gc.
       Runtime.getRuntime()
-          .gc()
+        .gc()
       enqueueReferences()
       System.runFinalization()
     }

@@ -28,8 +28,8 @@ data class HprofHeader(
 
   companion object {
     private val supportedVersions = HprofVersion.values()
-        .map { it.versionString to it }
-        .toMap()
+      .map { it.versionString to it }
+      .toMap()
 
     /**
      * Reads the header of the provided [hprofFile] and returns it as a [HprofHeader]
