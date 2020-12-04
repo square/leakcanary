@@ -2,6 +2,7 @@ package leakcanary.internal
 
 import android.app.Application
 import android.content.res.Resources.NotFoundException
+import android.os.Build.VERSION.SDK_INT
 import android.os.Debug
 import android.os.SystemClock
 import leakcanary.HeapAnalysisConfig
@@ -61,6 +62,14 @@ internal class ReleaseHeapAnalyzer(
   fun stop() {
     stopAnalysing = true
     backgroundHandler.removeCallbacks(analyzeHeap)
+  }
+
+  fun shutdown() {
+    if (SDK_INT >= 18) {
+      backgroundHandler.looper.quitSafely()
+    } else {
+      backgroundHandler.looper.quit()
+    }
   }
 
   private fun dumpAndAnalyzeHeap(): HeapAnalysis {

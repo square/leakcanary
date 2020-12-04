@@ -19,6 +19,7 @@ public final class leakcanary/ConditionalHeapAnalyzer {
 	public fun <init> (Landroid/app/Application;Ljava/util/List;Lleakcanary/HeapAnalysisConfig;Lleakcanary/ConditionalHeapAnalyzer$Listener;)V
 	public synthetic fun <init> (Landroid/app/Application;Ljava/util/List;Lleakcanary/HeapAnalysisConfig;Lleakcanary/ConditionalHeapAnalyzer$Listener;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun removeAllHeapDumpFiles ()V
+	public final fun shutdown ()V
 	public final fun start ()V
 	public final fun stop ()V
 }
