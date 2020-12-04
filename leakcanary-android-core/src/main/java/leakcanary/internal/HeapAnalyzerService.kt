@@ -53,7 +53,8 @@ internal class HeapAnalyzerService : ForegroundService(
     // Since we're running in the main process we should be careful not to impact it.
     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
     val heapDumpFile = intent.getSerializableExtra(HEAPDUMP_FILE_EXTRA) as File
-    val heapDumpDurationMillis = intent.getLongExtra(HEAPDUMP_DURATION_MILLIS, -1)
+    val heapDumpReason = intent.getStringExtra(HEAPDUMP_REASON_EXTRA)
+    val heapDumpDurationMillis = intent.getLongExtra(HEAPDUMP_DURATION_MILLIS_EXTRA, -1)
 
     val config = LeakCanary.config
     val heapAnalysis = if (heapDumpFile.exists()) {
@@ -62,7 +63,10 @@ internal class HeapAnalyzerService : ForegroundService(
       missingFileFailure(heapDumpFile)
     }
     val fullHeapAnalysis = when (heapAnalysis) {
-      is HeapAnalysisSuccess -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
+      is HeapAnalysisSuccess -> heapAnalysis.copy(
+        dumpDurationMillis = heapDumpDurationMillis,
+        metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason)
+      )
       is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
     }
     onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
@@ -118,18 +122,21 @@ internal class HeapAnalyzerService : ForegroundService(
 
   companion object {
     private const val HEAPDUMP_FILE_EXTRA = "HEAPDUMP_FILE_EXTRA"
-    private const val HEAPDUMP_DURATION_MILLIS = "HEAPDUMP_DURATION_MILLIS"
+    private const val HEAPDUMP_DURATION_MILLIS_EXTRA = "HEAPDUMP_DURATION_MILLIS_EXTRA"
+    private const val HEAPDUMP_REASON_EXTRA = "HEAPDUMP_REASON_EXTRA"
     private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
 
     fun runAnalysis(
       context: Context,
       heapDumpFile: File,
-      heapDumpDurationMillis: Long? = null
+      heapDumpDurationMillis: Long? = null,
+      heapDumpReason: String = "Unknown"
     ) {
       val intent = Intent(context, HeapAnalyzerService::class.java)
       intent.putExtra(HEAPDUMP_FILE_EXTRA, heapDumpFile)
+      intent.putExtra(HEAPDUMP_REASON_EXTRA, heapDumpReason)
       heapDumpDurationMillis?.let {
-        intent.putExtra(HEAPDUMP_DURATION_MILLIS, heapDumpDurationMillis)
+        intent.putExtra(HEAPDUMP_DURATION_MILLIS_EXTRA, heapDumpDurationMillis)
       }
       startForegroundService(context, intent)
     }
