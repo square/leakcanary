@@ -1,0 +1,128 @@
+public final class com/squareup/leakcanary/release/BuildConfig {
+	public static final field BUILD_TYPE Ljava/lang/String;
+	public static final field DEBUG Z
+	public static final field GIT_SHA Ljava/lang/String;
+	public static final field LIBRARY_PACKAGE_NAME Ljava/lang/String;
+	public static final field LIBRARY_VERSION Ljava/lang/String;
+	public static final field VERSION_CODE I
+	public static final field VERSION_NAME Ljava/lang/String;
+	public fun <init> ()V
+}
+
+public final class leakcanary/BackgroundCondition : leakcanary/HeapAnalysisCondition {
+	public fun <init> (Landroid/app/Application;)V
+	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+}
+
+public final class leakcanary/ConditionalHeapAnalyzer {
+	public static final field Companion Lleakcanary/ConditionalHeapAnalyzer$Companion;
+	public fun <init> (Landroid/app/Application;Ljava/util/List;Lleakcanary/HeapAnalysisConfig;Lleakcanary/ConditionalHeapAnalyzer$Listener;)V
+	public synthetic fun <init> (Landroid/app/Application;Ljava/util/List;Lleakcanary/HeapAnalysisConfig;Lleakcanary/ConditionalHeapAnalyzer$Listener;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun removeAllHeapDumpFiles ()V
+	public final fun start ()V
+	public final fun stop ()V
+}
+
+public final class leakcanary/ConditionalHeapAnalyzer$Companion {
+	public final fun defaultConditions (Landroid/app/Application;)Ljava/util/List;
+}
+
+public abstract interface class leakcanary/ConditionalHeapAnalyzer$Listener {
+	public abstract fun onConditionsUpdate (Lleakcanary/ConditionalHeapAnalyzer$Result;)V
+}
+
+public abstract class leakcanary/ConditionalHeapAnalyzer$Result {
+}
+
+public final class leakcanary/ConditionalHeapAnalyzer$Result$ConditionsNotMet : leakcanary/ConditionalHeapAnalyzer$Result {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lleakcanary/ConditionalHeapAnalyzer$Result$ConditionsNotMet;
+	public static synthetic fun copy$default (Lleakcanary/ConditionalHeapAnalyzer$Result$ConditionsNotMet;Ljava/lang/String;ILjava/lang/Object;)Lleakcanary/ConditionalHeapAnalyzer$Result$ConditionsNotMet;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class leakcanary/ConditionalHeapAnalyzer$Result$HeapAnalysisResult : leakcanary/ConditionalHeapAnalyzer$Result {
+	public fun <init> (Lshark/HeapAnalysis;)V
+	public final fun getHeapAnalysis ()Lshark/HeapAnalysis;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class leakcanary/GoodAndroidVersionCondition : leakcanary/HeapAnalysisCondition {
+	public fun <init> ()V
+	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+}
+
+public abstract class leakcanary/HeapAnalysisCondition {
+	public fun <init> ()V
+	public abstract fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+	public final fun getTrigger ()Lleakcanary/HeapAnalysisCondition$Trigger;
+}
+
+public abstract class leakcanary/HeapAnalysisCondition$Result {
+}
+
+public final class leakcanary/HeapAnalysisCondition$Result$StartAnalysis : leakcanary/HeapAnalysisCondition$Result {
+	public static final field INSTANCE Lleakcanary/HeapAnalysisCondition$Result$StartAnalysis;
+}
+
+public final class leakcanary/HeapAnalysisCondition$Result$StopAnalysis : leakcanary/HeapAnalysisCondition$Result {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun getReason ()Ljava/lang/String;
+}
+
+public abstract interface class leakcanary/HeapAnalysisCondition$Trigger {
+	public abstract fun conditionChanged (Ljava/lang/String;)V
+}
+
+public final class leakcanary/HeapAnalysisConfig {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;Ljava/util/List;Lshark/MetadataExtractor;ZLshark/LeakingObjectFinder;Z)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/util/List;Lshark/MetadataExtractor;ZLshark/LeakingObjectFinder;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Lshark/MetadataExtractor;
+	public final fun component4 ()Z
+	public final fun component5 ()Lshark/LeakingObjectFinder;
+	public final fun component6 ()Z
+	public final fun copy (Ljava/util/List;Ljava/util/List;Lshark/MetadataExtractor;ZLshark/LeakingObjectFinder;Z)Lleakcanary/HeapAnalysisConfig;
+	public static synthetic fun copy$default (Lleakcanary/HeapAnalysisConfig;Ljava/util/List;Ljava/util/List;Lshark/MetadataExtractor;ZLshark/LeakingObjectFinder;ZILjava/lang/Object;)Lleakcanary/HeapAnalysisConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getComputeRetainedHeapSize ()Z
+	public final fun getLeakingObjectFinder ()Lshark/LeakingObjectFinder;
+	public final fun getMetadataExtractor ()Lshark/MetadataExtractor;
+	public final fun getObjectInspectors ()Ljava/util/List;
+	public final fun getReferenceMatchers ()Ljava/util/List;
+	public final fun getStripHeapDump ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class leakcanary/MinimumDiskSpaceCondition : leakcanary/HeapAnalysisCondition {
+	public fun <init> (Landroid/app/Application;JJ)V
+	public synthetic fun <init> (Landroid/app/Application;JJILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+}
+
+public final class leakcanary/MinimumElapsedSinceStartCondition : leakcanary/HeapAnalysisCondition {
+	public fun <init> ()V
+	public fun <init> (J)V
+	public synthetic fun <init> (JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+}
+
+public final class leakcanary/MinimumMemoryCondition : leakcanary/HeapAnalysisCondition {
+	public fun <init> (Landroid/app/Application;JJ)V
+	public synthetic fun <init> (Landroid/app/Application;JJILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+}
+
+public final class leakcanary/OncePerPeriodCondition : leakcanary/HeapAnalysisCondition {
+	public fun <init> (Landroid/app/Application;J)V
+	public synthetic fun <init> (Landroid/app/Application;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+}
+
