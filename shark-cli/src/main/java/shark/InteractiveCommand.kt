@@ -44,8 +44,8 @@ import java.io.File
 import java.util.Locale
 
 class InteractiveCommand : CliktCommand(
-    name = "interactive",
-    help = "Explore a heap dump."
+  name = "interactive",
+  help = "Explore a heap dump."
 ) {
 
   enum class COMMAND(
@@ -54,41 +54,41 @@ class InteractiveCommand : CliktCommand(
     val help: String
   ) {
     ANALYZE(
-        commandName = "analyze",
-        help = "Analyze the heap dump."
+      commandName = "analyze",
+      help = "Analyze the heap dump."
     ),
     CLASS(
-        commandName = "class",
-        suffix = "NAME@ID",
-        help = "Show class with a matching NAME and Object ID."
+      commandName = "class",
+      suffix = "NAME@ID",
+      help = "Show class with a matching NAME and Object ID."
     ),
     INSTANCE(
-        commandName = "instance",
-        suffix = "CLASS_NAME@ID",
-        help = "Show instance with a matching CLASS_NAME and Object ID."
+      commandName = "instance",
+      suffix = "CLASS_NAME@ID",
+      help = "Show instance with a matching CLASS_NAME and Object ID."
     ),
     ARRAY(
-        commandName = "array",
-        suffix = "CLASS_NAME@ID",
-        help = "Show array instance with a matching CLASS_NAME and Object ID."
+      commandName = "array",
+      suffix = "CLASS_NAME@ID",
+      help = "Show array instance with a matching CLASS_NAME and Object ID."
     ),
     PATH_TO_INSTANCE(
-        commandName = "->instance",
-        suffix = "CLASS_NAME@ID",
-        help = "Show path from GC Roots to instance."
+      commandName = "->instance",
+      suffix = "CLASS_NAME@ID",
+      help = "Show path from GC Roots to instance."
     ),
     DETAILED_PATH_TO_INSTANCE(
-        commandName = "~>instance",
-        suffix = "CLASS_NAME@ID",
-        help = "Show path from GC Roots to instance, highlighting suspect references."
+      commandName = "~>instance",
+      suffix = "CLASS_NAME@ID",
+      help = "Show path from GC Roots to instance, highlighting suspect references."
     ),
     HELP(
-        commandName = "help",
-        help = "Show this message."
+      commandName = "help",
+      help = "Show this message."
     ),
     EXIT(
-        commandName = "exit",
-        help = "Exit this interactive prompt."
+      commandName = "exit",
+      help = "Exit this interactive prompt."
     ),
     ;
 
@@ -251,14 +251,14 @@ class InteractiveCommand : CliktCommand(
   private fun echoHelp() {
     echo("Available commands:")
     val longestPatternHelp = COMMAND.values()
-        .map { it.patternHelp }.maxBy { it.length }!!.length
+      .map { it.patternHelp }.maxBy { it.length }!!.length
     COMMAND.values()
-        .forEach { command ->
-          val patternHelp = command.patternHelp
-          val extraSpaceCount = (longestPatternHelp - patternHelp.length)
-          val extraSpaces = " ".repeat(extraSpaceCount)
-          println("  $patternHelp$extraSpaces  ${command.help}")
-        }
+      .forEach { command ->
+        val patternHelp = command.patternHelp
+        val extraSpaceCount = (longestPatternHelp - patternHelp.length)
+        val extraSpaces = " ".repeat(extraSpaceCount)
+        println("  $patternHelp$extraSpaces  ${command.help}")
+      }
   }
 
   private fun <T : HeapObject> renderMatchingObjects(
@@ -270,7 +270,7 @@ class InteractiveCommand : CliktCommand(
     when {
       matchingObjects.size == 1 -> {
         matchingObjects.first()
-            .show()
+          .show()
       }
       matchingObjects.isNotEmpty() -> {
         matchingObjects.forEach { heapObject ->
@@ -322,18 +322,18 @@ class InteractiveCommand : CliktCommand(
       content to null
     } else {
       content.substring(0, identifierIndex) to
-          content.substring(identifierIndex + 1)
+        content.substring(identifierIndex + 1)
     }
 
     val objectId = objectIdStart?.toLongOrNull()
     val checkObjectId = objectId != null
     val matchingObjects = objects
-        .filter {
-          classNamePart in namer(it) &&
-              (!checkObjectId ||
-                  it.objectId.toString().startsWith(objectIdStart!!))
-        }
-        .toList()
+      .filter {
+        classNamePart in namer(it) &&
+          (!checkObjectId ||
+            it.objectId.toString().startsWith(objectIdStart!!))
+      }
+      .toList()
 
     if (objectIdStart != null) {
       val exactMatchingByObjectId = matchingObjects.firstOrNull { objectId == it.objectId }
@@ -365,11 +365,11 @@ class InteractiveCommand : CliktCommand(
     echo("  Instance of ${renderHeapObject(instanceClass)}")
 
     val fieldsPerClass = readFields()
-        .toList()
-        .groupBy { it.declaringClass }
-        .toList()
-        .filter { it.first.name != "java.lang.Object" }
-        .reversed()
+      .toList()
+      .groupBy { it.declaringClass }
+      .toList()
+      .filter { it.first.name != "java.lang.Object" }
+      .reversed()
 
     fieldsPerClass.forEach { (heapClass, fields) ->
       echo("  Fields from ${renderHeapObject(heapClass)}")
@@ -387,18 +387,18 @@ class InteractiveCommand : CliktCommand(
     }
 
     val staticFields = readStaticFields()
-        .filter { field ->
-          !field.name.startsWith(
-              "\$class\$"
-          ) && field.name != "\$classOverhead"
-        }
-        .toList()
+      .filter { field ->
+        !field.name.startsWith(
+          "\$class\$"
+        ) && field.name != "\$classOverhead"
+      }
+      .toList()
     if (staticFields.isNotEmpty()) {
       echo("  Static fields")
       staticFields
-          .forEach { field ->
-            echo("    static ${field.name} = ${renderHeapValue(field.value)}")
-          }
+        .forEach { field ->
+          echo("    static ${field.name} = ${renderHeapValue(field.value)}")
+        }
     }
 
     val instances = when {
@@ -574,7 +574,7 @@ class InteractiveCommand : CliktCommand(
 
     val leakingObjectFinder = if (leakingObjectId == null) {
       FilteringLeakingObjectFinder(
-          AndroidObjectInspectors.appLeakingObjectFilters
+        AndroidObjectInspectors.appLeakingObjectFilters
       )
     } else {
       LeakingObjectFinder {
@@ -590,21 +590,20 @@ class InteractiveCommand : CliktCommand(
     SharkLog.d { "Analyzing heap dump $heapDumpFile" }
 
     val heapAnalysis = heapAnalyzer.analyze(
-        heapDumpFile = heapDumpFile,
-        graph = graph,
-        leakingObjectFinder = leakingObjectFinder,
-        referenceMatchers = AndroidReferenceMatchers.appDefaults,
-        computeRetainedHeapSize = true,
-        objectInspectors = objectInspectors
+      heapDumpFile = heapDumpFile,
+      graph = graph,
+      leakingObjectFinder = leakingObjectFinder,
+      referenceMatchers = AndroidReferenceMatchers.appDefaults,
+      computeRetainedHeapSize = true,
+      objectInspectors = objectInspectors
     )
 
     if (leakingObjectId == null || heapAnalysis is HeapAnalysisFailure) {
       echo(heapAnalysis)
     } else {
       val leakTrace = (heapAnalysis as HeapAnalysisSuccess).allLeaks.first()
-          .leakTraces.first()
+        .leakTraces.first()
       echo(if (showDetails) leakTrace else leakTrace.toSimplePathString())
     }
   }
-
 }

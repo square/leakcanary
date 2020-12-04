@@ -82,31 +82,31 @@ class HprofHeapGraph internal constructor(
     get() {
       var objectIndex = 0
       return index.indexedObjectSequence()
-          .map {
-            wrapIndexedObject(objectIndex++, it.second, it.first)
-          }
+        .map {
+          wrapIndexedObject(objectIndex++, it.second, it.first)
+        }
     }
 
   override val classes: Sequence<HeapClass>
     get() {
       var objectIndex = 0
       return index.indexedClassSequence()
-          .map {
-            val objectId = it.first
-            val indexedObject = it.second
-            HeapClass(this, indexedObject, objectId, objectIndex++)
-          }
+        .map {
+          val objectId = it.first
+          val indexedObject = it.second
+          HeapClass(this, indexedObject, objectId, objectIndex++)
+        }
     }
 
   override val instances: Sequence<HeapInstance>
     get() {
       var objectIndex = classCount
       return index.indexedInstanceSequence()
-          .map {
-            val objectId = it.first
-            val indexedObject = it.second
-            HeapInstance(this, indexedObject, objectId, objectIndex++)
-          }
+        .map {
+          val objectId = it.first
+          val indexedObject = it.second
+          HeapInstance(this, indexedObject, objectId, objectIndex++)
+        }
     }
 
   override val objectArrays: Sequence<HeapObjectArray>
@@ -142,7 +142,7 @@ class HprofHeapGraph internal constructor(
 
   override fun findObjectById(objectId: Long): HeapObject {
     return findObjectByIdOrNull(objectId) ?: throw IllegalArgumentException(
-        "Object id $objectId not found in heap dump."
+      "Object id $objectId not found in heap dump."
     )
   }
 
@@ -399,11 +399,11 @@ class HprofHeapGraph internal constructor(
     }
 
     @Deprecated(
-        "Replaced by HprofIndex.indexRecordsOf().openHeapGraph() or File.openHeapGraph()",
-        replaceWith = ReplaceWith(
-            "HprofIndex.indexRecordsOf(hprof, proguardMapping, indexedGcRootTypes)" +
-                ".openHeapGraph()"
-        )
+      "Replaced by HprofIndex.indexRecordsOf().openHeapGraph() or File.openHeapGraph()",
+      replaceWith = ReplaceWith(
+        "HprofIndex.indexRecordsOf(hprof, proguardMapping, indexedGcRootTypes)" +
+          ".openHeapGraph()"
+      )
     )
     fun indexHprof(
       hprof: Hprof,
@@ -433,7 +433,7 @@ class HprofHeapGraph internal constructor(
       }.toSet()
       val index =
         HprofIndex.indexRecordsOf(
-            FileSourceProvider(hprof.file), hprof.header, proguardMapping, indexedRootTags
+          FileSourceProvider(hprof.file), hprof.header, proguardMapping, indexedRootTags
         )
       val graph = index.openHeapGraph()
       hprof.attachClosable(graph)
@@ -441,15 +441,15 @@ class HprofHeapGraph internal constructor(
     }
 
     private fun deprecatedDefaultIndexedGcRootTypes() = setOf(
-        JniGlobal::class,
-        JavaFrame::class,
-        JniLocal::class,
-        MonitorUsed::class,
-        NativeStack::class,
-        StickyClass::class,
-        ThreadBlock::class,
-        ThreadObject::class,
-        JniMonitor::class
+      JniGlobal::class,
+      JavaFrame::class,
+      JniLocal::class,
+      MonitorUsed::class,
+      NativeStack::class,
+      StickyClass::class,
+      ThreadBlock::class,
+      ThreadObject::class,
+      JniMonitor::class
     )
   }
 }

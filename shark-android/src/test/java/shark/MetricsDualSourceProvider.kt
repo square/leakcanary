@@ -32,7 +32,6 @@ class MetricsDualSourceProvider(
       override fun close() = fileSource.close()
 
       override fun timeout() = fileSource.timeout()
-
     }.buffer()
   }
 
@@ -54,5 +53,4 @@ class MetricsDualSourceProvider(
       override fun close() = randomAccessSource.close()
     }
   }
-
 }

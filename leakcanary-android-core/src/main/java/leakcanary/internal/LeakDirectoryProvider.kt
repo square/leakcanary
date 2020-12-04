@@ -79,7 +79,7 @@ internal class LeakDirectoryProvider constructor(
           SharkLog.d { "External storage not mounted, state: $state" }
         } else {
           SharkLog.d {
-              "Could not create heap dump directory in external storage: [${storageDirectory.absolutePath}]"
+            "Could not create heap dump directory in external storage: [${storageDirectory.absolutePath}]"
           }
         }
       }
@@ -87,7 +87,7 @@ internal class LeakDirectoryProvider constructor(
       storageDirectory = appStorageDirectory()
       if (!directoryWritableAfterMkdirs(storageDirectory)) {
         SharkLog.d {
-            "Could not create heap dump directory in app storage: [${storageDirectory.absolutePath}]"
+          "Could not create heap dump directory in app storage: [${storageDirectory.absolutePath}]"
         }
         return null
       }
@@ -118,15 +118,15 @@ internal class LeakDirectoryProvider constructor(
 
     val pendingIntent = RequestStoragePermissionActivity.createPendingIntent(context)
     val contentTitle = context.getString(
-        R.string.leak_canary_permission_notification_title
+      R.string.leak_canary_permission_notification_title
     )
     val packageName = context.packageName
     val contentText =
       context.getString(R.string.leak_canary_permission_notification_text, packageName)
 
     Notifications.showNotification(
-        context, contentTitle, contentText, pendingIntent,
-        R.id.leak_canary_notification_write_permission, LEAKCANARY_LOW
+      context, contentTitle, contentText, pendingIntent,
+      R.id.leak_canary_notification_write_permission, LEAKCANARY_LOW
     )
   }
 
@@ -149,7 +149,7 @@ internal class LeakDirectoryProvider constructor(
   private fun cleanupOldHeapDumps() {
     val hprofFiles = listFiles(FilenameFilter { _, name ->
       name.endsWith(
-          HPROF_SUFFIX
+        HPROF_SUFFIX
       )
     })
     val maxStoredHeapDumps = maxStoredHeapDumps()
@@ -163,7 +163,7 @@ internal class LeakDirectoryProvider constructor(
       // Sort with oldest modified first.
       hprofFiles.sortWith(Comparator { lhs, rhs ->
         java.lang.Long.valueOf(lhs.lastModified())
-            .compareTo(rhs.lastModified())
+          .compareTo(rhs.lastModified())
       })
       for (i in 0 until filesToRemove) {
         val path = hprofFiles[i].absolutePath

@@ -56,14 +56,13 @@ class LabelerTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(ObjectInspectors.THREAD)
+        objectInspectors = listOf(ObjectInspectors.THREAD)
       )
 
     val leak = analysis.applicationLeaks[0]
 
     assertThat(leak.leakTraces.first().referencePath.first().originObject.labels).contains(
-        "Thread name: 'kroutine'"
+      "Thread name: 'kroutine'"
     )
   }
-
 }

@@ -39,10 +39,10 @@ internal class LeakTraceElement : Serializable {
   }
 
   fun gcRootTypeFromV20() = when (val gcRootLabel = labels!!
-      .first {
-        it.startsWith("GC Root: ")
-      }
-      .substring("GC Root: ".length)) {
+    .first {
+      it.startsWith("GC Root: ")
+    }
+    .substring("GC Root: ".length)) {
     "Thread object" -> GcRootType.THREAD_OBJECT
     "Global variable in native code" -> GcRootType.JNI_GLOBAL
     "Local variable in native code" -> GcRootType.JNI_LOCAL
@@ -58,22 +58,22 @@ internal class LeakTraceElement : Serializable {
   fun referencePathElementFromV20() = reference!!.fromV20(originObjectFromV20())
 
   fun originObjectFromV20() = LeakTraceObject(
-      type = when (holder!!) {
-        OBJECT -> ObjectType.INSTANCE
-        CLASS -> ObjectType.CLASS
-        THREAD -> ObjectType.INSTANCE
-        ARRAY -> ObjectType.ARRAY
-      },
-      className = className!!,
-      labels = labels!!.filter { !it.startsWith("GC Root: ") }.toSet(),
-      leakingStatus = when (leakStatus!!) {
-        NOT_LEAKING -> LeakingStatus.NOT_LEAKING
-        LEAKING -> LeakingStatus.LEAKING
-        UNKNOWN -> LeakingStatus.UNKNOWN
-      },
-      leakingStatusReason = leakStatusReason!!,
-      retainedHeapByteSize = null,
-      retainedObjectCount = null
+    type = when (holder!!) {
+      OBJECT -> ObjectType.INSTANCE
+      CLASS -> ObjectType.CLASS
+      THREAD -> ObjectType.INSTANCE
+      ARRAY -> ObjectType.ARRAY
+    },
+    className = className!!,
+    labels = labels!!.filter { !it.startsWith("GC Root: ") }.toSet(),
+    leakingStatus = when (leakStatus!!) {
+      NOT_LEAKING -> LeakingStatus.NOT_LEAKING
+      LEAKING -> LeakingStatus.LEAKING
+      UNKNOWN -> LeakingStatus.UNKNOWN
+    },
+    leakingStatusReason = leakStatusReason!!,
+    retainedHeapByteSize = null,
+    retainedObjectCount = null
   )
 
   companion object {

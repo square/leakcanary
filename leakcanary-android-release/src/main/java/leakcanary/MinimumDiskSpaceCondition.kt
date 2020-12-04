@@ -16,7 +16,7 @@ class MinimumDiskSpaceCondition(
 
   private val postedRetry = Runnable {
     trigger.conditionChanged(
-        "$tryAgainDelayMillis ms passed since last memory check"
+      "$tryAgainDelayMillis ms passed since last memory check"
     )
   }
 
@@ -28,7 +28,7 @@ class MinimumDiskSpaceCondition(
     } else {
       uiHandler.postDelayed(postedRetry, tryAgainDelayMillis)
       StopAnalysis(
-          "availableDiskSpace $availableDiskSpace < minimumDiskSpaceBytes $minimumDiskSpaceBytes"
+        "availableDiskSpace $availableDiskSpace < minimumDiskSpaceBytes $minimumDiskSpaceBytes"
       )
     }
   }

@@ -43,7 +43,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val mContext = heapObject["android.view.View", "mContext"]!!.value.asObject!!.asInstance!!
         val activityContext = mContext.unwrapActivityContext()
         val mContextIsDestroyedActivity = (activityContext != null &&
-            activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true)
+          activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true)
         if (mContextIsDestroyedActivity) {
           true
         } else {
@@ -59,7 +59,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
                 rootParent = rootParent["android.view.View", "mParent"]!!.valueAsInstance
               }
               val partOfWindowHierarchy = rootParent != null || (rootView != null &&
-                  rootView.instanceClassName == "com.android.internal.policy.DecorView")
+                rootView.instanceClassName == "com.android.internal.policy.DecorView")
               partOfWindowHierarchy
             } else false
           } else false
@@ -81,7 +81,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
 
         val partOfWindowHierarchy = rootParent != null || (rootView != null &&
-            rootView.instanceClassName == "com.android.internal.policy.DecorView")
+          rootView.instanceClassName == "com.android.internal.policy.DecorView")
 
         val mWindowAttachCount =
           instance["android.view.View", "mWindowAttachCount"]?.value!!.asInt!!
@@ -118,14 +118,14 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
 
         AndroidResourceIdNames.readFromHeap(instance.graph)
-            ?.let { resIds ->
-              val mID = instance["android.view.View", "mID"]!!.value.asInt!!
-              val noViewId = -1
-              if (mID != noViewId) {
-                val resourceName = resIds[mID]
-                labels += "View.mID = R.id.$resourceName"
-              }
+          ?.let { resIds ->
+            val mID = instance["android.view.View", "mID"]!!.value.asInt!!
+            val noViewId = -1
+            if (mID != noViewId) {
+              val resourceName = resIds[mID]
+              labels += "View.mID = R.id.$resourceName"
             }
+          }
         labels += "View.mWindowAttachCount = $mWindowAttachCount"
       }
     }
@@ -134,10 +134,10 @@ enum class AndroidObjectInspectors : ObjectInspector {
   EDITOR {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.widget.Editor" &&
-          heapObject["android.widget.Editor", "mTextView"]?.value?.asObject?.let { textView ->
-            VIEW.leakingObjectFilter!!(textView)
-          } ?: false
+        heapObject instanceOf "android.widget.Editor" &&
+        heapObject["android.widget.Editor", "mTextView"]?.value?.asObject?.let { textView ->
+          VIEW.leakingObjectFilter!!(textView)
+        } ?: false
     }
 
     override fun inspect(reporter: ObjectReporter) {
@@ -150,8 +150,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
   ACTIVITY {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.app.Activity" &&
-          heapObject["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true
+        heapObject instanceOf "android.app.Activity" &&
+        heapObject["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true
     }
 
     override fun inspect(
@@ -190,12 +190,12 @@ enum class AndroidObjectInspectors : ObjectInspector {
             } else if (componentContext instanceOf "android.app.Activity") {
               val activityDescription =
                 "with mDestroyed = " + (componentContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean?.toString()
-                    ?: "UNKNOWN")
+                  ?: "UNKNOWN")
               if (componentContext == fieldInstance) {
                 "${field.name} instance of ${fieldInstance.instanceClassName} $activityDescription"
               } else {
                 "${field.name} instance of ${fieldInstance.instanceClassName}, " +
-                    "wrapping activity ${componentContext.instanceClassName} $activityDescription"
+                  "wrapping activity ${componentContext.instanceClassName} $activityDescription"
               }
             } else if (componentContext == fieldInstance) {
               // No need to add "instance of Application / Service", devs know their own classes.
@@ -213,8 +213,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject.unwrapActivityContext()
-              ?.get("android.app.Activity", "mDestroyed")?.value?.asBoolean == true
+        heapObject.unwrapActivityContext()
+          ?.get("android.app.Activity", "mDestroyed")?.value?.asBoolean == true
     }
 
     override fun inspect(
@@ -228,16 +228,16 @@ enum class AndroidObjectInspectors : ObjectInspector {
       // We're looking for ContextWrapper instances that are not Activity, Application or Service.
       // So we stop whenever we find any of those 4 classes, and then only keep ContextWrapper.
       val matchingClassName = instance.instanceClass.classHierarchy.map { it.name }
-          .firstOrNull {
-            when (it) {
-              "android.content.ContextWrapper",
-              "android.app.Activity",
-              "android.app.Application",
-              "android.app.Service"
-              -> true
-              else -> false
-            }
+        .firstOrNull {
+          when (it) {
+            "android.content.ContextWrapper",
+            "android.app.Activity",
+            "android.app.Application",
+            "android.app.Service"
+            -> true
+            else -> false
           }
+        }
 
       if (matchingClassName == "android.content.ContextWrapper") {
         reporter.run {
@@ -270,16 +270,16 @@ enum class AndroidObjectInspectors : ObjectInspector {
   APPLICATION_PACKAGE_MANAGER {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.app.ApplicationContextManager" &&
-          heapObject["android.app.ApplicationContextManager", "mContext"]!!
-              .valueAsInstance!!.outerContextIsLeaking()
+        heapObject instanceOf "android.app.ApplicationContextManager" &&
+        heapObject["android.app.ApplicationContextManager", "mContext"]!!
+          .valueAsInstance!!.outerContextIsLeaking()
     }
 
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.app.ApplicationContextManager") { instance ->
         val outerContext = instance["android.app.ApplicationContextManager", "mContext"]!!
-            .valueAsInstance!!["android.app.ContextImpl", "mOuterContext"]!!
-            .valueAsInstance!!
+          .valueAsInstance!!["android.app.ContextImpl", "mOuterContext"]!!
+          .valueAsInstance!!
         inspectContextImplOuterContext(outerContext, instance, "ApplicationContextManager.mContext")
       }
     }
@@ -288,14 +288,14 @@ enum class AndroidObjectInspectors : ObjectInspector {
   CONTEXT_IMPL {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.app.ContextImpl" &&
-          heapObject.outerContextIsLeaking()
+        heapObject instanceOf "android.app.ContextImpl" &&
+        heapObject.outerContextIsLeaking()
     }
 
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.app.ContextImpl") { instance ->
         val outerContext = instance["android.app.ContextImpl", "mOuterContext"]!!
-            .valueAsInstance!!
+          .valueAsInstance!!
         inspectContextImplOuterContext(outerContext, instance)
       }
     }
@@ -304,8 +304,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
   DIALOG {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.app.Dialog" &&
-          heapObject["android.app.Dialog", "mDecor"]!!.value.isNullReference
+        heapObject instanceOf "android.app.Dialog" &&
+        heapObject["android.app.Dialog", "mDecor"]!!.value.isNullReference
     }
 
     override fun inspect(
@@ -345,8 +345,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
   FRAGMENT {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.app.Fragment" &&
-          heapObject["android.app.Fragment", "mFragmentManager"]!!.value.isNullReference
+        heapObject instanceOf "android.app.Fragment" &&
+        heapObject["android.app.Fragment", "mFragmentManager"]!!.value.isNullReference
     }
 
     override fun inspect(
@@ -371,10 +371,10 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf ANDROID_SUPPORT_FRAGMENT_CLASS_NAME &&
-          heapObject.getOrThrow(
-              ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mFragmentManager"
-          ).value.isNullReference
+        heapObject instanceOf ANDROID_SUPPORT_FRAGMENT_CLASS_NAME &&
+        heapObject.getOrThrow(
+          ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mFragmentManager"
+        ).value.isNullReference
     }
 
     override fun inspect(
@@ -399,10 +399,10 @@ enum class AndroidObjectInspectors : ObjectInspector {
   ANDROIDX_FRAGMENT {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "androidx.fragment.app.Fragment" &&
-          heapObject.getOrThrow(
-              "androidx.fragment.app.Fragment", "mFragmentManager"
-          ).value.isNullReference
+        heapObject instanceOf "androidx.fragment.app.Fragment" &&
+        heapObject.getOrThrow(
+          "androidx.fragment.app.Fragment", "mFragmentManager"
+        ).value.isNullReference
     }
 
     override fun inspect(
@@ -427,9 +427,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
   MESSAGE_QUEUE {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.os.MessageQueue" &&
-          (heapObject["android.os.MessageQueue", "mQuitting"]
-              ?: heapObject["android.os.MessageQueue", "mQuiting"]!!).value.asBoolean!!
+        heapObject instanceOf "android.os.MessageQueue" &&
+        (heapObject["android.os.MessageQueue", "mQuitting"]
+          ?: heapObject["android.os.MessageQueue", "mQuiting"]!!).value.asBoolean!!
     }
 
     override fun inspect(
@@ -439,7 +439,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         // mQuiting had a typo and was renamed to mQuitting
         // https://android.googlesource.com/platform/frameworks/base/+/013cf847bcfd2828d34dced60adf2d3dd98021dc
         val mQuitting = instance["android.os.MessageQueue", "mQuitting"]
-            ?: instance["android.os.MessageQueue", "mQuiting"]!!
+          ?: instance["android.os.MessageQueue", "mQuiting"]!!
         if (mQuitting.value.asBoolean!!) {
           leakingReasons += mQuitting describedWithValue "true"
         } else {
@@ -465,8 +465,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
   MORTAR_PRESENTER {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "mortar.Presenter" &&
-          heapObject.getOrThrow("mortar.Presenter", "view").value.isNullReference
+        heapObject instanceOf "mortar.Presenter" &&
+        heapObject.getOrThrow("mortar.Presenter", "view").value.isNullReference
     }
 
     override fun inspect(
@@ -489,8 +489,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
   MORTAR_SCOPE {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "mortar.MortarScope" &&
-          heapObject.getOrThrow("mortar.MortarScope", "dead").value.asBoolean!!
+        heapObject instanceOf "mortar.MortarScope" &&
+        heapObject.getOrThrow("mortar.MortarScope", "dead").value.asBoolean!!
     }
 
     override fun inspect(reporter: ObjectReporter) {
@@ -509,10 +509,10 @@ enum class AndroidObjectInspectors : ObjectInspector {
   COORDINATOR {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "com.squareup.coordinators.Coordinator" &&
-          !heapObject.getOrThrow(
-              "com.squareup.coordinators.Coordinator", "attached"
-          ).value.asBoolean!!
+        heapObject instanceOf "com.squareup.coordinators.Coordinator" &&
+        !heapObject.getOrThrow(
+          "com.squareup.coordinators.Coordinator", "attached"
+        ).value.asBoolean!!
     }
 
     override fun inspect(
@@ -545,8 +545,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
   VIEW_ROOT_IMPL {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.view.ViewRootImpl" &&
-          heapObject["android.view.ViewRootImpl", "mView"]!!.value.isNullReference
+        heapObject instanceOf "android.view.ViewRootImpl" &&
+        heapObject["android.view.ViewRootImpl", "mView"]!!.value.isNullReference
     }
 
     override fun inspect(reporter: ObjectReporter) {
@@ -564,8 +564,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
   WINDOW {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-          heapObject instanceOf "android.view.Window" &&
-          heapObject["android.view.Window", "mDestroyed"]!!.value.asBoolean!!
+        heapObject instanceOf "android.view.Window" &&
+        heapObject["android.view.Window", "mDestroyed"]!!.value.asBoolean!!
     }
 
     override fun inspect(
@@ -614,7 +614,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val tnInstance =
           heapObject["android.widget.Toast", "mTN"]!!.value.asObject!!.asInstance!!
         (tnInstance["android.widget.Toast\$TN", "mWM"]!!.value.isNonNullReference &&
-            tnInstance["android.widget.Toast\$TN", "mView"]!!.value.isNullReference)
+          tnInstance["android.widget.Toast\$TN", "mView"]!!.value.isNullReference)
       } else false
     }
 
@@ -650,34 +650,34 @@ enum class AndroidObjectInspectors : ObjectInspector {
      */
     val appLeakingObjectFilters: List<LeakingObjectFilter> =
       ObjectInspectors.jdkLeakingObjectFilters +
-          createLeakingObjectFilters(EnumSet.allOf(AndroidObjectInspectors::class.java))
+        createLeakingObjectFilters(EnumSet.allOf(AndroidObjectInspectors::class.java))
 
     /**
      * Creates a list of [LeakingObjectFilter] based on the passed in [AndroidObjectInspectors].
      */
     fun createLeakingObjectFilters(inspectors: Set<AndroidObjectInspectors>): List<LeakingObjectFilter> =
       inspectors.mapNotNull { it.leakingObjectFilter }
-          .map { filter ->
-            object : LeakingObjectFilter {
-              override fun isLeakingObject(heapObject: HeapObject) = filter(heapObject)
-            }
+        .map { filter ->
+          object : LeakingObjectFilter {
+            override fun isLeakingObject(heapObject: HeapObject) = filter(heapObject)
           }
+        }
   }
 
   // Using a string builder to prevent Jetifier from changing this string to Android X Fragment
   @Suppress("VariableNaming", "PropertyName")
   internal val ANDROID_SUPPORT_FRAGMENT_CLASS_NAME =
     StringBuilder("android.").append("support.v4.app.Fragment")
-        .toString()
+      .toString()
 }
 
 private fun HeapInstance.outerContextIsLeaking() =
   this["android.app.ContextImpl", "mOuterContext"]!!
-      .valueAsInstance!!
-      .run {
-        this instanceOf "android.app.Activity" &&
-            this["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true
-      }
+    .valueAsInstance!!
+    .run {
+      this instanceOf "android.app.Activity" &&
+        this["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true
+    }
 
 private fun ObjectReporter.inspectContextImplOuterContext(
   outerContext: HeapInstance,
@@ -689,17 +689,17 @@ private fun ObjectReporter.inspectContextImplOuterContext(
     if (mDestroyed != null) {
       if (mDestroyed) {
         leakingReasons += "$prefix.mOuterContext is an instance of" +
-            " ${outerContext.instanceClassName} with Activity.mDestroyed true"
+          " ${outerContext.instanceClassName} with Activity.mDestroyed true"
       } else {
         notLeakingReasons += "$prefix.mOuterContext is an instance of " +
-            "${outerContext.instanceClassName} with Activity.mDestroyed false"
+          "${outerContext.instanceClassName} with Activity.mDestroyed false"
       }
     } else {
       labels += "$prefix.mOuterContext is an instance of ${outerContext.instanceClassName}"
     }
   } else if (outerContext instanceOf "android.app.Application") {
     notLeakingReasons += "$prefix.mOuterContext is an instance of" +
-        " ${outerContext.instanceClassName} which extends android.app.Application"
+      " ${outerContext.instanceClassName} which extends android.app.Application"
   } else if (outerContext.objectId == contextImpl.objectId) {
     labels += "$prefix.mOuterContext == ContextImpl.this: not tied to any particular lifecycle"
   } else {
@@ -752,17 +752,17 @@ internal fun HeapInstance.unwrapActivityContext(): HeapInstance? {
 @Suppress("NestedBlockDepth", "ReturnCount")
 internal fun HeapInstance.unwrapComponentContext(): HeapInstance? {
   val matchingClassName = instanceClass.classHierarchy.map { it.name }
-      .firstOrNull {
-        when (it) {
-          "android.content.ContextWrapper",
-          "android.app.Activity",
-          "android.app.Application",
-          "android.app.Service"
-          -> true
-          else -> false
-        }
+    .firstOrNull {
+      when (it) {
+        "android.content.ContextWrapper",
+        "android.app.Activity",
+        "android.app.Application",
+        "android.app.Service"
+        -> true
+        else -> false
       }
-      ?: return null
+    }
+    ?: return null
 
   if (matchingClassName != "android.content.ContextWrapper") {
     return this
@@ -781,16 +781,16 @@ internal fun HeapInstance.unwrapComponentContext(): HeapInstance? {
       context = mBase.asObject!!.asInstance!!
 
       val contextMatchingClassName = context.instanceClass.classHierarchy.map { it.name }
-          .firstOrNull {
-            when (it) {
-              "android.content.ContextWrapper",
-              "android.app.Activity",
-              "android.app.Application",
-              "android.app.Service"
-              -> true
-              else -> false
-            }
+        .firstOrNull {
+          when (it) {
+            "android.content.ContextWrapper",
+            "android.app.Activity",
+            "android.app.Application",
+            "android.app.Service"
+            -> true
+            else -> false
           }
+        }
 
       var isContextWrapper = contextMatchingClassName == "android.content.ContextWrapper"
 
@@ -811,13 +811,13 @@ internal fun HeapInstance.unwrapComponentContext(): HeapInstance? {
           }
         }
         if (contextMatchingClassName == "android.app.Service" ||
-            contextMatchingClassName == "android.app.Application"
+          contextMatchingClassName == "android.app.Application"
         ) {
           return context
         }
         if (isContextWrapper &&
-            // Avoids infinite loops
-            context.objectId !in visitedInstances
+          // Avoids infinite loops
+          context.objectId !in visitedInstances
         ) {
           keepUnwrapping = true
         }
@@ -835,7 +835,7 @@ internal fun HeapInstance.getOrThrow(
   fieldName: String
 ): HeapField {
   return this[declaringClassName, fieldName] ?: throw IllegalStateException(
-      """
+    """
 $instanceClassName is expected to have a $declaringClassName.$fieldName field which cannot be found. 
 This might be due to the app code being obfuscated. If that's the case, then the heap analysis 
 is unable to proceed without a mapping file to deobfuscate class names. 

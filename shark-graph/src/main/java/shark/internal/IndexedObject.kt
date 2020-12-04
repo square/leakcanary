@@ -35,5 +35,4 @@ internal sealed class IndexedObject {
     val primitiveType: PrimitiveType
       get() = PrimitiveType.values()[primitiveTypeOrdinal.toInt()]
   }
-
 }

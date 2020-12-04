@@ -32,8 +32,8 @@ class AndroidResourceIdNamesTest {
 
     for (i in 0..2) {
       AndroidResourceIdNames.saveToMemory(
-          getResourceTypeName = getResourceTypeName,
-          getResourceEntryName = { null }
+        getResourceTypeName = getResourceTypeName,
+        getResourceEntryName = { null }
       )
     }
 
@@ -42,7 +42,7 @@ class AndroidResourceIdNamesTest {
 
   @Test fun `AndroidResourceIdNames available in heap dump when saveToMemory is called`() {
     AndroidResourceIdNames.saveToMemory(
-        getResourceTypeName = { null }, getResourceEntryName = { null })
+      getResourceTypeName = { null }, getResourceEntryName = { null })
 
     dumpAndReadHeap { resIdNames ->
       assertThat(resIdNames).isNotNull
@@ -54,7 +54,6 @@ class AndroidResourceIdNamesTest {
       assertThat(resIdNames).isNull()
     }
   }
-
 
   @Test fun `saveToMemory stores and retrieves resource id`() {
     val firstIdResourceId = FIRST_APP_RESOURCE_ID
@@ -78,10 +77,10 @@ class AndroidResourceIdNamesTest {
 
     val getResourceTypeName =
       createGetResourceTypeName(
-          mapOf(
-              layoutResourceId to "layout",
-              firstIdResourceId to "id"
-          )
+        mapOf(
+          layoutResourceId to "layout",
+          firstIdResourceId to "id"
+        )
       )
     val getResourceEntryName =
       createGetResourceEntryName(mapOf(firstIdResourceId to "view_container"))
@@ -99,15 +98,15 @@ class AndroidResourceIdNamesTest {
 
     val getResourceTypeName =
       createGetResourceTypeName(
-          mapOf(
-              firstIdResourceId to "id"
-          )
+        mapOf(
+          firstIdResourceId to "id"
+        )
       )
     val getResourceEntryName = createGetResourceEntryName(
-        mapOf(
-            firstIdResourceId to "view_container",
-            secondIdResourceId to "menu_button"
-        )
+      mapOf(
+        firstIdResourceId to "view_container",
+        secondIdResourceId to "menu_button"
+      )
     )
 
     AndroidResourceIdNames.saveToMemory(getResourceTypeName, getResourceEntryName)
@@ -138,11 +137,10 @@ class AndroidResourceIdNamesTest {
     val hprofFile = File(hprofFolder, "heapdump.hprof")
     JvmTestHeapDumper.dumpHeap(hprofFile.absolutePath)
     Hprof.open(hprofFile)
-        .use { hprof ->
-          val graph = HprofHeapGraph.indexHprof(hprof)
-          val idNames = AndroidResourceIdNames.readFromHeap(graph)
-          block(idNames)
-        }
+      .use { hprof ->
+        val graph = HprofHeapGraph.indexHprof(hprof)
+        val idNames = AndroidResourceIdNames.readFromHeap(graph)
+        block(idNames)
+      }
   }
-
 }

@@ -39,9 +39,9 @@ import java.util.Locale
  * This service runs in a main app process.
  */
 internal class HeapAnalyzerService : ForegroundService(
-    HeapAnalyzerService::class.java.simpleName,
-    R.string.leak_canary_notification_analysing,
-    R.id.leak_canary_notification_analyzing_heap
+  HeapAnalyzerService::class.java.simpleName,
+  R.string.leak_canary_notification_analysing,
+  R.id.leak_canary_notification_analyzing_heap
 ), OnAnalysisProgressListener {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
@@ -81,28 +81,28 @@ internal class HeapAnalyzerService : ForegroundService(
       null
     }
     return heapAnalyzer.analyze(
-        heapDumpFile = heapDumpFile,
-        leakingObjectFinder = config.leakingObjectFinder,
-        referenceMatchers = config.referenceMatchers,
-        computeRetainedHeapSize = config.computeRetainedHeapSize,
-        objectInspectors = config.objectInspectors,
-        metadataExtractor = config.metadataExtractor,
-        proguardMapping = proguardMappingReader?.readProguardMapping()
+      heapDumpFile = heapDumpFile,
+      leakingObjectFinder = config.leakingObjectFinder,
+      referenceMatchers = config.referenceMatchers,
+      computeRetainedHeapSize = config.computeRetainedHeapSize,
+      objectInspectors = config.objectInspectors,
+      metadataExtractor = config.metadataExtractor,
+      proguardMapping = proguardMappingReader?.readProguardMapping()
     )
   }
 
   private fun missingFileFailure(
-      heapDumpFile: File
+    heapDumpFile: File
   ): HeapAnalysisFailure {
     val deletedReason = LeakDirectoryProvider.hprofDeleteReason(heapDumpFile)
     val exception = IllegalStateException(
-        "Hprof file $heapDumpFile missing, deleted because: $deletedReason"
+      "Hprof file $heapDumpFile missing, deleted because: $deletedReason"
     )
     return HeapAnalysisFailure(
-        heapDumpFile = heapDumpFile,
-        createdAtTimeMillis = System.currentTimeMillis(),
-        analysisDurationMillis = 0,
-        exception = HeapAnalysisException(exception)
+      heapDumpFile = heapDumpFile,
+      createdAtTimeMillis = System.currentTimeMillis(),
+      analysisDurationMillis = 0,
+      exception = HeapAnalysisException(exception)
     )
   }
 
@@ -111,7 +111,7 @@ internal class HeapAnalyzerService : ForegroundService(
       (100f * step.ordinal / OnAnalysisProgressListener.Step.values().size).toInt()
     SharkLog.d { "Analysis in progress, working on: ${step.name}" }
     val lowercase = step.name.replace("_", " ")
-        .toLowerCase(Locale.US)
+      .toLowerCase(Locale.US)
     val message = lowercase.substring(0, 1).toUpperCase(Locale.US) + lowercase.substring(1)
     showForegroundNotification(100, percent, false, message)
   }

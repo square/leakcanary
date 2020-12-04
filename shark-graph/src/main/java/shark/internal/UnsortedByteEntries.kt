@@ -60,14 +60,14 @@ internal class UnsortedByteEntries(
       ): Int {
         return if (longIdentifiers) {
           readLong(o1Array, o1Index * entrySize)
-              .compareTo(
-                  readLong(o2Array, o2Index * entrySize)
-              )
+            .compareTo(
+              readLong(o2Array, o2Index * entrySize)
+            )
         } else {
           readInt(o1Array, o1Index * entrySize)
-              .compareTo(
-                  readInt(o2Array, o2Index * entrySize)
-              )
+            .compareTo(
+              readInt(o2Array, o2Index * entrySize)
+            )
         }
       }
     })
@@ -77,7 +77,7 @@ internal class UnsortedByteEntries(
     this.entries = null
     assigned = 0
     return SortedBytesMap(
-        longIdentifiers, bytesPerValue, sortedEntries
+      longIdentifiers, bytesPerValue, sortedEntries
     )
   }
 
@@ -87,9 +87,9 @@ internal class UnsortedByteEntries(
   ): Int {
     var pos = index
     return (array[pos++] and 0xff shl 24
-        or (array[pos++] and 0xff shl 16)
-        or (array[pos++] and 0xff shl 8)
-        or (array[pos] and 0xff))
+      or (array[pos++] and 0xff shl 16)
+      or (array[pos++] and 0xff shl 8)
+      or (array[pos] and 0xff))
   }
 
   @Suppress("NOTHING_TO_INLINE") // Syntactic sugar.
@@ -104,13 +104,13 @@ internal class UnsortedByteEntries(
   ): Long {
     var pos = index
     return (array[pos++] and 0xffL shl 56
-        or (array[pos++] and 0xffL shl 48)
-        or (array[pos++] and 0xffL shl 40)
-        or (array[pos++] and 0xffL shl 32)
-        or (array[pos++] and 0xffL shl 24)
-        or (array[pos++] and 0xffL shl 16)
-        or (array[pos++] and 0xffL shl 8)
-        or (array[pos] and 0xffL))
+      or (array[pos++] and 0xffL shl 48)
+      or (array[pos++] and 0xffL shl 40)
+      or (array[pos++] and 0xffL shl 32)
+      or (array[pos++] and 0xffL shl 24)
+      or (array[pos++] and 0xffL shl 16)
+      or (array[pos++] and 0xffL shl 8)
+      or (array[pos] and 0xffL))
   }
 
   private fun growEntries(newCapacity: Int) {
@@ -165,7 +165,7 @@ internal class UnsortedByteEntries(
       val values = entries!!
 
       var shift = (byteCount - 1) * 8
-      while(shift >= 8) {
+      while (shift >= 8) {
         values[pos++] = (value ushr shift and 0xffL).toByte()
         shift -= 8
       }
@@ -190,6 +190,5 @@ internal class UnsortedByteEntries(
       values[pos] = (value and 0xffL).toByte()
     }
   }
-
 }
 

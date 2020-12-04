@@ -97,8 +97,8 @@ class HprofRecordReader internal constructor(
   fun sizeOf(type: Int) = typeSizes[type]
 
   fun readStringRecord(length: Long) = StringRecord(
-      id = readId(),
-      string = readUtf8(length - identifierByteSize)
+    id = readId(),
+    string = readUtf8(length - identifierByteSize)
   )
 
   fun readLoadClassRecord() = LoadClassRecord(
@@ -109,54 +109,54 @@ class HprofRecordReader internal constructor(
   )
 
   fun readStackFrameRecord() = StackFrameRecord(
-      id = readId(),
-      methodNameStringId = readId(),
-      methodSignatureStringId = readId(),
-      sourceFileNameStringId = readId(),
-      classSerialNumber = readInt(),
-      lineNumber = readInt()
+    id = readId(),
+    methodNameStringId = readId(),
+    methodSignatureStringId = readId(),
+    sourceFileNameStringId = readId(),
+    classSerialNumber = readInt(),
+    lineNumber = readInt()
   )
 
   fun readStackTraceRecord() = StackTraceRecord(
-      stackTraceSerialNumber = readInt(),
-      threadSerialNumber = readInt(),
-      stackFrameIds = readIdArray(readInt())
+    stackTraceSerialNumber = readInt(),
+    threadSerialNumber = readInt(),
+    stackFrameIds = readIdArray(readInt())
   )
 
   fun readUnknownGcRootRecord() = Unknown(id = readId())
 
   fun readJniGlobalGcRootRecord() = JniGlobal(
-      id = readId(),
-      jniGlobalRefId = readId()
+    id = readId(),
+    jniGlobalRefId = readId()
   )
 
   fun readJniLocalGcRootRecord() = JniLocal(
-      id = readId(),
-      threadSerialNumber = readInt(),
-      frameNumber = readInt()
+    id = readId(),
+    threadSerialNumber = readInt(),
+    frameNumber = readInt()
   )
 
   fun readJavaFrameGcRootRecord() = JavaFrame(
-      id = readId(),
-      threadSerialNumber = readInt(),
-      frameNumber = readInt()
+    id = readId(),
+    threadSerialNumber = readInt(),
+    frameNumber = readInt()
   )
 
   fun readNativeStackGcRootRecord() = NativeStack(
-      id = readId(),
-      threadSerialNumber = readInt()
+    id = readId(),
+    threadSerialNumber = readInt()
   )
 
   fun readStickyClassGcRootRecord() = StickyClass(id = readId())
 
   fun readThreadBlockGcRootRecord() = ThreadBlock(id = readId(), threadSerialNumber = readInt())
 
-  fun readMonitorUsedGcRootRecord() =  MonitorUsed(id = readId())
+  fun readMonitorUsedGcRootRecord() = MonitorUsed(id = readId())
 
   fun readThreadObjectGcRootRecord() = ThreadObject(
-      id = readId(),
-      threadSerialNumber = readInt(),
-      stackTraceSerialNumber = readInt()
+    id = readId(),
+    threadSerialNumber = readInt(),
+    stackTraceSerialNumber = readInt()
   )
 
   fun readInternedStringGcRootRecord() = InternedString(id = readId())
@@ -170,9 +170,9 @@ class HprofRecordReader internal constructor(
   fun readVmInternalGcRootRecord() = VmInternal(id = readId())
 
   fun readJniMonitorGcRootRecord() = JniMonitor(
-      id = readId(),
-      stackTraceSerialNumber = readInt(),
-      stackDepth = readInt()
+    id = readId(),
+    stackTraceSerialNumber = readInt(),
+    stackDepth = readInt()
   )
 
   fun readUnreachableGcRootRecord() = Unreachable(id = readId())
@@ -187,10 +187,10 @@ class HprofRecordReader internal constructor(
     val remainingBytesInInstance = readInt()
     val fieldValues = readByteArray(remainingBytesInInstance)
     return InstanceDumpRecord(
-        id = id,
-        stackTraceSerialNumber = stackTraceSerialNumber,
-        classId = classId,
-        fieldValues = fieldValues
+      id = id,
+      stackTraceSerialNumber = stackTraceSerialNumber,
+      classId = classId,
+      fieldValues = fieldValues
     )
   }
 
@@ -239,11 +239,11 @@ class HprofRecordReader internal constructor(
       val value = readValue(type)
 
       staticFields.add(
-          StaticFieldRecord(
-              nameStringId = nameStringId,
-              type = type,
-              value = value
-          )
+        StaticFieldRecord(
+          nameStringId = nameStringId,
+          type = type,
+          value = value
+        )
       )
     }
 
@@ -254,15 +254,15 @@ class HprofRecordReader internal constructor(
     }
 
     return ClassDumpRecord(
-        id = id,
-        stackTraceSerialNumber = stackTraceSerialNumber,
-        superclassId = superclassId,
-        classLoaderId = classLoaderId,
-        signersId = signersId,
-        protectionDomainId = protectionDomainId,
-        instanceSize = instanceSize,
-        staticFields = staticFields,
-        fields = fields
+      id = id,
+      stackTraceSerialNumber = stackTraceSerialNumber,
+      superclassId = superclassId,
+      classLoaderId = classLoaderId,
+      signersId = signersId,
+      protectionDomainId = protectionDomainId,
+      instanceSize = instanceSize,
+      staticFields = staticFields,
+      fields = fields
     )
   }
 
@@ -276,28 +276,28 @@ class HprofRecordReader internal constructor(
     val arrayLength = readInt()
     return when (val type = readUnsignedByte()) {
       BOOLEAN_TYPE -> BooleanArrayDump(
-          id, stackTraceSerialNumber, readBooleanArray(arrayLength)
+        id, stackTraceSerialNumber, readBooleanArray(arrayLength)
       )
       CHAR_TYPE -> CharArrayDump(
-          id, stackTraceSerialNumber, readCharArray(arrayLength)
+        id, stackTraceSerialNumber, readCharArray(arrayLength)
       )
       FLOAT_TYPE -> FloatArrayDump(
-          id, stackTraceSerialNumber, readFloatArray(arrayLength)
+        id, stackTraceSerialNumber, readFloatArray(arrayLength)
       )
       DOUBLE_TYPE -> DoubleArrayDump(
-          id, stackTraceSerialNumber, readDoubleArray(arrayLength)
+        id, stackTraceSerialNumber, readDoubleArray(arrayLength)
       )
       BYTE_TYPE -> ByteArrayDump(
-          id, stackTraceSerialNumber, readByteArray(arrayLength)
+        id, stackTraceSerialNumber, readByteArray(arrayLength)
       )
       SHORT_TYPE -> ShortArrayDump(
-          id, stackTraceSerialNumber, readShortArray(arrayLength)
+        id, stackTraceSerialNumber, readShortArray(arrayLength)
       )
       INT_TYPE -> IntArrayDump(
-          id, stackTraceSerialNumber, readIntArray(arrayLength)
+        id, stackTraceSerialNumber, readIntArray(arrayLength)
       )
       LONG_TYPE -> LongArrayDump(
-          id, stackTraceSerialNumber, readLongArray(arrayLength)
+        id, stackTraceSerialNumber, readLongArray(arrayLength)
       )
       else -> throw IllegalStateException("Unexpected type $type")
     }
@@ -314,10 +314,10 @@ class HprofRecordReader internal constructor(
     val arrayClassId = readId()
     val elementIds = readIdArray(arrayLength)
     return ObjectArrayDumpRecord(
-        id = id,
-        stackTraceSerialNumber = stackTraceSerialNumber,
-        arrayClassId = arrayClassId,
-        elementIds = elementIds
+      id = id,
+      stackTraceSerialNumber = stackTraceSerialNumber,
+      arrayClassId = arrayClassId,
+      elementIds = elementIds
     )
   }
 
@@ -342,11 +342,11 @@ class HprofRecordReader internal constructor(
       skip(identifierByteSize)
       val type = readUnsignedByte()
       skip(
-          if (type == PrimitiveType.REFERENCE_HPROF_TYPE) {
-            identifierByteSize
-          } else {
-            PrimitiveType.byteSizeByHprofType.getValue(type)
-          }
+        if (type == PrimitiveType.REFERENCE_HPROF_TYPE) {
+          identifierByteSize
+        } else {
+          PrimitiveType.byteSizeByHprofType.getValue(type)
+        }
       )
     }
   }
@@ -364,8 +364,8 @@ class HprofRecordReader internal constructor(
 
   fun skipClassDumpRecord() {
     skip(
-        identifierByteSize + INT_SIZE + identifierByteSize + identifierByteSize + identifierByteSize +
-            identifierByteSize + identifierByteSize + identifierByteSize + INT_SIZE
+      identifierByteSize + INT_SIZE + identifierByteSize + identifierByteSize + identifierByteSize +
+        identifierByteSize + identifierByteSize + identifierByteSize + INT_SIZE
     )
     // Skip over the constant pool
     val constantPoolCount = readUnsignedShort()
@@ -505,7 +505,7 @@ class HprofRecordReader internal constructor(
   fun readBoolean(): Boolean {
     bytesRead += BOOLEAN_SIZE
     return source.readByte()
-        .toInt() != 0
+      .toInt() != 0
   }
 
   fun readByteArray(byteCount: Int): ByteArray {

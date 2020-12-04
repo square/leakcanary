@@ -152,13 +152,13 @@ class InstrumentationLeakDetector {
     } catch (exception: Exception) {
       SharkLog.d(exception) { "Could not dump heap" }
       return AnalysisPerformed(
-          HeapAnalysisFailure(
-              heapDumpFile = heapDumpFile,
-              createdAtTimeMillis = System.currentTimeMillis(),
-              dumpDurationMillis = SystemClock.uptimeMillis() - heapDumpUptimeMillis,
-              analysisDurationMillis = 0,
-              exception = HeapAnalysisException(exception)
-          )
+        HeapAnalysisFailure(
+          heapDumpFile = heapDumpFile,
+          createdAtTimeMillis = System.currentTimeMillis(),
+          dumpDurationMillis = SystemClock.uptimeMillis() - heapDumpUptimeMillis,
+          analysisDurationMillis = 0,
+          exception = HeapAnalysisException(exception)
+        )
       )
     }
 
@@ -172,11 +172,11 @@ class InstrumentationLeakDetector {
 
     val heapAnalyzer = HeapAnalyzer(listener)
     val fullHeapAnalysis = when (val heapAnalysis = heapAnalyzer.analyze(
-        heapDumpFile = heapDumpFile,
-        leakingObjectFinder = config.leakingObjectFinder,
-        referenceMatchers = config.referenceMatchers,
-        computeRetainedHeapSize = config.computeRetainedHeapSize,
-        objectInspectors = config.objectInspectors
+      heapDumpFile = heapDumpFile,
+      leakingObjectFinder = config.leakingObjectFinder,
+      referenceMatchers = config.referenceMatchers,
+      computeRetainedHeapSize = config.computeRetainedHeapSize,
+      objectInspectors = config.objectInspectors
     )) {
       is HeapAnalysisSuccess -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
       is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
@@ -187,8 +187,8 @@ class InstrumentationLeakDetector {
   companion object {
 
     @Deprecated(
-        "This is a no-op as LeakCanary automatically detects tests",
-        replaceWith = ReplaceWith("")
+      "This is a no-op as LeakCanary automatically detects tests",
+      replaceWith = ReplaceWith("")
     )
     fun updateConfig() = Unit
   }

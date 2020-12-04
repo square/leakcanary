@@ -101,14 +101,13 @@ class ConditionalHeapAnalyzer(
   companion object {
     fun defaultConditions(application: Application): List<HeapAnalysisCondition> {
       return listOf(
-          GoodAndroidVersionCondition(),
-          BackgroundCondition(application),
-          MinimumDiskSpaceCondition(application),
-          MinimumMemoryCondition(application),
-          MinimumElapsedSinceStartCondition(),
-          OncePerPeriodCondition(application)
+        GoodAndroidVersionCondition(),
+        BackgroundCondition(application),
+        MinimumDiskSpaceCondition(application),
+        MinimumMemoryCondition(application),
+        MinimumElapsedSinceStartCondition(),
+        OncePerPeriodCondition(application)
       )
     }
   }
-
 }

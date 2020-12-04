@@ -23,7 +23,7 @@ import shark.SharkLog
  * happened recently.
  */
 internal class TvOnRetainInstanceListener(private val application: Application) :
-    OnRetainInstanceListener {
+  OnRetainInstanceListener {
 
   private val handler = Handler(Looper.getMainLooper())
 
@@ -34,9 +34,9 @@ internal class TvOnRetainInstanceListener(private val application: Application) 
       }
       is BelowThreshold -> {
         application.getString(
-            R.string.leak_canary_tv_toast_retained_objects,
-            event.retainedCount,
-            LeakCanary.config.retainedVisibleThreshold
+          R.string.leak_canary_tv_toast_retained_objects,
+          event.retainedCount,
+          LeakCanary.config.retainedVisibleThreshold
         )
       }
       is DumpingDisabled -> {

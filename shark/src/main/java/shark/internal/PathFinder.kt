@@ -178,7 +178,7 @@ internal class PathFinder(
 
     val appliedRefMatchers = referenceMatchers.filter {
       (it is IgnoredReferenceMatcher || (it is LibraryLeakReferenceMatcher && it.patternApplies(
-          graph
+        graph
       )))
     }
 
@@ -231,11 +231,11 @@ internal class PathFinder(
     val estimatedVisitedObjects = (graph.instanceCount / 2).coerceAtLeast(4)
 
     val state = State(
-        leakingObjectIds = leakingObjectIds.toLongScatterSet(),
-        sizeOfObjectInstances = sizeOfObjectInstances,
-        computeRetainedHeapSize = computeRetainedHeapSize,
-        javaLangObjectId = javaLangObjectId,
-        estimatedVisitedObjects = estimatedVisitedObjects
+      leakingObjectIds = leakingObjectIds.toLongScatterSet(),
+      sizeOfObjectInstances = sizeOfObjectInstances,
+      computeRetainedHeapSize = computeRetainedHeapSize,
+      javaLangObjectId = javaLangObjectId,
+      estimatedVisitedObjects = estimatedVisitedObjects
     )
 
     return state.findPathsFromGcRoots()
@@ -295,8 +295,8 @@ internal class PathFinder(
       }
     }
     return PathFindingResults(
-        shortestPathsToLeakingObjects,
-        if (visitTracker is Dominated) visitTracker.dominatorTree else null
+      shortestPathsToLeakingObjects,
+      if (visitTracker is Dominated) visitTracker.dominatorTree else null
     )
   }
 
@@ -349,18 +349,18 @@ internal class PathFinder(
 
               val childNode = if (referenceMatcher is LibraryLeakReferenceMatcher) {
                 LibraryLeakChildNode(
-                    objectId = gcRoot.id,
-                    parent = rootNode,
-                    refFromParentType = refFromParentType,
-                    refFromParentName = refFromParentName,
-                    matcher = referenceMatcher
+                  objectId = gcRoot.id,
+                  parent = rootNode,
+                  refFromParentType = refFromParentType,
+                  refFromParentName = refFromParentName,
+                  matcher = referenceMatcher
                 )
               } else {
                 NormalNode(
-                    objectId = gcRoot.id,
-                    parent = rootNode,
-                    refFromParentType = refFromParentType,
-                    refFromParentName = refFromParentName
+                  objectId = gcRoot.id,
+                  parent = rootNode,
+                  refFromParentType = refFromParentType,
+                  refFromParentName = refFromParentName
                 )
               }
               enqueue(childNode)
@@ -412,21 +412,21 @@ internal class PathFinder(
     }
 
     return graph.gcRoots
-        .filter { gcRoot ->
-          // GC roots sometimes reference objects that don't exist in the heap dump
-          // See https://github.com/square/leakcanary/issues/1516
-          graph.objectExists(gcRoot.id)
+      .filter { gcRoot ->
+        // GC roots sometimes reference objects that don't exist in the heap dump
+        // See https://github.com/square/leakcanary/issues/1516
+        graph.objectExists(gcRoot.id)
+      }
+      .map { graph.findObjectById(it.id) to it }
+      .sortedWith(Comparator { (graphObject1, root1), (graphObject2, root2) ->
+        // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
+        val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
+        if (gcRootTypeComparison != 0) {
+          gcRootTypeComparison
+        } else {
+          rootClassName(graphObject1).compareTo(rootClassName(graphObject2))
         }
-        .map { graph.findObjectById(it.id) to it }
-        .sortedWith(Comparator { (graphObject1, root1), (graphObject2, root2) ->
-          // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
-          val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
-          if (gcRootTypeComparison != 0) {
-            gcRootTypeComparison
-          } else {
-            rootClassName(graphObject1).compareTo(rootClassName(graphObject2))
-          }
-        })
+      })
   }
 
   private fun State.visitClassRecord(
@@ -451,17 +451,17 @@ internal class PathFinder(
 
       val node = when (val referenceMatcher = ignoredStaticFields[fieldName]) {
         null -> NormalNode(
-            objectId = objectId,
-            parent = parent,
-            refFromParentType = STATIC_FIELD,
-            refFromParentName = fieldName
+          objectId = objectId,
+          parent = parent,
+          refFromParentType = STATIC_FIELD,
+          refFromParentName = fieldName
         )
         is LibraryLeakReferenceMatcher -> LibraryLeakChildNode(
-            objectId = objectId,
-            parent = parent,
-            refFromParentType = STATIC_FIELD,
-            refFromParentName = fieldName,
-            matcher = referenceMatcher
+          objectId = objectId,
+          parent = parent,
+          refFromParentType = STATIC_FIELD,
+          refFromParentName = fieldName,
+          matcher = referenceMatcher
         )
         is IgnoredReferenceMatcher -> null
       }
@@ -497,20 +497,20 @@ internal class PathFinder(
     fieldNamesAndValues.forEach { instanceRefField ->
       val node = when (val referenceMatcher = fieldReferenceMatchers[instanceRefField.fieldName]) {
         null -> NormalNode(
+          objectId = instanceRefField.refObjectId,
+          parent = parent,
+          refFromParentType = INSTANCE_FIELD,
+          refFromParentName = instanceRefField.fieldName,
+          owningClassId = instanceRefField.declaringClassId
+        )
+        is LibraryLeakReferenceMatcher ->
+          LibraryLeakChildNode(
             objectId = instanceRefField.refObjectId,
             parent = parent,
             refFromParentType = INSTANCE_FIELD,
             refFromParentName = instanceRefField.fieldName,
+            matcher = referenceMatcher,
             owningClassId = instanceRefField.declaringClassId
-        )
-        is LibraryLeakReferenceMatcher ->
-          LibraryLeakChildNode(
-              objectId = instanceRefField.refObjectId,
-              parent = parent,
-              refFromParentType = INSTANCE_FIELD,
-              refFromParentName = instanceRefField.fieldName,
-              matcher = referenceMatcher,
-              owningClassId = instanceRefField.declaringClassId
           )
         is IgnoredReferenceMatcher -> null
       }
@@ -554,9 +554,9 @@ internal class PathFinder(
           val objectId = fieldReader.readId()
           if (objectId != 0L) {
             result.add(
-                InstanceRefField(
-                    heapClass.objectId, objectId, heapClass.instanceFieldName(fieldRecord)
-                )
+              InstanceRefField(
+                heapClass.objectId, objectId, heapClass.instanceFieldName(fieldRecord)
+              )
             )
           }
         }
@@ -611,12 +611,12 @@ internal class PathFinder(
     nonNullElementIds.forEachIndexed { index, elementId ->
       val name = index.toString()
       enqueue(
-          NormalNode(
-              objectId = elementId,
-              parent = parent,
-              refFromParentType = ARRAY_ENTRY,
-              refFromParentName = name
-          )
+        NormalNode(
+          objectId = elementId,
+          parent = parent,
+          refFromParentType = ARRAY_ENTRY,
+          refFromParentName = name
+        )
       )
     }
   }
@@ -631,11 +631,11 @@ internal class PathFinder(
 
     val visitLast =
       visitingLast ||
-          node is LibraryLeakNode ||
-          // We deprioritize thread objects because on Lollipop the thread local values are stored
-          // as a field.
-          (node is RootNode && node.gcRoot is ThreadObject) ||
-          (node is NormalNode && node.parent is RootNode && node.parent.gcRoot is JavaFrame)
+        node is LibraryLeakNode ||
+        // We deprioritize thread objects because on Lollipop the thread local values are stored
+        // as a field.
+        (node is RootNode && node.gcRoot is ThreadObject) ||
+        (node is NormalNode && node.parent is RootNode && node.parent.gcRoot is JavaFrame)
 
     val parentObjectId = if (node is RootNode) {
       ValueHolder.NULL_REFERENCE
@@ -721,14 +721,14 @@ internal class PathFinder(
 }
 
 private val skippablePrimitiveWrapperArrayTypes = setOf(
-    Boolean::class,
-    Char::class,
-    Float::class,
-    Double::class,
-    Byte::class,
-    Short::class,
-    Int::class,
-    Long::class
+  Boolean::class,
+  Char::class,
+  Float::class,
+  Double::class,
+  Byte::class,
+  Short::class,
+  Int::class,
+  Long::class
 ).map { it.javaObjectType.name + "[]" }
 
 internal val HeapObjectArray.isSkippablePrimitiveWrapperArray: Boolean

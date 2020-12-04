@@ -89,14 +89,14 @@ class HprofRetainedHeapPerfTest {
     val baselineHeap = runInThread(ANALYSIS_THREAD) {
       val baselineHeap = dumpHeap("baseline")
       heapAnalyzer.analyze(
-          heapDumpFile = hprofFile,
-          leakingObjectFinder = FilteringLeakingObjectFinder(
-              AndroidObjectInspectors.appLeakingObjectFilters
-          ),
-          referenceMatchers = matchers,
-          objectInspectors = AndroidObjectInspectors.appDefaults,
-          metadataExtractor = AndroidMetadataExtractor,
-          computeRetainedHeapSize = true
+        heapDumpFile = hprofFile,
+        leakingObjectFinder = FilteringLeakingObjectFinder(
+          AndroidObjectInspectors.appLeakingObjectFilters
+        ),
+        referenceMatchers = matchers,
+        objectInspectors = AndroidObjectInspectors.appDefaults,
+        metadataExtractor = AndroidMetadataExtractor,
+        computeRetainedHeapSize = true
       ).apply {
         check(this is HeapAnalysisSuccess) {
           "Expected success not $this"
@@ -123,8 +123,8 @@ class HprofRetainedHeapPerfTest {
 
   private fun indexRecordsOf(hprofFile: File): HprofIndex {
     return HprofIndex.indexRecordsOf(
-        hprofSourceProvider = FileSourceProvider(hprofFile),
-        hprofHeader = HprofHeader.parseHeaderOf(hprofFile)
+      hprofSourceProvider = FileSourceProvider(hprofFile),
+      hprofHeader = HprofHeader.parseHeaderOf(hprofFile)
     )
   }
 
@@ -186,21 +186,21 @@ class HprofRetainedHeapPerfTest {
 
     val (analysis, dominatorTree) = openHeapGraph().use { graph ->
       val analysis = heapAnalyzer.analyze(
-          heapDumpFile = this,
-          graph = graph,
-          referenceMatchers = buildKnownReferences(
-              EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
-          ),
-          leakingObjectFinder = LeakingObjectFinder { graph ->
-            setOf(graph.gcRoots.first { gcRoot ->
-              gcRoot is ThreadObject &&
-                  graph.objectExists(gcRoot.id) &&
-                  graph.findObjectById(gcRoot.id)
-                      .asInstance!!["java.lang.Thread", "name"]!!
-                      .value.readAsJavaString() == threadName
-            }.id)
-          },
-          computeRetainedHeapSize = true
+        heapDumpFile = this,
+        graph = graph,
+        referenceMatchers = buildKnownReferences(
+          EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
+        ),
+        leakingObjectFinder = LeakingObjectFinder { graph ->
+          setOf(graph.gcRoots.first { gcRoot ->
+            gcRoot is ThreadObject &&
+              graph.objectExists(gcRoot.id) &&
+              graph.findObjectById(gcRoot.id)
+                .asInstance!!["java.lang.Thread", "name"]!!
+                .value.readAsJavaString() == threadName
+          }.id)
+        },
+        computeRetainedHeapSize = true
       )
       check(analysis is HeapAnalysisSuccess) {
         "Expected success not $analysis"
@@ -212,7 +212,7 @@ class HprofRetainedHeapPerfTest {
           matcher as IgnoredReferenceMatcher
         }
         ObjectDominators().renderDominatorTree(
-            graph, ignoredRefs, 200, threadName, true
+          graph, ignoredRefs, 200, threadName, true
         )
       } else ""
       analysis to dominatorTree
@@ -225,7 +225,7 @@ class HprofRetainedHeapPerfTest {
     bytes: Bytes,
     description: String
   ) : AbstractIntegerAssert<BytesAssert>(
-      bytes.count, BytesAssert::class.java
+    bytes.count, BytesAssert::class.java
   ) {
 
     init {
@@ -235,8 +235,8 @@ class HprofRetainedHeapPerfTest {
     fun isEqualTo(expected: BytesWithError): BytesAssert {
       val errorPercentage = expected.error.percentage.absoluteValue
       return isBetween(
-          (expected.count * (1 - errorPercentage)).toInt(),
-          (expected.count * (1 + errorPercentage)).toInt()
+        (expected.count * (1 - errorPercentage)).toInt(),
+        (expected.count * (1 + errorPercentage)).toInt()
       )
     }
   }
@@ -271,5 +271,4 @@ class HprofRetainedHeapPerfTest {
     BytesWithError(this * 1_000_000, error)
 
   operator fun Int.rem(ignored: Margin): ErrorPercentage = ErrorPercentage(this / 100.0)
-
 }

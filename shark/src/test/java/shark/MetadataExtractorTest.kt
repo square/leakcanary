@@ -22,8 +22,8 @@ class MetadataExtractorTest {
     hprofFile.dump {
       val helloString = string("Hello")
       clazz(
-          "World", staticFields = listOf(
-          "message" to helloString
+        "World", staticFields = listOf(
+        "message" to helloString
       )
       )
     }

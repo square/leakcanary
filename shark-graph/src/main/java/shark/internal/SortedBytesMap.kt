@@ -45,10 +45,10 @@ internal class SortedBytesMap(
 
   fun entrySequence(): Sequence<LongObjectPair<ByteSubArray>> {
     return (0 until size).asSequence()
-        .map { keyIndex ->
-          val valueIndex = keyIndex * bytesPerEntry + bytesPerKey
-          keyAt(keyIndex) to ByteSubArray(sortedEntries, valueIndex, bytesPerValue, longIdentifiers)
-        }
+      .map { keyIndex ->
+        val valueIndex = keyIndex * bytesPerEntry + bytesPerKey
+        keyAt(keyIndex) to ByteSubArray(sortedEntries, valueIndex, bytesPerValue, longIdentifiers)
+      }
   }
 
   private fun binarySearch(

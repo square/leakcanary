@@ -70,15 +70,15 @@ class HprofWriter private constructor(
 ) : Closeable {
 
   @Deprecated(
-      "Replaced by HprofWriter.hprofHeader.identifierByteSize",
-      ReplaceWith("hprofHeader.identifierByteSize")
+    "Replaced by HprofWriter.hprofHeader.identifierByteSize",
+    ReplaceWith("hprofHeader.identifierByteSize")
   )
   val identifierByteSize: Int
     get() = hprofHeader.identifierByteSize
 
   @Deprecated(
-      "Replaced by HprofWriter.hprofHeader.version",
-      ReplaceWith("hprofHeader.version")
+    "Replaced by HprofWriter.hprofHeader.version",
+    ReplaceWith("hprofHeader.version")
   )
   val hprofVersion: Hprof.HprofVersion
     get() = Hprof.HprofVersion.valueOf(hprofHeader.version.name)
@@ -163,7 +163,7 @@ class HprofWriter private constructor(
             }
             is JniGlobal -> {
               writeByte(
-                  HprofRecordTag.ROOT_JNI_GLOBAL.tag
+                HprofRecordTag.ROOT_JNI_GLOBAL.tag
               )
               writeId(gcRoot.id)
               writeId(gcRoot.jniGlobalRefId)
@@ -453,21 +453,21 @@ class HprofWriter private constructor(
     }
 
     @Deprecated(
-        "Replaced by HprofWriter.openWriterFor()",
-        ReplaceWith(
-            "shark.HprofWriter.openWriterFor(hprofFile)"
-        )
+      "Replaced by HprofWriter.openWriterFor()",
+      ReplaceWith(
+        "shark.HprofWriter.openWriterFor(hprofFile)"
+      )
     )
     fun open(
       hprofFile: File,
       identifierByteSize: Int = 4,
       hprofVersion: Hprof.HprofVersion = Hprof.HprofVersion.ANDROID
     ): HprofWriter = openWriterFor(
-        hprofFile,
-        HprofHeader(
-            version = HprofVersion.valueOf(hprofVersion.name),
-            identifierByteSize = identifierByteSize
-        )
+      hprofFile,
+      HprofHeader(
+        version = HprofVersion.valueOf(hprofVersion.name),
+        identifierByteSize = identifierByteSize
+      )
     )
   }
 }

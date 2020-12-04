@@ -15,7 +15,7 @@ object Benchmark {
    * First execution of [block] is done to warm up code and load any necessary libs. Second
    * execution is measured with [runWithMethodTracing]
    */
-  fun <T> benchmarkWithMethodTracing(block:() -> T): T {
+  fun <T> benchmarkWithMethodTracing(block: () -> T): T {
     SharkLog.d { "Dry run to warm up the code." }
     block()
     SharkLog.d { "Run with sampling" }
@@ -29,7 +29,10 @@ object Benchmark {
    * [times] executions are measured. Results of measurement will be outputted to LogCat at each
    * iteration and in the end of measurement.
    */
-  fun <T> benchmarkCode(times: Int = 10, block:() -> T): T {
+  fun <T> benchmarkCode(
+    times: Int = 10,
+    block: () -> T
+  ): T {
     // Warm-up run, no benchmarking
     val result = block()
     val measurements = mutableListOf<Long>()
@@ -37,7 +40,7 @@ object Benchmark {
       val start = SystemClock.uptimeMillis()
       block()
       val end = SystemClock.uptimeMillis()
-      SharkLog.d { "BenchmarkCode, iteration ${it + 1}/$times, duration ${end-start}" }
+      SharkLog.d { "BenchmarkCode, iteration ${it + 1}/$times, duration ${end - start}" }
       measurements.add(end - start)
     }
     measurements.sort()
@@ -46,8 +49,10 @@ object Benchmark {
     } else {
       measurements[times / 2].toDouble()
     }
-    SharkLog.d { "BenchmarkCode complete, $times iterations. Durations (ms): median $median, " +
-        "min ${measurements.first()}, max ${measurements.last()}" }
+    SharkLog.d {
+      "BenchmarkCode complete, $times iterations. Durations (ms): median $median, " +
+        "min ${measurements.first()}, max ${measurements.last()}"
+    }
     return result
   }
 }

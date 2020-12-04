@@ -5,7 +5,7 @@ package shark
  * and delegating the decision to a list of [FilteringLeakingObjectFinder.LeakingObjectFilter]
  */
 class FilteringLeakingObjectFinder(private val filters: List<LeakingObjectFilter>) :
-    LeakingObjectFinder {
+  LeakingObjectFinder {
 
   /**
    * Filter to be passed to the [FilteringLeakingObjectFinder] constructor.
@@ -20,12 +20,12 @@ class FilteringLeakingObjectFinder(private val filters: List<LeakingObjectFilter
 
   override fun findLeakingObjectIds(graph: HeapGraph): Set<Long> {
     return graph.objects
-        .filter { heapObject ->
-          filters.any { filter ->
-            filter.isLeakingObject(heapObject)
-          }
+      .filter { heapObject ->
+        filters.any { filter ->
+          filter.isLeakingObject(heapObject)
         }
-        .map { it.objectId }
-        .toSet()
+      }
+      .map { it.objectId }
+      .toSet()
   }
 }

@@ -10,7 +10,7 @@ import org.junit.runner.notification.RunListener
  *
  * @see FailTestOnLeak
  */
-class FailAnnotatedTestOnLeakRunListener: FailTestOnLeakRunListener() {
+class FailAnnotatedTestOnLeakRunListener : FailTestOnLeakRunListener() {
 
   override fun skipLeakDetectionReason(description: Description) =
     if (description.getAnnotation(FailTestOnLeak::class.java) != null) {

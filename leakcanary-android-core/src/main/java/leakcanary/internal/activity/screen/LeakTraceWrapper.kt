@@ -64,10 +64,10 @@ internal object LeakTraceWrapper {
   ): List<String> {
 
     val twoCharPrefixes = mapOf(
-        "├─" to "│ ",
-        "│ " to "│ ",
-        "╰→" to "$ZERO_SPACE_WIDTH ",
-        "$ZERO_SPACE_WIDTH " to "$ZERO_SPACE_WIDTH "
+      "├─" to "│ ",
+      "│ " to "│ ",
+      "╰→" to "$ZERO_SPACE_WIDTH ",
+      "$ZERO_SPACE_WIDTH " to "$ZERO_SPACE_WIDTH "
     )
 
     val twoCharPrefix = currentLine.substring(0, 2)

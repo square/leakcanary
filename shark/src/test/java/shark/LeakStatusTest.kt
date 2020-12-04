@@ -27,13 +27,13 @@ class LeakStatusTest {
     hprofFile.writeSinglePathToInstance()
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        objectInspectors = listOf(ObjectInspectors.CLASS)
+      objectInspectors = listOf(ObjectInspectors.CLASS)
     )
 
     val leak = analysis.applicationLeaks[0]
 
     assertThat(leak.leakTraces.first().referencePath.first().originObject.leakingStatus).isEqualTo(
-        NOT_LEAKING
+      NOT_LEAKING
     )
   }
 
@@ -82,7 +82,7 @@ class LeakStatusTest {
     }
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        objectInspectors = listOf(notLeakingInstance("Class1"))
+      objectInspectors = listOf(notLeakingInstance("Class1"))
     )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
@@ -100,12 +100,12 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(leakingInstance("Class1"))
+        objectInspectors = listOf(leakingInstance("Class1"))
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
-        "Class1 is leaking"
+      "Class1 is leaking"
     )
   }
 
@@ -120,7 +120,7 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(leakingInstance("Class1"))
+        objectInspectors = listOf(leakingInstance("Class1"))
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
@@ -142,7 +142,7 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(notLeakingInstance("Class3"))
+        objectInspectors = listOf(notLeakingInstance("Class3"))
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
@@ -164,14 +164,14 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(leakingInstance("Class1"))
+        objectInspectors = listOf(leakingInstance("Class1"))
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.referencePath).hasSize(4)
     assertThat(leakTrace.referencePath[2].originObject.leakingStatus).isEqualTo(LEAKING)
     assertThat(leakTrace.referencePath[2].originObject.leakingStatusReason).isEqualTo(
-        "Class1↑ is leaking"
+      "Class1↑ is leaking"
     )
   }
 
@@ -190,9 +190,9 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(
-              notLeakingInstance("Class1"), leakingInstance("Class3")
-          )
+        objectInspectors = listOf(
+          notLeakingInstance("Class1"), leakingInstance("Class3")
+        )
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
@@ -204,14 +204,14 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(leakingClass("GcRoot"), ObjectInspectors.CLASS)
+        objectInspectors = listOf(leakingClass("GcRoot"), ObjectInspectors.CLASS)
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
 
     assertThat(leakTrace.referencePath.first().originObject.leakingStatus).isEqualTo(NOT_LEAKING)
     assertThat(leakTrace.referencePath.first().originObject.leakingStatusReason).isEqualTo(
-        "a class is never leaking. Conflicts with GcRoot is leaking"
+      "a class is never leaking. Conflicts with GcRoot is leaking"
     )
   }
 
@@ -220,7 +220,7 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(notLeakingClass("GcRoot"), ObjectInspectors.CLASS)
+        objectInspectors = listOf(notLeakingClass("GcRoot"), ObjectInspectors.CLASS)
       )
 
     println(analysis)
@@ -229,7 +229,7 @@ class LeakStatusTest {
 
     assertThat(leakTrace.referencePath.first().originObject.leakingStatus).isEqualTo(NOT_LEAKING)
     assertThat(leakTrace.referencePath.first().originObject.leakingStatusReason).isEqualTo(
-        "GcRoot is not leaking and a class is never leaking"
+      "GcRoot is not leaking and a class is never leaking"
     )
   }
 
@@ -237,14 +237,14 @@ class LeakStatusTest {
     hprofFile.writeSinglePathToInstance()
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(notLeakingInstance("Leaking"))
+        objectInspectors = listOf(notLeakingInstance("Leaking"))
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.leakingObject.leakingStatus).isEqualTo(LEAKING)
     assertThat(leakTrace.leakingObject.leakingStatusReason).isEqualTo(
-        "ObjectWatcher was watching this because its lifecycle has ended. " +
-            "Conflicts with Leaking is not leaking"
+      "ObjectWatcher was watching this because its lifecycle has ended. " +
+        "Conflicts with Leaking is not leaking"
     )
   }
 
@@ -252,13 +252,13 @@ class LeakStatusTest {
     hprofFile.writeSinglePathToInstance()
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(leakingInstance("Leaking"))
+        objectInspectors = listOf(leakingInstance("Leaking"))
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.leakingObject.leakingStatus).isEqualTo(LEAKING)
     assertThat(leakTrace.leakingObject.leakingStatusReason).isEqualTo(
-        "Leaking is leaking and ObjectWatcher was watching this because its lifecycle has ended"
+      "Leaking is leaking and ObjectWatcher was watching this because its lifecycle has ended"
     )
   }
 
@@ -273,9 +273,9 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(
-              notLeakingInstance("Class1"), leakingInstance("Class1")
-          )
+        objectInspectors = listOf(
+          notLeakingInstance("Class1"), leakingInstance("Class1")
+        )
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
@@ -284,7 +284,7 @@ class LeakStatusTest {
 
     assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(NOT_LEAKING)
     assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
-        "Class1 is not leaking. Conflicts with Class1 is leaking"
+      "Class1 is not leaking. Conflicts with Class1 is leaking"
     )
   }
 
@@ -299,15 +299,15 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(
-              notLeakingInstance("Class1"), notLeakingInstance("Class1")
-          )
+        objectInspectors = listOf(
+          notLeakingInstance("Class1"), notLeakingInstance("Class1")
+        )
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(NOT_LEAKING)
     assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
-        "Class1 is not leaking"
+      "Class1 is not leaking"
     )
   }
 
@@ -322,13 +322,13 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(leakingInstance("Class1"), leakingInstance("Class1"))
+        objectInspectors = listOf(leakingInstance("Class1"), leakingInstance("Class1"))
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(LEAKING)
     assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
-        "Class1 is leaking"
+      "Class1 is leaking"
     )
   }
 
@@ -347,14 +347,14 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(notLeakingInstance("Class3"))
+        objectInspectors = listOf(notLeakingInstance("Class3"))
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.referencePath[1].originObject.className).isEqualTo("Class1")
     assertThat(leakTrace.referencePath[1].originObject.leakingStatus).isEqualTo(NOT_LEAKING)
     assertThat(leakTrace.referencePath[1].originObject.leakingStatusReason).isEqualTo(
-        "Class3↓ is not leaking"
+      "Class3↓ is not leaking"
     )
   }
 
@@ -373,14 +373,14 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(leakingInstance("Class1"))
+        objectInspectors = listOf(leakingInstance("Class1"))
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.referencePath[3].originObject.className).isEqualTo("Class3")
     assertThat(leakTrace.referencePath[3].originObject.leakingStatus).isEqualTo(LEAKING)
     assertThat(leakTrace.referencePath[3].originObject.leakingStatusReason).isEqualTo(
-        "Class1↑ is leaking"
+      "Class1↑ is leaking"
     )
   }
 
@@ -399,9 +399,9 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(
-              notLeakingInstance("Class1"), leakingInstance("Class3")
-          )
+        objectInspectors = listOf(
+          notLeakingInstance("Class1"), leakingInstance("Class3")
+        )
       )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
@@ -511,7 +511,7 @@ class LeakStatusTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(notLeakingInstance("Class1"), leakingInstance("Class3"))
+        objectInspectors = listOf(notLeakingInstance("Class1"), leakingInstance("Class3"))
       )
 
     assertThat(analysis.applicationLeaks).hasSize(1)
@@ -576,7 +576,7 @@ class LeakStatusTest {
   ): String {
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(notLeakingInstance(notLeaking), leakingInstance(leaking))
+        objectInspectors = listOf(notLeakingInstance(notLeaking), leakingInstance(leaking))
       )
     require(analysis.applicationLeaks.size == 1) {
       "Expecting 1 retained instance in ${analysis.applicationLeaks}"

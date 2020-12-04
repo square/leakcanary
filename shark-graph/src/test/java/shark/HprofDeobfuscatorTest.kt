@@ -59,9 +59,9 @@ class HprofDeobfuscatorTest {
       val fooClass = graph.findClassByName("Foo")!!
 
       assertThat(
-          fooClass.readStaticFields()
-              .map { it.name }
-              .toList()
+        fooClass.readStaticFields()
+          .map { it.name }
+          .toList()
       ).contains("staticField")
     }
   }
@@ -76,8 +76,8 @@ class HprofDeobfuscatorTest {
 
     hprofFile.dump {
       val classId = clazz(
-          className = "a",
-          fields = listOf("b" to IntHolder::class)
+        className = "a",
+        fields = listOf("b" to IntHolder::class)
       )
       instance(classId, listOf(IntHolder(0)))
     }
@@ -91,9 +91,9 @@ class HprofDeobfuscatorTest {
       }!!
 
       assertThat(
-          instance.readFields()
-              .map { it.name }
-              .toList()
+        instance.readFields()
+          .map { it.name }
+          .toList()
       ).contains("instanceField")
     }
   }
@@ -110,8 +110,8 @@ class HprofDeobfuscatorTest {
       val classNameRecord = stringRecord("a")
 
       val classId = clazz(
-          classNameRecord = classNameRecord,
-          fields = listOf(classNameRecord.id to IntHolder::class)
+        classNameRecord = classNameRecord,
+        fields = listOf(classNameRecord.id to IntHolder::class)
       )
       instance(classId, listOf(IntHolder(0)))
     }
@@ -125,9 +125,9 @@ class HprofDeobfuscatorTest {
       }!!
 
       assertThat(
-          instance.readFields()
-              .map { it.name }
-              .toList()
+        instance.readFields()
+          .map { it.name }
+          .toList()
       ).contains("instanceField")
     }
   }
@@ -144,8 +144,8 @@ class HprofDeobfuscatorTest {
       val classNameRecord = stringRecord("a")
 
       clazz(
-          classNameRecord = classNameRecord,
-          staticFields = listOf(classNameRecord.id to IntHolder(42))
+        classNameRecord = classNameRecord,
+        staticFields = listOf(classNameRecord.id to IntHolder(42))
       )
     }
 
@@ -156,9 +156,9 @@ class HprofDeobfuscatorTest {
       val fooClass = graph.findClassByName("Foo")!!
 
       assertThat(
-          fooClass.readStaticFields()
-              .map { it.name }
-              .toList()
+        fooClass.readStaticFields()
+          .map { it.name }
+          .toList()
       ).contains("staticField")
     }
   }
@@ -180,14 +180,14 @@ class HprofDeobfuscatorTest {
       val fieldNameRecord = stringRecord("c")
 
       val fooClassId = clazz(
-          classNameRecord = fooClassNameRecord,
-          fields = listOf(fieldNameRecord.id to IntHolder::class)
+        classNameRecord = fooClassNameRecord,
+        fields = listOf(fieldNameRecord.id to IntHolder::class)
       )
       instance(fooClassId, listOf(IntHolder(0)))
 
       val barClassId = clazz(
-          classNameRecord = barClassNameRecord,
-          fields = listOf(fieldNameRecord.id to IntHolder::class)
+        classNameRecord = barClassNameRecord,
+        fields = listOf(fieldNameRecord.id to IntHolder::class)
       )
       instance(barClassId, listOf(IntHolder(0)))
     }
@@ -201,9 +201,9 @@ class HprofDeobfuscatorTest {
       }!!
 
       assertThat(
-          fooInstance.readFields()
-              .map { it.name }
-              .toList()
+        fooInstance.readFields()
+          .map { it.name }
+          .toList()
       ).contains("instanceField1")
 
       val barInstance = graph.instances.find { heapInstance ->
@@ -211,17 +211,17 @@ class HprofDeobfuscatorTest {
       }!!
 
       assertThat(
-          barInstance.readFields()
-              .map { it.name }
-              .toList()
+        barInstance.readFields()
+          .map { it.name }
+          .toList()
       ).contains("instanceField2")
     }
   }
 
   private fun File.readHprof(block: (HeapGraph) -> Unit) {
     Hprof.open(this)
-        .use { hprof ->
-          block(HprofHeapGraph.indexHprof(hprof))
-        }
+      .use { hprof ->
+        block(HprofHeapGraph.indexHprof(hprof))
+      }
   }
 }

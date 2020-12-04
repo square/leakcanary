@@ -10,7 +10,7 @@ class LongScatterSetTest {
 
   @Test fun `new set is empty`() {
     assertThat(LongScatterSet())
-        .isEmpty()
+      .isEmpty()
   }
 
   @Test fun `LongScatterSet#add() adds elements`() {
@@ -19,7 +19,7 @@ class LongScatterSetTest {
     TEST_VALUES_LIST.forEach { set.add(it) }
 
     assertThat(set)
-        .containsExactly(TEST_VALUES_LIST)
+      .containsExactly(TEST_VALUES_LIST)
   }
 
   @Test fun `+= operator works as addition`() {
@@ -28,7 +28,7 @@ class LongScatterSetTest {
     set += TEST_VALUE
 
     assertThat(set)
-        .containsExactly(TEST_VALUE)
+      .containsExactly(TEST_VALUE)
   }
 
   @Test fun `when adding element twice, it is only added once`() {
@@ -38,7 +38,7 @@ class LongScatterSetTest {
     set.add(TEST_VALUE)
 
     assertThat(set)
-        .containsExactly(TEST_VALUE)
+      .containsExactly(TEST_VALUE)
   }
 
   /**
@@ -50,7 +50,7 @@ class LongScatterSetTest {
    */
   @Test fun `11 and 14_723_950_898 have same hash`() {
     Assertions.assertThat(mixPhi(11))
-        .isEqualTo(mixPhi(14_723_950_898))
+      .isEqualTo(mixPhi(14_723_950_898))
   }
 
   @Test fun `elements with equal hash can be added`() {
@@ -60,7 +60,7 @@ class LongScatterSetTest {
     set.add(SAME_MIX_PHI_2)
 
     assertThat(set)
-        .containsExactly(listOf(SAME_MIX_PHI_1, SAME_MIX_PHI_2))
+      .containsExactly(listOf(SAME_MIX_PHI_1, SAME_MIX_PHI_2))
   }
 
   @Test fun `LongScatterSet#remove() removes elements`() {
@@ -70,7 +70,7 @@ class LongScatterSetTest {
     TEST_VALUES_LIST.forEach { set.remove(it) }
 
     assertThat(set)
-        .isEmpty()
+      .isEmpty()
   }
 
   @Test fun `removing from empty set`() {
@@ -79,7 +79,7 @@ class LongScatterSetTest {
     set.remove(TEST_VALUE)
 
     assertThat(set)
-        .isEmpty()
+      .isEmpty()
   }
 
   @Test fun `elements with equal hash can be removed`() {
@@ -90,7 +90,7 @@ class LongScatterSetTest {
     set.remove(SAME_MIX_PHI_2)
 
     assertThat(set)
-        .containsExactly(SAME_MIX_PHI_1)
+      .containsExactly(SAME_MIX_PHI_1)
   }
 
   @Test fun `LongScatterSet#release() empties set`() {
@@ -100,7 +100,7 @@ class LongScatterSetTest {
     set.release()
 
     assertThat(set)
-        .isEmpty()
+      .isEmpty()
   }
 
   /**
@@ -114,7 +114,7 @@ class LongScatterSetTest {
     set.ensureCapacity(TEST_CAPACITY)
 
     assertThat(set)
-        .containsExactly(TEST_VALUE)
+      .containsExactly(TEST_VALUE)
   }
 
   @Test fun `adding a lot of elements causes resizing`() {
@@ -122,7 +122,7 @@ class LongScatterSetTest {
     (1..100L).forEach { set.add(it) }
 
     assertThat(set)
-        .containsExactly((1..100L).toList())
+      .containsExactly((1..100L).toList())
   }
 
   companion object {

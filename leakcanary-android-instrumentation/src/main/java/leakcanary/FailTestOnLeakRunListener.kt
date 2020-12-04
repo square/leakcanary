@@ -160,15 +160,17 @@ open class FailTestOnLeakRunListener : RunListener() {
     when (heapAnalysis) {
       is HeapAnalysisFailure -> {
         failTest(
-            "$currentTestDescription failed because heap analysis failed:\n" + Log.getStackTraceString(
-                heapAnalysis.exception
-            )
+          "$currentTestDescription failed because heap analysis failed:\n" + Log.getStackTraceString(
+            heapAnalysis.exception
+          )
         )
       }
       is HeapAnalysisSuccess -> {
         val applicationLeaks = heapAnalysis.applicationLeaks
         if (applicationLeaks.isNotEmpty()) {
-          failTest("$currentTestDescription failed because application memory leaks were detected:\n$heapAnalysis")
+          failTest(
+            "$currentTestDescription failed because application memory leaks were detected:\n$heapAnalysis"
+          )
         } else {
           SharkLog.d { "Heap analysis found 0 application leaks:\n$heapAnalysis" }
         }
@@ -190,7 +192,7 @@ open class FailTestOnLeakRunListener : RunListener() {
       // no op
     }
     return Proxy.newProxyInstance(
-        javaClass.classLoader, arrayOf(javaClass), noOpHandler
+      javaClass.classLoader, arrayOf(javaClass), noOpHandler
     ) as T
   }
 }

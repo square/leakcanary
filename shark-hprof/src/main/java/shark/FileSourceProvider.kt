@@ -6,7 +6,7 @@ import okio.Okio
 import okio.Source
 import java.io.File
 
-class FileSourceProvider(private val file: File): DualSourceProvider {
+class FileSourceProvider(private val file: File) : DualSourceProvider {
   override fun openStreamingSource(): BufferedSource = Okio.buffer(Okio.source(file.inputStream()))
 
   override fun openRandomAccessSource(): RandomAccessSource {

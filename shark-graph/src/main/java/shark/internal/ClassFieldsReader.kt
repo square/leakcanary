@@ -39,11 +39,11 @@ internal class ClassFieldsReader(
       val type = readUnsignedByte()
       val value = readValue(type)
       staticFields.add(
-          StaticFieldRecord(
-              nameStringId = nameStringId,
-              type = type,
-              value = value
-          )
+        StaticFieldRecord(
+          nameStringId = nameStringId,
+          type = type,
+          value = value
+        )
       )
     }
     return staticFields
@@ -110,25 +110,25 @@ internal class ClassFieldsReader(
 
   private fun readInt(): Int {
     return (classFieldBytes[position++].toInt() and 0xff shl 24) or
-        (classFieldBytes[position++].toInt() and 0xff shl 16) or
-        (classFieldBytes[position++].toInt() and 0xff shl 8) or
-        (classFieldBytes[position++].toInt() and 0xff)
+      (classFieldBytes[position++].toInt() and 0xff shl 16) or
+      (classFieldBytes[position++].toInt() and 0xff shl 8) or
+      (classFieldBytes[position++].toInt() and 0xff)
   }
 
   private fun readLong(): Long {
     return (classFieldBytes[position++].toLong() and 0xff shl 56) or
-        (classFieldBytes[position++].toLong() and 0xff shl 48) or
-        (classFieldBytes[position++].toLong() and 0xff shl 40) or
-        (classFieldBytes[position++].toLong() and 0xff shl 32) or
-        (classFieldBytes[position++].toLong() and 0xff shl 24) or
-        (classFieldBytes[position++].toLong() and 0xff shl 16) or
-        (classFieldBytes[position++].toLong() and 0xff shl 8) or
-        (classFieldBytes[position++].toLong() and 0xff)
+      (classFieldBytes[position++].toLong() and 0xff shl 48) or
+      (classFieldBytes[position++].toLong() and 0xff shl 40) or
+      (classFieldBytes[position++].toLong() and 0xff shl 32) or
+      (classFieldBytes[position++].toLong() and 0xff shl 24) or
+      (classFieldBytes[position++].toLong() and 0xff shl 16) or
+      (classFieldBytes[position++].toLong() and 0xff shl 8) or
+      (classFieldBytes[position++].toLong() and 0xff)
   }
 
   private fun readShort(): Short {
     return ((classFieldBytes[position++].toInt() and 0xff shl 8) or
-        (classFieldBytes[position++].toInt() and 0xff)).toShort()
+      (classFieldBytes[position++].toInt() and 0xff)).toShort()
   }
 
   private fun readUnsignedShort(): Int {
@@ -152,7 +152,7 @@ internal class ClassFieldsReader(
 
   private fun readBoolean(): Boolean {
     return readByte()
-        .toInt() != 0
+      .toInt() != 0
   }
 
   private fun readChar(): Char {

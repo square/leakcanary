@@ -55,10 +55,10 @@ internal object Notifications {
     } else Notification.Builder(context)
 
     builder
-        .setContentText(contentText)
-        .setContentTitle(contentTitle)
-        .setAutoCancel(true)
-        .setContentIntent(pendingIntent)
+      .setContentText(contentText)
+      .setContentTitle(contentTitle)
+      .setAutoCancel(true)
+      .setContentIntent(pendingIntent)
 
     val notification =
       buildNotification(context, builder, type)
@@ -73,7 +73,7 @@ internal object Notifications {
     type: NotificationType
   ): Notification {
     builder.setSmallIcon(R.drawable.leak_canary_leak)
-        .setWhen(System.currentTimeMillis())
+      .setWhen(System.currentTimeMillis())
 
     if (SDK_INT >= O) {
       val notificationManager =

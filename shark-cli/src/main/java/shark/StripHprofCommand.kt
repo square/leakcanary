@@ -5,8 +5,8 @@ import shark.SharkCliCommand.Companion.retrieveHeapDumpFile
 import shark.SharkCliCommand.Companion.sharkCliParams
 
 class StripHprofCommand : CliktCommand(
-    name = "strip-hprof",
-    help = "Replace all primitive arrays from the provided heap dump with arrays of zeroes and generate a new \"-stripped.hprof\" file."
+  name = "strip-hprof",
+  help = "Replace all primitive arrays from the provided heap dump with arrays of zeroes and generate a new \"-stripped.hprof\" file."
 ) {
 
   override fun run() {

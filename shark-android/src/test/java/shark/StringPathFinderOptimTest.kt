@@ -37,16 +37,16 @@ class StringPathFinderOptimTest {
   private fun findStringContent(hprofFile: File): HeapAnalysisSuccess {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = heapAnalyzer.analyze(
-        heapDumpFile = hprofFile,
-        leakingObjectFinder = LeakingObjectFinder { graph ->
-          graph.findClassByName("java.lang.String")!!.instances.map { instance ->
-            instance["java.lang.String", "value"]?.value?.asNonNullObjectId!!
-          }.toSet()
-        },
-        referenceMatchers = AndroidReferenceMatchers.appDefaults,
-        computeRetainedHeapSize = true,
-        objectInspectors = AndroidObjectInspectors.appDefaults,
-        metadataExtractor = AndroidMetadataExtractor
+      heapDumpFile = hprofFile,
+      leakingObjectFinder = LeakingObjectFinder { graph ->
+        graph.findClassByName("java.lang.String")!!.instances.map { instance ->
+          instance["java.lang.String", "value"]?.value?.asNonNullObjectId!!
+        }.toSet()
+      },
+      referenceMatchers = AndroidReferenceMatchers.appDefaults,
+      computeRetainedHeapSize = true,
+      objectInspectors = AndroidObjectInspectors.appDefaults,
+      metadataExtractor = AndroidMetadataExtractor
     )
     println(analysis)
     return analysis as HeapAnalysisSuccess

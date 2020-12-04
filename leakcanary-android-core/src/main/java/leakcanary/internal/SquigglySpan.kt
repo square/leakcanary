@@ -47,15 +47,15 @@ internal class SquigglySpan(context: Context) : ReplacementSpan() {
     squigglyPaint.color = context.getColorCompat(R.color.leak_canary_leak)
     val strokeWidth =
       resources.getDimensionPixelSize(R.dimen.leak_canary_squiggly_span_stroke_width)
-          .toFloat()
+        .toFloat()
     squigglyPaint.strokeWidth = strokeWidth
 
     halfStrokeWidth = strokeWidth / 2
     amplitude = resources.getDimensionPixelSize(R.dimen.leak_canary_squiggly_span_amplitude)
-        .toFloat()
+      .toFloat()
     periodDegrees =
       resources.getDimensionPixelSize(R.dimen.leak_canary_squiggly_span_period_degrees)
-          .toFloat()
+        .toFloat()
     path = Path()
     val waveHeight = 2 * amplitude + strokeWidth
     halfWaveHeight = waveHeight / 2
@@ -70,7 +70,7 @@ internal class SquigglySpan(context: Context) : ReplacementSpan() {
     fm: Paint.FontMetricsInt?
   ): Int {
     width = paint.measureText(text, start, end)
-        .toInt()
+      .toInt()
     return width
   }
 
@@ -86,11 +86,11 @@ internal class SquigglySpan(context: Context) : ReplacementSpan() {
     paint: Paint
   ) {
     squigglyHorizontalPath(
-        path,
-        x + halfStrokeWidth,
-        x + width - halfStrokeWidth,
-        bottom - halfWaveHeight,
-        amplitude, periodDegrees
+      path,
+      x + halfStrokeWidth,
+      x + width - halfStrokeWidth,
+      bottom - halfWaveHeight,
+      amplitude, periodDegrees
     )
     canvas.drawPath(path, squigglyPaint)
 

@@ -7,7 +7,7 @@ import leakcanary.internal.InternalLeakCanary.noOpDelegate
 internal class VisibilityTracker(
   private val listener: (Boolean) -> Unit
 ) :
-    Application.ActivityLifecycleCallbacks by noOpDelegate() {
+  Application.ActivityLifecycleCallbacks by noOpDelegate() {
 
   private var startedActivityCount = 0
 

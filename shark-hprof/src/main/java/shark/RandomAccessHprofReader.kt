@@ -64,7 +64,7 @@ class RandomAccessHprofReader private constructor(
     fun openReaderFor(
       hprofSourceProvider: RandomAccessSourceProvider,
       hprofHeader: HprofHeader = hprofSourceProvider.openRandomAccessSource()
-          .use { HprofHeader.parseHeaderOf(it.asStreamingSource()) }
+        .use { HprofHeader.parseHeaderOf(it.asStreamingSource()) }
     ): RandomAccessHprofReader {
       return RandomAccessHprofReader(hprofSourceProvider.openRandomAccessSource(), hprofHeader)
     }

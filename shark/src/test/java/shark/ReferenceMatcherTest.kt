@@ -29,9 +29,9 @@ class ReferenceMatcherTest {
     hprofFile.writeTwoPathsToInstance()
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        referenceMatchers = listOf(
-            LibraryLeakReferenceMatcher(StaticFieldPattern("GcRoot", "shortestPath"))
-        )
+      referenceMatchers = listOf(
+        LibraryLeakReferenceMatcher(StaticFieldPattern("GcRoot", "shortestPath"))
+      )
     )
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
@@ -48,10 +48,10 @@ class ReferenceMatcherTest {
 
     val expectedMatcher = LibraryLeakReferenceMatcher(StaticFieldPattern("GcRoot", "shortestPath"))
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        referenceMatchers = listOf(
-            expectedMatcher,
-            LibraryLeakReferenceMatcher(InstanceFieldPattern("HasLeaking", "leaking"))
-        )
+      referenceMatchers = listOf(
+        expectedMatcher,
+        LibraryLeakReferenceMatcher(InstanceFieldPattern("HasLeaking", "leaking"))
+      )
     )
 
     val leak = analysis.libraryLeaks[0]
@@ -67,10 +67,10 @@ class ReferenceMatcherTest {
     hprofFile.writeTwoPathsToInstance()
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        referenceMatchers = listOf(
-            IgnoredReferenceMatcher(StaticFieldPattern("GcRoot", "shortestPath")),
-            IgnoredReferenceMatcher(InstanceFieldPattern("HasLeaking", "leaking"))
-        )
+      referenceMatchers = listOf(
+        IgnoredReferenceMatcher(StaticFieldPattern("GcRoot", "shortestPath")),
+        IgnoredReferenceMatcher(InstanceFieldPattern("HasLeaking", "leaking"))
+      )
     )
     assertThat(analysis.libraryLeaks).isEmpty()
   }
@@ -80,7 +80,7 @@ class ReferenceMatcherTest {
 
     val matcher = LibraryLeakReferenceMatcher(JavaLocalPattern("kroutine"))
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        referenceMatchers = listOf(matcher)
+      referenceMatchers = listOf(matcher)
     )
 
     val leak = analysis.libraryLeaks[0]
@@ -96,14 +96,14 @@ class ReferenceMatcherTest {
     }
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        referenceMatchers = listOf(
-            LibraryLeakReferenceMatcher(
-                pattern = InstanceFieldPattern(WeakReference::class.java.name, "referent")
-            ),
-            IgnoredReferenceMatcher(
-                pattern = InstanceFieldPattern("leakcanary.KeyedWeakReference", "referent")
-            )
+      referenceMatchers = listOf(
+        LibraryLeakReferenceMatcher(
+          pattern = InstanceFieldPattern(WeakReference::class.java.name, "referent")
+        ),
+        IgnoredReferenceMatcher(
+          pattern = InstanceFieldPattern("leakcanary.KeyedWeakReference", "referent")
         )
+      )
     )
     assertThat(analysis.libraryLeaks).isEmpty()
   }
@@ -115,7 +115,7 @@ class ReferenceMatcherTest {
 
     val matcher = LibraryLeakReferenceMatcher(NativeGlobalVariablePattern("Leaking"))
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        referenceMatchers = listOf(matcher)
+      referenceMatchers = listOf(matcher)
     )
     val leak = analysis.libraryLeaks[0]
     assertThat(leak.pattern).isEqualTo(matcher.pattern)
@@ -126,8 +126,8 @@ class ReferenceMatcherTest {
       val leaking = instance(clazz("Leaking"))
       keyedWeakReference(leaking)
       val hasLeaking = instance(
-          clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
-          fields = listOf(leaking)
+        clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
+        fields = listOf(leaking)
       )
       clazz("GcRoot", staticFields = listOf("longestPath" to hasLeaking))
       gcRoot(JniGlobal(id = leaking.value, jniGlobalRefId = 42))
@@ -135,12 +135,11 @@ class ReferenceMatcherTest {
 
     val matcher = LibraryLeakReferenceMatcher(NativeGlobalVariablePattern("Leaking"))
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        referenceMatchers = listOf(matcher)
+      referenceMatchers = listOf(matcher)
     )
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.referencePath).hasSize(2)
     assertThat(leakTrace.referencePath[0].originObject.className).isEqualTo("GcRoot")
     assertThat(leakTrace.referencePath[0].referenceName).isEqualTo("longestPath")
   }
-
 }

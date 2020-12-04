@@ -65,7 +65,7 @@ internal class DominatorTree(expectedElements: Int = 4) {
           val nextDominatorSlot = dominated.getSlot(dominator)
           if (nextDominatorSlot == -1) {
             throw IllegalStateException(
-                "Did not find dominator for $dominator when going through the dominator chain for $currentDominator: $currentDominators"
+              "Did not find dominator for $dominator when going through the dominator chain for $currentDominator: $currentDominators"
             )
           } else {
             dominator = dominated.getSlotValue(nextDominatorSlot)
@@ -79,7 +79,7 @@ internal class DominatorTree(expectedElements: Int = 4) {
           val nextDominatorSlot = dominated.getSlot(dominator)
           if (nextDominatorSlot == -1) {
             throw IllegalStateException(
-                "Did not find dominator for $dominator when going through the dominator chain for $parentObjectId"
+              "Did not find dominator for $dominator when going through the dominator chain for $parentObjectId"
             )
           } else {
             dominator = dominated.getSlotValue(nextDominatorSlot)
@@ -135,7 +135,8 @@ internal class DominatorTree(expectedElements: Int = 4) {
 
     val rootDominator = dominators.getValue(ValueHolder.NULL_REFERENCE)
     rootDominator.retainedSize = rootDominator.dominated.map { dominators[it]!!.retainedSize }.sum()
-    rootDominator.retainedCount = rootDominator.dominated.map { dominators[it]!!.retainedCount }.sum()
+    rootDominator.retainedCount =
+      rootDominator.dominated.map { dominators[it]!!.retainedCount }.sum()
 
     // Sort children with largest retained first
     dominators.values.forEach { node ->
@@ -144,7 +145,7 @@ internal class DominatorTree(expectedElements: Int = 4) {
 
     return dominators.mapValues { (_, node) ->
       DominatorNode(
-          node.shallowSize, node.retainedSize, node.retainedCount, node.dominated
+        node.shallowSize, node.retainedSize, node.retainedCount, node.dominated
       )
     }
   }
@@ -193,8 +194,11 @@ internal class DominatorTree(expectedElements: Int = 4) {
                 instanceSize = computeSize(key)
               }
               // Update retained size for that node
-              val (currentRetainedSize, currentRetainedCount) = nodeRetainedSizes.getValue(dominator)
-              nodeRetainedSizes[dominator] = (currentRetainedSize + instanceSize) to currentRetainedCount + 1
+              val (currentRetainedSize, currentRetainedCount) = nodeRetainedSizes.getValue(
+                dominator
+              )
+              nodeRetainedSizes[dominator] =
+                (currentRetainedSize + instanceSize) to currentRetainedCount + 1
               dominatedByNextNode.clear()
             } else {
               dominatedByNextNode += dominator

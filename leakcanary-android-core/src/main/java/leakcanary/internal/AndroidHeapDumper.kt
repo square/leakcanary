@@ -57,7 +57,7 @@ internal class AndroidHeapDumper(
     if (Notifications.canShowNotification) {
       val dumpingHeap = context.getString(R.string.leak_canary_notification_dumping)
       val builder = Notification.Builder(context)
-          .setContentTitle(dumpingHeap)
+        .setContentTitle(dumpingHeap)
       val notification = Notifications.buildNotification(context, builder, LEAKCANARY_LOW)
       notificationManager.notify(R.id.leak_canary_notification_dumping_heap, notification)
     }
@@ -93,7 +93,7 @@ internal class AndroidHeapDumper(
       }
       val toast = Toast(resumedActivity)
       val iconSize = resumedActivity.resources.getDimensionPixelSize(
-          R.dimen.leak_canary_toast_icon_size
+        R.dimen.leak_canary_toast_icon_size
       )
       toast.setGravity(Gravity.CENTER_VERTICAL, 0, -iconSize)
       toast.duration = Toast.LENGTH_LONG
@@ -105,13 +105,13 @@ internal class AndroidHeapDumper(
       val toastIcon = toast.view.findViewById<View>(R.id.leak_canary_toast_icon)
       toastIcon.translationY = -iconSize.toFloat()
       toastIcon
-          .animate()
-          .translationY(0f)
-          .setListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator) {
-              waitingForToast.set(toast)
-            }
-          })
+        .animate()
+        .translationY(0f)
+        .setListener(object : AnimatorListenerAdapter() {
+          override fun onAnimationEnd(animation: Animator) {
+            waitingForToast.set(toast)
+          }
+        })
     })
   }
 

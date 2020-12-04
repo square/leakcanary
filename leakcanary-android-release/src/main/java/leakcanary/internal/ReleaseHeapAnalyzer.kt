@@ -110,13 +110,13 @@ internal class ReleaseHeapAnalyzer(
               metadata["Hprof stripping duration"] = "$stripDuration ms"
             }
             heapAnalysis.copy(
-                dumpDurationMillis = dumpDurationMillis,
-                metadata = metadata
+              dumpDurationMillis = dumpDurationMillis,
+              metadata = metadata
             )
           }
           is HeapAnalysisFailure -> heapAnalysis.copy(
-              dumpDurationMillis = dumpDurationMillis,
-              analysisDurationMillis = (SystemClock.uptimeMillis() - heapDumpStart) - dumpDurationMillis
+            dumpDurationMillis = dumpDurationMillis,
+            analysisDurationMillis = (SystemClock.uptimeMillis() - heapDumpStart) - dumpDurationMillis
           )
         }
       }
@@ -128,11 +128,11 @@ internal class ReleaseHeapAnalyzer(
         analysisDurationMillis = (SystemClock.uptimeMillis() - heapDumpStart) - dumpDurationMillis
       }
       return HeapAnalysisFailure(
-          heapDumpFile = heapDumpFile,
-          createdAtTimeMillis = System.currentTimeMillis(),
-          dumpDurationMillis = dumpDurationMillis,
-          analysisDurationMillis = analysisDurationMillis,
-          exception = HeapAnalysisException(throwable)
+        heapDumpFile = heapDumpFile,
+        createdAtTimeMillis = System.currentTimeMillis(),
+        dumpDurationMillis = dumpDurationMillis,
+        analysisDurationMillis = analysisDurationMillis,
+        exception = HeapAnalysisException(throwable)
       )
     }
   }
@@ -140,28 +140,28 @@ internal class ReleaseHeapAnalyzer(
   private fun saveResourceIdNamesToMemory() {
     val resources = application.resources
     AndroidResourceIdNames.saveToMemory(
-        getResourceTypeName = { id ->
-          try {
-            resources.getResourceTypeName(id)
-          } catch (e: NotFoundException) {
-            null
-          }
-        },
-        getResourceEntryName = { id ->
-          try {
-            resources.getResourceEntryName(id)
-          } catch (e: NotFoundException) {
-            null
-          }
-        })
+      getResourceTypeName = { id ->
+        try {
+          resources.getResourceTypeName(id)
+        } catch (e: NotFoundException) {
+          null
+        }
+      },
+      getResourceEntryName = { id ->
+        try {
+          resources.getResourceEntryName(id)
+        } catch (e: NotFoundException) {
+          null
+        }
+      })
   }
 
   private fun saveHeapDumpTime(heapDumpUptimeMillis: Long) {
     try {
       Class.forName("leakcanary.KeyedWeakReference")
-          .getDeclaredField("heapDumpUptimeMillis")
-          .apply { isAccessible = true }
-          .set(null, heapDumpUptimeMillis)
+        .getDeclaredField("heapDumpUptimeMillis")
+        .apply { isAccessible = true }
+        .set(null, heapDumpUptimeMillis)
     } catch (ignored: Throwable) {
       SharkLog.d(ignored) { "KeyedWeakReference.heapDumpUptimeMillis not updated" }
     }
@@ -197,21 +197,21 @@ internal class ReleaseHeapAnalyzer(
   private fun analyzeHeapWithStats(heapDumpFile: File): Pair<HeapAnalysis, String> {
     val fileLength = heapDumpFile.length()
     val analysisSourceProvider = ConstantMemoryMetricsDualSourceProvider(
-        StoppableFileSourceProvider(heapDumpFile, "stripped hprof") {
-          stopAnalysing
-        })
+      StoppableFileSourceProvider(heapDumpFile, "stripped hprof") {
+        stopAnalysing
+      })
 
     return analysisSourceProvider.openHeapGraph().use { graph ->
       val heapAnalysis = analyzeHeap(heapDumpFile, graph)
       val lruCacheStats = (graph as HprofHeapGraph).lruCacheStats()
       val randomAccessStats =
         "RandomAccess[" +
-            "bytes=${analysisSourceProvider.randomAccessByteReads}," +
-            "reads=${analysisSourceProvider.randomAccessReadCount}," +
-            "travel=${analysisSourceProvider.randomAccessByteTravel}," +
-            "range=${analysisSourceProvider.byteTravelRange}," +
-            "size=$fileLength" +
-            "]"
+          "bytes=${analysisSourceProvider.randomAccessByteReads}," +
+          "reads=${analysisSourceProvider.randomAccessReadCount}," +
+          "travel=${analysisSourceProvider.randomAccessByteTravel}," +
+          "range=${analysisSourceProvider.byteTravelRange}," +
+          "size=$fileLength" +
+          "]"
       val stats = "$lruCacheStats $randomAccessStats"
       (heapAnalysis to stats)
     }
@@ -230,14 +230,13 @@ internal class ReleaseHeapAnalyzer(
 
     val heapAnalyzer = HeapAnalyzer(stepListener)
     return heapAnalyzer.analyze(
-        heapDumpFile = analyzedHeapDumpFile,
-        graph = graph,
-        leakingObjectFinder = config.leakingObjectFinder,
-        referenceMatchers = config.referenceMatchers,
-        computeRetainedHeapSize = config.computeRetainedHeapSize,
-        objectInspectors = config.objectInspectors,
-        metadataExtractor = config.metadataExtractor
+      heapDumpFile = analyzedHeapDumpFile,
+      graph = graph,
+      leakingObjectFinder = config.leakingObjectFinder,
+      referenceMatchers = config.referenceMatchers,
+      computeRetainedHeapSize = config.computeRetainedHeapSize,
+      objectInspectors = config.objectInspectors,
+      metadataExtractor = config.metadataExtractor
     )
   }
-
 }

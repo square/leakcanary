@@ -14,12 +14,12 @@ class InstrumentationLeakDetectorTest {
 
   @Before fun setUp() {
     AppWatcher.objectWatcher
-        .clearWatchedObjects()
+      .clearWatchedObjects()
   }
 
   @After fun tearDown() {
     AppWatcher.objectWatcher
-        .clearWatchedObjects()
+      .clearWatchedObjects()
   }
 
   @Test fun detectsLeak() {

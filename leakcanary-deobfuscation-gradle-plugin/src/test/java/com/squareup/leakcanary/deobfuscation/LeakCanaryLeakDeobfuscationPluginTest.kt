@@ -25,7 +25,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     if (localPropertiesFile.exists()) {
       localPropertiesFile.copyTo(File(tempFolder.root, "local.properties"), overwrite = true)
     } else {
-      System.getenv("ANDROID_HOME")?.let { androidHome->
+      System.getenv("ANDROID_HOME")?.let { androidHome ->
         tempFolder.newFile("local.properties").apply {
           writeText("sdk.dir=$androidHome")
         }
@@ -35,7 +35,8 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     File("src/test/test-project").copyRecursively(tempFolder.root)
 
     val proguardRules = tempFolder.newFile("proguard-rules.pro")
-    proguardRules.writeText("""
+    proguardRules.writeText(
+      """
       -keep class com.leakcanary.test.** {*;}
     """.trimIndent()
     )
@@ -144,15 +145,15 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     )
 
     GradleRunner.create()
-        .withProjectDir(tempFolder.root)
-        .withArguments("clean", "assembleDebug")
-        .withPluginClasspath()
-        .build()
+      .withProjectDir(tempFolder.root)
+      .withArguments("clean", "assembleDebug")
+      .withPluginClasspath()
+      .build()
 
     // apk has been built
     val apkFile = File(tempFolder.root, "build/outputs/apk/debug")
-        .listFiles()
-        ?.firstOrNull { it.extension == "apk" }
+      .listFiles()
+      ?.firstOrNull { it.extension == "apk" }
     assertThat(apkFile != null).isTrue()
 
     // apk doesn't contain obfuscation mapping file in assets dir
@@ -208,7 +209,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
     assertThat(
       result.output.contains(
-    "LeakCanary deobfuscation plugin couldn't find any variant with minification enabled."
+        "LeakCanary deobfuscation plugin couldn't find any variant with minification enabled."
       )
     ).isTrue()
   }

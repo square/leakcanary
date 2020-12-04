@@ -23,7 +23,10 @@ class ConstantMemoryMetricsDualSourceProvider(
   private var minPosition = -1L
   private var maxPosition = -1L
 
-  private fun updateRandomAccessStatsOnRead(position: Long, bytesRead: Long) {
+  private fun updateRandomAccessStatsOnRead(
+    position: Long,
+    bytesRead: Long
+  ) {
     randomAccessByteReads += bytesRead
     randomAccessReadCount++
     if (lastRandomAccessPosition != -1L) {
@@ -40,7 +43,7 @@ class ConstantMemoryMetricsDualSourceProvider(
   }
 
   val byteTravelRange
-      get() = (maxPosition - minPosition)
+    get() = (maxPosition - minPosition)
 
   override fun openStreamingSource() = realSourceProvider.openStreamingSource()
 
@@ -56,8 +59,8 @@ class ConstantMemoryMetricsDualSourceProvider(
         updateRandomAccessStatsOnRead(position, bytesRead)
         return bytesRead
       }
+
       override fun close() = randomAccessSource.close()
     }
   }
-
 }

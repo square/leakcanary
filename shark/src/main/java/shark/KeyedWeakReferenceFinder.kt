@@ -11,7 +11,7 @@ object KeyedWeakReferenceFinder : LeakingObjectFinder {
 
   override fun findLeakingObjectIds(graph: HeapGraph): Set<Long> =
     findKeyedWeakReferences(graph).map { it.referent.value }
-        .toSet()
+      .toSet()
 
   fun heapDumpUptimeMillis(graph: HeapGraph): Long? {
     return graph.context.getOrPut("heapDumpUptimeMillis") {
@@ -41,16 +41,16 @@ object KeyedWeakReferenceFinder : LeakingObjectFinder {
       val heapDumpUptimeMillis = heapDumpUptimeMillis(graph)
 
       val addedToContext: List<KeyedWeakReferenceMirror> = graph.instances
-          .filter { instance ->
-            instance.instanceClassId == keyedWeakReferenceClassId || instance.instanceClassId == legacyKeyedWeakReferenceClassId
-          }
-          .map {
-            KeyedWeakReferenceMirror.fromInstance(
-                it, heapDumpUptimeMillis
-            )
-          }
-          .filter { it.hasReferent }
-          .toList()
+        .filter { instance ->
+          instance.instanceClassId == keyedWeakReferenceClassId || instance.instanceClassId == legacyKeyedWeakReferenceClassId
+        }
+        .map {
+          KeyedWeakReferenceMirror.fromInstance(
+            it, heapDumpUptimeMillis
+          )
+        }
+        .filter { it.hasReferent }
+        .toList()
       graph.context[KEYED_WEAK_REFERENCE.name] = addedToContext
       addedToContext
     }

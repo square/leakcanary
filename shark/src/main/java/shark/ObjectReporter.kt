@@ -26,10 +26,10 @@ class ObjectReporter constructor(val heapObject: HeapObject) {
    * Deprecated, use leakingReasons instead.
    */
   @Deprecated(
-      "Replace likelyLeakingReasons with leakingReasons",
-      replaceWith = ReplaceWith(
-          "leakingReasons"
-      )
+    "Replace likelyLeakingReasons with leakingReasons",
+    replaceWith = ReplaceWith(
+      "leakingReasons"
+    )
   )
   val likelyLeakingReasons
     get() = leakingReasons
@@ -61,5 +61,4 @@ class ObjectReporter constructor(val heapObject: HeapObject) {
       block(heapObject)
     }
   }
-
 }

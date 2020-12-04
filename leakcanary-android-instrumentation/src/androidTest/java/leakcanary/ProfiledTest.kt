@@ -28,7 +28,7 @@ class ProfiledTest {
 
     val heapDumpFile = File(context.filesDir, "ProfiledTest.hprof")
     context.assets.open(fileName)
-        .copyTo(FileOutputStream(heapDumpFile))
+      .copyTo(FileOutputStream(heapDumpFile))
 
     runWithProfilerSampling {
       val analyzer = HeapAnalyzer(object : OnAnalysisProgressListener {
@@ -37,11 +37,11 @@ class ProfiledTest {
         }
       })
       val result = analyzer.analyze(
-          heapDumpFile = heapDumpFile,
-          leakingObjectFinder = KeyedWeakReferenceFinder,
-          referenceMatchers = AndroidReferenceMatchers.appDefaults,
-          objectInspectors = AndroidObjectInspectors.appDefaults,
-          computeRetainedHeapSize = true
+        heapDumpFile = heapDumpFile,
+        leakingObjectFinder = KeyedWeakReferenceFinder,
+        referenceMatchers = AndroidReferenceMatchers.appDefaults,
+        objectInspectors = AndroidObjectInspectors.appDefaults,
+        computeRetainedHeapSize = true
       )
       SharkLog.d { result.toString() }
     }

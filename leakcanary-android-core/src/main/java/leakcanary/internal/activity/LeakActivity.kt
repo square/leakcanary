@@ -107,7 +107,7 @@ internal class LeakActivity : NavigatingActivity() {
     }
 
     val chooserIntent = Intent.createChooser(
-        requestFileIntent, resources.getString(R.string.leak_canary_import_from_title)
+      requestFileIntent, resources.getString(R.string.leak_canary_import_from_title)
     )
     startActivityForResult(chooserIntent, FILE_REQUEST_CODE)
   }
@@ -132,20 +132,20 @@ internal class LeakActivity : NavigatingActivity() {
   private fun importHprof(fileUri: Uri) {
     try {
       contentResolver.openFileDescriptor(fileUri, "r")
-          ?.fileDescriptor?.let { fileDescriptor ->
-        val inputStream = FileInputStream(fileDescriptor)
-        InternalLeakCanary.createLeakDirectoryProvider(this)
+        ?.fileDescriptor?.let { fileDescriptor ->
+          val inputStream = FileInputStream(fileDescriptor)
+          InternalLeakCanary.createLeakDirectoryProvider(this)
             .newHeapDumpFile()
             ?.let { target ->
               inputStream.use { input ->
                 target.outputStream()
-                    .use { output ->
-                      input.copyTo(output, DEFAULT_BUFFER_SIZE)
-                    }
+                  .use { output ->
+                    input.copyTo(output, DEFAULT_BUFFER_SIZE)
+                  }
               }
               HeapAnalyzerService.runAnalysis(this, target)
             }
-      }
+        }
     } catch (e: IOException) {
       SharkLog.d(e) { "Could not imported Hprof file" }
     }
@@ -187,5 +187,4 @@ internal class LeakActivity : NavigatingActivity() {
       return intent
     }
   }
-
 }

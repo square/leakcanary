@@ -23,9 +23,9 @@ import java.util.Properties
 import java.util.concurrent.TimeUnit.SECONDS
 
 class SharkCliCommand : CliktCommand(
-    name = "shark-cli",
-    // This ASCII art is a remix of a shark from -David "TAZ" Baltazar- and chick from jgs.
-    help = """
+  name = "shark-cli",
+  // This ASCII art is a remix of a shark from -David "TAZ" Baltazar- and chick from jgs.
+  help = """
     |Version: $versionName
     |
     |```
@@ -46,29 +46,29 @@ class SharkCliCommand : CliktCommand(
 
   private class ProcessOptions : OptionGroup() {
     val processName by option(
-        "--process", "-p",
-        help = "Full or partial name of a process, e.g. \"example\" would match \"com.example.app\""
+      "--process", "-p",
+      help = "Full or partial name of a process, e.g. \"example\" would match \"com.example.app\""
     ).required()
 
     val device by option(
-        "-d", "--device", metavar = "ID", help = "device/emulator id"
+      "-d", "--device", metavar = "ID", help = "device/emulator id"
     )
   }
 
   private val processOptions by ProcessOptions().cooccurring()
 
   private val obfuscationMappingPath by option(
-      "-m", "--obfuscation-mapping", help = "path to obfuscation mapping file"
+    "-m", "--obfuscation-mapping", help = "path to obfuscation mapping file"
   ).file()
 
   private val verbose by option(
-      help = "provide additional details as to what shark-cli is doing"
+    help = "provide additional details as to what shark-cli is doing"
   ).flag("--no-verbose")
 
   private val heapDumpFile by option("--hprof", "-h", help = "path to a .hprof file").file(
-      exists = true,
-      folderOkay = false,
-      readable = true
+    exists = true,
+    folderOkay = false,
+    readable = true
   )
 
   init {
@@ -96,13 +96,13 @@ class SharkCliCommand : CliktCommand(
       throw UsageError("Option --process cannot be used with --hprof")
     } else if (processOptions != null) {
       context.sharkCliParams = CommandParams(
-          source = ProcessSource(processOptions!!.processName, processOptions!!.device),
-          obfuscationMappingPath = obfuscationMappingPath
+        source = ProcessSource(processOptions!!.processName, processOptions!!.device),
+        obfuscationMappingPath = obfuscationMappingPath
       )
     } else if (heapDumpFile != null) {
       context.sharkCliParams = CommandParams(
-          source = HprofFileSource(heapDumpFile!!),
-          obfuscationMappingPath = obfuscationMappingPath
+        source = HprofFileSource(heapDumpFile!!),
+        obfuscationMappingPath = obfuscationMappingPath
       )
     } else {
       throw UsageError("Must provide one of --process, --hprof")
@@ -181,9 +181,9 @@ class SharkCliCommand : CliktCommand(
       vararg arguments: String
     ): String {
       val process = ProcessBuilder(*arguments)
-          .directory(directory)
-          .start()
-          .also { it.waitFor(10, SECONDS) }
+        .directory(directory)
+        .start()
+        .also { it.waitFor(10, SECONDS) }
 
       // See https://github.com/square/leakcanary/issues/1711
       // On Windows, the process doesn't always exit; calling to readText() makes it finish, so
@@ -192,9 +192,9 @@ class SharkCliCommand : CliktCommand(
       if (process.exitValue() != 0) {
         val command = arguments.joinToString(" ")
         val errorOutput = process.errorStream.bufferedReader()
-            .readText()
+          .readText()
         throw CliktError(
-            "Failed command: '$command', error output:\n---\n$errorOutput---"
+          "Failed command: '$command', error output:\n---\n$errorOutput---"
         )
       }
       return output
@@ -203,14 +203,12 @@ class SharkCliCommand : CliktCommand(
     private val versionName = run {
       val properties = Properties()
       properties.load(
-          SharkCliCommand::class.java.getResourceAsStream("/version.properties")
-              ?: throw IllegalStateException("version.properties missing")
+        SharkCliCommand::class.java.getResourceAsStream("/version.properties")
+          ?: throw IllegalStateException("version.properties missing")
       )
       properties.getProperty("version_name") ?: throw IllegalStateException(
-          "version_name property missing"
+        "version_name property missing"
       )
     }
-
   }
-
 }

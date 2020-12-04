@@ -51,7 +51,9 @@ class Hprof private constructor(
   }
 
   companion object {
-    @Deprecated(message = "Replaced by HprofStreamingReader.readerFor or HprofRandomAccessReader.openReaderFor")
+    @Deprecated(
+      message = "Replaced by HprofStreamingReader.readerFor or HprofRandomAccessReader.openReaderFor"
+    )
     fun open(hprofFile: File): Hprof = Hprof(hprofFile, HprofHeader.parseHeaderOf(hprofFile))
   }
 }

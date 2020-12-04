@@ -70,7 +70,7 @@ object ViewLocationHolderLeakFix {
       }
       val (group, outChildren) = groupAndOutChildren!!
       group.addChildrenForAccessibility(outChildren)
-    } catch (ignored :Throwable) {
+    } catch (ignored: Throwable) {
       SharkLog.d(ignored) {
         "Failed to clear ViewLocationHolder leak, will not try again."
       }

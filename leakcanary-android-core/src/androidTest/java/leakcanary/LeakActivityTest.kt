@@ -44,7 +44,7 @@ internal class LeakActivityTest {
 
   @get:Rule
   var rules: RuleChain = RuleChain.outerRule(DatabaseRule())
-      .around(activityTestRule)
+    .around(activityTestRule)
 
   @Test
   fun noLeakOnHome() {
@@ -73,10 +73,10 @@ internal class LeakActivityTest {
     activityTestRule.launchActivity(null)
 
     onData(withItem<AllLeaksProjection> { it.shortDescription == "Holder.leak" })
-        .perform(click())
+      .perform(click())
     onData(withItem<LeakTraceObject> { it.className == "com.example.Leaking" })
-        .inAdapterView(withId(R.id.leak_canary_list))
-        .check(matches(isDisplayed()))
+      .inAdapterView(withId(R.id.leak_canary_list))
+      .check(matches(isDisplayed()))
   }
 
   @Test
@@ -88,10 +88,10 @@ internal class LeakActivityTest {
     activityTestRule.launchActivity(null)
 
     onData(withItem<AllLeaksProjection> { it.shortDescription == "com.example.Leaking" })
-        .perform(click())
+      .perform(click())
     onData(withItem<LeakTraceObject> { it.className == "com.example.Leaking" })
-        .inAdapterView(withId(R.id.leak_canary_list))
-        .check(matches(isDisplayed()))
+      .inAdapterView(withId(R.id.leak_canary_list))
+      .check(matches(isDisplayed()))
   }
 
   private fun insertHeapDump(block: HprofWriterHelper.() -> Unit) {
@@ -108,13 +108,13 @@ internal class LeakActivityTest {
 
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val result = heapAnalyzer.analyze(
-        heapDumpFile = hprofFile,
-        leakingObjectFinder = LeakCanary.config.leakingObjectFinder,
-        referenceMatchers = LeakCanary.config.referenceMatchers,
-        computeRetainedHeapSize = LeakCanary.config.computeRetainedHeapSize,
-        objectInspectors = LeakCanary.config.objectInspectors,
-        metadataExtractor = LeakCanary.config.metadataExtractor,
-        proguardMapping = null
+      heapDumpFile = hprofFile,
+      leakingObjectFinder = LeakCanary.config.leakingObjectFinder,
+      referenceMatchers = LeakCanary.config.referenceMatchers,
+      computeRetainedHeapSize = LeakCanary.config.computeRetainedHeapSize,
+      objectInspectors = LeakCanary.config.objectInspectors,
+      metadataExtractor = LeakCanary.config.metadataExtractor,
+      proguardMapping = null
     )
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     val context = instrumentation.targetContext
@@ -139,5 +139,4 @@ internal class LeakActivityTest {
       }
     }
   }
-
 }

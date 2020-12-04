@@ -34,7 +34,7 @@ class KeyedWeakReference(
   val watchUptimeMillis: Long,
   referenceQueue: ReferenceQueue<Any>
 ) : WeakReference<Any>(
-    referent, referenceQueue
+  referent, referenceQueue
 ) {
   /**
    * Time at which the associated object ([referent]) was considered retained, or -1 if it hasn't
@@ -47,5 +47,4 @@ class KeyedWeakReference(
     @Volatile
     @JvmStatic var heapDumpUptimeMillis = 0L
   }
-
 }

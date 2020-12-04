@@ -7,8 +7,8 @@ import shark.SharkCliCommand.Companion.sharkCliParams
 import java.io.File
 
 class AnalyzeCommand : CliktCommand(
-    name = "analyze",
-    help = "Analyze a heap dump."
+  name = "analyze",
+  help = "Analyze a heap dump."
 ) {
 
   override fun run() {
@@ -34,14 +34,14 @@ class AnalyzeCommand : CliktCommand(
       SharkLog.d { "Analyzing heap dump $heapDumpFile" }
 
       val heapAnalysis = heapAnalyzer.analyze(
-          heapDumpFile = heapDumpFile,
-          leakingObjectFinder = FilteringLeakingObjectFinder(
-              AndroidObjectInspectors.appLeakingObjectFilters
-          ),
-          referenceMatchers = AndroidReferenceMatchers.appDefaults,
-          computeRetainedHeapSize = true,
-          objectInspectors = objectInspectors,
-          proguardMapping = proguardMapping
+        heapDumpFile = heapDumpFile,
+        leakingObjectFinder = FilteringLeakingObjectFinder(
+          AndroidObjectInspectors.appLeakingObjectFilters
+        ),
+        referenceMatchers = AndroidReferenceMatchers.appDefaults,
+        computeRetainedHeapSize = true,
+        objectInspectors = objectInspectors,
+        proguardMapping = proguardMapping
       )
       echo(heapAnalysis)
     }

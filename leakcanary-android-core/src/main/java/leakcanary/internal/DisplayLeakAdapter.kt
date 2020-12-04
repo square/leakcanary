@@ -94,10 +94,10 @@ internal class DisplayLeakAdapter constructor(
     view: View
   ) {
     view.findViewById<TextView>(R.id.leak_canary_header_text)
-        .apply {
-          movementMethod = LinkMovementMethod.getInstance()
-          text = header
-        }
+      .apply {
+        movementMethod = LinkMovementMethod.getInstance()
+        text = header
+      }
   }
 
   private fun bindConnectorRow(
@@ -126,7 +126,7 @@ internal class DisplayLeakAdapter constructor(
         var referenceName = referencePath.referenceDisplayName
 
         referenceName = referenceName.replace("<".toRegex(), "&lt;")
-            .replace(">".toRegex(), "&gt;")
+          .replace(">".toRegex(), "&gt;")
 
         referenceName = if (isSuspect) {
           "<u><font color='$leakColorHexString'>$referenceName</font></u>"
@@ -145,7 +145,7 @@ internal class DisplayLeakAdapter constructor(
         val staticPrefix = if (referencePath.referenceType == STATIC_FIELD) "static " else ""
 
         val htmlString = leakTraceObject.asHtmlString(typeName) +
-            "$INDENTATION$staticPrefix${referencePath.styledOwningClassSimpleName()}.$referenceName"
+          "$INDENTATION$staticPrefix${referencePath.styledOwningClassSimpleName()}.$referenceName"
 
         val builder = Html.fromHtml(htmlString) as SpannableStringBuilder
         if (isSuspect) {
@@ -166,9 +166,13 @@ internal class DisplayLeakAdapter constructor(
 
     val styledClassName = styledClassSimpleName()
     var htmlString =
-      if (packageEnd != -1) "${extra(className.substring(
-          0, packageEnd
-      ))}.$styledClassName" else styledClassName
+      if (packageEnd != -1) "${
+        extra(
+          className.substring(
+            0, packageEnd
+          )
+        )
+      }.$styledClassName" else styledClassName
     htmlString += " ${extra(typeName)}<br>"
 
     val reachabilityString = when (leakingStatus) {
@@ -181,9 +185,11 @@ internal class DisplayLeakAdapter constructor(
 
     retainedHeapByteSize?.let {
       val humanReadableRetainedHeapSize = humanReadableByteCount(it.toLong(), si = true)
-      htmlString += "${INDENTATION}${extra("Retaining ")}$humanReadableRetainedHeapSize${extra(
+      htmlString += "${INDENTATION}${extra("Retaining ")}$humanReadableRetainedHeapSize${
+        extra(
           " in "
-      )}$retainedObjectCount${extra(" objects")}<br>"
+        )
+      }$retainedObjectCount${extra(" objects")}<br>"
     }
 
     labels.forEach { label ->
@@ -221,7 +227,7 @@ internal class DisplayLeakAdapter constructor(
       val isLeakingInstance = position == count - 1
       if (isLeakingInstance) {
         val previousReachability = leakTrace.referencePath.last()
-            .originObject
+          .originObject
         return if (previousReachability.leakingStatus != LEAKING) {
           END_FIRST_UNREACHABLE
         } else END
@@ -232,7 +238,7 @@ internal class DisplayLeakAdapter constructor(
           NOT_LEAKING -> {
             val nextReachability =
               if (position + 1 == count - 1) leakTrace.leakingObject else leakTrace.referencePath[elementIndex(
-                  position + 1
+                position + 1
               )].originObject
             return if (nextReachability.leakingStatus != NOT_LEAKING) {
               NODE_LAST_REACHABLE
@@ -250,7 +256,7 @@ internal class DisplayLeakAdapter constructor(
             }
           }
           else -> throw IllegalStateException(
-              "Unknown value: " + reachability.leakingStatus
+            "Unknown value: " + reachability.leakingStatus
           )
         }
       }

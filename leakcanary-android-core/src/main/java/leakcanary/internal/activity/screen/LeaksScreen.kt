@@ -38,8 +38,8 @@ internal class LeaksScreen : Screen() {
 
   private fun View.onGroupsRetrieved(projections: List<AllLeaksProjection>) {
     activity.title = resources.getQuantityString(
-        R.plurals.leak_canary_distinct_leaks,
-        projections.size, projections.size
+      R.plurals.leak_canary_distinct_leaks,
+      projections.size, projections.size
     )
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)

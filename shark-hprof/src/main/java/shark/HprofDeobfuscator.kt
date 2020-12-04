@@ -32,19 +32,19 @@ class HprofDeobfuscator {
      * is not ".hprof", then "-deobfuscated" is added at the end of the file.
      */
     outputHprofFile: File = File(
-        inputHprofFile.parent, inputHprofFile.name.replace(
-        ".hprof", "-deobfuscated.hprof"
+      inputHprofFile.parent, inputHprofFile.name.replace(
+      ".hprof", "-deobfuscated.hprof"
     ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-deobfuscated" })
   ): File {
     val (hprofStringCache, classNames, maxId) = readHprofRecords(inputHprofFile)
 
     return writeHprofRecords(
-        inputHprofFile,
-        outputHprofFile,
-        proguardMapping,
-        hprofStringCache,
-        classNames,
-        maxId + 1
+      inputHprofFile,
+      outputHprofFile,
+      proguardMapping,
+      hprofStringCache,
+      classNames,
+      maxId + 1
     )
   }
 
@@ -64,27 +64,27 @@ class HprofDeobfuscator {
 
     val reader = StreamingHprofReader.readerFor(inputHprofFile).asStreamingRecordReader()
     reader.readRecords(setOf(HprofRecord::class),
-        OnHprofRecordListener { _, record ->
-          when (record) {
-            is StringRecord -> {
-              maxId = maxId.coerceAtLeast(record.id)
-              hprofStringCache[record.id] = record.string
-            }
-            is LoadClassRecord -> {
-              maxId = maxId.coerceAtLeast(record.id)
-              classNames[record.id] = record.classNameStringId
-            }
-            is StackFrameRecord -> maxId = maxId.coerceAtLeast(record.id)
-            is ObjectRecord -> {
-              maxId = when (record) {
-                is ClassDumpRecord -> maxId.coerceAtLeast(record.id)
-                is InstanceDumpRecord -> maxId.coerceAtLeast(record.id)
-                is ObjectArrayDumpRecord -> maxId.coerceAtLeast(record.id)
-                is PrimitiveArrayDumpRecord -> maxId.coerceAtLeast(record.id)
-              }
+      OnHprofRecordListener { _, record ->
+        when (record) {
+          is StringRecord -> {
+            maxId = maxId.coerceAtLeast(record.id)
+            hprofStringCache[record.id] = record.string
+          }
+          is LoadClassRecord -> {
+            maxId = maxId.coerceAtLeast(record.id)
+            classNames[record.id] = record.classNameStringId
+          }
+          is StackFrameRecord -> maxId = maxId.coerceAtLeast(record.id)
+          is ObjectRecord -> {
+            maxId = when (record) {
+              is ClassDumpRecord -> maxId.coerceAtLeast(record.id)
+              is InstanceDumpRecord -> maxId.coerceAtLeast(record.id)
+              is ObjectArrayDumpRecord -> maxId.coerceAtLeast(record.id)
+              is PrimitiveArrayDumpRecord -> maxId.coerceAtLeast(record.id)
             }
           }
-        })
+        }
+      })
     return Triple(hprofStringCache, classNames, maxId)
   }
 
@@ -103,39 +103,39 @@ class HprofDeobfuscator {
     val reader =
       StreamingHprofReader.readerFor(inputHprofFile, hprofHeader).asStreamingRecordReader()
     HprofWriter.openWriterFor(
-        outputHprofFile,
-        hprofHeader = HprofHeader(
-            identifierByteSize = hprofHeader.identifierByteSize,
-            version = hprofHeader.version
-        )
+      outputHprofFile,
+      hprofHeader = HprofHeader(
+        identifierByteSize = hprofHeader.identifierByteSize,
+        version = hprofHeader.version
+      )
     ).use { writer ->
       reader.readRecords(setOf(HprofRecord::class),
-          OnHprofRecordListener { _,
-            record ->
-            // HprofWriter automatically emits HeapDumpEndRecord, because it flushes
-            // all continuous heap dump sub records as one heap dump record.
-            if (record is HeapDumpEndRecord) {
-              return@OnHprofRecordListener
-            }
+        OnHprofRecordListener { _,
+          record ->
+          // HprofWriter automatically emits HeapDumpEndRecord, because it flushes
+          // all continuous heap dump sub records as one heap dump record.
+          if (record is HeapDumpEndRecord) {
+            return@OnHprofRecordListener
+          }
 
-            when (record) {
-              is StringRecord -> {
-                writer.write(
-                    createDeobfuscatedStringRecord(record, proguardMapping, hprofStringCache)
-                )
-              }
-              is ClassDumpRecord -> {
-                val (recordsToWrite, maxId) = createDeobfuscatedClassDumpRecord(
-                    record, proguardMapping, hprofStringCache, classNames, id
-                )
-                id = maxId
-                recordsToWrite.forEach {
-                  writer.write(it)
-                }
-              }
-              else -> writer.write(record)
+          when (record) {
+            is StringRecord -> {
+              writer.write(
+                createDeobfuscatedStringRecord(record, proguardMapping, hprofStringCache)
+              )
             }
-          })
+            is ClassDumpRecord -> {
+              val (recordsToWrite, maxId) = createDeobfuscatedClassDumpRecord(
+                record, proguardMapping, hprofStringCache, classNames, id
+              )
+              id = maxId
+              recordsToWrite.forEach {
+                writer.write(it)
+              }
+            }
+            else -> writer.write(record)
+          }
+        })
     }
 
     return outputHprofFile
@@ -148,7 +148,7 @@ class HprofDeobfuscator {
   ): StringRecord {
     val obfuscatedName = hprofStringCache[record.id]!!
     return StringRecord(
-        record.id, proguardMapping.deobfuscateClassName(obfuscatedName)
+      record.id, proguardMapping.deobfuscateClassName(obfuscatedName)
     )
   }
 
@@ -193,17 +193,17 @@ class HprofDeobfuscator {
     }
 
     recordsToWrite.add(
-        ClassDumpRecord(
-            record.id,
-            record.stackTraceSerialNumber,
-            record.superclassId,
-            record.classLoaderId,
-            record.signersId,
-            record.protectionDomainId,
-            record.instanceSize,
-            newStaticFields,
-            newFields
-        )
+      ClassDumpRecord(
+        record.id,
+        record.stackTraceSerialNumber,
+        record.superclassId,
+        record.classLoaderId,
+        record.signersId,
+        record.protectionDomainId,
+        record.instanceSize,
+        newStaticFields,
+        newFields
+      )
     )
 
     return Pair(recordsToWrite, id)

@@ -38,7 +38,7 @@ internal object HHPC {
     loadFactor: Double
   ): Int {
     var length = Math.ceil(elements / loadFactor)
-        .toLong()
+      .toLong()
     if (length == elements.toLong()) {
       length++
     }
@@ -46,12 +46,12 @@ internal object HHPC {
 
     if (length > MAX_HASH_ARRAY_LENGTH) {
       throw RuntimeException(
-          String.format(
-              Locale.ROOT,
-              "Maximum array size exceeded for this load factor (elements: %d, load factor: %f)",
-              elements,
-              loadFactor
-          )
+        String.format(
+          Locale.ROOT,
+          "Maximum array size exceeded for this load factor (elements: %d, load factor: %f)",
+          elements,
+          loadFactor
+        )
       )
     }
 
@@ -85,16 +85,15 @@ internal object HHPC {
   ): Int {
     if (arraySize == MAX_HASH_ARRAY_LENGTH) {
       throw RuntimeException(
-          String.format(
-              Locale.ROOT,
-              "Maximum array size exceeded for this load factor (elements: %d, load factor: %f)",
-              elements,
-              loadFactor
-          )
+        String.format(
+          Locale.ROOT,
+          "Maximum array size exceeded for this load factor (elements: %d, load factor: %f)",
+          elements,
+          loadFactor
+        )
       )
     }
 
     return arraySize shl 1
   }
-
 }

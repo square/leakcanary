@@ -40,7 +40,6 @@ interface RandomAccessSource : Closeable {
         position += bytesRead
         return bytesRead
       }
-
     })
   }
 }

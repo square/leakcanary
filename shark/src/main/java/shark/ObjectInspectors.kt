@@ -29,9 +29,9 @@ enum class ObjectInspectors : ObjectInspector {
 
     override val leakingObjectFilter = { heapObject: HeapObject ->
       KeyedWeakReferenceFinder.findKeyedWeakReferences(heapObject.graph)
-          .any { reference ->
-            reference.referent.value == heapObject.objectId
-          }
+        .any { reference ->
+          reference.referent.value == heapObject.objectId
+        }
     }
 
     override fun inspect(
@@ -129,6 +129,7 @@ enum class ObjectInspectors : ObjectInspector {
   companion object {
     private const val ANONYMOUS_CLASS_NAME_PATTERN = "^.+\\$\\d+$"
     private val ANONYMOUS_CLASS_NAME_PATTERN_REGEX = ANONYMOUS_CLASS_NAME_PATTERN.toRegex()
+
     /** @see ObjectInspectors */
     val jdkDefaults: List<ObjectInspector>
       get() {
@@ -146,10 +147,10 @@ enum class ObjectInspectors : ObjectInspector {
      */
     fun createLeakingObjectFilters(inspectors: Set<ObjectInspectors>): List<LeakingObjectFilter> =
       inspectors.mapNotNull { it.leakingObjectFilter }
-          .map { filter ->
-            object : LeakingObjectFilter {
-              override fun isLeakingObject(heapObject: HeapObject) = filter(heapObject)
-            }
+        .map { filter ->
+          object : LeakingObjectFilter {
+            override fun isLeakingObject(heapObject: HeapObject) = filter(heapObject)
           }
+        }
   }
 }

@@ -35,7 +35,7 @@ internal class AndroidNativeSizeMapper(private val graph: HeapGraph) {
               if (allocationRegistryRecord is HeapInstance && allocationRegistryRecord instanceOf "libcore.util.NativeAllocationRegistry") {
                 var nativeSize = nativeSizes[referentId] ?: 0
                 nativeSize += allocationRegistryRecord["libcore.util.NativeAllocationRegistry", "size"]?.value?.asLong?.toInt()
-                    ?: 0
+                  ?: 0
                 nativeSizes[referentId] = nativeSize
               }
             }

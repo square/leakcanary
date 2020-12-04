@@ -5,7 +5,7 @@ import okio.BufferedSource
 import okio.Source
 import java.io.IOException
 
-class ByteArraySourceProvider(private val byteArray: ByteArray): DualSourceProvider {
+class ByteArraySourceProvider(private val byteArray: ByteArray) : DualSourceProvider {
   override fun openStreamingSource(): BufferedSource = Buffer().apply { write(byteArray) }
 
   override fun openRandomAccessSource(): RandomAccessSource {

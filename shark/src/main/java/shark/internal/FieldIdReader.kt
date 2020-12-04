@@ -8,7 +8,8 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
  */
 internal class FieldIdReader(
   private val record: InstanceDumpRecord,
-  private val identifierByteSize: Int) {
+  private val identifierByteSize: Int
+) {
 
   private var position = 0
 
@@ -29,33 +30,45 @@ internal class FieldIdReader(
     position += count
   }
 
-  private fun readByteId(index: Int, array: ByteArray) =
+  private fun readByteId(
+    index: Int,
+    array: ByteArray
+  ) =
     array[index].toLong()
 
-  private fun readShortId(index: Int, array: ByteArray): Long {
+  private fun readShortId(
+    index: Int,
+    array: ByteArray
+  ): Long {
     var pos = index
     return (array[pos++] and 0xff shl 8
-        or (array[pos] and 0xff)).toLong()
+      or (array[pos] and 0xff)).toLong()
   }
 
-  private fun readIntId(index: Int, array: ByteArray): Long {
+  private fun readIntId(
+    index: Int,
+    array: ByteArray
+  ): Long {
     var pos = index
     return (array[pos++] and 0xff shl 24
-        or (array[pos++] and 0xff shl 16)
-        or (array[pos++] and 0xff shl 8)
-        or (array[pos] and 0xff)).toLong()
+      or (array[pos++] and 0xff shl 16)
+      or (array[pos++] and 0xff shl 8)
+      or (array[pos] and 0xff)).toLong()
   }
 
-  private fun readLongId(index: Int, array: ByteArray): Long {
+  private fun readLongId(
+    index: Int,
+    array: ByteArray
+  ): Long {
     var pos = index
     return (array[pos++] and 0xffL shl 56
-        or (array[pos++] and 0xffL shl 48)
-        or (array[pos++] and 0xffL shl 40)
-        or (array[pos++] and 0xffL shl 32)
-        or (array[pos++] and 0xffL shl 24)
-        or (array[pos++] and 0xffL shl 16)
-        or (array[pos++] and 0xffL shl 8)
-        or (array[pos] and 0xffL))
+      or (array[pos++] and 0xffL shl 48)
+      or (array[pos++] and 0xffL shl 40)
+      or (array[pos++] and 0xffL shl 32)
+      or (array[pos++] and 0xffL shl 24)
+      or (array[pos++] and 0xffL shl 16)
+      or (array[pos++] and 0xffL shl 8)
+      or (array[pos] and 0xffL))
   }
 
   @Suppress("NOTHING_TO_INLINE") // Syntactic sugar.

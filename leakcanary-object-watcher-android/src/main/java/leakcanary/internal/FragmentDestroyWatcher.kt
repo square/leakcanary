@@ -37,7 +37,7 @@ internal object FragmentDestroyWatcher {
   @Suppress("VariableNaming", "PropertyName")
   private val ANDROID_SUPPORT_FRAGMENT_CLASS_NAME =
     StringBuilder("android.").append("support.v4.app.Fragment")
-        .toString()
+      .toString()
   private const val ANDROID_SUPPORT_FRAGMENT_DESTROY_WATCHER_CLASS_NAME =
     "leakcanary.internal.AndroidSupportFragmentDestroyWatcher"
 
@@ -50,24 +50,24 @@ internal object FragmentDestroyWatcher {
 
     if (SDK_INT >= O) {
       fragmentDestroyWatchers.add(
-          AndroidOFragmentDestroyWatcher(objectWatcher, configProvider)
+        AndroidOFragmentDestroyWatcher(objectWatcher, configProvider)
       )
     }
 
     getWatcherIfAvailable(
-        ANDROIDX_FRAGMENT_CLASS_NAME,
-        ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME,
-        objectWatcher,
-        configProvider
+      ANDROIDX_FRAGMENT_CLASS_NAME,
+      ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME,
+      objectWatcher,
+      configProvider
     )?.let {
       fragmentDestroyWatchers.add(it)
     }
 
     getWatcherIfAvailable(
-        ANDROID_SUPPORT_FRAGMENT_CLASS_NAME,
-        ANDROID_SUPPORT_FRAGMENT_DESTROY_WATCHER_CLASS_NAME,
-        objectWatcher,
-        configProvider
+      ANDROID_SUPPORT_FRAGMENT_CLASS_NAME,
+      ANDROID_SUPPORT_FRAGMENT_DESTROY_WATCHER_CLASS_NAME,
+      objectWatcher,
+      configProvider
     )?.let {
       fragmentDestroyWatchers.add(it)
     }
@@ -96,13 +96,12 @@ internal object FragmentDestroyWatcher {
   ): ((Activity) -> Unit)? {
 
     return if (classAvailable(fragmentClassName) &&
-        classAvailable(watcherClassName)
+      classAvailable(watcherClassName)
     ) {
       val watcherConstructor = Class.forName(watcherClassName)
-          .getDeclaredConstructor(ObjectWatcher::class.java, Function0::class.java)
+        .getDeclaredConstructor(ObjectWatcher::class.java, Function0::class.java)
       @Suppress("UNCHECKED_CAST")
       watcherConstructor.newInstance(objectWatcher, configProvider) as (Activity) -> Unit
-
     } else {
       null
     }

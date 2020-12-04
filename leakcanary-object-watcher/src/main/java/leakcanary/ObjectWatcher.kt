@@ -113,10 +113,10 @@ class ObjectWatcher constructor(
    * Identical to [watch] with an empty string reference name.
    */
   @Deprecated(
-      "Add description parameter explaining why an object is watched to help understand leak traces.",
-      replaceWith = ReplaceWith(
-          "watch(watchedObject, \"Explain why this object should be garbage collected soon\")"
-      )
+    "Add description parameter explaining why an object is watched to help understand leak traces.",
+    replaceWith = ReplaceWith(
+      "watch(watchedObject, \"Explain why this object should be garbage collected soon\")"
+    )
   )
   @Synchronized fun watch(watchedObject: Any) {
     watch(watchedObject, "")
@@ -136,15 +136,15 @@ class ObjectWatcher constructor(
     }
     removeWeaklyReachableObjects()
     val key = UUID.randomUUID()
-        .toString()
+      .toString()
     val watchUptimeMillis = clock.uptimeMillis()
     val reference =
       KeyedWeakReference(watchedObject, key, description, watchUptimeMillis, queue)
     SharkLog.d {
       "Watching " +
-          (if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") +
-          (if (description.isNotEmpty()) " ($description)" else "") +
-          " with key $key"
+        (if (watchedObject is Class<*>) watchedObject.toString() else "instance of ${watchedObject.javaClass.name}") +
+        (if (description.isNotEmpty()) " ($description)" else "") +
+        " with key $key"
     }
 
     watchedObjects[key] = reference

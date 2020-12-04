@@ -49,7 +49,7 @@ internal class RenderHeapDumpScreen(
 
           executeOnIo {
             val bitmap = HeapDumpRenderer.render(
-                context, heapDumpFile, measuredWidth, measuredHeight, 0
+              context, heapDumpFile, measuredWidth, measuredHeight, 0
             )
             updateUi {
               imageView.setImageBitmap(bitmap)
@@ -67,66 +67,66 @@ internal class RenderHeapDumpScreen(
 
       onCreateOptionsMenu { menu ->
         menu.add(R.string.leak_canary_options_menu_generate_hq_bitmap)
-            .setOnMenuItemClickListener {
-              val leakDirectoryProvider = InternalLeakCanary.createLeakDirectoryProvider(context)
-              if (!leakDirectoryProvider.hasStoragePermission()) {
-                Toast.makeText(
-                    context,
-                    R.string.leak_canary_options_menu_permission_toast,
-                    Toast.LENGTH_LONG
-                )
-                    .show()
-                leakDirectoryProvider.requestWritePermissionNotification()
-              } else {
-                Toast.makeText(
-                    context,
-                    R.string.leak_canary_generating_hq_bitmap_toast_notice,
-                    Toast.LENGTH_LONG
-                )
-                    .show()
-                executeOnIo {
-                  val bitmap = HeapDumpRenderer.render(context, heapDumpFile, 2048, 0, 4)
-                  @Suppress("DEPRECATION") val storageDir =
-                    Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS)
+          .setOnMenuItemClickListener {
+            val leakDirectoryProvider = InternalLeakCanary.createLeakDirectoryProvider(context)
+            if (!leakDirectoryProvider.hasStoragePermission()) {
+              Toast.makeText(
+                context,
+                R.string.leak_canary_options_menu_permission_toast,
+                Toast.LENGTH_LONG
+              )
+                .show()
+              leakDirectoryProvider.requestWritePermissionNotification()
+            } else {
+              Toast.makeText(
+                context,
+                R.string.leak_canary_generating_hq_bitmap_toast_notice,
+                Toast.LENGTH_LONG
+              )
+                .show()
+              executeOnIo {
+                val bitmap = HeapDumpRenderer.render(context, heapDumpFile, 2048, 0, 4)
+                @Suppress("DEPRECATION") val storageDir =
+                  Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS)
 
-                  val imageFile = File(storageDir, "${heapDumpFile.name}.png")
-                  val saved = savePng(imageFile, bitmap)
-                  if (saved) {
-                    SharkLog.d { "Png saved at $imageFile" }
-                    imageFile.setReadable(true, false)
-                    val imageUri = LeakCanaryFileProvider.getUriForFile(
-                        activity,
-                        "com.squareup.leakcanary.fileprovider." + activity.packageName,
-                        imageFile
+                val imageFile = File(storageDir, "${heapDumpFile.name}.png")
+                val saved = savePng(imageFile, bitmap)
+                if (saved) {
+                  SharkLog.d { "Png saved at $imageFile" }
+                  imageFile.setReadable(true, false)
+                  val imageUri = LeakCanaryFileProvider.getUriForFile(
+                    activity,
+                    "com.squareup.leakcanary.fileprovider." + activity.packageName,
+                    imageFile
+                  )
+
+                  updateUi {
+                    val intent = Intent(Intent.ACTION_SEND)
+                    intent.type = "image/png"
+                    intent.putExtra(Intent.EXTRA_STREAM, imageUri)
+                    activity.startActivity(
+                      Intent.createChooser(
+                        intent,
+                        resources.getString(
+                          R.string.leak_canary_share_heap_dump_bitmap_screen_title
+                        )
+                      )
                     )
-
-                    updateUi {
-                      val intent = Intent(Intent.ACTION_SEND)
-                      intent.type = "image/png"
-                      intent.putExtra(Intent.EXTRA_STREAM, imageUri)
-                      activity.startActivity(
-                          Intent.createChooser(
-                              intent,
-                              resources.getString(
-                                  R.string.leak_canary_share_heap_dump_bitmap_screen_title
-                              )
-                          )
-                      )
-                    }
-                  } else {
-                    updateUi {
-                      Toast.makeText(
-                          context,
-                          R.string.leak_canary_generating_hq_bitmap_toast_failure_notice,
-                          Toast.LENGTH_LONG
-                      )
-                          .show()
-                    }
+                  }
+                } else {
+                  updateUi {
+                    Toast.makeText(
+                      context,
+                      R.string.leak_canary_generating_hq_bitmap_toast_failure_notice,
+                      Toast.LENGTH_LONG
+                    )
+                      .show()
                   }
                 }
               }
-              true
             }
+            true
+          }
       }
     }
 

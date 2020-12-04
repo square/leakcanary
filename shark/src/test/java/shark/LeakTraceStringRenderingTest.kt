@@ -63,7 +63,7 @@ class LeakTraceStringRenderingTest {
     val reader = ProguardMappingReader(proguardMappingText.byteInputStream(Charsets.UTF_8))
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        proguardMapping = reader.readProguardMapping()
+      proguardMapping = reader.readProguardMapping()
     )
 
     analysis renders """
@@ -95,16 +95,15 @@ class LeakTraceStringRenderingTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          objectInspectors = listOf(object : ObjectInspector {
-            override fun inspect(
-              reporter: ObjectReporter
-            ) {
-              reporter.whenInstanceOf("ClassB") {
-                leakingReasons += "because reasons"
-              }
+        objectInspectors = listOf(object : ObjectInspector {
+          override fun inspect(
+            reporter: ObjectReporter
+          ) {
+            reporter.whenInstanceOf("ClassB") {
+              leakingReasons += "because reasons"
             }
-          })
-          , leakFilters = listOf(object : LeakingObjectFilter {
+          }
+        }), leakFilters = listOf(object : LeakingObjectFilter {
         override fun isLeakingObject(heapObject: HeapObject) =
           heapObject is HeapInstance && heapObject instanceOf "ClassB"
       })
@@ -135,14 +134,13 @@ class LeakTraceStringRenderingTest {
     }
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-        objectInspectors = listOf(object : ObjectInspector {
-          override fun inspect(
-            reporter: ObjectReporter
-          ) {
-            reporter.labels += "¯\\_(ツ)_/¯"
-          }
-
-        })
+      objectInspectors = listOf(object : ObjectInspector {
+        override fun inspect(
+          reporter: ObjectReporter
+        ) {
+          reporter.labels += "¯\\_(ツ)_/¯"
+        }
+      })
     )
 
     analysis renders """
@@ -174,9 +172,9 @@ class LeakTraceStringRenderingTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          referenceMatchers = listOf(
-              LibraryLeakReferenceMatcher(pattern = InstanceFieldPattern("ClassA", "leak"))
-          )
+        referenceMatchers = listOf(
+          LibraryLeakReferenceMatcher(pattern = InstanceFieldPattern("ClassA", "leak"))
+        )
       )
 
     analysis rendersLibraryLeak """
@@ -209,9 +207,9 @@ class LeakTraceStringRenderingTest {
 
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
-          referenceMatchers = listOf(
-              LibraryLeakReferenceMatcher(pattern = StaticFieldPattern("GcRoot", "leak"))
-          )
+        referenceMatchers = listOf(
+          LibraryLeakReferenceMatcher(pattern = StaticFieldPattern("GcRoot", "leak"))
+        )
       )
 
     analysis rendersLibraryLeak """
@@ -286,7 +284,8 @@ class LeakTraceStringRenderingTest {
   @Test fun renderFieldFromSuperClass() {
     hprofFile.dump {
       val leakingInstance = "Leaking" watchedInstance {}
-      val parentClassId = clazz("com.ParentClass", fields = listOf("leak" to ReferenceHolder::class))
+      val parentClassId =
+        clazz("com.ParentClass", fields = listOf("leak" to ReferenceHolder::class))
       val childClassId = clazz("com.ChildClass", superclassId = parentClassId)
       "GcRoot" clazz {
         staticField["child"] = instance(childClassId, listOf(leakingInstance))
@@ -318,13 +317,13 @@ class LeakTraceStringRenderingTest {
 
   private infix fun HeapAnalysisSuccess.renders(expectedString: String) {
     assertThat(applicationLeaks[0].leakTraces.first().toString()).isEqualTo(
-        expectedString.trimIndent()
+      expectedString.trimIndent()
     )
   }
 
   private infix fun HeapAnalysisSuccess.rendersLibraryLeak(expectedString: String) {
     assertThat(libraryLeaks[0].leakTraces.first().toString()).isEqualTo(
-        expectedString.trimIndent()
+      expectedString.trimIndent()
     )
   }
 }

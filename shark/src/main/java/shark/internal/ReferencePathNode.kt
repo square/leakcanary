@@ -24,7 +24,6 @@ internal sealed class ReferencePathNode {
       override val objectId: Long,
       override val gcRoot: GcRoot
     ) : RootNode()
-
   }
 
   sealed class ChildNode : ReferencePathNode() {
@@ -60,5 +59,4 @@ internal sealed class ReferencePathNode {
       override val owningClassId: Long = 0
     ) : ChildNode()
   }
-
 }

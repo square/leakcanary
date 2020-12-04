@@ -68,9 +68,9 @@ internal object Profiler {
     java.io.File(TRACES_FOLDER).mkdirs()
     val fileName = SimpleDateFormat(TRACE_NAME_PATTERN, Locale.US).format(Date())
     Debug.startMethodTracingSampling(
-        "$TRACES_FOLDER$fileName",
-        BUFFER_SIZE,
-        TRACE_INTERVAL_US
+      "$TRACES_FOLDER$fileName",
+      BUFFER_SIZE,
+      TRACE_INTERVAL_US
     )
     val result = block()
     Debug.stopMethodTracing()

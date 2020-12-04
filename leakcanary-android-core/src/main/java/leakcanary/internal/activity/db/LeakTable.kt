@@ -43,19 +43,19 @@ internal object LeakTable {
 
     val leakId =
       db.rawQuery("SELECT id from leak WHERE signature = '${leak.signature}' LIMIT 1", null)
-          .use { cursor ->
-            if (cursor.moveToFirst()) cursor.getLong(0) else throw IllegalStateException(
-                "No id found for leak with signature '${leak.signature}'"
-            )
-          }
+        .use { cursor ->
+          if (cursor.moveToFirst()) cursor.getLong(0) else throw IllegalStateException(
+            "No id found for leak with signature '${leak.signature}'"
+          )
+        }
 
     leak.leakTraces.forEachIndexed { index, leakTrace ->
       LeakTraceTable.insert(
-          db = db,
-          leakId = leakId,
-          heapAnalysisId = heapAnalysisId,
-          leakTraceIndex = index,
-          leakingObjectClassSimpleName = leakTrace.leakingObject.classSimpleName
+        db = db,
+        leakId = leakId,
+        heapAnalysisId = heapAnalysisId,
+        leakTraceIndex = index,
+        leakingObjectClassSimpleName = leakTrace.leakingObject.classSimpleName
       )
     }
 
@@ -67,7 +67,7 @@ internal object LeakTable {
     signatures: Set<String>
   ): Map<String, Boolean> {
     return db.rawQuery(
-        """
+      """
       SELECT
       signature
       , is_read
@@ -75,15 +75,15 @@ internal object LeakTable {
       WHERE signature IN (${signatures.joinToString { "'$it'" }})
     """, null
     )
-        .use { cursor ->
-          val leakReadStatuses = mutableMapOf<String, Boolean>()
-          while (cursor.moveToNext()) {
-            val signature = cursor.getString(0)
-            val isRead = cursor.getInt(1) == 1
-            leakReadStatuses[signature] = isRead
-          }
-          leakReadStatuses
+      .use { cursor ->
+        val leakReadStatuses = mutableMapOf<String, Boolean>()
+        while (cursor.moveToNext()) {
+          val signature = cursor.getString(0)
+          val isRead = cursor.getInt(1) == 1
+          leakReadStatuses[signature] = isRead
         }
+        leakReadStatuses
+      }
   }
 
   class AllLeaksProjection(
@@ -99,7 +99,7 @@ internal object LeakTable {
     db: SQLiteDatabase
   ): List<AllLeaksProjection> {
     return db.rawQuery(
-        """
+      """
           SELECT
           l.signature
           , MIN(l.short_description)
@@ -114,21 +114,21 @@ internal object LeakTable {
           ORDER BY leak_trace_count DESC, created_at_time_millis DESC
           """, null
     )
-        .use { cursor ->
-          val all = mutableListOf<AllLeaksProjection>()
-          while (cursor.moveToNext()) {
-            val group = AllLeaksProjection(
-                signature = cursor.getString(0),
-                shortDescription = cursor.getString(1),
-                createdAtTimeMillis = cursor.getLong(2),
-                leakTraceCount = cursor.getInt(3),
-                isLibraryLeak = cursor.getInt(4) == 1,
-                isNew = cursor.getInt(5) == 0
-            )
-            all.add(group)
-          }
-          all
+      .use { cursor ->
+        val all = mutableListOf<AllLeaksProjection>()
+        while (cursor.moveToNext()) {
+          val group = AllLeaksProjection(
+            signature = cursor.getString(0),
+            shortDescription = cursor.getString(1),
+            createdAtTimeMillis = cursor.getLong(2),
+            leakTraceCount = cursor.getInt(3),
+            isLibraryLeak = cursor.getInt(4) == 1,
+            isNew = cursor.getInt(5) == 0
+          )
+          all.add(group)
         }
+        all
+      }
   }
 
   fun markAsRead(
@@ -158,7 +158,7 @@ internal object LeakTable {
     signature: String
   ): LeakProjection? {
     return db.rawQuery(
-        """
+      """
           SELECT
           lt.leak_trace_index
           , lt.heap_analysis_id
@@ -174,30 +174,30 @@ internal object LeakTable {
           ORDER BY h.created_at_time_millis DESC
           """, arrayOf(signature)
     )
-        .use { cursor ->
-          return if (cursor.moveToFirst()) {
-            val leakTraces = mutableListOf<LeakTraceProjection>()
-            val leakProjection = LeakProjection(
-                shortDescription = cursor.getString(4),
-                isNew = cursor.getInt(5) == 0,
-                isLibraryLeak = cursor.getInt(6) == 1,
-                leakTraces = leakTraces
+      .use { cursor ->
+        return if (cursor.moveToFirst()) {
+          val leakTraces = mutableListOf<LeakTraceProjection>()
+          val leakProjection = LeakProjection(
+            shortDescription = cursor.getString(4),
+            isNew = cursor.getInt(5) == 0,
+            isLibraryLeak = cursor.getInt(6) == 1,
+            leakTraces = leakTraces
+          )
+          leakTraces.addAll(generateSequence(cursor, {
+            if (cursor.moveToNext()) cursor else null
+          }).map {
+            LeakTraceProjection(
+              leakTraceIndex = cursor.getInt(0),
+              heapAnalysisId = cursor.getLong(1),
+              classSimpleName = cursor.getString(2),
+              createdAtTimeMillis = cursor.getLong(3)
             )
-            leakTraces.addAll(generateSequence(cursor, {
-              if (cursor.moveToNext()) cursor else null
-            }).map {
-              LeakTraceProjection(
-                  leakTraceIndex = cursor.getInt(0),
-                  heapAnalysisId = cursor.getLong(1),
-                  classSimpleName = cursor.getString(2),
-                  createdAtTimeMillis = cursor.getLong(3)
-              )
-            })
-            leakProjection
-          } else {
-            null
-          }
+          })
+          leakProjection
+        } else {
+          null
         }
+      }
   }
 
   fun deleteByHeapAnalysisId(
@@ -206,7 +206,7 @@ internal object LeakTable {
   ) {
     LeakTraceTable.deleteByHeapAnalysisId(db, heapAnalysisId)
     db.execSQL(
-        """
+      """
       DELETE
       FROM leak
       WHERE NOT EXISTS (

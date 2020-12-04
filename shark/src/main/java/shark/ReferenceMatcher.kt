@@ -8,7 +8,6 @@ sealed class ReferenceMatcher {
 
   /** The pattern that references will be matched against. */
   abstract val pattern: ReferencePattern
-
 }
 
 /**

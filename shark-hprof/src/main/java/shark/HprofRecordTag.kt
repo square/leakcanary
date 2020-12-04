@@ -5,25 +5,34 @@ import java.util.EnumSet
 enum class HprofRecordTag(val tag: Int) {
   STRING_IN_UTF8(0x01),
   LOAD_CLASS(0x02),
+
   // Currently ignored
   UNLOAD_CLASS(0x03),
   STACK_FRAME(0x04),
   STACK_TRACE(0x05),
+
   // Currently ignored
   ALLOC_SITES(0x06),
+
   // Currently ignored
   HEAP_SUMMARY(0x07),
+
   // Currently ignored
   START_THREAD(0x0a),
+
   // Currently ignored
   END_THREAD(0x0b),
+
   // Currently not reported
   HEAP_DUMP(0x0c),
+
   // Currently not reported
   HEAP_DUMP_SEGMENT(0x1c),
   HEAP_DUMP_END(0x2c),
+
   // Currently ignored
   CPU_SAMPLES(0x0d),
+
   // Currently ignored
   CONTROL_SETTINGS(0x0e),
   ROOT_UNKNOWN(0xff),
@@ -57,6 +66,7 @@ enum class HprofRecordTag(val tag: Int) {
   ROOT_VM_INTERNAL(0x8d),
   ROOT_JNI_MONITOR(0x8e),
   ROOT_UNREACHABLE(0x90),
+
   // Not supported.
   PRIMITIVE_ARRAY_NODATA(0xc3),
   CLASS_DUMP(0x20),
@@ -67,23 +77,22 @@ enum class HprofRecordTag(val tag: Int) {
 
   companion object {
     val rootTags: EnumSet<HprofRecordTag> = EnumSet.of(
-        ROOT_UNKNOWN,
-        ROOT_JNI_GLOBAL,
-        ROOT_JNI_LOCAL,
-        ROOT_JAVA_FRAME,
-        ROOT_NATIVE_STACK,
-        ROOT_STICKY_CLASS,
-        ROOT_THREAD_BLOCK,
-        ROOT_MONITOR_USED,
-        ROOT_THREAD_OBJECT,
-        ROOT_INTERNED_STRING,
-        ROOT_FINALIZING,
-        ROOT_DEBUGGER,
-        ROOT_REFERENCE_CLEANUP,
-        ROOT_VM_INTERNAL,
-        ROOT_JNI_MONITOR,
-        ROOT_UNREACHABLE
+      ROOT_UNKNOWN,
+      ROOT_JNI_GLOBAL,
+      ROOT_JNI_LOCAL,
+      ROOT_JAVA_FRAME,
+      ROOT_NATIVE_STACK,
+      ROOT_STICKY_CLASS,
+      ROOT_THREAD_BLOCK,
+      ROOT_MONITOR_USED,
+      ROOT_THREAD_OBJECT,
+      ROOT_INTERNED_STRING,
+      ROOT_FINALIZING,
+      ROOT_DEBUGGER,
+      ROOT_REFERENCE_CLEANUP,
+      ROOT_VM_INTERNAL,
+      ROOT_JNI_MONITOR,
+      ROOT_UNREACHABLE
     )
   }
-
 }
