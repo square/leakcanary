@@ -1,22 +1,32 @@
 package leakcanary
 
 import android.annotation.SuppressLint
+import android.annotation.TargetApi
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.Context.INPUT_METHOD_SERVICE
+import android.os.Build
 import android.os.Build.MANUFACTURER
 import android.os.Build.VERSION.SDK_INT
+import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Process
 import android.os.UserManager
+import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.inputmethod.InputMethodManager
+import android.view.textservice.TextServicesManager
 import android.widget.TextView
+import leakcanary.internal.ReferenceCleaner
 import shark.SharkLog
 import java.lang.reflect.Array
 import java.lang.reflect.Field
 import java.lang.reflect.InvocationHandler
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.lang.reflect.Proxy
 import java.util.EnumSet
@@ -385,7 +395,270 @@ enum class AndroidLeakFixes {
     override fun apply(application: Application) {
       ViewLocationHolderLeakFix.applyFix(application)
     }
+  },
+
+  /**
+   * Fix for https://code.google.com/p/android/issues/detail?id=171190 .
+   *
+   * When a view that has focus gets detached, we wait for the main thread to be idle and then
+   * check if the InputMethodManager is leaking a view. If yes, we tell it that the decor view got
+   * focus, which is what happens if you press home and come back from recent apps. This replaces
+   * the reference to the detached view with a reference to the decor view.
+   */
+  IMM_FOCUSED_VIEW {
+    // mServedView should not be accessed on API 29+. Make this clear to Lint with the
+    // TargetApi annotation.
+    @TargetApi(23)
+    @SuppressLint("PrivateApi")
+    override fun apply(application: Application) {
+      // Don't know about other versions yet.
+      if (SDK_INT > 23) {
+        return
+      }
+      val inputMethodManager =
+        application.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+      val mServedViewField: Field
+      val mHField: Field
+      val finishInputLockedMethod: Method
+      val focusInMethod: Method
+      try {
+        mServedViewField =
+          InputMethodManager::class.java.getDeclaredField("mServedView")
+        mServedViewField.isAccessible = true
+        mHField = InputMethodManager::class.java.getDeclaredField("mH")
+        mHField.isAccessible = true
+        finishInputLockedMethod =
+          InputMethodManager::class.java.getDeclaredMethod("finishInputLocked")
+        finishInputLockedMethod.isAccessible = true
+        focusInMethod = InputMethodManager::class.java.getDeclaredMethod(
+          "focusIn", View::class.java
+        )
+        focusInMethod.isAccessible = true
+      } catch (ignored: Exception) {
+        SharkLog.d(ignored) { "Could not fix the $name leak" }
+        return
+      }
+      application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks
+      by noOpDelegate() {
+        override fun onActivityCreated(
+          activity: Activity,
+          savedInstanceState: Bundle?
+        ) {
+          val cleaner = ReferenceCleaner(
+            inputMethodManager,
+            mHField,
+            mServedViewField,
+            finishInputLockedMethod
+          )
+          val rootView = activity.window.decorView.rootView
+          val viewTreeObserver = rootView.viewTreeObserver
+          viewTreeObserver.addOnGlobalFocusChangeListener(cleaner)
+        }
+      })
+    }
+  },
+
+  /**
+   * When an activity is destroyed, the corresponding ViewRootImpl instance is released and ready to
+   * be garbage collected.
+   * Some time after that, ViewRootImpl#W receives a windowfocusChanged() callback, which it
+   * normally delegates to ViewRootImpl which in turn calls
+   * InputMethodManager#onPreWindowFocus which clears InputMethodManager#mCurRootView.
+   *
+   * Unfortunately, since the ViewRootImpl instance is garbage collectable it may be garbage
+   * collected before that happens.
+   * ViewRootImpl#W has a weak reference on ViewRootImpl, so that weak reference will then return
+   * null and the windowfocusChanged() callback will be ignored, leading to
+   * InputMethodManager#mCurRootView not being cleared.
+   *
+   * Filed here: https://issuetracker.google.com/u/0/issues/116078227
+   * Fixed here: https://android.googlesource.com/platform/frameworks/base/+/dff365ef4dc61239fac70953b631e92972a9f41f%5E%21/#F0
+   * InputMethodManager.mCurRootView is part of the unrestricted grey list on Android 9:
+   * https://android.googlesource.com/platform/frameworks/base/+/pie-release/config/hiddenapi-light-greylist.txt#6057
+   */
+  IMM_CUR_ROOT_VIEW {
+    override fun apply(application: Application) {
+      if (Build.VERSION.SDK_INT >= 29) {
+        return
+      }
+      val inputMethodManager =
+        application.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+      val mCurRootViewField: Field
+      try {
+        mCurRootViewField =
+          InputMethodManager::class.java.getDeclaredField("mCurRootView")
+        mCurRootViewField.isAccessible = true
+      } catch (ignored: Exception) {
+        SharkLog.d(ignored) { "Could not read InputMethodManager.mCurRootView field" }
+        return
+      }
+      application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks
+      by noOpDelegate() {
+        override fun onActivityDestroyed(activity: Activity) {
+          try {
+            val rootView = mCurRootViewField[inputMethodManager] as View?
+            if (rootView != null && activity.window != null && activity.window.decorView === rootView
+            ) {
+              mCurRootViewField[inputMethodManager] = null
+            }
+          } catch (ignored: Exception) {
+            SharkLog.d(ignored) { "Could not update InputMethodManager.mCurRootView field" }
+          }
+        }
+      })
+    }
+  },
+
+  /**
+   * Every editable TextView has an Editor instance which has a SpellChecker instance. SpellChecker
+   * is in charge of displaying the little squiggle spans that show typos. SpellChecker starts a
+   * SpellCheckerSession as needed and then closes it when the TextView is detached from the window.
+   * A SpellCheckerSession is in charge of communicating with the spell checker service (which lives
+   * in another process) through TextServicesManager.
+   *
+   * The SpellChecker sends the TextView content to the spell checker service every 400ms, ie every
+   * time the service calls back with a result the SpellChecker schedules another check for 400ms
+   * later.
+   *
+   * When the TextView is detached from the window, the spell checker closes the session. In practice,
+   * SpellCheckerSessionListenerImpl.mHandler is set to null and when the service calls
+   * SpellCheckerSessionListenerImpl.onGetSuggestions or
+   * SpellCheckerSessionListenerImpl.onGetSentenceSuggestions back from another process, there's a
+   * null check for SpellCheckerSessionListenerImpl.mHandler and the callback is dropped.
+   *
+   * Unfortunately, on Android M there's a race condition in how that's done. When the service calls
+   * back into our app process, the IPC call is received on a binder thread. That's when the null
+   * check happens. If the session is not closed at this point (mHandler not null), the callback is
+   * then posted to the main thread. If on the main thread the session is closed after that post but
+   * prior to that post being handled, then the post will still be processed, after the session has
+   * been closed.
+   *
+   * When the post is processed, SpellCheckerSession calls back into SpellChecker which in turns
+   * schedules a new spell check to be ran in 400ms. The check is an anonymous inner class
+   * (SpellChecker$1) stored as SpellChecker.mSpellRunnable and implementing Runnable. It is scheduled
+   * by calling [View.postDelayed]. As we've seen, at this point the session may be closed which means
+   * that the view has been detached. [View.postDelayed] behaves differently when a view is detached:
+   * instead of posting to the single [Handler] used by the view hierarchy, it enqueues the Runnable
+   * into ViewRootImpl.RunQueue, a static queue that holds on to "actions" to be executed. As soon as
+   * a view hierarchy is attached, the ViewRootImpl.RunQueue is processed and emptied.
+   *
+   * Unfortunately, that means that as long as no view hierarchy is attached, ie as long as there
+   * are no activities alive, the actions stay in ViewRootImpl.RunQueue. That means SpellChecker$1
+   * ends up being kept in memory. It holds on to SpellChecker which in turns holds on
+   * to the detached TextView and corresponding destroyed activity & view hierarchy.
+   *
+   * We have a fix for this! When the spell check session is closed, we replace
+   * SpellCheckerSession.mSpellCheckerSessionListener (which normally is the SpellChecker) with a
+   * no-op implementation. So even if callbacks are enqueued to the main thread handler, these
+   * callbacks will call the no-op implementation and SpellChecker will not be scheduling a spell
+   * check.
+   *
+   * Sources to corroborate:
+   *
+   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release
+   * /core/java/android/view/textservice/SpellCheckerSession.java
+   * /core/java/android/view/textservice/TextServicesManager.java
+   * /core/java/android/widget/SpellChecker.java
+   * /core/java/android/view/ViewRootImpl.java
+   */
+  SPELL_CHECKER {
+    @TargetApi(23)
+    @SuppressLint("PrivateApi")
+    override fun apply(application: Application) {
+      if (SDK_INT != 23) {
+        return
+      }
+
+      try {
+        val textServiceClass = TextServicesManager::class.java
+        val getInstanceMethod = textServiceClass.getDeclaredMethod("getInstance")
+
+        val sServiceField = textServiceClass.getDeclaredField("sService")
+        sServiceField.isAccessible = true
+
+        val serviceStubInterface =
+          Class.forName("com.android.internal.textservice.ITextServicesManager")
+
+        val spellCheckSessionClass = Class.forName("android.view.textservice.SpellCheckerSession")
+        val mSpellCheckerSessionListenerField =
+          spellCheckSessionClass.getDeclaredField("mSpellCheckerSessionListener")
+        mSpellCheckerSessionListenerField.isAccessible = true
+
+        val spellCheckerSessionListenerImplClass =
+          Class.forName(
+            "android.view.textservice.SpellCheckerSession\$SpellCheckerSessionListenerImpl"
+          )
+        val listenerImplHandlerField =
+          spellCheckerSessionListenerImplClass.getDeclaredField("mHandler")
+        listenerImplHandlerField.isAccessible = true
+
+        val spellCheckSessionHandlerClass =
+          Class.forName("android.view.textservice.SpellCheckerSession\$1")
+        val outerInstanceField = spellCheckSessionHandlerClass.getDeclaredField("this$0")
+        outerInstanceField.isAccessible = true
+
+        val listenerInterface =
+          Class.forName("android.view.textservice.SpellCheckerSession\$SpellCheckerSessionListener")
+        val noOpListener = Proxy.newProxyInstance(
+          listenerInterface.classLoader, arrayOf(listenerInterface)
+        ) { _: Any, _: Method, _: kotlin.Array<Any>? ->
+          SharkLog.d { "Received call to no-op SpellCheckerSessionListener after session closed" }
+        }
+
+        // Ensure a TextServicesManager instance is created and TextServicesManager.sService set.
+        getInstanceMethod
+          .invoke(null)
+        val realService = sServiceField[null]!!
+
+        val spellCheckerListenerToSession = mutableMapOf<Any, Any>()
+
+        val proxyService = Proxy.newProxyInstance(
+          serviceStubInterface.classLoader, arrayOf(serviceStubInterface)
+        ) { _: Any, method: Method, args: kotlin.Array<Any>? ->
+          try {
+            if (method.name == "getSpellCheckerService") {
+              // getSpellCheckerService is called when the session is opened, which allows us to
+              // capture the corresponding SpellCheckerSession instance via
+              // SpellCheckerSessionListenerImpl.mHandler.this$0
+              val spellCheckerSessionListener = args!![3]
+              val handler = listenerImplHandlerField[spellCheckerSessionListener]!!
+              val spellCheckerSession = outerInstanceField[handler]!!
+              // We add to a map of SpellCheckerSessionListenerImpl to SpellCheckerSession
+              spellCheckerListenerToSession[spellCheckerSessionListener] = spellCheckerSession
+            } else if (method.name == "finishSpellCheckerService") {
+              // finishSpellCheckerService is called when the session is open. After the session has been
+              // closed, any pending work posted to SpellCheckerSession.mHandler should be ignored. We do
+              // so by replacing mSpellCheckerSessionListener with a no-op implementation.
+              val spellCheckerSessionListener = args!![0]
+              val spellCheckerSession =
+                spellCheckerListenerToSession.remove(spellCheckerSessionListener)!!
+              // We use the SpellCheckerSessionListenerImpl to find the corresponding SpellCheckerSession
+              // At this point in time the session was just closed to
+              // SpellCheckerSessionListenerImpl.mHandler is null, which is why we had to capture
+              // the SpellCheckerSession during the getSpellCheckerService call.
+              mSpellCheckerSessionListenerField[spellCheckerSession] = noOpListener
+            }
+          } catch (ignored: Exception) {
+            SharkLog.d(ignored) { "Unable to fix SpellChecker leak" }
+          }
+          // Standard delegation
+          try {
+            return@newProxyInstance if (args != null) {
+              method.invoke(realService, *args)
+            } else {
+              method.invoke(realService)
+            }
+          } catch (invocationException: InvocationTargetException) {
+            throw invocationException.targetException
+          }
+        }
+        sServiceField[null] = proxyService
+      } catch (ignored: Exception) {
+        SharkLog.d(ignored) { "Unable to fix SpellChecker leak" }
+      }
+    }
   }
+
   ;
 
   protected abstract fun apply(application: Application)
