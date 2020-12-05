@@ -1,6 +1,7 @@
 package leakcanary
 
 import android.app.Application
+import android.os.Build.VERSION.SDK_INT
 import leakcanary.HeapAnalysisCondition.Result.StopAnalysis
 import leakcanary.HeapAnalysisCondition.Trigger
 import leakcanary.internal.ReleaseHeapAnalyzer
@@ -92,6 +93,16 @@ class ConditionalHeapAnalyzer(
     enabled = false
     backgroundHandler.removeCallbacks(checkConditions)
     heapAnalyzer.stop()
+  }
+
+  fun shutdown() {
+    stop()
+    heapAnalyzer.shutdown()
+    if (SDK_INT >= 18) {
+      backgroundHandler.looper.quitSafely()
+    } else {
+      backgroundHandler.looper.quit()
+    }
   }
 
   fun removeAllHeapDumpFiles() {
