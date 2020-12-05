@@ -146,12 +146,18 @@ internal class HeapDumpTrigger(
     }
 
     dismissRetainedCountNotification()
-    dumpHeap(retainedReferenceCount, retry = true)
+    val visibility = if (applicationVisible) "visible" else "not visible"
+    dumpHeap(
+      retainedReferenceCount = retainedReferenceCount,
+      retry = true,
+      reason = "$retainedReferenceCount retained objects, app is $visibility"
+    )
   }
 
   private fun dumpHeap(
     retainedReferenceCount: Int,
-    retry: Boolean
+    retry: Boolean,
+    reason: String
   ) {
     saveResourceIdNamesToMemory()
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
@@ -180,7 +186,8 @@ internal class HeapDumpTrigger(
         HeapAnalyzerService.runAnalysis(
           context = application,
           heapDumpFile = heapDumpResult.file,
-          heapDumpDurationMillis = heapDumpResult.durationMillis
+          heapDumpDurationMillis = heapDumpResult.durationMillis,
+          heapDumpReason = reason
         )
       }
     }
@@ -238,7 +245,7 @@ internal class HeapDumpTrigger(
       }
 
       SharkLog.d { "Dumping the heap because user requested it" }
-      dumpHeap(retainedReferenceCount, retry = false)
+      dumpHeap(retainedReferenceCount, retry = false, "user request")
     }
   }
 

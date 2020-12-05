@@ -79,8 +79,14 @@ class AndroidResourceIdNames private constructor(
         holderClass?.let {
           val holderField = holderClass["holderField"]!!
           holderField.valueAsInstance?.let { instance ->
+            println(instance.instanceClassName)
+            instance.readFields().forEach {
+              println("${it.name}=${it.value.holder}")
+            }
+            val resourceIdsField = instance[className, "resourceIds"]!!
+            val resourceIdsArray = resourceIdsField.valueAsPrimitiveArray!!
             val resourceIds =
-              (instance[className, "resourceIds"]!!.valueAsPrimitiveArray!!.readRecord() as IntArrayDump).array
+              (resourceIdsArray.readRecord() as IntArrayDump).array
             val names = instance[className, "names"]!!.valueAsObjectArray!!.readElements()
               .map { it.readAsJavaString()!! }
               .toList()
