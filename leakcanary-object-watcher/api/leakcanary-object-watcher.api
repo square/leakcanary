@@ -19,6 +19,7 @@ public final class leakcanary/GcTrigger$Default : leakcanary/GcTrigger {
 public final class leakcanary/KeyedWeakReference : java/lang/ref/WeakReference {
 	public static final field Companion Lleakcanary/KeyedWeakReference$Companion;
 	public fun <init> (Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;JLjava/lang/ref/ReferenceQueue;)V
+	public fun clear ()V
 	public final fun getDescription ()Ljava/lang/String;
 	public static final fun getHeapDumpUptimeMillis ()J
 	public final fun getKey ()Ljava/lang/String;

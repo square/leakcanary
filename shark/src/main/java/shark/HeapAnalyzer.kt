@@ -39,6 +39,7 @@ import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.internal.AndroidNativeSizeMapper
 import shark.internal.DominatorTree
+import shark.internal.KeyedWeakReferenceMirror
 import shark.internal.PathFinder
 import shark.internal.PathFinder.PathFindingResults
 import shark.internal.ReferencePathNode
@@ -157,6 +158,17 @@ class HeapAnalyzer constructor(
     listener.onAnalysisProgress(EXTRACTING_METADATA)
     val metadata = metadataExtractor.extractMetadata(graph)
 
+    val retainedClearedWeakRefCount = KeyedWeakReferenceFinder.findKeyedWeakReferences(graph)
+      .filter { it.isRetained && !it.hasReferent }.count()
+
+    // This should rarely happens, as we generally remove all cleared weak refs right before a heap
+    // dump.
+    val metadataWithCount = if (retainedClearedWeakRefCount > 0) {
+      metadata + ("Count of retained yet cleared" to "$retainedClearedWeakRefCount KeyedWeakReference instances")
+    } else {
+      metadata
+    }
+
     listener.onAnalysisProgress(FINDING_RETAINED_OBJECTS)
     val leakingObjectIds = leakingObjectFinder.findLeakingObjectIds(graph)
 
@@ -166,7 +178,7 @@ class HeapAnalyzer constructor(
       heapDumpFile = heapDumpFile,
       createdAtTimeMillis = System.currentTimeMillis(),
       analysisDurationMillis = since(analysisStartNanoTime),
-      metadata = metadata,
+      metadata = metadataWithCount,
       applicationLeaks = applicationLeaks,
       libraryLeaks = libraryLeaks,
       unreachableObjects = unreachableObjects
