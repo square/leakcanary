@@ -5,6 +5,7 @@ import android.content.pm.ApplicationInfo
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import com.squareup.leakcanary.objectwatcher.R
 import leakcanary.AppWatcher
 import leakcanary.Clock
 import leakcanary.ObjectWatcher
@@ -74,6 +75,9 @@ internal object InternalAppWatcher {
     val configProvider = { AppWatcher.config }
     ActivityDestroyWatcher.install(application, objectWatcher, configProvider)
     FragmentDestroyWatcher.install(application, objectWatcher, configProvider)
+    if (application.resources.getBoolean(R.bool.leak_canary_watcher_install_root_view_detach)) {
+      RootViewDetachWatcher.install(objectWatcher, configProvider)
+    }
     onAppWatcherInstalled(application)
   }
 
