@@ -16,6 +16,7 @@ import android.os.Looper
 import android.os.Process
 import android.os.UserManager
 import android.view.View
+import android.view.Window
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inputmethod.InputMethodManager
 import android.view.textservice.TextServicesManager
@@ -411,7 +412,7 @@ enum class AndroidLeakFixes {
     @TargetApi(23)
     @SuppressLint("PrivateApi")
     override fun apply(application: Application) {
-      // Don't know about other versions yet.
+      // Fixed in API 24.
       if (SDK_INT > 23) {
         return
       }
@@ -444,15 +445,17 @@ enum class AndroidLeakFixes {
           activity: Activity,
           savedInstanceState: Bundle?
         ) {
-          val cleaner = ReferenceCleaner(
-            inputMethodManager,
-            mHField,
-            mServedViewField,
-            finishInputLockedMethod
-          )
-          val rootView = activity.window.decorView.rootView
-          val viewTreeObserver = rootView.viewTreeObserver
-          viewTreeObserver.addOnGlobalFocusChangeListener(cleaner)
+          activity.window.onDecorViewReady {
+            val cleaner = ReferenceCleaner(
+              inputMethodManager,
+              mHField,
+              mServedViewField,
+              finishInputLockedMethod
+            )
+            val rootView = activity.window.decorView.rootView
+            val viewTreeObserver = rootView.viewTreeObserver
+            viewTreeObserver.addOnGlobalFocusChangeListener(cleaner)
+          }
         }
       })
     }
@@ -752,6 +755,47 @@ enum class AndroidLeakFixes {
         throw UnsupportedOperationException(
           "Should be called from the main thread, not ${Thread.currentThread()}"
         )
+      }
+    }
+
+    private fun Window.onDecorViewReady(callback: () -> Unit) {
+      if (peekDecorView() == null) {
+        onContentChanged {
+          callback()
+          return@onContentChanged false
+        }
+      } else {
+        callback()
+      }
+    }
+
+    private fun Window.onContentChanged(block: () -> Boolean) {
+      val callback = wrapCallback()
+      callback.onContentChangedCallbacks += block
+    }
+
+    private fun Window.wrapCallback(): WindowDelegateCallback {
+      val currentCallback = callback
+      return if (currentCallback is WindowDelegateCallback) {
+        currentCallback
+      } else {
+        val newCallback = WindowDelegateCallback(currentCallback)
+        callback = newCallback
+        newCallback
+      }
+    }
+
+    private class WindowDelegateCallback constructor(
+      private val delegate: Window.Callback
+    ) : Window.Callback by delegate {
+
+      val onContentChangedCallbacks = mutableListOf<() -> Boolean>()
+
+      override fun onContentChanged() {
+        onContentChangedCallbacks.removeAll { callback ->
+          !callback()
+        }
+        delegate.onContentChanged()
       }
     }
   }

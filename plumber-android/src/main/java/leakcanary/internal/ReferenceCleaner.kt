@@ -52,7 +52,11 @@ internal class ReferenceCleaner(
 
   private fun clearInputMethodManagerLeak() {
     try {
-      val lock = mHField[inputMethodManager]!!
+      val lock = mHField[inputMethodManager]
+      if (lock == null) {
+        SharkLog.d { "InputMethodManager.mH was null, could not fix leak." }
+        return
+      }
       // This is highly dependent on the InputMethodManager implementation.
       synchronized(lock) {
         val servedView =
@@ -86,12 +90,8 @@ internal class ReferenceCleaner(
           }
         }
       }
-    } catch (ignored: IllegalAccessException) {
-      // This catch cannot be collapsed with the one below due to a bogus NewApi lint error.
-      // See https://code.google.com/p/android/issues/detail?id=153406.
+    } catch (ignored: Throwable) {
       SharkLog.d(ignored) { "Could not fix leak" }
-    } catch (unexpected: InvocationTargetException) {
-      SharkLog.d(unexpected) { "Could not fix leak" }
     }
   }
 
