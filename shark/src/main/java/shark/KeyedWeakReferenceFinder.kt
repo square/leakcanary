@@ -10,7 +10,9 @@ import shark.internal.KeyedWeakReferenceMirror
 object KeyedWeakReferenceFinder : LeakingObjectFinder {
 
   override fun findLeakingObjectIds(graph: HeapGraph): Set<Long> =
-    findKeyedWeakReferences(graph).map { it.referent.value }
+    findKeyedWeakReferences(graph)
+      .filter { it.hasReferent && it.isRetained }
+      .map { it.referent.value }
       .toSet()
 
   fun heapDumpUptimeMillis(graph: HeapGraph): Long? {
@@ -49,7 +51,6 @@ object KeyedWeakReferenceFinder : LeakingObjectFinder {
             it, heapDumpUptimeMillis
           )
         }
-        .filter { it.hasReferent }
         .toList()
       graph.context[KEYED_WEAK_REFERENCE.name] = addedToContext
       addedToContext

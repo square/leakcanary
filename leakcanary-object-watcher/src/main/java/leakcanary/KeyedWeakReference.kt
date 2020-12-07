@@ -43,6 +43,11 @@ class KeyedWeakReference(
   @Volatile
   var retainedUptimeMillis = -1L
 
+  override fun clear() {
+    super.clear()
+    retainedUptimeMillis = -1L
+  }
+
   companion object {
     @Volatile
     @JvmStatic var heapDumpUptimeMillis = 0L
