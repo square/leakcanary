@@ -16,6 +16,8 @@
 package com.example.leakcanary
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.app.Dialog
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
@@ -33,6 +35,15 @@ class MainActivity : Activity() {
     val leakedView = findViewById<View>(R.id.helper_text)
 
     findViewById<Button>(R.id.recreate_activity_button).setOnClickListener { recreate() }
+    findViewById<Button>(R.id.show_dialog_button).setOnClickListener {
+      AlertDialog.Builder(this)
+        .setTitle("Leaky dialog")
+        .setPositiveButton("Dismiss and leak dialog") { dialog, _ ->
+          app.leakedDialogs += dialog as AlertDialog
+        }
+        .show()
+    }
+
 
     when (Random.nextInt(4)) {
       // Leak from application class

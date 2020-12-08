@@ -50,6 +50,24 @@ object AppWatcher {
     val watchViewModels: Boolean = true,
 
     /**
+     * Whether AppWatcher should automatically watch detached root view instances that
+     * were previously added to the window manager.
+     *
+     * Defaults to true.
+     *
+     * You can disable the spying of WindowManagerGlobal by overriding the
+     * `leak_canary_watcher_install_root_view_detach` boolean resource:
+     *
+     * ```
+     * <?xml version="1.0" encoding="utf-8"?>
+     * <resources>
+     *   <bool name="leak_canary_watcher_install_root_view_detach">false</bool>
+     * </resources>
+     * ```
+     */
+    val watchRootViews: Boolean = true,
+
+    /**
      * How long to wait before reporting a watched object as retained.
      *
      * Default to 5 seconds.
@@ -97,6 +115,7 @@ object AppWatcher {
       private var watchFragments = config.watchFragments
       private var watchFragmentViews = config.watchFragmentViews
       private var watchViewModels = config.watchViewModels
+      private var watchRootViews = config.watchRootViews
       private var watchDurationMillis = config.watchDurationMillis
 
       /** Deprecated. @see [Config.enabled] */
@@ -119,6 +138,10 @@ object AppWatcher {
       fun watchViewModels(watchViewModels: Boolean) =
         apply { this.watchViewModels = watchViewModels }
 
+      /** @see [Config.watchRootViews] */
+      fun watchRootViews(watchRootViews: Boolean) =
+        apply { this.watchRootViews = watchRootViews }
+
       /** @see [Config.watchDurationMillis] */
       fun watchDurationMillis(watchDurationMillis: Long) =
         apply { this.watchDurationMillis = watchDurationMillis }
@@ -128,6 +151,7 @@ object AppWatcher {
         watchFragments = watchFragments,
         watchFragmentViews = watchFragmentViews,
         watchViewModels = watchViewModels,
+        watchRootViews = watchRootViews,
         watchDurationMillis = watchDurationMillis
       )
     }

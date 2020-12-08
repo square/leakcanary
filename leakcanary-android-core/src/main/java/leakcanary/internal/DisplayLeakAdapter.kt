@@ -177,7 +177,7 @@ internal class DisplayLeakAdapter constructor(
 
     val reachabilityString = when (leakingStatus) {
       UNKNOWN -> extra("UNKNOWN")
-      NOT_LEAKING -> extra("NO (${leakingStatusReason})")
+      NOT_LEAKING -> "NO" + extra(" (${leakingStatusReason})")
       LEAKING -> "YES" + extra(" (${leakingStatusReason})")
     }
 

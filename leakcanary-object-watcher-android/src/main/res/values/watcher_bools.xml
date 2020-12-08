@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <bool name="leak_canary_watcher_auto_install">true</bool>
+  <bool name="leak_canary_watcher_install_root_view_detach">true</bool>
 </resources>

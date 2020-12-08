@@ -23,5 +23,4 @@
   <public name="leak_canary_heap_dump_toast" type="layout"/>
   <public name="leak_canary_icon" type="mipmap"/>
   <public name="leak_canary_test_class_name" type="string"/>
-  <public name="leak_canary_watcher_auto_install" type="bool"/>
 </resources>

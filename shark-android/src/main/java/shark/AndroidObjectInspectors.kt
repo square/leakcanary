@@ -614,7 +614,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (mDestroyed.value.asBoolean!!) {
           leakingReasons += mDestroyed describedWithValue "true"
         } else {
-          notLeakingReasons += mDestroyed describedWithValue "false"
+          // A dialog window could be leaking, destroy is only set to false for activity windows.
+          labels += mDestroyed describedWithValue "false"
         }
       }
     }
