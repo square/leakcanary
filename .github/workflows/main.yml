@@ -1,7 +1,11 @@
-#main.yml
+# main.yml
 
 name: Main
-on: pull_request
+on:
+  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   checks:
@@ -15,7 +19,7 @@ jobs:
         uses: actions/setup-java@v1.4.3
         with:
           java-version: 1.8
-          
+
       - name: Build project
         run: ./gradlew build --stacktrace
 
