@@ -15,10 +15,7 @@ jobs:
         uses: actions/setup-java@v1.4.3
         with:
           java-version: 1.8
-
-      - name: Clean project
-        run: ./gradlew clean
-
+          
       - name: Build project
         run: ./gradlew build --stacktrace
 
