@@ -40,31 +40,66 @@ enum class AndroidObjectInspectors : ObjectInspector {
   VIEW {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       if (heapObject is HeapInstance && heapObject instanceOf "android.view.View") {
-        val mContext = heapObject["android.view.View", "mContext"]!!.value.asObject!!.asInstance!!
-        val activityContext = mContext.unwrapActivityContext()
-        val mContextIsDestroyedActivity = (activityContext != null &&
-          activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true)
-        if (mContextIsDestroyedActivity) {
-          true
-        } else {
-          val viewDetached = heapObject["android.view.View", "mAttachInfo"]!!.value.isNullReference
-          if (viewDetached) {
-            val mWindowAttachCount =
-              heapObject["android.view.View", "mWindowAttachCount"]?.value!!.asInt!!
-            if (mWindowAttachCount > 0) {
-              var rootParent = heapObject["android.view.View", "mParent"]!!.valueAsInstance
-              var rootView: HeapInstance? = null
-              while (rootParent != null && rootParent instanceOf "android.view.View") {
-                rootView = rootParent
-                rootParent = rootParent["android.view.View", "mParent"]!!.valueAsInstance
+        // Leaking if null parent or non view parent.
+        val viewParent = heapObject["android.view.View", "mParent"]!!.valueAsInstance
+        val isParentlessView = viewParent == null
+        val isChildOfViewRootImpl =
+          viewParent != null && !(viewParent instanceOf "android.view.View")
+        val isRootView = isParentlessView || isChildOfViewRootImpl
+
+        // This filter only cares for root view because we only need one view in a view hierarchy.
+        if (isRootView) {
+          val mContext = heapObject["android.view.View", "mContext"]!!.value.asObject!!.asInstance!!
+          val activityContext = mContext.unwrapActivityContext()
+          val mContextIsDestroyedActivity = (activityContext != null &&
+            activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true)
+          if (mContextIsDestroyedActivity) {
+            // Root view with unwrapped mContext a destroyed activity.
+            true
+          } else {
+            val viewDetached =
+              heapObject["android.view.View", "mAttachInfo"]!!.value.isNullReference
+            if (viewDetached) {
+              val mWindowAttachCount =
+                heapObject["android.view.View", "mWindowAttachCount"]?.value!!.asInt!!
+              if (mWindowAttachCount > 0) {
+                when {
+                  isChildOfViewRootImpl -> {
+                    // Child of ViewRootImpl that was once attached and is now detached.
+                    // Unwrapped mContext not a destroyed activity. This could be a dialog root.
+                    true
+                  }
+                  heapObject.instanceClassName == "com.android.internal.policy.DecorView" -> {
+                    // DecorView with null parent, once attached now detached.
+                    // Unwrapped mContext not a destroyed activity. This could be a dialog root.
+                    // Unlikely to be a reusable cached view => leak.
+                    true
+                  }
+                  else -> {
+                    // View with null parent, once attached now detached.
+                    // Unwrapped mContext not a destroyed activity. This could be a dialog root.
+                    // Could be a leak or could be a reusable cached view.
+                    false
+                  }
+                }
+              } else {
+                // Root view, detached but was never attached.
+                // This could be a cached instance.
+                false
               }
-              val partOfWindowHierarchy = rootParent != null || (rootView != null &&
-                rootView.instanceClassName == "com.android.internal.policy.DecorView")
-              partOfWindowHierarchy
-            } else false
-          } else false
+            } else {
+              // Root view that is attached.
+              false
+            }
+          }
+        } else {
+          // Not a root view.
+          false
         }
-      } else false
+      } else {
+        // Not a view
+        false
+      }
     }
 
     override fun inspect(
@@ -302,21 +337,18 @@ enum class AndroidObjectInspectors : ObjectInspector {
   },
 
   DIALOG {
-    override val leakingObjectFilter = { heapObject: HeapObject ->
-      heapObject is HeapInstance &&
-        heapObject instanceOf "android.app.Dialog" &&
-        heapObject["android.app.Dialog", "mDecor"]!!.value.isNullReference
-    }
-
     override fun inspect(
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Dialog") { instance ->
         val mDecor = instance["android.app.Dialog", "mDecor"]!!
-        if (mDecor.value.isNullReference) {
-          leakingReasons += mDecor describedWithValue "null"
+        // Can't infer leaking status: mDecor null means either never shown or dismiss.
+        // mDecor non null means the dialog is showing, but sometimes dialogs stay showing
+        // after activity destroyed so that's not really a non leak either.
+        labels += mDecor describedWithValue if (mDecor.value.isNullReference) {
+          "null"
         } else {
-          notLeakingReasons += mDecor describedWithValue "not null"
+          "not null"
         }
       }
     }
@@ -463,25 +495,12 @@ enum class AndroidObjectInspectors : ObjectInspector {
   },
 
   MORTAR_PRESENTER {
-    override val leakingObjectFilter = { heapObject: HeapObject ->
-      heapObject is HeapInstance &&
-        heapObject instanceOf "mortar.Presenter" &&
-        heapObject.getOrThrow("mortar.Presenter", "view").value.isNullReference
-    }
-
     override fun inspect(
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("mortar.Presenter") { instance ->
-        // Bugs in view code tends to cause Mortar presenters to still have a view when they actually
-        // should be unreachable, so in that case we don't know their reachability status. However,
-        // when the view is null, we're pretty sure they  never leaking.
         val view = instance.getOrThrow("mortar.Presenter", "view")
-        if (view.value.isNullReference) {
-          leakingReasons += view describedWithValue "null"
-        } else {
-          labels += view describedWithValue "set"
-        }
+        labels += view describedWithValue if (view.value.isNullReference) "null" else "not null"
       }
     }
   },
@@ -507,24 +526,12 @@ enum class AndroidObjectInspectors : ObjectInspector {
   },
 
   COORDINATOR {
-    override val leakingObjectFilter = { heapObject: HeapObject ->
-      heapObject is HeapInstance &&
-        heapObject instanceOf "com.squareup.coordinators.Coordinator" &&
-        !heapObject.getOrThrow(
-          "com.squareup.coordinators.Coordinator", "attached"
-        ).value.asBoolean!!
-    }
-
     override fun inspect(
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
         val attached = instance.getOrThrow("com.squareup.coordinators.Coordinator", "attached")
-        if (attached.value.asBoolean!!) {
-          notLeakingReasons += attached describedWithValue "true"
-        } else {
-          leakingReasons += attached describedWithValue "false"
-        }
+        labels += attached describedWithValue "${attached.value.asBoolean}"
       }
     }
   },

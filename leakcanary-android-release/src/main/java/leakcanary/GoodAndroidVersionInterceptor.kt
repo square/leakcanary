@@ -1,11 +1,10 @@
 package leakcanary
 
 import android.os.Build
-import leakcanary.HeapAnalysisCondition.Result.StartAnalysis
-import leakcanary.HeapAnalysisCondition.Result.StopAnalysis
+import leakcanary.HeapAnalysisInterceptor.Chain
 
-class GoodAndroidVersionCondition : HeapAnalysisCondition() {
-  private val cachedResult: Result by lazy {
+class GoodAndroidVersionInterceptor : HeapAnalysisInterceptor {
+  private val errorMessage: String? by lazy {
     val sdkInt = Build.VERSION.SDK_INT
     if (// findObjectById() sometimes failing. See #1759
       sdkInt != 23 &&
@@ -15,11 +14,16 @@ class GoodAndroidVersionCondition : HeapAnalysisCondition() {
       // See https://issuetracker.google.com/issues/168634429
       sdkInt < 30
     ) {
-      StartAnalysis
+      null
     } else {
-      StopAnalysis("Build.VERSION.SDK_INT $sdkInt not supported")
+      "Build.VERSION.SDK_INT $sdkInt not supported"
     }
   }
 
-  override fun evaluate() = cachedResult
+  override fun intercept(chain: Chain): HeapAnalysisJob.Result {
+    errorMessage?.let {
+      chain.job.cancel(it)
+    }
+    return chain.proceed()
+  }
 }
