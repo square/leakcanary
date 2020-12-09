@@ -29,4 +29,4 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2.13.0
         with:
           api-level: 23
-          script: ./espresso-checks.sh
+          script: ./gradlew leakcanary-android-core:connectedCheck leakcanary-android-instrumentation:connectedCheck --stacktrace
