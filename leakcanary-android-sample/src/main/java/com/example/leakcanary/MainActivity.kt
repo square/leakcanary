@@ -17,7 +17,7 @@ package com.example.leakcanary
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.Dialog
+import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
@@ -43,7 +43,9 @@ class MainActivity : Activity() {
         }
         .show()
     }
-
+    findViewById<Button>(R.id.start_service_button).setOnClickListener {
+      startService(Intent(this, LeakingService::class.java))
+    }
 
     when (Random.nextInt(4)) {
       // Leak from application class

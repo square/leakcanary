@@ -41,5 +41,8 @@
         <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
       </intent-filter>
     </activity>
+    <service
+        android:name=".LeakingService"
+        android:exported="false"/>
   </application>
 </manifest>
