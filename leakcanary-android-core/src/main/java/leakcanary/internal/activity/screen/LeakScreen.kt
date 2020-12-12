@@ -52,12 +52,14 @@ internal class LeakScreen(
             val selectedLeakIndex =
               if (selectedHeapAnalysisId == null) 0 else leak.leakTraces.indexOfFirst { it.heapAnalysisId == selectedHeapAnalysisId }
 
-            val heapAnalysisId = leak.leakTraces[selectedLeakIndex].heapAnalysisId
-            val selectedHeapAnalysis =
-              HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, heapAnalysisId)!!
+            if (selectedLeakIndex != -1) {
+              val heapAnalysisId = leak.leakTraces[selectedLeakIndex].heapAnalysisId
+              val selectedHeapAnalysis =
+                      HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, heapAnalysisId)!!
 
-            updateUi {
-              onLeaksRetrieved(leak, selectedLeakIndex, selectedHeapAnalysis)
+              updateUi {
+                onLeaksRetrieved(leak, selectedLeakIndex, selectedHeapAnalysis)
+              }
             }
             LeakTable.markAsRead(db, leakSignature)
           }
