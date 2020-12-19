@@ -7,8 +7,6 @@ import shark.LeakTraceObject.LeakingStatus.UNKNOWN
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.internal.createSHA1Hash
 import java.io.Serializable
-import kotlin.math.ln
-import kotlin.math.pow
 
 /**
  * The best strong reference path from a GC root to the leaking object. "Best" here means the
@@ -98,18 +96,6 @@ data class LeakTrace(
 
   fun toSimplePathString(): String = leakTraceAsString(showLeakingStatus = false)
 
-  // https://stackoverflow.com/a/3758880
-  private fun humanReadableByteCount(
-    bytes: Long,
-    si: Boolean
-  ): String {
-    val unit = if (si) 1000 else 1024
-    if (bytes < unit) return "$bytes B"
-    val exp = (ln(bytes.toDouble()) / ln(unit.toDouble())).toInt()
-    val pre = (if (si) "kMGTPE" else "KMGTPE")[exp - 1] + if (si) "" else "i"
-    return String.format("%.1f %sB", bytes / unit.toDouble().pow(exp.toDouble()), pre)
-  }
-
   private fun leakTraceAsString(showLeakingStatus: Boolean): String {
     var result = """
         ┬───
@@ -119,52 +105,30 @@ data class LeakTrace(
 
     referencePath.forEachIndexed { index, element ->
       val originObject = element.originObject
-      val leakStatus = when (originObject.leakingStatus) {
-        UNKNOWN -> "UNKNOWN"
-        NOT_LEAKING -> "NO (${originObject.leakingStatusReason})"
-        LEAKING -> "YES (${originObject.leakingStatusReason})"
-      }
-
-      /**
-       * When the GC Root is a Java Frame, Shark inserts the corresponding thread as an extra
-       * element in the leaktrace.
-       */
-      val typeName =
-        if (index == 0 && gcRootType == JAVA_FRAME) "thread" else originObject.typeName
-
-      result += "\n├─ ${originObject.className} $typeName"
-      if (showLeakingStatus) {
-        result += "\n│    Leaking: $leakStatus"
-      }
-      if (originObject.retainedHeapByteSize != null) {
-        val humanReadableRetainedHeapSize =
-          humanReadableByteCount(originObject.retainedHeapByteSize.toLong(), si = true)
-        result += "\n│    Retaining $humanReadableRetainedHeapSize in ${originObject.retainedObjectCount} objects"
-      }
-
-      for (label in originObject.labels) {
-        result += "\n│    $label"
-      }
+      result += "\n"
+      result += originObject.toString(
+        firstLinePrefix = "├─ ",
+        additionalLinesPrefix = "│    ",
+        showLeakingStatus = showLeakingStatus,
+        /**
+         * When the GC Root is a Java Frame, Shark inserts the corresponding thread as an extra
+         * element in the leaktrace.
+         */
+        typeName = if (index == 0 && gcRootType == JAVA_FRAME) {
+          "thread"
+        } else {
+          originObject.typeName
+        }
+      )
       result += getNextElementString(this, element, index, showLeakingStatus)
     }
 
     result += "\n"
-    result += "╰→ ${leakingObject.className} ${leakingObject.typeName}"
-    if (showLeakingStatus) {
-      result += "\n$ZERO_WIDTH_SPACE"
-      result += "     Leaking: YES (${leakingObject.leakingStatusReason})"
-    }
-    if (leakingObject.retainedHeapByteSize != null) {
-      result += "\n$ZERO_WIDTH_SPACE"
-      val humanReadableRetainedHeapSize =
-        humanReadableByteCount(leakingObject.retainedHeapByteSize.toLong(), si = true)
-      result += "     Retaining $humanReadableRetainedHeapSize in ${leakingObject.retainedObjectCount} objects"
-    }
-    for (label in leakingObject.labels) {
-      result += "\n$ZERO_WIDTH_SPACE"
-      result += "     $label"
-    }
-
+    result += leakingObject.toString(
+      firstLinePrefix = "╰→ ",
+      additionalLinesPrefix = "$ZERO_WIDTH_SPACE     ",
+      showLeakingStatus = showLeakingStatus
+    )
     return result
   }
 
@@ -235,7 +199,7 @@ data class LeakTrace(
       }
     }
 
-    private const val ZERO_WIDTH_SPACE = '\u200b'
+    internal const val ZERO_WIDTH_SPACE = '\u200b'
     private const val serialVersionUID = -6315725584154386429
   }
 }

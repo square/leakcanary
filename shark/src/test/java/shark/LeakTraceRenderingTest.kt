@@ -12,7 +12,7 @@ import shark.ReferencePattern.StaticFieldPattern
 import shark.ValueHolder.ReferenceHolder
 import java.io.File
 
-class LeakTraceStringRenderingTest {
+class LeakTraceRenderingTest {
 
   @get:Rule
   var testFolder = TemporaryFolder()
