@@ -6,6 +6,6 @@ import okio.Source
 /**
  * Can open [Source] instances.
  */
-interface StreamingSourceProvider {
+fun interface StreamingSourceProvider {
   fun openStreamingSource(): BufferedSource
 }

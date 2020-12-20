@@ -1,16 +1,18 @@
 package com.example.leakcanary
 
+import android.os.Process.THREAD_PRIORITY_BACKGROUND
 import android.util.Log
-import leakcanary.ConditionalHeapAnalyzer
-import leakcanary.ConditionalHeapAnalyzer.Result
+import leakcanary.BackgroundTrigger
+import leakcanary.HeapAnalysisClient
+import leakcanary.HeapAnalysisConfig
 import shark.SharkLog
 import shark.SharkLog.Logger
+import java.util.concurrent.Executors
 
 class ReleaseExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
     super.onCreate()
-
     // Useful to debug in release builds. Don't use in real builds.
     SharkLog.logger = object : Logger {
       override fun d(message: String) {
@@ -31,13 +33,26 @@ class ReleaseExampleApplication : ExampleApplication() {
       }
     }
 
-    val listener = object : ConditionalHeapAnalyzer.Listener {
-      override fun onConditionsUpdate(result: Result) {
-        Log.d("LeakCanary", result.toString())
+    val analysisClient = HeapAnalysisClient(
+      heapDumpDirectoryProvider = { filesDir },
+      config = HeapAnalysisConfig(),
+      interceptors = HeapAnalysisClient.defaultInterceptors(this)
+    )
+
+    val analysisExecutor = Executors.newSingleThreadExecutor {
+      Thread {
+        android.os.Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND)
+        it.run()
+      }.apply {
+        name = "BackgroundTrigger analysis executor"
       }
     }
-    val analyzer = ConditionalHeapAnalyzer(this, listener = listener)
-    analyzer.removeAllHeapDumpFiles()
-    analyzer.start()
+    analysisExecutor.execute {
+      analysisClient.deleteHeapDumpFiles()
+    }
+    val trigger = BackgroundTrigger(this, analysisClient, analysisExecutor) { result ->
+      SharkLog.d { "$result" }
+    }
+    trigger.start()
   }
 }

@@ -11,8 +11,7 @@ import java.io.File
 
 internal class StoppableFileSourceProvider(
   private val file: File,
-  private val humanReadableErrorTag: String,
-  private val shouldStop: () -> Boolean
+  private val throwIfStop: () -> Unit
 ) : DualSourceProvider {
 
   override fun openStreamingSource(): BufferedSource {
@@ -22,9 +21,7 @@ internal class StoppableFileSourceProvider(
         sink: Buffer,
         byteCount: Long
       ): Long {
-        check(!shouldStop()) {
-          "Requested stop analysis while streaming $humanReadableErrorTag"
-        }
+        throwIfStop()
         return realSource.read(sink, byteCount)
       }
     }.buffer()
@@ -38,9 +35,7 @@ internal class StoppableFileSourceProvider(
         position: Long,
         byteCount: Long
       ): Long {
-        check(!shouldStop()) {
-          "Requested stop analysis while reading $humanReadableErrorTag with random access"
-        }
+        throwIfStop()
         return channel.transferTo(position, byteCount, sink)
       }
 

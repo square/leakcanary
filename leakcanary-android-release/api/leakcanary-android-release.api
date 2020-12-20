@@ -9,74 +9,33 @@ public final class com/squareup/leakcanary/release/BuildConfig {
 	public fun <init> ()V
 }
 
-public final class leakcanary/BackgroundCondition : leakcanary/HeapAnalysisCondition {
-	public fun <init> (Landroid/app/Application;)V
-	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
-}
-
-public final class leakcanary/ConditionalHeapAnalyzer {
-	public static final field Companion Lleakcanary/ConditionalHeapAnalyzer$Companion;
-	public fun <init> (Landroid/app/Application;Ljava/util/List;Lleakcanary/HeapAnalysisConfig;Lleakcanary/ConditionalHeapAnalyzer$Listener;)V
-	public synthetic fun <init> (Landroid/app/Application;Ljava/util/List;Lleakcanary/HeapAnalysisConfig;Lleakcanary/ConditionalHeapAnalyzer$Listener;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun removeAllHeapDumpFiles ()V
-	public final fun shutdown ()V
+public final class leakcanary/BackgroundTrigger {
+	public fun <init> (Landroid/app/Application;Lleakcanary/HeapAnalysisClient;Ljava/util/concurrent/Executor;Lleakcanary/ProcessInfo;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Landroid/app/Application;Lleakcanary/HeapAnalysisClient;Ljava/util/concurrent/Executor;Lleakcanary/ProcessInfo;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun start ()V
 	public final fun stop ()V
 }
 
-public final class leakcanary/ConditionalHeapAnalyzer$Companion {
-	public final fun defaultConditions (Landroid/app/Application;)Ljava/util/List;
+public final class leakcanary/ConditionalInterceptor : leakcanary/HeapAnalysisInterceptor {
+	public fun <init> (Lleakcanary/HeapAnalysisInterceptor;Lkotlin/jvm/functions/Function1;)V
+	public fun intercept (Lleakcanary/HeapAnalysisInterceptor$Chain;)Lleakcanary/HeapAnalysisJob$Result;
 }
 
-public abstract interface class leakcanary/ConditionalHeapAnalyzer$Listener {
-	public abstract fun onConditionsUpdate (Lleakcanary/ConditionalHeapAnalyzer$Result;)V
-}
-
-public abstract class leakcanary/ConditionalHeapAnalyzer$Result {
-}
-
-public final class leakcanary/ConditionalHeapAnalyzer$Result$ConditionsNotMet : leakcanary/ConditionalHeapAnalyzer$Result {
-	public fun <init> (Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;)Lleakcanary/ConditionalHeapAnalyzer$Result$ConditionsNotMet;
-	public static synthetic fun copy$default (Lleakcanary/ConditionalHeapAnalyzer$Result$ConditionsNotMet;Ljava/lang/String;ILjava/lang/Object;)Lleakcanary/ConditionalHeapAnalyzer$Result$ConditionsNotMet;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getReason ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class leakcanary/ConditionalHeapAnalyzer$Result$HeapAnalysisResult : leakcanary/ConditionalHeapAnalyzer$Result {
-	public fun <init> (Lshark/HeapAnalysis;)V
-	public final fun getHeapAnalysis ()Lshark/HeapAnalysis;
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class leakcanary/GoodAndroidVersionCondition : leakcanary/HeapAnalysisCondition {
+public final class leakcanary/GoodAndroidVersionInterceptor : leakcanary/HeapAnalysisInterceptor {
 	public fun <init> ()V
-	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+	public fun intercept (Lleakcanary/HeapAnalysisInterceptor$Chain;)Lleakcanary/HeapAnalysisJob$Result;
 }
 
-public abstract class leakcanary/HeapAnalysisCondition {
-	public fun <init> ()V
-	public abstract fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
-	public final fun getTrigger ()Lleakcanary/HeapAnalysisCondition$Trigger;
+public final class leakcanary/HeapAnalysisClient {
+	public static final field Companion Lleakcanary/HeapAnalysisClient$Companion;
+	public fun <init> (Lkotlin/jvm/functions/Function0;Lleakcanary/HeapAnalysisConfig;Ljava/util/List;)V
+	public final fun deleteHeapDumpFiles ()V
+	public final fun newJob (Lleakcanary/JobContext;)Lleakcanary/HeapAnalysisJob;
+	public static synthetic fun newJob$default (Lleakcanary/HeapAnalysisClient;Lleakcanary/JobContext;ILjava/lang/Object;)Lleakcanary/HeapAnalysisJob;
 }
 
-public abstract class leakcanary/HeapAnalysisCondition$Result {
-}
-
-public final class leakcanary/HeapAnalysisCondition$Result$StartAnalysis : leakcanary/HeapAnalysisCondition$Result {
-	public static final field INSTANCE Lleakcanary/HeapAnalysisCondition$Result$StartAnalysis;
-}
-
-public final class leakcanary/HeapAnalysisCondition$Result$StopAnalysis : leakcanary/HeapAnalysisCondition$Result {
-	public fun <init> (Ljava/lang/String;)V
-	public final fun getReason ()Ljava/lang/String;
-}
-
-public abstract interface class leakcanary/HeapAnalysisCondition$Trigger {
-	public abstract fun conditionChanged (Ljava/lang/String;)V
+public final class leakcanary/HeapAnalysisClient$Companion {
+	public final fun defaultInterceptors (Landroid/app/Application;)Ljava/util/List;
 }
 
 public final class leakcanary/HeapAnalysisConfig {
@@ -102,28 +61,127 @@ public final class leakcanary/HeapAnalysisConfig {
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class leakcanary/MinimumDiskSpaceCondition : leakcanary/HeapAnalysisCondition {
-	public fun <init> (Landroid/app/Application;JJ)V
-	public synthetic fun <init> (Landroid/app/Application;JJILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+public abstract interface class leakcanary/HeapAnalysisInterceptor {
+	public abstract fun intercept (Lleakcanary/HeapAnalysisInterceptor$Chain;)Lleakcanary/HeapAnalysisJob$Result;
 }
 
-public final class leakcanary/MinimumElapsedSinceStartCondition : leakcanary/HeapAnalysisCondition {
+public abstract interface class leakcanary/HeapAnalysisInterceptor$Chain {
+	public abstract fun getJob ()Lleakcanary/HeapAnalysisJob;
+	public abstract fun proceed ()Lleakcanary/HeapAnalysisJob$Result;
+}
+
+public abstract interface class leakcanary/HeapAnalysisJob {
+	public abstract fun cancel (Ljava/lang/String;)V
+	public abstract fun execute ()Lleakcanary/HeapAnalysisJob$Result;
+	public abstract fun getCanceled ()Z
+	public abstract fun getContext ()Lleakcanary/JobContext;
+	public abstract fun getExecuted ()Z
+}
+
+public abstract class leakcanary/HeapAnalysisJob$Result {
+}
+
+public final class leakcanary/HeapAnalysisJob$Result$Canceled : leakcanary/HeapAnalysisJob$Result {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lleakcanary/HeapAnalysisJob$Result$Canceled;
+	public static synthetic fun copy$default (Lleakcanary/HeapAnalysisJob$Result$Canceled;Ljava/lang/String;ILjava/lang/Object;)Lleakcanary/HeapAnalysisJob$Result$Canceled;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCancelReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class leakcanary/HeapAnalysisJob$Result$Done : leakcanary/HeapAnalysisJob$Result {
+	public fun <init> (Lshark/HeapAnalysis;Ljava/lang/Long;)V
+	public synthetic fun <init> (Lshark/HeapAnalysis;Ljava/lang/Long;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lshark/HeapAnalysis;
+	public final fun component2 ()Ljava/lang/Long;
+	public final fun copy (Lshark/HeapAnalysis;Ljava/lang/Long;)Lleakcanary/HeapAnalysisJob$Result$Done;
+	public static synthetic fun copy$default (Lleakcanary/HeapAnalysisJob$Result$Done;Lshark/HeapAnalysis;Ljava/lang/Long;ILjava/lang/Object;)Lleakcanary/HeapAnalysisJob$Result$Done;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnalysis ()Lshark/HeapAnalysis;
+	public final fun getStripHeapDumpDurationMillis ()Ljava/lang/Long;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class leakcanary/JobContext {
 	public fun <init> ()V
-	public fun <init> (J)V
-	public synthetic fun <init> (JILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+	public fun <init> (Ljava/lang/Class;)V
+	public synthetic fun <init> (Ljava/lang/Class;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lkotlin/reflect/KClass;)V
+	public final fun contains (Ljava/lang/String;)Z
+	public final fun get (Ljava/lang/String;)Ljava/lang/Object;
+	public final fun getOrPut (Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public final fun getStarter ()Ljava/lang/Class;
+	public final fun minusAssign (Ljava/lang/String;)V
+	public final fun set (Ljava/lang/String;Ljava/lang/Object;)V
 }
 
-public final class leakcanary/MinimumMemoryCondition : leakcanary/HeapAnalysisCondition {
-	public fun <init> (Landroid/app/Application;JJ)V
-	public synthetic fun <init> (Landroid/app/Application;JJILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+public final class leakcanary/MinimumDiskSpaceInterceptor : leakcanary/HeapAnalysisInterceptor {
+	public fun <init> (Landroid/app/Application;JLleakcanary/ProcessInfo;)V
+	public synthetic fun <init> (Landroid/app/Application;JLleakcanary/ProcessInfo;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun intercept (Lleakcanary/HeapAnalysisInterceptor$Chain;)Lleakcanary/HeapAnalysisJob$Result;
 }
 
-public final class leakcanary/OncePerPeriodCondition : leakcanary/HeapAnalysisCondition {
+public final class leakcanary/MinimumElapsedSinceStartInterceptor : leakcanary/HeapAnalysisInterceptor {
+	public fun <init> ()V
+	public fun <init> (JLleakcanary/ProcessInfo;)V
+	public synthetic fun <init> (JLleakcanary/ProcessInfo;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun intercept (Lleakcanary/HeapAnalysisInterceptor$Chain;)Lleakcanary/HeapAnalysisJob$Result;
+}
+
+public final class leakcanary/MinimumMemoryInterceptor : leakcanary/HeapAnalysisInterceptor {
+	public fun <init> (Landroid/app/Application;JLleakcanary/ProcessInfo;)V
+	public synthetic fun <init> (Landroid/app/Application;JLleakcanary/ProcessInfo;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun intercept (Lleakcanary/HeapAnalysisInterceptor$Chain;)Lleakcanary/HeapAnalysisJob$Result;
+}
+
+public final class leakcanary/OncePerPeriodInterceptor : leakcanary/HeapAnalysisInterceptor {
+	public static final field Companion Lleakcanary/OncePerPeriodInterceptor$Companion;
 	public fun <init> (Landroid/app/Application;J)V
 	public synthetic fun <init> (Landroid/app/Application;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun evaluate ()Lleakcanary/HeapAnalysisCondition$Result;
+	public final fun forget ()V
+	public fun intercept (Lleakcanary/HeapAnalysisInterceptor$Chain;)Lleakcanary/HeapAnalysisJob$Result;
+}
+
+public final class leakcanary/OncePerPeriodInterceptor$Companion {
+}
+
+public abstract interface class leakcanary/ProcessInfo {
+	public abstract fun availableDiskSpaceBytes (Ljava/io/File;)J
+	public abstract fun availableRam (Landroid/content/Context;)Lleakcanary/ProcessInfo$AvailableRam;
+	public abstract fun getElapsedMillisSinceStart ()J
+	public abstract fun isImportanceBackground ()Z
+}
+
+public abstract class leakcanary/ProcessInfo$AvailableRam {
+}
+
+public final class leakcanary/ProcessInfo$AvailableRam$BelowThreshold : leakcanary/ProcessInfo$AvailableRam {
+	public static final field INSTANCE Lleakcanary/ProcessInfo$AvailableRam$BelowThreshold;
+}
+
+public final class leakcanary/ProcessInfo$AvailableRam$LowRamDevice : leakcanary/ProcessInfo$AvailableRam {
+	public static final field INSTANCE Lleakcanary/ProcessInfo$AvailableRam$LowRamDevice;
+}
+
+public final class leakcanary/ProcessInfo$AvailableRam$Memory : leakcanary/ProcessInfo$AvailableRam {
+	public fun <init> (J)V
+	public final fun getBytes ()J
+}
+
+public final class leakcanary/ProcessInfo$Real : leakcanary/ProcessInfo {
+	public static final field INSTANCE Lleakcanary/ProcessInfo$Real;
+	public fun availableDiskSpaceBytes (Ljava/io/File;)J
+	public fun availableRam (Landroid/content/Context;)Lleakcanary/ProcessInfo$AvailableRam;
+	public fun getElapsedMillisSinceStart ()J
+	public fun isImportanceBackground ()Z
+}
+
+public final class leakcanary/SaveResourceIdsInterceptor : leakcanary/HeapAnalysisInterceptor {
+	public fun <init> (Landroid/content/res/Resources;)V
+	public fun intercept (Lleakcanary/HeapAnalysisInterceptor$Chain;)Lleakcanary/HeapAnalysisJob$Result;
 }
 
