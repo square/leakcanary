@@ -5,6 +5,8 @@ import android.util.Log
 import leakcanary.BackgroundTrigger
 import leakcanary.HeapAnalysisClient
 import leakcanary.HeapAnalysisConfig
+import leakcanary.HeapAnalysisJob.Result
+import leakcanary.ScreenOffTrigger
 import shark.SharkLog
 import shark.SharkLog.Logger
 import java.util.concurrent.Executors
@@ -44,15 +46,27 @@ class ReleaseExampleApplication : ExampleApplication() {
         android.os.Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND)
         it.run()
       }.apply {
-        name = "BackgroundTrigger analysis executor"
+        name = "Heap analysis executor"
       }
     }
     analysisExecutor.execute {
       analysisClient.deleteHeapDumpFiles()
     }
-    val trigger = BackgroundTrigger(this, analysisClient, analysisExecutor) { result ->
+    val analysisCallback: (Result) -> Unit = { result ->
       SharkLog.d { "$result" }
     }
-    trigger.start()
+    BackgroundTrigger(
+      application = this,
+      analysisClient = analysisClient,
+      analysisExecutor = analysisExecutor,
+      analysisCallback = analysisCallback
+    ).start()
+
+    ScreenOffTrigger(
+      application = this,
+      analysisClient = analysisClient,
+      analysisExecutor = analysisExecutor,
+      analysisCallback = analysisCallback
+    ).start()
   }
 }

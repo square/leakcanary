@@ -185,3 +185,10 @@ public final class leakcanary/SaveResourceIdsInterceptor : leakcanary/HeapAnalys
 	public fun intercept (Lleakcanary/HeapAnalysisInterceptor$Chain;)Lleakcanary/HeapAnalysisJob$Result;
 }
 
+public final class leakcanary/ScreenOffTrigger {
+	public fun <init> (Landroid/app/Application;Lleakcanary/HeapAnalysisClient;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Landroid/app/Application;Lleakcanary/HeapAnalysisClient;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun start ()V
+	public final fun stop ()V
+}
+

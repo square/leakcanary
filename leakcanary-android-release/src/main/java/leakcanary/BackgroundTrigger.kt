@@ -1,32 +1,22 @@
 package leakcanary
 
 import android.app.Application
-import android.os.Process
-import android.os.Process.THREAD_PRIORITY_BACKGROUND
 import leakcanary.internal.BackgroundListener
 import leakcanary.internal.checkMainThread
 import shark.SharkLog
 import java.util.concurrent.Executor
-import java.util.concurrent.Executors
 
 class BackgroundTrigger(
   private val application: Application,
   private val analysisClient: HeapAnalysisClient,
   /**
    * The executor on which the analysis is performed and on which [analysisCallback] is called.
-   * This should likely be a serial executor.
-   * Defaults to a single thread executor with a background thread priority.
+   * This should likely be a single thread executor with a background thread priority.
    */
-  private val analysisExecutor: Executor = Executors.newSingleThreadExecutor {
-    Thread {
-      Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND)
-      it.run()
-    }.apply {
-      name = "BackgroundTrigger analysis executor"
-    }
-  },
+  private val analysisExecutor: Executor,
 
-  private val processInfo: ProcessInfo = ProcessInfo.Real,
+  processInfo: ProcessInfo = ProcessInfo.Real,
+
   /**
    * Called back with a [HeapAnalysisJob.Result] after the app has entered background and a
    * heap analysis was attempted. This is called on the same thread that the analysis was
