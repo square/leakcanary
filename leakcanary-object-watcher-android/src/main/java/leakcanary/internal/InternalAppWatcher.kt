@@ -78,6 +78,9 @@ internal object InternalAppWatcher {
     if (application.resources.getBoolean(R.bool.leak_canary_watcher_install_root_view_detach)) {
       RootViewDetachWatcher.install(objectWatcher, configProvider)
     }
+    if (application.resources.getBoolean(R.bool.leak_canary_watcher_install_service_destroy)) {
+      ServiceDestroyWatcher.install(objectWatcher, configProvider)
+    }
     onAppWatcherInstalled(application)
   }
 

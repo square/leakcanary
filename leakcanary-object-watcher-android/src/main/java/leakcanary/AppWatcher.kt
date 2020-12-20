@@ -68,6 +68,23 @@ object AppWatcher {
     val watchRootViews: Boolean = true,
 
     /**
+     * Whether AppWatcher should automatically watch destroyed service instances.
+     *
+     * Defaults to true.
+     *
+     * You can disable the spying of ActivityThread by overriding the
+     * `leak_canary_watcher_install_service_destroy` boolean resource:
+     *
+     * ```
+     * <?xml version="1.0" encoding="utf-8"?>
+     * <resources>
+     *   <bool name="leak_canary_watcher_install_service_destroy">false</bool>
+     * </resources>
+     * ```
+     */
+    val watchServices: Boolean = true,
+
+    /**
      * How long to wait before reporting a watched object as retained.
      *
      * Default to 5 seconds.
@@ -116,6 +133,7 @@ object AppWatcher {
       private var watchFragmentViews = config.watchFragmentViews
       private var watchViewModels = config.watchViewModels
       private var watchRootViews = config.watchRootViews
+      private var watchServices = config.watchServices
       private var watchDurationMillis = config.watchDurationMillis
 
       /** Deprecated. @see [Config.enabled] */
@@ -142,6 +160,10 @@ object AppWatcher {
       fun watchRootViews(watchRootViews: Boolean) =
         apply { this.watchRootViews = watchRootViews }
 
+      /** @see [Config.watchServices] */
+      fun watchServices(watchServices: Boolean) =
+        apply { this.watchServices = watchServices }
+
       /** @see [Config.watchDurationMillis] */
       fun watchDurationMillis(watchDurationMillis: Long) =
         apply { this.watchDurationMillis = watchDurationMillis }
@@ -152,6 +174,7 @@ object AppWatcher {
         watchFragmentViews = watchFragmentViews,
         watchViewModels = watchViewModels,
         watchRootViews = watchRootViews,
+        watchServices = watchServices,
         watchDurationMillis = watchDurationMillis
       )
     }

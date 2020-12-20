@@ -17,12 +17,14 @@ package com.example.leakcanary
 
 import android.app.Application
 import android.app.Dialog
+import android.app.Service
 import android.os.StrictMode
 import android.view.View
 
 open class ExampleApplication : Application() {
   val leakedViews = mutableListOf<View>()
   val leakedDialogs = mutableListOf<Dialog>()
+  val leakedServices = mutableListOf<Service>()
 
   override fun onCreate() {
     super.onCreate()

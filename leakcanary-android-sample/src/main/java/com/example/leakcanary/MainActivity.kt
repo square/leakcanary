@@ -17,6 +17,7 @@ package com.example.leakcanary
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.StatFs
@@ -44,6 +45,9 @@ class MainActivity : Activity() {
           app.leakedDialogs += dialog as AlertDialog
         }
         .show()
+    }
+    findViewById<Button>(R.id.start_service_button).setOnClickListener {
+      startService(Intent(this, LeakingService::class.java))
     }
 
     when (Random.nextInt(4)) {
