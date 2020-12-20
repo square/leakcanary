@@ -18,10 +18,13 @@ package com.example.leakcanary
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
+import android.os.StatFs
 import android.os.SystemClock
 import android.view.View
 import android.widget.Button
+import shark.SharkLog
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
 

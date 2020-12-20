@@ -16,6 +16,8 @@
 package leakcanary.internal
 
 import android.annotation.SuppressLint
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.View.OnAttachStateChangeListener
 import leakcanary.AppWatcher.Config
@@ -25,21 +27,29 @@ import shark.SharkLog
 internal class RootViewDetachWatcher private constructor(
   private val objectWatcher: ObjectWatcher,
   private val configProvider: () -> Config
-) : OnAttachStateChangeListener {
+) {
+
+  private val uiHandler = Handler(Looper.getMainLooper())
 
   private fun onRootViewAdded(rootView: View) {
-    rootView.addOnAttachStateChangeListener(this)
-  }
+    rootView.addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
 
-  override fun onViewAttachedToWindow(view: View) {
-  }
+      val watchDetachedView = Runnable {
+        if (configProvider().watchRootViews) {
+          objectWatcher.watch(
+            rootView, "${rootView::class.java.name} received View#onDetachedFromWindow() callback"
+          )
+        }
+      }
 
-  override fun onViewDetachedFromWindow(view: View) {
-    if (configProvider().watchRootViews) {
-      objectWatcher.watch(
-        view, "${view::class.java.name} received View#onDetachedFromWindow() callback"
-      )
-    }
+      override fun onViewAttachedToWindow(v: View) {
+        uiHandler.removeCallbacks(watchDetachedView)
+      }
+
+      override fun onViewDetachedFromWindow(v: View) {
+        uiHandler.post(watchDetachedView)
+      }
+    })
   }
 
   companion object {

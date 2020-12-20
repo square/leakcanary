@@ -1,18 +1,15 @@
 package leakcanary.internal.activity.db
 
-import android.os.Handler
-import android.os.Looper
 import android.view.View
-import android.view.View.OnAttachStateChangeListener
 import leakcanary.internal.activity.db.Io.OnIo
-import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.onScreenExiting
+import leakcanary.internal.utils.checkMainThread
+import leakcanary.internal.utils.mainHandler
 import java.util.concurrent.Executors
 
 internal object Io {
 
   private val serialExecutor = Executors.newSingleThreadExecutor()
-  private val mainHandler = Handler(Looper.getMainLooper())
 
   interface OnIo {
     fun updateUi(updateUi: View.() -> Unit)
@@ -52,14 +49,6 @@ internal object Io {
           updateUi(attachedView)
         }
       }
-    }
-  }
-
-  private fun checkMainThread() {
-    if (Looper.getMainLooper().thread !== Thread.currentThread()) {
-      throw UnsupportedOperationException(
-        "Should be called from the main thread, not ${Thread.currentThread()}"
-      )
     }
   }
 

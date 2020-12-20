@@ -29,6 +29,7 @@ import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
+import leakcanary.internal.utils.mainHandler
 import leakcanary.internal.utils.measureDurationMillis
 import shark.SharkLog
 import java.util.concurrent.TimeUnit.SECONDS
@@ -39,7 +40,6 @@ internal class AndroidHeapDumper(
 ) : HeapDumper {
 
   private val context: Context = context.applicationContext
-  private val mainHandler: Handler = Handler(Looper.getMainLooper())
 
   override fun dumpHeap(): DumpHeapResult {
     val heapDumpFile = leakDirectoryProvider.newHeapDumpFile() ?: return NoHeapDump
@@ -92,7 +92,8 @@ internal class AndroidHeapDumper(
         return@Runnable
       }
       val toast = Toast(resumedActivity)
-      val iconSize = resumedActivity.resources.getDimensionPixelSize(
+      // Resources from application context: https://github.com/square/leakcanary/issues/2023
+      val iconSize = context.resources.getDimensionPixelSize(
         R.dimen.leak_canary_toast_icon_size
       )
       toast.setGravity(Gravity.CENTER_VERTICAL, 0, -iconSize)

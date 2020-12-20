@@ -12,3 +12,11 @@ internal fun startBackgroundHandlerThread(threadName: String): Handler {
 }
 
 internal val uiHandler = Handler(Looper.getMainLooper())
+
+internal fun checkMainThread() {
+  if (Looper.getMainLooper().thread !== Thread.currentThread()) {
+    throw UnsupportedOperationException(
+      "Should be called from the main thread, not ${Thread.currentThread()}"
+    )
+  }
+}

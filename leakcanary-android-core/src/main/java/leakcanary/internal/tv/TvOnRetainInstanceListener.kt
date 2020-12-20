@@ -12,6 +12,7 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
+import leakcanary.internal.utils.mainHandler
 import shark.SharkLog
 
 /**
@@ -24,8 +25,6 @@ import shark.SharkLog
  */
 internal class TvOnRetainInstanceListener(private val application: Application) :
   OnRetainInstanceListener {
-
-  private val handler = Handler(Looper.getMainLooper())
 
   override fun onEvent(event: RetainInstanceEvent) {
     val message = when (event) {
@@ -48,7 +47,7 @@ internal class TvOnRetainInstanceListener(private val application: Application) 
     }
     SharkLog.d { message }
 
-    handler.post {
+    mainHandler.post {
       val resumedActivity = InternalLeakCanary.resumedActivity ?: return@post
       TvToast.makeText(resumedActivity, message).show()
     }

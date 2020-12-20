@@ -17,6 +17,7 @@ import leakcanary.internal.activity.screen.HeapDumpsScreen
 import leakcanary.internal.activity.screen.LeakTraceWrapper
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.tv.TvToast
+import leakcanary.internal.utils.mainHandler
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
@@ -36,16 +37,14 @@ class DefaultOnHeapAnalyzedListener private constructor(private val applicationP
   )
   constructor(application: Application) : this({ application })
 
-  private val mainHandler = Handler(Looper.getMainLooper())
-
   private val application: Application by lazy { applicationProvider() }
 
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
     SharkLog.d { "\u200B\n${LeakTraceWrapper.wrap(heapAnalysis.toString(), 120)}" }
 
-    val id = LeaksDbHelper(application).writableDatabase.use { db ->
-      HeapAnalysisTable.insert(db, heapAnalysis)
-    }
+    val db = LeaksDbHelper(application).writableDatabase
+    val id = HeapAnalysisTable.insert(db, heapAnalysis)
+    db.releaseReference()
 
     val (contentTitle, screenToShow) = when (heapAnalysis) {
       is HeapAnalysisFailure -> application.getString(

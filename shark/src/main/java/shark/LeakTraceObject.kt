@@ -1,8 +1,15 @@
 package shark
 
+import shark.LeakTrace.Companion.ZERO_WIDTH_SPACE
+import shark.LeakTraceObject.LeakingStatus
+import shark.LeakTraceObject.LeakingStatus.LEAKING
+import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
+import shark.LeakTraceObject.LeakingStatus.UNKNOWN
 import shark.internal.lastSegment
 import java.io.Serializable
 import java.util.Locale
+import kotlin.math.ln
+import kotlin.math.pow
 
 data class LeakTraceObject(
   val type: ObjectType,
@@ -42,6 +49,41 @@ data class LeakTraceObject(
   val typeName
     get() = type.name.toLowerCase(Locale.US)
 
+  override fun toString(): String {
+    val firstLinePrefix = ""
+    val additionalLinesPrefix = "$ZERO_WIDTH_SPACE  "
+    return toString(firstLinePrefix, additionalLinesPrefix, true)
+  }
+
+  internal fun toString(
+    firstLinePrefix: String,
+    additionalLinesPrefix: String,
+    showLeakingStatus: Boolean,
+    typeName: String = this.typeName
+  ): String {
+    val leakStatus = when (leakingStatus) {
+      UNKNOWN -> "UNKNOWN"
+      NOT_LEAKING -> "NO ($leakingStatusReason)"
+      LEAKING -> "YES ($leakingStatusReason)"
+    }
+
+    var result = ""
+    result += "$firstLinePrefix$className $typeName"
+    if (showLeakingStatus) {
+      result += "\n${additionalLinesPrefix}Leaking: $leakStatus"
+    }
+
+    if (retainedHeapByteSize != null) {
+      val humanReadableRetainedHeapSize =
+        humanReadableByteCount(retainedHeapByteSize.toLong())
+      result += "\n${additionalLinesPrefix}Retaining $humanReadableRetainedHeapSize in $retainedObjectCount objects"
+    }
+    for (label in labels) {
+      result += "\n${additionalLinesPrefix}$label"
+    }
+    return result
+  }
+
   enum class ObjectType {
     CLASS,
     ARRAY,
@@ -61,5 +103,14 @@ data class LeakTraceObject(
 
   companion object {
     private const val serialVersionUID = -3616216391305196341L
+
+    // https://stackoverflow.com/a/3758880
+    private fun humanReadableByteCount(bytes: Long): String {
+      val unit = 1000
+      if (bytes < unit) return "$bytes B"
+      val exp = (ln(bytes.toDouble()) / ln(unit.toDouble())).toInt()
+      val pre = "kMGTPE"[exp - 1]
+      return String.format("%.1f %sB", bytes / unit.toDouble().pow(exp.toDouble()), pre)
+    }
   }
 }
