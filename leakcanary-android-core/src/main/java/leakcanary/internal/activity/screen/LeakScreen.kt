@@ -55,10 +55,17 @@ internal class LeakScreen(
             if (selectedLeakIndex != -1) {
               val heapAnalysisId = leak.leakTraces[selectedLeakIndex].heapAnalysisId
               val selectedHeapAnalysis =
-                      HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, heapAnalysisId)!!
+                HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(db, heapAnalysisId)!!
 
               updateUi {
                 onLeaksRetrieved(leak, selectedLeakIndex, selectedHeapAnalysis)
+              }
+            } else {
+              // This can happen if a delete was enqueued and is slow and the user tapped on a leak
+              // row before the deletion is perform and the UI update that leaves the screen
+              // executes.
+              updateUi {
+                activity.title = "Selected heap analysis deleted"
               }
             }
             LeakTable.markAsRead(db, leakSignature)
