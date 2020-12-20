@@ -10,6 +10,7 @@ import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.NotifyingNope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.SilentNope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
+import leakcanary.internal.utils.mainHandler
 
 internal object HeapDumpControl {
 
@@ -29,8 +30,6 @@ internal object HeapDumpControl {
 
   private val app: Application
     get() = InternalLeakCanary.application
-
-  private val handler = Handler(Looper.getMainLooper())
 
   private val testClassName by lazy {
     InternalLeakCanary.application.getString(R.string.leak_canary_test_class_name)
@@ -65,7 +64,7 @@ internal object HeapDumpControl {
         app.getString(R.string.leak_canary_heap_dump_disabled_running_tests, testClassName)
       }
     } else if (!config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached) {
-      handler.postDelayed({
+      mainHandler.postDelayed({
         updateICanHasHeap()
       }, 20_000L)
       NotifyingNope { app.getString(R.string.leak_canary_notification_retained_debugger_attached) }

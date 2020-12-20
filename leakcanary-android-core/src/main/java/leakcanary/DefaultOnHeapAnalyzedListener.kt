@@ -17,6 +17,7 @@ import leakcanary.internal.activity.screen.HeapDumpsScreen
 import leakcanary.internal.activity.screen.LeakTraceWrapper
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.tv.TvToast
+import leakcanary.internal.utils.mainHandler
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
@@ -35,8 +36,6 @@ class DefaultOnHeapAnalyzedListener private constructor(private val applicationP
     replaceWith = ReplaceWith("DefaultOnHeapAnalyzedListener.create()")
   )
   constructor(application: Application) : this({ application })
-
-  private val mainHandler = Handler(Looper.getMainLooper())
 
   private val application: Application by lazy { applicationProvider() }
 
