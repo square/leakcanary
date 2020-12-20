@@ -3,11 +3,11 @@ package leakcanary.internal.activity.db
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import android.os.AsyncTask
-import android.os.Handler
-import android.os.Looper
 import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.internal.Serializables
 import leakcanary.internal.toByteArray
+import leakcanary.internal.utils.checkNotMainThread
+import leakcanary.internal.utils.mainHandler
 import org.intellij.lang.annotations.Language
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
@@ -18,9 +18,11 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 internal object HeapAnalysisTable {
 
+  /**
+   * CopyOnWriteArrayList because registered listeners can remove themselves from this list while
+   * iterating and invoking them, which would trigger a ConcurrentModificationException (see #2019).
+   */
   private val updateListeners = CopyOnWriteArrayList<() -> Unit>()
-
-  private val mainHandler = Handler(Looper.getMainLooper())
 
   @Language("RoomSql")
   const val create = """CREATE TABLE heap_analysis
@@ -78,11 +80,7 @@ internal object HeapAnalysisTable {
   }
 
   private fun notifyUpdateOnMainThread() {
-    if (Looper.getMainLooper().thread === Thread.currentThread()) {
-      throw UnsupportedOperationException(
-        "Should not be called from the main thread"
-      )
-    }
+    checkNotMainThread()
     mainHandler.post {
       updateListeners.forEach { it() }
     }

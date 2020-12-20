@@ -33,6 +33,7 @@ import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
 import leakcanary.internal.tv.TvOnRetainInstanceListener
+import leakcanary.internal.utils.mainHandler
 import shark.SharkLog
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
@@ -152,7 +153,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     addDynamicShortcut(application)
 
     // We post so that the log happens after Application.onCreate()
-    Handler().post {
+    mainHandler.post {
       // https://github.com/square/leakcanary/issues/1981
       // We post to a background handler because HeapDumpControl.iCanHasHeap() checks a shared pref
       // which blocks until loaded and that creates a StrictMode violation.
