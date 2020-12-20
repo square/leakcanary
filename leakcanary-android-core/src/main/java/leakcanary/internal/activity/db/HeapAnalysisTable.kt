@@ -14,10 +14,11 @@ import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
 import shark.SharkLog
 import java.io.File
+import java.util.concurrent.CopyOnWriteArrayList
 
 internal object HeapAnalysisTable {
 
-  private val updateListeners = mutableListOf<() -> Unit>()
+  private val updateListeners = CopyOnWriteArrayList<() -> Unit>()
 
   private val mainHandler = Handler(Looper.getMainLooper())
 
