@@ -43,9 +43,9 @@ class DefaultOnHeapAnalyzedListener private constructor(private val applicationP
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
     SharkLog.d { "\u200B\n${LeakTraceWrapper.wrap(heapAnalysis.toString(), 120)}" }
 
-    val id = LeaksDbHelper(application).writableDatabase.use { db ->
-      HeapAnalysisTable.insert(db, heapAnalysis)
-    }
+    val db = LeaksDbHelper(application).writableDatabase
+    val id = HeapAnalysisTable.insert(db, heapAnalysis)
+    db.releaseReference()
 
     val (contentTitle, screenToShow) = when (heapAnalysis) {
       is HeapAnalysisFailure -> application.getString(
