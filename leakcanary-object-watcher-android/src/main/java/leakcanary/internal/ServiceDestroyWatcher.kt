@@ -5,34 +5,37 @@ import android.app.Service
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
-import android.util.ArrayMap
 import leakcanary.AppWatcher
 import leakcanary.ObjectWatcher
 import shark.SharkLog
+import java.lang.ref.WeakReference
 import java.lang.reflect.Proxy
+import java.util.WeakHashMap
 
 internal class ServiceDestroyWatcher private constructor(
   private val objectWatcher: ObjectWatcher,
   private val configProvider: () -> AppWatcher.Config
 ) {
 
-  private val mTmpServices = mutableMapOf<IBinder, Service>()
+  private val servicesToBeDestroyed = WeakHashMap<IBinder, WeakReference<Service>>()
 
   private fun onServicePreDestroy(
     token: IBinder,
     service: Service
   ) {
     if (configProvider().watchServices) {
-      mTmpServices[token] = service
+      servicesToBeDestroyed[token] = WeakReference(service)
     }
   }
 
   private fun onServiceDestroyed(token: IBinder) {
     if (configProvider().watchServices) {
-      mTmpServices.remove(token)?.also {
-        objectWatcher.watch(
-          it, "${it::class.java.name} received Service#onDestroy callback"
-        )
+      servicesToBeDestroyed.remove(token)?.also { serviceWeakRefence ->
+        serviceWeakRefence.get()?.let { service ->
+          objectWatcher.watch(
+            service, "${service::class.java.name} received Service#onDestroy() callback"
+          )
+        }
       }
     }
   }
@@ -114,7 +117,7 @@ internal class ServiceDestroyWatcher private constructor(
       ) { _, method, args ->
         if (METHOD_SERVICE_DONE_EXECUTING == method.name) {
           val token = args!![0] as IBinder
-          if (serviceDestroyWatcher.mTmpServices.containsKey(token)) {
+          if (serviceDestroyWatcher.servicesToBeDestroyed.containsKey(token)) {
             serviceDestroyWatcher.onServiceDestroyed(token)
           }
         }
