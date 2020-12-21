@@ -36,7 +36,7 @@ class ReleaseExampleApplication : ExampleApplication() {
     }
 
     val analysisClient = HeapAnalysisClient(
-      heapDumpDirectoryProvider = { filesDir },
+      heapDumpDirectoryProvider = { cacheDir },
       config = HeapAnalysisConfig(),
       interceptors = HeapAnalysisClient.defaultInterceptors(this)
     )

@@ -72,8 +72,8 @@ interface ProcessInfo {
       } else {
         activityManager.getMemoryInfo(memoryInfo)
 
-        if (memoryInfo.lowMemory || memoryInfo.availMem <= memoryInfo.threshold) {
-          return BelowThreshold
+        return if (memoryInfo.lowMemory || memoryInfo.availMem <= memoryInfo.threshold) {
+          BelowThreshold
         } else {
           val systemAvailableMemory = memoryInfo.availMem - memoryInfo.threshold
 
@@ -82,7 +82,7 @@ interface ProcessInfo {
           val appAvailableMemory = runtime.maxMemory() - appUsedMemory
 
           val availableMemory = systemAvailableMemory.coerceAtMost(appAvailableMemory)
-          return Memory(availableMemory)
+          Memory(availableMemory)
         }
       }
     }
