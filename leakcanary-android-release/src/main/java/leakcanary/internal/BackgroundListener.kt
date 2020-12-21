@@ -18,8 +18,8 @@ internal class BackgroundListener(
       val appInBackgroundNow = processInfo.isImportanceBackground
       updateBackgroundState(appInBackgroundNow)
       if (!appInBackgroundNow) {
-        uiHandler.removeCallbacks(this)
-        uiHandler.postDelayed(this, BACKGROUND_REPEAT_DELAY_MS)
+        mainHandler.removeCallbacks(this)
+        mainHandler.postDelayed(this, BACKGROUND_REPEAT_DELAY_MS)
       }
     }
   }
@@ -45,13 +45,13 @@ internal class BackgroundListener(
   }
 
   override fun onActivityPaused(activity: Activity) {
-    uiHandler.removeCallbacks(checkAppInBackground)
-    uiHandler.postDelayed(checkAppInBackground, BACKGROUND_DELAY_MS)
+    mainHandler.removeCallbacks(checkAppInBackground)
+    mainHandler.postDelayed(checkAppInBackground, BACKGROUND_DELAY_MS)
   }
 
   override fun onActivityResumed(activity: Activity) {
     updateBackgroundState(appInBackgroundNow = false)
-    uiHandler.removeCallbacks(checkAppInBackground)
+    mainHandler.removeCallbacks(checkAppInBackground)
   }
 
   companion object {

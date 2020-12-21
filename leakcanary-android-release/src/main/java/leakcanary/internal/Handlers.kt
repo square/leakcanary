@@ -5,13 +5,7 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.Process
 
-internal fun startBackgroundHandlerThread(threadName: String): Handler {
-  val thread = HandlerThread(threadName, Process.THREAD_PRIORITY_BACKGROUND)
-  thread.start()
-  return Handler(thread.looper)
-}
-
-internal val uiHandler = Handler(Looper.getMainLooper())
+internal val mainHandler = Handler(Looper.getMainLooper())
 
 internal fun checkMainThread() {
   if (Looper.getMainLooper().thread !== Thread.currentThread()) {
