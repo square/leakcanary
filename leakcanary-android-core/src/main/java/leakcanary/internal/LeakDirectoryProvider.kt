@@ -137,7 +137,7 @@ internal class LeakDirectoryProvider constructor(
   }
 
   private fun appStorageDirectory(): File {
-    val appFilesDirectory = context.filesDir
+    val appFilesDirectory = context.cacheDir
     return File(appFilesDirectory, "leakcanary")
   }
 
