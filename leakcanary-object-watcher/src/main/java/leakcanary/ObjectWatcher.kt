@@ -24,10 +24,10 @@ import java.util.concurrent.Executor
  * [ObjectWatcher] can be passed objects to [watch]. It will create [KeyedWeakReference] instances
  * that reference watches objects, and check if those references have been cleared as expected on
  * the [checkRetainedExecutor] executor. If not, these objects are considered retained and
- * [ObjectWatcher] will then notify the [onObjectRetainedListener] on that executor thread.
+ * [ObjectWatcher] will then notify registered [OnObjectRetainedListener]s on that executor thread.
  *
  * [checkRetainedExecutor] is expected to run its tasks on a background thread, with a significant
- * to give the GC the opportunity to identify weakly reachable objects.
+ * delay to give the GC the opportunity to identify weakly reachable objects.
  *
  * [ObjectWatcher] is thread safe.
  */
@@ -40,7 +40,7 @@ class ObjectWatcher constructor(
    * Calls to [watch] will be ignored when [isEnabled] returns false
    */
   private val isEnabled: () -> Boolean = { true }
-) {
+) : ReachabilityWatcher {
 
   private val onObjectRetainedListeners = mutableSetOf<OnObjectRetainedListener>()
 
@@ -115,19 +115,28 @@ class ObjectWatcher constructor(
   @Deprecated(
     "Add description parameter explaining why an object is watched to help understand leak traces.",
     replaceWith = ReplaceWith(
-      "watch(watchedObject, \"Explain why this object should be garbage collected soon\")"
+      "expectWeaklyReachable(watchedObject, \"Explain why this object should be garbage collected soon\")"
     )
   )
-  @Synchronized fun watch(watchedObject: Any) {
-    watch(watchedObject, "")
+  fun watch(watchedObject: Any) {
+    expectWeaklyReachable(watchedObject, "")
   }
 
-  /**
-   * Watches the provided [watchedObject].
-   *
-   * @param description Describes why the object is watched.
-   */
-  @Synchronized fun watch(
+  @Deprecated(
+    "Method renamed expectWeaklyReachable() to clarify usage.",
+    replaceWith = ReplaceWith(
+      "expectWeaklyReachable(watchedObject, description)"
+    )
+  )
+  fun watch(
+    watchedObject: Any,
+    description: String
+  ) {
+    expectWeaklyReachable(watchedObject, description)
+  }
+
+
+  @Synchronized override fun expectWeaklyReachable(
     watchedObject: Any,
     description: String
   ) {

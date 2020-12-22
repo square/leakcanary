@@ -13,39 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.internal
+package leakcanary
 
 import android.app.Activity
 import android.app.Application
-import leakcanary.AppWatcher.Config
-import leakcanary.ObjectWatcher
-import leakcanary.internal.InternalAppWatcher.noOpDelegate
+import leakcanary.internal.noOpDelegate
 
-internal class ActivityDestroyWatcher private constructor(
-  private val objectWatcher: ObjectWatcher,
-  private val configProvider: () -> Config
-) {
+/**
+ * Expects activities to become weakly reachable soon after they receive the [Activity.onDestroy]
+ * callback.
+ */
+class ActivityWatcher(
+  private val application: Application,
+  private val reachabilityWatcher: ReachabilityWatcher
+) : InstallableWatcher {
 
   private val lifecycleCallbacks =
     object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
       override fun onActivityDestroyed(activity: Activity) {
-        if (configProvider().watchActivities) {
-          objectWatcher.watch(
-            activity, "${activity::class.java.name} received Activity#onDestroy() callback"
-          )
-        }
+        reachabilityWatcher.expectWeaklyReachable(
+          activity, "${activity::class.java.name} received Activity#onDestroy() callback"
+        )
       }
     }
 
-  companion object {
-    fun install(
-      application: Application,
-      objectWatcher: ObjectWatcher,
-      configProvider: () -> Config
-    ) {
-      val activityDestroyWatcher =
-        ActivityDestroyWatcher(objectWatcher, configProvider)
-      application.registerActivityLifecycleCallbacks(activityDestroyWatcher.lifecycleCallbacks)
-    }
+  override fun install() {
+    application.registerActivityLifecycleCallbacks(lifecycleCallbacks)
+  }
+
+  override fun uninstall() {
+    application.unregisterActivityLifecycleCallbacks(lifecycleCallbacks)
   }
 }

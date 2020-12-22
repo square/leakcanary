@@ -1,9 +1,15 @@
 package leakcanary
 
 import android.app.Application
+import android.os.SystemClock
 import leakcanary.AppWatcher.objectWatcher
-import leakcanary.internal.InternalAppWatcher
+import leakcanary.internal.DefaultCanaryLog
+import leakcanary.internal.LeakCanaryDelegate
+import leakcanary.internal.checkMainThread
+import leakcanary.internal.isDebuggableBuild
+import leakcanary.internal.mainHandler
 import shark.SharkLog
+import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
 /**
@@ -14,231 +20,39 @@ import java.util.concurrent.TimeUnit
  */
 object AppWatcher {
 
-  /**
-   * AppWatcher configuration data class. Properties can be updated via [copy].
-   *
-   * @see [config]
-   */
-  data class Config(
-    /**
-     * Whether AppWatcher should automatically watch destroyed activity instances.
-     *
-     * Defaults to true.
-     */
-    val watchActivities: Boolean = true,
+  private const val RETAINED_DELAY_NOT_SET = -1L
 
-    /**
-     * Whether AppWatcher should automatically watch destroyed fragment instances.
-     *
-     * Defaults to true.
-     */
-    val watchFragments: Boolean = true,
-
-    /**
-     * Whether AppWatcher should automatically watch destroyed fragment view instances.
-     *
-     * Defaults to true.
-     */
-    val watchFragmentViews: Boolean = true,
-
-    /**
-     * Whether AppWatcher should automatically watch cleared [androidx.lifecycle.ViewModel]
-     * instances.
-     *
-     * Defaults to true.
-     */
-    val watchViewModels: Boolean = true,
-
-    /**
-     * Whether AppWatcher should automatically watch detached root view instances that
-     * were previously added to the window manager.
-     *
-     * Defaults to true.
-     *
-     * You can disable the spying of WindowManagerGlobal by overriding the
-     * `leak_canary_watcher_install_root_view_detach` boolean resource:
-     *
-     * ```
-     * <?xml version="1.0" encoding="utf-8"?>
-     * <resources>
-     *   <bool name="leak_canary_watcher_install_root_view_detach">false</bool>
-     * </resources>
-     * ```
-     */
-    val watchRootViews: Boolean = true,
-
-    /**
-     * Whether AppWatcher should automatically watch destroyed service instances.
-     *
-     * Defaults to true.
-     *
-     * You can disable the spying of ActivityThread by overriding the
-     * `leak_canary_watcher_install_service_destroy` boolean resource:
-     *
-     * ```
-     * <?xml version="1.0" encoding="utf-8"?>
-     * <resources>
-     *   <bool name="leak_canary_watcher_install_service_destroy">false</bool>
-     * </resources>
-     * ```
-     */
-    val watchServices: Boolean = true,
-
-    /**
-     * How long to wait before reporting a watched object as retained.
-     *
-     * Default to 5 seconds.
-     */
-    val watchDurationMillis: Long = TimeUnit.SECONDS.toMillis(5),
-
-    /**
-     * Deprecated, this didn't need to be a part of the API.
-     * Used to indicate whether AppWatcher should watch objects (by keeping weak references to
-     * them). Currently a no-op.
-     *
-     * If you do need to stop watching objects, simply don't pass them to [objectWatcher].
-     */
-    @Deprecated("This didn't need to be a part of LeakCanary's API. No-Op.")
-    val enabled: Boolean = true
-  ) {
-
-    /**
-     * Construct a new Config via [AppWatcher.Config.Builder].
-     * Note: this method is intended to be used from Java code only. For idiomatic Kotlin use
-     * `copy()` to modify [AppWatcher.config].
-     */
-    @Suppress("NEWER_VERSION_IN_SINCE_KOTLIN")
-    @SinceKotlin("999.9") // Hide from Kotlin code, this method is only for Java code
-    fun newBuilder(): Builder = Builder(this)
-
-    /**
-     * Builder for [Config] intended to be used only from Java code.
-     *
-     * Usage:
-     * ```
-     * AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
-     *    .watchFragmentViews(false)
-     *    .build();
-     * AppWatcher.setConfig(config);
-     * ```
-     *
-     * For idiomatic Kotlin use `copy()` method instead:
-     * ```
-     * AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
-     * ```
-     */
-    class Builder internal constructor(config: Config) {
-      private var watchActivities = config.watchActivities
-      private var watchFragments = config.watchFragments
-      private var watchFragmentViews = config.watchFragmentViews
-      private var watchViewModels = config.watchViewModels
-      private var watchRootViews = config.watchRootViews
-      private var watchServices = config.watchServices
-      private var watchDurationMillis = config.watchDurationMillis
-
-      /** Deprecated. @see [Config.enabled] */
-      @Deprecated("see [Config.enabled]", replaceWith = ReplaceWith(""))
-      fun enabled(enabled: Boolean) = this
-
-      /** @see [Config.watchActivities] */
-      fun watchActivities(watchActivities: Boolean) =
-        apply { this.watchActivities = watchActivities }
-
-      /** @see [Config.watchFragments] */
-      fun watchFragments(watchFragments: Boolean) =
-        apply { this.watchFragments = watchFragments }
-
-      /** @see [Config.watchFragmentViews] */
-      fun watchFragmentViews(watchFragmentViews: Boolean) =
-        apply { this.watchFragmentViews = watchFragmentViews }
-
-      /** @see [Config.watchViewModels] */
-      fun watchViewModels(watchViewModels: Boolean) =
-        apply { this.watchViewModels = watchViewModels }
-
-      /** @see [Config.watchRootViews] */
-      fun watchRootViews(watchRootViews: Boolean) =
-        apply { this.watchRootViews = watchRootViews }
-
-      /** @see [Config.watchServices] */
-      fun watchServices(watchServices: Boolean) =
-        apply { this.watchServices = watchServices }
-
-      /** @see [Config.watchDurationMillis] */
-      fun watchDurationMillis(watchDurationMillis: Long) =
-        apply { this.watchDurationMillis = watchDurationMillis }
-
-      fun build() = config.copy(
-        watchActivities = watchActivities,
-        watchFragments = watchFragments,
-        watchFragmentViews = watchFragmentViews,
-        watchViewModels = watchViewModels,
-        watchRootViews = watchRootViews,
-        watchServices = watchServices,
-        watchDurationMillis = watchDurationMillis
-      )
-    }
-  }
-
-  /**
-   * The current AppWatcher configuration. Can be updated at any time, usually by replacing it with
-   * a mutated copy, e.g.:
-   *
-   * ```
-   * AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
-   * ```
-   *
-   * In Java, use [AppWatcher.Config.Builder] instead:
-   * ```
-   * AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
-   *    .watchFragmentViews(false)
-   *    .build();
-   * AppWatcher.setConfig(config);
-   * ```
-   */
-  @JvmStatic @Volatile
-  var config: Config = Config()
-    set(newConfig) {
-      val previousConfig = field
-      field = newConfig
-      logConfigChange(previousConfig, newConfig)
-    }
-
-  private fun logConfigChange(
-    previousConfig: Config,
-    newConfig: Config
-  ) {
-    SharkLog.d {
-      val changedFields = mutableListOf<String>()
-      Config::class.java.declaredFields.forEach { field ->
-        field.isAccessible = true
-        val previousValue = field[previousConfig]
-        val newValue = field[newConfig]
-        if (previousValue != newValue) {
-          changedFields += "${field.name}=$newValue"
-        }
-      }
-
-      val changesInConfig =
-        if (changedFields.isNotEmpty()) changedFields.joinToString(", ") else "no changes"
-
-      "Updated AppWatcher.config: Config($changesInConfig)"
-    }
-  }
+  @Volatile
+  private var retainedDelayMillis = RETAINED_DELAY_NOT_SET
 
   /**
    * The [ObjectWatcher] used by AppWatcher to detect retained objects.
+   * Only set when [isInstalled] is true.
    */
-  val objectWatcher
-    get() = InternalAppWatcher.objectWatcher
+  val objectWatcher = ObjectWatcher(
+    clock = { SystemClock.uptimeMillis() },
+    checkRetainedExecutor = {
+      check(isInstalled) {
+        "AppWatcher not installed"
+      }
+      mainHandler.postDelayed(it, retainedDelayMillis)
+    },
+    isEnabled = { true }
+  )
 
   /** @see [manualInstall] */
-  val isInstalled
-    get() = InternalAppWatcher.isInstalled
+  val isInstalled: Boolean
+    get() = retainedDelayMillis != RETAINED_DELAY_NOT_SET
 
   /**
-   * [AppWatcher] is automatically installed in the main process on startup. You can
-   * disable this behavior by overriding the `leak_canary_watcher_auto_install` boolean resource:
+   * Enables usage of [AppWatcher.objectWatcher] which will expect passed in objects to become
+   * weakly reachable within [retainedDelayMillis] ms and if not will trigger LeakCanary (if
+   * LeakCanary is in the classpath).
+   *
+   * In the main process, this method is automatically called with default parameter values  on app
+   * startup. You can call this method directly to customize the installation, however you must
+   * first disable the automatic call by overriding the `leak_canary_watcher_auto_install` boolean
+   * resource:
    *
    * ```
    * <?xml version="1.0" encoding="utf-8"?>
@@ -247,9 +61,154 @@ object AppWatcher {
    * </resources>
    * ```
    *
-   * If you disabled automatic install then you can call this method to install [AppWatcher].
+   * [watchersToInstall] can be customized to a subset of the default app watchers:
+   *
+   * ```
+   * val watchersToInstall = AppWatcher.appDefaultWatchers(application)
+   *   .filter { it !is RootViewWatcher }
+   * AppWatcher.manualInstall(
+   *   application = application,
+   *   watchersToInstall = watchersToInstall
+   * )
+   * ```
+   *
+   * [watchersToInstall] can also be customized to ignore specific instances (e.g. here ignoring
+   * leaks of BadSdkLeakingFragment):
+   *
+   * ```
+   * val watchersToInstall = AppWatcher.appDefaultWatchers(application, ReachabilityWatcher { watchedObject, description ->
+   *   if (watchedObject !is BadSdkLeakingFragment) {
+   *     AppWatcher.objectWatcher.expectWeaklyReachable(watchedObject, description)
+   *   }
+   * })
+   * AppWatcher.manualInstall(
+   *   application = application,
+   *   watchersToInstall = watchersToInstall
+   * )
+   * ```
    */
-  fun manualInstall(application: Application) {
-    InternalAppWatcher.install(application)
+  @JvmOverloads
+  fun manualInstall(
+    application: Application,
+    retainedDelayMillis: Long = TimeUnit.SECONDS.toMillis(5),
+    watchersToInstall: List<InstallableWatcher> = appDefaultWatchers(application)
+  ) {
+    checkMainThread()
+    check(!isInstalled) {
+      "AppWatcher already installed"
+    }
+    check(retainedDelayMillis >= 0) {
+      "retainedDelayMillis $retainedDelayMillis must be at least 0 ms"
+    }
+    this.retainedDelayMillis = retainedDelayMillis
+    if (application.isDebuggableBuild) {
+      SharkLog.logger = DefaultCanaryLog()
+    }
+    // Requires AppWatcher.objectWatcher to be set
+    LeakCanaryDelegate.loadLeakCanary(application)
+
+    watchersToInstall.forEach {
+      it.install()
+    }
   }
+
+  /**
+   * Creates a new list of default app [InstallableWatcher], created with the passed in
+   * [reachabilityWatcher] (which defaults to [objectWatcher]). Once installed,
+   * these watchers will pass in to [reachabilityWatcher] objects that they expect to become
+   * weakly reachable.
+   *
+   * The passed in [reachabilityWatcher] should probably delegate to [objectWatcher] but can
+   * be used to filter out specific instances.
+   */
+  fun appDefaultWatchers(
+    application: Application,
+    reachabilityWatcher: ReachabilityWatcher = objectWatcher
+  ): List<InstallableWatcher> {
+    return listOf(
+      ActivityWatcher(application, reachabilityWatcher),
+      FragmentAndViewModelWatcher(application, reachabilityWatcher),
+      RootViewWatcher(reachabilityWatcher),
+      ServiceWatcher(reachabilityWatcher)
+    )
+  }
+
+  @Deprecated("Call AppWatcher.manualInstall() ")
+  data class Config(
+    @Deprecated("Call AppWatcher.manualInstall() with a custom watcher list")
+    val watchActivities: Boolean = true,
+
+    @Deprecated("Call AppWatcher.manualInstall() with a custom watcher list")
+    val watchFragments: Boolean = true,
+
+    @Deprecated("Call AppWatcher.manualInstall() with a custom watcher list")
+    val watchFragmentViews: Boolean = true,
+
+    @Deprecated("Call AppWatcher.manualInstall() with a custom watcher list")
+    val watchViewModels: Boolean = true,
+
+    @Deprecated("Call AppWatcher.manualInstall() with a custom retainedDelayMillis value")
+    val watchDurationMillis: Long = TimeUnit.SECONDS.toMillis(5),
+
+    @Deprecated("Call AppWatcher.appDefaultWatchers() with a custom ReachabilityWatcher")
+    val enabled: Boolean = true
+  ) {
+
+    @Deprecated("Configuration moved to AppWatcher.manualInstall()", replaceWith = ReplaceWith(""))
+    @Suppress("NEWER_VERSION_IN_SINCE_KOTLIN")
+    @SinceKotlin("999.9") // Hide from Kotlin code, this method is only for Java code
+    fun newBuilder(): Builder = Builder(this)
+
+    @Deprecated("Configuration moved to XML resources")
+    class Builder internal constructor(config: Config) {
+      private var watchActivities = config.watchActivities
+      private var watchFragments = config.watchFragments
+      private var watchFragmentViews = config.watchFragmentViews
+      private var watchViewModels = config.watchViewModels
+      private var watchDurationMillis = config.watchDurationMillis
+
+      /** Deprecated. @see [Config.enabled] */
+      @Deprecated("see [Config.enabled]", replaceWith = ReplaceWith(""))
+      fun enabled(enabled: Boolean) = this
+
+      /** @see [Config.watchActivities] */
+      @Deprecated("see [Config.watchActivities]", replaceWith = ReplaceWith(""))
+      fun watchActivities(watchActivities: Boolean) =
+        apply { this.watchActivities = watchActivities }
+
+      @Deprecated("see [Config.watchFragments]", replaceWith = ReplaceWith(""))
+        /** @see [Config.watchFragments] */
+      fun watchFragments(watchFragments: Boolean) =
+        apply { this.watchFragments = watchFragments }
+
+      @Deprecated("see [Config.watchFragmentViews]", replaceWith = ReplaceWith(""))
+        /** @see [Config.watchFragmentViews] */
+      fun watchFragmentViews(watchFragmentViews: Boolean) =
+        apply { this.watchFragmentViews = watchFragmentViews }
+
+      @Deprecated("see [Config.watchViewModels]", replaceWith = ReplaceWith(""))
+        /** @see [Config.watchViewModels] */
+      fun watchViewModels(watchViewModels: Boolean) =
+        apply { this.watchViewModels = watchViewModels }
+
+      @Deprecated("see [Config.watchDurationMillis]", replaceWith = ReplaceWith(""))
+        /** @see [Config.watchDurationMillis] */
+      fun watchDurationMillis(watchDurationMillis: Long) =
+        apply { this.watchDurationMillis = watchDurationMillis }
+
+      @Deprecated("Configuration moved to AppWatcher.manualInstall()")
+      fun build() = config.copy(
+        watchActivities = watchActivities,
+        watchFragments = watchFragments,
+        watchFragmentViews = watchFragmentViews,
+        watchViewModels = watchViewModels,
+        watchDurationMillis = watchDurationMillis
+      )
+    }
+  }
+
+  @Deprecated("Configuration moved to AppWatcher.manualInstall()")
+  @JvmStatic @Volatile
+  var config: Config = Config()
+
 }

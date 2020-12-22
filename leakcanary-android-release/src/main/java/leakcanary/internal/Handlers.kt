@@ -1,3 +1,5 @@
+@file:JvmName("leakcanary-android-release_Handlers")
+
 package leakcanary.internal
 
 import android.os.Handler

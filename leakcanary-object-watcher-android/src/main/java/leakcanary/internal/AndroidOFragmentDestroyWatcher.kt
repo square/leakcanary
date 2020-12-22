@@ -21,13 +21,11 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Fragment
 import android.app.FragmentManager
-import leakcanary.AppWatcher.Config
-import leakcanary.ObjectWatcher
+import leakcanary.ReachabilityWatcher
 
 @SuppressLint("NewApi")
 internal class AndroidOFragmentDestroyWatcher(
-  private val objectWatcher: ObjectWatcher,
-  private val configProvider: () -> Config
+  private val reachabilityWatcher: ReachabilityWatcher
 ) : (Activity) -> Unit {
   private val fragmentLifecycleCallbacks = object : FragmentManager.FragmentLifecycleCallbacks() {
 
@@ -36,8 +34,8 @@ internal class AndroidOFragmentDestroyWatcher(
       fragment: Fragment
     ) {
       val view = fragment.view
-      if (view != null && configProvider().watchFragmentViews) {
-        objectWatcher.watch(
+      if (view != null) {
+        reachabilityWatcher.expectWeaklyReachable(
           view, "${fragment::class.java.name} received Fragment#onDestroyView() callback " +
           "(references to its views should be cleared to prevent leaks)"
         )
@@ -48,11 +46,9 @@ internal class AndroidOFragmentDestroyWatcher(
       fm: FragmentManager,
       fragment: Fragment
     ) {
-      if (configProvider().watchFragments) {
-        objectWatcher.watch(
-          fragment, "${fragment::class.java.name} received Fragment#onDestroy() callback"
-        )
-      }
+      reachabilityWatcher.expectWeaklyReachable(
+        fragment, "${fragment::class.java.name} received Fragment#onDestroy() callback"
+      )
     }
   }
 

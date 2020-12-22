@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <public name="leak_canary_watcher_auto_install" type="bool"/>
-  <public name="leak_canary_watcher_install_root_view_detach" type="bool"/>
-  <public name="leak_canary_watcher_install_service_destroy" type="bool"/>
 </resources>
