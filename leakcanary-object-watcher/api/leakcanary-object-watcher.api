@@ -34,12 +34,13 @@ public final class leakcanary/KeyedWeakReference$Companion {
 	public final fun setHeapDumpUptimeMillis (J)V
 }
 
-public final class leakcanary/ObjectWatcher {
+public final class leakcanary/ObjectWatcher : leakcanary/ReachabilityWatcher {
 	public fun <init> (Lleakcanary/Clock;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function0;)V
 	public synthetic fun <init> (Lleakcanary/Clock;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun addOnObjectRetainedListener (Lleakcanary/OnObjectRetainedListener;)V
 	public final fun clearObjectsWatchedBefore (J)V
 	public final fun clearWatchedObjects ()V
+	public fun expectWeaklyReachable (Ljava/lang/Object;Ljava/lang/String;)V
 	public final fun getHasRetainedObjects ()Z
 	public final fun getHasWatchedObjects ()Z
 	public final fun getRetainedObjectCount ()I
@@ -56,5 +57,9 @@ public abstract interface class leakcanary/OnObjectRetainedListener {
 
 public final class leakcanary/OnObjectRetainedListener$Companion {
 	public final fun invoke (Lkotlin/jvm/functions/Function0;)Lleakcanary/OnObjectRetainedListener;
+}
+
+public abstract interface class leakcanary/ReachabilityWatcher {
+	public abstract fun expectWeaklyReachable (Ljava/lang/Object;Ljava/lang/String;)V
 }
 

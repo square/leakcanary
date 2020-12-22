@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <!-- Whether to automatically install in the main process on startup via a custom ContentProvider.
+   If false, you need to call AppWatcher.manualInstall().
+   -->
   <bool name="leak_canary_watcher_auto_install">true</bool>
-  <bool name="leak_canary_watcher_install_root_view_detach">true</bool>
-  <bool name="leak_canary_watcher_install_service_destroy">true</bool>
 </resources>
