@@ -2,12 +2,17 @@ package leakcanary.internal
 
 import android.app.Activity
 import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.Intent.ACTION_SCREEN_OFF
+import android.content.Intent.ACTION_SCREEN_ON
+import android.content.IntentFilter
 import leakcanary.internal.friendly.noOpDelegate
 
 internal class VisibilityTracker(
   private val listener: (Boolean) -> Unit
-) :
-  Application.ActivityLifecycleCallbacks by noOpDelegate() {
+) : Application.ActivityLifecycleCallbacks by noOpDelegate(), BroadcastReceiver() {
 
   private var startedActivityCount = 0
 
@@ -18,11 +23,18 @@ internal class VisibilityTracker(
    */
   private var hasVisibleActivities: Boolean = false
 
+  /**
+   * Assuming screen on by default.
+   */
+  private var screenOn: Boolean = true
+
+  private var lastUpdate: Boolean = false
+
   override fun onActivityStarted(activity: Activity) {
     startedActivityCount++
     if (!hasVisibleActivities && startedActivityCount == 1) {
       hasVisibleActivities = true
-      listener.invoke(true)
+      updateVisible()
     }
   }
 
@@ -34,11 +46,32 @@ internal class VisibilityTracker(
     }
     if (hasVisibleActivities && startedActivityCount == 0 && !activity.isChangingConfigurations) {
       hasVisibleActivities = false
-      listener.invoke(false)
+      updateVisible()
+    }
+  }
+
+  override fun onReceive(
+    context: Context,
+    intent: Intent
+  ) {
+    screenOn = intent.action != ACTION_SCREEN_OFF
+    updateVisible()
+  }
+
+  private fun updateVisible() {
+    val visible = screenOn && hasVisibleActivities
+    if (visible != lastUpdate) {
+      lastUpdate = visible
+      listener.invoke(visible)
     }
   }
 }
 
 internal fun Application.registerVisibilityListener(listener: (Boolean) -> Unit) {
-  registerActivityLifecycleCallbacks(VisibilityTracker(listener))
+  val visibilityTracker = VisibilityTracker(listener)
+  registerActivityLifecycleCallbacks(visibilityTracker)
+  registerReceiver(visibilityTracker, IntentFilter().apply {
+    addAction(ACTION_SCREEN_ON)
+    addAction(ACTION_SCREEN_OFF)
+  })
 }
