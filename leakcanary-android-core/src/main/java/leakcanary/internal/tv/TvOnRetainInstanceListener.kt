@@ -12,7 +12,7 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
-import leakcanary.internal.utils.mainHandler
+import leakcanary.internal.friendly.mainHandler
 import shark.SharkLog
 
 /**

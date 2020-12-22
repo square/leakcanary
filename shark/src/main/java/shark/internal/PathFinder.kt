@@ -1,18 +1,4 @@
-/*
- * Copyright (C) 2015 Square, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
 package shark.internal
 
 import shark.GcRoot
@@ -60,9 +46,7 @@ import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
-import shark.internal.hppcshark.LongObjectPair
-import shark.internal.hppcshark.LongScatterSet
-import shark.internal.hppcshark.to
+import shark.internal.hppc.LongScatterSet
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedHashMap
@@ -276,7 +260,7 @@ internal class PathFinder(
     val shortestPathsToLeakingObjects = mutableListOf<ReferencePathNode>()
     visitingQueue@ while (queuesNotEmpty) {
       val node = poll()
-      if (node.objectId in leakingObjectIds) {
+      if (leakingObjectIds.contains(node.objectId)) {
         shortestPathsToLeakingObjects.add(node)
         // Found all refs, stop searching (unless computing retained size)
         if (shortestPathsToLeakingObjects.size == leakingObjectIds.size()) {
@@ -672,7 +656,7 @@ internal class PathFinder(
       return
     }
 
-    val isLeakingObject = node.objectId in leakingObjectIds
+    val isLeakingObject = leakingObjectIds.contains(node.objectId)
 
     if (!isLeakingObject) {
       val skip = when (val graphObject = graph.findObjectById(node.objectId)) {

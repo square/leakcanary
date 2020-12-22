@@ -8,9 +8,10 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import leakcanary.AndroidLeakFixes.Companion.checkMainThread
+import leakcanary.internal.friendly.checkMainThread
 import leakcanary.internal.onAndroidXFragmentViewDestroyed
 import shark.SharkLog
+import leakcanary.internal.friendly.noOpDelegate
 
 /**
  * @see [AndroidLeakFixes.VIEW_LOCATION_HOLDER].
@@ -26,7 +27,7 @@ object ViewLocationHolderLeakFix {
       return
     }
     application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks
-    by AndroidLeakFixes.noOpDelegate() {
+    by noOpDelegate() {
 
       override fun onActivityCreated(
         activity: Activity,

@@ -6,8 +6,8 @@ import android.os.AsyncTask
 import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.internal.Serializables
 import leakcanary.internal.toByteArray
-import leakcanary.internal.utils.checkNotMainThread
-import leakcanary.internal.utils.mainHandler
+import leakcanary.internal.friendly.checkNotMainThread
+import leakcanary.internal.friendly.mainHandler
 import org.intellij.lang.annotations.Language
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure

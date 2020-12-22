@@ -1,10 +1,11 @@
+@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER", "CANNOT_OVERRIDE_INVISIBLE_MEMBER")
 package shark.internal
 
 import shark.ValueHolder
 import shark.internal.ObjectDominators.DominatorNode
-import shark.internal.hppcshark.LongLongScatterMap
-import shark.internal.hppcshark.LongLongScatterMap.ForEachCallback
-import shark.internal.hppcshark.LongScatterSet
+import shark.internal.hppc.LongLongScatterMap
+import shark.internal.hppc.LongLongScatterMap.ForEachCallback
+import shark.internal.hppc.LongScatterSet
 
 internal class DominatorTree(expectedElements: Int = 4) {
 

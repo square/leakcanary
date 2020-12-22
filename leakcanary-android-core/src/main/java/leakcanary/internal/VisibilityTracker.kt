@@ -2,7 +2,7 @@ package leakcanary.internal
 
 import android.app.Activity
 import android.app.Application
-import leakcanary.internal.InternalLeakCanary.noOpDelegate
+import leakcanary.internal.friendly.noOpDelegate
 
 internal class VisibilityTracker(
   private val listener: (Boolean) -> Unit

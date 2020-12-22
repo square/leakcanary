@@ -9,7 +9,6 @@ import leakcanary.HeapAnalysisJob.Result
 import leakcanary.HeapAnalysisJob.Result.Canceled
 import leakcanary.HeapAnalysisJob.Result.Done
 import leakcanary.JobContext
-import okio.BufferedSource
 import okio.buffer
 import okio.sink
 import shark.CloseableHeapGraph
@@ -130,7 +129,7 @@ internal class RealHeapAnalysisJob(
 
       val stripDurationMillis =
         if (config.stripHeapDump) {
-          measureDurationMillis {
+          leakcanary.internal.friendly.measureDurationMillis {
             val strippedHeapDumpFile = File(filesDir, "$fileNameBase-stripped$HPROF_SUFFIX").apply {
               deleteOnExit()
             }

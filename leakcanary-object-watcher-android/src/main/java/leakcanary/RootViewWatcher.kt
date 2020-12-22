@@ -18,7 +18,7 @@ package leakcanary
 import android.annotation.SuppressLint
 import android.view.View
 import android.view.View.OnAttachStateChangeListener
-import leakcanary.internal.mainHandler
+import leakcanary.internal.friendly.mainHandler
 import shark.SharkLog
 
 /**

@@ -53,9 +53,13 @@ public final class leakcanary/AppWatcher$Config$Builder {
 }
 
 public final class leakcanary/FragmentAndViewModelWatcher : leakcanary/InstallableWatcher {
+	public static final field Companion Lleakcanary/FragmentAndViewModelWatcher$Companion;
 	public fun <init> (Landroid/app/Application;Lleakcanary/ReachabilityWatcher;)V
 	public fun install ()V
 	public fun uninstall ()V
+}
+
+public final class leakcanary/FragmentAndViewModelWatcher$Companion {
 }
 
 public abstract interface class leakcanary/InstallableWatcher {
@@ -70,8 +74,12 @@ public final class leakcanary/RootViewWatcher : leakcanary/InstallableWatcher {
 }
 
 public final class leakcanary/ServiceWatcher : leakcanary/InstallableWatcher {
+	public static final field Companion Lleakcanary/ServiceWatcher$Companion;
 	public fun <init> (Lleakcanary/ReachabilityWatcher;)V
 	public fun install ()V
 	public fun uninstall ()V
+}
+
+public final class leakcanary/ServiceWatcher$Companion {
 }
 

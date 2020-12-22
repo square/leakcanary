@@ -3,13 +3,11 @@ package leakcanary
 import android.app.Application
 import android.os.SystemClock
 import leakcanary.AppWatcher.objectWatcher
-import leakcanary.internal.DefaultCanaryLog
 import leakcanary.internal.LeakCanaryDelegate
-import leakcanary.internal.checkMainThread
+import leakcanary.internal.friendly.checkMainThread
+import leakcanary.internal.friendly.mainHandler
 import leakcanary.internal.isDebuggableBuild
-import leakcanary.internal.mainHandler
 import shark.SharkLog
-import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
 /**
@@ -102,7 +100,7 @@ object AppWatcher {
     }
     this.retainedDelayMillis = retainedDelayMillis
     if (application.isDebuggableBuild) {
-      SharkLog.logger = DefaultCanaryLog()
+      LogcatSharkLog.install()
     }
     // Requires AppWatcher.objectWatcher to be set
     LeakCanaryDelegate.loadLeakCanary(application)

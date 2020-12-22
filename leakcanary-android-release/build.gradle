@@ -3,6 +3,7 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   api project(':shark-android')
+  api project(':leakcanary-android-utils')
 
   implementation deps.kotlin.stdlib
   implementation deps.okio

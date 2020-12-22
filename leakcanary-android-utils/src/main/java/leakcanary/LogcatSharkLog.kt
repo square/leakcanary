@@ -1,9 +1,10 @@
-package leakcanary.internal
+package leakcanary
 
 import android.util.Log
+import shark.SharkLog
 import shark.SharkLog.Logger
 
-internal class DefaultCanaryLog : Logger {
+class LogcatSharkLog : Logger {
 
   override fun d(message: String) {
     if (message.length < 4000) {
@@ -20,5 +21,11 @@ internal class DefaultCanaryLog : Logger {
     message: String
   ) {
     d("$message\n${Log.getStackTraceString(throwable)}")
+  }
+
+  companion object {
+    fun install() {
+      SharkLog.logger = LogcatSharkLog()
+    }
   }
 }

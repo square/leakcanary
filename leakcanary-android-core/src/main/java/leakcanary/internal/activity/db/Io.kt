@@ -3,8 +3,8 @@ package leakcanary.internal.activity.db
 import android.view.View
 import leakcanary.internal.activity.db.Io.OnIo
 import leakcanary.internal.navigation.onScreenExiting
-import leakcanary.internal.utils.checkMainThread
-import leakcanary.internal.utils.mainHandler
+import leakcanary.internal.friendly.checkMainThread
+import leakcanary.internal.friendly.mainHandler
 import java.util.concurrent.Executors
 
 internal object Io {

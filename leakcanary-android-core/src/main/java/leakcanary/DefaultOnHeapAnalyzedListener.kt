@@ -17,7 +17,7 @@ import leakcanary.internal.activity.screen.HeapDumpsScreen
 import leakcanary.internal.activity.screen.LeakTraceWrapper
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.tv.TvToast
-import leakcanary.internal.utils.mainHandler
+import leakcanary.internal.friendly.mainHandler
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess

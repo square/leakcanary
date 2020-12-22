@@ -3,19 +3,14 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   api project(':shark-log')
-  api project(':leakcanary-android-utils')
 
   implementation deps.kotlin.stdlib
-  // Optional dependency
-  compileOnly deps.androidx.fragment
 }
 
 android {
-  resourcePrefix 'leak_canary_plumber'
   compileSdkVersion versions.compileSdk
   defaultConfig {
     minSdkVersion versions.minSdk
-    consumerProguardFiles 'consumer-proguard-rules.pro'
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
