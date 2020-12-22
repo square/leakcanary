@@ -57,6 +57,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field ACTIVITY_CHOOSE_MODEL Lshark/AndroidReferenceMatchers;
 	public static final field ACTIVITY_CLIENT_RECORD__NEXT_IDLE Lshark/AndroidReferenceMatchers;
 	public static final field ACTIVITY_MANAGER_MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field APPLICATION_PACKAGE_MANAGER__HAS_SYSTEM_FEATURE_QUERY Lshark/AndroidReferenceMatchers;
 	public static final field APP_WIDGET_HOST_CALLBACKS Lshark/AndroidReferenceMatchers;
 	public static final field ASSIST_STRUCTURE Lshark/AndroidReferenceMatchers;
 	public static final field AUDIO_MANAGER Lshark/AndroidReferenceMatchers;
