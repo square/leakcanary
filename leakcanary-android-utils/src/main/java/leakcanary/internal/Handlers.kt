@@ -1,4 +1,4 @@
-package leakcanary.internal.utils
+package leakcanary.internal
 
 import android.os.Handler
 import android.os.Looper

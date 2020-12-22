@@ -5,7 +5,7 @@ import android.app.Service
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
-import leakcanary.internal.checkMainThread
+import leakcanary.internal.friendly.checkMainThread
 import shark.SharkLog
 import java.lang.ref.WeakReference
 import java.lang.reflect.Proxy
@@ -149,7 +149,7 @@ class ServiceWatcher(private val reachabilityWatcher: ReachabilityWatcher) : Ins
       swap(iActivityManagerInterface, activityManagerInstance!!)
   }
 
-  private companion object {
+  companion object {
     private const val STOP_SERVICE = 116
 
     private const val METHOD_SERVICE_DONE_EXECUTING = "serviceDoneExecuting"

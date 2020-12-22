@@ -21,16 +21,14 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Debug
-import android.os.Handler
-import android.os.Looper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
-import leakcanary.internal.utils.mainHandler
-import leakcanary.internal.utils.measureDurationMillis
+import leakcanary.internal.friendly.mainHandler
+import leakcanary.internal.friendly.measureDurationMillis
 import shark.SharkLog
 import java.util.concurrent.TimeUnit.SECONDS
 

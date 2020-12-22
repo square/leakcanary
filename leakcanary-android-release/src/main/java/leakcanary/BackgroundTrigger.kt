@@ -2,7 +2,7 @@ package leakcanary
 
 import android.app.Application
 import leakcanary.internal.BackgroundListener
-import leakcanary.internal.checkMainThread
+import leakcanary.internal.friendly.checkMainThread
 import shark.SharkLog
 import java.util.concurrent.Executor
 

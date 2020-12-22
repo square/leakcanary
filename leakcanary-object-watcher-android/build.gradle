@@ -3,6 +3,7 @@ apply plugin: 'kotlin-android'
 
 dependencies {
   api project(':leakcanary-object-watcher')
+  api project(':leakcanary-android-utils')
 
   implementation deps.kotlin.stdlib
 

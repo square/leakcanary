@@ -20,7 +20,6 @@ import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.StrictMode
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
@@ -32,11 +31,10 @@ import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
 import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
+import leakcanary.internal.friendly.noOpDelegate
 import leakcanary.internal.tv.TvOnRetainInstanceListener
-import leakcanary.internal.utils.mainHandler
+import leakcanary.internal.friendly.mainHandler
 import shark.SharkLog
-import java.lang.reflect.InvocationHandler
-import java.lang.reflect.Proxy
 
 internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedListener {
 
@@ -331,16 +329,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       if (enabled) COMPONENT_ENABLED_STATE_ENABLED else COMPONENT_ENABLED_STATE_DISABLED
     // Blocks on IPC.
     application.packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP)
-  }
-
-  inline fun <reified T : Any> noOpDelegate(): T {
-    val javaClass = T::class.java
-    val noOpHandler = InvocationHandler { _, _, _ ->
-      // no op
-    }
-    return Proxy.newProxyInstance(
-      javaClass.classLoader, arrayOf(javaClass), noOpHandler
-    ) as T
   }
 
   private const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"

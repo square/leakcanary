@@ -22,10 +22,11 @@ import android.view.inputmethod.InputMethodManager
 import android.view.textservice.TextServicesManager
 import android.widget.TextView
 import leakcanary.internal.ReferenceCleaner
+import leakcanary.internal.friendly.checkMainThread
+import leakcanary.internal.friendly.noOpDelegate
 import shark.SharkLog
 import java.lang.reflect.Array
 import java.lang.reflect.Field
-import java.lang.reflect.InvocationHandler
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -738,24 +739,6 @@ enum class AndroidLeakFixes {
           block(activity)
         }
       })
-    }
-
-    internal inline fun <reified T : Any> noOpDelegate(): T {
-      val javaClass = T::class.java
-      val noOpHandler = InvocationHandler { _, _, _ ->
-        // no op
-      }
-      return Proxy.newProxyInstance(
-        javaClass.classLoader, arrayOf(javaClass), noOpHandler
-      ) as T
-    }
-
-    internal fun checkMainThread() {
-      if (Looper.getMainLooper().thread !== Thread.currentThread()) {
-        throw UnsupportedOperationException(
-          "Should be called from the main thread, not ${Thread.currentThread()}"
-        )
-      }
     }
 
     private fun Window.onDecorViewReady(callback: () -> Unit) {

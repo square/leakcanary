@@ -10,7 +10,7 @@ import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.NotifyingNope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.SilentNope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
-import leakcanary.internal.utils.mainHandler
+import leakcanary.internal.friendly.mainHandler
 
 internal object HeapDumpControl {
 

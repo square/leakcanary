@@ -4,6 +4,8 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import leakcanary.ProcessInfo
+import leakcanary.internal.friendly.mainHandler
+import leakcanary.internal.friendly.noOpDelegate
 
 /**
  * Tracks whether the app is in background, based on the app's importance.

@@ -15,8 +15,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ActivityTestRule
-import java.lang.reflect.InvocationHandler
-import java.lang.reflect.Proxy
+import leakcanary.internal.friendly.noOpDelegate
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
@@ -120,16 +119,6 @@ fun <R> waitForTriggered(
   val result = trigger()
   latch.await()
   return result
-}
-
-inline fun <reified T : Any> noOpDelegate(): T {
-  val javaClass = T::class.java
-  val noOpHandler = InvocationHandler { _, _, _ ->
-    // no op
-  }
-  return Proxy.newProxyInstance(
-    javaClass.classLoader, arrayOf(javaClass), noOpHandler
-  ) as T
 }
 
 fun <T> getOnMainSync(block: () -> T): T {

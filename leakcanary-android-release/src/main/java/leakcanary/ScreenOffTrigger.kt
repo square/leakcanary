@@ -7,7 +7,7 @@ import android.content.Intent
 import android.content.Intent.ACTION_SCREEN_OFF
 import android.content.Intent.ACTION_SCREEN_ON
 import android.content.IntentFilter
-import leakcanary.internal.checkMainThread
+import leakcanary.internal.friendly.checkMainThread
 import shark.SharkLog
 import java.util.concurrent.Executor
 
