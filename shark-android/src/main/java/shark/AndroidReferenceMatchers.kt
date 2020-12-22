@@ -253,7 +253,7 @@ enum class AndroidReferenceMatchers {
               activity has been destroyed.
             """.trimIndent()
       ) {
-        sdkInt == 28
+        sdkInt in 28..29
       }
     }
   },
@@ -682,6 +682,22 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  APPLICATION_PACKAGE_MANAGER__HAS_SYSTEM_FEATURE_QUERY {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references  += instanceFieldLeak(
+        "android.app.ApplicationPackageManager\$HasSystemFeatureQuery", "this\$0",
+        description = """
+          In Android 11 DP 2 ApplicationPackageManager.HasSystemFeatureQuery was an inner class.
+          Introduced in https://cs.android.com/android/_/android/platform/frameworks/base/+/89608118192580ffca026b5dacafa637a556d578
+          Fixed in https://cs.android.com/android/_/android/platform/frameworks/base/+/1f771846c51148b7cb6283e6dc82a216ffaa5353
+          Related blog: https://dev.to/pyricau/beware-packagemanager-leaks-223g
+        """.trimIndent()
+      ) {
+        sdkInt == 29
+      }
+    }
+  },
+
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG
@@ -828,7 +844,7 @@ enum class AndroidReferenceMatchers {
         description =
         "mLastHoveredView is a static field in TextView that leaks the last hovered" + " view."
       ) {
-        manufacturer == SAMSUNG && sdkInt in 19..28
+        manufacturer == SAMSUNG && sdkInt in 19..29
       }
     }
   },
