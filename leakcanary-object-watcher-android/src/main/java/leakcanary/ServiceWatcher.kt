@@ -8,6 +8,7 @@ import android.os.IBinder
 import leakcanary.internal.friendly.checkMainThread
 import shark.SharkLog
 import java.lang.ref.WeakReference
+import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Proxy
 import java.util.WeakHashMap
 
@@ -77,7 +78,15 @@ class ServiceWatcher(private val reachabilityWatcher: ReachabilityWatcher) : Ins
               onServiceDestroyed(token)
             }
           }
-          method.invoke(activityManagerInstance, *args)
+          try {
+            if (args == null) {
+              method.invoke(activityManagerInstance)
+            } else {
+              method.invoke(activityManagerInstance, *args)
+            }
+          } catch (invocationException: InvocationTargetException) {
+            throw invocationException.targetException
+          }
         }
       }
     } catch (ignored: Throwable) {
