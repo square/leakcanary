@@ -16,6 +16,7 @@
 package leakcanary
 
 import android.annotation.SuppressLint
+import android.os.Build
 import android.view.View
 import android.view.View.OnAttachStateChangeListener
 import leakcanary.internal.friendly.mainHandler
@@ -30,6 +31,9 @@ class RootViewWatcher(
 ) : InstallableWatcher {
 
   override fun install() {
+    if (Build.VERSION.SDK_INT < 19) {
+      return
+    }
     swapViewManagerGlobalMViews { mViews ->
       object : ArrayList<View>(mViews) {
         override fun add(element: View): Boolean {
@@ -41,6 +45,9 @@ class RootViewWatcher(
   }
 
   override fun uninstall() {
+    if (Build.VERSION.SDK_INT < 19) {
+      return
+    }
     swapViewManagerGlobalMViews { mViews ->
       ArrayList(mViews)
     }
