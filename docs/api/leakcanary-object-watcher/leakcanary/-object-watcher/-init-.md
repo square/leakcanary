@@ -7,10 +7,10 @@
 [ObjectWatcher](index.md) can be passed objects to [watch](watch.md). It will create [KeyedWeakReference](../-keyed-weak-reference/index.md) instances
 that reference watches objects, and check if those references have been cleared as expected on
 the [checkRetainedExecutor](#) executor. If not, these objects are considered retained and
-[ObjectWatcher](index.md) will then notify the [onObjectRetainedListener](#) on that executor thread.
+[ObjectWatcher](index.md) will then notify registered [OnObjectRetainedListener](../-on-object-retained-listener/index.md)s on that executor thread.
 
 [checkRetainedExecutor](#) is expected to run its tasks on a background thread, with a significant
-to give the GC the opportunity to identify weakly reachable objects.
+delay to give the GC the opportunity to identify weakly reachable objects.
 
 [ObjectWatcher](index.md) is thread safe.
 

@@ -8,7 +8,7 @@ Creates a [StreamingHprofReader](index.md) for the provided [hprofFile](reader-f
 [hprofFile](reader-for.md#shark.StreamingHprofReader.Companion$readerFor(java.io.File, shark.HprofHeader)/hprofFile) unless you provide it.
 
 `fun readerFor(hprofSourceProvider: `[`StreamingSourceProvider`](../-streaming-source-provider/index.md)`, hprofHeader: `[`HprofHeader`](../-hprof-header/index.md)` = hprofSourceProvider.openStreamingSource()
-          .use { HprofHeader.parseHeaderOf(it) }): `[`StreamingHprofReader`](index.md)
+        .use { HprofHeader.parseHeaderOf(it) }): `[`StreamingHprofReader`](index.md)
 
 Creates a [StreamingHprofReader](index.md) that will call [StreamingSourceProvider.openStreamingSource](../-streaming-source-provider/open-streaming-source.md)
 on every [readRecords](read-records.md) to obtain a [Source](#) to read the hprof data from. Before reading the

@@ -2,7 +2,8 @@
 
 # watchFragmentViews
 
-`fun watchFragmentViews(watchFragmentViews: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+`fun ~~watchFragmentViews~~(watchFragmentViews: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+**Deprecated:** see [Config.watchFragmentViews]
 
 **See Also**
 

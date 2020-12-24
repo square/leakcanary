@@ -2,7 +2,8 @@
 
 # watchActivities
 
-`fun watchActivities(watchActivities: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+`fun ~~watchActivities~~(watchActivities: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+**Deprecated:** see [Config.watchActivities]
 
 **See Also**
 

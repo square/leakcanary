@@ -4,10 +4,6 @@
 
 `interface MetadataExtractor`
 
-Extracts metadata from a hprof to be reported in [HeapAnalysisSuccess.metadata](../-heap-analysis-success/metadata.md).
-
-You can create a [MetadataExtractor](./index.md) from a lambda by calling [invoke](invoke.md).
-
 ### Functions
 
 | Name | Summary |

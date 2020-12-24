@@ -4,13 +4,6 @@
 
 `interface ObjectInspector`
 
-Provides LeakCanary with insights about objects (classes, instances and arrays) found in the
-heap. [inspect](inspect.md) will be called for each object that LeakCanary wants to know more about.
-The implementation can then use the provided [ObjectReporter](../-object-reporter/index.md) to provide insights for that
-object.
-
-You can create a [ObjectInspector](./index.md) from a lambda by calling [invoke](invoke.md).
-
 ### Functions
 
 | Name | Summary |

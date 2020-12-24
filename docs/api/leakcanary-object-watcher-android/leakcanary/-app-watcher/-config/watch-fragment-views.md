@@ -2,9 +2,6 @@
 
 # watchFragmentViews
 
-`val watchFragmentViews: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)
-
-Whether AppWatcher should automatically watch destroyed fragment view instances.
-
-Defaults to true.
+`val ~~watchFragmentViews~~: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)
+**Deprecated:** Call AppWatcher.manualInstall() with a custom watcher list
 

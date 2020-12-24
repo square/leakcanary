@@ -21,7 +21,7 @@
 | [HprofRecordTag](-hprof-record-tag/index.md) | `enum class HprofRecordTag` |
 | [HprofVersion](-hprof-version/index.md) | `enum class HprofVersion`<br>Supported hprof versions |
 | [HprofWriter](-hprof-writer/index.md) | `class HprofWriter : `[`Closeable`](https://docs.oracle.com/javase/6/docs/api/java/io/Closeable.html)<br>Generates Hprof files. |
-| [OnHprofRecordListener](-on-hprof-record-listener/index.md) | `interface OnHprofRecordListener`<br>Listener passed in to [StreamingHprofReader.readRecords](-streaming-hprof-reader/read-records.md), gets notified for each [HprofRecord](-hprof-record/index.md) found in the heap dump which types is in the set of the recordTypes parameter passed to [StreamingHprofReader.readRecords](-streaming-hprof-reader/read-records.md). |
+| [OnHprofRecordListener](-on-hprof-record-listener/index.md) | `interface OnHprofRecordListener` |
 | [OnHprofRecordTagListener](-on-hprof-record-tag-listener/index.md) | `interface OnHprofRecordTagListener`<br>Listener passed in to [StreamingHprofReader.readRecords](-streaming-hprof-reader/read-records.md), gets notified for each [HprofRecordTag](-hprof-record-tag/index.md) found in the heap dump. |
 | [PrimitiveType](-primitive-type/index.md) | `enum class PrimitiveType`<br>A primitive type in the prof. |
 | [ProguardMapping](-proguard-mapping/index.md) | `class ProguardMapping` |
@@ -31,5 +31,11 @@
 | [RandomAccessSourceProvider](-random-access-source-provider/index.md) | `interface RandomAccessSourceProvider`<br>Can open [RandomAccessSource](-random-access-source/index.md) instances. |
 | [StreamingHprofReader](-streaming-hprof-reader/index.md) | `class StreamingHprofReader`<br>Reads the entire content of a Hprof source in one fell swoop. Call [readerFor](-streaming-hprof-reader/reader-for.md) to obtain a new instance. |
 | [StreamingRecordReaderAdapter](-streaming-record-reader-adapter/index.md) | `class StreamingRecordReaderAdapter`<br>Wraps a [StreamingHprofReader](-streaming-hprof-reader/index.md) to provide a higher level API that streams [HprofRecord](-hprof-record/index.md) instances. |
-| [StreamingSourceProvider](-streaming-source-provider/index.md) | `interface StreamingSourceProvider`<br>Can open [Source](#) instances. |
+| [StreamingSourceProvider](-streaming-source-provider/index.md) | `interface StreamingSourceProvider` |
 | [ValueHolder](-value-holder/index.md) | `sealed class ValueHolder`<br>A value in the heap dump, which can be a [ReferenceHolder](-value-holder/-reference-holder/index.md) or a primitive type. |
+
+### Functions
+
+| Name | Summary |
+|---|---|
+| [&lt;no name provided&gt;](-no name provided-.md) | `fun <no name provided>(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Listener passed in to [StreamingHprofReader.readRecords](-streaming-hprof-reader/read-records.md), gets notified for each [HprofRecord](-hprof-record/index.md) found in the heap dump which types is in the set of the recordTypes parameter passed to [StreamingHprofReader.readRecords](-streaming-hprof-reader/read-records.md). |

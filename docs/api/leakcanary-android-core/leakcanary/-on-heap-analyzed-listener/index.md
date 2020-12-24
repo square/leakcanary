@@ -4,11 +4,6 @@
 
 `interface OnHeapAnalyzedListener`
 
-Listener set in [LeakCanary.Config](../-leak-canary/-config/index.md) and called by LeakCanary on a background thread when the
-heap analysis is complete.
-
-You can create a [OnHeapAnalyzedListener](./index.md) from a lambda by calling [invoke](invoke.md).
-
 ### Functions
 
 | Name | Summary |

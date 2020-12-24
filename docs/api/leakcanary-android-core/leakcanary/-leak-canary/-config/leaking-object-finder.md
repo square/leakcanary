@@ -7,7 +7,8 @@
 Finds the objects that are leaking, for which LeakCanary will compute leak traces.
 
 Defaults to [KeyedWeakReferenceFinder](#) which finds all objects tracked by a
-[KeyedWeakReference](#), ie all objects that were passed to [ObjectWatcher.watch](#).
+[KeyedWeakReference](#), ie all objects that were passed to
+[ObjectWatcher.expectWeaklyReachable](#).
 
 You could instead replace it with a [FilteringLeakingObjectFinder](#), which scans all objects
 in the heap dump and delegates the decision to a list of

@@ -21,6 +21,9 @@ A collection of hacks to fix leaks in the Android Framework and other Google And
 | [LAST_HOVERED_VIEW](-l-a-s-t_-h-o-v-e-r-e-d_-v-i-e-w/index.md) | mLastHoveredView is a static field in TextView that leaks the last hovered view. |
 | [ACTIVITY_MANAGER](-a-c-t-i-v-i-t-y_-m-a-n-a-g-e-r/index.md) | Samsung added a static mContext field to ActivityManager, holding a reference to the activity. |
 | [VIEW_LOCATION_HOLDER](-v-i-e-w_-l-o-c-a-t-i-o-n_-h-o-l-d-e-r/index.md) | In Android P, ViewLocationHolder has an mRoot field that is not cleared in its clear() method. Introduced in https://github.com/aosp-mirror/platform_frameworks_base/commit /86b326012813f09d8f1de7d6d26c986a909d |
+| [IMM_FOCUSED_VIEW](-i-m-m_-f-o-c-u-s-e-d_-v-i-e-w/index.md) | Fix for https://code.google.com/p/android/issues/detail?id=171190 . |
+| [IMM_CUR_ROOT_VIEW](-i-m-m_-c-u-r_-r-o-o-t_-v-i-e-w/index.md) | When an activity is destroyed, the corresponding ViewRootImpl instance is released and ready to be garbage collected. Some time after that, ViewRootImpl#W receives a windowfocusChanged() callback, which it normally delegates to ViewRootImpl which in turn calls InputMethodManager#onPreWindowFocus which clears InputMethodManager#mCurRootView. |
+| [SPELL_CHECKER](-s-p-e-l-l_-c-h-e-c-k-e-r/index.md) | Every editable TextView has an Editor instance which has a SpellChecker instance. SpellChecker is in charge of displaying the little squiggle spans that show typos. SpellChecker starts a SpellCheckerSession as needed and then closes it when the TextView is detached from the window. A SpellCheckerSession is in charge of communicating with the spell checker service (which lives in another process) through TextServicesManager. |
 
 ### Functions
 

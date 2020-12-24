@@ -26,6 +26,12 @@ before dumping the heap, so that we can later determine how long an object was r
 | [retainedUptimeMillis](retained-uptime-millis.md) | `var retainedUptimeMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>Time at which the associated object ([referent](https://docs.oracle.com/javase/6/docs/api/java/lang/ref/WeakReference.html#referent)) was considered retained, or -1 if it hasn't been yet. |
 | [watchUptimeMillis](watch-uptime-millis.md) | `val watchUptimeMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
 
+### Functions
+
+| Name | Summary |
+|---|---|
+| [clear](clear.md) | `fun clear(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
+
 ### Companion Object Properties
 
 | Name | Summary |

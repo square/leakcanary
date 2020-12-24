@@ -4,10 +4,6 @@
 
 `interface Clock`
 
-An interface to abstract the SystemClock.uptimeMillis() Android API in non Android artifacts.
-
-You can create a [Clock](./index.md) from a lambda by calling [invoke](invoke.md).
-
 ### Functions
 
 | Name | Summary |
