@@ -101,7 +101,7 @@ LeakCanary 2.6 introduces a new artifact: `leakcanary-android-release`. This art
 !!! danger
     Everything about this is experimental. Running a heap analysis in production is not a very common thing to do, and we're still learning and experimenting with this. Also, both the artifact name and the APIs may change.
 
-```gradle
+```groovy
 dependencies {
   // debugImplementation because LeakCanary should only run in debug builds.
   debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
