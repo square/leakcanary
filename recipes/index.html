@@ -9,13 +9,14 @@
         <meta name="description" content="A memory leak detection library for Android">
       
       
-        <link rel="canonical" href="https://square.github.io/leakcanary/recipes/">
-      
       
         <meta name="author" content="Square, Inc.">
       
+      
+        <link rel="canonical" href="https://square.github.io/leakcanary/recipes/">
+      
       <link rel="shortcut icon" href="../images/logo.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.0.1">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.2.2">
     
     
       
@@ -23,10 +24,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.38780c08.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.73f7c429.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.3f72e892.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.39b8e14a.min.css">
         
           
           
@@ -38,7 +39,7 @@
     
       
         
-        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
       
@@ -64,6 +65,7 @@
     <body dir="ltr" data-md-color-scheme="" data-md-color-primary="deep-orange" data-md-color-accent="deep-purple">
       
   
+    
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
@@ -80,14 +82,16 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.5</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.6</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
       
     </div>
     
-      <header class="md-header" data-md-component="header">
+      
+
+<header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-header-nav__button md-logo" aria-label="LeakCanary">
       
@@ -98,18 +102,20 @@
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
     </label>
     <div class="md-header-nav__title" data-md-component="header-title">
-      
-        <div class="md-header-nav__ellipsis">
-          <span class="md-header-nav__topic md-ellipsis">
+      <div class="md-header-nav__ellipsis">
+        <div class="md-header-nav__topic">
+          <span class="md-ellipsis">
             LeakCanary
           </span>
-          <span class="md-header-nav__topic md-ellipsis">
+        </div>
+        <div class="md-header-nav__topic">
+          <span class="md-ellipsis">
             
               Code recipes
             
           </span>
         </div>
-      
+      </div>
     </div>
     
       <label class="md-header-nav__button md-icon" for="__search">
@@ -120,7 +126,7 @@
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
       <label class="md-search__icon md-icon" for="__search">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
@@ -168,10 +174,16 @@
         <div class="md-main__inner md-grid">
           
             
-              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+                    
+
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-nav__button md-logo" aria-label="LeakCanary">
       
@@ -201,8 +213,9 @@
       
 
 
+
   <li class="md-nav__item">
-    <a href=".." title="Overview" class="md-nav__link">
+    <a href=".." class="md-nav__link">
       Overview
     </a>
   </li>
@@ -213,8 +226,9 @@
       
 
 
+
   <li class="md-nav__item">
-    <a href="../getting_started/" title="Getting Started" class="md-nav__link">
+    <a href="../getting_started/" class="md-nav__link">
       Getting Started
     </a>
   </li>
@@ -225,9 +239,12 @@
       
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" >
     
     <label class="md-nav__link" for="nav-3">
       Fundamentals
@@ -246,8 +263,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../fundamentals/" title="Introduction" class="md-nav__link">
+    <a href="../fundamentals/" class="md-nav__link">
       Introduction
     </a>
   </li>
@@ -258,8 +276,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-nav__link">
+    <a href="../fundamentals-how-leakcanary-works/" class="md-nav__link">
       How LeakCanary works
     </a>
   </li>
@@ -270,8 +289,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../fundamentals-fixing-a-memory-leak/" title="Fixing a memory leak" class="md-nav__link">
+    <a href="../fundamentals-fixing-a-memory-leak/" class="md-nav__link">
       Fixing a memory leak
     </a>
   </li>
@@ -286,10 +306,13 @@
       
       
 
+
   
 
 
+  
   <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
     
       <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" checked>
     
@@ -309,6 +332,7 @@
           
           
 
+
   
 
 
@@ -324,7 +348,7 @@
         <span class="md-nav__icon md-icon"></span>
       </label>
     
-    <a href="./" title="Code recipes" class="md-nav__link md-nav__link--active">
+    <a href="./" class="md-nav__link md-nav__link--active">
       Code recipes
     </a>
     
@@ -486,8 +510,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../faq/" title="FAQ" class="md-nav__link">
+    <a href="../faq/" class="md-nav__link">
       FAQ
     </a>
   </li>
@@ -498,8 +523,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../support/" title="Support" class="md-nav__link">
+    <a href="../support/" class="md-nav__link">
       Support
     </a>
   </li>
@@ -510,8 +536,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../upgrading-to-leakcanary-2.0/" title="Upgrading to LeakCanary 2" class="md-nav__link">
+    <a href="../upgrading-to-leakcanary-2.0/" class="md-nav__link">
       Upgrading to LeakCanary 2
     </a>
   </li>
@@ -522,8 +549,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../recorded-presentations/" title="Recorded Presentations" class="md-nav__link">
+    <a href="../recorded-presentations/" class="md-nav__link">
       Recorded Presentations
     </a>
   </li>
@@ -534,8 +562,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../blog-articles/" title="Blog Articles" class="md-nav__link">
+    <a href="../blog-articles/" class="md-nav__link">
       Blog Articles
     </a>
   </li>
@@ -546,8 +575,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" title="Stack Overflow ⏏" class="md-nav__link">
+    <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" class="md-nav__link">
       Stack Overflow ⏏
     </a>
   </li>
@@ -558,9 +588,12 @@
           
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8" >
     
     <label class="md-nav__link" for="nav-4-8">
       Contributing
@@ -579,8 +612,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../code_of_conduct/" title="Code of Conduct" class="md-nav__link">
+    <a href="../code_of_conduct/" class="md-nav__link">
       Code of Conduct
     </a>
   </li>
@@ -591,8 +625,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../dev-env/" title="Dev Environment" class="md-nav__link">
+    <a href="../dev-env/" class="md-nav__link">
       Dev Environment
     </a>
   </li>
@@ -603,8 +638,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../releasing/" title="Releasing" class="md-nav__link">
+    <a href="../releasing/" class="md-nav__link">
       Releasing
     </a>
   </li>
@@ -615,8 +651,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../how_to_help/" title="How to help" class="md-nav__link">
+    <a href="../how_to_help/" class="md-nav__link">
       How to help
     </a>
   </li>
@@ -637,9 +674,12 @@
       
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5" >
     
     <label class="md-nav__link" for="nav-5">
       Shark
@@ -658,8 +698,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../shark/" title="Overview" class="md-nav__link">
+    <a href="../shark/" class="md-nav__link">
       Overview
     </a>
   </li>
@@ -670,9 +711,12 @@
           
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2" >
     
     <label class="md-nav__link" for="nav-5-2">
       Shark API
@@ -691,8 +735,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark/shark/" title="Shark" class="md-nav__link">
+    <a href="../api/shark/shark/" class="md-nav__link">
       Shark
     </a>
   </li>
@@ -703,8 +748,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark-android/shark/" title="Extension: Shark Android" class="md-nav__link">
+    <a href="../api/shark-android/shark/" class="md-nav__link">
       Extension: Shark Android
     </a>
   </li>
@@ -715,8 +761,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark-graph/shark/" title="Core: Graph" class="md-nav__link">
+    <a href="../api/shark-graph/shark/" class="md-nav__link">
       Core: Graph
     </a>
   </li>
@@ -727,8 +774,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark-hprof/shark/" title="Core: Hprof" class="md-nav__link">
+    <a href="../api/shark-hprof/shark/" class="md-nav__link">
       Core: Hprof
     </a>
   </li>
@@ -739,8 +787,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark-log/shark/" title="Core: Logs" class="md-nav__link">
+    <a href="../api/shark-log/shark/" class="md-nav__link">
       Core: Logs
     </a>
   </li>
@@ -761,9 +810,12 @@
       
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" >
     
     <label class="md-nav__link" for="nav-6">
       LeakCanary API
@@ -782,8 +834,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-android-core/leakcanary/" title="LeakCanary" class="md-nav__link">
+    <a href="../api/leakcanary-android-core/leakcanary/" class="md-nav__link">
       LeakCanary
     </a>
   </li>
@@ -794,8 +847,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-object-watcher-android/leakcanary/" title="ObjectWatcher Android" class="md-nav__link">
+    <a href="../api/leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -806,8 +860,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-android-instrumentation/leakcanary/" title="Extension: Instrumentation tests" class="md-nav__link">
+    <a href="../api/leakcanary-android-instrumentation/leakcanary/" class="md-nav__link">
       Extension: Instrumentation tests
     </a>
   </li>
@@ -818,8 +873,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-android-process/leakcanary/" title="Extension: Separate process" class="md-nav__link">
+    <a href="../api/leakcanary-android-process/leakcanary/" class="md-nav__link">
       Extension: Separate process
     </a>
   </li>
@@ -830,8 +886,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-object-watcher/leakcanary/" title="Core: ObjectWatcher" class="md-nav__link">
+    <a href="../api/leakcanary-object-watcher/leakcanary/" class="md-nav__link">
       Core: ObjectWatcher
     </a>
   </li>
@@ -847,8 +904,9 @@
       
 
 
+
   <li class="md-nav__item">
-    <a href="../changelog/" title="Change Log" class="md-nav__link">
+    <a href="../changelog/" class="md-nav__link">
       Change Log
     </a>
   </li>
@@ -861,7 +919,8 @@
               </div>
             
             
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -1052,7 +1111,6 @@
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <p>LeakCanary has a default configuration that works well for most apps. You can also customize it to your needs. The LeakCanary configuration is held by two singleton objects (<code>AppWatcher</code> and <code>LeakCanary</code>) and can be updated at any time. Most developers configure LeakCanary in their <strong>debug</strong> <a href="https://developer.android.com/reference/android/app/Application">Application</a> class:</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
@@ -1063,7 +1121,6 @@
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>Create a debug application class in your <code>src/debug/java</code> folder. Don&rsquo;t forget to also register it in <code>src/debug/AndroidManifest.xml</code>.</p>
@@ -1071,11 +1128,9 @@
 <p>To customize the detection of retained objects at runtime, update <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/">AppWatcher.config</a>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">AppWatcher</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">watchFragmentViews</span> <span class="p">=</span> <span class="k">false</span><span class="p">)</span>
 </code></pre></div>
-
 <p>To customize the heap dumping &amp; analysis, update <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span><span class="n">retainedVisibleThreshold</span> <span class="p">=</span> <span class="m">3</span><span class="p">)</span>
 </code></pre></div>
-
 <div class="admonition info">
 <p class="admonition-title">Java</p>
 <p>In Java, use <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/">AppWatcher.Config.Builder</a> and <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/">LeakCanary.Config.Builder</a> instead:</p>
@@ -1084,13 +1139,11 @@
    <span class="p">.</span><span class="na">build</span><span class="p">();</span>
 <span class="n">AppWatcher</span><span class="p">.</span><span class="na">setConfig</span><span class="p">(</span><span class="n">config</span><span class="p">);</span>
 </code></pre></div>
-
 <div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">Config</span> <span class="n">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">getConfig</span><span class="p">().</span><span class="na">newBuilder</span><span class="p">()</span>
    <span class="p">.</span><span class="na">retainedVisibleThreshold</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
    <span class="p">.</span><span class="na">build</span><span class="p">();</span>
 <span class="n">LeakCanary</span><span class="p">.</span><span class="na">setConfig</span><span class="p">(</span><span class="n">config</span><span class="p">);</span>
 </code></pre></div>
-
 </div>
 <p>Configure the LeakCanary UI by overriding the following resources:</p>
 <ul>
@@ -1115,10 +1168,9 @@
 <p>The <code>com.squareup.leakcanary:leakcanary-android</code> dependency should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in release builds to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code>dependencies {
-  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.5&#39;
+  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.6&#39;
 }
 </code></pre></div>
-
 <p>In your leak reporting code:
 <div class="highlight"><pre><span></span><code><span class="k">val</span> <span class="py">retainedInstanceCount</span> <span class="p">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">retainedObjectCount</span>
 </code></pre></div></p>
@@ -1129,14 +1181,12 @@
   <span class="nt">&lt;bool</span> <span class="na">name=</span><span class="s">&quot;leak_canary_allow_in_non_debuggable_build&quot;</span><span class="nt">&gt;</span>true<span class="nt">&lt;/bool&gt;</span>
 <span class="nt">&lt;/resources&gt;</span>
 </code></pre></div>
-
 <h2 id="running-leakcanary-in-instrumentation-tests">Running LeakCanary in instrumentation tests<a class="headerlink" href="#running-leakcanary-in-instrumentation-tests" title="Permanent link">&para;</a></h2>
 <p>Running leak detection in UI tests means you can detect memory leaks automatically in Continuous Integration prior to those leaks being merged into the codebase. However, as LeakCanary runs with a 5 seconds delay and freezes the VM to take a heap dump, this can introduce flakiness to the UI tests. Therefore it is automatically disabled by setting <code>LeakCanary.config.dumpHeap</code> to <code>false</code> when JUnit is on the runtime classpath.</p>
 <p>LeakCanary provides an artifact dedicated to detecting leaks in UI tests which provides a run listener that waits for the end of a test, and if the test succeeds then it look for retained objects, trigger a heap dump if needed and perform an analysis.</p>
 <p>To set it up, add the <code>leakcanary-android-instrumentation</code> dependency to your instrumentation tests:</p>
 <div class="highlight"><pre><span></span><code>androidTestImplementation &quot;com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}&quot;
 </code></pre></div>
-
 <p>Add the dedicated run listener to <code>defaultConfig</code> in your <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code>android {
   defaultConfig {
@@ -1152,11 +1202,9 @@
   }
 }
 </code></pre></div>
-
 <p>Run the instrumentation tests:</p>
 <div class="highlight"><pre><span></span><code>./gradlew leakcanary-android-sample:connectedCheck
 </code></pre></div>
-
 <p>You can extend <code>FailTestOnLeakRunListener</code> to customize the behavior.</p>
 <div class="admonition bug">
 <p class="admonition-title">Obfuscated instrumentation tests</p>
@@ -1189,13 +1237,11 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
    mipmap-anydpi-v26/
      leak_canary_icon.xml
 </code></pre></div>
-
 <div class="highlight"><pre><span></span><code><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
 <span class="nt">&lt;resources&gt;</span>
   <span class="nt">&lt;string</span> <span class="na">name=</span><span class="s">&quot;leak_canary_display_activity_label&quot;</span><span class="nt">&gt;</span>MyLeaks<span class="nt">&lt;/string&gt;</span>
 <span class="nt">&lt;/resources&gt;</span>
 </code></pre></div>
-
 <h2 id="customizing-the-handling-of-analysis-results">Customizing the handling of analysis results<a class="headerlink" href="#customizing-the-handling-of-analysis-results" title="Permanent link">&para;</a></h2>
 <p>You can change the default behavior of what to do when LeakCanary is done analyzing a heap dump, for example to upload the analysis result to a server of your choosing.</p>
 <p>Create a custom <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/">OnHeapAnalyzedListener</a> that delegates to <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-default-on-heap-analyzed-listener/">DefaultOnHeapAnalyzedListener</a>: </p>
@@ -1211,7 +1257,6 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p><code>HeapAnalysis.toString()</code> returns a large string describing the analysis result and metadata. This string is formatted to be printable to Logcat and shareable on sites like StackOverflow.</p>
@@ -1225,7 +1270,6 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <h2 id="uploading-to-bugsnag">Uploading to Bugsnag<a class="headerlink" href="#uploading-to-bugsnag" title="Permanent link">&para;</a></h2>
 <p>A leak trace has a lot in common with a stack trace, so if you lack the engineering resources to build a backend for LeakCanary, you can instead upload leak traces to a crash reporting backend. The client needs to support grouping via custom client-side hashing as well as custom metadata with support for newlines.</p>
 <div class="admonition info">
@@ -1235,11 +1279,10 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
 <p>Create a <a href="https://app.bugsnag.com/user/new/">Bugsnag account</a>, create a new project for leak reporting and grab an <strong>API key</strong>. Make sure the app has the <code>android.permission.INTERNET</code> permission then add the <a href="https://docs.bugsnag.com/platforms/android/">latest version</a> of the Bugsnag Android client library to <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
   <span class="c1">// debugImplementation because LeakCanary should only run in debug builds.</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.5&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.6&#39;</span>
   <span class="n">debugImplementation</span> <span class="s2">&quot;com.bugsnag:bugsnag-android:$bugsnagVersion&quot;</span>
 <span class="o">}</span>
 </code></pre></div>
-
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>If you&rsquo;re only using Bugsnag for uploading leaks, then you do not need to set up the Bugsnag Gradle plugin or to configure the API key in your app manifest.</p>
@@ -1335,7 +1378,6 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>Set <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/">LeakCanary.config.onHeapAnalyzedListener</a> to <code>BugsnagLeakUploader</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1347,7 +1389,6 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>You should start seeing leaks reported into Bugsnag, grouped by their leak signature:</p>
 <p><img alt="list" src="../images/bugsnag-list.png" /></p>
 <p>The <code>LEAK</code> tab contains the leak trace: </p>
@@ -1372,7 +1413,6 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <h2 id="ignoring-specific-activities-or-fragment-classes">Ignoring specific activities or fragment classes<a class="headerlink" href="#ignoring-specific-activities-or-fragment-classes" title="Permanent link">&para;</a></h2>
 <p>Sometimes a 3<sup>rd</sup> party library provides its own activities or fragments which contain a number of bugs leading to leaks of those specific 3<sup>rd</sup> party activities and fragments. You should push hard on that library to fix their memory leaks as it&rsquo;s directly impacting your application. That being said, until those are fixed, you have two options:</p>
 <ol>
@@ -1413,7 +1453,6 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <h2 id="running-the-leakcanary-analysis-in-a-separate-process">Running the LeakCanary analysis in a separate process<a class="headerlink" href="#running-the-leakcanary-analysis-in-a-separate-process" title="Permanent link">&para;</a></h2>
 <p>LeakCanary runs in your main app process. LeakCanary 2 is optimized to keep memory usage low while analysing and runs in a background thread with priority <code>Process.THREAD_PRIORITY_BACKGROUND</code>. If you find that LeakCanary is still using too much memory or impacting the app process performance, you can configure it to run the analysis in a separate process.</p>
 <p>All you have to do is replace the <code>leakcanary-android</code> depedency with <code>leakcanary-android-process</code>:</p>
@@ -1422,7 +1461,6 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
   <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-process:${version}&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-
 <p>You can call <a href="/leakcanary/api/leakcanary-android-process/leakcanary/-leak-canary-process/is-in-analyzer-process/">LeakCanaryProcess.isInAnalyzerProcess</a> to check if your Application class is being created in the LeakCanary process. This is useful when configuring libraries like Firebase that may crash when running in an unexpected process.</p>
 <h2 id="setting-up-leakcanary-for-different-product-flavors">Setting up LeakCanary for different product flavors<a class="headerlink" href="#setting-up-leakcanary-for-different-product-flavors" title="Permanent link">&para;</a></h2>
 <p>You can setup LeakCanary to run in a specific product flavors of your app. For example, create:</p>
@@ -1441,7 +1479,6 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
   }
 }
 </code></pre></div>
-
 <p>Then, define a custom configuration for the flavor for which you want to enable LeakCanary:</p>
 <div class="highlight"><pre><span></span><code>android {
   // ...
@@ -1450,13 +1487,11 @@ configurations {
     devDebugImplementation {}
 }
 </code></pre></div>
-
 <p>You can now add the LeakCanary dependency for that configuration:</p>
 <div class="highlight"><pre><span></span><code>dependencies {
   devDebugImplementation &quot;com.squareup.leakcanary:leakcanary-android:${version}&quot;
 }
 </code></pre></div>
-
 <h2 id="extracting-metadata-from-the-heap-dump">Extracting metadata from the heap dump<a class="headerlink" href="#extracting-metadata-from-the-heap-dump" title="Permanent link">&para;</a></h2>
 <p><a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/metadata-extractor/">LeakCanary.Config.metadataExtractor</a> extracts metadata from a heap dump. The metadata is then available in <code>HeapAnalysisSuccess.metadata</code>. <code>LeakCanary.Config.metadataExtractor</code> defaults to <code>AndroidMetadataExtractor</code> but you can replace it to extract additional metadata from the hprof.</p>
 <p>For example, if you want to include the app version name in your heap analysis reports, you need to first store it in memory (e.g. in a static field) and then you can retrieve it in <code>MetadataExtractor</code>.</p>
@@ -1488,7 +1523,6 @@ configurations {
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <h2 id="using-leakcanary-with-obfuscated-apps">Using LeakCanary with obfuscated apps<a class="headerlink" href="#using-leakcanary-with-obfuscated-apps" title="Permanent link">&para;</a></h2>
 <p>If obfuscation is turned on then leak traces will be obfuscated. It&rsquo;s possible to automatically deobfuscate leak traces by using a deobfuscation gradle plugin provided by LeakCanary.</p>
 <p>You have to add a plugin dependency in your root <code>build.gradle</code> file:</p>
@@ -1498,7 +1532,6 @@ configurations {
   <span class="o">}</span>
 <span class="o">}</span>
 </code></pre></div>
-
 <p>And then you need to apply and configure the plugin in your app (or library) specific <code>build.gradle</code> file:</p>
 <div class="highlight"><pre><span></span><code><span class="n">apply</span> <span class="nl">plugin:</span> <span class="s1">&#39;com.android.application&#39;</span>
 <span class="n">apply</span> <span class="nl">plugin:</span> <span class="s1">&#39;com.squareup.leakcanary.deobfuscation&#39;</span>
@@ -1510,7 +1543,6 @@ configurations {
   <span class="o">}</span>
 <span class="o">}</span>
 </code></pre></div>
-
 <p>Now you can run LeakCanary on an obfuscated app and leak traces will be automatically deobfuscated.</p>
 <p><strong>Important:</strong> never use this plugin on a release variant. This plugin copies obfuscation mapping file and puts it inside the .apk, so if you use it on release build then the obfuscation becomes pointless because the code can be easily deobfuscated using mapping file.</p>
 <p><strong>Warning:</strong> R8 (Google Proguard replacement) can now understand Kotlin language constructs but the side effect is that mapping files can get very large (a couple dozen megabytes). It means that the size of .apk containing copied mapping file will increase as well. This is another reason for not using this plugin on a release variant.</p>
@@ -1518,11 +1550,10 @@ configurations {
 <p>While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.</p>
 <p>Add the ObjectWatcher and Shark dependencies to your build file:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.5&#39;</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.5&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.6&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.6&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-
 <p>Define a <code>HotSpotHeapDumper</code> to dump the heap:</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span> <span class="nn">com.sun.management.HotSpotDiagnosticMXBean</span>
 <span class="k">import</span> <span class="nn">java.lang.management.ManagementFactory</span>
@@ -1544,7 +1575,6 @@ configurations {
   <span class="k">private</span> <span class="k">const</span> <span class="k">val</span> <span class="py">LIVE</span> <span class="p">=</span> <span class="k">true</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>Define a <code>JvmHeapAnalyzer</code> to analyze the heap when objects are retained and print the result to the console:</p>
 <div class="highlight"><pre><span></span><code><span class="k">import</span> <span class="nn">leakcanary.GcTrigger</span>
 <span class="k">import</span> <span class="nn">leakcanary.ObjectWatcher</span>
@@ -1588,7 +1618,6 @@ configurations {
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>Create an <code>ObjectWatcher</code> instance and configure it to watch objects for 5 seconds before notifying a <code>JvmHeapAnalyzer</code> instance:</p>
 <div class="highlight"><pre><span></span><code><span class="k">val</span> <span class="py">scheduledExecutor</span> <span class="p">=</span> <span class="n">Executors</span><span class="p">.</span><span class="n">newSingleThreadScheduledExecutor</span><span class="p">()</span>
 <span class="k">val</span> <span class="py">objectWatcher</span> <span class="p">=</span> <span class="n">ObjectWatcher</span><span class="p">(</span>
@@ -1603,14 +1632,12 @@ configurations {
 <span class="k">val</span> <span class="py">heapAnalyzer</span> <span class="p">=</span> <span class="n">JvmHeapAnalyzer</span><span class="p">(</span><span class="n">objectWatcher</span><span class="p">)</span>
 <span class="n">objectWatcher</span><span class="p">.</span><span class="n">addOnObjectRetainedListener</span><span class="p">(</span><span class="n">heapAnalyzer</span><span class="p">)</span>
 </code></pre></div>
-
 <p>Pass objects that you expect to be garbage collected (e.g. closed resources) to the <code>ObjectWatcher</code> instance:</p>
 <div class="highlight"><pre><span></span><code><span class="n">objectWatcher</span><span class="p">.</span><span class="n">watch</span><span class="p">(</span>
     <span class="n">watchedObject</span> <span class="p">=</span> <span class="n">closedResource</span><span class="p">,</span>
     <span class="n">description</span> <span class="p">=</span> <span class="s">&quot;$closedResource is closed and should be garbage collected&quot;</span>
 <span class="p">)</span>
 </code></pre></div>
-
 <p>If you end up using LeakCanary on a JVM, the community will definitely benefit from your experience, so don&rsquo;t hesitate to <a href="https://github.com/square/leakcanary/issues/">let us know</a>!</p>
 <h2 id="packagemanagergetlaunchintentforpackage-returns-leaklauncheractivity">PackageManager.getLaunchIntentForPackage() returns LeakLauncherActivity<a class="headerlink" href="#packagemanagergetlaunchintentforpackage-returns-leaklauncheractivity" title="Permanent link">&para;</a></h2>
 <p>LeakCanary adds a main activity that has a <a href="https://developer.android.com/reference/android/content/Intent#CATEGORY_LAUNCHER">Intent#CATEGORY_LAUNCHER</a> category. <a href="https://developer.android.com/reference/android/content/pm/PackageManager#getLaunchIntentForPackage(java.lang.String)">PackageManager.getLaunchIntentForPackage()</a> looks for a main activity in the category <code>Intent#CATEGORY_INFO</code>, and next for a main activity in the category <code>Intent#CATEGORY_LAUNCHER</code>. <code>PackageManager.getLaunchIntentForPackage()</code> returns the first activity that matches in the merged manifest of your app. If your app relies on <code>PackageManager.getLaunchIntentForPackage()</code>, you have two options:</p>
@@ -1636,7 +1663,7 @@ configurations {
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
         
-          <a href="../fundamentals-fixing-a-memory-leak/" title="Fixing a memory leak" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../fundamentals-fixing-a-memory-leak/" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-footer-nav__button md-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
             </div>
@@ -1651,7 +1678,7 @@ configurations {
           </a>
         
         
-          <a href="../faq/" title="FAQ" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../faq/" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-footer-nav__title">
               <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
@@ -1728,15 +1755,15 @@ configurations {
       
     </div>
     
-      <script src="../assets/javascripts/vendor.77e55a48.min.js"></script>
-      <script src="../assets/javascripts/bundle.aa3f9871.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
+      <script src="../assets/javascripts/vendor.08c56446.min.js"></script>
+      <script src="../assets/javascripts/bundle.6ced434e.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
       
       <script>
         app = initialize({
           base: "..",
           features: ['tabs'],
           search: Object.assign({
-            worker: "../assets/javascripts/worker/search.4ac00218.min.js"
+            worker: "../assets/javascripts/worker/search.8c7e0a7e.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

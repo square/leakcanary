@@ -9,13 +9,14 @@
         <meta name="description" content="A memory leak detection library for Android">
       
       
-        <link rel="canonical" href="https://square.github.io/leakcanary/shark/">
-      
       
         <meta name="author" content="Square, Inc.">
       
+      
+        <link rel="canonical" href="https://square.github.io/leakcanary/shark/">
+      
       <link rel="shortcut icon" href="../images/logo.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.0.1">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.2.2">
     
     
       
@@ -23,10 +24,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.38780c08.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.73f7c429.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.3f72e892.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.39b8e14a.min.css">
         
           
           
@@ -38,7 +39,7 @@
     
       
         
-        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
       
@@ -64,6 +65,7 @@
     <body dir="ltr" data-md-color-scheme="" data-md-color-primary="deep-orange" data-md-color-accent="deep-purple">
       
   
+    
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
@@ -80,14 +82,16 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.5</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.6</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
       
     </div>
     
-      <header class="md-header" data-md-component="header">
+      
+
+<header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-header-nav__button md-logo" aria-label="LeakCanary">
       
@@ -98,18 +102,20 @@
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
     </label>
     <div class="md-header-nav__title" data-md-component="header-title">
-      
-        <div class="md-header-nav__ellipsis">
-          <span class="md-header-nav__topic md-ellipsis">
+      <div class="md-header-nav__ellipsis">
+        <div class="md-header-nav__topic">
+          <span class="md-ellipsis">
             LeakCanary
           </span>
-          <span class="md-header-nav__topic md-ellipsis">
+        </div>
+        <div class="md-header-nav__topic">
+          <span class="md-ellipsis">
             
               Overview
             
           </span>
         </div>
-      
+      </div>
     </div>
     
       <label class="md-header-nav__button md-icon" for="__search">
@@ -120,7 +126,7 @@
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
       <label class="md-search__icon md-icon" for="__search">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
@@ -168,10 +174,16 @@
         <div class="md-main__inner md-grid">
           
             
-              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+                    
+
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-nav__button md-logo" aria-label="LeakCanary">
       
@@ -201,8 +213,9 @@
       
 
 
+
   <li class="md-nav__item">
-    <a href=".." title="Overview" class="md-nav__link">
+    <a href=".." class="md-nav__link">
       Overview
     </a>
   </li>
@@ -213,8 +226,9 @@
       
 
 
+
   <li class="md-nav__item">
-    <a href="../getting_started/" title="Getting Started" class="md-nav__link">
+    <a href="../getting_started/" class="md-nav__link">
       Getting Started
     </a>
   </li>
@@ -225,9 +239,12 @@
       
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" >
     
     <label class="md-nav__link" for="nav-3">
       Fundamentals
@@ -246,8 +263,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../fundamentals/" title="Introduction" class="md-nav__link">
+    <a href="../fundamentals/" class="md-nav__link">
       Introduction
     </a>
   </li>
@@ -258,8 +276,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../fundamentals-how-leakcanary-works/" title="How LeakCanary works" class="md-nav__link">
+    <a href="../fundamentals-how-leakcanary-works/" class="md-nav__link">
       How LeakCanary works
     </a>
   </li>
@@ -270,8 +289,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../fundamentals-fixing-a-memory-leak/" title="Fixing a memory leak" class="md-nav__link">
+    <a href="../fundamentals-fixing-a-memory-leak/" class="md-nav__link">
       Fixing a memory leak
     </a>
   </li>
@@ -287,9 +307,12 @@
       
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" >
     
     <label class="md-nav__link" for="nav-4">
       Help & Community
@@ -308,8 +331,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../recipes/" title="Code recipes" class="md-nav__link">
+    <a href="../recipes/" class="md-nav__link">
       Code recipes
     </a>
   </li>
@@ -320,8 +344,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../faq/" title="FAQ" class="md-nav__link">
+    <a href="../faq/" class="md-nav__link">
       FAQ
     </a>
   </li>
@@ -332,8 +357,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../support/" title="Support" class="md-nav__link">
+    <a href="../support/" class="md-nav__link">
       Support
     </a>
   </li>
@@ -344,8 +370,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../upgrading-to-leakcanary-2.0/" title="Upgrading to LeakCanary 2" class="md-nav__link">
+    <a href="../upgrading-to-leakcanary-2.0/" class="md-nav__link">
       Upgrading to LeakCanary 2
     </a>
   </li>
@@ -356,8 +383,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../recorded-presentations/" title="Recorded Presentations" class="md-nav__link">
+    <a href="../recorded-presentations/" class="md-nav__link">
       Recorded Presentations
     </a>
   </li>
@@ -368,8 +396,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../blog-articles/" title="Blog Articles" class="md-nav__link">
+    <a href="../blog-articles/" class="md-nav__link">
       Blog Articles
     </a>
   </li>
@@ -380,8 +409,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" title="Stack Overflow ⏏" class="md-nav__link">
+    <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" class="md-nav__link">
       Stack Overflow ⏏
     </a>
   </li>
@@ -392,9 +422,12 @@
           
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8" >
     
     <label class="md-nav__link" for="nav-4-8">
       Contributing
@@ -413,8 +446,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../code_of_conduct/" title="Code of Conduct" class="md-nav__link">
+    <a href="../code_of_conduct/" class="md-nav__link">
       Code of Conduct
     </a>
   </li>
@@ -425,8 +459,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../dev-env/" title="Dev Environment" class="md-nav__link">
+    <a href="../dev-env/" class="md-nav__link">
       Dev Environment
     </a>
   </li>
@@ -437,8 +472,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../releasing/" title="Releasing" class="md-nav__link">
+    <a href="../releasing/" class="md-nav__link">
       Releasing
     </a>
   </li>
@@ -449,8 +485,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../how_to_help/" title="How to help" class="md-nav__link">
+    <a href="../how_to_help/" class="md-nav__link">
       How to help
     </a>
   </li>
@@ -470,10 +507,13 @@
       
       
 
+
   
 
 
+  
   <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
     
       <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5" checked>
     
@@ -493,6 +533,7 @@
           
           
 
+
   
 
 
@@ -508,7 +549,7 @@
         <span class="md-nav__icon md-icon"></span>
       </label>
     
-    <a href="./" title="Overview" class="md-nav__link md-nav__link--active">
+    <a href="./" class="md-nav__link md-nav__link--active">
       Overview
     </a>
     
@@ -585,9 +626,12 @@
           
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2" >
     
     <label class="md-nav__link" for="nav-5-2">
       Shark API
@@ -606,8 +650,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark/shark/" title="Shark" class="md-nav__link">
+    <a href="../api/shark/shark/" class="md-nav__link">
       Shark
     </a>
   </li>
@@ -618,8 +663,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark-android/shark/" title="Extension: Shark Android" class="md-nav__link">
+    <a href="../api/shark-android/shark/" class="md-nav__link">
       Extension: Shark Android
     </a>
   </li>
@@ -630,8 +676,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark-graph/shark/" title="Core: Graph" class="md-nav__link">
+    <a href="../api/shark-graph/shark/" class="md-nav__link">
       Core: Graph
     </a>
   </li>
@@ -642,8 +689,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark-hprof/shark/" title="Core: Hprof" class="md-nav__link">
+    <a href="../api/shark-hprof/shark/" class="md-nav__link">
       Core: Hprof
     </a>
   </li>
@@ -654,8 +702,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/shark-log/shark/" title="Core: Logs" class="md-nav__link">
+    <a href="../api/shark-log/shark/" class="md-nav__link">
       Core: Logs
     </a>
   </li>
@@ -676,9 +725,12 @@
       
 
 
+
+  
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" >
     
     <label class="md-nav__link" for="nav-6">
       LeakCanary API
@@ -697,8 +749,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-android-core/leakcanary/" title="LeakCanary" class="md-nav__link">
+    <a href="../api/leakcanary-android-core/leakcanary/" class="md-nav__link">
       LeakCanary
     </a>
   </li>
@@ -709,8 +762,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-object-watcher-android/leakcanary/" title="ObjectWatcher Android" class="md-nav__link">
+    <a href="../api/leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -721,8 +775,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-android-instrumentation/leakcanary/" title="Extension: Instrumentation tests" class="md-nav__link">
+    <a href="../api/leakcanary-android-instrumentation/leakcanary/" class="md-nav__link">
       Extension: Instrumentation tests
     </a>
   </li>
@@ -733,8 +788,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-android-process/leakcanary/" title="Extension: Separate process" class="md-nav__link">
+    <a href="../api/leakcanary-android-process/leakcanary/" class="md-nav__link">
       Extension: Separate process
     </a>
   </li>
@@ -745,8 +801,9 @@
           
 
 
+
   <li class="md-nav__item">
-    <a href="../api/leakcanary-object-watcher/leakcanary/" title="Core: ObjectWatcher" class="md-nav__link">
+    <a href="../api/leakcanary-object-watcher/leakcanary/" class="md-nav__link">
       Core: ObjectWatcher
     </a>
   </li>
@@ -762,8 +819,9 @@
       
 
 
+
   <li class="md-nav__item">
-    <a href="../changelog/" title="Change Log" class="md-nav__link">
+    <a href="../changelog/" class="md-nav__link">
       Change Log
     </a>
   </li>
@@ -776,7 +834,8 @@
               </div>
             
             
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -862,7 +921,6 @@
   
   <h1 id="shark">Shark 🦈<a class="headerlink" href="#shark" title="Permanent link">&para;</a></h1>
 <!-- Made with http://patorjk.com/text-color-fader/ -->
-
 <p><strong>Shark</strong>: <strong><span style="color:#c757bc;">S</span><span style="color:#c858b7;">m</span><span style="color:#ca5ab2;">a</span><span style="color:#cb5bad;">r</span><span style="color:#cc5ca9;">t</span><span style="color:#ce5ea4;"> </span><span style="color:#cf5f9f;">H</span><span style="color:#d0609a;">e</span><span style="color:#d26295;">a</span><span style="color:#d36390;">p</span><span style="color:#d4658c;"> </span><span style="color:#d66687;">A</span><span style="color:#d76782;">n</span><span style="color:#d8697d;">a</span><span style="color:#da6a78;">l</span><span style="color:#db6b73;">y</span><span style="color:#dc6d6f;">s</span><span style="color:#de6e6a;">i</span><span style="color:#df6f65;">s</span><span style="color:#e07160;"> </span><span style="color:#e1725b;">R</span><span style="color:#e37356;">e</span><span style="color:#e47552;">p</span><span style="color:#e5764d;">o</span><span style="color:#e77748;">r</span><span style="color:#e87943;">t</span><span style="color:#e97a3e;">s</span><span style="color:#eb7b39;"> </span><span style="color:#ec7d35;">f</span><span style="color:#ed7e30;">o</span><span style="color:#ef802b;">r</span><span style="color:#f08126;"> </span><span style="color:#f18221;">K</span><span style="color:#f3841c;">o</span><span style="color:#f48518;">t</span><span style="color:#f58613;">l</span><span style="color:#f7880e;">i</span><span style="color:#f88909;">n</span></strong></p>
 <p align="center">
 <img src="../images/shark.png" />
@@ -893,12 +951,10 @@
 <p>Install it via <a href="https://brew.sh/">Homebrew</a>:</p>
 <div class="highlight"><pre><span></span><code>brew install leakcanary-shark
 </code></pre></div>
-
-<p>You can also download it <a href="https://github.com/square/leakcanary/releases/download/v2.5/shark-cli-2.5.zip">here</a>.</p>
+<p>You can also download it <a href="https://github.com/square/leakcanary/releases/download/v2.6/shark-cli-2.6.zip">here</a>.</p>
 <p>You can then look for leaks in apps on any connected device, for example: </p>
 <div class="highlight"><pre><span></span><code>$ shark-cli --device emulator-5554 --process com.example.app.debug analyze
 </code></pre></div>
-
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p><code>shark-cli</code> works with all debuggable apps, even if they don&rsquo;t include the <code>leakcanary-android</code> dependency.</p>
@@ -937,14 +993,12 @@ Commands:
   strip-hprof   Replace all primitive arrays from the provided heap dump with
                 arrays of zeroes and generate a new &quot;-stripped.hprof&quot; file.
 </code></pre></div>
-
 <h2 id="shark-code-examples">Shark code examples<a class="headerlink" href="#shark-code-examples" title="Permanent link">&para;</a></h2>
 <h3 id="reading-records-in-a-hprof-file">Reading records in a hprof file<a class="headerlink" href="#reading-records-in-a-hprof-file" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
   <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark-hprof:$sharkVersion&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-
 <div class="highlight"><pre><span></span><code><span class="c1">// Prints all class and field names</span>
 <span class="n">Hprof</span><span class="p">.</span><span class="k">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
     <span class="p">.</span><span class="n">use</span> <span class="p">{</span> <span class="n">hprof</span> <span class="p">-&gt;</span>
@@ -955,13 +1009,11 @@ Commands:
           <span class="p">})</span>
     <span class="p">}</span>
 </code></pre></div>
-
 <h3 id="navigating-the-heap-object-graph">Navigating the heap object graph<a class="headerlink" href="#navigating-the-heap-object-graph" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
   <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark-graph:$sharkVersion&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-
 <div class="highlight"><pre><span></span><code><span class="c1">// Prints all thread names</span>
 <span class="n">Hprof</span><span class="p">.</span><span class="k">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
     <span class="p">.</span><span class="n">use</span> <span class="p">{</span> <span class="n">hprof</span> <span class="p">-&gt;</span>
@@ -974,13 +1026,11 @@ Commands:
       <span class="n">threadNames</span><span class="p">.</span><span class="n">forEach</span> <span class="p">{</span> <span class="n">println</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="p">}</span>
     <span class="p">}</span>
 </code></pre></div>
-
 <h3 id="generating-a-heap-analysis-report">Generating a heap analysis report<a class="headerlink" href="#generating-a-heap-analysis-report" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
   <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:$sharkVersion&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-
 <div class="highlight"><pre><span></span><code><span class="c1">// Marks any instance of com.example.ThingWithLifecycle with</span>
 <span class="c1">// ThingWithLifecycle.destroyed=true as leaking</span>
 <span class="k">val</span> <span class="py">leakingObjectFilter</span> <span class="p">=</span> <span class="k">object</span> <span class="p">:</span> <span class="nc">LeakingObjectFilter</span> <span class="p">{</span>
@@ -1007,13 +1057,11 @@ Commands:
     <span class="p">}</span>
 <span class="n">println</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
 </code></pre></div>
-
 <h3 id="generating-an-android-heap-analysis-report">Generating an Android heap analysis report<a class="headerlink" href="#generating-an-android-heap-analysis-report" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
   <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark-android:$sharkVersion&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-
 <div class="highlight"><pre><span></span><code><span class="k">val</span> <span class="py">heapAnalyzer</span> <span class="p">=</span> <span class="n">HeapAnalyzer</span><span class="p">(</span><span class="n">AnalyzerProgressListener</span><span class="p">.</span><span class="n">NONE</span><span class="p">)</span>
 <span class="k">val</span> <span class="py">analysis</span> <span class="p">=</span> <span class="n">heapAnalyzer</span><span class="p">.</span><span class="n">checkForLeaks</span><span class="p">(</span>
     <span class="n">heapDumpFile</span> <span class="p">=</span> <span class="n">heapDumpFile</span><span class="p">,</span>
@@ -1040,7 +1088,7 @@ Commands:
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
         
-          <a href="../how_to_help/" title="How to help" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../how_to_help/" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-footer-nav__button md-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
             </div>
@@ -1055,7 +1103,7 @@ Commands:
           </a>
         
         
-          <a href="../api/shark/shark/" title="Shark" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../api/shark/shark/" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-footer-nav__title">
               <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
@@ -1132,15 +1180,15 @@ Commands:
       
     </div>
     
-      <script src="../assets/javascripts/vendor.77e55a48.min.js"></script>
-      <script src="../assets/javascripts/bundle.aa3f9871.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
+      <script src="../assets/javascripts/vendor.08c56446.min.js"></script>
+      <script src="../assets/javascripts/bundle.6ced434e.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
       
       <script>
         app = initialize({
           base: "..",
           features: ['tabs'],
           search: Object.assign({
-            worker: "../assets/javascripts/worker/search.4ac00218.min.js"
+            worker: "../assets/javascripts/worker/search.8c7e0a7e.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>
