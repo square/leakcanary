@@ -4,11 +4,6 @@
 
 `interface LeakingObjectFinder`
 
-Finds the objects that are leaking, for which Shark will compute
-leak traces.
-
-You can create a [LeakingObjectFinder](./index.md) from a lambda by calling [invoke](invoke.md).
-
 ### Functions
 
 | Name | Summary |

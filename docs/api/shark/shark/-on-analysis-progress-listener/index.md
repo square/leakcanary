@@ -4,8 +4,6 @@
 
 `interface OnAnalysisProgressListener`
 
-Reports progress from the [HeapAnalyzer](../-heap-analyzer/index.md) as they occur, as [Step](-step/index.md) values.
-
 ### Types
 
 | Name | Summary |

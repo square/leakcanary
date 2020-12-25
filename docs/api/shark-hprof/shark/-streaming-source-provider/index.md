@@ -4,8 +4,6 @@
 
 `interface StreamingSourceProvider`
 
-Can open [Source](#) instances.
-
 ### Functions
 
 | Name | Summary |

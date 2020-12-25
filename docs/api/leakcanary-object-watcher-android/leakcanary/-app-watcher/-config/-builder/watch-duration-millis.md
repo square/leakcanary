@@ -2,7 +2,8 @@
 
 # watchDurationMillis
 
-`fun watchDurationMillis(watchDurationMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+`fun ~~watchDurationMillis~~(watchDurationMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+**Deprecated:** see [Config.watchDurationMillis]
 
 **See Also**
 

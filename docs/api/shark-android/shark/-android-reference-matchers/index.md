@@ -56,9 +56,9 @@ Most app developers should use [appDefaults](app-defaults.md). However, you can 
 | [VIEWLOCATIONHOLDER_ROOT](-v-i-e-w-l-o-c-a-t-i-o-n-h-o-l-d-e-r_-r-o-o-t.md) |  |
 | [ACCESSIBILITY_NODE_ID_MANAGER](-a-c-c-e-s-s-i-b-i-l-i-t-y_-n-o-d-e_-i-d_-m-a-n-a-g-e-r.md) |  |
 | [TEXT_TO_SPEECH](-t-e-x-t_-t-o_-s-p-e-e-c-h.md) |  |
-| [WINDOW_MANAGER_GLOBAL](-w-i-n-d-o-w_-m-a-n-a-g-e-r_-g-l-o-b-a-l.md) |  |
 | [CONTROLLED_INPUT_CONNECTION_WRAPPER](-c-o-n-t-r-o-l-l-e-d_-i-n-p-u-t_-c-o-n-n-e-c-t-i-o-n_-w-r-a-p-p-e-r.md) |  |
 | [TOAST_TN](-t-o-a-s-t_-t-n.md) |  |
+| [APPLICATION_PACKAGE_MANAGER__HAS_SYSTEM_FEATURE_QUERY](-a-p-p-l-i-c-a-t-i-o-n_-p-a-c-k-a-g-e_-m-a-n-a-g-e-r__-h-a-s_-s-y-s-t-e-m_-f-e-a-t-u-r-e_-q-u-e-r-y.md) |  |
 | [SPEN_GESTURE_MANAGER](-s-p-e-n_-g-e-s-t-u-r-e_-m-a-n-a-g-e-r.md) |  |
 | [CLIPBOARD_UI_MANAGER__SINSTANCE](-c-l-i-p-b-o-a-r-d_-u-i_-m-a-n-a-g-e-r__-s-i-n-s-t-a-n-c-e.md) |  |
 | [SEM_CLIPBOARD_MANAGER__MCONTEXT](-s-e-m_-c-l-i-p-b-o-a-r-d_-m-a-n-a-g-e-r__-m-c-o-n-t-e-x-t.md) |  |

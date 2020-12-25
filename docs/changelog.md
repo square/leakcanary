@@ -4,6 +4,293 @@
 !!! info
     To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
 
+##  Version 2.6 - Christmas Release 🎄 (2020-12-24)
+
+Please thank 
+[@chao2zhang](https://github.com/chao2zhang),
+[@ChaosLeung](https://github.com/ChaosLeung),
+[@LitterSun](https://github.com/LitterSun),
+[@mickverm](https://github.com/mickverm),
+[@opatry](https://github.com/opatry),
+[@Thomas-Vos](https://github.com/Thomas-Vos),
+[@tricknology](https://github.com/tricknology),
+[@rahul-a](https://github.com/rahul-a),
+[@samoylenkodmitry](https://github.com/samoylenkodmitry),
+[@sing0055](https://github.com/sing0055),
+[@ubiratansoares](https://github.com/ubiratansoares)
+for their contributions, bug reports and feature requests 🙏 🙏 🙏.
+
+This Christmas Release includes several external contributions and a bunch of cool new features! 🎁🎁
+
+###  Detecting root views retained after `View.onDetachedFromWindow()`
+
+On Android, every displayed view hierarchy is attached to a window, whether it be the view hierarchy of an activity, a dialog, a toast or [a chat head](http://www.piwai.info/chatheads-basics). After a view hierarchy is detached from its window, it should be garbage collected.
+
+LeakCanary already detects leaks of activity view hierarchies because retained detached views reference their activity context and LeakCanary detects activities retained after `Activity.onDestroy()`. In this new release, LeakCanary will now detect the leak of a dialog view hierarchy as soon as that dialog is dismissed, or any other view that is passed to [WindowManager.removeView()](https://developer.android.com/reference/android/view/ViewManager#removeView(android.view.View)).
+
+###  Detecting services retained after `Service.onDestroy()`
+
+After an Android [service](https://developer.android.com/reference/android/app/Service) is destroyed, it should be garbage collected. Unfortunately, the Android SDK does not provide any generic API to observe the service lifecycle. We worked around that using reflection on greylist APIs (details in [#2014](https://github.com/square/leakcanary/pull/2014)). Let's hope this motivates the Android team to [build the APIs developers need](https://twitter.com/Piwai/status/1342029560116891648).
+
+### Configuring retained object detection
+
+With the detection of 2 new types of retained objects, we're also adding APIs to configure which _watchers_ should be installed as well as adding filtering capabilities.
+
+First, disable the automatic install:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <bool name="leak_canary_watcher_auto_install">false</bool>
+</resources>
+```
+
+Then you can install LeakCanary manually. LeakCanary 2.6 comes with 4 watchers installed by default: `ActivityWatcher`, `FragmentAndViewModelWatcher`, `RootViewWatcher`, `ServiceWatcher`. Here's an example to get all the default watchers except `ServiceWatcher`:
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+
+    val watchersToInstall = AppWatcher.appDefaultWatchers(application)
+      .filter { it !is ServiceWatcher }
+
+    AppWatcher.manualInstall(
+      application = application,
+      watchersToInstall = watchersToInstall
+    )
+  }
+}
+```
+
+LeakCanary introduces a new functional (SAM) interface implemented by `ObjectWatcher`: `ReachabilityWatcher`, with a `ReachabilityWatcher.expectWeaklyReachable()` method that replaces the now deprecated `ObjectWatcher.watch()` method. You can create the default watcher instances with a custom `ReachabilityWatcher` that delegates to `AppWatcher.objectWatcher` but filters out specific instances (e.g. `BadSdkLeakingFragment`):
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+	
+    val delegate = ReachabilityWatcher { watchedObject, description ->
+      if (watchedObject !is BadSdkLeakingFragment) {
+        AppWatcher.objectWatcher.expectWeaklyReachable(watchedObject, description)
+      }
+    }
+
+    val watchersToInstall = AppWatcher.appDefaultWatchers(application, delegate)
+
+    AppWatcher.manualInstall(
+      application = application,
+      watchersToInstall = watchersToInstall
+    )
+  }
+}
+```
+
+With these new configuration options, `AppWatcher.config` is now deprecated and a no-op.
+
+### Dumping the heap on screen off
+
+The default threshold to dump the heap is **5 retained objects** when the app is **visible**, and **1 retained object** when the app is **not visible**. Up until now, visible meant "the app has at least one activity in **started** state". In LeakCanary 2.6, the app will now be considered **not visible** if the device screen is **off**, lowering the threshold to trigger heap dumps when you turn off the device screen.
+
+### LeakCanary for releases
+
+LeakCanary 2.6 introduces a new artifact: `leakcanary-android-release`. This artifact exposes APIs to run a heap analysis in release builds, in production.
+
+!!! danger
+    Everything about this is experimental. Running a heap analysis in production is not a very common thing to do, and we're still learning and experimenting with this. Also, both the artifact name and the APIs may change.
+
+```gradle
+dependencies {
+  // debugImplementation because LeakCanary should only run in debug builds.
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
+
+  // NEW: LeakCanary for releases!
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-android-release:2.6'
+  // Optional: detect retained objects. This helps but is not required.
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:2.6'
+}
+```
+
+Here's a code example that runs a heap analysis when the screen is turned off or the app enters background, checking first if a [Firebase Remote Config](https://firebase.google.com/products/remote-config) flag is turned on, and uploading the result to Bugsnag:
+
+
+```kotlin
+class ReleaseExampleApplication : ExampleApplication() {
+
+  // Cancels heap analysis if "heap_analysis_flag" is false.
+  private val flagInterceptor by lazy {
+    object : HeapAnalysisInterceptor {
+
+      val remoteConfig: FirebaseRemoteConfig = TODO()
+
+      override fun intercept(chain: Chain): HeapAnalysisJob.Result {
+        if (remoteConfig.getBoolean("heap_analysis_flag")) {
+          chain.job.cancel("heap_analysis_flag false")
+        }
+        return chain.proceed()
+      }
+    }
+  }
+  
+  private val analysisClient by lazy {
+    HeapAnalysisClient(
+      // Use private app storage. cacheDir is never backed up which is important.
+      heapDumpDirectoryProvider = { cacheDir },
+      // stripHeapDump: remove all user data from hprof before analysis.
+      config = HeapAnalysisConfig(stripHeapDump = true),
+      // Default interceptors may cancel analysis for several other reasons.
+      interceptors = listOf(flagInterceptor) + HeapAnalysisClient.defaultInterceptors(this)
+    )
+  }
+
+  private val analysisExecutor by lazy {
+    Executors.newSingleThreadExecutor {
+      Thread {
+        android.os.Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND)
+        it.run()
+      }.apply {
+        name = "Heap analysis executor"
+      }
+    }
+  }
+
+  private val analysisCallback: (Result) -> Unit by lazy {
+    val uploader = BugsnagHeapAnalysisUploader(this@ReleaseExampleApplication)
+    { result ->
+      if (result is Done) {
+        uploader.upload(result.analysis)
+	  }
+    }
+  }
+
+  override fun onCreate() {
+    super.onCreate()
+
+    // Delete any remaining heap dump (if we crashed)
+    analysisExecutor.execute {
+      analysisClient.deleteHeapDumpFiles()
+    }
+
+    // Starts heap analysis on background importance
+    BackgroundTrigger(
+      application = this,
+      analysisClient = analysisClient,
+      analysisExecutor = analysisExecutor,
+      analysisCallback = analysisCallback
+    ).start()
+
+    // Starts heap analysis when screen off
+    ScreenOffTrigger(
+      application = this,
+      analysisClient = analysisClient,
+      analysisExecutor = analysisExecutor,
+      analysisCallback = analysisCallback
+    ).start()
+  }
+  
+  /**
+   * Call this to trigger heap analysis manually, e.g. from
+   * a help button.
+   *
+   * This method returns a `HeapAnalysisJob` on which you can
+   * call `HeapAnalysisJob.cancel()` at any time.
+   */
+  fun triggerHeapAnalysisNow(): HeapAnalysisJob {
+    val job = analysisClient.newJob()
+    analysisExecutor.execute {
+      val result = job.execute()
+      analysisCallback(result)
+    }
+    return job
+  }
+}
+```
+
+The Bugsnag uploader:
+
+```kotlin
+class BugsnagHeapAnalysisUploader(applicationContext: Application) {
+
+  private val bugsnagClient: Client
+
+  init {
+    bugsnagClient = Client(
+      applicationContext,
+      BUGSNAG_API_KEY,
+      DO_NOT_ENABLE_EXCEPTION_HANDLER
+    )
+    bugsnagClient.setSendThreads(false)
+  }
+
+  fun upload(heapAnalysis: HeapAnalysis) {
+    when (heapAnalysis) {
+      is HeapAnalysisSuccess -> {
+        val exception = HeapAnalysisReport()
+        bugsnagClient.notify(exception) { report ->
+          val metaData = report.error.metaData
+          metaData.addToTab("Heap Analysis", "result", heapAnalysis.toString())
+        }
+      }
+      is HeapAnalysisFailure -> {
+        // Please file any reported failure to
+        // https://github.com/square/leakcanary/issues
+        bugsnagClient.notify(heapAnalysis.exception)
+      }
+    }
+  }
+
+  // Exception with fake unique stacktrace to send all reports to the same error entry.
+  class HeapAnalysisReport : Exception("Check the HEAP ANALYSIS tab") {
+    override fun fillInStackTrace(): Throwable {
+      stackTrace = arrayOf(
+        StackTraceElement(
+          "HeapAnalysisReport",
+          "analyzeHeap",
+          "HeapAnalysisReport.kt",
+          1
+        )
+      )
+      return this
+    }
+  }
+
+  companion object {
+    private const val BUGSNAG_API_KEY = YOUR_BUGSNAG_API_KEY
+    private const val DO_NOT_ENABLE_EXCEPTION_HANDLER = false
+  }
+}
+```
+
+### More leak fixes in Plumber
+
+We added 3 new automatic fixes for known AOSP leaks in `plumber-android` (details: [#1993](https://github.com/square/leakcanary/issues/1993)). As a reminder, `plumber-android` is automatically included when you add `leakcanary-android`, and you can add it manually for build types that don't include LeakCanary:
+
+```xml
+dependencies {
+  // leakcanary-android adds plumber-android to debug builds
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
+
+  // This adds plumber-android to all build types
+  implementation 'com.squareup.leakcanary:plumber-android:2.6'
+}
+```
+
+### Bug fixes and improvements 🐛🔨
+
+* [#1948](https://github.com/square/leakcanary/pull/1948) Leakcanary is now compiled against Kotlin 1.4 (while staying 1.3 compatible) to support [Functional (SAM) interfaces](https://kotlinlang.org/docs/reference/fun-interfaces.html).
+* [#1956](https://github.com/square/leakcanary/issues/1956) The retained object size is displayed as a human readable output (KB, MB, ...).
+* [#1976](https://github.com/square/leakcanary/issues/1976) Improved default object inspectors and leak finders for `View` and `Context`.
+* [#1972](https://github.com/square/leakcanary/issues/1972) Fields are printed with the parent class name that holds the field in leak traces.
+* [#1981](https://github.com/square/leakcanary/issues/1981) Fixed StrictMode policy violation (main thread read from disk).
+* [#1977](https://github.com/square/leakcanary/issues/1977) Report objects that are not strongly reachable.
+* [#2018](https://github.com/square/leakcanary/pull/2018) & [#2019](https://github.com/square/leakcanary/pull/2019) Fixed crashes in LeakCanary UI (discovered by Monkey tests).
+* [#2015](https://github.com/square/leakcanary/issues/2015) Fixed crash on Android < 16.
+* [#2023](https://github.com/square/leakcanary/issues/2023) Fixed crash in plugin projects.
+
+For more details, see the [2.6 Milestone](https://github.com/square/leakcanary/milestone/20) and the [full diff](https://github.com/square/leakcanary/compare/v2.5...v2.6).
+
 ## Version 2.5 (2020-10-01)
 
 Please thank 

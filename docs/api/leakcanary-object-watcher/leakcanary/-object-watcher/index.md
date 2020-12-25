@@ -2,15 +2,15 @@
 
 # ObjectWatcher
 
-`class ObjectWatcher`
+`class ObjectWatcher : `[`ReachabilityWatcher`](../-reachability-watcher/index.md)
 
 [ObjectWatcher](./index.md) can be passed objects to [watch](watch.md). It will create [KeyedWeakReference](../-keyed-weak-reference/index.md) instances
 that reference watches objects, and check if those references have been cleared as expected on
 the [checkRetainedExecutor](#) executor. If not, these objects are considered retained and
-[ObjectWatcher](./index.md) will then notify the [onObjectRetainedListener](#) on that executor thread.
+[ObjectWatcher](./index.md) will then notify registered [OnObjectRetainedListener](../-on-object-retained-listener/index.md)s on that executor thread.
 
 [checkRetainedExecutor](#) is expected to run its tasks on a background thread, with a significant
-to give the GC the opportunity to identify weakly reachable objects.
+delay to give the GC the opportunity to identify weakly reachable objects.
 
 [ObjectWatcher](./index.md) is thread safe.
 
@@ -18,7 +18,7 @@ to give the GC the opportunity to identify weakly reachable objects.
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `ObjectWatcher(clock: `[`Clock`](../-clock/index.md)`, checkRetainedExecutor: `[`Executor`](https://docs.oracle.com/javase/6/docs/api/java/util/concurrent/Executor.html)`, isEnabled: () -> `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = { true })`<br>[ObjectWatcher](./index.md) can be passed objects to [watch](watch.md). It will create [KeyedWeakReference](../-keyed-weak-reference/index.md) instances that reference watches objects, and check if those references have been cleared as expected on the [checkRetainedExecutor](#) executor. If not, these objects are considered retained and [ObjectWatcher](./index.md) will then notify the [onObjectRetainedListener](#) on that executor thread. |
+| [&lt;init&gt;](-init-.md) | `ObjectWatcher(clock: `[`Clock`](../-clock/index.md)`, checkRetainedExecutor: `[`Executor`](https://docs.oracle.com/javase/6/docs/api/java/util/concurrent/Executor.html)`, isEnabled: () -> `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = { true })`<br>[ObjectWatcher](./index.md) can be passed objects to [watch](watch.md). It will create [KeyedWeakReference](../-keyed-weak-reference/index.md) instances that reference watches objects, and check if those references have been cleared as expected on the [checkRetainedExecutor](#) executor. If not, these objects are considered retained and [ObjectWatcher](./index.md) will then notify registered [OnObjectRetainedListener](../-on-object-retained-listener/index.md)s on that executor thread. |
 
 ### Properties
 
@@ -36,5 +36,6 @@ to give the GC the opportunity to identify weakly reachable objects.
 | [addOnObjectRetainedListener](add-on-object-retained-listener.md) | `fun addOnObjectRetainedListener(listener: `[`OnObjectRetainedListener`](../-on-object-retained-listener/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
 | [clearObjectsWatchedBefore](clear-objects-watched-before.md) | `fun clearObjectsWatchedBefore(heapDumpUptimeMillis: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Clears all [KeyedWeakReference](../-keyed-weak-reference/index.md) that were created before [heapDumpUptimeMillis](clear-objects-watched-before.md#leakcanary.ObjectWatcher$clearObjectsWatchedBefore(kotlin.Long)/heapDumpUptimeMillis) (based on [clock](../-clock/uptime-millis.md)) |
 | [clearWatchedObjects](clear-watched-objects.md) | `fun clearWatchedObjects(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Clears all [KeyedWeakReference](../-keyed-weak-reference/index.md) |
+| [expectWeaklyReachable](expect-weakly-reachable.md) | `fun expectWeaklyReachable(watchedObject: `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`, description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Expects the provided [watchedObject](../-reachability-watcher/expect-weakly-reachable.md#leakcanary.ReachabilityWatcher$expectWeaklyReachable(kotlin.Any, kotlin.String)/watchedObject) to become weakly reachable soon. If not, [watchedObject](../-reachability-watcher/expect-weakly-reachable.md#leakcanary.ReachabilityWatcher$expectWeaklyReachable(kotlin.Any, kotlin.String)/watchedObject) will be considered retained. |
 | [removeOnObjectRetainedListener](remove-on-object-retained-listener.md) | `fun removeOnObjectRetainedListener(listener: `[`OnObjectRetainedListener`](../-on-object-retained-listener/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
-| [watch](watch.md) | `fun ~~watch~~(watchedObject: `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Identical to [watch](watch.md) with an empty string reference name.`fun watch(watchedObject: `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`, description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Watches the provided [watchedObject](watch.md#leakcanary.ObjectWatcher$watch(kotlin.Any, kotlin.String)/watchedObject). |
+| [watch](watch.md) | `fun ~~watch~~(watchedObject: `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Identical to [watch](watch.md) with an empty string reference name.`fun ~~watch~~(watchedObject: `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`, description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |

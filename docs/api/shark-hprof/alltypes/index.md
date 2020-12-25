@@ -19,7 +19,7 @@
 | [shark.HprofRecordTag](../shark/-hprof-record-tag/index.md) |  |
 | [shark.HprofVersion](../shark/-hprof-version/index.md) | Supported hprof versions |
 | [shark.HprofWriter](../shark/-hprof-writer/index.md) | Generates Hprof files. |
-| [shark.OnHprofRecordListener](../shark/-on-hprof-record-listener/index.md) | Listener passed in to [StreamingHprofReader.readRecords](../shark/-streaming-hprof-reader/read-records.md), gets notified for each [HprofRecord](../shark/-hprof-record/index.md) found in the heap dump which types is in the set of the recordTypes parameter passed to [StreamingHprofReader.readRecords](../shark/-streaming-hprof-reader/read-records.md). |
+| [shark.OnHprofRecordListener](../shark/-on-hprof-record-listener/index.md) |  |
 | [shark.OnHprofRecordTagListener](../shark/-on-hprof-record-tag-listener/index.md) | Listener passed in to [StreamingHprofReader.readRecords](../shark/-streaming-hprof-reader/read-records.md), gets notified for each [HprofRecordTag](../shark/-hprof-record-tag/index.md) found in the heap dump. |
 | [shark.PrimitiveType](../shark/-primitive-type/index.md) | A primitive type in the prof. |
 | [shark.ProguardMapping](../shark/-proguard-mapping/index.md) |  |
@@ -29,5 +29,5 @@
 | [shark.RandomAccessSourceProvider](../shark/-random-access-source-provider/index.md) | Can open [RandomAccessSource](../shark/-random-access-source/index.md) instances. |
 | [shark.StreamingHprofReader](../shark/-streaming-hprof-reader/index.md) | Reads the entire content of a Hprof source in one fell swoop. Call [readerFor](../shark/-streaming-hprof-reader/reader-for.md) to obtain a new instance. |
 | [shark.StreamingRecordReaderAdapter](../shark/-streaming-record-reader-adapter/index.md) | Wraps a [StreamingHprofReader](../shark/-streaming-hprof-reader/index.md) to provide a higher level API that streams [HprofRecord](../shark/-hprof-record/index.md) instances. |
-| [shark.StreamingSourceProvider](../shark/-streaming-source-provider/index.md) | Can open [Source](#) instances. |
+| [shark.StreamingSourceProvider](../shark/-streaming-source-provider/index.md) |  |
 | [shark.ValueHolder](../shark/-value-holder/index.md) | A value in the heap dump, which can be a [ReferenceHolder](../shark/-value-holder/-reference-holder/index.md) or a primitive type. |

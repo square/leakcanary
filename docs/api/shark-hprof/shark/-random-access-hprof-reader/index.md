@@ -19,4 +19,4 @@ Call [openReaderFor](open-reader-for.md) to obtain a new instance.
 | Name | Summary |
 |---|---|
 | [openReaderFor](open-reader-for.md) | `fun openReaderFor(hprofFile: `[`File`](https://docs.oracle.com/javase/6/docs/api/java/io/File.html)`, hprofHeader: `[`HprofHeader`](../-hprof-header/index.md)` = HprofHeader.parseHeaderOf(hprofFile)): `[`RandomAccessHprofReader`](./index.md)<br>`fun openReaderFor(hprofSourceProvider: `[`RandomAccessSourceProvider`](../-random-access-source-provider/index.md)`, hprofHeader: `[`HprofHeader`](../-hprof-header/index.md)` = hprofSourceProvider.openRandomAccessSource()
-          .use { HprofHeader.parseHeaderOf(it.asStreamingSource()) }): `[`RandomAccessHprofReader`](./index.md) |
+        .use { HprofHeader.parseHeaderOf(it.asStreamingSource()) }): `[`RandomAccessHprofReader`](./index.md) |

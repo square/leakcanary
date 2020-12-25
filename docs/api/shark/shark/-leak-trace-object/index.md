@@ -30,3 +30,9 @@
 | [retainedObjectCount](retained-object-count.md) | `val retainedObjectCount: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`?`<br>The minimum number of objects which would be unreachable if all references to this object were released. Not null only if the retained heap size was computed AND [leakingStatus](leaking-status.md) is equal to [LeakingStatus.UNKNOWN](-leaking-status/-u-n-k-n-o-w-n.md) or [LeakingStatus.LEAKING](-leaking-status/-l-e-a-k-i-n-g.md). |
 | [type](type.md) | `val type: `[`LeakTraceObject.ObjectType`](-object-type/index.md) |
 | [typeName](type-name.md) | `val typeName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+
+### Functions
+
+| Name | Summary |
+|---|---|
+| [toString](to-string.md) | `fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |

@@ -2,4 +2,6 @@
 
 # build
 
-`fun build(): `[`AppWatcher.Config`](../index.md)
+`fun ~~build~~(): `[`AppWatcher.Config`](../index.md)
+**Deprecated:** Configuration moved to AppWatcher.manualInstall()
+

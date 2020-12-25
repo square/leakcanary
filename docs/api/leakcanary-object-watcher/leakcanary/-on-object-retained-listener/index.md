@@ -4,8 +4,6 @@
 
 `interface OnObjectRetainedListener`
 
-Listener used by [ObjectWatcher](../-object-watcher/index.md) to report retained objects.
-
 ### Functions
 
 | Name | Summary |

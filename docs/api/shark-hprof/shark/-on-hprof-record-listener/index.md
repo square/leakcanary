@@ -4,10 +4,6 @@
 
 `interface OnHprofRecordListener`
 
-Listener passed in to [StreamingHprofReader.readRecords](../-streaming-hprof-reader/read-records.md), gets notified for each [HprofRecord](../-hprof-record/index.md)
-found in the heap dump which types is in the set of the recordTypes parameter passed to
-[StreamingHprofReader.readRecords](../-streaming-hprof-reader/read-records.md).
-
 ### Functions
 
 | Name | Summary |

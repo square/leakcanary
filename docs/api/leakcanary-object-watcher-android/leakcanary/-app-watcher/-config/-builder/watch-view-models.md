@@ -2,7 +2,8 @@
 
 # watchViewModels
 
-`fun watchViewModels(watchViewModels: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+`fun ~~watchViewModels~~(watchViewModels: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`AppWatcher.Config.Builder`](index.md)
+**Deprecated:** see [Config.watchViewModels]
 
 **See Also**
 
