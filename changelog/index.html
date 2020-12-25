@@ -1980,15 +1980,15 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <p class="admonition-title">Danger</p>
 <p>Everything about this is experimental. Running a heap analysis in production is not a very common thing to do, and we&rsquo;re still learning and experimenting with this. Also, both the artifact name and the APIs may change.</p>
 </div>
-<div class="highlight"><pre><span></span><code>dependencies {
-  // debugImplementation because LeakCanary should only run in debug builds.
-  debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.6&#39;
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
+  <span class="c1">// debugImplementation because LeakCanary should only run in debug builds.</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.6&#39;</span>
 
-  // NEW: LeakCanary for releases!
-  releaseImplementation &#39;com.squareup.leakcanary:leakcanary-android-release:2.6&#39;
-  // Optional: detect retained objects. This helps but is not required.
-  releaseImplementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.6&#39;
-}
+  <span class="c1">// NEW: LeakCanary for releases!</span>
+  <span class="n">releaseImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-release:2.6&#39;</span>
+  <span class="c1">// Optional: detect retained objects. This helps but is not required.</span>
+  <span class="n">releaseImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.6&#39;</span>
+<span class="o">}</span>
 </code></pre></div>
 <p>Here&rsquo;s a code example that runs a heap analysis when the screen is turned off or the app enters background, checking first if a <a href="https://firebase.google.com/products/remote-config">Firebase Remote Config</a> flag is turned on, and uploading the result to Bugsnag:</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ReleaseExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
