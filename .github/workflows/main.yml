@@ -29,5 +29,5 @@ jobs:
       - name: Espresso Checks
         uses: reactivecircus/android-emulator-runner@v2.13.0
         with:
-          api-level: 23
+          api-level: 16
           script: ./gradlew leakcanary-android-core:connectedCheck leakcanary-android-instrumentation:connectedCheck --stacktrace
