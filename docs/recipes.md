@@ -93,7 +93,7 @@ Sometimes it's necessary to disable LeakCanary temporarily, for example for a pr
 
 ## LeakCanary test environment detection
 
-By default, LeakCanary will look for the `org.junit.Test` class in your classpath and will disable itself to avoid running in tests. However, some apps may accidentally ship JUnit in their debug classpaths (for example, when using OkHttp's MockWebServer) so we offer a way to customise the class that is used to determine that the app is running in a test environment.
+By default, LeakCanary will look for the `org.junit.Test` class in your classpath and if found, will disable itself to avoid running in tests. However, some apps may ship JUnit in their debug classpaths (for example, when using OkHttp's MockWebServer) so we offer a way to customise the class that is used to determine that the app is running in a test environment.
 
 ```xml
 <resources>
