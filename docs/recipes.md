@@ -91,6 +91,16 @@ Sometimes it's necessary to disable LeakCanary temporarily, for example for a pr
 !!! info
     When you set `LeakCanary.Config.dumpHeap` to `false`, `AppWatcher.objectWatcher` will still keep track of retained objects, and LeakCanary will look for these objects when you change `LeakCanary.Config.dumpHeap` back to `true`.
 
+## LeakCanary test environment detection
+
+By default, LeakCanary will look for the `org.junit.Test` class in your classpath and will disable itself to avoid running in tests. However, some apps may accidentally ship JUnit in their debug classpaths (for example, when using OkHttp's MockWebServer) so we offer a way to customise the class that is used to determine that the app is running in a test environment.
+
+```xml
+<resources>
+  <string name="leak_canary_test_class_name">assertk.Assert</string>
+</resources>
+```
+
 ## Counting retained instances in release builds
 
 The `com.squareup.leakcanary:leakcanary-android` dependency should only be used in debug builds. It depends on `com.squareup.leakcanary:leakcanary-object-watcher-android` which you can use in release builds to track and count retained instances.
