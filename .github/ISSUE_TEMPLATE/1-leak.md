@@ -13,5 +13,5 @@ This issue tracker is not for help with memory leaks detected by LeakCanary in y
 
 To fix a leak: 
 
-* First, learn the fundamentals: https://github.com/square/leakcanary#fundamentals
-* Then, create a Stack Overflow question: http://stackoverflow.com/questions/tagged/leakcanary
+* First, learn the fundamentals: https://square.github.io/leakcanary/fundamentals/
+* Then, create a Stack Overflow question: https://stackoverflow.com/questions/tagged/leakcanary
