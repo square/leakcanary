@@ -8,6 +8,7 @@ import leakcanary.internal.friendly.checkMainThread
 import leakcanary.internal.friendly.mainHandler
 import leakcanary.internal.isDebuggableBuild
 import shark.SharkLog
+import java.lang.RuntimeException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -22,6 +23,8 @@ object AppWatcher {
 
   @Volatile
   private var retainedDelayMillis = RETAINED_DELAY_NOT_SET
+
+  private var installCause: Exception? = null
 
   /**
    * The [ObjectWatcher] used by AppWatcher to detect retained objects.
@@ -40,7 +43,7 @@ object AppWatcher {
 
   /** @see [manualInstall] */
   val isInstalled: Boolean
-    get() = retainedDelayMillis != RETAINED_DELAY_NOT_SET
+    get() = installCause != null
 
   /**
    * Enables usage of [AppWatcher.objectWatcher] which will expect passed in objects to become
@@ -92,12 +95,15 @@ object AppWatcher {
     watchersToInstall: List<InstallableWatcher> = appDefaultWatchers(application)
   ) {
     checkMainThread()
-    check(!isInstalled) {
-      "AppWatcher already installed"
+    if (isInstalled) {
+      throw IllegalStateException(
+        "AppWatcher already installed, see exception cause for prior install call", installCause
+      )
     }
     check(retainedDelayMillis >= 0) {
       "retainedDelayMillis $retainedDelayMillis must be at least 0 ms"
     }
+    installCause = RuntimeException("manualInstall() first called here")
     this.retainedDelayMillis = retainedDelayMillis
     if (application.isDebuggableBuild) {
       LogcatSharkLog.install()
