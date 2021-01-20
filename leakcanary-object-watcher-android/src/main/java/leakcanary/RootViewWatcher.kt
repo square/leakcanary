@@ -77,9 +77,16 @@ class RootViewWatcher(
     rootView.addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
 
       val watchDetachedView = Runnable {
-        reachabilityWatcher.expectWeaklyReachable(
-          rootView, "${rootView::class.java.name} received View#onDetachedFromWindow() callback"
-        )
+        // Android widgets such as Spinner use a PopupWindow.PopupDecorView to show their content
+        // floating over the view hierarchy. They keep a reference to the view and attach / detach
+        // it several times. So these are only truly leaking after the owner widget has been
+        // detached, and unfortunately we don't have a reference to that.
+        val rootViewClassName = rootView::class.java.name
+        if (rootViewClassName != "android.widget.PopupWindow\$PopupDecorView") {
+          reachabilityWatcher.expectWeaklyReachable(
+            rootView, "$rootViewClassName received View#onDetachedFromWindow() callback"
+          )
+        }
       }
 
       override fun onViewAttachedToWindow(v: View) {
