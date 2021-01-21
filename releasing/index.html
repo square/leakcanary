@@ -486,9 +486,93 @@
       
     
     
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Releasing
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+    
     <a href="./" class="md-nav__link md-nav__link--active">
       Releasing
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preparing-the-release-environment" class="md-nav__link">
+    Preparing the release environment
+  </a>
+  
+    <nav class="md-nav" aria-label="Preparing the release environment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#set-up-your-sonatype-ossrh-account" class="md-nav__link">
+    Set up your Sonatype OSSRH account
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-your-signing-key" class="md-nav__link">
+    Set up your signing key
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-your-home-gradleproperties" class="md-nav__link">
+    Set up your home gradle.properties
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-the-google-analytics-docs-key" class="md-nav__link">
+    Set up the Google Analytics docs key
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-github-cli" class="md-nav__link">
+    Set up GitHub CLI
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-the-doc-generation-dependencies" class="md-nav__link">
+    Install the doc generation dependencies
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#releasing" class="md-nav__link">
+    Releasing
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -777,6 +861,76 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preparing-the-release-environment" class="md-nav__link">
+    Preparing the release environment
+  </a>
+  
+    <nav class="md-nav" aria-label="Preparing the release environment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#set-up-your-sonatype-ossrh-account" class="md-nav__link">
+    Set up your Sonatype OSSRH account
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-your-signing-key" class="md-nav__link">
+    Set up your signing key
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-your-home-gradleproperties" class="md-nav__link">
+    Set up your home gradle.properties
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-the-google-analytics-docs-key" class="md-nav__link">
+    Set up the Google Analytics docs key
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-github-cli" class="md-nav__link">
+    Set up GitHub CLI
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-the-doc-generation-dependencies" class="md-nav__link">
+    Install the doc generation dependencies
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#releasing" class="md-nav__link">
+    Releasing
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -796,11 +950,74 @@
   
   
   <h1 id="releasing-leakcanary">Releasing LeakCanary<a class="headerlink" href="#releasing-leakcanary" title="Permanent link">&para;</a></h1>
+<h2 id="preparing-the-release-environment">Preparing the release environment<a class="headerlink" href="#preparing-the-release-environment" title="Permanent link">&para;</a></h2>
+<h3 id="set-up-your-sonatype-ossrh-account">Set up your Sonatype OSSRH account<a class="headerlink" href="#set-up-your-sonatype-ossrh-account" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Make sure you have the docsite Google Analytics key set up in your <code>~/.bashrc</code>:</li>
+<li>Create a <a href="https://issues.sonatype.org/secure/Signup!default.jspa">Sonatype OSSRH JIRA account</a>.</li>
+<li>Create a ticket to request access to the <code>com.squareup.leakcanary</code> project. Here&rsquo;s an example: <a href="https://issues.sonatype.org/browse/OSSRH-54959">OSSRH-54959</a>.</li>
+<li>Then ask someone with deployer role from the LeakCanary team to confirm access.</li>
 </ul>
-<div class="highlight"><pre><span></span><code>export LEAKCANARY_GOOGLE_ANALYTICS_KEY=&quot;UA-142834539-1&quot;
+<h3 id="set-up-your-signing-key">Set up your signing key<a class="headerlink" href="#set-up-your-signing-key" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Create a new key</span>
+gpg --gen-key
+<span class="c1"># List local keys. Key id is last 8 characters</span>
+gpg -K
+<span class="nb">cd</span> ~/.gnupg
+<span class="c1"># Export key locally</span>
+gpg --export-secret-keys -o secring.gpg
+<span class="c1"># Upload key to Ubuntu servers</span>
+gpg --send-keys --keyserver keyserver.ubuntu.com &lt;KEY ID&gt;
+<span class="c1"># Confirm the key can now be found</span>
+gpg --recv-keys --keyserver keyserver.ubuntu.com &lt;KEY ID&gt;
 </code></pre></div>
+<h3 id="set-up-your-home-gradleproperties">Set up your home gradle.properties<a class="headerlink" href="#set-up-your-home-gradleproperties" title="Permanent link">&para;</a></h3>
+<p>Add this to your <code>~/.gradle/gradle.properties</code>:</p>
+<div class="highlight"><pre><span></span><code>signing.keyId=&lt;KEY ID&gt;
+signing.password=&lt;KEY PASSWORD&gt;
+signing.secretKeyRingFile=/Users/YOUR_USERNAME_/.gnupg/secring.gpg
+SONATYPE_NEXUS_USERNAME=&lt;SONATYPE_USERNAME&gt;
+SONATYPE_NEXUS_PASSWORD=&lt;SONATYPE_PASSWORD&gt;
+</code></pre></div>
+<h3 id="set-up-the-google-analytics-docs-key">Set up the Google Analytics docs key<a class="headerlink" href="#set-up-the-google-analytics-docs-key" title="Permanent link">&para;</a></h3>
+<p>Add this to your <code>~/.bashrc</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span> <span class="nv">LEAKCANARY_GOOGLE_ANALYTICS_KEY</span><span class="o">=</span><span class="s2">&quot;UA-142834539-1&quot;</span>
+</code></pre></div>
+<h3 id="set-up-github-cli">Set up GitHub CLI<a class="headerlink" href="#set-up-github-cli" title="Permanent link">&para;</a></h3>
+<p>Install GitHub CLI</p>
+<div class="highlight"><pre><span></span><code>brew install gh
+</code></pre></div>
+<p>Install jq, a CLI Json processor</p>
+<div class="highlight"><pre><span></span><code>brew install jq
+</code></pre></div>
+<p>Set up aliases for milestone management:</p>
+<div class="highlight"><pre><span></span><code>gh <span class="nb">alias</span> <span class="nb">set</span> listOpenMilestones <span class="s2">&quot;api graphql -F owner=&#39;:owner&#39; -F name=&#39;:repo&#39; -f query=&#39;</span>
+<span class="s2">    query ListOpenMilestones(\$name: String\!, \$owner: String\!) {</span>
+<span class="s2">        repository(owner: \$owner, name: \$name) {</span>
+<span class="s2">            milestones(first: 100, states: OPEN) {</span>
+<span class="s2">                nodes {</span>
+<span class="s2">                    title</span>
+<span class="s2">                    number</span>
+<span class="s2">                    description</span>
+<span class="s2">                    dueOn</span>
+<span class="s2">                    url</span>
+<span class="s2">                    state</span>
+<span class="s2">                    closed</span>
+<span class="s2">                    closedAt</span>
+<span class="s2">                    updatedAt</span>
+<span class="s2">                }</span>
+<span class="s2">            }</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">&#39;&quot;</span>
+
+gh <span class="nb">alias</span> <span class="nb">set</span> --shell createMilestone <span class="s2">&quot;gh api --method POST repos/:owner/:repo/milestones --input - | jq &#39;{ html_url: .html_url, state: .state, created_at: .created_at }&#39;&quot;</span>
+
+gh <span class="nb">alias</span> <span class="nb">set</span> --shell closeMilestone <span class="s2">&quot;echo &#39;{\&quot;state\&quot;: \&quot;closed\&quot;}&#39; | gh api --method PATCH repos/:owner/:repo/milestones/\$1 --input - | jq &#39;{ html_url: .html_url, state: .state, closed_at: .closed_at }&#39;&quot;</span>
+</code></pre></div>
+<h3 id="install-the-doc-generation-dependencies">Install the doc generation dependencies<a class="headerlink" href="#install-the-doc-generation-dependencies" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>pip3 install mkdocs-material
+</code></pre></div>
+<h2 id="releasing">Releasing<a class="headerlink" href="#releasing" title="Permanent link">&para;</a></h2>
 <ul>
 <li>
 <p>Create a local release branch from <code>main</code>
@@ -815,38 +1032,32 @@ git checkout -b release_2.7
 </code></pre></div></p>
 </li>
 <li>
-<p>Update the current version and next version in <code>mkdocs.yml</code>:
+<p>Update the current version and next version in <code>mkdocs.yml</code>
 <div class="highlight"><pre><span></span><code>extra:
   leak_canary:
-    release: &#39;2.7&#39;
-    next_release: &#39;REPLACE_WITH_NEXT_VERSION_NUMBER&#39;
+    release: <span class="s1">&#39;2.7&#39;</span>
+    next_release: <span class="s1">&#39;REPLACE_WITH_NEXT_VERSION_NUMBER&#39;</span>
 </code></pre></div></p>
 </li>
 <li>
 <p>Generate the Dokka docs
 <div class="highlight"><pre><span></span><code>rm -rf docs/api
-./gradlew leakcanary-android-core:dokka leakcanary-android-instrumentation:dokka leakcanary-android-process:dokka leakcanary-object-watcher-android:dokka leakcanary-object-watcher:dokka shark-android:dokka shark-graph:dokka shark-hprof:dokka shark-log:dokka shark:dokka plumber-android:dokka
+./gradlew leakcanary-android-core:dokka leakcanary-android-instrumentation:dokka leakcanary-android-process:dokka leakcanary-object-watcher-android:dokka leakcanary-object-watcher:dokka shark-android:dokka shark-graph:dokka shark-hprof:dokka shark-log:dokka shark:dokka plumber-android:dokka leakcanary-android-release:dokka
 </code></pre></div></p>
 </li>
 <li>
-<p>Confirm all API changes are intentional
-<div class="highlight"><pre><span></span><code>git diff docs/api
+<p>Update the changelog (<a href="https://github.com/square/leakcanary/compare/v2.6...main">commit list</a>)
+<div class="highlight"><pre><span></span><code>mate docs/changelog.md
 </code></pre></div></p>
 </li>
 <li>
-<p>Update <code>docs/changelog.md</code> after checking out all changes:</p>
-<ul>
-<li><a href="https://github.com/square/leakcanary/compare/v2.6...main">https://github.com/square/leakcanary/compare/v2.6...main</a></li>
-</ul>
-</li>
-<li>
-<p>Take one last look
-<div class="highlight"><pre><span></span><code>git diff
+<p>Deploy the docs locally then <a href="http://127.0.0.1:8000/changelog/">open the changelog</a> and check everything looks good
+<div class="highlight"><pre><span></span><code>mkdocs serve
 </code></pre></div></p>
 </li>
 <li>
 <p>Commit all local changes
-<div class="highlight"><pre><span></span><code>git commit -am &quot;Prepare 2.7 release&quot;
+<div class="highlight"><pre><span></span><code>git commit -am <span class="s2">&quot;Prepare 2.7 release&quot;</span>
 </code></pre></div></p>
 </li>
 <li>
@@ -859,12 +1070,6 @@ git checkout -b release_2.7
 <p>Create a tag and push it
 <div class="highlight"><pre><span></span><code>git tag v2.7
 git push origin v2.7
-</code></pre></div></p>
-</li>
-<li>
-<p>Make sure you have valid credentials in <code>~/.gradle/gradle.properties</code> to upload the artifacts
-<div class="highlight"><pre><span></span><code>SONATYPE_NEXUS_USERNAME=
-SONATYPE_NEXUS_PASSWORD=
 </code></pre></div></p>
 </li>
 <li>
@@ -900,7 +1105,7 @@ git merge --no-ff release_2.7
 </li>
 <li>
 <p>Commit your changes
-<div class="highlight"><pre><span></span><code>git commit -am &quot;Prepare for next development iteration&quot;
+<div class="highlight"><pre><span></span><code>git commit -am <span class="s2">&quot;Prepare for next development iteration&quot;</span>
 </code></pre></div></p>
 </li>
 <li>
@@ -909,19 +1114,40 @@ git merge --no-ff release_2.7
 </code></pre></div></p>
 </li>
 <li>
-<p>Go to <a href="https://github.com/square/leakcanary/milestones">Milestones</a>, close the corresponding milestones and create a new milestone.</p>
+<p>Close the currently open milestone
+<div class="highlight"><pre><span></span><code>gh listOpenMilestones <span class="p">|</span> jq <span class="s1">&#39;.data.repository.milestones.nodes[0].number&#39;</span> <span class="p">|</span> xargs gh closeMilestone
+</code></pre></div></p>
 </li>
-<li>Wait for the release to be available <a href="https://repo1.maven.org/maven2/com/squareup/leakcanary/leakcanary-android/">on Maven Central</a>.</li>
-<li>Redeploy the docs: <code>mkdocs serve</code> to check locally, <code>mkdocs gh-deploy</code> to deploy.</li>
-<li>Go to the <a href="https://github.com/square/leakcanary/releases/new">Draft a new release</a> page, enter the release name (v2.7) as tag and title, and have the description point to the changelog. You can find the direct anchor URL from the <a href="https://square.github.io/leakcanary/changelog">Change Log</a> page on the doc site.
-<div class="highlight"><pre><span></span><code>See [Change Log](https://square.github.io/leakcanary/changelog#version-20-alpha-2-2019-05-21)
-</code></pre></div></li>
-<li>Add the CLIP zip from <code>shark-cli/build/distributions/</code> to the release.</li>
-<li>Make a pull request to <a href="https://brew.sh/">brew</a>. Just execute 
+<li>
+<p>Create a milestone for the new version
+<div class="highlight"><pre><span></span><code><span class="nb">echo</span> <span class="s1">&#39;{</span>
+<span class="s1">  &quot;title&quot;: &quot;&quot;2.7&quot;,</span>
+<span class="s1">  &quot;state&quot;: &quot;open&quot;,</span>
+<span class="s1">  &quot;description&quot;: &quot;&quot;</span>
+<span class="s1">}&#39;</span> <span class="p">|</span> gh createMilestone
+</code></pre></div></p>
+</li>
+<li>
+<p>Redeploy the docs
+<div class="highlight"><pre><span></span><code>mkdocs gh-deploy
+</code></pre></div></p>
+</li>
+<li>
+<p>Create a new release
+<div class="highlight"><pre><span></span><code>gh release create v2.7 ./shark-cli/build/distributions/shark-cli-2.7.zip --title v2.7 --notes <span class="s1">&#39;See [Change Log](https://square.github.io/leakcanary/changelog)&#39;</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Open the <a href="https://github.com/square/leakcanary/releases/tag/v2.7">v2.7 release</a> to confirm everything looks good.</p>
+</li>
+<li>
+<p>Upload shark-cli to <a href="https://brew.sh/">brew</a>:
 <div class="highlight"><pre><span></span><code>brew bump-formula-pr --url https://github.com/square/leakcanary/releases/download/v2.7/shark-cli-2.7.zip leakcanary-shark
-</code></pre></div>
-(The url parameter should point at zip from this new release). <br />
-In case of problems, read <a href="https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request">brew docs</a>.  </li>
+</code></pre></div></p>
+</li>
+<li>
+<p>Wait for the release to be available <a href="https://repo1.maven.org/maven2/com/squareup/leakcanary/leakcanary-android/">on Maven Central</a>.</p>
+</li>
 <li>Tell your friends, update all of your apps, and tweet the new release. As a nice extra touch, mention external contributions.</li>
 </ul>
   
