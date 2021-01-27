@@ -10,7 +10,7 @@ If you find a new one, please [create an issue](https://github.com/square/leakca
 2. Read the AOSP source for that version of Android, and try to figure out why it happens. You can easily navigate through SDK versions by switching branches on the GitHub mirror: [android/platform_frameworks_base](https://github.com/android/platform_frameworks_base).
 3. Check if it happens on the latest version of Android, and otherwise use blame to find when it was fixed.
 4. If it's still happening, build a simple repro case.
-5. File an issue on [b.android.com](http://b.android.com) with the leak trace and the repro case.
+5. File an issue on [b.android.com](http://b.android.com) with the leak trace and the repro case. Please remember to follow up the issue when there are new responses. [b/176886060](https://issuetracker.google.com/issues/176886060) is good example of effective and respectful communication.
 6. Create a PR in LeakCanary to update [AndroidReferenceMatchers](/leakcanary/api/shark-android/shark/-android-reference-matchers/). Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.
 
 ## How do I know if LeakCanary is running?
