@@ -83,7 +83,7 @@ class InstrumentationLeakDetector {
    * The result of calling [detectLeaks], which is either [NoAnalysis] or [AnalysisPerformed].
    */
   sealed class Result {
-    object NoAnalysis : Result()
+    class NoAnalysis(val reason: String) : Result()
     class AnalysisPerformed(val heapAnalysis: HeapAnalysis) : Result()
   }
 
@@ -99,17 +99,17 @@ class InstrumentationLeakDetector {
     val refWatcher = AppWatcher.objectWatcher
 
     if (!refWatcher.hasWatchedObjects) {
-      return NoAnalysis
+      return NoAnalysis("No watched objects.")
     }
 
     instrumentation.waitForIdleSync()
     if (!refWatcher.hasWatchedObjects) {
-      return NoAnalysis
+      return NoAnalysis("No watched objects after waiting for idle sync.")
     }
 
     runGc()
     if (!refWatcher.hasWatchedObjects) {
-      return NoAnalysis
+      return NoAnalysis("No watched objects after triggering an explicit GC.")
     }
 
     // Waiting for any delayed UI post (e.g. scroll) to clear. This shouldn't be needed, but
@@ -117,7 +117,7 @@ class InstrumentationLeakDetector {
     SystemClock.sleep(2000)
 
     if (!refWatcher.hasWatchedObjects) {
-      return NoAnalysis
+      return NoAnalysis("No watched objects after delayed UI post is cleared.")
     }
 
     // Aaand we wait some more.
@@ -133,7 +133,7 @@ class InstrumentationLeakDetector {
     runGc()
 
     if (!refWatcher.hasRetainedObjects) {
-      return NoAnalysis
+      return NoAnalysis("No watched objects after a second explicit GC.")
     }
 
     // We're always reusing the same file since we only execute this once at a time.
