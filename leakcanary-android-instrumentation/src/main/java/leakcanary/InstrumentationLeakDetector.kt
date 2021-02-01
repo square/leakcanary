@@ -102,11 +102,13 @@ class InstrumentationLeakDetector {
       return NoAnalysis
     }
 
+    SharkLog.d { "Waiting for idle sync" }
     instrumentation.waitForIdleSync()
     if (!refWatcher.hasWatchedObjects) {
       return NoAnalysis
     }
 
+    SharkLog.d { "Triggering an explicit gc" }
     runGc()
     if (!refWatcher.hasWatchedObjects) {
       return NoAnalysis
@@ -114,6 +116,7 @@ class InstrumentationLeakDetector {
 
     // Waiting for any delayed UI post (e.g. scroll) to clear. This shouldn't be needed, but
     // Android simply has way too many delayed posts that aren't canceled when views are detached.
+    SharkLog.d { "Waiting for any delayed UI post to clear" }
     SystemClock.sleep(2000)
 
     if (!refWatcher.hasWatchedObjects) {
@@ -123,6 +126,7 @@ class InstrumentationLeakDetector {
     // Aaand we wait some more.
     // 4 seconds (2+2) is greater than the 3 seconds delay for
     // FINISH_TOKEN in android.widget.Filter
+    SharkLog.d { "Waiting some more time" }
     SystemClock.sleep(2000)
 
     val endOfWatchDelay = watchDurationMillis - (SystemClock.uptimeMillis() - leakDetectionTime)
@@ -130,6 +134,7 @@ class InstrumentationLeakDetector {
       SystemClock.sleep(endOfWatchDelay)
     }
 
+    SharkLog.d { "Triggering another explicit gc" }
     runGc()
 
     if (!refWatcher.hasRetainedObjects) {
@@ -145,6 +150,7 @@ class InstrumentationLeakDetector {
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
 
     val heapDumpDurationMillis: Long
+    SharkLog.d { "Dumping heap" }
 
     try {
       Debug.dumpHprofData(heapDumpFile.absolutePath)
@@ -168,6 +174,7 @@ class InstrumentationLeakDetector {
 
     // Giving an extra 2 seconds to flush the hprof to the file system. We've seen several cases
     // of corrupted hprof files and assume this could be a timing issue.
+    SharkLog.d { "Waiting for hprof to be flushed" }
     SystemClock.sleep(2000)
 
     val heapAnalyzer = HeapAnalyzer(listener)
