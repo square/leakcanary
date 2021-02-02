@@ -9,7 +9,9 @@ object TestUtils {
     val leakDetector = InstrumentationLeakDetector()
 
     val heapAnalysis = when (val result = leakDetector.detectLeaks()) {
-      is NoAnalysis -> throw AssertionError("Expected analysis to be performed")
+      is NoAnalysis -> throw AssertionError(
+        "Expected analysis to be performed but skipped because ${result.reason}"
+      )
       is AnalysisPerformed -> result.heapAnalysis
     }
 
