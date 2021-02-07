@@ -18,7 +18,7 @@ data class LeakTraceReference(
 
   val referenceType: ReferenceType,
 
-  val owningClassName: String,
+  val owningClassName: String?,
 
   val referenceName: String
 
@@ -35,7 +35,7 @@ data class LeakTraceReference(
    * Returns {@link #className} without the package, ie stripped of any string content before the
    * last period (included).
    */
-  val owningClassSimpleName: String get() = owningClassName.lastSegment('.')
+  val owningClassSimpleName: String get() = owningClassName?.lastSegment('.')?:""
 
   val referenceDisplayName: String
     get() {
