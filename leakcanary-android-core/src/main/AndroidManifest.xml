@@ -54,6 +54,7 @@
         android:targetActivity="leakcanary.internal.activity.LeakActivity"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_LeakCanary.Base"
+        android:exported="true"
         >
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
