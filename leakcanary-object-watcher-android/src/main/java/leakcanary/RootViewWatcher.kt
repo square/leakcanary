@@ -15,12 +15,22 @@
  */
 package leakcanary
 
-import android.annotation.SuppressLint
-import android.os.Build
+import android.app.Activity
+import android.app.Dialog
 import android.view.View
 import android.view.View.OnAttachStateChangeListener
+import com.squareup.leakcanary.objectwatcher.R
+import curtains.Curtains
+import curtains.OnRootViewAddedListener
+import curtains.WindowType.PHONE_WINDOW
+import curtains.WindowType.POPUP_WINDOW
+import curtains.WindowType.TOAST
+import curtains.WindowType.TOOLTIP
+import curtains.WindowType.UNKNOWN
+import curtains.phoneWindow
+import curtains.windowType
+import curtains.wrappedCallback
 import leakcanary.internal.friendly.mainHandler
-import shark.SharkLog
 
 /**
  * Expects root views to become weakly reachable soon after they are removed from the window
@@ -30,65 +40,46 @@ class RootViewWatcher(
   private val reachabilityWatcher: ReachabilityWatcher
 ) : InstallableWatcher {
 
-  override fun install() {
-    if (Build.VERSION.SDK_INT < 19) {
-      return
-    }
-    swapViewManagerGlobalMViews { mViews ->
-      object : ArrayList<View>(mViews) {
-        override fun add(element: View): Boolean {
-          onRootViewAdded(element)
-          return super.add(element)
+  private val listener = OnRootViewAddedListener { rootView ->
+    val trackDetached = when(rootView.windowType) {
+      PHONE_WINDOW -> {
+        when (rootView.phoneWindow?.callback?.wrappedCallback) {
+          // Activities are already tracked by ActivityWatcher
+          is Activity -> false
+          is Dialog -> rootView.resources.getBoolean(R.bool.leak_canary_watcher_watch_dismissed_dialogs)
+          // Probably a DreamService
+          else -> true
         }
       }
+      // Android widgets keep detached popup window instances around.
+      POPUP_WINDOW -> false
+      TOOLTIP, TOAST, UNKNOWN -> true
     }
+    if (trackDetached) {
+      rootView.addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
+
+        val watchDetachedView = Runnable {
+          reachabilityWatcher.expectWeaklyReachable(
+            rootView, "${rootView::class.java.name} received View#onDetachedFromWindow() callback"
+          )
+        }
+
+        override fun onViewAttachedToWindow(v: View) {
+          mainHandler.removeCallbacks(watchDetachedView)
+        }
+
+        override fun onViewDetachedFromWindow(v: View) {
+          mainHandler.post(watchDetachedView)
+        }
+      })
+    }
+  }
+
+  override fun install() {
+    Curtains.onRootViewsChangedListeners += listener
   }
 
   override fun uninstall() {
-    if (Build.VERSION.SDK_INT < 19) {
-      return
-    }
-    swapViewManagerGlobalMViews { mViews ->
-      ArrayList(mViews)
-    }
-  }
-
-  @SuppressLint("PrivateApi")
-  @Suppress("FunctionName")
-  private fun swapViewManagerGlobalMViews(swap: (ArrayList<View>) -> ArrayList<View>) {
-    try {
-      val windowManagerGlobalClass = Class.forName("android.view.WindowManagerGlobal")
-      val windowManagerGlobalInstance =
-        windowManagerGlobalClass.getDeclaredMethod("getInstance").invoke(null)
-
-      val mViewsField =
-        windowManagerGlobalClass.getDeclaredField("mViews").apply { isAccessible = true }
-
-      @Suppress("UNCHECKED_CAST")
-      val mViews = mViewsField[windowManagerGlobalInstance] as ArrayList<View>
-
-      mViewsField[windowManagerGlobalInstance] = swap(mViews)
-    } catch (ignored: Throwable) {
-      SharkLog.d(ignored) { "Could not watch detached root views" }
-    }
-  }
-
-  private fun onRootViewAdded(rootView: View) {
-    rootView.addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
-
-      val watchDetachedView = Runnable {
-        reachabilityWatcher.expectWeaklyReachable(
-          rootView, "${rootView::class.java.name} received View#onDetachedFromWindow() callback"
-        )
-      }
-
-      override fun onViewAttachedToWindow(v: View) {
-        mainHandler.removeCallbacks(watchDetachedView)
-      }
-
-      override fun onViewDetachedFromWindow(v: View) {
-        mainHandler.post(watchDetachedView)
-      }
-    })
+    Curtains.onRootViewsChangedListeners -= listener
   }
 }
