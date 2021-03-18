@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import leakcanary.internal.NotificationReceiver.Action.CANCEL_NOTIFICATION
 import leakcanary.internal.NotificationReceiver.Action.DUMP_HEAP
 import shark.SharkLog
@@ -39,7 +40,12 @@ internal class NotificationReceiver : BroadcastReceiver() {
     ): PendingIntent {
       val broadcastIntent = Intent(context, NotificationReceiver::class.java)
       broadcastIntent.action = action.name
-      return PendingIntent.getBroadcast(context, 0, broadcastIntent, 0)
+      val flags = if (Build.VERSION.SDK_INT > 30) {
+        PendingIntent.FLAG_IMMUTABLE
+      } else {
+        0
+      }
+      return PendingIntent.getBroadcast(context, 0, broadcastIntent, flags)
     }
   }
 }

@@ -20,18 +20,19 @@ import android.annotation.TargetApi
 import android.app.Activity
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
+import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager.PERMISSION_GRANTED
-import android.os.Build.VERSION_CODES.M
 import android.os.Bundle
+import android.os.Build
 import android.widget.Toast
 import android.widget.Toast.LENGTH_LONG
 import com.squareup.leakcanary.core.R
 
-@TargetApi(M) //
+@TargetApi(Build.VERSION_CODES.M) //
 internal class RequestStoragePermissionActivity : Activity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,7 +75,12 @@ internal class RequestStoragePermissionActivity : Activity() {
     fun createPendingIntent(context: Context): PendingIntent {
       val intent = Intent(context, RequestStoragePermissionActivity::class.java)
       intent.flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TOP
-      return PendingIntent.getActivity(context, 1, intent, FLAG_UPDATE_CURRENT)
+      val flags = if (Build.VERSION.SDK_INT > 30) {
+        FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
+      } else {
+        FLAG_UPDATE_CURRENT
+      }
+      return PendingIntent.getActivity(context, 1, intent, flags)
     }
   }
 }
