@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Bundle
+import android.os.Build
 import android.view.View
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.HeapAnalyzerService
@@ -178,7 +179,12 @@ internal class LeakActivity : NavigatingActivity() {
       val intent = Intent(context, LeakActivity::class.java)
       intent.putExtra("screens", screens)
       intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-      return PendingIntent.getActivity(context, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+      val flags = if (Build.VERSION.SDK_INT > 30) {
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+      } else {
+        PendingIntent.FLAG_UPDATE_CURRENT
+      }
+      return PendingIntent.getActivity(context, 1, intent, flags)
     }
 
     fun createIntent(context: Context): Intent {
