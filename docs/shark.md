@@ -22,7 +22,7 @@ A few more things:
 
 * Shark is built on top of Okio. Okio makes it easy to parse heap dumps efficiently.
 * Shark is a 100% Kotlin library, and Kotlin is essential to its design, because Shark relies heavily on sealed classes and sequences to save memory.
-* Shark has the unique ability to help narrow down the cause of memory leaks through platform specific [heuristics](fundamentals.md#heuristics-and-labels).
+* Shark has the unique ability to help narrow down the cause of memory leaks through platform specific [heuristics](fundamentals-fixing-a-memory-leak.md#2-narrow-down-the-suspect-references).
 * Shark is heavily tested (80% test coverage).
 * Shark can run in both Java and Android VMs, with no other dependency than Okio and Kotlin.
 * Shark can analyze both Java and Android VM hprof files.
