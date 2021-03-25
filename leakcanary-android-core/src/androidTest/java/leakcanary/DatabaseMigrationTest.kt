@@ -10,25 +10,24 @@ import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
 import shark.LeakTrace.GcRootType.JAVA_FRAME
 import shark.LeakTrace.GcRootType.STICKY_CLASS
-import shark.SharkLog
 import java.io.FileOutputStream
 
 class DatabaseMigrationTest {
 
-  @Test fun v19_upgraded_to_latest() {
-    DB_V19 upgrade {
+  @Test fun v24_upgraded_to_latest() {
+    DB_V24 upgrade {
       version assertEquals LeaksDbHelper.VERSION
     }
   }
 
-  @Test fun v19_has_2_heap_dumps() {
-    DB_V19 upgrade {
-      HeapAnalysisTable.retrieveAll(this).size assertEquals 2
+  @Test fun v24_has_1_heap_dumps() {
+    DB_V24 upgrade {
+      HeapAnalysisTable.retrieveAll(this).size assertEquals 1
     }
   }
 
-  @Test fun v19_heap_dumps_can_be_deserialized() {
-    DB_V19 upgrade {
+  @Test fun v24_heap_dumps_can_be_deserialized() {
+    DB_V24 upgrade {
       HeapAnalysisTable.retrieveAll(this)
         .forEach { projection ->
           val heapAnalysis = HeapAnalysisTable.retrieve<HeapAnalysis>(this, projection.id)!!
@@ -37,8 +36,8 @@ class DatabaseMigrationTest {
     }
   }
 
-  @Test fun v19_has_8_leak_traces() {
-    DB_V19 upgrade {
+  @Test fun v24_has_8_leak_traces() {
+    DB_V24 upgrade {
       val allLeakTraces = HeapAnalysisTable.retrieveAll(this)
         .map { HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(this, it.id)!! }
         .flatMap { analysis ->
@@ -52,23 +51,23 @@ class DatabaseMigrationTest {
     }
   }
 
-  @Test fun v19_has_3_leak_types() {
-    DB_V19 upgrade {
+  @Test fun v24_has_3_leak_types() {
+    DB_V24 upgrade {
       LeakTable.retrieveAllLeaks(this).size assertEquals 3
     }
   }
 
-  @Test fun v19_leaks_are_not_new() {
-    DB_V19 upgrade {
+  @Test fun v24_leaks_are_new() {
+    DB_V24 upgrade {
       LeakTable.retrieveAllLeaks(this)
         .forEach { leak ->
-          leak.isNew assertEquals false
+          leak.isNew assertEquals true
         }
     }
   }
 
-  @Test fun v19_has_5_sticky_class_and_3_java_frame_gc_roots() {
-    DB_V19 upgrade {
+  @Test fun v24_has_5_sticky_class_and_3_java_frame_gc_roots() {
+    DB_V24 upgrade {
       val allLeakTraces = HeapAnalysisTable.retrieveAll(this)
         .map { HeapAnalysisTable.retrieve<HeapAnalysisSuccess>(this, it.id)!! }
         .flatMap { analysis ->
@@ -80,7 +79,7 @@ class DatabaseMigrationTest {
       val gcRootCounts = allLeakTraces.groupingBy { it.gcRootType }
         .eachCount()
 
-      gcRootCounts.getValue(STICKY_CLASS) assertEquals 5
+      gcRootCounts.getValue(STICKY_CLASS) assertEquals 2
       gcRootCounts.getValue(JAVA_FRAME) assertEquals 3
     }
   }
@@ -119,6 +118,6 @@ class DatabaseMigrationTest {
   }
 
   companion object {
-    const val DB_V19 = "leaks-v19-android-16.db"
+    const val DB_V24 = "leaks-v24.db"
   }
 }

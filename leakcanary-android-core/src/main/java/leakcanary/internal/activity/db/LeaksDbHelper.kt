@@ -5,8 +5,10 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import leakcanary.internal.Serializables
+import leakcanary.internal.toByteArray
 import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
+import shark.LeakTrace
 
 internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
   context, DATABASE_NAME, null, VERSION
@@ -24,35 +26,77 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     oldVersion: Int,
     newVersion: Int
   ) {
-    if (oldVersion < 19) {
+    if (oldVersion < 23) {
       recreateDb(db)
-    } else if (oldVersion == 19) {
-      // Migration from LeakCanary 2.0
-      val allAnalysis = db.rawQuery("SELECT object FROM heap_analysis", null)
+      return
+    }
+    if (oldVersion < 24) {
+      db.execSQL("ALTER TABLE heap_analysis ADD COLUMN dump_duration_millis INTEGER DEFAULT -1")
+    }
+    if (oldVersion < 25) {
+      // Fix owningClassName=null in the serialized heap analysis.
+      // https://github.com/square/leakcanary/issues/2067
+      val idToAnalysis = db.rawQuery("SELECT id, object FROM heap_analysis", null)
         .use { cursor ->
           generateSequence {
             if (cursor.moveToNext()) {
-              Serializables.fromByteArray<HeapAnalysis>(cursor.getBlob(0))
+              val id = cursor.getLong(0)
+              val analysis = Serializables.fromByteArray<HeapAnalysis>(cursor.getBlob(1))
+              id to analysis
             } else {
               null
             }
-          }.map {
-            if (it is HeapAnalysisSuccess) {
-              HeapAnalysisSuccess.upgradeFrom20Deserialized(it)
-            } else it
-          }.toList()
+          }
+            .filter {
+              it.second is HeapAnalysisSuccess
+            }
+            .map { pair ->
+              val analysis = pair.second as HeapAnalysisSuccess
+
+              val unreachableObjects = try {
+                analysis.unreachableObjects
+              } catch (ignored: NullPointerException) {
+                // This currently doesn't trigger but the Kotlin compiler might change one day.
+                emptyList()
+              } ?: emptyList() // Compiler doesn't know it but runtime can have null.
+              pair.first to analysis.copy(
+                unreachableObjects = unreachableObjects,
+                applicationLeaks = analysis.applicationLeaks.map { leak ->
+                  leak.copy(leak.leakTraces.fixNullReferenceOwningClassName())
+                },
+                libraryLeaks = analysis.libraryLeaks.map { leak ->
+                  leak.copy(leak.leakTraces.fixNullReferenceOwningClassName())
+                }
+              )
+            }.toList()
         }
-      recreateDb(db)
       db.inTransaction {
-        allAnalysis.forEach { HeapAnalysisTable.insert(db, it) }
-        db.update("leak", ContentValues().apply {
-          put("is_read", 1)
-        }, null, null)
+        idToAnalysis.forEach { (id, heapAnalysis) ->
+          val values = ContentValues()
+          values.put("object", heapAnalysis.toByteArray())
+          db.update("heap_analysis", values, "id=$id", null)
+        }
       }
-    } else if (oldVersion == 23) {
-      db.execSQL("ALTER TABLE heap_analysis ADD COLUMN dump_duration_millis INTEGER DEFAULT -1")
-    } else {
-      throw IllegalStateException("Database migration from $oldVersion not supported")
+    }
+  }
+
+  private fun List<LeakTrace>.fixNullReferenceOwningClassName(): List<LeakTrace> {
+    return map { leakTrace ->
+      leakTrace.copy(
+        referencePath = leakTrace.referencePath.map { reference ->
+          val owningClassName = try {
+            // This can return null at runtime from previous serialized version without the field.
+            reference.owningClassName
+          } catch (ignored: NullPointerException) {
+            // This currently doesn't trigger but the Kotlin compiler might change one day.
+            null
+          }
+          if (owningClassName == null) {
+            reference.copy(owningClassName = reference.originObject.classSimpleName)
+          } else {
+            reference
+          }
+        })
     }
   }
 
@@ -72,7 +116,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
   }
 
   companion object {
-    internal const val VERSION = 24
+    internal const val VERSION = 25
     internal const val DATABASE_NAME = "leaks.db"
   }
 }

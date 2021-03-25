@@ -162,20 +162,6 @@ data class LeakTrace(
     }
   }
 
-  /** This field is kept to support backward compatible deserialization. */
-  private val elements: List<LeakTraceElement>? = null
-
-  internal fun fromV20(retainedHeapByteSize: Int?) = LeakTrace(
-    gcRootType = elements!!.first().gcRootTypeFromV20(),
-    referencePath = when {
-      elements.isEmpty() -> emptyList()
-      else -> elements
-        .subList(0, elements.lastIndex - 1)
-        .map { it.referencePathElementFromV20() }
-    },
-    leakingObject = elements.last().originObjectFromV20()
-  )
-
   companion object {
     private fun getNextElementString(
       leakTrace: LeakTrace,
