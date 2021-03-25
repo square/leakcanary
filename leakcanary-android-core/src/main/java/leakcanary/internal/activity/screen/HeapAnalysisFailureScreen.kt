@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
+import leakcanary.LeakCanary
+import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.shareHeapDump
@@ -45,7 +47,12 @@ internal class HeapAnalysisFailureScreen(
   ) {
     activity.title = resources.getString(R.string.leak_canary_analysis_failed)
 
-    val failureText = """
+    val failureText =
+      if (heapDumpFileExist) {
+        "You can <a href=\"try_again\">run the analysis again</a>.<br><br>"
+      } else {
+        ""
+      } + """
       Please <a href="file_issue">click here</a> to file a bug report.
       The stacktrace details will be copied into the clipboard and you just need to paste into the
       GitHub issue description.""" + (if (heapDumpFileExist) {
@@ -67,6 +74,16 @@ internal class HeapAnalysisFailureScreen(
         "share_hprof" -> {
           {
             shareHeapDump(heapAnalysis.heapDumpFile)
+          }
+        }
+        "try_again"-> {
+          {
+            HeapAnalyzerService.runAnalysis(
+              context = context,
+              heapDumpFile = heapAnalysis.heapDumpFile,
+              heapDumpDurationMillis = heapAnalysis.dumpDurationMillis,
+              heapDumpReason = "Retrying heap analysis after failure."
+            )
           }
         }
         else -> null
