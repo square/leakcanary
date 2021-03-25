@@ -103,7 +103,6 @@ public final class shark/HeapAnalysisSuccess : shark/HeapAnalysis {
 }
 
 public final class shark/HeapAnalysisSuccess$Companion {
-	public final fun upgradeFrom20Deserialized (Lshark/HeapAnalysisSuccess;)Lshark/HeapAnalysisSuccess;
 }
 
 public final class shark/HeapAnalyzer {

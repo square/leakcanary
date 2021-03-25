@@ -150,42 +150,6 @@ Heap dump duration: ${if (dumpDurationMillis != DUMP_DURATION_UNKNOWN) "$dumpDur
 
   companion object {
     private const val serialVersionUID: Long = 130453013437459642
-
-    /**
-     * If [fromV20] was serialized in LeakCanary 2.0, you must deserialize it and call this
-     * method to create a usable [HeapAnalysisSuccess] instance.
-     */
-    fun upgradeFrom20Deserialized(fromV20: HeapAnalysisSuccess): HeapAnalysisSuccess {
-      val applicationLeaks = fromV20.applicationLeaks
-        .map { it.leakTraceFromV20() }
-        .groupBy { it.signature }
-        .values
-        .map {
-          ApplicationLeak(it)
-        }
-
-      val libraryLeaks = fromV20.libraryLeaks
-        .map { it to it.leakTraceFromV20() }
-        .groupBy { it.second.signature }
-        .values
-        .map { listOfPairs ->
-          val libraryLeakFrom20 = listOfPairs.first()
-            .first
-          LibraryLeak(pattern = libraryLeakFrom20.pattern,
-            description = libraryLeakFrom20.description,
-            leakTraces = listOfPairs.map { it.second }
-          )
-        }
-      return HeapAnalysisSuccess(
-        heapDumpFile = fromV20.heapDumpFile,
-        createdAtTimeMillis = fromV20.createdAtTimeMillis,
-        analysisDurationMillis = fromV20.analysisDurationMillis,
-        metadata = fromV20.metadata,
-        applicationLeaks = applicationLeaks,
-        libraryLeaks = libraryLeaks,
-        unreachableObjects = listOf()
-      )
-    }
   }
 }
 
@@ -273,14 +237,6 @@ ${super.toString()}
 """
   }
 
-  /** This field is kept to support backward compatible deserialization. */
-  private val leakTrace: LeakTrace? = null
-
-  /** This field is kept to support backward compatible deserialization. */
-  private val retainedHeapByteSize: Int? = null
-
-  internal fun leakTraceFromV20() = leakTrace!!.fromV20(retainedHeapByteSize)
-
   companion object {
     private const val serialVersionUID: Long = 3943636164568681903
   }
@@ -308,14 +264,6 @@ data class ApplicationLeak(
   override fun toString(): String {
     return super.toString()
   }
-
-  /** This field is kept to support backward compatible deserialization. */
-  private val leakTrace: LeakTrace? = null
-
-  /** This field is kept to support backward compatible deserialization. */
-  private val retainedHeapByteSize: Int? = null
-
-  internal fun leakTraceFromV20() = leakTrace!!.fromV20(retainedHeapByteSize)
 
   companion object {
     private const val serialVersionUID: Long = 524928276700576863
