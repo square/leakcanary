@@ -2,5 +2,6 @@
 <paths>
   <external-path name="downloads" path="Download/" />
   <files-path name="leakcanary" path="leakcanary/" />
+  <cache-path name="leakcanary_cache" path="leakcanary/" />
 
 </paths>
