@@ -28,6 +28,7 @@ public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/Obje
 	public static final field EDITOR Lshark/AndroidObjectInspectors;
 	public static final field FRAGMENT Lshark/AndroidObjectInspectors;
 	public static final field INPUT_METHOD_MANAGER Lshark/AndroidObjectInspectors;
+	public static final field LOADED_APK Lshark/AndroidObjectInspectors;
 	public static final field MAIN_THREAD Lshark/AndroidObjectInspectors;
 	public static final field MESSAGE Lshark/AndroidObjectInspectors;
 	public static final field MESSAGE_QUEUE Lshark/AndroidObjectInspectors;

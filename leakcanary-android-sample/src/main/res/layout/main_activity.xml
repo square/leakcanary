@@ -34,7 +34,14 @@
       android:layout_width="wrap_content"
       android:layout_gravity="center"
       android:layout_height="wrap_content"
-      android:text="@string/recreate_activity_button_text"
+      android:text="Recreate Activity"
+      />
+  <Button
+      android:id="@+id/leak_activity_button"
+      android:layout_width="wrap_content"
+      android:layout_gravity="center"
+      android:layout_height="wrap_content"
+      android:text="Leak Activity"
       />
   <Button
       android:id="@+id/show_dialog_button"
@@ -50,5 +57,13 @@
       android:layout_height="wrap_content"
       android:text="@string/start_service_button_text"
       />
+  <Button
+      android:id="@+id/leak_receiver_button"
+      android:layout_width="wrap_content"
+      android:layout_gravity="center"
+      android:layout_height="wrap_content"
+      android:text="Create &amp; leak Receiver"
+      />
+
 
 </LinearLayout>

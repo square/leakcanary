@@ -19,6 +19,5 @@
     tools:ignore="MissingTranslation">
   <string name="app_name">Example App</string>
   <string name="helper_text">Press this button or rotate the screen to create leaks. Pressing back or creating 5 leaks will trigger a heap dump.</string>
-  <string name="recreate_activity_button_text">Recreate &amp; Leak Activity</string>
   <string name="start_service_button_text">Create &amp; Leak Service</string>
 </resources>
