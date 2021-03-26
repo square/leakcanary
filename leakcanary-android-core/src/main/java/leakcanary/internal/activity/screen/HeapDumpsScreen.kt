@@ -1,5 +1,6 @@
 package leakcanary.internal.activity.screen
 
+import android.app.ActivityManager
 import android.app.AlertDialog
 import android.view.View
 import android.view.ViewGroup
@@ -32,28 +33,30 @@ internal class HeapDumpsScreen : Screen() {
       onScreenExiting { unsubscribeRefresh() }
 
       onCreateOptionsMenu { menu ->
-        menu.add(R.string.leak_canary_delete_all)
-          .setOnMenuItemClickListener {
-            AlertDialog.Builder(context)
-              .setIcon(android.R.drawable.ic_dialog_alert)
-              .setTitle(R.string.leak_canary_delete_all)
-              .setMessage(R.string.leak_canary_delete_all_leaks_title)
-              .setPositiveButton(android.R.string.ok) { _, _ ->
-                executeOnDb {
-                  HeapAnalysisTable.deleteAll(db)
-                  updateUi {
-                    val listView = findViewById<ListView>(R.id.leak_canary_list)
-                    listView.adapter =
-                      SimpleListAdapter(
-                        R.layout.leak_canary_simple_row, emptyList<Any>()
-                      ) { _, _ -> }
+        if (!ActivityManager.isUserAMonkey()) {
+          menu.add(R.string.leak_canary_delete_all)
+            .setOnMenuItemClickListener {
+              AlertDialog.Builder(context)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setTitle(R.string.leak_canary_delete_all)
+                .setMessage(R.string.leak_canary_delete_all_leaks_title)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                  executeOnDb {
+                    HeapAnalysisTable.deleteAll(db)
+                    updateUi {
+                      val listView = findViewById<ListView>(R.id.leak_canary_list)
+                      listView.adapter =
+                        SimpleListAdapter(
+                          R.layout.leak_canary_simple_row, emptyList<Any>()
+                        ) { _, _ -> }
+                    }
                   }
                 }
-              }
-              .setNegativeButton(android.R.string.cancel, null)
-              .show()
-            true
-          }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+              true
+            }
+        }
       }
 
       findViewById<View>(R.id.leak_canary_import_heap_dump).setOnClickListener {
