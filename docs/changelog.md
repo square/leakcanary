@@ -30,7 +30,7 @@ This is implemented using a new Square library: [Curtains](https://github.com/sq
 
 ### Targeting Android 12
 
-We fixed two issues for apps that want target Android 12:
+We fixed two issues for apps that want to target Android 12:
 
 * [#2074](https://github.com/square/leakcanary/pull/2074) Activities that use intent filters must declare the `android:exported` attribute.
 * [#2079](https://github.com/square/leakcanary/issues/2079) PendingIntent requires the `FLAG_IMMUTABLE` flag.
