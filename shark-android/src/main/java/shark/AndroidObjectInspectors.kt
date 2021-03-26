@@ -15,6 +15,7 @@
  */
 package shark
 
+import shark.AndroidServices.aliveAndroidServiceObjectIds
 import shark.AndroidObjectInspectors.Companion.appDefaults
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapInstance
@@ -204,6 +205,26 @@ enum class AndroidObjectInspectors : ObjectInspector {
           } else {
             notLeakingReasons += field describedWithValue "false"
           }
+        }
+      }
+    }
+  },
+
+  SERVICE {
+    override val leakingObjectFilter = { heapObject: HeapObject ->
+      heapObject is HeapInstance &&
+        heapObject instanceOf "android.app.Service" &&
+        heapObject.objectId !in heapObject.graph.aliveAndroidServiceObjectIds
+    }
+
+    override fun inspect(
+      reporter: ObjectReporter
+    ) {
+      reporter.whenInstanceOf("android.app.Service") { instance ->
+        if (instance.objectId in instance.graph.aliveAndroidServiceObjectIds) {
+          notLeakingReasons += "Service held by ActivityThread"
+        } else {
+          leakingReasons +=  "Service not held by ActivityThread"
         }
       }
     }

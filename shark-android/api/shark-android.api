@@ -33,6 +33,7 @@ public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/Obje
 	public static final field MESSAGE_QUEUE Lshark/AndroidObjectInspectors;
 	public static final field MORTAR_PRESENTER Lshark/AndroidObjectInspectors;
 	public static final field MORTAR_SCOPE Lshark/AndroidObjectInspectors;
+	public static final field SERVICE Lshark/AndroidObjectInspectors;
 	public static final field SUPPORT_FRAGMENT Lshark/AndroidObjectInspectors;
 	public static final field TOAST Lshark/AndroidObjectInspectors;
 	public static final field VIEW Lshark/AndroidObjectInspectors;
@@ -164,5 +165,10 @@ public final class shark/AndroidResourceIdNames {
 public final class shark/AndroidResourceIdNames$Companion {
 	public final fun readFromHeap (Lshark/HeapGraph;)Lshark/AndroidResourceIdNames;
 	public final fun saveToMemory (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class shark/AndroidServices {
+	public static final field INSTANCE Lshark/AndroidServices;
+	public final fun getAliveAndroidServiceObjectIds (Lshark/HeapGraph;)Ljava/util/List;
 }
 
