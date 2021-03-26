@@ -61,7 +61,7 @@ internal class LongScatterSet(expectedElements: Int = 4) {
   }
 
   private fun hashKey(key: Long): Int {
-    return HHPC.mixPhi(key)
+    return HPPC.mixPhi(key)
   }
 
   operator fun plusAssign(key: Long) {
@@ -174,13 +174,13 @@ internal class LongScatterSet(expectedElements: Int = 4) {
   fun release() {
     assigned = 0
     hasEmptyKey = false
-    allocateBuffers(HHPC.minBufferSize(4, loadFactor))
+    allocateBuffers(HPPC.minBufferSize(4, loadFactor))
   }
 
   fun ensureCapacity(expectedElements: Int) {
     if (expectedElements > resizeAt) {
       val prevKeys = this.keys
-      allocateBuffers(HHPC.minBufferSize(expectedElements, loadFactor))
+      allocateBuffers(HPPC.minBufferSize(expectedElements, loadFactor))
       if (size() != 0) {
         rehash(prevKeys)
       }
@@ -231,7 +231,7 @@ internal class LongScatterSet(expectedElements: Int = 4) {
       )
     }
 
-    this.resizeAt = HHPC.expandAtCount(arraySize, loadFactor)
+    this.resizeAt = HPPC.expandAtCount(arraySize, loadFactor)
     this.mask = arraySize - 1
   }
 
@@ -241,7 +241,7 @@ internal class LongScatterSet(expectedElements: Int = 4) {
   ) {
     // Try to allocate new buffers first. If we OOM, we leave in a consistent state.
     val prevKeys = this.keys
-    allocateBuffers(HHPC.nextBufferSize(mask + 1, size(), loadFactor))
+    allocateBuffers(HPPC.nextBufferSize(mask + 1, size(), loadFactor))
 
     // We have succeeded at allocating new data so insert the pending key/value at
     // the free slot in the old arrays before rehashing.
