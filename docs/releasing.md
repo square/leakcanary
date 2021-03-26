@@ -103,15 +103,13 @@ git checkout -b release_{{ leak_canary.next_release }}
 
 * Update `VERSION_NAME` in `gradle.properties` (remove `-SNAPSHOT`)
 ```gradle
-VERSION_NAME={{ leak_canary.next_release }}
+sed -i '' 's/VERSION_NAME={{ leak_canary.next_release }}-SNAPSHOT/VERSION_NAME={{ leak_canary.next_release }}/' gradle.properties
 ```
 
 * Update the current version and next version in `mkdocs.yml`
 ```bash
-extra:
-  leak_canary:
-    release: '{{ leak_canary.next_release }}'
-    next_release: 'REPLACE_WITH_NEXT_VERSION_NUMBER'
+sed -i '' 's/{{ leak_canary.next_release }}/REPLACE_WITH_NEXT_VERSION_NUMBER/' mkdocs.yml
+sed -i '' 's/{{ leak_canary.release }}/{{ leak_canary.next_release }}/' mkdocs.yml
 ```
 
 * Generate the Dokka docs
@@ -172,7 +170,7 @@ git merge --no-ff release_{{ leak_canary.next_release }}
 ```
 * Update `VERSION_NAME` in `gradle.properties` (increase version and add `-SNAPSHOT`)
 ```gradle
-VERSION_NAME=REPLACE_WITH_NEXT_VERSION_NUMBER-SNAPSHOT
+sed -i '' 's/VERSION_NAME={{ leak_canary.next_release }}/VERSION_NAME=REPLACE_WITH_NEXT_VERSION_NUMBER-SNAPSHOT/' gradle.properties
 ```
 
 * Commit your changes

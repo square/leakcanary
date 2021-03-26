@@ -1,8 +1,53 @@
 
 # Change Log
 
-!!! info
-    To upgrade from LeakCanary *1.6*, follow the [upgrade guide](upgrading-to-leakcanary-2.0.md).
+## Version 2.7 (2021-03-26)
+
+Please thank 
+[@chao2zhang](https://github.com/chao2zhang),
+[@ihrupin](https://github.com/ihrupin),
+[@jzbrooks](https://github.com/jzbrooks),
+[@msfjarvis](https://github.com/msfjarvis),
+[@reneargento](https://github.com/reneargento),
+[@Unpublished](https://github.com/Unpublished)
+for their contributions, bug reports and feature requests 🙏 🙏 🙏.
+
+### Finer grained root view watching
+
+In version 2.6, LeakCanary added detection of root views retained after  `View.onDetachedFromWindow()`. This helps find more leaks, but unfortunately some Android widgets keep a detached root view around to reattach it later (e.g. spinner). App developers also sometimes do the same with dialogs, keeping a single instance around and calling `show()` and `hide()` as needed. As a result, LeakCanary would report leaks that were actually not leaks.
+
+In version 2.7, the default behavior changed: LeakCanary will continue to detect leaks of toasts, but will ignore root views created by a PopupWindow (which is what Android widgets use). It will also ignore root views created by a dialog by default, and you can turn this back on by setting the `leak_canary_watcher_watch_dismissed_dialogs` resource boolean to true:
+
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <bool name="leak_canary_watcher_watch_dismissed_dialogs">true</bool>
+</resources>
+```
+
+This is implemented using a new Square library: [Curtains](https://github.com/square/curtains).
+
+### Targeting Android 12
+
+We fixed two issues for apps that want target Android 12:
+
+* [#2074](https://github.com/square/leakcanary/pull/2074) Activities that use intent filters must declare the `android:exported` attribute.
+* [#2079](https://github.com/square/leakcanary/issues/2079) PendingIntent requires the `FLAG_IMMUTABLE` flag.
+
+### Bug fixes and improvements 🐛🔨
+
+* [#2075](https://github.com/square/leakcanary/issues/2075) Fixed crash when sharing heap dumps.
+* [#2067](https://github.com/square/leakcanary/issues/2067) Fixed crash when opening leaks from older versions (before 2.6) of LeakCanary.
+* [#2049](https://github.com/square/leakcanary/issues/2049) Fixed Plumber crash due to R8 shaking AndroidLeakFixes.
+* [#2084](https://github.com/square/leakcanary/issues/2084) Fixed Shark crash when used from multiple threads.
+* [#2054](https://github.com/square/leakcanary/issues/2054) 🙈🙉🙊 Blocked Monkeys from deleting leaks.
+* [#2069](https://github.com/square/leakcanary/issues/2069) Added X button to the root leak activity (for custom devices with no back button)
+* [#2091](https://github.com/square/leakcanary/issues/2091) Added receiver details if LoadedApk shows up in the leaktrace.
+* [#2083](https://github.com/square/leakcanary/issues/2083) Added service status details (created or not) to leaktrace.
+* [#2099](https://github.com/square/leakcanary/pull/2099) Retry button if analysis fails.
+* [#2066](https://github.com/square/leakcanary/pull/2066) When heap analysis in UI tests is skipped and NoAnalysis is returned, NoAnalysis now includes a reason to help debug why it didn't run.
+* [#2000](https://github.com/square/leakcanary/issues/2000) The LeakCanary CI now leverages GitHub actions instead of Travis.
 
 ##  Version 2.6 - Christmas Release 🎄 (2020-12-24)
 
