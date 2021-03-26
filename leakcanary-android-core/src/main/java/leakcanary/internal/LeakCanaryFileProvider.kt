@@ -455,7 +455,10 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       val strat = SimplePathStrategy(authority)
 
       val info = context.packageManager
-        .resolveContentProvider(authority, PackageManager.GET_META_DATA)!!
+        .resolveContentProvider(authority, PackageManager.GET_META_DATA)
+        ?: throw IllegalArgumentException(
+          "Couldn't find meta-data for provider with authority $authority"
+        )
       val resourceParser = info.loadXmlMetaData(
         context.packageManager, META_DATA_FILE_PROVIDER_PATHS
       ) ?: throw IllegalArgumentException(
