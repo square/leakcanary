@@ -21,7 +21,7 @@ import java.util.Locale
 /**
  * Code from https://github.com/carrotsearch/hppc copy pasted, inlined and converted to Kotlin.
  */
-internal object HHPC {
+internal object HPPC {
 
   private const val PHI_C64 = -0x61c8864680b583ebL
 

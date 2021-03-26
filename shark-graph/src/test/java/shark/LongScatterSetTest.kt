@@ -3,7 +3,7 @@ package shark
 import org.assertj.core.api.Assertions
 import org.junit.Test
 import shark.LongScatterSetAssertion.Companion.assertThat
-import shark.internal.hppc.HHPC.mixPhi
+import shark.internal.hppc.HPPC.mixPhi
 import shark.internal.hppc.LongScatterSet
 
 class LongScatterSetTest {
