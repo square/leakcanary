@@ -2,12 +2,11 @@ package leakcanary.internal.activity.screen
 
 import android.R.drawable
 import android.R.string
-import android.app.AlertDialog
+import android.app.ActivityManager
 import android.app.AlertDialog.Builder
 import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.method.LinkMovementMethod
-import android.util.Log
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
@@ -68,16 +67,18 @@ internal class HeapDumpScreen(
     activity.title = TimeFormatter.formatTimestamp(context, heapAnalysis.createdAtTimeMillis)
 
     onCreateOptionsMenu { menu ->
-      menu.add(R.string.leak_canary_delete)
-        .setOnMenuItemClickListener {
-          executeOnDb {
-            HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
-            updateUi {
-              goBack()
+      if (!ActivityManager.isUserAMonkey()) {
+        menu.add(R.string.leak_canary_delete)
+          .setOnMenuItemClickListener {
+            executeOnDb {
+              HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
+              updateUi {
+                goBack()
+              }
             }
+            true
           }
-          true
-        }
+      }
       if (heapDumpFileExist) {
         menu.add(R.string.leak_canary_options_menu_render_heap_dump)
           .setOnMenuItemClickListener {

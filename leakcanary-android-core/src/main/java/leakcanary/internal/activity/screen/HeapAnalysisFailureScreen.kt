@@ -1,5 +1,6 @@
 package leakcanary.internal.activity.screen
 
+import android.app.ActivityManager
 import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.method.LinkMovementMethod
@@ -7,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
-import leakcanary.LeakCanary
 import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.executeOnDb
@@ -56,11 +56,11 @@ internal class HeapAnalysisFailureScreen(
       Please <a href="file_issue">click here</a> to file a bug report.
       The stacktrace details will be copied into the clipboard and you just need to paste into the
       GitHub issue description.""" + (if (heapDumpFileExist) {
-      """
+        """
         <br><br>To help reproduce the issue, please share the 
         <a href="share_hprof">Heap Dump file</a> and upload it to the GitHub issue.
       """
-    } else "")
+      } else "")
 
     val failure = Html.fromHtml(failureText) as SpannableStringBuilder
 
@@ -76,7 +76,7 @@ internal class HeapAnalysisFailureScreen(
             shareHeapDump(heapAnalysis.heapDumpFile)
           }
         }
-        "try_again"-> {
+        "try_again" -> {
           {
             HeapAnalyzerService.runAnalysis(
               context = context,
@@ -97,16 +97,18 @@ internal class HeapAnalysisFailureScreen(
     findViewById<TextView>(R.id.leak_canary_stacktrace).text = heapAnalysis.exception.toString()
 
     onCreateOptionsMenu { menu ->
-      menu.add(R.string.leak_canary_delete)
-        .setOnMenuItemClickListener {
-          executeOnDb {
-            HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
-            updateUi {
-              goBack()
+      if (!ActivityManager.isUserAMonkey()) {
+        menu.add(R.string.leak_canary_delete)
+          .setOnMenuItemClickListener {
+            executeOnDb {
+              HeapAnalysisTable.delete(db, analysisId, heapAnalysis.heapDumpFile)
+              updateUi {
+                goBack()
+              }
             }
+            true
           }
-          true
-        }
+      }
     }
   }
 }
