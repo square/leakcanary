@@ -2,6 +2,7 @@ package leakcanary.internal.navigation
 
 import android.app.Activity
 import android.content.Intent
+import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Parcelable
 import android.view.Menu
@@ -52,6 +53,11 @@ internal abstract class NavigatingActivity : Activity() {
     }
     currentView = currentScreen.createView(container)
     container.addView(currentView)
+
+    actionBar?.run {
+      setHomeButtonEnabled(true)
+      setDisplayHomeAsUpEnabled(true)
+    }
     screenUpdated()
   }
 
@@ -149,12 +155,13 @@ internal abstract class NavigatingActivity : Activity() {
 
   private fun screenUpdated() {
     invalidateOptionsMenu()
-    val actionBar = actionBar
-      ?: // https://github.com/square/leakcanary/issues/967
-      return
-    val homeEnabled = backstack.size > 0
-    actionBar.setDisplayHomeAsUpEnabled(homeEnabled)
-    actionBar.setHomeButtonEnabled(homeEnabled)
+    if (SDK_INT >= 18) {
+      actionBar?.run {
+        val goBack = backstack.size > 0
+        val indicator = if (goBack) 0 else android.R.drawable.ic_menu_close_clear_cancel
+        setHomeAsUpIndicator(indicator)
+      }
+    }
     onNewScreen(currentScreen)
   }
 
@@ -169,7 +176,7 @@ internal abstract class NavigatingActivity : Activity() {
   override fun onOptionsItemSelected(item: MenuItem): Boolean =
     when (item.itemId) {
       android.R.id.home -> {
-        goBack()
+        onBackPressed()
         true
       }
       else -> super.onOptionsItemSelected(item)
