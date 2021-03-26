@@ -24,6 +24,7 @@ unless there's a bug and you temporarily want to remove an inspector.
 | [VIEW](-v-i-e-w/index.md) |  |
 | [EDITOR](-e-d-i-t-o-r/index.md) |  |
 | [ACTIVITY](-a-c-t-i-v-i-t-y/index.md) |  |
+| [SERVICE](-s-e-r-v-i-c-e/index.md) |  |
 | [CONTEXT_FIELD](-c-o-n-t-e-x-t_-f-i-e-l-d/index.md) |  |
 | [CONTEXT_WRAPPER](-c-o-n-t-e-x-t_-w-r-a-p-p-e-r/index.md) |  |
 | [APPLICATION_PACKAGE_MANAGER](-a-p-p-l-i-c-a-t-i-o-n_-p-a-c-k-a-g-e_-m-a-n-a-g-e-r/index.md) |  |
@@ -35,6 +36,7 @@ unless there's a bug and you temporarily want to remove an inspector.
 | [SUPPORT_FRAGMENT](-s-u-p-p-o-r-t_-f-r-a-g-m-e-n-t/index.md) |  |
 | [ANDROIDX_FRAGMENT](-a-n-d-r-o-i-d-x_-f-r-a-g-m-e-n-t/index.md) |  |
 | [MESSAGE_QUEUE](-m-e-s-s-a-g-e_-q-u-e-u-e/index.md) |  |
+| [LOADED_APK](-l-o-a-d-e-d_-a-p-k/index.md) |  |
 | [MORTAR_PRESENTER](-m-o-r-t-a-r_-p-r-e-s-e-n-t-e-r/index.md) |  |
 | [MORTAR_SCOPE](-m-o-r-t-a-r_-s-c-o-p-e/index.md) |  |
 | [COORDINATOR](-c-o-o-r-d-i-n-a-t-o-r/index.md) |  |

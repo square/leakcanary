@@ -31,9 +31,3 @@ The result of a successful heap analysis performed by [HeapAnalyzer](../-heap-an
 | Name | Summary |
 |---|---|
 | [toString](to-string.md) | `fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
-
-### Companion Object Functions
-
-| Name | Summary |
-|---|---|
-| [upgradeFrom20Deserialized](upgrade-from20-deserialized.md) | `fun upgradeFrom20Deserialized(fromV20: `[`HeapAnalysisSuccess`](./index.md)`): `[`HeapAnalysisSuccess`](./index.md)<br>If [fromV20](upgrade-from20-deserialized.md#shark.HeapAnalysisSuccess.Companion$upgradeFrom20Deserialized(shark.HeapAnalysisSuccess)/fromV20) was serialized in LeakCanary 2.0, you must deserialize it and call this method to create a usable [HeapAnalysisSuccess](./index.md) instance. |

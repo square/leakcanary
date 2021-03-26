@@ -11,3 +11,4 @@
 | [AndroidObjectInspectors](-android-object-inspectors/index.md) | `enum class AndroidObjectInspectors : ObjectInspector`<br>A set of default [ObjectInspector](#)s that knows about common AOSP and library classes. |
 | [AndroidReferenceMatchers](-android-reference-matchers/index.md) | `enum class AndroidReferenceMatchers`<br>[AndroidReferenceMatchers](-android-reference-matchers/index.md) values add [ReferenceMatcher](#) instances to a global list via their [add](#) method. A [ReferenceMatcher](#) is either a [IgnoredReferenceMatcher](#) or a [LibraryLeakReferenceMatcher](#). |
 | [AndroidResourceIdNames](-android-resource-id-names/index.md) | `class AndroidResourceIdNames` |
+| [AndroidServices](-android-services/index.md) | `object AndroidServices` |

@@ -56,7 +56,7 @@ no matter the number of objects retained.
 
 | Name | Summary |
 |---|---|
-| [Result](-result/index.md) | `sealed class Result`<br>The result of calling [detectLeaks](detect-leaks.md), which is either [NoAnalysis](-result/-no-analysis.md) or [AnalysisPerformed](-result/-analysis-performed/index.md). |
+| [Result](-result/index.md) | `sealed class Result`<br>The result of calling [detectLeaks](detect-leaks.md), which is either [NoAnalysis](-result/-no-analysis/index.md) or [AnalysisPerformed](-result/-analysis-performed/index.md). |
 
 ### Constructors
 
