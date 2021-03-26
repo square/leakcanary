@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.6</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -940,7 +940,7 @@
 <ul>
 <li>Shark is built on top of Okio. Okio makes it easy to parse heap dumps efficiently.</li>
 <li>Shark is a 100% Kotlin library, and Kotlin is essential to its design, because Shark relies heavily on sealed classes and sequences to save memory.</li>
-<li>Shark has the unique ability to help narrow down the cause of memory leaks through platform specific <a href="../fundamentals/#heuristics-and-labels">heuristics</a>.</li>
+<li>Shark has the unique ability to help narrow down the cause of memory leaks through platform specific <a href="../fundamentals-fixing-a-memory-leak/#2-narrow-down-the-suspect-references">heuristics</a>.</li>
 <li>Shark is heavily tested (80% test coverage).</li>
 <li>Shark can run in both Java and Android VMs, with no other dependency than Okio and Kotlin.</li>
 <li>Shark can analyze both Java and Android VM hprof files.</li>
@@ -951,7 +951,7 @@
 <p>Install it via <a href="https://brew.sh/">Homebrew</a>:</p>
 <div class="highlight"><pre><span></span><code>brew install leakcanary-shark
 </code></pre></div>
-<p>You can also download it <a href="https://github.com/square/leakcanary/releases/download/v2.6/shark-cli-2.6.zip">here</a>.</p>
+<p>You can also download it <a href="https://github.com/square/leakcanary/releases/download/v2.7/shark-cli-2.7.zip">here</a>.</p>
 <p>You can then look for leaks in apps on any connected device, for example: </p>
 <div class="highlight"><pre><span></span><code>$ shark-cli --device emulator-5554 --process com.example.app.debug analyze
 </code></pre></div>

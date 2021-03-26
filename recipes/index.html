@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.6</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -382,6 +382,13 @@
         <li class="md-nav__item">
   <a href="#disabling-leakcanary" class="md-nav__link">
     Disabling LeakCanary
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#leakcanary-test-environment-detection" class="md-nav__link">
+    LeakCanary test environment detection
   </a>
   
 </li>
@@ -958,6 +965,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#leakcanary-test-environment-detection" class="md-nav__link">
+    LeakCanary test environment detection
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#counting-retained-instances-in-release-builds" class="md-nav__link">
     Counting retained instances in release builds
   </a>
@@ -1164,11 +1178,17 @@
 <p class="admonition-title">Info</p>
 <p>When you set <code>LeakCanary.Config.dumpHeap</code> to <code>false</code>, <code>AppWatcher.objectWatcher</code> will still keep track of retained objects, and LeakCanary will look for these objects when you change <code>LeakCanary.Config.dumpHeap</code> back to <code>true</code>.</p>
 </div>
+<h2 id="leakcanary-test-environment-detection">LeakCanary test environment detection<a class="headerlink" href="#leakcanary-test-environment-detection" title="Permanent link">&para;</a></h2>
+<p>By default, LeakCanary will look for the <code>org.junit.Test</code> class in your classpath and if found, will disable itself to avoid running in tests. However, some apps may ship JUnit in their debug classpaths (for example, when using OkHttp&rsquo;s MockWebServer) so we offer a way to customise the class that is used to determine that the app is running in a test environment.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">&lt;resources&gt;</span>
+  <span class="nt">&lt;string</span> <span class="na">name=</span><span class="s">&quot;leak_canary_test_class_name&quot;</span><span class="nt">&gt;</span>assertk.Assert<span class="nt">&lt;/string&gt;</span>
+<span class="nt">&lt;/resources&gt;</span>
+</code></pre></div>
 <h2 id="counting-retained-instances-in-release-builds">Counting retained instances in release builds<a class="headerlink" href="#counting-retained-instances-in-release-builds" title="Permanent link">&para;</a></h2>
 <p>The <code>com.squareup.leakcanary:leakcanary-android</code> dependency should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in release builds to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code>dependencies {
-  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.6&#39;
+  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.7&#39;
 }
 </code></pre></div>
 <p>In your leak reporting code:
@@ -1279,7 +1299,7 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
 <p>Create a <a href="https://app.bugsnag.com/user/new/">Bugsnag account</a>, create a new project for leak reporting and grab an <strong>API key</strong>. Make sure the app has the <code>android.permission.INTERNET</code> permission then add the <a href="https://docs.bugsnag.com/platforms/android/">latest version</a> of the Bugsnag Android client library to <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
   <span class="c1">// debugImplementation because LeakCanary should only run in debug builds.</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.6&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.7&#39;</span>
   <span class="n">debugImplementation</span> <span class="s2">&quot;com.bugsnag:bugsnag-android:$bugsnagVersion&quot;</span>
 <span class="o">}</span>
 </code></pre></div>
@@ -1550,8 +1570,8 @@ configurations {
 <p>While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.</p>
 <p>Add the ObjectWatcher and Shark dependencies to your build file:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.6&#39;</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.6&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.7&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.7&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
 <p>Define a <code>HotSpotHeapDumper</code> to dump the heap:</p>
