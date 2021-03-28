@@ -1,0 +1,42 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+dependencies {
+    implementation deps.kotlin.stdlib
+    implementation deps.androidx.annotation
+}
+
+android {
+    compileSdkVersion versions.compileSdk
+    defaultConfig {
+        minSdkVersion versions.minSdk
+
+        ndkVersion '21.4.7075529'
+
+        externalNativeBuild {
+            cmake {
+                abiFilters 'armeabi-v7a', 'arm64-v8a'
+                arguments "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_shared", "-DCMAKE_VERBOSE_MAKEFILE=ON"
+                cppFlags '-Wl,--gc-sections -fno-exceptions -fno-rtti -fvisibility=hidden'
+                cFlags '-Wl,--gc-sections -fvisibility=hidden'
+            }
+        }
+
+        consumerProguardFiles 'consumer-proguard-rules.pro'
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+        }
+    }
+
+    lintOptions {
+        disable 'GoogleAppIndexingWarning'
+        // junit references java.lang.management
+        ignore 'InvalidPackage'
+        check 'Interoperability'
+    }
+}
+
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
