@@ -191,7 +191,7 @@ gh listOpenMilestones | jq '.data.repository.milestones.nodes[0].number' | xargs
 * Create a milestone for the new version
 ```bash
 echo '{
-  "title": ""{{ leak_canary.next_release }}",
+  "title": "REPLACE_WITH_NEXT_VERSION_NUMBER",
   "state": "open",
   "description": ""
 }' | gh createMilestone
