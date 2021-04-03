@@ -19,7 +19,7 @@
   <string name="leak_canary_about_title">About LeakCanary %s</string>
   <string name="leak_canary_about_message"><![CDATA[This is a dev extension for
   <b>%1$s</b> (<i>%2$s</i>), automatically added by the LeakCanary library.<br><br>
-  <a href="https://github.com/square/leakcanary">LeakCanary</a> is a memory leak detection library for Android, created
+  <a href="https://square.github.io/leakcanary/">LeakCanary</a> is a memory leak detection library for Android, created
   and open sourced by <a href="https://twitter.com/Piwai">Pierre-Yves Ricau</a> at <a href="https://square.github.io">Square</a>.<br><br>
   You can learn more about memory leaks at <a href="https://squ.re/leaks">https://squ.re/leaks</a>.<br><br>
   We welcome contributions from the community - please do not hesitate to
