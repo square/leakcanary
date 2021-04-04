@@ -83,7 +83,10 @@
   <string name="leak_canary_analysis_deleted_title">Analysis Deleted</string>
   <string name="leak_canary_go_to_heap_analysis">Go to Heap Analysis</string>
   <string name="leak_canary_heap_analysis_success_screen_row_time_format">Latest: %s</string>
-  <string name="leak_canary_heap_analysis_list_screen_title">%d Heap Dumps</string>
+  <plurals name="leak_canary_heap_analysis_list_screen_title">
+    <item quantity="one">%d Heap Dump</item>
+    <item quantity="other">%d Heap Dumps</item>
+  </plurals>
   <plurals name="leak_canary_group_screen_title">
     <item quantity="one">%1$d leak at %2$s</item>
     <item quantity="other">%1$d leaks at %2$s</item>
