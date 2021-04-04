@@ -77,7 +77,7 @@ internal class HeapDumpsScreen : Screen() {
   private fun View.onAnalysesRetrieved(projections: List<Projection>) {
     activity.title = resources.getQuantityString(
       R.string.leak_canary_heap_analysis_list_screen_title,
-      projections.size, projection.size
+      projections.size, projections.size
     )
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)
