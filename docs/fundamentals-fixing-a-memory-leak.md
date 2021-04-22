@@ -184,7 +184,7 @@ Then, LeakCanary makes deductions about the **state** and the **lifecycle** of t
 ╰→ com.example.leakcanary.MainActivity instance
 ```
 
-The `TexView` instance references the destroyed `MainActivity` instance via it's `mContext` field. Views should not survive the lifecycle of their context, so LeakCanary knows that this `TexView` instance is leaking (`Leaking: YES (View.mContext references a destroyed activity)`), and therefore that the leak is not caused by `TextView.mContext` (removal of corresponding `~~~`). Here's the updated leak trace:
+The `TextView` instance references the destroyed `MainActivity` instance via it's `mContext` field. Views should not survive the lifecycle of their context, so LeakCanary knows that this `TextView` instance is leaking (`Leaking: YES (View.mContext references a destroyed activity)`), and therefore that the leak is not caused by `TextView.mContext` (removal of corresponding `~~~`). Here's the updated leak trace:
 
 ```
 ┬───
