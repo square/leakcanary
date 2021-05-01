@@ -270,8 +270,12 @@ Create a new `BugsnagLeakUploader`:
 
 ```kotlin
 import android.app.Application
+import com.bugsnag.android.Bugsnag
 import com.bugsnag.android.Client
-import com.bugsnag.android.MetaData
+import com.bugsnag.android.Configuration
+import com.bugsnag.android.ErrorTypes
+import com.bugsnag.android.Event
+import com.bugsnag.android.ThreadSendPolicy
 import leakcanary.DefaultOnHeapAnalyzedListener
 import leakcanary.OnHeapAnalyzedListener
 import shark.HeapAnalysis
@@ -288,12 +292,13 @@ class BugsnagLeakUploader(applicationContext: Application) :
   private val bugsnagClient: Client
 
   init {
-    bugsnagClient = Client(
+    bugsnagClient = Bugsnag.start(
         applicationContext,
-        BUGSNAG_API_KEY,
-        DO_NOT_ENABLE_EXCEPTION_HANDLER
+        Configuration(BUGSNAG_API_KEY).apply {
+          enabledErrorTypes = DISABLE_ALL_ERROR_TYPES
+          sendThreads = ThreadSendPolicy.NEVER
+        }
     )
-    bugsnagClient.setSendThreads(false)
   }
 
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
@@ -311,12 +316,12 @@ class BugsnagLeakUploader(applicationContext: Application) :
 
         allLeakTraces.forEach { (leak, leakTrace) ->
           val exception = FakeReportingException(leak.shortDescription)
-          bugsnagClient.notify(exception) { report ->
-            val bugsnagMetaData = report.error.metaData
-            bugsnagMetaData.addHeapAnalysis(heapAnalysis)
-            bugsnagMetaData.addLeak(leak)
-            bugsnagMetaData.addLeakTrace(leakTrace)
-            report.error.groupingHash = leak.signature
+          bugsnagClient.notify(exception) { event ->
+            event.addHeapAnalysis(heapAnalysis)
+            event.addLeak(leak)
+            event.addLeakTrace(leakTrace)
+            event.groupingHash = leak.signature
+            true
           }
         }
 
@@ -329,33 +334,38 @@ class BugsnagLeakUploader(applicationContext: Application) :
     }
   }
 
-  private fun MetaData.addHeapAnalysis(heapAnalysis: HeapAnalysisSuccess) {
-    addToTab("Leak", "heapDumpPath", heapAnalysis.heapDumpFile.absolutePath)
+  private fun Event.addHeapAnalysis(heapAnalysis: HeapAnalysisSuccess) {
+    addMetadata("Leak", "heapDumpPath", heapAnalysis.heapDumpFile.absolutePath)
     heapAnalysis.metadata.forEach { (key, value) ->
-      addToTab("Leak", key, value)
+      addMetadata("Leak", key, value)
     }
-    addToTab("Leak", "analysisDurationMs", heapAnalysis.analysisDurationMillis)
+    addMetadata("Leak", "analysisDurationMs", heapAnalysis.analysisDurationMillis)
   }
 
-  private fun MetaData.addLeak(leak: Leak) {
-    addToTab("Leak", "libraryLeak", leak is LibraryLeak)
+  private fun Event.addLeak(leak: Leak) {
+    addMetadata("Leak", "libraryLeak", leak is LibraryLeak)
     if (leak is LibraryLeak) {
-      addToTab("Leak", "libraryLeakPattern", leak.pattern.toString())
-      addToTab("Leak", "libraryLeakDescription", leak.description)
+      addMetadata("Leak", "libraryLeakPattern", leak.pattern.toString())
+      addMetadata("Leak", "libraryLeakDescription", leak.description)
     }
   }
 
-  private fun MetaData.addLeakTrace(leakTrace: LeakTrace) {
-    addToTab("Leak", "retainedHeapByteSize", leakTrace.retainedHeapByteSize)
-    addToTab("Leak", "signature", leakTrace.signature)
-    addToTab("Leak", "leakTrace", leakTrace.toString())
+  private fun Event.addLeakTrace(leakTrace: LeakTrace) {
+    addMetadata("Leak", "retainedHeapByteSize", leakTrace.retainedHeapByteSize)
+    addMetadata("Leak", "signature", leakTrace.signature)
+    addMetadata("Leak", "leakTrace", leakTrace.toString())
   }
 
   class FakeReportingException(message: String) : RuntimeException(message)
 
   companion object {
     private const val BUGSNAG_API_KEY = YOUR_BUGSNAG_API_KEY
-    private const val DO_NOT_ENABLE_EXCEPTION_HANDLER = false
+    private const val DISABLE_ALL_ERROR_TYPES = ErrorTypes(
+        anrs = false,
+        ndkCrashes = false,
+        unhandledExceptions = false,
+        unhandledRejections = false
+    )
   }
 }
 ```
