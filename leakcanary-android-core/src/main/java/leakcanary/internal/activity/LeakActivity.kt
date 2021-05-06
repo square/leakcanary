@@ -60,6 +60,18 @@ internal class LeakActivity : NavigatingActivity() {
     leaksButton.setOnClickListener { resetTo(LeaksScreen()) }
     heapDumpsButton.setOnClickListener { resetTo(HeapDumpsScreen()) }
     aboutButton.setOnClickListener { resetTo(AboutScreen()) }
+
+    handleViewHprof(intent)
+  }
+
+  private fun handleViewHprof(intent: Intent?) {
+    if (intent?.action != Intent.ACTION_VIEW) return
+    val uri = intent.data ?: return
+    if (uri.lastPathSegment?.endsWith(".hprof") != true) return
+    resetTo(HeapDumpsScreen())
+    AsyncTask.THREAD_POOL_EXECUTOR.execute {
+      importHprof(uri)
+    }
   }
 
   override fun onNewScreen(screen: Screen) {
