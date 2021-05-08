@@ -156,7 +156,7 @@ internal class LeakActivity : NavigatingActivity() {
                     input.copyTo(output, DEFAULT_BUFFER_SIZE)
                   }
               }
-              HeapAnalyzerService.runAnalysis(this, target)
+              HeapAnalyzerService.runAnalysis(this, target, heapDumpReason = "Imported by user")
             }
         }
     } catch (e: IOException) {
