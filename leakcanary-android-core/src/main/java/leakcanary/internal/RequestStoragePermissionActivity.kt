@@ -75,7 +75,7 @@ internal class RequestStoragePermissionActivity : Activity() {
     fun createPendingIntent(context: Context): PendingIntent {
       val intent = Intent(context, RequestStoragePermissionActivity::class.java)
       intent.flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TOP
-      val flags = if (Build.VERSION.SDK_INT > 30) {
+      val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
       } else {
         FLAG_UPDATE_CURRENT
