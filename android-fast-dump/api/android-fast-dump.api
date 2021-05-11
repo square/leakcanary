@@ -1,0 +1,14 @@
+public final class com/squareup/leakcanary/FastDump {
+	public static final field INSTANCE Lcom/squareup/leakcanary/FastDump;
+	public static final fun forkDumpHprof (Ljava/lang/String;)V
+}
+
+public final class com/squareup/leakcanary/fast/dump/BuildConfig {
+	public static final field BUILD_TYPE Ljava/lang/String;
+	public static final field DEBUG Z
+	public static final field LIBRARY_PACKAGE_NAME Ljava/lang/String;
+	public static final field VERSION_CODE I
+	public static final field VERSION_NAME Ljava/lang/String;
+	public fun <init> ()V
+}
+

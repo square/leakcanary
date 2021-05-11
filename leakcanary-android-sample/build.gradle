@@ -18,7 +18,7 @@ dependencies {
   releaseImplementation project(':leakcanary-android-release')
   // Optional
   releaseImplementation project(':leakcanary-object-watcher-android')
-  implementation project(':fast-dump')
+  implementation project(':android-fast-dump')
 
   implementation deps.kotlin.stdlib
 
