@@ -92,6 +92,7 @@
     <item quantity="other">%1$d leaks at %2$s</item>
   </plurals>
   <string name="leak_canary_group_list_time_label">Last leaked %s</string>
+  <string name="leak_canary_import_unsupported_file_extension">Could not import %s, this is not an hprof file.</string>
   <string name="leak_canary_import_from_title">Import From…</string>
   <string name="leak_canary_dump_heap">Dump Heap Now</string>
   <string name="leak_canary_import_hprof_file">Import Heap Dump</string>

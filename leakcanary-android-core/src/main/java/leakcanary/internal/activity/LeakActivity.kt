@@ -8,6 +8,7 @@ import android.os.AsyncTask
 import android.os.Bundle
 import android.os.Build
 import android.view.View
+import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.InternalLeakCanary
@@ -67,7 +68,10 @@ internal class LeakActivity : NavigatingActivity() {
   private fun handleViewHprof(intent: Intent?) {
     if (intent?.action != Intent.ACTION_VIEW) return
     val uri = intent.data ?: return
-    if (uri.lastPathSegment?.endsWith(".hprof") != true) return
+    if (uri.lastPathSegment?.endsWith(".hprof") != true) {
+      Toast.makeText(this, getString(R.string.leak_canary_import_unsupported_file_extension, uri.lastPathSegment), Toast.LENGTH_LONG).show()
+      return
+    }
     resetTo(HeapDumpsScreen())
     AsyncTask.THREAD_POOL_EXECUTOR.execute {
       importHprof(uri)
