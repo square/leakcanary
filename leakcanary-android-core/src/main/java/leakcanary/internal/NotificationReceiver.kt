@@ -40,7 +40,7 @@ internal class NotificationReceiver : BroadcastReceiver() {
     ): PendingIntent {
       val broadcastIntent = Intent(context, NotificationReceiver::class.java)
       broadcastIntent.action = action.name
-      val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      val flags = if (Build.VERSION.SDK_INT >= 23) {
         PendingIntent.FLAG_IMMUTABLE
       } else {
         0

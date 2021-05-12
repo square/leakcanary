@@ -179,7 +179,7 @@ internal class LeakActivity : NavigatingActivity() {
       val intent = Intent(context, LeakActivity::class.java)
       intent.putExtra("screens", screens)
       intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-      val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      val flags = if (Build.VERSION.SDK_INT >= 23) {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
       } else {
         PendingIntent.FLAG_UPDATE_CURRENT
