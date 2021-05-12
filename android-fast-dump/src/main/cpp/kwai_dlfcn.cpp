@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 //         limitations under the License.
 
-// Author: Qiushi Xue <xueqiushi@kuaishou.com>
-
 #include "kwai_dlfcn.h"
 #include "klog.h"
 #include <android/log.h>

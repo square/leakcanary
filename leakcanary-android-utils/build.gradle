@@ -12,7 +12,6 @@ android {
   defaultConfig {
     minSdkVersion versions.minSdk
   }
-
   lintOptions {
     disable 'GoogleAppIndexingWarning'
     error 'ObsoleteSdkInt'

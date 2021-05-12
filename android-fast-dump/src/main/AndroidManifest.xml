@@ -1,5 +1,2 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="com.squareup.leakcanary.fast.dump"
-  xmlns:android="http://schemas.android.com/apk/res/android">
-
-</manifest>
+<manifest package="com.squareup.leakcanary.fast.dump" />
