@@ -62,7 +62,12 @@
         <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.hprof"/>
         <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.hprof"/>
         <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.hprof"/>
-        <!--Since hprof isn't a standard MIME type, we have to declare such patterns.-->
+        <!--
+            Since hprof isn't a standard MIME type, we have to declare such patterns.
+            Most file providers will generate URIs including their own package name,
+            which contains `.` characters that must be explicitly escaped in pathPattern.
+            @see https://stackoverflow.com/a/31028507/703646
+        -->
       </intent-filter>
     </activity>
 
