@@ -14,14 +14,15 @@ object DumpWrapper {
 
   @Throws(IOException::class)
   fun dumpHprofData(fileName: String) {
+    var fastDumpSuccess = false
     if (isSupportFastDump()) {
       try {
-        forkDumpHprofMethod!!.invoke(null, fileName)
+        fastDumpSuccess = forkDumpHprofMethod!!.invoke(null, fileName) as Boolean
       } catch (e: InvocationTargetException) {
-        SharkLog.d { "Fast dump LoadLibrary failed, fallback to normal dump, error: $e" }
-        Debug.dumpHprofData(fileName)
+        SharkLog.d { "Fast dump LoadLibrary failed, error: $e" }
       }
-    } else {
+    }
+    if (!fastDumpSuccess) {
       SharkLog.d { "Fast dump is not supported, fallback to normal dump." }
       Debug.dumpHprofData(fileName)
     }

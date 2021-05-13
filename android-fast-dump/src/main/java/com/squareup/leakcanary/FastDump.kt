@@ -14,5 +14,5 @@ object FastDump {
   }
 
   @JvmStatic
-  external fun forkDumpHprof(path: String)
+  external fun forkDumpHprof(path: String) : Boolean
 }

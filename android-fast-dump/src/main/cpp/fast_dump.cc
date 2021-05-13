@@ -33,51 +33,59 @@ void (*HprofDestructor)(void *handle);
 void (*Dump)(void *handle);
 
 JNIEXPORT
-void Java_com_squareup_leakcanary_FastDump_forkDumpHprof(JNIEnv *env,
-                                                         jclass clazz __attribute__((unused)),
-                                                         jstring file_name) {
+jboolean Java_com_squareup_leakcanary_FastDump_forkDumpHprof(JNIEnv *env,
+                                                             jclass clazz __attribute__((unused)),
+                                                             jstring file_name) {
   pthread_once(&once_control, init);
-  KCHECKV(init_success == true)
+  KCHECKB(init_success == true)
 
   if (android_api < __ANDROID_API_R__) {
     suspendVM();
     pid_t pid = fork();
-    KCHECKV(pid != -1)
+    KCHECKB(pid != -1)
     if (pid != 0) {
       // Parent process
       resumeVM();
-      int stat_loc;
+      int wstatus;
       for (;;) {
-        if (waitpid(pid, &stat_loc, 0) != -1 || errno != EINTR) {
-          break;
+        if (waitpid(pid, &wstatus, 0) != -1 || errno != EINTR) {
+          if (!WIFEXITED(wstatus)) {
+            KLOGE("waitpid error status=%d", WIFEXITED(wstatus));
+            return JNI_FALSE;
+          }
+          return JNI_TRUE;
         }
+        return JNI_FALSE;
       }
-      return;
     }
     // Set timeout for child process
     alarm(60);
     auto android_os_debug_class = env->FindClass("android/os/Debug");
-    KCHECKV(android_os_debug_class)
+    KCHECKB(android_os_debug_class)
     auto dump_hprof_data =
         env->GetStaticMethodID(android_os_debug_class, "dumpHprofData", "(Ljava/lang/String;)V");
-    KCHECKV(dump_hprof_data)
+    KCHECKB(dump_hprof_data)
     env->CallStaticVoidMethod(android_os_debug_class, dump_hprof_data, file_name);
     _exit(0);
   } else if (android_api == __ANDROID_API_R__) {
     ScopedSuspendAllConstructor(g_SSA_handle, LOG_TAG, true);
     pid_t pid = fork();
-    KCHECKV(pid != -1)
+    KCHECKB(pid != -1)
     if (pid != 0) {
       // Parent process
       ScopedSuspendAllDestructor(g_SSA_handle);
 
-      int stat_loc;
+      int wstatus;
       for (;;) {
-        if (waitpid(pid, &stat_loc, 0) != -1 || errno != EINTR) {
-          break;
+        if (waitpid(pid, &wstatus, 0) != -1 || errno != EINTR) {
+          if (!WIFEXITED(wstatus)) {
+            KLOGE("waitpid error status=%d", WIFEXITED(wstatus));
+            return JNI_FALSE;
+          }
+          return JNI_TRUE;
         }
+        return JNI_FALSE;
       }
-      return;
     }
     // Set timeout for child process
     alarm(60);
@@ -88,6 +96,7 @@ void Java_com_squareup_leakcanary_FastDump_forkDumpHprof(JNIEnv *env,
     env->ReleaseStringUTFChars(file_name, raw_file_name);
     _exit(0);
   }
+  return JNI_FALSE;
 }
 
 static void init() { init_success = initDumpHprofSymbols(); }
