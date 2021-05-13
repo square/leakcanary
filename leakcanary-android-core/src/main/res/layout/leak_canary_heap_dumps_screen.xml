@@ -9,6 +9,7 @@
       android:layout_width="match_parent"
       android:layout_height="0dp"
       android:layout_weight="1"
+      android:listSelector="@drawable/leak_canary_list_selector"
       android:divider="@null"
       android:dividerHeight="0dp"
       />
