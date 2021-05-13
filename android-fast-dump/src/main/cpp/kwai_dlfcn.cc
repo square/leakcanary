@@ -28,6 +28,12 @@
 
 #define LOG_TAG "kwai_dlfcn"
 
+#if defined(__arm__)
+#define PRIx "x"
+#elif defined(__aarch64__)
+#define PRIx "llx"
+#endif
+
 #define DLPI_NAME_LENGTH 256
 
 namespace kwai {
@@ -53,7 +59,8 @@ void DlFcn::init_api() {
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
 // Used for DlFcn::dlopen above android M
-static int dl_iterate_callback(dl_phdr_info *info, size_t size, void *data) {
+static int dl_iterate_callback(dl_phdr_info *info, size_t size __attribute__((unused)),
+                               void *data) {
   KLOGD("dl_iterate_callback %s %p", info->dlpi_name, info->dlpi_addr);
   auto target = reinterpret_cast<DlFcn::dl_iterate_data *>(data);
   if (info->dlpi_addr != 0 && strstr(info->dlpi_name, target->info_.dlpi_name)) {
@@ -69,7 +76,8 @@ static int dl_iterate_callback(dl_phdr_info *info, size_t size, void *data) {
 }
 
 // Used for DlFcn::dlopen_elf
-static int dl_iterate_callback_elf(dl_phdr_info *info, size_t size, void *data) {
+static int dl_iterate_callback_elf(dl_phdr_info *info, size_t size __attribute__((unused)),
+                                   void *data) {
   KLOGD("dl_iterate_callback_elf %s %p", info->dlpi_name, info->dlpi_addr);
   auto target = reinterpret_cast<DlFcn::dl_iterate_data *>(data);
   if (info->dlpi_addr != 0 && strstr(info->dlpi_name, target->info_.dlpi_name)) {
@@ -113,7 +121,7 @@ static int dl_iterate_callback_elf(dl_phdr_info *info, size_t size, void *data) 
   return 0;
 }
 
-using __loader_dlopen_fn = void *(*)(const char *filename, int flag, void *address);
+using loader_dlopen_fn = void *(*)(const char *filename, int flag, void *address);
 
 JNIEXPORT void *DlFcn::dlopen(const char *lib_name, int flags) {
   KLOGD("dlopen %s", lib_name);
@@ -124,19 +132,19 @@ JNIEXPORT void *DlFcn::dlopen(const char *lib_name, int flags) {
   if (android_api_ > __ANDROID_API_N__) {
     void *handle = ::dlopen("libdl.so", RTLD_NOW);
     KCHECKP(handle)
-    auto __loader_dlopen = reinterpret_cast<__loader_dlopen_fn>(::dlsym(handle, "__loader_dlopen"));
-    KCHECKP(__loader_dlopen)
+    auto loader_dlopen = reinterpret_cast<loader_dlopen_fn>(::dlsym(handle, "__loader_dlopen"));
+    KCHECKP(loader_dlopen)
     if (android_api_ < __ANDROID_API_Q__) {
-      return __loader_dlopen(lib_name, flags, (void *)dlerror);
+      return loader_dlopen(lib_name, flags, (void *)dlerror);
     } else {
-      handle = __loader_dlopen(lib_name, flags, (void *)dlerror);
+      handle = loader_dlopen(lib_name, flags, (void *)dlerror);
       if (handle == nullptr) {
         // Android Q added "runtime" namespace
         dl_iterate_data data{};
         data.info_.dlpi_name = lib_name;
         dl_iterate_phdr_wrapper(dl_iterate_callback, &data);
         KCHECKP(data.info_.dlpi_addr > 0)
-        handle = __loader_dlopen(lib_name, flags, (void *)data.info_.dlpi_addr);
+        handle = loader_dlopen(lib_name, flags, (void *)data.info_.dlpi_addr);
       }
       return handle;
     }
@@ -316,7 +324,7 @@ struct ctx {
   off_t bias;
 };
 
-JNIEXPORT void *DlFcn::dlopen_elf(const char *lib_name, int flags) {
+JNIEXPORT void *DlFcn::dlopen_elf(const char *lib_name, int flags __attribute__((unused))) {
   pthread_once(&once_control, init_api);
   char lib_path[DLPI_NAME_LENGTH];
   // preserved for parse .symtab
@@ -336,7 +344,7 @@ JNIEXPORT void *DlFcn::dlopen_elf(const char *lib_name, int flags) {
     }
     fclose(maps);
     KCHECKP(found)
-    KCHECKP(sscanf(buff, "%lx%*[^/]%s", &elf_base_addr, lib_path) == 2)
+    KCHECKP(sscanf(buff, "%" PRIx "%*[^/]%s", &elf_base_addr, lib_path) == 2)
     KLOGD("%s loaded in Android at %p", lib_path, elf_base_addr);
   } else {
     dl_iterate_data data{};

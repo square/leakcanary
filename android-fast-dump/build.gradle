@@ -19,7 +19,6 @@ android {
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
                 arguments "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_shared", "-DCMAKE_VERBOSE_MAKEFILE=ON"
                 cppFlags '-Wl,--gc-sections -fno-exceptions -fno-rtti -fvisibility=hidden'
-                cFlags '-Wl,--gc-sections -fvisibility=hidden'
             }
         }
 

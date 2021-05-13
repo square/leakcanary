@@ -18,10 +18,6 @@
 #include <cstring>
 #include <errno.h>
 
-#ifndef LOG_TAG
-#define LOG_TAG "unknown"
-#endif
-
 #ifndef LOG_PRI
 #define LOG_PRI(priority, tag, ...) __android_log_print(priority, tag, __VA_ARGS__)
 #endif // LOG_PRI

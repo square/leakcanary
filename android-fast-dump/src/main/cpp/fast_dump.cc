@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <wait.h>
 
+#define LOG_TAG "fast_dump"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -21,17 +23,18 @@ void (*suspendVM)();
 void (*resumeVM)();
 
 // Over size malloc ScopedSuspendAll instance for device compatibility
-static void *gSSAHandle = malloc(64);
+static void *g_SSA_handle = malloc(64);
 void (*ScopedSuspendAllConstructor)(void *handle, const char *cause, bool long_suspend);
 void (*ScopedSuspendAllDestructor)(void *handle);
 // Over size malloc Hprof instance for device compatibility
-static void *gHprofHandle = malloc(128);
+static void *g_hprof_handle = malloc(128);
 void (*HprofConstructor)(void *handle, const char *output_filename, int fd, bool direct_to_ddms);
 void (*HprofDestructor)(void *handle);
 void (*Dump)(void *handle);
 
 JNIEXPORT
-void Java_com_squareup_leakcanary_FastDump_forkDumpHprof(JNIEnv *env, jclass clazz,
+void Java_com_squareup_leakcanary_FastDump_forkDumpHprof(JNIEnv *env,
+                                                         jclass clazz __attribute__((unused)),
                                                          jstring file_name) {
   pthread_once(&once_control, init);
   KCHECKV(init_success == true)
@@ -61,12 +64,12 @@ void Java_com_squareup_leakcanary_FastDump_forkDumpHprof(JNIEnv *env, jclass cla
     env->CallStaticVoidMethod(android_os_debug_class, dump_hprof_data, file_name);
     _exit(0);
   } else if (android_api == __ANDROID_API_R__) {
-    ScopedSuspendAllConstructor(gSSAHandle, LOG_TAG, true);
+    ScopedSuspendAllConstructor(g_SSA_handle, LOG_TAG, true);
     pid_t pid = fork();
     KCHECKV(pid != -1)
     if (pid != 0) {
       // Parent process
-      ScopedSuspendAllDestructor(gSSAHandle);
+      ScopedSuspendAllDestructor(g_SSA_handle);
 
       int stat_loc;
       for (;;) {
@@ -78,11 +81,11 @@ void Java_com_squareup_leakcanary_FastDump_forkDumpHprof(JNIEnv *env, jclass cla
     }
     // Set timeout for child process
     alarm(60);
-    const char *filename = env->GetStringUTFChars(file_name, nullptr);
-    HprofConstructor(gHprofHandle, filename, -1, false);
-    Dump(gHprofHandle);
-    HprofDestructor(gHprofHandle);
-    env->ReleaseStringUTFChars(file_name, filename);
+    const char *raw_file_name = env->GetStringUTFChars(file_name, nullptr);
+    HprofConstructor(g_hprof_handle, raw_file_name, -1, false);
+    Dump(g_hprof_handle);
+    HprofDestructor(g_hprof_handle);
+    env->ReleaseStringUTFChars(file_name, raw_file_name);
     _exit(0);
   }
 }
@@ -92,39 +95,39 @@ static void init() { init_success = initDumpHprofSymbols(); }
 static bool initDumpHprofSymbols() {
   android_api = android_get_device_api_level();
   KCHECKB(android_api > __ANDROID_API_K__)
-  void *libHandle = kwai::linker::DlFcn::dlopen("libart.so", RTLD_NOW);
-  KCHECKB(libHandle)
+  void *lib_handle = kwai::linker::DlFcn::dlopen("libart.so", RTLD_NOW);
+  KCHECKB(lib_handle)
 
   if (android_api < __ANDROID_API_R__) {
-    suspendVM = (void (*)())kwai::linker::DlFcn::dlsym(libHandle, "_ZN3art3Dbg9SuspendVMEv");
-    KFINISHB_FUC(suspendVM, kwai::linker::DlFcn::dlclose, libHandle)
-    resumeVM = (void (*)())kwai::linker::DlFcn::dlsym(libHandle, "_ZN3art3Dbg8ResumeVMEv");
-    KFINISHB_FUC(resumeVM, kwai::linker::DlFcn::dlclose, libHandle)
+    suspendVM = (void (*)())kwai::linker::DlFcn::dlsym(lib_handle, "_ZN3art3Dbg9SuspendVMEv");
+    KFINISHB_FUC(suspendVM, kwai::linker::DlFcn::dlclose, lib_handle)
+    resumeVM = (void (*)())kwai::linker::DlFcn::dlsym(lib_handle, "_ZN3art3Dbg8ResumeVMEv");
+    KFINISHB_FUC(resumeVM, kwai::linker::DlFcn::dlclose, lib_handle)
   } else if (android_api == __ANDROID_API_R__) {
     ScopedSuspendAllConstructor = (void (*)(void *, const char *, bool))kwai::linker::DlFcn::dlsym(
-        libHandle, "_ZN3art16ScopedSuspendAllC1EPKcb");
-    KFINISHB_FUC(ScopedSuspendAllConstructor, kwai::linker::DlFcn::dlclose, libHandle)
+        lib_handle, "_ZN3art16ScopedSuspendAllC1EPKcb");
+    KFINISHB_FUC(ScopedSuspendAllConstructor, kwai::linker::DlFcn::dlclose, lib_handle)
     ScopedSuspendAllDestructor =
-        (void (*)(void *))kwai::linker::DlFcn::dlsym(libHandle, "_ZN3art16ScopedSuspendAllD1Ev");
-    KFINISHB_FUC(ScopedSuspendAllDestructor, kwai::linker::DlFcn::dlclose, libHandle)
+        (void (*)(void *))kwai::linker::DlFcn::dlsym(lib_handle, "_ZN3art16ScopedSuspendAllD1Ev");
+    KFINISHB_FUC(ScopedSuspendAllDestructor, kwai::linker::DlFcn::dlclose, lib_handle)
   }
 
-  kwai::linker::DlFcn::dlclose(libHandle);
+  kwai::linker::DlFcn::dlclose(lib_handle);
 
   // Parse .symtab(LOCAL)
   if (android_api == __ANDROID_API_R__) {
-    libHandle = kwai::linker::DlFcn::dlopen_elf("libart.so", RTLD_NOW);
-    KCHECKB(libHandle)
+    lib_handle = kwai::linker::DlFcn::dlopen_elf("libart.so", RTLD_NOW);
+    KCHECKB(lib_handle)
     HprofConstructor = (void (*)(void *, const char *, int, bool))kwai::linker::DlFcn::dlsym_elf(
-        libHandle, "_ZN3art5hprof5HprofC2EPKcib");
-    KFINISHB_FUC(HprofConstructor, kwai::linker::DlFcn::dlclose_elf, libHandle)
+        lib_handle, "_ZN3art5hprof5HprofC2EPKcib");
+    KFINISHB_FUC(HprofConstructor, kwai::linker::DlFcn::dlclose_elf, lib_handle)
     HprofDestructor =
-        (void (*)(void *))kwai::linker::DlFcn::dlsym_elf(libHandle, "_ZN3art5hprof5HprofD0Ev");
-    KFINISHB_FUC(HprofDestructor, kwai::linker::DlFcn::dlclose_elf, libHandle)
+        (void (*)(void *))kwai::linker::DlFcn::dlsym_elf(lib_handle, "_ZN3art5hprof5HprofD0Ev");
+    KFINISHB_FUC(HprofDestructor, kwai::linker::DlFcn::dlclose_elf, lib_handle)
     Dump =
-        (void (*)(void *))kwai::linker::DlFcn::dlsym_elf(libHandle, "_ZN3art5hprof5Hprof4DumpEv");
-    KFINISHB_FUC(Dump, kwai::linker::DlFcn::dlclose_elf, libHandle)
-    kwai::linker::DlFcn::dlclose_elf(libHandle);
+        (void (*)(void *))kwai::linker::DlFcn::dlsym_elf(lib_handle, "_ZN3art5hprof5Hprof4DumpEv");
+    KFINISHB_FUC(Dump, kwai::linker::DlFcn::dlclose_elf, lib_handle)
+    kwai::linker::DlFcn::dlclose_elf(lib_handle);
   }
 
   return true;

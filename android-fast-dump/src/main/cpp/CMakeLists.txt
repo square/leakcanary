@@ -2,10 +2,14 @@
 # documentation: https://d.android.com/studio/projects/add-native-code.html
 
 set(TARGET fast-dump)
-project(${TARGET})
-
 # Sets the minimum version of CMake required to build the native library.
 cmake_minimum_required(VERSION 3.4.1)
+
+project(${TARGET} LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 11)
+
+add_compile_options(-Wall -Wextra -Werror -Wno-unused-command-line-argument)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -18,7 +22,7 @@ add_library( # Sets the name of the library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        fast_dump.cpp kwai_dlfcn.cpp)
+        fast_dump.cc kwai_dlfcn.cc)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
