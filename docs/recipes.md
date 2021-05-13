@@ -464,7 +464,7 @@ class DebugExampleApplication : ExampleApplication() {
 
 LeakCanary runs in your main app process. LeakCanary 2 is optimized to keep memory usage low while analysing and runs in a background thread with priority `Process.THREAD_PRIORITY_BACKGROUND`. If you find that LeakCanary is still using too much memory or impacting the app process performance, you can configure it to run the analysis in a separate process.
 
-All you have to do is replace the `leakcanary-android` depedency with `leakcanary-android-process`:
+All you have to do is replace the `leakcanary-android` dependency with `leakcanary-android-process`:
 
 ```groovy
 dependencies {

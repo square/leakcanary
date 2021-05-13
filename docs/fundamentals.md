@@ -19,6 +19,6 @@ Most memory leaks are caused by bugs related to the lifecycle of objects. Here a
 Memory leaks are very common in Android apps and the accumulation of small memory leaks causes apps to run out of memory and crash with an OOM. LeakCanary will help you find and fix these memory leaks during development. When Square engineers first enabled LeakCanary in the Square Point Of Sale app, they were able to fix several leaks and reduced the OOM crash rate by **94%**.
 
 !!! info
-    **Your crash reporting tool might not correctly report OOMs**. When memory is low because of memory leak accumulation, an OOM can be thrown from anywhere in the app code, which means that every OOM has a different stacktrace. So instead of one crash entry with a 1000 crashes, OOMs get reported as 1000 distinct crashes and hide in the long tail of low occuring crashes.
+    **Your crash reporting tool might not correctly report OOMs**. When memory is low because of memory leak accumulation, an OOM can be thrown from anywhere in the app code, which means that every OOM has a different stacktrace. So instead of one crash entry with a 1000 crashes, OOMs get reported as 1000 distinct crashes and hide in the long tail of low occurring crashes.
 
 What's next? Learn [how LeakCanary works](fundamentals-how-leakcanary-works.md)!
