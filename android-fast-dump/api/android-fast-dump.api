@@ -1,6 +1,6 @@
 public final class com/squareup/leakcanary/FastDump {
 	public static final field INSTANCE Lcom/squareup/leakcanary/FastDump;
-	public static final fun forkDumpHprof (Ljava/lang/String;)V
+	public static final fun forkDumpHprof (Ljava/lang/String;)Z
 }
 
 public final class com/squareup/leakcanary/fast/dump/BuildConfig {
