@@ -94,7 +94,7 @@ internal class LeakActivityTest {
   }
 
   @Test
-  fun importHeapDumpFile() {
+  fun importHeapDumpFile() = tryAndRestoreConfig {
     val latch = CountDownLatch(1)
     LeakCanary.config = LeakCanary.config.copy(onHeapAnalyzedListener = {
       DefaultOnHeapAnalyzedListener.create().onHeapAnalyzed(it)
@@ -163,4 +163,14 @@ internal class LeakActivityTest {
       }
     }
   }
+
+  private fun tryAndRestoreConfig(block: () -> Unit) {
+    val original = LeakCanary.config
+    try {
+      block()
+    } finally {
+      LeakCanary.config = original
+    }
+  }
+
 }
