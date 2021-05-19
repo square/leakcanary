@@ -43,7 +43,33 @@
         android:label="@string/leak_canary_display_activity_label"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_LeakCanary.Base"
-        />
+        >
+      <intent-filter android:label="@string/leak_canary_import_hprof_file">
+        <action android:name="android.intent.action.VIEW"/>
+
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+
+        <data android:scheme="file"/>
+        <data android:scheme="content"/>
+        <data android:mimeType="*/*"/>
+        <data android:host="*"/>
+
+        <data android:pathPattern=".*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.hprof"/>
+        <!--
+            Since hprof isn't a standard MIME type, we have to declare such patterns.
+            Most file providers will generate URIs including their own package name,
+            which contains `.` characters that must be explicitly escaped in pathPattern.
+            @see https://stackoverflow.com/a/31028507/703646
+        -->
+      </intent-filter>
+    </activity>
 
     <activity-alias
         android:name="leakcanary.internal.activity.LeakLauncherActivity"
