@@ -1,5 +1,7 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+plugins {
+  id("com.android.library")
+  id("org.jetbrains.kotlin.android")
+}
 
 dependencies {
   api project(':leakcanary-object-watcher')
@@ -28,7 +30,7 @@ android {
   }
 
   // TODO replace with https://issuetracker.google.com/issues/72050365 once released.
-  libraryVariants.all {
+  libraryVariants.configureEach {
     it.generateBuildConfig.enabled = false
   }
 }
