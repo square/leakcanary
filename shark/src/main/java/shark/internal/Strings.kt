@@ -1,5 +1,6 @@
 package shark.internal
 
+import java.math.BigInteger
 import java.nio.charset.Charset
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -14,10 +15,6 @@ internal fun String.lastSegment(segmentingChar: Char): String {
 
 internal fun String.createSHA1Hash(): String = createHash(this, "SHA-1")
 
-/**
- * Derived from
- * [this snippet](http://www.androidsnippets.com/create-a-md5-hash-and-dump-as-a-hex-string).
- */
 private fun createHash(
   text: String,
   algorithm: String
@@ -26,14 +23,8 @@ private fun createHash(
     // Create MD5 Hash.
     val digest = MessageDigest.getInstance(algorithm)
     digest.update(text.getBytes())
-    val messageDigest = digest.digest()
 
-    // Create Hex String.
-    val hexString = StringBuilder()
-    for (b in messageDigest) {
-      hexString.append(Integer.toHexString(0xff and b.toInt()))
-    }
-    return hexString.toString()
+    return BigInteger(1, digest.digest()).toString(16).padStart(40, '0')
   } catch (e: NoSuchAlgorithmException) {
     throw AssertionError("Unable to construct MessageDigest for $algorithm")
   }
