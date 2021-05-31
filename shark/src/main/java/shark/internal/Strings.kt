@@ -1,10 +1,6 @@
 package shark.internal
 
 import okio.ByteString.Companion.encodeUtf8
-import java.nio.charset.Charset
-
-@JvmField
-internal val UTF_8: Charset = Charset.forName("UTF-8")
 
 internal fun String.lastSegment(segmentingChar: Char): String {
   val separator = lastIndexOf(segmentingChar)
