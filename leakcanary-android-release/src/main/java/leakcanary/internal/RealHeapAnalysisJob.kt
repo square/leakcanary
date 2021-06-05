@@ -1,7 +1,7 @@
 package leakcanary.internal
 
-import android.os.Debug
 import android.os.SystemClock
+import leakcanary.DumpWrapper
 import leakcanary.HeapAnalysisConfig
 import leakcanary.HeapAnalysisInterceptor
 import leakcanary.HeapAnalysisJob
@@ -218,7 +218,7 @@ internal class RealHeapAnalysisJob(
   }
 
   private fun dumpHeap(heapDumpFile: File) {
-    Debug.dumpHprofData(heapDumpFile.absolutePath)
+    DumpWrapper.dumpHprofData(heapDumpFile.absolutePath)
 
     check(heapDumpFile.exists()) {
       "File does not exist after dump"

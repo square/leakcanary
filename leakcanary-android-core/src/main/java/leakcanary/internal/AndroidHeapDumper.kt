@@ -26,6 +26,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
+import leakcanary.DumpWrapper
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import leakcanary.internal.friendly.mainHandler
 import leakcanary.internal.friendly.measureDurationMillis
@@ -64,7 +65,7 @@ internal class AndroidHeapDumper(
 
     return try {
       val durationMillis = measureDurationMillis {
-        Debug.dumpHprofData(heapDumpFile.absolutePath)
+        DumpWrapper.dumpHprofData(heapDumpFile.absolutePath)
       }
       if (heapDumpFile.length() == 0L) {
         SharkLog.d { "Dumped heap file is 0 byte length" }
