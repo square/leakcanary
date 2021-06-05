@@ -1,6 +1,7 @@
-apply plugin: 'org.jetbrains.kotlin.jvm'
-apply plugin: 'java-gradle-plugin'
-apply plugin: 'maven'
+plugins {
+  id("org.jetbrains.kotlin.jvm")
+  id("java-gradle-plugin")
+}
 
 gradlePlugin {
   plugins {

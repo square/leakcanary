@@ -50,8 +50,7 @@ buildscript {
   ]
   repositories {
     google()
-    maven { url 'https://plugins.gradle.org/m2/' }
-    jcenter()
+    gradlePluginPortal()
     // For binary compatibility validator.
     maven { url "https://kotlin.bintray.com/kotlinx" }
   }
@@ -114,7 +113,7 @@ subprojects {
     outputDirectory = "$rootDir/docs/api"
   }
 
-  tasks.withType(JavaCompile) {
+  tasks.withType(JavaCompile).configureEach {
     options.compilerArgs += [
         '-Xlint:all',
         '-Xlint:-serial',
@@ -132,8 +131,7 @@ subprojects {
     }
   }
 
-
-  configurations.all {
+  configurations.configureEach {
     resolutionStrategy {
       eachDependency { details ->
         // Force all the error-prone dependencies to use the same version.
@@ -145,7 +143,7 @@ subprojects {
     }
   }
 
-  tasks.withType(Test) {
+  tasks.withType(Test).configureEach {
     testLogging {
       exceptionFormat 'FULL'
       showCauses true
@@ -162,10 +160,10 @@ subprojects {
     }
   }
 
-  afterEvaluate {
-    tasks.getByName('check').dependsOn 'detekt'
-    tasks.getByName('assemble').dependsOn installGitHooks
-    tasks.getByName('clean').dependsOn installGitHooks
+  pluginManager.withPlugin("java") {
+    tasks.named("check") { dependsOn("detekt") }
+    tasks.named("assemble") { dependsOn(rootProject.tasks.named("installGitHooks")) }
+    tasks.named("clean") { dependsOn(rootProject.tasks.named("installGitHooks")) }
   }
 
   dependencies {
@@ -175,7 +173,7 @@ subprojects {
 
 //Copies git hooks from /hooks folder into .git; currently used to run Detekt during push
 //Git hook installation
-task installGitHooks(type: Copy) {
+tasks.register("installGitHooks", Copy) {
   from new File(rootProject.rootDir, 'hooks')
   into { new File(rootProject.rootDir, '.git/hooks') }
   fileMode 0777 //Make files executable

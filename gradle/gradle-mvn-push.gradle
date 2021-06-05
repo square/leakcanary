@@ -79,7 +79,7 @@ afterEvaluate { project ->
 
     def plugins = project.getPlugins()
     if (plugins.hasPlugin('com.android.application') || plugins.hasPlugin('com.android.library')) {
-      task androidJavadocs(type: Javadoc) {
+      tasks.register("androidJavadocs", Javadoc) {
         source = android.sourceSets.main.java.srcDirs
         // TODO Update to include KT files OR stop publishing javadoc artifacts.
         exclude "**/*.kt"
@@ -95,12 +95,13 @@ afterEvaluate { project ->
         classpath += releaseVariant.javaCompile.outputs.files
       }
 
-      task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+      tasks.register("androidJavadocsJar", Jar) {
+        dependsOn("androidJavadocs")
         classifier = 'javadoc'
         from androidJavadocs.destinationDir
       }
 
-      task androidSourcesJar(type: Jar) {
+      tasks.register("androidSourcesJar", Jar) {
         classifier = 'sources'
         from android.sourceSets.main.java.source
       }
@@ -111,12 +112,13 @@ afterEvaluate { project ->
       }
     }
     else {
-      task sourcesJar(type: Jar, dependsOn: classes) {
+      tasks.register("sourcesJar", Jar) {
+        dependsOn("classes")
         classifier = 'sources'
         from sourceSets.main.allSource
       }
 
-      task javadocsJar(type: Jar, dependsOn: javadoc) {
+      tasks.register("javadocsJar", Jar) {
         classifier = 'javadoc'
         from javadoc.destinationDir
       }
@@ -129,7 +131,7 @@ afterEvaluate { project ->
 
     if (JavaVersion.current().isJava8Compatible()) {
       allprojects {
-        tasks.withType(Javadoc) {
+        tasks.withType(Javadoc).configureEach {
           options.addStringOption('Xdoclint:none', '-quiet')
         }
       }
