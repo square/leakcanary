@@ -63,7 +63,8 @@ class HeapAnalyzer constructor(
     val graph: HeapGraph,
     val referenceMatchers: List<ReferenceMatcher>,
     val computeRetainedHeapSize: Boolean,
-    val objectInspectors: List<ObjectInspector>
+    val objectInspectors: List<ObjectInspector>,
+    val instanceExpander: InstanceExpander
   )
 
   /**
@@ -77,7 +78,8 @@ class HeapAnalyzer constructor(
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-    proguardMapping: ProguardMapping? = null
+    proguardMapping: ProguardMapping? = null,
+    instanceExpander: (HeapGraph) -> InstanceExpander = { FieldInstanceExpander(it) }
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -96,7 +98,13 @@ class HeapAnalyzer constructor(
       val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
       sourceProvider.openHeapGraph(proguardMapping).use { graph ->
         val helpers =
-          FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
+          FindLeakInput(
+            graph,
+            referenceMatchers,
+            computeRetainedHeapSize,
+            objectInspectors,
+            instanceExpander(graph)
+          )
         val result = helpers.analyzeGraph(
           metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
         )
@@ -129,12 +137,16 @@ class HeapAnalyzer constructor(
     referenceMatchers: List<ReferenceMatcher> = emptyList(),
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
-    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP
+    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
+    instanceExpander: InstanceExpander = FieldInstanceExpander(graph)
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
     return try {
       val helpers =
-        FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
+        FindLeakInput(
+          graph, referenceMatchers, computeRetainedHeapSize, objectInspectors,
+          instanceExpander
+        )
       helpers.analyzeGraph(
         metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
       )
@@ -191,7 +203,7 @@ class HeapAnalyzer constructor(
   )
 
   private fun FindLeakInput.findLeaks(leakingObjectIds: Set<Long>): LeaksAndUnreachableObjects {
-    val pathFinder = PathFinder(graph, listener, referenceMatchers)
+    val pathFinder = PathFinder(graph, listener, instanceExpander, referenceMatchers)
     val pathFindingResults =
       pathFinder.findPathsFromGcRoots(leakingObjectIds, computeRetainedHeapSize)
 
