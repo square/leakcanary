@@ -627,6 +627,8 @@ internal class PathFinder(
       (node as ChildNode).parent.objectId
     }
 
+    // Note: when computing dominators, this has a side effects of updating
+    // the dominator for node.objectId.
     val alreadyEnqueued = visitTracker.visited(node.objectId, parentObjectId)
 
     if (alreadyEnqueued) {

@@ -15,6 +15,7 @@ import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import java.nio.charset.Charset
 import java.util.Locale
+import kotlin.LazyThreadSafetyMode.NONE
 import kotlin.reflect.KClass
 
 /**
@@ -441,7 +442,7 @@ sealed class HeapObject {
      * This may trigger IO reads.
      */
     fun readFields(): Sequence<HeapField> {
-      val fieldReader by lazy {
+      val fieldReader by lazy(NONE) {
         hprofGraph.createFieldValuesReader(readRecord())
       }
       return instanceClass.classHierarchy
