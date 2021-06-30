@@ -46,6 +46,43 @@ enum class ApacheHarmonyInstanceExpanders : (HeapGraph) -> MatchingInstanceExpan
     }
   },
 
+  // https://cs.android.com/android/platform/superproject/+/android-6.0.1_r81:libcore/luni/src/main/java/java/util/ArrayList.java
+  ARRAY_LIST {
+    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+      val arrayListClass = graph.findClassByName("java.util.ArrayList")
+      val isApacheHarmonyImpl = arrayListClass?.readRecordFields()
+        ?.any { arrayListClass.instanceFieldName(it) == "array" } ?: false
+      return if (isApacheHarmonyImpl) {
+        val arrayListClassObjectId = arrayListClass!!.objectId
+        MatchingInstanceExpander { instance ->
+          if (instance.instanceClassId == arrayListClassObjectId) {
+            val instanceClass = instance.instanceClass
+            // "ArrayList.array" is never null
+            val elementData = instance["java.util.ArrayList", "array"]!!.valueAsObjectArray!!.readElements()
+            val size =  instance["java.util.ArrayList", "size"]!!.value.asInt!!
+            elementData.take(size).withIndex()
+              .mapNotNull { (index, elementValue) ->
+                if (elementValue.isNonNullReference) {
+                  HeapInstanceOutgoingRef(
+                    declaringClass = instanceClass,
+                    name = "$index",
+                    objectId = elementValue.asObjectId!!,
+                    isArrayLike = true
+                  )
+                } else {
+                  null
+                }
+              }.toList()
+          } else {
+            null
+          }
+        }
+      } else {
+        null
+      }
+    }
+  },
+
   // https://cs.android.com/android/platform/superproject/+/android-6.0.1_r81:libcore/luni/src/main/java/java/util/HashMap.java
   HASH_MAP {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {

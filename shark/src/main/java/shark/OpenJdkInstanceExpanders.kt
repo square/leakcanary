@@ -47,6 +47,43 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
     }
   },
 
+  // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/ArrayList.java
+  ARRAY_LIST {
+    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+      val arrayListClass = graph.findClassByName("java.util.ArrayList")
+      val isOpenJdkImpl = arrayListClass?.readRecordFields()
+        ?.any { arrayListClass.instanceFieldName(it) == "elementData" } ?: false
+      return if (isOpenJdkImpl) {
+        val arrayListClassObjectId = arrayListClass!!.objectId
+        MatchingInstanceExpander { instance ->
+          if (instance.instanceClassId == arrayListClassObjectId) {
+            val instanceClass = instance.instanceClass
+            // "ArrayList.elementData" is never null
+            val elementData = instance["java.util.ArrayList", "elementData"]!!.valueAsObjectArray!!.readElements()
+            val size =  instance["java.util.ArrayList", "size"]!!.value.asInt!!
+            elementData.take(size).withIndex()
+              .mapNotNull { (index, elementValue) ->
+              if (elementValue.isNonNullReference) {
+                HeapInstanceOutgoingRef(
+                  declaringClass = instanceClass,
+                  name = "$index",
+                  objectId = elementValue.asObjectId!!,
+                  isArrayLike = true
+                )
+              } else {
+                null
+              }
+            }.toList()
+          } else {
+            null
+          }
+        }
+      } else {
+        null
+      }
+    }
+  },
+
   // Initial import
   // https://cs.android.com/android/_/android/platform/libcore/+/51b1b6997fd3f980076b8081f7f1165ccc2a4008:ojluni/src/main/java/java/util/HashMap.java
   // Latest on master
