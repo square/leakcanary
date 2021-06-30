@@ -84,10 +84,49 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
     }
   },
 
+  // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/concurrent/CopyOnWriteArrayList.java;bpv=0;bpt=1
+  COPY_ON_WRITE_ARRAY_LIST {
+    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+      val arrayListClass = graph.findClassByName("java.util.concurrent.CopyOnWriteArrayList")
+      val isOpenJdkImpl = arrayListClass?.readRecordFields()
+        ?.any { arrayListClass.instanceFieldName(it) == "array" } ?: false
+      return if (isOpenJdkImpl) {
+        val arrayListClassObjectId = arrayListClass!!.objectId
+        MatchingInstanceExpander { instance ->
+          if (instance.instanceClassId == arrayListClassObjectId) {
+            val instanceClass = instance.instanceClass
+            // "CopyOnWriteArrayList.array" is never null
+            val array = instance["java.util.concurrent.CopyOnWriteArrayList", "array"]!!.valueAsObjectArray!!.readElements()
+            array.withIndex()
+              .mapNotNull { (index, elementValue) ->
+                if (elementValue.isNonNullReference) {
+                  HeapInstanceOutgoingRef(
+                    declaringClass = instanceClass,
+                    name = "$index",
+                    objectId = elementValue.asObjectId!!,
+                    isArrayLike = true
+                  )
+                } else {
+                  null
+                }
+              }.toList()
+          } else {
+            null
+          }
+        }
+      } else {
+        null
+      }
+    }
+  },
+
   // Initial import
   // https://cs.android.com/android/_/android/platform/libcore/+/51b1b6997fd3f980076b8081f7f1165ccc2a4008:ojluni/src/main/java/java/util/HashMap.java
   // Latest on master
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/HashMap.java
+  /**
+   * Handles HashMap & LinkedHashMap
+   */
   HASH_MAP {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
       val hashMapClass = graph.findClassByName("java.util.HashMap")

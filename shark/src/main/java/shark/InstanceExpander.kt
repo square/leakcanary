@@ -17,16 +17,13 @@ import kotlin.LazyThreadSafetyMode.NONE
 /**
  * TODO Implement this for all major types + major Android types.
  *
- * array list
- * hashmap
  * linked hash map
  *
  * Message
  *
  *   // TODO Support Vector, HashSet, Android message, ThreadLocal$ThreadLocalMap$Entry
- * // java.util.concurrent.CopyOnWriteArrayList, LinkedHashSet
+ * // LinkedHashSet
  * // ThreadLocal$Values.table
- * // LinkedHashMap$LinkedEntry.nxt ??
  *
  * MessageQueue.mMessages => Message.callback, Message.obj
  *  => should emit Message objects instead of obj + callback

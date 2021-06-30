@@ -83,6 +83,42 @@ enum class ApacheHarmonyInstanceExpanders : (HeapGraph) -> MatchingInstanceExpan
     }
   },
 
+  // https://cs.android.com/android/platform/superproject/+/android-6.0.1_r81:libcore/luni/src/main/java/java/util/concurrent/CopyOnWriteArrayList.java
+  COPY_ON_WRITE_ARRAY_LIST {
+    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+      val arrayListClass = graph.findClassByName("java.util.concurrent.CopyOnWriteArrayList")
+      val isOpenJdkImpl = arrayListClass?.readRecordFields()
+        ?.any { arrayListClass.instanceFieldName(it) == "elements" } ?: false
+      return if (isOpenJdkImpl) {
+        val arrayListClassObjectId = arrayListClass!!.objectId
+        MatchingInstanceExpander { instance ->
+          if (instance.instanceClassId == arrayListClassObjectId) {
+            val instanceClass = instance.instanceClass
+            // "CopyOnWriteArrayList.elements" is never null
+            val elements = instance["java.util.concurrent.CopyOnWriteArrayList", "elements"]!!.valueAsObjectArray!!.readElements()
+            elements.withIndex()
+              .mapNotNull { (index, elementValue) ->
+                if (elementValue.isNonNullReference) {
+                  HeapInstanceOutgoingRef(
+                    declaringClass = instanceClass,
+                    name = "$index",
+                    objectId = elementValue.asObjectId!!,
+                    isArrayLike = true
+                  )
+                } else {
+                  null
+                }
+              }.toList()
+          } else {
+            null
+          }
+        }
+      } else {
+        null
+      }
+    }
+  },
+
   // https://cs.android.com/android/platform/superproject/+/android-6.0.1_r81:libcore/luni/src/main/java/java/util/HashMap.java
   HASH_MAP {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {

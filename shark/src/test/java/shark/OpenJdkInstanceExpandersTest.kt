@@ -9,6 +9,7 @@ import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.OpenJdkInstanceExpanders.LINKED_LIST
 import java.io.File
 import java.util.LinkedList
+import java.util.concurrent.CopyOnWriteArrayList
 
 class OpenJdkInstanceExpandersTest {
 
@@ -114,6 +115,40 @@ class OpenJdkInstanceExpandersTest {
     with(refPath[0]) {
       assertThat(owningClassName).isEqualTo(ArrayList::class.qualifiedName)
       assertThat(referenceDisplayName).isEqualTo("elementData")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo("java.lang.Object[]")
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+  }
+
+  @Test fun `CopyOnWriteArrayList expanded`() {
+    val list = CopyOnWriteArrayList<Any>()
+    list += Retained()
+    leakRoot = list
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.COPY_ON_WRITE_ARRAY_LIST)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(CopyOnWriteArrayList::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+  }
+
+  @Test fun `CopyOnWriteArrayList no expander`() {
+    val list = CopyOnWriteArrayList<Any>()
+    list += Retained()
+    leakRoot = list
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).hasSize(2)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(CopyOnWriteArrayList::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("array")
     }
     with(refPath[1]) {
       assertThat(owningClassName).isEqualTo("java.lang.Object[]")
