@@ -9,7 +9,7 @@ import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import java.io.File
 import java.util.LinkedList
 
-class RefExpanderTest {
+class OpenJdkInstanceExpandersTest {
 
   class Retained
 
@@ -25,7 +25,7 @@ class RefExpanderTest {
     leakRoot = null
   }
 
-  @Test fun `OpenJdk LinkedList expanded`() {
+  @Test fun `LinkedList expanded`() {
     val list = LinkedList<Any>()
     list += Retained()
     leakRoot = list
@@ -40,7 +40,7 @@ class RefExpanderTest {
     }
   }
 
-  @Test fun `OpenJdk LinkedList no expander`() {
+  @Test fun `LinkedList no expander`() {
     val list = LinkedList<Any>()
     list += Retained()
     leakRoot = list
@@ -56,6 +56,85 @@ class RefExpanderTest {
     with(refPath[1]) {
       assertThat(owningClassName).isEqualTo("java.util.LinkedList\$Node")
       assertThat(referenceDisplayName).isEqualTo("item")
+    }
+  }
+
+  // TODO Support Vector, ArrayList, HashSet
+
+  class SomeKey
+
+  @Test fun `HashMap expanded`() {
+    val map = HashMap<Any, Any>()
+    map[SomeKey()] = Retained()
+    leakRoot = map
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(HashMap::class.qualifiedName)
+    }
+  }
+
+  @Test fun `LinkedHashMap expanded`() {
+    val map = LinkedHashMap<Any, Any>()
+    map[SomeKey()] = Retained()
+    leakRoot = map
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(LinkedHashMap::class.qualifiedName)
+    }
+  }
+
+  @Test fun `HashMap no expander`() {
+    val map = HashMap<Any, Any>()
+    map[SomeKey()] = Retained()
+    leakRoot = map
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).hasSize(3)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(HashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("table")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo("java.util.HashMap\$Node[]")
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+    with(refPath[2]) {
+      assertThat(owningClassName).isEqualTo("java.util.HashMap\$Node")
+      assertThat(referenceDisplayName).isEqualTo("value")
+    }
+  }
+
+  @Test fun `HashMap expanded with non string key`() {
+    val map = HashMap<Any, Any>()
+    map[SomeKey()] = Retained()
+    leakRoot = map
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+
+    with(refPath.first()) {
+      assertThat(referenceDisplayName).matches("\\[instance @\\d* of shark\\.OpenJdkInstanceExpandersTest\\\$SomeKey]")
+    }
+  }
+
+  @Test fun `HashMap expanded with string key`() {
+    val map = HashMap<Any, Any>()
+    map["StringKey"] = Retained()
+    leakRoot = map
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+
+    with(refPath.first()) {
+      assertThat(referenceDisplayName).isEqualTo("[StringKey]")
     }
   }
 
@@ -75,6 +154,7 @@ class RefExpanderTest {
       instanceExpander = instanceExpander
     )
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    println(leakTrace.toSimplePathString())
     val index = leakTrace.referencePath.indexOfFirst { it.referenceName == ::leakRoot.name }
     val refFromExpandedTypeIndex = index + 1
     return leakTrace.referencePath.subList(refFromExpandedTypeIndex, leakTrace.referencePath.size)
