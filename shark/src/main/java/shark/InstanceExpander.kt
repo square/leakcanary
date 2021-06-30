@@ -15,9 +15,6 @@ import shark.internal.FieldIdReader
 import kotlin.LazyThreadSafetyMode.NONE
 
 /**
- * TODO Figure out how to handle the size for synthetic refs. Once we do we can make it so that
- * strings and such don't return any refs.
- *
  * TODO Implement this for all major types + major Android types.
  *
  * array list
@@ -25,8 +22,15 @@ import kotlin.LazyThreadSafetyMode.NONE
  * linked hash map
  *
  * Message
+ *
+ *   // TODO Support Vector, HashSet, Android message, ThreadLocal$ThreadLocalMap$Entry
+ * // java.util.concurrent.CopyOnWriteArrayList, LinkedHashSet
+ * // ThreadLocal$Values.table
+ * // LinkedHashMap$LinkedEntry.nxt ??
+ *
+ * MessageQueue.mMessages => Message.callback, Message.obj
+ *  => should emit Message objects instead of obj + callback
  */
-
 fun interface InstanceExpander {
   /**
    * Returns the list of non null outgoing references from [instance]. Outgoing refs
@@ -142,9 +146,10 @@ fun interface MatchingInstanceExpander {
 }
 
 /**
- * A [InstanceExpander] that delegates expanding to [matchingExpanders] in order,
- * and falls back to [fieldInstanceExpander] if none of the expanders can expand
- * the provided instance.
+ * A [InstanceExpander] that first delegates expanding to [matchingExpanders] in order,
+ * and then proceeds with [fieldInstanceExpander]. This means any synthetic ref will be on the
+ * shortest path, but we still explore the entire data structure so that we correctly track
+ * which objects have been visited and correctly compute dominators and retained size.
  */
 class MatchingChainedInstanceExpander(
   private val matchingExpanders: List<MatchingInstanceExpander>,
@@ -152,13 +157,17 @@ class MatchingChainedInstanceExpander(
 ) : InstanceExpander {
 
   override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceOutgoingRef> {
+    return expandMatchingOutgoingRefs(instance) + fieldInstanceExpander.expandOutgoingRefs(instance)
+  }
+
+  private fun expandMatchingOutgoingRefs(instance: HeapInstance): List<HeapInstanceOutgoingRef> {
     for (expander in matchingExpanders) {
       val refs = expander.expandOutgoingRefs(instance)
       if (refs != null) {
         return refs
       }
     }
-    return fieldInstanceExpander.expandOutgoingRefs(instance)
+    return emptyList()
   }
 
   companion object {

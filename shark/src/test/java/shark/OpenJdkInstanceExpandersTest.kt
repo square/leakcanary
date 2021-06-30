@@ -6,12 +6,14 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
+import shark.OpenJdkInstanceExpanders.LINKED_LIST
 import java.io.File
 import java.util.LinkedList
 
 class OpenJdkInstanceExpandersTest {
 
   class Retained
+  class SomeKey
 
   companion object {
     @JvmStatic
@@ -30,7 +32,7 @@ class OpenJdkInstanceExpandersTest {
     list += Retained()
     leakRoot = list
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.LINKED_LIST)
+    val refPath = findLeak(LINKED_LIST)
 
     assertThat(refPath).hasSize(1)
 
@@ -59,9 +61,65 @@ class OpenJdkInstanceExpandersTest {
     }
   }
 
-  // TODO Support Vector, ArrayList, HashSet
+  @Test fun `LinkedList retained size is identical whether expanding or not`() {
+    val list = LinkedList<Any>()
+    list += Retained()
+    leakRoot = list
 
-  class SomeKey
+    val hprofFile = dumpHeap()
+
+    val retainedSizeExpanded = hprofFile.findPathFromLeak(
+      computeRetainedHeapSize = true,
+      expanderFactory = LINKED_LIST
+    )
+      .first()
+      .originObject
+      .retainedHeapByteSize
+
+    val retainedSizeNotExpanded = hprofFile.findPathFromLeak(
+      computeRetainedHeapSize = true,
+      expanderFactory = { null }
+    )
+      .first()
+      .originObject
+      .retainedHeapByteSize
+
+    assertThat(retainedSizeExpanded).isEqualTo(retainedSizeNotExpanded)
+  }
+
+  @Test fun `ArrayList expanded`() {
+    val list = ArrayList<Any>()
+    list += Retained()
+    leakRoot = list
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.ARRAY_LIST)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(ArrayList::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+  }
+
+  @Test fun `ArrayList no expander`() {
+    val list = ArrayList<Any>()
+    list += Retained()
+    leakRoot = list
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).hasSize(2)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(ArrayList::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("elementData")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo("java.lang.Object[]")
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+  }
 
   @Test fun `HashMap expanded`() {
     val map = HashMap<Any, Any>()
@@ -139,12 +197,17 @@ class OpenJdkInstanceExpandersTest {
   }
 
   private fun findLeak(expanderFactory: (HeapGraph) -> MatchingInstanceExpander?): List<LeakTraceReference> {
-    val hprofFolder = testFolder.newFolder()
-    val hprofFile = File(hprofFolder, "jvm_heap.hprof")
-    JvmTestHeapDumper.dumpHeap(hprofFile.absolutePath)
+    val hprofFile = dumpHeap()
+    return hprofFile.findPathFromLeak(computeRetainedHeapSize = false, expanderFactory)
+  }
 
+  private fun File.findPathFromLeak(
+    computeRetainedHeapSize: Boolean,
+    expanderFactory: (HeapGraph) -> MatchingInstanceExpander?,
+  ): List<LeakTraceReference> {
     val instanceExpander = MatchingChainedInstanceExpander.factory(listOf(expanderFactory))
-    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+    val analysis = checkForLeaks<HeapAnalysisSuccess>(
+      computeRetainedHeapSize = computeRetainedHeapSize,
       leakFilters = listOf(object :
         LeakingObjectFilter {
         override fun isLeakingObject(heapObject: HeapObject): Boolean {
@@ -158,5 +221,12 @@ class OpenJdkInstanceExpandersTest {
     val index = leakTrace.referencePath.indexOfFirst { it.referenceName == ::leakRoot.name }
     val refFromExpandedTypeIndex = index + 1
     return leakTrace.referencePath.subList(refFromExpandedTypeIndex, leakTrace.referencePath.size)
+  }
+
+  private fun dumpHeap(): File {
+    val hprofFolder = testFolder.newFolder()
+    val hprofFile = File(hprofFolder, "jvm_heap.hprof")
+    JvmTestHeapDumper.dumpHeap(hprofFile.absolutePath)
+    return hprofFile
   }
 }
