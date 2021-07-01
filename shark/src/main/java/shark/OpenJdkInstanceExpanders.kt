@@ -1,5 +1,7 @@
 package shark
 
+import shark.internal.InternalSharedHashMapExpander
+
 /**
  * Defines [MatchingInstanceExpander] factories for common OpenJDK data structures.
  *
@@ -131,140 +133,69 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
    */
   HASH_MAP {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
-      val hashMapClass = graph.findClassByName("java.util.HashMap")
+      val hashMapClass = graph.findClassByName("java.util.HashMap") ?: return null
 
       // No loadFactor field in the Apache Harmony impl.
-      val isOpenJdkImpl = hashMapClass?.readRecordFields()
-        ?.any { hashMapClass.instanceFieldName(it) == "loadFactor" } ?: false
+      val isOpenJdkImpl = hashMapClass.readRecordFields()
+        .any { hashMapClass.instanceFieldName(it) == "loadFactor" }
 
-      return if (isOpenJdkImpl) {
-        val linkedHashMapClass = graph.findClassByName("java.util.LinkedHashMap")
-        // Initially Entry, changed to Node in JDK 1.8
-        val nodeClassName = if (graph.findClassByName("java.util.HashMap\$Entry") != null) {
-          "java.util.HashMap\$Entry"
-        } else {
-          "java.util.HashMap\$Node"
-        }
-
-        val hashMapClassId = hashMapClass!!.objectId
-        val linkedHashMapClassId = linkedHashMapClass?.objectId ?: 0
-        MatchingInstanceExpander { instance ->
-          val instanceClassId = instance.instanceClassId
-          if (instanceClassId == hashMapClassId || instanceClassId == linkedHashMapClassId) {
-            val instanceClass = instance.instanceClass
-            val table = instance["java.util.HashMap", "table"]!!.valueAsObjectArray
-            // Latest OpenJDK starts with a null table until an entry is added.
-            if (table != null) {
-              val entries = table.readElements().mapNotNull { entryRef ->
-                if (entryRef.isNonNullReference) {
-                  val entry = entryRef.asObject!!.asInstance!!
-                  generateSequence(entry) { node ->
-                    node[nodeClassName, "next"]!!.valueAsInstance
-                  }
-                } else {
-                  null
-                }
-              }.flatten()
-              entries.flatMap { entry ->
-                val key = entry[nodeClassName, "key"]!!.value
-                val keyRef = if (key.isNonNullReference) {
-                  HeapInstanceOutgoingRef(
-                    declaringClass = instanceClass,
-                    // All entries are represented by the same key name, "key()"
-                    name = "key()",
-                    objectId = key.asObjectId!!,
-                    isArrayLike = true
-                  )
-                } else null
-
-                val value = entry[nodeClassName, "value"]!!.value
-                val valueRef = if (value.isNonNullReference) {
-                  val keyAsName = key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
-                  HeapInstanceOutgoingRef(
-                    declaringClass = instanceClass,
-                    name = keyAsName,
-                    objectId = value.asObjectId!!,
-                    isArrayLike = true
-                  )
-                } else null
-                sequenceOf(keyRef, valueRef)
-              }.filterNotNull().toList()
-            } else {
-              null
-            }
-          } else {
-            null
-          }
-        }
-      } else {
-        null
+      if (!isOpenJdkImpl) {
+        return null
       }
+
+      val linkedHashMapClass = graph.findClassByName("java.util.LinkedHashMap")
+      // Initially Entry, changed to Node in JDK 1.8
+      val nodeClassName = if (graph.findClassByName("java.util.HashMap\$Entry") != null) {
+        "java.util.HashMap\$Entry"
+      } else {
+        "java.util.HashMap\$Node"
+      }
+
+      val hashMapClassId = hashMapClass.objectId
+      val linkedHashMapClassId = linkedHashMapClass?.objectId ?: 0
+
+      return InternalSharedHashMapExpander(
+        hashMapClassName = "java.util.HashMap",
+        tableFieldName = "table",
+        nodeClassName = nodeClassName,
+        nodeNextFieldName = "next",
+        nodeKeyFieldName = "key",
+        nodeValueFieldName = "value",
+        keyName = "key()",
+        keysOnly = false,
+        matches = {
+          val instanceClassId = it.instanceClassId
+          instanceClassId == hashMapClassId ||  instanceClassId == linkedHashMapClassId
+        },
+        declaringClass = { it.instanceClass }
+      )
     }
   },
 
   // TODO Ordering tests? for lists and maps
   // TODO Better key names? whatever I did in sharkapp?
-  // Can all hashmap impls share the same core code with some params?
+  // Can all hashmap impls share the same core code with some params? Also array list? and others?
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/concurrent/ConcurrentHashMap.java
   // Note: structure of impl shared by OpenJDK & Apache Harmony.
   CONCURRENT_HASH_MAP {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
-      val hashMapClass = graph.findClassByName("java.util.concurrent.ConcurrentHashMap")
+      val hashMapClass =
+        graph.findClassByName("java.util.concurrent.ConcurrentHashMap") ?: return null
 
-      return if (hashMapClass != null) {
-        val hashMapClassId = hashMapClass.objectId
-        MatchingInstanceExpander { instance ->
-          val instanceClassId = instance.instanceClassId
-          if (instanceClassId == hashMapClassId) {
-            val instanceClass = instance.instanceClass
-            val table = instance["java.util.concurrent.ConcurrentHashMap", "table"]!!.valueAsObjectArray
-            // Starts with a null table until an entry is added.
-            if (table != null) {
-              val entries = table.readElements().mapNotNull { entryRef ->
-                if (entryRef.isNonNullReference) {
-                  val entry = entryRef.asObject!!.asInstance!!
-                  generateSequence(entry) { node ->
-                    node["java.util.concurrent.ConcurrentHashMap\$Node", "next"]!!.valueAsInstance
-                  }
-                } else {
-                  null
-                }
-              }.flatten()
-              entries.flatMap { entry ->
-                val key = entry["java.util.concurrent.ConcurrentHashMap\$Node", "key"]!!.value
-                val keyRef = if (key.isNonNullReference) {
-                  HeapInstanceOutgoingRef(
-                    declaringClass = instanceClass,
-                    // All entries are represented by the same key name, "key()"
-                    name = "key()",
-                    objectId = key.asObjectId!!,
-                    isArrayLike = true
-                  )
-                } else null
-
-                val value = entry["java.util.concurrent.ConcurrentHashMap\$Node", "val"]!!.value
-                val valueRef = if (value.isNonNullReference) {
-                  val keyAsName = key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
-                  HeapInstanceOutgoingRef(
-                    declaringClass = instanceClass,
-                    name = keyAsName,
-                    objectId = value.asObjectId!!,
-                    isArrayLike = true
-                  )
-                } else null
-                sequenceOf(keyRef, valueRef)
-              }.filterNotNull().toList()
-            } else {
-              null
-            }
-          } else {
-            null
-          }
-        }
-      } else {
-        null
-      }
+      val hashMapClassId = hashMapClass.objectId
+      return InternalSharedHashMapExpander(
+        hashMapClassName = "java.util.concurrent.ConcurrentHashMap",
+        tableFieldName = "table",
+        nodeClassName = "java.util.concurrent.ConcurrentHashMap\$Node",
+        nodeNextFieldName = "next",
+        nodeKeyFieldName = "key",
+        nodeValueFieldName = "val",
+        keyName = "key()",
+        keysOnly = false,
+        matches = { it.instanceClassId == hashMapClassId },
+        declaringClass = { it.instanceClass }
+      )
     }
   },
 
@@ -273,65 +204,44 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
    */
   HASH_SET {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
-      val hashSetClass = graph.findClassByName("java.util.HashSet")
+      val hashSetClass = graph.findClassByName("java.util.HashSet") ?: return null
 
-      val isOpenJdkImpl = hashSetClass?.readRecordFields()
-        ?.any { hashSetClass.instanceFieldName(it) == "map" } ?: false
+      val isOpenJdkImpl = hashSetClass.readRecordFields()
+        .any { hashSetClass.instanceFieldName(it) == "map" }
 
-      return if (isOpenJdkImpl) {
-        val linkedHashSetClass = graph.findClassByName("java.util.LinkedHashSet")
-        // Initially Entry, changed to Node in JDK 1.8
-        val nodeClassName = if (graph.findClassByName("java.util.HashMap\$Entry") != null) {
-          "java.util.HashMap\$Entry"
-        } else {
-          "java.util.HashMap\$Node"
-        }
+      if (!isOpenJdkImpl) {
+        return null
+      }
 
-        val hashSetClassId = hashSetClass!!.objectId
-        val linkedHashSetClassId = linkedHashSetClass?.objectId ?: 0
-        MatchingInstanceExpander { instance ->
-          val instanceClassId = instance.instanceClassId
-          if (instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId) {
-            val instanceClass = instance.instanceClass
-            // "HashSet.map" is never null.
-            val map = instance["java.util.HashSet", "map"]!!.valueAsInstance!!
-            val table = map["java.util.HashMap", "table"]!!.valueAsObjectArray
-            // Latest OpenJDK starts with a null table until an entry is added.
-            if (table != null) {
-              val entries = table.readElements().mapNotNull { entryRef ->
-                if (entryRef.isNonNullReference) {
-                  val entry = entryRef.asObject!!.asInstance!!
-                  generateSequence(entry) { node ->
-                    node[nodeClassName, "next"]!!.valueAsInstance
-                  }
-                } else {
-                  null
-                }
-              }.flatten()
-
-              entries.mapNotNull { entry ->
-                val key = entry[nodeClassName, "key"]!!.value
-                if (key.isNonNullReference) {
-                  HeapInstanceOutgoingRef(
-                    declaringClass = instanceClass,
-                    // All entries are represented by the same key name, "element()"
-                    name = "element()",
-                    objectId = key.asObjectId!!,
-                    isArrayLike = true
-                  )
-                } else {
-                  null
-                }
-              }.toList()
-            } else {
-              null
-            }
-          } else {
-            null
-          }
-        }
+      val linkedHashSetClass = graph.findClassByName("java.util.LinkedHashSet")
+      // Initially Entry, changed to Node in JDK 1.8
+      val nodeClassName = if (graph.findClassByName("java.util.HashMap\$Entry") != null) {
+        "java.util.HashMap\$Entry"
       } else {
-        null
+        "java.util.HashMap\$Node"
+      }
+      val hashSetClassId = hashSetClass.objectId
+      val linkedHashSetClassId = linkedHashSetClass?.objectId ?: 0
+      return MatchingInstanceExpander { instance ->
+        val instanceClassId = instance.instanceClassId
+        if (instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId) {
+          // "HashSet.map" is never null.
+          val map = instance["java.util.HashSet", "map"]!!.valueAsInstance!!
+          InternalSharedHashMapExpander(
+            hashMapClassName = "java.util.HashMap",
+            tableFieldName = "table",
+            nodeClassName = nodeClassName,
+            nodeNextFieldName = "next",
+            nodeKeyFieldName = "key",
+            nodeValueFieldName = "value",
+            keyName = "element()",
+            keysOnly = true,
+            matches = { true },
+            declaringClass = { instance.instanceClass }
+          ).expandOutgoingRefs(map)
+        } else {
+          null
+        }
       }
     }
   }
