@@ -1,5 +1,6 @@
 package shark.internal
 
+import shark.FieldInstanceExpander
 import shark.GcRoot.ThreadObject
 import shark.HeapGraph
 import shark.HeapObject.HeapClass
@@ -140,7 +141,7 @@ class ObjectDominators {
   ): Map<Long, DominatorNode> {
     val pathFinder = PathFinder(
       graph,
-      OnAnalysisProgressListener.NO_OP, ignoredRefs
+      OnAnalysisProgressListener.NO_OP, FieldInstanceExpander(graph),  ignoredRefs
     )
     val nativeSizeMapper = AndroidNativeSizeMapper(graph)
     val nativeSizes = nativeSizeMapper.mapNativeSizes()

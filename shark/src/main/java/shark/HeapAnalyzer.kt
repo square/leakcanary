@@ -39,7 +39,6 @@ import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.internal.AndroidNativeSizeMapper
 import shark.internal.DominatorTree
-import shark.internal.KeyedWeakReferenceMirror
 import shark.internal.PathFinder
 import shark.internal.PathFinder.PathFindingResults
 import shark.internal.ReferencePathNode
@@ -64,7 +63,8 @@ class HeapAnalyzer constructor(
     val graph: HeapGraph,
     val referenceMatchers: List<ReferenceMatcher>,
     val computeRetainedHeapSize: Boolean,
-    val objectInspectors: List<ObjectInspector>
+    val objectInspectors: List<ObjectInspector>,
+    val instanceExpander: InstanceExpander
   )
 
   /**
@@ -78,7 +78,8 @@ class HeapAnalyzer constructor(
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-    proguardMapping: ProguardMapping? = null
+    proguardMapping: ProguardMapping? = null,
+    instanceExpander: (HeapGraph) -> InstanceExpander = { FieldInstanceExpander(it) }
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -97,7 +98,13 @@ class HeapAnalyzer constructor(
       val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
       sourceProvider.openHeapGraph(proguardMapping).use { graph ->
         val helpers =
-          FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
+          FindLeakInput(
+            graph,
+            referenceMatchers,
+            computeRetainedHeapSize,
+            objectInspectors,
+            instanceExpander(graph)
+          )
         val result = helpers.analyzeGraph(
           metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
         )
@@ -130,12 +137,16 @@ class HeapAnalyzer constructor(
     referenceMatchers: List<ReferenceMatcher> = emptyList(),
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
-    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP
+    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
+    instanceExpander: InstanceExpander = FieldInstanceExpander(graph)
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
     return try {
       val helpers =
-        FindLeakInput(graph, referenceMatchers, computeRetainedHeapSize, objectInspectors)
+        FindLeakInput(
+          graph, referenceMatchers, computeRetainedHeapSize, objectInspectors,
+          instanceExpander
+        )
       helpers.analyzeGraph(
         metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
       )
@@ -192,7 +203,7 @@ class HeapAnalyzer constructor(
   )
 
   private fun FindLeakInput.findLeaks(leakingObjectIds: Set<Long>): LeaksAndUnreachableObjects {
-    val pathFinder = PathFinder(graph, listener, referenceMatchers)
+    val pathFinder = PathFinder(graph, listener, instanceExpander, referenceMatchers)
     val pathFindingResults =
       pathFinder.findPathsFromGcRoots(leakingObjectIds, computeRetainedHeapSize)
 
@@ -318,11 +329,11 @@ class HeapAnalyzer constructor(
     if (pathIndex == path.lastIndex) {
       parentNode.children[objectId] = LeafNode(objectId, pathNode)
     } else {
-      val childNode = parentNode.children[objectId] ?: {
+      val childNode = parentNode.children[objectId] ?: run {
         val newChildNode = ParentNode(objectId)
         parentNode.children[objectId] = newChildNode
         newChildNode
-      }()
+      }
       if (childNode is ParentNode) {
         updateTrie(pathNode, path, pathIndex + 1, childNode)
       }
@@ -434,7 +445,7 @@ class HeapAnalyzer constructor(
   private fun FindLeakInput.computeRetainedSizes(
     inspectedObjectsByPath: List<List<InspectedObject>>,
     dominatorTree: DominatorTree
-  ): Map<Long, Pair<Int, Int>>? {
+  ): Map<Long, Pair<Int, Int>> {
     val nodeObjectIds = inspectedObjectsByPath.flatMap { inspectedObjects ->
       inspectedObjects.filter { it.leakingStatus == UNKNOWN || it.leakingStatus == LEAKING }
         .map { it.heapObject.objectId }

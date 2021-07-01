@@ -173,3 +173,10 @@ public final class shark/AndroidServices {
 	public final fun getAliveAndroidServiceObjectIds (Lshark/HeapGraph;)Ljava/util/List;
 }
 
+public abstract class shark/ApacheHarmonyInstanceExpanders : java/lang/Enum, kotlin/jvm/functions/Function1 {
+	public static final field LINKED_LIST Lshark/ApacheHarmonyInstanceExpanders;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/ApacheHarmonyInstanceExpanders;
+	public static fun values ()[Lshark/ApacheHarmonyInstanceExpanders;
+}
+

@@ -20,6 +20,11 @@ public final class shark/ApplicationLeak : shark/Leak {
 public final class shark/ApplicationLeak$Companion {
 }
 
+public final class shark/FieldInstanceExpander : shark/InstanceExpander {
+	public fun <init> (Lshark/HeapGraph;)V
+	public fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
+}
+
 public final class shark/FilteringLeakingObjectFinder : shark/LeakingObjectFinder {
 	public fun <init> (Ljava/util/List;)V
 	public fun findLeakingObjectIds (Lshark/HeapGraph;)Ljava/util/Set;
@@ -107,16 +112,28 @@ public final class shark/HeapAnalysisSuccess$Companion {
 
 public final class shark/HeapAnalyzer {
 	public fun <init> (Lshark/OnAnalysisProgressListener;)V
-	public final fun analyze (Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;)Lshark/HeapAnalysis;
-	public final fun analyze (Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;)Lshark/HeapAnalysis;
-	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;ILjava/lang/Object;)Lshark/HeapAnalysis;
-	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;ILjava/lang/Object;)Lshark/HeapAnalysis;
+	public final fun analyze (Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/InstanceExpander;)Lshark/HeapAnalysis;
+	public final fun analyze (Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;Lkotlin/jvm/functions/Function1;)Lshark/HeapAnalysis;
+	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/InstanceExpander;ILjava/lang/Object;)Lshark/HeapAnalysis;
+	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lshark/HeapAnalysis;
+}
+
+public final class shark/HeapInstanceOutgoingRef {
+	public fun <init> (Lshark/HeapObject$HeapClass;Ljava/lang/String;JZ)V
+	public final fun getDeclaringClass ()Lshark/HeapObject$HeapClass;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getObjectId ()J
+	public final fun isArrayLike ()Z
 }
 
 public final class shark/IgnoredReferenceMatcher : shark/ReferenceMatcher {
 	public fun <init> (Lshark/ReferencePattern;)V
 	public fun getPattern ()Lshark/ReferencePattern;
 	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class shark/InstanceExpander {
+	public abstract fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
 }
 
 public final class shark/KeyedWeakReferenceFinder : shark/LeakingObjectFinder {
@@ -307,6 +324,20 @@ public final class shark/LibraryLeakReferenceMatcher : shark/ReferenceMatcher {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class shark/MatchingChainedInstanceExpander : shark/InstanceExpander {
+	public static final field Companion Lshark/MatchingChainedInstanceExpander$Companion;
+	public fun <init> (Ljava/util/List;Lshark/FieldInstanceExpander;)V
+	public fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
+}
+
+public final class shark/MatchingChainedInstanceExpander$Companion {
+	public final fun factory (Ljava/util/List;)Lkotlin/jvm/functions/Function1;
+}
+
+public abstract interface class shark/MatchingInstanceExpander {
+	public abstract fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
+}
+
 public abstract interface class shark/MetadataExtractor {
 	public static final field Companion Lshark/MetadataExtractor$Companion;
 	public abstract fun extractMetadata (Lshark/HeapGraph;)Ljava/util/Map;
@@ -378,6 +409,13 @@ public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {
 	public static final field REPORTING_HEAP_ANALYSIS Lshark/OnAnalysisProgressListener$Step;
 	public static fun valueOf (Ljava/lang/String;)Lshark/OnAnalysisProgressListener$Step;
 	public static fun values ()[Lshark/OnAnalysisProgressListener$Step;
+}
+
+public abstract class shark/OpenJdkInstanceExpanders : java/lang/Enum, kotlin/jvm/functions/Function1 {
+	public static final field LINKED_LIST Lshark/OpenJdkInstanceExpanders;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/OpenJdkInstanceExpanders;
+	public static fun values ()[Lshark/OpenJdkInstanceExpanders;
 }
 
 public abstract class shark/ReferenceMatcher {
