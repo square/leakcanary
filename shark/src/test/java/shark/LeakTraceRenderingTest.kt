@@ -248,8 +248,8 @@ class LeakTraceRenderingTest {
     │                    ~~~~~
     ├─ java.lang.Object[] array
     │    Leaking: UNKNOWN
-    │    ↓ Object[].[0]
-    │               ~~~
+    │    ↓ Object[0]
+    │            ~~~
     ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
@@ -270,8 +270,8 @@ class LeakTraceRenderingTest {
     │
     ├─ MyThread thread
     │    Leaking: UNKNOWN
-    │    ↓ MyThread.<Java Local>
-    │               ~~~~~~~~~~~~
+    │    ↓ MyThread<Java Local>
+    │              ~~~~~~~~~~~~
     ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc

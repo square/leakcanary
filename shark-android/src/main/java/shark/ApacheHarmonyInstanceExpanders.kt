@@ -58,8 +58,9 @@ enum class ApacheHarmonyInstanceExpanders : (HeapGraph) -> MatchingInstanceExpan
           if (instance.instanceClassId == arrayListClassObjectId) {
             val instanceClass = instance.instanceClass
             // "ArrayList.array" is never null
-            val elementData = instance["java.util.ArrayList", "array"]!!.valueAsObjectArray!!.readElements()
-            val size =  instance["java.util.ArrayList", "size"]!!.value.asInt!!
+            val elementData =
+              instance["java.util.ArrayList", "array"]!!.valueAsObjectArray!!.readElements()
+            val size = instance["java.util.ArrayList", "size"]!!.value.asInt!!
             elementData.take(size).withIndex()
               .mapNotNull { (index, elementValue) ->
                 if (elementValue.isNonNullReference) {
@@ -95,7 +96,8 @@ enum class ApacheHarmonyInstanceExpanders : (HeapGraph) -> MatchingInstanceExpan
           if (instance.instanceClassId == arrayListClassObjectId) {
             val instanceClass = instance.instanceClass
             // "CopyOnWriteArrayList.elements" is never null
-            val elements = instance["java.util.concurrent.CopyOnWriteArrayList", "elements"]!!.valueAsObjectArray!!.readElements()
+            val elements =
+              instance["java.util.concurrent.CopyOnWriteArrayList", "elements"]!!.valueAsObjectArray!!.readElements()
             elements.withIndex()
               .mapNotNull { (index, elementValue) ->
                 if (elementValue.isNonNullReference) {
@@ -120,6 +122,9 @@ enum class ApacheHarmonyInstanceExpanders : (HeapGraph) -> MatchingInstanceExpan
   },
 
   // https://cs.android.com/android/platform/superproject/+/android-6.0.1_r81:libcore/luni/src/main/java/java/util/HashMap.java
+  /**
+   * Handles HashMap & LinkedHashMap
+   */
   HASH_MAP {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
       val hashMapClass = graph.findClassByName("java.util.HashMap")
@@ -138,38 +143,101 @@ enum class ApacheHarmonyInstanceExpanders : (HeapGraph) -> MatchingInstanceExpan
           val instanceClassId = instance.instanceClassId
           if (instanceClassId == hashMapClassId || instanceClassId == linkedHashMapClassId) {
             val instanceClass = instance.instanceClass
-            val table = instance["java.util.HashMap", "table"]!!.valueAsObjectArray
-            // Latest OpenJDK starts with a null table until an entry is added.
-            if (table != null) {
-              val entries = table.readElements().mapNotNull { entryRef ->
-                if (entryRef.isNonNullReference) {
-                  val entry = entryRef.asObject!!.asInstance!!
-                  generateSequence(entry) { node ->
-                    node["java.util.HashMap\$HashMapEntry", "next"]!!.valueAsInstance
-                  }
-                } else {
-                  null
+            // table is never
+            val table = instance["java.util.HashMap", "table"]!!.valueAsObjectArray!!
+            val entries = table.readElements().mapNotNull { entryRef ->
+              if (entryRef.isNonNullReference) {
+                val entry = entryRef.asObject!!.asInstance!!
+                generateSequence(entry) { node ->
+                  node["java.util.HashMap\$HashMapEntry", "next"]!!.valueAsInstance
                 }
-              }.flatten()
+              } else {
+                null
+              }
+            }.flatten()
+            entries.flatMap { entry ->
+              val key = entry["java.util.HashMap\$HashMapEntry", "key"]!!.value
+              val keyRef = if (key.isNonNullReference) {
+                HeapInstanceOutgoingRef(
+                  declaringClass = instanceClass,
+                  // All entries are represented by the same key name, "key()"
+                  name = "key()",
+                  objectId = key.asObjectId!!,
+                  isArrayLike = true
+                )
+              } else null
 
-              entries.mapNotNull { entry ->
-                val value = entry["java.util.HashMap\$HashMapEntry", "value"]!!.value
-                if (value.isNonNullReference) {
-                  val key = entry["java.util.HashMap\$HashMapEntry", "key"]!!.value.asObject
-                  val keyAsName = key?.asInstance?.readAsJavaString() ?: key?.toString() ?: "null"
-                  HeapInstanceOutgoingRef(
-                    declaringClass = instanceClass,
-                    name = keyAsName,
-                    objectId = value.asObjectId!!,
-                    isArrayLike = true
-                  )
-                } else {
-                  null
+              val value = entry["java.util.HashMap\$HashMapEntry", "value"]!!.value
+              val valueRef = if (value.isNonNullReference) {
+                val keyAsName =
+                  key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
+                HeapInstanceOutgoingRef(
+                  declaringClass = instanceClass,
+                  name = keyAsName,
+                  objectId = value.asObjectId!!,
+                  isArrayLike = true
+                )
+              } else null
+              sequenceOf(keyRef, valueRef)
+            }.filterNotNull().toList()
+          } else {
+            null
+          }
+        }
+      } else {
+        null
+      }
+    }
+  },
+
+  // https://cs.android.com/android/platform/superproject/+/android-6.0.1_r81:libcore/luni/src/main/java/java/util/HashSet.java
+  /**
+   * Handles HashSet & LinkedHashSet
+   */
+  HASH_SET {
+    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+      val hashSetClass = graph.findClassByName("java.util.HashSet")
+
+      val isApacheHarmonyImpl = hashSetClass?.readRecordFields()
+        ?.any { hashSetClass.instanceFieldName(it) == "backingMap" } ?: false
+
+      return if (isApacheHarmonyImpl) {
+        val linkedHashSetClass = graph.findClassByName("java.util.LinkedHashSet")
+        val hashSetClassId = hashSetClass!!.objectId
+        val linkedHashSetClassId = linkedHashSetClass?.objectId ?: 0
+        MatchingInstanceExpander { instance ->
+          val instanceClassId = instance.instanceClassId
+          if (instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId) {
+            val instanceClass = instance.instanceClass
+            // "HashSet.map" is never null.
+            val map = instance["java.util.HashSet", "backingMap"]!!.valueAsInstance!!
+            // table is never null
+            val table = map["java.util.HashMap", "table"]!!.valueAsObjectArray!!
+            val entries = table.readElements().mapNotNull { entryRef ->
+              if (entryRef.isNonNullReference) {
+                val entry = entryRef.asObject!!.asInstance!!
+                generateSequence(entry) { node ->
+                  node["java.util.HashMap\$HashMapEntry", "next"]!!.valueAsInstance
                 }
-              }.toList()
-            } else {
-              null
-            }
+              } else {
+                null
+              }
+            }.flatten()
+
+            entries.mapNotNull { entry ->
+              val key = entry["java.util.HashMap\$HashMapEntry", "key"]!!.value
+              if (key.isNonNullReference) {
+                HeapInstanceOutgoingRef(
+                  declaringClass = instanceClass,
+                  // All entries are represented by the same key name, "element()"
+                  name = "element()",
+                  objectId = key.asObjectId!!,
+                  isArrayLike = true
+                )
+              } else {
+                null
+              }
+            }.toList()
           } else {
             null
           }
@@ -179,5 +247,6 @@ enum class ApacheHarmonyInstanceExpanders : (HeapGraph) -> MatchingInstanceExpan
       }
     }
   }
+
   ;
 }

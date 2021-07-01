@@ -15,15 +15,11 @@ import shark.internal.FieldIdReader
 import kotlin.LazyThreadSafetyMode.NONE
 
 /**
- * TODO Implement this for all major types + major Android types.
- *
- * linked hash map
- *
- * Message
- *
- *   // TODO Support Vector, HashSet, Android message, ThreadLocal$ThreadLocalMap$Entry
- * // LinkedHashSet
- * // ThreadLocal$Values.table
+ * TODO Support Vector, Android message, ThreadLocal$ThreadLocalMap$Entry
+ * ConcurrentHashMap =>  single for open jdk & harmony, very similar to hashmap. could
+ * also merge the 3.
+ * ThreadLocal$Values.table
+ * LinkedHashMap
  *
  * MessageQueue.mMessages => Message.callback, Message.obj
  *  => should emit Message objects instead of obj + callback
