@@ -165,7 +165,6 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
                   null
                 }
               }.flatten()
-              // TODO Port this to harmony
               entries.flatMap { entry ->
                 val key = entry[nodeClassName, "key"]!!.value
                 val keyRef = if (key.isNonNullReference) {
@@ -179,6 +178,72 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
                 } else null
 
                 val value = entry[nodeClassName, "value"]!!.value
+                val valueRef = if (value.isNonNullReference) {
+                  val keyAsName = key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
+                  HeapInstanceOutgoingRef(
+                    declaringClass = instanceClass,
+                    name = keyAsName,
+                    objectId = value.asObjectId!!,
+                    isArrayLike = true
+                  )
+                } else null
+                sequenceOf(keyRef, valueRef)
+              }.filterNotNull().toList()
+            } else {
+              null
+            }
+          } else {
+            null
+          }
+        }
+      } else {
+        null
+      }
+    }
+  },
+
+  // TODO Ordering tests? for lists and maps
+  // TODO Better key names? whatever I did in sharkapp?
+  // Can all hashmap impls share the same core code with some params?
+
+  // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/concurrent/ConcurrentHashMap.java
+  // Note: structure of impl shared by OpenJDK & Apache Harmony.
+  CONCURRENT_HASH_MAP {
+    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+      val hashMapClass = graph.findClassByName("java.util.concurrent.ConcurrentHashMap")
+
+      return if (hashMapClass != null) {
+        val hashMapClassId = hashMapClass.objectId
+        MatchingInstanceExpander { instance ->
+          val instanceClassId = instance.instanceClassId
+          if (instanceClassId == hashMapClassId) {
+            val instanceClass = instance.instanceClass
+            val table = instance["java.util.concurrent.ConcurrentHashMap", "table"]!!.valueAsObjectArray
+            // Starts with a null table until an entry is added.
+            if (table != null) {
+              val entries = table.readElements().mapNotNull { entryRef ->
+                if (entryRef.isNonNullReference) {
+                  val entry = entryRef.asObject!!.asInstance!!
+                  generateSequence(entry) { node ->
+                    node["java.util.concurrent.ConcurrentHashMap\$Node", "next"]!!.valueAsInstance
+                  }
+                } else {
+                  null
+                }
+              }.flatten()
+              entries.flatMap { entry ->
+                val key = entry["java.util.concurrent.ConcurrentHashMap\$Node", "key"]!!.value
+                val keyRef = if (key.isNonNullReference) {
+                  HeapInstanceOutgoingRef(
+                    declaringClass = instanceClass,
+                    // All entries are represented by the same key name, "key()"
+                    name = "key()",
+                    objectId = key.asObjectId!!,
+                    isArrayLike = true
+                  )
+                } else null
+
+                val value = entry["java.util.concurrent.ConcurrentHashMap\$Node", "val"]!!.value
                 val valueRef = if (value.isNonNullReference) {
                   val keyAsName = key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
                   HeapInstanceOutgoingRef(

@@ -9,6 +9,7 @@ import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.OpenJdkInstanceExpanders.LINKED_LIST
 import java.io.File
 import java.util.LinkedList
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
 class OpenJdkInstanceExpandersTest {
@@ -196,6 +197,58 @@ class OpenJdkInstanceExpandersTest {
 
     with(refPath.first()) {
       assertThat(owningClassName).isEqualTo(LinkedHashMap::class.qualifiedName)
+    }
+  }
+
+  @Test fun `ConcurrentHashMap expanded`() {
+    val map = ConcurrentHashMap<Any, Any>()
+    map[SomeKey()] = Retained()
+    leakRoot = map
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.CONCURRENT_HASH_MAP)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(ConcurrentHashMap::class.qualifiedName)
+    }
+  }
+
+  @Test fun `ConcurrentHashMap key expanded`() {
+    val map = ConcurrentHashMap<Any, Any>()
+    map[Retained()] = "value"
+    leakRoot = map
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.CONCURRENT_HASH_MAP)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(ConcurrentHashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("[key()]")
+    }
+  }
+
+  @Test fun `ConcurrentHashMap no expander`() {
+    val map = ConcurrentHashMap<Any, Any>()
+    map[SomeKey()] = Retained()
+    leakRoot = map
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).hasSize(3)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(ConcurrentHashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("table")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo("java.util.concurrent.ConcurrentHashMap\$Node[]")
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+    with(refPath[2]) {
+      assertThat(owningClassName).isEqualTo("java.util.concurrent.ConcurrentHashMap\$Node")
+      assertThat(referenceDisplayName).isEqualTo("val")
     }
   }
 
