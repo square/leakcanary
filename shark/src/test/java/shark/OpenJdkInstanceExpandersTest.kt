@@ -170,6 +170,21 @@ class OpenJdkInstanceExpandersTest {
     }
   }
 
+  @Test fun `HashMap key expanded`() {
+    val map = HashMap<Any, Any>()
+    map[Retained()] = "value"
+    leakRoot = map
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(HashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("[key()]")
+    }
+  }
+
   @Test fun `LinkedHashMap expanded`() {
     val map = LinkedHashMap<Any, Any>()
     map[SomeKey()] = Retained()
@@ -228,6 +243,65 @@ class OpenJdkInstanceExpandersTest {
 
     with(refPath.first()) {
       assertThat(referenceDisplayName).isEqualTo("[StringKey]")
+    }
+  }
+
+  @Test fun `HashSet expanded`() {
+    val set = HashSet<Any>()
+    set += Retained()
+    leakRoot = set
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_SET)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(HashSet::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("[element()]")
+    }
+  }
+
+  @Test fun `LinkedHashSet expanded`() {
+    val set = LinkedHashSet<Any>()
+    set += Retained()
+    leakRoot = set
+
+    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_SET)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(LinkedHashSet::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("[element()]")
+    }
+  }
+
+
+  @Test fun `HashSet no expander`() {
+    val set = HashSet<Any>()
+    set += Retained()
+    leakRoot = set
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).hasSize(4)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(HashSet::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("map")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo(HashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("table")
+    }
+    with(refPath[2]) {
+      assertThat(owningClassName).isEqualTo("java.util.HashMap\$Node[]")
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+    with(refPath[3]) {
+      assertThat(owningClassName).isEqualTo("java.util.HashMap\$Node")
+      assertThat(referenceDisplayName).isEqualTo("key" +
+        "")
     }
   }
 

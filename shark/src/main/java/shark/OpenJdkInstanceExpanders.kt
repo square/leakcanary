@@ -59,21 +59,22 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
           if (instance.instanceClassId == arrayListClassObjectId) {
             val instanceClass = instance.instanceClass
             // "ArrayList.elementData" is never null
-            val elementData = instance["java.util.ArrayList", "elementData"]!!.valueAsObjectArray!!.readElements()
-            val size =  instance["java.util.ArrayList", "size"]!!.value.asInt!!
+            val elementData =
+              instance["java.util.ArrayList", "elementData"]!!.valueAsObjectArray!!.readElements()
+            val size = instance["java.util.ArrayList", "size"]!!.value.asInt!!
             elementData.take(size).withIndex()
               .mapNotNull { (index, elementValue) ->
-              if (elementValue.isNonNullReference) {
-                HeapInstanceOutgoingRef(
-                  declaringClass = instanceClass,
-                  name = "$index",
-                  objectId = elementValue.asObjectId!!,
-                  isArrayLike = true
-                )
-              } else {
-                null
-              }
-            }.toList()
+                if (elementValue.isNonNullReference) {
+                  HeapInstanceOutgoingRef(
+                    declaringClass = instanceClass,
+                    name = "$index",
+                    objectId = elementValue.asObjectId!!,
+                    isArrayLike = true
+                  )
+                } else {
+                  null
+                }
+              }.toList()
           } else {
             null
           }
@@ -96,7 +97,8 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
           if (instance.instanceClassId == arrayListClassObjectId) {
             val instanceClass = instance.instanceClass
             // "CopyOnWriteArrayList.array" is never null
-            val array = instance["java.util.concurrent.CopyOnWriteArrayList", "array"]!!.valueAsObjectArray!!.readElements()
+            val array =
+              instance["java.util.concurrent.CopyOnWriteArrayList", "array"]!!.valueAsObjectArray!!.readElements()
             array.withIndex()
               .mapNotNull { (index, elementValue) ->
                 if (elementValue.isNonNullReference) {
@@ -163,16 +165,93 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
                   null
                 }
               }.flatten()
+              // TODO Port this to harmony
+              entries.flatMap { entry ->
+                val key = entry[nodeClassName, "key"]!!.value
+                val keyRef = if (key.isNonNullReference) {
+                  HeapInstanceOutgoingRef(
+                    declaringClass = instanceClass,
+                    // All entries are represented by the same key name, "key()"
+                    name = "key()",
+                    objectId = key.asObjectId!!,
+                    isArrayLike = true
+                  )
+                } else null
 
-              entries.mapNotNull { entry ->
                 val value = entry[nodeClassName, "value"]!!.value
-                if (value.isNonNullReference) {
-                  val key = entry[nodeClassName, "key"]!!.value.asObject
-                  val keyAsName = key?.asInstance?.readAsJavaString() ?: key?.toString() ?: "null"
+                val valueRef = if (value.isNonNullReference) {
+                  val keyAsName = key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
                   HeapInstanceOutgoingRef(
                     declaringClass = instanceClass,
                     name = keyAsName,
                     objectId = value.asObjectId!!,
+                    isArrayLike = true
+                  )
+                } else null
+                sequenceOf(keyRef, valueRef)
+              }.filterNotNull().toList()
+            } else {
+              null
+            }
+          } else {
+            null
+          }
+        }
+      } else {
+        null
+      }
+    }
+  },
+
+  /**
+   * Handles HashSet & LinkedHashSet
+   */
+  HASH_SET {
+    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+      val hashSetClass = graph.findClassByName("java.util.HashSet")
+
+      val isOpenJdkImpl = hashSetClass?.readRecordFields()
+        ?.any { hashSetClass.instanceFieldName(it) == "map" } ?: false
+
+      return if (isOpenJdkImpl) {
+        val linkedHashSetClass = graph.findClassByName("java.util.LinkedHashSet")
+        // Initially Entry, changed to Node in JDK 1.8
+        val nodeClassName = if (graph.findClassByName("java.util.HashMap\$Entry") != null) {
+          "java.util.HashMap\$Entry"
+        } else {
+          "java.util.HashMap\$Node"
+        }
+
+        val hashSetClassId = hashSetClass!!.objectId
+        val linkedHashSetClassId = linkedHashSetClass?.objectId ?: 0
+        MatchingInstanceExpander { instance ->
+          val instanceClassId = instance.instanceClassId
+          if (instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId) {
+            val instanceClass = instance.instanceClass
+            // "HashSet.map" is never null.
+            val map = instance["java.util.HashSet", "map"]!!.valueAsInstance!!
+            val table = map["java.util.HashMap", "table"]!!.valueAsObjectArray
+            // Latest OpenJDK starts with a null table until an entry is added.
+            if (table != null) {
+              val entries = table.readElements().mapNotNull { entryRef ->
+                if (entryRef.isNonNullReference) {
+                  val entry = entryRef.asObject!!.asInstance!!
+                  generateSequence(entry) { node ->
+                    node[nodeClassName, "next"]!!.valueAsInstance
+                  }
+                } else {
+                  null
+                }
+              }.flatten()
+
+              entries.mapNotNull { entry ->
+                val key = entry[nodeClassName, "key"]!!.value
+                if (key.isNonNullReference) {
+                  HeapInstanceOutgoingRef(
+                    declaringClass = instanceClass,
+                    // All entries are represented by the same key name, "element()"
+                    name = "element()",
+                    objectId = key.asObjectId!!,
                     isArrayLike = true
                   )
                 } else {
