@@ -1,6 +1,8 @@
 package shark
 
+import shark.internal.InternalSharedArrayListExpander
 import shark.internal.InternalSharedHashMapExpander
+import shark.internal.InternalSharedLinkedListExpander
 
 /**
  * Defines [MatchingInstanceExpander] factories for common OpenJDK data structures.
@@ -13,114 +15,62 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/LinkedList.java
   LINKED_LIST {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
-      val linkedListClass = graph.findClassByName("java.util.LinkedList")
-      val isOpenJdkImpl = linkedListClass?.readRecordFields()
-        ?.any { linkedListClass.instanceFieldName(it) == "first" } ?: false
-      return if (isOpenJdkImpl) {
-        val linkedListClassObjectId = linkedListClass!!.objectId
-        MatchingInstanceExpander { instance ->
-          if (instance.instanceClassId == linkedListClassObjectId) {
-            val instanceClass = instance.instanceClass
-            // "LinkedList.first" may be null, in that case we generate an empty sequence.
-            val firstNode = instance["java.util.LinkedList", "first"]!!.valueAsInstance
-            generateSequence(firstNode) { node ->
-              node["java.util.LinkedList\$Node", "next"]!!.valueAsInstance
-            }
-              .withIndex()
-              .mapNotNull { (index, node) ->
-                val itemObjectId = node["java.util.LinkedList\$Node", "item"]!!.value.asObjectId
-                itemObjectId?.run {
-                  HeapInstanceOutgoingRef(
-                    declaringClass = instanceClass,
-                    name = "$index",
-                    objectId = this,
-                    isArrayLike = true
-                  )
-                }
-              }
-              .toList()
-          } else {
-            null
-          }
-        }
-      } else {
-        null
+      val linkedListClass = graph.findClassByName("java.util.LinkedList") ?: return null
+      val isOpenJdkImpl = linkedListClass.readRecordFields()
+        .any { linkedListClass.instanceFieldName(it) == "first" }
+
+      if (!isOpenJdkImpl) {
+        return null
       }
+      return InternalSharedLinkedListExpander(
+        classObjectId = linkedListClass.objectId,
+        headFieldName = "first",
+        nodeClassName = "java.util.LinkedList\$Node",
+        nodeNextFieldName = "next",
+        nodeElementFieldName = "item",
+      )
     }
   },
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/ArrayList.java
   ARRAY_LIST {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
-      val arrayListClass = graph.findClassByName("java.util.ArrayList")
-      val isOpenJdkImpl = arrayListClass?.readRecordFields()
-        ?.any { arrayListClass.instanceFieldName(it) == "elementData" } ?: false
-      return if (isOpenJdkImpl) {
-        val arrayListClassObjectId = arrayListClass!!.objectId
-        MatchingInstanceExpander { instance ->
-          if (instance.instanceClassId == arrayListClassObjectId) {
-            val instanceClass = instance.instanceClass
-            // "ArrayList.elementData" is never null
-            val elementData =
-              instance["java.util.ArrayList", "elementData"]!!.valueAsObjectArray!!.readElements()
-            val size = instance["java.util.ArrayList", "size"]!!.value.asInt!!
-            elementData.take(size).withIndex()
-              .mapNotNull { (index, elementValue) ->
-                if (elementValue.isNonNullReference) {
-                  HeapInstanceOutgoingRef(
-                    declaringClass = instanceClass,
-                    name = "$index",
-                    objectId = elementValue.asObjectId!!,
-                    isArrayLike = true
-                  )
-                } else {
-                  null
-                }
-              }.toList()
-          } else {
-            null
-          }
-        }
-      } else {
-        null
+      val arrayListClass = graph.findClassByName("java.util.ArrayList") ?: return null
+
+      val isOpenJdkImpl = arrayListClass.readRecordFields()
+        .any { arrayListClass.instanceFieldName(it) == "elementData" }
+
+      if (!isOpenJdkImpl) {
+        return null
       }
+
+      return InternalSharedArrayListExpander(
+        className = "java.util.ArrayList",
+        classObjectId = arrayListClass.objectId,
+        elementArrayName = "elementData",
+        sizeFieldName = "size",
+      )
     }
   },
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/concurrent/CopyOnWriteArrayList.java;bpv=0;bpt=1
   COPY_ON_WRITE_ARRAY_LIST {
     override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
-      val arrayListClass = graph.findClassByName("java.util.concurrent.CopyOnWriteArrayList")
-      val isOpenJdkImpl = arrayListClass?.readRecordFields()
-        ?.any { arrayListClass.instanceFieldName(it) == "array" } ?: false
-      return if (isOpenJdkImpl) {
-        val arrayListClassObjectId = arrayListClass!!.objectId
-        MatchingInstanceExpander { instance ->
-          if (instance.instanceClassId == arrayListClassObjectId) {
-            val instanceClass = instance.instanceClass
-            // "CopyOnWriteArrayList.array" is never null
-            val array =
-              instance["java.util.concurrent.CopyOnWriteArrayList", "array"]!!.valueAsObjectArray!!.readElements()
-            array.withIndex()
-              .mapNotNull { (index, elementValue) ->
-                if (elementValue.isNonNullReference) {
-                  HeapInstanceOutgoingRef(
-                    declaringClass = instanceClass,
-                    name = "$index",
-                    objectId = elementValue.asObjectId!!,
-                    isArrayLike = true
-                  )
-                } else {
-                  null
-                }
-              }.toList()
-          } else {
-            null
-          }
-        }
-      } else {
-        null
+      val arrayListClass = graph.findClassByName("java.util.concurrent.CopyOnWriteArrayList") ?: return null
+
+      val isOpenJdkImpl = arrayListClass.readRecordFields()
+        .any { arrayListClass.instanceFieldName(it) == "array" }
+
+      if (!isOpenJdkImpl) {
+        return null
       }
+
+      return InternalSharedArrayListExpander(
+        className = "java.util.concurrent.CopyOnWriteArrayList",
+        classObjectId = arrayListClass.objectId,
+        elementArrayName = "array",
+        sizeFieldName = null,
+      )
     }
   },
 
@@ -155,7 +105,7 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
       val linkedHashMapClassId = linkedHashMapClass?.objectId ?: 0
 
       return InternalSharedHashMapExpander(
-        hashMapClassName = "java.util.HashMap",
+        className = "java.util.HashMap",
         tableFieldName = "table",
         nodeClassName = nodeClassName,
         nodeNextFieldName = "next",
@@ -165,7 +115,7 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
         keysOnly = false,
         matches = {
           val instanceClassId = it.instanceClassId
-          instanceClassId == hashMapClassId ||  instanceClassId == linkedHashMapClassId
+          instanceClassId == hashMapClassId || instanceClassId == linkedHashMapClassId
         },
         declaringClass = { it.instanceClass }
       )
@@ -185,7 +135,7 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
 
       val hashMapClassId = hashMapClass.objectId
       return InternalSharedHashMapExpander(
-        hashMapClassName = "java.util.concurrent.ConcurrentHashMap",
+        className = "java.util.concurrent.ConcurrentHashMap",
         tableFieldName = "table",
         nodeClassName = "java.util.concurrent.ConcurrentHashMap\$Node",
         nodeNextFieldName = "next",
@@ -228,7 +178,7 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
           // "HashSet.map" is never null.
           val map = instance["java.util.HashSet", "map"]!!.valueAsInstance!!
           InternalSharedHashMapExpander(
-            hashMapClassName = "java.util.HashMap",
+            className = "java.util.HashMap",
             tableFieldName = "table",
             nodeClassName = nodeClassName,
             nodeNextFieldName = "next",
