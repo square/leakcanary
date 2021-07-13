@@ -1,20 +1,22 @@
 package androidx.test.orchestrator.instrumentationlistener
 
-import android.os.Bundle
-import androidx.test.orchestrator.callback.OrchestratorCallback
+import androidx.test.internal.events.client.OrchestratedInstrumentationListener
+import androidx.test.internal.events.client.TestRunEventService
+import androidx.test.services.events.run.TestRunEvent
 
 internal fun OrchestratedInstrumentationListener.delegateSendTestNotification(
-  onSendTestNotification: (Bundle, (Bundle) -> Unit) -> Unit
+  onSendTestNotification: (TestRunEvent, (TestRunEvent) -> Unit) -> Unit
 ) {
-  val realCallback = odoCallback
-
-  val sendTestNotificationCallback: (Bundle) -> Unit = { bundle ->
-    realCallback.sendTestNotification(bundle)
-  }
-
-  odoCallback = object : OrchestratorCallback by realCallback {
-    override fun sendTestNotification(bundle: Bundle) {
-      onSendTestNotification(bundle, sendTestNotificationCallback)
+  OrchestratedInstrumentationListener::class.java.getDeclaredField("notificationService")
+    .run {
+      isAccessible = true
+      val notificationService = get(this@delegateSendTestNotification) as TestRunEventService
+      val sendTestRunEventCallback: (TestRunEvent) -> Unit = { event ->
+        notificationService.send(event)
+      }
+      set(this@delegateSendTestNotification,
+        TestRunEventService { event ->
+          onSendTestNotification(event, sendTestRunEventCallback)
+        })
     }
-  }
 }
