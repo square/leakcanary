@@ -16,7 +16,7 @@ public abstract interface annotation class leakcanary/FailTestOnLeak : java/lang
 
 public class leakcanary/FailTestOnLeakRunListener : org/junit/runner/notification/RunListener {
 	public fun <init> ()V
-	protected final fun failTest (Ljava/lang/String;)V
+	protected final fun failTest (Ljava/lang/Throwable;)V
 	protected fun onAnalysisPerformed (Lshark/HeapAnalysis;)V
 	protected fun skipLeakDetectionReason (Lorg/junit/runner/Description;)Ljava/lang/String;
 	public fun testAssumptionFailure (Lorg/junit/runner/notification/Failure;)V

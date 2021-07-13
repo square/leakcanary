@@ -1,6 +1,7 @@
 package leakcanary.internal
 
-import androidx.test.orchestrator.instrumentationlistener.OrchestratedInstrumentationListener
+import androidx.test.internal.events.client.OrchestratedInstrumentationListener
+import androidx.test.internal.events.client.TestEventClient
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.AndroidJUnitRunner
 import org.junit.runner.Description
@@ -12,19 +13,12 @@ internal interface TestResultPublisher {
 
   fun publishTestFailure(
     description: Description,
-    trace: String
+    exception: Throwable
   )
 
   companion object {
     fun install(): TestResultPublisher {
-      val instrumentation = InstrumentationRegistry.getInstrumentation()
-      val orchestratorListener = if (instrumentation is AndroidJUnitRunner) {
-        AndroidJUnitRunner::class.java.getDeclaredField("orchestratorListener")
-          .run {
-            isAccessible = true
-            get(instrumentation) as OrchestratedInstrumentationListener?
-          }
-      } else null
+      val orchestratorListener = getOrchestratorListener()
       return if (orchestratorListener != null) {
         SharkLog.d { "Android Test Orchestrator detected, failures will be sent via binder callback" }
         OrchestratorTestResultPublisher(orchestratorListener)
@@ -34,4 +28,18 @@ internal interface TestResultPublisher {
       }
     }
   }
+}
+
+private fun getOrchestratorListener(): OrchestratedInstrumentationListener? {
+  return (InstrumentationRegistry.getInstrumentation() as? AndroidJUnitRunner)?.let { instrumentation->
+      try {
+        AndroidJUnitRunner::class.java.getDeclaredField("testEventClient")
+          .run {
+            isAccessible = true
+            (get(instrumentation) as TestEventClient?)?.runListener as? OrchestratedInstrumentationListener?
+          }
+      } catch (e: NoSuchFieldException) {
+        null
+      }
+    }
 }

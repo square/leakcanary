@@ -1,55 +1,57 @@
 package leakcanary.internal
 
-import android.os.Bundle
-import androidx.test.orchestrator.instrumentationlistener.OrchestratedInstrumentationListener
+import androidx.test.internal.events.client.OrchestratedInstrumentationListener
 import androidx.test.orchestrator.instrumentationlistener.delegateSendTestNotification
-import androidx.test.orchestrator.junit.ParcelableDescription
-import androidx.test.orchestrator.junit.ParcelableFailure
-import androidx.test.orchestrator.junit.ParcelableResult
-import androidx.test.orchestrator.listeners.OrchestrationListenerManager.KEY_TEST_EVENT
-import androidx.test.orchestrator.listeners.OrchestrationListenerManager.TestEvent.TEST_FAILURE
-import androidx.test.orchestrator.listeners.OrchestrationListenerManager.TestEvent.TEST_FINISHED
-import androidx.test.orchestrator.listeners.OrchestrationListenerManager.TestEvent.TEST_RUN_FINISHED
+import androidx.test.services.events.FailureInfo
+import androidx.test.services.events.ParcelableConverter.getTestCaseFromDescription
+import androidx.test.services.events.run.TestFailureEvent
+import androidx.test.services.events.run.TestFinishedEvent
+import androidx.test.services.events.run.TestRunFinishedEvent
 import org.junit.runner.Description
+import org.junit.runner.notification.Failure
 
 internal class OrchestratorTestResultPublisher(listener: OrchestratedInstrumentationListener) :
   TestResultPublisher {
 
   private var sendTestFinished: (() -> Unit)? = null
 
-  private var failureBundle: Bundle? = null
+  private var failureInfo: FailureInfo? = null
 
   private var receivedTestFinished: Boolean = false
 
   init {
-    val failures = mutableListOf<ParcelableFailure>()
-    listener.delegateSendTestNotification { testEventBundle, sendTestNotification ->
+    val failures = mutableListOf<FailureInfo>()
 
-      when (testEventBundle.getString(KEY_TEST_EVENT)) {
-        TEST_FINISHED.toString() -> {
+    listener.delegateSendTestNotification { testEvent, sendTestRunEvent ->
+      when(testEvent) {
+        is TestFinishedEvent -> {
           sendTestFinished = {
-            failureBundle?.let { failureBundle ->
-              failures += failureBundle.get("failure") as ParcelableFailure
-              sendTestNotification(failureBundle)
+            failureInfo?.let { failureInfo ->
+              failures += failureInfo
+              sendTestRunEvent(TestFailureEvent(
+                testEvent.testCase,
+                failureInfo
+              ))
             }
-            sendTestNotification(testEventBundle)
+            sendTestRunEvent(testEvent)
             // reset for next test if any.
             sendTestFinished = null
-            failureBundle = null
+            failureInfo = null
             receivedTestFinished = false
           }
           if (receivedTestFinished) {
             sendTestFinished!!.invoke()
           }
         }
-        TEST_RUN_FINISHED.toString() -> {
+        is TestRunFinishedEvent -> {
           if (failures.isNotEmpty()) {
-            val result = testEventBundle.get("result") as ParcelableResult
-            result.failures += failures
+            testEvent.failures += failures
           }
-          sendTestNotification(testEventBundle)
+          sendTestRunEvent(testEvent)
         }
-        else -> sendTestNotification(testEventBundle)
+        else -> {
+          sendTestRunEvent(testEvent)
+        }
       }
     }
   }
@@ -61,15 +63,13 @@ internal class OrchestratorTestResultPublisher(listener: OrchestratedInstrumenta
 
   override fun publishTestFailure(
     description: Description,
-    trace: String
+    exception: Throwable
   ) {
-    val result = Bundle()
-    val failure = ParcelableFailure(
-      ParcelableDescription(description),
-      RuntimeException(trace)
-    )
-    result.putParcelable("failure", failure)
-    result.putString(KEY_TEST_EVENT, TEST_FAILURE.toString())
-    this.failureBundle = result
+    val testCase = getTestCaseFromDescription(description)
+
+    val failure = Failure(description, exception)
+
+    this.failureInfo = FailureInfo(
+      failure.message, failure.testHeader, failure.trace, testCase)
   }
 }

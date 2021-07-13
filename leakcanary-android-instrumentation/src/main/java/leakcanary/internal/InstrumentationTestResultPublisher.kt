@@ -2,6 +2,7 @@ package leakcanary.internal
 
 import android.app.Instrumentation.REPORT_KEY_IDENTIFIER
 import android.os.Bundle
+import android.util.Log
 import androidx.test.internal.runner.listener.InstrumentationResultPrinter.REPORT_KEY_NAME_CLASS
 import androidx.test.internal.runner.listener.InstrumentationResultPrinter.REPORT_KEY_NAME_TEST
 import androidx.test.internal.runner.listener.InstrumentationResultPrinter.REPORT_KEY_STACK
@@ -16,13 +17,13 @@ internal class InstrumentationTestResultPublisher : TestResultPublisher {
 
   override fun publishTestFailure(
     description: Description,
-    trace: String
+    exception: Throwable
   ) {
     val bundle = Bundle()
     bundle.putString(REPORT_KEY_IDENTIFIER, FailTestOnLeakRunListener::class.java.name)
     bundle.putString(REPORT_KEY_NAME_CLASS, description.className)
     bundle.putString(REPORT_KEY_NAME_TEST, description.methodName)
-    bundle.putString(REPORT_KEY_STACK, trace)
+    bundle.putString(REPORT_KEY_STACK, Log.getStackTraceString(exception))
 
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     instrumentation.sendStatus(REPORT_VALUE_RESULT_FAILURE, bundle)
