@@ -2,14 +2,17 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 // Required to run obfuscated instrumentation tests:
 // ./gradlew leakcanary-android-sample:connectedCheck -Pminify
-apply plugin: 'com.slack.keeper'
+if (hasProperty("minify")) {
+  apply plugin: 'com.slack.keeper'
+}
 
 buildscript {
   repositories {
     maven { url 'https://plugins.gradle.org/m2/' }
+    google()
   }
   dependencies {
-    classpath 'com.slack.keeper:keeper:0.2.0'
+    classpath 'com.slack.keeper:keeper:0.11.0'
   }
 }
 
