@@ -1,5 +1,6 @@
 plugins {
   id("org.jetbrains.kotlin.jvm")
+  id("com.vanniktech.maven.publish")
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
@@ -16,5 +17,3 @@ dependencies {
   testImplementation deps.okio
   testImplementation project(':shark-hprof-test')
 }
-
-apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

@@ -1,5 +1,6 @@
 plugins {
   id("org.jetbrains.kotlin.jvm")
+  id("com.vanniktech.maven.publish")
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
@@ -11,5 +12,3 @@ dependencies {
   testImplementation deps.assertj_core
   testImplementation deps.junit
 }
-
-apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
