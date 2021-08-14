@@ -117,9 +117,11 @@ class LegacyHprofTest {
               } else {
                 NOT_ACTIVITY
               }
-            } else throw IllegalStateException(
-              "Unexpected, should have 1 leaking status ${reporter.leakingReasons} or one label ${reporter.labels}"
-            )
+            } else {
+              throw IllegalStateException(
+                "Unexpected, should have 1 leaking status ${reporter.leakingReasons} or one label ${reporter.labels}"
+              )
+            }
           }
           .toList()
       }

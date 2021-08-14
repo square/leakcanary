@@ -111,35 +111,51 @@ ${applicationLeaks.size} APPLICATION LEAKS
 References underlined with "~~~" are likely causes.
 Learn more at https://squ.re/leaks.
 ${
-      if (applicationLeaks.isNotEmpty()) "\n" + applicationLeaks.joinToString(
-        "\n\n"
-      ) + "\n" else ""
+      if (applicationLeaks.isNotEmpty()) {
+        "\n" + applicationLeaks.joinToString(
+          "\n\n"
+        ) + "\n"
+      } else {
+        ""
+      }
     }====================================
 ${libraryLeaks.size} LIBRARY LEAKS
 
 A Library Leak is a leak caused by a known bug in 3rd party code that you do not have control over.
 See https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks
 ${
-      if (libraryLeaks.isNotEmpty()) "\n" + libraryLeaks.joinToString(
-        "\n\n"
-      ) + "\n" else ""
+      if (libraryLeaks.isNotEmpty()) {
+        "\n" + libraryLeaks.joinToString(
+          "\n\n"
+        ) + "\n"
+      } else {
+        ""
+      }
     }====================================
 ${unreachableObjects.size} UNREACHABLE OBJECTS
 
 An unreachable object is still in memory but LeakCanary could not find a strong reference path
 from GC roots.
 ${
-      if (unreachableObjects.isNotEmpty()) "\n" + unreachableObjects.joinToString(
-        "\n\n"
-      ) + "\n" else ""
+      if (unreachableObjects.isNotEmpty()) {
+        "\n" + unreachableObjects.joinToString(
+          "\n\n"
+        ) + "\n"
+      } else {
+        ""
+      }
     }====================================
 METADATA
 
 Please include this in bug reports and Stack Overflow questions.
 ${
-      if (metadata.isNotEmpty()) "\n" + metadata.map { "${it.key}: ${it.value}" }.joinToString(
-        "\n"
-      ) else ""
+      if (metadata.isNotEmpty()) {
+        "\n" + metadata.map { "${it.key}: ${it.value}" }.joinToString(
+          "\n"
+        )
+      } else {
+        ""
+      }
     }
 Analysis duration: $analysisDurationMillis ms
 Heap dump file path: ${heapDumpFile.absolutePath}

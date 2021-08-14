@@ -160,13 +160,17 @@ internal class DisplayLeakAdapter constructor(
 
     val styledClassName = styledClassSimpleName()
     var htmlString =
-      if (packageEnd != -1) "${
-        extra(
-          className.substring(
-            0, packageEnd
+      if (packageEnd != -1) {
+        "${
+          extra(
+            className.substring(
+              0, packageEnd
+            )
           )
-        )
-      }.$styledClassName" else styledClassName
+        }.$styledClassName"
+      } else {
+        styledClassName
+      }
     htmlString += " ${extra(typeName)}<br>"
 
     val reachabilityString = when (leakingStatus) {
@@ -226,14 +230,17 @@ internal class DisplayLeakAdapter constructor(
           END_FIRST_UNREACHABLE
         } else END
       } else {
-        val reachability = leakTrace.referencePath[elementIndex(position)].originObject
+        val reachability = leakTrace.referencePath[elementIndex(position)]
+          .originObject
         when (reachability.leakingStatus) {
           UNKNOWN -> return NODE_UNKNOWN
           NOT_LEAKING -> {
             val nextReachability =
-              if (position + 1 == count - 1) leakTrace.leakingObject else leakTrace.referencePath[elementIndex(
-                position + 1
-              )].originObject
+              if (position + 1 == count - 1) {
+                leakTrace.leakingObject
+              } else {
+                leakTrace.referencePath[elementIndex(position + 1)].originObject
+              }
             return if (nextReachability.leakingStatus != NOT_LEAKING) {
               NODE_LAST_REACHABLE
             } else {
