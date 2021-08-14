@@ -17,7 +17,7 @@ android {
   lintOptions {
     disable 'GoogleAppIndexingWarning'
     error 'ObsoleteSdkInt'
-    check 'Interoperability'
+    enable 'Interoperability'
   }
 }
 

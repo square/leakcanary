@@ -26,7 +26,7 @@ android {
 
   lintOptions {
     disable 'GoogleAppIndexingWarning'
-    check 'Interoperability'
+    enable 'Interoperability'
   }
 
   // TODO replace with https://issuetracker.google.com/issues/72050365 once released.
