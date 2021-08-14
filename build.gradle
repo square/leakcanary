@@ -35,7 +35,7 @@ buildscript {
       clikt: 'com.github.ajalt:clikt:2.3.0',
       curtains: 'com.squareup.curtains:curtains:1.0.1',
       jline: 'jline:jline:2.14.6',
-      detekt: 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.6.0',
+      detekt: 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.18.0',
       junit: 'junit:junit:4.12',
       kotlin: [
           binaryCompatibilityValidatorPlugin: "org.jetbrains.kotlinx:binary-compatibility-validator:0.6.0",

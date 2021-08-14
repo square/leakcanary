@@ -48,6 +48,7 @@ import kotlin.math.max
 /**
  * This class is not thread safe, should be used from a single thread.
  */
+@Suppress("LongParameterList")
 internal class HprofInMemoryIndex private constructor(
   private val positionSize: Int,
   private val hprofStringCache: LongObjectScatterMap<String>,
@@ -299,6 +300,7 @@ internal class HprofInMemoryIndex private constructor(
     return hprofStringCache[id] ?: throw IllegalArgumentException("Hprof string $id not in cache")
   }
 
+  @Suppress("LongParameterList")
   private class Builder(
     longIdentifiers: Boolean,
     maxPosition: Long,

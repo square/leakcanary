@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:Suppress("MandatoryBracesIfStatements")
+
 package shark.internal.aosp
 
 /*
@@ -105,10 +107,11 @@ private constructor(
     val len = a.size / entrySize
     val newArray = ByteArray(
       entrySize *
-        if (len < 2 * INITIAL_TMP_STORAGE_LENGTH)
+        if (len < 2 * INITIAL_TMP_STORAGE_LENGTH) {
           len.ushr(1)
-        else
+        } else {
           INITIAL_TMP_STORAGE_LENGTH
+        }
     )
     tmp = newArray
     /*
@@ -121,11 +124,12 @@ private constructor(
          * computation below must be changed if MIN_MERGE is decreased.  See
          * the MIN_MERGE declaration above for more information.
          */
-    val stackLen = if (len < 120)
-      5
-    else if (len < 1542)
-      10
-    else if (len < 119151) 19 else 40
+    val stackLen = when {
+      len < 120 -> 5
+      len < 1542 -> 10
+      len < 119151 -> 19
+      else -> 40
+    }
     runBase = IntArray(stackLen)
     runLen = IntArray(stackLen)
   }
@@ -160,9 +164,11 @@ private constructor(
   private fun mergeCollapse() {
     while (stackSize > 1) {
       var n = stackSize - 2
+      @Suppress("ComplexCondition")
       if (n >= 1 && runLen[n - 1] <= runLen[n] + runLen[n + 1] || n >= 2 && runLen[n - 2] <= runLen[n] + runLen[n - 1]) {
-        if (runLen[n - 1] < runLen[n + 1])
+        if (runLen[n - 1] < runLen[n + 1]) {
           n--
+        }
       } else if (runLen[n] > runLen[n + 1]) {
         break // Invariant is established
       }
@@ -177,8 +183,9 @@ private constructor(
   private fun mergeForceCollapse() {
     while (stackSize > 1) {
       var n = stackSize - 2
-      if (n > 0 && runLen[n - 1] < runLen[n + 1])
+      if (n > 0 && runLen[n - 1] < runLen[n + 1]) {
         n--
+      }
       mergeAt(n)
     }
   }
@@ -219,8 +226,9 @@ private constructor(
     if (DEBUG) assert(k >= 0)
     base1 += k
     len1 -= k
-    if (len1 == 0)
+    if (len1 == 0) {
       return
+    }
     /*
          * Find where the last element of run1 goes in run2. Subsequent elements
          * in run2 can be ignored (because they're already in place).
@@ -252,6 +260,7 @@ private constructor(
    * (must be aBase + aLen)
    * @param len2  length of second run to be merged (must be > 0)
    */
+  @Suppress("LongMethod", "ComplexMethod")
   private fun mergeLo(
     base1: Int,
     len1: Int,
@@ -409,6 +418,7 @@ private constructor(
    * (must be aBase + aLen)
    * @param len2  length of second run to be merged (must be > 0)
    */
+  @Suppress("LongMethod", "ComplexMethod")
   private fun mergeHi(
     base1: Int,
     len1: Int,
@@ -727,6 +737,7 @@ private constructor(
      * not already known to be sorted (@code lo <= start <= hi}
      * @param c comparator to used for the sort
      */
+    @Suppress("LongParameterList")
     private fun binarySort(
       a: ByteArray,
       lo: Int,
@@ -928,6 +939,7 @@ private constructor(
      * the first k elements of a should precede key, and the last n - k
      * should follow it.
      */
+    @Suppress("LongParameterList")
     private fun gallopLeft(
       keyArray: ByteArray,
       // Index already divided by entrySize
@@ -1008,6 +1020,7 @@ private constructor(
      * @param c the comparator used to order the range, and to search
      * @return the int k,  0 <= k <= n such that a[b + k - 1] <= key < a[b + k]
      */
+    @Suppress("LongParameterList")
     private fun gallopRight(
       keyArray: ByteArray,
       // Index already divided by entrySize

@@ -50,6 +50,7 @@ sealed class HprofRecord {
     ) : HeapDumpRecord()
 
     sealed class ObjectRecord : HeapDumpRecord() {
+      @Suppress("LongParameterList")
       class ClassDumpRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,

@@ -107,6 +107,7 @@ class SortedBytesMapTest {
     )
   }
 
+  @Suppress("EqualsWithHashCodeExist")
   class Entry(
     val key: Long,
     val value: ByteArray

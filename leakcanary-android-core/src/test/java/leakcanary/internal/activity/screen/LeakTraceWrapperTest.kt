@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package leakcanary.internal.activity.screen
 
 import org.assertj.core.api.Assertions.assertThat
