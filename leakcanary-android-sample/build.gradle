@@ -3,7 +3,7 @@ plugins {
   id("org.jetbrains.kotlin.android")
   // Required to run obfuscated instrumentation tests:
   // ./gradlew leakcanary-android-sample:connectedCheck -Pminify
-  id("com.slack.keeper") version "0.7.0"
+  id("com.slack.keeper") version "0.11.0"
 }
 
 keeper {
