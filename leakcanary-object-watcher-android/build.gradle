@@ -1,5 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.vanniktech.maven.publish'
 
 dependencies {
   api project(':leakcanary-object-watcher')
@@ -31,5 +32,3 @@ android {
     buildConfig = false
   }
 }
-
-apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

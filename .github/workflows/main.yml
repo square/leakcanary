@@ -47,10 +47,7 @@ jobs:
           java-version: 11
 
       - name: Deploy snapshot
-        run: ./gradlew uploadArchives
-        env:
-          ORG_GRADLE_PROJECT_SONATYPE_NEXUS_USERNAME: ${{ secrets.SONATYPE_NEXUS_USERNAME }}
-          ORG_GRADLE_PROJECT_SONATYPE_NEXUS_PASSWORD: ${{ secrets.SONATYPE_NEXUS_PASSWORD }}
+        run: ./gradlew uploadArchives -PmavenCentralUsername=${{ secrets.SONATYPE_NEXUS_USERNAME }} -PmavenCentralPassword=${{ secrets.SONATYPE_NEXUS_PASSWORD }}
 
       - name: Cleanup secrets
         if: always()

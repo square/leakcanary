@@ -1,5 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.vanniktech.maven.publish'
 
 dependencies {
   api project(':shark-log')
@@ -18,5 +19,3 @@ android {
     enable 'Interoperability'
   }
 }
-
-apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

@@ -1,3 +1,5 @@
+import org.jetbrains.dokka.gradle.DokkaTask
+
 apply plugin: 'com.github.ben-manes.versions'
 
 buildscript {
@@ -93,26 +95,33 @@ subprojects {
   }
 
   apply plugin: 'net.ltgt.errorprone'
-  apply plugin: 'org.jetbrains.dokka'
   apply plugin: 'io.gitlab.arturbosch.detekt'
 
-  dokka {
-    reportUndocumented = false
-    // BuildConfig files
-    packageOptions {
-      prefix = "com.squareup.leakcanary"
-      suppress = true
+  pluginManager.withPlugin("com.vanniktech.maven.publish") {
+    apply plugin: 'org.jetbrains.dokka'
+    tasks.named("dokkaGfm", DokkaTask.class) {
+      outputDirectory = rootProject.file("docs/api")
+      dokkaSourceSets.configureEach {
+        reportUndocumented.set(false)
+        perPackageOption {
+          // will match all .internal packages and sub-packages
+          matchingRegex.set(".*\\.internal.*")
+          suppress.set(true)
+        }
+        perPackageOption {
+          // BuildConfig files
+          matchingRegex.set("com.squareup.leakcanary\\..*")
+          suppress.set(true)
+        }
+        skipDeprecated.set(true)
+        externalDocumentationLink {
+          url.set(new URL("https://square.github.io/okio/2.x/okio/"))
+        }
+        externalDocumentationLink {
+          url.set(new URL("https://square.github.io/moshi/1.x/moshi/"))
+        }
+      }
     }
-    packageOptions {
-      prefix = "shark.internal"
-      suppress = true
-    }
-    packageOptions {
-      prefix = "leakcanary.internal"
-      suppress = true
-    }
-    outputFormat = 'gfm'
-    outputDirectory = "$rootDir/docs/api"
   }
 
   tasks.withType(JavaCompile) {
