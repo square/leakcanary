@@ -105,7 +105,7 @@ subprojects {
         reportUndocumented.set(false)
         perPackageOption {
           // will match all .internal packages and sub-packages
-          matchingRegex.set(".*\\.internal.*")
+          matchingRegex.set(/.*\.internal.*/)
           suppress.set(true)
         }
         perPackageOption {
