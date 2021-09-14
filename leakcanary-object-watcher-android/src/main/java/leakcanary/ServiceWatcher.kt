@@ -54,6 +54,10 @@ class ServiceWatcher(private val reachabilityWatcher: ReachabilityWatcher) : Ins
           }
         }
         Handler.Callback { msg ->
+          if (msg.obj !is IBinder) {
+            return@Callback false
+          }
+
           if (msg.what == STOP_SERVICE) {
             val key = msg.obj as IBinder
             activityThreadServices[key]?.let {
