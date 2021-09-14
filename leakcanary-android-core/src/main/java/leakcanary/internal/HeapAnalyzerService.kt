@@ -65,7 +65,7 @@ internal class HeapAnalyzerService : ForegroundService(
     val fullHeapAnalysis = when (heapAnalysis) {
       is HeapAnalysisSuccess -> heapAnalysis.copy(
         dumpDurationMillis = heapDumpDurationMillis,
-        metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason)
+        metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason!!)
       )
       is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
     }

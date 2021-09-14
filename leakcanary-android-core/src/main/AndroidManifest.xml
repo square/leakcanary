@@ -43,7 +43,7 @@
         android:label="@string/leak_canary_display_activity_label"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_LeakCanary.Base"
-        >
+        android:exported="true">
       <intent-filter android:label="@string/leak_canary_import_hprof_file">
         <action android:name="android.intent.action.VIEW"/>
 

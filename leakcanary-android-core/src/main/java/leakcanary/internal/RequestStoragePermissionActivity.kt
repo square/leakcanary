@@ -20,7 +20,7 @@ import android.annotation.TargetApi
 import android.app.Activity
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
-import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.app.PendingIntent.FLAG_MUTABLE
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -76,7 +76,7 @@ internal class RequestStoragePermissionActivity : Activity() {
       val intent = Intent(context, RequestStoragePermissionActivity::class.java)
       intent.flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TOP
       val flags = if (Build.VERSION.SDK_INT >= 23) {
-        FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
+        FLAG_MUTABLE
       } else {
         FLAG_UPDATE_CURRENT
       }

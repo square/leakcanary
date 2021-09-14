@@ -25,9 +25,9 @@ internal object TvToast {
     text: CharSequence
   ): Toast {
     val toast: Toast = Toast.makeText(activity, text, Toast.LENGTH_LONG)
-    val textView = toast.view.findViewById<TextView>(android.R.id.message)
-    textView.setCompoundDrawablesWithIntrinsicBounds(R.drawable.leak_canary_icon, 0, 0, 0)
-    textView.compoundDrawablePadding =
+    val textView = toast.view?.findViewById<TextView>(android.R.id.message)
+    textView?.setCompoundDrawablesWithIntrinsicBounds(R.drawable.leak_canary_icon, 0, 0, 0)
+    textView?.compoundDrawablePadding =
       activity.resources.getDimensionPixelSize(R.dimen.leak_canary_toast_icon_tv_padding)
     return toast
   }

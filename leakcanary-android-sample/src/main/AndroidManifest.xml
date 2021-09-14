@@ -32,6 +32,7 @@
     <activity
         android:name=".MainActivity"
         android:banner="@drawable/leak_canary_sample_icon"
+        android:exported="true"
         >
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
