@@ -54,6 +54,10 @@ class ServiceWatcher(private val reachabilityWatcher: ReachabilityWatcher) : Ins
           }
         }
         Handler.Callback { msg ->
+          // https://github.com/square/leakcanary/issues/2114
+          // On some Motorola devices (Moto E5 and G6), the msg.obj returns an ActivityClientRecord
+          // instead of an IBinder. This crashes on a ClassCastException. Adding a type check
+          // here to prevent the crash.
           if (msg.obj !is IBinder) {
             return@Callback false
           }
