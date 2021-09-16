@@ -38,7 +38,7 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
     val leakCanaryPluginAction = Action<AppliedPlugin> {
       val leakCanaryExtension = createLeakCanaryExtension(project)
       val variants = findAndroidVariants(project)
-      variants.all { variant ->
+      variants.configureEach { variant ->
         if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
           setupTasks(project, variant)
         }

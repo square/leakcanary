@@ -7,7 +7,7 @@ on:
 
 jobs:
   checks:
-    runs-on: macOS-latest
+    runs-on: macos-latest
     steps:
 
       - name: Project Checkout
