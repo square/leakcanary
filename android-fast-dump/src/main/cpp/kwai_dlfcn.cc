@@ -26,7 +26,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define LOG_TAG "kwai_dlfcn"
+#define LOG_TAG "LeakCanary-kdl"
 
 #if defined(__arm__)
 #define PRIx "x"

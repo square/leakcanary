@@ -7,41 +7,45 @@ import shark.SharkLog
 import java.io.IOException
 import java.lang.reflect.InvocationTargetException
 
+/**
+ * Delegates to
+ */
 object DumpWrapper {
-  private const val ANDROID_R = Build.VERSION_CODES.Q + 1
-  private val VERSION_MATCH = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP &&
-      Build.VERSION.SDK_INT <= ANDROID_R
+
+  private val fastDumpSupported by lazy {
+    Build.VERSION.SDK_INT in 21..30 && forkAndDumpHprofDataMethod != null
+  }
+
+  private val forkAndDumpHprofDataMethod by lazy {
+    return@lazy try {
+       Class.forName("leakcanary.FastDump")
+        .getDeclaredMethod("forkAndDumpHprofData", String::class.java)
+    } catch (expected: ClassNotFoundException) {
+      // This is expected (FastDump not on the classpath)
+      SharkLog.d { "FastDump not in classpath, falling back to Debug.dumpHprofData()" }
+      null
+    } catch (e: NoSuchMethodException) {
+      SharkLog.d(e) { "Unexpected missing method leakcanary.FastDump#forkAndDumpHprofData" }
+      null
+    }
+  }
 
   @Throws(IOException::class)
   fun dumpHprofData(fileName: String) {
     var fastDumpSuccess = false
-    if (isSupportFastDump()) {
+    if (fastDumpSupported && !isOnMainThread()) {
       try {
-        fastDumpSuccess = forkDumpHprofMethod!!.invoke(null, fileName) as Boolean
+        fastDumpSuccess = forkAndDumpHprofDataMethod!!.invoke(null, fileName) as Boolean
       } catch (e: InvocationTargetException) {
-        SharkLog.d { "Fast dump LoadLibrary failed, error: $e" }
+        SharkLog.d(e) { "Fast dump LoadLibrary failed" }
       }
     }
     if (!fastDumpSuccess) {
-      SharkLog.d { "Fast dump is not supported, fallback to normal dump." }
       Debug.dumpHprofData(fileName)
     }
   }
 
-  private val forkDumpHprofMethod by lazy {
-    try {
-      return@lazy Class.forName("com.squareup.leakcanary.FastDump")
-        .getDeclaredMethod("forkDumpHprof", String::class.java)
-    } catch (e: ClassNotFoundException) {
-      SharkLog.d { "Fast dump is not supported: $e" }
-    } catch (e: NoSuchMethodException) {
-      SharkLog.d { "Fast dump is not supported: $e" }
-    }
-    return@lazy null
-  }
-
-  private fun isSupportFastDump(): Boolean {
-    return VERSION_MATCH && (forkDumpHprofMethod != null) &&
-        Looper.getMainLooper().thread !== Thread.currentThread()
+  private fun isOnMainThread(): Boolean {
+    return Looper.getMainLooper().thread === Thread.currentThread()
   }
 }

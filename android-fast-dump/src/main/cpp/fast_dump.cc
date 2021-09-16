@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <wait.h>
 
-#define LOG_TAG "fast_dump"
+#define LOG_TAG "LeakCanary-fd"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,7 +33,7 @@ void (*HprofDestructor)(void *handle);
 void (*Dump)(void *handle);
 
 JNIEXPORT
-jboolean Java_com_squareup_leakcanary_FastDump_forkDumpHprof(JNIEnv *env,
+jboolean Java_leakcanary_FastDump_forkAndDumpHprofData(JNIEnv *env,
                                                              jclass clazz __attribute__((unused)),
                                                              jstring file_name) {
   pthread_once(&once_control, init);
