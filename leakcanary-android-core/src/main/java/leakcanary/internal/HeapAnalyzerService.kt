@@ -53,7 +53,7 @@ internal class HeapAnalyzerService : ForegroundService(
     // Since we're running in the main process we should be careful not to impact it.
     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
     val heapDumpFile = intent.getSerializableExtra(HEAPDUMP_FILE_EXTRA) as File
-    val heapDumpReason = intent.getStringExtra(HEAPDUMP_REASON_EXTRA)
+    val heapDumpReason = intent.getStringExtra(HEAPDUMP_REASON_EXTRA)!!
     val heapDumpDurationMillis = intent.getLongExtra(HEAPDUMP_DURATION_MILLIS_EXTRA, -1)
 
     val config = LeakCanary.config
@@ -65,7 +65,7 @@ internal class HeapAnalyzerService : ForegroundService(
     val fullHeapAnalysis = when (heapAnalysis) {
       is HeapAnalysisSuccess -> heapAnalysis.copy(
         dumpDurationMillis = heapDumpDurationMillis,
-        metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason!!)
+        metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason)
       )
       is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
     }

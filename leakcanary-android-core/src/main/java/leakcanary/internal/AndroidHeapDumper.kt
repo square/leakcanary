@@ -101,12 +101,12 @@ internal class AndroidHeapDumper(
       toast.view = inflater.inflate(R.layout.leak_canary_heap_dump_toast, null)
       toast.show()
 
-      val toastIcon = toast.view?.findViewById<View>(R.id.leak_canary_toast_icon)
+      val toastIcon = toast.view!!.findViewById<View>(R.id.leak_canary_toast_icon)
       toastIcon?.translationY = -iconSize.toFloat()
       toastIcon
-        ?.animate()
-        ?.translationY(0f)
-        ?.setListener(object : AnimatorListenerAdapter() {
+        .animate()
+        .translationY(0f)
+        .setListener(object : AnimatorListenerAdapter() {
           override fun onAnimationEnd(animation: Animator) {
             waitingForToast.set(toast)
           }
