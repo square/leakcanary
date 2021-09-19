@@ -1,22 +1,20 @@
 # For more information about using CMake with Android Studio, read the
 # documentation: https://d.android.com/studio/projects/add-native-code.html
 
-set(TARGET fast-dump)
+set(TARGET lzma)
 # Sets the minimum version of CMake required to build the native library.
 cmake_minimum_required(VERSION 3.4.1)
 
-project(${TARGET} CXX)
+project(${TARGET} C)
 
-include_directories(
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/
-        ${CMAKE_SOURCE_DIR}/lzma
-)
+add_definitions(-D_7ZIP_ST)
 
-add_subdirectory(lzma)
-
-set(CURRENT_SOURCES fast_dump.cc kwai_dlfcn.cc elf_reader.cc)
-# Workaround for NDK bug: https://github.com/android/ndk/issues/721
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -flto=full")
+set(LZMA_SOURCES 7zAlloc.c 7zArcIn.c 7zBuf2.c 7zBuf.c 7zCrc.c 7zCrcOpt.c
+        7zDec.c 7zFile.c 7zStream.c Aes.c AesOpt.c Alloc.c Bcj2.c
+        Bra86.c Bra.c BraIA64.c CpuArch.c Delta.c LzFind.c
+        Lzma2Dec.c Lzma2Enc.c Lzma86Dec.c Lzma86Enc.c LzmaDec.c LzmaEnc.c
+        LzmaLib.c Ppmd7.c Ppmd7Dec.c Ppmd7Enc.c Sha256.c Sort.c
+        Xz.c XzCrc64.c XzCrc64Opt.c XzDec.c XzEnc.c XzIn.c)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -25,14 +23,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -flto=full")
 add_library( # Sets the name of the library.
         ${TARGET}
 
-        # Sets the library as a shared library.
-        SHARED
+        # Sets the library as a static library.
+        STATIC
 
         # Provides a relative path to your source file(s).
-        ${CURRENT_SOURCES}
+        ${LZMA_SOURCES}
         )
-
-target_compile_options(${TARGET} PRIVATE -Wall -Wextra -Werror -Wno-unused-command-line-argument)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -53,9 +49,6 @@ find_library( # Sets the name of the path variable.
 
 target_link_libraries( # Specifies the target library.
         ${TARGET}
-
-        lzma
-
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})
