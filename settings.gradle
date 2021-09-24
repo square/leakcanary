@@ -19,6 +19,7 @@ pluginManagement {
     }
 }
 include ':plumber-android'
+include ':plumber-android-startup'
 include ':leakcanary-android'
 include ':leakcanary-android-core'
 include ':leakcanary-android-instrumentation'

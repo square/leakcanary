@@ -18,16 +18,17 @@ buildscript {
       // resolution strategy.
       androidGradlePlugin: "com.android.tools.build:gradle:4.0.0",
       androidx: [
-          annotation: 'androidx.annotation:annotation:1.0.2',
-          core: 'androidx.core:core:1.0.1',
-          fragment: 'androidx.fragment:fragment:1.0.0',
-          test: [
-              core: 'androidx.test:core:1.0.0',
-              espresso: 'androidx.test.espresso:espresso-core:3.1.0',
-              rules: 'androidx.test:rules:1.1.0',
-              runner: 'androidx.test:runner:1.1.0',
-              orchestrator: 'androidx.test:orchestrator:1.1.0',
-          ],
+        annotation: 'androidx.annotation:annotation:1.0.2',
+        core      : 'androidx.core:core:1.0.1',
+        fragment  : 'androidx.fragment:fragment:1.0.0',
+        startup   : 'androidx.startup:startup-runtime:1.1.0',
+        test      : [
+          core        : 'androidx.test:core:1.0.0',
+          espresso    : 'androidx.test.espresso:espresso-core:3.1.0',
+          rules       : 'androidx.test:rules:1.1.0',
+          runner      : 'androidx.test:runner:1.1.0',
+          orchestrator: 'androidx.test:orchestrator:1.1.0',
+        ],
       ],
       android_support: 'com.android.support:support-v4:28.0.0',
       clikt: 'com.github.ajalt:clikt:2.3.0',

@@ -1,0 +1,25 @@
+plugins {
+  id("com.android.library")
+  id("org.jetbrains.kotlin.android")
+}
+
+dependencies {
+  api project(':plumber-android')
+  implementation deps.androidx.startup
+}
+
+android {
+  resourcePrefix 'leak_canary_plumber'
+  compileSdkVersion versions.compileSdk
+  defaultConfig {
+    minSdkVersion versions.minSdk
+    consumerProguardFiles 'consumer-proguard-rules.pro'
+  }
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    error 'ObsoleteSdkInt'
+    check 'Interoperability'
+  }
+}
+
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
