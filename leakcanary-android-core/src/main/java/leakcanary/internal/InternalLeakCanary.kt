@@ -46,6 +46,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   // You're wrong https://discuss.kotlinlang.org/t/object-or-top-level-property-name-warning/6621/7
   @Suppress("ObjectPropertyName")
   private var _application: Application? = null
+  @Suppress("ObjectPropertyName")
+  private var _canShowHeapDumpToast: Boolean? = null
 
   val application: Application
     get() {
@@ -60,7 +62,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   @Suppress("unused")
   @JvmStatic
   private var version = BuildConfig.LIBRARY_VERSION
-  private var _canShowHeapDumpToast: Boolean? = null
 
   @Volatile
   var applicationVisible = false
