@@ -83,6 +83,10 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     WATCH,
   }
 
+  val canShowHeapDumpToast by lazy {
+    application.resources.getBoolean(R.bool.leak_canary_enabled_heap_dump_toast)
+  }
+
   val formFactor by lazy {
     val currentModeType =
       (application.getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType

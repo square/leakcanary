@@ -42,10 +42,13 @@ internal class AndroidHeapDumper(
   override fun dumpHeap(): DumpHeapResult {
     val heapDumpFile = leakDirectoryProvider.newHeapDumpFile() ?: return NoHeapDump
 
-    val waitingForToast = FutureResult<Toast?>()
-    showToast(waitingForToast)
+    var waitingForToast: FutureResult<Toast?>? = null
+    if (Notifications.canShowHeapDumpToast) {
+      waitingForToast = FutureResult()
+      showToast(waitingForToast)
+    }
 
-    if (!waitingForToast.wait(5, SECONDS)) {
+    if (waitingForToast != null && !waitingForToast.wait(5, SECONDS)) {
       SharkLog.d { "Did not dump heap, too much time waiting for Toast." }
       return NoHeapDump
     }
@@ -60,7 +63,7 @@ internal class AndroidHeapDumper(
       notificationManager.notify(R.id.leak_canary_notification_dumping_heap, notification)
     }
 
-    val toast = waitingForToast.get()
+    val toast = waitingForToast?.get()
 
     return try {
       val durationMillis = measureDurationMillis {

@@ -31,6 +31,9 @@ internal object Notifications {
   val canShowNotification: Boolean
     get() = canShowBackgroundNotifications || InternalLeakCanary.applicationVisible
 
+  val canShowHeapDumpToast: Boolean
+    get() = InternalLeakCanary.canShowHeapDumpToast
+
   // Instant apps cannot show background notifications
   // See https://github.com/square/leakcanary/issues/1197
   // TV devices also can't do notifications
