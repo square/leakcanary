@@ -22,6 +22,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
+import com.squareup.leakcanary.core.R.bool.leak_canary_enabled_heap_dump_toast
 import leakcanary.AppWatcher
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
@@ -59,6 +60,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   @Suppress("unused")
   @JvmStatic
   private var version = BuildConfig.LIBRARY_VERSION
+  private var _canShowHeapDumpToast: Boolean? = null
 
   @Volatile
   var applicationVisible = false
@@ -84,7 +86,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   }
 
   val canShowHeapDumpToast by lazy {
-    application.resources.getBoolean(R.bool.leak_canary_enabled_heap_dump_toast)
+    _canShowHeapDumpToast ?: application.resources.getBoolean(leak_canary_enabled_heap_dump_toast)
   }
 
   val formFactor by lazy {
@@ -194,7 +196,8 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   }
 
   private fun registerResumedActivityListener(application: Application) {
-    application.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks by noOpDelegate() {
+    application.registerActivityLifecycleCallbacks(object :
+      ActivityLifecycleCallbacks by noOpDelegate() {
       override fun onActivityResumed(activity: Activity) {
         resumedActivity = activity
       }
@@ -333,6 +336,10 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       if (enabled) COMPONENT_ENABLED_STATE_ENABLED else COMPONENT_ENABLED_STATE_DISABLED
     // Blocks on IPC.
     application.packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP)
+  }
+
+  fun setEnabledHeapDumpToast(showHeapDumpToast: Boolean) {
+    _canShowHeapDumpToast = showHeapDumpToast
   }
 
   private const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"

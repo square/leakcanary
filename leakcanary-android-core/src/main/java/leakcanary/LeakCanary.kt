@@ -344,6 +344,22 @@ object LeakCanary {
   }
 
   /**
+   * Dynamically shows / hides the heap dump toast.
+   * Note: you can change the default value by overriding the `leak_canary_enabled_heap_dump_toast`
+   * boolean resource:
+   *
+   * ```
+   * <?xml version="1.0" encoding="utf-8"?>
+   * <resources>
+   *   <bool name="leak_canary_enabled_heap_dump_toast">false</bool>
+   * </resources>
+   * ```
+   */
+  fun showHeapDumpToast(showHeapDumpToast: Boolean) {
+    InternalLeakCanary.setEnabledHeapDumpToast(showHeapDumpToast)
+  }
+
+  /**
    * Immediately triggers a heap dump and analysis, if there is at least one retained instance
    * tracked by [AppWatcher.objectWatcher]. If there are no retained instances then the heap will not
    * be dumped and a notification will be shown instead.
