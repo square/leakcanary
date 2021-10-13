@@ -1,3 +1,23 @@
+pluginManagement {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.android.application") {
+                useModule("com.android.tools.build:gradle:${requested.version}")
+            }
+        }
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.android.library") {
+                useModule("com.android.tools.build:gradle:${requested.version}")
+            }
+        }
+    }
+}
 include ':plumber-android'
 include ':leakcanary-android'
 include ':leakcanary-android-core'
