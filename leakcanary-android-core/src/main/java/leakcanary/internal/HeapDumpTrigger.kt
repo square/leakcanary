@@ -23,6 +23,7 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
+import leakcanary.internal.analyzer.service.HeapAnalyzerService
 import shark.AndroidResourceIdNames
 import shark.SharkLog
 

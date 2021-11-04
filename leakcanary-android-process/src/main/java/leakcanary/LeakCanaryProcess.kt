@@ -30,7 +30,7 @@ object LeakCanaryProcess {
     @Suppress("UNCHECKED_CAST")
     try {
       analyzerServiceClass =
-        Class.forName("leakcanary.internal.HeapAnalyzerService") as Class<out Service>
+        Class.forName("leakcanary.internal.analyzer.service.HeapAnalyzerService") as Class<out Service>
     } catch (e: Exception) {
       return false
     }

@@ -13,27 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.internal
+package leakcanary.internal.analyzer.service
 
 import android.content.Context
 import android.content.Intent
 import android.os.Build.VERSION.SDK_INT
 import android.os.Process
+import androidx.work.*
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
-import shark.HeapAnalysis
-import shark.HeapAnalysisException
-import shark.HeapAnalysisFailure
-import shark.HeapAnalysisSuccess
-import shark.HeapAnalyzer
-import shark.OnAnalysisProgressListener
+import leakcanary.internal.LeakDirectoryProvider
+import leakcanary.internal.analyzer.worker.HeapAnalyzerWorker
+import shark.*
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
-import shark.ProguardMappingReader
-import shark.SharkLog
 import java.io.File
 import java.io.IOException
-import java.util.Locale
+import java.util.*
 
 /**
  * This service runs in a main app process.
@@ -65,7 +61,7 @@ internal class HeapAnalyzerService : ForegroundService(
     val fullHeapAnalysis = when (heapAnalysis) {
       is HeapAnalysisSuccess -> heapAnalysis.copy(
         dumpDurationMillis = heapDumpDurationMillis,
-        metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason)
+        metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason!!)
       )
       is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
     }
@@ -121,10 +117,10 @@ internal class HeapAnalyzerService : ForegroundService(
   }
 
   companion object {
-    private const val HEAPDUMP_FILE_EXTRA = "HEAPDUMP_FILE_EXTRA"
-    private const val HEAPDUMP_DURATION_MILLIS_EXTRA = "HEAPDUMP_DURATION_MILLIS_EXTRA"
-    private const val HEAPDUMP_REASON_EXTRA = "HEAPDUMP_REASON_EXTRA"
-    private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
+    const val HEAPDUMP_FILE_EXTRA = "HEAPDUMP_FILE_EXTRA"
+    const val HEAPDUMP_DURATION_MILLIS_EXTRA = "HEAPDUMP_DURATION_MILLIS_EXTRA"
+    const val HEAPDUMP_REASON_EXTRA = "HEAPDUMP_REASON_EXTRA"
+    const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
 
     fun runAnalysis(
       context: Context,
@@ -132,13 +128,33 @@ internal class HeapAnalyzerService : ForegroundService(
       heapDumpDurationMillis: Long? = null,
       heapDumpReason: String = "Unknown"
     ) {
-      val intent = Intent(context, HeapAnalyzerService::class.java)
-      intent.putExtra(HEAPDUMP_FILE_EXTRA, heapDumpFile)
-      intent.putExtra(HEAPDUMP_REASON_EXTRA, heapDumpReason)
-      heapDumpDurationMillis?.let {
-        intent.putExtra(HEAPDUMP_DURATION_MILLIS_EXTRA, heapDumpDurationMillis)
+      if (SDK_INT < 30) {
+        val intent = Intent(context, HeapAnalyzerService::class.java)
+        intent.putExtra(HEAPDUMP_FILE_EXTRA, heapDumpFile)
+        intent.putExtra(HEAPDUMP_REASON_EXTRA, heapDumpReason)
+        heapDumpDurationMillis?.let {
+          intent.putExtra(HEAPDUMP_DURATION_MILLIS_EXTRA, heapDumpDurationMillis)
+        }
+        startForegroundService(context, intent)
+      } else {
+        val inputData = Data.Builder().apply {
+          put(HEAPDUMP_FILE_EXTRA, heapDumpFile.absolutePath)
+          put(HEAPDUMP_REASON_EXTRA, heapDumpReason)
+          heapDumpDurationMillis?.let {
+            put(HEAPDUMP_DURATION_MILLIS_EXTRA, heapDumpDurationMillis)
+          }
+        }.build()
+        val workManager = WorkManager.getInstance(context)
+        val heapAnalyzerWorker = OneTimeWorkRequest.Builder(HeapAnalyzerWorker::class.java)
+          .setInputData(inputData)
+          .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+          .build()
+        workManager.enqueueUniqueWork(
+          heapAnalyzerWorker.id.toString(),
+          ExistingWorkPolicy.KEEP,
+          heapAnalyzerWorker
+        )
       }
-      startForegroundService(context, intent)
     }
 
     private fun startForegroundService(

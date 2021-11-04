@@ -8,7 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
-import leakcanary.internal.HeapAnalyzerService
+import leakcanary.internal.analyzer.service.HeapAnalyzerService
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.shareHeapDump

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package leakcanary.internal
+package leakcanary.internal.analyzer.service
 
 import android.app.IntentService
 import android.app.Notification
@@ -21,6 +21,7 @@ import android.content.Intent
 import android.os.IBinder
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
+import leakcanary.internal.Notifications
 
 internal abstract class ForegroundService(
   name: String,

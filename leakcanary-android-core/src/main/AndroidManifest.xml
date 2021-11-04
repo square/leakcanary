@@ -41,6 +41,7 @@
         android:name="leakcanary.internal.activity.LeakActivity"
         android:icon="@mipmap/leak_canary_icon"
         android:label="@string/leak_canary_display_activity_label"
+        android:exported="true"
         android:taskAffinity="com.squareup.leakcanary.${applicationId}"
         android:theme="@style/leak_canary_LeakCanary.Base"
         >

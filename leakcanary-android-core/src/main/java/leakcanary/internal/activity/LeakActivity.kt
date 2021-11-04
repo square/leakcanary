@@ -10,7 +10,7 @@ import android.os.Build
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
-import leakcanary.internal.HeapAnalyzerService
+import leakcanary.internal.analyzer.service.HeapAnalyzerService
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db
 import leakcanary.internal.activity.screen.AboutScreen

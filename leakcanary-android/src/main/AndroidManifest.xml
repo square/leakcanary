@@ -19,7 +19,7 @@
 
   <application>
     <service
-        android:name="leakcanary.internal.HeapAnalyzerService"
+        android:name="leakcanary.internal.analyzer.service.HeapAnalyzerService"
         android:exported="false" />
   </application>
 
