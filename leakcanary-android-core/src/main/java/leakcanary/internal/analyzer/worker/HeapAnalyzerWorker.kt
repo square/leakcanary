@@ -13,10 +13,17 @@ import leakcanary.internal.analyzer.service.HeapAnalyzerService
 import leakcanary.internal.analyzer.service.HeapAnalyzerService.Companion.HEAPDUMP_DURATION_MILLIS_EXTRA
 import leakcanary.internal.analyzer.service.HeapAnalyzerService.Companion.HEAPDUMP_FILE_EXTRA
 import leakcanary.internal.analyzer.service.HeapAnalyzerService.Companion.HEAPDUMP_REASON_EXTRA
-import shark.*
+import shark.HeapAnalysis
+import shark.HeapAnalysisException
+import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
+import shark.HeapAnalyzer
+import shark.OnAnalysisProgressListener
+import shark.ProguardMappingReader
+import shark.SharkLog
 import java.io.File
 import java.io.IOException
-import java.util.*
+import java.util.Locale
 
 class HeapAnalyzerWorker(context: Context, params: WorkerParameters) :
   ForegroundWorker(context, params), OnAnalysisProgressListener {

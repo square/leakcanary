@@ -19,17 +19,28 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build.VERSION.SDK_INT
 import android.os.Process
-import androidx.work.*
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.WorkManager
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.internal.analyzer.worker.HeapAnalyzerWorker
-import shark.*
+import shark.HeapAnalysis
+import shark.HeapAnalysisException
+import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
+import shark.HeapAnalyzer
+import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
+import shark.ProguardMappingReader
+import shark.SharkLog
 import java.io.File
 import java.io.IOException
-import java.util.*
+import java.util.Locale
 
 /**
  * This service runs in a main app process.
