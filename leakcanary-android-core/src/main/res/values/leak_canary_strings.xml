@@ -44,7 +44,6 @@
   </plurals>
   <string name="leak_canary_explore_heap_dump">Explore Heap Dump</string>
   <string name="leak_canary_loading_title">Loading…</string>
-  <string name="leak_canary_notification_channel_id">9999</string>
   <string name="leak_canary_notification_analysing">Analyzing Heap Dump</string>
   <string name="leak_canary_notification_channel_low">LeakCanary Low Priority</string>
   <string name="leak_canary_notification_channel_result">LeakCanary Result</string>

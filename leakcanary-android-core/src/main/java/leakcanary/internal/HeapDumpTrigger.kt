@@ -23,7 +23,7 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
-import leakcanary.internal.analyzer.service.HeapAnalyzerService
+import leakcanary.internal.analyzer.BaseHeapAnalyzer
 import shark.AndroidResourceIdNames
 import shark.SharkLog
 
@@ -184,7 +184,7 @@ internal class HeapDumpTrigger(
         lastDisplayedRetainedObjectCount = 0
         lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
         objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-        HeapAnalyzerService.runAnalysis(
+        BaseHeapAnalyzer.runAnalysis(
           context = application,
           heapDumpFile = heapDumpResult.file,
           heapDumpDurationMillis = heapDumpResult.durationMillis,

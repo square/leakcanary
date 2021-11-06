@@ -1,18 +1,14 @@
-package leakcanary.internal.analyzer.worker
+package leakcanary.internal.analyzer
 
-import android.app.Notification
 import android.content.Context
 import android.os.Process
-import androidx.work.WorkerParameters
-import com.squareup.leakcanary.core.R
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.WorkManager
 import leakcanary.LeakCanary
 import leakcanary.internal.LeakDirectoryProvider
-import leakcanary.internal.analyzer.service.HeapAnalyzerService
-import leakcanary.internal.analyzer.service.HeapAnalyzerService.Companion.HEAPDUMP_DURATION_MILLIS_EXTRA
-import leakcanary.internal.analyzer.service.HeapAnalyzerService.Companion.HEAPDUMP_FILE_EXTRA
-import leakcanary.internal.analyzer.service.HeapAnalyzerService.Companion.HEAPDUMP_REASON_EXTRA
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
@@ -25,30 +21,28 @@ import java.io.File
 import java.io.IOException
 import java.util.Locale
 
-class HeapAnalyzerWorker(context: Context, params: WorkerParameters) :
-  ForegroundWorker(context, params), OnAnalysisProgressListener {
+/**
+ * BaseHeapAnalyzer class is added to perform Heap Analyzing
+ * without needing to add too much code in the Worker implementation.
+ */
+class BaseHeapAnalyzer constructor(
+  private val context: Context,
+  private val inputData: Data?,
+  private val analysisProgress: (percent: Int, message: String) -> Unit
+) : OnAnalysisProgressListener {
 
-  private val heapDumpFilePath: String?
-    get() = inputData.getString(HEAPDUMP_FILE_EXTRA)
+  fun startAnalyzing() {
+    val heapDumpReason = inputData?.getString(HEAPDUMP_REASON_EXTRA)
+    val heapDumpFilePath = inputData?.getString(HEAPDUMP_FILE_PATH_EXTRA)
+    val heapDumpDurationMillis = inputData?.getLong(
+      HEAPDUMP_DURATION_MILLIS_EXTRA, -1
+    ) ?: -1
 
-  private val heapDumpFile: File
-    get() = File(heapDumpFilePath!!)
-
-  private val heapDumpReason: String
-    get() = inputData.getString(HEAPDUMP_REASON_EXTRA)!!
-
-  private val heapDumpDurationMillis: Long
-    get() = inputData.getLong(HEAPDUMP_DURATION_MILLIS_EXTRA, -1)
-
-  override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-    if (heapDumpFilePath == null) {
-      SharkLog.d { "HeapAnalyzerService received a null or empty intent, ignoring." }
-      return@withContext Result.failure()
-    }
-
-    showNotification(getNotification())
     // Since we're running in the main process we should be careful not to impact it.
     Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+
+    // At this point, `heapDumpFilePath` will never be @null
+    val heapDumpFile = File(heapDumpFilePath!!)
 
     val config = LeakCanary.config
     val heapAnalysis = if (heapDumpFile.exists()) {
@@ -59,13 +53,12 @@ class HeapAnalyzerWorker(context: Context, params: WorkerParameters) :
     val fullHeapAnalysis = when (heapAnalysis) {
       is HeapAnalysisSuccess -> heapAnalysis.copy(
         dumpDurationMillis = heapDumpDurationMillis,
-        metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason)
+        metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason!!)
       )
       is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
     }
     onAnalysisProgress(OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS)
     config.onHeapAnalyzedListener.onHeapAnalyzed(fullHeapAnalysis)
-    return@withContext Result.Success().also { removeNotification() }
   }
 
   private fun analyzeHeap(
@@ -75,7 +68,7 @@ class HeapAnalyzerWorker(context: Context, params: WorkerParameters) :
     val heapAnalyzer = HeapAnalyzer(this)
 
     val proguardMappingReader = try {
-      ProguardMappingReader(applicationContext.assets.open(HeapAnalyzerService.PROGUARD_MAPPING_FILE_NAME))
+      ProguardMappingReader(context.assets.open(PROGUARD_MAPPING_FILE_NAME))
     } catch (e: IOException) {
       null
     }
@@ -105,17 +98,6 @@ class HeapAnalyzerWorker(context: Context, params: WorkerParameters) :
     )
   }
 
-  override fun getNotification(): Notification {
-    return buildForegroundNotification(
-      max = 100, progress = 0, indeterminate = true,
-      contentText = applicationContext.getString(R.string.leak_canary_notification_foreground_text)
-    )
-  }
-
-  override fun getNotificationTitleResId(): Int {
-    return R.string.leak_canary_notification_analysing
-  }
-
   override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
     val percent =
       (100f * step.ordinal / OnAnalysisProgressListener.Step.values().size).toInt()
@@ -123,7 +105,45 @@ class HeapAnalyzerWorker(context: Context, params: WorkerParameters) :
     val lowercase = step.name.replace("_", " ")
       .toLowerCase(Locale.US)
     val message = lowercase.substring(0, 1).toUpperCase(Locale.US) + lowercase.substring(1)
-    val updatedNotification = buildForegroundNotification(100, percent, false, message)
-    showNotification(updatedNotification)
+    analysisProgress(percent, message)
+  }
+
+  companion object {
+    const val HEAPDUMP_FILE_PATH_EXTRA = "HEAPDUMP_FILE_PATH_EXTRA"
+    const val HEAPDUMP_DURATION_MILLIS_EXTRA = "HEAPDUMP_DURATION_MILLIS_EXTRA"
+    const val HEAPDUMP_REASON_EXTRA = "HEAPDUMP_REASON_EXTRA"
+    const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
+
+    fun runAnalysis(
+      context: Context,
+      heapDumpFile: File,
+      heapDumpDurationMillis: Long? = null,
+      heapDumpReason: String = "Unknown"
+    ) {
+
+      // Cannot use `workDataOf` as it requires JVM target 1.6,
+      // so we are falling back to plain old Data.Builder() pattern
+      val inputData = Data.Builder().apply {
+        putString(HEAPDUMP_FILE_PATH_EXTRA, heapDumpFile.absolutePath)
+        putString(HEAPDUMP_REASON_EXTRA, heapDumpReason)
+        heapDumpDurationMillis?.let {
+          putLong(HEAPDUMP_DURATION_MILLIS_EXTRA, heapDumpDurationMillis)
+        }
+      }.build()
+      val workManager = WorkManager.getInstance(context)
+      val heapAnalyzerWorker =
+        OneTimeWorkRequest.Builder(HeapAnalyzerWorker::class.java)
+          .addTag("heap_analyzer_worker")
+          .setInputData(inputData)
+          .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+          .build()
+
+      // Enqueue a Unique Work with an **Id** as the developer can schedule
+      // multiple analysis tasks manually, from the LeakCanary extension App.
+      workManager.enqueueUniqueWork(
+        heapAnalyzerWorker.id.toString(),
+        ExistingWorkPolicy.KEEP, heapAnalyzerWorker
+      )
+    }
   }
 }

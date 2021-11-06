@@ -14,9 +14,6 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest
     package="com.squareup.leakcanary.core.test">
-    <application>
-        <service android:name="leakcanary.internal.analyzer.service.HeapAnalyzerService"/>
-    </application>
 </manifest>

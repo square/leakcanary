@@ -5,17 +5,17 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.AsyncTask
-import android.os.Bundle
 import android.os.Build
+import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
-import leakcanary.internal.analyzer.service.HeapAnalyzerService
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db
 import leakcanary.internal.activity.screen.AboutScreen
 import leakcanary.internal.activity.screen.HeapDumpsScreen
 import leakcanary.internal.activity.screen.LeaksScreen
+import leakcanary.internal.analyzer.BaseHeapAnalyzer
 import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
 import shark.SharkLog
@@ -69,7 +69,11 @@ internal class LeakActivity : NavigatingActivity() {
     if (intent?.action != Intent.ACTION_VIEW) return
     val uri = intent.data ?: return
     if (uri.lastPathSegment?.endsWith(".hprof") != true) {
-      Toast.makeText(this, getString(R.string.leak_canary_import_unsupported_file_extension, uri.lastPathSegment), Toast.LENGTH_LONG).show()
+      Toast.makeText(
+        this,
+        getString(R.string.leak_canary_import_unsupported_file_extension, uri.lastPathSegment),
+        Toast.LENGTH_LONG
+      ).show()
       return
     }
     resetTo(HeapDumpsScreen())
@@ -160,7 +164,7 @@ internal class LeakActivity : NavigatingActivity() {
                     input.copyTo(output, DEFAULT_BUFFER_SIZE)
                   }
               }
-              HeapAnalyzerService.runAnalysis(this, target, heapDumpReason = "Imported by user")
+              BaseHeapAnalyzer.runAnalysis(this, target, heapDumpReason = "Imported by user")
             }
         }
     } catch (e: IOException) {

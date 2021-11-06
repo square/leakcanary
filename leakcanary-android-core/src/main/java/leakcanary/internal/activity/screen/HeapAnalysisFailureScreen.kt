@@ -8,12 +8,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
-import leakcanary.internal.analyzer.service.HeapAnalyzerService
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.shareHeapDump
 import leakcanary.internal.activity.shareToGitHubIssue
 import leakcanary.internal.activity.ui.UiUtils
+import leakcanary.internal.analyzer.BaseHeapAnalyzer
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goBack
@@ -78,7 +78,7 @@ internal class HeapAnalysisFailureScreen(
         }
         "try_again" -> {
           {
-            HeapAnalyzerService.runAnalysis(
+            BaseHeapAnalyzer.runAnalysis(
               context = context,
               heapDumpFile = heapAnalysis.heapDumpFile,
               heapDumpDurationMillis = heapAnalysis.dumpDurationMillis,
