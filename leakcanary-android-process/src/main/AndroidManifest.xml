@@ -18,11 +18,6 @@
     package="com.squareup.leakcanary">
 
   <application>
-    <service
-        android:name="leakcanary.internal.analyzer.service.HeapAnalyzerService"
-        android:exported="false"
-        android:process=":leakcanary" />
-
     <provider
         android:name="leakcanary.internal.AppWatcherInstaller$LeakCanaryProcess"
         android:authorities="${applicationId}.leakcanary-process.installer"
