@@ -22,6 +22,7 @@ import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
 import shark.internal.IndexedObject.IndexedClass
+import kotlin.collections.ArrayList
 
 internal class ClassFieldsReader(
   private val identifierByteSize: Int,
@@ -76,15 +77,11 @@ internal class ClassFieldsReader(
     }
   }
 
-  private val readInFlightThreadLocal = object : ThreadLocal<ReadInFlight>() {
-    override fun initialValue() = ReadInFlight()
-  }
-
   private fun <R> read(
     initialPosition: Int,
     block: ReadInFlight.() -> R
   ): R {
-    val readInFlight = readInFlightThreadLocal.get()
+    val readInFlight = ReadInFlight()
     readInFlight.position = initialPosition
     return readInFlight.run(block)
   }
