@@ -82,7 +82,7 @@ internal class HeapAnalysisFailureScreen(
               context = context,
               heapDumpFile = heapAnalysis.heapDumpFile,
               heapDumpDurationMillis = heapAnalysis.dumpDurationMillis,
-              heapDumpReason = "Retrying heap analysis after failure."
+              heapDumpReason = "Retrying heap random change analysis after failure."
             )
           }
         }
