@@ -536,7 +536,7 @@ enum class AndroidReferenceMatchers {
           " on the screen. TextView.ChangeWatcher and android.widget.Editor end up in spans and" +
           " typically hold on to the view hierarchy"
       ) {
-        sdkInt in 24..29
+        sdkInt in 24..30
       }
     }
   },
