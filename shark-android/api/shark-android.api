@@ -71,6 +71,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field BUBBLE_POPUP_HELPER__SHELPER Lshark/AndroidReferenceMatchers;
 	public static final field CLIPBOARD_EX_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field CLIPBOARD_UI_MANAGER__SINSTANCE Lshark/AndroidReferenceMatchers;
+	public static final field COMPANION_DEVICE_SERVICE__STUB Lshark/AndroidReferenceMatchers;
 	public static final field CONNECTIVITY_MANAGER__SINSTANCE Lshark/AndroidReferenceMatchers;
 	public static final field CONTROLLED_INPUT_CONNECTION_WRAPPER Lshark/AndroidReferenceMatchers;
 	public static final field Companion Lshark/AndroidReferenceMatchers$Companion;

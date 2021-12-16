@@ -698,6 +698,24 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  COMPANION_DEVICE_SERVICE__STUB {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references  += instanceFieldLeak(
+        "android.companion.CompanionDeviceService\$Stub", "this\$0",
+        description = """
+          Android 12 added android.companion.CompanionDeviceService, a bounded service extended by
+          applications to which the system binds. CompanionDeviceService.Stub is an inner class
+          that holds a reference to CompanionDeviceService, which itself holds a Stub instance
+          that's not nullified after the service is destroyed.
+          Introduced in https://android.googlesource.com/platform/frameworks/base/+/df69bbaf29e41d9df105612500c27be730feedfc
+          Source code: https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/companion/CompanionDeviceService.java
+        """.trimIndent()
+      ) {
+        sdkInt == 31
+      }
+    }
+  },
+
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG
