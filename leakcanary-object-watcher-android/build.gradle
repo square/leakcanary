@@ -26,7 +26,7 @@ android {
 
   lintOptions {
     disable 'GoogleAppIndexingWarning'
-    enable 'Interoperability'
+    check 'Interoperability'
   }
 
   buildFeatures {

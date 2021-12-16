@@ -18,7 +18,7 @@ android {
     disable 'GoogleAppIndexingWarning'
     // junit references java.lang.management
     ignore 'InvalidPackage'
-    enable 'Interoperability'
+    check 'Interoperability'
   }
 }
 
