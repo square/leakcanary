@@ -653,9 +653,14 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
         val mWindowAttributes =
           instance["android.view.ViewRootImpl", "mWindowAttributes"]!!.valueAsInstance!!
-        val mTitle =
-          mWindowAttributes["android.view.WindowManager\$LayoutParams", "mTitle"]!!.valueAsInstance!!.readAsJavaString()!!
-        labels += "mWindowAttributes.mTitle = \"$mTitle\""
+        val mTitleField = mWindowAttributes["android.view.WindowManager\$LayoutParams", "mTitle"]!!
+        if (mTitleField.value.isNonNullReference) {
+          val mTitle =
+            mTitleField.valueAsInstance!!.readAsJavaString()!!
+          labels += "mWindowAttributes.mTitle = \"$mTitle\""
+        } else {
+          labels += "mWindowAttributes.mTitle is null"
+        }
 
         val type =
           mWindowAttributes["android.view.WindowManager\$LayoutParams", "type"]!!.value.asInt!!
