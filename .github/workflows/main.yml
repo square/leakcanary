@@ -32,7 +32,7 @@ jobs:
           script: ./gradlew leakcanary-android-core:connectedCheck leakcanary-android-instrumentation:connectedCheck --stacktrace
 
   snapshot-deployment:
-    if: "github.event_name == 'push'"
+    if: github.repository == 'square/leakcanary' && github.event_name == 'push'
     needs: [checks]
     runs-on: ubuntu-latest
     steps:
