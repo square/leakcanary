@@ -714,7 +714,7 @@ enum class AndroidReferenceMatchers {
         sdkInt == 31
       }
     }
-  },,
+  },
 
   // ######## Manufacturer specific known leaks ########
 
