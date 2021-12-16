@@ -22,7 +22,6 @@ import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
 import shark.internal.IndexedObject.IndexedClass
-import kotlin.collections.ArrayList
 
 internal class ClassFieldsReader(
   private val identifierByteSize: Int,
