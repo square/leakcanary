@@ -27,6 +27,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.ParcelFileDescriptor
+import android.os.StrictMode
 import android.provider.OpenableColumns
 import android.text.TextUtils
 import android.webkit.MimeTypeMap
@@ -424,8 +425,15 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       synchronized(sCache) {
         strat = sCache[authority]
         if (strat == null) {
+          // Minimal "fix" for https://github.com/square/leakcanary/issues/2202
           try {
-            strat = parsePathStrategy(context, authority)
+            val previousPolicy = StrictMode.getThreadPolicy()
+            try {
+              StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder().build())
+              strat = parsePathStrategy(context, authority)
+            } finally {
+              StrictMode.setThreadPolicy(previousPolicy)
+            }
           } catch (e: IOException) {
             throw IllegalArgumentException(
               "Failed to parse $META_DATA_FILE_PROVIDER_PATHS meta-data", e
