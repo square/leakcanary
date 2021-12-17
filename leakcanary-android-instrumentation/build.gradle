@@ -21,6 +21,7 @@ android {
     minSdk versions.minSdk
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
   }
+  buildFeatures.buildConfig = false
   lintOptions {
     disable 'GoogleAppIndexingWarning'
     // junit references java.lang.management
