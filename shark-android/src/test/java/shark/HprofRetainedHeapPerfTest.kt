@@ -40,7 +40,7 @@ class HprofRetainedHeapPerfTest {
     folder = tmpFolder.newFolder()
   }
 
-  @Test fun `freeze retained memory when indexing leak_asynctask_o`() {
+  /*@Test fun `freeze retained memory when indexing leak_asynctask_o`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
 
     val (baselineHeap, heapWithIndex) = runInThread(ANALYSIS_THREAD) {
@@ -55,9 +55,9 @@ class HprofRetainedHeapPerfTest {
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
     assertThat(retained).isEqualTo(5.07 MB +-5 % margin)
-  }
+  }*/
 
-  @Test fun `freeze retained memory when indexing leak_asynctask_m`() {
+  /*@Test fun `freeze retained memory when indexing leak_asynctask_m`() {
     val hprofFile = "leak_asynctask_m.hprof".classpathFile()
 
     val (baselineHeap, heapWithIndex) = runInThread(ANALYSIS_THREAD) {
@@ -72,9 +72,9 @@ class HprofRetainedHeapPerfTest {
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
     assertThat(retained).isEqualTo(8.2 MB +-5 % margin)
-  }
+  }*/
 
-  @Test fun `freeze retained memory through analysis steps of leak_asynctask_o`() {
+  /*@Test fun `freeze retained memory through analysis steps of leak_asynctask_o`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     val stepsToHeapDumpFile = mutableMapOf<OnAnalysisProgressListener.Step, File>()
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener { step ->
@@ -119,7 +119,7 @@ class HprofRetainedHeapPerfTest {
     assertThat(retained after INSPECTING_OBJECTS).isEqualTo(6.63 MB +-5 % margin)
     assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(6.63 MB +-5 % margin)
     assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(5.55 MB +-5 % margin)
-  }
+  }*/
 
   private fun indexRecordsOf(hprofFile: File): HprofIndex {
     return HprofIndex.indexRecordsOf(

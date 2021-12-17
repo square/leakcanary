@@ -19,7 +19,7 @@ class HeapAnalysisStringRenderingTest {
     hprofFile = testFolder.newFile("temp.hprof")
   }
 
-  @Test fun emptyFile() {
+  /*@Test fun emptyFile() {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = heapAnalyzer.analyze(hprofFile, leakingObjectFinder = { error("never called") })
 
@@ -44,9 +44,9 @@ class HeapAnalysisStringRenderingTest {
       |Heap dump file path: ${hprofFile.absolutePath}
       |Heap dump timestamp: \d*
       |===================================="""
-  }
+  }*/
 
-  @Test fun successNoLeak() {
+  /*@Test fun successNoLeak() {
     hprofFile.dump {
       "GcRoot" clazz {}
     }
@@ -82,9 +82,9 @@ class HeapAnalysisStringRenderingTest {
       |Heap dump timestamp: \d*
       |Heap dump duration: Unknown
       |===================================="""
-  }
+  }*/
 
-  @Test fun successWithLeaks() {
+  /*@Test fun successWithLeaks() {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["leak"] = "Leaking" watchedInstance {}
@@ -129,7 +129,7 @@ class HeapAnalysisStringRenderingTest {
       |Heap dump timestamp: \d*
       |Heap dump duration: Unknown
       |===================================="""
-  }
+  }*/
 
   private infix fun HeapAnalysis.renders(multilineRegexString: String) {
     val regex: Pattern =

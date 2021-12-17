@@ -42,7 +42,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     )
   }
 
-  @Test
+  /*@Test
   fun `leakcanary deobfuscation plugin runs and copies mapping file into the apk assets dir`() {
     buildFile.writeText(
       """
@@ -109,7 +109,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
       }
     }
     assertThat(obfuscationMappingEntry != null).isTrue()
-  }
+  }*/
 
   @Test
   fun `leakcanary deobfuscation plugin doesn't copy mapping file if it hasn't been configured`() {
