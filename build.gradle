@@ -1,5 +1,3 @@
-apply plugin: 'com.github.ben-manes.versions'
-
 buildscript {
   ext.versions = [
       'minSdk': 14,
@@ -56,7 +54,6 @@ buildscript {
   dependencies {
     classpath deps.kotlin.gradlePlugin
     classpath deps.androidGradlePlugin
-    classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
     classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
     classpath deps.detekt
     classpath deps.kotlin.binaryCompatibilityValidatorPlugin
