@@ -17,16 +17,16 @@ dependencies {
 
 android {
   resourcePrefix 'leak_canary_watcher_'
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
 
   defaultConfig {
-    minSdkVersion versions.minSdk
+    minSdk versions.minSdk
     consumerProguardFiles 'consumer-proguard-rules.pro'
   }
 
   lintOptions {
     disable 'GoogleAppIndexingWarning'
-    check 'Interoperability'
+    checkOnly 'Interoperability'
   }
 
   buildFeatures {

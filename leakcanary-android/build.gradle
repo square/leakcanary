@@ -10,15 +10,15 @@ dependencies {
 }
 
 android {
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
   defaultConfig {
-    minSdkVersion versions.minSdk
+    minSdk versions.minSdk
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
     // junit references java.lang.management
     ignore 'InvalidPackage'
-    check 'Interoperability'
+    checkOnly 'Interoperability'
   }
 }
 

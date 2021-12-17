@@ -10,14 +10,14 @@ dependencies {
 }
 
 android {
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
   defaultConfig {
-    minSdkVersion versions.minSdk
+    minSdk versions.minSdk
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
     error 'ObsoleteSdkInt'
-    check 'Interoperability'
+    checkOnly 'Interoperability'
   }
 }
 

@@ -14,15 +14,15 @@ dependencies {
 
 android {
   resourcePrefix 'leak_canary_plumber'
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
   defaultConfig {
-    minSdkVersion versions.minSdk
+    minSdk versions.minSdk
     consumerProguardFiles 'consumer-proguard-rules.pro'
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
     error 'ObsoleteSdkInt'
-    check 'Interoperability'
+    checkOnly 'Interoperability'
   }
 }
 

@@ -31,7 +31,7 @@ dependencies {
 }
 
 android {
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
 
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_1_8
@@ -41,7 +41,7 @@ android {
   defaultConfig {
     applicationId "com.example.leakcanary"
     minSdkVersion 16
-    targetSdkVersion versions.compileSdk
+    targetSdk versions.compileSdk
 
     versionCode 1
     versionName "1.0"

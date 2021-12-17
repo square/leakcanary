@@ -16,16 +16,16 @@ dependencies {
 }
 
 android {
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
   defaultConfig {
-    minSdkVersion versions.minSdk
+    minSdk versions.minSdk
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
   }
   lintOptions {
     disable 'GoogleAppIndexingWarning'
     // junit references java.lang.management
     ignore 'InvalidPackage'
-    check 'Interoperability'
+    checkOnly 'Interoperability'
   }
 }
 
