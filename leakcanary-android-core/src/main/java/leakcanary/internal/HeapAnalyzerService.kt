@@ -67,7 +67,23 @@ internal class HeapAnalyzerService : ForegroundService(
         dumpDurationMillis = heapDumpDurationMillis,
         metadata = heapAnalysis.metadata + ("Heap dump reason" to heapDumpReason)
       )
-      is HeapAnalysisFailure -> heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
+      is HeapAnalysisFailure -> {
+        val failureCause = heapAnalysis.exception.cause!!
+        if (failureCause is OutOfMemoryError) {
+          heapAnalysis.copy(
+            dumpDurationMillis = heapDumpDurationMillis,
+            exception = HeapAnalysisException(RuntimeException("""
+              Not enough memory to analyze heap. You can:
+              - Kill the app then restart the analysis from the LeakCanary activity.
+              - Increase the memory available to your debug app with largeHeap=true: https://developer.android.com/guide/topics/manifest/application-element#largeHeap
+              - Set up LeakCanary to run in a separate process: https://square.github.io/leakcanary/recipes/#running-the-leakcanary-analysis-in-a-separate-process
+              - Download the heap dump from the LeakCanary activity then run the analysis from your computer with shark-cli: https://square.github.io/leakcanary/shark/#shark-cli
+            """.trimIndent(), failureCause))
+          )
+        } else {
+          heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
+        }
+      }
     }
     onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
     config.onHeapAnalyzedListener.onHeapAnalyzed(fullHeapAnalysis)
