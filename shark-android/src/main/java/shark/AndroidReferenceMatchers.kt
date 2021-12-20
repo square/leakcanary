@@ -202,7 +202,7 @@ enum class AndroidReferenceMatchers {
       references += instanceFieldLeak(
         "android.view.inputmethod.InputMethodManager", "mNextServedView", description
       ) {
-        sdkInt in 15..27
+        sdkInt in 15..28
       }
 
       references += instanceFieldLeak(
