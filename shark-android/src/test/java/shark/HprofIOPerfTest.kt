@@ -18,7 +18,7 @@ class HprofIOPerfTest {
   @Test fun `HeapObjectArray#readByteSize() reads only size of array`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     val arrayId = hprofFile.openHeapGraph().use { graph ->
-      graph.objectArrays.maxBy { it.readRecord().elementIds.size * graph.identifierByteSize }!!.objectId
+      graph.objectArrays.maxByOrNull { it.readRecord().elementIds.size * graph.identifierByteSize }!!.objectId
     }
 
     val source = MetricsDualSourceProvider(hprofFile)
@@ -46,7 +46,7 @@ class HprofIOPerfTest {
   @Test fun `HeapPrimitiveArray#readByteSize() reads only size of array`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     val arrayId = hprofFile.openHeapGraph().use { graph ->
-      graph.primitiveArrays.maxBy { it.readRecord().size * it.primitiveType.byteSize }!!.objectId
+      graph.primitiveArrays.maxByOrNull { it.readRecord().size * it.primitiveType.byteSize }!!.objectId
     }
 
     val source = MetricsDualSourceProvider(hprofFile)

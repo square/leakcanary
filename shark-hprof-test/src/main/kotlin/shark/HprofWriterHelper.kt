@@ -109,14 +109,14 @@ class HprofWriterHelper constructor(
       FieldRecord(fieldName.id, typeOf(it.second))
     }
 
-    var instanceSize = fieldRecords.sumBy {
+    var instanceSize = fieldRecords.sumOf {
       typeSizes.getValue(it.type)
     }
 
     var nextUpId = if (superclassId == -1L) objectClassId else superclassId
     while (nextUpId != 0L) {
       val nextUp = classDumps[nextUpId]!!
-      instanceSize += nextUp.fields.sumBy {
+      instanceSize += nextUp.fields.sumOf {
         typeSizes.getValue(it.type)
       }
       nextUpId = nextUp.superclassId
@@ -164,14 +164,14 @@ class HprofWriterHelper constructor(
       FieldRecord(it.first, typeOf(it.second))
     }
 
-    var instanceSize = fieldRecords.sumBy {
+    var instanceSize = fieldRecords.sumOf {
       typeSizes.getValue(it.type)
     }
 
     var nextUpId = if (superclassId == -1L) objectClassId else superclassId
     while (nextUpId != 0L) {
       val nextUp = classDumps[nextUpId]!!
-      instanceSize += nextUp.fields.sumBy {
+      instanceSize += nextUp.fields.sumOf {
         typeSizes.getValue(it.type)
       }
       nextUpId = nextUp.superclassId

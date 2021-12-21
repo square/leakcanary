@@ -131,8 +131,8 @@ internal class HeapAnalyzerService : ForegroundService(
       (100f * step.ordinal / OnAnalysisProgressListener.Step.values().size).toInt()
     SharkLog.d { "Analysis in progress, working on: ${step.name}" }
     val lowercase = step.name.replace("_", " ")
-      .toLowerCase(Locale.US)
-    val message = lowercase.substring(0, 1).toUpperCase(Locale.US) + lowercase.substring(1)
+      .lowercase(Locale.US)
+    val message = lowercase.substring(0, 1).uppercase(Locale.US) + lowercase.substring(1)
     showForegroundNotification(100, percent, false, message)
   }
 

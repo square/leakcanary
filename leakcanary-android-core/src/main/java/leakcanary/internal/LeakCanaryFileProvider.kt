@@ -110,7 +110,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
     selection: String?,
     selectionArgs: Array<String>?,
     sortOrder: String?
-  ): Cursor? {
+  ): Cursor {
     val projection = projectionArg ?: COLUMNS
     // ContentProvider has already checked granted permissions
     val file = mStrategy!!.getFileForUri(uri)
@@ -145,7 +145,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
    * @return If the associated file has an extension, the MIME type associated with that
    * extension; otherwise `application/octet-stream`.
    */
-  override fun getType(uri: Uri): String? {
+  override fun getType(uri: Uri): String {
     // ContentProvider has already checked granted permissions
     val file = mStrategy!!.getFileForUri(uri)
 
@@ -474,7 +474,10 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       )
 
       var type = 0
-      while (({ type = resourceParser.next(); type }()) != END_DOCUMENT) {
+      while (run {
+          type = resourceParser.next()
+          (type)
+        } != END_DOCUMENT) {
         if (type == START_TAG) {
           val tag = resourceParser.name
 

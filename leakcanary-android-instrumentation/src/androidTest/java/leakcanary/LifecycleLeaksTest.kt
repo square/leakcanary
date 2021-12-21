@@ -22,7 +22,7 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
       inflater: LayoutInflater,
       container: ViewGroup?,
       savedInstanceState: Bundle?
-    ): View? {
+    ): View {
       return View(context)
     }
   }

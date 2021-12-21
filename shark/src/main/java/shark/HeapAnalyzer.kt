@@ -39,7 +39,6 @@ import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.internal.AndroidNativeSizeMapper
 import shark.internal.DominatorTree
-import shark.internal.KeyedWeakReferenceMirror
 import shark.internal.PathFinder
 import shark.internal.PathFinder.PathFindingResults
 import shark.internal.ReferencePathNode
@@ -318,11 +317,11 @@ class HeapAnalyzer constructor(
     if (pathIndex == path.lastIndex) {
       parentNode.children[objectId] = LeafNode(objectId, pathNode)
     } else {
-      val childNode = parentNode.children[objectId] ?: {
+      val childNode = parentNode.children[objectId] ?: run {
         val newChildNode = ParentNode(objectId)
         parentNode.children[objectId] = newChildNode
         newChildNode
-      }()
+      }
       if (childNode is ParentNode) {
         updateTrie(pathNode, path, pathIndex + 1, childNode)
       }
@@ -434,7 +433,7 @@ class HeapAnalyzer constructor(
   private fun FindLeakInput.computeRetainedSizes(
     inspectedObjectsByPath: List<List<InspectedObject>>,
     dominatorTree: DominatorTree
-  ): Map<Long, Pair<Int, Int>>? {
+  ): Map<Long, Pair<Int, Int>> {
     val nodeObjectIds = inspectedObjectsByPath.flatMap { inspectedObjects ->
       inspectedObjects.filter { it.leakingStatus == UNKNOWN || it.leakingStatus == LEAKING }
         .map { it.heapObject.objectId }

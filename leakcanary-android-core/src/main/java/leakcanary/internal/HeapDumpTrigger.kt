@@ -105,7 +105,7 @@ internal class HeapDumpTrigger(
         )
 
         if (wouldDump) {
-          val uppercaseReason = nopeReason[0].toUpperCase() + nopeReason.substring(1)
+          val uppercaseReason = nopeReason[0].uppercaseChar() + nopeReason.substring(1)
           onRetainInstanceListener.onEvent(DumpingDisabled(uppercaseReason))
           showRetainedCountNotification(
             objectCount = retainedReferenceCount,

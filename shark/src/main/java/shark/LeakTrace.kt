@@ -38,7 +38,7 @@ data class LeakTrace(
       return allObjects.filter { it.leakingStatus == LEAKING }
         .mapNotNull { it.retainedHeapByteSize }
         // The minimum released is the max held by a leaking object.
-        .max()
+        .maxOrNull()
     }
 
   /**
@@ -51,7 +51,7 @@ data class LeakTrace(
       return allObjects.filter { it.leakingStatus == LEAKING }
         .mapNotNull { it.retainedObjectCount }
         // The minimum released is the max held by a leaking object.
-        .max()
+        .maxOrNull()
     }
 
   /**

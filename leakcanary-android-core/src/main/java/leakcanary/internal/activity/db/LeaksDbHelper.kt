@@ -58,7 +58,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
               } catch (ignored: NullPointerException) {
                 // This currently doesn't trigger but the Kotlin compiler might change one day.
                 emptyList()
-              } ?: emptyList() // Compiler doesn't know it but runtime can have null.
+              } // Compiler doesn't know it but runtime can have null.
               pair.first to analysis.copy(
                 unreachableObjects = unreachableObjects,
                 applicationLeaks = analysis.applicationLeaks.map { leak ->

@@ -251,7 +251,7 @@ class InteractiveCommand : CliktCommand(
   private fun echoHelp() {
     echo("Available commands:")
     val longestPatternHelp = COMMAND.values()
-      .map { it.patternHelp }.maxBy { it.length }!!.length
+      .map { it.patternHelp }.maxByOrNull { it.length }!!.length
     COMMAND.values()
       .forEach { command ->
         val patternHelp = command.patternHelp
@@ -540,7 +540,7 @@ class InteractiveCommand : CliktCommand(
       }
       is HeapPrimitiveArray -> {
         val record = heapObject.readRecord()
-        val primitiveName = heapObject.primitiveType.name.toLowerCase(Locale.US)
+        val primitiveName = heapObject.primitiveType.name.lowercase(Locale.US)
         "$ARRAY $primitiveName[${record.size}]@${heapObject.objectId}"
       }
     }

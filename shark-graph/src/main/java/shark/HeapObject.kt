@@ -160,7 +160,7 @@ sealed class HeapObject {
      * @see instanceByteSize
      */
     fun readFieldsByteSize(): Int {
-      return readRecordFields().sumBy {
+      return readRecordFields().sumOf {
         if (it.type == PrimitiveType.REFERENCE_HPROF_TYPE) {
           hprofGraph.identifierByteSize
         } else PrimitiveType.byteSizeByHprofType.getValue(it.type)
@@ -608,7 +608,7 @@ sealed class HeapObject {
      * The name of the class of this array, identical to [Class.getName].
      */
     val arrayClassName: String
-      get() = "${primitiveType.name.toLowerCase(Locale.US)}[]"
+      get() = "${primitiveType.name.lowercase(Locale.US)}[]"
 
     /**
      * The class of this array.
@@ -636,7 +636,7 @@ sealed class HeapObject {
   companion object {
 
     internal val primitiveTypesByPrimitiveArrayClassName = PrimitiveType.values()
-      .map { "${it.name.toLowerCase(Locale.US)}[]" to it }
+      .map { "${it.name.lowercase(Locale.US)}[]" to it }
       .toMap()
 
     private val primitiveWrapperClassNames = setOf<String>(

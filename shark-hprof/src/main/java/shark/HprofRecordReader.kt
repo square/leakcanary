@@ -87,7 +87,7 @@ class HprofRecordReader internal constructor(
     val typeSizesMap =
       PrimitiveType.byteSizeByHprofType + (PrimitiveType.REFERENCE_HPROF_TYPE to identifierByteSize)
 
-    val maxKey = typeSizesMap.keys.max()!!
+    val maxKey = typeSizesMap.keys.maxOrNull()!!
 
     typeSizes = IntArray(maxKey + 1) { key ->
       typeSizesMap[key] ?: 0

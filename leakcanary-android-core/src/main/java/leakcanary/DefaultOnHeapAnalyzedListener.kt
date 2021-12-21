@@ -51,7 +51,7 @@ class DefaultOnHeapAnalyzedListener private constructor(private val applicationP
         R.string.leak_canary_analysis_failed
       ) to HeapAnalysisFailureScreen(id)
       is HeapAnalysisSuccess -> {
-        val retainedObjectCount = heapAnalysis.allLeaks.sumBy { it.leakTraces.size }
+        val retainedObjectCount = heapAnalysis.allLeaks.sumOf { it.leakTraces.size }
         val leakTypeCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
         application.getString(
           R.string.leak_canary_analysis_success_notification, retainedObjectCount, leakTypeCount
@@ -119,7 +119,7 @@ class DefaultOnHeapAnalyzedListener private constructor(private val applicationP
   ANDROID TV LAUNCH INTENT
   ====================================
   Run the following adb command to display the list of leaks:
-  
+
   adb shell am start -n "${application.packageName}/${leakClass.`package`?.name}.LeakLauncherActivity"
   ===================================="""
     }

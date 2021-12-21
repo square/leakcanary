@@ -171,7 +171,7 @@ sealed class Leak : Serializable {
     get() = if (leakTraces.first().retainedHeapByteSize == null) {
       null
     } else {
-      leakTraces.sumBy { it.retainedHeapByteSize!! }
+      leakTraces.sumOf { it.retainedHeapByteSize!! }
     }
 
   /**
@@ -182,7 +182,7 @@ sealed class Leak : Serializable {
     get() = if (leakTraces.first().retainedObjectCount == null) {
       null
     } else {
-      leakTraces.sumBy { it.retainedObjectCount!! }
+      leakTraces.sumOf { it.retainedObjectCount!! }
     }
 
   /**
