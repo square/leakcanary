@@ -1,11 +1,8 @@
-apply plugin: 'com.github.ben-manes.versions'
-
 buildscript {
   ext.versions = [
       'minSdk': 14,
-      'compileSdk': 29,
+      'compileSdk': 31,
       'ndkVersion': '21.4.7075529',
-      'errorProne': '2.3.1',
       // We would like to use Kotlin 1.4 language features but keep Kotlin 1.3 library APIs
       // The benefit is that depending clients do not have to upgrade to Kotlin 1.4
       'kotlinCompiler': '1.4.21',
@@ -17,7 +14,7 @@ buildscript {
       // relies on), we're sticking a bit older because most apps will be using a more recent version
       // and they'll automatically resolve to higher version without having to necessarily resort to a
       // resolution strategy.
-      androidGradlePlugin: "com.android.tools.build:gradle:4.0.0",
+      androidGradlePlugin: "com.android.tools.build:gradle:4.2.2",
       androidx: [
           annotation: 'androidx.annotation:annotation:1.0.2',
           core: 'androidx.core:core:1.0.1',
@@ -51,16 +48,13 @@ buildscript {
   ]
   repositories {
     google()
-    maven { url 'https://plugins.gradle.org/m2/' }
-    jcenter()
+    gradlePluginPortal()
     // For binary compatibility validator.
     maven { url "https://kotlin.bintray.com/kotlinx" }
   }
   dependencies {
     classpath deps.kotlin.gradlePlugin
     classpath deps.androidGradlePlugin
-    classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.16'
-    classpath 'com.github.ben-manes:gradle-versions-plugin:0.20.0'
     classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
     classpath deps.detekt
     classpath deps.kotlin.binaryCompatibilityValidatorPlugin
@@ -92,7 +86,6 @@ subprojects {
     jcenter()
   }
 
-  apply plugin: 'net.ltgt.errorprone'
   apply plugin: 'org.jetbrains.dokka'
   apply plugin: 'io.gitlab.arturbosch.detekt'
 
@@ -115,7 +108,7 @@ subprojects {
     outputDirectory = "$rootDir/docs/api"
   }
 
-  tasks.withType(JavaCompile) {
+  tasks.withType(JavaCompile).configureEach {
     options.compilerArgs += [
         '-Xlint:all',
         '-Xlint:-serial',
@@ -133,20 +126,7 @@ subprojects {
     }
   }
 
-
-  configurations.all {
-    resolutionStrategy {
-      eachDependency { details ->
-        // Force all the error-prone dependencies to use the same version.
-        if (details.requested.group == 'com.google.errorprone' &&
-            details.requested.name.startsWith('error_prone_')) {
-          details.useVersion versions.errorProne
-        }
-      }
-    }
-  }
-
-  tasks.withType(Test) {
+  tasks.withType(Test).configureEach {
     testLogging {
       exceptionFormat 'FULL'
       showCauses true
@@ -163,20 +143,16 @@ subprojects {
     }
   }
 
-  afterEvaluate {
-    tasks.getByName('check').dependsOn 'detekt'
-    tasks.getByName('assemble').dependsOn installGitHooks
-    tasks.getByName('clean').dependsOn installGitHooks
-  }
-
-  dependencies {
-    errorprone "com.google.errorprone:error_prone_core:${versions.errorProne}"
+  pluginManager.withPlugin("java") {
+    tasks.named("check") { dependsOn("detekt") }
+    tasks.named("assemble") { dependsOn(rootProject.tasks.named("installGitHooks")) }
+    tasks.named("clean") { dependsOn(rootProject.tasks.named("installGitHooks")) }
   }
 }
 
 //Copies git hooks from /hooks folder into .git; currently used to run Detekt during push
 //Git hook installation
-task installGitHooks(type: Copy) {
+tasks.register("installGitHooks", Copy) {
   from new File(rootProject.rootDir, 'hooks')
   into { new File(rootProject.rootDir, '.git/hooks') }
   fileMode 0777 //Make files executable

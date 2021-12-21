@@ -46,7 +46,12 @@ class RootViewWatcher(
         when (rootView.phoneWindow?.callback?.wrappedCallback) {
           // Activities are already tracked by ActivityWatcher
           is Activity -> false
-          is Dialog -> rootView.resources.getBoolean(R.bool.leak_canary_watcher_watch_dismissed_dialogs)
+          is Dialog -> {
+            // Use app context resources to avoid NotFoundException
+            // https://github.com/square/leakcanary/issues/2137
+            val resources = rootView.context.applicationContext.resources
+            resources.getBoolean(R.bool.leak_canary_watcher_watch_dismissed_dialogs)
+          }
           // Probably a DreamService
           else -> true
         }

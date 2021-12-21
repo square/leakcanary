@@ -1,5 +1,7 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+plugins {
+  id("com.android.library")
+  id("org.jetbrains.kotlin.android")
+}
 
 dependencies {
   api project(':leakcanary-android-core')
@@ -14,16 +16,17 @@ dependencies {
 }
 
 android {
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
   defaultConfig {
-    minSdkVersion versions.minSdk
+    minSdk versions.minSdk
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
   }
+  buildFeatures.buildConfig = false
   lintOptions {
     disable 'GoogleAppIndexingWarning'
     // junit references java.lang.management
     ignore 'InvalidPackage'
-    check 'Interoperability'
+    checkOnly 'Interoperability'
   }
 }
 

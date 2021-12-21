@@ -1,15 +1,14 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-// Required to run obfuscated instrumentation tests:
-// ./gradlew leakcanary-android-sample:connectedCheck -Pminify
-apply plugin: 'com.slack.keeper'
+plugins {
+  id("com.android.application")
+  id("org.jetbrains.kotlin.android")
+  // Required to run obfuscated instrumentation tests:
+  // ./gradlew leakcanary-android-sample:connectedCheck -Pminify
+  id("com.slack.keeper") version "0.7.0"
+}
 
-buildscript {
-  repositories {
-    maven { url 'https://plugins.gradle.org/m2/' }
-  }
-  dependencies {
-    classpath 'com.slack.keeper:keeper:0.2.0'
+keeper {
+  variantFilter {
+    setIgnore(!project.hasProperty('minify'))
   }
 }
 
@@ -33,7 +32,7 @@ dependencies {
 }
 
 android {
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
 
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_1_8
@@ -42,8 +41,8 @@ android {
 
   defaultConfig {
     applicationId "com.example.leakcanary"
-    minSdkVersion 16
-    targetSdkVersion versions.compileSdk
+    minSdk 16
+    targetSdk versions.compileSdk
 
     versionCode 1
     versionName "1.0"
@@ -85,18 +84,6 @@ android {
   testOptions {
     unitTests {
       includeAndroidResources = true
-    }
-  }
-}
-
-// Instrumentation test dependencies resolve to 27.1.1 so we align the sample.
-configurations.all {
-  resolutionStrategy {
-    eachDependency { details ->
-      // Force all of the primary support libraries to use the same version.
-      if (details.requested.group == 'com.android.support') {
-        details.useVersion "27.1.1"
-      }
     }
   }
 }

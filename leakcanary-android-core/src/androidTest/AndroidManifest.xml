@@ -16,4 +16,7 @@
   -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.squareup.leakcanary.core.test">
+    <application>
+        <service android:name="leakcanary.internal.HeapAnalyzerService"/>
+    </application>
 </manifest>

@@ -38,7 +38,7 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
     val leakCanaryPluginAction = Action<AppliedPlugin> {
       val leakCanaryExtension = createLeakCanaryExtension(project)
       val variants = findAndroidVariants(project)
-      variants.all { variant ->
+      variants.configureEach { variant ->
         if (leakCanaryExtension.filterObfuscatedVariants(variant)) {
           setupTasks(project, variant)
         }
@@ -94,6 +94,14 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
 
       it.dependsOn(mappingGeneratingTaskProvider)
       it.dependsOn(variant.mergeAssetsProvider)
+    }
+
+    // https://github.com/square/leakcanary/pull/2230#discussion_r772992666
+    findTaskProviderOrNull(
+      project,
+      "compress${variant.name.capitalize()}Assets"
+    )?.configure {
+      it.dependsOn(copyObfuscationMappingFileTaskProvider)
     }
 
     getPackageTaskProvider(variant).configure {

@@ -8,6 +8,7 @@ import android.os.AsyncTask
 import android.os.Bundle
 import android.os.Build
 import android.view.View
+import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.HeapAnalyzerService
 import leakcanary.internal.InternalLeakCanary
@@ -60,6 +61,21 @@ internal class LeakActivity : NavigatingActivity() {
     leaksButton.setOnClickListener { resetTo(LeaksScreen()) }
     heapDumpsButton.setOnClickListener { resetTo(HeapDumpsScreen()) }
     aboutButton.setOnClickListener { resetTo(AboutScreen()) }
+
+    handleViewHprof(intent)
+  }
+
+  private fun handleViewHprof(intent: Intent?) {
+    if (intent?.action != Intent.ACTION_VIEW) return
+    val uri = intent.data ?: return
+    if (uri.lastPathSegment?.endsWith(".hprof") != true) {
+      Toast.makeText(this, getString(R.string.leak_canary_import_unsupported_file_extension, uri.lastPathSegment), Toast.LENGTH_LONG).show()
+      return
+    }
+    resetTo(HeapDumpsScreen())
+    AsyncTask.THREAD_POOL_EXECUTOR.execute {
+      importHprof(uri)
+    }
   }
 
   override fun onNewScreen(screen: Screen) {
@@ -144,7 +160,7 @@ internal class LeakActivity : NavigatingActivity() {
                     input.copyTo(output, DEFAULT_BUFFER_SIZE)
                   }
               }
-              HeapAnalyzerService.runAnalysis(this, target)
+              HeapAnalyzerService.runAnalysis(this, target, heapDumpReason = "Imported by user")
             }
         }
     } catch (e: IOException) {
@@ -179,7 +195,7 @@ internal class LeakActivity : NavigatingActivity() {
       val intent = Intent(context, LeakActivity::class.java)
       intent.putExtra("screens", screens)
       intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-      val flags = if (Build.VERSION.SDK_INT > 30) {
+      val flags = if (Build.VERSION.SDK_INT >= 23) {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
       } else {
         PendingIntent.FLAG_UPDATE_CURRENT

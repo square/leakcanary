@@ -1,8 +1,9 @@
-apply plugin: 'java-library'
-apply plugin: 'kotlin'
+plugins {
+  id("org.jetbrains.kotlin.jvm")
+}
 
-sourceCompatibility = JavaVersion.VERSION_1_7
-targetCompatibility = JavaVersion.VERSION_1_7
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
   api project(':shark')

@@ -1,5 +1,7 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+plugins {
+  id("com.android.library")
+  id("org.jetbrains.kotlin.android")
+}
 
 dependencies {
   api project(':leakcanary-object-watcher')
@@ -15,21 +17,20 @@ dependencies {
 
 android {
   resourcePrefix 'leak_canary_watcher_'
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
 
   defaultConfig {
-    minSdkVersion versions.minSdk
+    minSdk versions.minSdk
     consumerProguardFiles 'consumer-proguard-rules.pro'
   }
 
   lintOptions {
     disable 'GoogleAppIndexingWarning'
-    check 'Interoperability'
+    checkOnly 'Interoperability'
   }
 
-  // TODO replace with https://issuetracker.google.com/issues/72050365 once released.
-  libraryVariants.all {
-    it.generateBuildConfig.enabled = false
+  buildFeatures {
+    buildConfig = false
   }
 }
 

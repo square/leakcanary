@@ -202,7 +202,7 @@ enum class AndroidReferenceMatchers {
       references += instanceFieldLeak(
         "android.view.inputmethod.InputMethodManager", "mNextServedView", description
       ) {
-        sdkInt in 15..27
+        sdkInt in 15..28
       }
 
       references += instanceFieldLeak(
@@ -536,7 +536,7 @@ enum class AndroidReferenceMatchers {
           " on the screen. TextView.ChangeWatcher and android.widget.Editor end up in spans and" +
           " typically hold on to the view hierarchy"
       ) {
-        sdkInt in 24..29
+        sdkInt in 24..30
       }
     }
   },
@@ -694,6 +694,24 @@ enum class AndroidReferenceMatchers {
         """.trimIndent()
       ) {
         sdkInt == 29
+      }
+    }
+  },
+
+  COMPANION_DEVICE_SERVICE__STUB {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references  += instanceFieldLeak(
+        "android.companion.CompanionDeviceService\$Stub", "this\$0",
+        description = """
+          Android 12 added android.companion.CompanionDeviceService, a bounded service extended by
+          applications to which the system binds. CompanionDeviceService.Stub is an inner class
+          that holds a reference to CompanionDeviceService, which itself holds a Stub instance
+          that's not nullified after the service is destroyed.
+          Introduced in https://android.googlesource.com/platform/frameworks/base/+/df69bbaf29e41d9df105612500c27be730feedfc
+          Source code: https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/companion/CompanionDeviceService.java
+        """.trimIndent()
+      ) {
+        sdkInt == 31
       }
     }
   },

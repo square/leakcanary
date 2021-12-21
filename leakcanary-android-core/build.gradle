@@ -1,5 +1,7 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+plugins {
+  id("com.android.library")
+  id("org.jetbrains.kotlin.android")
+}
 
 dependencies {
   api project(':shark-android')
@@ -27,9 +29,9 @@ def gitSha() {
 
 android {
   resourcePrefix 'leak_canary_'
-  compileSdkVersion versions.compileSdk
+  compileSdk versions.compileSdk
   defaultConfig {
-    minSdkVersion versions.minSdk
+    minSdk versions.minSdk
     buildConfigField "String", "LIBRARY_VERSION", "\"${rootProject.ext.VERSION_NAME}\""
     buildConfigField "String", "GIT_SHA", "\"${gitSha()}\""
     consumerProguardFiles 'consumer-proguard-rules.pro'
@@ -38,7 +40,7 @@ android {
   lintOptions {
     disable 'GoogleAppIndexingWarning'
     error 'ObsoleteSdkInt'
-    check 'Interoperability'
+    checkOnly 'Interoperability'
   }
 }
 
