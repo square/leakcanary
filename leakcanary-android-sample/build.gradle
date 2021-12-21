@@ -40,7 +40,7 @@ android {
 
   defaultConfig {
     applicationId "com.example.leakcanary"
-    minSdkVersion 16
+    minSdk 16
     targetSdk versions.compileSdk
 
     versionCode 1
