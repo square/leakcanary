@@ -22,6 +22,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
+import leakcanary.AndroidDebugHeapDumper
 import leakcanary.AppWatcher
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
@@ -127,8 +128,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
     AppWatcher.objectWatcher.addOnObjectRetainedListener(this)
 
-    val heapDumper = AndroidHeapDumper(application, createLeakDirectoryProvider(application))
-
     val gcTrigger = GcTrigger.Default
 
     val configProvider = { LeakCanary.config }
@@ -138,7 +137,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     val backgroundHandler = Handler(handlerThread.looper)
 
     heapDumpTrigger = HeapDumpTrigger(
-      application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger, heapDumper,
+      application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger,
       configProvider
     )
     application.registerVisibilityListener { applicationVisible ->

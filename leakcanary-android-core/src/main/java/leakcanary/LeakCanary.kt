@@ -169,6 +169,21 @@ object LeakCanary {
     val leakingObjectFinder: LeakingObjectFinder = KeyedWeakReferenceFinder,
 
     /**
+     * Dumps the Java heap. You may replace this with your own implementation if you wish to
+     * change how LeakCanary notifies the user of that the heap is dumping, or the core heap
+     * dumping implementation. It's highly recommended that you call [leakCanaryHeapDumper] and
+     * either provide a custom core heap dumper or wrap the returned heap dumper with a delegate
+     * that perform additional work. Example usage:
+     *
+     * ```
+     * LeakCanary.config = LeakCanary.config.copy(
+     *     heapDumper = leakCanaryHeapDumper(toastOnDump = false)
+     * )
+     * ```
+     */
+    val heapDumper: HeapDumper = leakCanaryHeapDumper(),
+
+    /**
      * Deprecated: This is a no-op, set a custom [leakingObjectFinder] instead.
      */
     @Deprecated("This is a no-op, set a custom leakingObjectFinder instead")
@@ -213,6 +228,7 @@ object LeakCanary {
       private var requestWriteExternalStoragePermission =
         config.requestWriteExternalStoragePermission
       private var leakingObjectFinder = config.leakingObjectFinder
+      private var heapDumper = config.heapDumper
 
       /** @see [LeakCanary.Config.dumpHeap] */
       fun dumpHeap(dumpHeap: Boolean) =
@@ -258,6 +274,10 @@ object LeakCanary {
       fun leakingObjectFinder(leakingObjectFinder: LeakingObjectFinder) =
         apply { this.leakingObjectFinder = leakingObjectFinder }
 
+      /** @see [LeakCanary.Config.heapDumper] */
+      fun heapDumper(heapDumper: HeapDumper) =
+        apply { this.heapDumper = heapDumper }
+
       fun build() = config.copy(
         dumpHeap = dumpHeap,
         dumpHeapWhenDebugging = dumpHeapWhenDebugging,
@@ -269,7 +289,8 @@ object LeakCanary {
         computeRetainedHeapSize = computeRetainedHeapSize,
         maxStoredHeapDumps = maxStoredHeapDumps,
         requestWriteExternalStoragePermission = requestWriteExternalStoragePermission,
-        leakingObjectFinder = leakingObjectFinder
+        leakingObjectFinder = leakingObjectFinder,
+        heapDumper = heapDumper
       )
     }
   }

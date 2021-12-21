@@ -4,12 +4,15 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
-import android.content.res.Resources.NotFoundException
 import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
 import leakcanary.GcTrigger
+import leakcanary.HeapDumper
+import leakcanary.HeapDumper.DumpLocation
+import leakcanary.HeapDumper.Result.Failure
+import leakcanary.HeapDumper.Result.HeapDump
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
 import leakcanary.ObjectWatcher
@@ -23,15 +26,14 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
-import shark.AndroidResourceIdNames
 import shark.SharkLog
+import java.io.File
 
 internal class HeapDumpTrigger(
   private val application: Application,
   private val backgroundHandler: Handler,
   private val objectWatcher: ObjectWatcher,
   private val gcTrigger: GcTrigger,
-  private val heapDumper: HeapDumper,
   private val configProvider: () -> Config
 ) {
 
@@ -159,18 +161,17 @@ internal class HeapDumpTrigger(
     retry: Boolean,
     reason: String
   ) {
-    saveResourceIdNamesToMemory()
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-    when (val heapDumpResult = heapDumper.dumpHeap()) {
-      is NoHeapDump -> {
+    when (val heapDumpResult = configProvider().heapDumper.dumpHeap(DumpLocation.Unspecified)) {
+      is Failure -> {
         if (retry) {
-          SharkLog.d { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
+          SharkLog.d(heapDumpResult.exception) { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
           scheduleRetainedObjectCheck(
             delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS
           )
         } else {
-          SharkLog.d { "Failed to dump heap, will not automatically retry" }
+          SharkLog.d(heapDumpResult.exception) { "Failed to dump heap, will not automatically retry" }
         }
         showRetainedCountNotification(
           objectCount = retainedReferenceCount,
@@ -191,25 +192,6 @@ internal class HeapDumpTrigger(
         )
       }
     }
-  }
-
-  private fun saveResourceIdNamesToMemory() {
-    val resources = application.resources
-    AndroidResourceIdNames.saveToMemory(
-      getResourceTypeName = { id ->
-        try {
-          resources.getResourceTypeName(id)
-        } catch (e: NotFoundException) {
-          null
-        }
-      },
-      getResourceEntryName = { id ->
-        try {
-          resources.getResourceEntryName(id)
-        } catch (e: NotFoundException) {
-          null
-        }
-      })
   }
 
   fun onDumpHeapReceived(forceDump: Boolean) {
@@ -397,3 +379,13 @@ internal class HeapDumpTrigger(
     private const val WAIT_BETWEEN_HEAP_DUMPS_MILLIS = 60_000L
   }
 }
+
+/** Dump heap result holding the file and the dump heap duration */
+internal sealed class DumpHeapResult
+
+internal data class HeapDump(
+  val file: File,
+  val durationMillis: Long
+) : DumpHeapResult()
+
+internal object NoHeapDump : DumpHeapResult()
