@@ -26,10 +26,6 @@ fun interface OnObjectRetainedListener {
      * ```
      */
     inline operator fun invoke(crossinline block: () -> Unit): OnObjectRetainedListener =
-      object : OnObjectRetainedListener {
-        override fun onObjectRetained() {
-          block()
-        }
-      }
+      OnObjectRetainedListener { block() }
   }
 }

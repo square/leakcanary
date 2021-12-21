@@ -103,8 +103,7 @@ class LeakTraceRenderingTest {
               leakingReasons += "because reasons"
             }
           }
-        }), leakFilters = listOf(object : LeakingObjectFilter {
-        override fun isLeakingObject(heapObject: HeapObject) =
+        }), leakFilters = listOf(LeakingObjectFilter { heapObject ->
           heapObject is HeapInstance && heapObject instanceOf "ClassB"
       })
       )

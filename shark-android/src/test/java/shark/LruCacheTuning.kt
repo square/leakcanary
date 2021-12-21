@@ -108,7 +108,7 @@ private fun trackAnalyzeMetrics(
     referenceMatchers = AndroidReferenceMatchers.buildKnownReferences(
       EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
     ),
-    leakingObjectFinder = LeakingObjectFinder { graph ->
+    leakingObjectFinder = { graph ->
       setOf(graph.findClassByName("shark.internal.LruCache")!!.instances.single().objectId)
     },
     computeRetainedHeapSize = true

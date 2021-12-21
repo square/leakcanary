@@ -28,8 +28,6 @@ fun interface MetadataExtractor {
      * ```
      */
     inline operator fun invoke(crossinline block: (HeapGraph) -> Map<String, String>): MetadataExtractor =
-      object : MetadataExtractor {
-        override fun extractMetadata(graph: HeapGraph): Map<String, String> = block(graph)
-      }
+      MetadataExtractor { graph -> block(graph) }
   }
 }

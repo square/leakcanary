@@ -7,7 +7,7 @@ package shark
  * Listener implementations are expected to read all bytes corresponding to a given tag from the
  * provided reader before returning.
  */
-interface OnHprofRecordTagListener {
+fun interface OnHprofRecordTagListener {
   fun onHprofRecord(
     tag: HprofRecordTag,
     /**
@@ -31,14 +31,6 @@ interface OnHprofRecordTagListener {
      * ```
      */
     inline operator fun invoke(crossinline block: (HprofRecordTag, Long, HprofRecordReader) -> Unit): OnHprofRecordTagListener =
-      object : OnHprofRecordTagListener {
-        override fun onHprofRecord(
-          tag: HprofRecordTag,
-          length: Long,
-          reader: HprofRecordReader
-        ) {
-          block(tag, length, reader)
-        }
-      }
+      OnHprofRecordTagListener { tag, length, reader -> block(tag, length, reader) }
   }
 }

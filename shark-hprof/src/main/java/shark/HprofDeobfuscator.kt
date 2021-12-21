@@ -63,28 +63,28 @@ class HprofDeobfuscator {
     var maxId: Long = 0
 
     val reader = StreamingHprofReader.readerFor(inputHprofFile).asStreamingRecordReader()
-    reader.readRecords(setOf(HprofRecord::class),
-      OnHprofRecordListener { _, record ->
-        when (record) {
-          is StringRecord -> {
-            maxId = maxId.coerceAtLeast(record.id)
-            hprofStringCache[record.id] = record.string
-          }
-          is LoadClassRecord -> {
-            maxId = maxId.coerceAtLeast(record.id)
-            classNames[record.id] = record.classNameStringId
-          }
-          is StackFrameRecord -> maxId = maxId.coerceAtLeast(record.id)
-          is ObjectRecord -> {
-            maxId = when (record) {
-              is ClassDumpRecord -> maxId.coerceAtLeast(record.id)
-              is InstanceDumpRecord -> maxId.coerceAtLeast(record.id)
-              is ObjectArrayDumpRecord -> maxId.coerceAtLeast(record.id)
-              is PrimitiveArrayDumpRecord -> maxId.coerceAtLeast(record.id)
-            }
+    reader.readRecords(setOf(HprofRecord::class)
+    ) { _, record ->
+      when (record) {
+        is StringRecord -> {
+          maxId = maxId.coerceAtLeast(record.id)
+          hprofStringCache[record.id] = record.string
+        }
+        is LoadClassRecord -> {
+          maxId = maxId.coerceAtLeast(record.id)
+          classNames[record.id] = record.classNameStringId
+        }
+        is StackFrameRecord -> maxId = maxId.coerceAtLeast(record.id)
+        is ObjectRecord -> {
+          maxId = when (record) {
+            is ClassDumpRecord -> maxId.coerceAtLeast(record.id)
+            is InstanceDumpRecord -> maxId.coerceAtLeast(record.id)
+            is ObjectArrayDumpRecord -> maxId.coerceAtLeast(record.id)
+            is PrimitiveArrayDumpRecord -> maxId.coerceAtLeast(record.id)
           }
         }
-      })
+      }
+    }
     return Triple(hprofStringCache, classNames, maxId)
   }
 

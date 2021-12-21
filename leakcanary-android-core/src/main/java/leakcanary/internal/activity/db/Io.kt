@@ -11,7 +11,7 @@ internal object Io {
 
   private val serialExecutor = Executors.newSingleThreadExecutor()
 
-  interface OnIo {
+  fun interface OnIo {
     fun updateUi(updateUi: View.() -> Unit)
   }
 

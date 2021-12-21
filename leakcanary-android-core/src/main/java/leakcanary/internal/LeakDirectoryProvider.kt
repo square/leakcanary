@@ -147,11 +147,11 @@ internal class LeakDirectoryProvider constructor(
   }
 
   private fun cleanupOldHeapDumps() {
-    val hprofFiles = listFiles(FilenameFilter { _, name ->
+    val hprofFiles = listFiles { _, name ->
       name.endsWith(
         HPROF_SUFFIX
       )
-    })
+    }
     val maxStoredHeapDumps = maxStoredHeapDumps()
     if (maxStoredHeapDumps < 1) {
       throw IllegalArgumentException("maxStoredHeapDumps must be at least 1")
@@ -161,10 +161,10 @@ internal class LeakDirectoryProvider constructor(
     if (filesToRemove > 0) {
       SharkLog.d { "Removing $filesToRemove heap dumps" }
       // Sort with oldest modified first.
-      hprofFiles.sortWith(Comparator { lhs, rhs ->
+      hprofFiles.sortWith { lhs, rhs ->
         java.lang.Long.valueOf(lhs.lastModified())
           .compareTo(rhs.lastModified())
-      })
+      }
       for (i in 0 until filesToRemove) {
         val path = hprofFiles[i].absolutePath
         val deleted = hprofFiles[i].delete()

@@ -30,13 +30,6 @@ fun interface OnHprofRecordListener {
      * ```
      */
     inline operator fun invoke(crossinline block: (Long, HprofRecord) -> Unit): OnHprofRecordListener =
-      object : OnHprofRecordListener {
-        override fun onHprofRecord(
-          position: Long,
-          record: HprofRecord
-        ) {
-          block(position, record)
-        }
-      }
+      OnHprofRecordListener { position, record -> block(position, record) }
   }
 }

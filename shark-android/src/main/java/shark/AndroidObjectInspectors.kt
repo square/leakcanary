@@ -771,9 +771,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
     fun createLeakingObjectFilters(inspectors: Set<AndroidObjectInspectors>): List<LeakingObjectFilter> =
       inspectors.mapNotNull { it.leakingObjectFilter }
         .map { filter ->
-          object : LeakingObjectFilter {
-            override fun isLeakingObject(heapObject: HeapObject) = filter(heapObject)
-          }
+          LeakingObjectFilter { heapObject -> filter(heapObject) }
         }
   }
 

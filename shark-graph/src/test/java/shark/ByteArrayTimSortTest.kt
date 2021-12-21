@@ -11,35 +11,19 @@ class ByteArrayTimSortTest {
   @Test fun smallArray1BytePerEntry() {
     val toSort = byteArrayOf(2, 1, 4)
 
-    ByteArrayTimSort.sort(toSort, 0, 3, 1, object : ByteArrayComparator {
-      override fun compare(
-        entrySize: Int,
-        o1Array: ByteArray,
-        o1Index: Int,
-        o2Array: ByteArray,
-        o2Index: Int
-      ): Int {
-        return o1Array[o1Index].compareTo(o2Array[o2Index])
-      }
-    })
+    ByteArrayTimSort.sort(toSort, 0, 3, 1) { _, o1Array, o1Index, o2Array, o2Index ->
+      o1Array[o1Index].compareTo(o2Array[o2Index])
+    }
     assertThat(toSort).containsExactly(1, 2, 4)
   }
 
   @Test fun smallArray3BytesPerEntry1ByteKey() {
     val toSort = byteArrayOf(2, 3, 3, 1, 5, 5, 4, 6, 6)
 
-    ByteArrayTimSort.sort(toSort, 3, object : ByteArrayComparator {
-      override fun compare(
-        entrySize: Int,
-        o1Array: ByteArray,
-        o1Index: Int,
-        o2Array: ByteArray,
-        o2Index: Int
-      ): Int {
-        // Sort based on first byte
-        return o1Array[o1Index * entrySize].compareTo(o2Array[o2Index * entrySize])
-      }
-    })
+    ByteArrayTimSort.sort(toSort, 3) { entrySize, o1Array, o1Index, o2Array, o2Index ->
+      // Sort based on first byte
+      o1Array[o1Index * entrySize].compareTo(o2Array[o2Index * entrySize])
+    }
     assertThat(toSort).containsExactly(1, 5, 5, 2, 3, 3, 4, 6, 6)
   }
 
@@ -73,24 +57,16 @@ class ByteArrayTimSortTest {
       )
     }
 
-    ByteArrayTimSort.sort(librarySorted, entrySize, object : ByteArrayComparator {
-      override fun compare(
-        entrySize: Int,
-        o1Array: ByteArray,
-        o1Index: Int,
-        o2Array: ByteArray,
-        o2Index: Int
-      ): Int {
-        val compared =
-          readInt(o1Array, o1Index * entrySize).compareTo(readInt(o2Array, o2Index * entrySize))
-        if (compared == 0) {
-          return readInt(o1Array, o1Index * entrySize + 4).compareTo(
-            readInt(o2Array, o2Index * entrySize + 4)
-          )
-        }
-        return compared
+    ByteArrayTimSort.sort(librarySorted, entrySize) { entrySize, o1Array, o1Index, o2Array, o2Index ->
+      val compared = readInt(o1Array, o1Index * entrySize)
+        .compareTo(readInt(o2Array, o2Index * entrySize))
+      if (compared == 0) {
+        readInt(o1Array, o1Index * entrySize + 4).compareTo(
+          readInt(o2Array, o2Index * entrySize + 4)
+        )
       }
-    })
+      compared
+    }
 
     assertThat(librarySorted.asList()).isEqualTo(androidSortedAsBytes.asList())
   }

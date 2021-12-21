@@ -106,7 +106,8 @@ internal object HeapDumpRenderer {
     val hprofStringCache = mutableMapOf<Long, String>()
     val classNames = mutableMapOf<Long, Long>()
     reader.readRecords(
-      setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
+      setOf(HprofRecord::class)
+    ) { position, record ->
       lastPosition = position
       when (record) {
         is StringRecord -> {
@@ -152,7 +153,7 @@ internal object HeapDumpRenderer {
           currentRecord = record
         }
       }
-    })
+    }
     val heapLength = lastPosition
 
     val width = sourceWidth
