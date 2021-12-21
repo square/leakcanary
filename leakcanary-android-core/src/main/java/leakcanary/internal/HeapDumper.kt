@@ -18,7 +18,7 @@ package leakcanary.internal
 import java.io.File
 
 /** Dumps the heap into a file.  */
-internal interface HeapDumper {
+internal fun interface HeapDumper {
 
   /**
    * @return a [File] referencing the dumped heap, or [.RETRY_LATER] if the heap could

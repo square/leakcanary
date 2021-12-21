@@ -20,7 +20,7 @@ package leakcanary
  * the associated [java.lang.ref.ReferenceQueue]. The default implementation [Default] comes from
  * AOSP.
  */
-interface GcTrigger {
+fun interface GcTrigger {
 
   /**
    * Attempts to run garbage collection.

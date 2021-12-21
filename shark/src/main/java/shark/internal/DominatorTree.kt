@@ -101,21 +101,16 @@ internal class DominatorTree(expectedElements: Int = 4) {
 
   fun buildFullDominatorTree(computeSize: (Long) -> Int): Map<Long, DominatorNode> {
     val dominators = mutableMapOf<Long, MutableDominatorNode>()
-    dominated.forEach(object : ForEachCallback {
-      override fun onEntry(
-        key: Long,
-        value: Long
-      ) {
-        // create entry for dominated
-        dominators.getOrPut(key) {
-          MutableDominatorNode()
-        }
-        // If dominator is null ref then we still have an entry for that, to collect all dominator
-        // roots.
-        dominators.getOrPut(value) {
-          MutableDominatorNode()
-        }.dominated += key
+    dominated.forEach(ForEachCallback {key, value ->
+      // create entry for dominated
+      dominators.getOrPut(key) {
+        MutableDominatorNode()
       }
+      // If dominator is null ref then we still have an entry for that, to collect all dominator
+      // roots.
+      dominators.getOrPut(value) {
+        MutableDominatorNode()
+      }.dominated += key
     })
 
     val allReachableObjectIds = dominators.keys.toSet() - ValueHolder.NULL_REFERENCE

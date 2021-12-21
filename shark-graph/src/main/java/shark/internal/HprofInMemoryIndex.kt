@@ -668,36 +668,36 @@ internal class HprofInMemoryIndex private constructor(
       var classFieldsTotalBytes = 0
 
       val bytesRead = reader.readRecords(
-        EnumSet.of(CLASS_DUMP, INSTANCE_DUMP, OBJECT_ARRAY_DUMP, PRIMITIVE_ARRAY_DUMP),
-        OnHprofRecordTagListener { tag, _, reader ->
-          val bytesReadStart = reader.bytesRead
-          when (tag) {
-            CLASS_DUMP -> {
-              classCount++
-              reader.skipClassDumpHeader()
-              val bytesReadStaticFieldStart = reader.bytesRead
-              reader.skipClassDumpStaticFields()
-              reader.skipClassDumpFields()
-              maxClassSize = max(maxClassSize, reader.bytesRead - bytesReadStart)
-              classFieldsTotalBytes += (reader.bytesRead - bytesReadStaticFieldStart).toInt()
-            }
-            INSTANCE_DUMP -> {
-              instanceCount++
-              reader.skipInstanceDumpRecord()
-              maxInstanceSize = max(maxInstanceSize, reader.bytesRead - bytesReadStart)
-            }
-            OBJECT_ARRAY_DUMP -> {
-              objectArrayCount++
-              reader.skipObjectArrayDumpRecord()
-              maxObjectArraySize = max(maxObjectArraySize, reader.bytesRead - bytesReadStart)
-            }
-            PRIMITIVE_ARRAY_DUMP -> {
-              primitiveArrayCount++
-              reader.skipPrimitiveArrayDumpRecord()
-              maxPrimitiveArraySize = max(maxPrimitiveArraySize, reader.bytesRead - bytesReadStart)
-            }
+        EnumSet.of(CLASS_DUMP, INSTANCE_DUMP, OBJECT_ARRAY_DUMP, PRIMITIVE_ARRAY_DUMP)
+      ) { tag, _, reader ->
+        val bytesReadStart = reader.bytesRead
+        when (tag) {
+          CLASS_DUMP -> {
+            classCount++
+            reader.skipClassDumpHeader()
+            val bytesReadStaticFieldStart = reader.bytesRead
+            reader.skipClassDumpStaticFields()
+            reader.skipClassDumpFields()
+            maxClassSize = max(maxClassSize, reader.bytesRead - bytesReadStart)
+            classFieldsTotalBytes += (reader.bytesRead - bytesReadStaticFieldStart).toInt()
           }
-        })
+          INSTANCE_DUMP -> {
+            instanceCount++
+            reader.skipInstanceDumpRecord()
+            maxInstanceSize = max(maxInstanceSize, reader.bytesRead - bytesReadStart)
+          }
+          OBJECT_ARRAY_DUMP -> {
+            objectArrayCount++
+            reader.skipObjectArrayDumpRecord()
+            maxObjectArraySize = max(maxObjectArraySize, reader.bytesRead - bytesReadStart)
+          }
+          PRIMITIVE_ARRAY_DUMP -> {
+            primitiveArrayCount++
+            reader.skipPrimitiveArrayDumpRecord()
+            maxPrimitiveArraySize = max(maxPrimitiveArraySize, reader.bytesRead - bytesReadStart)
+          }
+        }
+      }
 
       val bytesForClassSize = byteSizeForUnsigned(maxClassSize)
       val bytesForInstanceSize = byteSizeForUnsigned(maxInstanceSize)

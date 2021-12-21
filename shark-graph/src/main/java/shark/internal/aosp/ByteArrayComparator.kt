@@ -1,6 +1,6 @@
 package shark.internal.aosp
 
-internal interface ByteArrayComparator {
+internal fun interface ByteArrayComparator {
 
   /**
    * Indexes are divided by entrySize

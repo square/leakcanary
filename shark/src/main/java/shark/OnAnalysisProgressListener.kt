@@ -43,10 +43,6 @@ fun interface OnAnalysisProgressListener {
      * ```
      */
     inline operator fun invoke(crossinline block: (Step) -> Unit): OnAnalysisProgressListener =
-      object : OnAnalysisProgressListener {
-        override fun onAnalysisProgress(step: Step) {
-          block(step)
-        }
-      }
+      OnAnalysisProgressListener { step -> block(step) }
   }
 }

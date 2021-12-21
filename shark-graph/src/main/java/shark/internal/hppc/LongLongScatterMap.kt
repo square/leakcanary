@@ -25,11 +25,8 @@ import java.util.Locale
  */
 internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
 
-  interface ForEachCallback {
-    fun onEntry(
-      key: Long,
-      value: Long
-    )
+  fun interface ForEachCallback {
+    fun onEntry(key: Long, value: Long)
   }
 
   /**

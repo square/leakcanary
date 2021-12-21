@@ -50,27 +50,20 @@ internal class UnsortedByteEntries(
     }
     val entries = entries!!
     // Sort entries by keys, which are ids of 4 or 8 bytes.
-    ByteArrayTimSort.sort(entries, 0, assigned, bytesPerEntry, object : ByteArrayComparator {
-      override fun compare(
-        entrySize: Int,
-        o1Array: ByteArray,
-        o1Index: Int,
-        o2Array: ByteArray,
-        o2Index: Int
-      ): Int {
-        return if (longIdentifiers) {
-          readLong(o1Array, o1Index * entrySize)
-            .compareTo(
-              readLong(o2Array, o2Index * entrySize)
-            )
-        } else {
-          readInt(o1Array, o1Index * entrySize)
-            .compareTo(
-              readInt(o2Array, o2Index * entrySize)
-            )
-        }
+    ByteArrayTimSort.sort(entries, 0, assigned, bytesPerEntry) {
+        entrySize, o1Array, o1Index, o2Array, o2Index ->
+      if (longIdentifiers) {
+        readLong(o1Array, o1Index * entrySize)
+          .compareTo(
+            readLong(o2Array, o2Index * entrySize)
+          )
+      } else {
+        readInt(o1Array, o1Index * entrySize)
+          .compareTo(
+            readInt(o2Array, o2Index * entrySize)
+          )
       }
-    })
+    }
     val sortedEntries = if (entries.size > assigned * bytesPerEntry) {
       entries.copyOf(assigned * bytesPerEntry)
     } else entries

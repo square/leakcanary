@@ -181,9 +181,9 @@ class HprofWriterTest {
   private fun DualSourceProvider.readAllRecords(): MutableList<HprofRecord> {
     val readRecords = mutableListOf<HprofRecord>()
     StreamingHprofReader.readerFor(this).asStreamingRecordReader()
-      .readRecords(setOf(HprofRecord::class), OnHprofRecordListener { position, record ->
+      .readRecords(setOf(HprofRecord::class)) { position, record ->
         readRecords += record
-      })
+      }
     return readRecords
   }
 

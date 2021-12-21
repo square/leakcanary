@@ -27,8 +27,6 @@ fun interface LeakingObjectFinder {
      * ```
      */
     inline operator fun invoke(crossinline block: (HeapGraph) -> Set<Long>): LeakingObjectFinder =
-      object : LeakingObjectFinder {
-        override fun findLeakingObjectIds(graph: HeapGraph): Set<Long> = block(graph)
-      }
+      LeakingObjectFinder { graph -> block(graph) }
   }
 }

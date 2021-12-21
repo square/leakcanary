@@ -29,12 +29,6 @@ fun interface ObjectInspector {
      * ```
      */
     inline operator fun invoke(crossinline block: (ObjectReporter) -> Unit): ObjectInspector =
-      object : ObjectInspector {
-        override fun inspect(
-          reporter: ObjectReporter
-        ) {
-          block(reporter)
-        }
-      }
+      ObjectInspector { reporter -> block(reporter) }
   }
 }

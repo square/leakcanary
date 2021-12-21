@@ -10,7 +10,7 @@ class FilteringLeakingObjectFinder(private val filters: List<LeakingObjectFilter
   /**
    * Filter to be passed to the [FilteringLeakingObjectFinder] constructor.
    */
-  interface LeakingObjectFilter {
+  fun interface LeakingObjectFilter {
     /**
      * Returns whether the passed in [heapObject] is leaking. This should only return true
      * when we're 100% sure the passed in [heapObject] should not be in memory anymore.
