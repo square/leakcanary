@@ -78,7 +78,7 @@ Add Sonatype's `snapshots` repository:
 repositories {
   mavenCentral()
   maven {
-    url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    url 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
   }
 }
 ```

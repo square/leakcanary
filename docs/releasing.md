@@ -156,7 +156,7 @@ git push origin v{{ leak_canary.next_release }}
 ```
 
 * Release to Maven Central
-    * Login to Sonatype OSS Nexus: https://oss.sonatype.org/
+    * Login to Sonatype OSS Nexus: https://s01.oss.sonatype.org/
     * Click on **Staging Repositories**
     * Scroll to the bottom, you should see an entry named `comsquareup-XXXX`
     * Check the box next to the `comsquareup-XXXX` entry, click **Close** then **Confirm**
