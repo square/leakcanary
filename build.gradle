@@ -30,7 +30,7 @@ buildscript {
       detekt: 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.6.0',
       junit: 'junit:junit:4.12',
       kotlin: [
-          binaryCompatibilityValidatorPlugin: "org.jetbrains.kotlinx:binary-compatibility-validator:0.2.3",
+          binaryCompatibilityValidatorPlugin: "org.jetbrains.kotlinx:binary-compatibility-validator:0.8.0",
           gradlePlugin: "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}",
           stdlib: "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}",
           reflect: "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlin}"
