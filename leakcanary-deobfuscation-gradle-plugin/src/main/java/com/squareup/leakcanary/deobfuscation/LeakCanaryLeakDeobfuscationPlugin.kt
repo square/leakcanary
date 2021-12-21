@@ -96,6 +96,14 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
       it.dependsOn(variant.mergeAssetsProvider)
     }
 
+    // https://github.com/square/leakcanary/pull/2230#discussion_r772992666
+    findTaskProviderOrNull(
+      project,
+      "compress${variant.name.capitalize()}Assets"
+    )?.configure {
+      it.dependsOn(copyObfuscationMappingFileTaskProvider)
+    }
+
     getPackageTaskProvider(variant).configure {
       it.dependsOn(copyObfuscationMappingFileTaskProvider)
     }

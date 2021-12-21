@@ -59,10 +59,10 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         }
         
         android {
-          compileSdkVersion 29
+          compileSdk 29
   
           defaultConfig {
-            minSdkVersion 29
+            minSdk 29
           }
   
           buildTypes {
@@ -128,10 +128,10 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         }
         
         android {
-          compileSdkVersion 29
+          compileSdk 29
   
           defaultConfig {
-            minSdkVersion 29
+            minSdk 29
           }
   
           buildTypes {
@@ -182,10 +182,10 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         }
         
         android {
-          compileSdkVersion 29
+          compileSdk 29
   
           defaultConfig {
-            minSdkVersion 29
+            minSdk 29
           }
   
           buildTypes {
