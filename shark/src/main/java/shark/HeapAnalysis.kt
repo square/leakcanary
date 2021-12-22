@@ -1,8 +1,8 @@
 package shark
 
-import shark.internal.createSHA1Hash
 import java.io.File
 import java.io.Serializable
+import shark.internal.createSHA1Hash
 
 /**
  * The result of an analysis performed by [HeapAnalyzer], either a [HeapAnalysisSuccess] or a
@@ -171,7 +171,7 @@ sealed class Leak : Serializable {
     get() = if (leakTraces.first().retainedHeapByteSize == null) {
       null
     } else {
-      leakTraces.sumOf { it.retainedHeapByteSize!! }
+      leakTraces.sumOf { it.retainedHeapByteSize ?: 0 }
     }
 
   /**
@@ -182,7 +182,7 @@ sealed class Leak : Serializable {
     get() = if (leakTraces.first().retainedObjectCount == null) {
       null
     } else {
-      leakTraces.sumOf { it.retainedObjectCount!! }
+      leakTraces.sumOf { it.retainedObjectCount ?: 0 }
     }
 
   /**
