@@ -38,7 +38,7 @@ class StringPathFinderOptimTest {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = heapAnalyzer.analyze(
       heapDumpFile = hprofFile,
-      leakingObjectFinder = LeakingObjectFinder { graph ->
+      leakingObjectFinder = { graph ->
         graph.findClassByName("java.lang.String")!!.instances.map { instance ->
           instance["java.lang.String", "value"]?.value?.asNonNullObjectId!!
         }.toSet()

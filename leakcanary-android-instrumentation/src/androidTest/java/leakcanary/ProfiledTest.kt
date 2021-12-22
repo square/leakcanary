@@ -31,11 +31,7 @@ class ProfiledTest {
       .copyTo(FileOutputStream(heapDumpFile))
 
     runWithProfilerSampling {
-      val analyzer = HeapAnalyzer(object : OnAnalysisProgressListener {
-        override fun onAnalysisProgress(step: Step) {
-          Log.d("LeakCanary", step.name)
-        }
-      })
+      val analyzer = HeapAnalyzer { step -> Log.d("LeakCanary", step.name) }
       val result = analyzer.analyze(
         heapDumpFile = heapDumpFile,
         leakingObjectFinder = KeyedWeakReferenceFinder,

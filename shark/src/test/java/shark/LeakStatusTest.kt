@@ -519,53 +519,37 @@ class LeakStatusTest {
   }
 
   private fun notLeakingInstance(className: String): ObjectInspector {
-    return object : ObjectInspector {
-      override fun inspect(
-        reporter: ObjectReporter
-      ) {
-        val record = reporter.heapObject
-        if (record is HeapInstance && record.instanceClassName == className) {
-          reporter.notLeakingReasons += "$className is not leaking"
-        }
+    return ObjectInspector { reporter ->
+      val record = reporter.heapObject
+      if (record is HeapInstance && record.instanceClassName == className) {
+        reporter.notLeakingReasons += "$className is not leaking"
       }
     }
   }
 
   private fun leakingInstance(className: String): ObjectInspector {
-    return object : ObjectInspector {
-      override fun inspect(
-        reporter: ObjectReporter
-      ) {
-        val record = reporter.heapObject
-        if (record is HeapInstance && record.instanceClassName == className) {
-          reporter.leakingReasons += "$className is leaking"
-        }
+    return ObjectInspector { reporter ->
+      val record = reporter.heapObject
+      if (record is HeapInstance && record.instanceClassName == className) {
+        reporter.leakingReasons += "$className is leaking"
       }
     }
   }
 
   private fun notLeakingClass(className: String): ObjectInspector {
-    return object : ObjectInspector {
-      override fun inspect(
-        reporter: ObjectReporter
-      ) {
-        val record = reporter.heapObject
-        if (record is HeapClass && record.name == className) {
-          reporter.notLeakingReasons += "$className is not leaking"
-        }
+    return ObjectInspector { reporter ->
+      val record = reporter.heapObject
+      if (record is HeapClass && record.name == className) {
+        reporter.notLeakingReasons += "$className is not leaking"
       }
     }
   }
 
   private fun leakingClass(className: String): ObjectInspector {
-    return object : ObjectInspector {
-      override fun inspect(
-        reporter: ObjectReporter
-      ) {
-        val record = reporter.heapObject
-        if (record is HeapClass && record.name == className) {
-          reporter.leakingReasons += "$className is leaking"
-        }
+    return ObjectInspector { reporter ->
+      val record = reporter.heapObject
+      if (record is HeapClass && record.name == className) {
+        reporter.leakingReasons += "$className is leaking"
       }
     }
   }

@@ -402,7 +402,7 @@ internal class PathFinder(
         graph.objectExists(gcRoot.id)
       }
       .map { graph.findObjectById(it.id) to it }
-      .sortedWith(Comparator { (graphObject1, root1), (graphObject2, root2) ->
+      .sortedWith { (graphObject1, root1), (graphObject2, root2) ->
         // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
         val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
         if (gcRootTypeComparison != 0) {
@@ -410,7 +410,7 @@ internal class PathFinder(
         } else {
           rootClassName(graphObject1).compareTo(rootClassName(graphObject2))
         }
-      })
+      }
   }
 
   private fun State.visitClassRecord(

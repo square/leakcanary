@@ -25,8 +25,6 @@ fun interface Clock {
      * ```
      */
     inline operator fun invoke(crossinline block: () -> Long): Clock =
-      object : Clock {
-        override fun uptimeMillis(): Long = block()
-      }
+      Clock { block() }
   }
 }

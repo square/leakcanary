@@ -77,9 +77,9 @@ class HprofRetainedHeapPerfTest {
   @Test fun `freeze retained memory through analysis steps of leak_asynctask_o`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     val stepsToHeapDumpFile = mutableMapOf<OnAnalysisProgressListener.Step, File>()
-    val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener { step ->
+    val heapAnalyzer = HeapAnalyzer { step ->
       stepsToHeapDumpFile[step] = dumpHeap(step.name)
-    })
+    }
 
     // matchers contain large description strings which depending on the VM maybe be reachable
     // only via matchers (=> thread locals), and otherwise also statically by the enum class that
@@ -191,7 +191,7 @@ class HprofRetainedHeapPerfTest {
         referenceMatchers = buildKnownReferences(
           EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
         ),
-        leakingObjectFinder = LeakingObjectFinder { graph ->
+        leakingObjectFinder = { graph ->
           setOf(graph.gcRoots.first { gcRoot ->
             gcRoot is ThreadObject &&
               graph.objectExists(gcRoot.id) &&

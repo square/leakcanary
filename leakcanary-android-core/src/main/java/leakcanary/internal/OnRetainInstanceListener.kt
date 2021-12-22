@@ -12,7 +12,7 @@ internal sealed class RetainInstanceEvent {
 /**
  * Called by LeakCanary when the number of retained instances updates .
  */
-internal interface OnRetainInstanceListener {
+internal fun interface OnRetainInstanceListener {
 
   /**
    * Called when there's a change to the Retained Instances. See [RetainInstanceEvent] for

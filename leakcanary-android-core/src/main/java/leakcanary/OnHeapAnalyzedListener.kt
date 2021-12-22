@@ -37,10 +37,6 @@ fun interface OnHeapAnalyzedListener {
      * ```
      */
     inline operator fun invoke(crossinline block: (HeapAnalysis) -> Unit): OnHeapAnalyzedListener =
-      object : OnHeapAnalyzedListener {
-        override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
-          block(heapAnalysis)
-        }
-      }
+      OnHeapAnalyzedListener { heapAnalysis -> block(heapAnalysis) }
   }
 }

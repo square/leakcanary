@@ -16,8 +16,9 @@ class HprofReaderPrimitiveArrayTest {
 
     Hprof.open(heapDump).use { hprof ->
       hprof.reader.readHprofRecords(
-        emptySet(), // skip everything including primitive arrays
-        OnHprofRecordListener { _, _ -> })
+        emptySet()
+      ) // skip everything including primitive arrays
+      { _, _ -> }
     }
   }
 
@@ -32,14 +33,14 @@ class HprofReaderPrimitiveArrayTest {
     var myByteArrayIsInHeapDump = false
     Hprof.open(heapDump).use { hprof ->
       hprof.reader.readHprofRecords(
-        setOf(HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord::class),
-        OnHprofRecordListener { _, record ->
-          if (record is HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump) {
-            if (byteArray.contentEquals(record.array)) {
-              myByteArrayIsInHeapDump = true
-            }
+        setOf(HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord::class)
+      ) { _, record ->
+        if (record is HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump) {
+          if (byteArray.contentEquals(record.array)) {
+            myByteArrayIsInHeapDump = true
           }
-        })
+        }
+      }
     }
     assertThat(myByteArrayIsInHeapDump).isTrue()
   }

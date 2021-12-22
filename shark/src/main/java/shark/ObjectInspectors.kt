@@ -149,9 +149,7 @@ enum class ObjectInspectors : ObjectInspector {
     fun createLeakingObjectFilters(inspectors: Set<ObjectInspectors>): List<LeakingObjectFilter> =
       inspectors.mapNotNull { it.leakingObjectFilter }
         .map { filter ->
-          object : LeakingObjectFilter {
-            override fun isLeakingObject(heapObject: HeapObject) = filter(heapObject)
-          }
+          LeakingObjectFilter { heapObject -> filter(heapObject) }
         }
   }
 }

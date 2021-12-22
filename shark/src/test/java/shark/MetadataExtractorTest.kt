@@ -28,12 +28,10 @@ class MetadataExtractorTest {
       )
     }
 
-    val extractor = object : MetadataExtractor {
-      override fun extractMetadata(graph: HeapGraph): Map<String, String> {
-        val message =
-          graph.findClassByName("World")!!["message"]!!.valueAsInstance!!.readAsJavaString()!!
-        return mapOf("World message" to message)
-      }
+    val extractor = MetadataExtractor { graph ->
+      val message =
+        graph.findClassByName("World")!!["message"]!!.valueAsInstance!!.readAsJavaString()!!
+      mapOf("World message" to message)
     }
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(metadataExtractor = extractor)
