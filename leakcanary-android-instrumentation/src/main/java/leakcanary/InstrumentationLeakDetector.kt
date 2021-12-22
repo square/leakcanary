@@ -55,7 +55,7 @@ import java.io.File
  * your command line for running the UI tests:
  * `-e listener leakcanary.FailTestOnLeakRunListener`. The full command line
  * should look something like this:
- * ```
+ * ```shell
  * adb shell am instrument \\
  * -w com.android.foo/android.support.test.runner.AndroidJUnitRunner \\
  * -e listener leakcanary.FailTestOnLeakRunListener
