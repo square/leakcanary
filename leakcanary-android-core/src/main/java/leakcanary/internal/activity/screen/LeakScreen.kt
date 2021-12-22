@@ -173,7 +173,7 @@ internal class LeakScreen(
       parsedString += if (Patterns.WEB_URL.matcher(word)
           .matches()
       ) {
-        "<a href=\"${word}\">${word}</a>";
+        "<a href=\"${word}\">${word}</a>"
       } else {
         word
       }

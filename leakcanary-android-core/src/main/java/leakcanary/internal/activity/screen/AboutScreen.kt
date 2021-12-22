@@ -1,6 +1,5 @@
 package leakcanary.internal.activity.screen
 
-import android.content.Context
 import android.text.Html
 import android.text.method.LinkMovementMethod
 import android.view.ViewGroup

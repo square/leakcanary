@@ -1,10 +1,9 @@
 package shark
 
+import java.io.File
 import okio.Buffer
 import okio.BufferedSource
 import okio.Okio
-import okio.Source
-import java.io.File
 
 class FileSourceProvider(private val file: File) : DualSourceProvider {
   override fun openStreamingSource(): BufferedSource = Okio.buffer(Okio.source(file.inputStream()))

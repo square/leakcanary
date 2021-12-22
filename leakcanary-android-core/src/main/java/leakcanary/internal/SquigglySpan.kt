@@ -23,6 +23,7 @@ import android.text.SpannableStringBuilder
 import android.text.style.ReplacementSpan
 import android.text.style.UnderlineSpan
 import com.squareup.leakcanary.core.R
+import kotlin.math.sin
 import leakcanary.internal.navigation.getColorCompat
 
 /**
@@ -130,7 +131,7 @@ internal class SquigglySpan(context: Context) : ReplacementSpan() {
 
       var x = 0f
       while (x <= right - left) {
-        y = (amplitude * Math.sin((40 + period * x).toDouble()) + centerY).toFloat()
+        y = (amplitude * sin((40 + period * x).toDouble()) + centerY).toFloat()
         path.lineTo(left + x, y)
         x += 1f
       }

@@ -68,7 +68,7 @@ internal fun View.shareToStackOverflow(content: String) {
     activity.startActivity(browserIntent)
   } catch (e: ActivityNotFoundException) {
     Toast.makeText(context, R.string.leak_canary_leak_missing_browser_error, Toast.LENGTH_LONG)
-      .show();
+      .show()
   }
 }
 
@@ -100,7 +100,7 @@ internal fun View.shareToGitHubIssue(failure: HeapAnalysisFailure) {
     activity.startActivity(browserIntent)
   } catch (e: ActivityNotFoundException) {
     Toast.makeText(context, R.string.leak_canary_leak_missing_browser_error, Toast.LENGTH_LONG)
-      .show();
+      .show()
   }
 }
 

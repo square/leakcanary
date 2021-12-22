@@ -10,10 +10,9 @@ import android.view.View
 import android.view.View.OnAttachStateChangeListener
 import android.view.ViewTreeObserver.OnGlobalFocusChangeListener
 import android.view.inputmethod.InputMethodManager
-import shark.SharkLog
 import java.lang.reflect.Field
-import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
+import shark.SharkLog
 
 internal class ReferenceCleaner(
   private val inputMethodManager: InputMethodManager,

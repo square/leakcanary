@@ -54,19 +54,13 @@ internal class DisplayLeakAdapter constructor(
   private val header: CharSequence
 ) : BaseAdapter() {
 
-  private val highlightColorHexString: String
-  private val leakColorHexString: String
-  private val referenceColorHexString: String
-  private val extraColorHexString: String
-  private val helpColorHexString: String
-
-  init {
-    highlightColorHexString = hexStringColor(context, R.color.leak_canary_class_name)
-    leakColorHexString = hexStringColor(context, R.color.leak_canary_leak)
-    referenceColorHexString = hexStringColor(context, R.color.leak_canary_reference)
-    extraColorHexString = hexStringColor(context, R.color.leak_canary_extra)
-    helpColorHexString = hexStringColor(context, R.color.leak_canary_help)
-  }
+  private val highlightColorHexString: String =
+    hexStringColor(context, R.color.leak_canary_class_name)
+  private val leakColorHexString: String = hexStringColor(context, R.color.leak_canary_leak)
+  private val referenceColorHexString: String =
+    hexStringColor(context, R.color.leak_canary_reference)
+  private val extraColorHexString: String = hexStringColor(context, R.color.leak_canary_extra)
+  private val helpColorHexString: String = hexStringColor(context, R.color.leak_canary_help)
 
   override fun getView(
     position: Int,
@@ -267,10 +261,10 @@ internal class DisplayLeakAdapter constructor(
 
   override fun getCount() = leakTrace.referencePath.size + 3
 
-  override fun getItem(position: Int) = when {
-    position == 0 || position == 1 -> null
-    position == count - 1 -> leakTrace.leakingObject
-    else -> leakTrace.referencePath[elementIndex(position)]
+  override fun getItem(position: Int) = when (position) {
+      0, 1 -> null
+      count - 1 -> leakTrace.leakingObject
+      else -> leakTrace.referencePath[elementIndex(position)]
   }
 
   private fun elementIndex(position: Int) = position - 2

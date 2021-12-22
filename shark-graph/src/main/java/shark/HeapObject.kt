@@ -3,7 +3,6 @@ package shark
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord

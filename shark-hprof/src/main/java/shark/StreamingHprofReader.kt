@@ -1,19 +1,7 @@
 package shark
 
+import java.io.File
 import okio.Source
-import shark.HprofRecord.HeapDumpEndRecord
-import shark.HprofRecord.HeapDumpRecord
-import shark.HprofRecord.HeapDumpRecord.GcRootRecord
-import shark.HprofRecord.HeapDumpRecord.HeapDumpInfoRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import shark.HprofRecord.LoadClassRecord
-import shark.HprofRecord.StackFrameRecord
-import shark.HprofRecord.StackTraceRecord
-import shark.HprofRecord.StringRecord
 import shark.HprofRecordTag.CLASS_DUMP
 import shark.HprofRecordTag.HEAP_DUMP
 import shark.HprofRecordTag.HEAP_DUMP_END
@@ -45,9 +33,7 @@ import shark.HprofRecordTag.STACK_TRACE
 import shark.HprofRecordTag.STRING_IN_UTF8
 import shark.PrimitiveType.Companion.REFERENCE_HPROF_TYPE
 import shark.PrimitiveType.INT
-import java.io.File
-import java.util.EnumSet
-import kotlin.reflect.KClass
+import shark.StreamingHprofReader.Companion.readerFor
 
 /**
  * Reads the entire content of a Hprof source in one fell swoop.

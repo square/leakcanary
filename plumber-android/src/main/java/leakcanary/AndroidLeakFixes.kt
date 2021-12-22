@@ -6,7 +6,6 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Context.INPUT_METHOD_SERVICE
-import android.os.Build
 import android.os.Build.MANUFACTURER
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
@@ -194,7 +193,7 @@ enum class AndroidLeakFixes {
               }
             }
           }
-      }, 2, 3, TimeUnit.SECONDS)
+      }, 2, 3, SECONDS)
     }
   },
 
@@ -482,7 +481,7 @@ enum class AndroidLeakFixes {
    */
   IMM_CUR_ROOT_VIEW {
     override fun apply(application: Application) {
-      if (Build.VERSION.SDK_INT >= 29) {
+      if (SDK_INT >= 29) {
         return
       }
       val inputMethodManager =

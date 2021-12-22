@@ -1,10 +1,9 @@
 package shark
 
+import kotlin.random.Random
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.internal.UnsortedByteEntries
-import java.util.Arrays
-import kotlin.random.Random
 
 class SortedBytesMapTest {
 
@@ -125,7 +124,7 @@ class SortedBytesMapTest {
     }
 
     override fun toString(): String {
-      return "Entry(key=$key, value=${Arrays.toString(value)})"
+      return "Entry(key=$key, value=${value.contentToString()})"
     }
   }
 

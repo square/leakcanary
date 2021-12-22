@@ -31,9 +31,10 @@ import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecord.StringRecord
 import shark.StreamingHprofReader
-import shark.OnHprofRecordListener
 import shark.StreamingRecordReaderAdapter.Companion.asStreamingRecordReader
 import java.io.File
+import kotlin.math.ceil
+import kotlin.math.max
 
 internal object HeapDumpRenderer {
 
@@ -156,21 +157,20 @@ internal object HeapDumpRenderer {
     }
     val heapLength = lastPosition
 
-    val width = sourceWidth
     var height: Int
     val bytesPerPixel: Double
 
     if (sourceBytesPerPixel > 0) {
       bytesPerPixel = sourceBytesPerPixel.toDouble()
-      height = Math.ceil((heapLength / bytesPerPixel) / width)
+      height = ceil((heapLength / bytesPerPixel) / sourceWidth)
         .toInt()
     } else {
       height = sourceHeight
-      bytesPerPixel = heapLength * 1.0 / (width * height)
+      bytesPerPixel = heapLength * 1.0 / (sourceWidth * height)
     }
 
     val bitmap: Bitmap =
-      Bitmap.createBitmap(width, height, ARGB_8888)
+      Bitmap.createBitmap(sourceWidth, height, ARGB_8888)
 
     val canvas = Canvas(bitmap)
 
@@ -225,13 +225,13 @@ internal object HeapDumpRenderer {
 
     var maxTextWidth = 0f
     for (name in legend.keys) {
-      maxTextWidth = Math.max(maxTextWidth, legendTextPaint.measureText(name))
+      maxTextWidth = max(maxTextWidth, legendTextPaint.measureText(name))
     }
 
     val padding = 8.dp
     var blockLeft = padding
     var blockTop = padding
-    val legendWidth = width - 2 * padding
+    val legendWidth = sourceWidth - 2 * padding
     for ((name, color) in legend) {
       if (blockLeft + squareSize + squareToTextPadding + maxTextWidth > legendWidth) {
         blockLeft = padding
@@ -255,8 +255,8 @@ internal object HeapDumpRenderer {
       blockLeft += blockToBlockPadding
     }
     val legendHeight = blockTop + textHeight + padding
-    val source = Rect(0, 0, width, legendHeight.toInt())
-    val destination = Rect(0, (height - legendHeight).toInt(), width, height)
+    val source = Rect(0, 0, sourceWidth, legendHeight.toInt())
+    val destination = Rect(0, (height - legendHeight).toInt(), sourceWidth, height)
     canvas.drawBitmap(bitmap, source, destination, null)
     height -= legendHeight.toInt()
 
@@ -265,8 +265,8 @@ internal object HeapDumpRenderer {
 
     var recordIndex = 0
     for (y in 0 until height) {
-      for (x in 0 until width) {
-        val bitmapPosition = y * width + x
+      for (x in 0 until sourceWidth) {
+        val bitmapPosition = y * sourceWidth + x
         val heapPosition = (bitmapPosition * bytesPerPixel).toInt()
         while (heapPosition > recordPositions[recordIndex].second && recordIndex < recordPositions.lastIndex) {
           recordIndex++

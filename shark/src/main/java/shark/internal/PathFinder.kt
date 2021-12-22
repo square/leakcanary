@@ -315,11 +315,11 @@ internal class PathFinder(
             enqueue(NormalRootNode(gcRoot.id, gcRoot))
           } else {
             val (threadInstance, threadRoot) = threadPair
-            val threadName = threadNames[threadInstance] ?: {
+            val threadName = threadNames[threadInstance] ?: run {
               val name = threadInstance[Thread::class, "name"]?.value?.readAsJavaString() ?: ""
               threadNames[threadInstance] = name
               name
-            }()
+            }
             val referenceMatcher = threadNameReferenceMatchers[threadName]
 
             if (referenceMatcher !is IgnoredReferenceMatcher) {

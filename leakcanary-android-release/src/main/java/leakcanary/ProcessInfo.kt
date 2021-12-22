@@ -5,10 +5,8 @@ import android.app.ActivityManager
 import android.app.ActivityManager.MemoryInfo
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.content.Context
-import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.os.Process
-import android.os.StatFs
 import android.os.SystemClock
 import android.system.Os
 import android.system.OsConstants
@@ -55,7 +53,7 @@ interface ProcessInfo {
       }
 
     override val elapsedMillisSinceStart: Long
-      get() = if (Build.VERSION.SDK_INT >= 24) {
+      get() = if (SDK_INT >= 24) {
         SystemClock.uptimeMillis() - processStartUptimeMillis
       } else {
         SystemClock.elapsedRealtime() - processForkRealtimeMillis

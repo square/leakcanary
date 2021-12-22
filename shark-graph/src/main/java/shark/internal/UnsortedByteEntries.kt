@@ -1,6 +1,5 @@
 package shark.internal
 
-import shark.internal.aosp.ByteArrayComparator
 import shark.internal.aosp.ByteArrayTimSort
 
 /**

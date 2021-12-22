@@ -2,14 +2,12 @@ package leakcanary
 
 import android.app.Application
 import android.os.SystemClock
+import java.util.concurrent.TimeUnit
 import leakcanary.AppWatcher.objectWatcher
 import leakcanary.internal.LeakCanaryDelegate
 import leakcanary.internal.friendly.checkMainThread
 import leakcanary.internal.friendly.mainHandler
 import leakcanary.internal.isDebuggableBuild
-import shark.SharkLog
-import java.lang.RuntimeException
-import java.util.concurrent.TimeUnit
 
 /**
  * The entry point API for using [ObjectWatcher] in an Android app. [AppWatcher.objectWatcher] is

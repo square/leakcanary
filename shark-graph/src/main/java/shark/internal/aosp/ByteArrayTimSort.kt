@@ -15,6 +15,8 @@
  */
 package shark.internal.aosp
 
+import kotlin.math.min
+
 /*
 This is TimSort.java from AOSP (Jelly Bean MR2, Apache 2 license), converted to Kotlin and adapted
 to work with byte array chunks. The passed in byte array is virtually divided into entries of a
@@ -121,11 +123,12 @@ private constructor(
          * computation below must be changed if MIN_MERGE is decreased.  See
          * the MIN_MERGE declaration above for more information.
          */
-    val stackLen = if (len < 120)
-      5
-    else if (len < 1542)
-      10
-    else if (len < 119151) 19 else 40
+    val stackLen = when {
+        len < 120 -> 5
+        len < 1542 -> 10
+        len < 119151 -> 19
+        else -> 40
+    }
     runBase = IntArray(stackLen)
     runLen = IntArray(stackLen)
   }
@@ -379,22 +382,26 @@ private constructor(
       minGallop += 2  // Penalize for leaving gallop mode
     }  // End of "outer" loop
     this.minGallop = if (minGallop < 1) 1 else minGallop  // Write back to field
-    if (len1 == 1) {
-      if (DEBUG) assert(len2 > 0)
-      System.arraycopy(a, cursor2 * entrySize, a, dest * entrySize, len2 * entrySize)
-      val destLen2Index = (dest + len2) * entrySize
-      val cursor1Index = cursor1 * entrySize
-      for (i in 0 until entrySize) {
-        a[destLen2Index + i] = tmp[cursor1Index + i] //  Last elt of run 1 to end of merge
-      }
-    } else if (len1 == 0) {
-      throw IllegalArgumentException(
-        "Comparison method violates its general contract!"
-      )
-    } else {
-      if (DEBUG) assert(len2 == 0)
-      if (DEBUG) assert(len1 > 1)
-      System.arraycopy(tmp, cursor1 * entrySize, a, dest * entrySize, len1 * entrySize)
+    when (len1) {
+        1 -> {
+          if (DEBUG) assert(len2 > 0)
+          System.arraycopy(a, cursor2 * entrySize, a, dest * entrySize, len2 * entrySize)
+          val destLen2Index = (dest + len2) * entrySize
+          val cursor1Index = cursor1 * entrySize
+          for (i in 0 until entrySize) {
+            a[destLen2Index + i] = tmp[cursor1Index + i] //  Last elt of run 1 to end of merge
+          }
+        }
+        0 -> {
+          throw IllegalArgumentException(
+            "Comparison method violates its general contract!"
+          )
+        }
+        else -> {
+          if (DEBUG) assert(len2 == 0)
+          if (DEBUG) assert(len1 > 1)
+          System.arraycopy(tmp, cursor1 * entrySize, a, dest * entrySize, len1 * entrySize)
+        }
     }
   }
 
@@ -541,24 +548,28 @@ private constructor(
       minGallop += 2  // Penalize for leaving gallop mode
     }  // End of "outer" loop
     this.minGallop = if (minGallop < 1) 1 else minGallop  // Write back to field
-    if (len2 == 1) {
-      if (DEBUG) assert(len1 > 0)
-      dest -= len1
-      cursor1 -= len1
-      System.arraycopy(a, (cursor1 + 1) * entrySize, a, (dest + 1) * entrySize, len1 * entrySize)
-      val destIndex = dest * entrySize
-      val cursor2Index = cursor2 * entrySize
-      for (i in 0 until entrySize) {
-        a[destIndex + i] = tmp[cursor2Index + i] // Move first elt of run2 to front of merge
-      }
-    } else if (len2 == 0) {
-      throw IllegalArgumentException(
-        "Comparison method violates its general contract!"
-      )
-    } else {
-      if (DEBUG) assert(len1 == 0)
-      if (DEBUG) assert(len2 > 0)
-      System.arraycopy(tmp, 0, a, (dest - (len2 - 1)) * entrySize, len2 * entrySize)
+    when (len2) {
+        1 -> {
+          if (DEBUG) assert(len1 > 0)
+          dest -= len1
+          cursor1 -= len1
+          System.arraycopy(a, (cursor1 + 1) * entrySize, a, (dest + 1) * entrySize, len1 * entrySize)
+          val destIndex = dest * entrySize
+          val cursor2Index = cursor2 * entrySize
+          for (i in 0 until entrySize) {
+            a[destIndex + i] = tmp[cursor2Index + i] // Move first elt of run2 to front of merge
+          }
+        }
+        0 -> {
+          throw IllegalArgumentException(
+            "Comparison method violates its general contract!"
+          )
+        }
+        else -> {
+          if (DEBUG) assert(len1 == 0)
+          if (DEBUG) assert(len2 > 0)
+          System.arraycopy(tmp, 0, a, (dest - (len2 - 1)) * entrySize, len2 * entrySize)
+        }
     }
   }
 
@@ -580,11 +591,11 @@ private constructor(
       newSize = newSize or (newSize shr 8)
       newSize = newSize or (newSize shr 16)
       newSize++
-      if (newSize < 0)
+      newSize = if (newSize < 0)
       // Not bloody likely!
-        newSize = minCapacity
+        minCapacity
       else
-        newSize = Math.min(newSize, (a.size / entrySize).ushr(1))
+        min(newSize, (a.size / entrySize).ushr(1))
       val newArray = ByteArray(newSize * entrySize)
       tmp = newArray
     }
@@ -609,13 +620,13 @@ private constructor(
      * of the minimum stack length required as a function of the length
      * of the array being sorted and the minimum merge sequence length.
      */
-    private val MIN_MERGE = 32
+    private const val MIN_MERGE = 32
 
     /**
      * When we get into galloping mode, we stay there until both runs win less
      * often than MIN_GALLOP consecutive times.
      */
-    private val MIN_GALLOP = 7
+    private const val MIN_GALLOP = 7
 
     /**
      * Maximum initial size of tmp array, which is used for merging.  The array
@@ -624,14 +635,14 @@ private constructor(
      * Unlike Tim's original C version, we do not allocate this much storage
      * when sorting smaller arrays.  This change was required for performance.
      */
-    private val INITIAL_TMP_STORAGE_LENGTH = 256
+    private const val INITIAL_TMP_STORAGE_LENGTH = 256
 
     /**
      * Asserts have been placed in if-statements for performace. To enable them,
      * set this field to true and enable them in VM with a command line flag.
      * If you modify this class, please do test the asserts!
      */
-    private val DEBUG = false
+    private const val DEBUG = false
 
     /*
      * The next two methods (which are package private and static) constitute
@@ -736,7 +747,7 @@ private constructor(
       c: ByteArrayComparator
     ) {
       var start = start
-      if (DEBUG) assert(lo <= start && start <= hi)
+      if (DEBUG) assert(start in lo..hi)
       if (start == lo)
         start++
       val pivot = ByteArray(entrySize)
@@ -769,9 +780,8 @@ private constructor(
              * first slot after them -- that's why this sort is stable.
              * Slide elements over to make room for pivot.
              */
-        val n = start - left  // The number of elements to move
         // Switch is just an optimization for arraycopy in default case
-        when (n) {
+        when (val n = start - left) {  // The number of elements to move
           2 -> {
             val leftIndex = left * entrySize
             val leftPlusOneIndex = (left + 1) * entrySize

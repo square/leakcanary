@@ -2,9 +2,7 @@ package leakcanary.internal.activity.db
 
 import android.database.sqlite.SQLiteDatabase
 import android.view.View
-import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db.OnDb
-import leakcanary.internal.activity.db.Db.dbHelper
 import leakcanary.internal.activity.db.Io.OnIo
 
 internal object Db {

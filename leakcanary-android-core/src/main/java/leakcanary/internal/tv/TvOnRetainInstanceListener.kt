@@ -1,8 +1,6 @@
 package leakcanary.internal.tv
 
 import android.app.Application
-import android.os.Handler
-import android.os.Looper
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
 import leakcanary.internal.InternalLeakCanary

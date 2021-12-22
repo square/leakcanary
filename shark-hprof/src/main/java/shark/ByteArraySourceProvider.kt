@@ -1,9 +1,8 @@
 package shark
 
+import java.io.IOException
 import okio.Buffer
 import okio.BufferedSource
-import okio.Source
-import java.io.IOException
 
 class ByteArraySourceProvider(private val byteArray: ByteArray) : DualSourceProvider {
   override fun openStreamingSource(): BufferedSource = Buffer().apply { write(byteArray) }

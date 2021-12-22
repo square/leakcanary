@@ -1,10 +1,9 @@
 package shark
 
+import kotlin.random.Random
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.internal.aosp.ByteArrayComparator
 import shark.internal.aosp.ByteArrayTimSort
-import kotlin.random.Random
 
 class ByteArrayTimSortTest {
 
