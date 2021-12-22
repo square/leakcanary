@@ -54,11 +54,12 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
               val analysis = pair.second as HeapAnalysisSuccess
 
               val unreachableObjects = try {
-                analysis.unreachableObjects
+                // Compiler doesn't know it but runtime can have null.
+                analysis.unreachableObjects.orEmpty()
               } catch (ignored: NullPointerException) {
                 // This currently doesn't trigger but the Kotlin compiler might change one day.
                 emptyList()
-              } // Compiler doesn't know it but runtime can have null.
+              }
               pair.first to analysis.copy(
                 unreachableObjects = unreachableObjects,
                 applicationLeaks = analysis.applicationLeaks.map { leak ->
