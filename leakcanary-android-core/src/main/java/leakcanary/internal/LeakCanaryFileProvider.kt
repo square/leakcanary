@@ -110,7 +110,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
     selection: String?,
     selectionArgs: Array<String>?,
     sortOrder: String?
-  ): Cursor? {
+  ): Cursor {
     val projection = projectionArg ?: COLUMNS
     // ContentProvider has already checked granted permissions
     val file = mStrategy!!.getFileForUri(uri)
@@ -145,7 +145,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
    * @return If the associated file has an extension, the MIME type associated with that
    * extension; otherwise `application/octet-stream`.
    */
-  override fun getType(uri: Uri): String? {
+  override fun getType(uri: Uri): String {
     // ContentProvider has already checked granted permissions
     val file = mStrategy!!.getFileForUri(uri)
 
@@ -324,10 +324,10 @@ internal class LeakCanaryFileProvider : ContentProvider() {
 
       // Start at first char of path under root
       val rootPath = mostSpecific.value.path
-      if (rootPath.endsWith("/")) {
-        path = path.substring(rootPath.length)
+      path = if (rootPath.endsWith("/")) {
+        path.substring(rootPath.length)
       } else {
-        path = path.substring(rootPath.length + 1)
+        path.substring(rootPath.length + 1)
       }
 
       // Encode the tag and path separately
@@ -367,18 +367,18 @@ internal class LeakCanaryFileProvider : ContentProvider() {
   companion object {
     private val COLUMNS = arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE)
 
-    private val META_DATA_FILE_PROVIDER_PATHS = "android.support.FILE_PROVIDER_PATHS"
+    private const val META_DATA_FILE_PROVIDER_PATHS = "android.support.FILE_PROVIDER_PATHS"
 
-    private val TAG_ROOT_PATH = "root-path"
-    private val TAG_FILES_PATH = "files-path"
-    private val TAG_CACHE_PATH = "cache-path"
-    private val TAG_EXTERNAL = "external-path"
-    private val TAG_EXTERNAL_FILES = "external-files-path"
-    private val TAG_EXTERNAL_CACHE = "external-cache-path"
-    private val TAG_EXTERNAL_MEDIA = "external-media-path"
+    private const val TAG_ROOT_PATH = "root-path"
+    private const val TAG_FILES_PATH = "files-path"
+    private const val TAG_CACHE_PATH = "cache-path"
+    private const val TAG_EXTERNAL = "external-path"
+    private const val TAG_EXTERNAL_FILES = "external-files-path"
+    private const val TAG_EXTERNAL_CACHE = "external-cache-path"
+    private const val TAG_EXTERNAL_MEDIA = "external-media-path"
 
-    private val ATTR_NAME = "name"
-    private val ATTR_PATH = "path"
+    private const val ATTR_NAME = "name"
+    private const val ATTR_PATH = "path"
 
     private val DEVICE_ROOT = File("/")
 
@@ -474,7 +474,10 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       )
 
       var type = 0
-      while (({ type = resourceParser.next(); type }()) != END_DOCUMENT) {
+      while (run {
+          type = resourceParser.next()
+          (type)
+        } != END_DOCUMENT) {
         if (type == START_TAG) {
           val tag = resourceParser.name
 
@@ -523,7 +526,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       return if (Build.VERSION.SDK_INT >= 19) {
         context.getExternalFilesDirs(type)
       } else {
-        arrayOf<File>(context.getExternalFilesDir(type)!!)
+        arrayOf(context.getExternalFilesDir(type)!!)
       }
     }
 

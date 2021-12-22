@@ -2,7 +2,6 @@ package leakcanary.internal.activity.db
 
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
-import shark.SharkLog
 import kotlin.concurrent.getOrSet
 
 /**

@@ -1,8 +1,6 @@
 package leakcanary
 
 import android.app.Application
-import android.os.Build.VERSION.SDK_INT
-import android.os.StatFs
 import leakcanary.HeapAnalysisInterceptor.Chain
 import leakcanary.HeapAnalysisJob.Result
 

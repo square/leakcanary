@@ -1,15 +1,14 @@
 package shark
 
+import java.io.File
+import kotlin.reflect.KClass
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.HeapObject.HeapObjectArray
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.PrimitiveType.INT
-import java.io.File
-import kotlin.reflect.KClass
 
 class JvmHprofParsingTest {
 

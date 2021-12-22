@@ -15,7 +15,7 @@ internal class BackstackFrame : Parcelable {
   ) {
     this.screen = source.readSerializable() as Screen
     @Suppress("UNCHECKED_CAST")
-    this.viewState = source.readSparseArray<Parcelable>(javaClass.classLoader)
+    this.viewState = source.readSparseArray(javaClass.classLoader)
   }
 
   constructor(

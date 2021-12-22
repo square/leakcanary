@@ -35,7 +35,7 @@ interface RandomAccessSource : Closeable {
         }
         val bytesRead = read(sink, position, byteCount)
         if (bytesRead == 0L) {
-          return -1;
+          return -1
         }
         position += bytesRead
         return bytesRead

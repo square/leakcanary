@@ -20,6 +20,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import com.squareup.leakcanary.core.R
+import kotlin.math.max
 
 internal class RowElementLayout(
   context: Context,
@@ -56,19 +57,19 @@ internal class RowElementLayout(
     widthMeasureSpec: Int,
     heightMeasureSpec: Int
   ) {
-    val availableWidth = View.MeasureSpec.getSize(widthMeasureSpec)
+    val availableWidth = MeasureSpec.getSize(widthMeasureSpec)
     val titleWidth = availableWidth - connectorWidth - moreSize - 4 * rowMargins
-    val titleWidthSpec = View.MeasureSpec.makeMeasureSpec(titleWidth, View.MeasureSpec.AT_MOST)
-    val titleHeightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+    val titleWidthSpec = MeasureSpec.makeMeasureSpec(titleWidth, MeasureSpec.AT_MOST)
+    val titleHeightSpec = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
     title!!.measure(titleWidthSpec, titleHeightSpec)
 
     var totalHeight = titleMarginTop + title!!.measuredHeight
-    totalHeight = Math.max(totalHeight, minHeight)
+    totalHeight = max(totalHeight, minHeight)
 
     val connectorWidthSpec =
-      View.MeasureSpec.makeMeasureSpec(connectorWidth, View.MeasureSpec.EXACTLY)
+      MeasureSpec.makeMeasureSpec(connectorWidth, MeasureSpec.EXACTLY)
     val connectorHeightSpec =
-      View.MeasureSpec.makeMeasureSpec(totalHeight, View.MeasureSpec.EXACTLY)
+      MeasureSpec.makeMeasureSpec(totalHeight, MeasureSpec.EXACTLY)
 
     connector!!.measure(connectorWidthSpec, connectorHeightSpec)
     setMeasuredDimension(availableWidth, totalHeight)

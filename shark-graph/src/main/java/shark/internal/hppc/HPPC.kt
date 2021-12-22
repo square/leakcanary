@@ -17,6 +17,9 @@
 package shark.internal.hppc
 
 import java.util.Locale
+import kotlin.math.ceil
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Code from https://github.com/carrotsearch/hppc copy pasted, inlined and converted to Kotlin.
@@ -37,12 +40,12 @@ internal object HPPC {
     elements: Int,
     loadFactor: Double
   ): Int {
-    var length = Math.ceil(elements / loadFactor)
+    var length = ceil(elements / loadFactor)
       .toLong()
     if (length == elements.toLong()) {
       length++
     }
-    length = Math.max(MIN_HASH_ARRAY_LENGTH.toLong(), nextHighestPowerOfTwo(length))
+    length = max(MIN_HASH_ARRAY_LENGTH.toLong(), nextHighestPowerOfTwo(length))
 
     if (length > MAX_HASH_ARRAY_LENGTH) {
       throw RuntimeException(
@@ -75,7 +78,7 @@ internal object HPPC {
     arraySize: Int,
     loadFactor: Double
   ): Int {
-    return Math.min(arraySize - 1, Math.ceil(arraySize * loadFactor).toInt())
+    return min(arraySize - 1, ceil(arraySize * loadFactor).toInt())
   }
 
   fun nextBufferSize(

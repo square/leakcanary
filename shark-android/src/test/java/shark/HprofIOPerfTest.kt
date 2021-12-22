@@ -1,13 +1,12 @@
 package shark
 
+import java.io.File
+import kotlin.math.floor
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.nield.kotlinstatistics.median
-import shark.HeapObject.HeapClass
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.PrimitiveType.INT
-import java.io.File
-import kotlin.math.floor
 
 /**
  * IO reads is the largest factor on Shark's performance so this helps prevents

@@ -84,9 +84,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   }
 
   val formFactor by lazy {
-    val currentModeType =
-      (application.getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType
-    return@lazy when (currentModeType) {
+    return@lazy when ((application.getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType) {
       Configuration.UI_MODE_TYPE_TELEVISION -> TV
       Configuration.UI_MODE_TYPE_WATCH -> WATCH
       else -> MOBILE
@@ -177,12 +175,12 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       throw Error(
         """
         LeakCanary in non-debuggable build
-        
+
         LeakCanary should only be used in debug builds, but this APK is not debuggable.
         Please follow the instructions on the "Getting started" page to only include LeakCanary in
         debug builds: https://square.github.io/leakcanary/getting_started/
-        
-        If you're sure you want to include LeakCanary in a non-debuggable build, follow the 
+
+        If you're sure you want to include LeakCanary in a non-debuggable build, follow the
         instructions here: https://square.github.io/leakcanary/recipes/#leakcanary-in-release-builds
       """.trimIndent()
       )

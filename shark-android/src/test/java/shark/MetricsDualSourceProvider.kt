@@ -1,11 +1,10 @@
 package shark
 
+import java.io.File
 import okio.Buffer
 import okio.BufferedSource
 import okio.Source
 import okio.buffer
-import okio.source
-import java.io.File
 
 class MetricsDualSourceProvider(
   private val realSourceProvider: DualSourceProvider

@@ -19,20 +19,16 @@ internal class ViewModelClearedWatcher(
   private val reachabilityWatcher: ReachabilityWatcher
 ) : ViewModel() {
 
-  private val viewModelMap: Map<String, ViewModel>?
-
-  init {
-    // We could call ViewModelStore#keys with a package spy in androidx.lifecycle instead,
-    // however that was added in 2.1.0 and we support AndroidX first stable release. viewmodel-2.0.0
-    // does not have ViewModelStore#keys. All versions currently have the mMap field.
-    viewModelMap = try {
-      val mMapField = ViewModelStore::class.java.getDeclaredField("mMap")
-      mMapField.isAccessible = true
-      @Suppress("UNCHECKED_CAST")
-      mMapField[storeOwner.viewModelStore] as Map<String, ViewModel>
-    } catch (ignored: Exception) {
-      null
-    }
+  // We could call ViewModelStore#keys with a package spy in androidx.lifecycle instead,
+  // however that was added in 2.1.0 and we support AndroidX first stable release. viewmodel-2.0.0
+  // does not have ViewModelStore#keys. All versions currently have the mMap field.
+  private val viewModelMap: Map<String, ViewModel>? = try {
+    val mMapField = ViewModelStore::class.java.getDeclaredField("mMap")
+    mMapField.isAccessible = true
+    @Suppress("UNCHECKED_CAST")
+    mMapField[storeOwner.viewModelStore] as Map<String, ViewModel>
+  } catch (ignored: Exception) {
+    null
   }
 
   override fun onCleared() {

@@ -9,7 +9,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Bo
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import shark.PrimitiveType.BOOLEAN
 import shark.PrimitiveType.CHAR
-import java.io.File
 
 class HprofPrimitiveArrayStripperTest {
 

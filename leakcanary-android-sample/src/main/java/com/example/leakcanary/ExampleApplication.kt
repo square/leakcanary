@@ -20,9 +20,6 @@ import android.app.Dialog
 import android.app.Service
 import android.os.StrictMode
 import android.view.View
-import leakcanary.AppWatcher
-import leakcanary.ReachabilityWatcher
-import leakcanary.RootViewWatcher
 
 open class ExampleApplication : Application() {
   val leakedViews = mutableListOf<View>()

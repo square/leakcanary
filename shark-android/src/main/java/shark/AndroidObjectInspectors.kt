@@ -524,7 +524,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val receiversArray = receiversMap["android.util.ArrayMap", "mArray"]!!.valueAsObjectArray!!
         val receiverContextList = receiversArray.readElements().toList()
 
-        val allReceivers = (receiverContextList.indices step 2).map { index ->
+        val allReceivers = (receiverContextList.indices step 2).mapNotNull { index ->
           val context = receiverContextList[index]
           if (context.isNonNullReference) {
             val contextReceiversMap = receiverContextList[index + 1].asObject!!.asInstance!!
@@ -538,11 +538,11 @@ enum class AndroidObjectInspectors : ObjectInspector {
             val contextInstance = context.asObject!!.asInstance!!
             val contextString =
               "${contextInstance.instanceClassSimpleName}@${contextInstance.objectId}"
-            contextString to receivers.map {  "${it.instanceClassSimpleName}@${it.objectId}" }
+            contextString to receivers.map { "${it.instanceClassSimpleName}@${it.objectId}" }
           } else {
             null
           }
-        }.filterNotNull().toList()
+        }.toList()
 
         if (allReceivers.isNotEmpty()) {
           labels += "Receivers"
@@ -654,12 +654,12 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val mWindowAttributes =
           instance["android.view.ViewRootImpl", "mWindowAttributes"]!!.valueAsInstance!!
         val mTitleField = mWindowAttributes["android.view.WindowManager\$LayoutParams", "mTitle"]!!
-        if (mTitleField.value.isNonNullReference) {
+        labels += if (mTitleField.value.isNonNullReference) {
           val mTitle =
-            mTitleField.valueAsInstance!!.readAsJavaString()!!
-          labels += "mWindowAttributes.mTitle = \"$mTitle\""
+                mTitleField.valueAsInstance!!.readAsJavaString()!!
+          "mWindowAttributes.mTitle = \"$mTitle\""
         } else {
-          labels += "mWindowAttributes.mTitle is null"
+          "mWindowAttributes.mTitle is null"
         }
 
         val type =
@@ -947,10 +947,10 @@ internal fun HeapInstance.getOrThrow(
 ): HeapField {
   return this[declaringClassName, fieldName] ?: throw IllegalStateException(
     """
-$instanceClassName is expected to have a $declaringClassName.$fieldName field which cannot be found. 
-This might be due to the app code being obfuscated. If that's the case, then the heap analysis 
-is unable to proceed without a mapping file to deobfuscate class names. 
-You can run LeakCanary on obfuscated builds by following the instructions at 
+$instanceClassName is expected to have a $declaringClassName.$fieldName field which cannot be found.
+This might be due to the app code being obfuscated. If that's the case, then the heap analysis
+is unable to proceed without a mapping file to deobfuscate class names.
+You can run LeakCanary on obfuscated builds by following the instructions at
 https://square.github.io/leakcanary/recipes/#using-leakcanary-with-obfuscated-apps
       """
   )

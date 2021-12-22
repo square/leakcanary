@@ -15,7 +15,6 @@ import android.widget.BaseAdapter
 import android.widget.ListView
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
-import com.squareup.leakcanary.core.R.layout
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.executeOnDb
@@ -169,7 +168,7 @@ internal class HeapDumpScreen(
     heapDumpFileExist: Boolean,
     heapAnalysis: HeapAnalysisSuccess
   ): View {
-    val view = convertView ?: parent.inflate(layout.leak_canary_leak_header)
+    val view = convertView ?: parent.inflate(R.layout.leak_canary_leak_header)
     val textView = view.findViewById<TextView>(R.id.leak_canary_header_text)
     textView.movementMethod = LinkMovementMethod.getInstance()
 

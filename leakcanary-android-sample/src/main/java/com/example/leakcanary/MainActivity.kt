@@ -21,14 +21,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Handler
-import android.os.StatFs
 import android.os.SystemClock
 import android.view.View
 import android.widget.Button
-import shark.SharkLog
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
 
