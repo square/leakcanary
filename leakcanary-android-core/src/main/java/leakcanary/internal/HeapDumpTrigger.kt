@@ -9,7 +9,6 @@ import android.os.SystemClock
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
 import leakcanary.GcTrigger
-import leakcanary.HeapDumper
 import leakcanary.HeapDumper.DumpLocation
 import leakcanary.HeapDumper.Result.Failure
 import leakcanary.HeapDumper.Result.HeapDump
@@ -27,7 +26,6 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
 import shark.SharkLog
-import java.io.File
 
 internal class HeapDumpTrigger(
   private val application: Application,
@@ -379,13 +377,3 @@ internal class HeapDumpTrigger(
     private const val WAIT_BETWEEN_HEAP_DUMPS_MILLIS = 60_000L
   }
 }
-
-/** Dump heap result holding the file and the dump heap duration */
-internal sealed class DumpHeapResult
-
-internal data class HeapDump(
-  val file: File,
-  val durationMillis: Long
-) : DumpHeapResult()
-
-internal object NoHeapDump : DumpHeapResult()
