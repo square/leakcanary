@@ -4,6 +4,7 @@ import android.content.Intent
 import leakcanary.LeakCanary.config
 import leakcanary.internal.HeapDumpControl
 import leakcanary.internal.InternalLeakCanary
+import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.activity.LeakActivity
 import shark.AndroidMetadataExtractor
 import shark.AndroidObjectInspectors
@@ -179,13 +180,28 @@ object LeakCanary {
     /**
      * Listeners for LeakCanary events. See [EventListener.Event] for the list of events and
      * which thread they're sent from. You most likely want to keep this list and add to it, or
-     * remove a few entries but not all entry. Each listener is independent and provides additional
-     * behavior which you can disable by not including that listener.
+     * remove a few entries but not all entries. Each listener is independent and provides
+     * additional behavior which you can disable by not excluding it:
+     *
+     * ```
+     * // No cute canary toast (very sad!)
+     * LeakCanary.config = LeakCanary.config.run {
+     *   copy(
+     *     eventListeners = eventListeners.filter {
+     *       it !is ToastEventListener
+     *     }
+     *   )
+     * }
+     * ```
      */
     val eventListeners: List<EventListener> = listOf(
       LogcatEventListener,
       ToastEventListener,
-      NotificationEventListener
+      if (InternalLeakCanary.formFactor == TV) {
+        TvEventListener
+      } else {
+        NotificationEventListener
+      }
     ),
 
     /**
