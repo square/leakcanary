@@ -5,7 +5,6 @@ import com.squareup.leakcanary.core.R
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.activity.LeakActivity
-import leakcanary.internal.activity.screen.LeakTraceWrapper
 import leakcanary.internal.friendly.mainHandler
 import leakcanary.internal.tv.TvToast
 import shark.HeapAnalysis
@@ -14,12 +13,12 @@ import shark.HeapAnalysisSuccess
 import shark.SharkLog
 
 /**
- * Deprecated, this is now a no-op. You should customize LeakCanary.config.eventListener instead.
+ * Deprecated, this is now a no-op. Add to LeakCanary.config.eventListeners instead.
  *
  * Default [OnHeapAnalyzedListener] implementation, which will store the analysis to disk and
  * show a notification summarizing the result.
  */
-@Deprecated(message = "Customize LeakCanary.config.eventListener instead")
+@Deprecated(message = "Add to LeakCanary.config.eventListeners instead")
 class DefaultOnHeapAnalyzedListener private constructor(private val applicationProvider: () -> Application) :
   OnHeapAnalyzedListener {
 

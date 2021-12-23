@@ -92,12 +92,14 @@ object LeakCanary {
     val objectInspectors: List<ObjectInspector> = AndroidObjectInspectors.appDefaults,
 
     /**
+     * Deprecated, add to LeakCanary.config.eventListeners instead.
      * Called on a background thread when the heap analysis is complete.
      * If you want leaks to be added to the activity that lists leaks, make sure to delegate
      * calls to a [DefaultOnHeapAnalyzedListener].
      *
      * Defaults to [DefaultOnHeapAnalyzedListener]
      */
+    @Deprecated(message = "Add to LeakCanary.config.eventListeners instead")
     val onHeapAnalyzedListener: OnHeapAnalyzedListener = DefaultOnHeapAnalyzedListener.create(),
 
     /**
@@ -175,9 +177,16 @@ object LeakCanary {
     val heapDumper: HeapDumper = AndroidDebugHeapDumper,
 
     /**
-     * TODO
+     * Listeners for LeakCanary events. See [EventListener.Event] for the list of events and
+     * which thread they're sent from. You most likely want to keep this list and add to it, or
+     * remove a few entries but not all entry. Each listener is independent and provides additional
+     * behavior which you can disable by not including that listener.
      */
-    val eventListeners: List<EventListener> = listOf(LogcatEventListener, ToastEventListener, NotificationEventListener),
+    val eventListeners: List<EventListener> = listOf(
+      LogcatEventListener,
+      ToastEventListener,
+      NotificationEventListener
+    ),
 
     /**
      * Deprecated: This is a no-op, set a custom [leakingObjectFinder] instead.
@@ -248,6 +257,7 @@ object LeakCanary {
         apply { this.objectInspectors = objectInspectors }
 
       /** @see [LeakCanary.Config.onHeapAnalyzedListener] */
+      @Deprecated(message = "Add to LeakCanary.config.eventListeners instead")
       fun onHeapAnalyzedListener(onHeapAnalyzedListener: OnHeapAnalyzedListener) =
         apply { this.onHeapAnalyzedListener = onHeapAnalyzedListener }
 

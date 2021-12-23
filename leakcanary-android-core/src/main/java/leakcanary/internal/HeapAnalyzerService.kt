@@ -51,7 +51,7 @@ internal class HeapAnalyzerService : ForegroundService(
   HeapAnalyzerService::class.java.simpleName,
   R.string.leak_canary_notification_analysing,
   R.id.leak_canary_notification_analyzing_heap
-), OnAnalysisProgressListener {
+) {
 
   override fun onHandleIntentInForeground(intent: Intent?) {
     if (intent == null || !intent.hasExtra(HEAPDUMP_FILE_EXTRA)) {
@@ -65,9 +65,13 @@ internal class HeapAnalyzerService : ForegroundService(
     val heapDumpReason = intent.getStringExtra(HEAPDUMP_REASON_EXTRA)!!
     val heapDumpDurationMillis = intent.getLongExtra(HEAPDUMP_DURATION_MILLIS_EXTRA, -1)
 
-    val config = LeakCanary.config
+    val progressListener = OnAnalysisProgressListener { step ->
+      val percent = (step.ordinal * 1.0) / OnAnalysisProgressListener.Step.values().size
+      InternalLeakCanary.sendEvent(HeapAnalysisProgress(step, percent))
+    }
+
     val heapAnalysis = if (heapDumpFile.exists()) {
-      analyzeHeap(heapDumpFile, config)
+      analyzeHeap(heapDumpFile, progressListener)
     } else {
       missingFileFailure(heapDumpFile)
     }
@@ -81,20 +85,24 @@ internal class HeapAnalyzerService : ForegroundService(
         if (failureCause is OutOfMemoryError) {
           heapAnalysis.copy(
             dumpDurationMillis = heapDumpDurationMillis,
-            exception = HeapAnalysisException(RuntimeException("""
+            exception = HeapAnalysisException(
+              RuntimeException(
+                """
               Not enough memory to analyze heap. You can:
               - Kill the app then restart the analysis from the LeakCanary activity.
               - Increase the memory available to your debug app with largeHeap=true: https://developer.android.com/guide/topics/manifest/application-element#largeHeap
               - Set up LeakCanary to run in a separate process: https://square.github.io/leakcanary/recipes/#running-the-leakcanary-analysis-in-a-separate-process
               - Download the heap dump from the LeakCanary activity then run the analysis from your computer with shark-cli: https://square.github.io/leakcanary/shark/#shark-cli
-            """.trimIndent(), failureCause))
+            """.trimIndent(), failureCause
+              )
+            )
           )
         } else {
           heapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
         }
       }
     }
-    onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
+    progressListener.onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
 
     val db = LeaksDbHelper(application).writableDatabase
     val id = HeapAnalysisTable.insert(db, heapAnalysis)
@@ -128,14 +136,15 @@ internal class HeapAnalyzerService : ForegroundService(
     }
     // Can't leverage .use{} because close() was added in API 16 and we're min SDK 14.
     db.releaseReference()
-    config.onHeapAnalyzedListener.onHeapAnalyzed(fullHeapAnalysis)
+    LeakCanary.config.onHeapAnalyzedListener.onHeapAnalyzed(fullHeapAnalysis)
   }
 
   private fun analyzeHeap(
     heapDumpFile: File,
-    config: Config
+    progressListener: OnAnalysisProgressListener
   ): HeapAnalysis {
-    val heapAnalyzer = HeapAnalyzer(this)
+    val config = LeakCanary.config
+    val heapAnalyzer = HeapAnalyzer(progressListener)
     val proguardMappingReader = try {
       ProguardMappingReader(assets.open(PROGUARD_MAPPING_FILE_NAME))
     } catch (e: IOException) {
@@ -165,11 +174,6 @@ internal class HeapAnalyzerService : ForegroundService(
       analysisDurationMillis = 0,
       exception = HeapAnalysisException(exception)
     )
-  }
-
-  override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
-    val percent = (step.ordinal * 1.0) / OnAnalysisProgressListener.Step.values().size
-    InternalLeakCanary.sendEvent(HeapAnalysisProgress(step, percent))
   }
 
   companion object {
