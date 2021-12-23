@@ -202,7 +202,11 @@ object LeakCanary {
       } else {
         NotificationEventListener
       },
-      BackgroundThreadHeapAnalyzer
+      if (WorkManagerHeapAnalyzer.workManagerInClasspath) {
+        WorkManagerHeapAnalyzer
+      } else {
+        BackgroundThreadHeapAnalyzer
+      }
     ),
 
     /**

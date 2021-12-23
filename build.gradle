@@ -6,6 +6,8 @@ buildscript {
       // The benefit is that depending clients do not have to upgrade to Kotlin 1.4
       'kotlinCompiler': '1.4.21',
       'kotlinLib': '1.3.72',
+      // 2.7.0 to ensure support for setExpedited().
+      'workManager': '2.7.0',
   ]
   ext.deps = [
       assertj_core: 'org.assertj:assertj-core:3.9.1',
@@ -25,6 +27,11 @@ buildscript {
               runner: 'androidx.test:runner:1.1.0',
               orchestrator: 'androidx.test:orchestrator:1.1.0',
           ],
+          work: [
+            // Note: we use the Java artifact because the Kotlin one bundles coroutines.
+            runtime: "androidx.work:work-runtime:${versions.workManager}",
+            multiprocess: "androidx.work:work-multiprocess:${versions.workManager}",
+          ]
       ],
       android_support: 'com.android.support:support-v4:28.0.0',
       clikt: 'com.github.ajalt:clikt:2.3.0',

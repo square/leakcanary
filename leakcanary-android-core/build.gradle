@@ -9,8 +9,10 @@ dependencies {
   api project(':leakcanary-object-watcher-android-androidx')
   api project(':leakcanary-object-watcher-android-support-fragments')
   implementation project(':plumber-android')
-
   implementation deps.kotlin.stdlib
+
+  // Optional dependency
+  compileOnly deps.androidx.work.runtime
 
   testImplementation deps.assertj_core
   testImplementation deps.junit

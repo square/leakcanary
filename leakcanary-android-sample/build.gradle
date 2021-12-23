@@ -19,6 +19,7 @@ dependencies {
   releaseImplementation project(':leakcanary-object-watcher-android')
 
   implementation deps.kotlin.stdlib
+  implementation deps.androidx.work.runtime
 
   testImplementation deps.junit
   testImplementation deps.robolectric
