@@ -110,7 +110,7 @@ internal class HeapAnalyzerService : ForegroundService(
         val unreadLeakSignatures = leakSignatureStatuses.filter { (_, read) ->
           !read
         }.keys
-        config.eventListener.onEvent(
+        InternalLeakCanary.sendEvent(
           HeapAnalysisSucceeded(
             fullHeapAnalysis,
             unreadLeakSignatures,
@@ -123,7 +123,7 @@ internal class HeapAnalyzerService : ForegroundService(
         val showIntent = LeakActivity.createPendingIntent(
           application, arrayListOf(HeapDumpsScreen(), screenToShow)
         )
-        config.eventListener.onEvent(HeapAnalysisFailed(fullHeapAnalysis, showIntent))
+        InternalLeakCanary.sendEvent(HeapAnalysisFailed(fullHeapAnalysis, showIntent))
       }
     }
     // Can't leverage .use{} because close() was added in API 16 and we're min SDK 14.
@@ -169,7 +169,7 @@ internal class HeapAnalyzerService : ForegroundService(
 
   override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
     val percent = (step.ordinal * 1.0) / OnAnalysisProgressListener.Step.values().size
-    LeakCanary.config.eventListener.onEvent(HeapAnalysisProgress(step, percent))
+    InternalLeakCanary.sendEvent(HeapAnalysisProgress(step, percent))
   }
 
   companion object {

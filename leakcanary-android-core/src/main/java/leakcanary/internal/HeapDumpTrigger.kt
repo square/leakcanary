@@ -38,7 +38,6 @@ internal class HeapDumpTrigger(
   private val configProvider: () -> Config
 ) {
 
-
   private val notificationManager
     get() =
       application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -167,9 +166,9 @@ internal class HeapDumpTrigger(
       InternalLeakCanary.createLeakDirectoryProvider(InternalLeakCanary.application)
     val heapDumpFile = directoryProvider.newHeapDumpFile()
 
-    var durationMillis = 0L
+    val durationMillis: Long
     try {
-      configProvider().eventListener.onEvent(DumpingHeap)
+      InternalLeakCanary.sendEvent(DumpingHeap)
       if (heapDumpFile == null) {
         throw RuntimeException("Could not create heap dump file")
       }
@@ -185,9 +184,9 @@ internal class HeapDumpTrigger(
       lastDisplayedRetainedObjectCount = 0
       lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
       objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-      configProvider().eventListener.onEvent(HeapDumped(heapDumpFile, durationMillis, reason))
+      InternalLeakCanary.sendEvent(HeapDumped(heapDumpFile, durationMillis, reason))
     } catch (throwable: Throwable) {
-      configProvider().eventListener.onEvent(HeapDumpFailed(throwable, retry))
+      InternalLeakCanary.sendEvent(HeapDumpFailed(throwable, retry))
       if (retry) {
         scheduleRetainedObjectCheck(
           delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS

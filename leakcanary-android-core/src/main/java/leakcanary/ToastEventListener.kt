@@ -17,10 +17,9 @@ import leakcanary.EventListener.Event.HeapDumped
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.friendly.mainHandler
 
-// TODO Set up as default
-class ToastEventListener private constructor(context: Context) : EventListener {
+object ToastEventListener : EventListener {
 
-  private val appContext = context.applicationContext
+  private val appContext = InternalLeakCanary.application
 
   // Only accessed from the main thread
   private var toastCurrentlyShown: Toast? = null

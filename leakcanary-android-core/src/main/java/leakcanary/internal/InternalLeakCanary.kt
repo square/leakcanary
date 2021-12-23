@@ -24,6 +24,7 @@ import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.AndroidDebugHeapDumper
 import leakcanary.AppWatcher
+import leakcanary.EventListener.Event
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.OnObjectRetainedListener
@@ -326,6 +327,12 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       if (enabled) COMPONENT_ENABLED_STATE_ENABLED else COMPONENT_ENABLED_STATE_DISABLED
     // Blocks on IPC.
     application.packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP)
+  }
+
+  fun sendEvent(event: Event) {
+    for(listener in LeakCanary.config.eventListeners) {
+      listener.onEvent(event)
+    }
   }
 
   private const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"

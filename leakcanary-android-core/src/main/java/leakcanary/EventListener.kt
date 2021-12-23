@@ -11,15 +11,23 @@ import shark.OnAnalysisProgressListener.Step
 fun interface EventListener {
 
   sealed class Event {
+    /**
+     * Sent from the "LeakCanary-Heap-Dump" HandlerThread.
+     */
     object DumpingHeap : Event()
 
-    // TODO Ooooh maybe this is where we plug in the pipeline?
+    /**
+     * Sent from the "LeakCanary-Heap-Dump" HandlerThread.
+     */
     class HeapDumped(
       val file: File,
       val durationMillis: Long,
       val reason: String
     ) : Event()
 
+    /**
+     * Sent from the "LeakCanary-Heap-Dump" HandlerThread.
+     */
     class HeapDumpFailed(val exception: Throwable, val willRetryLater: Boolean) : Event()
 
     /**

@@ -12,15 +12,16 @@ import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisSucceeded
 import leakcanary.EventListener.Event.HeapAnalysisProgress
 import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.EventListener.Event.HeapDumped
+import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import leakcanary.internal.NotificationType.LEAKCANARY_MAX
 import leakcanary.internal.Notifications
 
 // TODO Check android TV we probs want this disabled entirely for it and have alternative listener
 // TODO Add this as a default
-class NotificationEventListener private constructor(context: Context) : EventListener {
+object NotificationEventListener : EventListener {
 
-  private val appContext = context.applicationContext
+  private val appContext = InternalLeakCanary.application
   private val notificationManager =
     appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 

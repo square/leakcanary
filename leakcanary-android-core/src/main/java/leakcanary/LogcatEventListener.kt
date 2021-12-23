@@ -1,17 +1,14 @@
 package leakcanary
 
-import android.content.Context
 import leakcanary.EventListener.Event
 import leakcanary.EventListener.Event.HeapAnalysisDone
 import leakcanary.EventListener.Event.HeapAnalysisProgress
 import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.internal.HeapDumpTrigger
-import leakcanary.internal.HeapDumpTrigger.Companion
 import leakcanary.internal.activity.screen.LeakTraceWrapper
 import shark.SharkLog
 
-// TODO Add as default listener
-class LogcatEventListener private constructor() : EventListener {
+object LogcatEventListener : EventListener {
 
   override fun onEvent(event: Event) {
     when(event) {
