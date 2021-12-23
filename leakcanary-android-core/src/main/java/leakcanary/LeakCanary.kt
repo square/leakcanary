@@ -183,7 +183,7 @@ object LeakCanary {
      * remove a few entries but not all entries. Each listener is independent and provides
      * additional behavior which you can disable by not excluding it:
      *
-     * ```
+     * ```kotlin
      * // No cute canary toast (very sad!)
      * LeakCanary.config = LeakCanary.config.run {
      *   copy(
