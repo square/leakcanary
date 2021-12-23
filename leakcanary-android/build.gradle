@@ -1,6 +1,7 @@
 plugins {
   id("com.android.library")
   id("org.jetbrains.kotlin.android")
+  id("com.vanniktech.maven.publish")
 }
 
 dependencies {
@@ -22,5 +23,3 @@ android {
     checkOnly 'Interoperability'
   }
 }
-
-apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

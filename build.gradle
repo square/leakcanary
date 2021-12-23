@@ -1,3 +1,5 @@
+import org.jetbrains.dokka.gradle.DokkaTask
+
 buildscript {
   ext.versions = [
       'minSdk': 14,
@@ -14,6 +16,8 @@ buildscript {
       // and they'll automatically resolve to higher version without having to necessarily resort to a
       // resolution strategy.
       androidGradlePlugin: "com.android.tools.build:gradle:4.2.2",
+      dokkaPlugin: "org.jetbrains.dokka:dokka-gradle-plugin:1.6.0",
+      mavenPublishPlugin: "com.vanniktech:gradle-maven-publish-plugin:0.18.0",
       androidx: [
           annotation: 'androidx.annotation:annotation:1.0.2',
           core: 'androidx.core:core:1.0.1',
@@ -33,7 +37,7 @@ buildscript {
       detekt: 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.6.0',
       junit: 'junit:junit:4.12',
       kotlin: [
-          binaryCompatibilityValidatorPlugin: "org.jetbrains.kotlinx:binary-compatibility-validator:0.2.3",
+          binaryCompatibilityValidatorPlugin: "org.jetbrains.kotlinx:binary-compatibility-validator:0.8.0",
           gradlePlugin: "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlinCompiler}",
           stdlib: "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlinLib}",
           reflect: "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlinLib}"
@@ -54,7 +58,8 @@ buildscript {
   dependencies {
     classpath deps.kotlin.gradlePlugin
     classpath deps.androidGradlePlugin
-    classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.18"
+    classpath deps.dokkaPlugin
+    classpath deps.mavenPublishPlugin
     classpath deps.detekt
     classpath deps.kotlin.binaryCompatibilityValidatorPlugin
   }
@@ -85,26 +90,36 @@ subprojects {
     jcenter()
   }
 
-  apply plugin: 'org.jetbrains.dokka'
   apply plugin: 'io.gitlab.arturbosch.detekt'
 
-  dokka {
-    reportUndocumented = false
-    // BuildConfig files
-    packageOptions {
-      prefix = "com.squareup.leakcanary"
-      suppress = true
+  pluginManager.withPlugin("com.vanniktech.maven.publish") {
+    mavenPublish {
+      sonatypeHost = "S01"
     }
-    packageOptions {
-      prefix = "shark.internal"
-      suppress = true
+    apply plugin: 'org.jetbrains.dokka'
+    tasks.named("dokkaGfm", DokkaTask.class) {
+      outputDirectory = rootProject.file("docs/api")
+      dokkaSourceSets.configureEach {
+        reportUndocumented.set(false)
+        perPackageOption {
+          // will match all .internal packages and sub-packages
+          matchingRegex.set(".*\\.internal.*")
+          suppress.set(true)
+        }
+        perPackageOption {
+          // BuildConfig files
+          matchingRegex.set("com.squareup.leakcanary\\..*")
+          suppress.set(true)
+        }
+        skipDeprecated.set(true)
+        externalDocumentationLink {
+          url.set(new URL("https://square.github.io/okio/2.x/okio/"))
+        }
+        externalDocumentationLink {
+          url.set(new URL("https://square.github.io/moshi/1.x/moshi/"))
+        }
+      }
     }
-    packageOptions {
-      prefix = "leakcanary.internal"
-      suppress = true
-    }
-    outputFormat = 'gfm'
-    outputDirectory = "$rootDir/docs/api"
   }
 
   tasks.withType(JavaCompile).configureEach {
