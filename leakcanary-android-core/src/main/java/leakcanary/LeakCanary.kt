@@ -170,18 +170,9 @@ object LeakCanary {
 
     /**
      * Dumps the Java heap. You may replace this with your own implementation if you wish to
-     * change how LeakCanary notifies the user of that the heap is dumping, or the core heap
-     * dumping implementation. It's highly recommended that you call [leakCanaryHeapDumper] and
-     * either provide a custom core heap dumper or wrap the returned heap dumper with a delegate
-     * that perform additional work. Example usage:
-     *
-     * ```
-     * LeakCanary.config = LeakCanary.config.copy(
-     *     heapDumper = leakCanaryHeapDumper(toastOnDump = false)
-     * )
-     * ```
+     * change the core heap dumping implementation.
      */
-    val heapDumper: HeapDumper = leakCanaryHeapDumper(),
+    val heapDumper: HeapDumper = AndroidDebugHeapDumper,
 
     /**
      * TODO

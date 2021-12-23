@@ -20,9 +20,9 @@ import android.content.Intent
 import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import com.squareup.leakcanary.core.R
-import leakcanary.EventListener.Event.HeapAnalysisFailed
+import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisFailed
+import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisSucceeded
 import leakcanary.EventListener.Event.HeapAnalysisProgress
-import leakcanary.EventListener.Event.HeapAnalysisSucceeded
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
 import leakcanary.internal.activity.LeakActivity
@@ -43,7 +43,6 @@ import shark.ProguardMappingReader
 import shark.SharkLog
 import java.io.File
 import java.io.IOException
-import java.util.Locale
 
 /**
  * This service runs in a main app process.
@@ -169,14 +168,8 @@ internal class HeapAnalyzerService : ForegroundService(
   }
 
   override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
-    LeakCanary.config.eventListener.onEvent(HeapAnalysisProgress(step))
-    val percent =
-      (100f * step.ordinal / OnAnalysisProgressListener.Step.values().size).toInt()
-    SharkLog.d { "Analysis in progress, working on: ${step.name}" }
-    val lowercase = step.name.replace("_", " ")
-      .toLowerCase(Locale.US)
-    val message = lowercase.substring(0, 1).toUpperCase(Locale.US) + lowercase.substring(1)
-    showForegroundNotification(100, percent, false, message)
+    val percent = (step.ordinal * 1.0) / OnAnalysisProgressListener.Step.values().size
+    LeakCanary.config.eventListener.onEvent(HeapAnalysisProgress(step, percent))
   }
 
   companion object {

@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.content.res.Resources.NotFoundException
 import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
@@ -12,9 +13,6 @@ import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.EventListener.Event.HeapDumped
 import leakcanary.GcTrigger
-import leakcanary.HeapDumper.DumpLocation
-import leakcanary.HeapDumper.Result.Failure
-import leakcanary.HeapDumper.Result.HeapDump
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
 import leakcanary.ObjectWatcher
@@ -28,6 +26,8 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
+import leakcanary.internal.friendly.measureDurationMillis
+import shark.AndroidResourceIdNames
 import shark.SharkLog
 
 internal class HeapDumpTrigger(
@@ -163,40 +163,71 @@ internal class HeapDumpTrigger(
     retry: Boolean,
     reason: String
   ) {
-    val heapDumpUptimeMillis = SystemClock.uptimeMillis()
-    KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-    configProvider().eventListener.onEvent(DumpingHeap)
-    when (val heapDumpResult = configProvider().heapDumper.dumpHeap(DumpLocation.Unspecified)) {
-      is Failure -> {
-        configProvider().eventListener.onEvent(HeapDumpFailed(heapDumpResult.exception))
-        if (retry) {
-          SharkLog.d(heapDumpResult.exception) { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
-          scheduleRetainedObjectCheck(
-            delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS
-          )
-        } else {
-          SharkLog.d(heapDumpResult.exception) { "Failed to dump heap, will not automatically retry" }
-        }
-        showRetainedCountNotification(
-          objectCount = retainedReferenceCount,
-          contentText = application.getString(
-            R.string.leak_canary_notification_retained_dump_failed
-          )
+    val directoryProvider =
+      InternalLeakCanary.createLeakDirectoryProvider(InternalLeakCanary.application)
+    val heapDumpFile = directoryProvider.newHeapDumpFile()
+
+    try {
+      if (heapDumpFile == null) {
+        throw RuntimeException("Could not create heap dump file")
+      }
+      saveResourceIdNamesToMemory()
+      val heapDumpUptimeMillis = SystemClock.uptimeMillis()
+      KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
+      configProvider().eventListener.onEvent(DumpingHeap)
+      val durationMillis = measureDurationMillis {
+        configProvider().heapDumper.dumpHeap(heapDumpFile)
+      }
+      if (heapDumpFile.length() == 0L) {
+        throw RuntimeException("Dumped heap file is 0 byte length")
+      }
+      lastDisplayedRetainedObjectCount = 0
+      lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
+      objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
+      configProvider().eventListener.onEvent(HeapDumped(heapDumpFile, durationMillis, reason))
+      HeapAnalyzerService.runAnalysis(
+        context = application,
+        heapDumpFile = heapDumpFile,
+        heapDumpDurationMillis = durationMillis,
+        heapDumpReason = reason
+      )
+    } catch (throwable: Throwable) {
+      configProvider().eventListener.onEvent(HeapDumpFailed(throwable, retry))
+      if (retry) {
+        scheduleRetainedObjectCheck(
+          delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS
         )
       }
-      is HeapDump -> {
-        lastDisplayedRetainedObjectCount = 0
-        lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
-        objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-        configProvider().eventListener.onEvent(HeapDumped(heapDumpResult.file, heapDumpResult.durationMillis))
-        HeapAnalyzerService.runAnalysis(
-          context = application,
-          heapDumpFile = heapDumpResult.file,
-          heapDumpDurationMillis = heapDumpResult.durationMillis,
-          heapDumpReason = reason
+      showRetainedCountNotification(
+        objectCount = retainedReferenceCount,
+        contentText = application.getString(
+          R.string.leak_canary_notification_retained_dump_failed
         )
-      }
+      )
     }
+  }
+
+  /**
+   * Stores in memory the mapping of resource id ints to their corresponding name, so that the heap
+   * analysis can label views with their resource id names.
+   */
+  private fun saveResourceIdNamesToMemory() {
+    val resources = application.resources
+    AndroidResourceIdNames.saveToMemory(
+      getResourceTypeName = { id ->
+        try {
+          resources.getResourceTypeName(id)
+        } catch (e: NotFoundException) {
+          null
+        }
+      },
+      getResourceEntryName = { id ->
+        try {
+          resources.getResourceEntryName(id)
+        } catch (e: NotFoundException) {
+          null
+        }
+      })
   }
 
   fun onDumpHeapReceived(forceDump: Boolean) {
@@ -379,7 +410,7 @@ internal class HeapDumpTrigger(
   }
 
   companion object {
-    private const val WAIT_AFTER_DUMP_FAILED_MILLIS = 5_000L
+    internal const val WAIT_AFTER_DUMP_FAILED_MILLIS = 5_000L
     private const val WAIT_FOR_OBJECT_THRESHOLD_MILLIS = 2_000L
     private const val DISMISS_NO_RETAINED_OBJECT_NOTIFICATION_MILLIS = 30_000L
     private const val WAIT_BETWEEN_HEAP_DUMPS_MILLIS = 60_000L

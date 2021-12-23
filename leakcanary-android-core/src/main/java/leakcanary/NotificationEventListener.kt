@@ -1,0 +1,82 @@
+package leakcanary
+
+import android.app.Notification
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import com.squareup.leakcanary.core.R
+import leakcanary.EventListener.Event
+import leakcanary.EventListener.Event.DumpingHeap
+import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisFailed
+import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisSucceeded
+import leakcanary.EventListener.Event.HeapAnalysisProgress
+import leakcanary.EventListener.Event.HeapDumpFailed
+import leakcanary.EventListener.Event.HeapDumped
+import leakcanary.internal.NotificationType.LEAKCANARY_LOW
+import leakcanary.internal.NotificationType.LEAKCANARY_MAX
+import leakcanary.internal.Notifications
+
+// TODO Check android TV we probs want this disabled entirely for it and have alternative listener
+// TODO Add this as a default
+class NotificationEventListener private constructor(context: Context) : EventListener {
+
+  private val appContext = context.applicationContext
+  private val notificationManager =
+    appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+  override fun onEvent(event: Event) {
+    // TODO Unify Notifications.buildNotification vs Notifications.showNotification
+    // We need to bring in the retained count notifications first though.
+    if (!Notifications.canShowNotification) {
+      return
+    }
+    when (event) {
+      is DumpingHeap -> {
+        val dumpingHeap = appContext.getString(R.string.leak_canary_notification_dumping)
+        val builder = Notification.Builder(appContext)
+          .setContentTitle(dumpingHeap)
+        val notification = Notifications.buildNotification(appContext, builder, LEAKCANARY_LOW)
+        notificationManager.notify(R.id.leak_canary_notification_dumping_heap, notification)
+      }
+      is HeapDumpFailed, is HeapDumped -> {
+        notificationManager.cancel(R.id.leak_canary_notification_dumping_heap)
+      }
+      is HeapAnalysisProgress -> {
+        val progress = (event.progressPercent * 100).toInt()
+        val builder = Notification.Builder(appContext)
+          .setContentTitle(appContext.getString(R.string.leak_canary_notification_analysing))
+          .setContentText(event.step.humanReadableName)
+          .setProgress(100, progress, false)
+        val notification =
+          Notifications.buildNotification(appContext, builder, LEAKCANARY_LOW)
+        notificationManager.notify(R.id.leak_canary_notification_analyzing_heap, notification)
+      }
+      is HeapAnalysisFailed -> {
+        val contentTitle = appContext.getString(R.string.leak_canary_analysis_failed)
+        showHeapAnalysisResultNotification(contentTitle, event.showIntent)
+      }
+      is HeapAnalysisSucceeded -> {
+        val heapAnalysis = event.heapAnalysis
+        val retainedObjectCount = heapAnalysis.allLeaks.sumBy { it.leakTraces.size }
+        val leakTypeCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
+        val unreadLeakCount = event.unreadLeakSignatures.size
+        val contentTitle = appContext.getString(
+          R.string.leak_canary_analysis_success_notification,
+          retainedObjectCount,
+          leakTypeCount,
+          unreadLeakCount
+        )
+        showHeapAnalysisResultNotification(contentTitle, event.showIntent)
+      }
+    }
+  }
+
+  private fun showHeapAnalysisResultNotification(contentTitle: String, showIntent: PendingIntent) {
+    val contentText = appContext.getString(R.string.leak_canary_notification_message)
+    Notifications.showNotification(
+      appContext, contentTitle, contentText, showIntent,
+      R.id.leak_canary_notification_analysis_result,
+      LEAKCANARY_MAX
+    )
+  }
+}

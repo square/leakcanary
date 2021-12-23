@@ -4,17 +4,9 @@ import android.app.Application
 import com.squareup.leakcanary.core.R
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
-import leakcanary.internal.NotificationType.LEAKCANARY_MAX
-import leakcanary.internal.Notifications
 import leakcanary.internal.activity.LeakActivity
-import leakcanary.internal.activity.db.HeapAnalysisTable
-import leakcanary.internal.activity.db.LeaksDbHelper
-import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
-import leakcanary.internal.activity.screen.HeapDumpScreen
-import leakcanary.internal.activity.screen.HeapDumpsScreen
 import leakcanary.internal.activity.screen.LeakTraceWrapper
 import leakcanary.internal.friendly.mainHandler
-import leakcanary.internal.navigation.Screen
 import leakcanary.internal.tv.TvToast
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
@@ -22,9 +14,12 @@ import shark.HeapAnalysisSuccess
 import shark.SharkLog
 
 /**
+ * Deprecated, this is now a no-op. You should customize LeakCanary.config.eventListener instead.
+ *
  * Default [OnHeapAnalyzedListener] implementation, which will store the analysis to disk and
  * show a notification summarizing the result.
  */
+@Deprecated(message = "Customize LeakCanary.config.eventListener instead")
 class DefaultOnHeapAnalyzedListener private constructor(private val applicationProvider: () -> Application) :
   OnHeapAnalyzedListener {
 
@@ -38,49 +33,13 @@ class DefaultOnHeapAnalyzedListener private constructor(private val applicationP
   private val application: Application by lazy { applicationProvider() }
 
   override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
-    SharkLog.d { "\u200B\n${LeakTraceWrapper.wrap(heapAnalysis.toString(), 120)}" }
-
-    val db = LeaksDbHelper(application).writableDatabase
-    val id = HeapAnalysisTable.insert(db, heapAnalysis)
-    db.releaseReference()
-
-    val (contentTitle, screenToShow) = when (heapAnalysis) {
-      is HeapAnalysisFailure -> application.getString(
-        R.string.leak_canary_analysis_failed
-      ) to HeapAnalysisFailureScreen(id)
-      is HeapAnalysisSuccess -> {
-        val retainedObjectCount = heapAnalysis.allLeaks.sumBy { it.leakTraces.size }
-        val leakTypeCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
-        application.getString(
-          R.string.leak_canary_analysis_success_notification, retainedObjectCount, leakTypeCount
-        ) to HeapDumpScreen(id)
-      }
-    }
-
+    // TODO Figure out where to move this
     if (InternalLeakCanary.formFactor == TV) {
       showToast(heapAnalysis)
       printIntentInfo()
-    } else {
-      showNotification(screenToShow, contentTitle)
     }
   }
 
-  private fun showNotification(
-    screenToShow: Screen,
-    contentTitle: String
-  ) {
-    val pendingIntent = LeakActivity.createPendingIntent(
-      application, arrayListOf(HeapDumpsScreen(), screenToShow)
-    )
-
-    val contentText = application.getString(R.string.leak_canary_notification_message)
-
-    Notifications.showNotification(
-      application, contentTitle, contentText, pendingIntent,
-      R.id.leak_canary_notification_analysis_result,
-      LEAKCANARY_MAX
-    )
-  }
 
   /**
    * Android TV devices do not have notifications, therefore the only easy and non-invasive way

@@ -30,26 +30,15 @@ internal abstract class ForegroundService(
 
   override fun onCreate() {
     super.onCreate()
-    showForegroundNotification(
-      max = 100, progress = 0, indeterminate = true,
-      contentText = getString(R.string.leak_canary_notification_foreground_text)
-    )
-  }
-
-  protected fun showForegroundNotification(
-    max: Int,
-    progress: Int,
-    indeterminate: Boolean,
-    contentText: String
-  ) {
     val builder = Notification.Builder(this)
       .setContentTitle(getString(notificationContentTitleResId))
-      .setContentText(contentText)
-      .setProgress(max, progress, indeterminate)
+      .setContentText(getString(R.string.leak_canary_notification_foreground_text))
+      .setProgress(100, 0, true)
     val notification =
       Notifications.buildNotification(this, builder, LEAKCANARY_LOW)
     startForeground(notificationId, notification)
   }
+
 
   override fun onHandleIntent(intent: Intent?) {
     onHandleIntentInForeground(intent)
