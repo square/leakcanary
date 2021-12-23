@@ -167,15 +167,16 @@ internal class HeapDumpTrigger(
       InternalLeakCanary.createLeakDirectoryProvider(InternalLeakCanary.application)
     val heapDumpFile = directoryProvider.newHeapDumpFile()
 
+    var durationMillis = 0L
     try {
+      configProvider().eventListener.onEvent(DumpingHeap)
       if (heapDumpFile == null) {
         throw RuntimeException("Could not create heap dump file")
       }
       saveResourceIdNamesToMemory()
       val heapDumpUptimeMillis = SystemClock.uptimeMillis()
       KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-      configProvider().eventListener.onEvent(DumpingHeap)
-      val durationMillis = measureDurationMillis {
+      durationMillis = measureDurationMillis {
         configProvider().heapDumper.dumpHeap(heapDumpFile)
       }
       if (heapDumpFile.length() == 0L) {
@@ -185,12 +186,6 @@ internal class HeapDumpTrigger(
       lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
       objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
       configProvider().eventListener.onEvent(HeapDumped(heapDumpFile, durationMillis, reason))
-      HeapAnalyzerService.runAnalysis(
-        context = application,
-        heapDumpFile = heapDumpFile,
-        heapDumpDurationMillis = durationMillis,
-        heapDumpReason = reason
-      )
     } catch (throwable: Throwable) {
       configProvider().eventListener.onEvent(HeapDumpFailed(throwable, retry))
       if (retry) {
@@ -204,7 +199,14 @@ internal class HeapDumpTrigger(
           R.string.leak_canary_notification_retained_dump_failed
         )
       )
+      return
     }
+    HeapAnalyzerService.runAnalysis(
+      context = application,
+      heapDumpFile = heapDumpFile,
+      heapDumpDurationMillis = durationMillis,
+      heapDumpReason = reason
+    )
   }
 
   /**
