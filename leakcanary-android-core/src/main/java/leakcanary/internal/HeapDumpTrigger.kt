@@ -11,7 +11,7 @@ import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDumpFailed
-import leakcanary.EventListener.Event.HeapDumped
+import leakcanary.EventListener.Event.HeapDump
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
@@ -184,7 +184,7 @@ internal class HeapDumpTrigger(
       lastDisplayedRetainedObjectCount = 0
       lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
       objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-      InternalLeakCanary.sendEvent(HeapDumped(heapDumpFile, durationMillis, reason))
+      InternalLeakCanary.sendEvent(HeapDump(heapDumpFile, durationMillis, reason))
     } catch (throwable: Throwable) {
       InternalLeakCanary.sendEvent(HeapDumpFailed(throwable, retry))
       if (retry) {
@@ -200,12 +200,6 @@ internal class HeapDumpTrigger(
       )
       return
     }
-    HeapAnalyzerService.runAnalysis(
-      context = application,
-      heapDumpFile = heapDumpFile,
-      heapDumpDurationMillis = durationMillis,
-      heapDumpReason = reason
-    )
   }
 
   /**

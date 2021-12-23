@@ -5,7 +5,7 @@ import java.io.IOException
 import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisFailed
 import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisSucceeded
 import leakcanary.EventListener.Event.HeapAnalysisProgress
-import leakcanary.EventListener.Event.HeapDumped
+import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.internal.activity.LeakActivity
@@ -24,7 +24,9 @@ import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
 import shark.ProguardMappingReader
 
-class AndroidHeapAnalyzer {
+object AndroidDebugHeapAnalyzer {
+
+  private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
 
   private val application = InternalLeakCanary.application
 
@@ -32,7 +34,7 @@ class AndroidHeapAnalyzer {
    * Runs the heap analysis on the current thread and then sends a
    * [EventListener.Event.HeapAnalysisDone] event with the result (from the current thread as well).
    */
-  fun runAnalysisBlocking(heapDumped: HeapDumped) {
+  fun runAnalysisBlocking(heapDumped: HeapDump) {
     val progressListener = OnAnalysisProgressListener { step ->
       val percent = (step.ordinal * 1.0) / OnAnalysisProgressListener.Step.values().size
       InternalLeakCanary.sendEvent(HeapAnalysisProgress(step, percent))
@@ -147,9 +149,5 @@ class AndroidHeapAnalyzer {
       analysisDurationMillis = 0,
       exception = HeapAnalysisException(exception)
     )
-  }
-
-  companion object {
-    private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
   }
 }

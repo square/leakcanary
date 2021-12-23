@@ -8,7 +8,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
-import leakcanary.internal.HeapAnalyzerService
+import leakcanary.EventListener.Event.HeapDump
+import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.shareHeapDump
@@ -57,7 +58,7 @@ internal class HeapAnalysisFailureScreen(
       The stacktrace details will be copied into the clipboard and you just need to paste into the
       GitHub issue description.""" + (if (heapDumpFileExist) {
         """
-        <br><br>To help reproduce the issue, please share the 
+        <br><br>To help reproduce the issue, please share the
         <a href="share_hprof">Heap Dump file</a> and upload it to the GitHub issue.
       """
       } else "")
@@ -78,11 +79,12 @@ internal class HeapAnalysisFailureScreen(
         }
         "try_again" -> {
           {
-            HeapAnalyzerService.runAnalysis(
-              context = context,
-              heapDumpFile = heapAnalysis.heapDumpFile,
-              heapDumpDurationMillis = heapAnalysis.dumpDurationMillis,
-              heapDumpReason = "Retrying heap analysis after failure."
+            InternalLeakCanary.sendEvent(
+              HeapDump(
+                file = heapAnalysis.heapDumpFile,
+                durationMillis = heapAnalysis.dumpDurationMillis,
+                reason = "Retrying heap analysis after failure."
+              )
             )
           }
         }

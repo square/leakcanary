@@ -201,7 +201,8 @@ object LeakCanary {
         TvEventListener
       } else {
         NotificationEventListener
-      }
+      },
+      BackgroundThreadHeapAnalyzer
     ),
 
     /**

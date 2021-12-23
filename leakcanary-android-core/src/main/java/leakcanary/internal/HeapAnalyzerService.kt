@@ -20,8 +20,8 @@ import android.content.Intent
 import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import com.squareup.leakcanary.core.R
-import leakcanary.AndroidHeapAnalyzer
-import leakcanary.EventListener.Event.HeapDumped
+import leakcanary.AndroidDebugHeapAnalyzer
+import leakcanary.EventListener.Event.HeapDump
 import shark.SharkLog
 import java.io.File
 
@@ -46,10 +46,14 @@ internal class HeapAnalyzerService : ForegroundService(
     val heapDumpReason = intent.getStringExtra(HEAPDUMP_REASON_EXTRA)!!
     val heapDumpDurationMillis = intent.getLongExtra(HEAPDUMP_DURATION_MILLIS_EXTRA, -1)
 
-    AndroidHeapAnalyzer().runAnalysisBlocking(HeapDumped(heapDumpFile, heapDumpDurationMillis, heapDumpReason))
+    AndroidDebugHeapAnalyzer.runAnalysisBlocking(
+      HeapDump(
+        heapDumpFile,
+        heapDumpDurationMillis,
+        heapDumpReason
+      )
+    )
   }
-
-
 
   companion object {
     private const val HEAPDUMP_FILE_EXTRA = "HEAPDUMP_FILE_EXTRA"

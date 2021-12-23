@@ -25,7 +25,7 @@ fun interface EventListener {
     /**
      * Sent from the "LeakCanary-Heap-Dump" HandlerThread.
      */
-    class HeapDumped(
+    class HeapDump(
       val file: File,
       val durationMillis: Long,
       val reason: String

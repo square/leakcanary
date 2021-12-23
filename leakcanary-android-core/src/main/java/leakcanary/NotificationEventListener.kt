@@ -11,7 +11,7 @@ import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisFailed
 import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisSucceeded
 import leakcanary.EventListener.Event.HeapAnalysisProgress
 import leakcanary.EventListener.Event.HeapDumpFailed
-import leakcanary.EventListener.Event.HeapDumped
+import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import leakcanary.internal.NotificationType.LEAKCANARY_MAX
@@ -39,7 +39,7 @@ object NotificationEventListener : EventListener {
         val notification = Notifications.buildNotification(appContext, builder, LEAKCANARY_LOW)
         notificationManager.notify(R.id.leak_canary_notification_dumping_heap, notification)
       }
-      is HeapDumpFailed, is HeapDumped -> {
+      is HeapDumpFailed, is HeapDump -> {
         notificationManager.cancel(R.id.leak_canary_notification_dumping_heap)
       }
       is HeapAnalysisProgress -> {

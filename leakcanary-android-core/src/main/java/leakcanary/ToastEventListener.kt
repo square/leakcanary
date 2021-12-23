@@ -2,7 +2,6 @@ package leakcanary
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.content.Context
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -13,7 +12,7 @@ import java.util.concurrent.TimeUnit.SECONDS
 import leakcanary.EventListener.Event
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDumpFailed
-import leakcanary.EventListener.Event.HeapDumped
+import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.friendly.mainHandler
 
@@ -29,7 +28,7 @@ object ToastEventListener : EventListener {
       is DumpingHeap -> {
         showToastBlocking()
       }
-      is HeapDumped, is HeapDumpFailed -> {
+      is HeapDump, is HeapDumpFailed -> {
         mainHandler.post {
           toastCurrentlyShown?.cancel()
         }

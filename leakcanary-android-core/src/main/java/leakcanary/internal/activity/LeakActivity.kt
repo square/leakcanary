@@ -5,12 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.AsyncTask
-import android.os.Bundle
 import android.os.Build
+import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
-import leakcanary.internal.HeapAnalyzerService
+import java.io.FileInputStream
+import java.io.IOException
+import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db
 import leakcanary.internal.activity.screen.AboutScreen
@@ -19,8 +21,6 @@ import leakcanary.internal.activity.screen.LeaksScreen
 import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
 import shark.SharkLog
-import java.io.FileInputStream
-import java.io.IOException
 
 internal class LeakActivity : NavigatingActivity() {
 
@@ -160,7 +160,13 @@ internal class LeakActivity : NavigatingActivity() {
                     input.copyTo(output, DEFAULT_BUFFER_SIZE)
                   }
               }
-              HeapAnalyzerService.runAnalysis(this, target, heapDumpReason = "Imported by user")
+              InternalLeakCanary.sendEvent(
+                HeapDump(
+                  file = target,
+                  durationMillis = -1,
+                  reason = "Imported by user"
+                )
+              )
             }
         }
     } catch (e: IOException) {
