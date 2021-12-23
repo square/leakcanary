@@ -20,8 +20,18 @@ import android.content.Intent
 import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import com.squareup.leakcanary.core.R
+import leakcanary.EventListener.Event.HeapAnalysisFailed
+import leakcanary.EventListener.Event.HeapAnalysisProgress
+import leakcanary.EventListener.Event.HeapAnalysisSucceeded
 import leakcanary.LeakCanary
 import leakcanary.LeakCanary.Config
+import leakcanary.internal.activity.LeakActivity
+import leakcanary.internal.activity.db.HeapAnalysisTable
+import leakcanary.internal.activity.db.LeakTable
+import leakcanary.internal.activity.db.LeaksDbHelper
+import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
+import leakcanary.internal.activity.screen.HeapDumpScreen
+import leakcanary.internal.activity.screen.HeapDumpsScreen
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
@@ -86,6 +96,39 @@ internal class HeapAnalyzerService : ForegroundService(
       }
     }
     onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
+
+    val db = LeaksDbHelper(application).writableDatabase
+    val id = HeapAnalysisTable.insert(db, heapAnalysis)
+
+    when (fullHeapAnalysis) {
+      is HeapAnalysisSuccess -> {
+        val screenToShow = HeapDumpScreen(id)
+        val showIntent = LeakActivity.createPendingIntent(
+          application, arrayListOf(HeapDumpsScreen(), screenToShow)
+        )
+        val leakSignatures = fullHeapAnalysis.allLeaks.map { it.signature }.toSet()
+        val leakSignatureStatuses = LeakTable.retrieveLeakReadStatuses(db, leakSignatures)
+        val unreadLeakSignatures = leakSignatureStatuses.filter { (_, read) ->
+          !read
+        }.keys
+        config.eventListener.onEvent(
+          HeapAnalysisSucceeded(
+            fullHeapAnalysis,
+            unreadLeakSignatures,
+            showIntent
+          )
+        )
+      }
+      is HeapAnalysisFailure -> {
+        val screenToShow = HeapAnalysisFailureScreen(id)
+        val showIntent = LeakActivity.createPendingIntent(
+          application, arrayListOf(HeapDumpsScreen(), screenToShow)
+        )
+        config.eventListener.onEvent(HeapAnalysisFailed(fullHeapAnalysis, showIntent))
+      }
+    }
+    // Can't leverage .use{} because close() was added in API 16 and we're min SDK 14.
+    db.releaseReference()
     config.onHeapAnalyzedListener.onHeapAnalyzed(fullHeapAnalysis)
   }
 
@@ -94,7 +137,6 @@ internal class HeapAnalyzerService : ForegroundService(
     config: Config
   ): HeapAnalysis {
     val heapAnalyzer = HeapAnalyzer(this)
-
     val proguardMappingReader = try {
       ProguardMappingReader(assets.open(PROGUARD_MAPPING_FILE_NAME))
     } catch (e: IOException) {
@@ -127,6 +169,7 @@ internal class HeapAnalyzerService : ForegroundService(
   }
 
   override fun onAnalysisProgress(step: OnAnalysisProgressListener.Step) {
+    LeakCanary.config.eventListener.onEvent(HeapAnalysisProgress(step))
     val percent =
       (100f * step.ordinal / OnAnalysisProgressListener.Step.values().size).toInt()
     SharkLog.d { "Analysis in progress, working on: ${step.name}" }

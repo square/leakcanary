@@ -8,6 +8,9 @@ import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
+import leakcanary.EventListener.Event.DumpingHeap
+import leakcanary.EventListener.Event.HeapDumpFailed
+import leakcanary.EventListener.Event.HeapDumped
 import leakcanary.GcTrigger
 import leakcanary.HeapDumper.DumpLocation
 import leakcanary.HeapDumper.Result.Failure
@@ -34,6 +37,7 @@ internal class HeapDumpTrigger(
   private val gcTrigger: GcTrigger,
   private val configProvider: () -> Config
 ) {
+
 
   private val notificationManager
     get() =
@@ -161,8 +165,10 @@ internal class HeapDumpTrigger(
   ) {
     val heapDumpUptimeMillis = SystemClock.uptimeMillis()
     KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
+    configProvider().eventListener.onEvent(DumpingHeap)
     when (val heapDumpResult = configProvider().heapDumper.dumpHeap(DumpLocation.Unspecified)) {
       is Failure -> {
+        configProvider().eventListener.onEvent(HeapDumpFailed(heapDumpResult.exception))
         if (retry) {
           SharkLog.d(heapDumpResult.exception) { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
           scheduleRetainedObjectCheck(
@@ -182,6 +188,7 @@ internal class HeapDumpTrigger(
         lastDisplayedRetainedObjectCount = 0
         lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
         objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
+        configProvider().eventListener.onEvent(HeapDumped(heapDumpResult.file, heapDumpResult.durationMillis))
         HeapAnalyzerService.runAnalysis(
           context = application,
           heapDumpFile = heapDumpResult.file,
@@ -260,6 +267,7 @@ internal class HeapDumpTrigger(
           }
         }
       } else if (applicationInvisibleLessThanWatchPeriod) {
+        // TODO This is a bug, should use AppWatcher.retainedDelayMillis instead
         val wait =
           AppWatcher.config.watchDurationMillis - (SystemClock.uptimeMillis() - applicationInvisibleAt)
         if (nopeReason != null) {

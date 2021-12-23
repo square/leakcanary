@@ -184,6 +184,11 @@ object LeakCanary {
     val heapDumper: HeapDumper = leakCanaryHeapDumper(),
 
     /**
+     * TODO
+     */
+    val eventListener: EventListener = EventListener {},
+
+    /**
      * Deprecated: This is a no-op, set a custom [leakingObjectFinder] instead.
      */
     @Deprecated("This is a no-op, set a custom leakingObjectFinder instead")
@@ -229,6 +234,7 @@ object LeakCanary {
         config.requestWriteExternalStoragePermission
       private var leakingObjectFinder = config.leakingObjectFinder
       private var heapDumper = config.heapDumper
+      private var eventListener = config.eventListener
 
       /** @see [LeakCanary.Config.dumpHeap] */
       fun dumpHeap(dumpHeap: Boolean) =
@@ -278,6 +284,10 @@ object LeakCanary {
       fun heapDumper(heapDumper: HeapDumper) =
         apply { this.heapDumper = heapDumper }
 
+      /** @see [LeakCanary.Config.eventListener] */
+      fun eventListener(eventListener: EventListener) =
+        apply { this.eventListener = eventListener }
+
       fun build() = config.copy(
         dumpHeap = dumpHeap,
         dumpHeapWhenDebugging = dumpHeapWhenDebugging,
@@ -290,7 +300,8 @@ object LeakCanary {
         maxStoredHeapDumps = maxStoredHeapDumps,
         requestWriteExternalStoragePermission = requestWriteExternalStoragePermission,
         leakingObjectFinder = leakingObjectFinder,
-        heapDumper = heapDumper
+        heapDumper = heapDumper,
+        eventListener = eventListener
       )
     }
   }
