@@ -2,6 +2,7 @@ package leakcanary
 
 import android.app.PendingIntent
 import java.io.File
+import java.io.Serializable
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
@@ -10,7 +11,12 @@ import shark.OnAnalysisProgressListener.Step
 // TODO Document which thread events are called from and the blocking behavior / impact.
 fun interface EventListener {
 
-  sealed class Event {
+  /**
+   * Note: [Event] is [Serializable] for convenience but we currently make no guarantee
+   * that the Serialization is backward / forward compatible across LeakCanary versions, so plan
+   * accordingly.
+   */
+  sealed class Event : Serializable {
     /**
      * Sent from the "LeakCanary-Heap-Dump" HandlerThread.
      */
