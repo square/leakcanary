@@ -188,7 +188,7 @@ object LeakCanary {
      * Builder for [LeakCanary.Config] intended to be used only from Java code.
      *
      * Usage:
-     * ```kotlin
+     * ```java
      * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
      *    .retainedVisibleThreshold(3)
      *    .build();
