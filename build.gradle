@@ -43,8 +43,8 @@ buildscript {
           reflect: "org.jetbrains.kotlin:kotlin-reflect:${versions.kotlinLib}"
       ],
       kotlin_statistics: 'org.nield:kotlin-statistics:1.2.1',
-      mockito: 'org.mockito:mockito-core:3.5.10',
-      mockito_kotlin: 'com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0',
+      mockito: 'org.mockito:mockito-core:4.2.0',
+      mockito_kotlin: "org.mockito.kotlin:mockito-kotlin:4.0.0",
       okio: 'com.squareup.okio:okio:2.2.2',
       okio_1x: 'com.squareup.okio:okio:1.14.0',
       robolectric: 'org.robolectric:robolectric:4.0-alpha-3',
