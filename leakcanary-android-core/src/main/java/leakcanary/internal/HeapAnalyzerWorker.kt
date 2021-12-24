@@ -20,7 +20,7 @@ internal class HeapAnalyzerWorker(appContext: Context, workerParams: WorkerParam
     private const val DURATION_MILLIS = "DURATION_MILLIS"
     private const val REASON = "REASON"
 
-    fun HeapDump.asWorkerInputData() = Data.Builder()
+    fun HeapDump.asWorkerInputData(dataBuilder: Data.Builder = Data.Builder()) = dataBuilder
       .putString(FILE_PATH, file.absolutePath)
       .putLong(DURATION_MILLIS, durationMillis)
       .putString(REASON, reason)

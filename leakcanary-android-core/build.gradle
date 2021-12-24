@@ -13,6 +13,7 @@ dependencies {
 
   // Optional dependency
   compileOnly deps.androidx.work.runtime
+  compileOnly deps.androidx.work.multiprocess
 
   testImplementation deps.assertj_core
   testImplementation deps.junit

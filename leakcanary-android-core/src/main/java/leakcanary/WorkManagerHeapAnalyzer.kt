@@ -1,6 +1,5 @@
 package leakcanary
 
-import android.os.HandlerThread
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
@@ -36,13 +35,17 @@ object WorkManagerHeapAnalyzer : EventListener {
     }
   }
 
+  internal fun OneTimeWorkRequest.Builder.addExpeditedFlag() = apply {
+    if (workManagerSupportsExpeditedRequests) {
+      setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+    }
+  }
+
   override fun onEvent(event: Event) {
     if (event is HeapDump) {
       val heapAnalysisRequest = OneTimeWorkRequest.Builder(HeapAnalyzerWorker::class.java).apply {
         setInputData(event.asWorkerInputData())
-        if (workManagerSupportsExpeditedRequests) {
-          setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-        }
+        addExpeditedFlag()
       }.build()
       WorkManager.getInstance(application).enqueue(heapAnalysisRequest)
     }

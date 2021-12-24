@@ -14,6 +14,7 @@ keeper {
 
 dependencies {
   debugImplementation project(':leakcanary-android')
+  debugImplementation project(':leakcanary-android-process')
   releaseImplementation project(':leakcanary-android-release')
   // Optional
   releaseImplementation project(':leakcanary-object-watcher-android')

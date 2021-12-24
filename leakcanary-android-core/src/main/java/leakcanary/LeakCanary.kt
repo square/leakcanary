@@ -202,7 +202,9 @@ object LeakCanary {
       } else {
         NotificationEventListener
       },
-      if (WorkManagerHeapAnalyzer.workManagerInClasspath) {
+      if (RemoteWorkManagerHeapAnalyzer.remoteLeakCanaryServiceInClasspath) {
+        RemoteWorkManagerHeapAnalyzer
+      } else if (WorkManagerHeapAnalyzer.workManagerInClasspath) {
         WorkManagerHeapAnalyzer
       } else {
         BackgroundThreadHeapAnalyzer

@@ -19,9 +19,9 @@
 
   <application>
     <service
-        android:name="leakcanary.internal.HeapAnalyzerService"
-        android:exported="false"
-        android:process=":leakcanary" />
+      android:name="leakcanary.internal.RemoteLeakCanaryWorkerService"
+      android:exported="false"
+      android:process=":leakcanary" />
 
     <provider
         android:name="leakcanary.internal.AppWatcherInstaller$LeakCanaryProcess"
