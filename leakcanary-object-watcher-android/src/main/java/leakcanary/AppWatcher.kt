@@ -53,7 +53,7 @@ object AppWatcher {
    * first disable the automatic call by overriding the `leak_canary_watcher_auto_install` boolean
    * resource:
    *
-   * ```
+   * ```xml
    * <?xml version="1.0" encoding="utf-8"?>
    * <resources>
    *   <bool name="leak_canary_watcher_auto_install">false</bool>
@@ -62,7 +62,7 @@ object AppWatcher {
    *
    * [watchersToInstall] can be customized to a subset of the default app watchers:
    *
-   * ```
+   * ```kotlin
    * val watchersToInstall = AppWatcher.appDefaultWatchers(application)
    *   .filter { it !is RootViewWatcher }
    * AppWatcher.manualInstall(
@@ -74,7 +74,7 @@ object AppWatcher {
    * [watchersToInstall] can also be customized to ignore specific instances (e.g. here ignoring
    * leaks of BadSdkLeakingFragment):
    *
-   * ```
+   * ```kotlin
    * val watchersToInstall = AppWatcher.appDefaultWatchers(application, ReachabilityWatcher { watchedObject, description ->
    *   if (watchedObject !is BadSdkLeakingFragment) {
    *     AppWatcher.objectWatcher.expectWeaklyReachable(watchedObject, description)

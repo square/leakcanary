@@ -158,7 +158,7 @@ object LeakCanary {
      *
      * The list of filters can be built from [AndroidObjectInspectors]:
      *
-     * ```
+     * ```kotlin
      * LeakCanary.config = LeakCanary.config.copy(
      *     leakingObjectFinder = FilteringLeakingObjectFinder(
      *         AndroidObjectInspectors.appLeakingObjectFilters
@@ -188,7 +188,7 @@ object LeakCanary {
      * Builder for [LeakCanary.Config] intended to be used only from Java code.
      *
      * Usage:
-     * ```
+     * ```java
      * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
      *    .retainedVisibleThreshold(3)
      *    .build();
@@ -196,7 +196,7 @@ object LeakCanary {
      * ```
      *
      * For idiomatic Kotlin use `copy()` method instead:
-     * ```
+     * ```kotlin
      * LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
      * ```
      */
@@ -278,12 +278,12 @@ object LeakCanary {
    * The current LeakCanary configuration. Can be updated at any time, usually by replacing it with
    * a mutated copy, e.g.:
    *
-   * ```
+   * ```kotlin
    * LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
    * ```
    *
    * In Java, use [LeakCanary.Config.Builder] instead:
-   * ```
+   * ```java
    * LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
    *    .retainedVisibleThreshold(3)
    *    .build();
@@ -330,7 +330,7 @@ object LeakCanary {
    * Note: you can change the default value by overriding the `leak_canary_add_launcher_icon`
    * boolean resource:
    *
-   * ```
+   * ```xml
    * <?xml version="1.0" encoding="utf-8"?>
    * <resources>
    *   <bool name="leak_canary_add_launcher_icon">false</bool>

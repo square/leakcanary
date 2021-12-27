@@ -25,7 +25,7 @@ open class LeakCanaryDeobfuscationExtension {
   /**
    * Variant filtering function. It should be overriden to tell LeakCanary for which obfuscated
    * variants it should copy the mapping file into apk. For example this:
-   * ```
+   * ```kotlin
    * filterObfuscatedVariants { variant ->
    *   variant.name == "debug"
    * }
