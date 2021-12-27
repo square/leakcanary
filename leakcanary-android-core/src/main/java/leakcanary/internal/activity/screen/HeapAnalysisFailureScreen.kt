@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.squareup.leakcanary.core.R
+import java.util.UUID
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.HeapAnalysisTable
@@ -81,6 +82,7 @@ internal class HeapAnalysisFailureScreen(
           {
             InternalLeakCanary.sendEvent(
               HeapDump(
+                uniqueId = UUID.randomUUID().toString(),
                 file = heapAnalysis.heapDumpFile,
                 durationMillis = heapAnalysis.dumpDurationMillis,
                 reason = "Retrying heap analysis after failure."

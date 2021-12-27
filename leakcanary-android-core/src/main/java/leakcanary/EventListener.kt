@@ -15,37 +15,54 @@ fun interface EventListener {
   /**
    * Note: [Event] is [Serializable] for convenience but we currently make no guarantee
    * that the Serialization is backward / forward compatible across LeakCanary versions, so plan
-   * accordingly.
+   * accordingly. This is convenient for passing events around processes, and shouldn't be used
+   * to store them.
    */
-  sealed class Event : Serializable {
+  sealed class Event(
+    /**
+     * Unique identifier for a related chain of event. The identifier for the events that run
+     * before [HeapDump] gets reset right before [HeapDump] is sent.
+     */
+    val uniqueId: String
+  ) : Serializable {
     /**
      * Sent from the "LeakCanary-Heap-Dump" HandlerThread.
      */
-    object DumpingHeap : Event()
+    class DumpingHeap(uniqueId: String) : Event(uniqueId)
 
     /**
      * Sent from the "LeakCanary-Heap-Dump" HandlerThread.
      */
     class HeapDump(
+      uniqueId: String,
       val file: File,
       val durationMillis: Long,
       val reason: String
-    ) : Event()
+    ) : Event(uniqueId)
 
     /**
      * Sent from the "LeakCanary-Heap-Dump" HandlerThread.
      */
-    class HeapDumpFailed(val exception: Throwable, val willRetryLater: Boolean) : Event()
+    class HeapDumpFailed(
+      uniqueId: String,
+      val exception: Throwable,
+      val willRetryLater: Boolean
+    ) : Event(uniqueId)
 
     /**
      * [progressPercent] is a value between [0..1]
      */
-    class HeapAnalysisProgress(val step: Step, val progressPercent: Double) : Event()
+    class HeapAnalysisProgress(
+      uniqueId: String,
+      val step: Step,
+      val progressPercent: Double
+    ) : Event(uniqueId)
 
     sealed class HeapAnalysisDone<T : HeapAnalysis>(
+      uniqueId: String,
       val heapAnalysis: T,
       showIntent: Intent
-    ) : Event() {
+    ) : Event(uniqueId) {
 
       private val serializableShowIntent = SerializableIntent(showIntent)
 
@@ -53,15 +70,17 @@ fun interface EventListener {
         get() = serializableShowIntent.intent
 
       class HeapAnalysisSucceeded(
+        uniqueId: String,
         heapAnalysis: HeapAnalysisSuccess,
         val unreadLeakSignatures: Set<String>,
         showIntent: Intent
-      ) : HeapAnalysisDone<HeapAnalysisSuccess>(heapAnalysis, showIntent)
+      ) : HeapAnalysisDone<HeapAnalysisSuccess>(uniqueId, heapAnalysis, showIntent)
 
       class HeapAnalysisFailed(
+        uniqueId: String,
         heapAnalysis: HeapAnalysisFailure,
         showIntent: Intent
-      ) : HeapAnalysisDone<HeapAnalysisFailure>(heapAnalysis, showIntent)
+      ) : HeapAnalysisDone<HeapAnalysisFailure>(uniqueId, heapAnalysis, showIntent)
     }
   }
 

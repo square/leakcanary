@@ -12,6 +12,7 @@ import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import java.io.FileInputStream
 import java.io.IOException
+import java.util.UUID
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db
@@ -164,6 +165,7 @@ internal class LeakActivity : NavigatingActivity() {
               }
               InternalLeakCanary.sendEvent(
                 HeapDump(
+                  uniqueId = UUID.randomUUID().toString(),
                   file = target,
                   durationMillis = -1,
                   reason = "Imported by user"

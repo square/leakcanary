@@ -8,6 +8,7 @@ import android.content.res.Resources.NotFoundException
 import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
+import java.util.UUID
 import leakcanary.AppWatcher
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDumpFailed
@@ -73,6 +74,8 @@ internal class HeapDumpTrigger(
 
   @Volatile
   private var applicationInvisibleAt = -1L
+
+  private var currentEventUniqueId = UUID.randomUUID().toString()
 
   fun onApplicationVisibilityChanged(applicationVisible: Boolean) {
     if (applicationVisible) {
@@ -168,7 +171,7 @@ internal class HeapDumpTrigger(
 
     val durationMillis: Long
     try {
-      InternalLeakCanary.sendEvent(DumpingHeap)
+      InternalLeakCanary.sendEvent(DumpingHeap(currentEventUniqueId))
       if (heapDumpFile == null) {
         throw RuntimeException("Could not create heap dump file")
       }
@@ -184,9 +187,10 @@ internal class HeapDumpTrigger(
       lastDisplayedRetainedObjectCount = 0
       lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
       objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-      InternalLeakCanary.sendEvent(HeapDump(heapDumpFile, durationMillis, reason))
+      currentEventUniqueId = UUID.randomUUID().toString()
+      InternalLeakCanary.sendEvent(HeapDump(currentEventUniqueId, heapDumpFile, durationMillis, reason))
     } catch (throwable: Throwable) {
-      InternalLeakCanary.sendEvent(HeapDumpFailed(throwable, retry))
+      InternalLeakCanary.sendEvent(HeapDumpFailed(currentEventUniqueId, throwable, retry))
       if (retry) {
         scheduleRetainedObjectCheck(
           delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS

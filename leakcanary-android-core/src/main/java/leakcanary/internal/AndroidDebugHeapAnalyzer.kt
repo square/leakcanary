@@ -50,7 +50,7 @@ internal object AndroidDebugHeapAnalyzer {
   ): HeapAnalysisDone<*> {
     val progressListener = OnAnalysisProgressListener { step ->
       val percent = (step.ordinal * 1.0) / OnAnalysisProgressListener.Step.values().size
-      progressEventListener(HeapAnalysisProgress(step, percent))
+      progressEventListener(HeapAnalysisProgress(heapDumped.uniqueId, step, percent))
     }
 
     val heapDumpFile = heapDumped.file
@@ -106,6 +106,7 @@ internal object AndroidDebugHeapAnalyzer {
           // keys returns LinkedHashMap$LinkedKeySet which isn't Serializable
           .toSet()
         HeapAnalysisSucceeded(
+          heapDumped.uniqueId,
           fullHeapAnalysis,
           unreadLeakSignatures,
           showIntent
@@ -113,7 +114,7 @@ internal object AndroidDebugHeapAnalyzer {
       }
       is HeapAnalysisFailure -> {
         val showIntent = LeakActivity.createFailureIntent(application, id)
-        HeapAnalysisFailed(fullHeapAnalysis, showIntent)
+        HeapAnalysisFailed(heapDumped.uniqueId, fullHeapAnalysis, showIntent)
       }
     }
     // Can't leverage .use{} because close() was added in API 16 and we're min SDK 14.
