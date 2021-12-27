@@ -379,7 +379,7 @@ object LeakCanary {
   /**
    * Returns a new [Intent] that can be used to programmatically launch the leak display activity.
    */
-  fun newLeakDisplayActivityIntent() = LeakActivity.createIntent(InternalLeakCanary.application)
+  fun newLeakDisplayActivityIntent() = LeakActivity.createHomeIntent(InternalLeakCanary.application)
 
   /**
    * Dynamically shows / hides the launcher icon for the leak display activity.

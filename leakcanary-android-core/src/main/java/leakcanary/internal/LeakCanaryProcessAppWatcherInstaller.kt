@@ -6,19 +6,24 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
 import leakcanary.AppWatcher
+import leakcanary.LeakCanary
 
 /**
- * Content providers are loaded before the application class is created. [LeakCanaryProcesssAppWatcherInstaller] is
+ * Content providers are loaded before the application class is created. [LeakCanaryProcessAppWatcherInstaller] is
  * used to install [leakcanary.AppWatcher] on application start.
  *
  * When using the `leakcanary-android-process` artifact instead of `leakcanary-android`,
- * [LeakCanaryProcesssAppWatcherInstaller] automatically sets up the LeakCanary code
+ * [LeakCanaryProcessAppWatcherInstaller] automatically sets up the LeakCanary code
  */
-internal class LeakCanaryProcesssAppWatcherInstaller : ContentProvider() {
+internal class LeakCanaryProcessAppWatcherInstaller : ContentProvider() {
 
   override fun onCreate(): Boolean {
     val application = context!!.applicationContext as Application
-    AppWatcher.manualInstall(application)
+    AppWatcher.manualInstall(
+      application,
+      // Nothing to watch in the :leakcanary process.
+      watchersToInstall = emptyList()
+    )
     return true
   }
 

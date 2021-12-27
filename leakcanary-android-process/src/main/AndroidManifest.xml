@@ -24,7 +24,7 @@
       android:process=":leakcanary" />
 
     <provider
-        android:name="leakcanary.internal.AppWatcherInstaller$LeakCanaryProcess"
+        android:name="leakcanary.internal.LeakCanaryProcessAppWatcherInstaller"
         android:authorities="${applicationId}.leakcanary-process.installer"
         android:process=":leakcanary"
         android:exported="false"/>

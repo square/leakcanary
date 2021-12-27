@@ -1,6 +1,6 @@
 package leakcanary.internal
 
-import androidx.work.Configuration.Builder
+import androidx.work.Configuration
 import androidx.work.WorkManager
 import androidx.work.multiprocess.RemoteWorkerService
 
@@ -23,10 +23,20 @@ class RemoteLeakCanaryWorkerService : RemoteWorkerService() {
    * to get an instance, and if that throws we know we need to init.
    */
   private fun ensureWorkManagerInit() {
+    val applicationContext = applicationContext
     try {
       WorkManager.getInstance(applicationContext)
     } catch (ignored: Throwable) {
-      WorkManager.initialize(applicationContext, Builder().build())
+      WorkManager.initialize(
+        applicationContext,
+        Configuration.Builder()
+          // If the default package name is not set, WorkManager will cancel all runnables
+          // when initialized as it can't tell that it's not running in the main process.
+          // This would lead to an extra round trip where the canceling reaches the main process
+          // which then cancels the remote job and reschedules it and then only the work gets done.
+          .setDefaultProcessName(applicationContext.packageName)
+          .build()
+      )
     }
   }
 }

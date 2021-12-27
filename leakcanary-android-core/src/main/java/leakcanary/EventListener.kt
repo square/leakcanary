@@ -1,8 +1,9 @@
 package leakcanary
 
-import android.app.PendingIntent
+import android.content.Intent
 import java.io.File
 import java.io.Serializable
+import leakcanary.internal.SerializableIntent
 import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
@@ -43,17 +44,23 @@ fun interface EventListener {
 
     sealed class HeapAnalysisDone<T : HeapAnalysis>(
       val heapAnalysis: T,
-      val showIntent: PendingIntent
+      showIntent: Intent
     ) : Event() {
+
+      private val serializableShowIntent = SerializableIntent(showIntent)
+
+      val showIntent: Intent
+        get() = serializableShowIntent.intent
+
       class HeapAnalysisSucceeded(
         heapAnalysis: HeapAnalysisSuccess,
         val unreadLeakSignatures: Set<String>,
-        showIntent: PendingIntent
+        showIntent: Intent
       ) : HeapAnalysisDone<HeapAnalysisSuccess>(heapAnalysis, showIntent)
 
       class HeapAnalysisFailed(
         heapAnalysis: HeapAnalysisFailure,
-        showIntent: PendingIntent
+        showIntent: Intent
       ) : HeapAnalysisDone<HeapAnalysisFailure>(heapAnalysis, showIntent)
     }
   }

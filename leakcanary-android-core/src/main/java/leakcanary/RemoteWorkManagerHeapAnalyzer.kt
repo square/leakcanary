@@ -10,6 +10,7 @@ import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.HeapAnalyzerWorker.Companion.asWorkerInputData
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.RemoteHeapAnalyzerWorker
+import shark.SharkLog
 
 /**
  * When receiving a [HeapDump] event, starts a WorkManager worker that performs heap analysis in
@@ -42,7 +43,9 @@ object RemoteWorkManagerHeapAnalyzer : EventListener {
             addExpeditedFlag()
           }
         }.build()
-      WorkManager.getInstance(application).enqueue(heapAnalysisRequest)
+      SharkLog.d { "Enqueuing heap analysis for ${event.file} on WorkManager remote worker" }
+      val workManager = WorkManager.getInstance(application)
+      workManager.enqueue(heapAnalysisRequest)
     }
   }
 }

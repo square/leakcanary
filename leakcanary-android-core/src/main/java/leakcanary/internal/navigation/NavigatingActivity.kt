@@ -33,9 +33,8 @@ internal abstract class NavigatingActivity : Activity() {
 
     if (savedInstanceState == null) {
       backstack = ArrayList()
-      currentScreen = if (intent.hasExtra("screens")) {
-        @Suppress("UNCHECKED_CAST")
-        val screens = intent.getSerializableExtra("screens") as List<Screen>
+      val screens = parseIntentScreens(intent)
+      currentScreen = if (screens.isNotEmpty()) {
         screens.dropLast(1)
           .forEach { screen ->
             backstack.add(BackstackFrame(screen))
@@ -62,17 +61,18 @@ internal abstract class NavigatingActivity : Activity() {
   }
 
   override fun onNewIntent(intent: Intent) {
-    if (intent.hasExtra("screens")) {
-      @Suppress("UNCHECKED_CAST")
-      val screens = intent.getSerializableExtra("screens") as List<Screen>
-      goTo(intent.getSerializableExtra("screen") as Screen)
+    val screens = parseIntentScreens(intent)
+    if (screens.isNotEmpty()) {
       backstack.clear()
       screens.dropLast(1)
         .forEach { screen ->
           backstack.add(BackstackFrame(screen))
         }
+      goTo(screens.last())
     }
   }
+
+  abstract fun parseIntentScreens(intent: Intent): List<Screen>
 
   open fun getLauncherScreen(): Screen {
     TODO("Launcher activities should override getLauncherScreen()")

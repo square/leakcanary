@@ -14,13 +14,15 @@ keeper {
 
 dependencies {
   debugImplementation project(':leakcanary-android')
-  debugImplementation project(':leakcanary-android-process')
+  // Uncomment to use the :leakcanary process
+  // debugImplementation project(':leakcanary-android-process')
   releaseImplementation project(':leakcanary-android-release')
   // Optional
   releaseImplementation project(':leakcanary-object-watcher-android')
 
   implementation deps.kotlin.stdlib
-  implementation deps.androidx.work.runtime
+  // Uncomment to use WorkManager
+  // implementation deps.androidx.work.runtime
 
   testImplementation deps.junit
   testImplementation deps.robolectric

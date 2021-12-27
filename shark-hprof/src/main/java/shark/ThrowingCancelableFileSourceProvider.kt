@@ -1,30 +1,31 @@
-package leakcanary.internal
+package shark
 
+import java.io.File
 import okio.Buffer
 import okio.BufferedSource
+import okio.Okio
 import okio.Source
-import okio.buffer
-import okio.source
-import shark.DualSourceProvider
-import shark.RandomAccessSource
-import java.io.File
 
-internal class StoppableFileSourceProvider(
+/**
+ * A [DualSourceProvider] that invokes [throwIfCanceled] before every read, allowing
+ * cancellation of IO based work built on top by throwing an exception.
+ */
+class ThrowingCancelableFileSourceProvider(
   private val file: File,
-  private val throwIfStop: () -> Unit
+  private val throwIfCanceled: Runnable
 ) : DualSourceProvider {
 
   override fun openStreamingSource(): BufferedSource {
-    val realSource = file.inputStream().source()
-    return object : Source by realSource {
+    val realSource = Okio.source(file.inputStream())
+    return Okio.buffer(object : Source by realSource {
       override fun read(
         sink: Buffer,
         byteCount: Long
       ): Long {
-        throwIfStop()
+        throwIfCanceled.run()
         return realSource.read(sink, byteCount)
       }
-    }.buffer()
+    })
   }
 
   override fun openRandomAccessSource(): RandomAccessSource {
@@ -35,7 +36,7 @@ internal class StoppableFileSourceProvider(
         position: Long,
         byteCount: Long
       ): Long {
-        throwIfStop()
+        throwIfCanceled.run()
         return channel.transferTo(position, byteCount, sink)
       }
 

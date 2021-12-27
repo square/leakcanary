@@ -22,7 +22,6 @@ import android.os.Handler
 import android.os.HandlerThread
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
-import leakcanary.AndroidDebugHeapDumper
 import leakcanary.AppWatcher
 import leakcanary.EventListener.Event
 import leakcanary.GcTrigger
@@ -33,9 +32,9 @@ import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
 import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
+import leakcanary.internal.friendly.mainHandler
 import leakcanary.internal.friendly.noOpDelegate
 import leakcanary.internal.tv.TvOnRetainInstanceListener
-import leakcanary.internal.friendly.mainHandler
 import shark.SharkLog
 
 internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedListener {

@@ -1,13 +1,13 @@
-package leakcanary
+package leakcanary.internal
 
 import java.io.File
 import java.io.IOException
+import leakcanary.EventListener.Event.HeapAnalysisDone
 import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisFailed
 import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisSucceeded
 import leakcanary.EventListener.Event.HeapAnalysisProgress
 import leakcanary.EventListener.Event.HeapDump
-import leakcanary.internal.InternalLeakCanary
-import leakcanary.internal.LeakDirectoryProvider
+import leakcanary.LeakCanary
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable
@@ -15,16 +15,25 @@ import leakcanary.internal.activity.db.LeaksDbHelper
 import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
 import leakcanary.internal.activity.screen.HeapDumpScreen
 import leakcanary.internal.activity.screen.HeapDumpsScreen
+import shark.ConstantMemoryMetricsDualSourceProvider
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
 import shark.HeapAnalyzer
+import shark.HprofHeapGraph
+import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.OnAnalysisProgressListener
+import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
 import shark.ProguardMappingReader
+import shark.ThrowingCancelableFileSourceProvider
 
-object AndroidDebugHeapAnalyzer {
+/**
+ * This should likely turn into a public API but probably better to do once it's
+ * coroutine based to supports cleaner cancellation + publishing progress.
+ */
+internal object AndroidDebugHeapAnalyzer {
 
   private const val PROGUARD_MAPPING_FILE_NAME = "leakCanaryObfuscationMapping.txt"
 
@@ -34,10 +43,14 @@ object AndroidDebugHeapAnalyzer {
    * Runs the heap analysis on the current thread and then sends a
    * [EventListener.Event.HeapAnalysisDone] event with the result (from the current thread as well).
    */
-  fun runAnalysisBlocking(heapDumped: HeapDump) {
+  fun runAnalysisBlocking(
+    heapDumped: HeapDump,
+    isCanceled: () -> Boolean = { false },
+    progressEventListener: (HeapAnalysisProgress) -> Unit
+  ): HeapAnalysisDone<*> {
     val progressListener = OnAnalysisProgressListener { step ->
       val percent = (step.ordinal * 1.0) / OnAnalysisProgressListener.Step.values().size
-      InternalLeakCanary.sendEvent(HeapAnalysisProgress(step, percent))
+      progressEventListener(HeapAnalysisProgress(step, percent))
     }
 
     val heapDumpFile = heapDumped.file
@@ -45,7 +58,7 @@ object AndroidDebugHeapAnalyzer {
     val heapDumpReason = heapDumped.reason
 
     val heapAnalysis = if (heapDumpFile.exists()) {
-      analyzeHeap(heapDumpFile, progressListener)
+      analyzeHeap(heapDumpFile, progressListener, isCanceled)
     } else {
       missingFileFailure(heapDumpFile)
     }
@@ -82,41 +95,37 @@ object AndroidDebugHeapAnalyzer {
     val db = LeaksDbHelper(application).writableDatabase
     val id = HeapAnalysisTable.insert(db, heapAnalysis)
 
-    when (fullHeapAnalysis) {
+    val analysisDoneEvent = when (fullHeapAnalysis) {
       is HeapAnalysisSuccess -> {
-        val screenToShow = HeapDumpScreen(id)
-        val showIntent = LeakActivity.createPendingIntent(
-          application, arrayListOf(HeapDumpsScreen(), screenToShow)
-        )
+        val showIntent = LeakActivity.createSuccessIntent(application, id)
         val leakSignatures = fullHeapAnalysis.allLeaks.map { it.signature }.toSet()
         val leakSignatureStatuses = LeakTable.retrieveLeakReadStatuses(db, leakSignatures)
         val unreadLeakSignatures = leakSignatureStatuses.filter { (_, read) ->
           !read
         }.keys
-        InternalLeakCanary.sendEvent(
-          HeapAnalysisSucceeded(
-            fullHeapAnalysis,
-            unreadLeakSignatures,
-            showIntent
-          )
+          // keys returns LinkedHashMap$LinkedKeySet which isn't Serializable
+          .toSet()
+        HeapAnalysisSucceeded(
+          fullHeapAnalysis,
+          unreadLeakSignatures,
+          showIntent
         )
       }
       is HeapAnalysisFailure -> {
-        val screenToShow = HeapAnalysisFailureScreen(id)
-        val showIntent = LeakActivity.createPendingIntent(
-          application, arrayListOf(HeapDumpsScreen(), screenToShow)
-        )
-        InternalLeakCanary.sendEvent(HeapAnalysisFailed(fullHeapAnalysis, showIntent))
+        val showIntent = LeakActivity.createFailureIntent(application, id)
+        HeapAnalysisFailed(fullHeapAnalysis, showIntent)
       }
     }
     // Can't leverage .use{} because close() was added in API 16 and we're min SDK 14.
     db.releaseReference()
     LeakCanary.config.onHeapAnalyzedListener.onHeapAnalyzed(fullHeapAnalysis)
+    return analysisDoneEvent
   }
 
   private fun analyzeHeap(
     heapDumpFile: File,
-    progressListener: OnAnalysisProgressListener
+    progressListener: OnAnalysisProgressListener,
+    isCanceled: () -> Boolean
   ): HeapAnalysis {
     val config = LeakCanary.config
     val heapAnalyzer = HeapAnalyzer(progressListener)
@@ -125,15 +134,51 @@ object AndroidDebugHeapAnalyzer {
     } catch (e: IOException) {
       null
     }
-    return heapAnalyzer.analyze(
-      heapDumpFile = heapDumpFile,
-      leakingObjectFinder = config.leakingObjectFinder,
-      referenceMatchers = config.referenceMatchers,
-      computeRetainedHeapSize = config.computeRetainedHeapSize,
-      objectInspectors = config.objectInspectors,
-      metadataExtractor = config.metadataExtractor,
-      proguardMapping = proguardMappingReader?.readProguardMapping()
-    )
+
+    progressListener.onAnalysisProgress(PARSING_HEAP_DUMP)
+
+    val sourceProvider =
+      ConstantMemoryMetricsDualSourceProvider(ThrowingCancelableFileSourceProvider(heapDumpFile) {
+        if (isCanceled()) {
+          throw RuntimeException("Analysis canceled")
+        }
+      })
+
+    val closeableGraph = try {
+      sourceProvider.openHeapGraph(proguardMapping = proguardMappingReader?.readProguardMapping())
+    } catch (throwable: Throwable) {
+      return HeapAnalysisFailure(
+        heapDumpFile = heapDumpFile,
+        createdAtTimeMillis = System.currentTimeMillis(),
+        analysisDurationMillis = 0,
+        exception = HeapAnalysisException(throwable)
+      )
+    }
+    return closeableGraph
+      .use { graph ->
+        val result = heapAnalyzer.analyze(
+          heapDumpFile = heapDumpFile,
+          graph = graph,
+          leakingObjectFinder = config.leakingObjectFinder,
+          referenceMatchers = config.referenceMatchers,
+          computeRetainedHeapSize = config.computeRetainedHeapSize,
+          objectInspectors = config.objectInspectors,
+          metadataExtractor = config.metadataExtractor
+        )
+        if (result is HeapAnalysisSuccess) {
+          val lruCacheStats = (graph as HprofHeapGraph).lruCacheStats()
+          val randomAccessStats =
+            "RandomAccess[" +
+              "bytes=${sourceProvider.randomAccessByteReads}," +
+              "reads=${sourceProvider.randomAccessReadCount}," +
+              "travel=${sourceProvider.randomAccessByteTravel}," +
+              "range=${sourceProvider.byteTravelRange}," +
+              "size=${heapDumpFile.length()}" +
+              "]"
+          val stats = "$lruCacheStats $randomAccessStats"
+          result.copy(metadata = result.metadata + ("Stats" to stats))
+        } else result
+      }
   }
 
   private fun missingFileFailure(
