@@ -9,7 +9,6 @@ import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
 import shark.OnAnalysisProgressListener.Step
 
-// TODO Document which thread events are called from and the blocking behavior / impact.
 fun interface EventListener {
 
   /**
@@ -51,6 +50,8 @@ fun interface EventListener {
 
     /**
      * [progressPercent] is a value between [0..1]
+     *
+     * Sent from the thread performing the analysis.
      */
     class HeapAnalysisProgress(
       uniqueId: String,
@@ -58,6 +59,9 @@ fun interface EventListener {
       val progressPercent: Double
     ) : Event(uniqueId)
 
+    /**
+     * Sent from the thread performing the analysis.
+     */
     sealed class HeapAnalysisDone<T : HeapAnalysis>(
       uniqueId: String,
       val heapAnalysis: T,
@@ -84,5 +88,10 @@ fun interface EventListener {
     }
   }
 
+  /**
+   * [onEvent] is always called from the thread the events are emitted from, which is documented
+   * for each event. This enables you to potentially block a chain of events, waiting for some
+   * pre work to be done.
+   */
   fun onEvent(event: Event)
 }
