@@ -258,6 +258,7 @@ object LeakCanary {
       private var leakingObjectFinder = config.leakingObjectFinder
       private var heapDumper = config.heapDumper
       private var eventListeners = config.eventListeners
+      private var useExperimentalLeakFinders = config.useExperimentalLeakFinders
 
       /** @see [LeakCanary.Config.dumpHeap] */
       fun dumpHeap(dumpHeap: Boolean) =
@@ -312,6 +313,11 @@ object LeakCanary {
       fun eventListeners(eventListeners: List<EventListener>) =
         apply { this.eventListeners = eventListeners }
 
+      /** @see [LeakCanary.Config.useExperimentalLeakFinders] */
+      @Deprecated("Set a custom leakingObjectFinder instead")
+      fun useExperimentalLeakFinders(useExperimentalLeakFinders: Boolean) =
+        apply { this.useExperimentalLeakFinders = useExperimentalLeakFinders }
+
       fun build() = config.copy(
         dumpHeap = dumpHeap,
         dumpHeapWhenDebugging = dumpHeapWhenDebugging,
@@ -325,7 +331,8 @@ object LeakCanary {
         requestWriteExternalStoragePermission = requestWriteExternalStoragePermission,
         leakingObjectFinder = leakingObjectFinder,
         heapDumper = heapDumper,
-        eventListeners = eventListeners
+        eventListeners = eventListeners,
+        useExperimentalLeakFinders = useExperimentalLeakFinders
       )
     }
   }

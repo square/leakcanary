@@ -627,6 +627,12 @@ public abstract interface class shark/StreamingSourceProvider {
 	public abstract fun openStreamingSource ()Lokio/BufferedSource;
 }
 
+public final class shark/ThrowingCancelableFileSourceProvider : shark/DualSourceProvider {
+	public fun <init> (Ljava/io/File;Ljava/lang/Runnable;)V
+	public fun openRandomAccessSource ()Lshark/RandomAccessSource;
+	public fun openStreamingSource ()Lokio/BufferedSource;
+}
+
 public abstract class shark/ValueHolder {
 	public static final field Companion Lshark/ValueHolder$Companion;
 	public static final field NULL_REFERENCE J

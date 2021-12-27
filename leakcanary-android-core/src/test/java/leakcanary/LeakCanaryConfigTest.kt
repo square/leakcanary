@@ -21,9 +21,5 @@ class LeakCanaryConfigTest {
     .subtract(listOf("build", "equals", "hashCode", "toString"))
 
   private fun configProperties() = LeakCanary.Config::class.memberProperties
-    .filter { member ->
-      // Ignore deprecated fields, we don't need builders for those
-      member.annotations.none { it is Deprecated }
-    }
     .map { it.name }
 }

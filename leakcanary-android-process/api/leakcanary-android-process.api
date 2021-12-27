@@ -3,3 +3,8 @@ public final class leakcanary/LeakCanaryProcess {
 	public final fun isInAnalyzerProcess (Landroid/content/Context;)Z
 }
 
+public final class leakcanary/internal/RemoteLeakCanaryWorkerService : androidx/work/multiprocess/RemoteWorkerService {
+	public fun <init> ()V
+	public fun onCreate ()V
+}
+

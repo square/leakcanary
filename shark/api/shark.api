@@ -376,6 +376,7 @@ public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {
 	public static final field INSPECTING_OBJECTS Lshark/OnAnalysisProgressListener$Step;
 	public static final field PARSING_HEAP_DUMP Lshark/OnAnalysisProgressListener$Step;
 	public static final field REPORTING_HEAP_ANALYSIS Lshark/OnAnalysisProgressListener$Step;
+	public final fun getHumanReadableName ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Lshark/OnAnalysisProgressListener$Step;
 	public static fun values ()[Lshark/OnAnalysisProgressListener$Step;
 }
