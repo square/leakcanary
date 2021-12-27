@@ -665,7 +665,7 @@ enum class AndroidReferenceMatchers {
       references += nativeGlobalVariableLeak(
         "android.view.inputmethod.InputMethodManager\$ControlledInputConnectionWrapper",
         description = """
-        ControlledInputConnectionWrapper is held by a global variable in native code. 
+        ControlledInputConnectionWrapper is held by a global variable in native code.
       """.trimIndent()
       )
     }
@@ -757,7 +757,7 @@ enum class AndroidReferenceMatchers {
       references: MutableList<ReferenceMatcher>
     ) {
       val description = """
-         SemClipboardManager inner classes are held by native references due to IPC calls 
+         SemClipboardManager inner classes are held by native references due to IPC calls
       """.trimIndent()
       references += nativeGlobalVariableLeak(
         "com.samsung.android.content.clipboard.SemClipboardManager$1", description
@@ -1210,7 +1210,7 @@ enum class AndroidReferenceMatchers {
       // Holds on to the resumed activity (which is never destroyed), so this will not cause leaks
       // but may surface on the path when a resumed activity holds on to destroyed objects.
       // Would have a path that doesn't include LeakCanary instead.
-      references += ignoredInstanceField("leakcanary.internal.AndroidHeapDumper", "resumedActivity")
+      references += ignoredInstanceField("leakcanary.internal.InternalLeakCanary", "resumedActivity")
     }
   },
 
