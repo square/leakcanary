@@ -48,7 +48,6 @@
   <string name="leak_canary_notification_channel_low">LeakCanary Low Priority</string>
   <string name="leak_canary_notification_channel_result">LeakCanary Result</string>
   <string name="leak_canary_notification_dumping">Dumping Heap</string>
-  <string name="leak_canary_notification_foreground_text">LeakCanary is working.</string>
   <string name="leak_canary_notification_message">Tap for more details</string>
   <string name="leak_canary_notification_no_retained_object_title">All retained objects were garbage collected</string>
   <string name="leak_canary_notification_no_retained_object_content">Tap to dismiss</string>
