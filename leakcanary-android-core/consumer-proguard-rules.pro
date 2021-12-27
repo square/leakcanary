@@ -2,5 +2,3 @@
 -keep class leakcanary.internal.InternalLeakCanary { *; }
 # Marshmallow removed Notification.setLatestEventInfo()
 -dontwarn android.app.Notification
-# A ContentProvider that gets created by Android on :leakcanary process startup
--keep class leakcanary.internal.LeakCanaryProcessAppWatcherInstaller { <init>(); }
