@@ -59,7 +59,7 @@ object LeakCanary {
      * be fixed.
      *
      * When the app becomes invisible, LeakCanary dumps the heap after
-     * [AppWatcher.Config.watchDurationMillis] ms.
+     * [AppWatcher.retainedDelayMillis] ms.
      *
      * The app is considered visible if it has at least one activity in started state.
      *

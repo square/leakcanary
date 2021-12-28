@@ -97,7 +97,7 @@ class InstrumentationLeakDetector {
   @Suppress("ReturnCount")
   fun detectLeaks(): Result {
     val leakDetectionTime = SystemClock.uptimeMillis()
-    val watchDurationMillis = AppWatcher.config.watchDurationMillis
+    val watchDurationMillis = AppWatcher.retainedDelayMillis
     val instrumentation = getInstrumentation()
     val context = instrumentation.targetContext
     val refWatcher = AppWatcher.objectWatcher
