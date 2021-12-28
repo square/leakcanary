@@ -147,7 +147,7 @@ class InstrumentationLeakDetector {
     val heapDumpDurationMillis: Long
 
     try {
-      Debug.dumpHprofData(heapDumpFile.absolutePath)
+      LeakCanary.config.heapDumper.dumpHeap(heapDumpFile)
       heapDumpDurationMillis = SystemClock.uptimeMillis() - heapDumpUptimeMillis
     } catch (exception: Exception) {
       SharkLog.d(exception) { "Could not dump heap" }
