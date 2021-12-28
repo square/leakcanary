@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import leakcanary.internal.RemoteLeakCanaryWorkerService
 import shark.SharkLog
 
 /**
@@ -26,19 +27,10 @@ object LeakCanaryProcess {
    * a different process than the normal app process.
    */
   fun isInAnalyzerProcess(context: Context): Boolean {
-    val analyzerServiceClass: Class<out Service>
-    @Suppress("UNCHECKED_CAST")
-    try {
-      analyzerServiceClass =
-        Class.forName("leakcanary.internal.HeapAnalyzerService") as Class<out Service>
-    } catch (e: Exception) {
-      return false
-    }
-
     var isInAnalyzerProcess: Boolean? = isInAnalyzerProcess
     // This only needs to be computed once per process.
     if (isInAnalyzerProcess == null) {
-      isInAnalyzerProcess = isInServiceProcess(context, analyzerServiceClass)
+      isInAnalyzerProcess = isInServiceProcess(context, RemoteLeakCanaryWorkerService::class.java)
       this.isInAnalyzerProcess = isInAnalyzerProcess
     }
     return isInAnalyzerProcess

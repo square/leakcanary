@@ -8,7 +8,11 @@ import android.content.res.Resources.NotFoundException
 import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
+import java.util.UUID
 import leakcanary.AppWatcher
+import leakcanary.EventListener.Event.DumpingHeap
+import leakcanary.EventListener.Event.HeapDumpFailed
+import leakcanary.EventListener.Event.HeapDump
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
@@ -23,6 +27,7 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
+import leakcanary.internal.friendly.measureDurationMillis
 import shark.AndroidResourceIdNames
 import shark.SharkLog
 
@@ -31,7 +36,6 @@ internal class HeapDumpTrigger(
   private val backgroundHandler: Handler,
   private val objectWatcher: ObjectWatcher,
   private val gcTrigger: GcTrigger,
-  private val heapDumper: HeapDumper,
   private val configProvider: () -> Config
 ) {
 
@@ -70,6 +74,8 @@ internal class HeapDumpTrigger(
 
   @Volatile
   private var applicationInvisibleAt = -1L
+
+  private var currentEventUniqueId = UUID.randomUUID().toString()
 
   fun onApplicationVisibilityChanged(applicationVisible: Boolean) {
     if (applicationVisible) {
@@ -159,40 +165,51 @@ internal class HeapDumpTrigger(
     retry: Boolean,
     reason: String
   ) {
-    saveResourceIdNamesToMemory()
-    val heapDumpUptimeMillis = SystemClock.uptimeMillis()
-    KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-    when (val heapDumpResult = heapDumper.dumpHeap()) {
-      is NoHeapDump -> {
-        if (retry) {
-          SharkLog.d { "Failed to dump heap, will retry in $WAIT_AFTER_DUMP_FAILED_MILLIS ms" }
-          scheduleRetainedObjectCheck(
-            delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS
-          )
-        } else {
-          SharkLog.d { "Failed to dump heap, will not automatically retry" }
-        }
-        showRetainedCountNotification(
-          objectCount = retainedReferenceCount,
-          contentText = application.getString(
-            R.string.leak_canary_notification_retained_dump_failed
-          )
+    val directoryProvider =
+      InternalLeakCanary.createLeakDirectoryProvider(InternalLeakCanary.application)
+    val heapDumpFile = directoryProvider.newHeapDumpFile()
+
+    val durationMillis: Long
+    try {
+      InternalLeakCanary.sendEvent(DumpingHeap(currentEventUniqueId))
+      if (heapDumpFile == null) {
+        throw RuntimeException("Could not create heap dump file")
+      }
+      saveResourceIdNamesToMemory()
+      val heapDumpUptimeMillis = SystemClock.uptimeMillis()
+      KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
+      durationMillis = measureDurationMillis {
+        configProvider().heapDumper.dumpHeap(heapDumpFile)
+      }
+      if (heapDumpFile.length() == 0L) {
+        throw RuntimeException("Dumped heap file is 0 byte length")
+      }
+      lastDisplayedRetainedObjectCount = 0
+      lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
+      objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
+      currentEventUniqueId = UUID.randomUUID().toString()
+      InternalLeakCanary.sendEvent(HeapDump(currentEventUniqueId, heapDumpFile, durationMillis, reason))
+    } catch (throwable: Throwable) {
+      InternalLeakCanary.sendEvent(HeapDumpFailed(currentEventUniqueId, throwable, retry))
+      if (retry) {
+        scheduleRetainedObjectCheck(
+          delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS
         )
       }
-      is HeapDump -> {
-        lastDisplayedRetainedObjectCount = 0
-        lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
-        objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-        HeapAnalyzerService.runAnalysis(
-          context = application,
-          heapDumpFile = heapDumpResult.file,
-          heapDumpDurationMillis = heapDumpResult.durationMillis,
-          heapDumpReason = reason
+      showRetainedCountNotification(
+        objectCount = retainedReferenceCount,
+        contentText = application.getString(
+          R.string.leak_canary_notification_retained_dump_failed
         )
-      }
+      )
+      return
     }
   }
 
+  /**
+   * Stores in memory the mapping of resource id ints to their corresponding name, so that the heap
+   * analysis can label views with their resource id names.
+   */
   private fun saveResourceIdNamesToMemory() {
     val resources = application.resources
     AndroidResourceIdNames.saveToMemory(
@@ -280,6 +297,7 @@ internal class HeapDumpTrigger(
           }
         }
       } else if (applicationInvisibleLessThanWatchPeriod) {
+        // TODO This is a bug, should use AppWatcher.retainedDelayMillis instead
         val wait =
           AppWatcher.config.watchDurationMillis - (SystemClock.uptimeMillis() - applicationInvisibleAt)
         if (nopeReason != null) {
@@ -391,7 +409,7 @@ internal class HeapDumpTrigger(
   }
 
   companion object {
-    private const val WAIT_AFTER_DUMP_FAILED_MILLIS = 5_000L
+    internal const val WAIT_AFTER_DUMP_FAILED_MILLIS = 5_000L
     private const val WAIT_FOR_OBJECT_THRESHOLD_MILLIS = 2_000L
     private const val DISMISS_NO_RETAINED_OBJECT_NOTIFICATION_MILLIS = 30_000L
     private const val WAIT_BETWEEN_HEAP_DUMPS_MILLIS = 60_000L

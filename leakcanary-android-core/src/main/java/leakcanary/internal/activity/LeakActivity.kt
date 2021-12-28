@@ -5,22 +5,25 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.AsyncTask
-import android.os.Bundle
 import android.os.Build
+import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
-import leakcanary.internal.HeapAnalyzerService
+import java.io.FileInputStream
+import java.io.IOException
+import java.util.UUID
+import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.Db
 import leakcanary.internal.activity.screen.AboutScreen
+import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
+import leakcanary.internal.activity.screen.HeapDumpScreen
 import leakcanary.internal.activity.screen.HeapDumpsScreen
 import leakcanary.internal.activity.screen.LeaksScreen
 import leakcanary.internal.navigation.NavigatingActivity
 import leakcanary.internal.navigation.Screen
 import shark.SharkLog
-import java.io.FileInputStream
-import java.io.IOException
 
 internal class LeakActivity : NavigatingActivity() {
 
@@ -160,7 +163,14 @@ internal class LeakActivity : NavigatingActivity() {
                     input.copyTo(output, DEFAULT_BUFFER_SIZE)
                   }
               }
-              HeapAnalyzerService.runAnalysis(this, target, heapDumpReason = "Imported by user")
+              InternalLeakCanary.sendEvent(
+                HeapDump(
+                  uniqueId = UUID.randomUUID().toString(),
+                  file = target,
+                  durationMillis = -1,
+                  reason = "Imported by user"
+                )
+              )
             }
         }
     } catch (e: IOException) {
@@ -185,27 +195,39 @@ internal class LeakActivity : NavigatingActivity() {
     super.setTheme(resid)
   }
 
+  override fun parseIntentScreens(intent: Intent): List<Screen> {
+    val heapAnalysisId = intent.getLongExtra("heapAnalysisId", -1L)
+    if (heapAnalysisId == -1L) {
+      return emptyList()
+    }
+    val success = intent.getBooleanExtra("success", false)
+    return if (success) {
+      arrayListOf(HeapDumpsScreen(), HeapDumpScreen(heapAnalysisId))
+    } else {
+      arrayListOf(HeapDumpsScreen(), HeapAnalysisFailureScreen(heapAnalysisId))
+    }
+  }
+
   companion object {
     private const val FILE_REQUEST_CODE = 0
 
-    fun createPendingIntent(
-      context: Context,
-      screens: ArrayList<Screen>
-    ): PendingIntent {
+    fun createHomeIntent(context: Context): Intent {
       val intent = Intent(context, LeakActivity::class.java)
-      intent.putExtra("screens", screens)
       intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-      val flags = if (Build.VERSION.SDK_INT >= 23) {
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-      } else {
-        PendingIntent.FLAG_UPDATE_CURRENT
-      }
-      return PendingIntent.getActivity(context, 1, intent, flags)
+      return intent
     }
 
-    fun createIntent(context: Context): Intent {
-      val intent = Intent(context, LeakActivity::class.java)
-      intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+    fun createSuccessIntent(context: Context, heapAnalysisId: Long): Intent {
+      val intent = createHomeIntent(context)
+      intent.putExtra("heapAnalysisId", heapAnalysisId)
+      intent.putExtra("success", true)
+      return intent
+    }
+
+    fun createFailureIntent(context: Context, heapAnalysisId: Long): Intent {
+      val intent = createHomeIntent(context)
+      intent.putExtra("heapAnalysisId", heapAnalysisId)
+      intent.putExtra("success", false)
       return intent
     }
   }

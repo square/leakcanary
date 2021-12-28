@@ -23,6 +23,7 @@ import android.os.HandlerThread
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
+import leakcanary.EventListener.Event
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.OnObjectRetainedListener
@@ -31,9 +32,9 @@ import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
 import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.InternalLeakCanary.FormFactor.WATCH
+import leakcanary.internal.friendly.mainHandler
 import leakcanary.internal.friendly.noOpDelegate
 import leakcanary.internal.tv.TvOnRetainInstanceListener
-import leakcanary.internal.friendly.mainHandler
 import shark.SharkLog
 
 internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedListener {
@@ -127,8 +128,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
     AppWatcher.objectWatcher.addOnObjectRetainedListener(this)
 
-    val heapDumper = AndroidHeapDumper(application, createLeakDirectoryProvider(application))
-
     val gcTrigger = GcTrigger.Default
 
     val configProvider = { LeakCanary.config }
@@ -138,7 +137,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     val backgroundHandler = Handler(handlerThread.looper)
 
     heapDumpTrigger = HeapDumpTrigger(
-      application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger, heapDumper,
+      application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger,
       configProvider
     )
     application.registerVisibilityListener { applicationVisible ->
@@ -327,6 +326,12 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       if (enabled) COMPONENT_ENABLED_STATE_ENABLED else COMPONENT_ENABLED_STATE_DISABLED
     // Blocks on IPC.
     application.packageManager.setComponentEnabledSetting(component, newState, DONT_KILL_APP)
+  }
+
+  fun sendEvent(event: Event) {
+    for(listener in LeakCanary.config.eventListeners) {
+      listener.onEvent(event)
+    }
   }
 
   private const val LEAK_CANARY_THREAD_NAME = "LeakCanary-Heap-Dump"

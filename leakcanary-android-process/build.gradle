@@ -8,6 +8,7 @@ dependencies {
   api project(':leakcanary-android-core')
 
   implementation deps.kotlin.stdlib
+  implementation deps.androidx.work.multiprocess
 }
 
 android {

@@ -4,6 +4,7 @@ import android.content.Intent
 import leakcanary.LeakCanary.config
 import leakcanary.internal.HeapDumpControl
 import leakcanary.internal.InternalLeakCanary
+import leakcanary.internal.InternalLeakCanary.FormFactor.TV
 import leakcanary.internal.activity.LeakActivity
 import shark.AndroidMetadataExtractor
 import shark.AndroidObjectInspectors
@@ -92,12 +93,14 @@ object LeakCanary {
     val objectInspectors: List<ObjectInspector> = AndroidObjectInspectors.appDefaults,
 
     /**
+     * Deprecated, add to LeakCanary.config.eventListeners instead.
      * Called on a background thread when the heap analysis is complete.
      * If you want leaks to be added to the activity that lists leaks, make sure to delegate
      * calls to a [DefaultOnHeapAnalyzedListener].
      *
      * Defaults to [DefaultOnHeapAnalyzedListener]
      */
+    @Deprecated(message = "Add to LeakCanary.config.eventListeners instead")
     val onHeapAnalyzedListener: OnHeapAnalyzedListener = DefaultOnHeapAnalyzedListener.create(),
 
     /**
@@ -169,6 +172,46 @@ object LeakCanary {
     val leakingObjectFinder: LeakingObjectFinder = KeyedWeakReferenceFinder,
 
     /**
+     * Dumps the Java heap. You may replace this with your own implementation if you wish to
+     * change the core heap dumping implementation.
+     */
+    val heapDumper: HeapDumper = AndroidDebugHeapDumper,
+
+    /**
+     * Listeners for LeakCanary events. See [EventListener.Event] for the list of events and
+     * which thread they're sent from. You most likely want to keep this list and add to it, or
+     * remove a few entries but not all entries. Each listener is independent and provides
+     * additional behavior which you can disable by not excluding it:
+     *
+     * ```kotlin
+     * // No cute canary toast (very sad!)
+     * LeakCanary.config = LeakCanary.config.run {
+     *   copy(
+     *     eventListeners = eventListeners.filter {
+     *       it !is ToastEventListener
+     *     }
+     *   )
+     * }
+     * ```
+     */
+    val eventListeners: List<EventListener> = listOf(
+      LogcatEventListener,
+      ToastEventListener,
+      if (InternalLeakCanary.formFactor == TV) {
+        TvEventListener
+      } else {
+        NotificationEventListener
+      },
+      if (RemoteWorkManagerHeapAnalyzer.remoteLeakCanaryServiceInClasspath) {
+        RemoteWorkManagerHeapAnalyzer
+      } else if (WorkManagerHeapAnalyzer.workManagerInClasspath) {
+        WorkManagerHeapAnalyzer
+      } else {
+        BackgroundThreadHeapAnalyzer
+      }
+    ),
+
+    /**
      * Deprecated: This is a no-op, set a custom [leakingObjectFinder] instead.
      */
     @Deprecated("This is a no-op, set a custom leakingObjectFinder instead")
@@ -213,6 +256,9 @@ object LeakCanary {
       private var requestWriteExternalStoragePermission =
         config.requestWriteExternalStoragePermission
       private var leakingObjectFinder = config.leakingObjectFinder
+      private var heapDumper = config.heapDumper
+      private var eventListeners = config.eventListeners
+      private var useExperimentalLeakFinders = config.useExperimentalLeakFinders
 
       /** @see [LeakCanary.Config.dumpHeap] */
       fun dumpHeap(dumpHeap: Boolean) =
@@ -235,6 +281,7 @@ object LeakCanary {
         apply { this.objectInspectors = objectInspectors }
 
       /** @see [LeakCanary.Config.onHeapAnalyzedListener] */
+      @Deprecated(message = "Add to LeakCanary.config.eventListeners instead")
       fun onHeapAnalyzedListener(onHeapAnalyzedListener: OnHeapAnalyzedListener) =
         apply { this.onHeapAnalyzedListener = onHeapAnalyzedListener }
 
@@ -258,6 +305,19 @@ object LeakCanary {
       fun leakingObjectFinder(leakingObjectFinder: LeakingObjectFinder) =
         apply { this.leakingObjectFinder = leakingObjectFinder }
 
+      /** @see [LeakCanary.Config.heapDumper] */
+      fun heapDumper(heapDumper: HeapDumper) =
+        apply { this.heapDumper = heapDumper }
+
+      /** @see [LeakCanary.Config.eventListeners] */
+      fun eventListeners(eventListeners: List<EventListener>) =
+        apply { this.eventListeners = eventListeners }
+
+      /** @see [LeakCanary.Config.useExperimentalLeakFinders] */
+      @Deprecated("Set a custom leakingObjectFinder instead")
+      fun useExperimentalLeakFinders(useExperimentalLeakFinders: Boolean) =
+        apply { this.useExperimentalLeakFinders = useExperimentalLeakFinders }
+
       fun build() = config.copy(
         dumpHeap = dumpHeap,
         dumpHeapWhenDebugging = dumpHeapWhenDebugging,
@@ -269,7 +329,10 @@ object LeakCanary {
         computeRetainedHeapSize = computeRetainedHeapSize,
         maxStoredHeapDumps = maxStoredHeapDumps,
         requestWriteExternalStoragePermission = requestWriteExternalStoragePermission,
-        leakingObjectFinder = leakingObjectFinder
+        leakingObjectFinder = leakingObjectFinder,
+        heapDumper = heapDumper,
+        eventListeners = eventListeners,
+        useExperimentalLeakFinders = useExperimentalLeakFinders
       )
     }
   }
@@ -323,7 +386,7 @@ object LeakCanary {
   /**
    * Returns a new [Intent] that can be used to programmatically launch the leak display activity.
    */
-  fun newLeakDisplayActivityIntent() = LeakActivity.createIntent(InternalLeakCanary.application)
+  fun newLeakDisplayActivityIntent() = LeakActivity.createHomeIntent(InternalLeakCanary.application)
 
   /**
    * Dynamically shows / hides the launcher icon for the leak display activity.

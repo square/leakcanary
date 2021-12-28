@@ -2,6 +2,10 @@ package leakcanary.internal
 
 import android.os.Debug
 import android.os.SystemClock
+import java.io.File
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import leakcanary.HeapAnalysisConfig
 import leakcanary.HeapAnalysisInterceptor
 import leakcanary.HeapAnalysisJob
@@ -26,10 +30,7 @@ import shark.OnAnalysisProgressListener
 import shark.RandomAccessSource
 import shark.SharkLog
 import shark.StreamingSourceProvider
-import java.io.File
-import java.util.UUID
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
+import shark.ThrowingCancelableFileSourceProvider
 
 internal class RealHeapAnalysisJob(
   private val heapDumpDirectoryProvider: () -> File,
@@ -234,7 +235,7 @@ internal class RealHeapAnalysisJob(
     strippedHeapDumpFile: File
   ) {
     val sensitiveSourceProvider =
-      StoppableFileSourceProvider(sourceHeapDumpFile) {
+      ThrowingCancelableFileSourceProvider(sourceHeapDumpFile) {
         checkStopAnalysis("stripping heap dump")
       }
 
@@ -261,7 +262,7 @@ internal class RealHeapAnalysisJob(
   private fun analyzeHeapWithStats(heapDumpFile: File): Pair<HeapAnalysis, String> {
     val fileLength = heapDumpFile.length()
     val analysisSourceProvider = ConstantMemoryMetricsDualSourceProvider(
-      StoppableFileSourceProvider(heapDumpFile) {
+      ThrowingCancelableFileSourceProvider(heapDumpFile) {
         checkStopAnalysis(analysisStep?.name ?: "Reading heap dump")
       })
 
