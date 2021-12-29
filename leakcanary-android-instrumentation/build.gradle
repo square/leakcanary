@@ -19,6 +19,7 @@ dependencies {
 android {
   compileSdk versions.compileSdk
   defaultConfig {
+    targetSdk versions.compileSdk
     minSdk versions.minSdk
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
   }
