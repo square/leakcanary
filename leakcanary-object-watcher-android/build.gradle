@@ -8,12 +8,12 @@ dependencies {
   api project(':leakcanary-object-watcher')
   api project(':leakcanary-android-utils')
 
-  implementation deps.curtains
-  implementation deps.kotlin.stdlib
+  implementation libs.curtains
+  implementation libs.kotlin.stdlib
 
-  testImplementation deps.assertj_core
-  testImplementation deps.junit
-  testImplementation deps.kotlin.reflect
+  testImplementation libs.assertjCore
+  testImplementation libs.junit
+  testImplementation libs.kotlin.reflect
 }
 
 android {

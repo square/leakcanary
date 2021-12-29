@@ -7,9 +7,9 @@ plugins {
 dependencies {
   api project(':leakcanary-object-watcher-android')
 
-  implementation deps.kotlin.stdlib
+  implementation libs.kotlin.stdlib
   // Optional dependency
-  compileOnly deps.androidx.fragment
+  compileOnly libs.androidX.fragment
 }
 
 android {

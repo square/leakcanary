@@ -8,8 +8,8 @@ dependencies {
   api project(':shark-android')
   api project(':leakcanary-android-utils')
 
-  implementation deps.kotlin.stdlib
-  implementation deps.okio
+  implementation libs.kotlin.stdlib
+  implementation libs.okio2
 }
 
 def gitSha() {

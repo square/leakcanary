@@ -19,13 +19,13 @@ gradlePlugin {
 }
 
 dependencies {
-  implementation deps.kotlin.stdlib
-  implementation deps.kotlin.gradlePlugin
-  implementation deps.androidGradlePlugin
+  implementation libs.kotlin.stdlib
+  implementation libs.kotlinPlugin
+  implementation libs.androidPlugin
   compileOnly gradleApi()
 
-  testImplementation deps.assertj_core
-  testImplementation deps.junit
+  testImplementation libs.assertjCore
+  testImplementation libs.junit
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8

@@ -9,13 +9,13 @@ targetCompatibility = JavaVersion.VERSION_1_8
 dependencies {
   api project(':shark')
 
-  implementation deps.kotlin.stdlib
+  implementation libs.kotlin.stdlib
 
-  testImplementation deps.assertj_core
-  testImplementation deps.junit
-  testImplementation deps.kotlin_statistics
-  testImplementation deps.mockito
-  testImplementation deps.mockito_kotlin
-  testImplementation deps.okio
+  testImplementation libs.assertjCore
+  testImplementation libs.junit
+  testImplementation libs.kotlinStatistics
+  testImplementation libs.mockito
+  testImplementation libs.mockitoKotlin
+  testImplementation libs.okio2
   testImplementation project(':shark-test')
 }

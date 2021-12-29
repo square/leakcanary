@@ -6,8 +6,8 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
-    implementation deps.kotlin.stdlib
-    implementation deps.assertj_core
-    implementation deps.junit
+    implementation libs.kotlin.stdlib
+    implementation libs.assertjCore
+    implementation libs.junit
 }
 

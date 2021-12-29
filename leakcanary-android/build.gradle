@@ -7,7 +7,7 @@ plugins {
 dependencies {
   api project(':leakcanary-android-core')
 
-  implementation deps.kotlin.stdlib
+  implementation libs.kotlin.stdlib
 }
 
 android {

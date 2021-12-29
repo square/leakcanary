@@ -18,9 +18,9 @@ tasks.withType(KotlinCompile).configureEach {
 dependencies {
   api project(':shark-android')
 
-  implementation deps.clikt
-  implementation deps.jline
-  implementation deps.kotlin.stdlib
+  implementation libs.clikt
+  implementation libs.jline
+  implementation libs.kotlin.stdlib
 }
 
 application {

@@ -7,13 +7,13 @@ plugins {
 dependencies {
   api project(':leakcanary-android-core')
 
-  implementation deps.androidx.test.runner
-  implementation deps.kotlin.stdlib
+  implementation libs.androidX.test.runner
+  implementation libs.kotlin.stdlib
 
-  androidTestImplementation deps.androidx.test.core
-  androidTestImplementation deps.androidx.test.espresso
-  androidTestImplementation deps.androidx.test.rules
-  androidTestImplementation deps.androidx.fragment
+  androidTestImplementation libs.androidX.test.core
+  androidTestImplementation libs.androidX.test.espresso
+  androidTestImplementation libs.androidX.test.rules
+  androidTestImplementation libs.androidX.fragment
 }
 
 android {
