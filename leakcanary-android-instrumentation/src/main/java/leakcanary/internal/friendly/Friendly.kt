@@ -3,3 +3,8 @@
 package leakcanary.internal.friendly
 
 internal inline fun <reified T : Any> noOpDelegate(): T = leakcanary.internal.noOpDelegate()
+
+internal inline fun checkNotMainThread() = leakcanary.internal.checkNotMainThread()
+
+internal inline fun measureDurationMillis(block: () -> Unit) =
+  leakcanary.internal.measureDurationMillis(block)

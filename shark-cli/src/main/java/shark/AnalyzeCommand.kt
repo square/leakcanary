@@ -41,7 +41,8 @@ class AnalyzeCommand : CliktCommand(
         referenceMatchers = AndroidReferenceMatchers.appDefaults,
         computeRetainedHeapSize = true,
         objectInspectors = objectInspectors,
-        proguardMapping = proguardMapping
+        proguardMapping = proguardMapping,
+        metadataExtractor = AndroidMetadataExtractor
       )
       echo(heapAnalysis)
     }

@@ -595,7 +595,8 @@ class InteractiveCommand : CliktCommand(
       leakingObjectFinder = leakingObjectFinder,
       referenceMatchers = AndroidReferenceMatchers.appDefaults,
       computeRetainedHeapSize = true,
-      objectInspectors = objectInspectors
+      objectInspectors = objectInspectors,
+      metadataExtractor = AndroidMetadataExtractor
     )
 
     if (leakingObjectId == null || heapAnalysis is HeapAnalysisFailure) {

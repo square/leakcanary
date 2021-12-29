@@ -1,14 +1,11 @@
 package leakcanary.tests
 
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.assertion.ViewAssertions.matches
-import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withText
-import androidx.test.rule.ActivityTestRule
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.example.leakcanary.MainActivity
-import com.example.leakcanary.R
+import leakcanary.DetectLeaksAfterTestSuccess
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 
 /**
  * This UI test looks like it should succeed, but it will actually fail because
@@ -16,14 +13,7 @@ import org.junit.Test
  *
  * Run this test with:
  *
- * ./gradlew leakcanary-sample:connectedCheck
- *
- * To set this up, we installed a special ObjectWatcher dedicated to detecting leaks in
- * instrumentation tests in InstrumentationLeakDetector, and then added the FailTestOnLeakRunListener
- * to the config of our build.gradle:
- *
- * testInstrumentationRunnerArgument "listener", "leakcanary.FailTestOnLeakRunListener"
- *
+ * ./gradlew leakcanary-android-sample:connectedCheck
  *
  * Why is this class named "TuPeuxPasTest"?
  *
@@ -35,14 +25,19 @@ import org.junit.Test
  */
 class TuPeuxPasTest {
 
-  @get:Rule
-  var activityRule = ActivityTestRule(MainActivity::class.java)
+  private val activityRule = ActivityScenarioRule(MainActivity::class.java)
 
-  /**
-   * A dummy test that fails because MainActivity is leaking
-   */
+  @get:Rule
+  val rules = RuleChain.outerRule(DetectLeaksAfterTestSuccess()).around(activityRule)!!
+
   @Test
-  fun helperTextHasExpectedContent() {
-    onView(withId(R.id.helper_text)).check(matches(withText(R.string.helper_text)))
+  fun activityLeakingAfterTest() {
+    activityRule.scenario.onActivity { activity ->
+      leakedObjects += activity
+    }
+  }
+
+  companion object {
+    val leakedObjects = mutableListOf<Any>()
   }
 }

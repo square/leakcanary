@@ -20,7 +20,8 @@ object AppWatcher {
   private const val RETAINED_DELAY_NOT_SET = -1L
 
   @Volatile
-  private var retainedDelayMillis = RETAINED_DELAY_NOT_SET
+  var retainedDelayMillis = RETAINED_DELAY_NOT_SET
+    private set
 
   private var installCause: Exception? = null
 

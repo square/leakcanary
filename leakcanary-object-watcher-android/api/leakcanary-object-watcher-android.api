@@ -10,6 +10,7 @@ public final class leakcanary/AppWatcher {
 	public static synthetic fun appDefaultWatchers$default (Lleakcanary/AppWatcher;Landroid/app/Application;Lleakcanary/ReachabilityWatcher;ILjava/lang/Object;)Ljava/util/List;
 	public static final fun getConfig ()Lleakcanary/AppWatcher$Config;
 	public final fun getObjectWatcher ()Lleakcanary/ObjectWatcher;
+	public final fun getRetainedDelayMillis ()J
 	public final fun isInstalled ()Z
 	public final fun manualInstall (Landroid/app/Application;)V
 	public final fun manualInstall (Landroid/app/Application;J)V
