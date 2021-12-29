@@ -6,8 +6,11 @@ import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit.SECONDS
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.internal.TestResultPublisher
+import leakcanary.internal.friendly.noOpDelegate
 import org.junit.runner.Description
 import org.junit.runner.Result
 import org.junit.runner.notification.Failure
@@ -16,11 +19,10 @@ import shark.HeapAnalysis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
 import shark.SharkLog
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit.SECONDS
-import leakcanary.internal.friendly.noOpDelegate
 
 /**
+ * Deprecated because this relies on hacks built on top of AndroidX Test internals which keep
+ * changing. Use [LeakAssertions] instead.
  *
  * A JUnit [RunListener] that uses [InstrumentationLeakDetector] to detect memory leaks in Android
  * instrumentation tests. It waits for the end of a test, and if the test succeeds then it will
@@ -31,6 +33,7 @@ import leakcanary.internal.friendly.noOpDelegate
  *
  * @see InstrumentationLeakDetector
  */
+@Deprecated("Use LeakAssertions instead")
 open class FailTestOnLeakRunListener : RunListener() {
   private var _currentTestDescription: Description? = null
   private val currentTestDescription: Description

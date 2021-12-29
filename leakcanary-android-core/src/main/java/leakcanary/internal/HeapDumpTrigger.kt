@@ -11,8 +11,8 @@ import com.squareup.leakcanary.core.R
 import java.util.UUID
 import leakcanary.AppWatcher
 import leakcanary.EventListener.Event.DumpingHeap
-import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.EventListener.Event.HeapDump
+import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
@@ -69,7 +69,7 @@ internal class HeapDumpTrigger(
   private val applicationInvisibleLessThanWatchPeriod: Boolean
     get() {
       val applicationInvisibleAt = applicationInvisibleAt
-      return applicationInvisibleAt != -1L && SystemClock.uptimeMillis() - applicationInvisibleAt < AppWatcher.config.watchDurationMillis
+      return applicationInvisibleAt != -1L && SystemClock.uptimeMillis() - applicationInvisibleAt < AppWatcher.retainedDelayMillis
     }
 
   @Volatile
@@ -85,7 +85,7 @@ internal class HeapDumpTrigger(
       // Scheduling for after watchDuration so that any destroyed activity has time to become
       // watch and be part of this analysis.
       scheduleRetainedObjectCheck(
-        delayMillis = AppWatcher.config.watchDurationMillis
+        delayMillis = AppWatcher.retainedDelayMillis
       )
     }
   }
@@ -297,9 +297,8 @@ internal class HeapDumpTrigger(
           }
         }
       } else if (applicationInvisibleLessThanWatchPeriod) {
-        // TODO This is a bug, should use AppWatcher.retainedDelayMillis instead
         val wait =
-          AppWatcher.config.watchDurationMillis - (SystemClock.uptimeMillis() - applicationInvisibleAt)
+          AppWatcher.retainedDelayMillis - (SystemClock.uptimeMillis() - applicationInvisibleAt)
         if (nopeReason != null) {
           "would dump heap in $wait ms (app just became invisible) but $nopeReason"
         } else {
