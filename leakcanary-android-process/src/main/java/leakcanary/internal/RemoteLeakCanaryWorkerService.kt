@@ -1,8 +1,10 @@
 package leakcanary.internal
 
+import android.app.Application
 import androidx.work.Configuration
 import androidx.work.WorkManager
 import androidx.work.multiprocess.RemoteWorkerService
+import leakcanary.AppWatcher
 
 /**
  * Using a custom class name instead of RemoteWorkerService so that
@@ -10,6 +12,17 @@ import androidx.work.multiprocess.RemoteWorkerService
  */
 class RemoteLeakCanaryWorkerService : RemoteWorkerService() {
   override fun onCreate() {
+    // Ideally we wouldn't need to install AppWatcher at all here, however
+    // the installation triggers InternalsLeakCanary to store the application instance
+    // which is then used by the event listeners that respond to analysis progress.
+    if (!AppWatcher.isInstalled) {
+      val application = super.getApplicationContext() as Application
+      AppWatcher.manualInstall(
+        application,
+        // Nothing to watch in the :leakcanary process.
+        watchersToInstall = emptyList()
+      )
+    }
     ensureWorkManagerInit()
     super.onCreate()
   }
