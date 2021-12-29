@@ -15,26 +15,20 @@
  */
 package leakcanary
 
-import android.os.SystemClock
-import android.util.Log
-import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
-import leakcanary.GcTrigger.Default.runGc
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
+import leakcanary.RetainedObjectsInstrumentationChecker.YesNo.No
+import leakcanary.internal.friendly.measureDurationMillis
 import org.junit.runner.notification.RunListener
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
-import shark.HeapAnalyzer
 import shark.SharkLog
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import shark.MetadataExtractor
 
 /**
+ * Deprecated: Use LeakAssertions instead
+ *
  * [InstrumentationLeakDetector] can be used to detect memory leaks in instrumentation tests.
  *
  * To use it, you need to add an instrumentation test listener (e.g. [FailTestOnLeakRunListener])
@@ -81,6 +75,7 @@ import shark.MetadataExtractor
  * memory we dump the heap and perform a blocking analysis. There is only one heap dump performed,
  * no matter the number of objects retained.
  */
+@Deprecated("Use LeakAssertions instead")
 class InstrumentationLeakDetector {
 
   /**
@@ -96,132 +91,55 @@ class InstrumentationLeakDetector {
    */
   @Suppress("ReturnCount")
   fun detectLeaks(): Result {
-    val leakDetectionTime = SystemClock.uptimeMillis()
-    val watchDurationMillis = AppWatcher.retainedDelayMillis
-    val instrumentation = getInstrumentation()
-    val context = instrumentation.targetContext
-    val refWatcher = AppWatcher.objectWatcher
-
-    if (!refWatcher.hasWatchedObjects) {
-      return NoAnalysis("No watched objects.")
+    val retainedObjectsChecker = RetainedObjectsInstrumentationChecker()
+    when(val yesNo = retainedObjectsChecker.shouldDumpHeapWaitingForRetainedObjects()) {
+      is No -> {
+        return NoAnalysis(yesNo.reason)
+      }
     }
 
-    instrumentation.waitForIdleSync()
-    if (!refWatcher.hasWatchedObjects) {
-      return NoAnalysis("No watched objects after waiting for idle sync.")
-    }
-
-    runGc()
-    if (!refWatcher.hasWatchedObjects) {
-      return NoAnalysis("No watched objects after triggering an explicit GC.")
-    }
-
-    // Waiting for any delayed UI post (e.g. scroll) to clear. This shouldn't be needed, but
-    // Android simply has way too many delayed posts that aren't canceled when views are detached.
-    SystemClock.sleep(2000)
-
-    if (!refWatcher.hasWatchedObjects) {
-      return NoAnalysis("No watched objects after delayed UI post is cleared.")
-    }
-
-    // Aaand we wait some more.
-    // 4 seconds (2+2) is greater than the 3 seconds delay for
-    // FINISH_TOKEN in android.widget.Filter
-    SystemClock.sleep(2000)
-
-    val endOfWatchDelay = watchDurationMillis - (SystemClock.uptimeMillis() - leakDetectionTime)
-    if (endOfWatchDelay > 0) {
-      SystemClock.sleep(endOfWatchDelay)
-    }
-
-    runGc()
-
-    if (!refWatcher.hasRetainedObjects) {
-      return NoAnalysis("No watched objects after a second explicit GC.")
-    }
-
-    // File name is unique as analysis may run several times per test
-    val fileName =
-      SimpleDateFormat("instrumentation_tests_yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US)
-        .format(Date())
-    val heapDumpFile = File(context.filesDir, fileName)
+    val heapDumpFile = InstrumentationHeapDumpFileProvider().newHeapDumpFile()
 
     val config = LeakCanary.config
 
-    val heapDumpUptimeMillis = SystemClock.uptimeMillis()
-    KeyedWeakReference.heapDumpUptimeMillis = heapDumpUptimeMillis
-
-    val heapDumpDurationMillis: Long
-
-    try {
-      LeakCanary.config.heapDumper.dumpHeap(heapDumpFile)
-      heapDumpDurationMillis = SystemClock.uptimeMillis() - heapDumpUptimeMillis
+    val heapDumpDurationMillis = try {
+      measureDurationMillis {
+        config.heapDumper.dumpHeap(heapDumpFile)
+      }
     } catch (exception: Exception) {
       SharkLog.d(exception) { "Could not dump heap" }
       return AnalysisPerformed(
         HeapAnalysisFailure(
           heapDumpFile = heapDumpFile,
           createdAtTimeMillis = System.currentTimeMillis(),
-          dumpDurationMillis = SystemClock.uptimeMillis() - heapDumpUptimeMillis,
+          dumpDurationMillis = 0,
           analysisDurationMillis = 0,
           exception = HeapAnalysisException(exception)
         )
       )
     }
-    // A copy that will be used in case of failure followed by success, to see if the file has changed.
-    val heapDumpCopyFile = File(heapDumpFile.parent, "copy-${heapDumpFile.name}")
-    heapDumpFile.copyTo(heapDumpCopyFile)
 
-    refWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-
-    val listener = shark.OnAnalysisProgressListener.NO_OP
-
-    // Giving an extra 2 seconds to flush the hprof to the file system. We've seen several cases
-    // of corrupted hprof files and assume this could be a timing issue.
-    SystemClock.sleep(2000)
-
-    val heapAnalyzer = HeapAnalyzer(listener)
-    val heapAnalysis = heapAnalyzer.analyze(
-      heapDumpFile = heapDumpFile,
-      leakingObjectFinder = config.leakingObjectFinder,
-      referenceMatchers = config.referenceMatchers,
-      computeRetainedHeapSize = config.computeRetainedHeapSize,
-      objectInspectors = config.objectInspectors,
-      metadataExtractor = config.metadataExtractor
-    )
-
-    val secondHeapAnalysis = if (heapAnalysis is HeapAnalysisFailure) {
-      // Experience has shown that trying again often just works. Not sure why.
-      SharkLog.d(heapAnalysis.exception) {
-        "Heap Analysis failed, retrying in 10s in case the heap dump was not fully baked yet. " +
-          "Copy of original heap dump available at ${heapDumpCopyFile.absolutePath}"
-      }
-      SystemClock.sleep(10000)
-      heapAnalyzer.analyze(
-        heapDumpFile = heapDumpFile,
+    val heapAnalyzer = RetryingHeapAnalyzer(
+      InstrumentationHeapAnalyzer(
         leakingObjectFinder = config.leakingObjectFinder,
         referenceMatchers = config.referenceMatchers,
         computeRetainedHeapSize = config.computeRetainedHeapSize,
+        metadataExtractor = config.metadataExtractor,
         objectInspectors = config.objectInspectors,
-        metadataExtractor = { graph ->
-          config.metadataExtractor.extractMetadata(graph) +
-            mapOf(
-              "previousFailureHeapDumpCopy" to heapDumpCopyFile.absolutePath,
-              "previousFailureStacktrace" to Log.getStackTraceString(heapAnalysis.exception)
-            )
-        }
+        proguardMapping = null
       )
-    } else {
-      // We don't need the copy after all.
-      heapDumpCopyFile.delete()
-      heapAnalysis
+    )
+
+    val heapAnalysis = heapAnalyzer.analyze(heapDumpFile).let {
+      when (it) {
+        is HeapAnalysisSuccess -> it.copy(dumpDurationMillis = heapDumpDurationMillis)
+        is HeapAnalysisFailure -> it.copy(dumpDurationMillis = heapDumpDurationMillis)
+      }
     }
 
-    val heapAnalysisWithHeapDumpDuration = when (secondHeapAnalysis) {
-      is HeapAnalysisSuccess -> secondHeapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
-      is HeapAnalysisFailure -> secondHeapAnalysis.copy(dumpDurationMillis = heapDumpDurationMillis)
-    }
-    return AnalysisPerformed(heapAnalysisWithHeapDumpDuration)
+    retainedObjectsChecker.clearObjectsWatchedBeforeHeapDump()
+
+    return AnalysisPerformed(heapAnalysis)
   }
 
   companion object {

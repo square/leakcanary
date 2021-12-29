@@ -1,3 +1,26 @@
+public final class leakcanary/AndroidDetectLeaksAssert : leakcanary/DetectLeaksAssert {
+	public fun <init> ()V
+	public fun <init> (Lleakcanary/HeapAnalysisReporter;)V
+	public synthetic fun <init> (Lleakcanary/HeapAnalysisReporter;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun assertNoLeaks (Ljava/lang/String;)V
+}
+
+public final class leakcanary/DetectLeaksAfterTestSuccess : org/junit/rules/TestRule {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun apply (Lorg/junit/runners/model/Statement;Lorg/junit/runner/Description;)Lorg/junit/runners/model/Statement;
+}
+
+public abstract interface class leakcanary/DetectLeaksAssert {
+	public static final field Companion Lleakcanary/DetectLeaksAssert$Companion;
+	public abstract fun assertNoLeaks (Ljava/lang/String;)V
+}
+
+public final class leakcanary/DetectLeaksAssert$Companion {
+	public final fun update (Lleakcanary/DetectLeaksAssert;)V
+}
+
 public final class leakcanary/FailAnnotatedTestOnLeakRunListener : leakcanary/FailTestOnLeakRunListener {
 	public fun <init> ()V
 }
@@ -17,6 +40,28 @@ public class leakcanary/FailTestOnLeakRunListener : org/junit/runner/notificatio
 	public fun testRunFinished (Lorg/junit/runner/Result;)V
 	public fun testRunStarted (Lorg/junit/runner/Description;)V
 	public fun testStarted (Lorg/junit/runner/Description;)V
+}
+
+public abstract interface class leakcanary/HeapAnalysisReporter {
+	public abstract fun reportHeapAnalysis (Lshark/HeapAnalysis;)V
+}
+
+public final class leakcanary/InstrumentationHeapAnalyzer {
+	public fun <init> (Lshark/LeakingObjectFinder;Ljava/util/List;ZLshark/MetadataExtractor;Ljava/util/List;Lshark/ProguardMapping;)V
+	public final fun analyze (Ljava/io/File;)Lshark/HeapAnalysis;
+	public final fun getComputeRetainedHeapSize ()Z
+	public final fun getLeakingObjectFinder ()Lshark/LeakingObjectFinder;
+	public final fun getMetadataExtractor ()Lshark/MetadataExtractor;
+	public final fun getObjectInspectors ()Ljava/util/List;
+	public final fun getProguardMapping ()Lshark/ProguardMapping;
+	public final fun getReferenceMatchers ()Ljava/util/List;
+}
+
+public final class leakcanary/InstrumentationHeapDumpFileProvider {
+	public fun <init> ()V
+	public fun <init> (Ljava/io/File;)V
+	public synthetic fun <init> (Ljava/io/File;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun newHeapDumpFile ()Ljava/io/File;
 }
 
 public final class leakcanary/InstrumentationLeakDetector {
@@ -40,5 +85,65 @@ public final class leakcanary/InstrumentationLeakDetector$Result$AnalysisPerform
 public final class leakcanary/InstrumentationLeakDetector$Result$NoAnalysis : leakcanary/InstrumentationLeakDetector$Result {
 	public fun <init> (Ljava/lang/String;)V
 	public final fun getReason ()Ljava/lang/String;
+}
+
+public final class leakcanary/LeakAssertions {
+	public static final field INSTANCE Lleakcanary/LeakAssertions;
+	public static final field NO_TAG Ljava/lang/String;
+	public final fun assertNoLeaks (Ljava/lang/String;)V
+	public static synthetic fun assertNoLeaks$default (Lleakcanary/LeakAssertions;Ljava/lang/String;ILjava/lang/Object;)V
+}
+
+public final class leakcanary/NoLeakAssertionFailedError : java/lang/AssertionError {
+	public static final field Companion Lleakcanary/NoLeakAssertionFailedError$Companion;
+	public fun <init> (Lshark/HeapAnalysisSuccess;)V
+	public final fun getHeapAnalysis ()Lshark/HeapAnalysisSuccess;
+}
+
+public final class leakcanary/NoLeakAssertionFailedError$Companion {
+	public final fun throwOnApplicationLeaks ()Lleakcanary/HeapAnalysisReporter;
+}
+
+public final class leakcanary/RetainedObjectsInstrumentationChecker {
+	public fun <init> ()V
+	public fun <init> (Landroid/app/Instrumentation;Lleakcanary/ObjectWatcher;J)V
+	public synthetic fun <init> (Landroid/app/Instrumentation;Lleakcanary/ObjectWatcher;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clearObjectsWatchedBeforeHeapDump ()V
+	public final fun shouldDumpHeapWaitingForRetainedObjects ()Lleakcanary/RetainedObjectsInstrumentationChecker$YesNo;
+}
+
+public abstract class leakcanary/RetainedObjectsInstrumentationChecker$YesNo {
+}
+
+public final class leakcanary/RetainedObjectsInstrumentationChecker$YesNo$No : leakcanary/RetainedObjectsInstrumentationChecker$YesNo {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun getReason ()Ljava/lang/String;
+}
+
+public final class leakcanary/RetainedObjectsInstrumentationChecker$YesNo$Yes : leakcanary/RetainedObjectsInstrumentationChecker$YesNo {
+	public static final field INSTANCE Lleakcanary/RetainedObjectsInstrumentationChecker$YesNo$Yes;
+}
+
+public final class leakcanary/RetryingHeapAnalyzer {
+	public fun <init> (Lleakcanary/InstrumentationHeapAnalyzer;)V
+	public final fun analyze (Ljava/io/File;)Lshark/HeapAnalysis;
+}
+
+public abstract interface annotation class leakcanary/SkipLeakDetection : java/lang/annotation/Annotation {
+	public static final field Companion Lleakcanary/SkipLeakDetection$Companion;
+	public abstract fun assertionTags ()[Ljava/lang/String;
+	public abstract fun message ()Ljava/lang/String;
+}
+
+public final class leakcanary/SkipLeakDetection$Companion {
+	public final fun shouldSkipTest (Ljava/lang/String;Lleakcanary/SkipLeakDetection;Ljava/lang/String;)Z
+	public final fun shouldSkipTest (Lorg/junit/runner/Description;Ljava/lang/String;)Z
+}
+
+public final class leakcanary/TestDescriptionHolder : org/junit/rules/TestRule {
+	public static final field INSTANCE Lleakcanary/TestDescriptionHolder;
+	public fun apply (Lorg/junit/runners/model/Statement;Lorg/junit/runner/Description;)Lorg/junit/runners/model/Statement;
+	public final fun getTestDescription ()Lorg/junit/runner/Description;
+	public final fun isEvaluating ()Z
 }
 

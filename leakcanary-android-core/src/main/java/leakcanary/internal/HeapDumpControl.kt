@@ -42,6 +42,17 @@ internal object HeapDumpControl {
     }
   }
 
+  private const val leakAssertionsClassName = "leakcanary.LeakAssertions"
+
+  private val hasLeakAssertionsClass by lazy {
+    try {
+      Class.forName(leakAssertionsClassName)
+      true
+    } catch (e: Exception) {
+      false
+    }
+  }
+
   fun updateICanHasHeap() {
     iCanHasHeap()
   }
@@ -60,6 +71,13 @@ internal object HeapDumpControl {
     } else if (hasTestClass) {
       SilentNope {
         app.getString(R.string.leak_canary_heap_dump_disabled_running_tests, testClassName)
+      }
+    } else if (hasLeakAssertionsClass) {
+      SilentNope {
+        app.getString(
+          R.string.leak_canary_heap_dump_disabled_running_tests,
+          leakAssertionsClassName
+        )
       }
     } else if (!config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached) {
       mainHandler.postDelayed({
