@@ -32,7 +32,7 @@ dependencies {
   androidTestImplementation libs.androidX.test.rules
   androidTestImplementation libs.androidX.test.runner
   androidTestImplementation libs.androidX.test.junit
-  androidTestImplementation libs.androidX.test.junit_ktx
+  androidTestImplementation libs.androidX.test.junitKtx
   androidTestUtil libs.androidX.test.orchestrator
 }
 
