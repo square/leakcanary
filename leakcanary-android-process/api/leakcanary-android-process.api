@@ -5,6 +5,14 @@ public final class leakcanary/LeakCanaryProcess {
 
 public final class leakcanary/internal/RemoteLeakCanaryWorkerService : androidx/work/multiprocess/RemoteWorkerService {
 	public fun <init> ()V
+	public fun getApplicationContext ()Landroid/content/Context;
 	public fun onCreate ()V
+}
+
+public final class leakcanary/internal/RemoteLeakCanaryWorkerService$FakeAppContextConfigurationProvider : android/content/ContextWrapper, androidx/work/Configuration$Provider {
+	public fun <init> (Landroid/content/Context;)V
+	public synthetic fun getApplicationContext ()Landroid/content/Context;
+	public fun getApplicationContext ()Lleakcanary/internal/RemoteLeakCanaryWorkerService$FakeAppContextConfigurationProvider;
+	public fun getWorkManagerConfiguration ()Landroidx/work/Configuration;
 }
 
