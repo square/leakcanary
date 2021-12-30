@@ -1,20 +1,23 @@
 package shark
 
+import shark.ChainingInstanceExpander.OptionalFactory
+import shark.ChainingInstanceExpander.SyntheticInstanceExpander
+import shark.HeapObject.HeapInstance
 import shark.internal.InternalSharedArrayListExpander
 import shark.internal.InternalSharedHashMapExpander
 import shark.internal.InternalSharedLinkedListExpander
 
 /**
- * Defines [MatchingInstanceExpander] factories for common OpenJDK data structures.
+ * Defines [SyntheticInstanceExpander] factories for common OpenJDK data structures.
  *
  * Note: the expanders target the direct classes and don't target subclasses, as these might
  * include additional out going references that would be missed.
  */
-enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
+enum class OpenJdkInstanceExpanders : OptionalFactory {
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/LinkedList.java
   LINKED_LIST {
-    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
       val linkedListClass = graph.findClassByName("java.util.LinkedList") ?: return null
       val isOpenJdkImpl = linkedListClass.readRecordFields()
         .any { linkedListClass.instanceFieldName(it) == "first" }
@@ -34,7 +37,7 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/ArrayList.java
   ARRAY_LIST {
-    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
       val arrayListClass = graph.findClassByName("java.util.ArrayList") ?: return null
 
       val isOpenJdkImpl = arrayListClass.readRecordFields()
@@ -55,7 +58,7 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/concurrent/CopyOnWriteArrayList.java;bpv=0;bpt=1
   COPY_ON_WRITE_ARRAY_LIST {
-    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
       val arrayListClass = graph.findClassByName("java.util.concurrent.CopyOnWriteArrayList") ?: return null
 
       val isOpenJdkImpl = arrayListClass.readRecordFields()
@@ -82,7 +85,7 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
    * Handles HashMap & LinkedHashMap
    */
   HASH_MAP {
-    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
       val hashMapClass = graph.findClassByName("java.util.HashMap") ?: return null
 
       // No loadFactor field in the Apache Harmony impl.
@@ -129,7 +132,7 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/concurrent/ConcurrentHashMap.java
   // Note: structure of impl shared by OpenJDK & Apache Harmony.
   CONCURRENT_HASH_MAP {
-    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
       val hashMapClass =
         graph.findClassByName("java.util.concurrent.ConcurrentHashMap") ?: return null
 
@@ -153,7 +156,7 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
    * Handles HashSet & LinkedHashSet
    */
   HASH_SET {
-    override fun invoke(graph: HeapGraph): MatchingInstanceExpander? {
+    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
       val hashSetClass = graph.findClassByName("java.util.HashSet") ?: return null
 
       val isOpenJdkImpl = hashSetClass.readRecordFields()
@@ -172,12 +175,16 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
       }
       val hashSetClassId = hashSetClass.objectId
       val linkedHashSetClassId = linkedHashSetClass?.objectId ?: 0
-      return MatchingInstanceExpander { instance ->
-        val instanceClassId = instance.instanceClassId
-        if (instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId) {
+      return object : SyntheticInstanceExpander {
+        override fun matches(instance: HeapInstance): Boolean {
+          val instanceClassId = instance.instanceClassId
+          return instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId
+        }
+
+        override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceRef> {
           // "HashSet.map" is never null.
           val map = instance["java.util.HashSet", "map"]!!.valueAsInstance!!
-          InternalSharedHashMapExpander(
+          return InternalSharedHashMapExpander(
             className = "java.util.HashMap",
             tableFieldName = "table",
             nodeClassName = nodeClassName,
@@ -189,8 +196,6 @@ enum class OpenJdkInstanceExpanders : (HeapGraph) -> MatchingInstanceExpander? {
             matches = { true },
             declaringClass = { instance.instanceClass }
           ).expandOutgoingRefs(map)
-        } else {
-          null
         }
       }
     }

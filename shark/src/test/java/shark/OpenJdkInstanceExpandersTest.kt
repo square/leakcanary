@@ -11,6 +11,7 @@ import java.io.File
 import java.util.LinkedList
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
+import shark.ChainingInstanceExpander.OptionalFactory
 
 class OpenJdkInstanceExpandersTest {
 
@@ -358,16 +359,16 @@ class OpenJdkInstanceExpandersTest {
     }
   }
 
-  private fun findLeak(expanderFactory: (HeapGraph) -> MatchingInstanceExpander?): List<LeakTraceReference> {
+  private fun findLeak(expanderFactory: OptionalFactory): List<LeakTraceReference> {
     val hprofFile = dumpHeap()
     return hprofFile.findPathFromLeak(computeRetainedHeapSize = false, expanderFactory)
   }
 
   private fun File.findPathFromLeak(
     computeRetainedHeapSize: Boolean,
-    expanderFactory: (HeapGraph) -> MatchingInstanceExpander?,
+    expanderFactory: OptionalFactory,
   ): List<LeakTraceReference> {
-    val instanceExpander = MatchingChainedInstanceExpander.factory(listOf(expanderFactory))
+    val instanceExpander = ChainingInstanceExpander.factory(listOf(expanderFactory))
     val analysis = checkForLeaks<HeapAnalysisSuccess>(
       computeRetainedHeapSize = computeRetainedHeapSize,
       leakFilters = listOf(object :

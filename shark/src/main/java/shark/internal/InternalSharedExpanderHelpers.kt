@@ -1,14 +1,13 @@
 package shark.internal
 
-import shark.HeapInstanceOutgoingRef
+import shark.ChainingInstanceExpander.SyntheticInstanceExpander
+import shark.HeapInstanceRef
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapValue
-import shark.MatchingInstanceExpander
 
 // These classes are public so that it can be used from other modules, but they're not meant
 // to be a public API and will change without warning.
-
 class InternalSharedHashMapExpander(
   private val className: String,
   private val tableFieldName: String,
@@ -20,12 +19,12 @@ class InternalSharedHashMapExpander(
   private val keysOnly: Boolean,
   private val matches: (HeapInstance) -> Boolean,
   private val declaringClass: (HeapInstance) -> (HeapClass)
-) : MatchingInstanceExpander {
+) : SyntheticInstanceExpander {
+  override fun matches(instance: HeapInstance): Boolean {
+    return matches.invoke(instance)
+  }
 
-  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceOutgoingRef>? {
-    if (!matches(instance)) {
-      return null
-    }
+  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceRef> {
     val table = instance[className, tableFieldName]!!.valueAsObjectArray
     return if (table != null) {
       val entries = table.readElements().mapNotNull { entryRef ->
@@ -41,9 +40,9 @@ class InternalSharedHashMapExpander(
 
       val declaringClass = declaringClass(instance)
 
-      val createKeyRef: (HeapValue) -> HeapInstanceOutgoingRef? = { key ->
+      val createKeyRef: (HeapValue) -> HeapInstanceRef? = { key ->
         if (key.isNonNullReference) {
-          HeapInstanceOutgoingRef(
+          HeapInstanceRef(
             declaringClass = declaringClass,
             // All entries are represented by the same key name, e.g. "key()"
             name = keyName,
@@ -67,7 +66,7 @@ class InternalSharedHashMapExpander(
           val valueRef = if (value.isNonNullReference) {
             val keyAsName =
               key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
-            HeapInstanceOutgoingRef(
+            HeapInstanceRef(
               declaringClass = declaringClass,
               name = keyAsName,
               objectId = value.asObjectId!!,
@@ -78,7 +77,7 @@ class InternalSharedHashMapExpander(
         }.filterNotNull()
       }.toList()
     } else {
-      null
+      emptyList()
     }
   }
 }
@@ -88,15 +87,16 @@ class InternalSharedArrayListExpander(
   private val classObjectId: Long,
   private val elementArrayName: String,
   private val sizeFieldName: String?
-) : MatchingInstanceExpander {
-  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceOutgoingRef>? {
-    if (instance.instanceClassId != classObjectId) {
-      return null
-    }
+) : SyntheticInstanceExpander {
 
+  override fun matches(instance: HeapInstance): Boolean {
+    return instance.instanceClassId == classObjectId
+  }
+
+  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceRef> {
     val instanceClass = instance.instanceClass
     val elementFieldRef =
-      instance[className, elementArrayName]!!.valueAsObjectArray ?: return null
+      instance[className, elementArrayName]!!.valueAsObjectArray ?: return emptyList()
 
     val elements = if (sizeFieldName != null) {
       val size = instance[className, sizeFieldName]!!.value.asInt!!
@@ -107,7 +107,7 @@ class InternalSharedArrayListExpander(
     return elements.withIndex()
       .mapNotNull { (index, elementValue) ->
         if (elementValue.isNonNullReference) {
-          HeapInstanceOutgoingRef(
+          HeapInstanceRef(
             declaringClass = instanceClass,
             name = "$index",
             objectId = elementValue.asObjectId!!,
@@ -126,11 +126,13 @@ class InternalSharedLinkedListExpander(
   private val nodeClassName: String,
   private val nodeNextFieldName: String,
   private val nodeElementFieldName: String
-) : MatchingInstanceExpander {
-  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceOutgoingRef>? {
-    if (instance.instanceClassId != classObjectId) {
-      return null
-    }
+) : SyntheticInstanceExpander {
+
+  override fun matches(instance: HeapInstance): Boolean {
+    return instance.instanceClassId == classObjectId
+  }
+
+  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceRef> {
     val instanceClass = instance.instanceClass
     // head may be null, in that case we generate an empty sequence.
     val firstNode = instance["java.util.LinkedList", headFieldName]!!.valueAsInstance
@@ -141,7 +143,7 @@ class InternalSharedLinkedListExpander(
       .mapNotNull { (index, node) ->
         val itemObjectId = node[nodeClassName, nodeElementFieldName]!!.value.asObjectId
         itemObjectId?.run {
-          HeapInstanceOutgoingRef(
+          HeapInstanceRef(
             declaringClass = instanceClass,
             name = "$index",
             objectId = this,

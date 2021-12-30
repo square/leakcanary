@@ -79,7 +79,7 @@ class HeapAnalyzer constructor(
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
     proguardMapping: ProguardMapping? = null,
-    instanceExpander: (HeapGraph) -> InstanceExpander = { FieldInstanceExpander(it) }
+    instanceExpander: InstanceExpander.Factory = InstanceExpander.Factory { FieldInstanceExpander(it) }
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -103,7 +103,7 @@ class HeapAnalyzer constructor(
             referenceMatchers,
             computeRetainedHeapSize,
             objectInspectors,
-            instanceExpander(graph)
+            instanceExpander.create(graph)
           )
         val result = helpers.analyzeGraph(
           metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime

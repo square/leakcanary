@@ -17,7 +17,7 @@ fun <T : HeapAnalysis> DualSourceProvider.checkForLeaks(
   proguardMapping: ProguardMapping? = null,
   leakFilters: List<LeakingObjectFilter> = ObjectInspectors.jdkLeakingObjectFilters,
   file: File = File("/no/file"),
-  instanceExpander: (HeapGraph) -> InstanceExpander = MatchingChainedInstanceExpander.factory(
+  instanceExpander: InstanceExpander.Factory = ChainingInstanceExpander.factory(
     OpenJdkInstanceExpanders.values().asList()
   )
 ): T {
@@ -37,7 +37,7 @@ fun <T : HeapAnalysis> DualSourceProvider.checkForLeaks(
       computeRetainedHeapSize = computeRetainedHeapSize,
       objectInspectors = inspectors,
       metadataExtractor = metadataExtractor,
-      instanceExpander = instanceExpander(graph)
+      instanceExpander = instanceExpander.create(graph)
     )
   }
   if (result is HeapAnalysisFailure) {
@@ -54,7 +54,7 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
   proguardMapping: ProguardMapping? = null,
   leakFilters: List<LeakingObjectFilter> = ObjectInspectors.jdkLeakingObjectFilters,
-  instanceExpander: (HeapGraph) -> InstanceExpander = MatchingChainedInstanceExpander.factory(
+  instanceExpander: InstanceExpander.Factory = ChainingInstanceExpander.factory(
     OpenJdkInstanceExpanders.values().asList()
   )
 ): T {

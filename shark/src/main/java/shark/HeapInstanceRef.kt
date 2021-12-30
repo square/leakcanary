@@ -3,11 +3,11 @@ package shark
 import shark.HeapObject.HeapClass
 
 /**
- * Similar to [HeapField] but limited to non null references. Outgoing refs
+ * Similar to [HeapField] but limited to non null references. References
  * can be actual fields or they can be synthetic fields when simplifying known data
  * structures.
  */
-class HeapInstanceOutgoingRef(
+class HeapInstanceRef(
   /**
    * The class this reference was declared in.
    */
@@ -15,9 +15,9 @@ class HeapInstanceOutgoingRef(
 
   /**
    * Name of the reference, which is either a field name or a synthetic made up value.
-
    */
   val name: String,
+
 
   /**
    * Object id for the object that this reference is pointing to.
