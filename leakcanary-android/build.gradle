@@ -6,8 +6,8 @@ plugins {
 
 dependencies {
   api project(':leakcanary-android-core')
-
-  implementation libs.kotlin.stdlib
+  // AppWatcher auto installer
+  api project(':leakcanary-object-watcher-android')
 }
 
 android {
