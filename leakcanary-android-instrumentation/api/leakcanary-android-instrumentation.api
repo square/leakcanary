@@ -46,24 +46,6 @@ public abstract interface class leakcanary/HeapAnalysisReporter {
 	public abstract fun reportHeapAnalysis (Lshark/HeapAnalysis;)V
 }
 
-public final class leakcanary/InstrumentationHeapAnalyzer {
-	public fun <init> (Lshark/LeakingObjectFinder;Ljava/util/List;ZLshark/MetadataExtractor;Ljava/util/List;Lshark/ProguardMapping;)V
-	public final fun analyze (Ljava/io/File;)Lshark/HeapAnalysis;
-	public final fun getComputeRetainedHeapSize ()Z
-	public final fun getLeakingObjectFinder ()Lshark/LeakingObjectFinder;
-	public final fun getMetadataExtractor ()Lshark/MetadataExtractor;
-	public final fun getObjectInspectors ()Ljava/util/List;
-	public final fun getProguardMapping ()Lshark/ProguardMapping;
-	public final fun getReferenceMatchers ()Ljava/util/List;
-}
-
-public final class leakcanary/InstrumentationHeapDumpFileProvider {
-	public fun <init> ()V
-	public fun <init> (Ljava/io/File;)V
-	public synthetic fun <init> (Ljava/io/File;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun newHeapDumpFile ()Ljava/io/File;
-}
-
 public final class leakcanary/InstrumentationLeakDetector {
 	public static final field Companion Lleakcanary/InstrumentationLeakDetector$Companion;
 	public fun <init> ()V
@@ -102,31 +84,6 @@ public final class leakcanary/NoLeakAssertionFailedError : java/lang/AssertionEr
 
 public final class leakcanary/NoLeakAssertionFailedError$Companion {
 	public final fun throwOnApplicationLeaks ()Lleakcanary/HeapAnalysisReporter;
-}
-
-public final class leakcanary/RetainedObjectsInstrumentationChecker {
-	public fun <init> ()V
-	public fun <init> (Landroid/app/Instrumentation;Lleakcanary/ObjectWatcher;J)V
-	public synthetic fun <init> (Landroid/app/Instrumentation;Lleakcanary/ObjectWatcher;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun clearObjectsWatchedBeforeHeapDump ()V
-	public final fun shouldDumpHeapWaitingForRetainedObjects ()Lleakcanary/RetainedObjectsInstrumentationChecker$YesNo;
-}
-
-public abstract class leakcanary/RetainedObjectsInstrumentationChecker$YesNo {
-}
-
-public final class leakcanary/RetainedObjectsInstrumentationChecker$YesNo$No : leakcanary/RetainedObjectsInstrumentationChecker$YesNo {
-	public fun <init> (Ljava/lang/String;)V
-	public final fun getReason ()Ljava/lang/String;
-}
-
-public final class leakcanary/RetainedObjectsInstrumentationChecker$YesNo$Yes : leakcanary/RetainedObjectsInstrumentationChecker$YesNo {
-	public static final field INSTANCE Lleakcanary/RetainedObjectsInstrumentationChecker$YesNo$Yes;
-}
-
-public final class leakcanary/RetryingHeapAnalyzer {
-	public fun <init> (Lleakcanary/InstrumentationHeapAnalyzer;)V
-	public final fun analyze (Ljava/io/File;)Lshark/HeapAnalysis;
 }
 
 public abstract interface annotation class leakcanary/SkipLeakDetection : java/lang/annotation/Annotation {

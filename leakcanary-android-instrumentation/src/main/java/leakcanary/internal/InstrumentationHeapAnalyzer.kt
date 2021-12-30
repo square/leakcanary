@@ -1,4 +1,4 @@
-package leakcanary
+package leakcanary.internal
 
 import java.io.File
 import shark.ConstantMemoryMetricsDualSourceProvider
@@ -20,7 +20,7 @@ import shark.ReferenceMatcher
 /**
  * Sets up [HeapAnalyzer] for instrumentation tests and delegates heap analysis.
  */
-class InstrumentationHeapAnalyzer(
+internal class InstrumentationHeapAnalyzer(
   val leakingObjectFinder: LeakingObjectFinder,
   val referenceMatchers: List<ReferenceMatcher>,
   val computeRetainedHeapSize: Boolean,

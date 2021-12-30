@@ -1,13 +1,16 @@
-package leakcanary
+package leakcanary.internal
 
 import android.app.Instrumentation
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
+import leakcanary.AppWatcher
 import leakcanary.GcTrigger.Default
-import leakcanary.RetainedObjectsInstrumentationChecker.YesNo.No
-import leakcanary.RetainedObjectsInstrumentationChecker.YesNo.Yes
+import leakcanary.KeyedWeakReference
+import leakcanary.ObjectWatcher
+import leakcanary.internal.RetainedObjectsInstrumentationChecker.YesNo.No
+import leakcanary.internal.RetainedObjectsInstrumentationChecker.YesNo.Yes
 
-class RetainedObjectsInstrumentationChecker(
+internal class RetainedObjectsInstrumentationChecker(
   private val instrumentation: Instrumentation = InstrumentationRegistry.getInstrumentation(),
   private val objectWatcher: ObjectWatcher = AppWatcher.objectWatcher,
   private val retainedDelayMillis: Long = AppWatcher.retainedDelayMillis

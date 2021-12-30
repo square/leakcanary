@@ -1,4 +1,4 @@
-package leakcanary
+package leakcanary.internal
 
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import java.io.File
@@ -9,7 +9,7 @@ import java.util.Locale
 /**
  * Provides unique file names for each heap dump in instrumentation tests.
  */
-class InstrumentationHeapDumpFileProvider(
+internal class InstrumentationHeapDumpFileProvider(
   private val heapDumpDirectory: File = getInstrumentation().targetContext.filesDir
 ) {
 
