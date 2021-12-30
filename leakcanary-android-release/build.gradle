@@ -12,17 +12,12 @@ dependencies {
   implementation libs.okio2
 }
 
-def gitSha() {
-  return 'git rev-parse --short HEAD'.execute().text.trim()
-}
-
 android {
   resourcePrefix 'leak_canary_'
   compileSdk versions.compileSdk
   defaultConfig {
     minSdk 16
     buildConfigField "String", "LIBRARY_VERSION", "\"${rootProject.ext.VERSION_NAME}\""
-    buildConfigField "String", "GIT_SHA", "\"${gitSha()}\""
     consumerProguardFiles 'consumer-proguard-rules.pro'
   }
   lintOptions {
