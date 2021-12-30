@@ -14,11 +14,13 @@ dependencies {
   androidTestImplementation libs.androidX.test.espresso
   androidTestImplementation libs.androidX.test.rules
   androidTestImplementation libs.androidX.fragment
+  androidTestImplementation libs.assertjCore
 }
 
 android {
   compileSdk versions.compileSdk
   defaultConfig {
+    targetSdk versions.compileSdk
     minSdk versions.minSdk
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
   }

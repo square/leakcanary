@@ -1,6 +1,10 @@
 package leakcanary
 
-import leakcanary.RetainedObjectsInstrumentationChecker.YesNo.No
+import leakcanary.internal.RetainedObjectsInstrumentationChecker.YesNo.No
+import leakcanary.internal.InstrumentationHeapAnalyzer
+import leakcanary.internal.InstrumentationHeapDumpFileProvider
+import leakcanary.internal.RetainedObjectsInstrumentationChecker
+import leakcanary.internal.RetryingHeapAnalyzer
 import leakcanary.internal.friendly.checkNotMainThread
 import leakcanary.internal.friendly.measureDurationMillis
 import shark.HeapAnalysisFailure

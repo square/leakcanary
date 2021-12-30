@@ -17,7 +17,11 @@ package leakcanary
 
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
-import leakcanary.RetainedObjectsInstrumentationChecker.YesNo.No
+import leakcanary.internal.RetainedObjectsInstrumentationChecker.YesNo.No
+import leakcanary.internal.InstrumentationHeapAnalyzer
+import leakcanary.internal.InstrumentationHeapDumpFileProvider
+import leakcanary.internal.RetainedObjectsInstrumentationChecker
+import leakcanary.internal.RetryingHeapAnalyzer
 import leakcanary.internal.friendly.measureDurationMillis
 import org.junit.runner.notification.RunListener
 import shark.HeapAnalysis

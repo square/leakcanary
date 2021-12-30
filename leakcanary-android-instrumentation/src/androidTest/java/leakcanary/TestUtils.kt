@@ -1,19 +1,22 @@
 package leakcanary
 
-import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
-import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
+import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
 
 object TestUtils {
   fun assertLeak(expectedLeakClass: Class<*>) {
-    val leakDetector = InstrumentationLeakDetector()
+    var heapAnalysisOrNull: HeapAnalysis? = null
+    AndroidDetectLeaksAssert { heapAnalysis ->
+      heapAnalysisOrNull = heapAnalysis
+    }.assertNoLeaks("")
 
-    val heapAnalysis = when (val result = leakDetector.detectLeaks()) {
-      is NoAnalysis -> throw AssertionError(
-        "Expected analysis to be performed but skipped because ${result.reason}"
+    if (heapAnalysisOrNull == null) {
+      throw AssertionError(
+        "Expected analysis to be performed but skipped"
       )
-      is AnalysisPerformed -> result.heapAnalysis
     }
+
+    val heapAnalysis = heapAnalysisOrNull
 
     if (heapAnalysis !is HeapAnalysisSuccess) {
       throw AssertionError(

@@ -1,4 +1,4 @@
-package leakcanary
+package leakcanary.internal
 
 import android.os.SystemClock
 import android.util.Log
@@ -11,7 +11,7 @@ import shark.SharkLog
 /**
  * Wraps [InstrumentationHeapAnalyzer] and retries the analysis once if it fails.
  */
-class RetryingHeapAnalyzer(
+internal class RetryingHeapAnalyzer(
   private val heapAnalyzer: InstrumentationHeapAnalyzer
 ) {
 
