@@ -38,6 +38,8 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 # and they'll automatically resolve to higher version without having to necessarily resort to a
 # resolution strategy.
 androidX-fragment = { module = "androidx.fragment:fragment", version = "1.0.0" }
+# Exposed transitively, avoid increasing
+androidX-startup = { module = "androidx.startup:startup-runtime", version = "1.0.0" }
 androidX-test-core = { module = "androidx.test:core", version = "1.4.0" }
 androidX-test-rules = { module = "androidx.test:rules", version.ref = "androidXTest" }
 # Exposed transitively, avoid increasing
