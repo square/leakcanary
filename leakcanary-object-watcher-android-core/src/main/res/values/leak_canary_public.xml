@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <public name="leak_canary_watcher_watch_dismissed_dialogs" type="bool"/>
+</resources>
