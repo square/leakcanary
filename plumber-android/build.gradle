@@ -8,9 +8,9 @@ dependencies {
   api project(':shark-log')
   api project(':leakcanary-android-utils')
 
-  implementation deps.kotlin.stdlib
+  implementation libs.kotlin.stdlib
   // Optional dependency
-  compileOnly deps.androidx.fragment
+  compileOnly libs.androidX.fragment
 }
 
 android {

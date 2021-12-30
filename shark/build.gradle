@@ -9,11 +9,11 @@ targetCompatibility = JavaVersion.VERSION_1_8
 dependencies {
   api project(':shark-graph')
 
-  implementation deps.kotlin.stdlib
-  implementation deps.okio
+  implementation libs.kotlin.stdlib
+  implementation libs.okio2
 
-  testImplementation deps.assertj_core
-  testImplementation deps.junit
-  testImplementation deps.okio
+  testImplementation libs.assertjCore
+  testImplementation libs.junit
+  testImplementation libs.okio2
   testImplementation project(':shark-hprof-test')
 }

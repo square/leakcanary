@@ -10,20 +10,20 @@ dependencies {
   api project(':leakcanary-object-watcher-android-androidx')
   api project(':leakcanary-object-watcher-android-support-fragments')
   implementation project(':plumber-android')
-  implementation deps.kotlin.stdlib
+  implementation libs.kotlin.stdlib
 
   // Optional dependency
-  compileOnly deps.androidx.work.runtime
-  compileOnly deps.androidx.work.multiprocess
+  compileOnly libs.androidX.work.runtime
+  compileOnly libs.androidX.work.multiprocess
 
-  testImplementation deps.assertj_core
-  testImplementation deps.junit
-  testImplementation deps.kotlin.reflect
-  testImplementation deps.mockito
-  testImplementation deps.mockito_kotlin
-  androidTestImplementation deps.androidx.test.espresso
-  androidTestImplementation deps.androidx.test.rules
-  androidTestImplementation deps.androidx.test.runner
+  testImplementation libs.assertjCore
+  testImplementation libs.junit
+  testImplementation libs.kotlin.reflect
+  testImplementation libs.mockito
+  testImplementation libs.mockitoKotlin
+  androidTestImplementation libs.androidX.test.espresso
+  androidTestImplementation libs.androidX.test.rules
+  androidTestImplementation libs.androidX.test.runner
   androidTestImplementation project(':shark-hprof-test')
 }
 
