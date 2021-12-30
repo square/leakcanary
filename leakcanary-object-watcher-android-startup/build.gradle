@@ -1,0 +1,25 @@
+plugins {
+  id("com.android.library")
+  id("org.jetbrains.kotlin.android")
+  id("com.vanniktech.maven.publish")
+}
+
+dependencies {
+  api project(':leakcanary-object-watcher-android-core')
+
+  implementation libs.androidX.startup
+}
+
+android {
+  resourcePrefix 'leak_canary_watcher_'
+  compileSdk versions.compileSdk
+  defaultConfig {
+    minSdk versions.minSdk
+  }
+  buildFeatures.buildConfig = false
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    error 'ObsoleteSdkInt'
+    checkOnly 'Interoperability'
+  }
+}
