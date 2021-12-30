@@ -64,16 +64,19 @@ class TestDescriptionHolderTest {
 
   @Test
   fun testDescriptionThrowsBeforeClass() {
-    assertThat(beforeClassThrowable).isNotNull()
+    // On API 16, assertThat(Throwable) causes a TypeComparators class init failure.
+    assertThat(beforeClassThrowable == null).isFalse()
   }
 
   @Test
   fun testDescriptionThrowsBeforeOuterEvaluate() {
-    assertThat(outerRule.beforeEvaluateThrowable).isNotNull()
+    // On API 16, assertThat(Throwable) causes a TypeComparators class init failure.
+    assertThat(outerRule.beforeEvaluateThrowable == null).isFalse()
   }
 
   @Test
   fun testDescriptionDoesNotThrowBeforeInnerEvaluate() {
-    assertThat(innerRule.beforeEvaluateThrowable).isNull()
+    // On API 16, assertThat(Throwable) causes a TypeComparators class init failure.
+    assertThat(innerRule.beforeEvaluateThrowable == null).isTrue()
   }
 }
