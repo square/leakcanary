@@ -545,6 +545,12 @@ sealed class HeapObject {
       get() = hprofGraph.findObjectById(indexedObject.arrayClassId) as HeapClass
 
     /**
+     * The heap identifier of the class of this array.
+     */
+    val arrayClassId: Long
+      get() = indexedObject.arrayClassId
+
+    /**
      * The total byte shallow size of elements in this array.
      */
     fun readByteSize(): Int {

@@ -119,6 +119,7 @@ public final class shark/HeapObject$HeapInstance : shark/HeapObject {
 
 public final class shark/HeapObject$HeapObjectArray : shark/HeapObject {
 	public final fun getArrayClass ()Lshark/HeapObject$HeapClass;
+	public final fun getArrayClassId ()J
 	public final fun getArrayClassName ()Ljava/lang/String;
 	public final fun getArrayClassSimpleName ()Ljava/lang/String;
 	public fun getGraph ()Lshark/HeapGraph;

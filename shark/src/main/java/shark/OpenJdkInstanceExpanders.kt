@@ -1,14 +1,14 @@
 package shark
 
-import shark.ChainingInstanceExpander.OptionalFactory
-import shark.ChainingInstanceExpander.SyntheticInstanceExpander
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
 import shark.HeapObject.HeapInstance
-import shark.internal.InternalSharedArrayListExpander
-import shark.internal.InternalSharedHashMapExpander
-import shark.internal.InternalSharedLinkedListExpander
+import shark.internal.InternalSharedArrayListReferenceReader
+import shark.internal.InternalSharedHashMapReferenceReader
+import shark.internal.InternalSharedLinkedListReferenceReader
 
 /**
- * Defines [SyntheticInstanceExpander] factories for common OpenJDK data structures.
+ * Defines [VirtualInstanceReferenceReader] factories for common OpenJDK data structures.
  *
  * Note: the expanders target the direct classes and don't target subclasses, as these might
  * include additional out going references that would be missed.
@@ -17,7 +17,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/LinkedList.java
   LINKED_LIST {
-    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
       val linkedListClass = graph.findClassByName("java.util.LinkedList") ?: return null
       val isOpenJdkImpl = linkedListClass.readRecordFields()
         .any { linkedListClass.instanceFieldName(it) == "first" }
@@ -25,7 +25,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
       if (!isOpenJdkImpl) {
         return null
       }
-      return InternalSharedLinkedListExpander(
+      return InternalSharedLinkedListReferenceReader(
         classObjectId = linkedListClass.objectId,
         headFieldName = "first",
         nodeClassName = "java.util.LinkedList\$Node",
@@ -37,7 +37,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/ArrayList.java
   ARRAY_LIST {
-    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
       val arrayListClass = graph.findClassByName("java.util.ArrayList") ?: return null
 
       val isOpenJdkImpl = arrayListClass.readRecordFields()
@@ -47,7 +47,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
         return null
       }
 
-      return InternalSharedArrayListExpander(
+      return InternalSharedArrayListReferenceReader(
         className = "java.util.ArrayList",
         classObjectId = arrayListClass.objectId,
         elementArrayName = "elementData",
@@ -58,7 +58,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/concurrent/CopyOnWriteArrayList.java;bpv=0;bpt=1
   COPY_ON_WRITE_ARRAY_LIST {
-    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
       val arrayListClass = graph.findClassByName("java.util.concurrent.CopyOnWriteArrayList") ?: return null
 
       val isOpenJdkImpl = arrayListClass.readRecordFields()
@@ -68,7 +68,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
         return null
       }
 
-      return InternalSharedArrayListExpander(
+      return InternalSharedArrayListReferenceReader(
         className = "java.util.concurrent.CopyOnWriteArrayList",
         classObjectId = arrayListClass.objectId,
         elementArrayName = "array",
@@ -85,7 +85,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
    * Handles HashMap & LinkedHashMap
    */
   HASH_MAP {
-    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
       val hashMapClass = graph.findClassByName("java.util.HashMap") ?: return null
 
       // No loadFactor field in the Apache Harmony impl.
@@ -107,7 +107,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
       val hashMapClassId = hashMapClass.objectId
       val linkedHashMapClassId = linkedHashMapClass?.objectId ?: 0
 
-      return InternalSharedHashMapExpander(
+      return InternalSharedHashMapReferenceReader(
         className = "java.util.HashMap",
         tableFieldName = "table",
         nodeClassName = nodeClassName,
@@ -120,24 +120,20 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
           val instanceClassId = it.instanceClassId
           instanceClassId == hashMapClassId || instanceClassId == linkedHashMapClassId
         },
-        declaringClass = { it.instanceClass }
+        declaringClassId = { it.instanceClassId }
       )
     }
   },
 
-  // TODO Ordering tests? for lists and maps
-  // TODO Better key names? whatever I did in sharkapp?
-  // Can all hashmap impls share the same core code with some params? Also array list? and others?
-
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/concurrent/ConcurrentHashMap.java
   // Note: structure of impl shared by OpenJDK & Apache Harmony.
   CONCURRENT_HASH_MAP {
-    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
       val hashMapClass =
         graph.findClassByName("java.util.concurrent.ConcurrentHashMap") ?: return null
 
       val hashMapClassId = hashMapClass.objectId
-      return InternalSharedHashMapExpander(
+      return InternalSharedHashMapReferenceReader(
         className = "java.util.concurrent.ConcurrentHashMap",
         tableFieldName = "table",
         nodeClassName = "java.util.concurrent.ConcurrentHashMap\$Node",
@@ -147,7 +143,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
         keyName = "key()",
         keysOnly = false,
         matches = { it.instanceClassId == hashMapClassId },
-        declaringClass = { it.instanceClass }
+        declaringClassId = { it.instanceClassId }
       )
     }
   },
@@ -156,7 +152,7 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
    * Handles HashSet & LinkedHashSet
    */
   HASH_SET {
-    override fun create(graph: HeapGraph): SyntheticInstanceExpander? {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
       val hashSetClass = graph.findClassByName("java.util.HashSet") ?: return null
 
       val isOpenJdkImpl = hashSetClass.readRecordFields()
@@ -175,16 +171,16 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
       }
       val hashSetClassId = hashSetClass.objectId
       val linkedHashSetClassId = linkedHashSetClass?.objectId ?: 0
-      return object : SyntheticInstanceExpander {
+      return object : VirtualInstanceReferenceReader {
         override fun matches(instance: HeapInstance): Boolean {
           val instanceClassId = instance.instanceClassId
           return instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId
         }
 
-        override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceRef> {
+        override fun read(source: HeapInstance): Sequence<Reference> {
           // "HashSet.map" is never null.
-          val map = instance["java.util.HashSet", "map"]!!.valueAsInstance!!
-          return InternalSharedHashMapExpander(
+          val map = source["java.util.HashSet", "map"]!!.valueAsInstance!!
+          return InternalSharedHashMapReferenceReader(
             className = "java.util.HashMap",
             tableFieldName = "table",
             nodeClassName = nodeClassName,
@@ -194,8 +190,8 @@ enum class OpenJdkInstanceExpanders : OptionalFactory {
             keyName = "element()",
             keysOnly = true,
             matches = { true },
-            declaringClass = { instance.instanceClass }
-          ).expandOutgoingRefs(map)
+            declaringClassId = { source.instanceClassId }
+          ).read(map)
         }
       }
     }

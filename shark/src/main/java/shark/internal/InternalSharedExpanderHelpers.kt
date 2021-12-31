@@ -1,14 +1,15 @@
 package shark.internal
 
-import shark.ChainingInstanceExpander.SyntheticInstanceExpander
-import shark.HeapInstanceRef
-import shark.HeapObject.HeapClass
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
 import shark.HeapObject.HeapInstance
 import shark.HeapValue
+import shark.Reference
+import shark.Reference.LazyDetails
+import shark.ReferenceLocationType.ARRAY_ENTRY
 
 // These classes are public so that it can be used from other modules, but they're not meant
 // to be a public API and will change without warning.
-class InternalSharedHashMapExpander(
+class InternalSharedHashMapReferenceReader(
   private val className: String,
   private val tableFieldName: String,
   private val nodeClassName: String,
@@ -18,14 +19,14 @@ class InternalSharedHashMapExpander(
   private val keyName: String,
   private val keysOnly: Boolean,
   private val matches: (HeapInstance) -> Boolean,
-  private val declaringClass: (HeapInstance) -> (HeapClass)
-) : SyntheticInstanceExpander {
+  private val declaringClassId: (HeapInstance) -> (Long)
+) : VirtualInstanceReferenceReader {
   override fun matches(instance: HeapInstance): Boolean {
     return matches.invoke(instance)
   }
 
-  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceRef> {
-    val table = instance[className, tableFieldName]!!.valueAsObjectArray
+  override fun read(source: HeapInstance): Sequence<Reference> {
+    val table = source[className, tableFieldName]!!.valueAsObjectArray
     return if (table != null) {
       val entries = table.readElements().mapNotNull { entryRef ->
         if (entryRef.isNonNullReference) {
@@ -38,16 +39,22 @@ class InternalSharedHashMapExpander(
         }
       }.flatten()
 
-      val declaringClass = declaringClass(instance)
+      val declaringClassId = declaringClassId(source)
 
-      val createKeyRef: (HeapValue) -> HeapInstanceRef? = { key ->
+      val createKeyRef: (HeapValue) -> Reference? = { key ->
         if (key.isNonNullReference) {
-          HeapInstanceRef(
-            declaringClass = declaringClass,
-            // All entries are represented by the same key name, e.g. "key()"
-            name = keyName,
-            objectId = key.asObjectId!!,
-            isArrayLike = true
+          Reference(
+            valueObjectId = key.asObjectId!!,
+            matchedLibraryLeak = null,
+            lazyDetailsResolver = {
+              LazyDetails(
+                // All entries are represented by the same key name, e.g. "key()"
+                name = keyName,
+                locationClassObjectId = declaringClassId,
+                locationType = ARRAY_ENTRY,
+                isVirtual = true
+              )
+            }
           )
         } else null
       }
@@ -61,45 +68,59 @@ class InternalSharedHashMapExpander(
         entries.flatMap { entry ->
           val key = entry[nodeClassName, nodeKeyFieldName]!!.value
           val keyRef = createKeyRef(key)
-
           val value = entry[nodeClassName, nodeValueFieldName]!!.value
           val valueRef = if (value.isNonNullReference) {
-            val keyAsName =
-              key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
-            HeapInstanceRef(
-              declaringClass = declaringClass,
-              name = keyAsName,
-              objectId = value.asObjectId!!,
-              isArrayLike = true
+            Reference(
+              valueObjectId = value.asObjectId!!,
+              matchedLibraryLeak = null,
+              lazyDetailsResolver = {
+                val keyAsName =
+                  key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
+                LazyDetails(
+                  // All entries are represented by the same key name, e.g. "key()"
+                  name = keyAsName,
+                  locationClassObjectId = declaringClassId,
+                  locationType = ARRAY_ENTRY,
+                  isVirtual = true
+                )
+              }
             )
           } else null
-          sequenceOf(keyRef, valueRef)
-        }.filterNotNull()
-      }.toList()
+          if (keyRef != null && valueRef != null) {
+            sequenceOf(keyRef, valueRef)
+          } else if (keyRef != null) {
+            sequenceOf(keyRef)
+          } else if (valueRef != null) {
+            sequenceOf(valueRef)
+          } else {
+            emptySequence()
+          }
+        }
+      }
     } else {
-      emptyList()
+      emptySequence()
     }
   }
 }
 
-class InternalSharedArrayListExpander(
+class InternalSharedArrayListReferenceReader(
   private val className: String,
   private val classObjectId: Long,
   private val elementArrayName: String,
   private val sizeFieldName: String?
-) : SyntheticInstanceExpander {
+) : VirtualInstanceReferenceReader {
 
   override fun matches(instance: HeapInstance): Boolean {
     return instance.instanceClassId == classObjectId
   }
 
-  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceRef> {
-    val instanceClass = instance.instanceClass
+  override fun read(source: HeapInstance): Sequence<Reference> {
+    val instanceClassId = source.instanceClassId
     val elementFieldRef =
-      instance[className, elementArrayName]!!.valueAsObjectArray ?: return emptyList()
+      source[className, elementArrayName]!!.valueAsObjectArray ?: return emptySequence()
 
     val elements = if (sizeFieldName != null) {
-      val size = instance[className, sizeFieldName]!!.value.asInt!!
+      val size = source[className, sizeFieldName]!!.value.asInt!!
       elementFieldRef.readElements().take(size)
     } else {
       elementFieldRef.readElements()
@@ -107,35 +128,42 @@ class InternalSharedArrayListExpander(
     return elements.withIndex()
       .mapNotNull { (index, elementValue) ->
         if (elementValue.isNonNullReference) {
-          HeapInstanceRef(
-            declaringClass = instanceClass,
-            name = "$index",
-            objectId = elementValue.asObjectId!!,
-            isArrayLike = true
+          Reference(
+            valueObjectId = elementValue.asObjectId!!,
+            matchedLibraryLeak = null,
+            lazyDetailsResolver = {
+              LazyDetails(
+                // All entries are represented by the same key name, e.g. "key()"
+                name = "$index",
+                locationClassObjectId = instanceClassId,
+                locationType = ARRAY_ENTRY,
+                isVirtual = true
+              )
+            }
           )
         } else {
           null
         }
-      }.toList()
+      }
   }
 }
 
-class InternalSharedLinkedListExpander(
+class InternalSharedLinkedListReferenceReader(
   private val classObjectId: Long,
   private val headFieldName: String,
   private val nodeClassName: String,
   private val nodeNextFieldName: String,
   private val nodeElementFieldName: String
-) : SyntheticInstanceExpander {
+) : VirtualInstanceReferenceReader {
 
   override fun matches(instance: HeapInstance): Boolean {
     return instance.instanceClassId == classObjectId
   }
 
-  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceRef> {
-    val instanceClass = instance.instanceClass
+  override fun read(source: HeapInstance): Sequence<Reference> {
+    val instanceClassId = source.instanceClassId
     // head may be null, in that case we generate an empty sequence.
-    val firstNode = instance["java.util.LinkedList", headFieldName]!!.valueAsInstance
+    val firstNode = source["java.util.LinkedList", headFieldName]!!.valueAsInstance
     return generateSequence(firstNode) { node ->
       node[nodeClassName, nodeNextFieldName]!!.valueAsInstance
     }
@@ -143,14 +171,20 @@ class InternalSharedLinkedListExpander(
       .mapNotNull { (index, node) ->
         val itemObjectId = node[nodeClassName, nodeElementFieldName]!!.value.asObjectId
         itemObjectId?.run {
-          HeapInstanceRef(
-            declaringClass = instanceClass,
-            name = "$index",
-            objectId = this,
-            isArrayLike = true
+          Reference(
+            valueObjectId = this,
+            matchedLibraryLeak = null,
+            lazyDetailsResolver = {
+              LazyDetails(
+                // All entries are represented by the same key name, e.g. "key()"
+                name = "$index",
+                locationClassObjectId = instanceClassId,
+                locationType = ARRAY_ENTRY,
+                isVirtual = true
+              )
+            }
           )
         }
       }
-      .toList()
   }
 }

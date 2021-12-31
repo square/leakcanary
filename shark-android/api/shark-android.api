@@ -174,7 +174,7 @@ public final class shark/AndroidServices {
 	public final fun getAliveAndroidServiceObjectIds (Lshark/HeapGraph;)Ljava/util/List;
 }
 
-public abstract class shark/ApacheHarmonyInstanceExpanders : java/lang/Enum, shark/ChainingInstanceExpander$OptionalFactory {
+public abstract class shark/ApacheHarmonyInstanceExpanders : java/lang/Enum, shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$OptionalFactory {
 	public static final field ARRAY_LIST Lshark/ApacheHarmonyInstanceExpanders;
 	public static final field COPY_ON_WRITE_ARRAY_LIST Lshark/ApacheHarmonyInstanceExpanders;
 	public static final field HASH_MAP Lshark/ApacheHarmonyInstanceExpanders;

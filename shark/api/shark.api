@@ -20,27 +20,40 @@ public final class shark/ApplicationLeak : shark/Leak {
 public final class shark/ApplicationLeak$Companion {
 }
 
-public final class shark/ChainingInstanceExpander : shark/InstanceExpander {
-	public static final field Companion Lshark/ChainingInstanceExpander$Companion;
-	public fun <init> (Ljava/util/List;Lshark/FieldInstanceExpander;)V
-	public fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
+public final class shark/ChainingInstanceReferenceReader : shark/ReferenceReader {
+	public static final field Companion Lshark/ChainingInstanceReferenceReader$Companion;
+	public fun <init> (Ljava/util/List;Lshark/FieldInstanceReferenceReader;)V
+	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
 
-public final class shark/ChainingInstanceExpander$Companion {
-	public final fun factory (Ljava/util/List;)Lshark/InstanceExpander$Factory;
+public final class shark/ChainingInstanceReferenceReader$Companion {
+	public final fun factory (Ljava/util/List;)Lshark/ReferenceReader$Factory;
 }
 
-public abstract interface class shark/ChainingInstanceExpander$OptionalFactory {
-	public abstract fun create (Lshark/HeapGraph;)Lshark/ChainingInstanceExpander$SyntheticInstanceExpander;
-}
-
-public abstract interface class shark/ChainingInstanceExpander$SyntheticInstanceExpander : shark/InstanceExpander {
+public abstract interface class shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader : shark/ReferenceReader {
 	public abstract fun matches (Lshark/HeapObject$HeapInstance;)Z
 }
 
-public final class shark/FieldInstanceExpander : shark/InstanceExpander {
-	public fun <init> (Lshark/HeapGraph;)V
-	public fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
+public abstract interface class shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$OptionalFactory {
+	public abstract fun create (Lshark/HeapGraph;)Lshark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader;
+}
+
+public final class shark/ClassReferenceReader : shark/ReferenceReader {
+	public fun <init> (Ljava/util/List;)V
+	public fun read (Lshark/HeapObject$HeapClass;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
+public final class shark/DelegatingObjectReferenceReader : shark/ReferenceReader {
+	public fun <init> (Lshark/ReferenceReader;Lshark/ReferenceReader;Lshark/ReferenceReader;)V
+	public fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
+public final class shark/FieldInstanceReferenceReader : shark/ReferenceReader {
+	public fun <init> (Lshark/HeapGraph;Ljava/util/List;)V
+	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
 
 public final class shark/FilteringLeakingObjectFinder : shark/LeakingObjectFinder {
@@ -130,15 +143,16 @@ public final class shark/HeapAnalysisSuccess$Companion {
 
 public final class shark/HeapAnalyzer {
 	public fun <init> (Lshark/OnAnalysisProgressListener;)V
-	public final fun analyze (Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/InstanceExpander;)Lshark/HeapAnalysis;
-	public final fun analyze (Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;Lshark/InstanceExpander$Factory;)Lshark/HeapAnalysis;
-	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/InstanceExpander;ILjava/lang/Object;)Lshark/HeapAnalysis;
-	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;Lshark/InstanceExpander$Factory;ILjava/lang/Object;)Lshark/HeapAnalysis;
+	public final fun analyze (Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;)Lshark/HeapAnalysis;
+	public final fun analyze (Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ReferenceReader;)Lshark/HeapAnalysis;
+	public final fun analyze (Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;)Lshark/HeapAnalysis;
+	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/HeapGraph;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;ILjava/lang/Object;)Lshark/HeapAnalysis;
+	public static synthetic fun analyze$default (Lshark/HeapAnalyzer;Ljava/io/File;Lshark/LeakingObjectFinder;Ljava/util/List;ZLjava/util/List;Lshark/MetadataExtractor;Lshark/ProguardMapping;ILjava/lang/Object;)Lshark/HeapAnalysis;
 }
 
 public final class shark/HeapInstanceRef {
-	public fun <init> (Lshark/HeapObject$HeapClass;Ljava/lang/String;JZ)V
-	public final fun getDeclaringClass ()Lshark/HeapObject$HeapClass;
+	public fun <init> (JLjava/lang/String;JZ)V
+	public final fun getDeclaringClass ()J
 	public final fun getName ()Ljava/lang/String;
 	public final fun getObjectId ()J
 	public final fun isArrayLike ()Z
@@ -148,14 +162,6 @@ public final class shark/IgnoredReferenceMatcher : shark/ReferenceMatcher {
 	public fun <init> (Lshark/ReferencePattern;)V
 	public fun getPattern ()Lshark/ReferencePattern;
 	public fun toString ()Ljava/lang/String;
-}
-
-public abstract interface class shark/InstanceExpander {
-	public abstract fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
-}
-
-public abstract interface class shark/InstanceExpander$Factory {
-	public abstract fun create (Lshark/HeapGraph;)Lshark/InstanceExpander;
 }
 
 public final class shark/KeyedWeakReferenceFinder : shark/LeakingObjectFinder {
@@ -356,6 +362,12 @@ public final class shark/MetadataExtractor$Companion {
 	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lshark/MetadataExtractor;
 }
 
+public final class shark/ObjectArrayReferenceReader : shark/ReferenceReader {
+	public fun <init> ()V
+	public fun read (Lshark/HeapObject$HeapObjectArray;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
 public abstract interface class shark/ObjectInspector {
 	public static final field Companion Lshark/ObjectInspector$Companion;
 	public abstract fun inspect (Lshark/ObjectReporter;)V
@@ -420,7 +432,7 @@ public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {
 	public static fun values ()[Lshark/OnAnalysisProgressListener$Step;
 }
 
-public abstract class shark/OpenJdkInstanceExpanders : java/lang/Enum, shark/ChainingInstanceExpander$OptionalFactory {
+public abstract class shark/OpenJdkInstanceExpanders : java/lang/Enum, shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$OptionalFactory {
 	public static final field ARRAY_LIST Lshark/OpenJdkInstanceExpanders;
 	public static final field CONCURRENT_HASH_MAP Lshark/OpenJdkInstanceExpanders;
 	public static final field COPY_ON_WRITE_ARRAY_LIST Lshark/OpenJdkInstanceExpanders;
@@ -432,8 +444,40 @@ public abstract class shark/OpenJdkInstanceExpanders : java/lang/Enum, shark/Cha
 	public static fun values ()[Lshark/OpenJdkInstanceExpanders;
 }
 
+public final class shark/Reference {
+	public fun <init> (JLshark/LibraryLeakReferenceMatcher;Lshark/Reference$LazyDetails$Resolver;)V
+	public final fun getLazyDetailsResolver ()Lshark/Reference$LazyDetails$Resolver;
+	public final fun getMatchedLibraryLeak ()Lshark/LibraryLeakReferenceMatcher;
+	public final fun getValueObjectId ()J
+}
+
+public final class shark/Reference$LazyDetails {
+	public fun <init> (Ljava/lang/String;JLshark/ReferenceLocationType;Z)V
+	public final fun getLocationClassObjectId ()J
+	public final fun getLocationType ()Lshark/ReferenceLocationType;
+	public final fun getName ()Ljava/lang/String;
+	public final fun isVirtual ()Z
+}
+
+public abstract interface class shark/Reference$LazyDetails$Resolver {
+	public abstract fun resolve ()Lshark/Reference$LazyDetails;
+}
+
+public final class shark/ReferenceLocationType : java/lang/Enum {
+	public static final field ARRAY_ENTRY Lshark/ReferenceLocationType;
+	public static final field INSTANCE_FIELD Lshark/ReferenceLocationType;
+	public static final field LOCAL Lshark/ReferenceLocationType;
+	public static final field STATIC_FIELD Lshark/ReferenceLocationType;
+	public static fun valueOf (Ljava/lang/String;)Lshark/ReferenceLocationType;
+	public static fun values ()[Lshark/ReferenceLocationType;
+}
+
 public abstract class shark/ReferenceMatcher {
 	public abstract fun getPattern ()Lshark/ReferencePattern;
+}
+
+public final class shark/ReferenceMatcherKt {
+	public static final fun filterFor (Ljava/lang/Iterable;Lshark/HeapGraph;)Ljava/util/List;
 }
 
 public abstract class shark/ReferencePattern : java/io/Serializable {
@@ -507,22 +551,33 @@ public final class shark/ReferencePattern$StaticFieldPattern : shark/ReferencePa
 public final class shark/ReferencePattern$StaticFieldPattern$Companion {
 }
 
-public final class shark/internal/InternalSharedArrayListExpander : shark/ChainingInstanceExpander$SyntheticInstanceExpander {
+public abstract interface class shark/ReferenceReader {
+	public abstract fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
+public abstract interface class shark/ReferenceReader$Factory {
+	public abstract fun create (Lshark/HeapGraph;)Lshark/ReferenceReader;
+}
+
+public final class shark/internal/InternalSharedArrayListReferenceReader : shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader {
 	public fun <init> (Ljava/lang/String;JLjava/lang/String;Ljava/lang/String;)V
-	public fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
 	public fun matches (Lshark/HeapObject$HeapInstance;)Z
+	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
 
-public final class shark/internal/InternalSharedHashMapExpander : shark/ChainingInstanceExpander$SyntheticInstanceExpander {
+public final class shark/internal/InternalSharedHashMapReferenceReader : shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
-	public fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
 	public fun matches (Lshark/HeapObject$HeapInstance;)Z
+	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
 
-public final class shark/internal/InternalSharedLinkedListExpander : shark/ChainingInstanceExpander$SyntheticInstanceExpander {
+public final class shark/internal/InternalSharedLinkedListReferenceReader : shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader {
 	public fun <init> (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public fun expandOutgoingRefs (Lshark/HeapObject$HeapInstance;)Ljava/util/List;
 	public fun matches (Lshark/HeapObject$HeapInstance;)Z
+	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
 
 public final class shark/internal/ObjectDominators {

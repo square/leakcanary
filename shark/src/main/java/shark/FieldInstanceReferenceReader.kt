@@ -1,5 +1,7 @@
 package shark
 
+import java.util.LinkedHashMap
+import kotlin.LazyThreadSafetyMode.NONE
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
@@ -11,25 +13,58 @@ import shark.PrimitiveType.FLOAT
 import shark.PrimitiveType.INT
 import shark.PrimitiveType.LONG
 import shark.PrimitiveType.SHORT
+import shark.Reference.LazyDetails
+import shark.ReferenceLocationType.INSTANCE_FIELD
+import shark.ReferencePattern.InstanceFieldPattern
+import shark.ReferencePattern.StaticFieldPattern
 import shark.internal.FieldIdReader
-import kotlin.LazyThreadSafetyMode.NONE
 
 /**
  * Expands instance fields that hold non null references.
  */
-class FieldInstanceExpander(
-  heapGraph: HeapGraph
-) : InstanceExpander {
+class FieldInstanceReferenceReader(
+  heapGraph: HeapGraph,
+  referenceMatchers: List<ReferenceMatcher>
+) : ReferenceReader<HeapInstance> {
 
+  private val fieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
   private val javaLangObjectId: Long
 
   init {
     val objectClass = heapGraph.findClassByName("java.lang.Object")
     javaLangObjectId = objectClass?.objectId ?: -1
+
+    val fieldNameByClassName = mutableMapOf<String, MutableMap<String, ReferenceMatcher>>()
+    referenceMatchers.forEach { referenceMatcher ->
+      val pattern = referenceMatcher.pattern
+      if (pattern is InstanceFieldPattern) {
+        val mapOrNull = fieldNameByClassName[pattern.className]
+        val map = if (mapOrNull != null) mapOrNull else {
+          val newMap = mutableMapOf<String, ReferenceMatcher>()
+          fieldNameByClassName[pattern.className] = newMap
+          newMap
+        }
+        map[pattern.fieldName] = referenceMatcher
+      }
+    }
+    this.fieldNameByClassName = fieldNameByClassName
   }
 
-  override fun expandOutgoingRefs(instance: HeapInstance): List<HeapInstanceRef> =
-    with(instance) {
+  override fun read(source: HeapInstance): Sequence<Reference> {
+    val fieldReferenceMatchers = LinkedHashMap<String, ReferenceMatcher>()
+
+    source.instanceClass.classHierarchy.forEach {
+      val referenceMatcherByField = fieldNameByClassName[it.name]
+      if (referenceMatcherByField != null) {
+        for ((fieldName, referenceMatcher) in referenceMatcherByField) {
+          if (!fieldReferenceMatchers.containsKey(fieldName)) {
+            fieldReferenceMatchers[fieldName] = referenceMatcher
+          }
+        }
+      }
+    }
+
+    return with(source) {
       val classHierarchy = instanceClass.classHierarchyWithoutJavaLangObject(javaLangObjectId)
 
       // Assigning to local variable to avoid repeated lookup and cast:
@@ -38,7 +73,7 @@ class FieldInstanceExpander(
       val fieldReader by lazy(NONE) {
         FieldIdReader(readRecord(), hprofGraph.identifierByteSize)
       }
-      val result = mutableListOf<HeapInstanceRef>()
+      val result = mutableListOf<Pair<String, Reference>>()
       var skipBytesCount = 0
 
       for (heapClass in classHierarchy) {
@@ -50,23 +85,35 @@ class FieldInstanceExpander(
             // Skip the accumulated bytes offset
             fieldReader.skipBytes(skipBytesCount)
             skipBytesCount = 0
-            val objectId = fieldReader.readId()
-            if (objectId != 0L) {
-              result.add(
-                HeapInstanceRef(
-                  declaringClass = heapClass,
-                  name = heapClass.instanceFieldName(fieldRecord),
-                  objectId = objectId,
-                  isArrayLike = false
+            val valueObjectId = fieldReader.readId()
+            if (valueObjectId != 0L) {
+              val name = heapClass.instanceFieldName(fieldRecord)
+              val referenceMatcher = fieldReferenceMatchers[name]
+              if (referenceMatcher !is IgnoredReferenceMatcher) {
+                val locationClassObjectId = heapClass.objectId
+                result.add(
+                  name to Reference(
+                    valueObjectId = valueObjectId,
+                    matchedLibraryLeak = referenceMatcher as LibraryLeakReferenceMatcher?,
+                    lazyDetailsResolver = {
+                      LazyDetails(
+                        name = name,
+                        locationClassObjectId = locationClassObjectId,
+                        locationType = INSTANCE_FIELD,
+                        isVirtual = false
+                      )
+                    }
+                  )
                 )
-              )
+              }
             }
           }
         }
       }
-      result.sortBy { it.name }
-      result
+      result.sortBy { it.first }
+      result.asSequence().map { it.second }
     }
+  }
 
   /**
    * Returns class hierarchy for an instance, but without it's root element, which is always

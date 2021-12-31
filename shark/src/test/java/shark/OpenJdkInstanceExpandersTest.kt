@@ -11,7 +11,8 @@ import java.io.File
 import java.util.LinkedList
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
-import shark.ChainingInstanceExpander.OptionalFactory
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
+import shark.HprofHeapGraph.Companion.openHeapGraph
 
 class OpenJdkInstanceExpandersTest {
 
@@ -73,7 +74,7 @@ class OpenJdkInstanceExpandersTest {
 
     val retainedSizeExpanded = hprofFile.findPathFromLeak(
       computeRetainedHeapSize = true,
-      expanderFactory = LINKED_LIST
+      virtualRefReaderFactory = LINKED_LIST
     )
       .first()
       .originObject
@@ -81,7 +82,7 @@ class OpenJdkInstanceExpandersTest {
 
     val retainedSizeNotExpanded = hprofFile.findPathFromLeak(
       computeRetainedHeapSize = true,
-      expanderFactory = { null }
+      virtualRefReaderFactory = { null }
     )
       .first()
       .originObject
@@ -330,7 +331,6 @@ class OpenJdkInstanceExpandersTest {
     }
   }
 
-
   @Test fun `HashSet no expander`() {
     val set = HashSet<Any>()
     set += Retained()
@@ -354,8 +354,7 @@ class OpenJdkInstanceExpandersTest {
     }
     with(refPath[3]) {
       assertThat(owningClassName).isEqualTo("java.util.HashMap\$Node")
-      assertThat(referenceDisplayName).isEqualTo("key" +
-        "")
+      assertThat(referenceDisplayName).isEqualTo("key")
     }
   }
 
@@ -366,19 +365,50 @@ class OpenJdkInstanceExpandersTest {
 
   private fun File.findPathFromLeak(
     computeRetainedHeapSize: Boolean,
-    expanderFactory: OptionalFactory,
+    virtualRefReaderFactory: OptionalFactory,
   ): List<LeakTraceReference> {
-    val instanceExpander = ChainingInstanceExpander.factory(listOf(expanderFactory))
-    val analysis = checkForLeaks<HeapAnalysisSuccess>(
-      computeRetainedHeapSize = computeRetainedHeapSize,
-      leakFilters = listOf(object :
-        LeakingObjectFilter {
-        override fun isLeakingObject(heapObject: HeapObject): Boolean {
-          return heapObject.asInstance?.instanceOf(Retained::class) ?: false
-        }
-      }),
-      instanceExpander = instanceExpander
-    )
+    val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
+
+    val analysis = openHeapGraph().use { graph ->
+      val referenceMatchers = defaultReferenceMatchers
+
+      val appliedRefMatchers = referenceMatchers.filterFor(graph)
+
+      val virtualRefReaders = virtualRefReaderFactory.create(graph)?.let {
+        listOf(it)
+      } ?: emptyList()
+
+      val instanceExpander = ChainingInstanceReferenceReader(
+        virtualRefReaders = virtualRefReaders,
+        fieldRefReader = FieldInstanceReferenceReader(graph, appliedRefMatchers)
+      )
+
+      val referenceReader = DelegatingObjectReferenceReader(
+        classReferenceReader = ClassReferenceReader(appliedRefMatchers),
+        instanceReferenceReader = instanceExpander,
+        objectArrayReferenceReader = ObjectArrayReferenceReader()
+      )
+
+      heapAnalyzer.analyze(
+        heapDumpFile = this,
+        graph = graph,
+        leakingObjectFinder = FilteringLeakingObjectFinder(listOf(object :
+          LeakingObjectFilter {
+          override fun isLeakingObject(heapObject: HeapObject): Boolean {
+            return heapObject.asInstance?.instanceOf(Retained::class) ?: false
+          }
+        })),
+        referenceMatchers = appliedRefMatchers,
+        computeRetainedHeapSize = computeRetainedHeapSize,
+        objectInspectors = emptyList(),
+        metadataExtractor = MetadataExtractor.NO_OP,
+        referenceReader = referenceReader
+      )
+    }.apply {
+      if (this is HeapAnalysisFailure) {
+        println(this)
+      }
+    } as HeapAnalysisSuccess
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     println(leakTrace.toSimplePathString())
     val index = leakTrace.referencePath.indexOfFirst { it.referenceName == ::leakRoot.name }

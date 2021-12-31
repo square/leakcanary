@@ -64,13 +64,10 @@ class HeapAnalyzer constructor(
     val referenceMatchers: List<ReferenceMatcher>,
     val computeRetainedHeapSize: Boolean,
     val objectInspectors: List<ObjectInspector>,
-    val instanceExpander: InstanceExpander
+    val referenceReader: ReferenceReader<HeapObject>
   )
 
-  /**
-   * Searches the heap dump for leaking instances and then computes the shortest strong reference
-   * path from those instances to the GC roots.
-   */
+  @Deprecated("Use the non deprecated analyze method instead")
   fun analyze(
     heapDumpFile: File,
     leakingObjectFinder: LeakingObjectFinder,
@@ -78,58 +75,56 @@ class HeapAnalyzer constructor(
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-    proguardMapping: ProguardMapping? = null,
-    instanceExpander: InstanceExpander.Factory = InstanceExpander.Factory { FieldInstanceExpander(it) }
+    proguardMapping: ProguardMapping? = null
   ): HeapAnalysis {
-    val analysisStartNanoTime = System.nanoTime()
-
     if (!heapDumpFile.exists()) {
       val exception = IllegalArgumentException("File does not exist: $heapDumpFile")
       return HeapAnalysisFailure(
         heapDumpFile = heapDumpFile,
         createdAtTimeMillis = System.currentTimeMillis(),
-        analysisDurationMillis = since(analysisStartNanoTime),
+        analysisDurationMillis = 0,
         exception = HeapAnalysisException(exception)
       )
     }
-
+    listener.onAnalysisProgress(PARSING_HEAP_DUMP)
+    val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
     return try {
-      listener.onAnalysisProgress(PARSING_HEAP_DUMP)
-      val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
       sourceProvider.openHeapGraph(proguardMapping).use { graph ->
-        val helpers =
-          FindLeakInput(
-            graph,
-            referenceMatchers,
-            computeRetainedHeapSize,
-            objectInspectors,
-            instanceExpander.create(graph)
-          )
-        val result = helpers.analyzeGraph(
-          metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
-        )
-        val lruCacheStats = (graph as HprofHeapGraph).lruCacheStats()
-        val randomAccessStats =
-          "RandomAccess[" +
-            "bytes=${sourceProvider.randomAccessByteReads}," +
-            "reads=${sourceProvider.randomAccessReadCount}," +
-            "travel=${sourceProvider.randomAccessByteTravel}," +
-            "range=${sourceProvider.byteTravelRange}," +
-            "size=${heapDumpFile.length()}" +
-            "]"
-        val stats = "$lruCacheStats $randomAccessStats"
-        result.copy(metadata = result.metadata + ("Stats" to stats))
+        analyze(
+          heapDumpFile,
+          graph,
+          leakingObjectFinder,
+          referenceMatchers,
+          computeRetainedHeapSize,
+          objectInspectors,
+          metadataExtractor
+        ).let { result ->
+          if (result is HeapAnalysisSuccess) {
+            val lruCacheStats = (graph as HprofHeapGraph).lruCacheStats()
+            val randomAccessStats =
+              "RandomAccess[" +
+                "bytes=${sourceProvider.randomAccessByteReads}," +
+                "reads=${sourceProvider.randomAccessReadCount}," +
+                "travel=${sourceProvider.randomAccessByteTravel}," +
+                "range=${sourceProvider.byteTravelRange}," +
+                "size=${heapDumpFile.length()}" +
+                "]"
+            val stats = "$lruCacheStats $randomAccessStats"
+            result.copy(metadata = result.metadata + ("Stats" to stats))
+          } else result
+        }
       }
-    } catch (exception: Throwable) {
+    } catch (throwable: Throwable) {
       HeapAnalysisFailure(
         heapDumpFile = heapDumpFile,
         createdAtTimeMillis = System.currentTimeMillis(),
-        analysisDurationMillis = since(analysisStartNanoTime),
-        exception = HeapAnalysisException(exception)
+        analysisDurationMillis = 0,
+        exception = HeapAnalysisException(throwable)
       )
     }
   }
 
+  @Deprecated("Use the non deprecated analyze method instead")
   fun analyze(
     heapDumpFile: File,
     graph: HeapGraph,
@@ -138,14 +133,72 @@ class HeapAnalyzer constructor(
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-    instanceExpander: InstanceExpander = FieldInstanceExpander(graph)
+  ): HeapAnalysis {
+    val analysisStartNanoTime = System.nanoTime()
+
+    val appliedRefMatchers = referenceMatchers.filterFor(graph)
+
+    val referenceReader = DelegatingObjectReferenceReader(
+      classReferenceReader = ClassReferenceReader(appliedRefMatchers),
+      instanceReferenceReader = FieldInstanceReferenceReader(graph, appliedRefMatchers),
+      objectArrayReferenceReader = ObjectArrayReferenceReader()
+    )
+    return analyze(
+      heapDumpFile,
+      graph,
+      leakingObjectFinder,
+      referenceMatchers,
+      computeRetainedHeapSize,
+      objectInspectors,
+      metadataExtractor,
+      referenceReader
+    ).run {
+      val updatedDurationMillis = since(analysisStartNanoTime)
+      when (this) {
+        is HeapAnalysisSuccess -> copy(analysisDurationMillis = updatedDurationMillis)
+        is HeapAnalysisFailure -> copy(analysisDurationMillis = updatedDurationMillis)
+      }
+    }
+  }
+
+  // TODO Callers should add to analysisStartNanoTime
+  // TODO Input should be a builder or part of the object state probs?
+
+  // TODO Maybe there's some sort of helper for setting up the right analysis?
+  // TODO There's a part focused on finding leaks, and then we add to that.
+  // TODO Maybe the result isn't even a leaktrace yet, but something with live object ids?
+  // Ideally the result contains only what this can return. No file, etc.
+  // File: used to create the graph + in result
+  // leakingObjectFinder: Helper object, shared
+  // computeRetainedHeapSize: boolean param for single analysis
+  // referenceMatchers: param?. though honestly not great.
+  // objectInspectors: Helper object.
+  // metadataExtractor: helper object, not needed for leak finding
+  // referenceReader: can't be helper object, needs graph => param something that can produce it from
+  // graph (and in the impl we give that thing the referenceMatchers)
+  /**
+   * Searches the heap dump for leaking instances and then computes the shortest strong reference
+   * path from those instances to the GC roots.
+   */
+  // TODO Don't publish this as a new API, move internals somewhere else instead.
+  @Suppress("LongParameterList")
+  fun analyze(
+    // TODO Kill this file
+    heapDumpFile: File,
+    graph: HeapGraph,
+    leakingObjectFinder: LeakingObjectFinder,
+    referenceMatchers: List<ReferenceMatcher>,
+    computeRetainedHeapSize: Boolean,
+    objectInspectors: List<ObjectInspector>,
+    metadataExtractor: MetadataExtractor,
+    referenceReader: ReferenceReader<HeapObject>
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
     return try {
       val helpers =
         FindLeakInput(
           graph, referenceMatchers, computeRetainedHeapSize, objectInspectors,
-          instanceExpander
+          referenceReader
         )
       helpers.analyzeGraph(
         metadataExtractor, leakingObjectFinder, heapDumpFile, analysisStartNanoTime
@@ -203,7 +256,7 @@ class HeapAnalyzer constructor(
   )
 
   private fun FindLeakInput.findLeaks(leakingObjectIds: Set<Long>): LeaksAndUnreachableObjects {
-    val pathFinder = PathFinder(graph, listener, instanceExpander, referenceMatchers)
+    val pathFinder = PathFinder(graph, listener, referenceReader, referenceMatchers)
     val pathFindingResults =
       pathFinder.findPathsFromGcRoots(leakingObjectIds, computeRetainedHeapSize)
 
@@ -497,15 +550,19 @@ class HeapAnalyzer constructor(
     leakTraceObjects: List<LeakTraceObject>
   ): List<LeakTraceReference> {
     return shortestChildPath.mapIndexed { index, childNode ->
+
+      val details = childNode.lazyDetailsResolver.resolve()
+
       LeakTraceReference(
         originObject = leakTraceObjects[index],
-        referenceType = childNode.refFromParentType,
-        owningClassName = if (childNode.owningClassId != 0L) {
-          graph.findObjectById(childNode.owningClassId).asClass!!.name
-        } else {
-          leakTraceObjects[index].className
+        referenceType = when (details.locationType) {
+          ReferenceLocationType.INSTANCE_FIELD -> LeakTraceReference.ReferenceType.INSTANCE_FIELD
+          ReferenceLocationType.STATIC_FIELD -> LeakTraceReference.ReferenceType.STATIC_FIELD
+          ReferenceLocationType.LOCAL -> LeakTraceReference.ReferenceType.LOCAL
+          ReferenceLocationType.ARRAY_ENTRY -> LeakTraceReference.ReferenceType.ARRAY_ENTRY
         },
-        referenceName = childNode.refFromParentName
+        owningClassName = graph.findObjectById(details.locationClassObjectId).asClass!!.name,
+        referenceName = details.name
       )
     }
   }

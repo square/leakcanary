@@ -1,6 +1,8 @@
 @file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
 package shark.internal
 
+import java.util.ArrayDeque
+import java.util.Deque
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
@@ -12,23 +14,18 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.IgnoredReferenceMatcher
-import shark.InstanceExpander
-import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
-import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
-import shark.LeakTraceReference.ReferenceType.LOCAL
-import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.LibraryLeakReferenceMatcher
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.PrimitiveType.INT
+import shark.Reference.LazyDetails
+import shark.ReferenceLocationType.LOCAL
 import shark.ReferenceMatcher
 import shark.ReferencePattern
-import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.NativeGlobalVariablePattern
-import shark.ReferencePattern.StaticFieldPattern
+import shark.ReferenceReader
 import shark.ValueHolder
-import shark.ValueHolder.ReferenceHolder
 import shark.internal.PathFinder.VisitTracker.Dominated
 import shark.internal.PathFinder.VisitTracker.Visited
 import shark.internal.ReferencePathNode.ChildNode
@@ -39,9 +36,6 @@ import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppc.LongScatterSet
-import java.util.ArrayDeque
-import java.util.Deque
-import java.util.LinkedHashMap
 
 /**
  * Not thread safe.
@@ -53,7 +47,7 @@ import java.util.LinkedHashMap
 internal class PathFinder(
   private val graph: HeapGraph,
   private val listener: OnAnalysisProgressListener,
-  private val instanceExpander: InstanceExpander,
+  private val objectReferenceReader: ReferenceReader<HeapObject>,
   referenceMatchers: List<ReferenceMatcher>
 ) {
 
@@ -142,53 +136,23 @@ internal class PathFinder(
     var visitingLast = false
   }
 
-  private val fieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
-  private val staticFieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
   private val threadNameReferenceMatchers: Map<String, ReferenceMatcher>
   private val jniGlobalReferenceMatchers: Map<String, ReferenceMatcher>
 
   init {
-    val fieldNameByClassName = mutableMapOf<String, MutableMap<String, ReferenceMatcher>>()
-    val staticFieldNameByClassName = mutableMapOf<String, MutableMap<String, ReferenceMatcher>>()
     val threadNames = mutableMapOf<String, ReferenceMatcher>()
     val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
 
-    val appliedRefMatchers = referenceMatchers.filter {
-      (it is IgnoredReferenceMatcher || (it is LibraryLeakReferenceMatcher && it.patternApplies(
-        graph
-      )))
-    }
-
-    appliedRefMatchers.forEach { referenceMatcher ->
+    referenceMatchers.forEach { referenceMatcher ->
       when (val pattern = referenceMatcher.pattern) {
         is ReferencePattern.JavaLocalPattern -> {
           threadNames[pattern.threadName] = referenceMatcher
-        }
-        is StaticFieldPattern -> {
-          val mapOrNull = staticFieldNameByClassName[pattern.className]
-          val map = if (mapOrNull != null) mapOrNull else {
-            val newMap = mutableMapOf<String, ReferenceMatcher>()
-            staticFieldNameByClassName[pattern.className] = newMap
-            newMap
-          }
-          map[pattern.fieldName] = referenceMatcher
-        }
-        is InstanceFieldPattern -> {
-          val mapOrNull = fieldNameByClassName[pattern.className]
-          val map = if (mapOrNull != null) mapOrNull else {
-            val newMap = mutableMapOf<String, ReferenceMatcher>()
-            fieldNameByClassName[pattern.className] = newMap
-            newMap
-          }
-          map[pattern.fieldName] = referenceMatcher
         }
         is NativeGlobalVariablePattern -> {
           jniGlobals[pattern.className] = referenceMatcher
         }
       }
     }
-    this.fieldNameByClassName = fieldNameByClassName
-    this.staticFieldNameByClassName = staticFieldNameByClassName
     this.threadNameReferenceMatchers = threadNames
     this.jniGlobalReferenceMatchers = jniGlobals
   }
@@ -265,10 +229,23 @@ internal class PathFinder(
         }
       }
 
-      when (val heapObject = graph.findObjectById(node.objectId)) {
-        is HeapClass -> visitClassRecord(heapObject, node)
-        is HeapInstance -> visitInstance(heapObject, node)
-        is HeapObjectArray -> visitObjectArray(heapObject, node)
+      val heapObject = graph.findObjectById(node.objectId)
+      val newNodes = objectReferenceReader.read(heapObject).map { reference ->
+        reference.matchedLibraryLeak?.let { matched ->
+          LibraryLeakChildNode(
+            objectId = reference.valueObjectId,
+            parent = node,
+            lazyDetailsResolver = reference.lazyDetailsResolver,
+            matcher = matched
+          )
+        } ?: NormalNode(
+          objectId = reference.valueObjectId,
+          parent = node,
+          lazyDetailsResolver = reference.lazyDetailsResolver
+        )
+      }
+      newNodes.forEach { newNode ->
+        enqueue(newNode)
       }
     }
     return PathFindingResults(
@@ -289,6 +266,16 @@ internal class PathFinder(
       removedNode
     }
   }
+
+  private val HeapObject.classObjectId: Long
+    get() {
+      return when (this) {
+        is HeapClass -> objectId
+        is HeapInstance -> instanceClassId
+        is HeapObjectArray -> arrayClassId
+        is HeapPrimitiveArray -> arrayClass.objectId
+      }
+    }
 
   private fun State.enqueueGcRoots() {
     val gcRoots = sortedGcRoots()
@@ -318,26 +305,36 @@ internal class PathFinder(
             if (referenceMatcher !is IgnoredReferenceMatcher) {
               val rootNode = NormalRootNode(threadRoot.id, gcRoot)
 
-              val refFromParentType = LOCAL
               // Unfortunately Android heap dumps do not include stack trace data, so
               // JavaFrame.frameNumber is always -1 and we cannot know which method is causing the
               // reference to be held.
               val refFromParentName = ""
 
+              val valueObjectId = gcRoot.id
+
+              val threadClassId = threadInstance.classObjectId
+
+              val lazyDetailsResolver = LazyDetails.Resolver {
+                LazyDetails(
+                  name = refFromParentName,
+                  locationClassObjectId = threadClassId,
+                  locationType = LOCAL,
+                  isVirtual = false
+                )
+              }
+
               val childNode = if (referenceMatcher is LibraryLeakReferenceMatcher) {
                 LibraryLeakChildNode(
-                  objectId = gcRoot.id,
+                  objectId = valueObjectId,
                   parent = rootNode,
-                  refFromParentType = refFromParentType,
-                  refFromParentName = refFromParentName,
-                  matcher = referenceMatcher
+                  matcher = referenceMatcher,
+                  lazyDetailsResolver = lazyDetailsResolver
                 )
               } else {
                 NormalNode(
-                  objectId = gcRoot.id,
+                  objectId = valueObjectId,
                   parent = rootNode,
-                  refFromParentType = refFromParentType,
-                  refFromParentName = refFromParentName
+                  lazyDetailsResolver = lazyDetailsResolver
                 )
               }
               enqueue(childNode)
@@ -404,113 +401,6 @@ internal class PathFinder(
           rootClassName(graphObject1).compareTo(rootClassName(graphObject2))
         }
       }
-  }
-
-  private fun State.visitClassRecord(
-    heapClass: HeapClass,
-    parent: ReferencePathNode
-  ) {
-    val ignoredStaticFields = staticFieldNameByClassName[heapClass.name] ?: emptyMap()
-
-    for (staticField in heapClass.readStaticFields()) {
-      if (!staticField.value.isNonNullReference) {
-        continue
-      }
-
-      val fieldName = staticField.name
-      if (fieldName == "\$staticOverhead" || fieldName == "\$classOverhead") {
-        continue
-      }
-
-      // Note: instead of calling staticField.value.asObjectId!! we cast holder to ReferenceHolder
-      // and access value directly. This allows us to avoid unnecessary boxing of Long.
-      val objectId = (staticField.value.holder as ReferenceHolder).value
-
-      val node = when (val referenceMatcher = ignoredStaticFields[fieldName]) {
-        null -> NormalNode(
-          objectId = objectId,
-          parent = parent,
-          refFromParentType = STATIC_FIELD,
-          refFromParentName = fieldName
-        )
-        is LibraryLeakReferenceMatcher -> LibraryLeakChildNode(
-          objectId = objectId,
-          parent = parent,
-          refFromParentType = STATIC_FIELD,
-          refFromParentName = fieldName,
-          matcher = referenceMatcher
-        )
-        is IgnoredReferenceMatcher -> null
-      }
-      if (node != null) {
-        enqueue(node)
-      }
-    }
-  }
-
-  private fun State.visitInstance(
-    instance: HeapInstance,
-    parent: ReferencePathNode
-  ) {
-    val fieldReferenceMatchers = LinkedHashMap<String, ReferenceMatcher>()
-
-    instance.instanceClass.classHierarchy.forEach {
-      val referenceMatcherByField = fieldNameByClassName[it.name]
-      if (referenceMatcherByField != null) {
-        for ((fieldName, referenceMatcher) in referenceMatcherByField) {
-          if (!fieldReferenceMatchers.containsKey(fieldName)) {
-            fieldReferenceMatchers[fieldName] = referenceMatcher
-          }
-        }
-      }
-    }
-
-    instanceExpander.expandOutgoingRefs(instance).forEach { instanceRefField ->
-      val refFromParentType = if (instanceRefField.isArrayLike) ARRAY_ENTRY else INSTANCE_FIELD
-      val node = when (val referenceMatcher = fieldReferenceMatchers[instanceRefField.name]) {
-        null -> NormalNode(
-          objectId = instanceRefField.objectId,
-          parent = parent,
-          refFromParentType = refFromParentType,
-          refFromParentName = instanceRefField.name,
-          owningClassId = instanceRefField.declaringClass.objectId
-        )
-        is LibraryLeakReferenceMatcher ->
-          LibraryLeakChildNode(
-            objectId = instanceRefField.objectId,
-            parent = parent,
-            refFromParentType = refFromParentType,
-            refFromParentName = instanceRefField.name,
-            matcher = referenceMatcher,
-            owningClassId = instanceRefField.declaringClass.objectId
-          )
-        is IgnoredReferenceMatcher -> null
-      }
-      if (node != null) {
-        enqueue(node)
-      }
-    }
-  }
-
-  private fun State.visitObjectArray(
-    objectArray: HeapObjectArray,
-    parent: ReferencePathNode
-  ) {
-    val record = objectArray.readRecord()
-    val nonNullElementIds = record.elementIds.filter { objectId ->
-      objectId != ValueHolder.NULL_REFERENCE && graph.objectExists(objectId)
-    }
-    nonNullElementIds.forEachIndexed { index, elementId ->
-      val name = index.toString()
-      enqueue(
-        NormalNode(
-          objectId = elementId,
-          parent = parent,
-          refFromParentType = ARRAY_ENTRY,
-          refFromParentName = name
-        )
-      )
-    }
   }
 
   @Suppress("ReturnCount")

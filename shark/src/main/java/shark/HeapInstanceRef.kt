@@ -1,7 +1,5 @@
 package shark
 
-import shark.HeapObject.HeapClass
-
 /**
  * Similar to [HeapField] but limited to non null references. References
  * can be actual fields or they can be synthetic fields when simplifying known data
@@ -11,13 +9,12 @@ class HeapInstanceRef(
   /**
    * The class this reference was declared in.
    */
-  val declaringClass: HeapClass,
+  val declaringClass: Long,
 
   /**
    * Name of the reference, which is either a field name or a synthetic made up value.
    */
   val name: String,
-
 
   /**
    * Object id for the object that this reference is pointing to.
@@ -31,3 +28,7 @@ class HeapInstanceRef(
    */
   val isArrayLike: Boolean
 )
+
+
+
+

@@ -2,7 +2,7 @@ package shark.internal
 
 import shark.GcRoot
 import shark.LibraryLeakReferenceMatcher
-import shark.LeakTraceReference
+import shark.Reference.LazyDetails
 
 internal sealed class ReferencePathNode {
   abstract val objectId: Long
@@ -33,30 +33,19 @@ internal sealed class ReferencePathNode {
     /**
      * The reference from the parent to this node
      */
-    abstract val refFromParentType: LeakTraceReference.ReferenceType
-    abstract val refFromParentName: String
-
-    /**
-     * If this node is an instance, then this is the id of the class that actually
-     * declares the node.
-     */
-    abstract val owningClassId: Long
+    abstract val lazyDetailsResolver: LazyDetails.Resolver
 
     class LibraryLeakChildNode(
       override val objectId: Long,
       override val parent: ReferencePathNode,
-      override val refFromParentType: LeakTraceReference.ReferenceType,
-      override val refFromParentName: String,
       override val matcher: LibraryLeakReferenceMatcher,
-      override val owningClassId: Long = 0
+      override val lazyDetailsResolver: LazyDetails.Resolver,
     ) : ChildNode(), LibraryLeakNode
 
     class NormalNode(
       override val objectId: Long,
       override val parent: ReferencePathNode,
-      override val refFromParentType: LeakTraceReference.ReferenceType,
-      override val refFromParentName: String,
-      override val owningClassId: Long = 0
+      override val lazyDetailsResolver: LazyDetails.Resolver,
     ) : ChildNode()
   }
 }
