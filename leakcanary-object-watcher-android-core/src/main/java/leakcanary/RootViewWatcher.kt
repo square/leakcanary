@@ -19,7 +19,7 @@ import android.app.Activity
 import android.app.Dialog
 import android.view.View
 import android.view.View.OnAttachStateChangeListener
-import com.squareup.leakcanary.objectwatcher.R
+import com.squareup.leakcanary.objectwatcher.core.R
 import curtains.Curtains
 import curtains.OnRootViewAddedListener
 import curtains.WindowType.PHONE_WINDOW

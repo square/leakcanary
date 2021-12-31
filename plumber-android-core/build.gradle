@@ -5,9 +5,12 @@ plugins {
 }
 
 dependencies {
-  api project(':plumber-android-core')
+  api project(':shark-log')
+  api project(':leakcanary-android-utils')
 
   implementation libs.kotlin.stdlib
+  // Optional dependency
+  compileOnly libs.androidX.fragment
 }
 
 android {

@@ -5,17 +5,16 @@ plugins {
 }
 
 dependencies {
-  api project(':plumber-android-core')
+  api project(':leakcanary-object-watcher-android-core')
 
-  implementation libs.kotlin.stdlib
+  implementation libs.androidX.startup
 }
 
 android {
-  resourcePrefix 'leak_canary_plumber'
+  resourcePrefix 'leak_canary_watcher_'
   compileSdk versions.compileSdk
   defaultConfig {
     minSdk versions.minSdk
-    consumerProguardFiles 'consumer-proguard-rules.pro'
   }
   buildFeatures.buildConfig = false
   lintOptions {

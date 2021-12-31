@@ -3,5 +3,5 @@
   <!-- Whether to automatically install in the main process on startup via a custom ContentProvider.
    If false, you need to call AppWatcher.manualInstall().
    -->
-  <bool name="leak_canary_watcher_auto_install">true</bool>
+  <bool name="leak_canary_watcher_watch_dismissed_dialogs">false</bool>
 </resources>

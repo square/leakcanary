@@ -8,6 +8,7 @@ dependencies {
   api project(':plumber-android-core')
 
   implementation libs.kotlin.stdlib
+  implementation libs.androidX.startup
 }
 
 android {
@@ -15,7 +16,6 @@ android {
   compileSdk versions.compileSdk
   defaultConfig {
     minSdk versions.minSdk
-    consumerProguardFiles 'consumer-proguard-rules.pro'
   }
   buildFeatures.buildConfig = false
   lintOptions {
