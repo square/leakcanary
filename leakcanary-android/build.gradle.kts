@@ -20,6 +20,8 @@ android {
 
 dependencies {
   api(project(":leakcanary-android-core"))
-
-  implementation(libs.kotlin.stdlib)
+  // AppWatcher auto installer
+  api(project(":leakcanary-object-watcher-android"))
+  // Plumber auto installer
+  implementation(project(":plumber-android"))
 }

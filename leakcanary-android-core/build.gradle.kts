@@ -22,10 +22,9 @@ android {
 
 dependencies {
   api(project(":shark-android"))
-  api(project(":leakcanary-object-watcher-android"))
+  api(project(":leakcanary-object-watcher-android-core"))
   api(project(":leakcanary-object-watcher-android-androidx"))
   api(project(":leakcanary-object-watcher-android-support-fragments"))
-  implementation(project(":plumber-android"))
   implementation(libs.kotlin.stdlib)
 
   // Optional dependency
@@ -37,6 +36,8 @@ dependencies {
   testImplementation(libs.kotlin.reflect)
   testImplementation(libs.mockito)
   testImplementation(libs.mockitoKotlin)
+  // AppWatcher auto installer for running tests
+  androidTestImplementation(project(":leakcanary-object-watcher-android"))
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)
   androidTestImplementation(libs.androidX.test.runner)

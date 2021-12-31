@@ -19,7 +19,7 @@ android {
 }
 
 dependencies {
-  api(project(":leakcanary-object-watcher-android"))
+  api(project(":leakcanary-object-watcher-android-core"))
 
   implementation(libs.kotlin.stdlib)
   // Optional dependency

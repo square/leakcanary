@@ -19,7 +19,8 @@ android {
 }
 
 dependencies {
-  api(project(":leakcanary-android-core"))
+  api(project(":shark-log"))
+  api(project(":leakcanary-object-watcher-android-core"))
 
   implementation(libs.kotlin.stdlib)
   implementation(libs.androidX.work.multiprocess)

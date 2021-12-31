@@ -26,6 +26,10 @@ dependencies {
   implementation(libs.androidX.test.runner)
   implementation(libs.kotlin.stdlib)
 
+  // AppWatcher auto installer for running tests
+  androidTestImplementation(project(":leakcanary-object-watcher-android"))
+  // Plumber auto installer for running tests
+  androidTestImplementation(project(":plumber-android"))
   androidTestImplementation(libs.androidX.test.core)
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)

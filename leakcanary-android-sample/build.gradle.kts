@@ -67,6 +67,7 @@ android {
 
 dependencies {
   debugImplementation(project(":leakcanary-android"))
+  // debugImplementation(project(":leakcanary-android-startup"))
   // Uncomment to use the :leakcanary process
   // debugImplementation(project(":leakcanary-android-process"))
   releaseImplementation(project(":leakcanary-android-release"))

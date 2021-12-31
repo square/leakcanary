@@ -21,13 +21,5 @@ android {
 }
 
 dependencies {
-  api(project(":leakcanary-object-watcher"))
-  api(project(":leakcanary-android-utils"))
-
-  implementation(libs.curtains)
-  implementation(libs.kotlin.stdlib)
-
-  testImplementation(libs.assertjCore)
-  testImplementation(libs.junit)
-  testImplementation(libs.kotlin.reflect)
+  api(project(":leakcanary-object-watcher-android-core"))
 }
