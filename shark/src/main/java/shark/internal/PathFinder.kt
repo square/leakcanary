@@ -285,7 +285,7 @@ internal class PathFinder(
           val threadPair = threadsBySerialNumber[gcRoot.threadSerialNumber]
           if (threadPair == null) {
             // Could not find the thread that this java frame is for.
-            enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = false)
+            enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = true)
           } else {
             val (threadInstance, threadRoot) = threadPair
             val threadName = threadNames[threadInstance] ?: run {
