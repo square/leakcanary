@@ -262,7 +262,9 @@ class LeakTraceRenderingTest {
     hprofFile.writeJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        objectInspectors = ObjectInspectors.jdkDefaults
+      )
 
     analysis renders """
     ┬───
@@ -270,6 +272,7 @@ class LeakTraceRenderingTest {
     │
     ├─ MyThread thread
     │    Leaking: UNKNOWN
+    │    Thread name: 'kroutine'
     │    ↓ MyThread<Java Local>
     │              ~~~~~~~~~~~~
     ╰→ Leaking instance

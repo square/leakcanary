@@ -143,7 +143,7 @@ class ObjectDominators {
     ignoredRefs: List<IgnoredReferenceMatcher>
   ): Map<Long, DominatorNode> {
     val referenceReader = DelegatingObjectReferenceReader(
-      classReferenceReader = ClassReferenceReader(emptyList()),
+      classReferenceReader = ClassReferenceReader(graph, emptyList()),
       instanceReferenceReader = FieldInstanceReferenceReader(graph, emptyList()),
       objectArrayReferenceReader = ObjectArrayReferenceReader()
     )

@@ -372,19 +372,17 @@ class OpenJdkInstanceExpandersTest {
     val analysis = openHeapGraph().use { graph ->
       val referenceMatchers = defaultReferenceMatchers
 
-      val appliedRefMatchers = referenceMatchers.filterFor(graph)
-
       val virtualRefReaders = virtualRefReaderFactory.create(graph)?.let {
         listOf(it)
       } ?: emptyList()
 
       val instanceExpander = ChainingInstanceReferenceReader(
         virtualRefReaders = virtualRefReaders,
-        fieldRefReader = FieldInstanceReferenceReader(graph, appliedRefMatchers)
+        fieldRefReader = FieldInstanceReferenceReader(graph, referenceMatchers)
       )
 
       val referenceReader = DelegatingObjectReferenceReader(
-        classReferenceReader = ClassReferenceReader(appliedRefMatchers),
+        classReferenceReader = ClassReferenceReader(graph, referenceMatchers),
         instanceReferenceReader = instanceExpander,
         objectArrayReferenceReader = ObjectArrayReferenceReader()
       )
@@ -398,7 +396,7 @@ class OpenJdkInstanceExpandersTest {
             return heapObject.asInstance?.instanceOf(Retained::class) ?: false
           }
         })),
-        referenceMatchers = appliedRefMatchers,
+        referenceMatchers = referenceMatchers,
         computeRetainedHeapSize = computeRetainedHeapSize,
         objectInspectors = emptyList(),
         metadataExtractor = MetadataExtractor.NO_OP,

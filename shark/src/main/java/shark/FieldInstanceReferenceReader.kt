@@ -16,14 +16,13 @@ import shark.PrimitiveType.SHORT
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.INSTANCE_FIELD
 import shark.ReferencePattern.InstanceFieldPattern
-import shark.ReferencePattern.StaticFieldPattern
 import shark.internal.FieldIdReader
 
 /**
  * Expands instance fields that hold non null references.
  */
 class FieldInstanceReferenceReader(
-  heapGraph: HeapGraph,
+  graph: HeapGraph,
   referenceMatchers: List<ReferenceMatcher>
 ) : ReferenceReader<HeapInstance> {
 
@@ -31,11 +30,11 @@ class FieldInstanceReferenceReader(
   private val javaLangObjectId: Long
 
   init {
-    val objectClass = heapGraph.findClassByName("java.lang.Object")
+    val objectClass = graph.findClassByName("java.lang.Object")
     javaLangObjectId = objectClass?.objectId ?: -1
 
     val fieldNameByClassName = mutableMapOf<String, MutableMap<String, ReferenceMatcher>>()
-    referenceMatchers.forEach { referenceMatcher ->
+    referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
       val pattern = referenceMatcher.pattern
       if (pattern is InstanceFieldPattern) {
         val mapOrNull = fieldNameByClassName[pattern.className]
@@ -94,12 +93,13 @@ class FieldInstanceReferenceReader(
                 result.add(
                   name to Reference(
                     valueObjectId = valueObjectId,
-                    matchedLibraryLeak = referenceMatcher as LibraryLeakReferenceMatcher?,
+                    isLowPriority = referenceMatcher != null,
                     lazyDetailsResolver = {
                       LazyDetails(
                         name = name,
                         locationClassObjectId = locationClassObjectId,
                         locationType = INSTANCE_FIELD,
+                        matchedLibraryLeak = referenceMatcher as LibraryLeakReferenceMatcher?,
                         isVirtual = false
                       )
                     }

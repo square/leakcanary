@@ -45,14 +45,15 @@ class InternalSharedHashMapReferenceReader(
         if (key.isNonNullReference) {
           Reference(
             valueObjectId = key.asObjectId!!,
-            matchedLibraryLeak = null,
+            isLowPriority = false,
             lazyDetailsResolver = {
               LazyDetails(
                 // All entries are represented by the same key name, e.g. "key()"
                 name = keyName,
                 locationClassObjectId = declaringClassId,
                 locationType = ARRAY_ENTRY,
-                isVirtual = true
+                isVirtual = true,
+                matchedLibraryLeak = null
               )
             }
           )
@@ -72,7 +73,7 @@ class InternalSharedHashMapReferenceReader(
           val valueRef = if (value.isNonNullReference) {
             Reference(
               valueObjectId = value.asObjectId!!,
-              matchedLibraryLeak = null,
+              isLowPriority = false,
               lazyDetailsResolver = {
                 val keyAsName =
                   key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
@@ -81,7 +82,8 @@ class InternalSharedHashMapReferenceReader(
                   name = keyAsName,
                   locationClassObjectId = declaringClassId,
                   locationType = ARRAY_ENTRY,
-                  isVirtual = true
+                  isVirtual = true,
+                  matchedLibraryLeak = null
                 )
               }
             )
@@ -130,14 +132,15 @@ class InternalSharedArrayListReferenceReader(
         if (elementValue.isNonNullReference) {
           Reference(
             valueObjectId = elementValue.asObjectId!!,
-            matchedLibraryLeak = null,
+            isLowPriority = false,
             lazyDetailsResolver = {
               LazyDetails(
                 // All entries are represented by the same key name, e.g. "key()"
                 name = "$index",
                 locationClassObjectId = instanceClassId,
                 locationType = ARRAY_ENTRY,
-                isVirtual = true
+                isVirtual = true,
+                matchedLibraryLeak = null
               )
             }
           )
@@ -173,14 +176,15 @@ class InternalSharedLinkedListReferenceReader(
         itemObjectId?.run {
           Reference(
             valueObjectId = this,
-            matchedLibraryLeak = null,
+            isLowPriority = false,
             lazyDetailsResolver = {
               LazyDetails(
                 // All entries are represented by the same key name, e.g. "key()"
                 name = "$index",
                 locationClassObjectId = instanceClassId,
                 locationType = ARRAY_ENTRY,
-                isVirtual = true
+                isVirtual = true,
+                matchedLibraryLeak = null
               )
             }
           )

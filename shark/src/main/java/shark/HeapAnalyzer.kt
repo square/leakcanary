@@ -43,7 +43,6 @@ import shark.internal.PathFinder
 import shark.internal.PathFinder.PathFindingResults
 import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
-import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ShallowSizeCalculator
 import shark.internal.createSHA1Hash
@@ -51,6 +50,7 @@ import shark.internal.lastSegment
 import java.io.File
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
+import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 
 /**
  * Analyzes heap dumps to look for leaks.
@@ -136,11 +136,9 @@ class HeapAnalyzer constructor(
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
-    val appliedRefMatchers = referenceMatchers.filterFor(graph)
-
     val referenceReader = DelegatingObjectReferenceReader(
-      classReferenceReader = ClassReferenceReader(appliedRefMatchers),
-      instanceReferenceReader = FieldInstanceReferenceReader(graph, appliedRefMatchers),
+      classReferenceReader = ClassReferenceReader(graph, referenceMatchers),
+      instanceReferenceReader = FieldInstanceReferenceReader(graph, referenceMatchers),
       objectArrayReferenceReader = ObjectArrayReferenceReader()
     )
     return analyze(
@@ -413,7 +411,25 @@ class HeapAnalyzer constructor(
     val root: RootNode,
     val childPath: List<ChildNode>
   ) {
+
+    val childPathWithDetails = childPath.map { it to it.lazyDetailsResolver.resolve() }
+
     fun asList() = listOf(root) + childPath
+
+    fun firstLibraryLeakMatcher() : LibraryLeakReferenceMatcher? {
+      if (root is LibraryLeakRootNode) {
+        return root.matcher
+      }
+      return childPathWithDetails.map { it.second.matchedLibraryLeak }.firstOrNull { it != null}
+    }
+
+    fun asNodesWithMatchers(): List<Pair<ReferencePathNode, LibraryLeakReferenceMatcher?>> {
+      val rootMatcher = if (root is LibraryLeakRootNode) {
+        root.matcher
+      } else null
+      val childPathWithMatchers = childPathWithDetails.map { it.first to it.second.matchedLibraryLeak }
+      return listOf(root to rootMatcher) + childPathWithMatchers
+    }
   }
 
   private fun FindLeakInput.buildLeakTraces(
@@ -432,7 +448,7 @@ class HeapAnalyzer constructor(
 
       val leakTraceObjects = buildLeakTraceObjects(inspectedObjects, retainedSizes)
 
-      val referencePath = buildReferencePath(shortestPath.childPath, leakTraceObjects)
+      val referencePath = buildReferencePath(shortestPath, leakTraceObjects)
 
       val leakTrace = LeakTrace(
         gcRootType = GcRootType.fromGcRoot(shortestPath.root.gcRoot),
@@ -440,17 +456,11 @@ class HeapAnalyzer constructor(
         leakingObject = leakTraceObjects.last()
       )
 
-      val firstLibraryLeakNode = if (shortestPath.root is LibraryLeakNode) {
-        shortestPath.root
-      } else {
-        shortestPath.childPath.firstOrNull { it is LibraryLeakNode } as LibraryLeakNode?
-      }
-
-      if (firstLibraryLeakNode != null) {
-        val matcher = firstLibraryLeakNode.matcher
-        val signature: String = matcher.pattern.toString()
+      val firstLibraryLeakMatcher = shortestPath.firstLibraryLeakMatcher()
+      if (firstLibraryLeakMatcher != null) {
+        val signature: String = firstLibraryLeakMatcher.pattern.toString()
           .createSHA1Hash()
-        libraryLeaksMap.getOrPut(signature) { matcher to mutableListOf() }
+        libraryLeaksMap.getOrPut(signature) { firstLibraryLeakMatcher to mutableListOf() }
           .second += leakTrace
       } else {
         applicationLeaksMap.getOrPut(leakTrace.signature) { mutableListOf() } += leakTrace
@@ -470,13 +480,15 @@ class HeapAnalyzer constructor(
     listener.onAnalysisProgress(INSPECTING_OBJECTS)
 
     val leakReportersByPath = shortestPaths.map { path ->
-      val pathList = path.asList()
+      val pathList = path.asNodesWithMatchers()
       pathList
-        .mapIndexed { index, node ->
+        .mapIndexed { index, (node, _) ->
           val reporter = ObjectReporter(heapObject = graph.findObjectById(node.objectId))
-          val nextNode = if (index + 1 < pathList.size) pathList[index + 1] else null
-          if (nextNode is LibraryLeakNode) {
-            reporter.labels += "Library leak match: ${nextNode.matcher.pattern}"
+          if (index + 1 < pathList.size) {
+            val (_, nextMatcher) = pathList[index + 1]
+            if (nextMatcher != null) {
+              reporter.labels += "Library leak match: ${nextMatcher.pattern}"
+            }
           }
           reporter
         }
@@ -546,13 +558,10 @@ class HeapAnalyzer constructor(
   }
 
   private fun FindLeakInput.buildReferencePath(
-    shortestChildPath: List<ChildNode>,
+    shortestPath: ShortestPath,
     leakTraceObjects: List<LeakTraceObject>
   ): List<LeakTraceReference> {
-    return shortestChildPath.mapIndexed { index, childNode ->
-
-      val details = childNode.lazyDetailsResolver.resolve()
-
+    return shortestPath.childPathWithDetails.mapIndexed { index, (childNode, details) ->
       LeakTraceReference(
         originObject = leakTraceObjects[index],
         referenceType = when (details.locationType) {

@@ -1,4 +1,5 @@
 @file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
+
 package shark.internal
 
 import java.util.ArrayDeque
@@ -26,12 +27,10 @@ import shark.ReferencePattern
 import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferenceReader
 import shark.ValueHolder
+import shark.filterFor
 import shark.internal.PathFinder.VisitTracker.Dominated
 import shark.internal.PathFinder.VisitTracker.Visited
 import shark.internal.ReferencePathNode.ChildNode
-import shark.internal.ReferencePathNode.ChildNode.LibraryLeakChildNode
-import shark.internal.ReferencePathNode.ChildNode.NormalNode
-import shark.internal.ReferencePathNode.LibraryLeakNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
@@ -143,7 +142,7 @@ internal class PathFinder(
     val threadNames = mutableMapOf<String, ReferenceMatcher>()
     val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
 
-    referenceMatchers.forEach { referenceMatcher ->
+    referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
       when (val pattern = referenceMatcher.pattern) {
         is ReferencePattern.JavaLocalPattern -> {
           threadNames[pattern.threadName] = referenceMatcher
@@ -230,22 +229,14 @@ internal class PathFinder(
       }
 
       val heapObject = graph.findObjectById(node.objectId)
-      val newNodes = objectReferenceReader.read(heapObject).map { reference ->
-        reference.matchedLibraryLeak?.let { matched ->
-          LibraryLeakChildNode(
-            objectId = reference.valueObjectId,
-            parent = node,
-            lazyDetailsResolver = reference.lazyDetailsResolver,
-            matcher = matched
-          )
-        } ?: NormalNode(
+      objectReferenceReader.read(heapObject).forEach { reference ->
+        val newNode = ChildNode(
           objectId = reference.valueObjectId,
           parent = node,
           lazyDetailsResolver = reference.lazyDetailsResolver
         )
-      }
-      newNodes.forEach { newNode ->
-        enqueue(newNode)
+        val isLowPriority = reference.isLowPriority
+        enqueue(newNode, isLowPriority)
       }
     }
     return PathFindingResults(
@@ -286,13 +277,15 @@ internal class PathFinder(
       when (gcRoot) {
         is ThreadObject -> {
           threadsBySerialNumber[gcRoot.threadSerialNumber] = objectRecord.asInstance!! to gcRoot
-          enqueue(NormalRootNode(gcRoot.id, gcRoot))
+          // We deprioritize thread objects because on Lollipop the thread local values are stored
+          // as a field.
+          enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = true)
         }
         is JavaFrame -> {
           val threadPair = threadsBySerialNumber[gcRoot.threadSerialNumber]
           if (threadPair == null) {
             // Could not find the thread that this java frame is for.
-            enqueue(NormalRootNode(gcRoot.id, gcRoot))
+            enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = false)
           } else {
             val (threadInstance, threadRoot) = threadPair
             val threadName = threadNames[threadInstance] ?: run {
@@ -319,25 +312,18 @@ internal class PathFinder(
                   name = refFromParentName,
                   locationClassObjectId = threadClassId,
                   locationType = LOCAL,
-                  isVirtual = false
+                  isVirtual = false,
+                  matchedLibraryLeak = referenceMatcher as? LibraryLeakReferenceMatcher?
                 )
               }
-
-              val childNode = if (referenceMatcher is LibraryLeakReferenceMatcher) {
-                LibraryLeakChildNode(
-                  objectId = valueObjectId,
-                  parent = rootNode,
-                  matcher = referenceMatcher,
-                  lazyDetailsResolver = lazyDetailsResolver
-                )
-              } else {
-                NormalNode(
-                  objectId = valueObjectId,
-                  parent = rootNode,
-                  lazyDetailsResolver = lazyDetailsResolver
-                )
-              }
-              enqueue(childNode)
+              val childNode = ChildNode(
+                objectId = valueObjectId,
+                parent = rootNode,
+                lazyDetailsResolver = lazyDetailsResolver
+              )
+              // Java Frames always have low priority because their path is harder to understand
+              // for developers
+              enqueue(childNode, lowPriority = true)
             }
           }
         }
@@ -350,13 +336,13 @@ internal class PathFinder(
           }
           if (referenceMatcher !is IgnoredReferenceMatcher) {
             if (referenceMatcher is LibraryLeakReferenceMatcher) {
-              enqueue(LibraryLeakRootNode(gcRoot.id, gcRoot, referenceMatcher))
+              enqueue(LibraryLeakRootNode(gcRoot.id, gcRoot, referenceMatcher), lowPriority =true)
             } else {
-              enqueue(NormalRootNode(gcRoot.id, gcRoot))
+              enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = false)
             }
           }
         }
-        else -> enqueue(NormalRootNode(gcRoot.id, gcRoot))
+        else -> enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = false)
       }
     }
   }
@@ -405,24 +391,18 @@ internal class PathFinder(
 
   @Suppress("ReturnCount")
   private fun State.enqueue(
-    node: ReferencePathNode
+    node: ReferencePathNode,
+    lowPriority: Boolean
   ) {
     if (node.objectId == ValueHolder.NULL_REFERENCE) {
       return
     }
 
-    val visitLast =
-      visitingLast ||
-        node is LibraryLeakNode ||
-        // We deprioritize thread objects because on Lollipop the thread local values are stored
-        // as a field.
-        (node is RootNode && node.gcRoot is ThreadObject) ||
-        (node is NormalNode && node.parent is RootNode && node.parent.gcRoot is JavaFrame)
+    val visitLast = visitingLast || lowPriority
 
-    val parentObjectId = if (node is RootNode) {
-      ValueHolder.NULL_REFERENCE
-    } else {
-      (node as ChildNode).parent.objectId
+    val parentObjectId = when(node) {
+      is RootNode -> ValueHolder.NULL_REFERENCE
+      is ChildNode -> node.parent.objectId
     }
 
     // Note: when computing dominators, this has a side effects of updating

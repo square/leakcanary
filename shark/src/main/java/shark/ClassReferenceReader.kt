@@ -7,13 +7,14 @@ import shark.ReferencePattern.StaticFieldPattern
 import shark.ValueHolder.ReferenceHolder
 
 class ClassReferenceReader(
+  graph: HeapGraph,
   referenceMatchers: List<ReferenceMatcher>
 ) : ReferenceReader<HeapClass> {
   private val staticFieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
 
   init {
     val staticFieldNameByClassName = mutableMapOf<String, MutableMap<String, ReferenceMatcher>>()
-    referenceMatchers.forEach { referenceMatcher ->
+    referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
       val pattern = referenceMatcher.pattern
       if (pattern is StaticFieldPattern) {
         val mapOrNull = staticFieldNameByClassName[pattern.className]
@@ -52,13 +53,14 @@ class ClassReferenceReader(
         val sourceObjectId = source.objectId
         Reference(
           valueObjectId = valueObjectId,
-          matchedLibraryLeak = referenceMatcher as LibraryLeakReferenceMatcher?,
+          isLowPriority = referenceMatcher != null,
           lazyDetailsResolver = {
             LazyDetails(
               name = fieldName,
               locationClassObjectId = sourceObjectId,
               locationType = STATIC_FIELD,
-              isVirtual = false
+              isVirtual = false,
+              matchedLibraryLeak = referenceMatcher as LibraryLeakReferenceMatcher?,
             )
           }
         )

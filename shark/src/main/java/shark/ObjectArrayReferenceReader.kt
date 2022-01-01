@@ -14,13 +14,14 @@ class ObjectArrayReferenceReader : ReferenceReader<HeapObjectArray> {
     }.mapIndexed { index, elementObjectId ->
       Reference(
         valueObjectId = elementObjectId,
-        matchedLibraryLeak = null,
+        isLowPriority = false,
         lazyDetailsResolver = {
           LazyDetails(
             name = index.toString(),
             locationClassObjectId = arrayClassId,
             locationType = ARRAY_ENTRY,
-            isVirtual = false
+            isVirtual = false,
+            matchedLibraryLeak = null
           )
         }
       )

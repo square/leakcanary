@@ -40,7 +40,7 @@ public abstract interface class shark/ChainingInstanceReferenceReader$VirtualIns
 }
 
 public final class shark/ClassReferenceReader : shark/ReferenceReader {
-	public fun <init> (Ljava/util/List;)V
+	public fun <init> (Lshark/HeapGraph;Ljava/util/List;)V
 	public fun read (Lshark/HeapObject$HeapClass;)Lkotlin/sequences/Sequence;
 	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
@@ -445,16 +445,17 @@ public abstract class shark/OpenJdkInstanceExpanders : java/lang/Enum, shark/Cha
 }
 
 public final class shark/Reference {
-	public fun <init> (JLshark/LibraryLeakReferenceMatcher;Lshark/Reference$LazyDetails$Resolver;)V
+	public fun <init> (JZLshark/Reference$LazyDetails$Resolver;)V
 	public final fun getLazyDetailsResolver ()Lshark/Reference$LazyDetails$Resolver;
-	public final fun getMatchedLibraryLeak ()Lshark/LibraryLeakReferenceMatcher;
 	public final fun getValueObjectId ()J
+	public final fun isLowPriority ()Z
 }
 
 public final class shark/Reference$LazyDetails {
-	public fun <init> (Ljava/lang/String;JLshark/ReferenceLocationType;Z)V
+	public fun <init> (Ljava/lang/String;JLshark/ReferenceLocationType;Lshark/LibraryLeakReferenceMatcher;Z)V
 	public final fun getLocationClassObjectId ()J
 	public final fun getLocationType ()Lshark/ReferenceLocationType;
+	public final fun getMatchedLibraryLeak ()Lshark/LibraryLeakReferenceMatcher;
 	public final fun getName ()Ljava/lang/String;
 	public final fun isVirtual ()Z
 }

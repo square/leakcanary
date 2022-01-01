@@ -7,13 +7,15 @@ class Reference(
   val valueObjectId: Long,
 
   /**
-   * Non null if this reference matches a known library leak pattern, null otherwise.
+   * Low priority references are references that should be explored after any non low priority
+   * reference has been explored. This ensures that such references are not on the shortest best
+   * path if there is any other path that doesn't include any low priority reference.
    *
-   * The shortest path finder will only go through matching references after it has exhausted
-   * references that don't match, prioritizing finding an application leak over a known library
-   * leak.
+   * This is useful to highlight references that most likely exist due to known leaks (which means
+   * we can potentially find unknown leaks instead) as well as references which are harder to
+   * interpret for developers (such as java locals).
    */
-  val matchedLibraryLeak: LibraryLeakReferenceMatcher?,
+  val isLowPriority: Boolean,
 
   val lazyDetailsResolver: LazyDetails.Resolver
 ) {
@@ -21,6 +23,14 @@ class Reference(
     val name: String,
     val locationClassObjectId: Long,
     val locationType: ReferenceLocationType,
+    /**
+     * Non null if this reference matches a known library leak pattern, null otherwise.
+     *
+     * Usually associated  with [Reference.isLowPriority] being true, so that the shortest path
+     * finder will only go through matching references after it has exhausted references that don't
+     * match, prioritizing finding an application leak over a known library leak.
+     */
+    val matchedLibraryLeak: LibraryLeakReferenceMatcher?,
     // TODO Better name
     val isVirtual: Boolean
   ) {
