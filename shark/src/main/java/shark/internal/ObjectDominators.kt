@@ -1,5 +1,6 @@
 package shark.internal
 
+import shark.ChainingInstanceReferenceReader
 import shark.ClassReferenceReader
 import shark.DelegatingObjectReferenceReader
 import shark.FieldInstanceReferenceReader
@@ -10,6 +11,7 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.IgnoredReferenceMatcher
+import shark.JavaLocalReferenceReader
 import shark.ObjectArrayReferenceReader
 import shark.OnAnalysisProgressListener
 import shark.ValueHolder
@@ -144,8 +146,10 @@ class ObjectDominators {
   ): Map<Long, DominatorNode> {
     val referenceReader = DelegatingObjectReferenceReader(
       classReferenceReader = ClassReferenceReader(graph, emptyList()),
-      instanceReferenceReader = FieldInstanceReferenceReader(graph, emptyList()),
-      objectArrayReferenceReader = ObjectArrayReferenceReader()
+      instanceReferenceReader = ChainingInstanceReferenceReader(
+        listOf(JavaLocalReferenceReader(graph, emptyList())),
+        FieldInstanceReferenceReader(graph, emptyList())
+      ),      objectArrayReferenceReader = ObjectArrayReferenceReader()
     )
 
     val pathFinder = PathFinder(

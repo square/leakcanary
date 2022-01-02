@@ -111,15 +111,7 @@ data class LeakTrace(
         firstLinePrefix = "├─ ",
         additionalLinesPrefix = "│    ",
         showLeakingStatus = showLeakingStatus,
-        /**
-         * When the GC Root is a Java Frame, Shark inserts the corresponding thread as an extra
-         * element in the leaktrace.
-         */
-        typeName = if (index == 0 && gcRootType == JAVA_FRAME) {
-          "thread"
-        } else {
-          originObject.typeName
-        }
+        typeName = originObject.typeName
       )
       result += getNextElementString(this, element, index, showLeakingStatus)
     }

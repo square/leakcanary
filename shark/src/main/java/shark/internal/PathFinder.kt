@@ -20,12 +20,10 @@ import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.PrimitiveType.INT
-import shark.Reference.LazyDetails
-import shark.ReferenceLocationType.LOCAL
 import shark.ReferenceMatcher
-import shark.ReferencePattern
 import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferenceReader
+import shark.ThreadObjects
 import shark.ValueHolder
 import shark.filterFor
 import shark.internal.PathFinder.VisitTracker.Dominated
@@ -135,24 +133,24 @@ internal class PathFinder(
     var visitingLast = false
   }
 
-  private val threadNameReferenceMatchers: Map<String, ReferenceMatcher>
   private val jniGlobalReferenceMatchers: Map<String, ReferenceMatcher>
 
-  init {
-    val threadNames = mutableMapOf<String, ReferenceMatcher>()
-    val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
+  private val threadClassObjectIds: Set<Long> =
+    graph.findClassByName(Thread::class.java.name)?.let { threadClass ->
+      setOf(threadClass.objectId) + (threadClass.subclasses
+        .map { it.objectId }
+        .toSet())
+    }?: emptySet()
 
+  init {
+    val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
     referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
       when (val pattern = referenceMatcher.pattern) {
-        is ReferencePattern.JavaLocalPattern -> {
-          threadNames[pattern.threadName] = referenceMatcher
-        }
         is NativeGlobalVariablePattern -> {
           jniGlobals[pattern.className] = referenceMatcher
         }
       }
     }
-    this.threadNameReferenceMatchers = threadNames
     this.jniGlobalReferenceMatchers = jniGlobals
   }
 
@@ -235,8 +233,7 @@ internal class PathFinder(
           parent = node,
           lazyDetailsResolver = reference.lazyDetailsResolver
         )
-        val isLowPriority = reference.isLowPriority
-        enqueue(newNode, isLowPriority)
+        enqueue(newNode, isLowPriority = reference.isLowPriority)
       }
     }
     return PathFindingResults(
@@ -258,74 +255,22 @@ internal class PathFinder(
     }
   }
 
-  private val HeapObject.classObjectId: Long
-    get() {
-      return when (this) {
-        is HeapClass -> objectId
-        is HeapInstance -> instanceClassId
-        is HeapObjectArray -> arrayClassId
-        is HeapPrimitiveArray -> arrayClass.objectId
-      }
-    }
-
   private fun State.enqueueGcRoots() {
     val gcRoots = sortedGcRoots()
 
-    val threadNames = mutableMapOf<HeapInstance, String>()
-    val threadsBySerialNumber = mutableMapOf<Int, Pair<HeapInstance, ThreadObject>>()
     gcRoots.forEach { (objectRecord, gcRoot) ->
       when (gcRoot) {
         is ThreadObject -> {
-          threadsBySerialNumber[gcRoot.threadSerialNumber] = objectRecord.asInstance!! to gcRoot
+          // TODO have a wrapper for FieldInstanceReader that recognises thread instances,
+          // delegates to FieldInstanceReader but filters thread local values to be lower priority.
           // We deprioritize thread objects because on Lollipop the thread local values are stored
           // as a field.
-          enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = true)
+          enqueue(NormalRootNode(gcRoot.id, gcRoot), isLowPriority = true)
         }
+        // Note: in sortedGcRoots we already filter out any java frame that has an associated
+        // thread.
         is JavaFrame -> {
-          val threadPair = threadsBySerialNumber[gcRoot.threadSerialNumber]
-          if (threadPair == null) {
-            // Could not find the thread that this java frame is for.
-            enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = true)
-          } else {
-            val (threadInstance, threadRoot) = threadPair
-            val threadName = threadNames[threadInstance] ?: run {
-              val name = threadInstance[Thread::class, "name"]?.value?.readAsJavaString() ?: ""
-              threadNames[threadInstance] = name
-              name
-            }
-            val referenceMatcher = threadNameReferenceMatchers[threadName]
-
-            if (referenceMatcher !is IgnoredReferenceMatcher) {
-              val rootNode = NormalRootNode(threadRoot.id, gcRoot)
-
-              // Unfortunately Android heap dumps do not include stack trace data, so
-              // JavaFrame.frameNumber is always -1 and we cannot know which method is causing the
-              // reference to be held.
-              val refFromParentName = ""
-
-              val valueObjectId = gcRoot.id
-
-              val threadClassId = threadInstance.classObjectId
-
-              val lazyDetailsResolver = LazyDetails.Resolver {
-                LazyDetails(
-                  name = refFromParentName,
-                  locationClassObjectId = threadClassId,
-                  locationType = LOCAL,
-                  isVirtual = false,
-                  matchedLibraryLeak = referenceMatcher as? LibraryLeakReferenceMatcher?
-                )
-              }
-              val childNode = ChildNode(
-                objectId = valueObjectId,
-                parent = rootNode,
-                lazyDetailsResolver = lazyDetailsResolver
-              )
-              // Java Frames always have low priority because their path is harder to understand
-              // for developers
-              enqueue(childNode, lowPriority = true)
-            }
-          }
+          enqueue(NormalRootNode(gcRoot.id, gcRoot), isLowPriority = true)
         }
         is JniGlobal -> {
           val referenceMatcher = when (objectRecord) {
@@ -336,13 +281,13 @@ internal class PathFinder(
           }
           if (referenceMatcher !is IgnoredReferenceMatcher) {
             if (referenceMatcher is LibraryLeakReferenceMatcher) {
-              enqueue(LibraryLeakRootNode(gcRoot.id, gcRoot, referenceMatcher), lowPriority =true)
+              enqueue(LibraryLeakRootNode(gcRoot.id, gcRoot, referenceMatcher), isLowPriority =true)
             } else {
-              enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = false)
+              enqueue(NormalRootNode(gcRoot.id, gcRoot), isLowPriority = false)
             }
           }
         }
-        else -> enqueue(NormalRootNode(gcRoot.id, gcRoot), lowPriority = false)
+        else -> enqueue(NormalRootNode(gcRoot.id, gcRoot), isLowPriority = false)
       }
     }
   }
@@ -371,11 +316,17 @@ internal class PathFinder(
       }
     }
 
+    val threadSerialNumbers =
+      ThreadObjects.getThreadObjects(graph).map { it.threadSerialNumber }.toSet()
+
     return graph.gcRoots
       .filter { gcRoot ->
         // GC roots sometimes reference objects that don't exist in the heap dump
         // See https://github.com/square/leakcanary/issues/1516
-        graph.objectExists(gcRoot.id)
+        graph.objectExists(gcRoot.id) &&
+          // Only include java frames that do not have a corresponding ThreadObject.
+          // JavaLocalReferenceReader will insert the other java frames.
+          !(gcRoot is JavaFrame && gcRoot.threadSerialNumber in threadSerialNumbers)
       }
       .map { graph.findObjectById(it.id) to it }
       .sortedWith { (graphObject1, root1), (graphObject2, root2) ->
@@ -392,13 +343,13 @@ internal class PathFinder(
   @Suppress("ReturnCount")
   private fun State.enqueue(
     node: ReferencePathNode,
-    lowPriority: Boolean
+    isLowPriority: Boolean
   ) {
     if (node.objectId == ValueHolder.NULL_REFERENCE) {
       return
     }
 
-    val visitLast = visitingLast || lowPriority
+    val visitLast = visitingLast || isLowPriority
 
     val parentObjectId = when(node) {
       is RootNode -> ValueHolder.NULL_REFERENCE
@@ -454,6 +405,8 @@ internal class PathFinder(
               // double count its side.
               true
             }
+            // Don't skip empty thread instances as we might add java frames to those.
+            graphObject.instanceClassId in threadClassObjectIds -> false
             graphObject.instanceClass.instanceByteSize <= sizeOfObjectInstances -> true
             graphObject.instanceClass.classHierarchy.all { heapClass ->
               heapClass.objectId == javaLangObjectId || !heapClass.hasReferenceInstanceFields

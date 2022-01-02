@@ -377,7 +377,7 @@ class OpenJdkInstanceExpandersTest {
       } ?: emptyList()
 
       val instanceExpander = ChainingInstanceReferenceReader(
-        virtualRefReaders = virtualRefReaders,
+        virtualRefReaders = virtualRefReaders + JavaLocalReferenceReader(graph, referenceMatchers),
         fieldRefReader = FieldInstanceReferenceReader(graph, referenceMatchers)
       )
 

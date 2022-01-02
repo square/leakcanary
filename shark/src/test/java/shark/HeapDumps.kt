@@ -5,6 +5,7 @@ import shark.GcRoot.ThreadObject
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ReferenceHolder
 import java.io.File
+import kotlin.reflect.KClass
 
 fun File.writeWeakReferenceCleared() {
   dump {
@@ -24,8 +25,8 @@ fun File.writeSinglePathToInstance() {
     keyedWeakReference(leaking)
     clazz(
       "GcRoot", staticFields = listOf(
-      "shortestPath" to leaking
-    )
+        "shortestPath" to leaking
+      )
     )
   }
 }
@@ -36,8 +37,8 @@ fun File.writeSinglePathToString(value: String = "Hi") {
     keyedWeakReference(leaking)
     clazz(
       "GcRoot", staticFields = listOf(
-      "shortestPath" to leaking
-    )
+        "shortestPath" to leaking
+      )
     )
   }
 }
@@ -72,9 +73,9 @@ fun File.writeTwoPathsToInstance() {
     )
     clazz(
       "GcRoot", staticFields = listOf(
-      "shortestPath" to leaking,
-      "longestPath" to hasLeaking
-    )
+        "shortestPath" to leaking,
+        "longestPath" to hasLeaking
+      )
     )
   }
 }
@@ -112,14 +113,27 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
 }
 
 fun File.writeJavaLocalLeak(
-  threadClass: String,
-  threadName: String
+  threadClass: String? = null,
+  threadName: String? = null
 ) {
   dump {
     val threadClassId =
-      clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class))
-    val myThreadClassId = clazz(className = threadClass, superclassId = threadClassId)
-    val threadInstance = instance(myThreadClassId, listOf(string(threadName)))
+      clazz(
+        className = Thread::class.java.name,
+        fields = if (threadName != null) listOf("name" to ReferenceHolder::class) else emptyList()
+      )
+    val myThreadClassId = if (threadClass == null) {
+      threadClassId
+    } else {
+      clazz(className = threadClass, superclassId = threadClassId)
+    }
+    val threadInstance = instance(
+      myThreadClassId, if (threadName != null) {
+        listOf(string(threadName))
+      } else {
+        emptyList()
+      }
+    )
     gcRoot(
       ThreadObject(
         id = threadInstance.value, threadSerialNumber = 42, stackTraceSerialNumber = 0
@@ -155,8 +169,8 @@ fun File.writeTwoPathJavaLocalShorterLeak(
     )
     clazz(
       "GcRoot", staticFields = listOf(
-      "longestPath" to hasLeaking
-    )
+        "longestPath" to hasLeaking
+      )
     )
   }
 }

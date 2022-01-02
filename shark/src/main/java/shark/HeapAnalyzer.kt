@@ -138,7 +138,10 @@ class HeapAnalyzer constructor(
 
     val referenceReader = DelegatingObjectReferenceReader(
       classReferenceReader = ClassReferenceReader(graph, referenceMatchers),
-      instanceReferenceReader = FieldInstanceReferenceReader(graph, referenceMatchers),
+      instanceReferenceReader = ChainingInstanceReferenceReader(
+        listOf(JavaLocalReferenceReader(graph, referenceMatchers)),
+        FieldInstanceReferenceReader(graph, referenceMatchers)
+      ),
       objectArrayReferenceReader = ObjectArrayReferenceReader()
     )
     return analyze(

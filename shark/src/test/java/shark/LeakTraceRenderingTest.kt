@@ -268,9 +268,9 @@ class LeakTraceRenderingTest {
 
     analysis renders """
     ┬───
-    │ GC Root: Java local variable
+    │ GC Root: Thread object
     │
-    ├─ MyThread thread
+    ├─ MyThread instance
     │    Leaking: UNKNOWN
     │    Thread name: 'kroutine'
     │    ↓ MyThread<Java Local>

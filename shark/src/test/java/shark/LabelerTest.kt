@@ -1,3 +1,4 @@
+
 package shark
 
 import org.assertj.core.api.Assertions.assertThat

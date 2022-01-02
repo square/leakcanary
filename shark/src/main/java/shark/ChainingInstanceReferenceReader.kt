@@ -1,6 +1,5 @@
 package shark
 
-import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
 import shark.HeapObject.HeapInstance
 
 /*
@@ -12,7 +11,7 @@ import shark.HeapObject.HeapInstance
  *  => should emit Message objects instead of obj + callback
  */
 /**
- * A [InstanceReferenceReader] that first delegates expanding to [virtualRefReaders] in order until one
+ * A [ReferenceReader] that first delegates expanding to [virtualRefReaders] in order until one
  * matches (or none), and then always proceeds with [fieldRefReader]. This means any
  * synthetic ref will be on the shortest path, but we still explore the entire data structure so
  * that we correctly track which objects have been visited and correctly compute dominators and
@@ -23,14 +22,9 @@ class ChainingInstanceReferenceReader(
   private val fieldRefReader: FieldInstanceReferenceReader
 ) : ReferenceReader<HeapInstance> {
 
-
   override fun read(source: HeapInstance): Sequence<Reference> {
-    val fieldRefs = fieldRefReader.read(source)
-    // If there are no field refs then we won't find any synthetic refs either.
-    if (!fieldRefs.iterator().hasNext()) {
-      return emptySequence()
-    }
     val syntheticRefs = expandSyntheticRefs(source)
+    val fieldRefs = fieldRefReader.read(source)
     return syntheticRefs + fieldRefs
   }
 
@@ -60,16 +54,6 @@ class ChainingInstanceReferenceReader(
      */
     fun interface OptionalFactory {
       fun create(graph: HeapGraph): VirtualInstanceReferenceReader?
-    }
-  }
-
-  companion object {
-    fun factory(expanderFactories: List<OptionalFactory>): ReferenceReader.Factory<HeapInstance> {
-      return ReferenceReader.Factory { graph ->
-        val optionalExpanders = expanderFactories.mapNotNull { it.create(graph) }
-        val referenceMatchers: List<ReferenceMatcher> = TODO()
-        ChainingInstanceReferenceReader(optionalExpanders, FieldInstanceReferenceReader(graph, referenceMatchers))
-      }
     }
   }
 }

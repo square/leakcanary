@@ -50,7 +50,7 @@ class HprofRetainedHeapPerfTest {
       baselineHeap to heapWithIndex
     }
 
-    val (analysisRetained, dominators) = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
+    val (analysisRetained, _) = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
 
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
@@ -67,7 +67,7 @@ class HprofRetainedHeapPerfTest {
       baselineHeap to heapWithIndex
     }
 
-    val (analysisRetained, dominators) = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
+    val (analysisRetained, _) = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
 
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
@@ -191,7 +191,7 @@ class HprofRetainedHeapPerfTest {
         referenceMatchers = buildKnownReferences(
           EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
         ),
-        leakingObjectFinder = { graph ->
+        leakingObjectFinder = {
           setOf(graph.gcRoots.first { gcRoot ->
             gcRoot is ThreadObject &&
               graph.objectExists(gcRoot.id) &&
@@ -266,6 +266,10 @@ class HprofRetainedHeapPerfTest {
 
   infix fun Double.MB(error: ErrorPercentage) =
     BytesWithError((this * 1_000_000).toInt(), error)
+
+  infix fun Double.KB(error: ErrorPercentage) =
+    BytesWithError((this * 1_000).toInt(), error)
+
 
   infix fun Int.MB(error: ErrorPercentage) =
     BytesWithError(this * 1_000_000, error)

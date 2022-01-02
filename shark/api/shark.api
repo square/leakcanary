@@ -21,14 +21,9 @@ public final class shark/ApplicationLeak$Companion {
 }
 
 public final class shark/ChainingInstanceReferenceReader : shark/ReferenceReader {
-	public static final field Companion Lshark/ChainingInstanceReferenceReader$Companion;
 	public fun <init> (Ljava/util/List;Lshark/FieldInstanceReferenceReader;)V
 	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
 	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
-}
-
-public final class shark/ChainingInstanceReferenceReader$Companion {
-	public final fun factory (Ljava/util/List;)Lshark/ReferenceReader$Factory;
 }
 
 public abstract interface class shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader : shark/ReferenceReader {
@@ -162,6 +157,19 @@ public final class shark/IgnoredReferenceMatcher : shark/ReferenceMatcher {
 	public fun <init> (Lshark/ReferencePattern;)V
 	public fun getPattern ()Lshark/ReferencePattern;
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/JavaFrames {
+	public static final field INSTANCE Lshark/JavaFrames;
+	public final fun getByThreadObjectId (Lshark/HeapGraph;J)Ljava/util/List;
+}
+
+public final class shark/JavaLocalReferenceReader : shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader {
+	public fun <init> (Lshark/HeapGraph;Ljava/util/List;)V
+	public final fun getGraph ()Lshark/HeapGraph;
+	public fun matches (Lshark/HeapObject$HeapInstance;)Z
+	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
 
 public final class shark/KeyedWeakReferenceFinder : shark/LeakingObjectFinder {
@@ -558,6 +566,12 @@ public abstract interface class shark/ReferenceReader {
 
 public abstract interface class shark/ReferenceReader$Factory {
 	public abstract fun create (Lshark/HeapGraph;)Lshark/ReferenceReader;
+}
+
+public final class shark/ThreadObjects {
+	public static final field INSTANCE Lshark/ThreadObjects;
+	public final fun getByThreadObjectId (Lshark/HeapGraph;J)Lshark/GcRoot$ThreadObject;
+	public final fun getThreadObjects (Lshark/HeapGraph;)Ljava/util/Collection;
 }
 
 public final class shark/internal/InternalSharedArrayListReferenceReader : shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader {
