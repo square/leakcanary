@@ -1,5 +1,11 @@
 package shark
 
+import java.io.File
+import java.util.EnumSet
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit.SECONDS
+import kotlin.math.absoluteValue
+import kotlin.reflect.KClass
 import org.assertj.core.api.AbstractIntegerAssert
 import org.junit.Before
 import org.junit.Rule
@@ -19,12 +25,6 @@ import shark.OnAnalysisProgressListener.Step.FINDING_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.internal.ObjectDominators
-import java.io.File
-import java.util.EnumSet
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit.SECONDS
-import kotlin.math.absoluteValue
-import kotlin.reflect.KClass
 
 private const val ANALYSIS_THREAD = "analysis"
 
@@ -266,13 +266,6 @@ class HprofRetainedHeapPerfTest {
 
   infix fun Double.MB(error: ErrorPercentage) =
     BytesWithError((this * 1_000_000).toInt(), error)
-
-  infix fun Double.KB(error: ErrorPercentage) =
-    BytesWithError((this * 1_000).toInt(), error)
-
-
-  infix fun Int.MB(error: ErrorPercentage) =
-    BytesWithError(this * 1_000_000, error)
 
   operator fun Int.rem(ignored: Margin): ErrorPercentage = ErrorPercentage(this / 100.0)
 }
