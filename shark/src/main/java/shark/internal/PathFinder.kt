@@ -4,17 +4,11 @@ package shark.internal
 
 import java.util.ArrayDeque
 import java.util.Deque
-import shark.GcRoot.JavaFrame
 import shark.HeapGraph
 import shark.HeapObject
-import shark.HeapObject.HeapClass
-import shark.HeapObject.HeapInstance
-import shark.HeapObject.HeapObjectArray
-import shark.HeapObject.HeapPrimitiveArray
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
-import shark.PrimitiveType.INT
 import shark.ReferenceMatcher
 import shark.ReferenceReader
 import shark.ValueHolder
@@ -87,9 +81,7 @@ internal class PathFinder(
 
   private class State(
     val leakingObjectIds: LongScatterSet,
-    val sizeOfObjectInstances: Int,
     val computeRetainedHeapSize: Boolean,
-    val javaLangObjectId: Long,
     estimatedVisitedObjects: Int
   ) {
 
@@ -97,8 +89,7 @@ internal class PathFinder(
     val toVisitQueue: Deque<ReferencePathNode> = ArrayDeque()
 
     /**
-     * Objects to visit when [toVisitQueue] is empty. Should contain [JavaFrame] gc roots first,
-     * then [LibraryLeakNode].
+     * Objects to visit when [toVisitQueue] is empty.
      */
     val toVisitLastQueue: Deque<ReferencePathNode> = ArrayDeque()
 
@@ -125,13 +116,6 @@ internal class PathFinder(
     var visitingLast = false
   }
 
-  private val threadClassObjectIds: Set<Long> =
-    graph.findClassByName(Thread::class.java.name)?.let { threadClass ->
-      setOf(threadClass.objectId) + (threadClass.subclasses
-        .map { it.objectId }
-        .toSet())
-    } ?: emptySet()
-
   private val gcRootProvider = GcRootProvider(graph, referenceMatchers)
 
   fun findPathsFromGcRoots(
@@ -139,46 +123,17 @@ internal class PathFinder(
     computeRetainedHeapSize: Boolean
   ): PathFindingResults {
     listener.onAnalysisProgress(FINDING_PATHS_TO_RETAINED_OBJECTS)
-
-    val objectClass = graph.findClassByName("java.lang.Object")
-    val sizeOfObjectInstances = determineSizeOfObjectInstances(objectClass, graph)
-    val javaLangObjectId = objectClass?.objectId ?: -1
-
     // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
     // visit more than that but this limits the number of early array growths.
     val estimatedVisitedObjects = (graph.instanceCount / 2).coerceAtLeast(4)
 
     val state = State(
       leakingObjectIds = leakingObjectIds.toLongScatterSet(),
-      sizeOfObjectInstances = sizeOfObjectInstances,
       computeRetainedHeapSize = computeRetainedHeapSize,
-      javaLangObjectId = javaLangObjectId,
       estimatedVisitedObjects = estimatedVisitedObjects
     )
 
     return state.findPathsFromGcRoots()
-  }
-
-  private fun determineSizeOfObjectInstances(
-    objectClass: HeapClass?,
-    graph: HeapGraph
-  ): Int {
-    return if (objectClass != null) {
-      // In Android 16 ClassDumpRecord.instanceSize for java.lang.Object can be 8 yet there are 0
-      // fields. This is likely because there is extra per instance data that isn't coming from
-      // fields in the Object class. See #1374
-      val objectClassFieldSize = objectClass.readFieldsByteSize()
-
-      // shadow$_klass_ (object id) + shadow$_monitor_ (Int)
-      val sizeOfObjectOnArt = graph.identifierByteSize + INT.byteSize
-      if (objectClassFieldSize == sizeOfObjectOnArt) {
-        sizeOfObjectOnArt
-      } else {
-        0
-      }
-    } else {
-      0
-    }
   }
 
   private fun Set<Long>.toLongScatterSet(): LongScatterSet {
@@ -260,8 +215,6 @@ internal class PathFinder(
       return
     }
 
-    val visitLast = visitingLast || isLowPriority
-
     val parentObjectId = when (node) {
       is RootNode -> ValueHolder.NULL_REFERENCE
       is ChildNode -> node.parent.objectId
@@ -271,94 +224,34 @@ internal class PathFinder(
     // the dominator for node.objectId.
     val alreadyEnqueued = visitTracker.visited(node.objectId, parentObjectId)
 
-    if (alreadyEnqueued) {
-      // Has already been enqueued and would be added to visit last => don't enqueue.
-      if (visitLast) {
-        return
-      }
-      // Has already been enqueued and exists in the to visit set => don't enqueue
-      if (toVisitSet.contains(node.objectId)) {
-        return
-      }
-      // Has already been enqueued, is not in toVisitSet, is not in toVisitLast => has been visited
-      if (!toVisitLastSet.contains(node.objectId)) {
-        return
-      }
-    }
+    val visitLast = visitingLast || isLowPriority
 
-    // Because of the checks and return statements right before, from this point on, if
-    // alreadyEnqueued then it's currently enqueued in the visit last set.
-    if (alreadyEnqueued) {
-      // Move from "visit last" to "visit first" queue.
-      toVisitQueue.add(node)
-      toVisitSet.add(node.objectId)
-      val nodeToRemove = toVisitLastQueue.first { it.objectId == node.objectId }
-      toVisitLastQueue.remove(nodeToRemove)
-      toVisitLastSet.remove(node.objectId)
-      return
-    }
+    when {
+      alreadyEnqueued -> {
+        val bumpPriority =
+          !visitLast &&
+            node.objectId !in toVisitSet &&
+            // This could be false if node had already been visited.
+            node.objectId in toVisitLastSet
 
-    val isLeakingObject = leakingObjectIds.contains(node.objectId)
-
-    if (!isLeakingObject) {
-      val skip = when (val graphObject = graph.findObjectById(node.objectId)) {
-        is HeapClass -> false
-        is HeapInstance ->
-          when {
-            graphObject.isPrimitiveWrapper -> true
-            graphObject.instanceClassName == "java.lang.String" -> {
-              // We ignore the fact that String references a value array to avoid having
-              // to read the string record and find the object id for that array, since we know
-              // it won't be interesting anyway.
-              // That also means the value array isn't added to the dominator tree, so we need to
-              // add that back when computing shallow size in ShallowSizeCalculator.
-              // Another side effect is that if the array is referenced elsewhere, we might
-              // double count its side.
-              true
-            }
-            // Don't skip empty thread instances as we might add java frames to those.
-            graphObject.instanceClassId in threadClassObjectIds -> false
-            graphObject.instanceClass.instanceByteSize <= sizeOfObjectInstances -> true
-            graphObject.instanceClass.classHierarchy.all { heapClass ->
-              heapClass.objectId == javaLangObjectId || !heapClass.hasReferenceInstanceFields
-            } -> true
-            else -> false
-          }
-        is HeapObjectArray -> when {
-          graphObject.isSkippablePrimitiveWrapperArray -> {
-            // Same optimization as we did for String above, as we know primitive wrapper arrays
-            // aren't interesting.
-            true
-          }
-          else -> false
+        if (bumpPriority) {
+          // Move from "visit last" to "visit first" queue.
+          toVisitQueue.add(node)
+          toVisitSet.add(node.objectId)
+          val nodeToRemove = toVisitLastQueue.first { it.objectId == node.objectId }
+          toVisitLastQueue.remove(nodeToRemove)
+          toVisitLastSet.remove(node.objectId)
         }
-        is HeapPrimitiveArray -> true
       }
-      if (skip) {
-        return
+      visitLast -> {
+        toVisitLastQueue.add(node)
+        toVisitLastSet.add(node.objectId)
       }
-    }
-    if (visitLast) {
-      toVisitLastQueue.add(node)
-      toVisitLastSet.add(node.objectId)
-    } else {
-      toVisitQueue.add(node)
-      toVisitSet.add(node.objectId)
+      else -> {
+        toVisitQueue.add(node)
+        toVisitSet.add(node.objectId)
+      }
     }
   }
 }
-
-private val skippablePrimitiveWrapperArrayTypes = setOf(
-  Boolean::class,
-  Char::class,
-  Float::class,
-  Double::class,
-  Byte::class,
-  Short::class,
-  Int::class,
-  Long::class
-).map { it.javaObjectType.name + "[]" }
-
-internal val HeapObjectArray.isSkippablePrimitiveWrapperArray: Boolean
-  get() = arrayClassName in skippablePrimitiveWrapperArrayTypes
 

@@ -3,6 +3,7 @@ package shark.internal
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
+import shark.GcRoot.ThreadObject
 import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapClass
@@ -34,7 +35,6 @@ internal class GcRootProvider(
 ) {
 
   private val jniGlobalReferenceMatchers: Map<String, ReferenceMatcher>
-
 
   init {
     val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
@@ -140,7 +140,14 @@ internal class GcRootProvider(
       }
       .map { graph.findObjectById(it.id) to it }
       .sortedWith { (graphObject1, root1), (graphObject2, root2) ->
-        // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
+        // Sorting based on pattern name first, but we want ThreadObjects to be first because
+        // they'll later enqueue java frames via JavaLocalReferenceReader in the low priority queue
+        // and we want those java frames at the head of the low priority queue.
+        if (root1 is ThreadObject && root2 !is ThreadObject) {
+          return@sortedWith -1
+        } else if (root1 !is ThreadObject && root2 is ThreadObject) {
+          return@sortedWith 1
+        }
         val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
         if (gcRootTypeComparison != 0) {
           gcRootTypeComparison

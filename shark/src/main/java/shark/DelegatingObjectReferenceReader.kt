@@ -15,8 +15,6 @@ class DelegatingObjectReferenceReader(
       is HeapClass -> classReferenceReader.read(source)
       is HeapInstance -> instanceReferenceReader.read(source)
       is HeapObjectArray -> objectArrayReferenceReader.read(source)
-      // PathFinder typically avoids enqueuing those, unless they're the targeted leaking
-      // objects.
       is HeapPrimitiveArray -> emptySequence()
     }
   }

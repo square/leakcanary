@@ -29,9 +29,12 @@ class FieldInstanceReferenceReader(
   private val fieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
   private val javaLangObjectId: Long
 
+  private val sizeOfObjectInstances: Int
+
   init {
     val objectClass = graph.findClassByName("java.lang.Object")
     javaLangObjectId = objectClass?.objectId ?: -1
+    sizeOfObjectInstances = determineSizeOfObjectInstances(objectClass, graph)
 
     val fieldNameByClassName = mutableMapOf<String, MutableMap<String, ReferenceMatcher>>()
     referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
@@ -50,9 +53,25 @@ class FieldInstanceReferenceReader(
   }
 
   override fun read(source: HeapInstance): Sequence<Reference> {
+    if (source.isPrimitiveWrapper ||
+      // We ignore the fact that String references a value array to avoid having
+      // to read the string record and find the object id for that array, since we know
+      // it won't be interesting anyway.
+      // That also means the value array isn't added to the dominator tree, so we need to
+      // add that back when computing shallow size in ShallowSizeCalculator.
+      // Another side effect is that if the array is referenced elsewhere, we might
+      // double count its side.
+      source.instanceClassName == "java.lang.String" ||
+      source.instanceClass.instanceByteSize <= sizeOfObjectInstances
+    ) {
+      return emptySequence()
+    }
+
     val fieldReferenceMatchers = LinkedHashMap<String, ReferenceMatcher>()
 
-    source.instanceClass.classHierarchy.forEach {
+    val classHierarchy = source.instanceClass.classHierarchyWithoutJavaLangObject(javaLangObjectId)
+
+    classHierarchy.forEach {
       val referenceMatcherByField = fieldNameByClassName[it.name]
       if (referenceMatcherByField != null) {
         for ((fieldName, referenceMatcher) in referenceMatcherByField) {
@@ -64,8 +83,6 @@ class FieldInstanceReferenceReader(
     }
 
     return with(source) {
-      val classHierarchy = instanceClass.classHierarchyWithoutJavaLangObject(javaLangObjectId)
-
       // Assigning to local variable to avoid repeated lookup and cast:
       // HeapInstance.graph casts HeapInstance.hprofGraph to HeapGraph in its getter
       val hprofGraph = graph
@@ -149,4 +166,26 @@ class FieldInstanceReferenceReader(
       LONG.hprofType -> 8
       else -> throw IllegalStateException("Unknown type ${field.type}")
     }
+
+  private fun determineSizeOfObjectInstances(
+    objectClass: HeapClass?,
+    graph: HeapGraph
+  ): Int {
+    return if (objectClass != null) {
+      // In Android 16 ClassDumpRecord.instanceSize for java.lang.Object can be 8 yet there are 0
+      // fields. This is likely because there is extra per instance data that isn't coming from
+      // fields in the Object class. See #1374
+      val objectClassFieldSize = objectClass.readFieldsByteSize()
+
+      // shadow$_klass_ (object id) + shadow$_monitor_ (Int)
+      val sizeOfObjectOnArt = graph.identifierByteSize + INT.byteSize
+      if (objectClassFieldSize == sizeOfObjectOnArt) {
+        sizeOfObjectOnArt
+      } else {
+        0
+      }
+    } else {
+      0
+    }
+  }
 }
