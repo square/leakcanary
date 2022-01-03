@@ -10,6 +10,9 @@ import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
 import java.io.File
+import shark.GcRoot.JavaFrame
+import shark.GcRoot.ThreadObject
+import shark.HeapObject.HeapInstance
 
 class RetainedSizeTest {
 
@@ -29,7 +32,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     assertThat(retainedSize).isEqualTo(0)
   }
@@ -42,7 +46,8 @@ class RetainedSizeTest {
         }
       }
     }
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 8 bytes for long
     assertThat(retainedSize).isEqualTo(8)
@@ -57,7 +62,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference, 2 bytes per char
     assertThat(retainedSize).isEqualTo(8)
@@ -72,7 +78,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference, string (4 array ref + 4 int + 2 byte per char)
     assertThat(retainedSize).isEqualTo(16)
@@ -89,7 +96,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference + 4 byte int
     assertThat(retainedSize).isEqualTo(8)
@@ -106,7 +114,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference, int field
     assertThat(retainedSize).isEqualTo(8)
@@ -133,7 +142,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference * 3, 2 ints
     assertThat(retainedSize).isEqualTo(20)
@@ -148,7 +158,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference, 4 bytes per object entry
     assertThat(retainedSize).isEqualTo(12)
@@ -167,7 +178,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference * 3, string (4 array ref + 4 int + 2 byte per char)
     assertThat(retainedSize).isEqualTo(24)
@@ -184,7 +196,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference
     assertThat(retainedSize).isEqualTo(4)
@@ -203,7 +216,8 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference + Long + Int
     assertThat(retainedSize).isEqualTo(16)
@@ -293,22 +307,52 @@ class RetainedSizeTest {
       }
     }
 
-    val retainedSize = firstRetainedSize()
+    val retainedSize = retainedInstances()
+      .firstRetainedSize()
 
     // 4 byte reference + 2 * Int + native size
     assertThat(retainedSize).isEqualTo(12 + nativeBitmapSize)
+  }
+
+  @Test fun `thread retained size includes java local references`() {
+    hprofFile.dump {
+      val threadInstance = Thread::class.java.name instance { }
+      gcRoot(
+        ThreadObject(
+          id = threadInstance.value,
+          threadSerialNumber = 42,
+          stackTraceSerialNumber = 0
+        )
+      )
+      val longArrayId = primitiveLongArray(LongArray(3))
+      gcRoot(JavaFrame(id = longArrayId, threadSerialNumber = 42, frameNumber = 0))
+    }
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysis>(
+      computeRetainedHeapSize = true,
+      leakFilters = listOf(FilteringLeakingObjectFinder.LeakingObjectFilter { heapObject ->
+        heapObject is HeapInstance &&
+          heapObject.instanceClassName == Thread::class.java.name
+      })
+    )
+    println(analysis.toString())
+    analysis as HeapAnalysisSuccess
+    val retainedInstances = analysis.applicationLeaks
+    val retainedSize = retainedInstances.firstRetainedSize()
+
+    // LongArray(3), 8 bytes per long
+    assertThat(retainedSize).isEqualTo(3 * 8)
   }
 
   private fun retainedInstances(): List<Leak> {
     val analysis = hprofFile.checkForLeaks<HeapAnalysis>(computeRetainedHeapSize = true)
     println(analysis.toString())
     analysis as HeapAnalysisSuccess
-    return analysis.applicationLeaks.map { it }
+    return analysis.applicationLeaks
   }
 
-  private fun firstRetainedSize(): Int {
-    return retainedInstances()
-      .map { it.totalRetainedHeapByteSize!! }
+  private fun List<Leak>.firstRetainedSize(): Int {
+    return map { it.totalRetainedHeapByteSize!! }
       .first()
   }
 }

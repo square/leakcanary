@@ -33,7 +33,7 @@ fun <T : HeapAnalysis> DualSourceProvider.checkForLeaks(
       referenceMatchers = referenceMatchers,
       computeRetainedHeapSize = computeRetainedHeapSize,
       objectInspectors = inspectors,
-      metadataExtractor = metadataExtractor
+      metadataExtractor = metadataExtractor,
     )
   }
   if (result is HeapAnalysisFailure) {
@@ -49,7 +49,7 @@ fun <T : HeapAnalysis> File.checkForLeaks(
   referenceMatchers: List<ReferenceMatcher> = defaultReferenceMatchers,
   metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
   proguardMapping: ProguardMapping? = null,
-  leakFilters: List<LeakingObjectFilter> = ObjectInspectors.jdkLeakingObjectFilters
+  leakFilters: List<LeakingObjectFilter> = ObjectInspectors.jdkLeakingObjectFilters,
 ): T {
   return FileSourceProvider(this).checkForLeaks(
     objectInspectors, computeRetainedHeapSize, referenceMatchers, metadataExtractor,

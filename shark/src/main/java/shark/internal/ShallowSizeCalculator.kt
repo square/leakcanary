@@ -5,6 +5,7 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
+import shark.internal.ObjectArrayReferenceReader.Companion.isSkippablePrimitiveWrapperArray
 import shark.ValueHolder
 
 /**
@@ -39,7 +40,7 @@ internal class ShallowSizeCalculator(private val graph: HeapGraph) {
       // Number of elements * object id size
       is HeapObjectArray -> {
         if (heapObject.isSkippablePrimitiveWrapperArray) {
-          // In PathFinder we ignore references sfrom primitive wrapper arrayss when building the
+          // In PathFinder we ignore references from primitive wrapper arrays when building the
           // dominator tree, so we add that size back here.
           val elementIds = heapObject.readRecord().elementIds
           val shallowSize = elementIds.size * graph.identifierByteSize

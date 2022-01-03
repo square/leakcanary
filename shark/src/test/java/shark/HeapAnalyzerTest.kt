@@ -97,7 +97,7 @@ class HeapAnalyzerTest {
     assertThat(leaks.applicationLeaks.first().leakTraces).hasSize(5)
   }
 
-  @Test fun localVariableLeak() {
+  @Test fun localVariableLeakThreadSubclass() {
     hprofFile.writeJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
@@ -105,6 +105,19 @@ class HeapAnalyzerTest {
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.referencePath).hasSize(1)
     assertThat(leakTrace.referencePath[0].originObject.className).isEqualTo("MyThread")
+    assertThat(leakTrace.referencePath[0].referenceType).isEqualTo(LOCAL)
+    assertThat(leakTrace.leakingObject.className).isEqualTo("Leaking")
+  }
+
+  @Test fun localVariableLeak() {
+    hprofFile.writeJavaLocalLeak()
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+    println(analysis)
+
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath).hasSize(1)
+    assertThat(leakTrace.referencePath[0].originObject.className).isEqualTo(Thread::class.java.name)
     assertThat(leakTrace.referencePath[0].referenceType).isEqualTo(LOCAL)
     assertThat(leakTrace.leakingObject.className).isEqualTo("Leaking")
   }

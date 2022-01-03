@@ -16,6 +16,7 @@ public final class shark/HprofWriterHelper : java/io/Closeable {
 	public final fun objectArray (J[J)J
 	public final fun objectArray ([Lshark/ValueHolder$ReferenceHolder;)Lshark/ValueHolder$ReferenceHolder;
 	public final fun objectArrayOf (J[Lshark/ValueHolder$ReferenceHolder;)Lshark/ValueHolder$ReferenceHolder;
+	public final fun primitiveLongArray ([J)J
 	public final fun string (Ljava/lang/String;)Lshark/ValueHolder$ReferenceHolder;
 	public final fun stringRecord (Ljava/lang/String;)Lshark/HprofRecord$StringRecord;
 	public final fun watchedInstance (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/ValueHolder$ReferenceHolder;

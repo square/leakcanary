@@ -138,9 +138,17 @@ class ObjectDominators {
     graph: HeapGraph,
     ignoredRefs: List<IgnoredReferenceMatcher>
   ): Map<Long, DominatorNode> {
+    val referenceReader = DelegatingObjectReferenceReader(
+      classReferenceReader = ClassReferenceReader(graph, emptyList()),
+      instanceReferenceReader = ChainingInstanceReferenceReader(
+        listOf(JavaLocalReferenceReader(graph, emptyList())),
+        FieldInstanceReferenceReader(graph, emptyList())
+      ),      objectArrayReferenceReader = ObjectArrayReferenceReader()
+    )
+
     val pathFinder = PathFinder(
       graph,
-      OnAnalysisProgressListener.NO_OP, ignoredRefs
+      OnAnalysisProgressListener.NO_OP, referenceReader,  ignoredRefs
     )
     val nativeSizeMapper = AndroidNativeSizeMapper(graph)
     val nativeSizes = nativeSizeMapper.mapNativeSizes()
