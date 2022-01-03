@@ -1,5 +1,6 @@
-package shark
+package shark.internal
 
+import shark.HeapGraph
 import shark.HeapObject.HeapInstance
 
 /*
@@ -17,7 +18,7 @@ import shark.HeapObject.HeapInstance
  * that we correctly track which objects have been visited and correctly compute dominators and
  * retained size.
  */
-class ChainingInstanceReferenceReader(
+internal class ChainingInstanceReferenceReader(
   private val virtualRefReaders: List<VirtualInstanceReferenceReader>,
   private val fieldRefReader: FieldInstanceReferenceReader
 ) : ReferenceReader<HeapInstance> {

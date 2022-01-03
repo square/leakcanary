@@ -14,10 +14,7 @@ import shark.IgnoredReferenceMatcher
 import shark.LibraryLeakReferenceMatcher
 import shark.ReferenceMatcher
 import shark.ReferencePattern.NativeGlobalVariablePattern
-import shark.ThreadObjects
 import shark.filterFor
-import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
-import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 
 /**
  * Extracted from PathFinder, this should eventually be part of public API surface

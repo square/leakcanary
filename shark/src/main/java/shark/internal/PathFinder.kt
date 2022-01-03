@@ -10,7 +10,6 @@ import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.ReferenceMatcher
-import shark.ReferenceReader
 import shark.ValueHolder
 import shark.internal.PathFinder.VisitTracker.Dominated
 import shark.internal.PathFinder.VisitTracker.Visited

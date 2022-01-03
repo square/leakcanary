@@ -50,7 +50,14 @@ import shark.internal.lastSegment
 import java.io.File
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
+import shark.internal.ChainingInstanceReferenceReader
+import shark.internal.ClassReferenceReader
+import shark.internal.DelegatingObjectReferenceReader
+import shark.internal.FieldInstanceReferenceReader
+import shark.internal.JavaLocalReferenceReader
+import shark.internal.ObjectArrayReferenceReader
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
+import shark.internal.ReferenceReader
 
 /**
  * Analyzes heap dumps to look for leaks.
@@ -124,7 +131,6 @@ class HeapAnalyzer constructor(
     }
   }
 
-  @Deprecated("Use the non deprecated analyze method instead")
   fun analyze(
     heapDumpFile: File,
     graph: HeapGraph,
@@ -181,9 +187,8 @@ class HeapAnalyzer constructor(
    * Searches the heap dump for leaking instances and then computes the shortest strong reference
    * path from those instances to the GC roots.
    */
-  // TODO Don't publish this as a new API, move internals somewhere else instead.
   @Suppress("LongParameterList")
-  fun analyze(
+  internal fun analyze(
     // TODO Kill this file
     heapDumpFile: File,
     graph: HeapGraph,

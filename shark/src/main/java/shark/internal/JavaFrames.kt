@@ -1,8 +1,9 @@
-package shark
+package shark.internal
 
 import shark.GcRoot.JavaFrame
+import shark.HeapGraph
 
-object JavaFrames {
+internal object JavaFrames {
 
   private fun getJavaFramesByThreadSerialNumber(graph: HeapGraph) =
     graph.context.getOrPut(JavaFrames::class.java.name) {

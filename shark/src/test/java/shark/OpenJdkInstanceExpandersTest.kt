@@ -6,13 +6,20 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
-import shark.OpenJdkInstanceExpanders.LINKED_LIST
+import shark.internal.OpenJdkInstanceExpanders.LINKED_LIST
 import java.io.File
 import java.util.LinkedList
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
-import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
+import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.internal.ChainingInstanceReferenceReader
+import shark.internal.ClassReferenceReader
+import shark.internal.DelegatingObjectReferenceReader
+import shark.internal.FieldInstanceReferenceReader
+import shark.internal.JavaLocalReferenceReader
+import shark.internal.ObjectArrayReferenceReader
+import shark.internal.OpenJdkInstanceExpanders
 
 class OpenJdkInstanceExpandersTest {
 

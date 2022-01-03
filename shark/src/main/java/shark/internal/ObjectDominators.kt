@@ -1,9 +1,5 @@
 package shark.internal
 
-import shark.ChainingInstanceReferenceReader
-import shark.ClassReferenceReader
-import shark.DelegatingObjectReferenceReader
-import shark.FieldInstanceReferenceReader
 import shark.GcRoot.ThreadObject
 import shark.HeapGraph
 import shark.HeapObject.HeapClass
@@ -11,8 +7,6 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.IgnoredReferenceMatcher
-import shark.JavaLocalReferenceReader
-import shark.ObjectArrayReferenceReader
 import shark.OnAnalysisProgressListener
 import shark.ValueHolder
 

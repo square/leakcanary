@@ -1,11 +1,17 @@
-package shark
+package shark.internal
 
-import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
+import shark.HeapGraph
+import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
 import shark.HeapObject.HeapInstance
-import shark.Reference.LazyDetails
+import shark.IgnoredReferenceMatcher
+import shark.LibraryLeakReferenceMatcher
+import shark.internal.Reference.LazyDetails
 import shark.ReferenceLocationType.LOCAL
+import shark.ReferenceMatcher
+import shark.ReferencePattern.JavaLocalPattern
+import shark.filterFor
 
-class JavaLocalReferenceReader(
+internal class JavaLocalReferenceReader(
   val graph: HeapGraph,
   referenceMatchers: List<ReferenceMatcher>
 ) : VirtualInstanceReferenceReader {
@@ -23,7 +29,7 @@ class JavaLocalReferenceReader(
     val threadNames = mutableMapOf<String, ReferenceMatcher>()
     referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
       when (val pattern = referenceMatcher.pattern) {
-        is ReferencePattern.JavaLocalPattern -> {
+        is JavaLocalPattern -> {
           threadNames[pattern.threadName] = referenceMatcher
         }
       }

@@ -1,6 +1,9 @@
-package shark
+package shark.internal
 
-fun interface ReferenceReader<T : HeapObject> {
+import shark.HeapGraph
+import shark.HeapObject
+
+internal fun interface ReferenceReader<T : HeapObject> {
 
   /**
    * Returns the sequences of non null outgoing references from [source]. Outgoing refs

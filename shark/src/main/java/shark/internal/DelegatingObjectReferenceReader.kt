@@ -1,11 +1,12 @@
-package shark
+package shark.internal
 
+import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 
-class DelegatingObjectReferenceReader(
+internal class DelegatingObjectReferenceReader(
   private val classReferenceReader: ReferenceReader<HeapClass>,
   private val instanceReferenceReader: ReferenceReader<HeapInstance>,
   private val objectArrayReferenceReader: ReferenceReader<HeapObjectArray>,

@@ -1,6 +1,10 @@
-package shark
+package shark.internal
 
-class Reference(
+import shark.LibraryLeakReferenceMatcher
+import shark.ReferenceLocationType
+import shark.internal.Reference.LazyDetails.Resolver
+
+internal class Reference(
   /**
    * The value of the reference, i.e. the object the reference is pointing to.
    */
@@ -17,7 +21,7 @@ class Reference(
    */
   val isLowPriority: Boolean,
 
-  val lazyDetailsResolver: LazyDetails.Resolver
+  val lazyDetailsResolver: Resolver
 ) {
   class LazyDetails(
     val name: String,

@@ -1,11 +1,9 @@
-package shark
+package shark.internal
 
-import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
-import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
+import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
+import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
+import shark.HeapGraph
 import shark.HeapObject.HeapInstance
-import shark.internal.InternalSharedArrayListReferenceReader
-import shark.internal.InternalSharedHashMapReferenceReader
-import shark.internal.InternalSharedLinkedListReferenceReader
 
 /**
  * Defines [VirtualInstanceReferenceReader] factories for common Apache Harmony data structures.
@@ -13,7 +11,7 @@ import shark.internal.InternalSharedLinkedListReferenceReader
  * Note: the expanders target the direct classes and don't target subclasses, as these might
  * include additional out going references that would be missed.
  */
-enum class ApacheHarmonyInstanceExpanders : OptionalFactory {
+internal enum class ApacheHarmonyInstanceExpanders : OptionalFactory {
 
   // https://cs.android.com/android/platform/superproject/+/android-6.0.1_r81:libcore/luni/src/main/java/java/util/LinkedList.java
   LINKED_LIST {

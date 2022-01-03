@@ -1,8 +1,9 @@
-package shark
+package shark.internal
 
 import shark.GcRoot.ThreadObject
+import shark.HeapGraph
 
-object ThreadObjects {
+internal object ThreadObjects {
 
   private fun getThreadObjectsByIdMap(graph: HeapGraph) = graph.context.getOrPut(ThreadObjects::class.java.name) {
     graph.gcRoots.asSequence().filterIsInstance<ThreadObject>().associateBy { it.id }

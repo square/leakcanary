@@ -5,7 +5,7 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.ObjectArrayReferenceReader.Companion.isSkippablePrimitiveWrapperArray
+import shark.internal.ObjectArrayReferenceReader.Companion.isSkippablePrimitiveWrapperArray
 import shark.ValueHolder
 
 /**

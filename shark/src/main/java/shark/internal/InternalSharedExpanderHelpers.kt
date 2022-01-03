@@ -1,15 +1,12 @@
 package shark.internal
 
-import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
+import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
 import shark.HeapObject.HeapInstance
 import shark.HeapValue
-import shark.Reference
-import shark.Reference.LazyDetails
+import shark.internal.Reference.LazyDetails
 import shark.ReferenceLocationType.ARRAY_ENTRY
 
-// These classes are public so that it can be used from other modules, but they're not meant
-// to be a public API and will change without warning.
-class InternalSharedHashMapReferenceReader(
+internal class InternalSharedHashMapReferenceReader(
   private val className: String,
   private val tableFieldName: String,
   private val nodeClassName: String,
@@ -105,7 +102,7 @@ class InternalSharedHashMapReferenceReader(
   }
 }
 
-class InternalSharedArrayListReferenceReader(
+internal class InternalSharedArrayListReferenceReader(
   private val className: String,
   private val classObjectId: Long,
   private val elementArrayName: String,
@@ -151,7 +148,7 @@ class InternalSharedArrayListReferenceReader(
   }
 }
 
-class InternalSharedLinkedListReferenceReader(
+internal class InternalSharedLinkedListReferenceReader(
   private val classObjectId: Long,
   private val headFieldName: String,
   private val nodeClassName: String,
