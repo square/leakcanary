@@ -11,7 +11,7 @@ import shark.HeapObject.HeapInstance
  * Note: the expanders target the direct classes and don't target subclasses, as these might
  * include additional out going references that would be missed.
  */
-internal enum class ApacheHarmonyInstanceExpanders : OptionalFactory {
+internal enum class ApacheHarmonyInstanceRefReaders : OptionalFactory {
 
   // https://cs.android.com/android/platform/superproject/+/android-6.0.1_r81:libcore/luni/src/main/java/java/util/LinkedList.java
   LINKED_LIST {

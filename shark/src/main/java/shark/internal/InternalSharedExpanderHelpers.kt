@@ -75,7 +75,6 @@ internal class InternalSharedHashMapReferenceReader(
                 val keyAsName =
                   key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
                 LazyDetails(
-                  // All entries are represented by the same key name, e.g. "key()"
                   name = keyAsName,
                   locationClassObjectId = declaringClassId,
                   locationType = ARRAY_ENTRY,
@@ -132,7 +131,6 @@ internal class InternalSharedArrayListReferenceReader(
             isLowPriority = false,
             lazyDetailsResolver = {
               LazyDetails(
-                // All entries are represented by the same key name, e.g. "key()"
                 name = "$index",
                 locationClassObjectId = instanceClassId,
                 locationType = ARRAY_ENTRY,
@@ -164,8 +162,17 @@ internal class InternalSharedLinkedListReferenceReader(
     val instanceClassId = source.instanceClassId
     // head may be null, in that case we generate an empty sequence.
     val firstNode = source["java.util.LinkedList", headFieldName]!!.valueAsInstance
+    val visitedNodes = mutableSetOf<Long>()
+    if (firstNode != null) {
+      visitedNodes += firstNode.objectId
+    }
     return generateSequence(firstNode) { node ->
-      node[nodeClassName, nodeNextFieldName]!!.valueAsInstance
+      val nextNode = node[nodeClassName, nodeNextFieldName]!!.valueAsInstance
+      if (nextNode != null && visitedNodes.add(nextNode.objectId)) {
+        nextNode
+      } else {
+        null
+      }
     }
       .withIndex()
       .mapNotNull { (index, node) ->

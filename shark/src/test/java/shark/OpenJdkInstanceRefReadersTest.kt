@@ -6,7 +6,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
-import shark.internal.OpenJdkInstanceExpanders.LINKED_LIST
+import shark.internal.OpenJdkInstanceRefReaders.LINKED_LIST
 import java.io.File
 import java.util.LinkedList
 import java.util.concurrent.ConcurrentHashMap
@@ -19,9 +19,9 @@ import shark.internal.DelegatingObjectReferenceReader
 import shark.internal.FieldInstanceReferenceReader
 import shark.internal.JavaLocalReferenceReader
 import shark.internal.ObjectArrayReferenceReader
-import shark.internal.OpenJdkInstanceExpanders
+import shark.internal.OpenJdkInstanceRefReaders
 
-class OpenJdkInstanceExpandersTest {
+class OpenJdkInstanceRefReadersTest {
 
   class Retained
   class SomeKey
@@ -103,7 +103,7 @@ class OpenJdkInstanceExpandersTest {
     list += Retained()
     leakRoot = list
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.ARRAY_LIST)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.ARRAY_LIST)
 
     assertThat(refPath).hasSize(1)
 
@@ -137,7 +137,7 @@ class OpenJdkInstanceExpandersTest {
     list += Retained()
     leakRoot = list
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.COPY_ON_WRITE_ARRAY_LIST)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.COPY_ON_WRITE_ARRAY_LIST)
 
     assertThat(refPath).hasSize(1)
 
@@ -171,7 +171,7 @@ class OpenJdkInstanceExpandersTest {
     map[SomeKey()] = Retained()
     leakRoot = map
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_MAP)
 
     assertThat(refPath).hasSize(1)
 
@@ -185,7 +185,7 @@ class OpenJdkInstanceExpandersTest {
     map[Retained()] = "value"
     leakRoot = map
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_MAP)
 
     assertThat(refPath).hasSize(1)
 
@@ -200,7 +200,7 @@ class OpenJdkInstanceExpandersTest {
     map[SomeKey()] = Retained()
     leakRoot = map
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_MAP)
 
     assertThat(refPath).hasSize(1)
 
@@ -214,7 +214,7 @@ class OpenJdkInstanceExpandersTest {
     map[SomeKey()] = Retained()
     leakRoot = map
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.CONCURRENT_HASH_MAP)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.CONCURRENT_HASH_MAP)
 
     assertThat(refPath).hasSize(1)
 
@@ -228,7 +228,7 @@ class OpenJdkInstanceExpandersTest {
     map[Retained()] = "value"
     leakRoot = map
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.CONCURRENT_HASH_MAP)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.CONCURRENT_HASH_MAP)
 
     assertThat(refPath).hasSize(1)
 
@@ -289,7 +289,7 @@ class OpenJdkInstanceExpandersTest {
     map[SomeKey()] = Retained()
     leakRoot = map
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_MAP)
 
     with(refPath.first()) {
       assertThat(referenceDisplayName).matches("\\[instance @\\d* of shark\\.OpenJdkInstanceExpandersTest\\\$SomeKey]")
@@ -301,7 +301,7 @@ class OpenJdkInstanceExpandersTest {
     map["StringKey"] = Retained()
     leakRoot = map
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_MAP)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_MAP)
 
     with(refPath.first()) {
       assertThat(referenceDisplayName).isEqualTo("[StringKey]")
@@ -313,7 +313,7 @@ class OpenJdkInstanceExpandersTest {
     set += Retained()
     leakRoot = set
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_SET)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_SET)
 
     assertThat(refPath).hasSize(1)
 
@@ -328,7 +328,7 @@ class OpenJdkInstanceExpandersTest {
     set += Retained()
     leakRoot = set
 
-    val refPath = findLeak(OpenJdkInstanceExpanders.HASH_SET)
+    val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_SET)
 
     assertThat(refPath).hasSize(1)
 

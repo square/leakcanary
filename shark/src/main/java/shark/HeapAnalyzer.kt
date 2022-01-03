@@ -50,12 +50,14 @@ import shark.internal.lastSegment
 import java.io.File
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
+import shark.internal.ApacheHarmonyInstanceRefReaders
 import shark.internal.ChainingInstanceReferenceReader
 import shark.internal.ClassReferenceReader
 import shark.internal.DelegatingObjectReferenceReader
 import shark.internal.FieldInstanceReferenceReader
 import shark.internal.JavaLocalReferenceReader
 import shark.internal.ObjectArrayReferenceReader
+import shark.internal.OpenJdkInstanceRefReaders
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferenceReader
 
@@ -145,7 +147,11 @@ class HeapAnalyzer constructor(
     val referenceReader = DelegatingObjectReferenceReader(
       classReferenceReader = ClassReferenceReader(graph, referenceMatchers),
       instanceReferenceReader = ChainingInstanceReferenceReader(
-        listOf(JavaLocalReferenceReader(graph, referenceMatchers)),
+        listOf(
+          JavaLocalReferenceReader(graph, referenceMatchers),
+        )
+          + OpenJdkInstanceRefReaders.values().mapNotNull { it.create(graph) }
+          + ApacheHarmonyInstanceRefReaders.values().mapNotNull { it.create(graph) },
         FieldInstanceReferenceReader(graph, referenceMatchers)
       ),
       objectArrayReferenceReader = ObjectArrayReferenceReader()
@@ -424,18 +430,19 @@ class HeapAnalyzer constructor(
 
     fun asList() = listOf(root) + childPath
 
-    fun firstLibraryLeakMatcher() : LibraryLeakReferenceMatcher? {
+    fun firstLibraryLeakMatcher(): LibraryLeakReferenceMatcher? {
       if (root is LibraryLeakRootNode) {
         return root.matcher
       }
-      return childPathWithDetails.map { it.second.matchedLibraryLeak }.firstOrNull { it != null}
+      return childPathWithDetails.map { it.second.matchedLibraryLeak }.firstOrNull { it != null }
     }
 
     fun asNodesWithMatchers(): List<Pair<ReferencePathNode, LibraryLeakReferenceMatcher?>> {
       val rootMatcher = if (root is LibraryLeakRootNode) {
         root.matcher
       } else null
-      val childPathWithMatchers = childPathWithDetails.map { it.first to it.second.matchedLibraryLeak }
+      val childPathWithMatchers =
+        childPathWithDetails.map { it.first to it.second.matchedLibraryLeak }
       return listOf(root to rootMatcher) + childPathWithMatchers
     }
   }

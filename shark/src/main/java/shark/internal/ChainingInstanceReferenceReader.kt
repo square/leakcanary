@@ -5,7 +5,6 @@ import shark.HeapObject.HeapInstance
 
 /*
  * TODO Support Vector, Android message, ThreadLocal$ThreadLocalMap$Entry
- * ConcurrentHashMap =>  good for jdk, what about harmony?
  * ThreadLocal$Values.table
  *
  * MessageQueue.mMessages => Message.callback, Message.obj
@@ -24,12 +23,16 @@ internal class ChainingInstanceReferenceReader(
 ) : ReferenceReader<HeapInstance> {
 
   override fun read(source: HeapInstance): Sequence<Reference> {
-    val syntheticRefs = expandSyntheticRefs(source)
+    val virtualRefs = expandVirtualRefs(source)
+    // Note: always forwarding to fieldRefReader means we may navigate the structure twice
+    // which increases IO reads. However this is a trade-of that allows virtualRef impls to
+    // focus on a subset of references and more importantly it means we still get a proper
+    // calculation of retained size as we don't skip any instance.
     val fieldRefs = fieldRefReader.read(source)
-    return syntheticRefs + fieldRefs
+    return virtualRefs + fieldRefs
   }
 
-  private fun expandSyntheticRefs(instance: HeapInstance): Sequence<Reference> {
+  private fun expandVirtualRefs(instance: HeapInstance): Sequence<Reference> {
     for (expander in virtualRefReaders) {
       if (expander.matches(instance)) {
         return expander.read(instance)
