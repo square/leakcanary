@@ -3,10 +3,6 @@ package shark.internal
 import shark.HeapGraph
 import shark.HeapObject.HeapInstance
 
-/*
- * TODO Support Vector, Android message, ThreadLocal$ThreadLocalMap$Entry
- * ThreadLocal$Values.table
- */
 /**
  * A [ReferenceReader] that first delegates expanding to [virtualRefReaders] in order until one
  * matches (or none), and then always proceeds with [fieldRefReader]. This means any
