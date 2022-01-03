@@ -41,7 +41,7 @@ class IgnoredReferenceMatcher(override val pattern: ReferencePattern) : Referenc
   override fun toString() = "ignored ref: $pattern"
 }
 
-fun Iterable<ReferenceMatcher>.filterFor(graph: HeapGraph): List<ReferenceMatcher> {
+internal fun Iterable<ReferenceMatcher>.filterFor(graph: HeapGraph): List<ReferenceMatcher> {
   return filter { matcher ->
     (matcher is IgnoredReferenceMatcher ||
       (matcher is LibraryLeakReferenceMatcher && matcher.patternApplies(graph)))

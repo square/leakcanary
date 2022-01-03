@@ -385,10 +385,6 @@ public abstract class shark/ReferenceMatcher {
 	public abstract fun getPattern ()Lshark/ReferencePattern;
 }
 
-public final class shark/ReferenceMatcherKt {
-	public static final fun filterFor (Ljava/lang/Iterable;Lshark/HeapGraph;)Ljava/util/List;
-}
-
 public abstract class shark/ReferencePattern : java/io/Serializable {
 	public static final field Companion Lshark/ReferencePattern$Companion;
 }
