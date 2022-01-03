@@ -484,14 +484,18 @@ enum class AndroidLeakFixes {
       if (SDK_INT >= 29) {
         return
       }
-      val inputMethodManager =
+      val inputMethodManager = try {
         application.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-      val mCurRootViewField: Field
-      try {
-        mCurRootViewField =
-          InputMethodManager::class.java.getDeclaredField("mCurRootView")
-        mCurRootViewField.isAccessible = true
-      } catch (ignored: Exception) {
+      } catch (ignored: Throwable) {
+        // https://github.com/square/leakcanary/issues/2140
+        SharkLog.d(ignored) { "Could not retrieve InputMethodManager service" }
+        return
+      }
+      val mCurRootViewField = try {
+          InputMethodManager::class.java.getDeclaredField("mCurRootView").apply {
+            isAccessible = true
+          }
+      } catch (ignored: Throwable) {
         SharkLog.d(ignored) { "Could not read InputMethodManager.mCurRootView field" }
         return
       }
@@ -504,7 +508,7 @@ enum class AndroidLeakFixes {
             ) {
               mCurRootViewField[inputMethodManager] = null
             }
-          } catch (ignored: Exception) {
+          } catch (ignored: Throwable) {
             SharkLog.d(ignored) { "Could not update InputMethodManager.mCurRootView field" }
           }
         }
