@@ -260,13 +260,6 @@ internal class PathFinder(
 
     gcRoots.forEach { (objectRecord, gcRoot) ->
       when (gcRoot) {
-        is ThreadObject -> {
-          // TODO have a wrapper for FieldInstanceReader that recognises thread instances,
-          // delegates to FieldInstanceReader but filters thread local values to be lower priority.
-          // We deprioritize thread objects because on Lollipop the thread local values are stored
-          // as a field.
-          enqueue(NormalRootNode(gcRoot.id, gcRoot), isLowPriority = true)
-        }
         // Note: in sortedGcRoots we already filter out any java frame that has an associated
         // thread.
         is JavaFrame -> {
