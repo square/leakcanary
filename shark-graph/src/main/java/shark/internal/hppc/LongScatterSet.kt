@@ -224,7 +224,7 @@ internal class LongScatterSet(expectedElements: Int = 4) {
       throw RuntimeException(
         String.format(
           Locale.ROOT,
-          "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
+          "Not enough memory to allocate buffers for rehashing: %d -> %d",
           size(),
           arraySize
         ), e
