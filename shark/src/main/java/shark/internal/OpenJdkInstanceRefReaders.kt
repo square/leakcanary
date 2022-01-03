@@ -130,6 +130,14 @@ internal enum class OpenJdkInstanceRefReaders : OptionalFactory {
       val hashMapClass =
         graph.findClassByName("java.util.concurrent.ConcurrentHashMap") ?: return null
 
+      // No table field in Apache Harmony impl (as seen on Android 4).
+      val isOpenJdkImpl = hashMapClass.readRecordFields()
+        .any { hashMapClass.instanceFieldName(it) == "table" }
+
+      if (!isOpenJdkImpl) {
+        return null
+      }
+
       val hashMapClassId = hashMapClass.objectId
       return InternalSharedHashMapReferenceReader(
         className = "java.util.concurrent.ConcurrentHashMap",
