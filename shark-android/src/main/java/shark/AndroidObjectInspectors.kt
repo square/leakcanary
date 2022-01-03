@@ -15,8 +15,8 @@
  */
 package shark
 
-import shark.AndroidServices.aliveAndroidServiceObjectIds
 import shark.AndroidObjectInspectors.Companion.appDefaults
+import shark.AndroidServices.aliveAndroidServiceObjectIds
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapInstance
 import java.util.EnumSet
@@ -224,7 +224,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (instance.objectId in instance.graph.aliveAndroidServiceObjectIds) {
           notLeakingReasons += "Service held by ActivityThread"
         } else {
-          leakingReasons +=  "Service not held by ActivityThread"
+          leakingReasons += "Service not held by ActivityThread"
         }
       }
     }
@@ -750,7 +750,39 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
       }
     }
-  };
+  },
+
+  RECOMPOSER {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("androidx.compose.runtime.Recomposer") { instance ->
+        val stateFlow =
+          instance["androidx.compose.runtime.Recomposer", "_state"]!!.valueAsInstance!!
+        val state = stateFlow["kotlinx.coroutines.flow.StateFlowImpl", "_state"]?.valueAsInstance
+        if (state != null) {
+          val stateName = state["java.lang.Enum", "name"]!!.valueAsInstance!!.readAsJavaString()!!
+          val label = "Recomposer is in state $stateName"
+          when (stateName) {
+            "ShutDown", "ShuttingDown" -> leakingReasons += label
+            "Inactive", "InactivePendingWork" -> labels += label
+            "PendingWork", "Idle" -> notLeakingReasons += label
+          }
+        }
+      }
+    }
+  },
+
+  COMPOSITION_IMPL {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("androidx.compose.runtime.CompositionImpl") { instance ->
+        if (instance["androidx.compose.runtime.CompositionImpl", "disposed"]!!.value.asBoolean!!) {
+          leakingReasons += "Composition disposed"
+        } else {
+          notLeakingReasons += "Composition not disposed"
+        }
+      }
+    }
+  }
+  ;
 
   internal open val leakingObjectFilter: ((heapObject: HeapObject) -> Boolean)? = null
 
