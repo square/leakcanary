@@ -15,6 +15,8 @@
  */
 package com.example.leakcanary
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.BroadcastReceiver
@@ -92,6 +94,17 @@ class MainActivity : Activity() {
         }
       }
       LeakyReschedulingRunnable(leaky).run()
+    }
+    findViewById<Button>(R.id.infinite_animator).setOnClickListener { view ->
+      ObjectAnimator.ofFloat(view, View.ALPHA, 0.1f, 0.2f).apply {
+        duration = 100
+        repeatMode = ValueAnimator.REVERSE
+        repeatCount = ValueAnimator.INFINITE
+        start()
+      }
+    }
+    findViewById<Button>(R.id.finish_activity).setOnClickListener { view ->
+      finish()
     }
   }
 
