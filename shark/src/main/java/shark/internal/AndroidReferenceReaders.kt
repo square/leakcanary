@@ -2,10 +2,12 @@ package shark.internal
 
 import shark.HeapGraph
 import shark.HeapObject.HeapInstance
+import shark.ValueHolder.ReferenceHolder
 import shark.internal.ReferenceLocationType.ARRAY_ENTRY
 import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
 import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
 import shark.internal.Reference.LazyDetails
+import shark.internal.ReferenceLocationType.INSTANCE_FIELD
 
 internal enum class AndroidReferenceReaders : OptionalFactory {
 
@@ -41,6 +43,53 @@ internal enum class AndroidReferenceReaders : OptionalFactory {
                 }
               )
             }
+        }
+      }
+    }
+  },
+
+  ANIMATOR_WEAK_REF_SUCKS {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
+      val objectAnimatorClass =
+        graph.findClassByName("android.animation.ObjectAnimator") ?: return null
+
+      val weakRefClassId =
+        graph.findClassByName("java.lang.ref.WeakReference")?.objectId ?: return null
+
+      val objectAnimatorClassId = objectAnimatorClass.objectId
+
+      return object : VirtualInstanceReferenceReader {
+        override fun matches(instance: HeapInstance) =
+          instance.instanceClassId == objectAnimatorClassId
+
+        override fun read(source: HeapInstance): Sequence<Reference> {
+          val mTarget = source["android.animation.ObjectAnimator", "mTarget"]?.valueAsInstance
+            ?: return emptySequence()
+
+          if (mTarget.instanceClassId != weakRefClassId) {
+            return emptySequence()
+          }
+
+          val actualRef =
+            mTarget["java.lang.ref.Reference", "referent"]!!.value.holder as ReferenceHolder
+
+          return if (actualRef.isNull) {
+            emptySequence()
+          } else {
+            sequenceOf(Reference(
+              valueObjectId = actualRef.value,
+              isLowPriority = true,
+              lazyDetailsResolver = {
+                LazyDetails(
+                  name = "mTarget",
+                  locationClassObjectId = objectAnimatorClassId,
+                  locationType = INSTANCE_FIELD,
+                  matchedLibraryLeak = null,
+                  isVirtual = true
+                )
+              }
+            ))
+          }
         }
       }
     }
