@@ -326,7 +326,7 @@ internal class LongLongScatterMap constructor(expectedElements: Int = 4) {
       throw RuntimeException(
         String.format(
           Locale.ROOT,
-          "Not enough memory to allocate buffers for rehashing: %,d -> %,d",
+          "Not enough memory to allocate buffers for rehashing: %d -> %d",
           this.mask + 1,
           arraySize
         ), e
