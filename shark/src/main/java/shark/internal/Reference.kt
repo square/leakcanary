@@ -1,7 +1,6 @@
 package shark.internal
 
 import shark.LibraryLeakReferenceMatcher
-import shark.ReferenceLocationType
 import shark.internal.Reference.LazyDetails.Resolver
 
 internal class Reference(

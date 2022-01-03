@@ -381,15 +381,6 @@ public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {
 	public static fun values ()[Lshark/OnAnalysisProgressListener$Step;
 }
 
-public final class shark/ReferenceLocationType : java/lang/Enum {
-	public static final field ARRAY_ENTRY Lshark/ReferenceLocationType;
-	public static final field INSTANCE_FIELD Lshark/ReferenceLocationType;
-	public static final field LOCAL Lshark/ReferenceLocationType;
-	public static final field STATIC_FIELD Lshark/ReferenceLocationType;
-	public static fun valueOf (Ljava/lang/String;)Lshark/ReferenceLocationType;
-	public static fun values ()[Lshark/ReferenceLocationType;
-}
-
 public abstract class shark/ReferenceMatcher {
 	public abstract fun getPattern ()Lshark/ReferencePattern;
 }

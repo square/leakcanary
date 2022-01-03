@@ -5,7 +5,7 @@ import shark.HeapObject.HeapClass
 import shark.IgnoredReferenceMatcher
 import shark.LibraryLeakReferenceMatcher
 import shark.internal.Reference.LazyDetails
-import shark.ReferenceLocationType.STATIC_FIELD
+import shark.internal.ReferenceLocationType.STATIC_FIELD
 import shark.ReferenceMatcher
 import shark.ReferencePattern.StaticFieldPattern
 import shark.ValueHolder.ReferenceHolder

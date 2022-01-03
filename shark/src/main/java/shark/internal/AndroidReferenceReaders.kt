@@ -2,7 +2,7 @@ package shark.internal
 
 import shark.HeapGraph
 import shark.HeapObject.HeapInstance
-import shark.ReferenceLocationType.ARRAY_ENTRY
+import shark.internal.ReferenceLocationType.ARRAY_ENTRY
 import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
 import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
 import shark.internal.Reference.LazyDetails

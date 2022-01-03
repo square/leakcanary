@@ -4,7 +4,7 @@ import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceRe
 import shark.HeapObject.HeapInstance
 import shark.HeapValue
 import shark.internal.Reference.LazyDetails
-import shark.ReferenceLocationType.ARRAY_ENTRY
+import shark.internal.ReferenceLocationType.ARRAY_ENTRY
 
 internal class InternalSharedHashMapReferenceReader(
   private val className: String,

@@ -2,7 +2,7 @@ package shark.internal
 
 import shark.HeapObject.HeapObjectArray
 import shark.internal.Reference.LazyDetails
-import shark.ReferenceLocationType.ARRAY_ENTRY
+import shark.internal.ReferenceLocationType.ARRAY_ENTRY
 import shark.ValueHolder
 
 internal class ObjectArrayReferenceReader : ReferenceReader<HeapObjectArray> {

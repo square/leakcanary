@@ -6,7 +6,7 @@ import shark.HeapObject.HeapInstance
 import shark.IgnoredReferenceMatcher
 import shark.LibraryLeakReferenceMatcher
 import shark.internal.Reference.LazyDetails
-import shark.ReferenceLocationType.LOCAL
+import shark.internal.ReferenceLocationType.LOCAL
 import shark.ReferenceMatcher
 import shark.ReferencePattern.JavaLocalPattern
 import shark.filterFor

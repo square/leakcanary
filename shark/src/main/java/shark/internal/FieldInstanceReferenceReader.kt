@@ -18,7 +18,7 @@ import shark.PrimitiveType.INT
 import shark.PrimitiveType.LONG
 import shark.PrimitiveType.SHORT
 import shark.internal.Reference.LazyDetails
-import shark.ReferenceLocationType.INSTANCE_FIELD
+import shark.internal.ReferenceLocationType.INSTANCE_FIELD
 import shark.ReferenceMatcher
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.filterFor

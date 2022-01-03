@@ -59,6 +59,7 @@ import shark.internal.FieldInstanceReferenceReader
 import shark.internal.JavaLocalReferenceReader
 import shark.internal.ObjectArrayReferenceReader
 import shark.internal.OpenJdkInstanceRefReaders
+import shark.internal.ReferenceLocationType
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferenceReader
 
