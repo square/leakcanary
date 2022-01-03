@@ -50,6 +50,7 @@ import shark.internal.lastSegment
 import java.io.File
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit.NANOSECONDS
+import shark.internal.AndroidReferenceReaders
 import shark.internal.ApacheHarmonyInstanceRefReaders
 import shark.internal.ChainingInstanceReferenceReader
 import shark.internal.ClassReferenceReader
@@ -151,7 +152,8 @@ class HeapAnalyzer constructor(
           JavaLocalReferenceReader(graph, referenceMatchers),
         )
           + OpenJdkInstanceRefReaders.values().mapNotNull { it.create(graph) }
-          + ApacheHarmonyInstanceRefReaders.values().mapNotNull { it.create(graph) },
+          + ApacheHarmonyInstanceRefReaders.values().mapNotNull { it.create(graph) }
+          + AndroidReferenceReaders.values().mapNotNull { it.create(graph) },
         FieldInstanceReferenceReader(graph, referenceMatchers)
       ),
       objectArrayReferenceReader = ObjectArrayReferenceReader()

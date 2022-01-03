@@ -23,11 +23,13 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.View
 import android.widget.Button
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
+import leakcanary.AppWatcher
 
 class MainActivity : Activity() {
 
@@ -78,6 +80,18 @@ class MainActivity : Activity() {
     findViewById<Button>(R.id.leak_receiver_button).setOnClickListener {
       leakyReceiver = true
       recreate()
+    }
+    findViewById<Button>(R.id.message_leak_button).setOnClickListener {
+      val leaky = Any()
+      AppWatcher.objectWatcher.expectWeaklyReachable(leaky, "Repeated Message")
+      @Suppress("unused")
+      class LeakyReschedulingRunnable(private val leaky: Any) : Runnable {
+        private val handler = Handler(Looper.getMainLooper())
+        override fun run() {
+          handler.postDelayed(this, 1000)
+        }
+      }
+      LeakyReschedulingRunnable(leaky).run()
     }
   }
 

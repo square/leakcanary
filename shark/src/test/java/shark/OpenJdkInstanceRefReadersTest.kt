@@ -292,7 +292,7 @@ class OpenJdkInstanceRefReadersTest {
     val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_MAP)
 
     with(refPath.first()) {
-      assertThat(referenceDisplayName).matches("\\[instance @\\d* of shark\\.OpenJdkInstanceExpandersTest\\\$SomeKey]")
+      assertThat(referenceDisplayName).matches("\\[instance @\\d* of shark\\.OpenJdkInstanceRefReadersTest\\\$SomeKey]")
     }
   }
 

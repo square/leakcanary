@@ -6,9 +6,6 @@ import shark.HeapObject.HeapInstance
 /*
  * TODO Support Vector, Android message, ThreadLocal$ThreadLocalMap$Entry
  * ThreadLocal$Values.table
- *
- * MessageQueue.mMessages => Message.callback, Message.obj
- *  => should emit Message objects instead of obj + callback
  */
 /**
  * A [ReferenceReader] that first delegates expanding to [virtualRefReaders] in order until one

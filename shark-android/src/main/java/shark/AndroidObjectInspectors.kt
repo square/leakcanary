@@ -717,6 +717,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         labels += "Message.obj = ${instance["android.os.Message", "obj"]!!.value.asObject}"
         labels += "Message.callback = ${instance["android.os.Message", "callback"]!!.value.asObject}"
+        labels += "Message.target = ${instance["android.os.Message", "target"]!!.value.asObject}"
       }
     }
   },
