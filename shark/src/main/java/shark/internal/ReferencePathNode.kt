@@ -9,15 +9,15 @@ internal sealed class ReferencePathNode {
 
   sealed class RootNode : ReferencePathNode() {
     abstract val gcRoot: GcRoot
+    override val objectId: Long
+      get() = gcRoot.id
 
     class LibraryLeakRootNode(
-      override val objectId: Long,
       override val gcRoot: GcRoot,
       val matcher: LibraryLeakReferenceMatcher
     ) : RootNode()
 
     class NormalRootNode(
-      override val objectId: Long,
       override val gcRoot: GcRoot
     ) : RootNode()
   }

@@ -4,28 +4,20 @@ package shark.internal
 
 import java.util.ArrayDeque
 import java.util.Deque
-import shark.GcRoot
 import shark.GcRoot.JavaFrame
-import shark.GcRoot.JniGlobal
-import shark.GcRoot.ThreadObject
 import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.IgnoredReferenceMatcher
-import shark.LibraryLeakReferenceMatcher
 import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.PrimitiveType.INT
 import shark.ReferenceMatcher
-import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferenceReader
-import shark.ThreadObjects
 import shark.ValueHolder
-import shark.filterFor
 import shark.internal.PathFinder.VisitTracker.Dominated
 import shark.internal.PathFinder.VisitTracker.Visited
 import shark.internal.ReferencePathNode.ChildNode
@@ -133,26 +125,14 @@ internal class PathFinder(
     var visitingLast = false
   }
 
-  private val jniGlobalReferenceMatchers: Map<String, ReferenceMatcher>
-
   private val threadClassObjectIds: Set<Long> =
     graph.findClassByName(Thread::class.java.name)?.let { threadClass ->
       setOf(threadClass.objectId) + (threadClass.subclasses
         .map { it.objectId }
         .toSet())
-    }?: emptySet()
+    } ?: emptySet()
 
-  init {
-    val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
-    referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
-      when (val pattern = referenceMatcher.pattern) {
-        is NativeGlobalVariablePattern -> {
-          jniGlobals[pattern.className] = referenceMatcher
-        }
-      }
-    }
-    this.jniGlobalReferenceMatchers = jniGlobals
-  }
+  private val gcRootProvider = GcRootProvider(graph, referenceMatchers)
 
   fun findPathsFromGcRoots(
     leakingObjectIds: Set<Long>,
@@ -256,81 +236,19 @@ internal class PathFinder(
   }
 
   private fun State.enqueueGcRoots() {
-    val gcRoots = sortedGcRoots()
-
-    gcRoots.forEach { (objectRecord, gcRoot) ->
-      when (gcRoot) {
-        // Note: in sortedGcRoots we already filter out any java frame that has an associated
-        // thread.
-        is JavaFrame -> {
-          enqueue(NormalRootNode(gcRoot.id, gcRoot), isLowPriority = true)
-        }
-        is JniGlobal -> {
-          val referenceMatcher = when (objectRecord) {
-            is HeapClass -> jniGlobalReferenceMatchers[objectRecord.name]
-            is HeapInstance -> jniGlobalReferenceMatchers[objectRecord.instanceClassName]
-            is HeapObjectArray -> jniGlobalReferenceMatchers[objectRecord.arrayClassName]
-            is HeapPrimitiveArray -> jniGlobalReferenceMatchers[objectRecord.arrayClassName]
-          }
-          if (referenceMatcher !is IgnoredReferenceMatcher) {
-            if (referenceMatcher is LibraryLeakReferenceMatcher) {
-              enqueue(LibraryLeakRootNode(gcRoot.id, gcRoot, referenceMatcher), isLowPriority =true)
-            } else {
-              enqueue(NormalRootNode(gcRoot.id, gcRoot), isLowPriority = false)
-            }
-          }
-        }
-        else -> enqueue(NormalRootNode(gcRoot.id, gcRoot), isLowPriority = false)
-      }
+    gcRootProvider.provideGcRoots().forEach { gcRootReference ->
+      enqueue(
+        gcRootReference.matchedLibraryLeak?.let { matchedLibraryLeak ->
+          LibraryLeakRootNode(
+            gcRootReference.gcRoot,
+            matchedLibraryLeak
+          )
+        } ?: NormalRootNode(
+          gcRootReference.gcRoot
+        ),
+        isLowPriority = gcRootReference.isLowPriority
+      )
     }
-  }
-
-  /**
-   * Sorting GC roots to get stable shortest path
-   * Once sorted all ThreadObject Gc Roots are located before JavaLocalPattern Gc Roots.
-   * This ensures ThreadObjects are visited before JavaFrames, and threadsBySerialNumber can be
-   * built before JavaFrames.
-   */
-  private fun sortedGcRoots(): List<Pair<HeapObject, GcRoot>> {
-    val rootClassName: (HeapObject) -> String = { graphObject ->
-      when (graphObject) {
-        is HeapClass -> {
-          graphObject.name
-        }
-        is HeapInstance -> {
-          graphObject.instanceClassName
-        }
-        is HeapObjectArray -> {
-          graphObject.arrayClassName
-        }
-        is HeapPrimitiveArray -> {
-          graphObject.arrayClassName
-        }
-      }
-    }
-
-    val threadSerialNumbers =
-      ThreadObjects.getThreadObjects(graph).map { it.threadSerialNumber }.toSet()
-
-    return graph.gcRoots
-      .filter { gcRoot ->
-        // GC roots sometimes reference objects that don't exist in the heap dump
-        // See https://github.com/square/leakcanary/issues/1516
-        graph.objectExists(gcRoot.id) &&
-          // Only include java frames that do not have a corresponding ThreadObject.
-          // JavaLocalReferenceReader will insert the other java frames.
-          !(gcRoot is JavaFrame && gcRoot.threadSerialNumber in threadSerialNumbers)
-      }
-      .map { graph.findObjectById(it.id) to it }
-      .sortedWith { (graphObject1, root1), (graphObject2, root2) ->
-        // Sorting based on pattern name first. In reverse order so that ThreadObject is before JavaLocalPattern
-        val gcRootTypeComparison = root2::class.java.name.compareTo(root1::class.java.name)
-        if (gcRootTypeComparison != 0) {
-          gcRootTypeComparison
-        } else {
-          rootClassName(graphObject1).compareTo(rootClassName(graphObject2))
-        }
-      }
   }
 
   @Suppress("ReturnCount")
@@ -344,7 +262,7 @@ internal class PathFinder(
 
     val visitLast = visitingLast || isLowPriority
 
-    val parentObjectId = when(node) {
+    val parentObjectId = when (node) {
       is RootNode -> ValueHolder.NULL_REFERENCE
       is ChildNode -> node.parent.objectId
     }
