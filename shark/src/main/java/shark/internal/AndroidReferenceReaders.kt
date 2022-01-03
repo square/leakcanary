@@ -32,7 +32,6 @@ internal enum class AndroidReferenceReaders : OptionalFactory {
                 isLowPriority = false,
                 lazyDetailsResolver = {
                   LazyDetails(
-                    // All entries are represented by the same key name, e.g. "key()"
                     name = "$index",
                     locationClassObjectId = messageQueueClassId,
                     locationType = ARRAY_ENTRY,

@@ -135,6 +135,10 @@ class HeapAnalyzer constructor(
     }
   }
 
+  /**
+   * Searches the heap dump for leaking instances and then computes the shortest strong reference
+   * path from those instances to the GC roots.
+   */
   fun analyze(
     heapDumpFile: File,
     graph: HeapGraph,
@@ -178,11 +182,10 @@ class HeapAnalyzer constructor(
   }
 
   // TODO Callers should add to analysisStartNanoTime
-  // TODO Input should be a builder or part of the object state probs?
-
-  // TODO Maybe there's some sort of helper for setting up the right analysis?
-  // TODO There's a part focused on finding leaks, and then we add to that.
-  // TODO Maybe the result isn't even a leaktrace yet, but something with live object ids?
+  // Input should be a builder or part of the object state probs?
+  // Maybe there's some sort of helper for setting up the right analysis?
+  // There's a part focused on finding leaks, and then we add to that.
+  // Maybe the result isn't even a leaktrace yet, but something with live object ids?
   // Ideally the result contains only what this can return. No file, etc.
   // File: used to create the graph + in result
   // leakingObjectFinder: Helper object, shared
@@ -192,10 +195,6 @@ class HeapAnalyzer constructor(
   // metadataExtractor: helper object, not needed for leak finding
   // referenceReader: can't be helper object, needs graph => param something that can produce it from
   // graph (and in the impl we give that thing the referenceMatchers)
-  /**
-   * Searches the heap dump for leaking instances and then computes the shortest strong reference
-   * path from those instances to the GC roots.
-   */
   @Suppress("LongParameterList")
   internal fun analyze(
     // TODO Kill this file
