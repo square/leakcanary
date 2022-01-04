@@ -17,7 +17,7 @@ import leakcanary.AppWatcher
 internal class MainProcessAppWatcherInstaller : ContentProvider() {
 
   override fun onCreate(): Boolean {
-    val application = requireContext().applicationContext as Application
+    val application = context!!.applicationContext as Application
     AppWatcher.manualInstall(application)
     return true
   }

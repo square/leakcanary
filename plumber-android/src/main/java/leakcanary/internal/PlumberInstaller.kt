@@ -14,7 +14,7 @@ import leakcanary.AndroidLeakFixes
 internal class PlumberInstaller : ContentProvider() {
 
   override fun onCreate(): Boolean {
-    val application = requireContext().applicationContext as Application
+    val application = context!!.applicationContext as Application
     AndroidLeakFixes.applyFixes(application)
     return true
   }
