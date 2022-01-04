@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -811,13 +811,12 @@
     
   
   
-  <p><a href="../../">leakcanary-object-watcher</a> / <a href="../">leakcanary</a> / <a href="./">GcTrigger</a></p>
+  <p>//<a href="../../../">leakcanary-object-watcher</a>/<a href="../">leakcanary</a>/<a href="./">GcTrigger</a></p>
 <h1 id="gctrigger">GcTrigger<a class="headerlink" href="#gctrigger" title="Permanent link">&para;</a></h1>
-<p><code>interface GcTrigger</code></p>
-<p><a href="./">GcTrigger</a> is used to try triggering garbage collection and enqueuing <a href="../-keyed-weak-reference/">KeyedWeakReference</a> into
-the associated <a href="https://docs.oracle.com/javase/6/docs/api/java/lang/ref/ReferenceQueue.html">java.lang.ref.ReferenceQueue</a>. The default implementation <a href="-default/">Default</a> comes from
-AOSP.</p>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+fun interface <a href="./">GcTrigger</a></p>
+<p><a href="./">GcTrigger</a> is used to try triggering garbage collection and enqueuing <a href="../-keyed-weak-reference/">KeyedWeakReference</a> into the associated <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/ref/ReferenceQueue.html">java.lang.ref.ReferenceQueue</a>. The default implementation <a href="-default/">Default</a> comes from AOSP.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -828,11 +827,11 @@ AOSP.</p>
 <tbody>
 <tr>
 <td><a href="-default/">Default</a></td>
-<td><code>object Default :</code><a href="./"><code>GcTrigger</code></a><br>Default implementation of <a href="./">GcTrigger</a>.</td>
+<td>[jvm]<br>object <a href="-default/">Default</a> : <a href="./">GcTrigger</a><br>Default implementation of <a href="./">GcTrigger</a>.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -843,22 +842,20 @@ AOSP.</p>
 <tbody>
 <tr>
 <td><a href="run-gc/">runGc</a></td>
-<td><code>abstract fun runGc():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Attempts to run garbage collection.</td>
+<td>[jvm]<br>abstract fun <a href="run-gc/">runGc</a>()<br>Attempts to run garbage collection.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Summary</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="-default/">Default</a></td>
-<td><code>object Default :</code><a href="./"><code>GcTrigger</code></a><br>Default implementation of <a href="./">GcTrigger</a>.</td>
 </tr>
 </tbody>
 </table>

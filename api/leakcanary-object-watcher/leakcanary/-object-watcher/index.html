@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -778,15 +778,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    Properties
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -811,59 +811,29 @@
     
   
   
-  <p><a href="../../">leakcanary-object-watcher</a> / <a href="../">leakcanary</a> / <a href="./">ObjectWatcher</a></p>
+  <p>//<a href="../../../">leakcanary-object-watcher</a>/<a href="../">leakcanary</a>/<a href="./">ObjectWatcher</a></p>
 <h1 id="objectwatcher">ObjectWatcher<a class="headerlink" href="#objectwatcher" title="Permanent link">&para;</a></h1>
-<p><code>class ObjectWatcher :</code><a href="../-reachability-watcher/"><code>ReachabilityWatcher</code></a></p>
-<p><a href="./">ObjectWatcher</a> can be passed objects to <a href="watch/">watch</a>. It will create <a href="../-keyed-weak-reference/">KeyedWeakReference</a> instances
-that reference watches objects, and check if those references have been cleared as expected on
-the <a href="#">checkRetainedExecutor</a> executor. If not, these objects are considered retained and
-<a href="./">ObjectWatcher</a> will then notify registered <a href="../-on-object-retained-listener/">OnObjectRetainedListener</a>s on that executor thread.</p>
-<p><a href="#">checkRetainedExecutor</a> is expected to run its tasks on a background thread, with a significant
-delay to give the GC the opportunity to identify weakly reachable objects.</p>
+<p>[jvm]\
+class <a href="./">ObjectWatcher</a>(clock: <a href="../-clock/">Clock</a>, checkRetainedExecutor: <a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html">Executor</a>, isEnabled: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="../-reachability-watcher/">ReachabilityWatcher</a></p>
+<p><a href="./">ObjectWatcher</a> can be passed objects to watch. It will create <a href="../-keyed-weak-reference/">KeyedWeakReference</a> instances that reference watches objects, and check if those references have been cleared as expected on the checkRetainedExecutor executor. If not, these objects are considered retained and <a href="./">ObjectWatcher</a> will then notify registered <a href="../-on-object-retained-listener/">OnObjectRetainedListener</a>s on that executor thread.</p>
+<p>checkRetainedExecutor is expected to run its tasks on a background thread, with a significant delay to give the GC the opportunity to identify weakly reachable objects.</p>
 <p><a href="./">ObjectWatcher</a> is thread safe.</p>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
+<h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<th></th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>ObjectWatcher(clock:</code><a href="../-clock/"><code>Clock</code></a><code>, checkRetainedExecutor:</code><a href="https://docs.oracle.com/javase/6/docs/api/java/util/concurrent/Executor.html"><code>Executor</code></a><code>, isEnabled: () -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= { true })</code><br><a href="./">ObjectWatcher</a> can be passed objects to <a href="watch/">watch</a>. It will create <a href="../-keyed-weak-reference/">KeyedWeakReference</a> instances that reference watches objects, and check if those references have been cleared as expected on the <a href="#">checkRetainedExecutor</a> executor. If not, these objects are considered retained and <a href="./">ObjectWatcher</a> will then notify registered <a href="../-on-object-retained-listener/">OnObjectRetainedListener</a>s on that executor thread.</td>
+<td><a href="-object-watcher/">ObjectWatcher</a></td>
+<td>[jvm]<br>fun <a href="-object-watcher/">ObjectWatcher</a>(clock: <a href="../-clock/">Clock</a>, checkRetainedExecutor: <a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html">Executor</a>, isEnabled: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = { true })</td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="has-retained-objects/">hasRetainedObjects</a></td>
-<td><code>val hasRetainedObjects:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>Returns true if there are watched objects that aren&rsquo;t weakly reachable, and have been watched for long enough to be considered retained.</td>
-</tr>
-<tr>
-<td><a href="has-watched-objects/">hasWatchedObjects</a></td>
-<td><code>val hasWatchedObjects:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>Returns true if there are watched objects that aren&rsquo;t weakly reachable, even if they haven&rsquo;t been watched for long enough to be considered retained.</td>
-</tr>
-<tr>
-<td><a href="retained-object-count/">retainedObjectCount</a></td>
-<td><code>val retainedObjectCount:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><br>Returns the number of retained objects, ie the number of watched objects that aren&rsquo;t weakly reachable, and have been watched for long enough to be considered retained.</td>
-</tr>
-<tr>
-<td><a href="retained-objects/">retainedObjects</a></td>
-<td><code>val retainedObjects:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html"><code>Any</code></a><code>&gt;</code><br>Returns the objects that are currently considered retained. Useful for logging purposes. Be careful with those objects and release them ASAP as you may creating longer lived leaks then the one that are already there.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -874,27 +844,50 @@ delay to give the GC the opportunity to identify weakly reachable objects.</p>
 <tbody>
 <tr>
 <td><a href="add-on-object-retained-listener/">addOnObjectRetainedListener</a></td>
-<td><code>fun addOnObjectRetainedListener(listener:</code><a href="../-on-object-retained-listener/"><code>OnObjectRetainedListener</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
+<td>[jvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html">Synchronized</a><br>fun <a href="add-on-object-retained-listener/">addOnObjectRetainedListener</a>(listener: <a href="../-on-object-retained-listener/">OnObjectRetainedListener</a>)</td>
 </tr>
 <tr>
 <td><a href="clear-objects-watched-before/">clearObjectsWatchedBefore</a></td>
-<td><code>fun clearObjectsWatchedBefore(heapDumpUptimeMillis:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Clears all <a href="../-keyed-weak-reference/">KeyedWeakReference</a> that were created before <a href="clear-objects-watched-before/#leakcanary.ObjectWatcher$clearObjectsWatchedBefore(kotlin.Long)/heapDumpUptimeMillis">heapDumpUptimeMillis</a> (based on <a href="../-clock/uptime-millis/">clock</a>)</td>
+<td>[jvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html">Synchronized</a><br>fun <a href="clear-objects-watched-before/">clearObjectsWatchedBefore</a>(heapDumpUptimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>)<br>Clears all <a href="../-keyed-weak-reference/">KeyedWeakReference</a> that were created before <a href="clear-objects-watched-before/">heapDumpUptimeMillis</a> (based on <a href="../-clock/uptime-millis/">clock</a>)</td>
 </tr>
 <tr>
 <td><a href="clear-watched-objects/">clearWatchedObjects</a></td>
-<td><code>fun clearWatchedObjects():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Clears all <a href="../-keyed-weak-reference/">KeyedWeakReference</a></td>
+<td>[jvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html">Synchronized</a><br>fun <a href="clear-watched-objects/">clearWatchedObjects</a>()<br>Clears all <a href="../-keyed-weak-reference/">KeyedWeakReference</a></td>
 </tr>
 <tr>
 <td><a href="expect-weakly-reachable/">expectWeaklyReachable</a></td>
-<td><code>fun expectWeaklyReachable(watchedObject:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html"><code>Any</code></a><code>, description:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Expects the provided <a href="../-reachability-watcher/expect-weakly-reachable/#leakcanary.ReachabilityWatcher$expectWeaklyReachable(kotlin.Any, kotlin.String)/watchedObject">watchedObject</a> to become weakly reachable soon. If not, <a href="../-reachability-watcher/expect-weakly-reachable/#leakcanary.ReachabilityWatcher$expectWeaklyReachable(kotlin.Any, kotlin.String)/watchedObject">watchedObject</a> will be considered retained.</td>
+<td>[jvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html">Synchronized</a><br>open override fun <a href="expect-weakly-reachable/">expectWeaklyReachable</a>(watchedObject: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)<br>Expects the provided <a href="expect-weakly-reachable/">watchedObject</a> to become weakly reachable soon. If not, <a href="expect-weakly-reachable/">watchedObject</a> will be considered retained.</td>
 </tr>
 <tr>
 <td><a href="remove-on-object-retained-listener/">removeOnObjectRetainedListener</a></td>
-<td><code>fun removeOnObjectRetainedListener(listener:</code><a href="../-on-object-retained-listener/"><code>OnObjectRetainedListener</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
+<td>[jvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html">Synchronized</a><br>fun <a href="remove-on-object-retained-listener/">removeOnObjectRetainedListener</a>(listener: <a href="../-on-object-retained-listener/">OnObjectRetainedListener</a>)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="has-retained-objects/">hasRetainedObjects</a></td>
+<td>[jvm]<br>@get:<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html">Synchronized</a><br>val <a href="has-retained-objects/">hasRetainedObjects</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if there are watched objects that aren&rsquo;t weakly reachable, and have been watched for long enough to be considered retained.</td>
 </tr>
 <tr>
-<td><a href="watch/">watch</a></td>
-<td><code>fun ~~watch~~(watchedObject:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html"><code>Any</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Identical to <a href="watch/">watch</a> with an empty string reference name.<code>fun ~~watch~~(watchedObject:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html"><code>Any</code></a><code>, description:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
+<td><a href="has-watched-objects/">hasWatchedObjects</a></td>
+<td>[jvm]<br>@get:<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html">Synchronized</a><br>val <a href="has-watched-objects/">hasWatchedObjects</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if there are watched objects that aren&rsquo;t weakly reachable, even if they haven&rsquo;t been watched for long enough to be considered retained.</td>
+</tr>
+<tr>
+<td><a href="retained-object-count/">retainedObjectCount</a></td>
+<td>[jvm]<br>@get:<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html">Synchronized</a><br>val <a href="retained-object-count/">retainedObjectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>Returns the number of retained objects, ie the number of watched objects that aren&rsquo;t weakly reachable, and have been watched for long enough to be considered retained.</td>
+</tr>
+<tr>
+<td><a href="retained-objects/">retainedObjects</a></td>
+<td>[jvm]<br>@get:<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html">Synchronized</a><br>val <a href="retained-objects/">retainedObjects</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;<br>Returns the objects that are currently considered retained. Useful for logging purposes. Be careful with those objects and release them ASAP as you may creating longer lived leaks then the one that are already there.</td>
 </tr>
 </tbody>
 </table>

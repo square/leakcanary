@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,15 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#types" class="md-nav__link">
-    Types
+  <a href="#constructors" class="md-nav__link">
+    Constructors
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#constructors" class="md-nav__link">
-    Constructors
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
@@ -811,12 +811,27 @@
     
   
   
-  <p><a href="../../">shark</a> / <a href="../">shark</a> / <a href="./">FilteringLeakingObjectFinder</a></p>
+  <p>//<a href="../../../">shark</a>/<a href="../">shark</a>/<a href="./">FilteringLeakingObjectFinder</a></p>
 <h1 id="filteringleakingobjectfinder">FilteringLeakingObjectFinder<a class="headerlink" href="#filteringleakingobjectfinder" title="Permanent link">&para;</a></h1>
-<p><code>class FilteringLeakingObjectFinder :</code><a href="../-leaking-object-finder/"><code>LeakingObjectFinder</code></a></p>
-<p>Finds the objects that are leaking by scanning all objects in the heap dump
-and delegating the decision to a list of <a href="-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a></p>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+class <a href="./">FilteringLeakingObjectFinder</a>(filters: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a>&gt;) : <a href="../-leaking-object-finder/">LeakingObjectFinder</a></p>
+<p>Finds the objects that are leaking by scanning all objects in the heap dump and delegating the decision to a list of <a href="-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a></p>
+<h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a></td>
+<td>[jvm]<br>fun <a href="-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a>(filters: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a>&gt;)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -827,26 +842,11 @@ and delegating the decision to a list of <a href="-leaking-object-filter/">Filte
 <tbody>
 <tr>
 <td><a href="-leaking-object-filter/">LeakingObjectFilter</a></td>
-<td><code>interface LeakingObjectFilter</code><br>Filter to be passed to the <a href="./">FilteringLeakingObjectFinder</a> constructor.</td>
+<td>[jvm]<br>fun interface <a href="-leaking-object-filter/">LeakingObjectFilter</a><br>Filter to be passed to the <a href="./">FilteringLeakingObjectFinder</a> constructor.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>FilteringLeakingObjectFinder(filters:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="-leaking-object-filter/"><code>FilteringLeakingObjectFinder.LeakingObjectFilter</code></a><code>&gt;)</code><br>Finds the objects that are leaking by scanning all objects in the heap dump and delegating the decision to a list of <a href="-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a></td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -857,7 +857,7 @@ and delegating the decision to a list of <a href="-leaking-object-filter/">Filte
 <tbody>
 <tr>
 <td><a href="find-leaking-object-ids/">findLeakingObjectIds</a></td>
-<td><code>fun findLeakingObjectIds(graph: HeapGraph):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>&gt;</code><br>For a given heap graph, returns a set of object ids for the objects that are leaking.</td>
+<td>[jvm]<br>open override fun <a href="find-leaking-object-ids/">findLeakingObjectIds</a>(graph: HeapGraph): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>&gt;<br>For a given heap graph, returns a set of object ids for the objects that are leaking.</td>
 </tr>
 </tbody>
 </table>

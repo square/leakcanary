@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -593,6 +593,8 @@
     
     <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
+      
+    
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Extension: Shark Android
@@ -607,6 +609,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -615,22 +619,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-shark" class="md-nav__link">
-    Package shark
-  </a>
-  
-    <nav class="md-nav" aria-label="Package shark">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -734,7 +725,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -812,6 +803,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -820,22 +813,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-shark" class="md-nav__link">
-    Package shark
-  </a>
-  
-    <nav class="md-nav" aria-label="Package shark">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -859,11 +839,9 @@
     
   
   
-    <h1>Extension: Shark Android</h1>
-  
-  <p><a href="../">shark-android</a> / <a href="./">shark</a></p>
-<h2 id="package-shark">Package shark<a class="headerlink" href="#package-shark" title="Permanent link">&para;</a></h2>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+  <p>//<a href="../../">shark-android</a>/<a href="./">shark</a></p>
+<h1 id="package-shark">Package shark<a class="headerlink" href="#package-shark" title="Permanent link">&para;</a></h1>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -874,27 +852,27 @@
 <tbody>
 <tr>
 <td><a href="-android-build-mirror/">AndroidBuildMirror</a></td>
-<td><code>class AndroidBuildMirror</code><br>Caches values from the android.os.Build class in the heap dump. Retrieve a cached instances via <a href="-android-build-mirror/from-heap-graph/">fromHeapGraph</a>.</td>
+<td>[jvm]<br>class <a href="-android-build-mirror/">AndroidBuildMirror</a>(manufacturer: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, sdkInt: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>)<br>Caches values from the android.os.Build class in the heap dump. Retrieve a cached instances via <a href="-android-build-mirror/-companion/from-heap-graph/">fromHeapGraph</a>.</td>
 </tr>
 <tr>
 <td><a href="-android-metadata-extractor/">AndroidMetadataExtractor</a></td>
-<td><code>object AndroidMetadataExtractor : MetadataExtractor</code></td>
+<td>[jvm]<br>object <a href="-android-metadata-extractor/">AndroidMetadataExtractor</a> : MetadataExtractor</td>
 </tr>
 <tr>
 <td><a href="-android-object-inspectors/">AndroidObjectInspectors</a></td>
-<td><code>enum class AndroidObjectInspectors : ObjectInspector</code><br>A set of default <a href="#">ObjectInspector</a>s that knows about common AOSP and library classes.</td>
+<td>[jvm]<br>enum <a href="-android-object-inspectors/">AndroidObjectInspectors</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-android-object-inspectors/">AndroidObjectInspectors</a>&gt; , ObjectInspector<br>A set of default ObjectInspectors that knows about common AOSP and library classes.</td>
 </tr>
 <tr>
 <td><a href="-android-reference-matchers/">AndroidReferenceMatchers</a></td>
-<td><code>enum class AndroidReferenceMatchers</code><br><a href="-android-reference-matchers/">AndroidReferenceMatchers</a> values add <a href="#">ReferenceMatcher</a> instances to a global list via their <a href="#">add</a> method. A <a href="#">ReferenceMatcher</a> is either a <a href="#">IgnoredReferenceMatcher</a> or a <a href="#">LibraryLeakReferenceMatcher</a>.</td>
+<td>[jvm]<br>enum <a href="-android-reference-matchers/">AndroidReferenceMatchers</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-android-reference-matchers/">AndroidReferenceMatchers</a>&gt; <br><a href="-android-reference-matchers/">AndroidReferenceMatchers</a> values add ReferenceMatcher instances to a global list via their add method. A ReferenceMatcher is either a IgnoredReferenceMatcher or a LibraryLeakReferenceMatcher.</td>
 </tr>
 <tr>
 <td><a href="-android-resource-id-names/">AndroidResourceIdNames</a></td>
-<td><code>class AndroidResourceIdNames</code></td>
+<td>[jvm]<br>class <a href="-android-resource-id-names/">AndroidResourceIdNames</a></td>
 </tr>
 <tr>
 <td><a href="-android-services/">AndroidServices</a></td>
-<td><code>object AndroidServices</code></td>
+<td>[jvm]<br>object <a href="-android-services/">AndroidServices</a></td>
 </tr>
 </tbody>
 </table>

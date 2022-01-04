@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -761,6 +761,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -769,29 +771,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-leakcanary" class="md-nav__link">
-    Package leakcanary
-  </a>
-  
-    <nav class="md-nav" aria-label="Package leakcanary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -815,11 +797,9 @@
     
   
   
-    <h1>Index</h1>
-  
-  <p><a href="../">leakcanary-android-release</a> / <a href="./">leakcanary</a></p>
-<h2 id="package-leakcanary">Package leakcanary<a class="headerlink" href="#package-leakcanary" title="Permanent link">&para;</a></h2>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+  <p>//<a href="../../">leakcanary-android-release</a>/<a href="./">leakcanary</a></p>
+<h1 id="package-leakcanary">Package leakcanary<a class="headerlink" href="#package-leakcanary" title="Permanent link">&para;</a></h1>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -830,78 +810,63 @@
 <tbody>
 <tr>
 <td><a href="-background-trigger/">BackgroundTrigger</a></td>
-<td><code>class BackgroundTrigger</code></td>
+<td>[androidJvm]<br>class <a href="-background-trigger/">BackgroundTrigger</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, analysisClient: <a href="-heap-analysis-client/">HeapAnalysisClient</a>, analysisExecutor: <a href="https://developer.android.com/reference/kotlin/java/util/concurrent/Executor.html">Executor</a>, processInfo: <a href="-process-info/">ProcessInfo</a>, analysisCallback: (<a href="-heap-analysis-job/-result/">HeapAnalysisJob.Result</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)</td>
 </tr>
 <tr>
 <td><a href="-conditional-interceptor/">ConditionalInterceptor</a></td>
-<td><code>class ConditionalInterceptor :</code><a href="-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a><br>An interceptor that runs only when <a href="#">evaluateCondition</a> returns true.</td>
+<td>[androidJvm]<br>class <a href="-conditional-interceptor/">ConditionalInterceptor</a>(delegate: <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a>, evaluateCondition: (<a href="-heap-analysis-job/">HeapAnalysisJob</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a><br>An interceptor that runs only when evaluateCondition returns true.</td>
 </tr>
 <tr>
 <td><a href="-good-android-version-interceptor/">GoodAndroidVersionInterceptor</a></td>
-<td><code>class GoodAndroidVersionInterceptor :</code><a href="-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a></td>
+<td>[androidJvm]<br>class <a href="-good-android-version-interceptor/">GoodAndroidVersionInterceptor</a> : <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a></td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-client/">HeapAnalysisClient</a></td>
-<td><code>class HeapAnalysisClient</code></td>
+<td>[androidJvm]<br>class <a href="-heap-analysis-client/">HeapAnalysisClient</a>(heapDumpDirectoryProvider: () -&gt; <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, config: <a href="-heap-analysis-config/">HeapAnalysisConfig</a>, interceptors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a>&gt;)</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-config/">HeapAnalysisConfig</a></td>
-<td><code>data class HeapAnalysisConfig</code></td>
+<td>[androidJvm]<br>data class <a href="-heap-analysis-config/">HeapAnalysisConfig</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ReferenceMatcher&gt;, objectInspectors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ObjectInspector&gt;, metadataExtractor: MetadataExtractor, computeRetainedHeapSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>, leakingObjectFinder: LeakingObjectFinder, stripHeapDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>)</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a></td>
-<td><code>interface HeapAnalysisInterceptor</code></td>
+<td>[androidJvm]<br>fun interface <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a></td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-job/">HeapAnalysisJob</a></td>
-<td><code>interface HeapAnalysisJob</code><br>A <a href="-heap-analysis-job/">HeapAnalysisJob</a> represents a single prepared request to analyze the heap. It cannot be executed twice.</td>
+<td>[androidJvm]<br>interface <a href="-heap-analysis-job/">HeapAnalysisJob</a><br>A <a href="-heap-analysis-job/">HeapAnalysisJob</a> represents a single prepared request to analyze the heap. It cannot be executed twice.</td>
 </tr>
 <tr>
 <td><a href="-job-context/">JobContext</a></td>
-<td><code>class JobContext</code><br>In memory store that can be used to store objects in a given <a href="-heap-analysis-job/">HeapAnalysisJob</a> instance. This is a simple <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/index.html">MutableMap</a> of <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> to <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, but with unsafe generics access.</td>
+<td>[androidJvm]<br>class <a href="-job-context/">JobContext</a>(starter: <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html">Class</a>&lt;*&gt;?)<br>In memory store that can be used to store objects in a given <a href="-heap-analysis-job/">HeapAnalysisJob</a> instance. This is a simple <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/index.html">MutableMap</a> of <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> to <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, but with unsafe generics access.</td>
 </tr>
 <tr>
 <td><a href="-minimum-disk-space-interceptor/">MinimumDiskSpaceInterceptor</a></td>
-<td><code>class MinimumDiskSpaceInterceptor :</code><a href="-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a></td>
+<td>[androidJvm]<br>class <a href="-minimum-disk-space-interceptor/">MinimumDiskSpaceInterceptor</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, minimumDiskSpaceBytes: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, processInfo: <a href="-process-info/">ProcessInfo</a>) : <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a></td>
 </tr>
 <tr>
 <td><a href="-minimum-elapsed-since-start-interceptor/">MinimumElapsedSinceStartInterceptor</a></td>
-<td><code>class MinimumElapsedSinceStartInterceptor :</code><a href="-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a></td>
+<td>[androidJvm]<br>class <a href="-minimum-elapsed-since-start-interceptor/">MinimumElapsedSinceStartInterceptor</a>(minimumElapsedSinceStartMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, processInfo: <a href="-process-info/">ProcessInfo</a>) : <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a></td>
 </tr>
 <tr>
 <td><a href="-minimum-memory-interceptor/">MinimumMemoryInterceptor</a></td>
-<td><code>class MinimumMemoryInterceptor :</code><a href="-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a></td>
+<td>[androidJvm]<br>class <a href="-minimum-memory-interceptor/">MinimumMemoryInterceptor</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, minimumRequiredAvailableMemoryBytes: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, processInfo: <a href="-process-info/">ProcessInfo</a>) : <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a></td>
 </tr>
 <tr>
 <td><a href="-once-per-period-interceptor/">OncePerPeriodInterceptor</a></td>
-<td><code>class OncePerPeriodInterceptor :</code><a href="-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a><br>Proceeds once per <a href="#">period</a> (of time) and then cancels all follow up jobs until <a href="#">period</a> has passed.</td>
+<td>[androidJvm]<br>class <a href="-once-per-period-interceptor/">OncePerPeriodInterceptor</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, periodMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a><br>Proceeds once per period (of time) and then cancels all follow up jobs until period has passed.</td>
 </tr>
 <tr>
 <td><a href="-process-info/">ProcessInfo</a></td>
-<td><code>interface ProcessInfo</code></td>
+<td>[androidJvm]<br>interface <a href="-process-info/">ProcessInfo</a></td>
 </tr>
 <tr>
 <td><a href="-save-resource-ids-interceptor/">SaveResourceIdsInterceptor</a></td>
-<td><code>class SaveResourceIdsInterceptor :</code><a href="-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a><br>Interceptor that saves the names of R.id.* entries and their associated int values to a static field that can then be read from the heap dump.</td>
+<td>[androidJvm]<br>class <a href="-save-resource-ids-interceptor/">SaveResourceIdsInterceptor</a>(resources: <a href="https://developer.android.com/reference/kotlin/android/content/res/Resources.html">Resources</a>) : <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a><br>Interceptor that saves the names of R.id.* entries and their associated int values to a static field that can then be read from the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-screen-off-trigger/">ScreenOffTrigger</a></td>
-<td><code>class ScreenOffTrigger</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-no%20name%20provided-/">&lt;no name provided&gt;</a></td>
-<td><code>fun &lt;no name provided&gt;():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
+<td>[androidJvm]<br>class <a href="-screen-off-trigger/">ScreenOffTrigger</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, analysisClient: <a href="-heap-analysis-client/">HeapAnalysisClient</a>, analysisExecutor: <a href="https://developer.android.com/reference/kotlin/java/util/concurrent/Executor.html">Executor</a>, analysisCallback: (<a href="-heap-analysis-job/-result/">HeapAnalysisJob.Result</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)</td>
 </tr>
 </tbody>
 </table>

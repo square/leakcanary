@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,29 +771,29 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#enum-values" class="md-nav__link">
-    Enum Values
+  <a href="#entries" class="md-nav__link">
+    Entries
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#inherited-functions" class="md-nav__link">
-    Inherited Functions
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-properties" class="md-nav__link">
-    Companion Object Properties
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -818,11 +818,43 @@
     
   
   
-  <p><a href="../../">shark</a> / <a href="../">shark</a> / <a href="./">ObjectInspectors</a></p>
+  <p>//<a href="../../../">shark</a>/<a href="../">shark</a>/<a href="./">ObjectInspectors</a></p>
 <h1 id="objectinspectors">ObjectInspectors<a class="headerlink" href="#objectinspectors" title="Permanent link">&para;</a></h1>
-<p><code>enum class ObjectInspectors :</code><a href="../-object-inspector/"><code>ObjectInspector</code></a></p>
+<p>[jvm]\
+enum <a href="./">ObjectInspectors</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="./">ObjectInspectors</a>&gt; , <a href="../-object-inspector/">ObjectInspector</a></p>
 <p>A set of default <a href="../-object-inspector/">ObjectInspector</a>s that knows about common JDK objects.</p>
-<h3 id="enum-values">Enum Values<a class="headerlink" href="#enum-values" title="Permanent link">&para;</a></h3>
+<h2 id="entries">Entries<a class="headerlink" href="#entries" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-t-h-r-e-a-d/">THREAD</a></td>
+<td>[jvm]<br><a href="-t-h-r-e-a-d/">THREAD</a>()</td>
+</tr>
+<tr>
+<td><a href="-a-n-o-n-y-m-o-u-s_-c-l-a-s-s/">ANONYMOUS_CLASS</a></td>
+<td>[jvm]<br><a href="-a-n-o-n-y-m-o-u-s_-c-l-a-s-s/">ANONYMOUS_CLASS</a>()</td>
+</tr>
+<tr>
+<td><a href="-c-l-a-s-s/">CLASS</a></td>
+<td>[jvm]<br><a href="-c-l-a-s-s/">CLASS</a>()</td>
+</tr>
+<tr>
+<td><a href="-c-l-a-s-s-l-o-a-d-e-r/">CLASSLOADER</a></td>
+<td>[jvm]<br><a href="-c-l-a-s-s-l-o-a-d-e-r/">CLASSLOADER</a>()</td>
+</tr>
+<tr>
+<td><a href="-k-e-y-e-d_-w-e-a-k_-r-e-f-e-r-e-n-c-e/">KEYED_WEAK_REFERENCE</a></td>
+<td>[jvm]<br><a href="-k-e-y-e-d_-w-e-a-k_-r-e-f-e-r-e-n-c-e/">KEYED_WEAK_REFERENCE</a>()</td>
+</tr>
+</tbody>
+</table>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -832,28 +864,12 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="-k-e-y-e-d_-w-e-a-k_-r-e-f-e-r-e-n-c-e/">KEYED_WEAK_REFERENCE</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-c-l-a-s-s-l-o-a-d-e-r/">CLASSLOADER</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-c-l-a-s-s/">CLASS</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-a-n-o-n-y-m-o-u-s_-c-l-a-s-s/">ANONYMOUS_CLASS</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-t-h-r-e-a-d/">THREAD</a></td>
-<td></td>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="inherited-functions">Inherited Functions<a class="headerlink" href="#inherited-functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -864,11 +880,11 @@
 <tbody>
 <tr>
 <td><a href="../-object-inspector/inspect/">inspect</a></td>
-<td><code>abstract fun inspect(reporter:</code><a href="../-object-reporter/"><code>ObjectReporter</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
+<td>[jvm]<br>abstract fun <a href="../-object-inspector/inspect/">inspect</a>(reporter: <a href="../-object-reporter/">ObjectReporter</a>)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="companion-object-properties">Companion Object Properties<a class="headerlink" href="#companion-object-properties" title="Permanent link">&para;</a></h3>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -878,27 +894,12 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="jdk-defaults/">jdkDefaults</a></td>
-<td><code>val jdkDefaults:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="../-object-inspector/"><code>ObjectInspector</code></a><code>&gt;</code></td>
+<td><a href="../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-372974862%2FProperties%2F-1562156115">name</a></td>
+<td>[jvm]<br>val <a href="../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-372974862%2FProperties%2F-1562156115">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
-<td><a href="jdk-leaking-object-filters/">jdkLeakingObjectFilters</a></td>
-<td><code>val jdkLeakingObjectFilters:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="../-filtering-leaking-object-finder/-leaking-object-filter/"><code>FilteringLeakingObjectFinder.LeakingObjectFilter</code></a><code>&gt;</code><br>Returns a list of <a href="../-filtering-leaking-object-finder/-leaking-object-filter/">LeakingObjectFilter</a> suitable for common JDK projects.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="create-leaking-object-filters/">createLeakingObjectFilters</a></td>
-<td><code>fun createLeakingObjectFilters(inspectors:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;</code><a href="./"><code>ObjectInspectors</code></a><code>&gt;):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="../-filtering-leaking-object-finder/-leaking-object-filter/"><code>FilteringLeakingObjectFinder.LeakingObjectFilter</code></a><code>&gt;</code><br>Creates a list of <a href="../-filtering-leaking-object-finder/-leaking-object-filter/">LeakingObjectFilter</a> based on the passed in <a href="./">ObjectInspectors</a>.</td>
+<td><a href="../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-739389684%2FProperties%2F-1562156115">ordinal</a></td>
+<td>[jvm]<br>val <a href="../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-739389684%2FProperties%2F-1562156115">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

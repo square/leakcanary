@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -740,7 +740,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../api/leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../api/leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -1021,7 +1021,7 @@
 │               ~~~~~~~~
 ╰→ com.example.leakcanary.MainActivity instance
 </code></pre></div>
-<p>The <code>TexView</code> instance references the destroyed <code>MainActivity</code> instance via it&rsquo;s <code>mContext</code> field. Views should not survive the lifecycle of their context, so LeakCanary knows that this <code>TexView</code> instance is leaking (<code>Leaking: YES (View.mContext references a destroyed activity)</code>), and therefore that the leak is not caused by <code>TextView.mContext</code> (removal of corresponding <code>~~~</code>). Here&rsquo;s the updated leak trace:</p>
+<p>The <code>TextView</code> instance references the destroyed <code>MainActivity</code> instance via it&rsquo;s <code>mContext</code> field. Views should not survive the lifecycle of their context, so LeakCanary knows that this <code>TextView</code> instance is leaking (<code>Leaking: YES (View.mContext references a destroyed activity)</code>), and therefore that the leak is not caused by <code>TextView.mContext</code> (removal of corresponding <code>~~~</code>). Here&rsquo;s the updated leak trace:</p>
 <div class="highlight"><pre><span></span><code>┬───
 │ GC Root: System class
 │

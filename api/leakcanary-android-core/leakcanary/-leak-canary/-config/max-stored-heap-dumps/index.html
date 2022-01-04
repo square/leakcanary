@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,12 +782,11 @@
     
   
   
-  <p><a href="../../../../">leakcanary-android-core</a> / <a href="../../../">leakcanary</a> / <a href="../../">LeakCanary</a> / <a href="../">Config</a> / <a href="./">maxStoredHeapDumps</a></p>
+  <p>//<a href="../../../../../">leakcanary-android-core</a>/<a href="../../../">leakcanary</a>/<a href="../../">LeakCanary</a>/<a href="../">Config</a>/<a href="./">maxStoredHeapDumps</a></p>
 <h1 id="maxstoredheapdumps">maxStoredHeapDumps<a class="headerlink" href="#maxstoredheapdumps" title="Permanent link">&para;</a></h1>
-<p><code>val maxStoredHeapDumps:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></p>
-<p>How many heap dumps are kept on the Android device for this app package. When this threshold
-is reached LeakCanary deletes the older heap dumps. As several heap dumps may be enqueued
-you should avoid going down to 1 or 2.</p>
+<p>[androidJvm]\
+val <a href="./">maxStoredHeapDumps</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 7</p>
+<p>How many heap dumps are kept on the Android device for this app package. When this threshold is reached LeakCanary deletes the older heap dumps. As several heap dumps may be enqueued you should avoid going down to 1 or 2.</p>
 <p>Defaults to 7.</p>
   
 

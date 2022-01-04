@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,15 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
@@ -811,10 +811,28 @@
     
   
   
-  <p><a href="../../">shark</a> / <a href="../">shark</a> / <a href="./">LeakingObjectFinder</a></p>
+  <p>//<a href="../../../">shark</a>/<a href="../">shark</a>/<a href="./">LeakingObjectFinder</a></p>
 <h1 id="leakingobjectfinder">LeakingObjectFinder<a class="headerlink" href="#leakingobjectfinder" title="Permanent link">&para;</a></h1>
-<p><code>interface LeakingObjectFinder</code></p>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+fun interface <a href="./">LeakingObjectFinder</a></p>
+<p>Finds the objects that are leaking, for which Shark will compute leak traces.</p>
+<p>This is a functional interface with which you can create a <a href="./">LeakingObjectFinder</a> from a lambda.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -825,41 +843,23 @@
 <tbody>
 <tr>
 <td><a href="find-leaking-object-ids/">findLeakingObjectIds</a></td>
-<td><code>abstract fun findLeakingObjectIds(graph: HeapGraph):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>&gt;</code><br>For a given heap graph, returns a set of object ids for the objects that are leaking.</td>
+<td>[jvm]<br>abstract fun <a href="find-leaking-object-ids/">findLeakingObjectIds</a>(graph: HeapGraph): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>&gt;<br>For a given heap graph, returns a set of object ids for the objects that are leaking.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="invoke/">invoke</a></td>
-<td><code>operator fun invoke(block: (HeapGraph) -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>&gt;):</code><a href="./"><code>LeakingObjectFinder</code></a><br>Utility function to create a <a href="./">LeakingObjectFinder</a> from the passed in <a href="invoke/#shark.LeakingObjectFinder.Companion$invoke(kotlin.Function1((shark.HeapGraph, kotlin.collections.Set((kotlin.Long)))))/block">block</a> lambda instead of using the anonymous <code>object : LeakingObjectFinder</code> syntax.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a></td>
-<td><code>class FilteringLeakingObjectFinder :</code><a href="./"><code>LeakingObjectFinder</code></a><br>Finds the objects that are leaking by scanning all objects in the heap dump and delegating the decision to a list of <a href="../-filtering-leaking-object-finder/-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a></td>
 </tr>
 <tr>
 <td><a href="../-keyed-weak-reference-finder/">KeyedWeakReferenceFinder</a></td>
-<td><code>object KeyedWeakReferenceFinder :</code><a href="./"><code>LeakingObjectFinder</code></a><br>Finds all objects tracked by a KeyedWeakReference, ie all objects that were passed to ObjectWatcher.watch.</td>
 </tr>
 </tbody>
 </table>

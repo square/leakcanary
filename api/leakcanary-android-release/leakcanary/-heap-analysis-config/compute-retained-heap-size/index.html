@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,15 +782,12 @@
     
   
   
-  <p><a href="../../../">leakcanary-android-release</a> / <a href="../../">leakcanary</a> / <a href="../">HeapAnalysisConfig</a> / <a href="./">computeRetainedHeapSize</a></p>
+  <p>//<a href="../../../../">leakcanary-android-release</a>/<a href="../../">leakcanary</a>/<a href="../">HeapAnalysisConfig</a>/<a href="./">computeRetainedHeapSize</a></p>
 <h1 id="computeretainedheapsize">computeRetainedHeapSize<a class="headerlink" href="#computeretainedheapsize" title="Permanent link">&para;</a></h1>
-<p><code>val computeRetainedHeapSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a></p>
-<p>Whether to compute the retained heap size, which is the total number of bytes in memory that
-would be reclaimed if the detected leaks didn&rsquo;t happen. This includes native memory
-associated to Java objects (e.g. Android bitmaps).</p>
-<p>Computing the retained heap size can slow down the analysis because it requires navigating
-from GC roots through the entire object graph, whereas <a href="#">shark.HeapAnalyzer</a> would otherwise
-stop as soon as all leaking instances are found.</p>
+<p>[androidJvm]\
+val <a href="./">computeRetainedHeapSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = true</p>
+<p>Whether to compute the retained heap size, which is the total number of bytes in memory that would be reclaimed if the detected leaks didn&rsquo;t happen. This includes native memory associated to Java objects (e.g. Android bitmaps).</p>
+<p>Computing the retained heap size can slow down the analysis because it requires navigating from GC roots through the entire object graph, whereas shark.HeapAnalyzer would otherwise stop as soon as all leaking instances are found.</p>
 <p>Defaults to true.</p>
   
 

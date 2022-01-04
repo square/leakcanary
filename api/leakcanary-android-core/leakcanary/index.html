@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -677,6 +677,8 @@
     
     <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
+      
+    
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         LeakCanary
@@ -691,6 +693,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -699,29 +703,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-leakcanary" class="md-nav__link">
-    Package leakcanary
-  </a>
-  
-    <nav class="md-nav" aria-label="Package leakcanary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -739,7 +723,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -817,6 +801,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -825,29 +811,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-leakcanary" class="md-nav__link">
-    Package leakcanary
-  </a>
-  
-    <nav class="md-nav" aria-label="Package leakcanary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -871,11 +837,9 @@
     
   
   
-    <h1>LeakCanary</h1>
-  
-  <p><a href="../">leakcanary-android-core</a> / <a href="./">leakcanary</a></p>
-<h2 id="package-leakcanary">Package leakcanary<a class="headerlink" href="#package-leakcanary" title="Permanent link">&para;</a></h2>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+  <p>//<a href="../../">leakcanary-android-core</a>/<a href="./">leakcanary</a></p>
+<h1 id="package-leakcanary">Package leakcanary<a class="headerlink" href="#package-leakcanary" title="Permanent link">&para;</a></h1>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -885,31 +849,48 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="-default-on-heap-analyzed-listener/">DefaultOnHeapAnalyzedListener</a></td>
-<td><code>class DefaultOnHeapAnalyzedListener :</code><a href="-on-heap-analyzed-listener/"><code>OnHeapAnalyzedListener</code></a><br>Default <a href="-on-heap-analyzed-listener/">OnHeapAnalyzedListener</a> implementation, which will store the analysis to disk and show a notification summarizing the result.</td>
+<td><a href="-android-debug-heap-dumper/">AndroidDebugHeapDumper</a></td>
+<td>[androidJvm]<br>object <a href="-android-debug-heap-dumper/">AndroidDebugHeapDumper</a> : <a href="-heap-dumper/">HeapDumper</a><br>Dumps the Android heap using <a href="https://developer.android.com/reference/kotlin/android/os/Debug.html#dumphprofdata">Debug.dumpHprofData</a>.</td>
+</tr>
+<tr>
+<td><a href="-background-thread-heap-analyzer/">BackgroundThreadHeapAnalyzer</a></td>
+<td>[androidJvm]<br>object <a href="-background-thread-heap-analyzer/">BackgroundThreadHeapAnalyzer</a> : <a href="-event-listener/">EventListener</a><br>Starts heap analysis on a background <a href="https://developer.android.com/reference/kotlin/android/os/HandlerThread.html">HandlerThread</a> when receiving a <a href="-event-listener/-event/-heap-dump/">HeapDump</a> event.</td>
+</tr>
+<tr>
+<td><a href="-event-listener/">EventListener</a></td>
+<td>[androidJvm]<br>fun interface <a href="-event-listener/">EventListener</a></td>
+</tr>
+<tr>
+<td><a href="-heap-dumper/">HeapDumper</a></td>
+<td>[androidJvm]<br>fun interface <a href="-heap-dumper/">HeapDumper</a></td>
 </tr>
 <tr>
 <td><a href="-leak-canary/">LeakCanary</a></td>
-<td><code>object LeakCanary</code><br>The entry point API for LeakCanary. LeakCanary builds on top of <a href="#">AppWatcher</a>. AppWatcher notifies LeakCanary of retained instances, which in turns dumps the heap, analyses it and publishes the results.</td>
+<td>[androidJvm]<br>object <a href="-leak-canary/">LeakCanary</a><br>The entry point API for LeakCanary. LeakCanary builds on top of AppWatcher. AppWatcher notifies LeakCanary of retained instances, which in turns dumps the heap, analyses it and publishes the results.</td>
 </tr>
 <tr>
-<td><a href="-on-heap-analyzed-listener/">OnHeapAnalyzedListener</a></td>
-<td><code>interface OnHeapAnalyzedListener</code></td>
+<td><a href="-logcat-event-listener/">LogcatEventListener</a></td>
+<td>[androidJvm]<br>object <a href="-logcat-event-listener/">LogcatEventListener</a> : <a href="-event-listener/">EventListener</a></td>
 </tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<td><a href="-notification-event-listener/">NotificationEventListener</a></td>
+<td>[androidJvm]<br>object <a href="-notification-event-listener/">NotificationEventListener</a> : <a href="-event-listener/">EventListener</a></td>
 </tr>
-</thead>
-<tbody>
 <tr>
-<td><a href="-no%20name%20provided-/">&lt;no name provided&gt;</a></td>
-<td><code>fun &lt;no name provided&gt;():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Listener set in <a href="-leak-canary/-config/">LeakCanary.Config</a> and called by LeakCanary on a background thread when the heap analysis is complete.</td>
+<td><a href="-remote-work-manager-heap-analyzer/">RemoteWorkManagerHeapAnalyzer</a></td>
+<td>[androidJvm]<br>object <a href="-remote-work-manager-heap-analyzer/">RemoteWorkManagerHeapAnalyzer</a> : <a href="-event-listener/">EventListener</a><br>When receiving a <a href="-event-listener/-event/-heap-dump/">HeapDump</a> event, starts a WorkManager worker that performs heap analysis in a dedicated :leakcanary process</td>
+</tr>
+<tr>
+<td><a href="-toast-event-listener/">ToastEventListener</a></td>
+<td>[androidJvm]<br>object <a href="-toast-event-listener/">ToastEventListener</a> : <a href="-event-listener/">EventListener</a></td>
+</tr>
+<tr>
+<td><a href="-tv-event-listener/">TvEventListener</a></td>
+<td>[androidJvm]<br>object <a href="-tv-event-listener/">TvEventListener</a> : <a href="-event-listener/">EventListener</a></td>
+</tr>
+<tr>
+<td><a href="-work-manager-heap-analyzer/">WorkManagerHeapAnalyzer</a></td>
+<td>[androidJvm]<br>object <a href="-work-manager-heap-analyzer/">WorkManagerHeapAnalyzer</a> : <a href="-event-listener/">EventListener</a><br>When receiving a <a href="-event-listener/-event/-heap-dump/">HeapDump</a> event, starts a WorkManager worker that performs heap analysis.</td>
 </tr>
 </tbody>
 </table>
@@ -946,13 +927,13 @@
           </a>
         
         
-          <a href="../../leakcanary-object-watcher-android/leakcanary/" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../../leakcanary-android-instrumentation/leakcanary/" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-footer-nav__title">
               <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                ObjectWatcher Android
+                Extension: Instrumentation tests
               </div>
             </div>
             <div class="md-footer-nav__button md-icon">

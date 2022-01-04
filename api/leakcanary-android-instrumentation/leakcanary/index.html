@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -685,7 +685,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -703,6 +703,8 @@
     
     <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
+      
+    
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Extension: Instrumentation tests
@@ -717,6 +719,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -725,29 +729,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-leakcanary" class="md-nav__link">
-    Package leakcanary
-  </a>
-  
-    <nav class="md-nav" aria-label="Package leakcanary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#annotations" class="md-nav__link">
-    Annotations
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -817,6 +801,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -825,29 +811,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-leakcanary" class="md-nav__link">
-    Package leakcanary
-  </a>
-  
-    <nav class="md-nav" aria-label="Package leakcanary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#annotations" class="md-nav__link">
-    Annotations
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -871,11 +837,9 @@
     
   
   
-    <h1>Extension: Instrumentation tests</h1>
-  
-  <p><a href="../">leakcanary-android-instrumentation</a> / <a href="./">leakcanary</a></p>
-<h2 id="package-leakcanary">Package leakcanary<a class="headerlink" href="#package-leakcanary" title="Permanent link">&para;</a></h2>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+  <p>//<a href="../../">leakcanary-android-instrumentation</a>/<a href="./">leakcanary</a></p>
+<h1 id="package-leakcanary">Package leakcanary<a class="headerlink" href="#package-leakcanary" title="Permanent link">&para;</a></h1>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -885,31 +849,36 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="-fail-annotated-test-on-leak-run-listener/">FailAnnotatedTestOnLeakRunListener</a></td>
-<td><code>class FailAnnotatedTestOnLeakRunListener :</code><a href="-fail-test-on-leak-run-listener/"><code>FailTestOnLeakRunListener</code></a><br>A JUnit <a href="#">RunListener</a> extending <a href="-fail-test-on-leak-run-listener/">FailTestOnLeakRunListener</a> to detecting memory leaks in Android instrumentation tests only when the <a href="-fail-test-on-leak/">FailTestOnLeak</a> annotation is used.</td>
+<td><a href="-android-detect-leaks-assert/">AndroidDetectLeaksAssert</a></td>
+<td>[androidJvm]<br>class <a href="-android-detect-leaks-assert/">AndroidDetectLeaksAssert</a>(heapAnalysisReporter: <a href="-heap-analysis-reporter/">HeapAnalysisReporter</a>) : <a href="-detect-leaks-assert/">DetectLeaksAssert</a><br>Default <a href="-detect-leaks-assert/">DetectLeaksAssert</a> implementation. Uses public helpers so you should be able to create our own implementation if needed.</td>
 </tr>
 <tr>
-<td><a href="-fail-test-on-leak-run-listener/">FailTestOnLeakRunListener</a></td>
-<td><code>open class FailTestOnLeakRunListener : RunListener</code><br>A JUnit <a href="#">RunListener</a> that uses <a href="-instrumentation-leak-detector/">InstrumentationLeakDetector</a> to detect memory leaks in Android instrumentation tests. It waits for the end of a test, and if the test succeeds then it will look for retained objects, trigger a heap dump if needed and perform an analysis.</td>
+<td><a href="-detect-leaks-after-test-success/">DetectLeaksAfterTestSuccess</a></td>
+<td>[androidJvm]<br>class <a href="-detect-leaks-after-test-success/">DetectLeaksAfterTestSuccess</a>(tag: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : TestRule<br>TestRule that invokes <a href="-leak-assertions/assert-no-leaks/">LeakAssertions.assertNoLeaks</a> after the test successfully evaluates. Pay attention to where you set up this rule in the rule chain as you might detect different leaks (e.g. around vs wrapped by the activity rule). It&rsquo;s also possible to use this rule several times in a rule chain.</td>
 </tr>
 <tr>
-<td><a href="-instrumentation-leak-detector/">InstrumentationLeakDetector</a></td>
-<td><code>class InstrumentationLeakDetector</code><br><a href="-instrumentation-leak-detector/">InstrumentationLeakDetector</a> can be used to detect memory leaks in instrumentation tests.</td>
+<td><a href="-detect-leaks-assert/">DetectLeaksAssert</a></td>
+<td>[androidJvm]<br>fun interface <a href="-detect-leaks-assert/">DetectLeaksAssert</a><br>The interface for the implementation that <a href="-leak-assertions/assert-no-leaks/">LeakAssertions.assertNoLeaks</a> delegates to. You can call <a href="-detect-leaks-assert/-companion/update/">DetectLeaksAssert.update</a> to provide your own implementation.</td>
 </tr>
-</tbody>
-</table>
-<h3 id="annotations">Annotations<a class="headerlink" href="#annotations" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<td><a href="-heap-analysis-reporter/">HeapAnalysisReporter</a></td>
+<td>[androidJvm]<br>fun interface <a href="-heap-analysis-reporter/">HeapAnalysisReporter</a><br>Reports the results of a heap analysis created by <a href="-android-detect-leaks-assert/">AndroidDetectLeaksAssert</a>.</td>
 </tr>
-</thead>
-<tbody>
 <tr>
-<td><a href="-fail-test-on-leak/">FailTestOnLeak</a></td>
-<td><code>annotation class FailTestOnLeak</code><br>An <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-annotation/index.html">Annotation</a> class to be used in conjunction with <a href="-fail-annotated-test-on-leak-run-listener/">FailAnnotatedTestOnLeakRunListener</a> for detecting memory leaks. When using <a href="-fail-annotated-test-on-leak-run-listener/">FailAnnotatedTestOnLeakRunListener</a>, the tests should be annotated with this class in order for the listener to detect memory leaks.</td>
+<td><a href="-leak-assertions/">LeakAssertions</a></td>
+<td>[androidJvm]<br>object <a href="-leak-assertions/">LeakAssertions</a></td>
+</tr>
+<tr>
+<td><a href="-no-leak-assertion-failed-error/">NoLeakAssertionFailedError</a></td>
+<td>[androidJvm]<br>class <a href="-no-leak-assertion-failed-error/">NoLeakAssertionFailedError</a>(heapAnalysis: HeapAnalysisSuccess) : <a href="https://developer.android.com/reference/kotlin/java/lang/AssertionError.html">AssertionError</a><br>Thrown when using the <a href="-no-leak-assertion-failed-error/-companion/throw-on-application-leaks/">NoLeakAssertionFailedError.throwOnApplicationLeaks</a> HeapAnalysisReporter</td>
+</tr>
+<tr>
+<td><a href="-skip-leak-detection/">SkipLeakDetection</a></td>
+<td>[androidJvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-target/index.html">Target</a>(allowedTargets = [<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-annotation-target/-c-l-a-s-s/index.html">AnnotationTarget.CLASS</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-annotation-target/-f-u-n-c-t-i-o-n/index.html">AnnotationTarget.FUNCTION</a>])<br>annotation class <a href="-skip-leak-detection/">SkipLeakDetection</a>(message: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, assertionTags: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)<br>Annotation for skipping leak detection in a UI test that calls <a href="-leak-assertions/assert-no-leaks/">LeakAssertions.assertNoLeaks</a>. This annotation is useful to skip a leak detection in a test until the leaks are fixed.</td>
+</tr>
+<tr>
+<td><a href="-test-description-holder/">TestDescriptionHolder</a></td>
+<td>[androidJvm]<br>object <a href="-test-description-holder/">TestDescriptionHolder</a> : TestRule<br>A TestRule that holds onto the test Description in a thread local while evaluating, making it possible to retrieve that test Description from the test thread via <a href="-test-description-holder/test-description/">testDescription</a>.</td>
 </tr>
 </tbody>
 </table>
@@ -931,7 +900,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
         
-          <a href="../../leakcanary-object-watcher-android/leakcanary/" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../../leakcanary-android-core/leakcanary/" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-footer-nav__button md-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
             </div>
@@ -940,7 +909,7 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                ObjectWatcher Android
+                LeakCanary
               </div>
             </div>
           </a>

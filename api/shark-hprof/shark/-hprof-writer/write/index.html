@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,12 +782,11 @@
     
   
   
-  <p><a href="../../../">shark-hprof</a> / <a href="../../">shark</a> / <a href="../">HprofWriter</a> / <a href="./">write</a></p>
+  <p>//<a href="../../../../">shark-hprof</a>/<a href="../../">shark</a>/<a href="../">HprofWriter</a>/<a href="./">write</a></p>
 <h1 id="write">write<a class="headerlink" href="#write" title="Permanent link">&para;</a></h1>
-<p><code>fun write(record:</code><a href="../../-hprof-record/"><code>HprofRecord</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></p>
-<p>Appends a <a href="../../-hprof-record/">HprofRecord</a> to the heap dump. If <a href="./#shark.HprofWriter$write(shark.HprofRecord)/record">record</a> is a <a href="../../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> then
-it will not be written to an in memory buffer and written to file only when the next a record
-that is not a <a href="../../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> is written or when <a href="../close/">close</a> is called.</p>
+<p>[jvm]\
+fun <a href="./">write</a>(record: <a href="../../-hprof-record/">HprofRecord</a>)</p>
+<p>Appends a <a href="../../-hprof-record/">HprofRecord</a> to the heap dump. If <a href="./">record</a> is a <a href="../../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> then it will not be written to an in memory buffer and written to file only when the next a record that is not a <a href="../../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> is written or when <a href="../close/">close</a> is called.</p>
   
 
               

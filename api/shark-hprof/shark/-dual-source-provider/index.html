@@ -20,7 +20,7 @@
     
     
       
-        <title>dual source provider - LeakCanary</title>
+        <title>Index - LeakCanary</title>
       
     
     
@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -111,7 +111,7 @@
         <div class="md-header-nav__topic">
           <span class="md-ellipsis">
             
-               dual source provider
+              Index
             
           </span>
         </div>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,8 +771,8 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#inherited-functions" class="md-nav__link">
-    Inherited Functions
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
@@ -804,11 +804,12 @@
     
   
   
-  <p><a href="../../">shark-hprof</a> / <a href="../">shark</a> / <a href="./">DualSourceProvider</a></p>
+  <p>//<a href="../../../">shark-hprof</a>/<a href="../">shark</a>/<a href="./">DualSourceProvider</a></p>
 <h1 id="dualsourceprovider">DualSourceProvider<a class="headerlink" href="#dualsourceprovider" title="Permanent link">&para;</a></h1>
-<p><code>interface DualSourceProvider :</code><a href="../-streaming-source-provider/"><code>StreamingSourceProvider</code></a><code>,</code><a href="../-random-access-source-provider/"><code>RandomAccessSourceProvider</code></a></p>
+<p>[jvm]\
+interface <a href="./">DualSourceProvider</a> : <a href="../-streaming-source-provider/">StreamingSourceProvider</a>, <a href="../-random-access-source-provider/">RandomAccessSourceProvider</a></p>
 <p>Both a <a href="../-streaming-source-provider/">StreamingSourceProvider</a> and a <a href="../-random-access-source-provider/">RandomAccessSourceProvider</a></p>
-<h3 id="inherited-functions">Inherited Functions<a class="headerlink" href="#inherited-functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -819,34 +820,33 @@
 <tbody>
 <tr>
 <td><a href="../-random-access-source-provider/open-random-access-source/">openRandomAccessSource</a></td>
-<td><code>abstract fun openRandomAccessSource():</code><a href="../-random-access-source/"><code>RandomAccessSource</code></a></td>
+<td>[jvm]<br>abstract fun <a href="../-random-access-source-provider/open-random-access-source/">openRandomAccessSource</a>(): <a href="../-random-access-source/">RandomAccessSource</a></td>
 </tr>
 <tr>
 <td><a href="../-streaming-source-provider/open-streaming-source/">openStreamingSource</a></td>
-<td><code>abstract fun openStreamingSource(): BufferedSource</code></td>
+<td>[jvm]<br>abstract fun <a href="../-streaming-source-provider/open-streaming-source/">openStreamingSource</a>(): <a href="https://square.github.io/okio/2.x/okio/okio/-buffered-source/index.html">BufferedSource</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Summary</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../-byte-array-source-provider/">ByteArraySourceProvider</a></td>
-<td><code>class ByteArraySourceProvider :</code><a href="./"><code>DualSourceProvider</code></a></td>
 </tr>
 <tr>
 <td><a href="../-constant-memory-metrics-dual-source-provider/">ConstantMemoryMetricsDualSourceProvider</a></td>
-<td><code>class ConstantMemoryMetricsDualSourceProvider :</code><a href="./"><code>DualSourceProvider</code></a><br>Captures IO read metrics without using much memory.</td>
 </tr>
 <tr>
 <td><a href="../-file-source-provider/">FileSourceProvider</a></td>
-<td><code>class FileSourceProvider :</code><a href="./"><code>DualSourceProvider</code></a></td>
+</tr>
+<tr>
+<td><a href="../-throwing-cancelable-file-source-provider/">ThrowingCancelableFileSourceProvider</a></td>
 </tr>
 </tbody>
 </table>

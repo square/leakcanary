@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../api/leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../api/leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -769,6 +769,96 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#version-28-2022-01-04" class="md-nav__link">
+    Version 2.8 (2022-01-04)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 2.8 (2022-01-04)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preface" class="md-nav__link">
+    Preface
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thanks" class="md-nav__link">
+    Thanks
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#improved-support-for-data-structure-internals" class="md-nav__link">
+    Improved support for data structure internals
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objectanimator-leaks" class="md-nav__link">
+    ObjectAnimator leaks
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#leak-detection-in-tests" class="md-nav__link">
+    Leak detection in tests
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-12" class="md-nav__link">
+    Android 12
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workmanager" class="md-nav__link">
+    WorkManager
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-process" class="md-nav__link">
+    Multi process
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#androidx-app-startup" class="md-nav__link">
+    AndroidX App Startup
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-listeners" class="md-nav__link">
+    Event listeners
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+    Other bug fixes and improvements 🐛🔨
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#version-27-2021-03-26" class="md-nav__link">
@@ -1376,6 +1466,96 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-28-2022-01-04" class="md-nav__link">
+    Version 2.8 (2022-01-04)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 2.8 (2022-01-04)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preface" class="md-nav__link">
+    Preface
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thanks" class="md-nav__link">
+    Thanks
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#improved-support-for-data-structure-internals" class="md-nav__link">
+    Improved support for data structure internals
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objectanimator-leaks" class="md-nav__link">
+    ObjectAnimator leaks
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#leak-detection-in-tests" class="md-nav__link">
+    Leak detection in tests
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-12" class="md-nav__link">
+    Android 12
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workmanager" class="md-nav__link">
+    WorkManager
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-process" class="md-nav__link">
+    Multi process
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#androidx-app-startup" class="md-nav__link">
+    AndroidX App Startup
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-listeners" class="md-nav__link">
+    Event listeners
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+    Other bug fixes and improvements 🐛🔨
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-27-2021-03-26" class="md-nav__link">
     Version 2.7 (2021-03-26)
   </a>
@@ -1970,8 +2150,223 @@
   
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
+<h2 id="version-28-2022-01-04">Version 2.8 (2022-01-04)<a class="headerlink" href="#version-28-2022-01-04" title="Permanent link">&para;</a></h2>
+<h3 id="preface">Preface<a class="headerlink" href="#preface" title="Permanent link">&para;</a></h3>
+<p>The last release was 9 months ago. What happened?! Well, soon after releasing LeakCanary 2.7, I had my 2<sup>nd</sup> baby, a wonderful daughter 😍. Having 2 young kids leaves a lot less time available for Open Source work&hellip; but it&rsquo;s worth it!</p>
+<p>― <a href="https://twitter.com/Piwai">P.Y.</a></p>
+<h3 id="thanks">Thanks<a class="headerlink" href="#thanks" title="Permanent link">&para;</a></h3>
+<p>Please thank
+<a href="https://github.com/aaronweihe">@aaronweihe</a>,
+<a href="https://github.com/alhah">@alhah</a>,
+<a href="https://github.com/Andre-max">@Andre-max</a>,
+<a href="https://github.com/AoraMD">@AoraMD</a>,
+<a href="https://github.com/BraisGabin">@BraisGabin</a>,
+<a href="https://github.com/breezenan">@breezenan</a>,
+<a href="https://github.com/Goooler">@Goooler</a>,
+<a href="https://github.com/iliaskomp">@iliaskomp</a>
+<a href="https://github.com/Jeff11">@Jeff11</a>,
+<a href="https://github.com/jmnwong">@jmnwong</a>,
+<a href="https://github.com/IdioticMadman">@IdioticMadman</a>,
+<a href="https://github.com/keyur1sst">@keyur1sst</a>,
+<a href="https://github.com/lchen8">@lchen8</a>,
+<a href="https://github.com/leinardi">@leinardi</a>,
+<a href="https://github.com/Maragues">@Maragues</a>,
+<a href="https://github.com/mars885">@mars885</a>,
+<a href="https://github.com/mateuszkwiecinski">@mateuszkwiecinski</a>,
+<a href="https://github.com/matiash">@matiash</a>,
+<a href="https://github.com/maxxx">@maxxx</a>,
+<a href="https://github.com/preetha1326">@preetha1326</a>,
+<a href="https://github.com/SimonMarquis">@SimonMarquis</a>,
+<a href="https://github.com/slavonnet">@slavonnet</a>,
+<a href="https://github.com/Sonphil">@Sonphil</a>,
+<a href="https://github.com/summerlyr">@summerlyr</a>,
+<a href="https://github.com/SUPERCILEX">@SUPERCILEX</a>,
+<a href="https://github.com/utwyko">@utwyko</a>,
+<a href="https://github.com/ZacSweers">@ZacSweers</a>,
+<a href="https://github.com/ziranshang">@ziranshang</a>,
+<a href="https://github.com/zoltish">@zoltish</a>
+for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
+<h3 id="improved-support-for-data-structure-internals">Improved support for data structure internals<a class="headerlink" href="#improved-support-for-data-structure-internals" title="Permanent link">&para;</a></h3>
+<p>🤓 Inspired <a href="https://twitter.com/RalucaSauciuc/status/1343800565352996871">by Android Studio</a>, LeakCanary&rsquo;s node discovery during heap graph traversal is now abstracted away. This allows overlaying logical structure over common data structure internals.</p>
+<p>😅 WHAT?!</p>
+<p>👉 This means we can make known data structures look more like their APIs than their internals. For example, developers tend to think of setting a <code>HashMap</code> entry as <code>map["key"] = value</code> rather than <code>map.table[hash("key")].next.next.next = Node(value)</code>, which is what LeakCanary would previously show in its leak traces.</p>
+<p>Let&rsquo;s look at a <code>HashMap</code> example:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">CheckoutController</span> <span class="p">{</span>
+
+  <span class="k">val</span> <span class="py">tabs</span> <span class="p">=</span> <span class="n">HashMap</span><span class="p">&lt;</span><span class="n">String</span><span class="p">,</span> <span class="n">Tab</span><span class="p">&gt;()</span>
+
+  <span class="k">fun</span> <span class="nf">addItemsTab</span><span class="p">(</span><span class="n">tab</span><span class="p">:</span> <span class="n">Tab</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">tabs</span><span class="p">[</span><span class="s">&quot;ItemsTab&quot;</span><span class="p">]</span> <span class="p">=</span> <span class="n">tab</span>  
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>If the <code>Tab</code> instance holds on to a view, we might see a leak trace that would look like this:</p>
+<div class="highlight"><pre><span></span><code>│ ...
+├─ com.example.CheckoutController instance
+│    ↓ CheckoutController.tabs
+├─ java.util.HashMap instance
+│    ↓ HashMap.table
+├─ java.util.HashMap$Node[] array
+│    ↓ HashMap$Node[42]
+├─ java.util.HashMap$Node instance
+│    ↓ HashMap$Node.next
+├─ java.util.HashMap$Node instance
+│    ↓ HashMap$Node.value
+├─ com.example.Tab instance
+│ ...
+</code></pre></div>
+<p>With the improved data structure support, the leak trace is much clearer (also note how the <code>ItemsTab</code> string key is now surfaced):</p>
+<div class="highlight"><pre><span></span><code>│ ...
+├─ com.example.CheckoutController instance
+│    ↓ CheckoutController.tabs
+├─ java.util.HashMap instance
+│    ↓ HashMap[ItemsTab]
+├─ com.example.Tab instance
+│ ...
+</code></pre></div>
+<p>Another benefit of this change is that leak signatures become less dependent of the runtime, and therefore are more consistent. This is especially true for any data structure that relies on a linked list (<code>HashMap</code>, <code>LinkedList</code>, <code>MessageQueue</code>, &hellip;). Currently LeakCanary supports a limited set of common data structures from Apache Harmony, Open JDK, and the Android SDK. Let me know what else you need!</p>
+<h3 id="objectanimator-leaks">ObjectAnimator leaks<a class="headerlink" href="#objectanimator-leaks" title="Permanent link">&para;</a></h3>
+<p>LeakCanary will now detect leaks that trigger when forgetting to cancel <code>ObjectAnimator</code>. This new feature is enabled by the node discovery changes described above!</p>
+<p>Let&rsquo;s say you accidentally start an infinite <code>ObjectAnimator</code> and never cancel it, like so:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ExampleActivity</span> <span class="p">:</span> <span class="n">Activity</span><span class="p">()</span> <span class="p">{</span>
+
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">:</span> <span class="n">Bundle</span><span class="p">?)</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">)</span>
+    <span class="n">setContentView</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="n">layout</span><span class="p">.</span><span class="n">main_activity</span><span class="p">)</span>
+    <span class="n">findViewById</span><span class="p">&lt;</span><span class="n">Button</span><span class="p">&gt;(</span><span class="n">R</span><span class="p">.</span><span class="n">id</span><span class="p">.</span><span class="n">button</span><span class="p">).</span><span class="n">setOnClickListener</span> <span class="p">{</span> <span class="n">view</span> <span class="p">-&gt;</span>
+      <span class="n">ObjectAnimator</span><span class="p">.</span><span class="n">ofFloat</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">View</span><span class="p">.</span><span class="n">ALPHA</span><span class="p">,</span> <span class="m">0.1f</span><span class="p">,</span> <span class="m">0.2f</span><span class="p">).</span><span class="n">apply</span> <span class="p">{</span>
+        <span class="n">duration</span> <span class="p">=</span> <span class="m">100</span>
+        <span class="n">repeatMode</span> <span class="p">=</span> <span class="n">ValueAnimator</span><span class="p">.</span><span class="n">REVERSE</span>
+        <span class="n">repeatCount</span> <span class="p">=</span> <span class="n">ValueAnimator</span><span class="p">.</span><span class="n">INFINITE</span>
+        <span class="n">start</span><span class="p">()</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>In previous releases, LeakCanary would detect that the animated view is leaking but it wouldn&rsquo;t be able to find the leak and instead would report it as an unreachable object: <em>An unreachable object is still in memory but LeakCanary could not find a strong reference path from GC roots.</em></p>
+<p>LeakCanary now reports the leak and adds animator state information, helping detect and fix any infinite <code>ObjectAnimator</code>.</p>
+<div class="highlight"><pre><span></span><code>┬───
+│ GC Root: Thread object
+│
+├─ java.lang.Thread instance
+│    Leaking: NO (the main thread always runs)
+│    Thread name: &#39;main&#39;
+│    ↓ Thread.threadLocals
+│             ~~~~~~~~~~~~
+...
+├─ android.animation.ObjectAnimator instance
+│    Leaking: UNKNOWN
+│    mListeners = null
+│    mPropertyName = null
+│    mProperty.mName = alpha
+│    mProperty.mType = java.lang.Float
+│    mInitialized = true
+│    mStarted = true
+│    mRunning = true
+│    mAnimationEndRequested = false
+│    mDuration = 100
+│    mStartDelay = 0
+│    mRepeatCount = INFINITE (-1)
+│    mRepeatMode = REVERSE (2)
+│    ↓ ObjectAnimator.mTarget
+│                     ~~~~~~~
+╰→ android.widget.Button instance
+     Leaking: YES (View.mContext references a destroyed activity)
+</code></pre></div>
+<p>To learn more, see this AOSP issue: <a href="https://issuetracker.google.com/issues/212993949">ObjectAnimator.mTarget weak ref creates memory leaks on infinite animators</a>. </p>
+<h3 id="leak-detection-in-tests">Leak detection in tests<a class="headerlink" href="#leak-detection-in-tests" title="Permanent link">&para;</a></h3>
+<p>Previous releases of <code>leakcanary-android-instrumentation</code> introduced a <code>FailTestOnLeakRunListener</code> which could run leak detection after each UI tests. Unfortunately <code>FailTestOnLeakRunListener</code> relied on a hack around <code>androidx.test</code> internals to report failures. The internals keep changing with every <code>androidx.test</code> release and breaking <code>FailTestOnLeakRunListener</code> 😭. </p>
+<p><code>FailTestOnLeakRunListener</code> is now deprecated (👋) and replaced by the <code>DetectLeaksAfterTestSuccess</code> test rule, which you can add to your test like any normal test rule.</p>
+<p>Additionally, you can call <code>LeakAssertions.assertNoLeak()</code> from anywhere in your instrumentation tests. You can also annotate tests with <code>@SkipLeakDetection</code> (for that to work you&rsquo;ll also need to set up the <code>TestDescriptionHolder</code> test rule).</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
+  <span class="n">@get</span><span class="p">:</span><span class="n">Rule</span>
+  <span class="k">val</span> <span class="py">rules</span> <span class="p">=</span> <span class="n">RuleChain</span><span class="p">.</span><span class="n">outerRule</span><span class="p">(</span><span class="n">TestDescriptionHolder</span><span class="p">)</span>
+    <span class="p">.</span><span class="n">around</span><span class="p">(</span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">())</span>
+    <span class="p">.</span><span class="n">around</span><span class="p">(</span><span class="n">ActivityScenarioRule</span><span class="p">(</span><span class="n">CartActivity</span><span class="o">::</span><span class="k">class</span><span class="p">.</span><span class="n">java</span><span class="p">))</span>
+
+  <span class="n">@Test</span>
+  <span class="k">fun</span> <span class="nf">addItemToCart</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// ...</span>
+  <span class="p">}</span>
+
+  <span class="n">@SkipLeakDetection</span><span class="p">(</span><span class="s">&quot;See #1234&quot;</span><span class="p">)</span>
+  <span class="n">@Test</span>
+  <span class="k">fun</span> <span class="nf">removeItemFromCart</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// ...</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="android-12">Android 12<a class="headerlink" href="#android-12" title="Permanent link">&para;</a></h3>
+<p>Hopefully this time we fixed everything that Android 12 broke: missing <code>exported:true</code> tags, missing pending intent flags, and <code>ForegroundServiceStartNotAllowedException</code> crashes. If not, let us know! Can&rsquo;t wait for Android 13 to break everything again 🤬.</p>
+<h3 id="workmanager">WorkManager<a class="headerlink" href="#workmanager" title="Permanent link">&para;</a></h3>
+<p>Running an Android Service without crashing (<code>ForegroundServiceStartNotAllowedException</code>&hellip;) is becoming harder with every release of Android, so I got rid of the LeakCanary heap analyzer service! Instead, LeakCanary leverages WorkManager if you already have it as a dependency. If you don&rsquo;t use WorkManager, then LeakCanary will fall back to using a simple thread.</p>
+<p>Note: I recommend using at least <a href="https://developer.android.com/jetpack/androidx/releases/work#2.7.0">WorkManager 2.7.0</a> as it adds the <code>WorkRequest.Builder.setExpedited()</code> API which LeakCanarty leverages if available.</p>
+<h3 id="multi-process">Multi process<a class="headerlink" href="#multi-process" title="Permanent link">&para;</a></h3>
+<p>Switching to WorkManager also impacts the LeakCanary multi process approach, which now leverages WorkManager remote jobs. Blog on how I got this working: <a href="https://py.hashnode.dev/workmanager-multi-process-for-libraries">WorkManager multi-process for libraries</a>.</p>
+<p>Multi process is harder to get right so you should only use this if LeakCanary frequently runs out of memory while performing the heap analysis. Here are the updated set up steps:</p>
+<p>1) Add the <code>leakcanary-android-process</code> dependency and <strong>keep the <code>leakcanary-android</code> dependency</strong>.</p>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.8&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-process:2.8&#39;</span>
+<span class="o">}</span>
+</code></pre></div>
+<p>2) Skip the initialization code in the <code>Application</code> class</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ExampleApplication</span> <span class="p">:</span> <span class="n">Application</span><span class="p">()</span> <span class="p">{</span>
+
+  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">LeakCanaryProcess</span><span class="p">.</span><span class="n">isInAnalyzerProcess</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="p">{</span>
+      <span class="k">return</span>
+    <span class="p">}</span>
+    <span class="c1">// normal init goes here, skipped in :leakcanary process.</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>That&rsquo;s it! Note that event listeners (see below) related to the analysis will fire in the remote process.</p>
+<h3 id="androidx-app-startup">AndroidX App Startup<a class="headerlink" href="#androidx-app-startup" title="Permanent link">&para;</a></h3>
+<p>LeakCanary now optionally supports the <a href="https://developer.android.com/topic/libraries/app-startup">AndroidX App Startup library</a>. All you need to do is replace the <code>leakcanary-android</code> dependency with <code>leakcanary-android-startup</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
+  <span class="c1">// Remove the normal leakcanary-android dependency</span>
+  <span class="c1">// debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.8&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-startup:2.8&#39;</span>
+<span class="o">}</span>
+</code></pre></div>
+<p>Note 1: <code>leakcanary-android</code> adds the code for automatic installl to <code>leakcanary-android-core</code>. If you&rsquo;re calling <code>AppWatcher.manualInstall()</code>, you can depend directly on <code>leakcanary-android-core</code> instead of <code>leakcanary-android</code>, and you won&rsquo;t need the disable any automatic install.</p>
+<p>Note 2: the same principle applies to <code>leakcanary-object-watcher-android</code>: it depends on <code>leakcanary-object-watcher-android-core</code> and adds automatic install, while <code>leakcanary-object-watcher-android-startup</code> leverages the App Startup library. Same for <code>plumber-android</code>, <code>plumber-android-core</code> and  <code>plumber-android-startup</code>.</p>
+<h3 id="event-listeners">Event listeners<a class="headerlink" href="#event-listeners" title="Permanent link">&para;</a></h3>
+<p><code>LeakCanary.Config</code> has a new <code>eventListeners</code> field allowing you to react to LeakCanary&rsquo;s lifecycle. If you want to customize this, you most likely should be keeping the default list of listeners and add or remove from it.</p>
+<p>For example, if you want to disable the LeakCanary toast:</p>
+<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">run</span> <span class="p">{</span>
+  <span class="n">copy</span><span class="p">(</span>
+    <span class="n">eventListeners</span> <span class="p">=</span> <span class="n">eventListeners</span><span class="p">.</span><span class="n">filter</span> <span class="p">{</span>
+      <span class="n">it</span> <span class="p">!</span><span class="k">is</span> <span class="n">ToastEventListener</span>
+    <span class="p">}</span>
+  <span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>If you want to upload heap analysis results:</p>
+<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">run</span> <span class="p">{</span>
+  <span class="n">copy</span><span class="p">(</span>
+    <span class="n">eventListeners</span> <span class="p">=</span> <span class="n">eventListeners</span> <span class="p">+</span> <span class="n">EventListener</span> <span class="p">{</span> <span class="n">event</span> <span class="p">-&gt;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">event</span> <span class="k">is</span> <span class="n">HeapAnalysisSucceeded</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Upload event.heapAnalysis</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Note: <code>Leakcanary.Config.onHeapAnalyzedListener</code> still works but is now deprecated.</p>
+<p>Feedback welcome on this new API!</p>
+<h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="https://github.com/square/leakcanary/issues/2096">#2096</a> Opening / sharing heap dump files now supports LeakCanary as an option.</li>
+<li><a href="https://github.com/square/leakcanary/issues/2210">#2210</a> First Compose dedicated object inspectors!</li>
+<li><a href="https://github.com/square/leakcanary/pull/2121">#2121</a> Support for customizing the heap dumper.</li>
+</ul>
+<p>This list reflects only a subset of all changes. For more details, see the <a href="https://github.com/square/leakcanary/milestone/22">2.8 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.7...v2.8">full diff</a>.</p>
 <h2 id="version-27-2021-03-26">Version 2.7 (2021-03-26)<a class="headerlink" href="#version-27-2021-03-26" title="Permanent link">&para;</a></h2>
-<p>Please thank 
+<p>Please thank
 <a href="https://github.com/chao2zhang">@chao2zhang</a>,
 <a href="https://github.com/ihrupin">@ihrupin</a>,
 <a href="https://github.com/jzbrooks">@jzbrooks</a>,
@@ -2008,8 +2403,9 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <li><a href="https://github.com/square/leakcanary/pull/2066">#2066</a> When heap analysis in UI tests is skipped and NoAnalysis is returned, NoAnalysis now includes a reason to help debug why it didn&rsquo;t run.</li>
 <li><a href="https://github.com/square/leakcanary/issues/2000">#2000</a> The LeakCanary CI now leverages GitHub actions instead of Travis.</li>
 </ul>
+<p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/21">2.7 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.6...v2.7">full diff</a>.</p>
 <h2 id="version-26-christmas-release-2020-12-24">Version 2.6 - Christmas Release 🎄 (2020-12-24)<a class="headerlink" href="#version-26-christmas-release-2020-12-24" title="Permanent link">&para;</a></h2>
-<p>Please thank 
+<p>Please thank
 <a href="https://github.com/chao2zhang">@chao2zhang</a>,
 <a href="https://github.com/ChaosLeung">@ChaosLeung</a>,
 <a href="https://github.com/LitterSun">@LitterSun</a>,
@@ -2259,7 +2655,7 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 </ul>
 <p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/20">2.6 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.5...v2.6">full diff</a>.</p>
 <h2 id="version-25-2020-10-01">Version 2.5 (2020-10-01)<a class="headerlink" href="#version-25-2020-10-01" title="Permanent link">&para;</a></h2>
-<p>Please thank 
+<p>Please thank
 <a href="https://github.com/Amokrane">@Amokrane</a>,
 <a href="https://github.com/Armaxis">@Armaxis</a>,
 <a href="https://github.com/askont">@askont</a>,
@@ -2340,7 +2736,7 @@ for their contributions, bug reports and feature requests.</p>
 </code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>While several of these fixes already ship in release builds of Square apps, this is the first official release of <code>plumber-android</code>, so you should consider it <strong>experimental</strong>. </p>
+<p>While several of these fixes already ship in release builds of Square apps, this is the first official release of <code>plumber-android</code>, so you should consider it <strong>experimental</strong>.</p>
 </div>
 <h3 id="analyzing-leaks-from-the-cli-is-easier-than-ever">Analyzing leaks from the CLI is easier than ever 🍺<a class="headerlink" href="#analyzing-leaks-from-the-cli-is-easier-than-ever" title="Permanent link">&para;</a></h3>
 <p>The <a href="../shark/#shark-cli">Shark CLI</a> can now be installed via <a href="https://brew.sh/">Homebrew</a></p>
@@ -2417,7 +2813,7 @@ for the contributions, bug reports and feature requests.</p>
 <p><a href="https://developer.android.com/topic/libraries/architecture/viewmodel">Android ViewModels</a> are really cool! Their lifecycle is much nicer than fragments or activities, but sometimes mistakes happen. LeakCanary will now automatically detect ViewModel leaks and report any ViewModel instance retained after its <code>onCleared()</code> method was called.</p>
 <h3 id="android-tv">Android TV<a class="headerlink" href="#android-tv" title="Permanent link">&para;</a></h3>
 <p><img alt="tv ui" src="../images/android-tv-leaks.png" /></p>
-<p>LeakCanary is finally coming to big screens near you! Best part - no additional setup is required, just enable it like you would for a <a href="../getting_started/">mobile device</a>. Now whenever there&rsquo;s a leak - you will see a helpful Toast appear with all the details. Make sure to check out our new <a href="../recipes/#android-tv">Android TV</a> section and chill! </p>
+<p>LeakCanary is finally coming to big screens near you! Best part - no additional setup is required, just enable it like you would for a <a href="../getting_started/">mobile device</a>. Now whenever there&rsquo;s a leak - you will see a helpful Toast appear with all the details. Make sure to check out our new <a href="../recipes/#android-tv">Android TV</a> section and chill!</p>
 <h3 id="java-friendly-config-builders">Java-friendly Config builders<a class="headerlink" href="#java-friendly-config-builders" title="Permanent link">&para;</a></h3>
 <p><a href="https://github.com/square/leakcanary/issues/1714">It was brought to our attention</a> that configuring <code>LeakCanary</code> and <code>AppWatcher</code> was a miserable experience from Java code. Well, not anymore!</p>
 <p>Now you can use <code>LeakCanary.Config.Builder</code> and <code>AppWatcher.Config.Builder</code> to have idiomatic Java when updating the configurations. For example:</p>
@@ -2427,7 +2823,7 @@ for the contributions, bug reports and feature requests.</p>
   .build();
 LeakCanary.setConfig(config);
 </code></pre></div>
-<p>If you notice any other problems when using LeakCanary from Java, please <a href="https://github.com/square/leakcanary/issues/new?assignees=&amp;labels=type%3A+enhancement&amp;template=3-feature.md&amp;title=">file an issue</a>! We take Java-interop seriously and will be happy to improve LeakCanary&rsquo;s API! </p>
+<p>If you notice any other problems when using LeakCanary from Java, please <a href="https://github.com/square/leakcanary/issues/new?assignees=&amp;labels=type%3A+enhancement&amp;template=3-feature.md&amp;title=">file an issue</a>! We take Java-interop seriously and will be happy to improve LeakCanary&rsquo;s API!</p>
 <p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/16">2.2 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.1...v2.2">full diff</a>.</p>
 <h2 id="version-21-2019-12-31">Version 2.1 (2019-12-31)<a class="headerlink" href="#version-21-2019-12-31" title="Permanent link">&para;</a></h2>
 <p>A special New Year&rsquo;s Eve release 🥳, the next release will be in another decade 😎!</p>
@@ -2649,9 +3045,9 @@ for the contributions, bug reports and feature requests.</p>
 <li>New Heap Explorer directly on device! Open a Heap Analysis in LeakCanary, tap the options menu and select &ldquo;Heap Explorer&rdquo;. This is still experimental and not very user friendly, contributions welcome!</li>
 <li><strong>Large API rewrite</strong> to improve usability. If you used the alpha with a customized configuration, there are breaking changes. Of note: LeakSentry became <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/">AppWatcher</a>, RefWatcher became <a href="/leakcanary/api/leakcanary-object-watcher/leakcanary/-object-watcher/">ObjectWatcher</a>, AndroidExcludedRefs became <a href="/leakcanary/api/shark-android/shark/-android-reference-matchers/">AndroidReferenceMatchers</a>, AnalysisResultListener became <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/">OnHeapAnalyzedListener</a>, AndroidLeakTraceInspectors became <a href="/leakcanary/api/shark-android/shark/-android-object-inspectors/">AndroidObjectInspectors</a>.</li>
 <li>The entire API surface is now documented and the documentation is available on this website: see the <strong>LeakCanary API</strong> tab at the top.</li>
-<li>Removed the <strong>dependency on Android X</strong>. No more configuration issues! <a href="https://github.com/square/leakcanary/issues/1462">#1462</a> </li>
-<li>Added <strong>Proguard rules</strong> for LeakCanary and ObjectWatcher. <a href="https://github.com/square/leakcanary/pull/1500">#1500</a> </li>
-<li>Display LeakCanary version in the About screen. <a href="https://github.com/square/leakcanary/issues/1448">#1448</a> </li>
+<li>Removed the <strong>dependency on Android X</strong>. No more configuration issues! <a href="https://github.com/square/leakcanary/issues/1462">#1462</a></li>
+<li>Added <strong>Proguard rules</strong> for LeakCanary and ObjectWatcher. <a href="https://github.com/square/leakcanary/pull/1500">#1500</a></li>
+<li>Display LeakCanary version in the About screen. <a href="https://github.com/square/leakcanary/issues/1448">#1448</a></li>
 <li>Bug fixes, new reference matchers and object inspectors</li>
 </ul>
 <p>Many thanks to
@@ -2693,13 +3089,13 @@ for the contributions, bug reports and feature requests.</p>
 <li><a href="https://github.com/square/leakcanary/pull/1344">#1344</a> Computing retained size</li>
 <li><a href="https://github.com/square/leakcanary/pull/1325">#1325</a> New notification showing current count of retained instances</li>
 <li><a href="https://github.com/square/leakcanary/pull/1079">#1079</a> &ldquo;Excluded&rdquo; leaks have been renamed to &ldquo;Won&rsquo;t fix&rdquo; leaks to clarify meaning.</li>
-<li><a href="https://github.com/square/leakcanary/pull/1328">#1328</a> New leaks are called out in the UI. </li>
+<li><a href="https://github.com/square/leakcanary/pull/1328">#1328</a> New leaks are called out in the UI.</li>
 <li><a href="https://github.com/square/leakcanary/pull/1327">#1327</a> LeakSentry can be enabled / disabled and is automatically disabled in non debuggable builds.</li>
 <li><a href="https://github.com/square/leakcanary/pull/1173">#1173</a> Experimental: now reporting leaks that only go through weak references (previously reported as &ldquo;no path to instance&rdquo;)</li>
 <li><a href="https://github.com/square/leakcanary/pull/1339">#1339</a> Readded support for Thread name based exclusions</li>
 <li><a href="https://github.com/square/leakcanary/pull/1312">#1312</a> Fixed bug causing LeakCanary to stop detecting leaks after the app is killed.</li>
 <li><a href="https://github.com/square/leakcanary/pull/1310">#1310</a> <a href="https://github.com/square/leakcanary/pull/1313">#1313</a> <a href="https://github.com/square/leakcanary/pull/1314">#1314</a> <a href="https://github.com/square/leakcanary/pull/1340">#1340</a> <a href="https://github.com/square/leakcanary/pull/1337">#1337</a> Many API changes</li>
-<li><a href="https://github.com/square/leakcanary/pull/1296">#1296</a> <a href="https://github.com/square/leakcanary/pull/1293">#1293</a> <a href="https://github.com/square/leakcanary/pull/1306">#1306</a> <a href="https://github.com/square/leakcanary/pull/1336">#1336</a> Fixed several crashes. </li>
+<li><a href="https://github.com/square/leakcanary/pull/1296">#1296</a> <a href="https://github.com/square/leakcanary/pull/1293">#1293</a> <a href="https://github.com/square/leakcanary/pull/1306">#1306</a> <a href="https://github.com/square/leakcanary/pull/1336">#1336</a> Fixed several crashes.</li>
 </ul>
 <p>Many thanks to
 <a href="https://github.com/forrestbice">@forrestbice</a>,
@@ -2888,7 +3284,7 @@ for the code contributions!</p>
 <h2 id="version-14-2016-09-11">Version 1.4 <em>(2016-09-11)</em><a class="headerlink" href="#version-14-2016-09-11" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Fix false negative where GC root is of type android.os.Binder <a href="https://github.com/square/leakcanary/issues/482">#482</a></li>
-<li>Update HAHA to 2.0.3; clear compiler warnings <a href="https://github.com/square/leakcanary/issues/563">#563</a> </li>
+<li>Update HAHA to 2.0.3; clear compiler warnings <a href="https://github.com/square/leakcanary/issues/563">#563</a></li>
 <li>Correct some mistakes in German translation <a href="https://github.com/square/leakcanary/pull/516">#516</a></li>
 <li>Don&rsquo;t loop when storage permission denied <a href="https://github.com/square/leakcanary/issues/422">#422</a></li>
 <li>Remove old references to &ldquo;__&rdquo; prefixed resources <a href="https://github.com/square/leakcanary/pull/477">#477</a></li>

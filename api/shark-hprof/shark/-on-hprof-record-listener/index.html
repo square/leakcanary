@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,15 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
@@ -804,10 +804,28 @@
     
   
   
-  <p><a href="../../">shark-hprof</a> / <a href="../">shark</a> / <a href="./">OnHprofRecordListener</a></p>
+  <p>//<a href="../../../">shark-hprof</a>/<a href="../">shark</a>/<a href="./">OnHprofRecordListener</a></p>
 <h1 id="onhprofrecordlistener">OnHprofRecordListener<a class="headerlink" href="#onhprofrecordlistener" title="Permanent link">&para;</a></h1>
-<p><code>interface OnHprofRecordListener</code></p>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+fun interface <a href="./">OnHprofRecordListener</a></p>
+<p>Listener passed in to <a href="../-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="../-hprof-record/">HprofRecord</a> found in the heap dump which types is in the set of the recordTypes parameter passed to <a href="../-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>.</p>
+<p>This is a functional interface with which you can create a <a href="./">OnHprofRecordListener</a> from a lambda.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -818,22 +836,7 @@
 <tbody>
 <tr>
 <td><a href="on-hprof-record/">onHprofRecord</a></td>
-<td><code>abstract fun onHprofRecord(position:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, record:</code><a href="../-hprof-record/"><code>HprofRecord</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
-</tr>
-</tbody>
-</table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="invoke/">invoke</a></td>
-<td><code>operator fun invoke(block: (</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>,</code><a href="../-hprof-record/"><code>HprofRecord</code></a><code>) -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><code>):</code><a href="./"><code>OnHprofRecordListener</code></a><br>Utility function to create a <a href="./">OnHprofRecordListener</a> from the passed in <a href="invoke/#shark.OnHprofRecordListener.Companion$invoke(kotlin.Function2((kotlin.Long, shark.HprofRecord, kotlin.Unit)))/block">block</a> lambda instead of using the anonymous <code>object : OnHprofRecordListener</code> syntax.</td>
+<td>[jvm]<br>abstract fun <a href="on-hprof-record/">onHprofRecord</a>(position: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, record: <a href="../-hprof-record/">HprofRecord</a>)</td>
 </tr>
 </tbody>
 </table>

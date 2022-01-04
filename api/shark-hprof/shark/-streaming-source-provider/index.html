@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -804,10 +804,12 @@
     
   
   
-  <p><a href="../../">shark-hprof</a> / <a href="../">shark</a> / <a href="./">StreamingSourceProvider</a></p>
+  <p>//<a href="../../../">shark-hprof</a>/<a href="../">shark</a>/<a href="./">StreamingSourceProvider</a></p>
 <h1 id="streamingsourceprovider">StreamingSourceProvider<a class="headerlink" href="#streamingsourceprovider" title="Permanent link">&para;</a></h1>
-<p><code>interface StreamingSourceProvider</code></p>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+fun interface <a href="./">StreamingSourceProvider</a></p>
+<p>Can open <a href="https://square.github.io/okio/2.x/okio/okio/-source/index.html">Source</a> instances.</p>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -818,22 +820,20 @@
 <tbody>
 <tr>
 <td><a href="open-streaming-source/">openStreamingSource</a></td>
-<td><code>abstract fun openStreamingSource(): BufferedSource</code></td>
+<td>[jvm]<br>abstract fun <a href="open-streaming-source/">openStreamingSource</a>(): <a href="https://square.github.io/okio/2.x/okio/okio/-buffered-source/index.html">BufferedSource</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Summary</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../-dual-source-provider/">DualSourceProvider</a></td>
-<td><code>interface DualSourceProvider :</code><a href="./"><code>StreamingSourceProvider</code></a><code>,</code><a href="../-random-access-source-provider/"><code>RandomAccessSourceProvider</code></a><br>Both a <a href="./">StreamingSourceProvider</a> and a <a href="../-random-access-source-provider/">RandomAccessSourceProvider</a></td>
 </tr>
 </tbody>
 </table>

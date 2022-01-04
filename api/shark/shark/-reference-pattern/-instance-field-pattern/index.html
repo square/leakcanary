@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -778,8 +778,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    Properties
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
@@ -787,6 +787,13 @@
         <li class="md-nav__item">
   <a href="#functions" class="md-nav__link">
     Functions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -811,15 +818,28 @@
     
   
   
-  <p><a href="../../../">shark</a> / <a href="../../">shark</a> / <a href="../">ReferencePattern</a> / <a href="./">InstanceFieldPattern</a></p>
+  <p>//<a href="../../../../">shark</a>/<a href="../../">shark</a>/<a href="../">ReferencePattern</a>/<a href="./">InstanceFieldPattern</a></p>
 <h1 id="instancefieldpattern">InstanceFieldPattern<a class="headerlink" href="#instancefieldpattern" title="Permanent link">&para;</a></h1>
-<p><code>data class InstanceFieldPattern :</code><a href="../"><code>ReferencePattern</code></a></p>
+<p>[jvm]\
+data class <a href="./">InstanceFieldPattern</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="../">ReferencePattern</a></p>
 <p>Matches instances field references, identified by <a href="class-name/">className</a> and <a href="field-name/">fieldName</a>.</p>
-<p>Note: If <a href="field-name/">fieldName</a> is declared in a superclass it will still match for subclasses.
-This is to support overriding of rules for specific cases. If two <a href="../../-reference-matcher/">ReferenceMatcher</a> match for
-the same <a href="field-name/">fieldName</a> but for different <a href="class-name/">className</a> in a class hierarchy, then the closest
-class in the hierarchy wins.</p>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
+<p>Note: If <a href="field-name/">fieldName</a> is declared in a superclass it will still match for subclasses. This is to support overriding of rules for specific cases. If two <a href="../../-reference-matcher/">ReferenceMatcher</a> match for the same <a href="field-name/">fieldName</a> but for different <a href="class-name/">className</a> in a class hierarchy, then the closest class in the hierarchy wins.</p>
+<h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-instance-field-pattern/">InstanceFieldPattern</a></td>
+<td>[jvm]<br>fun <a href="-instance-field-pattern/">InstanceFieldPattern</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -829,31 +849,12 @@ class in the hierarchy wins.</p>
 </thead>
 <tbody>
 <tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>InstanceFieldPattern(className:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>, fieldName:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>)</code><br>Matches instances field references, identified by <a href="class-name/">className</a> and <a href="field-name/">fieldName</a>.</td>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="class-name/">className</a></td>
-<td><code>val className:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
-</tr>
-<tr>
-<td><a href="field-name/">fieldName</a></td>
-<td><code>val fieldName:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -864,7 +865,26 @@ class in the hierarchy wins.</p>
 <tbody>
 <tr>
 <td><a href="to-string/">toString</a></td>
-<td><code>fun toString():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
+<td>[jvm]<br>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="class-name/">className</a></td>
+<td>[jvm]<br>val <a href="class-name/">className</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+</tr>
+<tr>
+<td><a href="field-name/">fieldName</a></td>
+<td>[jvm]<br>val <a href="field-name/">fieldName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>

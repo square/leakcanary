@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -778,15 +778,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    Properties
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -818,10 +818,11 @@
     
   
   
-  <p><a href="../../">leakcanary-android-release</a> / <a href="../">leakcanary</a> / <a href="./">ProcessInfo</a></p>
+  <p>//<a href="../../../">leakcanary-android-release</a>/<a href="../">leakcanary</a>/<a href="./">ProcessInfo</a></p>
 <h1 id="processinfo">ProcessInfo<a class="headerlink" href="#processinfo" title="Permanent link">&para;</a></h1>
-<p><code>interface ProcessInfo</code></p>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<p>[androidJvm]\
+interface <a href="./">ProcessInfo</a></p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -832,34 +833,15 @@
 <tbody>
 <tr>
 <td><a href="-available-ram/">AvailableRam</a></td>
-<td><code>sealed class AvailableRam</code></td>
+<td>[androidJvm]<br>sealed class <a href="-available-ram/">AvailableRam</a></td>
 </tr>
 <tr>
 <td><a href="-real/">Real</a></td>
-<td><code>object Real :</code><a href="./"><code>ProcessInfo</code></a></td>
+<td>[androidJvm]<br>object <a href="-real/">Real</a> : <a href="./">ProcessInfo</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="elapsed-millis-since-start/">elapsedMillisSinceStart</a></td>
-<td><code>abstract val elapsedMillisSinceStart:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
-</tr>
-<tr>
-<td><a href="is-importance-background/">isImportanceBackground</a></td>
-<td><code>abstract val isImportanceBackground:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a></td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -870,15 +852,15 @@
 <tbody>
 <tr>
 <td><a href="available-disk-space-bytes/">availableDiskSpaceBytes</a></td>
-<td><code>abstract fun availableDiskSpaceBytes(path:</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html"><code>File</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td>[androidJvm]<br>abstract fun <a href="available-disk-space-bytes/">availableDiskSpaceBytes</a>(path: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
 </tr>
 <tr>
 <td><a href="available-ram/">availableRam</a></td>
-<td><code>abstract fun availableRam(context: Context):</code><a href="-available-ram/"><code>ProcessInfo.AvailableRam</code></a></td>
+<td>[androidJvm]<br>abstract fun <a href="available-ram/">availableRam</a>(context: <a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a>): <a href="-available-ram/">ProcessInfo.AvailableRam</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -888,8 +870,25 @@
 </thead>
 <tbody>
 <tr>
+<td><a href="elapsed-millis-since-start/">elapsedMillisSinceStart</a></td>
+<td>[androidJvm]<br>abstract val <a href="elapsed-millis-since-start/">elapsedMillisSinceStart</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
+</tr>
+<tr>
+<td><a href="is-importance-background/">isImportanceBackground</a></td>
+<td>[androidJvm]<br>abstract val <a href="is-importance-background/">isImportanceBackground</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
 <td><a href="-real/">Real</a></td>
-<td><code>object Real :</code><a href="./"><code>ProcessInfo</code></a></td>
 </tr>
 </tbody>
 </table>

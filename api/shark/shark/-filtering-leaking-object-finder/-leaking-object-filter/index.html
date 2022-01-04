@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -797,11 +797,12 @@
     
   
   
-  <p><a href="../../../">shark</a> / <a href="../../">shark</a> / <a href="../">FilteringLeakingObjectFinder</a> / <a href="./">LeakingObjectFilter</a></p>
+  <p>//<a href="../../../../">shark</a>/<a href="../../">shark</a>/<a href="../">FilteringLeakingObjectFinder</a>/<a href="./">LeakingObjectFilter</a></p>
 <h1 id="leakingobjectfilter">LeakingObjectFilter<a class="headerlink" href="#leakingobjectfilter" title="Permanent link">&para;</a></h1>
-<p><code>interface LeakingObjectFilter</code></p>
+<p>[jvm]\
+fun interface <a href="./">LeakingObjectFilter</a></p>
 <p>Filter to be passed to the <a href="../">FilteringLeakingObjectFinder</a> constructor.</p>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -812,7 +813,7 @@
 <tbody>
 <tr>
 <td><a href="is-leaking-object/">isLeakingObject</a></td>
-<td><code>abstract fun isLeakingObject(heapObject: HeapObject):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>Returns whether the passed in <a href="is-leaking-object/#shark.FilteringLeakingObjectFinder.LeakingObjectFilter$isLeakingObject(shark.HeapObject)/heapObject">heapObject</a> is leaking. This should only return true when we&rsquo;re 100% sure the passed in <a href="is-leaking-object/#shark.FilteringLeakingObjectFinder.LeakingObjectFilter$isLeakingObject(shark.HeapObject)/heapObject">heapObject</a> should not be in memory anymore.</td>
+<td>[jvm]<br>abstract fun <a href="is-leaking-object/">isLeakingObject</a>(heapObject: HeapObject): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns whether the passed in <a href="is-leaking-object/">heapObject</a> is leaking. This should only return true when we&rsquo;re 100% sure the passed in <a href="is-leaking-object/">heapObject</a> should not be in memory anymore.</td>
 </tr>
 </tbody>
 </table>

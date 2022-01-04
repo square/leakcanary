@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -778,13 +778,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-properties" class="md-nav__link">
-    Companion Object Properties
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#inheritors" class="md-nav__link">
     Inheritors
   </a>
@@ -811,12 +804,12 @@
     
   
   
-  <p><a href="../../">shark-hprof</a> / <a href="../">shark</a> / <a href="./">ValueHolder</a></p>
+  <p>//<a href="../../../">shark-hprof</a>/<a href="../">shark</a>/<a href="./">ValueHolder</a></p>
 <h1 id="valueholder">ValueHolder<a class="headerlink" href="#valueholder" title="Permanent link">&para;</a></h1>
-<p><code>sealed class ValueHolder</code></p>
-<p>A value in the heap dump, which can be a <a href="-reference-holder/">ReferenceHolder</a> or
-a primitive type.</p>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+sealed class <a href="./">ValueHolder</a></p>
+<p>A value in the heap dump, which can be a <a href="-reference-holder/">ReferenceHolder</a> or a primitive type.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -827,101 +820,80 @@ a primitive type.</p>
 <tbody>
 <tr>
 <td><a href="-boolean-holder/">BooleanHolder</a></td>
-<td><code>data class BooleanHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td>[jvm]<br>data class <a href="-boolean-holder/">BooleanHolder</a>(value: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="./">ValueHolder</a></td>
 </tr>
 <tr>
 <td><a href="-byte-holder/">ByteHolder</a></td>
-<td><code>data class ByteHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td>[jvm]<br>data class <a href="-byte-holder/">ByteHolder</a>(value: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte/index.html">Byte</a>) : <a href="./">ValueHolder</a></td>
 </tr>
 <tr>
 <td><a href="-char-holder/">CharHolder</a></td>
-<td><code>data class CharHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td>[jvm]<br>data class <a href="-char-holder/">CharHolder</a>(value: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-char/index.html">Char</a>) : <a href="./">ValueHolder</a></td>
+</tr>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
 </tr>
 <tr>
 <td><a href="-double-holder/">DoubleHolder</a></td>
-<td><code>data class DoubleHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td>[jvm]<br>data class <a href="-double-holder/">DoubleHolder</a>(value: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a>) : <a href="./">ValueHolder</a></td>
 </tr>
 <tr>
 <td><a href="-float-holder/">FloatHolder</a></td>
-<td><code>data class FloatHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td>[jvm]<br>data class <a href="-float-holder/">FloatHolder</a>(value: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a>) : <a href="./">ValueHolder</a></td>
 </tr>
 <tr>
 <td><a href="-int-holder/">IntHolder</a></td>
-<td><code>data class IntHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td>[jvm]<br>data class <a href="-int-holder/">IntHolder</a>(value: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="./">ValueHolder</a></td>
 </tr>
 <tr>
 <td><a href="-long-holder/">LongHolder</a></td>
-<td><code>data class LongHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td>[jvm]<br>data class <a href="-long-holder/">LongHolder</a>(value: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">ValueHolder</a></td>
 </tr>
 <tr>
 <td><a href="-reference-holder/">ReferenceHolder</a></td>
-<td><code>data class ReferenceHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td>[jvm]<br>data class <a href="-reference-holder/">ReferenceHolder</a>(value: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">ValueHolder</a></td>
 </tr>
 <tr>
 <td><a href="-short-holder/">ShortHolder</a></td>
-<td><code>data class ShortHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td>[jvm]<br>data class <a href="-short-holder/">ShortHolder</a>(value: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short/index.html">Short</a>) : <a href="./">ValueHolder</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="companion-object-properties">Companion Object Properties<a class="headerlink" href="#companion-object-properties" title="Permanent link">&para;</a></h3>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Summary</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="-n-u-l-l_-r-e-f-e-r-e-n-c-e/">NULL_REFERENCE</a></td>
-<td><code>const val NULL_REFERENCE:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td><a href="-reference-holder/">ReferenceHolder</a></td>
 </tr>
-</tbody>
-</table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
 <tr>
 <td><a href="-boolean-holder/">BooleanHolder</a></td>
-<td><code>data class BooleanHolder :</code><a href="./"><code>ValueHolder</code></a></td>
-</tr>
-<tr>
-<td><a href="-byte-holder/">ByteHolder</a></td>
-<td><code>data class ByteHolder :</code><a href="./"><code>ValueHolder</code></a></td>
 </tr>
 <tr>
 <td><a href="-char-holder/">CharHolder</a></td>
-<td><code>data class CharHolder :</code><a href="./"><code>ValueHolder</code></a></td>
-</tr>
-<tr>
-<td><a href="-double-holder/">DoubleHolder</a></td>
-<td><code>data class DoubleHolder :</code><a href="./"><code>ValueHolder</code></a></td>
 </tr>
 <tr>
 <td><a href="-float-holder/">FloatHolder</a></td>
-<td><code>data class FloatHolder :</code><a href="./"><code>ValueHolder</code></a></td>
 </tr>
 <tr>
-<td><a href="-int-holder/">IntHolder</a></td>
-<td><code>data class IntHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td><a href="-double-holder/">DoubleHolder</a></td>
 </tr>
 <tr>
-<td><a href="-long-holder/">LongHolder</a></td>
-<td><code>data class LongHolder :</code><a href="./"><code>ValueHolder</code></a></td>
-</tr>
-<tr>
-<td><a href="-reference-holder/">ReferenceHolder</a></td>
-<td><code>data class ReferenceHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+<td><a href="-byte-holder/">ByteHolder</a></td>
 </tr>
 <tr>
 <td><a href="-short-holder/">ShortHolder</a></td>
-<td><code>data class ShortHolder :</code><a href="./"><code>ValueHolder</code></a></td>
+</tr>
+<tr>
+<td><a href="-int-holder/">IntHolder</a></td>
+</tr>
+<tr>
+<td><a href="-long-holder/">LongHolder</a></td>
 </tr>
 </tbody>
 </table>

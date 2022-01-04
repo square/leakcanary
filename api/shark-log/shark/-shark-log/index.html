@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -778,15 +778,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    Properties
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -811,11 +811,12 @@
     
   
   
-  <p><a href="../../">shark-log</a> / <a href="../">shark</a> / <a href="./">SharkLog</a></p>
+  <p>//<a href="../../../">shark-log</a>/<a href="../">shark</a>/<a href="./">SharkLog</a></p>
 <h1 id="sharklog">SharkLog<a class="headerlink" href="#sharklog" title="Permanent link">&para;</a></h1>
-<p><code>object SharkLog</code></p>
+<p>[jvm]\
+object <a href="./">SharkLog</a></p>
 <p>Central Logger for all Shark artifacts. Set <a href="logger/">logger</a> to change where these logs go.</p>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -826,26 +827,11 @@
 <tbody>
 <tr>
 <td><a href="-logger/">Logger</a></td>
-<td><code>interface Logger</code></td>
+<td>[jvm]<br>interface <a href="-logger/">Logger</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="logger/">logger</a></td>
-<td><code>var logger:</code><a href="-logger/"><code>SharkLog.Logger</code></a><code>?</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -856,7 +842,22 @@
 <tbody>
 <tr>
 <td><a href="d/">d</a></td>
-<td><code>fun d(message: () -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br><code>fun d(throwable:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html"><code>Throwable</code></a><code>, message: () -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
+<td>[jvm]<br>inline fun <a href="d/">d</a>(message: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)<br>inline fun <a href="d/">d</a>(throwable: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html">Throwable</a>, message: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="logger/">logger</a></td>
+<td>[jvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-volatile/index.html">Volatile</a><br>var <a href="logger/">logger</a>: <a href="-logger/">SharkLog.Logger</a>? = null</td>
 </tr>
 </tbody>
 </table>

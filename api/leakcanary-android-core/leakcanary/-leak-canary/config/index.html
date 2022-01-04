@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,19 +782,19 @@
     
   
   
-  <p><a href="../../../">leakcanary-android-core</a> / <a href="../../">leakcanary</a> / <a href="../">LeakCanary</a> / <a href="./">config</a></p>
+  <p>//<a href="../../../../">leakcanary-android-core</a>/<a href="../../">leakcanary</a>/<a href="../">LeakCanary</a>/<a href="./">config</a></p>
 <h1 id="config">config<a class="headerlink" href="#config" title="Permanent link">&para;</a></h1>
-<p><code>@JvmStatic var config:</code><a href="../-config/"><code>LeakCanary.Config</code></a></p>
-<p>The current LeakCanary configuration. Can be updated at any time, usually by replacing it with
-a mutated copy, e.g.:</p>
-<div class="highlight"><pre><span></span><code>LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
-</code></pre></div>
+<p>[androidJvm]\</p>
+<p>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a></p>
+<p>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-volatile/index.html">Volatile</a></p>
+<p>var <a href="./">config</a>: <a href="../-config/">LeakCanary.Config</a></p>
+<p>The current LeakCanary configuration. Can be updated at any time, usually by replacing it with a mutated copy, e.g.:</p>
+<p>LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)</p>
 <p>In Java, use <a href="../-config/-builder/">LeakCanary.Config.Builder</a> instead:</p>
-<div class="highlight"><pre><span></span><code>LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
-   .retainedVisibleThreshold(3)
-   .build();
-LeakCanary.setConfig(config);
-</code></pre></div>
+<p>LeakCanary.Config config = LeakCanary.getConfig().newBuilder()\
+   .retainedVisibleThreshold(3)\
+   .build();\
+LeakCanary.setConfig(config);</p>
   
 
               

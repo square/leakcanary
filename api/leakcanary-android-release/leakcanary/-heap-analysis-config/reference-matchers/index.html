@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,16 +782,13 @@
     
   
   
-  <p><a href="../../../">leakcanary-android-release</a> / <a href="../../">leakcanary</a> / <a href="../">HeapAnalysisConfig</a> / <a href="./">referenceMatchers</a></p>
+  <p>//<a href="../../../../">leakcanary-android-release</a>/<a href="../../">leakcanary</a>/<a href="../">HeapAnalysisConfig</a>/<a href="./">referenceMatchers</a></p>
 <h1 id="referencematchers">referenceMatchers<a class="headerlink" href="#referencematchers" title="Permanent link">&para;</a></h1>
-<p><code>val referenceMatchers:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;ReferenceMatcher&gt;</code></p>
-<p>Known patterns of references in the heap, added here either to ignore them
-(<a href="#">IgnoredReferenceMatcher</a>) or to mark them as library leaks (<a href="#">LibraryLeakReferenceMatcher</a>).</p>
-<p>When adding your own custom <a href="#">LibraryLeakReferenceMatcher</a> instances, you&rsquo;ll most
-likely want to set <a href="#">LibraryLeakReferenceMatcher.patternApplies</a> with a filter that checks
-for the Android OS version and manufacturer. The build information can be obtained by calling
-<a href="#">shark.AndroidBuildMirror.fromHeapGraph</a>.</p>
-<p>Defaults to <a href="#">AndroidReferenceMatchers.appDefaults</a></p>
+<p>[androidJvm]\
+val <a href="./">referenceMatchers</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ReferenceMatcher&gt;</p>
+<p>Known patterns of references in the heap, added here either to ignore them (IgnoredReferenceMatcher) or to mark them as library leaks (LibraryLeakReferenceMatcher).</p>
+<p>When adding your own custom LibraryLeakReferenceMatcher instances, you&rsquo;ll most likely want to set LibraryLeakReferenceMatcher.patternApplies with a filter that checks for the Android OS version and manufacturer. The build information can be obtained by calling shark.AndroidBuildMirror.fromHeapGraph.</p>
+<p>Defaults to AndroidReferenceMatchers.appDefaults</p>
   
 
               

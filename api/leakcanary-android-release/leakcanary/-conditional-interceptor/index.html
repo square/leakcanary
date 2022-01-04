@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -804,26 +804,27 @@
     
   
   
-  <p><a href="../../">leakcanary-android-release</a> / <a href="../">leakcanary</a> / <a href="./">ConditionalInterceptor</a></p>
+  <p>//<a href="../../../">leakcanary-android-release</a>/<a href="../">leakcanary</a>/<a href="./">ConditionalInterceptor</a></p>
 <h1 id="conditionalinterceptor">ConditionalInterceptor<a class="headerlink" href="#conditionalinterceptor" title="Permanent link">&para;</a></h1>
-<p><code>class ConditionalInterceptor :</code><a href="../-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a></p>
-<p>An interceptor that runs only when <a href="#">evaluateCondition</a> returns true.</p>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
+<p>[androidJvm]\
+class <a href="./">ConditionalInterceptor</a>(delegate: <a href="../-heap-analysis-interceptor/">HeapAnalysisInterceptor</a>, evaluateCondition: (<a href="../-heap-analysis-job/">HeapAnalysisJob</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="../-heap-analysis-interceptor/">HeapAnalysisInterceptor</a></p>
+<p>An interceptor that runs only when evaluateCondition returns true.</p>
+<h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<th></th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>ConditionalInterceptor(delegate:</code><a href="../-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a><code>, evaluateCondition: (</code><a href="../-heap-analysis-job/"><code>HeapAnalysisJob</code></a><code>) -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>)</code><br>An interceptor that runs only when <a href="#">evaluateCondition</a> returns true.</td>
+<td><a href="-conditional-interceptor/">ConditionalInterceptor</a></td>
+<td>[androidJvm]<br>fun <a href="-conditional-interceptor/">ConditionalInterceptor</a>(delegate: <a href="../-heap-analysis-interceptor/">HeapAnalysisInterceptor</a>, evaluateCondition: (<a href="../-heap-analysis-job/">HeapAnalysisJob</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -834,7 +835,7 @@
 <tbody>
 <tr>
 <td><a href="intercept/">intercept</a></td>
-<td><code>fun intercept(chain:</code><a href="../-heap-analysis-interceptor/-chain/"><code>HeapAnalysisInterceptor.Chain</code></a><code>):</code><a href="../-heap-analysis-job/-result/"><code>HeapAnalysisJob.Result</code></a></td>
+<td>[androidJvm]<br>open override fun <a href="intercept/">intercept</a>(chain: <a href="../-heap-analysis-interceptor/-chain/">HeapAnalysisInterceptor.Chain</a>): <a href="../-heap-analysis-job/-result/">HeapAnalysisJob.Result</a></td>
 </tr>
 </tbody>
 </table>

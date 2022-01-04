@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,19 +782,14 @@
     
   
   
-  <p><a href="../../../../">leakcanary-android-core</a> / <a href="../../../">leakcanary</a> / <a href="../../">LeakCanary</a> / <a href="../">Config</a> / <a href="./">retainedVisibleThreshold</a></p>
+  <p>//<a href="../../../../../">leakcanary-android-core</a>/<a href="../../../">leakcanary</a>/<a href="../../">LeakCanary</a>/<a href="../">Config</a>/<a href="./">retainedVisibleThreshold</a></p>
 <h1 id="retainedvisiblethreshold">retainedVisibleThreshold<a class="headerlink" href="#retainedvisiblethreshold" title="Permanent link">&para;</a></h1>
-<p><code>val retainedVisibleThreshold:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></p>
-<p>When the app is visible, LeakCanary will wait for at least
-<a href="./">retainedVisibleThreshold</a> retained instances before dumping the heap. Dumping the heap
-freezes the UI and can be frustrating for developers who are trying to work. This is
-especially frustrating as the Android Framework has a number of leaks that cannot easily
-be fixed.</p>
-<p>When the app becomes invisible, LeakCanary dumps the heap after
-<a href="#">AppWatcher.Config.watchDurationMillis</a> ms.</p>
+<p>[androidJvm]\
+val <a href="./">retainedVisibleThreshold</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 5</p>
+<p>When the app is visible, LeakCanary will wait for at least <a href="./">retainedVisibleThreshold</a> retained instances before dumping the heap. Dumping the heap freezes the UI and can be frustrating for developers who are trying to work. This is especially frustrating as the Android Framework has a number of leaks that cannot easily be fixed.</p>
+<p>When the app becomes invisible, LeakCanary dumps the heap after AppWatcher.retainedDelayMillis ms.</p>
 <p>The app is considered visible if it has at least one activity in started state.</p>
-<p>A higher threshold means LeakCanary will dump the heap less often, therefore it won&rsquo;t be
-bothering developers as much but it could miss some leaks.</p>
+<p>A higher threshold means LeakCanary will dump the heap less often, therefore it won&rsquo;t be bothering developers as much but it could miss some leaks.</p>
 <p>Defaults to 5.</p>
   
 

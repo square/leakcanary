@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -804,10 +804,11 @@
     
   
   
-  <p><a href="../../../../">shark-hprof</a> / <a href="../../../">shark</a> / <a href="../../">HprofRecord</a> / <a href="../">HeapDumpRecord</a> / <a href="./">ObjectRecord</a></p>
+  <p>//<a href="../../../../../">shark-hprof</a>/<a href="../../../">shark</a>/<a href="../../">HprofRecord</a>/<a href="../">HeapDumpRecord</a>/<a href="./">ObjectRecord</a></p>
 <h1 id="objectrecord">ObjectRecord<a class="headerlink" href="#objectrecord" title="Permanent link">&para;</a></h1>
-<p><code>sealed class ObjectRecord :</code><a href="../"><code>HprofRecord.HeapDumpRecord</code></a></p>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+sealed class <a href="./">ObjectRecord</a> : <a href="../">HprofRecord.HeapDumpRecord</a></p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -818,46 +819,41 @@
 <tbody>
 <tr>
 <td><a href="-class-dump-record/">ClassDumpRecord</a></td>
-<td><code>class ClassDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
+<td>[jvm]<br>class <a href="-class-dump-record/">ClassDumpRecord</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, superclassId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, classLoaderId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, signersId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, protectionDomainId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, instanceSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, staticFields: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-class-dump-record/-static-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord</a>&gt;, fields: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-class-dump-record/-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord</a>&gt;) : <a href="./">HprofRecord.HeapDumpRecord.ObjectRecord</a></td>
 </tr>
 <tr>
 <td><a href="-instance-dump-record/">InstanceDumpRecord</a></td>
-<td><code>class InstanceDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
+<td>[jvm]<br>class <a href="-instance-dump-record/">InstanceDumpRecord</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, classId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, fieldValues: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a>) : <a href="./">HprofRecord.HeapDumpRecord.ObjectRecord</a></td>
 </tr>
 <tr>
 <td><a href="-object-array-dump-record/">ObjectArrayDumpRecord</a></td>
-<td><code>class ObjectArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
+<td>[jvm]<br>class <a href="-object-array-dump-record/">ObjectArrayDumpRecord</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, arrayClassId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, elementIds: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long-array/index.html">LongArray</a>) : <a href="./">HprofRecord.HeapDumpRecord.ObjectRecord</a></td>
 </tr>
 <tr>
 <td><a href="-primitive-array-dump-record/">PrimitiveArrayDumpRecord</a></td>
-<td><code>sealed class PrimitiveArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
+<td>[jvm]<br>sealed class <a href="-primitive-array-dump-record/">PrimitiveArrayDumpRecord</a> : <a href="./">HprofRecord.HeapDumpRecord.ObjectRecord</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Summary</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="-class-dump-record/">ClassDumpRecord</a></td>
-<td><code>class ClassDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
 </tr>
 <tr>
 <td><a href="-instance-dump-record/">InstanceDumpRecord</a></td>
-<td><code>class InstanceDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
 </tr>
 <tr>
 <td><a href="-object-array-dump-record/">ObjectArrayDumpRecord</a></td>
-<td><code>class ObjectArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
 </tr>
 <tr>
 <td><a href="-primitive-array-dump-record/">PrimitiveArrayDumpRecord</a></td>
-<td><code>sealed class PrimitiveArrayDumpRecord :</code><a href="./"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></td>
 </tr>
 </tbody>
 </table>

@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,8 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#enum-values" class="md-nav__link">
-    Enum Values
+  <a href="#entries" class="md-nav__link">
+    Entries
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
@@ -780,13 +787,6 @@
         <li class="md-nav__item">
   <a href="#properties" class="md-nav__link">
     Properties
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#companion-object-properties" class="md-nav__link">
-    Companion Object Properties
   </a>
   
 </li>
@@ -811,11 +811,55 @@
     
   
   
-  <p><a href="../../">shark-hprof</a> / <a href="../">shark</a> / <a href="./">PrimitiveType</a></p>
+  <p>//<a href="../../../">shark-hprof</a>/<a href="../">shark</a>/<a href="./">PrimitiveType</a></p>
 <h1 id="primitivetype">PrimitiveType<a class="headerlink" href="#primitivetype" title="Permanent link">&para;</a></h1>
-<p><code>enum class PrimitiveType</code></p>
+<p>[jvm]\
+enum <a href="./">PrimitiveType</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="./">PrimitiveType</a>&gt; </p>
 <p>A primitive type in the prof.</p>
-<h3 id="enum-values">Enum Values<a class="headerlink" href="#enum-values" title="Permanent link">&para;</a></h3>
+<h2 id="entries">Entries<a class="headerlink" href="#entries" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-l-o-n-g/">LONG</a></td>
+<td>[jvm]<br><a href="-l-o-n-g/">LONG</a>(11, 8)</td>
+</tr>
+<tr>
+<td><a href="-i-n-t/">INT</a></td>
+<td>[jvm]<br><a href="-i-n-t/">INT</a>(10, 4)</td>
+</tr>
+<tr>
+<td><a href="-s-h-o-r-t/">SHORT</a></td>
+<td>[jvm]<br><a href="-s-h-o-r-t/">SHORT</a>(9, 2)</td>
+</tr>
+<tr>
+<td><a href="-b-y-t-e/">BYTE</a></td>
+<td>[jvm]<br><a href="-b-y-t-e/">BYTE</a>(8, 1)</td>
+</tr>
+<tr>
+<td><a href="-d-o-u-b-l-e/">DOUBLE</a></td>
+<td>[jvm]<br><a href="-d-o-u-b-l-e/">DOUBLE</a>(7, 8)</td>
+</tr>
+<tr>
+<td><a href="-f-l-o-a-t/">FLOAT</a></td>
+<td>[jvm]<br><a href="-f-l-o-a-t/">FLOAT</a>(6, 4)</td>
+</tr>
+<tr>
+<td><a href="-c-h-a-r/">CHAR</a></td>
+<td>[jvm]<br><a href="-c-h-a-r/">CHAR</a>(5, 2)</td>
+</tr>
+<tr>
+<td><a href="-b-o-o-l-e-a-n/">BOOLEAN</a></td>
+<td>[jvm]<br><a href="-b-o-o-l-e-a-n/">BOOLEAN</a>(4, 1)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -825,40 +869,12 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="-b-o-o-l-e-a-n/">BOOLEAN</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-c-h-a-r/">CHAR</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-f-l-o-a-t/">FLOAT</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-d-o-u-b-l-e/">DOUBLE</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-b-y-t-e/">BYTE</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-s-h-o-r-t/">SHORT</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-i-n-t/">INT</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-l-o-n-g/">LONG</a></td>
-<td></td>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -869,34 +885,19 @@
 <tbody>
 <tr>
 <td><a href="byte-size/">byteSize</a></td>
-<td><code>val byteSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><br>The size in bytes for each value of that type.</td>
+<td>[jvm]<br>val <a href="byte-size/">byteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The size in bytes for each value of that type.</td>
 </tr>
 <tr>
 <td><a href="hprof-type/">hprofType</a></td>
-<td><code>val hprofType:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><br>The hprof defined &ldquo;basic type&rdquo;.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="companion-object-properties">Companion Object Properties<a class="headerlink" href="#companion-object-properties" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="byte-size-by-hprof-type/">byteSizeByHprofType</a></td>
-<td><code>val byteSizeByHprofType:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html"><code>Map</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>,</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>&gt;</code></td>
+<td>[jvm]<br>val <a href="hprof-type/">hprofType</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The hprof defined &ldquo;basic type&rdquo;.</td>
 </tr>
 <tr>
-<td><a href="primitive-type-by-hprof-type/">primitiveTypeByHprofType</a></td>
-<td><code>val primitiveTypeByHprofType:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html"><code>Map</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>,</code><a href="./"><code>PrimitiveType</code></a><code>&gt;</code></td>
+<td><a href="-b-o-o-l-e-a-n/#-372974862%2FProperties%2F219937657">name</a></td>
+<td>[jvm]<br>val <a href="-b-o-o-l-e-a-n/#-372974862%2FProperties%2F219937657">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
-<td><a href="-r-e-f-e-r-e-n-c-e_-h-p-r-o-f_-t-y-p-e/">REFERENCE_HPROF_TYPE</a></td>
-<td><code>const val REFERENCE_HPROF_TYPE:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><br>The hprof defined &ldquo;basic type&rdquo; for references.</td>
+<td><a href="-b-o-o-l-e-a-n/#-739389684%2FProperties%2F219937657">ordinal</a></td>
+<td>[jvm]<br>val <a href="-b-o-o-l-e-a-n/#-739389684%2FProperties%2F219937657">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,13 +782,11 @@
     
   
   
-  <p><a href="../../../">shark</a> / <a href="../../">shark</a> / <a href="../">LeakTrace</a> / <a href="./">referencePathElementIsSuspect</a></p>
+  <p>//<a href="../../../../">shark</a>/<a href="../../">shark</a>/<a href="../">LeakTrace</a>/<a href="./">referencePathElementIsSuspect</a></p>
 <h1 id="referencepathelementissuspect">referencePathElementIsSuspect<a class="headerlink" href="#referencepathelementissuspect" title="Permanent link">&para;</a></h1>
-<p><code>fun referencePathElementIsSuspect(index:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a></p>
-<p>Returns true if the <a href="../reference-path/">referencePath</a> element at the provided <a href="./#shark.LeakTrace$referencePathElementIsSuspect(kotlin.Int)/index">index</a> contains a reference
-that is suspected to cause the leak, ie if <a href="./#shark.LeakTrace$referencePathElementIsSuspect(kotlin.Int)/index">index</a> is greater than or equal to the index
-of the <a href="../../-leak-trace-reference/">LeakTraceReference</a> of the last non leaking object and strictly lower than the index
-of the <a href="../../-leak-trace-reference/">LeakTraceReference</a> of the first leaking object.</p>
+<p>[jvm]\
+fun <a href="./">referencePathElementIsSuspect</a>(index: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></p>
+<p>Returns true if the <a href="../reference-path/">referencePath</a> element at the provided <a href="./">index</a> contains a reference that is suspected to cause the leak, ie if <a href="./">index</a> is greater than or equal to the index of the <a href="../../-leak-trace-reference/">LeakTraceReference</a> of the last non leaking object and strictly lower than the index of the <a href="../../-leak-trace-reference/">LeakTraceReference</a> of the first leaking object.</p>
   
 
               

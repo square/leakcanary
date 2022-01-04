@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,12 +782,11 @@
     
   
   
-  <p><a href="../../../">shark</a> / <a href="../../">shark</a> / <a href="../">HeapAnalyzer</a> / <a href="./">analyze</a></p>
+  <p>//<a href="../../../../">shark</a>/<a href="../../">shark</a>/<a href="../">HeapAnalyzer</a>/<a href="./">analyze</a></p>
 <h1 id="analyze">analyze<a class="headerlink" href="#analyze" title="Permanent link">&para;</a></h1>
-<p><code>fun analyze(heapDumpFile:</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html"><code>File</code></a><code>, leakingObjectFinder:</code><a href="../../-leaking-object-finder/"><code>LeakingObjectFinder</code></a><code>, referenceMatchers:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="../../-reference-matcher/"><code>ReferenceMatcher</code></a><code>&gt; = emptyList(), computeRetainedHeapSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= false, objectInspectors:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="../../-object-inspector/"><code>ObjectInspector</code></a><code>&gt; = emptyList(), metadataExtractor:</code><a href="../../-metadata-extractor/"><code>MetadataExtractor</code></a><code>= MetadataExtractor.NO_OP, proguardMapping: ProguardMapping? = null):</code><a href="../../-heap-analysis/"><code>HeapAnalysis</code></a></p>
-<p>Searches the heap dump for leaking instances and then computes the shortest strong reference
-path from those instances to the GC roots.</p>
-<p><code>fun analyze(heapDumpFile:</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html"><code>File</code></a><code>, graph: HeapGraph, leakingObjectFinder:</code><a href="../../-leaking-object-finder/"><code>LeakingObjectFinder</code></a><code>, referenceMatchers:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="../../-reference-matcher/"><code>ReferenceMatcher</code></a><code>&gt; = emptyList(), computeRetainedHeapSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>= false, objectInspectors:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="../../-object-inspector/"><code>ObjectInspector</code></a><code>&gt; = emptyList(), metadataExtractor:</code><a href="../../-metadata-extractor/"><code>MetadataExtractor</code></a><code>= MetadataExtractor.NO_OP):</code><a href="../../-heap-analysis/"><code>HeapAnalysis</code></a></p>
+<p>[jvm]\
+fun <a href="./">analyze</a>(heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, graph: HeapGraph, leakingObjectFinder: <a href="../../-leaking-object-finder/">LeakingObjectFinder</a>, referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-reference-matcher/">ReferenceMatcher</a>&gt; = emptyList(), computeRetainedHeapSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = false, objectInspectors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-object-inspector/">ObjectInspector</a>&gt; = emptyList(), metadataExtractor: <a href="../../-metadata-extractor/">MetadataExtractor</a> = MetadataExtractor.NO_OP): <a href="../../-heap-analysis/">HeapAnalysis</a></p>
+<p>Searches the heap dump for leaking instances and then computes the shortest strong reference path from those instances to the GC roots.</p>
   
 
               

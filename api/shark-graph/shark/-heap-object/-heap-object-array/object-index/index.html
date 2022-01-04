@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,14 +782,11 @@
     
   
   
-  <p><a href="../../../../">shark-graph</a> / <a href="../../../">shark</a> / <a href="../../">HeapObject</a> / <a href="../">HeapObjectArray</a> / <a href="./">objectIndex</a></p>
+  <p>//<a href="../../../../../">shark-graph</a>/<a href="../../../">shark</a>/<a href="../../">HeapObject</a>/<a href="../">HeapObjectArray</a>/<a href="./">objectIndex</a></p>
 <h1 id="objectindex">objectIndex<a class="headerlink" href="#objectindex" title="Permanent link">&para;</a></h1>
-<p><code>val objectIndex:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></p>
-<p>Overrides <a href="../../object-index/">HeapObject.objectIndex</a></p>
-<p>An positive object index that&rsquo;s specific to how Shark stores objects in memory.
-The index starts at 0 and ends at <a href="../../../-heap-graph/object-count/">HeapGraph.objectCount</a> - 1. There are no gaps, every index
-value corresponds to an object. Classes are first, then instances, then object arrays then
-primitive arrays.</p>
+<p>[jvm]\
+open override val <a href="./">objectIndex</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></p>
+<p>An positive object index that&rsquo;s specific to how Shark stores objects in memory. The index starts at 0 and ends at <a href="../../../-heap-graph/object-count/">HeapGraph.objectCount</a> - 1. There are no gaps, every index value corresponds to an object. Classes are first, then instances, then object arrays then primitive arrays.</p>
   
 
               

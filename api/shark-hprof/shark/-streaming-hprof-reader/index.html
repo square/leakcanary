@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,6 +771,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    Types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#functions" class="md-nav__link">
     Functions
   </a>
@@ -778,8 +785,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
+  <a href="#extensions" class="md-nav__link">
+    Extensions
   </a>
   
 </li>
@@ -804,12 +811,27 @@
     
   
   
-  <p><a href="../../">shark-hprof</a> / <a href="../">shark</a> / <a href="./">StreamingHprofReader</a></p>
+  <p>//<a href="../../../">shark-hprof</a>/<a href="../">shark</a>/<a href="./">StreamingHprofReader</a></p>
 <h1 id="streaminghprofreader">StreamingHprofReader<a class="headerlink" href="#streaminghprofreader" title="Permanent link">&para;</a></h1>
-<p><code>class StreamingHprofReader</code></p>
-<p>Reads the entire content of a Hprof source in one fell swoop.
-Call <a href="reader-for/">readerFor</a> to obtain a new instance.</p>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+class <a href="./">StreamingHprofReader</a></p>
+<p>Reads the entire content of a Hprof source in one fell swoop. Call <a href="-companion/reader-for/">readerFor</a> to obtain a new instance.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -820,11 +842,11 @@ Call <a href="reader-for/">readerFor</a> to obtain a new instance.</p>
 <tbody>
 <tr>
 <td><a href="read-records/">readRecords</a></td>
-<td><code>fun readRecords(recordTags:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;</code><a href="../-hprof-record-tag/"><code>HprofRecordTag</code></a><code>&gt;, listener:</code><a href="../-on-hprof-record-tag-listener/"><code>OnHprofRecordTagListener</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>Obtains a new source to read all hprof records from and calls <a href="read-records/#shark.StreamingHprofReader$readRecords(kotlin.collections.Set((shark.HprofRecordTag)), shark.OnHprofRecordTagListener)/listener">listener</a> back for each record that matches one of the provided <a href="read-records/#shark.StreamingHprofReader$readRecords(kotlin.collections.Set((shark.HprofRecordTag)), shark.OnHprofRecordTagListener)/recordTags">recordTags</a>.</td>
+<td>[jvm]<br>fun <a href="read-records/">readRecords</a>(recordTags: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="../-hprof-record-tag/">HprofRecordTag</a>&gt;, listener: <a href="../-on-hprof-record-tag-listener/">OnHprofRecordTagListener</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Obtains a new source to read all hprof records from and calls <a href="read-records/">listener</a> back for each record that matches one of the provided <a href="read-records/">recordTags</a>.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
+<h2 id="extensions">Extensions<a class="headerlink" href="#extensions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -834,12 +856,8 @@ Call <a href="reader-for/">readerFor</a> to obtain a new instance.</p>
 </thead>
 <tbody>
 <tr>
-<td><a href="reader-for/">readerFor</a></td>
-<td><code>fun readerFor(hprofFile:</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html"><code>File</code></a><code>, hprofHeader:</code><a href="../-hprof-header/"><code>HprofHeader</code></a><code>= HprofHeader.parseHeaderOf(hprofFile)):</code><a href="./"><code>StreamingHprofReader</code></a><br>Creates a <a href="./">StreamingHprofReader</a> for the provided <a href="reader-for/#shark.StreamingHprofReader.Companion$readerFor(java.io.File, shark.HprofHeader)/hprofFile">hprofFile</a>. <a href="reader-for/#shark.StreamingHprofReader.Companion$readerFor(java.io.File, shark.HprofHeader)/hprofHeader">hprofHeader</a> will be read from <a href="reader-for/#shark.StreamingHprofReader.Companion$readerFor(java.io.File, shark.HprofHeader)/hprofFile">hprofFile</a> unless you provide it.<code>fun readerFor(hprofSourceProvider:</code><a href="../-streaming-source-provider/"><code>StreamingSourceProvider</code></a><code>, hprofHeader:</code><a href="../-hprof-header/"><code>HprofHeader</code></a>` = hprofSourceProvider.openStreamingSource()</td>
-</tr>
-<tr>
-<td>.use { HprofHeader.parseHeaderOf(it) }): <code>[</code>StreamingHprofReader`](./index.md)<br>Creates a <a href="./">StreamingHprofReader</a> that will call <a href="../-streaming-source-provider/open-streaming-source/">StreamingSourceProvider.openStreamingSource</a> on every <a href="read-records/">readRecords</a> to obtain a <a href="#">Source</a> to read the hprof data from. Before reading the hprof records, <a href="./">StreamingHprofReader</a> will skip <a href="../-hprof-header/records-position/">HprofHeader.recordsPosition</a> bytes.</td>
-<td></td>
+<td><a href="../-streaming-record-reader-adapter/-companion/as-streaming-record-reader/">asStreamingRecordReader</a></td>
+<td>[jvm]<br>fun <a href="./">StreamingHprofReader</a>.<a href="../-streaming-record-reader-adapter/-companion/as-streaming-record-reader/">asStreamingRecordReader</a>(): <a href="../-streaming-record-reader-adapter/">StreamingRecordReaderAdapter</a></td>
 </tr>
 </tbody>
 </table>

@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,13 +771,6 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#constructors" class="md-nav__link">
-    Constructors
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#properties" class="md-nav__link">
     Properties
   </a>
@@ -804,25 +797,11 @@
     
   
   
-  <p><a href="../../../../">leakcanary-android-release</a> / <a href="../../../">leakcanary</a> / <a href="../../">HeapAnalysisJob</a> / <a href="../">Result</a> / <a href="./">Done</a></p>
+  <p>//<a href="../../../../../">leakcanary-android-release</a>/<a href="../../../">leakcanary</a>/<a href="../../">HeapAnalysisJob</a>/<a href="../">Result</a>/<a href="./">Done</a></p>
 <h1 id="done">Done<a class="headerlink" href="#done" title="Permanent link">&para;</a></h1>
-<p><code>data class Done :</code><a href="../"><code>HeapAnalysisJob.Result</code></a></p>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>Done(analysis: HeapAnalysis, stripHeapDumpDurationMillis:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>? = null)</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<p>[androidJvm]\
+data class <a href="./">Done</a>(analysis: HeapAnalysis, stripHeapDumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>?) : <a href="../">HeapAnalysisJob.Result</a></p>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -833,11 +812,11 @@
 <tbody>
 <tr>
 <td><a href="analysis/">analysis</a></td>
-<td><code>val analysis: HeapAnalysis</code></td>
+<td>[androidJvm]<br>val <a href="analysis/">analysis</a>: HeapAnalysis</td>
 </tr>
 <tr>
 <td><a href="strip-heap-dump-duration-millis/">stripHeapDumpDurationMillis</a></td>
-<td><code>val stripHeapDumpDurationMillis:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>?</code><br>The time spent stripping the hprof of any data if <a href="../../../-heap-analysis-config/strip-heap-dump/">HeapAnalysisConfig.stripHeapDump</a> is true, null otherwise.</td>
+<td>[androidJvm]<br>val <a href="strip-heap-dump-duration-millis/">stripHeapDumpDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>? = null<br>The time spent stripping the hprof of any data if <a href="../../../-heap-analysis-config/strip-heap-dump/">HeapAnalysisConfig.stripHeapDump</a> is true, null otherwise.</td>
 </tr>
 </tbody>
 </table>

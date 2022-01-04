@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,8 +771,8 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    Properties
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
@@ -780,6 +780,13 @@
         <li class="md-nav__item">
   <a href="#functions" class="md-nav__link">
     Functions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -811,11 +818,12 @@
     
   
   
-  <p><a href="../../">shark</a> / <a href="../">shark</a> / <a href="./">Leak</a></p>
+  <p>//<a href="../../../">shark</a>/<a href="../">shark</a>/<a href="./">Leak</a></p>
 <h1 id="leak">Leak<a class="headerlink" href="#leak" title="Permanent link">&para;</a></h1>
-<p><code>sealed class Leak :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Serializable.html"><code>Serializable</code></a></p>
+<p>[jvm]\
+sealed class <a href="./">Leak</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a></p>
 <p>A leak found by <a href="../-heap-analyzer/">HeapAnalyzer</a>, either an <a href="../-application-leak/">ApplicationLeak</a> or a <a href="../-library-leak/">LibraryLeak</a>.</p>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -825,28 +833,12 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="leak-traces/">leakTraces</a></td>
-<td><code>abstract val leakTraces:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="../-leak-trace/"><code>LeakTrace</code></a><code>&gt;</code><br>Group of leak traces which share the same leak signature.</td>
-</tr>
-<tr>
-<td><a href="short-description/">shortDescription</a></td>
-<td><code>abstract val shortDescription:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
-</tr>
-<tr>
-<td><a href="signature/">signature</a></td>
-<td><code>abstract val signature:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><br>A unique SHA1 hash that represents this group of leak traces.</td>
-</tr>
-<tr>
-<td><a href="total-retained-heap-byte-size/">totalRetainedHeapByteSize</a></td>
-<td><code>val totalRetainedHeapByteSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>?</code><br>Sum of <a href="../-leak-trace/retained-heap-byte-size/">LeakTrace.retainedHeapByteSize</a> for all elements in <a href="leak-traces/">leakTraces</a>. Null if the retained heap size was not computed.</td>
-</tr>
-<tr>
-<td><a href="total-retained-object-count/">totalRetainedObjectCount</a></td>
-<td><code>val totalRetainedObjectCount:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>?</code><br>Sum of <a href="../-leak-trace/retained-object-count/">LeakTrace.retainedObjectCount</a> for all elements in <a href="leak-traces/">leakTraces</a>. Null if the retained heap size was not computed.</td>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -857,11 +849,11 @@
 <tbody>
 <tr>
 <td><a href="to-string/">toString</a></td>
-<td><code>open fun toString():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
+<td>[jvm]<br>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -871,12 +863,40 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="../-application-leak/">ApplicationLeak</a></td>
-<td><code>data class ApplicationLeak :</code><a href="./"><code>Leak</code></a><br>A leak found by <a href="../-heap-analyzer/">HeapAnalyzer</a> in your application.</td>
+<td><a href="leak-traces/">leakTraces</a></td>
+<td>[jvm]<br>abstract val <a href="leak-traces/">leakTraces</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace/">LeakTrace</a>&gt;<br>Group of leak traces which share the same leak signature.</td>
 </tr>
 <tr>
+<td><a href="short-description/">shortDescription</a></td>
+<td>[jvm]<br>abstract val <a href="short-description/">shortDescription</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+</tr>
+<tr>
+<td><a href="signature/">signature</a></td>
+<td>[jvm]<br>abstract val <a href="signature/">signature</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>A unique SHA1 hash that represents this group of leak traces.</td>
+</tr>
+<tr>
+<td><a href="total-retained-heap-byte-size/">totalRetainedHeapByteSize</a></td>
+<td>[jvm]<br>val <a href="total-retained-heap-byte-size/">totalRetainedHeapByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>Sum of <a href="../-leak-trace/retained-heap-byte-size/">LeakTrace.retainedHeapByteSize</a> for all elements in <a href="leak-traces/">leakTraces</a>. Null if the retained heap size was not computed.</td>
+</tr>
+<tr>
+<td><a href="total-retained-object-count/">totalRetainedObjectCount</a></td>
+<td>[jvm]<br>val <a href="total-retained-object-count/">totalRetainedObjectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>Sum of <a href="../-leak-trace/retained-object-count/">LeakTrace.retainedObjectCount</a> for all elements in <a href="leak-traces/">leakTraces</a>. Null if the retained heap size was not computed.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
 <td><a href="../-library-leak/">LibraryLeak</a></td>
-<td><code>data class LibraryLeak :</code><a href="./"><code>Leak</code></a><br>A leak found by <a href="../-heap-analyzer/">HeapAnalyzer</a>, where the only path to the leaking object required going through a reference matched by <a href="../-library-leak/pattern/">pattern</a>, as provided to a <a href="../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> instance. This is a known leak in library code that is beyond your control.</td>
+</tr>
+<tr>
+<td><a href="../-application-leak/">ApplicationLeak</a></td>
 </tr>
 </tbody>
 </table>

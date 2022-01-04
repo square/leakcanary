@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -804,26 +804,27 @@
     
   
   
-  <p><a href="../../../">shark-hprof</a> / <a href="../../">shark</a> / <a href="../">GcRoot</a> / <a href="./">JavaFrame</a></p>
+  <p>//<a href="../../../../">shark-hprof</a>/<a href="../../">shark</a>/<a href="../">GcRoot</a>/<a href="./">JavaFrame</a></p>
 <h1 id="javaframe">JavaFrame<a class="headerlink" href="#javaframe" title="Permanent link">&para;</a></h1>
-<p><code>class JavaFrame :</code><a href="../"><code>GcRoot</code></a></p>
+<p>[jvm]\
+class <a href="./">JavaFrame</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, frameNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="../">GcRoot</a></p>
 <p>A java local variable</p>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
+<h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<th></th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>JavaFrame(id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, threadSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>, frameNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>)</code><br>A java local variable</td>
+<td><a href="-java-frame/">JavaFrame</a></td>
+<td>[jvm]<br>fun <a href="-java-frame/">JavaFrame</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, frameNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -834,15 +835,15 @@
 <tbody>
 <tr>
 <td><a href="frame-number/">frameNumber</a></td>
-<td><code>val frameNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><br>frame number in stack trace (-1 for empty)</td>
+<td>[jvm]<br>val <a href="frame-number/">frameNumber</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>frame number in stack trace (-1 for empty)</td>
 </tr>
 <tr>
 <td><a href="id/">id</a></td>
-<td><code>val id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>The object id of the object that this gc root references.</td>
+<td>[jvm]<br>open override val <a href="id/">id</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The object id of the object that this gc root references.</td>
 </tr>
 <tr>
 <td><a href="thread-serial-number/">threadSerialNumber</a></td>
-<td><code>val threadSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><br>Corresponds to <a href="../-thread-object/thread-serial-number/">ThreadObject.threadSerialNumber</a></td>
+<td>[jvm]<br>val <a href="thread-serial-number/">threadSerialNumber</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>Corresponds to <a href="../-thread-object/thread-serial-number/">ThreadObject.threadSerialNumber</a></td>
 </tr>
 </tbody>
 </table>

@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,27 +782,19 @@
     
   
   
-  <p><a href="../../../../">leakcanary-android-core</a> / <a href="../../../">leakcanary</a> / <a href="../../">LeakCanary</a> / <a href="../">Config</a> / <a href="./">leakingObjectFinder</a></p>
+  <p>//<a href="../../../../../">leakcanary-android-core</a>/<a href="../../../">leakcanary</a>/<a href="../../">LeakCanary</a>/<a href="../">Config</a>/<a href="./">leakingObjectFinder</a></p>
 <h1 id="leakingobjectfinder">leakingObjectFinder<a class="headerlink" href="#leakingobjectfinder" title="Permanent link">&para;</a></h1>
-<p><code>val leakingObjectFinder: LeakingObjectFinder</code></p>
+<p>[androidJvm]\
+val <a href="./">leakingObjectFinder</a>: LeakingObjectFinder</p>
 <p>Finds the objects that are leaking, for which LeakCanary will compute leak traces.</p>
-<p>Defaults to <a href="#">KeyedWeakReferenceFinder</a> which finds all objects tracked by a
-<a href="#">KeyedWeakReference</a>, ie all objects that were passed to
-<a href="#">ObjectWatcher.expectWeaklyReachable</a>.</p>
-<p>You could instead replace it with a <a href="#">FilteringLeakingObjectFinder</a>, which scans all objects
-in the heap dump and delegates the decision to a list of
-<a href="#">FilteringLeakingObjectFinder.LeakingObjectFilter</a>. This can lead to finding more leaks
-than the default and shorter leak traces. This also means that every analysis during a
-given process life will bring up the same leaking objects over and over again, unlike
-when using <a href="#">KeyedWeakReferenceFinder</a> (because <a href="#">KeyedWeakReference</a> instances are cleared
-after each heap dump).</p>
-<p>The list of filters can be built from <a href="#">AndroidObjectInspectors</a>:</p>
-<div class="highlight"><pre><span></span><code>LeakCanary.config = LeakCanary.config.copy(
-    leakingObjectFinder = FilteringLeakingObjectFinder(
-        AndroidObjectInspectors.appLeakingObjectFilters
-    )
-)
-</code></pre></div>
+<p>Defaults to KeyedWeakReferenceFinder which finds all objects tracked by a KeyedWeakReference, ie all objects that were passed to ObjectWatcher.expectWeaklyReachable.</p>
+<p>You could instead replace it with a FilteringLeakingObjectFinder, which scans all objects in the heap dump and delegates the decision to a list of FilteringLeakingObjectFinder.LeakingObjectFilter. This can lead to finding more leaks than the default and shorter leak traces. This also means that every analysis during a given process life will bring up the same leaking objects over and over again, unlike when using KeyedWeakReferenceFinder (because KeyedWeakReference instances are cleared after each heap dump).</p>
+<p>The list of filters can be built from AndroidObjectInspectors:</p>
+<p>LeakCanary.config = LeakCanary.config.copy(\
+    leakingObjectFinder = FilteringLeakingObjectFinder(\
+        AndroidObjectInspectors.appLeakingObjectFilters\
+    )\
+)</p>
   
 
               

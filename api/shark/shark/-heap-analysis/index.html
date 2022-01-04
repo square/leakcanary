@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,15 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    Properties
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-properties" class="md-nav__link">
-    Companion Object Properties
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -811,13 +811,27 @@
     
   
   
-  <p><a href="../../">shark</a> / <a href="../">shark</a> / <a href="./">HeapAnalysis</a></p>
+  <p>//<a href="../../../">shark</a>/<a href="../">shark</a>/<a href="./">HeapAnalysis</a></p>
 <h1 id="heapanalysis">HeapAnalysis<a class="headerlink" href="#heapanalysis" title="Permanent link">&para;</a></h1>
-<p><code>sealed class HeapAnalysis :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Serializable.html"><code>Serializable</code></a></p>
-<p>The result of an analysis performed by <a href="../-heap-analyzer/">HeapAnalyzer</a>, either a <a href="../-heap-analysis-success/">HeapAnalysisSuccess</a> or a
-<a href="../-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward
-compatibility.</p>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+sealed class <a href="./">HeapAnalysis</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a></p>
+<p>The result of an analysis performed by <a href="../-heap-analyzer/">HeapAnalyzer</a>, either a <a href="../-heap-analysis-success/">HeapAnalysisSuccess</a> or a <a href="../-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward compatibility.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -828,53 +842,35 @@ compatibility.</p>
 <tbody>
 <tr>
 <td><a href="analysis-duration-millis/">analysisDurationMillis</a></td>
-<td><code>abstract val analysisDurationMillis:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>Total time spent analyzing the heap.</td>
+<td>[jvm]<br>abstract val <a href="analysis-duration-millis/">analysisDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent analyzing the heap.</td>
 </tr>
 <tr>
 <td><a href="created-at-time-millis/">createdAtTimeMillis</a></td>
-<td><code>abstract val createdAtTimeMillis:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>The <a href="https://docs.oracle.com/javase/6/docs/api/java/lang/System.html#currentTimeMillis()">System.currentTimeMillis</a> when this <a href="./">HeapAnalysis</a> instance was created.</td>
+<td>[jvm]<br>abstract val <a href="created-at-time-millis/">createdAtTimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--">System.currentTimeMillis</a> when this <a href="./">HeapAnalysis</a> instance was created.</td>
 </tr>
 <tr>
 <td><a href="dump-duration-millis/">dumpDurationMillis</a></td>
-<td><code>abstract val dumpDurationMillis:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>Total time spent dumping the heap.</td>
+<td>[jvm]<br>abstract val <a href="dump-duration-millis/">dumpDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent dumping the heap.</td>
 </tr>
 <tr>
 <td><a href="heap-dump-file/">heapDumpFile</a></td>
-<td><code>abstract val heapDumpFile:</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html"><code>File</code></a><br>The hprof file that was analyzed.</td>
+<td>[jvm]<br>abstract val <a href="heap-dump-file/">heapDumpFile</a>: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a><br>The hprof file that was analyzed.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="companion-object-properties">Companion Object Properties<a class="headerlink" href="#companion-object-properties" title="Permanent link">&para;</a></h3>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-d-u-m-p_-d-u-r-a-t-i-o-n_-u-n-k-n-o-w-n/">DUMP_DURATION_UNKNOWN</a></td>
-<td><code>const val DUMP_DURATION_UNKNOWN:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
-</tr>
-</tbody>
-</table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><a href="../-heap-analysis-failure/">HeapAnalysisFailure</a></td>
-<td><code>data class HeapAnalysisFailure :</code><a href="./"><code>HeapAnalysis</code></a><br>The analysis performed by <a href="../-heap-analyzer/">HeapAnalyzer</a> did not complete successfully.</td>
 </tr>
 <tr>
 <td><a href="../-heap-analysis-success/">HeapAnalysisSuccess</a></td>
-<td><code>data class HeapAnalysisSuccess :</code><a href="./"><code>HeapAnalysis</code></a><br>The result of a successful heap analysis performed by <a href="../-heap-analyzer/">HeapAnalyzer</a>.</td>
 </tr>
 </tbody>
 </table>

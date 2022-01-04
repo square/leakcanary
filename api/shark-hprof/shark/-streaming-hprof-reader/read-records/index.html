@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -764,6 +764,21 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#return" class="md-nav__link">
+    Return
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -782,13 +797,13 @@
     
   
   
-  <p><a href="../../../">shark-hprof</a> / <a href="../../">shark</a> / <a href="../">StreamingHprofReader</a> / <a href="./">readRecords</a></p>
+  <p>//<a href="../../../../">shark-hprof</a>/<a href="../../">shark</a>/<a href="../">StreamingHprofReader</a>/<a href="./">readRecords</a></p>
 <h1 id="readrecords">readRecords<a class="headerlink" href="#readrecords" title="Permanent link">&para;</a></h1>
-<p><code>fun readRecords(recordTags:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;</code><a href="../../-hprof-record-tag/"><code>HprofRecordTag</code></a><code>&gt;, listener:</code><a href="../../-on-hprof-record-tag-listener/"><code>OnHprofRecordTagListener</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></p>
-<p>Obtains a new source to read all hprof records from and calls <a href="./#shark.StreamingHprofReader$readRecords(kotlin.collections.Set((shark.HprofRecordTag)), shark.OnHprofRecordTagListener)/listener">listener</a> back for each record
-that matches one of the provided <a href="./#shark.StreamingHprofReader$readRecords(kotlin.collections.Set((shark.HprofRecordTag)), shark.OnHprofRecordTagListener)/recordTags">recordTags</a>.</p>
-<p><strong>Return</strong>
-the number of bytes read from the source</p>
+<p>[jvm]\
+fun <a href="./">readRecords</a>(recordTags: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="../../-hprof-record-tag/">HprofRecordTag</a>&gt;, listener: <a href="../../-on-hprof-record-tag-listener/">OnHprofRecordTagListener</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></p>
+<p>Obtains a new source to read all hprof records from and calls <a href="./">listener</a> back for each record that matches one of the provided <a href="./">recordTags</a>.</p>
+<h4 id="return">Return<a class="headerlink" href="#return" title="Permanent link">&para;</a></h4>
+<p>the number of bytes read from the source</p>
   
 
               

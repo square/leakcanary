@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -778,15 +778,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    Properties
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -811,98 +811,27 @@
     
   
   
-  <p><a href="../../">shark-graph</a> / <a href="../">shark</a> / <a href="./">HeapValue</a></p>
+  <p>//<a href="../../../">shark-graph</a>/<a href="../">shark</a>/<a href="./">HeapValue</a></p>
 <h1 id="heapvalue">HeapValue<a class="headerlink" href="#heapvalue" title="Permanent link">&para;</a></h1>
-<p><code>class HeapValue</code></p>
-<p>Represents a value in the heap dump, which can be an object reference or
-a primitive type.</p>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+class <a href="./">HeapValue</a>(graph: <a href="../-heap-graph/">HeapGraph</a>, holder: ValueHolder)</p>
+<p>Represents a value in the heap dump, which can be an object reference or a primitive type.</p>
+<h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<th></th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>HeapValue(graph:</code><a href="../-heap-graph/"><code>HeapGraph</code></a><code>, holder: ValueHolder)</code><br>Represents a value in the heap dump, which can be an object reference or a primitive type.</td>
+<td><a href="-heap-value/">HeapValue</a></td>
+<td>[jvm]<br>fun <a href="-heap-value/">HeapValue</a>(graph: <a href="../-heap-graph/">HeapGraph</a>, holder: ValueHolder)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="as-boolean/">asBoolean</a></td>
-<td><code>val asBoolean:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>?</code><br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> if it represents one, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-byte/">asByte</a></td>
-<td><code>val asByte:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte/index.html"><code>Byte</code></a><code>?</code><br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte/index.html">Byte</a> if it represents one, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-char/">asChar</a></td>
-<td><code>val asChar:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-char/index.html"><code>Char</code></a><code>?</code><br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-char/index.html">Char</a> if it represents one, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-double/">asDouble</a></td>
-<td><code>val asDouble:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html"><code>Double</code></a><code>?</code><br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a> if it represents one, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-float/">asFloat</a></td>
-<td><code>val asFloat:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html"><code>Float</code></a><code>?</code><br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a> if it represents one, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-int/">asInt</a></td>
-<td><code>val asInt:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>?</code><br>This <a href="./">HeapValue</a> as an <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> if it represents one, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-long/">asLong</a></td>
-<td><code>val asLong:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>?</code><br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> if it represents one, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-non-null-object-id/">asNonNullObjectId</a></td>
-<td><code>val asNonNullObjectId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>?</code><br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> if it represents a non null object reference, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-object/">asObject</a></td>
-<td><code>val asObject:</code><a href="../-heap-object/"><code>HeapObject</code></a><code>?</code><br>The <a href="../-heap-object/">HeapObject</a> referenced by this <a href="./">HeapValue</a> if it represents a non null object reference, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-object-id/">asObjectId</a></td>
-<td><code>val asObjectId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>?</code><br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> if it represents an object reference, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="as-short/">asShort</a></td>
-<td><code>val asShort:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short/index.html"><code>Short</code></a><code>?</code><br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short/index.html">Short</a> if it represents one, or null otherwise.</td>
-</tr>
-<tr>
-<td><a href="graph/">graph</a></td>
-<td><code>val graph:</code><a href="../-heap-graph/"><code>HeapGraph</code></a><br>The graph of objects in the heap, which you can use to navigate the heap.</td>
-</tr>
-<tr>
-<td><a href="holder/">holder</a></td>
-<td><code>val holder: ValueHolder</code><br>Holds the actual value that this <a href="./">HeapValue</a> represents.</td>
-</tr>
-<tr>
-<td><a href="is-non-null-reference/">isNonNullReference</a></td>
-<td><code>val isNonNullReference:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>True is this <a href="./">HeapValue</a> represents a non null object reference, false otherwise.</td>
-</tr>
-<tr>
-<td><a href="is-null-reference/">isNullReference</a></td>
-<td><code>val isNullReference:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>True is this <a href="./">HeapValue</a> represents a null object reference, false otherwise.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -913,7 +842,78 @@ a primitive type.</p>
 <tbody>
 <tr>
 <td><a href="read-as-java-string/">readAsJavaString</a></td>
-<td><code>fun readAsJavaString():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>?</code><br>If this <a href="./">HeapValue</a> if it represents a non null object reference to an instance of the <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> class that exists in the heap dump, returns a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> instance with content that matches the string in the heap dump. Otherwise returns null.</td>
+<td>[jvm]<br>fun <a href="read-as-java-string/">readAsJavaString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>?<br>If this <a href="./">HeapValue</a> if it represents a non null object reference to an instance of the <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> class that exists in the heap dump, returns a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> instance with content that matches the string in the heap dump. Otherwise returns null.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="as-boolean/">asBoolean</a></td>
+<td>[jvm]<br>val <a href="as-boolean/">asBoolean</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>?<br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> if it represents one, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-byte/">asByte</a></td>
+<td>[jvm]<br>val <a href="as-byte/">asByte</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte/index.html">Byte</a>?<br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte/index.html">Byte</a> if it represents one, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-char/">asChar</a></td>
+<td>[jvm]<br>val <a href="as-char/">asChar</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-char/index.html">Char</a>?<br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-char/index.html">Char</a> if it represents one, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-double/">asDouble</a></td>
+<td>[jvm]<br>val <a href="as-double/">asDouble</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a>?<br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a> if it represents one, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-float/">asFloat</a></td>
+<td>[jvm]<br>val <a href="as-float/">asFloat</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a>?<br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a> if it represents one, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-int/">asInt</a></td>
+<td>[jvm]<br>val <a href="as-int/">asInt</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>This <a href="./">HeapValue</a> as an <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> if it represents one, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-long/">asLong</a></td>
+<td>[jvm]<br>val <a href="as-long/">asLong</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>?<br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> if it represents one, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-non-null-object-id/">asNonNullObjectId</a></td>
+<td>[jvm]<br>val <a href="as-non-null-object-id/">asNonNullObjectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>?<br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> if it represents a non null object reference, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-object/">asObject</a></td>
+<td>[jvm]<br>val <a href="as-object/">asObject</a>: <a href="../-heap-object/">HeapObject</a>?<br>The <a href="../-heap-object/">HeapObject</a> referenced by this <a href="./">HeapValue</a> if it represents a non null object reference, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-object-id/">asObjectId</a></td>
+<td>[jvm]<br>val <a href="as-object-id/">asObjectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>?<br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> if it represents an object reference, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="as-short/">asShort</a></td>
+<td>[jvm]<br>val <a href="as-short/">asShort</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short/index.html">Short</a>?<br>This <a href="./">HeapValue</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short/index.html">Short</a> if it represents one, or null otherwise.</td>
+</tr>
+<tr>
+<td><a href="graph/">graph</a></td>
+<td>[jvm]<br>val <a href="graph/">graph</a>: <a href="../-heap-graph/">HeapGraph</a><br>The graph of objects in the heap, which you can use to navigate the heap.</td>
+</tr>
+<tr>
+<td><a href="holder/">holder</a></td>
+<td>[jvm]<br>val <a href="holder/">holder</a>: ValueHolder<br>Holds the actual value that this <a href="./">HeapValue</a> represents.</td>
+</tr>
+<tr>
+<td><a href="is-non-null-reference/">isNonNullReference</a></td>
+<td>[jvm]<br>val <a href="is-non-null-reference/">isNonNullReference</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>True is this <a href="./">HeapValue</a> represents a non null object reference, false otherwise.</td>
+</tr>
+<tr>
+<td><a href="is-null-reference/">isNullReference</a></td>
+<td>[jvm]<br>val <a href="is-null-reference/">isNullReference</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>True is this <a href="./">HeapValue</a> represents a null object reference, false otherwise.</td>
 </tr>
 </tbody>
 </table>

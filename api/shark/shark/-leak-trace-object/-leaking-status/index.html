@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,8 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#enum-values" class="md-nav__link">
-    Enum Values
+  <a href="#entries" class="md-nav__link">
+    Entries
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -797,10 +804,34 @@
     
   
   
-  <p><a href="../../../">shark</a> / <a href="../../">shark</a> / <a href="../">LeakTraceObject</a> / <a href="./">LeakingStatus</a></p>
+  <p>//<a href="../../../../">shark</a>/<a href="../../">shark</a>/<a href="../">LeakTraceObject</a>/<a href="./">LeakingStatus</a></p>
 <h1 id="leakingstatus">LeakingStatus<a class="headerlink" href="#leakingstatus" title="Permanent link">&para;</a></h1>
-<p><code>enum class LeakingStatus</code></p>
-<h3 id="enum-values">Enum Values<a class="headerlink" href="#enum-values" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+enum <a href="./">LeakingStatus</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="./">LeakTraceObject.LeakingStatus</a>&gt;</p>
+<h2 id="entries">Entries<a class="headerlink" href="#entries" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-u-n-k-n-o-w-n/">UNKNOWN</a></td>
+<td>[jvm]<br><a href="-u-n-k-n-o-w-n/">UNKNOWN</a>()<br>No decision can be made about the provided object.</td>
+</tr>
+<tr>
+<td><a href="-l-e-a-k-i-n-g/">LEAKING</a></td>
+<td>[jvm]<br><a href="-l-e-a-k-i-n-g/">LEAKING</a>()<br>The object was no longer needed and therefore expected to be unreachable.</td>
+</tr>
+<tr>
+<td><a href="-n-o-t_-l-e-a-k-i-n-g/">NOT_LEAKING</a></td>
+<td>[jvm]<br><a href="-n-o-t_-l-e-a-k-i-n-g/">NOT_LEAKING</a>()<br>The object was needed and therefore expected to be reachable.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -810,16 +841,12 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="-n-o-t_-l-e-a-k-i-n-g/">NOT_LEAKING</a></td>
-<td>The object was needed and therefore expected to be reachable.</td>
+<td><a href="../../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-372974862%2FProperties%2F-1562156115">name</a></td>
+<td>[jvm]<br>val <a href="../../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-372974862%2FProperties%2F-1562156115">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
-<td><a href="-l-e-a-k-i-n-g/">LEAKING</a></td>
-<td>The object was no longer needed and therefore expected to be unreachable.</td>
-</tr>
-<tr>
-<td><a href="-u-n-k-n-o-w-n/">UNKNOWN</a></td>
-<td>No decision can be made about the provided object.</td>
+<td><a href="../../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-739389684%2FProperties%2F-1562156115">ordinal</a></td>
+<td>[jvm]<br>val <a href="../../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-739389684%2FProperties%2F-1562156115">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

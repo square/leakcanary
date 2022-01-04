@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -804,12 +804,12 @@
     
   
   
-  <p><a href="../../">shark</a> / <a href="../">shark</a> / <a href="./">ReferenceMatcher</a></p>
+  <p>//<a href="../../../">shark</a>/<a href="../">shark</a>/<a href="./">ReferenceMatcher</a></p>
 <h1 id="referencematcher">ReferenceMatcher<a class="headerlink" href="#referencematcher" title="Permanent link">&para;</a></h1>
-<p><code>sealed class ReferenceMatcher</code></p>
-<p>Used to pattern match known patterns of references in the heap, either to ignore them
-(<a href="../-ignored-reference-matcher/">IgnoredReferenceMatcher</a>) or to mark them as library leaks (<a href="../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>).</p>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+sealed class <a href="./">ReferenceMatcher</a></p>
+<p>Used to pattern match known patterns of references in the heap, either to ignore them (<a href="../-ignored-reference-matcher/">IgnoredReferenceMatcher</a>) or to mark them as library leaks (<a href="../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>).</p>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -820,26 +820,23 @@
 <tbody>
 <tr>
 <td><a href="pattern/">pattern</a></td>
-<td><code>abstract val pattern:</code><a href="../-reference-pattern/"><code>ReferencePattern</code></a><br>The pattern that references will be matched against.</td>
+<td>[jvm]<br>abstract val <a href="pattern/">pattern</a>: <a href="../-reference-pattern/">ReferencePattern</a><br>The pattern that references will be matched against.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Summary</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="../-ignored-reference-matcher/">IgnoredReferenceMatcher</a></td>
-<td><code>class IgnoredReferenceMatcher :</code><a href="./"><code>ReferenceMatcher</code></a><br><a href="../-ignored-reference-matcher/">IgnoredReferenceMatcher</a> should be used to match references that cannot ever create leaks. The shortest path finder will never go through matching references.</td>
+<td><a href="../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a></td>
 </tr>
 <tr>
-<td><a href="../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a></td>
-<td><code>data class LibraryLeakReferenceMatcher :</code><a href="./"><code>ReferenceMatcher</code></a><br><a href="../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> should be used to match references in library code that are known to create leaks and are beyond your control. The shortest path finder will only go through matching references after it has exhausted references that don&rsquo;t match, prioritizing finding an application leak over a known library leak. Library leaks will be reported as <a href="../-library-leak/">LibraryLeak</a> instead of <a href="../-application-leak/">ApplicationLeak</a>.</td>
+<td><a href="../-ignored-reference-matcher/">IgnoredReferenceMatcher</a></td>
 </tr>
 </tbody>
 </table>

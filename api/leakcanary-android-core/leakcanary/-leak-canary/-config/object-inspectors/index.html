@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,13 +782,12 @@
     
   
   
-  <p><a href="../../../../">leakcanary-android-core</a> / <a href="../../../">leakcanary</a> / <a href="../../">LeakCanary</a> / <a href="../">Config</a> / <a href="./">objectInspectors</a></p>
+  <p>//<a href="../../../../../">leakcanary-android-core</a>/<a href="../../../">leakcanary</a>/<a href="../../">LeakCanary</a>/<a href="../">Config</a>/<a href="./">objectInspectors</a></p>
 <h1 id="objectinspectors">objectInspectors<a class="headerlink" href="#objectinspectors" title="Permanent link">&para;</a></h1>
-<p><code>val objectInspectors:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;ObjectInspector&gt;</code></p>
-<p>List of <a href="#">ObjectInspector</a> that provide LeakCanary with insights about objects found in the
-heap. You can create your own <a href="#">ObjectInspector</a> implementations, and also add
-a <a href="#">shark.AppSingletonInspector</a> instance created with the list of internal singletons.</p>
-<p>Defaults to <a href="#">AndroidObjectInspectors.appDefaults</a></p>
+<p>[androidJvm]\
+val <a href="./">objectInspectors</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ObjectInspector&gt;</p>
+<p>List of ObjectInspector that provide LeakCanary with insights about objects found in the heap. You can create your own ObjectInspector implementations, and also add a shark.AppSingletonInspector instance created with the list of internal singletons.</p>
+<p>Defaults to AndroidObjectInspectors.appDefaults</p>
   
 
               

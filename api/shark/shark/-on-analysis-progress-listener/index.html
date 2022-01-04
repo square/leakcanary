@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -784,20 +784,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#companion-object-properties" class="md-nav__link">
-    Companion Object Properties
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -818,10 +804,13 @@
     
   
   
-  <p><a href="../../">shark</a> / <a href="../">shark</a> / <a href="./">OnAnalysisProgressListener</a></p>
+  <p>//<a href="../../../">shark</a>/<a href="../">shark</a>/<a href="./">OnAnalysisProgressListener</a></p>
 <h1 id="onanalysisprogresslistener">OnAnalysisProgressListener<a class="headerlink" href="#onanalysisprogresslistener" title="Permanent link">&para;</a></h1>
-<p><code>interface OnAnalysisProgressListener</code></p>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+fun interface <a href="./">OnAnalysisProgressListener</a></p>
+<p>Reports progress from the <a href="../-heap-analyzer/">HeapAnalyzer</a> as they occur, as <a href="-step/">Step</a> values.</p>
+<p>This is a functional interface with which you can create a <a href="./">OnAnalysisProgressListener</a> from a lambda.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -831,12 +820,16 @@
 </thead>
 <tbody>
 <tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+</tr>
+<tr>
 <td><a href="-step/">Step</a></td>
-<td><code>enum class Step</code></td>
+<td>[jvm]<br>enum <a href="-step/">Step</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-step/">OnAnalysisProgressListener.Step</a>&gt;</td>
 </tr>
 </tbody>
 </table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -847,37 +840,7 @@
 <tbody>
 <tr>
 <td><a href="on-analysis-progress/">onAnalysisProgress</a></td>
-<td><code>abstract fun onAnalysisProgress(step:</code><a href="-step/"><code>OnAnalysisProgressListener.Step</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
-</tr>
-</tbody>
-</table>
-<h3 id="companion-object-properties">Companion Object Properties<a class="headerlink" href="#companion-object-properties" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-n-o_-o-p/">NO_OP</a></td>
-<td><code>val NO_OP:</code><a href="./"><code>OnAnalysisProgressListener</code></a><br>A no-op <a href="./">OnAnalysisProgressListener</a></td>
-</tr>
-</tbody>
-</table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="invoke/">invoke</a></td>
-<td><code>operator fun invoke(block: (</code><a href="-step/"><code>OnAnalysisProgressListener.Step</code></a><code>) -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><code>):</code><a href="./"><code>OnAnalysisProgressListener</code></a><br>Utility function to create a <a href="./">OnAnalysisProgressListener</a> from the passed in <a href="invoke/#shark.OnAnalysisProgressListener.Companion$invoke(kotlin.Function1((shark.OnAnalysisProgressListener.Step, kotlin.Unit)))/block">block</a> lambda instead of using the anonymous <code>object : OnAnalysisProgressListener</code> syntax.</td>
+<td>[jvm]<br>abstract fun <a href="on-analysis-progress/">onAnalysisProgress</a>(step: <a href="-step/">OnAnalysisProgressListener.Step</a>)</td>
 </tr>
 </tbody>
 </table>

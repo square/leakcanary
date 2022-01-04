@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -580,6 +580,8 @@
     
     <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
+      
+    
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Shark
@@ -594,6 +596,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -602,36 +606,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-shark" class="md-nav__link">
-    Package shark
-  </a>
-  
-    <nav class="md-nav" aria-label="Package shark">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#exceptions" class="md-nav__link">
-    Exceptions
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -748,7 +725,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -826,6 +803,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -834,36 +813,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-shark" class="md-nav__link">
-    Package shark
-  </a>
-  
-    <nav class="md-nav" aria-label="Package shark">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#exceptions" class="md-nav__link">
-    Exceptions
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -887,11 +839,9 @@
     
   
   
-    <h1>Shark</h1>
-  
-  <p><a href="../">shark</a> / <a href="./">shark</a></p>
-<h2 id="package-shark">Package shark<a class="headerlink" href="#package-shark" title="Permanent link">&para;</a></h2>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+  <p>//<a href="../../">shark</a>/<a href="./">shark</a></p>
+<h1 id="package-shark">Package shark<a class="headerlink" href="#package-shark" title="Permanent link">&para;</a></h1>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -902,125 +852,99 @@
 <tbody>
 <tr>
 <td><a href="-application-leak/">ApplicationLeak</a></td>
-<td><code>data class ApplicationLeak :</code><a href="-leak/"><code>Leak</code></a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a> in your application.</td>
+<td>[jvm]<br>data class <a href="-application-leak/">ApplicationLeak</a>(leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace/">LeakTrace</a>&gt;) : <a href="-leak/">Leak</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a> in your application.</td>
 </tr>
 <tr>
 <td><a href="-app-singleton-inspector/">AppSingletonInspector</a></td>
-<td><code>class AppSingletonInspector :</code><a href="-object-inspector/"><code>ObjectInspector</code></a><br>Inspector that automatically marks instances of the provided class names as not leaking because they&rsquo;re app wide singletons.</td>
+<td>[jvm]<br>class <a href="-app-singleton-inspector/">AppSingletonInspector</a>(singletonClasses: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="-object-inspector/">ObjectInspector</a><br>Inspector that automatically marks instances of the provided class names as not leaking because they&rsquo;re app wide singletons.</td>
 </tr>
 <tr>
 <td><a href="-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a></td>
-<td><code>class FilteringLeakingObjectFinder :</code><a href="-leaking-object-finder/"><code>LeakingObjectFinder</code></a><br>Finds the objects that are leaking by scanning all objects in the heap dump and delegating the decision to a list of <a href="-filtering-leaking-object-finder/-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a></td>
+<td>[jvm]<br>class <a href="-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a>(filters: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-filtering-leaking-object-finder/-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a>&gt;) : <a href="-leaking-object-finder/">LeakingObjectFinder</a><br>Finds the objects that are leaking by scanning all objects in the heap dump and delegating the decision to a list of <a href="-filtering-leaking-object-finder/-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a></td>
 </tr>
 <tr>
 <td><a href="-heap-analysis/">HeapAnalysis</a></td>
-<td><code>sealed class HeapAnalysis :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Serializable.html"><code>Serializable</code></a><br>The result of an analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>, either a <a href="-heap-analysis-success/">HeapAnalysisSuccess</a> or a <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward compatibility.</td>
+<td>[jvm]<br>sealed class <a href="-heap-analysis/">HeapAnalysis</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>The result of an analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>, either a <a href="-heap-analysis-success/">HeapAnalysisSuccess</a> or a <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward compatibility.</td>
+</tr>
+<tr>
+<td><a href="-heap-analysis-exception/">HeapAnalysisException</a></td>
+<td>[jvm]<br>class <a href="-heap-analysis-exception/">HeapAnalysisException</a>(cause: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html">Throwable</a>) : <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeException.html">RuntimeException</a></td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-failure/">HeapAnalysisFailure</a></td>
-<td><code>data class HeapAnalysisFailure :</code><a href="-heap-analysis/"><code>HeapAnalysis</code></a><br>The analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a> did not complete successfully.</td>
+<td>[jvm]<br>data class <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>(heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, exception: <a href="-heap-analysis-exception/">HeapAnalysisException</a>) : <a href="-heap-analysis/">HeapAnalysis</a><br>The analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a> did not complete successfully.</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-success/">HeapAnalysisSuccess</a></td>
-<td><code>data class HeapAnalysisSuccess :</code><a href="-heap-analysis/"><code>HeapAnalysis</code></a><br>The result of a successful heap analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>.</td>
+<td>[jvm]<br>data class <a href="-heap-analysis-success/">HeapAnalysisSuccess</a>(heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, metadata: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, applicationLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-application-leak/">ApplicationLeak</a>&gt;, libraryLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-library-leak/">LibraryLeak</a>&gt;, unreachableObjects: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-object/">LeakTraceObject</a>&gt;) : <a href="-heap-analysis/">HeapAnalysis</a><br>The result of a successful heap analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>.</td>
 </tr>
 <tr>
 <td><a href="-heap-analyzer/">HeapAnalyzer</a></td>
-<td><code>class HeapAnalyzer</code><br>Analyzes heap dumps to look for leaks.</td>
+<td>[jvm]<br>class <a href="-heap-analyzer/">HeapAnalyzer</a>(listener: <a href="-on-analysis-progress-listener/">OnAnalysisProgressListener</a>)<br>Analyzes heap dumps to look for leaks.</td>
 </tr>
 <tr>
 <td><a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a></td>
-<td><code>class IgnoredReferenceMatcher :</code><a href="-reference-matcher/"><code>ReferenceMatcher</code></a><br><a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a> should be used to match references that cannot ever create leaks. The shortest path finder will never go through matching references.</td>
+<td>[jvm]<br>class <a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a>(pattern: <a href="-reference-pattern/">ReferencePattern</a>) : <a href="-reference-matcher/">ReferenceMatcher</a><br><a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a> should be used to match references that cannot ever create leaks. The shortest path finder will never go through matching references.</td>
 </tr>
 <tr>
 <td><a href="-keyed-weak-reference-finder/">KeyedWeakReferenceFinder</a></td>
-<td><code>object KeyedWeakReferenceFinder :</code><a href="-leaking-object-finder/"><code>LeakingObjectFinder</code></a><br>Finds all objects tracked by a KeyedWeakReference, ie all objects that were passed to ObjectWatcher.watch.</td>
+<td>[jvm]<br>object <a href="-keyed-weak-reference-finder/">KeyedWeakReferenceFinder</a> : <a href="-leaking-object-finder/">LeakingObjectFinder</a><br>Finds all objects tracked by a KeyedWeakReference, ie all objects that were passed to ObjectWatcher.watch.</td>
 </tr>
 <tr>
 <td><a href="-leak/">Leak</a></td>
-<td><code>sealed class Leak :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Serializable.html"><code>Serializable</code></a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, either an <a href="-application-leak/">ApplicationLeak</a> or a <a href="-library-leak/">LibraryLeak</a>.</td>
+<td>[jvm]<br>sealed class <a href="-leak/">Leak</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, either an <a href="-application-leak/">ApplicationLeak</a> or a <a href="-library-leak/">LibraryLeak</a>.</td>
 </tr>
 <tr>
 <td><a href="-leaking-object-finder/">LeakingObjectFinder</a></td>
-<td><code>interface LeakingObjectFinder</code></td>
+<td>[jvm]<br>fun interface <a href="-leaking-object-finder/">LeakingObjectFinder</a><br>Finds the objects that are leaking, for which Shark will compute leak traces.</td>
 </tr>
 <tr>
 <td><a href="-leak-trace/">LeakTrace</a></td>
-<td><code>data class LeakTrace :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Serializable.html"><code>Serializable</code></a><br>The best strong reference path from a GC root to the leaking object. &ldquo;Best&rdquo; here means the shortest prioritized path. A large number of distinct paths can generally be found leading to a leaking object. Shark prioritizes paths that don&rsquo;t go through known <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> (because those are known to create leaks so it&rsquo;s more interesting to find other paths causing leaks), then it prioritize paths that don&rsquo;t go through java local gc roots (because those are harder to reason about). Taking those priorities into account, finding the shortest path means there are less <a href="-leak-trace-reference/">LeakTraceReference</a> that can be suspected to cause the leak.</td>
+<td>[jvm]<br>data class <a href="-leak-trace/">LeakTrace</a>(gcRootType: <a href="-leak-trace/-gc-root-type/">LeakTrace.GcRootType</a>, referencePath: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-reference/">LeakTraceReference</a>&gt;, leakingObject: <a href="-leak-trace-object/">LeakTraceObject</a>) : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>The best strong reference path from a GC root to the leaking object. &ldquo;Best&rdquo; here means the shortest prioritized path. A large number of distinct paths can generally be found leading to a leaking object. Shark prioritizes paths that don&rsquo;t go through known <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> (because those are known to create leaks so it&rsquo;s more interesting to find other paths causing leaks), then it prioritize paths that don&rsquo;t go through java local gc roots (because those are harder to reason about). Taking those priorities into account, finding the shortest path means there are less <a href="-leak-trace-reference/">LeakTraceReference</a> that can be suspected to cause the leak.</td>
 </tr>
 <tr>
 <td><a href="-leak-trace-object/">LeakTraceObject</a></td>
-<td><code>data class LeakTraceObject :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Serializable.html"><code>Serializable</code></a></td>
+<td>[jvm]<br>data class <a href="-leak-trace-object/">LeakTraceObject</a>(type: <a href="-leak-trace-object/-object-type/">LeakTraceObject.ObjectType</a>, className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, leakingStatus: <a href="-leak-trace-object/-leaking-status/">LeakTraceObject.LeakingStatus</a>, leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?) : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a></td>
 </tr>
 <tr>
 <td><a href="-leak-trace-reference/">LeakTraceReference</a></td>
-<td><code>data class LeakTraceReference :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Serializable.html"><code>Serializable</code></a><br>A <a href="-leak-trace-reference/">LeakTraceReference</a> represents and origin <a href="-leak-trace-object/">LeakTraceObject</a> and either a reference from that object to the <a href="-leak-trace-object/">LeakTraceObject</a> in the next <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>, or to <a href="-leak-trace/leaking-object/">LeakTrace.leakingObject</a> if this is the last <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>.</td>
+<td>[jvm]<br>data class <a href="-leak-trace-reference/">LeakTraceReference</a>(originObject: <a href="-leak-trace-object/">LeakTraceObject</a>, referenceType: <a href="-leak-trace-reference/-reference-type/">LeakTraceReference.ReferenceType</a>, owningClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, referenceName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>A <a href="-leak-trace-reference/">LeakTraceReference</a> represents an origin <a href="-leak-trace-object/">LeakTraceObject</a> and either a reference from that object to the <a href="-leak-trace-object/">LeakTraceObject</a> in the next <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>, or to <a href="-leak-trace/leaking-object/">LeakTrace.leakingObject</a> if this is the last <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>.</td>
 </tr>
 <tr>
 <td><a href="-library-leak/">LibraryLeak</a></td>
-<td><code>data class LibraryLeak :</code><a href="-leak/"><code>Leak</code></a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, where the only path to the leaking object required going through a reference matched by <a href="-library-leak/pattern/">pattern</a>, as provided to a <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> instance. This is a known leak in library code that is beyond your control.</td>
+<td>[jvm]<br>data class <a href="-library-leak/">LibraryLeak</a>(leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace/">LeakTrace</a>&gt;, pattern: <a href="-reference-pattern/">ReferencePattern</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="-leak/">Leak</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, where the only path to the leaking object required going through a reference matched by <a href="-library-leak/pattern/">pattern</a>, as provided to a <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> instance. This is a known leak in library code that is beyond your control.</td>
 </tr>
 <tr>
 <td><a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a></td>
-<td><code>data class LibraryLeakReferenceMatcher :</code><a href="-reference-matcher/"><code>ReferenceMatcher</code></a><br><a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> should be used to match references in library code that are known to create leaks and are beyond your control. The shortest path finder will only go through matching references after it has exhausted references that don&rsquo;t match, prioritizing finding an application leak over a known library leak. Library leaks will be reported as <a href="-library-leak/">LibraryLeak</a> instead of <a href="-application-leak/">ApplicationLeak</a>.</td>
+<td>[jvm]<br>data class <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>(pattern: <a href="-reference-pattern/">ReferencePattern</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, patternApplies: (HeapGraph) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="-reference-matcher/">ReferenceMatcher</a><br><a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> should be used to match references in library code that are known to create leaks and are beyond your control. The shortest path finder will only go through matching references after it has exhausted references that don&rsquo;t match, prioritizing finding an application leak over a known library leak. Library leaks will be reported as <a href="-library-leak/">LibraryLeak</a> instead of <a href="-application-leak/">ApplicationLeak</a>.</td>
 </tr>
 <tr>
 <td><a href="-metadata-extractor/">MetadataExtractor</a></td>
-<td><code>interface MetadataExtractor</code></td>
+<td>[jvm]<br>fun interface <a href="-metadata-extractor/">MetadataExtractor</a><br>Extracts metadata from a hprof to be reported in <a href="-heap-analysis-success/metadata/">HeapAnalysisSuccess.metadata</a>.</td>
 </tr>
 <tr>
 <td><a href="-object-inspector/">ObjectInspector</a></td>
-<td><code>interface ObjectInspector</code></td>
+<td>[jvm]<br>fun interface <a href="-object-inspector/">ObjectInspector</a><br>Provides LeakCanary with insights about objects (classes, instances and arrays) found in the heap. <a href="-object-inspector/inspect/">inspect</a> will be called for each object that LeakCanary wants to know more about. The implementation can then use the provided <a href="-object-reporter/">ObjectReporter</a> to provide insights for that object.</td>
 </tr>
 <tr>
 <td><a href="-object-inspectors/">ObjectInspectors</a></td>
-<td><code>enum class ObjectInspectors :</code><a href="-object-inspector/"><code>ObjectInspector</code></a><br>A set of default <a href="-object-inspector/">ObjectInspector</a>s that knows about common JDK objects.</td>
+<td>[jvm]<br>enum <a href="-object-inspectors/">ObjectInspectors</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-object-inspectors/">ObjectInspectors</a>&gt; , <a href="-object-inspector/">ObjectInspector</a><br>A set of default <a href="-object-inspector/">ObjectInspector</a>s that knows about common JDK objects.</td>
 </tr>
 <tr>
 <td><a href="-object-reporter/">ObjectReporter</a></td>
-<td><code>class ObjectReporter</code><br>Enables <a href="-object-inspector/">ObjectInspector</a> implementations to provide insights on <a href="-object-reporter/heap-object/">heapObject</a>, which is an object (class, instance or array) found in the heap.</td>
+<td>[jvm]<br>class <a href="-object-reporter/">ObjectReporter</a>(heapObject: HeapObject)<br>Enables <a href="-object-inspector/">ObjectInspector</a> implementations to provide insights on <a href="-object-reporter/heap-object/">heapObject</a>, which is an object (class, instance or array) found in the heap.</td>
 </tr>
 <tr>
 <td><a href="-on-analysis-progress-listener/">OnAnalysisProgressListener</a></td>
-<td><code>interface OnAnalysisProgressListener</code></td>
+<td>[jvm]<br>fun interface <a href="-on-analysis-progress-listener/">OnAnalysisProgressListener</a><br>Reports progress from the <a href="-heap-analyzer/">HeapAnalyzer</a> as they occur, as <a href="-on-analysis-progress-listener/-step/">Step</a> values.</td>
 </tr>
 <tr>
 <td><a href="-reference-matcher/">ReferenceMatcher</a></td>
-<td><code>sealed class ReferenceMatcher</code><br>Used to pattern match known patterns of references in the heap, either to ignore them (<a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a>) or to mark them as library leaks (<a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>).</td>
+<td>[jvm]<br>sealed class <a href="-reference-matcher/">ReferenceMatcher</a><br>Used to pattern match known patterns of references in the heap, either to ignore them (<a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a>) or to mark them as library leaks (<a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>).</td>
 </tr>
 <tr>
 <td><a href="-reference-pattern/">ReferencePattern</a></td>
-<td><code>sealed class ReferencePattern :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Serializable.html"><code>Serializable</code></a><br>A pattern that will match references for a given <a href="-reference-matcher/">ReferenceMatcher</a>.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="exceptions">Exceptions<a class="headerlink" href="#exceptions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-heap-analysis-exception/">HeapAnalysisException</a></td>
-<td><code>class HeapAnalysisException :</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-runtime-exception/index.html"><code>RuntimeException</code></a></td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-no%20name%20provided-/">&lt;no name provided&gt;</a></td>
-<td><code>fun &lt;no name provided&gt;():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Finds the objects that are leaking, for which Shark will compute leak traces.</td>
+<td>[jvm]<br>sealed class <a href="-reference-pattern/">ReferencePattern</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>A pattern that will match references for a given <a href="-reference-matcher/">ReferenceMatcher</a>.</td>
 </tr>
 </tbody>
 </table>

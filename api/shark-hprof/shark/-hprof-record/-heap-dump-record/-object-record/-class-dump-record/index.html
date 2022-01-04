@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -778,13 +778,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#constructors" class="md-nav__link">
-    Constructors
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#properties" class="md-nav__link">
     Properties
   </a>
@@ -811,10 +804,11 @@
     
   
   
-  <p><a href="../../../../../">shark-hprof</a> / <a href="../../../../">shark</a> / <a href="../../../">HprofRecord</a> / <a href="../../">HeapDumpRecord</a> / <a href="../">ObjectRecord</a> / <a href="./">ClassDumpRecord</a></p>
+  <p>//<a href="../../../../../../">shark-hprof</a>/<a href="../../../../">shark</a>/<a href="../../../">HprofRecord</a>/<a href="../../">HeapDumpRecord</a>/<a href="../">ObjectRecord</a>/<a href="./">ClassDumpRecord</a></p>
 <h1 id="classdumprecord">ClassDumpRecord<a class="headerlink" href="#classdumprecord" title="Permanent link">&para;</a></h1>
-<p><code>class ClassDumpRecord :</code><a href="../"><code>HprofRecord.HeapDumpRecord.ObjectRecord</code></a></p>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+class <a href="./">ClassDumpRecord</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, superclassId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, classLoaderId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, signersId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, protectionDomainId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, instanceSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, staticFields: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-static-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord</a>&gt;, fields: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord</a>&gt;) : <a href="../">HprofRecord.HeapDumpRecord.ObjectRecord</a></p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -825,30 +819,15 @@
 <tbody>
 <tr>
 <td><a href="-field-record/">FieldRecord</a></td>
-<td><code>data class FieldRecord</code></td>
+<td>[jvm]<br>data class <a href="-field-record/">FieldRecord</a>(nameStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, type: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>)</td>
 </tr>
 <tr>
 <td><a href="-static-field-record/">StaticFieldRecord</a></td>
-<td><code>data class StaticFieldRecord</code></td>
+<td>[jvm]<br>data class <a href="-static-field-record/">StaticFieldRecord</a>(nameStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, type: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, value: <a href="../../../../-value-holder/">ValueHolder</a>)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>ClassDumpRecord(id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, stackTraceSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>, superclassId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, classLoaderId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, signersId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, protectionDomainId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, instanceSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>, staticFields:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="-static-field-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord</code></a><code>&gt;, fields:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="-field-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord</code></a><code>&gt;)</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -859,39 +838,39 @@
 <tbody>
 <tr>
 <td><a href="class-loader-id/">classLoaderId</a></td>
-<td><code>val classLoaderId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td>[jvm]<br>val <a href="class-loader-id/">classLoaderId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
 </tr>
 <tr>
 <td><a href="fields/">fields</a></td>
-<td><code>val fields:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="-field-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord</code></a><code>&gt;</code></td>
+<td>[jvm]<br>val <a href="fields/">fields</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="id/">id</a></td>
-<td><code>val id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td>[jvm]<br>val <a href="id/">id</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
 </tr>
 <tr>
 <td><a href="instance-size/">instanceSize</a></td>
-<td><code>val instanceSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
+<td>[jvm]<br>val <a href="instance-size/">instanceSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 <tr>
 <td><a href="protection-domain-id/">protectionDomainId</a></td>
-<td><code>val protectionDomainId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td>[jvm]<br>val <a href="protection-domain-id/">protectionDomainId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
 </tr>
 <tr>
 <td><a href="signers-id/">signersId</a></td>
-<td><code>val signersId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td>[jvm]<br>val <a href="signers-id/">signersId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
 </tr>
 <tr>
 <td><a href="stack-trace-serial-number/">stackTraceSerialNumber</a></td>
-<td><code>val stackTraceSerialNumber:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a></td>
+<td>[jvm]<br>val <a href="stack-trace-serial-number/">stackTraceSerialNumber</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 <tr>
 <td><a href="static-fields/">staticFields</a></td>
-<td><code>val staticFields:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;</code><a href="-static-field-record/"><code>HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord</code></a><code>&gt;</code></td>
+<td>[jvm]<br>val <a href="static-fields/">staticFields</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-static-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="superclass-id/">superclassId</a></td>
-<td><code>val superclassId:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a></td>
+<td>[jvm]<br>val <a href="superclass-id/">superclassId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
 </tr>
 </tbody>
 </table>

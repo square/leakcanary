@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -619,6 +619,8 @@
     
     <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
+      
+    
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Core: Hprof
@@ -633,6 +635,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -641,29 +645,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-shark" class="md-nav__link">
-    Package shark
-  </a>
-  
-    <nav class="md-nav" aria-label="Package shark">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -741,7 +725,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -819,6 +803,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -827,29 +813,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-shark" class="md-nav__link">
-    Package shark
-  </a>
-  
-    <nav class="md-nav" aria-label="Package shark">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -873,11 +839,9 @@
     
   
   
-    <h1>Core: Hprof</h1>
-  
-  <p><a href="../">shark-hprof</a> / <a href="./">shark</a></p>
-<h2 id="package-shark">Package shark<a class="headerlink" href="#package-shark" title="Permanent link">&para;</a></h2>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+  <p>//<a href="../../">shark-hprof</a>/<a href="./">shark</a></p>
+<h1 id="package-shark">Package shark<a class="headerlink" href="#package-shark" title="Permanent link">&para;</a></h1>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -888,126 +852,107 @@
 <tbody>
 <tr>
 <td><a href="-byte-array-source-provider/">ByteArraySourceProvider</a></td>
-<td><code>class ByteArraySourceProvider :</code><a href="-dual-source-provider/"><code>DualSourceProvider</code></a></td>
+<td>[jvm]<br>class <a href="-byte-array-source-provider/">ByteArraySourceProvider</a>(byteArray: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a>) : <a href="-dual-source-provider/">DualSourceProvider</a></td>
 </tr>
 <tr>
 <td><a href="-constant-memory-metrics-dual-source-provider/">ConstantMemoryMetricsDualSourceProvider</a></td>
-<td><code>class ConstantMemoryMetricsDualSourceProvider :</code><a href="-dual-source-provider/"><code>DualSourceProvider</code></a><br>Captures IO read metrics without using much memory.</td>
+<td>[jvm]<br>class <a href="-constant-memory-metrics-dual-source-provider/">ConstantMemoryMetricsDualSourceProvider</a>(realSourceProvider: <a href="-dual-source-provider/">DualSourceProvider</a>) : <a href="-dual-source-provider/">DualSourceProvider</a><br>Captures IO read metrics without using much memory.</td>
 </tr>
 <tr>
 <td><a href="-dual-source-provider/">DualSourceProvider</a></td>
-<td><code>interface DualSourceProvider :</code><a href="-streaming-source-provider/"><code>StreamingSourceProvider</code></a><code>,</code><a href="-random-access-source-provider/"><code>RandomAccessSourceProvider</code></a><br>Both a <a href="-streaming-source-provider/">StreamingSourceProvider</a> and a <a href="-random-access-source-provider/">RandomAccessSourceProvider</a></td>
+<td>[jvm]<br>interface <a href="-dual-source-provider/">DualSourceProvider</a> : <a href="-streaming-source-provider/">StreamingSourceProvider</a>, <a href="-random-access-source-provider/">RandomAccessSourceProvider</a><br>Both a <a href="-streaming-source-provider/">StreamingSourceProvider</a> and a <a href="-random-access-source-provider/">RandomAccessSourceProvider</a></td>
 </tr>
 <tr>
 <td><a href="-file-source-provider/">FileSourceProvider</a></td>
-<td><code>class FileSourceProvider :</code><a href="-dual-source-provider/"><code>DualSourceProvider</code></a></td>
+<td>[jvm]<br>class <a href="-file-source-provider/">FileSourceProvider</a>(file: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>) : <a href="-dual-source-provider/">DualSourceProvider</a></td>
 </tr>
 <tr>
 <td><a href="-gc-root/">GcRoot</a></td>
-<td><code>sealed class GcRoot</code><br>A GcRoot as identified by <a href="-hprof-record/-heap-dump-record/-gc-root-record/">HprofRecord.HeapDumpRecord.GcRootRecord</a> in the heap dump.</td>
-</tr>
-<tr>
-<td><a href="-hprof/">Hprof</a></td>
-<td><code>class ~~Hprof~~ :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Closeable.html"><code>Closeable</code></a><br>Hprof is deprecated, and we offer partial backward compatibility. Any code that was previously using HprofReader directly now has to call <a href="-streaming-hprof-reader/reader-for/">StreamingHprofReader.readerFor</a> or <a href="#">HprofRandomAcccessReader.readerFor</a></td>
+<td>[jvm]<br>sealed class <a href="-gc-root/">GcRoot</a><br>A GcRoot as identified by <a href="-hprof-record/-heap-dump-record/-gc-root-record/">HprofRecord.HeapDumpRecord.GcRootRecord</a> in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-hprof-deobfuscator/">HprofDeobfuscator</a></td>
-<td><code>class HprofDeobfuscator</code><br>Converts a Hprof file to another file with deobfuscated class and field names.</td>
+<td>[jvm]<br>class <a href="-hprof-deobfuscator/">HprofDeobfuscator</a><br>Converts a Hprof file to another file with deobfuscated class and field names.</td>
 </tr>
 <tr>
 <td><a href="-hprof-header/">HprofHeader</a></td>
-<td><code>data class HprofHeader</code><br>Represents the header metadata of a Hprof file.</td>
+<td>[jvm]<br>data class <a href="-hprof-header/">HprofHeader</a>(heapDumpTimestamp: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, version: <a href="-hprof-version/">HprofVersion</a>, identifierByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>)<br>Represents the header metadata of a Hprof file.</td>
 </tr>
 <tr>
 <td><a href="-hprof-primitive-array-stripper/">HprofPrimitiveArrayStripper</a></td>
-<td><code>class HprofPrimitiveArrayStripper</code><br>Converts a Hprof file to another file with all primitive arrays replaced with arrays of zeroes, which can be useful to remove PII. Char arrays are handled slightly differently because 0 would be the null character so instead these become arrays of &lsquo;?&rsquo;.</td>
-</tr>
-<tr>
-<td><a href="-hprof-reader/">HprofReader</a></td>
-<td><code>class ~~HprofReader~~</code></td>
+<td>[jvm]<br>class <a href="-hprof-primitive-array-stripper/">HprofPrimitiveArrayStripper</a><br>Converts a Hprof file to another file with all primitive arrays replaced with arrays of zeroes, which can be useful to remove PII. Char arrays are handled slightly differently because 0 would be the null character so instead these become arrays of &lsquo;?&rsquo;.</td>
 </tr>
 <tr>
 <td><a href="-hprof-record/">HprofRecord</a></td>
-<td><code>sealed class HprofRecord</code><br>A Hprof record. These data structure map 1:1 with how records are written in hprof files.</td>
+<td>[jvm]<br>sealed class <a href="-hprof-record/">HprofRecord</a><br>A Hprof record. These data structure map 1:1 with how records are written in hprof files.</td>
 </tr>
 <tr>
 <td><a href="-hprof-record-reader/">HprofRecordReader</a></td>
-<td><code>class HprofRecordReader</code><br>Reads hprof content from an Okio <a href="#">BufferedSource</a>.</td>
+<td>[jvm]<br>class <a href="-hprof-record-reader/">HprofRecordReader</a><br>Reads hprof content from an Okio <a href="https://square.github.io/okio/2.x/okio/okio/-buffered-source/index.html">BufferedSource</a>.</td>
 </tr>
 <tr>
 <td><a href="-hprof-record-tag/">HprofRecordTag</a></td>
-<td><code>enum class HprofRecordTag</code></td>
+<td>[jvm]<br>enum <a href="-hprof-record-tag/">HprofRecordTag</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-hprof-record-tag/">HprofRecordTag</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="-hprof-version/">HprofVersion</a></td>
-<td><code>enum class HprofVersion</code><br>Supported hprof versions</td>
+<td>[jvm]<br>enum <a href="-hprof-version/">HprofVersion</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-hprof-version/">HprofVersion</a>&gt; <br>Supported hprof versions</td>
 </tr>
 <tr>
 <td><a href="-hprof-writer/">HprofWriter</a></td>
-<td><code>class HprofWriter :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Closeable.html"><code>Closeable</code></a><br>Generates Hprof files.</td>
+<td>[jvm]<br>class <a href="-hprof-writer/">HprofWriter</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a><br>Generates Hprof files.</td>
 </tr>
 <tr>
 <td><a href="-on-hprof-record-listener/">OnHprofRecordListener</a></td>
-<td><code>interface OnHprofRecordListener</code></td>
+<td>[jvm]<br>fun interface <a href="-on-hprof-record-listener/">OnHprofRecordListener</a><br>Listener passed in to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="-hprof-record/">HprofRecord</a> found in the heap dump which types is in the set of the recordTypes parameter passed to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>.</td>
 </tr>
 <tr>
 <td><a href="-on-hprof-record-tag-listener/">OnHprofRecordTagListener</a></td>
-<td><code>interface OnHprofRecordTagListener</code><br>Listener passed in to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="-hprof-record-tag/">HprofRecordTag</a> found in the heap dump.</td>
+<td>[jvm]<br>fun interface <a href="-on-hprof-record-tag-listener/">OnHprofRecordTagListener</a><br>Listener passed in to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="-hprof-record-tag/">HprofRecordTag</a> found in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-primitive-type/">PrimitiveType</a></td>
-<td><code>enum class PrimitiveType</code><br>A primitive type in the prof.</td>
+<td>[jvm]<br>enum <a href="-primitive-type/">PrimitiveType</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-primitive-type/">PrimitiveType</a>&gt; <br>A primitive type in the prof.</td>
 </tr>
 <tr>
 <td><a href="-proguard-mapping/">ProguardMapping</a></td>
-<td><code>class ProguardMapping</code></td>
+<td>[jvm]<br>class <a href="-proguard-mapping/">ProguardMapping</a></td>
 </tr>
 <tr>
 <td><a href="-proguard-mapping-reader/">ProguardMappingReader</a></td>
-<td><code>class ProguardMappingReader</code></td>
+<td>[jvm]<br>class <a href="-proguard-mapping-reader/">ProguardMappingReader</a>(proguardMappingInputStream: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html">InputStream</a>)</td>
 </tr>
 <tr>
 <td><a href="-random-access-hprof-reader/">RandomAccessHprofReader</a></td>
-<td><code>class RandomAccessHprofReader :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Closeable.html"><code>Closeable</code></a><br>Reads records in a Hprof source, one at a time with a specific position and size. Call <a href="-random-access-hprof-reader/open-reader-for/">openReaderFor</a> to obtain a new instance.</td>
+<td>[jvm]<br>class <a href="-random-access-hprof-reader/">RandomAccessHprofReader</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a><br>Reads records in a Hprof source, one at a time with a specific position and size. Call <a href="-random-access-hprof-reader/-companion/open-reader-for/">openReaderFor</a> to obtain a new instance.</td>
 </tr>
 <tr>
 <td><a href="-random-access-source/">RandomAccessSource</a></td>
-<td><code>interface RandomAccessSource :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Closeable.html"><code>Closeable</code></a></td>
+<td>[jvm]<br>interface <a href="-random-access-source/">RandomAccessSource</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a></td>
 </tr>
 <tr>
 <td><a href="-random-access-source-provider/">RandomAccessSourceProvider</a></td>
-<td><code>interface RandomAccessSourceProvider</code><br>Can open <a href="-random-access-source/">RandomAccessSource</a> instances.</td>
+<td>[jvm]<br>fun interface <a href="-random-access-source-provider/">RandomAccessSourceProvider</a><br>Can open <a href="-random-access-source/">RandomAccessSource</a> instances.</td>
 </tr>
 <tr>
 <td><a href="-streaming-hprof-reader/">StreamingHprofReader</a></td>
-<td><code>class StreamingHprofReader</code><br>Reads the entire content of a Hprof source in one fell swoop. Call <a href="-streaming-hprof-reader/reader-for/">readerFor</a> to obtain a new instance.</td>
+<td>[jvm]<br>class <a href="-streaming-hprof-reader/">StreamingHprofReader</a><br>Reads the entire content of a Hprof source in one fell swoop. Call <a href="-streaming-hprof-reader/-companion/reader-for/">readerFor</a> to obtain a new instance.</td>
 </tr>
 <tr>
 <td><a href="-streaming-record-reader-adapter/">StreamingRecordReaderAdapter</a></td>
-<td><code>class StreamingRecordReaderAdapter</code><br>Wraps a <a href="-streaming-hprof-reader/">StreamingHprofReader</a> to provide a higher level API that streams <a href="-hprof-record/">HprofRecord</a> instances.</td>
+<td>[jvm]<br>class <a href="-streaming-record-reader-adapter/">StreamingRecordReaderAdapter</a>(streamingHprofReader: <a href="-streaming-hprof-reader/">StreamingHprofReader</a>)<br>Wraps a <a href="-streaming-hprof-reader/">StreamingHprofReader</a> to provide a higher level API that streams <a href="-hprof-record/">HprofRecord</a> instances.</td>
 </tr>
 <tr>
 <td><a href="-streaming-source-provider/">StreamingSourceProvider</a></td>
-<td><code>interface StreamingSourceProvider</code></td>
+<td>[jvm]<br>fun interface <a href="-streaming-source-provider/">StreamingSourceProvider</a><br>Can open <a href="https://square.github.io/okio/2.x/okio/okio/-source/index.html">Source</a> instances.</td>
+</tr>
+<tr>
+<td><a href="-throwing-cancelable-file-source-provider/">ThrowingCancelableFileSourceProvider</a></td>
+<td>[jvm]<br>class <a href="-throwing-cancelable-file-source-provider/">ThrowingCancelableFileSourceProvider</a>(file: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, throwIfCanceled: <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Runnable.html">Runnable</a>) : <a href="-dual-source-provider/">DualSourceProvider</a><br>A <a href="-dual-source-provider/">DualSourceProvider</a> that invokes throwIfCanceled before every read, allowing cancellation of IO based work built on top by throwing an exception.</td>
 </tr>
 <tr>
 <td><a href="-value-holder/">ValueHolder</a></td>
-<td><code>sealed class ValueHolder</code><br>A value in the heap dump, which can be a <a href="-value-holder/-reference-holder/">ReferenceHolder</a> or a primitive type.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-no%20name%20provided-/">&lt;no name provided&gt;</a></td>
-<td><code>fun &lt;no name provided&gt;():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Listener passed in to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="-hprof-record/">HprofRecord</a> found in the heap dump which types is in the set of the recordTypes parameter passed to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>.</td>
+<td>[jvm]<br>sealed class <a href="-value-holder/">ValueHolder</a><br>A value in the heap dump, which can be a <a href="-value-holder/-reference-holder/">ReferenceHolder</a> or a primitive type.</td>
 </tr>
 </tbody>
 </table>

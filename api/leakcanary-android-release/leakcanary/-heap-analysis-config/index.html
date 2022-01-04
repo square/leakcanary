@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,13 +771,6 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#constructors" class="md-nav__link">
-    Constructors
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#properties" class="md-nav__link">
     Properties
   </a>
@@ -804,33 +797,11 @@
     
   
   
-  <p><a href="../../">leakcanary-android-release</a> / <a href="../">leakcanary</a> / <a href="./">HeapAnalysisConfig</a></p>
+  <p>//<a href="../../../">leakcanary-android-release</a>/<a href="../">leakcanary</a>/<a href="./">HeapAnalysisConfig</a></p>
 <h1 id="heapanalysisconfig">HeapAnalysisConfig<a class="headerlink" href="#heapanalysisconfig" title="Permanent link">&para;</a></h1>
-<p><code>data class HeapAnalysisConfig</code></p>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>HeapAnalysisConfig(referenceMatchers:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;ReferenceMatcher&gt; = AndroidReferenceMatchers.appDefaults, objectInspectors:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;ObjectInspector&gt; = AndroidObjectInspectors.appDefaults, metadataExtractor: MetadataExtractor = AndroidMetadataExtractor, computeRetainedHeapSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a>` = true, leakingObjectFinder: LeakingObjectFinder = FilteringLeakingObjectFinder(</td>
-</tr>
-<tr>
-<td>AndroidObjectInspectors.appLeakingObjectFilters</td>
-<td></td>
-</tr>
-<tr>
-<td>), stripHeapDump: <code>[</code>Boolean<code>](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)</code> = false)`</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<p>[androidJvm]\
+data class <a href="./">HeapAnalysisConfig</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ReferenceMatcher&gt;, objectInspectors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ObjectInspector&gt;, metadataExtractor: MetadataExtractor, computeRetainedHeapSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>, leakingObjectFinder: LeakingObjectFinder, stripHeapDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>)</p>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -841,27 +812,27 @@
 <tbody>
 <tr>
 <td><a href="compute-retained-heap-size/">computeRetainedHeapSize</a></td>
-<td><code>val computeRetainedHeapSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>Whether to compute the retained heap size, which is the total number of bytes in memory that would be reclaimed if the detected leaks didn&rsquo;t happen. This includes native memory associated to Java objects (e.g. Android bitmaps).</td>
+<td>[androidJvm]<br>val <a href="compute-retained-heap-size/">computeRetainedHeapSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = true<br>Whether to compute the retained heap size, which is the total number of bytes in memory that would be reclaimed if the detected leaks didn&rsquo;t happen. This includes native memory associated to Java objects (e.g. Android bitmaps).</td>
 </tr>
 <tr>
 <td><a href="leaking-object-finder/">leakingObjectFinder</a></td>
-<td><code>val leakingObjectFinder: LeakingObjectFinder</code><br>Finds the objects that are leaking, for which LeakCanary will compute leak traces.</td>
+<td>[androidJvm]<br>val <a href="leaking-object-finder/">leakingObjectFinder</a>: LeakingObjectFinder<br>Finds the objects that are leaking, for which LeakCanary will compute leak traces.</td>
 </tr>
 <tr>
 <td><a href="metadata-extractor/">metadataExtractor</a></td>
-<td><code>val metadataExtractor: MetadataExtractor</code><br>Extracts metadata from a hprof to be reported in <a href="#">shark.HeapAnalysisSuccess.metadata</a>. Called on a background thread during heap analysis.</td>
+<td>[androidJvm]<br>val <a href="metadata-extractor/">metadataExtractor</a>: MetadataExtractor<br>Extracts metadata from a hprof to be reported in shark.HeapAnalysisSuccess.metadata. Called on a background thread during heap analysis.</td>
 </tr>
 <tr>
 <td><a href="object-inspectors/">objectInspectors</a></td>
-<td><code>val objectInspectors:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;ObjectInspector&gt;</code><br>List of <a href="#">ObjectInspector</a> that provide LeakCanary with insights about objects found in the heap. You can create your own <a href="#">ObjectInspector</a> implementations, and also add a <a href="#">shark.AppSingletonInspector</a> instance created with the list of internal singletons.</td>
+<td>[androidJvm]<br>val <a href="object-inspectors/">objectInspectors</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ObjectInspector&gt;<br>List of ObjectInspector that provide LeakCanary with insights about objects found in the heap. You can create your own ObjectInspector implementations, and also add a shark.AppSingletonInspector instance created with the list of internal singletons.</td>
 </tr>
 <tr>
 <td><a href="reference-matchers/">referenceMatchers</a></td>
-<td><code>val referenceMatchers:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;ReferenceMatcher&gt;</code><br>Known patterns of references in the heap, added here either to ignore them (<a href="#">IgnoredReferenceMatcher</a>) or to mark them as library leaks (<a href="#">LibraryLeakReferenceMatcher</a>).</td>
+<td>[androidJvm]<br>val <a href="reference-matchers/">referenceMatchers</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ReferenceMatcher&gt;<br>Known patterns of references in the heap, added here either to ignore them (IgnoredReferenceMatcher) or to mark them as library leaks (LibraryLeakReferenceMatcher).</td>
 </tr>
 <tr>
 <td><a href="strip-heap-dump/">stripHeapDump</a></td>
-<td><code>val stripHeapDump:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><br>Whether the first step after a heap dump should be to replace the content of all arrays with zeroes. This increases the overall processing time but limits the amount of time the heap dump exists on disk with potential PII.</td>
+<td>[androidJvm]<br>val <a href="strip-heap-dump/">stripHeapDump</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = false<br>Whether the first step after a heap dump should be to replace the content of all arrays with zeroes. This increases the overall processing time but limits the amount of time the heap dump exists on disk with potential PII.</td>
 </tr>
 </tbody>
 </table>

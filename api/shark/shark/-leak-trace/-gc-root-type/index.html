@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,8 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#enum-values" class="md-nav__link">
-    Enum Values
+  <a href="#entries" class="md-nav__link">
+    Entries
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
@@ -780,13 +787,6 @@
         <li class="md-nav__item">
   <a href="#properties" class="md-nav__link">
     Properties
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
   </a>
   
 </li>
@@ -811,10 +811,58 @@
     
   
   
-  <p><a href="../../../">shark</a> / <a href="../../">shark</a> / <a href="../">LeakTrace</a> / <a href="./">GcRootType</a></p>
+  <p>//<a href="../../../../">shark</a>/<a href="../../">shark</a>/<a href="../">LeakTrace</a>/<a href="./">GcRootType</a></p>
 <h1 id="gcroottype">GcRootType<a class="headerlink" href="#gcroottype" title="Permanent link">&para;</a></h1>
-<p><code>enum class GcRootType</code></p>
-<h3 id="enum-values">Enum Values<a class="headerlink" href="#enum-values" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+enum <a href="./">GcRootType</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="./">LeakTrace.GcRootType</a>&gt;</p>
+<h2 id="entries">Entries<a class="headerlink" href="#entries" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-j-n-i_-m-o-n-i-t-o-r/">JNI_MONITOR</a></td>
+<td>[jvm]<br><a href="-j-n-i_-m-o-n-i-t-o-r/">JNI_MONITOR</a>(&ldquo;Root JNI monitor&rdquo;)</td>
+</tr>
+<tr>
+<td><a href="-t-h-r-e-a-d_-o-b-j-e-c-t/">THREAD_OBJECT</a></td>
+<td>[jvm]<br><a href="-t-h-r-e-a-d_-o-b-j-e-c-t/">THREAD_OBJECT</a>(&ldquo;Thread object&rdquo;)</td>
+</tr>
+<tr>
+<td><a href="-m-o-n-i-t-o-r_-u-s-e-d/">MONITOR_USED</a></td>
+<td>[jvm]<br><a href="-m-o-n-i-t-o-r_-u-s-e-d/">MONITOR_USED</a>(&ldquo;Monitor (anything that called the wait() or notify() methods, or that is synchronized.)&rdquo;)</td>
+</tr>
+<tr>
+<td><a href="-t-h-r-e-a-d_-b-l-o-c-k/">THREAD_BLOCK</a></td>
+<td>[jvm]<br><a href="-t-h-r-e-a-d_-b-l-o-c-k/">THREAD_BLOCK</a>(&ldquo;Thread block&rdquo;)</td>
+</tr>
+<tr>
+<td><a href="-s-t-i-c-k-y_-c-l-a-s-s/">STICKY_CLASS</a></td>
+<td>[jvm]<br><a href="-s-t-i-c-k-y_-c-l-a-s-s/">STICKY_CLASS</a>(&ldquo;System class&rdquo;)</td>
+</tr>
+<tr>
+<td><a href="-n-a-t-i-v-e_-s-t-a-c-k/">NATIVE_STACK</a></td>
+<td>[jvm]<br><a href="-n-a-t-i-v-e_-s-t-a-c-k/">NATIVE_STACK</a>(&ldquo;Input or output parameters in native code&rdquo;)</td>
+</tr>
+<tr>
+<td><a href="-j-a-v-a_-f-r-a-m-e/">JAVA_FRAME</a></td>
+<td>[jvm]<br><a href="-j-a-v-a_-f-r-a-m-e/">JAVA_FRAME</a>(&ldquo;Java local variable&rdquo;)</td>
+</tr>
+<tr>
+<td><a href="-j-n-i_-l-o-c-a-l/">JNI_LOCAL</a></td>
+<td>[jvm]<br><a href="-j-n-i_-l-o-c-a-l/">JNI_LOCAL</a>(&ldquo;Local variable in native code&rdquo;)</td>
+</tr>
+<tr>
+<td><a href="-j-n-i_-g-l-o-b-a-l/">JNI_GLOBAL</a></td>
+<td>[jvm]<br><a href="-j-n-i_-g-l-o-b-a-l/">JNI_GLOBAL</a>(&ldquo;Global variable in native code&rdquo;)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -824,44 +872,12 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="-j-n-i_-g-l-o-b-a-l/">JNI_GLOBAL</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-j-n-i_-l-o-c-a-l/">JNI_LOCAL</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-j-a-v-a_-f-r-a-m-e/">JAVA_FRAME</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-n-a-t-i-v-e_-s-t-a-c-k/">NATIVE_STACK</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-s-t-i-c-k-y_-c-l-a-s-s/">STICKY_CLASS</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-t-h-r-e-a-d_-b-l-o-c-k/">THREAD_BLOCK</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-m-o-n-i-t-o-r_-u-s-e-d/">MONITOR_USED</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-t-h-r-e-a-d_-o-b-j-e-c-t/">THREAD_OBJECT</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-j-n-i_-m-o-n-i-t-o-r/">JNI_MONITOR</a></td>
-<td></td>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -872,22 +888,15 @@
 <tbody>
 <tr>
 <td><a href="description/">description</a></td>
-<td><code>val description:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a></td>
+<td>[jvm]<br>val <a href="description/">description</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
-</tbody>
-</table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<td><a href="../../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-372974862%2FProperties%2F-1562156115">name</a></td>
+<td>[jvm]<br>val <a href="../../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-372974862%2FProperties%2F-1562156115">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
-</thead>
-<tbody>
 <tr>
-<td><a href="from-gc-root/">fromGcRoot</a></td>
-<td><code>fun fromGcRoot(gcRoot: GcRoot):</code><a href="./"><code>LeakTrace.GcRootType</code></a></td>
+<td><a href="../../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-739389684%2FProperties%2F-1562156115">ordinal</a></td>
+<td>[jvm]<br>val <a href="../../-on-analysis-progress-listener/-step/-p-a-r-s-i-n-g_-h-e-a-p_-d-u-m-p/#-739389684%2FProperties%2F-1562156115">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

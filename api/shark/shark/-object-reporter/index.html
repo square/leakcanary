@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -778,15 +778,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    Properties
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -811,60 +811,28 @@
     
   
   
-  <p><a href="../../">shark</a> / <a href="../">shark</a> / <a href="./">ObjectReporter</a></p>
+  <p>//<a href="../../../">shark</a>/<a href="../">shark</a>/<a href="./">ObjectReporter</a></p>
 <h1 id="objectreporter">ObjectReporter<a class="headerlink" href="#objectreporter" title="Permanent link">&para;</a></h1>
-<p><code>class ObjectReporter</code></p>
-<p>Enables <a href="../-object-inspector/">ObjectInspector</a> implementations to provide insights on <a href="heap-object/">heapObject</a>, which is
-an object (class, instance or array) found in the heap.</p>
-<p>A given <a href="./">ObjectReporter</a> only maps to one object in the heap, but is shared to many
-<a href="../-object-inspector/">ObjectInspector</a> implementations and accumulates insights.</p>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+class <a href="./">ObjectReporter</a>(heapObject: HeapObject)</p>
+<p>Enables <a href="../-object-inspector/">ObjectInspector</a> implementations to provide insights on <a href="heap-object/">heapObject</a>, which is an object (class, instance or array) found in the heap.</p>
+<p>A given <a href="./">ObjectReporter</a> only maps to one object in the heap, but is shared to many <a href="../-object-inspector/">ObjectInspector</a> implementations and accumulates insights.</p>
+<h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<th></th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>ObjectReporter(heapObject: HeapObject)</code><br>Enables <a href="../-object-inspector/">ObjectInspector</a> implementations to provide insights on <a href="heap-object/">heapObject</a>, which is an object (class, instance or array) found in the heap.</td>
+<td><a href="-object-reporter/">ObjectReporter</a></td>
+<td>[jvm]<br>fun <a href="-object-reporter/">ObjectReporter</a>(heapObject: HeapObject)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="heap-object/">heapObject</a></td>
-<td><code>val heapObject: HeapObject</code></td>
-</tr>
-<tr>
-<td><a href="labels/">labels</a></td>
-<td><code>val labels:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-linked-hash-set/index.html"><code>LinkedHashSet</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>&gt;</code><br>Labels that will be visible on the corresponding <a href="heap-object/">heapObject</a> in the leak trace.</td>
-</tr>
-<tr>
-<td><a href="leaking-reasons/">leakingReasons</a></td>
-<td><code>val leakingReasons:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-set/index.html"><code>MutableSet</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>&gt;</code><br>Reasons for which this object is expected to be unreachable (ie it&rsquo;s leaking).</td>
-</tr>
-<tr>
-<td><a href="likely-leaking-reasons/">likelyLeakingReasons</a></td>
-<td><code>val ~~likelyLeakingReasons~~:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-set/index.html"><code>MutableSet</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>&gt;</code><br>Deprecated, use leakingReasons instead.</td>
-</tr>
-<tr>
-<td><a href="not-leaking-reasons/">notLeakingReasons</a></td>
-<td><code>val notLeakingReasons:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-set/index.html"><code>MutableSet</code></a><code>&lt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>&gt;</code><br>Reasons for which this object is expected to be reachable (ie it&rsquo;s not leaking).</td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -875,7 +843,34 @@ an object (class, instance or array) found in the heap.</p>
 <tbody>
 <tr>
 <td><a href="when-instance-of/">whenInstanceOf</a></td>
-<td><code>fun whenInstanceOf(expectedClass:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html"><code>KClass</code></a><code>&lt;out</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html"><code>Any</code></a><code>&gt;, block:</code><a href="./"><code>ObjectReporter</code></a><code>.(HeapInstance) -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Runs <a href="when-instance-of/#shark.ObjectReporter$whenInstanceOf(kotlin.reflect.KClass((kotlin.Any)), kotlin.Function2((shark.ObjectReporter, shark.HeapObject.HeapInstance, kotlin.Unit)))/block">block</a> if <a href="heap-object/">ObjectReporter.heapObject</a> is an instance of <a href="when-instance-of/#shark.ObjectReporter$whenInstanceOf(kotlin.reflect.KClass((kotlin.Any)), kotlin.Function2((shark.ObjectReporter, shark.HeapObject.HeapInstance, kotlin.Unit)))/expectedClass">expectedClass</a>.<code>fun whenInstanceOf(expectedClassName:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>, block:</code><a href="./"><code>ObjectReporter</code></a><code>.(HeapInstance) -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><br>Runs <a href="when-instance-of/#shark.ObjectReporter$whenInstanceOf(kotlin.String, kotlin.Function2((shark.ObjectReporter, shark.HeapObject.HeapInstance, kotlin.Unit)))/block">block</a> if <a href="heap-object/">ObjectReporter.heapObject</a> is an instance of <a href="when-instance-of/#shark.ObjectReporter$whenInstanceOf(kotlin.String, kotlin.Function2((shark.ObjectReporter, shark.HeapObject.HeapInstance, kotlin.Unit)))/expectedClassName">expectedClassName</a>.</td>
+<td>[jvm]<br>fun <a href="when-instance-of/">whenInstanceOf</a>(expectedClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, block: <a href="./">ObjectReporter</a>.(HeapObject.HeapInstance) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)<br>Runs <a href="when-instance-of/">block</a> if <a href="heap-object/">ObjectReporter.heapObject</a> is an instance of <a href="when-instance-of/">expectedClassName</a>.<br>[jvm]<br>fun <a href="when-instance-of/">whenInstanceOf</a>(expectedClass: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html">KClass</a>&lt;out <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;, block: <a href="./">ObjectReporter</a>.(HeapObject.HeapInstance) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)<br>Runs <a href="when-instance-of/">block</a> if <a href="heap-object/">ObjectReporter.heapObject</a> is an instance of <a href="when-instance-of/">expectedClass</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="heap-object/">heapObject</a></td>
+<td>[jvm]<br>val <a href="heap-object/">heapObject</a>: HeapObject</td>
+</tr>
+<tr>
+<td><a href="labels/">labels</a></td>
+<td>[jvm]<br>val <a href="labels/">labels</a>: <a href="https://docs.oracle.com/javase/8/docs/api/java/util/LinkedHashSet.html">LinkedHashSet</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;<br>Labels that will be visible on the corresponding <a href="heap-object/">heapObject</a> in the leak trace.</td>
+</tr>
+<tr>
+<td><a href="leaking-reasons/">leakingReasons</a></td>
+<td>[jvm]<br>val <a href="leaking-reasons/">leakingReasons</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-set/index.html">MutableSet</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;<br>Reasons for which this object is expected to be unreachable (ie it&rsquo;s leaking).</td>
+</tr>
+<tr>
+<td><a href="not-leaking-reasons/">notLeakingReasons</a></td>
+<td>[jvm]<br>val <a href="not-leaking-reasons/">notLeakingReasons</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-set/index.html">MutableSet</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;<br>Reasons for which this object is expected to be reachable (ie it&rsquo;s not leaking).</td>
 </tr>
 </tbody>
 </table>

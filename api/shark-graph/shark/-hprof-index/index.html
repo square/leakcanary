@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,15 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
@@ -804,11 +804,27 @@
     
   
   
-  <p><a href="../../">shark-graph</a> / <a href="../">shark</a> / <a href="./">HprofIndex</a></p>
+  <p>//<a href="../../../">shark-graph</a>/<a href="../">shark</a>/<a href="./">HprofIndex</a></p>
 <h1 id="hprofindex">HprofIndex<a class="headerlink" href="#hprofindex" title="Permanent link">&para;</a></h1>
-<p><code>class HprofIndex</code></p>
+<p>[jvm]\
+class <a href="./">HprofIndex</a></p>
 <p>An index on a Hprof file. See <a href="open-heap-graph/">openHeapGraph</a>.</p>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -819,26 +835,7 @@
 <tbody>
 <tr>
 <td><a href="open-heap-graph/">openHeapGraph</a></td>
-<td><code>fun openHeapGraph():</code><a href="../-closeable-heap-graph/"><code>CloseableHeapGraph</code></a><br>Opens a <a href="../-closeable-heap-graph/">CloseableHeapGraph</a> which you can use to navigate the indexed hprof and then close.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="default-indexed-gc-root-tags/">defaultIndexedGcRootTags</a></td>
-<td><code>fun defaultIndexedGcRootTags():</code><a href="https://docs.oracle.com/javase/6/docs/api/java/util/EnumSet.html"><code>EnumSet</code></a><code>&lt;HprofRecordTag!&gt;!</code></td>
-</tr>
-<tr>
-<td><a href="index-records-of/">indexRecordsOf</a></td>
-<td><code>fun indexRecordsOf(hprofSourceProvider: DualSourceProvider, hprofHeader: HprofHeader, proguardMapping: ProguardMapping? = null, indexedGcRootTags:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;HprofRecordTag&gt; = defaultIndexedGcRootTags()):</code><a href="./"><code>HprofIndex</code></a><br>Creates an in memory index of an hprof source provided by <a href="index-records-of/#shark.HprofIndex.Companion$indexRecordsOf(shark.DualSourceProvider, shark.HprofHeader, shark.ProguardMapping, kotlin.collections.Set((shark.HprofRecordTag)))/hprofSourceProvider">hprofSourceProvider</a>.</td>
+<td>[jvm]<br>fun <a href="open-heap-graph/">openHeapGraph</a>(): <a href="../-closeable-heap-graph/">CloseableHeapGraph</a><br>Opens a <a href="../-closeable-heap-graph/">CloseableHeapGraph</a> which you can use to navigate the indexed hprof and then close.</td>
 </tr>
 </tbody>
 </table>

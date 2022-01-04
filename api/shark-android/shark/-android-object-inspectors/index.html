@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,22 +771,29 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#enum-values" class="md-nav__link">
-    Enum Values
+  <a href="#entries" class="md-nav__link">
+    Entries
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-properties" class="md-nav__link">
-    Companion Object Properties
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
+  <a href="#functions" class="md-nav__link">
+    Functions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#properties" class="md-nav__link">
+    Properties
   </a>
   
 </li>
@@ -811,126 +818,138 @@
     
   
   
-  <p><a href="../../">shark-android</a> / <a href="../">shark</a> / <a href="./">AndroidObjectInspectors</a></p>
+  <p>//<a href="../../../">shark-android</a>/<a href="../">shark</a>/<a href="./">AndroidObjectInspectors</a></p>
 <h1 id="androidobjectinspectors">AndroidObjectInspectors<a class="headerlink" href="#androidobjectinspectors" title="Permanent link">&para;</a></h1>
-<p><code>enum class AndroidObjectInspectors : ObjectInspector</code></p>
-<p>A set of default <a href="#">ObjectInspector</a>s that knows about common AOSP and library
-classes.</p>
-<p>These are heuristics based on our experience and knowledge of AOSP and various library
-internals. We only make a decision if we&rsquo;re reasonably sure the state of an object is
-unlikely to be the result of a programmer mistake.</p>
-<p>For example, no matter how many mistakes we make in our code, the value of Activity.mDestroy
-will not be influenced by those mistakes.</p>
-<p>Most developers should use the entire set of default <a href="#">ObjectInspector</a> by calling <a href="app-defaults/">appDefaults</a>,
-unless there&rsquo;s a bug and you temporarily want to remove an inspector.</p>
-<h3 id="enum-values">Enum Values<a class="headerlink" href="#enum-values" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+enum <a href="./">AndroidObjectInspectors</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="./">AndroidObjectInspectors</a>&gt; , ObjectInspector</p>
+<p>A set of default ObjectInspectors that knows about common AOSP and library classes.</p>
+<p>These are heuristics based on our experience and knowledge of AOSP and various library internals. We only make a decision if we&rsquo;re reasonably sure the state of an object is unlikely to be the result of a programmer mistake.</p>
+<p>For example, no matter how many mistakes we make in our code, the value of Activity.mDestroy will not be influenced by those mistakes.</p>
+<p>Most developers should use the entire set of default ObjectInspector by calling <a href="-companion/app-defaults/">appDefaults</a>, unless there&rsquo;s a bug and you temporarily want to remove an inspector.</p>
+<h2 id="entries">Entries<a class="headerlink" href="#entries" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<th></th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="-v-i-e-w/">VIEW</a></td>
-<td></td>
+<td><a href="-o-b-j-e-c-t_-a-n-i-m-a-t-o-r/">OBJECT_ANIMATOR</a></td>
+<td>[jvm]<br><a href="-o-b-j-e-c-t_-a-n-i-m-a-t-o-r/">OBJECT_ANIMATOR</a>()</td>
 </tr>
 <tr>
-<td><a href="-e-d-i-t-o-r/">EDITOR</a></td>
-<td></td>
+<td><a href="-a-n-i-m-a-t-o-r/">ANIMATOR</a></td>
+<td>[jvm]<br><a href="-a-n-i-m-a-t-o-r/">ANIMATOR</a>()</td>
 </tr>
 <tr>
-<td><a href="-a-c-t-i-v-i-t-y/">ACTIVITY</a></td>
-<td></td>
+<td><a href="-c-o-m-p-o-s-i-t-i-o-n_-i-m-p-l/">COMPOSITION_IMPL</a></td>
+<td>[jvm]<br><a href="-c-o-m-p-o-s-i-t-i-o-n_-i-m-p-l/">COMPOSITION_IMPL</a>()</td>
 </tr>
 <tr>
-<td><a href="-s-e-r-v-i-c-e/">SERVICE</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-c-o-n-t-e-x-t_-f-i-e-l-d/">CONTEXT_FIELD</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-c-o-n-t-e-x-t_-w-r-a-p-p-e-r/">CONTEXT_WRAPPER</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-a-p-p-l-i-c-a-t-i-o-n_-p-a-c-k-a-g-e_-m-a-n-a-g-e-r/">APPLICATION_PACKAGE_MANAGER</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-c-o-n-t-e-x-t_-i-m-p-l/">CONTEXT_IMPL</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-d-i-a-l-o-g/">DIALOG</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-a-p-p-l-i-c-a-t-i-o-n/">APPLICATION</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-i-n-p-u-t_-m-e-t-h-o-d_-m-a-n-a-g-e-r/">INPUT_METHOD_MANAGER</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-f-r-a-g-m-e-n-t/">FRAGMENT</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-s-u-p-p-o-r-t_-f-r-a-g-m-e-n-t/">SUPPORT_FRAGMENT</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-a-n-d-r-o-i-d-x_-f-r-a-g-m-e-n-t/">ANDROIDX_FRAGMENT</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-m-e-s-s-a-g-e_-q-u-e-u-e/">MESSAGE_QUEUE</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-l-o-a-d-e-d_-a-p-k/">LOADED_APK</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-m-o-r-t-a-r_-p-r-e-s-e-n-t-e-r/">MORTAR_PRESENTER</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-m-o-r-t-a-r_-s-c-o-p-e/">MORTAR_SCOPE</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-c-o-o-r-d-i-n-a-t-o-r/">COORDINATOR</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-m-a-i-n_-t-h-r-e-a-d/">MAIN_THREAD</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-v-i-e-w_-r-o-o-t_-i-m-p-l/">VIEW_ROOT_IMPL</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-w-i-n-d-o-w/">WINDOW</a></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="-m-e-s-s-a-g-e/">MESSAGE</a></td>
-<td></td>
+<td><a href="-r-e-c-o-m-p-o-s-e-r/">RECOMPOSER</a></td>
+<td>[jvm]<br><a href="-r-e-c-o-m-p-o-s-e-r/">RECOMPOSER</a>()</td>
 </tr>
 <tr>
 <td><a href="-t-o-a-s-t/">TOAST</a></td>
-<td></td>
+<td>[jvm]<br><a href="-t-o-a-s-t/">TOAST</a>()</td>
+</tr>
+<tr>
+<td><a href="-m-e-s-s-a-g-e/">MESSAGE</a></td>
+<td>[jvm]<br><a href="-m-e-s-s-a-g-e/">MESSAGE</a>()</td>
+</tr>
+<tr>
+<td><a href="-w-i-n-d-o-w/">WINDOW</a></td>
+<td>[jvm]<br><a href="-w-i-n-d-o-w/">WINDOW</a>()</td>
+</tr>
+<tr>
+<td><a href="-v-i-e-w_-r-o-o-t_-i-m-p-l/">VIEW_ROOT_IMPL</a></td>
+<td>[jvm]<br><a href="-v-i-e-w_-r-o-o-t_-i-m-p-l/">VIEW_ROOT_IMPL</a>()</td>
+</tr>
+<tr>
+<td><a href="-m-a-i-n_-t-h-r-e-a-d/">MAIN_THREAD</a></td>
+<td>[jvm]<br><a href="-m-a-i-n_-t-h-r-e-a-d/">MAIN_THREAD</a>()</td>
+</tr>
+<tr>
+<td><a href="-c-o-o-r-d-i-n-a-t-o-r/">COORDINATOR</a></td>
+<td>[jvm]<br><a href="-c-o-o-r-d-i-n-a-t-o-r/">COORDINATOR</a>()</td>
+</tr>
+<tr>
+<td><a href="-m-o-r-t-a-r_-s-c-o-p-e/">MORTAR_SCOPE</a></td>
+<td>[jvm]<br><a href="-m-o-r-t-a-r_-s-c-o-p-e/">MORTAR_SCOPE</a>()</td>
+</tr>
+<tr>
+<td><a href="-m-o-r-t-a-r_-p-r-e-s-e-n-t-e-r/">MORTAR_PRESENTER</a></td>
+<td>[jvm]<br><a href="-m-o-r-t-a-r_-p-r-e-s-e-n-t-e-r/">MORTAR_PRESENTER</a>()</td>
+</tr>
+<tr>
+<td><a href="-l-o-a-d-e-d_-a-p-k/">LOADED_APK</a></td>
+<td>[jvm]<br><a href="-l-o-a-d-e-d_-a-p-k/">LOADED_APK</a>()</td>
+</tr>
+<tr>
+<td><a href="-m-e-s-s-a-g-e_-q-u-e-u-e/">MESSAGE_QUEUE</a></td>
+<td>[jvm]<br><a href="-m-e-s-s-a-g-e_-q-u-e-u-e/">MESSAGE_QUEUE</a>()</td>
+</tr>
+<tr>
+<td><a href="-a-n-d-r-o-i-d-x_-f-r-a-g-m-e-n-t/">ANDROIDX_FRAGMENT</a></td>
+<td>[jvm]<br><a href="-a-n-d-r-o-i-d-x_-f-r-a-g-m-e-n-t/">ANDROIDX_FRAGMENT</a>()</td>
+</tr>
+<tr>
+<td><a href="-s-u-p-p-o-r-t_-f-r-a-g-m-e-n-t/">SUPPORT_FRAGMENT</a></td>
+<td>[jvm]<br><a href="-s-u-p-p-o-r-t_-f-r-a-g-m-e-n-t/">SUPPORT_FRAGMENT</a>()</td>
+</tr>
+<tr>
+<td><a href="-f-r-a-g-m-e-n-t/">FRAGMENT</a></td>
+<td>[jvm]<br><a href="-f-r-a-g-m-e-n-t/">FRAGMENT</a>()</td>
+</tr>
+<tr>
+<td><a href="-i-n-p-u-t_-m-e-t-h-o-d_-m-a-n-a-g-e-r/">INPUT_METHOD_MANAGER</a></td>
+<td>[jvm]<br><a href="-i-n-p-u-t_-m-e-t-h-o-d_-m-a-n-a-g-e-r/">INPUT_METHOD_MANAGER</a>()</td>
+</tr>
+<tr>
+<td><a href="-a-p-p-l-i-c-a-t-i-o-n/">APPLICATION</a></td>
+<td>[jvm]<br><a href="-a-p-p-l-i-c-a-t-i-o-n/">APPLICATION</a>()</td>
+</tr>
+<tr>
+<td><a href="-d-i-a-l-o-g/">DIALOG</a></td>
+<td>[jvm]<br><a href="-d-i-a-l-o-g/">DIALOG</a>()</td>
+</tr>
+<tr>
+<td><a href="-c-o-n-t-e-x-t_-i-m-p-l/">CONTEXT_IMPL</a></td>
+<td>[jvm]<br><a href="-c-o-n-t-e-x-t_-i-m-p-l/">CONTEXT_IMPL</a>()</td>
+</tr>
+<tr>
+<td><a href="-a-p-p-l-i-c-a-t-i-o-n_-p-a-c-k-a-g-e_-m-a-n-a-g-e-r/">APPLICATION_PACKAGE_MANAGER</a></td>
+<td>[jvm]<br><a href="-a-p-p-l-i-c-a-t-i-o-n_-p-a-c-k-a-g-e_-m-a-n-a-g-e-r/">APPLICATION_PACKAGE_MANAGER</a>()</td>
+</tr>
+<tr>
+<td><a href="-c-o-n-t-e-x-t_-w-r-a-p-p-e-r/">CONTEXT_WRAPPER</a></td>
+<td>[jvm]<br><a href="-c-o-n-t-e-x-t_-w-r-a-p-p-e-r/">CONTEXT_WRAPPER</a>()</td>
+</tr>
+<tr>
+<td><a href="-c-o-n-t-e-x-t_-f-i-e-l-d/">CONTEXT_FIELD</a></td>
+<td>[jvm]<br><a href="-c-o-n-t-e-x-t_-f-i-e-l-d/">CONTEXT_FIELD</a>()</td>
+</tr>
+<tr>
+<td><a href="-s-e-r-v-i-c-e/">SERVICE</a></td>
+<td>[jvm]<br><a href="-s-e-r-v-i-c-e/">SERVICE</a>()</td>
+</tr>
+<tr>
+<td><a href="-a-c-t-i-v-i-t-y/">ACTIVITY</a></td>
+<td>[jvm]<br><a href="-a-c-t-i-v-i-t-y/">ACTIVITY</a>()</td>
+</tr>
+<tr>
+<td><a href="-e-d-i-t-o-r/">EDITOR</a></td>
+<td>[jvm]<br><a href="-e-d-i-t-o-r/">EDITOR</a>()</td>
+</tr>
+<tr>
+<td><a href="-v-i-e-w/">VIEW</a></td>
+<td>[jvm]<br><a href="-v-i-e-w/">VIEW</a>()</td>
 </tr>
 </tbody>
 </table>
-<h3 id="companion-object-properties">Companion Object Properties<a class="headerlink" href="#companion-object-properties" title="Permanent link">&para;</a></h3>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -940,16 +959,12 @@ unless there&rsquo;s a bug and you temporarily want to remove an inspector.</p>
 </thead>
 <tbody>
 <tr>
-<td><a href="app-defaults/">appDefaults</a></td>
-<td><code>val appDefaults:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;ObjectInspector&gt;</code></td>
-</tr>
-<tr>
-<td><a href="app-leaking-object-filters/">appLeakingObjectFilters</a></td>
-<td><code>val appLeakingObjectFilters:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;LeakingObjectFilter&gt;</code><br>Returns a list of <a href="#">LeakingObjectFilter</a> suitable for apps.</td>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -959,8 +974,27 @@ unless there&rsquo;s a bug and you temporarily want to remove an inspector.</p>
 </thead>
 <tbody>
 <tr>
-<td><a href="create-leaking-object-filters/">createLeakingObjectFilters</a></td>
-<td><code>fun createLeakingObjectFilters(inspectors:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><code>Set</code></a><code>&lt;</code><a href="./"><code>AndroidObjectInspectors</code></a><code>&gt;):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;LeakingObjectFilter&gt;</code><br>Creates a list of <a href="#">LeakingObjectFilter</a> based on the passed in <a href="./">AndroidObjectInspectors</a>.</td>
+<td><a href="./#-1117593919%2FFunctions%2F980726859">inspect</a></td>
+<td>[jvm]<br>abstract fun <a href="./#-1117593919%2FFunctions%2F980726859">inspect</a>(reporter: ObjectReporter)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../-android-reference-matchers/-i-r-e-q-u-e-s-t_-f-i-n-i-s-h_-c-a-l-l-b-a-c-k/#-372974862%2FProperties%2F980726859">name</a></td>
+<td>[jvm]<br>val <a href="../-android-reference-matchers/-i-r-e-q-u-e-s-t_-f-i-n-i-s-h_-c-a-l-l-b-a-c-k/#-372974862%2FProperties%2F980726859">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+</tr>
+<tr>
+<td><a href="../-android-reference-matchers/-i-r-e-q-u-e-s-t_-f-i-n-i-s-h_-c-a-l-l-b-a-c-k/#-739389684%2FProperties%2F980726859">ordinal</a></td>
+<td>[jvm]<br>val <a href="../-android-reference-matchers/-i-r-e-q-u-e-s-t_-f-i-n-i-s-h_-c-a-l-l-b-a-c-k/#-739389684%2FProperties%2F980726859">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

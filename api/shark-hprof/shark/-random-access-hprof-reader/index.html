@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,15 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
@@ -804,12 +804,27 @@
     
   
   
-  <p><a href="../../">shark-hprof</a> / <a href="../">shark</a> / <a href="./">RandomAccessHprofReader</a></p>
+  <p>//<a href="../../../">shark-hprof</a>/<a href="../">shark</a>/<a href="./">RandomAccessHprofReader</a></p>
 <h1 id="randomaccesshprofreader">RandomAccessHprofReader<a class="headerlink" href="#randomaccesshprofreader" title="Permanent link">&para;</a></h1>
-<p><code>class RandomAccessHprofReader :</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Closeable.html"><code>Closeable</code></a></p>
-<p>Reads records in a Hprof source, one at a time with a specific position and size.
-Call <a href="open-reader-for/">openReaderFor</a> to obtain a new instance.</p>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+class <a href="./">RandomAccessHprofReader</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a></p>
+<p>Reads records in a Hprof source, one at a time with a specific position and size. Call <a href="-companion/open-reader-for/">openReaderFor</a> to obtain a new instance.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -820,30 +835,11 @@ Call <a href="open-reader-for/">openReaderFor</a> to obtain a new instance.</p>
 <tbody>
 <tr>
 <td><a href="close/">close</a></td>
-<td><code>fun close():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
+<td>[jvm]<br>open override fun <a href="close/">close</a>()</td>
 </tr>
 <tr>
 <td><a href="read-record/">readRecord</a></td>
-<td><code>fun &lt;T&gt; readRecord(recordPosition:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, recordSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, withRecordReader:</code><a href="../-hprof-record-reader/"><code>HprofRecordReader</code></a><code>.() -&gt;</code><a href="read-record/#T"><code>T</code></a><code>):</code><a href="read-record/#T"><code>T</code></a><br>Loads <a href="read-record/#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/recordSize">recordSize</a> bytes at <a href="read-record/#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/recordPosition">recordPosition</a> into the buffer that backs <a href="../-hprof-record-reader/">HprofRecordReader</a> then calls <a href="read-record/#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/withRecordReader">withRecordReader</a> with that reader as a receiver. <a href="read-record/#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/withRecordReader">withRecordReader</a> is expected to use the receiver reader to read one record of exactly <a href="read-record/#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/recordSize">recordSize</a> bytes.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="open-reader-for/">openReaderFor</a></td>
-<td><code>fun openReaderFor(hprofFile:</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html"><code>File</code></a><code>, hprofHeader:</code><a href="../-hprof-header/"><code>HprofHeader</code></a><code>= HprofHeader.parseHeaderOf(hprofFile)):</code><a href="./"><code>RandomAccessHprofReader</code></a><br><code>fun openReaderFor(hprofSourceProvider:</code><a href="../-random-access-source-provider/"><code>RandomAccessSourceProvider</code></a><code>, hprofHeader:</code><a href="../-hprof-header/"><code>HprofHeader</code></a>` = hprofSourceProvider.openRandomAccessSource()</td>
-</tr>
-<tr>
-<td>.use { HprofHeader.parseHeaderOf(it.asStreamingSource()) }): <code>[</code>RandomAccessHprofReader`](./index.md)</td>
-<td></td>
+<td>[jvm]<br>fun &lt;<a href="read-record/">T</a>&gt; <a href="read-record/">readRecord</a>(recordPosition: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, recordSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, withRecordReader: <a href="../-hprof-record-reader/">HprofRecordReader</a>.() -&gt; <a href="read-record/">T</a>): <a href="read-record/">T</a><br>Loads <a href="read-record/">recordSize</a> bytes at <a href="read-record/">recordPosition</a> into the buffer that backs <a href="../-hprof-record-reader/">HprofRecordReader</a> then calls <a href="read-record/">withRecordReader</a> with that reader as a receiver. <a href="read-record/">withRecordReader</a> is expected to use the receiver reader to read one record of exactly <a href="read-record/">recordSize</a> bytes.</td>
 </tr>
 </tbody>
 </table>

@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -606,6 +606,8 @@
     
     <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
+      
+    
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Core: Graph
@@ -620,6 +622,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -628,22 +632,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-shark" class="md-nav__link">
-    Package shark
-  </a>
-  
-    <nav class="md-nav" aria-label="Package shark">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -734,7 +725,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -812,6 +803,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -820,22 +813,9 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#package-shark" class="md-nav__link">
-    Package shark
-  </a>
-  
-    <nav class="md-nav" aria-label="Package shark">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -859,11 +839,9 @@
     
   
   
-    <h1>Core: Graph</h1>
-  
-  <p><a href="../">shark-graph</a> / <a href="./">shark</a></p>
-<h2 id="package-shark">Package shark<a class="headerlink" href="#package-shark" title="Permanent link">&para;</a></h2>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+  <p>//<a href="../../">shark-graph</a>/<a href="./">shark</a></p>
+<h1 id="package-shark">Package shark<a class="headerlink" href="#package-shark" title="Permanent link">&para;</a></h1>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -874,35 +852,35 @@
 <tbody>
 <tr>
 <td><a href="-closeable-heap-graph/">CloseableHeapGraph</a></td>
-<td><code>interface CloseableHeapGraph :</code><a href="-heap-graph/"><code>HeapGraph</code></a><code>,</code><a href="https://docs.oracle.com/javase/6/docs/api/java/io/Closeable.html"><code>Closeable</code></a><br>A <a href="-heap-graph/">HeapGraph</a> that should be closed after being used.</td>
+<td>[jvm]<br>interface <a href="-closeable-heap-graph/">CloseableHeapGraph</a> : <a href="-heap-graph/">HeapGraph</a>, <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a><br>A <a href="-heap-graph/">HeapGraph</a> that should be closed after being used.</td>
 </tr>
 <tr>
 <td><a href="-graph-context/">GraphContext</a></td>
-<td><code>class GraphContext</code><br>In memory store that can be used to store objects in a given <a href="-heap-graph/">HeapGraph</a> instance. This is a simple <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/index.html">MutableMap</a> of <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> to <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, but with unsafe generics access.</td>
+<td>[jvm]<br>class <a href="-graph-context/">GraphContext</a><br>In memory store that can be used to store objects in a given <a href="-heap-graph/">HeapGraph</a> instance. This is a simple <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/index.html">MutableMap</a> of <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> to <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, but with unsafe generics access.</td>
 </tr>
 <tr>
 <td><a href="-heap-field/">HeapField</a></td>
-<td><code>class HeapField</code><br>Represents a static field or an instance field.</td>
+<td>[jvm]<br>class <a href="-heap-field/">HeapField</a>(declaringClass: <a href="-heap-object/-heap-class/">HeapObject.HeapClass</a>, name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, value: <a href="-heap-value/">HeapValue</a>)<br>Represents a static field or an instance field.</td>
 </tr>
 <tr>
 <td><a href="-heap-graph/">HeapGraph</a></td>
-<td><code>interface HeapGraph</code><br>Enables navigation through the heap graph of objects.</td>
+<td>[jvm]<br>interface <a href="-heap-graph/">HeapGraph</a><br>Enables navigation through the heap graph of objects.</td>
 </tr>
 <tr>
 <td><a href="-heap-object/">HeapObject</a></td>
-<td><code>sealed class HeapObject</code><br>An object in the heap dump.</td>
+<td>[jvm]<br>sealed class <a href="-heap-object/">HeapObject</a><br>An object in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-heap-value/">HeapValue</a></td>
-<td><code>class HeapValue</code><br>Represents a value in the heap dump, which can be an object reference or a primitive type.</td>
+<td>[jvm]<br>class <a href="-heap-value/">HeapValue</a>(graph: <a href="-heap-graph/">HeapGraph</a>, holder: ValueHolder)<br>Represents a value in the heap dump, which can be an object reference or a primitive type.</td>
 </tr>
 <tr>
 <td><a href="-hprof-heap-graph/">HprofHeapGraph</a></td>
-<td><code>class HprofHeapGraph :</code><a href="-closeable-heap-graph/"><code>CloseableHeapGraph</code></a><br>A <a href="-heap-graph/">HeapGraph</a> that reads from an Hprof file indexed by <a href="-hprof-index/">HprofIndex</a>.</td>
+<td>[jvm]<br>class <a href="-hprof-heap-graph/">HprofHeapGraph</a> : <a href="-closeable-heap-graph/">CloseableHeapGraph</a><br>A <a href="-heap-graph/">HeapGraph</a> that reads from an Hprof file indexed by <a href="-hprof-index/">HprofIndex</a>.</td>
 </tr>
 <tr>
 <td><a href="-hprof-index/">HprofIndex</a></td>
-<td><code>class HprofIndex</code><br>An index on a Hprof file. See <a href="-hprof-index/open-heap-graph/">openHeapGraph</a>.</td>
+<td>[jvm]<br>class <a href="-hprof-index/">HprofIndex</a><br>An index on a Hprof file. See <a href="-hprof-index/open-heap-graph/">openHeapGraph</a>.</td>
 </tr>
 </tbody>
 </table>

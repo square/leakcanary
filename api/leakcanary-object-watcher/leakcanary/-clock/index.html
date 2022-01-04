@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,15 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
@@ -804,10 +804,28 @@
     
   
   
-  <p><a href="../../">leakcanary-object-watcher</a> / <a href="../">leakcanary</a> / <a href="./">Clock</a></p>
+  <p>//<a href="../../../">leakcanary-object-watcher</a>/<a href="../">leakcanary</a>/<a href="./">Clock</a></p>
 <h1 id="clock">Clock<a class="headerlink" href="#clock" title="Permanent link">&para;</a></h1>
-<p><code>interface Clock</code></p>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+fun interface <a href="./">Clock</a></p>
+<p>An interface to abstract the SystemClock.uptimeMillis() Android API in non Android artifacts.</p>
+<p>This is a functional interface with which you can create a <a href="./">Clock</a> from a lambda.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -818,22 +836,7 @@
 <tbody>
 <tr>
 <td><a href="uptime-millis/">uptimeMillis</a></td>
-<td><code>abstract fun uptimeMillis():</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>On Android VMs, this should return android.os.SystemClock.uptimeMillis().</td>
-</tr>
-</tbody>
-</table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="invoke/">invoke</a></td>
-<td><code>operator fun invoke(block: () -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>):</code><a href="./"><code>Clock</code></a><br>Utility function to create a <a href="./">Clock</a> from the passed in <a href="invoke/#leakcanary.Clock.Companion$invoke(kotlin.Function0((kotlin.Long)))/block">block</a> lambda instead of using the anonymous <code>object : Clock</code> syntax.</td>
+<td>[jvm]<br>abstract fun <a href="uptime-millis/">uptimeMillis</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>On Android VMs, this should return android.os.SystemClock.uptimeMillis().</td>
 </tr>
 </tbody>
 </table>

@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,12 +782,14 @@
     
   
   
-  <p><a href="../../../">shark</a> / <a href="../../">shark</a> / <a href="../">ObjectReporter</a> / <a href="./">whenInstanceOf</a></p>
+  <p>//<a href="../../../../">shark</a>/<a href="../../">shark</a>/<a href="../">ObjectReporter</a>/<a href="./">whenInstanceOf</a></p>
 <h1 id="wheninstanceof">whenInstanceOf<a class="headerlink" href="#wheninstanceof" title="Permanent link">&para;</a></h1>
-<p><code>fun whenInstanceOf(expectedClass:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html"><code>KClass</code></a><code>&lt;out</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html"><code>Any</code></a><code>&gt;, block:</code><a href="../"><code>ObjectReporter</code></a><code>.(HeapInstance) -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></p>
-<p>Runs <a href="./#shark.ObjectReporter$whenInstanceOf(kotlin.reflect.KClass((kotlin.Any)), kotlin.Function2((shark.ObjectReporter, shark.HeapObject.HeapInstance, kotlin.Unit)))/block">block</a> if <a href="../heap-object/">ObjectReporter.heapObject</a> is an instance of <a href="./#shark.ObjectReporter$whenInstanceOf(kotlin.reflect.KClass((kotlin.Any)), kotlin.Function2((shark.ObjectReporter, shark.HeapObject.HeapInstance, kotlin.Unit)))/expectedClass">expectedClass</a>.</p>
-<p><code>fun whenInstanceOf(expectedClassName:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><code>String</code></a><code>, block:</code><a href="../"><code>ObjectReporter</code></a><code>.(HeapInstance) -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></p>
-<p>Runs <a href="./#shark.ObjectReporter$whenInstanceOf(kotlin.String, kotlin.Function2((shark.ObjectReporter, shark.HeapObject.HeapInstance, kotlin.Unit)))/block">block</a> if <a href="../heap-object/">ObjectReporter.heapObject</a> is an instance of <a href="./#shark.ObjectReporter$whenInstanceOf(kotlin.String, kotlin.Function2((shark.ObjectReporter, shark.HeapObject.HeapInstance, kotlin.Unit)))/expectedClassName">expectedClassName</a>.</p>
+<p>[jvm]\
+fun <a href="./">whenInstanceOf</a>(expectedClass: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html">KClass</a>&lt;out <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;, block: <a href="../">ObjectReporter</a>.(HeapObject.HeapInstance) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)</p>
+<p>Runs <a href="./">block</a> if <a href="../heap-object/">ObjectReporter.heapObject</a> is an instance of <a href="./">expectedClass</a>.</p>
+<p>[jvm]\
+fun <a href="./">whenInstanceOf</a>(expectedClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, block: <a href="../">ObjectReporter</a>.(HeapObject.HeapInstance) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)</p>
+<p>Runs <a href="./">block</a> if <a href="../heap-object/">ObjectReporter.heapObject</a> is an instance of <a href="./">expectedClassName</a>.</p>
   
 
               

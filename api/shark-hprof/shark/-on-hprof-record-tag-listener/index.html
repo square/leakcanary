@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,15 +771,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#functions" class="md-nav__link">
-    Functions
+  <a href="#types" class="md-nav__link">
+    Types
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#companion-object-functions" class="md-nav__link">
-    Companion Object Functions
+  <a href="#functions" class="md-nav__link">
+    Functions
   </a>
   
 </li>
@@ -804,14 +804,28 @@
     
   
   
-  <p><a href="../../">shark-hprof</a> / <a href="../">shark</a> / <a href="./">OnHprofRecordTagListener</a></p>
+  <p>//<a href="../../../">shark-hprof</a>/<a href="../">shark</a>/<a href="./">OnHprofRecordTagListener</a></p>
 <h1 id="onhprofrecordtaglistener">OnHprofRecordTagListener<a class="headerlink" href="#onhprofrecordtaglistener" title="Permanent link">&para;</a></h1>
-<p><code>interface OnHprofRecordTagListener</code></p>
-<p>Listener passed in to <a href="../-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each
-<a href="../-hprof-record-tag/">HprofRecordTag</a> found in the heap dump.</p>
-<p>Listener implementations are expected to read all bytes corresponding to a given tag from the
-provided reader before returning.</p>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<p>[jvm]\
+fun interface <a href="./">OnHprofRecordTagListener</a></p>
+<p>Listener passed in to <a href="../-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="../-hprof-record-tag/">HprofRecordTag</a> found in the heap dump.</p>
+<p>Listener implementations are expected to read all bytes corresponding to a given tag from the provided reader before returning.</p>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -822,22 +836,7 @@ provided reader before returning.</p>
 <tbody>
 <tr>
 <td><a href="on-hprof-record/">onHprofRecord</a></td>
-<td><code>abstract fun onHprofRecord(tag:</code><a href="../-hprof-record-tag/"><code>HprofRecordTag</code></a><code>, length:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, reader:</code><a href="../-hprof-record-reader/"><code>HprofRecordReader</code></a><code>):</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a></td>
-</tr>
-</tbody>
-</table>
-<h3 id="companion-object-functions">Companion Object Functions<a class="headerlink" href="#companion-object-functions" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="invoke/">invoke</a></td>
-<td><code>operator fun invoke(block: (</code><a href="../-hprof-record-tag/"><code>HprofRecordTag</code></a><code>,</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>,</code><a href="../-hprof-record-reader/"><code>HprofRecordReader</code></a><code>) -&gt;</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><code>Unit</code></a><code>):</code><a href="./"><code>OnHprofRecordTagListener</code></a><br>Utility function to create a <a href="./">OnHprofRecordTagListener</a> from the passed in <a href="invoke/#shark.OnHprofRecordTagListener.Companion$invoke(kotlin.Function3((shark.HprofRecordTag, kotlin.Long, shark.HprofRecordReader, kotlin.Unit)))/block">block</a> lambda instead of using the anonymous <code>object : OnHprofRecordTagListener</code> syntax.</td>
+<td>[jvm]<br>abstract fun <a href="on-hprof-record/">onHprofRecord</a>(tag: <a href="../-hprof-record-tag/">HprofRecordTag</a>, length: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, reader: <a href="../-hprof-record-reader/">HprofRecordReader</a>)</td>
 </tr>
 </tbody>
 </table>

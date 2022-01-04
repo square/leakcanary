@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -771,13 +771,6 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#constructors" class="md-nav__link">
-    Constructors
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#functions" class="md-nav__link">
     Functions
   </a>
@@ -804,25 +797,11 @@
     
   
   
-  <p><a href="../../">leakcanary-android-release</a> / <a href="../">leakcanary</a> / <a href="./">MinimumMemoryInterceptor</a></p>
+  <p>//<a href="../../../">leakcanary-android-release</a>/<a href="../">leakcanary</a>/<a href="./">MinimumMemoryInterceptor</a></p>
 <h1 id="minimummemoryinterceptor">MinimumMemoryInterceptor<a class="headerlink" href="#minimummemoryinterceptor" title="Permanent link">&para;</a></h1>
-<p><code>class MinimumMemoryInterceptor :</code><a href="../-heap-analysis-interceptor/"><code>HeapAnalysisInterceptor</code></a></p>
-<h3 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Summary</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-init-/">&lt;init&gt;</a></td>
-<td><code>MinimumMemoryInterceptor(application: Application, minimumRequiredAvailableMemoryBytes:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>= 100_000_000, processInfo:</code><a href="../-process-info/"><code>ProcessInfo</code></a><code>= ProcessInfo.Real)</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<p>[androidJvm]\
+class <a href="./">MinimumMemoryInterceptor</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, minimumRequiredAvailableMemoryBytes: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, processInfo: <a href="../-process-info/">ProcessInfo</a>) : <a href="../-heap-analysis-interceptor/">HeapAnalysisInterceptor</a></p>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -833,7 +812,7 @@
 <tbody>
 <tr>
 <td><a href="intercept/">intercept</a></td>
-<td><code>fun intercept(chain:</code><a href="../-heap-analysis-interceptor/-chain/"><code>HeapAnalysisInterceptor.Chain</code></a><code>):</code><a href="../-heap-analysis-job/-result/"><code>HeapAnalysisJob.Result</code></a></td>
+<td>[androidJvm]<br>open override fun <a href="intercept/">intercept</a>(chain: <a href="../-heap-analysis-interceptor/-chain/">HeapAnalysisInterceptor.Chain</a>): <a href="../-heap-analysis-job/-result/">HeapAnalysisJob.Result</a></td>
 </tr>
 </tbody>
 </table>

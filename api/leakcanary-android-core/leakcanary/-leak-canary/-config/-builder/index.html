@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -797,20 +797,19 @@
     
   
   
-  <p><a href="../../../../">leakcanary-android-core</a> / <a href="../../../">leakcanary</a> / <a href="../../">LeakCanary</a> / <a href="../">Config</a> / <a href="./">Builder</a></p>
+  <p>//<a href="../../../../../">leakcanary-android-core</a>/<a href="../../../">leakcanary</a>/<a href="../../">LeakCanary</a>/<a href="../">Config</a>/<a href="./">Builder</a></p>
 <h1 id="builder">Builder<a class="headerlink" href="#builder" title="Permanent link">&para;</a></h1>
-<p><code>class Builder</code></p>
+<p>[androidJvm]\
+class <a href="./">Builder</a></p>
 <p>Builder for <a href="../">LeakCanary.Config</a> intended to be used only from Java code.</p>
 <p>Usage:</p>
-<div class="highlight"><pre><span></span><code>LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
-   .retainedVisibleThreshold(3)
-   .build();
-LeakCanary.setConfig(config);
-</code></pre></div>
-<p>For idiomatic Kotlin use <code>copy()</code> method instead:</p>
-<div class="highlight"><pre><span></span><code>LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
-</code></pre></div>
-<h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
+<p>LeakCanary.Config config = LeakCanary.getConfig().newBuilder()\
+   .retainedVisibleThreshold(3)\
+   .build();\
+LeakCanary.setConfig(config);</p>
+<p>For idiomatic Kotlin use copy() method instead:</p>
+<p>LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)</p>
+<h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -821,51 +820,55 @@ LeakCanary.setConfig(config);
 <tbody>
 <tr>
 <td><a href="build/">build</a></td>
-<td><code>fun build():</code><a href="../"><code>LeakCanary.Config</code></a></td>
+<td>[androidJvm]<br>fun <a href="build/">build</a>(): <a href="../">LeakCanary.Config</a></td>
 </tr>
 <tr>
 <td><a href="compute-retained-heap-size/">computeRetainedHeapSize</a></td>
-<td><code>fun computeRetainedHeapSize(computeRetainedHeapSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="compute-retained-heap-size/">computeRetainedHeapSize</a>(computeRetainedHeapSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 <tr>
 <td><a href="dump-heap/">dumpHeap</a></td>
-<td><code>fun dumpHeap(dumpHeap:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="dump-heap/">dumpHeap</a>(dumpHeap: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 <tr>
 <td><a href="dump-heap-when-debugging/">dumpHeapWhenDebugging</a></td>
-<td><code>fun dumpHeapWhenDebugging(dumpHeapWhenDebugging:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="dump-heap-when-debugging/">dumpHeapWhenDebugging</a>(dumpHeapWhenDebugging: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>): <a href="./">LeakCanary.Config.Builder</a></td>
+</tr>
+<tr>
+<td><a href="event-listeners/">eventListeners</a></td>
+<td>[androidJvm]<br>fun <a href="event-listeners/">eventListeners</a>(eventListeners: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../../-event-listener/">EventListener</a>&gt;): <a href="./">LeakCanary.Config.Builder</a></td>
+</tr>
+<tr>
+<td><a href="heap-dumper/">heapDumper</a></td>
+<td>[androidJvm]<br>fun <a href="heap-dumper/">heapDumper</a>(heapDumper: <a href="../../../-heap-dumper/">HeapDumper</a>): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 <tr>
 <td><a href="leaking-object-finder/">leakingObjectFinder</a></td>
-<td><code>fun leakingObjectFinder(leakingObjectFinder: LeakingObjectFinder):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="leaking-object-finder/">leakingObjectFinder</a>(leakingObjectFinder: LeakingObjectFinder): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 <tr>
 <td><a href="max-stored-heap-dumps/">maxStoredHeapDumps</a></td>
-<td><code>fun maxStoredHeapDumps(maxStoredHeapDumps:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="max-stored-heap-dumps/">maxStoredHeapDumps</a>(maxStoredHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 <tr>
 <td><a href="metadata-extractor/">metadataExtractor</a></td>
-<td><code>fun metadataExtractor(metadataExtractor: MetadataExtractor):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="metadata-extractor/">metadataExtractor</a>(metadataExtractor: MetadataExtractor): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 <tr>
 <td><a href="object-inspectors/">objectInspectors</a></td>
-<td><code>fun objectInspectors(objectInspectors:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;ObjectInspector&gt;):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
-</tr>
-<tr>
-<td><a href="on-heap-analyzed-listener/">onHeapAnalyzedListener</a></td>
-<td><code>fun onHeapAnalyzedListener(onHeapAnalyzedListener:</code><a href="../../../-on-heap-analyzed-listener/"><code>OnHeapAnalyzedListener</code></a><code>):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="object-inspectors/">objectInspectors</a>(objectInspectors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ObjectInspector&gt;): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 <tr>
 <td><a href="reference-matchers/">referenceMatchers</a></td>
-<td><code>fun referenceMatchers(referenceMatchers:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html"><code>List</code></a><code>&lt;ReferenceMatcher&gt;):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="reference-matchers/">referenceMatchers</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;ReferenceMatcher&gt;): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 <tr>
 <td><a href="request-write-external-storage-permission/">requestWriteExternalStoragePermission</a></td>
-<td><code>fun requestWriteExternalStoragePermission(requestWriteExternalStoragePermission:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a><code>):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="request-write-external-storage-permission/">requestWriteExternalStoragePermission</a>(requestWriteExternalStoragePermission: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 <tr>
 <td><a href="retained-visible-threshold/">retainedVisibleThreshold</a></td>
-<td><code>fun retainedVisibleThreshold(retainedVisibleThreshold:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><code>Int</code></a><code>):</code><a href="./"><code>LeakCanary.Config.Builder</code></a></td>
+<td>[androidJvm]<br>fun <a href="retained-visible-threshold/">retainedVisibleThreshold</a>(retainedVisibleThreshold: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>): <a href="./">LeakCanary.Config.Builder</a></td>
 </tr>
 </tbody>
 </table>

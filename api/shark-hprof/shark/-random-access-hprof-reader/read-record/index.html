@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -764,6 +764,21 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#return" class="md-nav__link">
+    Return
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -782,14 +797,13 @@
     
   
   
-  <p><a href="../../../">shark-hprof</a> / <a href="../../">shark</a> / <a href="../">RandomAccessHprofReader</a> / <a href="./">readRecord</a></p>
+  <p>//<a href="../../../../">shark-hprof</a>/<a href="../../">shark</a>/<a href="../">RandomAccessHprofReader</a>/<a href="./">readRecord</a></p>
 <h1 id="readrecord">readRecord<a class="headerlink" href="#readrecord" title="Permanent link">&para;</a></h1>
-<p><code>fun &lt;T&gt; readRecord(recordPosition:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, recordSize:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><code>, withRecordReader:</code><a href="../../-hprof-record-reader/"><code>HprofRecordReader</code></a><code>.() -&gt;</code><a href="./#T"><code>T</code></a><code>):</code><a href="./#T"><code>T</code></a></p>
-<p>Loads <a href="./#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/recordSize">recordSize</a> bytes at <a href="./#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/recordPosition">recordPosition</a> into the buffer that backs <a href="../../-hprof-record-reader/">HprofRecordReader</a>
-then calls <a href="./#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/withRecordReader">withRecordReader</a> with that reader as a receiver. <a href="./#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/withRecordReader">withRecordReader</a> is expected
-to use the receiver reader to read one record of exactly <a href="./#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/recordSize">recordSize</a> bytes.</p>
-<p><strong>Return</strong>
-the results from <a href="./#shark.RandomAccessHprofReader$readRecord(kotlin.Long, kotlin.Long, kotlin.Function1((shark.HprofRecordReader, shark.RandomAccessHprofReader.readRecord.T)))/withRecordReader">withRecordReader</a></p>
+<p>[jvm]\
+fun &lt;<a href="./">T</a>&gt; <a href="./">readRecord</a>(recordPosition: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, recordSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, withRecordReader: <a href="../../-hprof-record-reader/">HprofRecordReader</a>.() -&gt; <a href="./">T</a>): <a href="./">T</a></p>
+<p>Loads <a href="./">recordSize</a> bytes at <a href="./">recordPosition</a> into the buffer that backs <a href="../../-hprof-record-reader/">HprofRecordReader</a> then calls <a href="./">withRecordReader</a> with that reader as a receiver. <a href="./">withRecordReader</a> is expected to use the receiver reader to read one record of exactly <a href="./">recordSize</a> bytes.</p>
+<h4 id="return">Return<a class="headerlink" href="#return" title="Permanent link">&para;</a></h4>
+<p>the results from <a href="./">withRecordReader</a></p>
   
 
               

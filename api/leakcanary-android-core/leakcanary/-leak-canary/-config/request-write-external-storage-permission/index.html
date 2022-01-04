@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -782,14 +782,11 @@
     
   
   
-  <p><a href="../../../../">leakcanary-android-core</a> / <a href="../../../">leakcanary</a> / <a href="../../">LeakCanary</a> / <a href="../">Config</a> / <a href="./">requestWriteExternalStoragePermission</a></p>
+  <p>//<a href="../../../../../">leakcanary-android-core</a>/<a href="../../../">leakcanary</a>/<a href="../../">LeakCanary</a>/<a href="../">Config</a>/<a href="./">requestWriteExternalStoragePermission</a></p>
 <h1 id="requestwriteexternalstoragepermission">requestWriteExternalStoragePermission<a class="headerlink" href="#requestwriteexternalstoragepermission" title="Permanent link">&para;</a></h1>
-<p><code>val requestWriteExternalStoragePermission:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><code>Boolean</code></a></p>
-<p>LeakCanary always attempts to store heap dumps on the external storage if the
-WRITE_EXTERNAL_STORAGE is already granted, and otherwise uses the app storage.
-If the WRITE_EXTERNAL_STORAGE permission is not granted and
-<a href="./">requestWriteExternalStoragePermission</a> is true, then LeakCanary will display a notification
-to ask for that permission.</p>
+<p>[androidJvm]\
+val <a href="./">requestWriteExternalStoragePermission</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = false</p>
+<p>LeakCanary always attempts to store heap dumps on the external storage if the WRITE_EXTERNAL_STORAGE is already granted, and otherwise uses the app storage. If the WRITE_EXTERNAL_STORAGE permission is not granted and <a href="./">requestWriteExternalStoragePermission</a> is true, then LeakCanary will display a notification to ask for that permission.</p>
 <p>Defaults to false because that permission notification can be annoying.</p>
   
 

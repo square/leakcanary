@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.7</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -683,7 +683,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../../leakcanary-object-watcher-android/leakcanary/" class="md-nav__link">
+    <a href="../../../leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
       ObjectWatcher Android
     </a>
   </li>
@@ -811,11 +811,12 @@
     
   
   
-  <p><a href="../../">shark-hprof</a> / <a href="../">shark</a> / <a href="./">GcRoot</a></p>
+  <p>//<a href="../../../">shark-hprof</a>/<a href="../">shark</a>/<a href="./">GcRoot</a></p>
 <h1 id="gcroot">GcRoot<a class="headerlink" href="#gcroot" title="Permanent link">&para;</a></h1>
-<p><code>sealed class GcRoot</code></p>
+<p>[jvm]\
+sealed class <a href="./">GcRoot</a></p>
 <p>A GcRoot as identified by <a href="../-hprof-record/-heap-dump-record/-gc-root-record/">HprofRecord.HeapDumpRecord.GcRootRecord</a> in the heap dump.</p>
-<h3 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h3>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -826,71 +827,71 @@
 <tbody>
 <tr>
 <td><a href="-debugger/">Debugger</a></td>
-<td><code>class Debugger :</code><a href="./"><code>GcRoot</code></a><br>An object held by a connected debugger</td>
+<td>[jvm]<br>class <a href="-debugger/">Debugger</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>An object held by a connected debugger</td>
 </tr>
 <tr>
 <td><a href="-finalizing/">Finalizing</a></td>
-<td><code>class Finalizing :</code><a href="./"><code>GcRoot</code></a><br>An object that is in a queue, waiting for a finalizer to run.</td>
+<td>[jvm]<br>class <a href="-finalizing/">Finalizing</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>An object that is in a queue, waiting for a finalizer to run.</td>
 </tr>
 <tr>
 <td><a href="-interned-string/">InternedString</a></td>
-<td><code>class InternedString :</code><a href="./"><code>GcRoot</code></a><br>An interned string, see <a href="https://docs.oracle.com/javase/6/docs/api/java/lang/String.html#intern()">java.lang.String.intern</a>.</td>
+<td>[jvm]<br>class <a href="-interned-string/">InternedString</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>An interned string, see <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html#intern--">java.lang.String.intern</a>.</td>
 </tr>
 <tr>
 <td><a href="-java-frame/">JavaFrame</a></td>
-<td><code>class JavaFrame :</code><a href="./"><code>GcRoot</code></a><br>A java local variable</td>
+<td>[jvm]<br>class <a href="-java-frame/">JavaFrame</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, frameNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="./">GcRoot</a><br>A java local variable</td>
 </tr>
 <tr>
 <td><a href="-jni-global/">JniGlobal</a></td>
-<td><code>class JniGlobal :</code><a href="./"><code>GcRoot</code></a><br>A global variable in native code.</td>
+<td>[jvm]<br>class <a href="-jni-global/">JniGlobal</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, jniGlobalRefId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>A global variable in native code.</td>
 </tr>
 <tr>
 <td><a href="-jni-local/">JniLocal</a></td>
-<td><code>class JniLocal :</code><a href="./"><code>GcRoot</code></a><br>A local variable in native code.</td>
+<td>[jvm]<br>class <a href="-jni-local/">JniLocal</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, frameNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="./">GcRoot</a><br>A local variable in native code.</td>
 </tr>
 <tr>
 <td><a href="-jni-monitor/">JniMonitor</a></td>
-<td><code>class JniMonitor :</code><a href="./"><code>GcRoot</code></a><br>It&rsquo;s unclear what this is, documentation welcome.</td>
+<td>[jvm]<br>class <a href="-jni-monitor/">JniMonitor</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, stackDepth: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="./">GcRoot</a><br>It&rsquo;s unclear what this is, documentation welcome.</td>
 </tr>
 <tr>
 <td><a href="-monitor-used/">MonitorUsed</a></td>
-<td><code>class MonitorUsed :</code><a href="./"><code>GcRoot</code></a><br>Everything that called the wait() or notify() methods, or that is synchronized.</td>
+<td>[jvm]<br>class <a href="-monitor-used/">MonitorUsed</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>Everything that called the wait() or notify() methods, or that is synchronized.</td>
 </tr>
 <tr>
 <td><a href="-native-stack/">NativeStack</a></td>
-<td><code>class NativeStack :</code><a href="./"><code>GcRoot</code></a><br>Input or output parameters in native code</td>
+<td>[jvm]<br>class <a href="-native-stack/">NativeStack</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="./">GcRoot</a><br>Input or output parameters in native code</td>
 </tr>
 <tr>
 <td><a href="-reference-cleanup/">ReferenceCleanup</a></td>
-<td><code>class ReferenceCleanup :</code><a href="./"><code>GcRoot</code></a><br>It&rsquo;s unclear what this is, documentation welcome.</td>
+<td>[jvm]<br>class <a href="-reference-cleanup/">ReferenceCleanup</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>It&rsquo;s unclear what this is, documentation welcome.</td>
 </tr>
 <tr>
 <td><a href="-sticky-class/">StickyClass</a></td>
-<td><code>class StickyClass :</code><a href="./"><code>GcRoot</code></a><br>A system class</td>
+<td>[jvm]<br>class <a href="-sticky-class/">StickyClass</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>A system class</td>
 </tr>
 <tr>
 <td><a href="-thread-block/">ThreadBlock</a></td>
-<td><code>class ThreadBlock :</code><a href="./"><code>GcRoot</code></a></td>
+<td>[jvm]<br>class <a href="-thread-block/">ThreadBlock</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="./">GcRoot</a></td>
 </tr>
 <tr>
 <td><a href="-thread-object/">ThreadObject</a></td>
-<td><code>class ThreadObject :</code><a href="./"><code>GcRoot</code></a><br>A thread.</td>
+<td>[jvm]<br>class <a href="-thread-object/">ThreadObject</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="./">GcRoot</a><br>A thread.</td>
 </tr>
 <tr>
 <td><a href="-unknown/">Unknown</a></td>
-<td><code>class Unknown :</code><a href="./"><code>GcRoot</code></a><br>An unknown gc root.</td>
+<td>[jvm]<br>class <a href="-unknown/">Unknown</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>An unknown gc root.</td>
 </tr>
 <tr>
 <td><a href="-unreachable/">Unreachable</a></td>
-<td><code>class Unreachable :</code><a href="./"><code>GcRoot</code></a><br>An object that is unreachable from any other root, but not a root itself.</td>
+<td>[jvm]<br>class <a href="-unreachable/">Unreachable</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>An object that is unreachable from any other root, but not a root itself.</td>
 </tr>
 <tr>
 <td><a href="-vm-internal/">VmInternal</a></td>
-<td><code>class VmInternal :</code><a href="./"><code>GcRoot</code></a><br>It&rsquo;s unclear what this is, documentation welcome.</td>
+<td>[jvm]<br>class <a href="-vm-internal/">VmInternal</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">GcRoot</a><br>It&rsquo;s unclear what this is, documentation welcome.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
+<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -901,82 +902,65 @@
 <tbody>
 <tr>
 <td><a href="id/">id</a></td>
-<td><code>abstract val id:</code><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><code>Long</code></a><br>The object id of the object that this gc root references.</td>
+<td>[jvm]<br>abstract val <a href="id/">id</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The object id of the object that this gc root references.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h3>
+<h2 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Name</th>
-<th>Summary</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="-debugger/">Debugger</a></td>
-<td><code>class Debugger :</code><a href="./"><code>GcRoot</code></a><br>An object held by a connected debugger</td>
-</tr>
-<tr>
-<td><a href="-finalizing/">Finalizing</a></td>
-<td><code>class Finalizing :</code><a href="./"><code>GcRoot</code></a><br>An object that is in a queue, waiting for a finalizer to run.</td>
-</tr>
-<tr>
-<td><a href="-interned-string/">InternedString</a></td>
-<td><code>class InternedString :</code><a href="./"><code>GcRoot</code></a><br>An interned string, see <a href="https://docs.oracle.com/javase/6/docs/api/java/lang/String.html#intern()">java.lang.String.intern</a>.</td>
-</tr>
-<tr>
-<td><a href="-java-frame/">JavaFrame</a></td>
-<td><code>class JavaFrame :</code><a href="./"><code>GcRoot</code></a><br>A java local variable</td>
+<td><a href="-unknown/">Unknown</a></td>
 </tr>
 <tr>
 <td><a href="-jni-global/">JniGlobal</a></td>
-<td><code>class JniGlobal :</code><a href="./"><code>GcRoot</code></a><br>A global variable in native code.</td>
 </tr>
 <tr>
 <td><a href="-jni-local/">JniLocal</a></td>
-<td><code>class JniLocal :</code><a href="./"><code>GcRoot</code></a><br>A local variable in native code.</td>
 </tr>
 <tr>
-<td><a href="-jni-monitor/">JniMonitor</a></td>
-<td><code>class JniMonitor :</code><a href="./"><code>GcRoot</code></a><br>It&rsquo;s unclear what this is, documentation welcome.</td>
-</tr>
-<tr>
-<td><a href="-monitor-used/">MonitorUsed</a></td>
-<td><code>class MonitorUsed :</code><a href="./"><code>GcRoot</code></a><br>Everything that called the wait() or notify() methods, or that is synchronized.</td>
+<td><a href="-java-frame/">JavaFrame</a></td>
 </tr>
 <tr>
 <td><a href="-native-stack/">NativeStack</a></td>
-<td><code>class NativeStack :</code><a href="./"><code>GcRoot</code></a><br>Input or output parameters in native code</td>
-</tr>
-<tr>
-<td><a href="-reference-cleanup/">ReferenceCleanup</a></td>
-<td><code>class ReferenceCleanup :</code><a href="./"><code>GcRoot</code></a><br>It&rsquo;s unclear what this is, documentation welcome.</td>
 </tr>
 <tr>
 <td><a href="-sticky-class/">StickyClass</a></td>
-<td><code>class StickyClass :</code><a href="./"><code>GcRoot</code></a><br>A system class</td>
 </tr>
 <tr>
 <td><a href="-thread-block/">ThreadBlock</a></td>
-<td><code>class ThreadBlock :</code><a href="./"><code>GcRoot</code></a></td>
+</tr>
+<tr>
+<td><a href="-monitor-used/">MonitorUsed</a></td>
 </tr>
 <tr>
 <td><a href="-thread-object/">ThreadObject</a></td>
-<td><code>class ThreadObject :</code><a href="./"><code>GcRoot</code></a><br>A thread.</td>
 </tr>
 <tr>
-<td><a href="-unknown/">Unknown</a></td>
-<td><code>class Unknown :</code><a href="./"><code>GcRoot</code></a><br>An unknown gc root.</td>
-</tr>
-<tr>
-<td><a href="-unreachable/">Unreachable</a></td>
-<td><code>class Unreachable :</code><a href="./"><code>GcRoot</code></a><br>An object that is unreachable from any other root, but not a root itself.</td>
+<td><a href="-reference-cleanup/">ReferenceCleanup</a></td>
 </tr>
 <tr>
 <td><a href="-vm-internal/">VmInternal</a></td>
-<td><code>class VmInternal :</code><a href="./"><code>GcRoot</code></a><br>It&rsquo;s unclear what this is, documentation welcome.</td>
+</tr>
+<tr>
+<td><a href="-jni-monitor/">JniMonitor</a></td>
+</tr>
+<tr>
+<td><a href="-interned-string/">InternedString</a></td>
+</tr>
+<tr>
+<td><a href="-finalizing/">Finalizing</a></td>
+</tr>
+<tr>
+<td><a href="-debugger/">Debugger</a></td>
+</tr>
+<tr>
+<td><a href="-unreachable/">Unreachable</a></td>
 </tr>
 </tbody>
 </table>
