@@ -1,4 +1,4 @@
-import java.util.*
+import java.util.Properties
 
 plugins {
   id("org.jetbrains.kotlin.jvm")
@@ -37,11 +37,12 @@ tasks.register("generateVersionProperties") {
   doLast {
     val propertiesFile = file("$generatedVersionDir/version.properties")
     propertiesFile.parentFile.mkdirs()
-    val properties = Properties()
-    properties.setProperty("version_name", properties["VERSION_NAME"].toString())
-    properties.store(propertiesFile.outputStream(), null)
+    Properties().also {
+      it.setProperty("version_name", properties["VERSION_NAME"].toString())
+      it.store(propertiesFile.outputStream(), null)
+    }
   }
 }.let {
-  tasks["processResources"].dependsOn(it.get())
+  tasks.processResources.get().dependsOn(it.get())
 }
 
