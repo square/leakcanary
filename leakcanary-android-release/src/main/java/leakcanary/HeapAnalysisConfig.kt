@@ -7,7 +7,9 @@ import shark.FilteringLeakingObjectFinder
 import shark.LeakingObjectFinder
 import shark.MetadataExtractor
 import shark.ObjectInspector
+import shark.IgnoredReferenceMatcher
 import shark.ReferenceMatcher
+import shark.LibraryLeakReferenceMatcher
 
 data class HeapAnalysisConfig(
 

@@ -2,6 +2,7 @@ package leakcanary.internal
 
 import java.io.File
 import java.io.IOException
+import leakcanary.EventListener
 import leakcanary.EventListener.Event.HeapAnalysisDone
 import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisFailed
 import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisSucceeded
@@ -12,9 +13,6 @@ import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.LeaksDbHelper
-import leakcanary.internal.activity.screen.HeapAnalysisFailureScreen
-import leakcanary.internal.activity.screen.HeapDumpScreen
-import leakcanary.internal.activity.screen.HeapDumpsScreen
 import shark.ConstantMemoryMetricsDualSourceProvider
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
