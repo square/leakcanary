@@ -90,10 +90,10 @@ private constructor(
 
   /**
    * A stack of pending runs yet to be merged.  Run i starts at
-   * address base[i] and extends for len[i] elements.  It's always
+   * address `base[i]` and extends for `len[i]` elements.  It's always
    * true (so long as the indices are in bounds) that:
    *
-   * runBase[i] + runLen[i] == runBase[i + 1]
+   * `runBase[i] + runLen[i] == runBase[i + 1]`
    *
    * so we could cut the storage for this, but it's a minor amount,
    * and keeping all the info explicit simplifies the code.
@@ -925,7 +925,7 @@ private constructor(
      * specified sorted range; if the range contains an element equal to key,
      * returns the index of the leftmost equal element.
      *
-     * @param key the key whose insertion point to search for
+     * @param keyIndex the key whose insertion point to search for
      * @param a the array in which to search
      * @param base the index of the first element in the range
      * @param len the length of the range; must be > 0
@@ -1009,7 +1009,7 @@ private constructor(
      * Like gallopLeft, except that if the range contains an element equal to
      * key, gallopRight returns the index after the rightmost equal element.
      *
-     * @param key the key whose insertion point to search for
+     * @param keyIndex the key whose insertion point to search for
      * @param a the array in which to search
      * @param base the index of the first element in the range
      * @param len the length of the range; must be > 0

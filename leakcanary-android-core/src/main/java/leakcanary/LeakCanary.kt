@@ -197,17 +197,12 @@ object LeakCanary {
     val eventListeners: List<EventListener> = listOf(
       LogcatEventListener,
       ToastEventListener,
-      if (InternalLeakCanary.formFactor == TV) {
-        TvEventListener
-      } else {
-        NotificationEventListener
-      },
-      if (RemoteWorkManagerHeapAnalyzer.remoteLeakCanaryServiceInClasspath) {
-        RemoteWorkManagerHeapAnalyzer
-      } else if (WorkManagerHeapAnalyzer.workManagerInClasspath) {
-        WorkManagerHeapAnalyzer
-      } else {
-        BackgroundThreadHeapAnalyzer
+      if (InternalLeakCanary.formFactor == TV) TvEventListener else NotificationEventListener,
+      when {
+          RemoteWorkManagerHeapAnalyzer.remoteLeakCanaryServiceInClasspath ->
+            RemoteWorkManagerHeapAnalyzer
+          WorkManagerHeapAnalyzer.workManagerInClasspath -> WorkManagerHeapAnalyzer
+          else -> BackgroundThreadHeapAnalyzer
       }
     ),
 

@@ -31,28 +31,26 @@ import android.os.StrictMode
 import android.provider.OpenableColumns
 import android.text.TextUtils
 import android.webkit.MimeTypeMap
-import org.xmlpull.v1.XmlPullParser.END_DOCUMENT
-import org.xmlpull.v1.XmlPullParser.START_TAG
-import org.xmlpull.v1.XmlPullParserException
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.util.HashMap
+import org.xmlpull.v1.XmlPullParser.END_DOCUMENT
+import org.xmlpull.v1.XmlPullParser.START_TAG
+import org.xmlpull.v1.XmlPullParserException
 
 /**
  * Copy of androidx.core.content.FileProvider, converted to Kotlin.
  */
 internal class LeakCanaryFileProvider : ContentProvider() {
 
-  private var mStrategy: PathStrategy? = null
+  private lateinit var mStrategy: PathStrategy
 
   /**
    * The default FileProvider implementation does not need to be initialized. If you want to
    * override this method, you must provide your own subclass of FileProvider.
    */
-  override fun onCreate(): Boolean {
-    return true
-  }
+  override fun onCreate(): Boolean = true
 
   /**
    * After the FileProvider is instantiated, this method is called to provide the system with
@@ -75,7 +73,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       throw SecurityException("Provider must grant uri permissions")
     }
 
-    mStrategy = getPathStrategy(context, info.authority)
+    mStrategy = getPathStrategy(context, info.authority)!!
   }
 
   /**
@@ -91,7 +89,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
    * [ ContentProvider.query()][ContentProvider.query].
    *
    * @param uri A content URI returned by [.getUriForFile].
-   * @param projection The list of columns to put into the [Cursor]. If null all columns are
+   * @param projectionArg The list of columns to put into the [Cursor]. If null all columns are
    * included.
    * @param selection Selection criteria to apply. If null then all data that matches the content
    * URI is returned.
@@ -113,7 +111,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
   ): Cursor {
     val projection = projectionArg ?: COLUMNS
     // ContentProvider has already checked granted permissions
-    val file = mStrategy!!.getFileForUri(uri)
+    val file = mStrategy.getFileForUri(uri)
 
     var cols = arrayOfNulls<String>(projection.size)
     var values = arrayOfNulls<Any>(projection.size)
@@ -147,7 +145,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
    */
   override fun getType(uri: Uri): String {
     // ContentProvider has already checked granted permissions
-    val file = mStrategy!!.getFileForUri(uri)
+    val file = mStrategy.getFileForUri(uri)
 
     val lastDot = file.name.lastIndexOf('.')
     if (lastDot >= 0) {
@@ -203,7 +201,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
     selectionArgs: Array<String>?
   ): Int {
     // ContentProvider has already checked granted permissions
-    val file = mStrategy!!.getFileForUri(uri)
+    val file = mStrategy.getFileForUri(uri)
     return if (file.delete()) 1 else 0
   }
 
@@ -227,7 +225,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
     mode: String
   ): ParcelFileDescriptor? {
     // ContentProvider has already checked granted permissions
-    val file = mStrategy!!.getFileForUri(uri)
+    val file = mStrategy.getFileForUri(uri)
     val fileMode = modeToMode(mode)
     return ParcelFileDescriptor.open(file, fileMode)
   }
@@ -324,11 +322,8 @@ internal class LeakCanaryFileProvider : ContentProvider() {
 
       // Start at first char of path under root
       val rootPath = mostSpecific.value.path
-      path = if (rootPath.endsWith("/")) {
-        path.substring(rootPath.length)
-      } else {
-        path.substring(rootPath.length + 1)
-      }
+      val startIndex = if (rootPath.endsWith("/")) rootPath.length else rootPath.length + 1
+      path = path.substring(startIndex)
 
       // Encode the tag and path separately
       path = Uri.encode(mostSpecific.key) + '/'.toString() + Uri.encode(path, "/")
@@ -340,16 +335,16 @@ internal class LeakCanaryFileProvider : ContentProvider() {
     }
 
     override fun getFileForUri(uri: Uri): File {
-      var path = uri.encodedPath
+      var path = uri.encodedPath!!
 
-      val splitIndex = path!!.indexOf('/', 1)
+      val splitIndex = path.indexOf('/', 1)
       val tag = Uri.decode(path.substring(1, splitIndex))
       path = Uri.decode(path.substring(splitIndex + 1))
 
-      val root =
-        mRoots[tag] ?: throw IllegalArgumentException("Unable to find configured root for $uri")
+      val root = mRoots[tag]
+        ?: throw IllegalArgumentException("Unable to find configured root for $uri")
 
-      var file = File(root, path!!)
+      var file = File(root, path)
       try {
         file = file.canonicalFile
       } catch (e: IOException) {
@@ -473,7 +468,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
         "Missing $META_DATA_FILE_PROVIDER_PATHS meta-data"
       )
 
-      var type = 0
+      var type: Int
       while (run {
           type = resourceParser.next()
           (type)

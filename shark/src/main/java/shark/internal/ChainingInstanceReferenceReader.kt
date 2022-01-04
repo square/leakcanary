@@ -35,7 +35,7 @@ internal class ChainingInstanceReferenceReader(
   }
 
   /**
-   * Same as [InstanceReferenceReader] but [read] is only invoked when [matches] returns
+   * Same as [ReferenceReader] but [read] is only invoked when [matches] returns
    * true. [matches] should return false if this [VirtualInstanceReferenceReader] implementation isn't
    * able to expand the provided instance, in which case [ChainingInstanceReferenceReader] will delegate
    * to the next [VirtualInstanceReferenceReader] implementation.
@@ -45,7 +45,7 @@ internal class ChainingInstanceReferenceReader(
 
     /**
      * May create a new InstanceExpander, depending on what's in the heap graph.
-     * [OptionalFactory] implementations might return a different [InstanceReferenceReader]
+     * [OptionalFactory] implementations might return a different [ReferenceReader]
      * depending on which version of a class is present in the heap dump, or they might return null if
      * that class is missing.
      */

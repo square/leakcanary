@@ -1,2 +1,1 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.squareup.leakcanary.fragments.android_support" />
+<manifest package="com.squareup.leakcanary.fragments.android_support" />

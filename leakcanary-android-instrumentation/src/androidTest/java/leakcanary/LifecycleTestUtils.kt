@@ -15,15 +15,15 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ActivityTestRule
-import leakcanary.internal.friendly.noOpDelegate
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
+import leakcanary.internal.friendly.noOpDelegate
 
 interface HasActivityTestRule<T : Activity> {
   val activityRule: ActivityTestRule<T>
 
-  val activity
+  val activity: T
     get() = activityRule.activity!!
 }
 

@@ -9,8 +9,6 @@ import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
 import shark.HeapAnalyzer
 import shark.KeyedWeakReferenceFinder
-import shark.OnAnalysisProgressListener
-import shark.OnAnalysisProgressListener.Step
 import shark.SharkLog
 import java.io.File
 import java.io.FileOutputStream
