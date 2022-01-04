@@ -226,7 +226,7 @@ public class LeakUploadService extends DisplayLeakService {
 
 ```java
 RefWatcher refWatcher = LeakCanary.refWatcher(this)
-  .listenerServiceClass(LeakUploadService.class);
+  .listenerServiceClass(LeakUploadService.class)
   .buildAndInstall();
 ```
 
