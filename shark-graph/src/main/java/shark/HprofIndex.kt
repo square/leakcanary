@@ -40,7 +40,7 @@ class HprofIndex private constructor(
       return HprofIndex(hprofSourceProvider, hprofHeader, index)
     }
 
-    fun defaultIndexedGcRootTags() = EnumSet.of(
+    fun defaultIndexedGcRootTags(): EnumSet<HprofRecordTag> = EnumSet.of(
       HprofRecordTag.ROOT_JNI_GLOBAL,
       HprofRecordTag.ROOT_JAVA_FRAME,
       HprofRecordTag.ROOT_JNI_LOCAL,

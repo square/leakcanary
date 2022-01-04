@@ -1,9 +1,13 @@
 
 # Change Log
 
+## Version 2.8 (2022-01-04)
+
+Details to be filled in.
+
 ## Version 2.7 (2021-03-26)
 
-Please thank 
+Please thank
 [@chao2zhang](https://github.com/chao2zhang),
 [@ihrupin](https://github.com/ihrupin),
 [@jzbrooks](https://github.com/jzbrooks),
@@ -51,7 +55,7 @@ We fixed two issues for apps that want to target Android 12:
 
 ##  Version 2.6 - Christmas Release 🎄 (2020-12-24)
 
-Please thank 
+Please thank
 [@chao2zhang](https://github.com/chao2zhang),
 [@ChaosLeung](https://github.com/ChaosLeung),
 [@LitterSun](https://github.com/LitterSun),
@@ -116,7 +120,7 @@ class DebugExampleApplication : ExampleApplication() {
 
   override fun onCreate() {
     super.onCreate()
-	
+
     val delegate = ReachabilityWatcher { watchedObject, description ->
       if (watchedObject !is BadSdkLeakingFragment) {
         AppWatcher.objectWatcher.expectWeaklyReachable(watchedObject, description)
@@ -178,7 +182,7 @@ class ReleaseExampleApplication : ExampleApplication() {
       }
     }
   }
-  
+
   private val analysisClient by lazy {
     HeapAnalysisClient(
       // Use private app storage. cacheDir is never backed up which is important.
@@ -234,7 +238,7 @@ class ReleaseExampleApplication : ExampleApplication() {
       analysisCallback = analysisCallback
     ).start()
   }
-  
+
   /**
    * Call this to trigger heap analysis manually, e.g. from
    * a help button.
@@ -312,7 +316,7 @@ class BugsnagHeapAnalysisUploader(applicationContext: Application) {
 
 We added 3 new automatic fixes for known AOSP leaks in `plumber-android` (details: [#1993](https://github.com/square/leakcanary/issues/1993)). As a reminder, `plumber-android` is automatically included when you add `leakcanary-android`, and you can add it manually for build types that don't include LeakCanary:
 
-```xml
+```gradle
 dependencies {
   // leakcanary-android adds plumber-android to debug builds
   debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
@@ -338,7 +342,7 @@ For more details, see the [2.6 Milestone](https://github.com/square/leakcanary/m
 
 ## Version 2.5 (2020-10-01)
 
-Please thank 
+Please thank
 [@Amokrane](https://github.com/Amokrane),
 [@Armaxis](https://github.com/Armaxis),
 [@askont](https://github.com/askont),
@@ -442,7 +446,7 @@ dependencies {
 ```
 
 !!! warning
-    While several of these fixes already ship in release builds of Square apps, this is the first official release of `plumber-android`, so you should consider it **experimental**. 
+    While several of these fixes already ship in release builds of Square apps, this is the first official release of `plumber-android`, so you should consider it **experimental**.
 
 ### Analyzing leaks from the CLI is easier than ever 🍺
 
@@ -548,7 +552,7 @@ for the contributions, bug reports and feature requests.
 
 ![tv ui](images/android-tv-leaks.png)
 
-LeakCanary is finally coming to big screens near you! Best part - no additional setup is required, just enable it like you would for a [mobile device](getting_started.md). Now whenever there's a leak - you will see a helpful Toast appear with all the details. Make sure to check out our new [Android TV](recipes.md#android-tv) section and chill! 
+LeakCanary is finally coming to big screens near you! Best part - no additional setup is required, just enable it like you would for a [mobile device](getting_started.md). Now whenever there's a leak - you will see a helpful Toast appear with all the details. Make sure to check out our new [Android TV](recipes.md#android-tv) section and chill!
 
 ### Java-friendly Config builders
 
@@ -564,7 +568,7 @@ LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
 LeakCanary.setConfig(config);
 ```
 
-If you notice any other problems when using LeakCanary from Java, please [file an issue](https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+enhancement&template=3-feature.md&title=)! We take Java-interop seriously and will be happy to improve LeakCanary's API! 
+If you notice any other problems when using LeakCanary from Java, please [file an issue](https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+enhancement&template=3-feature.md&title=)! We take Java-interop seriously and will be happy to improve LeakCanary's API!
 
 For more details, see the [2.2 Milestone](https://github.com/square/leakcanary/milestone/16) and the [full diff](https://github.com/square/leakcanary/compare/v2.1...v2.2).
 
@@ -825,9 +829,9 @@ For more details, see the [2.0-beta-2 Milestone](https://github.com/square/leakc
 * New Heap Explorer directly on device! Open a Heap Analysis in LeakCanary, tap the options menu and select "Heap Explorer". This is still experimental and not very user friendly, contributions welcome!
 * **Large API rewrite** to improve usability. If you used the alpha with a customized configuration, there are breaking changes. Of note: LeakSentry became [AppWatcher](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/), RefWatcher became [ObjectWatcher](/leakcanary/api/leakcanary-object-watcher/leakcanary/-object-watcher/), AndroidExcludedRefs became [AndroidReferenceMatchers](/leakcanary/api/shark-android/shark/-android-reference-matchers/), AnalysisResultListener became [OnHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/), AndroidLeakTraceInspectors became [AndroidObjectInspectors](/leakcanary/api/shark-android/shark/-android-object-inspectors/).
 * The entire API surface is now documented and the documentation is available on this website: see the **LeakCanary API** tab at the top.
-* Removed the **dependency on Android X**. No more configuration issues! [#1462](https://github.com/square/leakcanary/issues/1462) 
-* Added **Proguard rules** for LeakCanary and ObjectWatcher. [#1500](https://github.com/square/leakcanary/pull/1500) 
-* Display LeakCanary version in the About screen. [#1448](https://github.com/square/leakcanary/issues/1448) 
+* Removed the **dependency on Android X**. No more configuration issues! [#1462](https://github.com/square/leakcanary/issues/1462)
+* Added **Proguard rules** for LeakCanary and ObjectWatcher. [#1500](https://github.com/square/leakcanary/pull/1500)
+* Display LeakCanary version in the About screen. [#1448](https://github.com/square/leakcanary/issues/1448)
 * Bug fixes, new reference matchers and object inspectors
 
 Many thanks to
@@ -873,13 +877,13 @@ For more details, see the [2.0-alpha-3 Milestone](https://github.com/square/leak
 * [#1344](https://github.com/square/leakcanary/pull/1344) Computing retained size
 * [#1325](https://github.com/square/leakcanary/pull/1325) New notification showing current count of retained instances
 * [#1079](https://github.com/square/leakcanary/pull/1079) "Excluded" leaks have been renamed to "Won't fix" leaks to clarify meaning.
-* [#1328](https://github.com/square/leakcanary/pull/1328) New leaks are called out in the UI. 
+* [#1328](https://github.com/square/leakcanary/pull/1328) New leaks are called out in the UI.
 * [#1327](https://github.com/square/leakcanary/pull/1327) LeakSentry can be enabled / disabled and is automatically disabled in non debuggable builds.
 * [#1173](https://github.com/square/leakcanary/pull/1173) Experimental: now reporting leaks that only go through weak references (previously reported as "no path to instance")
 * [#1339](https://github.com/square/leakcanary/pull/1339) Readded support for Thread name based exclusions
 * [#1312](https://github.com/square/leakcanary/pull/1312) Fixed bug causing LeakCanary to stop detecting leaks after the app is killed.
 * [#1310](https://github.com/square/leakcanary/pull/1310) [#1313](https://github.com/square/leakcanary/pull/1313) [#1314](https://github.com/square/leakcanary/pull/1314) [#1340](https://github.com/square/leakcanary/pull/1340) [#1337](https://github.com/square/leakcanary/pull/1337) Many API changes
-* [#1296](https://github.com/square/leakcanary/pull/1296) [#1293](https://github.com/square/leakcanary/pull/1293) [#1306](https://github.com/square/leakcanary/pull/1306) [#1336](https://github.com/square/leakcanary/pull/1336) Fixed several crashes. 
+* [#1296](https://github.com/square/leakcanary/pull/1296) [#1293](https://github.com/square/leakcanary/pull/1293) [#1306](https://github.com/square/leakcanary/pull/1306) [#1336](https://github.com/square/leakcanary/pull/1336) Fixed several crashes.
 
 Many thanks to
 [@forrestbice](https://github.com/forrestbice),
@@ -1044,7 +1048,7 @@ For more details, see the [full diff](https://github.com/square/leakcanary/compa
 * Separate task affinities for different apps
 * Bump minSdk to 14
 * Fix HahaHelper for O Preview
-  
+
 For more details, see the [full diff](https://github.com/square/leakcanary/compare/v1.5...v1.5.1).
 
 ## Version 1.5 *(2016-09-28)*
@@ -1075,7 +1079,7 @@ For more details, see the [full diff](https://github.com/square/leakcanary/compa
 ## Version 1.4 *(2016-09-11)*
 
 * Fix false negative where GC root is of type android.os.Binder [#482](https://github.com/square/leakcanary/issues/482)
-* Update HAHA to 2.0.3; clear compiler warnings [#563](https://github.com/square/leakcanary/issues/563) 
+* Update HAHA to 2.0.3; clear compiler warnings [#563](https://github.com/square/leakcanary/issues/563)
 * Correct some mistakes in German translation [#516](https://github.com/square/leakcanary/pull/516)
 * Don't loop when storage permission denied [#422](https://github.com/square/leakcanary/issues/422)
 * Remove old references to "__" prefixed resources [#477](https://github.com/square/leakcanary/pull/477)

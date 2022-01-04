@@ -1,34 +1,36 @@
-[shark](../../index.md) / [shark](../index.md) / [ApplicationLeak](./index.md)
+//[shark](../../../index.md)/[shark](../index.md)/[ApplicationLeak](index.md)
 
 # ApplicationLeak
 
-`data class ApplicationLeak : `[`Leak`](../-leak/index.md)
+[jvm]\
+data class [ApplicationLeak](index.md)(leakTraces: [List](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)&lt;[LeakTrace](../-leak-trace/index.md)&gt;) : [Leak](../-leak/index.md)
 
 A leak found by [HeapAnalyzer](../-heap-analyzer/index.md) in your application.
 
-### Constructors
+## Constructors
+
+| | |
+|---|---|
+| [ApplicationLeak](-application-leak.md) | [jvm]<br>fun [ApplicationLeak](-application-leak.md)(leakTraces: [List](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)&lt;[LeakTrace](../-leak-trace/index.md)&gt;) |
+
+## Types
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `ApplicationLeak(leakTraces: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`LeakTrace`](../-leak-trace/index.md)`>)`<br>A leak found by [HeapAnalyzer](../-heap-analyzer/index.md) in your application. |
+| [Companion](-companion/index.md) | [jvm]<br>object [Companion](-companion/index.md) |
 
-### Properties
-
-| Name | Summary |
-|---|---|
-| [leakTraces](leak-traces.md) | `val leakTraces: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`LeakTrace`](../-leak-trace/index.md)`>`<br>Group of leak traces which share the same leak signature. |
-| [shortDescription](short-description.md) | `val shortDescription: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
-| [signature](signature.md) | `val signature: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>A unique SHA1 hash that represents this group of leak traces. |
-
-### Inherited Properties
+## Functions
 
 | Name | Summary |
 |---|---|
-| [totalRetainedHeapByteSize](../-leak/total-retained-heap-byte-size.md) | `val totalRetainedHeapByteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`?`<br>Sum of [LeakTrace.retainedHeapByteSize](../-leak-trace/retained-heap-byte-size.md) for all elements in [leakTraces](../-leak/leak-traces.md). Null if the retained heap size was not computed. |
-| [totalRetainedObjectCount](../-leak/total-retained-object-count.md) | `val totalRetainedObjectCount: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`?`<br>Sum of [LeakTrace.retainedObjectCount](../-leak-trace/retained-object-count.md) for all elements in [leakTraces](../-leak/leak-traces.md). Null if the retained heap size was not computed. |
+| [toString](to-string.md) | [jvm]<br>open override fun [toString](to-string.md)(): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 
-### Functions
+## Properties
 
 | Name | Summary |
 |---|---|
-| [toString](to-string.md) | `fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [leakTraces](leak-traces.md) | [jvm]<br>open override val [leakTraces](leak-traces.md): [List](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)&lt;[LeakTrace](../-leak-trace/index.md)&gt;<br>Group of leak traces which share the same leak signature. |
+| [shortDescription](short-description.md) | [jvm]<br>open override val [shortDescription](short-description.md): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [signature](signature.md) | [jvm]<br>open override val [signature](signature.md): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>A unique SHA1 hash that represents this group of leak traces. |
+| [totalRetainedHeapByteSize](../-leak/total-retained-heap-byte-size.md) | [jvm]<br>val [totalRetainedHeapByteSize](../-leak/total-retained-heap-byte-size.md): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)?<br>Sum of [LeakTrace.retainedHeapByteSize](../-leak-trace/retained-heap-byte-size.md) for all elements in [leakTraces](../-leak/leak-traces.md). Null if the retained heap size was not computed. |
+| [totalRetainedObjectCount](../-leak/total-retained-object-count.md) | [jvm]<br>val [totalRetainedObjectCount](../-leak/total-retained-object-count.md): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)?<br>Sum of [LeakTrace.retainedObjectCount](../-leak-trace/retained-object-count.md) for all elements in [leakTraces](../-leak/leak-traces.md). Null if the retained heap size was not computed. |

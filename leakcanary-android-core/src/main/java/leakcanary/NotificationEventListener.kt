@@ -9,7 +9,6 @@ import com.squareup.leakcanary.core.R
 import leakcanary.EventListener.Event
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapAnalysisDone
-import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisFailed
 import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisSucceeded
 import leakcanary.EventListener.Event.HeapAnalysisProgress
 import leakcanary.EventListener.Event.HeapDumpFailed

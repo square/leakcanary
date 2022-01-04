@@ -226,15 +226,13 @@ public class LeakUploadService extends DisplayLeakService {
 
 ```java
 RefWatcher refWatcher = LeakCanary.refWatcher(this)
-  .listenerServiceClass(LeakUploadService.class);
+  .listenerServiceClass(LeakUploadService.class)
   .buildAndInstall();
 ```
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    >
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <application android:name="com.example.DebugExampleApplication">
     <service android:name="com.example.LeakUploadService" />
   </application>

@@ -1,10 +1,14 @@
-[leakcanary-android-core](../../../../index.md) / [leakcanary](../../../index.md) / [LeakCanary](../../index.md) / [Config](../index.md) / [Builder](index.md) / [objectInspectors](./object-inspectors.md)
+//[leakcanary-android-core](../../../../../index.md)/[leakcanary](../../../index.md)/[LeakCanary](../../index.md)/[Config](../index.md)/[Builder](index.md)/[objectInspectors](object-inspectors.md)
 
 # objectInspectors
 
-`fun objectInspectors(objectInspectors: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<ObjectInspector>): `[`LeakCanary.Config.Builder`](index.md)
+[androidJvm]\
+fun [objectInspectors](object-inspectors.md)(objectInspectors: [List](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)&lt;ObjectInspector&gt;): [LeakCanary.Config.Builder](index.md)
 
-**See Also**
+## See also
 
-[LeakCanary.Config.objectInspectors](../object-inspectors.md)
+androidJvm
 
+| | |
+|---|---|
+| [leakcanary.LeakCanary.Config](../object-inspectors.md) |  |

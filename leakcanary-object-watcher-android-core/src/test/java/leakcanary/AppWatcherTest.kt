@@ -27,7 +27,7 @@ class AppWatcherTest {
       member.annotations.none { it is Deprecated }
     }
     .map { it.name }
-    .subtract(listOf("build", "equals", "hashCode", "toString"))
+    .subtract(setOf("build", "equals", "hashCode", "toString"))
 
   private fun configProperties() = AppWatcher.Config::class.memberProperties
     .filter { member ->

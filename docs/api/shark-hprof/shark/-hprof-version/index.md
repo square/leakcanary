@@ -1,22 +1,25 @@
-[shark-hprof](../../index.md) / [shark](../index.md) / [HprofVersion](./index.md)
+//[shark-hprof](../../../index.md)/[shark](../index.md)/[HprofVersion](index.md)
 
 # HprofVersion
 
-`enum class HprofVersion`
+[jvm]\
+enum [HprofVersion](index.md) : [Enum](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html)&lt;[HprofVersion](index.md)&gt; 
 
 Supported hprof versions
 
-### Enum Values
+## Entries
+
+| | |
+|---|---|
+| [ANDROID](-a-n-d-r-o-i-d/index.md) | [jvm]<br>[ANDROID](-a-n-d-r-o-i-d/index.md)("JAVA PROFILE 1.0.3") |
+| [JDK_6](-j-d-k_6/index.md) | [jvm]<br>[JDK_6](-j-d-k_6/index.md)("JAVA PROFILE 1.0.2") |
+| [JDK1_2_BETA4](-j-d-k1_2_-b-e-t-a4/index.md) | [jvm]<br>[JDK1_2_BETA4](-j-d-k1_2_-b-e-t-a4/index.md)("JAVA PROFILE 1.0.1") |
+| [JDK1_2_BETA3](-j-d-k1_2_-b-e-t-a3/index.md) | [jvm]<br>[JDK1_2_BETA3](-j-d-k1_2_-b-e-t-a3/index.md)("JAVA PROFILE 1.0") |
+
+## Properties
 
 | Name | Summary |
 |---|---|
-| [JDK1_2_BETA3](-j-d-k1_2_-b-e-t-a3.md) |  |
-| [JDK1_2_BETA4](-j-d-k1_2_-b-e-t-a4.md) |  |
-| [JDK_6](-j-d-k_6.md) |  |
-| [ANDROID](-a-n-d-r-o-i-d.md) |  |
-
-### Properties
-
-| Name | Summary |
-|---|---|
-| [versionString](version-string.md) | `val versionString: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [name](../-primitive-type/-b-o-o-l-e-a-n/index.md#-372974862%2FProperties%2F219937657) | [jvm]<br>val [name](../-primitive-type/-b-o-o-l-e-a-n/index.md#-372974862%2FProperties%2F219937657): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [ordinal](../-primitive-type/-b-o-o-l-e-a-n/index.md#-739389684%2FProperties%2F219937657) | [jvm]<br>val [ordinal](../-primitive-type/-b-o-o-l-e-a-n/index.md#-739389684%2FProperties%2F219937657): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+| [versionString](version-string.md) | [jvm]<br>val [versionString](version-string.md): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |

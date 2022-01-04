@@ -1,8 +1,6 @@
-[shark-hprof](../../../../../../index.md) / [shark](../../../../../index.md) / [HprofRecord](../../../../index.md) / [HeapDumpRecord](../../../index.md) / [ObjectRecord](../../index.md) / [PrimitiveArrayDumpRecord](../index.md) / [IntArrayDump](index.md) / [id](./id.md)
+//[shark-hprof](../../../../../../../index.md)/[shark](../../../../../index.md)/[HprofRecord](../../../../index.md)/[HeapDumpRecord](../../../index.md)/[ObjectRecord](../../index.md)/[PrimitiveArrayDumpRecord](../index.md)/[IntArrayDump](index.md)/[id](id.md)
 
 # id
 
-`val id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)
-
-Overrides [PrimitiveArrayDumpRecord.id](../id.md)
-
+[jvm]\
+open override val [id](id.md): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)

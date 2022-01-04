@@ -1,10 +1,14 @@
-[shark-graph](../../../index.md) / [shark](../../index.md) / [HeapObject](../index.md) / [HeapInstance](index.md) / [byteSize](./byte-size.md)
+//[shark-graph](../../../../index.md)/[shark](../../index.md)/[HeapObject](../index.md)/[HeapInstance](index.md)/[byteSize](byte-size.md)
 
 # byteSize
 
-`val byteSize: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)
+[jvm]\
+val [byteSize](byte-size.md): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)
 
-**See Also**
+## See also
 
-[HeapClass.instanceByteSize](../-heap-class/instance-byte-size.md)
+jvm
 
+| | |
+|---|---|
+| [shark.HeapObject.HeapClass](../-heap-class/instance-byte-size.md) |  |

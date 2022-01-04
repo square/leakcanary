@@ -1,19 +1,20 @@
-[shark-hprof](../../../index.md) / [shark](../../index.md) / [GcRoot](../index.md) / [InternedString](./index.md)
+//[shark-hprof](../../../../index.md)/[shark](../../index.md)/[GcRoot](../index.md)/[InternedString](index.md)
 
 # InternedString
 
-`class InternedString : `[`GcRoot`](../index.md)
+[jvm]\
+class [InternedString](index.md)(id: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)) : [GcRoot](../index.md)
 
-An interned string, see [java.lang.String.intern](https://docs.oracle.com/javase/6/docs/api/java/lang/String.html#intern()).
+An interned string, see [java.lang.String.intern](https://docs.oracle.com/javase/8/docs/api/java/lang/String.html#intern--).
 
-### Constructors
+## Constructors
+
+| | |
+|---|---|
+| [InternedString](-interned-string.md) | [jvm]<br>fun [InternedString](-interned-string.md)(id: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)) |
+
+## Properties
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `InternedString(id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`)`<br>An interned string, see [java.lang.String.intern](https://docs.oracle.com/javase/6/docs/api/java/lang/String.html#intern()). |
-
-### Properties
-
-| Name | Summary |
-|---|---|
-| [id](id.md) | `val id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>The object id of the object that this gc root references. |
+| [id](id.md) | [jvm]<br>open override val [id](id.md): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>The object id of the object that this gc root references. |

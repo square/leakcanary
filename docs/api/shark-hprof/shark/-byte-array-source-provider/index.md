@@ -1,18 +1,13 @@
-[shark-hprof](../../index.md) / [shark](../index.md) / [ByteArraySourceProvider](./index.md)
+//[shark-hprof](../../../index.md)/[shark](../index.md)/[ByteArraySourceProvider](index.md)
 
 # ByteArraySourceProvider
 
-`class ByteArraySourceProvider : `[`DualSourceProvider`](../-dual-source-provider.md)
+[jvm]\
+class [ByteArraySourceProvider](index.md)(byteArray: [ByteArray](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html)) : [DualSourceProvider](../-dual-source-provider/index.md)
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `ByteArraySourceProvider(byteArray: `[`ByteArray`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html)`)` |
-
-### Functions
+## Functions
 
 | Name | Summary |
 |---|---|
-| [openRandomAccessSource](open-random-access-source.md) | `fun openRandomAccessSource(): `[`RandomAccessSource`](../-random-access-source/index.md) |
-| [openStreamingSource](open-streaming-source.md) | `fun openStreamingSource(): BufferedSource` |
+| [openRandomAccessSource](open-random-access-source.md) | [jvm]<br>open override fun [openRandomAccessSource](open-random-access-source.md)(): [RandomAccessSource](../-random-access-source/index.md) |
+| [openStreamingSource](open-streaming-source.md) | [jvm]<br>open override fun [openStreamingSource](open-streaming-source.md)(): [BufferedSource](https://square.github.io/okio/2.x/okio/okio/-buffered-source/index.html) |

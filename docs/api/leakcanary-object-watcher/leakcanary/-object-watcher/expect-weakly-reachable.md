@@ -1,11 +1,11 @@
-[leakcanary-object-watcher](../../index.md) / [leakcanary](../index.md) / [ObjectWatcher](index.md) / [expectWeaklyReachable](./expect-weakly-reachable.md)
+//[leakcanary-object-watcher](../../../index.md)/[leakcanary](../index.md)/[ObjectWatcher](index.md)/[expectWeaklyReachable](expect-weakly-reachable.md)
 
 # expectWeaklyReachable
 
-`@Synchronized fun expectWeaklyReachable(watchedObject: `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`, description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+[jvm]\
 
-Overrides [ReachabilityWatcher.expectWeaklyReachable](../-reachability-watcher/expect-weakly-reachable.md)
+@[Synchronized](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html)
 
-Expects the provided [watchedObject](../-reachability-watcher/expect-weakly-reachable.md#leakcanary.ReachabilityWatcher$expectWeaklyReachable(kotlin.Any, kotlin.String)/watchedObject) to become weakly reachable soon. If not,
-[watchedObject](../-reachability-watcher/expect-weakly-reachable.md#leakcanary.ReachabilityWatcher$expectWeaklyReachable(kotlin.Any, kotlin.String)/watchedObject) will be considered retained.
+open override fun [expectWeaklyReachable](expect-weakly-reachable.md)(watchedObject: [Any](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html), description: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html))
 
+Expects the provided [watchedObject](expect-weakly-reachable.md) to become weakly reachable soon. If not, [watchedObject](expect-weakly-reachable.md) will be considered retained.

@@ -1,17 +1,12 @@
-[shark-hprof](../../../index.md) / [shark](../../index.md) / [ValueHolder](../index.md) / [FloatHolder](./index.md)
+//[shark-hprof](../../../../index.md)/[shark](../../index.md)/[ValueHolder](../index.md)/[FloatHolder](index.md)
 
 # FloatHolder
 
-`data class FloatHolder : `[`ValueHolder`](../index.md)
+[jvm]\
+data class [FloatHolder](index.md)(value: [Float](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html)) : [ValueHolder](../index.md)
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `FloatHolder(value: `[`Float`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html)`)` |
-
-### Properties
+## Properties
 
 | Name | Summary |
 |---|---|
-| [value](value.md) | `val value: `[`Float`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html) |
+| [value](value.md) | [jvm]<br>val [value](value.md): [Float](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html) |

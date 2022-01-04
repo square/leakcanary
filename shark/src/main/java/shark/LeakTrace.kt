@@ -1,6 +1,5 @@
 package shark
 
-import shark.LeakTrace.GcRootType.JAVA_FRAME
 import shark.LeakTraceObject.LeakingStatus.LEAKING
 import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
 import shark.LeakTraceObject.LeakingStatus.UNKNOWN

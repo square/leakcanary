@@ -1,10 +1,14 @@
-[leakcanary-android-core](../../../../index.md) / [leakcanary](../../../index.md) / [LeakCanary](../../index.md) / [Config](../index.md) / [Builder](index.md) / [dumpHeap](./dump-heap.md)
+//[leakcanary-android-core](../../../../../index.md)/[leakcanary](../../../index.md)/[LeakCanary](../../index.md)/[Config](../index.md)/[Builder](index.md)/[dumpHeap](dump-heap.md)
 
 # dumpHeap
 
-`fun dumpHeap(dumpHeap: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`LeakCanary.Config.Builder`](index.md)
+[androidJvm]\
+fun [dumpHeap](dump-heap.md)(dumpHeap: [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)): [LeakCanary.Config.Builder](index.md)
 
-**See Also**
+## See also
 
-[LeakCanary.Config.dumpHeap](../dump-heap.md)
+androidJvm
 
+| | |
+|---|---|
+| [leakcanary.LeakCanary.Config](../dump-heap.md) |  |

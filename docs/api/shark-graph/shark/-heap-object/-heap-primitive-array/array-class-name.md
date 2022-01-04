@@ -1,8 +1,8 @@
-[shark-graph](../../../index.md) / [shark](../../index.md) / [HeapObject](../index.md) / [HeapPrimitiveArray](index.md) / [arrayClassName](./array-class-name.md)
+//[shark-graph](../../../../index.md)/[shark](../../index.md)/[HeapObject](../index.md)/[HeapPrimitiveArray](index.md)/[arrayClassName](array-class-name.md)
 
 # arrayClassName
 
-`val arrayClassName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)
+[jvm]\
+val [arrayClassName](array-class-name.md): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)
 
-The name of the class of this array, identical to [Class.getName](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#getName()).
-
+The name of the class of this array, identical to [Class.getName](https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html#getName--).

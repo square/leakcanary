@@ -1,17 +1,12 @@
-[shark-hprof](../../../index.md) / [shark](../../index.md) / [ValueHolder](../index.md) / [IntHolder](./index.md)
+//[shark-hprof](../../../../index.md)/[shark](../../index.md)/[ValueHolder](../index.md)/[IntHolder](index.md)
 
 # IntHolder
 
-`data class IntHolder : `[`ValueHolder`](../index.md)
+[jvm]\
+data class [IntHolder](index.md)(value: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)) : [ValueHolder](../index.md)
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `IntHolder(value: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`)` |
-
-### Properties
+## Properties
 
 | Name | Summary |
 |---|---|
-| [value](value.md) | `val value: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+| [value](value.md) | [jvm]<br>val [value](value.md): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |

@@ -1,10 +1,14 @@
-[leakcanary-android-release](../../index.md) / [leakcanary](../index.md) / [JobContext](index.md) / [contains](./contains.md)
+//[leakcanary-android-release](../../../index.md)/[leakcanary](../index.md)/[JobContext](index.md)/[contains](contains.md)
 
 # contains
 
-`operator fun contains(key: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)
+[androidJvm]\
+operator fun [contains](contains.md)(key: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)
 
-**See Also**
+## See also
 
-[MutableMap.containsKey](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/contains-key.html)
+androidJvm
 
+| | |
+|---|---|
+| [kotlin.collections.MutableMap](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/contains-key.html) |  |

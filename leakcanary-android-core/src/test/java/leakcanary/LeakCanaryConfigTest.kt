@@ -18,7 +18,7 @@ class LeakCanaryConfigTest {
 
   private fun configBuilderFunctions() = LeakCanary.Config.Builder::class.memberFunctions
     .map { it.name }
-    .subtract(listOf("build", "equals", "hashCode", "toString"))
+    .subtract(setOf("build", "equals", "hashCode", "toString"))
 
   private fun configProperties() = LeakCanary.Config::class.memberProperties
     .map { it.name }

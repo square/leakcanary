@@ -5,7 +5,6 @@ import shark.GcRoot.ThreadObject
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ReferenceHolder
 import java.io.File
-import kotlin.reflect.KClass
 
 fun File.writeWeakReferenceCleared() {
   dump {

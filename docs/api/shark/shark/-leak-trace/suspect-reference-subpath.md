@@ -1,9 +1,8 @@
-[shark](../../index.md) / [shark](../index.md) / [LeakTrace](index.md) / [suspectReferenceSubpath](./suspect-reference-subpath.md)
+//[shark](../../../index.md)/[shark](../index.md)/[LeakTrace](index.md)/[suspectReferenceSubpath](suspect-reference-subpath.md)
 
 # suspectReferenceSubpath
 
-`val suspectReferenceSubpath: `[`Sequence`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html)`<`[`LeakTraceReference`](../-leak-trace-reference/index.md)`>`
+[jvm]\
+val [suspectReferenceSubpath](suspect-reference-subpath.md): [Sequence](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html)&lt;[LeakTraceReference](../-leak-trace-reference/index.md)&gt;
 
-A part of [referencePath](reference-path.md) that contains the references suspected to cause the leak.
-Starts at the last non leaking object and ends before the first leaking object.
-
+A part of [referencePath](reference-path.md) that contains the references suspected to cause the leak. Starts at the last non leaking object and ends before the first leaking object.

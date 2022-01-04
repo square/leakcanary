@@ -1,10 +1,8 @@
-[shark-hprof](../../../index.md) / [shark](../../index.md) / [GcRoot](../index.md) / [StickyClass](index.md) / [id](./id.md)
+//[shark-hprof](../../../../index.md)/[shark](../../index.md)/[GcRoot](../index.md)/[StickyClass](index.md)/[id](id.md)
 
 # id
 
-`val id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)
-
-Overrides [GcRoot.id](../id.md)
+[jvm]\
+open override val [id](id.md): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)
 
 The object id of the object that this gc root references.
-

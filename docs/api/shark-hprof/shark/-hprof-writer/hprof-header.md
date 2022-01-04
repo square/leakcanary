@@ -1,5 +1,6 @@
-[shark-hprof](../../index.md) / [shark](../index.md) / [HprofWriter](index.md) / [hprofHeader](./hprof-header.md)
+//[shark-hprof](../../../index.md)/[shark](../index.md)/[HprofWriter](index.md)/[hprofHeader](hprof-header.md)
 
 # hprofHeader
 
-`val hprofHeader: `[`HprofHeader`](../-hprof-header/index.md)
+[jvm]\
+val [hprofHeader](hprof-header.md): [HprofHeader](../-hprof-header/index.md)

@@ -1,18 +1,18 @@
-[shark-android](../../index.md) / [shark](../index.md) / [AndroidResourceIdNames](./index.md)
+//[shark-android](../../../index.md)/[shark](../index.md)/[AndroidResourceIdNames](index.md)
 
 # AndroidResourceIdNames
 
-`class AndroidResourceIdNames`
+[jvm]\
+class [AndroidResourceIdNames](index.md)
 
-### Functions
-
-| Name | Summary |
-|---|---|
-| [get](get.md) | `operator fun get(id: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?` |
-
-### Companion Object Functions
+## Types
 
 | Name | Summary |
 |---|---|
-| [readFromHeap](read-from-heap.md) | `fun readFromHeap(graph: HeapGraph): `[`AndroidResourceIdNames`](./index.md)`?` |
-| [saveToMemory](save-to-memory.md) | `fun saveToMemory(getResourceTypeName: (`[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`) -> `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?, getResourceEntryName: (`[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`) -> `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
+| [Companion](-companion/index.md) | [jvm]<br>object [Companion](-companion/index.md) |
+
+## Functions
+
+| Name | Summary |
+|---|---|
+| [get](get.md) | [jvm]<br>operator fun [get](get.md)(id: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)? |

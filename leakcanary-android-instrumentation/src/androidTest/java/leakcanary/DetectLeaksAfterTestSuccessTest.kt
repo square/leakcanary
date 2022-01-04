@@ -30,7 +30,7 @@ class DetectLeaksAfterTestSuccessTest {
   }
 
   @get:Rule
-  val rule = RuleChain.outerRule(CheckAssertNoLeaksInvoked).around(DetectLeaksAfterTestSuccess())
+  val rule: RuleChain = RuleChain.outerRule(CheckAssertNoLeaksInvoked).around(DetectLeaksAfterTestSuccess())
 
   @Test fun emptyTest() {
     // This test triggers the rules.

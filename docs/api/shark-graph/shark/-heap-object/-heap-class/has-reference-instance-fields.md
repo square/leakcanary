@@ -1,5 +1,6 @@
-[shark-graph](../../../index.md) / [shark](../../index.md) / [HeapObject](../index.md) / [HeapClass](index.md) / [hasReferenceInstanceFields](./has-reference-instance-fields.md)
+//[shark-graph](../../../../index.md)/[shark](../../index.md)/[HeapObject](../index.md)/[HeapClass](index.md)/[hasReferenceInstanceFields](has-reference-instance-fields.md)
 
 # hasReferenceInstanceFields
 
-`val hasReferenceInstanceFields: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)
+[jvm]\
+val [hasReferenceInstanceFields](has-reference-instance-fields.md): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)

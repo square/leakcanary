@@ -1,12 +1,10 @@
-[shark-graph](../../../index.md) / [shark](../../index.md) / [HeapObject](../index.md) / [HeapInstance](index.md) / [readRecord](./read-record.md)
+//[shark-graph](../../../../index.md)/[shark](../../index.md)/[HeapObject](../index.md)/[HeapInstance](index.md)/[readRecord](read-record.md)
 
 # readRecord
 
-`fun readRecord(): InstanceDumpRecord`
+[jvm]\
+open override fun [readRecord](read-record.md)(): HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 
-Overrides [HeapObject.readRecord](../read-record.md)
-
-Reads and returns the underlying [InstanceDumpRecord](#).
+Reads and returns the underlying InstanceDumpRecord.
 
 This may trigger IO reads.
-

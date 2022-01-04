@@ -1,10 +1,14 @@
-[shark-graph](../../index.md) / [shark](../index.md) / [GraphContext](index.md) / [set](./set.md)
+//[shark-graph](../../../index.md)/[shark](../index.md)/[GraphContext](index.md)/[set](set.md)
 
 # set
 
-`operator fun <T> set(key: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, value: `[`T`](set.md#T)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+[jvm]\
+operator fun &lt;[T](set.md)&gt; [set](set.md)(key: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html), value: [T](set.md))
 
-**See Also**
+## See also
 
-[MutableMap.set](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/set.html)
+jvm
 
+| | |
+|---|---|
+| [MutableMap.set](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/index.html) |  |
