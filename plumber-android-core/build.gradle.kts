@@ -24,6 +24,7 @@ dependencies {
   api(project(":leakcanary-android-utils"))
 
   implementation(libs.kotlin.stdlib)
+  implementation(libs.curtains)
   // Optional dependency
   compileOnly(libs.androidX.fragment)
 }
