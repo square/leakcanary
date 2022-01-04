@@ -9,6 +9,7 @@ import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_ACTIVITY
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_DESTROYED
 import shark.SharkLog.Logger
 import java.io.File
+import shark.HeapObject.HeapInstance
 
 class LegacyHprofTest {
 
@@ -134,6 +135,32 @@ class LegacyHprofTest {
     assertThat(analysis.applicationLeaks).hasSize(1)
     val leak = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leak.leakingObject.className).isEqualTo("com.example.leakcanary.MainActivity")
+  }
+
+  @Test fun `MessageQueue shows list of messages as array`() {
+    val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
+    val analysis = heapAnalyzer.analyze(
+      heapDumpFile = "gc_root_in_non_primary_heap.hprof".classpathFile(),
+      leakingObjectFinder = FilteringLeakingObjectFinder(
+        listOf(FilteringLeakingObjectFinder.LeakingObjectFilter { heapObject ->
+          heapObject is HeapInstance &&
+            heapObject instanceOf "android.os.Message" &&
+            heapObject["android.os.Message", "target"]?.valueAsInstance?.instanceClassName == "android.app.ActivityThread\$H" &&
+            heapObject["android.os.Message", "what"]!!.value.asInt!! == 132 // ENABLE_JIT
+        })
+      ),
+      referenceMatchers = AndroidReferenceMatchers.appDefaults,
+      computeRetainedHeapSize = true,
+      objectInspectors = AndroidObjectInspectors.appDefaults,
+      metadataExtractor = AndroidMetadataExtractor
+    )
+    println(analysis)
+    analysis as HeapAnalysisSuccess
+    assertThat(analysis.applicationLeaks).hasSize(1)
+    val leak = analysis.applicationLeaks[0].leakTraces.first()
+    val firstReference = leak.referencePath.first()
+    assertThat(firstReference.originObject.className).isEqualTo("android.os.MessageQueue")
+    assertThat(firstReference.referenceDisplayName).isEqualTo("[0]")
   }
 
   private fun analyzeHprof(fileName: String): HeapAnalysisSuccess {

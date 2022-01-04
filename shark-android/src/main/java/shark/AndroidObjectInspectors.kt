@@ -15,12 +15,13 @@
  */
 package shark
 
-import shark.AndroidServices.aliveAndroidServiceObjectIds
 import shark.AndroidObjectInspectors.Companion.appDefaults
+import shark.AndroidServices.aliveAndroidServiceObjectIds
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapInstance
 import java.util.EnumSet
 import kotlin.math.absoluteValue
+import shark.internal.InternalSharkCollectionsHelper
 
 /**
  * A set of default [ObjectInspector]s that knows about common AOSP and library
@@ -224,7 +225,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (instance.objectId in instance.graph.aliveAndroidServiceObjectIds) {
           notLeakingReasons += "Service held by ActivityThread"
         } else {
-          leakingReasons +=  "Service not held by ActivityThread"
+          leakingReasons += "Service not held by ActivityThread"
         }
       }
     }
@@ -656,7 +657,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val mTitleField = mWindowAttributes["android.view.WindowManager\$LayoutParams", "mTitle"]!!
         labels += if (mTitleField.value.isNonNullReference) {
           val mTitle =
-                mTitleField.valueAsInstance!!.readAsJavaString()!!
+            mTitleField.valueAsInstance!!.readAsJavaString()!!
           "mWindowAttributes.mTitle = \"$mTitle\""
         } else {
           "mWindowAttributes.mTitle is null"
@@ -717,6 +718,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         labels += "Message.obj = ${instance["android.os.Message", "obj"]!!.value.asObject}"
         labels += "Message.callback = ${instance["android.os.Message", "callback"]!!.value.asObject}"
+        labels += "Message.target = ${instance["android.os.Message", "target"]!!.value.asObject}"
       }
     }
   },
@@ -749,7 +751,93 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
       }
     }
-  };
+  },
+
+  RECOMPOSER {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("androidx.compose.runtime.Recomposer") { instance ->
+        val stateFlow =
+          instance["androidx.compose.runtime.Recomposer", "_state"]!!.valueAsInstance!!
+        val state = stateFlow["kotlinx.coroutines.flow.StateFlowImpl", "_state"]?.valueAsInstance
+        if (state != null) {
+          val stateName = state["java.lang.Enum", "name"]!!.valueAsInstance!!.readAsJavaString()!!
+          val label = "Recomposer is in state $stateName"
+          when (stateName) {
+            "ShutDown", "ShuttingDown" -> leakingReasons += label
+            "Inactive", "InactivePendingWork" -> labels += label
+            "PendingWork", "Idle" -> notLeakingReasons += label
+          }
+        }
+      }
+    }
+  },
+
+  COMPOSITION_IMPL {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("androidx.compose.runtime.CompositionImpl") { instance ->
+        if (instance["androidx.compose.runtime.CompositionImpl", "disposed"]!!.value.asBoolean!!) {
+          leakingReasons += "Composition disposed"
+        } else {
+          notLeakingReasons += "Composition not disposed"
+        }
+      }
+    }
+  },
+
+  ANIMATOR {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.animation.Animator") { instance ->
+        val mListeners = instance["android.animation.Animator", "mListeners"]!!.valueAsInstance
+        if (mListeners != null) {
+          val listenerValues = InternalSharkCollectionsHelper.arrayListValues(mListeners).toList()
+          if (listenerValues.isNotEmpty()) {
+            listenerValues.forEach { value ->
+              labels += "mListeners$value"
+            }
+          } else {
+            labels += "mListeners is empty"
+          }
+        } else {
+          labels += "mListeners = null"
+        }
+      }
+    }
+  },
+
+  OBJECT_ANIMATOR {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.animation.ObjectAnimator") { instance ->
+        labels += "mPropertyName = " + (instance["android.animation.ObjectAnimator", "mPropertyName"]!!.valueAsInstance?.readAsJavaString()
+          ?: "null")
+        val mProperty = instance["android.animation.ObjectAnimator", "mProperty"]!!.valueAsInstance
+        if (mProperty == null) {
+          labels += "mProperty = null"
+        } else {
+          labels += "mProperty.mName = " + (mProperty["android.util.Property", "mName"]!!.valueAsInstance?.readAsJavaString()
+            ?: "null")
+          labels += "mProperty.mType = " + (mProperty["android.util.Property", "mType"]!!.valueAsClass?.name
+            ?: "null")
+        }
+        labels += "mInitialized = " + instance["android.animation.ValueAnimator", "mInitialized"]!!.value.asBoolean!!
+        labels += "mStarted = " + instance["android.animation.ValueAnimator", "mStarted"]!!.value.asBoolean!!
+        labels += "mRunning = " + instance["android.animation.ValueAnimator", "mRunning"]!!.value.asBoolean!!
+        labels += "mAnimationEndRequested = " + instance["android.animation.ValueAnimator", "mAnimationEndRequested"]!!.value.asBoolean!!
+        labels += "mDuration = " + instance["android.animation.ValueAnimator", "mDuration"]!!.value.asLong!!
+        labels += "mStartDelay = " + instance["android.animation.ValueAnimator", "mStartDelay"]!!.value.asLong!!
+        val repeatCount = instance["android.animation.ValueAnimator", "mRepeatCount"]!!.value.asInt!!
+        labels += "mRepeatCount = " + if (repeatCount == -1) "INFINITE (-1)" else repeatCount
+
+        val repeatModeConstant = when (val repeatMode =
+          instance["android.animation.ValueAnimator", "mRepeatMode"]!!.value.asInt!!) {
+          1 -> "RESTART (1)"
+          2 -> "REVERSE (2)"
+          else -> "Unknown ($repeatMode)"
+        }
+        labels += "mRepeatMode = $repeatModeConstant"
+      }
+    }
+  },
+  ;
 
   internal open val leakingObjectFilter: ((heapObject: HeapObject) -> Boolean)? = null
 

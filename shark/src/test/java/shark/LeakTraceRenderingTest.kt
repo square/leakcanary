@@ -248,8 +248,8 @@ class LeakTraceRenderingTest {
     │                    ~~~~~
     ├─ java.lang.Object[] array
     │    Leaking: UNKNOWN
-    │    ↓ Object[].[0]
-    │               ~~~
+    │    ↓ Object[0]
+    │            ~~~
     ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
@@ -262,16 +262,19 @@ class LeakTraceRenderingTest {
     hprofFile.writeJavaLocalLeak(threadClass = "MyThread", threadName = "kroutine")
 
     val analysis =
-      hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        objectInspectors = ObjectInspectors.jdkDefaults
+      )
 
     analysis renders """
     ┬───
-    │ GC Root: Java local variable
+    │ GC Root: Thread object
     │
-    ├─ MyThread thread
+    ├─ MyThread instance
     │    Leaking: UNKNOWN
-    │    ↓ MyThread.<Java Local>
-    │               ~~~~~~~~~~~~
+    │    Thread name: 'kroutine'
+    │    ↓ MyThread<Java Local>
+    │              ~~~~~~~~~~~~
     ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc

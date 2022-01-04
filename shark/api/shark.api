@@ -456,6 +456,11 @@ public final class shark/ReferencePattern$StaticFieldPattern : shark/ReferencePa
 public final class shark/ReferencePattern$StaticFieldPattern$Companion {
 }
 
+public final class shark/internal/InternalSharkCollectionsHelper {
+	public static final field INSTANCE Lshark/internal/InternalSharkCollectionsHelper;
+	public final fun arrayListValues (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+}
+
 public final class shark/internal/ObjectDominators {
 	public fun <init> ()V
 	public final fun renderDominatorTree (Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;Z)Ljava/lang/String;

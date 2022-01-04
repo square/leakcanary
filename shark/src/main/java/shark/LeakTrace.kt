@@ -4,6 +4,7 @@ import shark.LeakTrace.GcRootType.JAVA_FRAME
 import shark.LeakTraceObject.LeakingStatus.LEAKING
 import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
 import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.internal.createSHA1Hash
 import java.io.Serializable
@@ -110,15 +111,7 @@ data class LeakTrace(
         firstLinePrefix = "├─ ",
         additionalLinesPrefix = "│    ",
         showLeakingStatus = showLeakingStatus,
-        /**
-         * When the GC Root is a Java Frame, Shark inserts the corresponding thread as an extra
-         * element in the leaktrace.
-         */
-        typeName = if (index == 0 && gcRootType == JAVA_FRAME) {
-          "thread"
-        } else {
-          originObject.typeName
-        }
+        typeName = originObject.typeName
       )
       result += getNextElementString(this, element, index, showLeakingStatus)
     }
@@ -170,15 +163,19 @@ data class LeakTrace(
       showLeakingStatus: Boolean
     ): String {
       val static = if (reference.referenceType == STATIC_FIELD) " static" else ""
-      val referenceLine =
-        "    ↓$static ${reference.owningClassSimpleName}.${reference.referenceDisplayName}"
+
+      val referenceLinePrefix = "    ↓$static ${reference.owningClassSimpleName.removeSuffix("[]")}" +
+       when (reference.referenceType) {
+         STATIC_FIELD, INSTANCE_FIELD -> "."
+         else -> ""
+       }
+
+      val referenceName = reference.referenceDisplayName
+      val referenceLine = referenceLinePrefix + referenceName
 
       return if (showLeakingStatus && leakTrace.referencePathElementIsSuspect(index)) {
-        val lengthBeforeReferenceName = referenceLine.lastIndexOf('.') + 1
-        val referenceLength = referenceLine.length - lengthBeforeReferenceName
-
-        val spaces = " ".repeat(lengthBeforeReferenceName)
-        val underline = "~".repeat(referenceLength)
+        val spaces = " ".repeat(referenceLinePrefix.length)
+        val underline = "~".repeat(referenceName.length)
         "\n│$referenceLine\n│$spaces$underline"
       } else {
         "\n│$referenceLine"

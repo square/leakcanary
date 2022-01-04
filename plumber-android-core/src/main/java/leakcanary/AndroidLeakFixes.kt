@@ -6,6 +6,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Context.INPUT_METHOD_SERVICE
+import android.content.ContextWrapper
 import android.os.Build.MANUFACTURER
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
@@ -484,14 +485,18 @@ enum class AndroidLeakFixes {
       if (SDK_INT >= 29) {
         return
       }
-      val inputMethodManager =
+      val inputMethodManager = try {
         application.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-      val mCurRootViewField: Field
-      try {
-        mCurRootViewField =
-          InputMethodManager::class.java.getDeclaredField("mCurRootView")
-        mCurRootViewField.isAccessible = true
-      } catch (ignored: Exception) {
+      } catch (ignored: Throwable) {
+        // https://github.com/square/leakcanary/issues/2140
+        SharkLog.d(ignored) { "Could not retrieve InputMethodManager service" }
+        return
+      }
+      val mCurRootViewField = try {
+          InputMethodManager::class.java.getDeclaredField("mCurRootView").apply {
+            isAccessible = true
+          }
+      } catch (ignored: Throwable) {
         SharkLog.d(ignored) { "Could not read InputMethodManager.mCurRootView field" }
         return
       }
@@ -500,16 +505,43 @@ enum class AndroidLeakFixes {
         override fun onActivityDestroyed(activity: Activity) {
           try {
             val rootView = mCurRootViewField[inputMethodManager] as View?
-            if (rootView != null && activity.window != null && activity.window.decorView === rootView
-            ) {
+            val isDestroyedActivity = rootView != null &&
+              activity.window != null &&
+              activity.window.decorView === rootView
+            val rootViewActivityContext = rootView?.context?.activityOrNull
+            val isChildWindowOfDestroyedActivity = rootViewActivityContext === activity
+            if (isDestroyedActivity || isChildWindowOfDestroyedActivity) {
               mCurRootViewField[inputMethodManager] = null
             }
-          } catch (ignored: Exception) {
+          } catch (ignored: Throwable) {
             SharkLog.d(ignored) { "Could not update InputMethodManager.mCurRootView field" }
           }
         }
       })
     }
+
+    private val Context.activityOrNull: Activity?
+      get() {
+        var context = this
+        while (true) {
+          if (context is Application) {
+            return null
+          }
+          if (context is Activity) {
+            return context
+          }
+          if (context is ContextWrapper) {
+            val baseContext = context.baseContext
+            // Prevent Stack Overflow.
+            if (baseContext === this) {
+              return null
+            }
+            context = baseContext
+          } else {
+            return null
+          }
+        }
+      }
   },
 
   /**

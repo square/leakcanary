@@ -17,7 +17,14 @@ class FileSourceProvider(private val file: File) : DualSourceProvider {
         byteCount: Long
       ) = channel.transferTo(position, byteCount, sink)
 
-      override fun close() = channel.close()
+      override fun close() {
+        try {
+          channel.close()
+        } catch (ignored: Throwable) {
+          // https://github.com/square/leakcanary/issues/2113
+          SharkLog.d(ignored) { "Failed to close channel, ignoring" }
+        }
+      }
     }
   }
 }

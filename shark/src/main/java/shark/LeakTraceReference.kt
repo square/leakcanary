@@ -8,7 +8,7 @@ import shark.internal.lastSegment
 import java.io.Serializable
 
 /**
- * A [LeakTraceReference] represents and origin [LeakTraceObject] and either a reference from that
+ * A [LeakTraceReference] represents an origin [LeakTraceObject] and either a reference from that
  * object to the [LeakTraceObject] in the next [LeakTraceReference] in [LeakTrace.referencePath],
  * or to [LeakTrace.leakingObject] if this is the last [LeakTraceReference] in
  * [LeakTrace.referencePath].

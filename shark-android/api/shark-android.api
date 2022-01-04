@@ -17,8 +17,10 @@ public final class shark/AndroidMetadataExtractor : shark/MetadataExtractor {
 public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/ObjectInspector {
 	public static final field ACTIVITY Lshark/AndroidObjectInspectors;
 	public static final field ANDROIDX_FRAGMENT Lshark/AndroidObjectInspectors;
+	public static final field ANIMATOR Lshark/AndroidObjectInspectors;
 	public static final field APPLICATION Lshark/AndroidObjectInspectors;
 	public static final field APPLICATION_PACKAGE_MANAGER Lshark/AndroidObjectInspectors;
+	public static final field COMPOSITION_IMPL Lshark/AndroidObjectInspectors;
 	public static final field CONTEXT_FIELD Lshark/AndroidObjectInspectors;
 	public static final field CONTEXT_IMPL Lshark/AndroidObjectInspectors;
 	public static final field CONTEXT_WRAPPER Lshark/AndroidObjectInspectors;
@@ -34,6 +36,8 @@ public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/Obje
 	public static final field MESSAGE_QUEUE Lshark/AndroidObjectInspectors;
 	public static final field MORTAR_PRESENTER Lshark/AndroidObjectInspectors;
 	public static final field MORTAR_SCOPE Lshark/AndroidObjectInspectors;
+	public static final field OBJECT_ANIMATOR Lshark/AndroidObjectInspectors;
+	public static final field RECOMPOSER Lshark/AndroidObjectInspectors;
 	public static final field SERVICE Lshark/AndroidObjectInspectors;
 	public static final field SUPPORT_FRAGMENT Lshark/AndroidObjectInspectors;
 	public static final field TOAST Lshark/AndroidObjectInspectors;

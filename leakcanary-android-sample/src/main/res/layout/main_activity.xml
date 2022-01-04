@@ -64,6 +64,26 @@
       android:layout_height="wrap_content"
       android:text="Create &amp; leak Receiver"
       />
-
+  <Button
+    android:id="@+id/message_leak_button"
+    android:layout_width="wrap_content"
+    android:layout_gravity="center"
+    android:layout_height="wrap_content"
+    android:text="Create Message leak"
+    />
+  <Button
+    android:id="@+id/infinite_animator"
+    android:layout_width="wrap_content"
+    android:layout_gravity="center"
+    android:layout_height="wrap_content"
+    android:text="Create animator leak"
+    />
+  <Button
+    android:id="@+id/finish_activity"
+    android:layout_width="wrap_content"
+    android:layout_gravity="center"
+    android:layout_height="wrap_content"
+    android:text="Finish"
+    />
 
 </LinearLayout>
