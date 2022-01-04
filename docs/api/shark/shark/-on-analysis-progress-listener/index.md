@@ -1,29 +1,23 @@
-[shark](../../index.md) / [shark](../index.md) / [OnAnalysisProgressListener](./index.md)
+//[shark](../../../index.md)/[shark](../index.md)/[OnAnalysisProgressListener](index.md)
 
 # OnAnalysisProgressListener
 
-`interface OnAnalysisProgressListener`
+[jvm]\
+fun interface [OnAnalysisProgressListener](index.md)
 
-### Types
+Reports progress from the [HeapAnalyzer](../-heap-analyzer/index.md) as they occur, as [Step](-step/index.md) values.
 
-| Name | Summary |
-|---|---|
-| [Step](-step/index.md) | `enum class Step` |
+This is a functional interface with which you can create a [OnAnalysisProgressListener](index.md) from a lambda.
 
-### Functions
-
-| Name | Summary |
-|---|---|
-| [onAnalysisProgress](on-analysis-progress.md) | `abstract fun onAnalysisProgress(step: `[`OnAnalysisProgressListener.Step`](-step/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
-
-### Companion Object Properties
+## Types
 
 | Name | Summary |
 |---|---|
-| [NO_OP](-n-o_-o-p.md) | `val NO_OP: `[`OnAnalysisProgressListener`](./index.md)<br>A no-op [OnAnalysisProgressListener](./index.md) |
+| [Companion](-companion/index.md) | [jvm]<br>object [Companion](-companion/index.md) |
+| [Step](-step/index.md) | [jvm]<br>enum [Step](-step/index.md) : [Enum](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html)&lt;[OnAnalysisProgressListener.Step](-step/index.md)&gt; |
 
-### Companion Object Functions
+## Functions
 
 | Name | Summary |
 |---|---|
-| [invoke](invoke.md) | `operator fun invoke(block: (`[`OnAnalysisProgressListener.Step`](-step/index.md)`) -> `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)`): `[`OnAnalysisProgressListener`](./index.md)<br>Utility function to create a [OnAnalysisProgressListener](./index.md) from the passed in [block](invoke.md#shark.OnAnalysisProgressListener.Companion$invoke(kotlin.Function1((shark.OnAnalysisProgressListener.Step, kotlin.Unit)))/block) lambda instead of using the anonymous `object : OnAnalysisProgressListener` syntax. |
+| [onAnalysisProgress](on-analysis-progress.md) | [jvm]<br>abstract fun [onAnalysisProgress](on-analysis-progress.md)(step: [OnAnalysisProgressListener.Step](-step/index.md)) |

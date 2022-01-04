@@ -1,0 +1,6 @@
+//[shark](../../../index.md)/[shark](../index.md)/[HeapAnalysisSuccess](index.md)/[HeapAnalysisSuccess](-heap-analysis-success.md)
+
+# HeapAnalysisSuccess
+
+[jvm]\
+fun [HeapAnalysisSuccess](-heap-analysis-success.md)(heapDumpFile: [File](https://docs.oracle.com/javase/8/docs/api/java/io/File.html), createdAtTimeMillis: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html), dumpDurationMillis: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) = DUMP_DURATION_UNKNOWN, analysisDurationMillis: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html), metadata: [Map](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html)&lt;[String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html), [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)&gt;, applicationLeaks: [List](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)&lt;[ApplicationLeak](../-application-leak/index.md)&gt;, libraryLeaks: [List](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)&lt;[LibraryLeak](../-library-leak/index.md)&gt;, unreachableObjects: [List](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)&lt;[LeakTraceObject](../-leak-trace-object/index.md)&gt;)

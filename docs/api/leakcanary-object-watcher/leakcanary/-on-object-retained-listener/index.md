@@ -1,17 +1,22 @@
-[leakcanary-object-watcher](../../index.md) / [leakcanary](../index.md) / [OnObjectRetainedListener](./index.md)
+//[leakcanary-object-watcher](../../../index.md)/[leakcanary](../index.md)/[OnObjectRetainedListener](index.md)
 
 # OnObjectRetainedListener
 
-`interface OnObjectRetainedListener`
+[jvm]\
+fun interface [OnObjectRetainedListener](index.md)
 
-### Functions
+Listener used by [ObjectWatcher](../-object-watcher/index.md) to report retained objects.
+
+This is a functional interface with which you can create a [OnObjectRetainedListener](index.md) from a lambda.
+
+## Types
 
 | Name | Summary |
 |---|---|
-| [onObjectRetained](on-object-retained.md) | `abstract fun onObjectRetained(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>A watched object became retained. |
+| [Companion](-companion/index.md) | [jvm]<br>object [Companion](-companion/index.md) |
 
-### Companion Object Functions
+## Functions
 
 | Name | Summary |
 |---|---|
-| [invoke](invoke.md) | `operator fun invoke(block: () -> `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)`): `[`OnObjectRetainedListener`](./index.md)<br>Utility function to create a [OnObjectRetainedListener](./index.md) from the passed in [block](invoke.md#leakcanary.OnObjectRetainedListener.Companion$invoke(kotlin.Function0((kotlin.Unit)))/block) lambda instead of using the anonymous `object : OnObjectRetainedListener` syntax. |
+| [onObjectRetained](on-object-retained.md) | [jvm]<br>abstract fun [onObjectRetained](on-object-retained.md)()<br>A watched object became retained. |

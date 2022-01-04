@@ -1,5 +1,6 @@
-[leakcanary-android-release](../../index.md) / [leakcanary](../index.md) / [HeapAnalysisInterceptor](index.md) / [intercept](./intercept.md)
+//[leakcanary-android-release](../../../index.md)/[leakcanary](../index.md)/[HeapAnalysisInterceptor](index.md)/[intercept](intercept.md)
 
 # intercept
 
-`abstract fun intercept(chain: `[`HeapAnalysisInterceptor.Chain`](-chain/index.md)`): `[`HeapAnalysisJob.Result`](../-heap-analysis-job/-result/index.md)
+[androidJvm]\
+abstract fun [intercept](intercept.md)(chain: [HeapAnalysisInterceptor.Chain](-chain/index.md)): [HeapAnalysisJob.Result](../-heap-analysis-job/-result/index.md)

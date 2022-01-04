@@ -1,10 +1,14 @@
-[leakcanary-android-release](../../index.md) / [leakcanary](../index.md) / [JobContext](index.md) / [minusAssign](./minus-assign.md)
+//[leakcanary-android-release](../../../index.md)/[leakcanary](../index.md)/[JobContext](index.md)/[minusAssign](minus-assign.md)
 
 # minusAssign
 
-`operator fun minusAssign(key: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+[androidJvm]\
+operator fun [minusAssign](minus-assign.md)(key: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html))
 
-**See Also**
+## See also
 
-[MutableMap.remove](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/remove.html)
+androidJvm
 
+| | |
+|---|---|
+| [kotlin.collections.MutableMap](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/remove.html) |  |

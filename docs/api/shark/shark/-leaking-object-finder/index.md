@@ -1,24 +1,29 @@
-[shark](../../index.md) / [shark](../index.md) / [LeakingObjectFinder](./index.md)
+//[shark](../../../index.md)/[shark](../index.md)/[LeakingObjectFinder](index.md)
 
 # LeakingObjectFinder
 
-`interface LeakingObjectFinder`
+[jvm]\
+fun interface [LeakingObjectFinder](index.md)
 
-### Functions
+Finds the objects that are leaking, for which Shark will compute leak traces.
 
-| Name | Summary |
-|---|---|
-| [findLeakingObjectIds](find-leaking-object-ids.md) | `abstract fun findLeakingObjectIds(graph: HeapGraph): `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`>`<br>For a given heap graph, returns a set of object ids for the objects that are leaking. |
+This is a functional interface with which you can create a [LeakingObjectFinder](index.md) from a lambda.
 
-### Companion Object Functions
-
-| Name | Summary |
-|---|---|
-| [invoke](invoke.md) | `operator fun invoke(block: (HeapGraph) -> `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`>): `[`LeakingObjectFinder`](./index.md)<br>Utility function to create a [LeakingObjectFinder](./index.md) from the passed in [block](invoke.md#shark.LeakingObjectFinder.Companion$invoke(kotlin.Function1((shark.HeapGraph, kotlin.collections.Set((kotlin.Long)))))/block) lambda instead of using the anonymous `object : LeakingObjectFinder` syntax. |
-
-### Inheritors
+## Types
 
 | Name | Summary |
 |---|---|
-| [FilteringLeakingObjectFinder](../-filtering-leaking-object-finder/index.md) | `class FilteringLeakingObjectFinder : `[`LeakingObjectFinder`](./index.md)<br>Finds the objects that are leaking by scanning all objects in the heap dump and delegating the decision to a list of [FilteringLeakingObjectFinder.LeakingObjectFilter](../-filtering-leaking-object-finder/-leaking-object-filter/index.md) |
-| [KeyedWeakReferenceFinder](../-keyed-weak-reference-finder/index.md) | `object KeyedWeakReferenceFinder : `[`LeakingObjectFinder`](./index.md)<br>Finds all objects tracked by a KeyedWeakReference, ie all objects that were passed to ObjectWatcher.watch. |
+| [Companion](-companion/index.md) | [jvm]<br>object [Companion](-companion/index.md) |
+
+## Functions
+
+| Name | Summary |
+|---|---|
+| [findLeakingObjectIds](find-leaking-object-ids.md) | [jvm]<br>abstract fun [findLeakingObjectIds](find-leaking-object-ids.md)(graph: HeapGraph): [Set](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)&lt;[Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)&gt;<br>For a given heap graph, returns a set of object ids for the objects that are leaking. |
+
+## Inheritors
+
+| Name |
+|---|
+| [FilteringLeakingObjectFinder](../-filtering-leaking-object-finder/index.md) |
+| [KeyedWeakReferenceFinder](../-keyed-weak-reference-finder/index.md) |

@@ -1,0 +1,24 @@
+$dokka.format:gfm-v1
+$dokka.linkExtension:md
+$dokka.location:leakcanary////PointingToDeclaration/plumber-android-core/leakcanary/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.ACCESSIBILITY_NODE_INFO///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-a-c-c-e-s-s-i-b-i-l-i-t-y_-n-o-d-e_-i-n-f-o/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.ACTIVITY_MANAGER///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-a-c-t-i-v-i-t-y_-m-a-n-a-g-e-r/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.BUBBLE_POPUP///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-b-u-b-b-l-e_-p-o-p-u-p/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.CONNECTIVITY_MANAGER///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-c-o-n-n-e-c-t-i-v-i-t-y_-m-a-n-a-g-e-r/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.Companion///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-companion/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.Companion/applyFixes/#android.app.Application#kotlin.collections.Set[leakcanary.AndroidLeakFixes]/PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-companion/apply-fixes.md
+$dokka.location:leakcanary/AndroidLeakFixes.FLUSH_HANDLER_THREADS///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-f-l-u-s-h_-h-a-n-d-l-e-r_-t-h-r-e-a-d-s/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.IMM_CUR_ROOT_VIEW///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-i-m-m_-c-u-r_-r-o-o-t_-v-i-e-w/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.IMM_FOCUSED_VIEW///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-i-m-m_-f-o-c-u-s-e-d_-v-i-e-w/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.LAST_HOVERED_VIEW///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-l-a-s-t_-h-o-v-e-r-e-d_-v-i-e-w/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.MEDIA_SESSION_LEGACY_HELPER///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-m-e-d-i-a_-s-e-s-s-i-o-n_-l-e-g-a-c-y_-h-e-l-p-e-r/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.SAMSUNG_CLIPBOARD_MANAGER///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-s-a-m-s-u-n-g_-c-l-i-p-b-o-a-r-d_-m-a-n-a-g-e-r/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.SPELL_CHECKER///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-s-p-e-l-l_-c-h-e-c-k-e-r/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.TEXT_LINE_POOL///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-t-e-x-t_-l-i-n-e_-p-o-o-l/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.USER_MANAGER///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-u-s-e-r_-m-a-n-a-g-e-r/index.md
+$dokka.location:leakcanary/AndroidLeakFixes.VIEW_LOCATION_HOLDER///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/-v-i-e-w_-l-o-c-a-t-i-o-n_-h-o-l-d-e-r/index.md
+$dokka.location:leakcanary/AndroidLeakFixes///PointingToDeclaration/plumber-android-core/leakcanary/-android-leak-fixes/index.md
+$dokka.location:leakcanary/ViewLocationHolderLeakFix///PointingToDeclaration/plumber-android-core/leakcanary/-view-location-holder-leak-fix/index.md
+$dokka.location:leakcanary/ViewLocationHolderLeakFix/clearStaticPool/#android.app.Application/PointingToDeclaration/plumber-android-core/leakcanary/-view-location-holder-leak-fix/clear-static-pool.md
+leakcanary
+

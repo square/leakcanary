@@ -1,19 +1,14 @@
-[shark-hprof](../../../../../../index.md) / [shark](../../../../../index.md) / [HprofRecord](../../../../index.md) / [HeapDumpRecord](../../../index.md) / [ObjectRecord](../../index.md) / [ClassDumpRecord](../index.md) / [StaticFieldRecord](./index.md)
+//[shark-hprof](../../../../../../../index.md)/[shark](../../../../../index.md)/[HprofRecord](../../../../index.md)/[HeapDumpRecord](../../../index.md)/[ObjectRecord](../../index.md)/[ClassDumpRecord](../index.md)/[StaticFieldRecord](index.md)
 
 # StaticFieldRecord
 
-`data class StaticFieldRecord`
+[jvm]\
+data class [StaticFieldRecord](index.md)(nameStringId: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html), type: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html), value: [ValueHolder](../../../../../-value-holder/index.md))
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `StaticFieldRecord(nameStringId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`, type: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, value: `[`ValueHolder`](../../../../../-value-holder/index.md)`)` |
-
-### Properties
+## Properties
 
 | Name | Summary |
 |---|---|
-| [nameStringId](name-string-id.md) | `val nameStringId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
-| [type](type.md) | `val type: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
-| [value](value.md) | `val value: `[`ValueHolder`](../../../../../-value-holder/index.md) |
+| [nameStringId](name-string-id.md) | [jvm]<br>val [nameStringId](name-string-id.md): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [type](type.md) | [jvm]<br>val [type](type.md): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+| [value](value.md) | [jvm]<br>val [value](value.md): [ValueHolder](../../../../../-value-holder/index.md) |

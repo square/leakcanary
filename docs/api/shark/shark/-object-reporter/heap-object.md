@@ -1,5 +1,6 @@
-[shark](../../index.md) / [shark](../index.md) / [ObjectReporter](index.md) / [heapObject](./heap-object.md)
+//[shark](../../../index.md)/[shark](../index.md)/[ObjectReporter](index.md)/[heapObject](heap-object.md)
 
 # heapObject
 
-`val heapObject: HeapObject`
+[jvm]\
+val [heapObject](heap-object.md): HeapObject

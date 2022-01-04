@@ -1,5 +1,6 @@
-[shark-hprof](../../index.md) / [shark](../index.md) / [RandomAccessHprofReader](index.md) / [close](./close.md)
+//[shark-hprof](../../../index.md)/[shark](../index.md)/[RandomAccessHprofReader](index.md)/[close](close.md)
 
 # close
 
-`fun close(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+[jvm]\
+open override fun [close](close.md)()

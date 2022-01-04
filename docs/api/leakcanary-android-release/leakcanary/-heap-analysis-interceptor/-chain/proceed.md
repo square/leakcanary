@@ -1,5 +1,6 @@
-[leakcanary-android-release](../../../index.md) / [leakcanary](../../index.md) / [HeapAnalysisInterceptor](../index.md) / [Chain](index.md) / [proceed](./proceed.md)
+//[leakcanary-android-release](../../../../index.md)/[leakcanary](../../index.md)/[HeapAnalysisInterceptor](../index.md)/[Chain](index.md)/[proceed](proceed.md)
 
 # proceed
 
-`abstract fun proceed(): `[`HeapAnalysisJob.Result`](../../-heap-analysis-job/-result/index.md)
+[androidJvm]\
+abstract fun [proceed](proceed.md)(): [HeapAnalysisJob.Result](../../-heap-analysis-job/-result/index.md)

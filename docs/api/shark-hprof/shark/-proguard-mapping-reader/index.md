@@ -1,17 +1,18 @@
-[shark-hprof](../../index.md) / [shark](../index.md) / [ProguardMappingReader](./index.md)
+//[shark-hprof](../../../index.md)/[shark](../index.md)/[ProguardMappingReader](index.md)
 
 # ProguardMappingReader
 
-`class ProguardMappingReader`
+[jvm]\
+class [ProguardMappingReader](index.md)(proguardMappingInputStream: [InputStream](https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html))
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `ProguardMappingReader(proguardMappingInputStream: `[`InputStream`](https://docs.oracle.com/javase/6/docs/api/java/io/InputStream.html)`)` |
-
-### Functions
+## Types
 
 | Name | Summary |
 |---|---|
-| [readProguardMapping](read-proguard-mapping.md) | `fun readProguardMapping(): `[`ProguardMapping`](../-proguard-mapping/index.md) |
+| [Companion](-companion/index.md) | [jvm]<br>object [Companion](-companion/index.md) |
+
+## Functions
+
+| Name | Summary |
+|---|---|
+| [readProguardMapping](read-proguard-mapping.md) | [jvm]<br>fun [readProguardMapping](read-proguard-mapping.md)(): [ProguardMapping](../-proguard-mapping/index.md) |

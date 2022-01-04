@@ -1,5 +1,6 @@
-[leakcanary-object-watcher](../../index.md) / [leakcanary](../index.md) / [KeyedWeakReference](index.md) / [key](./key.md)
+//[leakcanary-object-watcher](../../../index.md)/[leakcanary](../index.md)/[KeyedWeakReference](index.md)/[key](key.md)
 
 # key
 
-`val key: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)
+[jvm]\
+val [key](key.md): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)

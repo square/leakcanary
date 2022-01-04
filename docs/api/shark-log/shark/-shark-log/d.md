@@ -1,11 +1,16 @@
-[shark-log](../../index.md) / [shark](../index.md) / [SharkLog](index.md) / [d](./d.md)
+//[shark-log](../../../index.md)/[shark](../index.md)/[SharkLog](index.md)/[d](d.md)
 
 # d
 
-`inline fun d(message: () -> `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
-`inline fun d(throwable: `[`Throwable`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html)`, message: () -> `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+[jvm]\
+inline fun [d](d.md)(message: () -&gt; [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html))
 
-**See Also**
+inline fun [d](d.md)(throwable: [Throwable](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html), message: () -&gt; [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html))
 
-[Logger.d](-logger/d.md)
+## See also
 
+jvm
+
+| | |
+|---|---|
+| [shark.SharkLog.Logger](-logger/d.md) |  |

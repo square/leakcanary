@@ -1,5 +1,6 @@
-[shark](../../index.md) / [shark](../index.md) / [LeakTraceObject](index.md) / [typeName](./type-name.md)
+//[shark](../../../index.md)/[shark](../index.md)/[LeakTraceObject](index.md)/[typeName](type-name.md)
 
 # typeName
 
-`val typeName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)
+[jvm]\
+val [typeName](type-name.md): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)

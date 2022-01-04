@@ -1,5 +1,6 @@
-[shark-hprof](../../index.md) / [shark](../index.md) / [HprofRecordReader](index.md) / [readByte](./read-byte.md)
+//[shark-hprof](../../../index.md)/[shark](../index.md)/[HprofRecordReader](index.md)/[readByte](read-byte.md)
 
 # readByte
 
-`fun readByte(): `[`Byte`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte/index.html)
+[jvm]\
+fun [readByte](read-byte.md)(): [Byte](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte/index.html)

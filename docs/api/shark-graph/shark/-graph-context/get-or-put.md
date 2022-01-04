@@ -1,10 +1,14 @@
-[shark-graph](../../index.md) / [shark](../index.md) / [GraphContext](index.md) / [getOrPut](./get-or-put.md)
+//[shark-graph](../../../index.md)/[shark](../index.md)/[GraphContext](index.md)/[getOrPut](get-or-put.md)
 
 # getOrPut
 
-`fun <T> getOrPut(key: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, defaultValue: () -> `[`T`](get-or-put.md#T)`): `[`T`](get-or-put.md#T)
+[jvm]\
+fun &lt;[T](get-or-put.md)&gt; [getOrPut](get-or-put.md)(key: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html), defaultValue: () -&gt; [T](get-or-put.md)): [T](get-or-put.md)
 
-**See Also**
+## See also
 
-[MutableMap.getOrPut](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/get-or-put.html)
+jvm
 
+| | |
+|---|---|
+| [MutableMap.getOrPut](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/index.html) |  |

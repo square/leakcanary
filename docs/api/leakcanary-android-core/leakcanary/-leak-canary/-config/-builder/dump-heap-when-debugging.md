@@ -1,10 +1,14 @@
-[leakcanary-android-core](../../../../index.md) / [leakcanary](../../../index.md) / [LeakCanary](../../index.md) / [Config](../index.md) / [Builder](index.md) / [dumpHeapWhenDebugging](./dump-heap-when-debugging.md)
+//[leakcanary-android-core](../../../../../index.md)/[leakcanary](../../../index.md)/[LeakCanary](../../index.md)/[Config](../index.md)/[Builder](index.md)/[dumpHeapWhenDebugging](dump-heap-when-debugging.md)
 
 # dumpHeapWhenDebugging
 
-`fun dumpHeapWhenDebugging(dumpHeapWhenDebugging: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`LeakCanary.Config.Builder`](index.md)
+[androidJvm]\
+fun [dumpHeapWhenDebugging](dump-heap-when-debugging.md)(dumpHeapWhenDebugging: [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)): [LeakCanary.Config.Builder](index.md)
 
-**See Also**
+## See also
 
-[LeakCanary.Config.dumpHeapWhenDebugging](../dump-heap-when-debugging.md)
+androidJvm
 
+| | |
+|---|---|
+| [leakcanary.LeakCanary.Config](../dump-heap-when-debugging.md) |  |

@@ -1,12 +1,14 @@
-[shark](../../../index.md) / [shark](../../index.md) / [ObjectInspectors](../index.md) / [ANONYMOUS_CLASS](index.md) / [inspect](./inspect.md)
+//[shark](../../../../index.md)/[shark](../../index.md)/[ObjectInspectors](../index.md)/[ANONYMOUS_CLASS](index.md)/[inspect](inspect.md)
 
 # inspect
 
-`fun inspect(reporter: `[`ObjectReporter`](../../-object-reporter/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+[jvm]\
+open override fun [inspect](inspect.md)(reporter: [ObjectReporter](../../-object-reporter/index.md))
 
-Overrides [ObjectInspector.inspect](../../-object-inspector/inspect.md)
+## See also
 
-**See Also**
+jvm
 
-[ObjectInspector](../../-object-inspector/index.md)
-
+| | |
+|---|---|
+| [shark.ObjectInspector](../../-object-inspector/index.md) |  |

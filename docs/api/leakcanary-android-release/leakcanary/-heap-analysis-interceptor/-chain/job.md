@@ -1,5 +1,6 @@
-[leakcanary-android-release](../../../index.md) / [leakcanary](../../index.md) / [HeapAnalysisInterceptor](../index.md) / [Chain](index.md) / [job](./job.md)
+//[leakcanary-android-release](../../../../index.md)/[leakcanary](../../index.md)/[HeapAnalysisInterceptor](../index.md)/[Chain](index.md)/[job](job.md)
 
 # job
 
-`abstract val job: `[`HeapAnalysisJob`](../../-heap-analysis-job/index.md)
+[androidJvm]\
+abstract val [job](job.md): [HeapAnalysisJob](../../-heap-analysis-job/index.md)

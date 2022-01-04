@@ -1,10 +1,14 @@
-[leakcanary-android-core](../../../../index.md) / [leakcanary](../../../index.md) / [LeakCanary](../../index.md) / [Config](../index.md) / [Builder](index.md) / [leakingObjectFinder](./leaking-object-finder.md)
+//[leakcanary-android-core](../../../../../index.md)/[leakcanary](../../../index.md)/[LeakCanary](../../index.md)/[Config](../index.md)/[Builder](index.md)/[leakingObjectFinder](leaking-object-finder.md)
 
 # leakingObjectFinder
 
-`fun leakingObjectFinder(leakingObjectFinder: LeakingObjectFinder): `[`LeakCanary.Config.Builder`](index.md)
+[androidJvm]\
+fun [leakingObjectFinder](leaking-object-finder.md)(leakingObjectFinder: LeakingObjectFinder): [LeakCanary.Config.Builder](index.md)
 
-**See Also**
+## See also
 
-[LeakCanary.Config.leakingObjectFinder](../leaking-object-finder.md)
+androidJvm
 
+| | |
+|---|---|
+| [leakcanary.LeakCanary.Config](../leaking-object-finder.md) |  |

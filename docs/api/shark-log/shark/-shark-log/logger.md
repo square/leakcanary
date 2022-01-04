@@ -1,5 +1,9 @@
-[shark-log](../../index.md) / [shark](../index.md) / [SharkLog](index.md) / [logger](./logger.md)
+//[shark-log](../../../index.md)/[shark](../index.md)/[SharkLog](index.md)/[logger](logger.md)
 
 # logger
 
-`var logger: `[`SharkLog.Logger`](-logger/index.md)`?`
+[jvm]\
+
+@[Volatile](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-volatile/index.html)
+
+var [logger](logger.md): [SharkLog.Logger](-logger/index.md)? = null

@@ -1,8 +1,8 @@
-[shark-graph](../../../index.md) / [shark](../../index.md) / [HeapObject](../index.md) / [HeapPrimitiveArray](index.md) / [primitiveType](./primitive-type.md)
+//[shark-graph](../../../../index.md)/[shark](../../index.md)/[HeapObject](../index.md)/[HeapPrimitiveArray](index.md)/[primitiveType](primitive-type.md)
 
 # primitiveType
 
-`val primitiveType: PrimitiveType`
+[jvm]\
+val [primitiveType](primitive-type.md): PrimitiveType
 
-The [PrimitiveType](#) of elements in this array.
-
+The PrimitiveType of elements in this array.

@@ -1,8 +1,8 @@
-[shark](../../index.md) / [shark](../index.md) / [ObjectReporter](index.md) / [notLeakingReasons](./not-leaking-reasons.md)
+//[shark](../../../index.md)/[shark](../index.md)/[ObjectReporter](index.md)/[notLeakingReasons](not-leaking-reasons.md)
 
 # notLeakingReasons
 
-`val notLeakingReasons: `[`MutableSet`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-set/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`>`
+[jvm]\
+val [notLeakingReasons](not-leaking-reasons.md): [MutableSet](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-set/index.html)&lt;[String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)&gt;
 
 Reasons for which this object is expected to be reachable (ie it's not leaking).
-
