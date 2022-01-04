@@ -1,18 +1,13 @@
-[shark-hprof](../../../../../../index.md) / [shark](../../../../../index.md) / [HprofRecord](../../../../index.md) / [HeapDumpRecord](../../../index.md) / [ObjectRecord](../../index.md) / [ClassDumpRecord](../index.md) / [FieldRecord](./index.md)
+//[shark-hprof](../../../../../../../index.md)/[shark](../../../../../index.md)/[HprofRecord](../../../../index.md)/[HeapDumpRecord](../../../index.md)/[ObjectRecord](../../index.md)/[ClassDumpRecord](../index.md)/[FieldRecord](index.md)
 
 # FieldRecord
 
-`data class FieldRecord`
+[jvm]\
+data class [FieldRecord](index.md)(nameStringId: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html), type: [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html))
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `FieldRecord(nameStringId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`, type: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`)` |
-
-### Properties
+## Properties
 
 | Name | Summary |
 |---|---|
-| [nameStringId](name-string-id.md) | `val nameStringId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
-| [type](type.md) | `val type: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+| [nameStringId](name-string-id.md) | [jvm]<br>val [nameStringId](name-string-id.md): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [type](type.md) | [jvm]<br>val [type](type.md): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |

@@ -1,10 +1,8 @@
-[shark](../../index.md) / [shark](../index.md) / [LibraryLeakReferenceMatcher](index.md) / [pattern](./pattern.md)
+//[shark](../../../index.md)/[shark](../index.md)/[LibraryLeakReferenceMatcher](index.md)/[pattern](pattern.md)
 
 # pattern
 
-`val pattern: `[`ReferencePattern`](../-reference-pattern/index.md)
-
-Overrides [ReferenceMatcher.pattern](../-reference-matcher/pattern.md)
+[jvm]\
+open override val [pattern](pattern.md): [ReferencePattern](../-reference-pattern/index.md)
 
 The pattern that references will be matched against.
-

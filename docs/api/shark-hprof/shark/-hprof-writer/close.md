@@ -1,9 +1,8 @@
-[shark-hprof](../../index.md) / [shark](../index.md) / [HprofWriter](index.md) / [close](./close.md)
+//[shark-hprof](../../../index.md)/[shark](../index.md)/[HprofWriter](index.md)/[close](close.md)
 
 # close
 
-`fun close(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+[jvm]\
+open override fun [close](close.md)()
 
-Flushes to disk all [HprofRecord.HeapDumpRecord](../-hprof-record/-heap-dump-record/index.md) that are currently written to the in memory
-buffer, then closes the file.
-
+Flushes to disk all [HprofRecord.HeapDumpRecord](../-hprof-record/-heap-dump-record/index.md) that are currently written to the in memory buffer, then closes the file.

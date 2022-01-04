@@ -1,32 +1,33 @@
-[leakcanary-android-release](../../index.md) / [leakcanary](../index.md) / [ProcessInfo](./index.md)
+//[leakcanary-android-release](../../../index.md)/[leakcanary](../index.md)/[ProcessInfo](index.md)
 
 # ProcessInfo
 
-`interface ProcessInfo`
+[androidJvm]\
+interface [ProcessInfo](index.md)
 
-### Types
-
-| Name | Summary |
-|---|---|
-| [AvailableRam](-available-ram/index.md) | `sealed class AvailableRam` |
-| [Real](-real/index.md) | `object Real : `[`ProcessInfo`](./index.md) |
-
-### Properties
+## Types
 
 | Name | Summary |
 |---|---|
-| [elapsedMillisSinceStart](elapsed-millis-since-start.md) | `abstract val elapsedMillisSinceStart: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
-| [isImportanceBackground](is-importance-background.md) | `abstract val isImportanceBackground: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
+| [AvailableRam](-available-ram/index.md) | [androidJvm]<br>sealed class [AvailableRam](-available-ram/index.md) |
+| [Real](-real/index.md) | [androidJvm]<br>object [Real](-real/index.md) : [ProcessInfo](index.md) |
 
-### Functions
-
-| Name | Summary |
-|---|---|
-| [availableDiskSpaceBytes](available-disk-space-bytes.md) | `abstract fun availableDiskSpaceBytes(path: `[`File`](https://docs.oracle.com/javase/6/docs/api/java/io/File.html)`): `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
-| [availableRam](available-ram.md) | `abstract fun availableRam(context: Context): `[`ProcessInfo.AvailableRam`](-available-ram/index.md) |
-
-### Inheritors
+## Functions
 
 | Name | Summary |
 |---|---|
-| [Real](-real/index.md) | `object Real : `[`ProcessInfo`](./index.md) |
+| [availableDiskSpaceBytes](available-disk-space-bytes.md) | [androidJvm]<br>abstract fun [availableDiskSpaceBytes](available-disk-space-bytes.md)(path: [File](https://developer.android.com/reference/kotlin/java/io/File.html)): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [availableRam](available-ram.md) | [androidJvm]<br>abstract fun [availableRam](available-ram.md)(context: [Context](https://developer.android.com/reference/kotlin/android/content/Context.html)): [ProcessInfo.AvailableRam](-available-ram/index.md) |
+
+## Properties
+
+| Name | Summary |
+|---|---|
+| [elapsedMillisSinceStart](elapsed-millis-since-start.md) | [androidJvm]<br>abstract val [elapsedMillisSinceStart](elapsed-millis-since-start.md): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [isImportanceBackground](is-importance-background.md) | [androidJvm]<br>abstract val [isImportanceBackground](is-importance-background.md): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
+
+## Inheritors
+
+| Name |
+|---|
+| [Real](-real/index.md) |

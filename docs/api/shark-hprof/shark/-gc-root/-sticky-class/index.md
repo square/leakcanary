@@ -1,19 +1,20 @@
-[shark-hprof](../../../index.md) / [shark](../../index.md) / [GcRoot](../index.md) / [StickyClass](./index.md)
+//[shark-hprof](../../../../index.md)/[shark](../../index.md)/[GcRoot](../index.md)/[StickyClass](index.md)
 
 # StickyClass
 
-`class StickyClass : `[`GcRoot`](../index.md)
+[jvm]\
+class [StickyClass](index.md)(id: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)) : [GcRoot](../index.md)
 
 A system class
 
-### Constructors
+## Constructors
+
+| | |
+|---|---|
+| [StickyClass](-sticky-class.md) | [jvm]<br>fun [StickyClass](-sticky-class.md)(id: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)) |
+
+## Properties
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `StickyClass(id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`)`<br>A system class |
-
-### Properties
-
-| Name | Summary |
-|---|---|
-| [id](id.md) | `val id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>The object id of the object that this gc root references. |
+| [id](id.md) | [jvm]<br>open override val [id](id.md): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>The object id of the object that this gc root references. |

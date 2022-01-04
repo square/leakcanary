@@ -1,5 +1,6 @@
-[leakcanary-android-release](../../index.md) / [leakcanary](../index.md) / [BackgroundTrigger](index.md) / [stop](./stop.md)
+//[leakcanary-android-release](../../../index.md)/[leakcanary](../index.md)/[BackgroundTrigger](index.md)/[stop](stop.md)
 
 # stop
 
-`fun stop(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+[androidJvm]\
+fun [stop](stop.md)()

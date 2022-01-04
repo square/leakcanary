@@ -1,8 +1,8 @@
-[shark](../../index.md) / [shark](../index.md) / [ReferenceMatcher](index.md) / [pattern](./pattern.md)
+//[shark](../../../index.md)/[shark](../index.md)/[ReferenceMatcher](index.md)/[pattern](pattern.md)
 
 # pattern
 
-`abstract val pattern: `[`ReferencePattern`](../-reference-pattern/index.md)
+[jvm]\
+abstract val [pattern](pattern.md): [ReferencePattern](../-reference-pattern/index.md)
 
 The pattern that references will be matched against.
-

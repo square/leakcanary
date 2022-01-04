@@ -1,5 +1,6 @@
-[shark-hprof](../../index.md) / [shark](../index.md) / [HprofRecordReader](index.md) / [readUnreachableGcRootRecord](./read-unreachable-gc-root-record.md)
+//[shark-hprof](../../../index.md)/[shark](../index.md)/[HprofRecordReader](index.md)/[readUnreachableGcRootRecord](read-unreachable-gc-root-record.md)
 
 # readUnreachableGcRootRecord
 
-`fun readUnreachableGcRootRecord(): `[`GcRoot.Unreachable`](../-gc-root/-unreachable/index.md)
+[jvm]\
+fun [readUnreachableGcRootRecord](read-unreachable-gc-root-record.md)(): [GcRoot.Unreachable](../-gc-root/-unreachable/index.md)

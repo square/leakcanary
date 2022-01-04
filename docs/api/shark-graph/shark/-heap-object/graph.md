@@ -1,8 +1,8 @@
-[shark-graph](../../index.md) / [shark](../index.md) / [HeapObject](index.md) / [graph](./graph.md)
+//[shark-graph](../../../index.md)/[shark](../index.md)/[HeapObject](index.md)/[graph](graph.md)
 
 # graph
 
-`abstract val graph: `[`HeapGraph`](../-heap-graph/index.md)
+[jvm]\
+abstract val [graph](graph.md): [HeapGraph](../-heap-graph/index.md)
 
 The graph of objects in the heap, which you can use to navigate the heap.
-

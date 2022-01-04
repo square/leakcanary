@@ -1,17 +1,22 @@
-[leakcanary-object-watcher](../../index.md) / [leakcanary](../index.md) / [Clock](./index.md)
+//[leakcanary-object-watcher](../../../index.md)/[leakcanary](../index.md)/[Clock](index.md)
 
 # Clock
 
-`interface Clock`
+[jvm]\
+fun interface [Clock](index.md)
 
-### Functions
+An interface to abstract the SystemClock.uptimeMillis() Android API in non Android artifacts.
+
+This is a functional interface with which you can create a [Clock](index.md) from a lambda.
+
+## Types
 
 | Name | Summary |
 |---|---|
-| [uptimeMillis](uptime-millis.md) | `abstract fun uptimeMillis(): `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>On Android VMs, this should return android.os.SystemClock.uptimeMillis(). |
+| [Companion](-companion/index.md) | [jvm]<br>object [Companion](-companion/index.md) |
 
-### Companion Object Functions
+## Functions
 
 | Name | Summary |
 |---|---|
-| [invoke](invoke.md) | `operator fun invoke(block: () -> `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`Clock`](./index.md)<br>Utility function to create a [Clock](./index.md) from the passed in [block](invoke.md#leakcanary.Clock.Companion$invoke(kotlin.Function0((kotlin.Long)))/block) lambda instead of using the anonymous `object : Clock` syntax. |
+| [uptimeMillis](uptime-millis.md) | [jvm]<br>abstract fun [uptimeMillis](uptime-millis.md)(): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)<br>On Android VMs, this should return android.os.SystemClock.uptimeMillis(). |

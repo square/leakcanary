@@ -1,17 +1,18 @@
-[leakcanary-android-release](../../../index.md) / [leakcanary](../../index.md) / [HeapAnalysisInterceptor](../index.md) / [Chain](./index.md)
+//[leakcanary-android-release](../../../../index.md)/[leakcanary](../../index.md)/[HeapAnalysisInterceptor](../index.md)/[Chain](index.md)
 
 # Chain
 
-`interface Chain`
+[androidJvm]\
+interface [Chain](index.md)
 
-### Properties
-
-| Name | Summary |
-|---|---|
-| [job](job.md) | `abstract val job: `[`HeapAnalysisJob`](../../-heap-analysis-job/index.md) |
-
-### Functions
+## Functions
 
 | Name | Summary |
 |---|---|
-| [proceed](proceed.md) | `abstract fun proceed(): `[`HeapAnalysisJob.Result`](../../-heap-analysis-job/-result/index.md) |
+| [proceed](proceed.md) | [androidJvm]<br>abstract fun [proceed](proceed.md)(): [HeapAnalysisJob.Result](../../-heap-analysis-job/-result/index.md) |
+
+## Properties
+
+| Name | Summary |
+|---|---|
+| [job](job.md) | [androidJvm]<br>abstract val [job](job.md): [HeapAnalysisJob](../../-heap-analysis-job/index.md) |

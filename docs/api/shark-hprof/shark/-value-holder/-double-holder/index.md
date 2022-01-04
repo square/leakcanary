@@ -1,17 +1,12 @@
-[shark-hprof](../../../index.md) / [shark](../../index.md) / [ValueHolder](../index.md) / [DoubleHolder](./index.md)
+//[shark-hprof](../../../../index.md)/[shark](../../index.md)/[ValueHolder](../index.md)/[DoubleHolder](index.md)
 
 # DoubleHolder
 
-`data class DoubleHolder : `[`ValueHolder`](../index.md)
+[jvm]\
+data class [DoubleHolder](index.md)(value: [Double](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html)) : [ValueHolder](../index.md)
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `DoubleHolder(value: `[`Double`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html)`)` |
-
-### Properties
+## Properties
 
 | Name | Summary |
 |---|---|
-| [value](value.md) | `val value: `[`Double`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html) |
+| [value](value.md) | [jvm]<br>val [value](value.md): [Double](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html) |

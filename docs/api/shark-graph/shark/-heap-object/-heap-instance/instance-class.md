@@ -1,8 +1,8 @@
-[shark-graph](../../../index.md) / [shark](../../index.md) / [HeapObject](../index.md) / [HeapInstance](index.md) / [instanceClass](./instance-class.md)
+//[shark-graph](../../../../index.md)/[shark](../../index.md)/[HeapObject](../index.md)/[HeapInstance](index.md)/[instanceClass](instance-class.md)
 
 # instanceClass
 
-`val instanceClass: `[`HeapObject.HeapClass`](../-heap-class/index.md)
+[jvm]\
+val [instanceClass](instance-class.md): [HeapObject.HeapClass](../-heap-class/index.md)
 
 The class of this instance.
-

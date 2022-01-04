@@ -1,12 +1,10 @@
-[shark-graph](../../index.md) / [shark](../index.md) / [HprofHeapGraph](index.md) / [primitiveArrays](./primitive-arrays.md)
+//[shark-graph](../../../index.md)/[shark](../index.md)/[HprofHeapGraph](index.md)/[primitiveArrays](primitive-arrays.md)
 
 # primitiveArrays
 
-`val primitiveArrays: `[`Sequence`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html)`<`[`HeapObject.HeapPrimitiveArray`](../-heap-object/-heap-primitive-array/index.md)`>`
-
-Overrides [HeapGraph.primitiveArrays](../-heap-graph/primitive-arrays.md)
+[jvm]\
+open override val [primitiveArrays](primitive-arrays.md): [Sequence](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html)&lt;[HeapObject.HeapPrimitiveArray](../-heap-object/-heap-primitive-array/index.md)&gt;
 
 Sequence of all primitive arrays in the heap dump.
 
 This sequence does not trigger any IO reads.
-

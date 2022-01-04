@@ -1,26 +1,26 @@
-[shark](../../index.md) / [shark](../index.md) / [IgnoredReferenceMatcher](./index.md)
+//[shark](../../../index.md)/[shark](../index.md)/[IgnoredReferenceMatcher](index.md)
 
 # IgnoredReferenceMatcher
 
-`class IgnoredReferenceMatcher : `[`ReferenceMatcher`](../-reference-matcher/index.md)
+[jvm]\
+class [IgnoredReferenceMatcher](index.md)(pattern: [ReferencePattern](../-reference-pattern/index.md)) : [ReferenceMatcher](../-reference-matcher/index.md)
 
-[IgnoredReferenceMatcher](./index.md) should be used to match references that cannot ever create leaks. The
-shortest path finder will never go through matching references.
+[IgnoredReferenceMatcher](index.md) should be used to match references that cannot ever create leaks. The shortest path finder will never go through matching references.
 
-### Constructors
+## Constructors
+
+| | |
+|---|---|
+| [IgnoredReferenceMatcher](-ignored-reference-matcher.md) | [jvm]<br>fun [IgnoredReferenceMatcher](-ignored-reference-matcher.md)(pattern: [ReferencePattern](../-reference-pattern/index.md)) |
+
+## Functions
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `IgnoredReferenceMatcher(pattern: `[`ReferencePattern`](../-reference-pattern/index.md)`)`<br>[IgnoredReferenceMatcher](./index.md) should be used to match references that cannot ever create leaks. The shortest path finder will never go through matching references. |
+| [toString](to-string.md) | [jvm]<br>open override fun [toString](to-string.md)(): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 
-### Properties
-
-| Name | Summary |
-|---|---|
-| [pattern](pattern.md) | `val pattern: `[`ReferencePattern`](../-reference-pattern/index.md)<br>The pattern that references will be matched against. |
-
-### Functions
+## Properties
 
 | Name | Summary |
 |---|---|
-| [toString](to-string.md) | `fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [pattern](pattern.md) | [jvm]<br>open override val [pattern](pattern.md): [ReferencePattern](../-reference-pattern/index.md)<br>The pattern that references will be matched against. |

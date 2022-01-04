@@ -1,17 +1,12 @@
-[shark-hprof](../../../../index.md) / [shark](../../../index.md) / [HprofRecord](../../index.md) / [HeapDumpRecord](../index.md) / [GcRootRecord](./index.md)
+//[shark-hprof](../../../../../index.md)/[shark](../../../index.md)/[HprofRecord](../../index.md)/[HeapDumpRecord](../index.md)/[GcRootRecord](index.md)
 
 # GcRootRecord
 
-`class GcRootRecord : `[`HprofRecord.HeapDumpRecord`](../index.md)
+[jvm]\
+class [GcRootRecord](index.md)(gcRoot: [GcRoot](../../../-gc-root/index.md)) : [HprofRecord.HeapDumpRecord](../index.md)
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `GcRootRecord(gcRoot: `[`GcRoot`](../../../-gc-root/index.md)`)` |
-
-### Properties
+## Properties
 
 | Name | Summary |
 |---|---|
-| [gcRoot](gc-root.md) | `val gcRoot: `[`GcRoot`](../../../-gc-root/index.md) |
+| [gcRoot](gc-root.md) | [jvm]<br>val [gcRoot](gc-root.md): [GcRoot](../../../-gc-root/index.md) |

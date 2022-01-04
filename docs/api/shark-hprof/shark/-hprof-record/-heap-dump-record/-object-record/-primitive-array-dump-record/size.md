@@ -1,5 +1,6 @@
-[shark-hprof](../../../../../index.md) / [shark](../../../../index.md) / [HprofRecord](../../../index.md) / [HeapDumpRecord](../../index.md) / [ObjectRecord](../index.md) / [PrimitiveArrayDumpRecord](index.md) / [size](./size.md)
+//[shark-hprof](../../../../../../index.md)/[shark](../../../../index.md)/[HprofRecord](../../../index.md)/[HeapDumpRecord](../../index.md)/[ObjectRecord](../index.md)/[PrimitiveArrayDumpRecord](index.md)/[size](size.md)
 
 # size
 
-`abstract val size: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)
+[jvm]\
+abstract val [size](size.md): [Int](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)

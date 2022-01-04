@@ -1,9 +1,9 @@
-[shark-log](../index.md) / [shark](./index.md)
+//[shark-log](../../index.md)/[shark](index.md)
 
-## Package shark
+# Package shark
 
-### Types
+## Types
 
 | Name | Summary |
 |---|---|
-| [SharkLog](-shark-log/index.md) | `object SharkLog`<br>Central Logger for all Shark artifacts. Set [logger](-shark-log/logger.md) to change where these logs go. |
+| [SharkLog](-shark-log/index.md) | [jvm]<br>object [SharkLog](-shark-log/index.md)<br>Central Logger for all Shark artifacts. Set [logger](-shark-log/logger.md) to change where these logs go. |

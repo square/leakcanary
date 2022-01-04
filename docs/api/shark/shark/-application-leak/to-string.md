@@ -1,8 +1,6 @@
-[shark](../../index.md) / [shark](../index.md) / [ApplicationLeak](index.md) / [toString](./to-string.md)
+//[shark](../../../index.md)/[shark](../index.md)/[ApplicationLeak](index.md)/[toString](to-string.md)
 
 # toString
 
-`fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)
-
-Overrides [Leak.toString](../-leak/to-string.md)
-
+[jvm]\
+open override fun [toString](to-string.md)(): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)

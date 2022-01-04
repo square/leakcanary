@@ -1,18 +1,13 @@
-[shark-hprof](../../../index.md) / [shark](../../index.md) / [HprofRecord](../index.md) / [StringRecord](./index.md)
+//[shark-hprof](../../../../index.md)/[shark](../../index.md)/[HprofRecord](../index.md)/[StringRecord](index.md)
 
 # StringRecord
 
-`class StringRecord : `[`HprofRecord`](../index.md)
+[jvm]\
+class [StringRecord](index.md)(id: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html), string: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)) : [HprofRecord](../index.md)
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `StringRecord(id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`, string: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`)` |
-
-### Properties
+## Properties
 
 | Name | Summary |
 |---|---|
-| [id](id.md) | `val id: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
-| [string](string.md) | `val string: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [id](id.md) | [jvm]<br>val [id](id.md): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [string](string.md) | [jvm]<br>val [string](string.md): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |

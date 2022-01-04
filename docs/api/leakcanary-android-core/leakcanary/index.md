@@ -1,17 +1,19 @@
-[leakcanary-android-core](../index.md) / [leakcanary](./index.md)
+//[leakcanary-android-core](../../index.md)/[leakcanary](index.md)
 
-## Package leakcanary
+# Package leakcanary
 
-### Types
-
-| Name | Summary |
-|---|---|
-| [DefaultOnHeapAnalyzedListener](-default-on-heap-analyzed-listener/index.md) | `class DefaultOnHeapAnalyzedListener : `[`OnHeapAnalyzedListener`](-on-heap-analyzed-listener/index.md)<br>Default [OnHeapAnalyzedListener](-on-heap-analyzed-listener/index.md) implementation, which will store the analysis to disk and show a notification summarizing the result. |
-| [LeakCanary](-leak-canary/index.md) | `object LeakCanary`<br>The entry point API for LeakCanary. LeakCanary builds on top of [AppWatcher](#). AppWatcher notifies LeakCanary of retained instances, which in turns dumps the heap, analyses it and publishes the results. |
-| [OnHeapAnalyzedListener](-on-heap-analyzed-listener/index.md) | `interface OnHeapAnalyzedListener` |
-
-### Functions
+## Types
 
 | Name | Summary |
 |---|---|
-| [&lt;no name provided&gt;](-no name provided-.md) | `fun <no name provided>(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Listener set in [LeakCanary.Config](-leak-canary/-config/index.md) and called by LeakCanary on a background thread when the heap analysis is complete. |
+| [AndroidDebugHeapDumper](-android-debug-heap-dumper/index.md) | [androidJvm]<br>object [AndroidDebugHeapDumper](-android-debug-heap-dumper/index.md) : [HeapDumper](-heap-dumper/index.md)<br>Dumps the Android heap using [Debug.dumpHprofData](https://developer.android.com/reference/kotlin/android/os/Debug.html#dumphprofdata). |
+| [BackgroundThreadHeapAnalyzer](-background-thread-heap-analyzer/index.md) | [androidJvm]<br>object [BackgroundThreadHeapAnalyzer](-background-thread-heap-analyzer/index.md) : [EventListener](-event-listener/index.md)<br>Starts heap analysis on a background [HandlerThread](https://developer.android.com/reference/kotlin/android/os/HandlerThread.html) when receiving a [HeapDump](-event-listener/-event/-heap-dump/index.md) event. |
+| [EventListener](-event-listener/index.md) | [androidJvm]<br>fun interface [EventListener](-event-listener/index.md) |
+| [HeapDumper](-heap-dumper/index.md) | [androidJvm]<br>fun interface [HeapDumper](-heap-dumper/index.md) |
+| [LeakCanary](-leak-canary/index.md) | [androidJvm]<br>object [LeakCanary](-leak-canary/index.md)<br>The entry point API for LeakCanary. LeakCanary builds on top of AppWatcher. AppWatcher notifies LeakCanary of retained instances, which in turns dumps the heap, analyses it and publishes the results. |
+| [LogcatEventListener](-logcat-event-listener/index.md) | [androidJvm]<br>object [LogcatEventListener](-logcat-event-listener/index.md) : [EventListener](-event-listener/index.md) |
+| [NotificationEventListener](-notification-event-listener/index.md) | [androidJvm]<br>object [NotificationEventListener](-notification-event-listener/index.md) : [EventListener](-event-listener/index.md) |
+| [RemoteWorkManagerHeapAnalyzer](-remote-work-manager-heap-analyzer/index.md) | [androidJvm]<br>object [RemoteWorkManagerHeapAnalyzer](-remote-work-manager-heap-analyzer/index.md) : [EventListener](-event-listener/index.md)<br>When receiving a [HeapDump](-event-listener/-event/-heap-dump/index.md) event, starts a WorkManager worker that performs heap analysis in a dedicated :leakcanary process |
+| [ToastEventListener](-toast-event-listener/index.md) | [androidJvm]<br>object [ToastEventListener](-toast-event-listener/index.md) : [EventListener](-event-listener/index.md) |
+| [TvEventListener](-tv-event-listener/index.md) | [androidJvm]<br>object [TvEventListener](-tv-event-listener/index.md) : [EventListener](-event-listener/index.md) |
+| [WorkManagerHeapAnalyzer](-work-manager-heap-analyzer/index.md) | [androidJvm]<br>object [WorkManagerHeapAnalyzer](-work-manager-heap-analyzer/index.md) : [EventListener](-event-listener/index.md)<br>When receiving a [HeapDump](-event-listener/-event/-heap-dump/index.md) event, starts a WorkManager worker that performs heap analysis. |

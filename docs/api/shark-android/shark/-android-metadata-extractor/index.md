@@ -1,11 +1,12 @@
-[shark-android](../../index.md) / [shark](../index.md) / [AndroidMetadataExtractor](./index.md)
+//[shark-android](../../../index.md)/[shark](../index.md)/[AndroidMetadataExtractor](index.md)
 
 # AndroidMetadataExtractor
 
-`object AndroidMetadataExtractor : MetadataExtractor`
+[jvm]\
+object [AndroidMetadataExtractor](index.md) : MetadataExtractor
 
-### Functions
+## Functions
 
 | Name | Summary |
 |---|---|
-| [extractMetadata](extract-metadata.md) | `fun extractMetadata(graph: HeapGraph): `[`Map`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`>` |
+| [extractMetadata](extract-metadata.md) | [jvm]<br>open override fun [extractMetadata](extract-metadata.md)(graph: HeapGraph): [Map](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html)&lt;[String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html), [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)&gt; |

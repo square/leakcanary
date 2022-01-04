@@ -1,20 +1,20 @@
-[shark](../../index.md) / [shark](../index.md) / [AppSingletonInspector](./index.md)
+//[shark](../../../index.md)/[shark](../index.md)/[AppSingletonInspector](index.md)
 
 # AppSingletonInspector
 
-`class AppSingletonInspector : `[`ObjectInspector`](../-object-inspector/index.md)
+[jvm]\
+class [AppSingletonInspector](index.md)(singletonClasses: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)) : [ObjectInspector](../-object-inspector/index.md)
 
-Inspector that automatically marks instances of the provided class names as not leaking
-because they're app wide singletons.
+Inspector that automatically marks instances of the provided class names as not leaking because they're app wide singletons.
 
-### Constructors
+## Constructors
+
+| | |
+|---|---|
+| [AppSingletonInspector](-app-singleton-inspector.md) | [jvm]<br>fun [AppSingletonInspector](-app-singleton-inspector.md)(vararg singletonClasses: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)) |
+
+## Functions
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `AppSingletonInspector(vararg singletonClasses: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`)`<br>Inspector that automatically marks instances of the provided class names as not leaking because they're app wide singletons. |
-
-### Functions
-
-| Name | Summary |
-|---|---|
-| [inspect](inspect.md) | `fun inspect(reporter: `[`ObjectReporter`](../-object-reporter/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
+| [inspect](inspect.md) | [jvm]<br>open override fun [inspect](inspect.md)(reporter: [ObjectReporter](../-object-reporter/index.md)) |

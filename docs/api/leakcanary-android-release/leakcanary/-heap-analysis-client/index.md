@@ -1,24 +1,19 @@
-[leakcanary-android-release](../../index.md) / [leakcanary](../index.md) / [HeapAnalysisClient](./index.md)
+//[leakcanary-android-release](../../../index.md)/[leakcanary](../index.md)/[HeapAnalysisClient](index.md)
 
 # HeapAnalysisClient
 
-`class HeapAnalysisClient`
+[androidJvm]\
+class [HeapAnalysisClient](index.md)(heapDumpDirectoryProvider: () -&gt; [File](https://developer.android.com/reference/kotlin/java/io/File.html), config: [HeapAnalysisConfig](../-heap-analysis-config/index.md), interceptors: [List](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)&lt;[HeapAnalysisInterceptor](../-heap-analysis-interceptor/index.md)&gt;)
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `HeapAnalysisClient(heapDumpDirectoryProvider: () -> `[`File`](https://docs.oracle.com/javase/6/docs/api/java/io/File.html)`, config: `[`HeapAnalysisConfig`](../-heap-analysis-config/index.md)`, interceptors: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`HeapAnalysisInterceptor`](../-heap-analysis-interceptor/index.md)`>)` |
-
-### Functions
+## Types
 
 | Name | Summary |
 |---|---|
-| [deleteHeapDumpFiles](delete-heap-dump-files.md) | `fun deleteHeapDumpFiles(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
-| [newJob](new-job.md) | `fun newJob(context: `[`JobContext`](../-job-context/index.md)` = JobContext()): `[`HeapAnalysisJob`](../-heap-analysis-job/index.md) |
+| [Companion](-companion/index.md) | [androidJvm]<br>object [Companion](-companion/index.md) |
 
-### Companion Object Functions
+## Functions
 
 | Name | Summary |
 |---|---|
-| [defaultInterceptors](default-interceptors.md) | `fun defaultInterceptors(application: Application): `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`HeapAnalysisInterceptor`](../-heap-analysis-interceptor/index.md)`>` |
+| [deleteHeapDumpFiles](delete-heap-dump-files.md) | [androidJvm]<br>fun [deleteHeapDumpFiles](delete-heap-dump-files.md)() |
+| [newJob](new-job.md) | [androidJvm]<br>fun [newJob](new-job.md)(context: [JobContext](../-job-context/index.md) = JobContext()): [HeapAnalysisJob](../-heap-analysis-job/index.md) |

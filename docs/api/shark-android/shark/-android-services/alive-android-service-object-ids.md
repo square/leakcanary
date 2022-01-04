@@ -1,5 +1,6 @@
-[shark-android](../../index.md) / [shark](../index.md) / [AndroidServices](index.md) / [aliveAndroidServiceObjectIds](./alive-android-service-object-ids.md)
+//[shark-android](../../../index.md)/[shark](../index.md)/[AndroidServices](index.md)/[aliveAndroidServiceObjectIds](alive-android-service-object-ids.md)
 
 # aliveAndroidServiceObjectIds
 
-`val HeapGraph.aliveAndroidServiceObjectIds: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`>`
+[jvm]\
+val HeapGraph.[aliveAndroidServiceObjectIds](alive-android-service-object-ids.md): [List](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)&lt;[Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)&gt;

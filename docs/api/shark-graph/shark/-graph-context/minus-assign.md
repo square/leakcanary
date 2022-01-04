@@ -1,10 +1,14 @@
-[shark-graph](../../index.md) / [shark](../index.md) / [GraphContext](index.md) / [minusAssign](./minus-assign.md)
+//[shark-graph](../../../index.md)/[shark](../index.md)/[GraphContext](index.md)/[minusAssign](minus-assign.md)
 
 # minusAssign
 
-`operator fun minusAssign(key: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)
+[jvm]\
+operator fun [minusAssign](minus-assign.md)(key: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html))
 
-**See Also**
+## See also
 
-[MutableMap.remove](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/remove.html)
+jvm
 
+| | |
+|---|---|
+| [kotlin.collections.MutableMap](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/remove.html) |  |

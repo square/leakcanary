@@ -1,26 +1,33 @@
-[shark](../../../index.md) / [shark](../../index.md) / [ReferencePattern](../index.md) / [StaticFieldPattern](./index.md)
+//[shark](../../../../index.md)/[shark](../../index.md)/[ReferencePattern](../index.md)/[StaticFieldPattern](index.md)
 
 # StaticFieldPattern
 
-`data class StaticFieldPattern : `[`ReferencePattern`](../index.md)
+[jvm]\
+data class [StaticFieldPattern](index.md)(className: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html), fieldName: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)) : [ReferencePattern](../index.md)
 
 Matches static field references, identified by [className](class-name.md) and [fieldName](field-name.md).
 
-### Constructors
+## Constructors
+
+| | |
+|---|---|
+| [StaticFieldPattern](-static-field-pattern.md) | [jvm]<br>fun [StaticFieldPattern](-static-field-pattern.md)(className: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html), fieldName: [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)) |
+
+## Types
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `StaticFieldPattern(className: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, fieldName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`)`<br>Matches static field references, identified by [className](class-name.md) and [fieldName](field-name.md). |
+| [Companion](-companion/index.md) | [jvm]<br>object [Companion](-companion/index.md) |
 
-### Properties
-
-| Name | Summary |
-|---|---|
-| [className](class-name.md) | `val className: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
-| [fieldName](field-name.md) | `val fieldName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
-
-### Functions
+## Functions
 
 | Name | Summary |
 |---|---|
-| [toString](to-string.md) | `fun toString(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [toString](to-string.md) | [jvm]<br>open override fun [toString](to-string.md)(): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+
+## Properties
+
+| Name | Summary |
+|---|---|
+| [className](class-name.md) | [jvm]<br>val [className](class-name.md): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+| [fieldName](field-name.md) | [jvm]<br>val [fieldName](field-name.md): [String](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |

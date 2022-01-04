@@ -1,18 +1,13 @@
-[shark-hprof](../../../index.md) / [shark](../../index.md) / [ValueHolder](../index.md) / [ReferenceHolder](./index.md)
+//[shark-hprof](../../../../index.md)/[shark](../../index.md)/[ValueHolder](../index.md)/[ReferenceHolder](index.md)
 
 # ReferenceHolder
 
-`data class ReferenceHolder : `[`ValueHolder`](../index.md)
+[jvm]\
+data class [ReferenceHolder](index.md)(value: [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)) : [ValueHolder](../index.md)
 
-### Constructors
-
-| Name | Summary |
-|---|---|
-| [&lt;init&gt;](-init-.md) | `ReferenceHolder(value: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`)` |
-
-### Properties
+## Properties
 
 | Name | Summary |
 |---|---|
-| [isNull](is-null.md) | `val isNull: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
-| [value](value.md) | `val value: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |
+| [isNull](is-null.md) | [jvm]<br>val [isNull](is-null.md): [Boolean](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
+| [value](value.md) | [jvm]<br>val [value](value.md): [Long](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html) |

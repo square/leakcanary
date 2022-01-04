@@ -1,10 +1,14 @@
-[leakcanary-android-core](../../../../index.md) / [leakcanary](../../../index.md) / [LeakCanary](../../index.md) / [Config](../index.md) / [Builder](index.md) / [metadataExtractor](./metadata-extractor.md)
+//[leakcanary-android-core](../../../../../index.md)/[leakcanary](../../../index.md)/[LeakCanary](../../index.md)/[Config](../index.md)/[Builder](index.md)/[metadataExtractor](metadata-extractor.md)
 
 # metadataExtractor
 
-`fun metadataExtractor(metadataExtractor: MetadataExtractor): `[`LeakCanary.Config.Builder`](index.md)
+[androidJvm]\
+fun [metadataExtractor](metadata-extractor.md)(metadataExtractor: MetadataExtractor): [LeakCanary.Config.Builder](index.md)
 
-**See Also**
+## See also
 
-[LeakCanary.Config.metadataExtractor](../metadata-extractor.md)
+androidJvm
 
+| | |
+|---|---|
+| [leakcanary.LeakCanary.Config](../metadata-extractor.md) |  |
