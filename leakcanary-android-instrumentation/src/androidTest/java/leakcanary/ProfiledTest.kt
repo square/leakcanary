@@ -2,6 +2,7 @@ package leakcanary
 
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
 import leakcanary.Profiler.runWithProfilerSampling
 import org.junit.Ignore
 import org.junit.Test
@@ -10,8 +11,6 @@ import shark.AndroidReferenceMatchers
 import shark.HeapAnalyzer
 import shark.KeyedWeakReferenceFinder
 import shark.SharkLog
-import java.io.File
-import java.io.FileOutputStream
 
 class ProfiledTest {
 
@@ -26,7 +25,7 @@ class ProfiledTest {
 
     val heapDumpFile = File(context.filesDir, "ProfiledTest.hprof")
     context.assets.open(fileName)
-      .copyTo(FileOutputStream(heapDumpFile))
+      .copyTo(heapDumpFile.outputStream())
 
     runWithProfilerSampling {
       val analyzer = HeapAnalyzer { step -> Log.d("LeakCanary", step.name) }

@@ -12,6 +12,9 @@ import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.ImageView
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.LeakCanaryFileProvider
 import leakcanary.internal.activity.db.executeOnIo
@@ -21,9 +24,6 @@ import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
 import leakcanary.internal.utils.humanReadableByteCount
 import shark.SharkLog
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 
 internal class RenderHeapDumpScreen(
   private val heapDumpFile: File
@@ -136,7 +136,7 @@ internal class RenderHeapDumpScreen(
   ): Boolean {
     var outStream: FileOutputStream? = null
     return try {
-      outStream = FileOutputStream(imageFile)
+      outStream = imageFile.outputStream()
       source.compress(Bitmap.CompressFormat.PNG, 100, outStream)
       true
     } catch (e: IOException) {
