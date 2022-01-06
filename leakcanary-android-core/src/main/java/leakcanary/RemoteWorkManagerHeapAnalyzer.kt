@@ -29,10 +29,9 @@ object RemoteWorkManagerHeapAnalyzer : EventListener {
     }
   }
 
-  private val application = InternalLeakCanary.application
-
   override fun onEvent(event: Event) {
     if (event is HeapDump) {
+      val application = InternalLeakCanary.application
       val heapAnalysisRequest =
         OneTimeWorkRequest.Builder(RemoteHeapAnalyzerWorker::class.java).apply {
           val dataBuilder = Data.Builder()

@@ -24,8 +24,6 @@ object WorkManagerHeapAnalyzer : EventListener {
     }
   }
 
-  private val application = InternalLeakCanary.application
-
   // setExpedited() requires WorkManager 2.7.0+
   private val workManagerSupportsExpeditedRequests by lazy {
     try {
@@ -49,6 +47,7 @@ object WorkManagerHeapAnalyzer : EventListener {
         addExpeditedFlag()
       }.build()
       SharkLog.d { "Enqueuing heap analysis for ${event.file} on WorkManager remote worker" }
+      val application = InternalLeakCanary.application
       WorkManager.getInstance(application).enqueue(heapAnalysisRequest)
     }
   }

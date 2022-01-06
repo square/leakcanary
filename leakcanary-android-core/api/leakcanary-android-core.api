@@ -78,6 +78,11 @@ public abstract interface class leakcanary/HeapDumper {
 	public abstract fun dumpHeap (Ljava/io/File;)V
 }
 
+public final class leakcanary/LazyForwardingEventListener : leakcanary/EventListener {
+	public fun <init> (Lkotlin/jvm/functions/Function0;)V
+	public fun onEvent (Lleakcanary/EventListener$Event;)V
+}
+
 public final class leakcanary/LeakCanary {
 	public static final field INSTANCE Lleakcanary/LeakCanary;
 	public final fun dumpHeap ()V

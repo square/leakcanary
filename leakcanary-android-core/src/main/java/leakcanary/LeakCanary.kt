@@ -197,7 +197,9 @@ object LeakCanary {
     val eventListeners: List<EventListener> = listOf(
       LogcatEventListener,
       ToastEventListener,
-      if (InternalLeakCanary.formFactor == TV) TvEventListener else NotificationEventListener,
+      LazyForwardingEventListener {
+        if (InternalLeakCanary.formFactor == TV) TvEventListener else NotificationEventListener
+      },
       when {
           RemoteWorkManagerHeapAnalyzer.remoteLeakCanaryServiceInClasspath ->
             RemoteWorkManagerHeapAnalyzer
