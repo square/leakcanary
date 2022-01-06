@@ -36,10 +36,9 @@ dependencies {
   testImplementation(libs.kotlin.reflect)
   testImplementation(libs.mockito)
   testImplementation(libs.mockitoKotlin)
-  // AppWatcher auto installer for running tests
-  androidTestImplementation(project(":leakcanary-object-watcher-android"))
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)
   androidTestImplementation(libs.androidX.test.runner)
+  androidTestImplementation(libs.assertjCore)
   androidTestImplementation(project(":shark-hprof-test"))
 }

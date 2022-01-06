@@ -8,6 +8,7 @@ android {
   compileSdk = property("compileSdk").toString().toInt()
   defaultConfig {
     minSdk = property("minSdk").toString().toInt()
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   buildFeatures.buildConfig = false
   lintOptions {
@@ -24,4 +25,10 @@ dependencies {
   api(project(":leakcanary-object-watcher-android"))
   // Plumber auto installer
   implementation(project(":plumber-android"))
+
+  androidTestImplementation(libs.androidX.test.espresso)
+  androidTestImplementation(libs.androidX.test.rules)
+  androidTestImplementation(libs.androidX.test.runner)
+  androidTestImplementation(libs.assertjCore)
+  androidTestImplementation(project(":shark-hprof-test"))
 }
