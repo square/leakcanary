@@ -34,6 +34,9 @@ $dokka.location:leakcanary/EventListener///PointingToDeclaration/leakcanary-and
 $dokka.location:leakcanary/EventListener/onEvent/#leakcanary.EventListener.Event/PointingToDeclaration/leakcanary-android-core/leakcanary/-event-listener/on-event.md
 $dokka.location:leakcanary/HeapDumper///PointingToDeclaration/leakcanary-android-core/leakcanary/-heap-dumper/index.md
 $dokka.location:leakcanary/HeapDumper/dumpHeap/#java.io.File/PointingToDeclaration/leakcanary-android-core/leakcanary/-heap-dumper/dump-heap.md
+$dokka.location:leakcanary/LazyForwardingEventListener///PointingToDeclaration/leakcanary-android-core/leakcanary/-lazy-forwarding-event-listener/index.md
+$dokka.location:leakcanary/LazyForwardingEventListener/LazyForwardingEventListener/#kotlin.Function0[leakcanary.EventListener]/PointingToDeclaration/leakcanary-android-core/leakcanary/-lazy-forwarding-event-listener/-lazy-forwarding-event-listener.md
+$dokka.location:leakcanary/LazyForwardingEventListener/onEvent/#leakcanary.EventListener.Event/PointingToDeclaration/leakcanary-android-core/leakcanary/-lazy-forwarding-event-listener/on-event.md
 $dokka.location:leakcanary/LeakCanary.Config.Builder///PointingToDeclaration/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/index.md
 $dokka.location:leakcanary/LeakCanary.Config.Builder/build/#/PointingToDeclaration/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/build.md
 $dokka.location:leakcanary/LeakCanary.Config.Builder/computeRetainedHeapSize/#kotlin.Boolean/PointingToDeclaration/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/compute-retained-heap-size.md

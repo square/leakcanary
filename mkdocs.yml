@@ -4,7 +4,7 @@
 
 extra:
   leak_canary:
-    release: '2.8'
+    release: '2.8.1'
     next_release: '2.9'
   social:
     - icon: fontawesome/brands/github-alt
