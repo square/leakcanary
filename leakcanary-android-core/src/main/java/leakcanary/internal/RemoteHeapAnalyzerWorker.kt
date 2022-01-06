@@ -1,6 +1,7 @@
 package leakcanary.internal
 
 import android.content.Context
+import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.impl.utils.futures.SettableFuture
 import androidx.work.multiprocess.RemoteListenableWorker
@@ -8,6 +9,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import leakcanary.BackgroundThreadHeapAnalyzer.heapAnalyzerThreadHandler
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.HeapAnalyzerWorker.Companion.asEvent
+import leakcanary.internal.HeapAnalyzerWorker.Companion.heapAnalysisForegroundInfoAsync
 import shark.SharkLog
 
 internal class RemoteHeapAnalyzerWorker(appContext: Context, workerParams: WorkerParameters) :
@@ -32,5 +34,9 @@ internal class RemoteHeapAnalyzerWorker(appContext: Context, workerParams: Worke
       }
     }
     return result
+  }
+
+  override fun getForegroundInfoAsync(): ListenableFuture<ForegroundInfo> {
+    return applicationContext.heapAnalysisForegroundInfoAsync()
   }
 }
