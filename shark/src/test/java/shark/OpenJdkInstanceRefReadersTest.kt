@@ -304,7 +304,7 @@ class OpenJdkInstanceRefReadersTest {
     val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_MAP)
 
     with(refPath.first()) {
-      assertThat(referenceDisplayName).isEqualTo("[StringKey]")
+      assertThat(referenceDisplayName).isEqualTo("[\"StringKey\"]")
     }
   }
 

@@ -72,8 +72,9 @@ internal class InternalSharedHashMapReferenceReader(
               valueObjectId = value.asObjectId!!,
               isLowPriority = false,
               lazyDetailsResolver = {
+                val keyAsString = key.asObject?.asInstance?.readAsJavaString()?.let { "\"$it\"" }
                 val keyAsName =
-                  key.asObject?.asInstance?.readAsJavaString() ?: key.asObject?.toString() ?: "null"
+                  keyAsString ?: key.asObject?.toString() ?: "null"
                 LazyDetails(
                   name = keyAsName,
                   locationClassObjectId = declaringClassId,

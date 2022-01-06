@@ -27,7 +27,7 @@ class AndroidReferenceReadersHprofTest {
 
     val mapReference =
       leakTrace.referencePath.single { it.owningClassSimpleName == "HashMap" }
-    assertThat(mapReference.referenceName).isEqualTo("leaking")
+    assertThat(mapReference.referenceName).isEqualTo("\"leaking\"")
     assertThat(mapReference.referenceType).isEqualTo(ARRAY_ENTRY)
   }
 }
