@@ -11,3 +11,6 @@ internal inline fun <reified T : Any> noOpDelegate(): T = leakcanary.internal.no
 
 internal inline val mainHandler: Handler
   get() = leakcanary.internal.mainHandler
+
+internal inline val isMainThread: Boolean
+  get() = leakcanary.internal.isMainThread

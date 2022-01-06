@@ -29,7 +29,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2.14.3
         with:
           api-level: 16
-          script: ./gradlew leakcanary-android-core:connectedCheck leakcanary-android-instrumentation:connectedCheck --stacktrace
+          script: ./gradlew leakcanary-android-core:connectedCheck leakcanary-android:connectedCheck leakcanary-android-instrumentation:connectedCheck --stacktrace
 
   snapshot-deployment:
     if: github.repository == 'square/leakcanary' && github.event_name == 'push'

@@ -3,7 +3,287 @@
 
 ## Version 2.8 (2022-01-04)
 
-Details to be filled in.
+### Preface
+
+The last release was 9 months ago. What happened?! Well, soon after releasing LeakCanary 2.7, I had my 2nd baby, a wonderful daughter 😍. Having 2 young kids leaves a lot less time available for Open Source work... but it's worth it!
+
+― [P.Y.](https://twitter.com/Piwai)
+
+### Thanks
+
+Please thank
+[@aaronweihe](https://github.com/aaronweihe),
+[@alhah](https://github.com/alhah),
+[@Andre-max](https://github.com/Andre-max),
+[@AoraMD](https://github.com/AoraMD),
+[@BraisGabin](https://github.com/BraisGabin),
+[@breezenan](https://github.com/breezenan),
+[@Goooler](https://github.com/Goooler),
+[@iliaskomp](https://github.com/iliaskomp)
+[@Jeff11](https://github.com/Jeff11),
+[@jmnwong](https://github.com/jmnwong),
+[@IdioticMadman](https://github.com/IdioticMadman),
+[@keyur1sst](https://github.com/keyur1sst),
+[@lchen8](https://github.com/lchen8),
+[@leinardi](https://github.com/leinardi),
+[@Maragues](https://github.com/Maragues),
+[@mars885](https://github.com/mars885),
+[@mateuszkwiecinski](https://github.com/mateuszkwiecinski),
+[@matiash](https://github.com/matiash),
+[@maxxx](https://github.com/maxxx),
+[@preetha1326](https://github.com/preetha1326),
+[@SimonMarquis](https://github.com/SimonMarquis),
+[@slavonnet](https://github.com/slavonnet),
+[@Sonphil](https://github.com/Sonphil),
+[@summerlyr](https://github.com/summerlyr),
+[@SUPERCILEX](https://github.com/SUPERCILEX),
+[@utwyko](https://github.com/utwyko),
+[@ZacSweers](https://github.com/ZacSweers),
+[@ziranshang](https://github.com/ziranshang),
+[@zoltish](https://github.com/zoltish)
+for their contributions, bug reports and feature requests 🙏 🙏 🙏.
+
+### Improved support for data structure internals
+
+🤓 Inspired [by Android Studio](https://twitter.com/RalucaSauciuc/status/1343800565352996871), LeakCanary's node discovery during heap graph traversal is now abstracted away. This allows overlaying logical structure over common data structure internals.
+
+😅 WHAT?!
+
+👉 This means we can make known data structures look more like their APIs than their internals. For example, developers tend to think of setting a `HashMap` entry as `map["key"] = value` rather than `map.table[hash("key")].next.next.next = Node(value)`, which is what LeakCanary would previously show in its leak traces.
+
+Let's look at a `HashMap` example:
+
+```kotlin
+class CheckoutController {
+
+  val tabs = HashMap<String, Tab>()
+  
+  fun addItemsTab(tab: Tab) {
+    tabs["ItemsTab"] = tab  
+  }
+}
+```
+
+If the `Tab` instance holds on to a view, we might see a leak trace that would look like this:
+
+```
+│ ...
+├─ com.example.CheckoutController instance
+│    ↓ CheckoutController.tabs
+├─ java.util.HashMap instance
+│    ↓ HashMap.table
+├─ java.util.HashMap$Node[] array
+│    ↓ HashMap$Node[42]
+├─ java.util.HashMap$Node instance
+│    ↓ HashMap$Node.next
+├─ java.util.HashMap$Node instance
+│    ↓ HashMap$Node.value
+├─ com.example.Tab instance
+│ ...
+```
+
+With the improved data structure support, the leak trace is much clearer (also note how the `ItemsTab` string key is now surfaced):
+
+```
+│ ...
+├─ com.example.CheckoutController instance
+│    ↓ CheckoutController.tabs
+├─ java.util.HashMap instance
+│    ↓ HashMap[ItemsTab]
+├─ com.example.Tab instance
+│ ...
+```
+
+Another benefit of this change is that leak signatures become less dependent of the runtime, and therefore are more consistent. This is especially true for any data structure that relies on a linked list (`HashMap`, `LinkedList`, `MessageQueue`, ...). Currently LeakCanary supports a limited set of common data structures from Apache Harmony, Open JDK, and the Android SDK. Let me know what else you need!
+
+### ObjectAnimator leaks
+
+LeakCanary will now detect leaks that trigger when forgetting to cancel `ObjectAnimator`. This new feature is enabled by the node discovery changes described above!
+
+Let's say you accidentally start an infinite `ObjectAnimator` and never cancel it, like so:
+
+```kotlin
+class ExampleActivity : Activity() {
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.main_activity)
+    findViewById<Button>(R.id.button).setOnClickListener { view ->
+      ObjectAnimator.ofFloat(view, View.ALPHA, 0.1f, 0.2f).apply {
+        duration = 100
+        repeatMode = ValueAnimator.REVERSE
+        repeatCount = ValueAnimator.INFINITE
+        start()
+      }
+    }
+  }
+}
+```
+
+In previous releases, LeakCanary would detect that the animated view is leaking but it wouldn't be able to find the leak and instead would report it as an unreachable object: _An unreachable object is still in memory but LeakCanary could not find a strong reference path from GC roots._
+
+LeakCanary now reports the leak and adds animator state information, helping detect and fix any infinite `ObjectAnimator`.
+
+```
+┬───
+│ GC Root: Thread object
+│
+├─ java.lang.Thread instance
+│    Leaking: NO (the main thread always runs)
+│    Thread name: 'main'
+│    ↓ Thread.threadLocals
+│             ~~~~~~~~~~~~
+...
+├─ android.animation.ObjectAnimator instance
+│    Leaking: UNKNOWN
+│    mListeners = null
+│    mPropertyName = null
+│    mProperty.mName = alpha
+│    mProperty.mType = java.lang.Float
+│    mInitialized = true
+│    mStarted = true
+│    mRunning = true
+│    mAnimationEndRequested = false
+│    mDuration = 100
+│    mStartDelay = 0
+│    mRepeatCount = INFINITE (-1)
+│    mRepeatMode = REVERSE (2)
+│    ↓ ObjectAnimator.mTarget
+│                     ~~~~~~~
+╰→ android.widget.Button instance
+     Leaking: YES (View.mContext references a destroyed activity)
+```
+
+To learn more, see this AOSP issue: [ObjectAnimator.mTarget weak ref creates memory leaks on infinite animators](https://issuetracker.google.com/issues/212993949). 
+
+### Leak detection in tests
+
+Previous releases of `leakcanary-android-instrumentation` introduced a `FailTestOnLeakRunListener` which could run leak detection after each UI tests. Unfortunately `FailTestOnLeakRunListener` relied on a hack around `androidx.test` internals to report failures. The internals keep changing with every `androidx.test` release and breaking `FailTestOnLeakRunListener` 😭. 
+
+`FailTestOnLeakRunListener` is now deprecated (👋) and replaced by the `DetectLeaksAfterTestSuccess` test rule, which you can add to your test like any normal test rule.
+
+Additionally, you can call `LeakAssertions.assertNoLeak()` from anywhere in your instrumentation tests. You can also annotate tests with `@SkipLeakDetection` (for that to work you'll also need to set up the `TestDescriptionHolder` test rule).
+
+```kotlin
+class CartTest {
+  @get:Rule
+  val rules = RuleChain.outerRule(TestDescriptionHolder)
+    .around(DetectLeaksAfterTestSuccess())
+    .around(ActivityScenarioRule(CartActivity::class.java))
+
+  @Test
+  fun addItemToCart() {
+    // ...
+  }
+
+  @SkipLeakDetection("See #1234")
+  @Test
+  fun removeItemFromCart() {
+    // ...
+  }
+}
+```
+
+### Android 12
+
+Hopefully this time we fixed everything that Android 12 broke: missing `exported:true` tags, missing pending intent flags, and `ForegroundServiceStartNotAllowedException` crashes. If not, let us know! Can't wait for Android 13 to break everything again 🤬.
+
+### WorkManager
+
+Running an Android Service without crashing (`ForegroundServiceStartNotAllowedException`...) is becoming harder with every release of Android, so I got rid of the LeakCanary heap analyzer service! Instead, LeakCanary leverages WorkManager if you already have it as a dependency. If you don't use WorkManager, then LeakCanary will fall back to using a simple thread.
+
+Note: I recommend using at least [WorkManager 2.7.0](https://developer.android.com/jetpack/androidx/releases/work#2.7.0) as it adds the `WorkRequest.Builder.setExpedited()` API which LeakCanarty leverages if available.
+
+### Multi process
+
+Switching to WorkManager also impacts the LeakCanary multi process approach, which now leverages WorkManager remote jobs. Blog on how I got this working: [WorkManager multi-process for libraries](https://py.hashnode.dev/workmanager-multi-process-for-libraries).
+
+Multi process is harder to get right so you should only use this if LeakCanary frequently runs out of memory while performing the heap analysis. Here are the updated set up steps:
+
+1) Add the `leakcanary-android-process` dependency and **keep the `leakcanary-android` dependency**.
+
+```groovy
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.8'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-process:2.8'
+}
+```
+
+2) Skip the initialization code in the `Application` class
+
+```kotlin
+class ExampleApplication : Application() {
+
+  override fun onCreate() {
+    super.onCreate()
+    if (LeakCanaryProcess.isInAnalyzerProcess(this)) {
+      return
+    }
+	// normal init goes here, skipped in :leakcanary process.
+  }
+}
+```
+
+That's it! Note that event listeners (see below) related to the analysis will fire in the remote process.
+
+### AndroidX App Startup
+
+LeakCanary now optionally supports the [AndroidX App Startup library](https://developer.android.com/topic/libraries/app-startup). All you need to do is replace the `leakcanary-android` dependency with `leakcanary-android-startup`:
+
+```groovy
+dependencies {
+  // Remove the normal leakcanary-android dependency
+  // debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.8'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-startup:2.8'
+}
+```
+
+Note 1: `leakcanary-android` adds the code for automatic installl to `leakcanary-android-core`. If you're calling `AppWatcher.manualInstall()`, you can depend directly on `leakcanary-android-core` instead of `leakcanary-android`, and you won't need the disable any automatic install.
+
+Note 2: the same principle applies to `leakcanary-object-watcher-android`: it depends on `leakcanary-object-watcher-android-core` and adds automatic install, while `leakcanary-object-watcher-android-startup` leverages the App Startup library. Same for `plumber-android`, `plumber-android-core` and  `plumber-android-startup`.
+
+### Event listeners
+
+`LeakCanary.Config` has a new `eventListeners` field allowing you to react to LeakCanary's lifecycle. If you want to customize this, you most likely should be keeping the default list of listeners and add or remove from it.
+
+For example, if you want to disable the LeakCanary toast:
+
+```kotlin
+LeakCanary.config = LeakCanary.config.run {
+  copy(
+    eventListeners = eventListeners.filter {
+      it !is ToastEventListener
+    }
+  )
+}
+```
+
+If you want to upload heap analysis results:
+
+```kotlin
+LeakCanary.config = LeakCanary.config.run {
+  copy(
+    eventListeners = eventListeners + EventListener { event ->
+      if (event is HeapAnalysisSucceeded) {
+        // Upload event.heapAnalysis
+      }
+    }
+  )
+}
+```
+
+Note: `Leakcanary.Config.onHeapAnalyzedListener` still works but is now deprecated.
+
+Feedback welcome on this new API!
+
+### Other bug fixes and improvements 🐛🔨
+
+* [#2096](https://github.com/square/leakcanary/issues/2096) Opening / sharing heap dump files now supports LeakCanary as an option.
+* [#2210](https://github.com/square/leakcanary/issues/2210) First Compose dedicated object inspectors!
+* [#2121](https://github.com/square/leakcanary/pull/2121) Support for customizing the heap dumper.
+
+This list reflects only a subset of all changes. For more details, see the [2.8 Milestone](https://github.com/square/leakcanary/milestone/22) and the [full diff](https://github.com/square/leakcanary/compare/v2.7...v2.8).
+
 
 ## Version 2.7 (2021-03-26)
 
@@ -52,6 +332,8 @@ We fixed two issues for apps that want to target Android 12:
 * [#2099](https://github.com/square/leakcanary/pull/2099) Retry button if analysis fails.
 * [#2066](https://github.com/square/leakcanary/pull/2066) When heap analysis in UI tests is skipped and NoAnalysis is returned, NoAnalysis now includes a reason to help debug why it didn't run.
 * [#2000](https://github.com/square/leakcanary/issues/2000) The LeakCanary CI now leverages GitHub actions instead of Travis.
+
+For more details, see the [2.7 Milestone](https://github.com/square/leakcanary/milestone/21) and the [full diff](https://github.com/square/leakcanary/compare/v2.6...v2.7).
 
 ##  Version 2.6 - Christmas Release 🎄 (2020-12-24)
 

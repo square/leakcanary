@@ -12,6 +12,7 @@ import android.widget.FrameLayout
 import curtains.Curtains
 import curtains.OnRootViewRemovedListener
 import leakcanary.internal.friendly.checkMainThread
+import leakcanary.internal.friendly.isMainThread
 import leakcanary.internal.friendly.mainHandler
 import leakcanary.internal.friendly.noOpDelegate
 import leakcanary.internal.onAndroidXFragmentViewDestroyed
@@ -32,7 +33,7 @@ object ViewLocationHolderLeakFix {
     }
     // Takes care of child windows (e.g. dialogs)
     Curtains.onRootViewsChangedListeners += OnRootViewRemovedListener {
-      if (Looper.getMainLooper().thread === Thread.currentThread()) {
+      if (isMainThread) {
         uncheckedClearStaticPool(application)
       } else {
         mainHandler.post {

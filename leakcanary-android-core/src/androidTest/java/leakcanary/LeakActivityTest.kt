@@ -1,7 +1,5 @@
 package leakcanary
 
-import android.content.Intent
-import android.net.Uri
 import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
@@ -12,6 +10,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.ActivityTestRule
 import com.squareup.leakcanary.core.R
+import java.io.File
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable.AllLeaksProjection
@@ -30,9 +29,6 @@ import shark.LeakTraceObject
 import shark.OnAnalysisProgressListener
 import shark.ValueHolder.IntHolder
 import shark.dump
-import java.io.File
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit.SECONDS
 
 internal class LeakActivityTest {
 
@@ -93,27 +89,6 @@ internal class LeakActivityTest {
       .check(matches(isDisplayed()))
   }
 
-  @Test
-  fun importHeapDumpFile() = tryAndRestoreConfig {
-    val latch = CountDownLatch(1)
-    LeakCanary.config = LeakCanary.config.copy(onHeapAnalyzedListener = {
-      DefaultOnHeapAnalyzedListener.create().onHeapAnalyzed(it)
-      latch.countDown()
-    })
-    val hprof = writeHeapDump {
-      "Holder" clazz {
-        staticField["leak"] = "com.example.Leaking" watchedInstance {}
-      }
-    }
-    val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(hprof))
-    activityTestRule.launchActivity(intent)
-    require(latch.await(5, SECONDS))
-    onView(withText("1 Heap Dump")).check(matches(isDisplayed()))
-    onData(withItem<HeapAnalysisTable.Projection> { it.leakCount == 1 })
-      .perform(click())
-    onView(withText("1 Distinct Leak")).check(matches(isDisplayed()))
-  }
-
   private fun writeHeapDump(block: HprofWriterHelper.() -> Unit): File {
     val hprofFile = testFolder.newFile("temp.hprof")
     hprofFile.dump {
@@ -163,14 +138,13 @@ internal class LeakActivityTest {
       }
     }
   }
+}
 
-  private fun tryAndRestoreConfig(block: () -> Unit) {
-    val original = LeakCanary.config
-    try {
-      block()
-    } finally {
-      LeakCanary.config = original
-    }
+fun tryAndRestoreConfig(block: () -> Unit) {
+  val original = LeakCanary.config
+  try {
+    block()
+  } finally {
+    LeakCanary.config = original
   }
-
 }

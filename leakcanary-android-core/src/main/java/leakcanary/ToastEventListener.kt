@@ -18,8 +18,6 @@ import leakcanary.internal.friendly.mainHandler
 
 object ToastEventListener : EventListener {
 
-  private val appContext = InternalLeakCanary.application
-
   // Only accessed from the main thread
   private var toastCurrentlyShown: Toast? = null
 
@@ -36,7 +34,9 @@ object ToastEventListener : EventListener {
     }
   }
 
+  @Suppress("DEPRECATION")
   private fun showToastBlocking() {
+    val appContext = InternalLeakCanary.application
     val waitingForToast = CountDownLatch(1)
     mainHandler.post(Runnable {
       val resumedActivity = InternalLeakCanary.resumedActivity
