@@ -4,6 +4,7 @@ import java.io.File
 import java.util.EnumSet
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit.SECONDS
+import kotlin.concurrent.thread
 import kotlin.math.absoluteValue
 import kotlin.reflect.KClass
 import org.assertj.core.api.AbstractIntegerAssert
@@ -154,12 +155,9 @@ class HprofRetainedHeapPerfTest {
   ): T {
     lateinit var result: T
     val latch = CountDownLatch(1)
-    Thread {
+    thread(name = threadName) {
       result = work()
       latch.countDown()
-    }.apply {
-      name = threadName
-      start()
     }
     check(latch.await(30, SECONDS))
     return result
