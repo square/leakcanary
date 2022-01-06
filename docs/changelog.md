@@ -57,9 +57,9 @@ Let's look at a `HashMap` example:
 class CheckoutController {
 
   val tabs = HashMap<String, Tab>()
-  
+
   fun addItemsTab(tab: Tab) {
-    tabs["ItemsTab"] = tab  
+    tabs["ItemsTab"] = tab
   }
 }
 ```
@@ -154,11 +154,11 @@ LeakCanary now reports the leak and adds animator state information, helping det
      Leaking: YES (View.mContext references a destroyed activity)
 ```
 
-To learn more, see this AOSP issue: [ObjectAnimator.mTarget weak ref creates memory leaks on infinite animators](https://issuetracker.google.com/issues/212993949). 
+To learn more, see this AOSP issue: [ObjectAnimator.mTarget weak ref creates memory leaks on infinite animators](https://issuetracker.google.com/issues/212993949).
 
 ### Leak detection in tests
 
-Previous releases of `leakcanary-android-instrumentation` introduced a `FailTestOnLeakRunListener` which could run leak detection after each UI tests. Unfortunately `FailTestOnLeakRunListener` relied on a hack around `androidx.test` internals to report failures. The internals keep changing with every `androidx.test` release and breaking `FailTestOnLeakRunListener` 😭. 
+Previous releases of `leakcanary-android-instrumentation` introduced a `FailTestOnLeakRunListener` which could run leak detection after each UI tests. Unfortunately `FailTestOnLeakRunListener` relied on a hack around `androidx.test` internals to report failures. The internals keep changing with every `androidx.test` release and breaking `FailTestOnLeakRunListener` 😭.
 
 `FailTestOnLeakRunListener` is now deprecated (👋) and replaced by the `DetectLeaksAfterTestSuccess` test rule, which you can add to your test like any normal test rule.
 
@@ -478,11 +478,9 @@ class ReleaseExampleApplication : ExampleApplication() {
 
   private val analysisExecutor by lazy {
     Executors.newSingleThreadExecutor {
-      Thread {
+      thread(start = false, name = "Heap analysis executor") {
         android.os.Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND)
         it.run()
-      }.apply {
-        name = "Heap analysis executor"
       }
     }
   }

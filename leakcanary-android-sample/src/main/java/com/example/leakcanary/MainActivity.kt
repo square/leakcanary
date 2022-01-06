@@ -30,6 +30,7 @@ import android.os.SystemClock
 import android.view.View
 import android.widget.Button
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 import kotlin.random.Random
 import leakcanary.AppWatcher
 
@@ -53,7 +54,7 @@ class MainActivity : Activity() {
         2 -> {
           // Leak from local variable on thread
           val ref = AtomicReference(this)
-          val thread = Thread {
+          thread(name = "Leaking local variables") {
             val activity = ref.get()
             ref.set(null)
             while (true) {
@@ -61,8 +62,6 @@ class MainActivity : Activity() {
               SystemClock.sleep(1000)
             }
           }
-          thread.name = "Leaking local variables"
-          thread.start()
         }
         // Leak from thread fields
         else -> LeakingThread.thread.leakedViews.add(leakedView)

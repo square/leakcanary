@@ -10,12 +10,11 @@ import android.os.Process
 import android.os.SystemClock
 import android.system.Os
 import android.system.OsConstants
+import java.io.File
+import java.io.FileReader
 import leakcanary.ProcessInfo.AvailableRam.BelowThreshold
 import leakcanary.ProcessInfo.AvailableRam.LowRamDevice
 import leakcanary.ProcessInfo.AvailableRam.Memory
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileReader
 
 interface ProcessInfo {
 
@@ -110,7 +109,7 @@ interface ProcessInfo {
     // Android 10. Median time: 0.13ms
     private fun readProcessStartTicks(pid: Int): Long {
       val path = "/proc/$pid/stat"
-      val stat = BufferedReader(FileReader(path)).use { reader ->
+      val stat = FileReader(path).buffered().use { reader ->
         reader.readLine()
       }
       val fields = stat.substringAfter(") ")

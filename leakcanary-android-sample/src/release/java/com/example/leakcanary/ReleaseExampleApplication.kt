@@ -12,6 +12,7 @@ import leakcanary.ScreenOffTrigger
 import shark.SharkLog
 import shark.SharkLog.Logger
 import java.util.concurrent.Executors
+import kotlin.concurrent.thread
 
 class ReleaseExampleApplication : ExampleApplication() {
 
@@ -27,11 +28,9 @@ class ReleaseExampleApplication : ExampleApplication() {
     )
 
     val analysisExecutor = Executors.newSingleThreadExecutor {
-      Thread {
+      thread(start = false, name = "Heap analysis executor") {
         android.os.Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND)
         it.run()
-      }.apply {
-        name = "Heap analysis executor"
       }
     }
     analysisExecutor.execute {
