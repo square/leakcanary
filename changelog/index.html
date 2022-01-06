@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.8.1</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -771,6 +771,33 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-281-2022-01-06" class="md-nav__link">
+    Version 2.8.1 (2022-01-06)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 2.8.1 (2022-01-06)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#thanks" class="md-nav__link">
+    Thanks
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#crash-fixes" class="md-nav__link">
+    Crash fixes 💥💥💥
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-28-2022-01-04" class="md-nav__link">
     Version 2.8 (2022-01-04)
   </a>
@@ -786,7 +813,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#thanks" class="md-nav__link">
+  <a href="#thanks_1" class="md-nav__link">
     Thanks
   </a>
   
@@ -1466,6 +1493,33 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-281-2022-01-06" class="md-nav__link">
+    Version 2.8.1 (2022-01-06)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 2.8.1 (2022-01-06)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#thanks" class="md-nav__link">
+    Thanks
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#crash-fixes" class="md-nav__link">
+    Crash fixes 💥💥💥
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-28-2022-01-04" class="md-nav__link">
     Version 2.8 (2022-01-04)
   </a>
@@ -1481,7 +1535,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#thanks" class="md-nav__link">
+  <a href="#thanks_1" class="md-nav__link">
     Thanks
   </a>
   
@@ -2150,11 +2204,29 @@
   
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
+<h2 id="version-281-2022-01-06">Version 2.8.1 (2022-01-06)<a class="headerlink" href="#version-281-2022-01-06" title="Permanent link">&para;</a></h2>
+<p>This is a bugfix release, a quick follow up to <code>2.8</code> which had a few major issues 😅. If you haven&rsquo;t yet, you should definitely read the <code>2.8</code> changelog.</p>
+<h3 id="thanks">Thanks<a class="headerlink" href="#thanks" title="Permanent link">&para;</a></h3>
+<p>Please thank
+<a href="https://github.com/dicosta">@dicosta</a>,
+<a href="https://github.com/Goooler">@Goooler</a>,
+<a href="https://github.com/plnice">@plnice</a>,
+<a href="https://github.com/preetha1326">@preetha1326</a>
+for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
+<h3 id="crash-fixes">Crash fixes 💥💥💥<a class="headerlink" href="#crash-fixes" title="Permanent link">&para;</a></h3>
+<p>This patch release fixes not 1, not 2, but 3 crashes!</p>
+<ul>
+<li>💥 <a href="https://github.com/square/leakcanary/pull/2268">#2268</a> WorkManager expedited request crashes before API 31.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2270">#2270</a> Updating <code>LeakCanary.config</code> crashes when <code>AppWatcher</code> is not installed.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2271">#2271</a> Analysis failure on API 25 because <code>HashMap$Entry</code> became <code>HashMap$HashMapEntry</code> (on API 25) before it finally changed to <code>HashMap$Node</code>.</li>
+</ul>
+<p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/24">2.8.1 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.8...v2.8.1">full diff</a>.</p>
 <h2 id="version-28-2022-01-04">Version 2.8 (2022-01-04)<a class="headerlink" href="#version-28-2022-01-04" title="Permanent link">&para;</a></h2>
+<p>Note: please update to <code>2.8.1</code> instead.</p>
 <h3 id="preface">Preface<a class="headerlink" href="#preface" title="Permanent link">&para;</a></h3>
 <p>The last release was 9 months ago. What happened?! Well, soon after releasing LeakCanary 2.7, I had my 2<sup>nd</sup> baby, a wonderful daughter 😍. Having 2 young kids leaves a lot less time available for Open Source work&hellip; but it&rsquo;s worth it!</p>
 <p>― <a href="https://twitter.com/Piwai">P.Y.</a></p>
-<h3 id="thanks">Thanks<a class="headerlink" href="#thanks" title="Permanent link">&para;</a></h3>
+<h3 id="thanks_1">Thanks<a class="headerlink" href="#thanks_1" title="Permanent link">&para;</a></h3>
 <p>Please thank
 <a href="https://github.com/aaronweihe">@aaronweihe</a>,
 <a href="https://github.com/alhah">@alhah</a>,
@@ -2196,7 +2268,7 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
   <span class="k">val</span> <span class="py">tabs</span> <span class="p">=</span> <span class="n">HashMap</span><span class="p">&lt;</span><span class="n">String</span><span class="p">,</span> <span class="n">Tab</span><span class="p">&gt;()</span>
 
   <span class="k">fun</span> <span class="nf">addItemsTab</span><span class="p">(</span><span class="n">tab</span><span class="p">:</span> <span class="n">Tab</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">tabs</span><span class="p">[</span><span class="s">&quot;ItemsTab&quot;</span><span class="p">]</span> <span class="p">=</span> <span class="n">tab</span>  
+    <span class="n">tabs</span><span class="p">[</span><span class="s">&quot;ItemsTab&quot;</span><span class="p">]</span> <span class="p">=</span> <span class="n">tab</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -2274,9 +2346,9 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 ╰→ android.widget.Button instance
      Leaking: YES (View.mContext references a destroyed activity)
 </code></pre></div>
-<p>To learn more, see this AOSP issue: <a href="https://issuetracker.google.com/issues/212993949">ObjectAnimator.mTarget weak ref creates memory leaks on infinite animators</a>. </p>
+<p>To learn more, see this AOSP issue: <a href="https://issuetracker.google.com/issues/212993949">ObjectAnimator.mTarget weak ref creates memory leaks on infinite animators</a>.</p>
 <h3 id="leak-detection-in-tests">Leak detection in tests<a class="headerlink" href="#leak-detection-in-tests" title="Permanent link">&para;</a></h3>
-<p>Previous releases of <code>leakcanary-android-instrumentation</code> introduced a <code>FailTestOnLeakRunListener</code> which could run leak detection after each UI tests. Unfortunately <code>FailTestOnLeakRunListener</code> relied on a hack around <code>androidx.test</code> internals to report failures. The internals keep changing with every <code>androidx.test</code> release and breaking <code>FailTestOnLeakRunListener</code> 😭. </p>
+<p>Previous releases of <code>leakcanary-android-instrumentation</code> introduced a <code>FailTestOnLeakRunListener</code> which could run leak detection after each UI tests. Unfortunately <code>FailTestOnLeakRunListener</code> relied on a hack around <code>androidx.test</code> internals to report failures. The internals keep changing with every <code>androidx.test</code> release and breaking <code>FailTestOnLeakRunListener</code> 😭.</p>
 <p><code>FailTestOnLeakRunListener</code> is now deprecated (👋) and replaced by the <code>DetectLeaksAfterTestSuccess</code> test rule, which you can add to your test like any normal test rule.</p>
 <p>Additionally, you can call <code>LeakAssertions.assertNoLeak()</code> from anywhere in your instrumentation tests. You can also annotate tests with <code>@SkipLeakDetection</code> (for that to work you&rsquo;ll also need to set up the <code>TestDescriptionHolder</code> test rule).</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
@@ -2519,11 +2591,9 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 
   <span class="k">private</span> <span class="k">val</span> <span class="py">analysisExecutor</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
     <span class="n">Executors</span><span class="p">.</span><span class="n">newSingleThreadExecutor</span> <span class="p">{</span>
-      <span class="n">Thread</span> <span class="p">{</span>
+      <span class="n">thread</span><span class="p">(</span><span class="n">start</span> <span class="p">=</span> <span class="k">false</span><span class="p">,</span> <span class="n">name</span> <span class="p">=</span> <span class="s">&quot;Heap analysis executor&quot;</span><span class="p">)</span> <span class="p">{</span>
         <span class="n">android</span><span class="p">.</span><span class="n">os</span><span class="p">.</span><span class="n">Process</span><span class="p">.</span><span class="n">setThreadPriority</span><span class="p">(</span><span class="n">THREAD_PRIORITY_BACKGROUND</span><span class="p">)</span>
         <span class="n">it</span><span class="p">.</span><span class="n">run</span><span class="p">()</span>
-      <span class="p">}.</span><span class="n">apply</span> <span class="p">{</span>
-        <span class="n">name</span> <span class="p">=</span> <span class="s">&quot;Heap analysis executor&quot;</span>
       <span class="p">}</span>
     <span class="p">}</span>
   <span class="p">}</span>

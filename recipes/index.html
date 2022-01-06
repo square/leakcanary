@@ -82,7 +82,7 @@
         <aside class="md-announce">
           <div class="md-announce__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.8</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.8.1</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -1188,7 +1188,7 @@
 <p>The <code>com.squareup.leakcanary:leakcanary-android</code> dependency should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in release builds to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code>dependencies {
-  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.8&#39;
+  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.8.1&#39;
 }
 </code></pre></div>
 <p>In your leak reporting code:
@@ -1299,7 +1299,7 @@ a <a href="https://issuetracker.google.com/issues/126429384">bug</a> in the Andr
 <p>Create a <a href="https://app.bugsnag.com/user/new/">Bugsnag account</a>, create a new project for leak reporting and grab an <strong>API key</strong>. Make sure the app has the <code>android.permission.INTERNET</code> permission then add the <a href="https://docs.bugsnag.com/platforms/android/">latest version</a> of the Bugsnag Android client library to <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
   <span class="c1">// debugImplementation because LeakCanary should only run in debug builds.</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.8&#39;</span>
+  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.8.1&#39;</span>
   <span class="n">debugImplementation</span> <span class="s2">&quot;com.bugsnag:bugsnag-android:$bugsnagVersion&quot;</span>
 <span class="o">}</span>
 </code></pre></div>
@@ -1580,8 +1580,8 @@ configurations {
 <p>While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.</p>
 <p>Add the ObjectWatcher and Shark dependencies to your build file:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.8&#39;</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.8&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.8.1&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.8.1&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
 <p>Define a <code>HotSpotHeapDumper</code> to dump the heap:</p>
