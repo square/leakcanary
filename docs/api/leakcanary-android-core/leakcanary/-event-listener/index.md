@@ -22,6 +22,7 @@ fun interface [EventListener](index.md)
 | Name |
 |---|
 | [BackgroundThreadHeapAnalyzer](../-background-thread-heap-analyzer/index.md) |
+| [LazyForwardingEventListener](../-lazy-forwarding-event-listener/index.md) |
 | [LogcatEventListener](../-logcat-event-listener/index.md) |
 | [NotificationEventListener](../-notification-event-listener/index.md) |
 | [RemoteWorkManagerHeapAnalyzer](../-remote-work-manager-heap-analyzer/index.md) |
