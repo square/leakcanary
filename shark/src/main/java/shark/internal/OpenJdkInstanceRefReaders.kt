@@ -98,6 +98,8 @@ internal enum class OpenJdkInstanceRefReaders : OptionalFactory {
       // Initially Entry, changed to Node in JDK 1.8
       val nodeClassName = if (graph.findClassByName("java.util.HashMap\$Entry") != null) {
         "java.util.HashMap\$Entry"
+      } else if (graph.findClassByName("java.util.HashMap\$HashMapEntry") != null) {
+        "java.util.HashMap\$HashMapEntry"
       } else {
         "java.util.HashMap\$Node"
       }
@@ -172,6 +174,8 @@ internal enum class OpenJdkInstanceRefReaders : OptionalFactory {
       // Initially Entry, changed to Node in JDK 1.8
       val nodeClassName = if (graph.findClassByName("java.util.HashMap\$Entry") != null) {
         "java.util.HashMap\$Entry"
+      } else if (graph.findClassByName("java.util.HashMap\$HashMapEntry") != null) {
+        "java.util.HashMap\$HashMapEntry"
       } else {
         "java.util.HashMap\$Node"
       }

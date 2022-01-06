@@ -19,6 +19,17 @@ class AndroidReferenceReadersHprofTest {
     assertThat(mapReference.referenceName).isEqualTo("key()")
     assertThat(mapReference.referenceType).isEqualTo(ARRAY_ENTRY)
   }
+
+  @Test fun `API 25 HashMap$HashMapEntry supported`() {
+    val hprofFile = "hashmap_api_25.hprof".classpathFile()
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+    val leakTrace = analysis.applicationLeaks.single().leakTraces.single()
+
+    val mapReference =
+      leakTrace.referencePath.single { it.owningClassSimpleName == "HashMap" }
+    assertThat(mapReference.referenceName).isEqualTo("leaking")
+    assertThat(mapReference.referenceType).isEqualTo(ARRAY_ENTRY)
+  }
 }
 
 fun String.classpathFile(): File {
