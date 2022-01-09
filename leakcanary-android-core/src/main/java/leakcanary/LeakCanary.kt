@@ -356,7 +356,7 @@ object LeakCanary {
       val previousConfig = field
       field = newConfig
       logConfigChange(previousConfig, newConfig)
-      HeapDumpControl.updateICanHasHeap()
+      HeapDumpControl.updateICanHasHeapInBackground()
     }
 
   private fun logConfigChange(
