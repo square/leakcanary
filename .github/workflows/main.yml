@@ -29,18 +29,55 @@ jobs:
       - name: Build project
         run: ./gradlew build --stacktrace
 
-      - name: Assemble Test APK
-        run: ./gradlew assembleAndroidTest --stacktrace
+  instrumentation-tests:
+    name: Instrumentation tests
+    runs-on: macos-latest
+    timeout-minutes: 30
+    strategy:
+      # Allow tests to continue on other devices if they fail on one device.
+      fail-fast: false
+      matrix:
+        arch: [x86_64]
+        api-level:
+          - 21
+          - 23
+          - 26
+          - 29
+          - 30
+        include:
+          - arch: x86
+            api-level: 16
+          - arch: x86
+            api-level: 19
 
-      - name: Espresso Checks
-        uses: reactivecircus/android-emulator-runner@v2.14.3
+    steps:
+      - name: Project Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup JDK 1.8
+        uses: actions/setup-java@v2
         with:
-          api-level: 16
-          script: ./gradlew leakcanary-android-core:connectedCheck leakcanary-android:connectedCheck leakcanary-android-instrumentation:connectedCheck --stacktrace
+          java-version: 8
+          distribution: 'zulu'
+
+      - name: Instrumentation Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: ${{ matrix.arch }}
+          script: ./gradlew leakcanary-android-core:connectedCheck leakcanary-android:connectedCheck leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
+
+      - name: Upload results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.api-level }}-${{ matrix.arch }}-instrumentation-test-results
+          path: ./**/build/reports/androidTests/connected/**
 
   snapshot-deployment:
     if: github.repository == 'square/leakcanary' && github.event_name == 'push'
-    needs: [ checks ]
+    needs: [ checks, instrumentation-tests ]
     runs-on: ubuntu-latest
     steps:
 
