@@ -24,5 +24,6 @@ D LeakCanary: LeakCanary is running and ready to detect leaks
     * destroyed `Fragment` instances
     * destroyed fragment `View` instances
     * cleared `ViewModel` instances
+    * destroyed `Service` instance
 
 What's next? Learn the [Fundamentals](fundamentals.md)!
