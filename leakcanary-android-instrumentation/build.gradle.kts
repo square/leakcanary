@@ -5,10 +5,10 @@ plugins {
 }
 
 android {
-  compileSdk = property("compileSdk").toString().toInt()
+  compileSdk = libs.versions.compileSdk.get().toInt()
   defaultConfig {
-    targetSdk = property("compileSdk").toString().toInt()
-    minSdk = property("minSdk").toString().toInt()
+    targetSdk = libs.versions.compileSdk.get().toInt()
+    minSdk = libs.versions.minSdk.get().toInt()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   buildFeatures.buildConfig = false

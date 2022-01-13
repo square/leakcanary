@@ -6,9 +6,9 @@ plugins {
 
 android {
   resourcePrefix = "leak_canary_"
-  compileSdk = property("compileSdk").toString().toInt()
+  compileSdk = libs.versions.compileSdk.get().toInt()
   defaultConfig {
-    minSdk = property("minSdk").toString().toInt()
+    minSdk = libs.versions.minSdk.get().toInt()
     buildConfigField("String", "LIBRARY_VERSION", "\"${property("VERSION_NAME")}\"")
     consumerProguardFiles("consumer-proguard-rules.pro")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

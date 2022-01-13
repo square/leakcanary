@@ -6,7 +6,7 @@ plugins {
 
 android {
   resourcePrefix = "leak_canary_"
-  compileSdk = property("compileSdk").toString().toInt()
+  compileSdk = libs.versions.compileSdk.get().toInt()
   defaultConfig {
     minSdk = 16
     buildConfigField("String", "LIBRARY_VERSION", "\"${property("VERSION_NAME")}\"")

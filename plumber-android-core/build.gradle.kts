@@ -6,9 +6,9 @@ plugins {
 
 android {
   resourcePrefix = "leak_canary_plumber"
-  compileSdk = property("compileSdk").toString().toInt()
+  compileSdk = libs.versions.compileSdk.get().toInt()
   defaultConfig {
-    minSdk = property("minSdk").toString().toInt()
+    minSdk = libs.versions.minSdk.get().toInt()
     consumerProguardFiles("consumer-proguard-rules.pro")
   }
   buildFeatures.buildConfig = false

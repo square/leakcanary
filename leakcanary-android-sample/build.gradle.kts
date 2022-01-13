@@ -13,12 +13,12 @@ keeper {
 }
 
 android {
-  compileSdk = property("compileSdk").toString().toInt()
+  compileSdk = libs.versions.compileSdk.get().toInt()
 
   defaultConfig {
     applicationId = "com.example.leakcanary"
     minSdk = 16
-    targetSdk = property("compileSdk").toString().toInt()
+    targetSdk = libs.versions.compileSdk.get().toInt()
 
     versionCode = 1
     versionName = "1.0"
