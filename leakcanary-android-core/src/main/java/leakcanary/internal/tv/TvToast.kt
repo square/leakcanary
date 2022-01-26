@@ -3,7 +3,8 @@ package leakcanary.internal.tv
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
-import android.os.Build
+import android.view.Gravity
+import android.view.LayoutInflater
 import android.widget.TextView
 import android.widget.Toast
 import com.squareup.leakcanary.core.R
@@ -11,7 +12,7 @@ import com.squareup.leakcanary.core.R
 /**
  * Toast helper for Android TV preconfigured with LeakCanary icon.
  *
- * The icon is only shown on API level 29 and below, as custom toast views are deprecated from API level 30 on (see
+ * Shows toast with custom view layout, custom toast views are deprecated from API level 30 on (see
  * [docs](https://developer.android.com/reference/android/widget/Toast#getView()))
  */
 internal object TvToast {
@@ -28,15 +29,18 @@ internal object TvToast {
     activity: Activity,
     text: CharSequence
   ): Toast {
-    val toast: Toast = Toast.makeText(activity, text, Toast.LENGTH_LONG)
+    val inflater = LayoutInflater.from(activity)
+    val toast = Toast(activity)
 
-    // Custom toast views are deprecated from API level 30 on, see
-    // https://developer.android.com/reference/android/widget/Toast#getView()
-    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-      val textView = toast.view!!.findViewById<TextView>(android.R.id.message)
-      textView.setCompoundDrawablesWithIntrinsicBounds(R.drawable.leak_canary_icon, 0, 0, 0)
-      textView.compoundDrawablePadding =
-        activity.resources.getDimensionPixelSize(R.dimen.leak_canary_toast_icon_tv_padding)
+    val iconSize = activity.resources.getDimensionPixelSize(
+      R.dimen.leak_canary_toast_icon_size
+    )
+    toast.apply {
+      setGravity(Gravity.CENTER_VERTICAL, 0, -iconSize)
+      duration = Toast.LENGTH_LONG
+      val inflatedView = inflater.inflate(R.layout.leak_canary_heap_dump_toast, null)
+      inflatedView.findViewById<TextView>(R.id.leak_canary_toast_text).text = text
+      view = inflatedView
     }
 
     return toast
