@@ -32,15 +32,12 @@ internal object TvToast {
     val inflater = LayoutInflater.from(activity)
     val toast = Toast(activity)
 
-    val iconSize = activity.resources.getDimensionPixelSize(
-      R.dimen.leak_canary_toast_icon_size
-    )
     toast.apply {
-      setGravity(Gravity.CENTER_VERTICAL, 0, -iconSize)
+      setGravity(Gravity.CENTER_VERTICAL, 0, 0)
       duration = Toast.LENGTH_LONG
-      val inflatedView = inflater.inflate(R.layout.leak_canary_heap_dump_toast, null)
-      inflatedView.findViewById<TextView>(R.id.leak_canary_toast_text).text = text
-      view = inflatedView
+      view = inflater.inflate(R.layout.leak_canary_heap_dump_toast, null).also {
+        it.findViewById<TextView>(R.id.leak_canary_toast_text).text = text
+      }
     }
 
     return toast
