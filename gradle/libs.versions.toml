@@ -22,13 +22,13 @@ androidXJunit = "1.1.3"
 workManager = "2.7.0"
 
 [libraries]
-androidPlugin = { module = "com.android.tools.build:gradle", version = "4.2.2" }
-kotlinPlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinCompiler" }
-dokkaPlugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.6.0" }
-binaryCompatibilityValidatorPlugin = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version = "0.8.0" }
-mavenPublishPlugin = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.18.0" }
-detektPlugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.6.0" }
-keeperPlugin = { module = "com.slack.keeper:keeper", version = "0.7.0" }
+gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "4.2.2" }
+gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinCompiler" }
+gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.6.0" }
+gradlePlugin-binaryCompatibility = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version = "0.8.0" }
+gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.18.0" }
+gradlePlugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.6.0" }
+gradlePlugin-keeper = { module = "com.slack.keeper:keeper", version = "0.7.0" }
 
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlinLib" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlinLib" }
