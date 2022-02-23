@@ -6,6 +6,13 @@ on:
       - main
 
 jobs:
+  validation:
+    name: "Validation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: gradle/wrapper-validation-action@v1
+
   checks:
     runs-on: macos-latest
     steps:
@@ -33,7 +40,7 @@ jobs:
 
   snapshot-deployment:
     if: github.repository == 'square/leakcanary' && github.event_name == 'push'
-    needs: [checks]
+    needs: [ checks ]
     runs-on: ubuntu-latest
     steps:
 
