@@ -800,7 +800,7 @@ enum class AndroidLeakFixes {
 
     private class WindowDelegateCallback constructor(
       private val delegate: Window.Callback
-    ) : Window.Callback by delegate {
+    ) : FixedWindowCallback(delegate) {
 
       val onContentChangedCallbacks = mutableListOf<() -> Boolean>()
 
