@@ -72,7 +72,7 @@ class HprofRetainedHeapPerfTest {
 
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
-    assertThat(retained).isEqualTo(8.2 MB +-5 % margin)
+    assertThat(retained).isEqualTo(4.9 MB +-5 % margin)
   }
 
   @Test fun `freeze retained memory through analysis steps of leak_asynctask_o`() {

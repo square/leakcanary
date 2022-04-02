@@ -44,6 +44,7 @@ import shark.internal.hppc.LongObjectScatterMap
 import shark.internal.hppc.to
 import java.util.EnumSet
 import kotlin.math.max
+import shark.internal.hppc.LongScatterSet
 
 /**
  * This class is not thread safe, should be used from a single thread.
@@ -361,6 +362,8 @@ internal class HprofInMemoryIndex private constructor(
 
     private val gcRoots = mutableListOf<GcRoot>()
 
+    private val stickyClassGcRootIds = LongScatterSet()
+
     private fun HprofRecordReader.copyToClassFields(byteCount: Int) {
       for (i in 1..byteCount) {
         classFieldBytes[classFieldsIndex++] = readByte()
@@ -427,7 +430,12 @@ internal class HprofInMemoryIndex private constructor(
         }
         ROOT_STICKY_CLASS -> {
           reader.readStickyClassGcRootRecord().apply {
-            if (id != ValueHolder.NULL_REFERENCE) {
+            // StickyClass has only 1 field: id. Our API 23 emulators in CI are creating heap
+            // dumps with duplicated sticky class roots, up to 30K times for some objects.
+            // There's no point in keeping all these in our list of roots, 1 per each is enough
+            // so we deduplicate with stickyClassGcRootIds.
+            if (id != ValueHolder.NULL_REFERENCE && id !in stickyClassGcRootIds) {
+              stickyClassGcRootIds += id
               gcRoots += this
             }
           }
