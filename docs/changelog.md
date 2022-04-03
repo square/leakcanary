@@ -240,11 +240,11 @@ dependencies {
 class ExampleApplication : Application() {
 
   override fun onCreate() {
-    super.onCreate()
     if (LeakCanaryProcess.isInAnalyzerProcess(this)) {
       return
     }
-	// normal init goes here, skipped in :leakcanary process.
+    super.onCreate()
+    // normal init goes here, skipped in :leakcanary process.
   }
 }
 ```
