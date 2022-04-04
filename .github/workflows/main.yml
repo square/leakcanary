@@ -66,14 +66,21 @@ jobs:
           api-level: ${{ matrix.api-level }}
           target: google_apis
           arch: ${{ matrix.arch }}
-          script: ./gradlew leakcanary-android-core:connectedCheck leakcanary-android:connectedCheck leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
+          script: |
+            adb logcat -c                             # clear logs
+            touch emulator.log                    # create log file
+            chmod 777 emulator.log                # allow writing to log file
+            adb logcat >> emulator.log &          # pipe all logcat messages into log file as a background process
+            ./gradlew leakcanary-android-core:connectedCheck leakcanary-android:connectedCheck leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
 
       - name: Upload results
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.api-level }}-${{ matrix.arch }}-instrumentation-test-results
-          path: ./**/build/reports/androidTests/connected/**
+          path: |
+            emulator.log
+            ./**/build/reports/androidTests/connected/**
 
   snapshot-deployment:
     if: github.repository == 'square/leakcanary' && github.event_name == 'push'
