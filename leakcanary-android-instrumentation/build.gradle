@@ -10,6 +10,8 @@ dependencies {
   implementation libs.androidX.test.runner
   implementation libs.kotlin.stdlib
 
+  // Using a more recent version (without enforcing that on consumers)
+  androidTestImplementation libs.androidX.test.runner.internal
   // AppWatcher auto installer for running tests
   androidTestImplementation project(':leakcanary-object-watcher-android')
   // Plumber auto installer for running tests

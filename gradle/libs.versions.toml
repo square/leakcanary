@@ -44,6 +44,7 @@ androidX-test-core = { module = "androidx.test:core", version = "1.4.0" }
 androidX-test-rules = { module = "androidx.test:rules", version.ref = "androidXTest" }
 # Exposed transitively, avoid increasing
 androidX-test-runner = { module = "androidx.test:runner", version = "1.1.0" }
+androidX-test-runner-internal = { module = "androidx.test:runner", version = "1.4.0" }
 androidX-test-orchestrator = { module = "androidx.test:orchestrator", version = "1.4.1" }
 androidX-test-espresso = { module = "androidx.test.espresso:espresso-core", version = "3.4.0" }
 androidX-test-junit = { module = "androidx.test.ext:junit", version.ref = "androidXJunit" }
