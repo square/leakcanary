@@ -4,13 +4,17 @@ import android.os.Trace
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.io.FileOutputStream
+import leakcanary.internal.friendly.measureDurationMillis
 import org.junit.Test
 import shark.AndroidMetadataExtractor
 import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
+import shark.DualSourceProvider
+import shark.FileSourceProvider
 import shark.HeapAnalyzer
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.KeyedWeakReferenceFinder
+import shark.RandomAccessFileSourceProvider
 import shark.SharkLog
 
 class Api23Test {
@@ -28,9 +32,22 @@ class Api23Test {
     context.assets.open("api_23_dump.hprof")
       .copyTo(FileOutputStream(heapDumpFile))
 
+
+    GcTrigger.Default.runGc()
+    val fileChannelDuration = measureDurationMillis {
+      FileSourceProvider(heapDumpFile).runAnalysis()
+    }
+    GcTrigger.Default.runGc()
+    val randomAccessFileDuration = measureDurationMillis {
+      RandomAccessFileSourceProvider(heapDumpFile).runAnalysis()
+    }
+    SharkLog.d { "fileChannelDuration: $fileChannelDuration ms randomAccessFileDuration: $randomAccessFileDuration ms" }
+  }
+
+  private fun DualSourceProvider.runAnalysis() {
     Trace.beginSection("Analysis")
     Trace.beginSection("Open graph ")
-    heapDumpFile.openHeapGraph()
+    openHeapGraph()
       .use { graph ->
         val analyzer = HeapAnalyzer {
           Trace.endSection()
@@ -39,7 +56,7 @@ class Api23Test {
         }
 
         val result = analyzer.analyze(
-          heapDumpFile = heapDumpFile,
+          heapDumpFile = File("who_cares"),
           graph = graph,
           leakingObjectFinder = KeyedWeakReferenceFinder,
           referenceMatchers = AndroidReferenceMatchers.appDefaults,
