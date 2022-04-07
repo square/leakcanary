@@ -20,6 +20,8 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inputmethod.InputMethodManager
 import android.view.textservice.TextServicesManager
 import android.widget.TextView
+import curtains.Curtains
+import curtains.OnRootViewRemovedListener
 import java.lang.reflect.Array
 import java.lang.reflect.Field
 import java.lang.reflect.InvocationTargetException
@@ -506,6 +508,7 @@ enum class AndroidLeakFixes {
         SharkLog.d(ignored) { "Could not read InputMethodManager.mCurRootView field" }
         return
       }
+      // Clear InputMethodManager.mCurRootView on activity destroy
       application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks
       by noOpDelegate() {
         override fun onActivityDestroyed(activity: Activity) {
@@ -524,6 +527,13 @@ enum class AndroidLeakFixes {
           }
         }
       })
+      // Clear InputMethodManager.mCurRootView on window removal (e.g. dialog dismiss)
+      Curtains.onRootViewsChangedListeners += OnRootViewRemovedListener { removedRootView ->
+        val immRootView = mCurRootViewField[inputMethodManager] as View?
+        if (immRootView === removedRootView) {
+          mCurRootViewField[inputMethodManager] = null
+        }
+      }
     }
 
     private val Context.activityOrNull: Activity?
