@@ -26,7 +26,7 @@ class NoLeakAssertionFailedError(
             }
             heapAnalysis.libraryLeaks.isNotEmpty() -> {
               SharkLog.d {
-                "Test can keep going: heap analysis found 0 application leaks and ${heapAnalysis.libraryLeaks} library leaks:\n$heapAnalysis"
+                "Test can keep going: heap analysis found 0 application leaks and ${heapAnalysis.libraryLeaks.size} library leaks:\n$heapAnalysis"
               }
             }
             heapAnalysis.unreachableObjects.isNotEmpty() -> {
