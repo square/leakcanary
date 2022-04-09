@@ -24,5 +24,3 @@ include ':shark-hprof-test'
 include ':shark-log'
 include ':shark-test'
 include ':leakcanary-deobfuscation-gradle-plugin'
-
-enableFeaturePreview("VERSION_CATALOGS")
