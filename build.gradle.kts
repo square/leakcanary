@@ -14,13 +14,13 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath(libs.kotlinPlugin)
-    classpath(libs.androidPlugin)
-    classpath(libs.dokkaPlugin)
-    classpath(libs.mavenPublishPlugin)
-    classpath(libs.detektPlugin)
-    classpath(libs.binaryCompatibilityValidatorPlugin)
-    classpath(libs.keeperPlugin)
+    classpath(libs.gradlePlugin.kotlin)
+    classpath(libs.gradlePlugin.android)
+    classpath(libs.gradlePlugin.dokka)
+    classpath(libs.gradlePlugin.mavenPublish)
+    classpath(libs.gradlePlugin.detekt)
+    classpath(libs.gradlePlugin.binaryCompatibility)
+    classpath(libs.gradlePlugin.keeper)
   }
 }
 

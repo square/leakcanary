@@ -23,8 +23,8 @@ gradlePlugin {
 
 dependencies {
   implementation(libs.kotlin.stdlib)
-  implementation(libs.kotlinPlugin)
-  implementation(libs.androidPlugin)
+  implementation(libs.gradlePlugin.kotlin)
+  implementation(libs.gradlePlugin.android)
   compileOnly(gradleApi())
 
   testImplementation(libs.assertjCore)

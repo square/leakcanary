@@ -26,5 +26,3 @@ include(
   ":shark-test",
   ":leakcanary-deobfuscation-gradle-plugin"
 )
-
-enableFeaturePreview("VERSION_CATALOGS")
