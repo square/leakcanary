@@ -13,7 +13,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
-import android.os.Process
 import android.os.UserManager
 import android.view.View
 import android.view.Window
@@ -21,10 +20,8 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inputmethod.InputMethodManager
 import android.view.textservice.TextServicesManager
 import android.widget.TextView
-import leakcanary.internal.ReferenceCleaner
-import leakcanary.internal.friendly.checkMainThread
-import leakcanary.internal.friendly.noOpDelegate
-import shark.SharkLog
+import curtains.Curtains
+import curtains.OnRootViewRemovedListener
 import java.lang.reflect.Array
 import java.lang.reflect.Field
 import java.lang.reflect.InvocationTargetException
@@ -32,8 +29,10 @@ import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.lang.reflect.Proxy
 import java.util.EnumSet
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit.SECONDS
+import leakcanary.internal.ReferenceCleaner
+import leakcanary.internal.friendly.checkMainThread
+import leakcanary.internal.friendly.noOpDelegate
+import shark.SharkLog
 
 /**
  * A collection of hacks to fix leaks in the Android Framework and other Google Android libraries.
@@ -54,7 +53,7 @@ enum class AndroidLeakFixes {
       if (SDK_INT != 21) {
         return
       }
-      backgroundExecutor.execute {
+      backgroundHandler.post {
         try {
           val clazz = Class.forName("android.media.session.MediaSessionLegacyHelper")
           val getHelperMethod = clazz.getDeclaredMethod("getHelper", Context::class.java)
@@ -82,7 +81,7 @@ enum class AndroidLeakFixes {
       if (SDK_INT >= 28) {
         return
       }
-      backgroundExecutor.execute {
+      backgroundHandler.post {
         // Pool of TextLine instances.
         val sCached: Any?
         try {
@@ -93,11 +92,11 @@ enum class AndroidLeakFixes {
           // Can't happen in current Android source, but hidden APIs can change.
           if (sCached == null || !sCached.javaClass.isArray) {
             SharkLog.d { "Could not fix the $name leak, sCached=$sCached" }
-            return@execute
+            return@post
           }
         } catch (ignored: Exception) {
           SharkLog.d(ignored) { "Could not fix the $name leak" }
-          return@execute
+          return@post
         }
 
         application.onActivityDestroyed {
@@ -152,48 +151,54 @@ enum class AndroidLeakFixes {
   FLUSH_HANDLER_THREADS {
     override fun apply(application: Application) {
       val flushedThreadIds = mutableSetOf<Int>()
+      // Don't flush the backgroundHandler's thread, we're rescheduling all the time anyway.
+      flushedThreadIds += (backgroundHandler.looper.thread as HandlerThread).threadId
       // Wait 2 seconds then look for handler threads every 3 seconds.
-      backgroundExecutor.scheduleWithFixedDelay({
-        val newHandlerThreadsById = findAllHandlerThreads()
-          .mapNotNull { thread ->
-            val threadId = thread.threadId
-            if (threadId == -1 || threadId in flushedThreadIds) {
-              null
-            } else {
-              threadId to thread
+      val flushNewHandlerThread = object : Runnable {
+        override fun run() {
+          val newHandlerThreadsById = findAllHandlerThreads()
+            .mapNotNull { thread ->
+              val threadId = thread.threadId
+              if (threadId == -1 || threadId in flushedThreadIds) {
+                null
+              } else {
+                threadId to thread
+              }
             }
-          }
-        flushedThreadIds += newHandlerThreadsById.map { it.first }
-        newHandlerThreadsById
-          .map { it.second }
-          .forEach { handlerThread ->
-            SharkLog.d { "Setting up flushing for $handlerThread" }
-            var scheduleFlush = true
-            val flushHandler = Handler(handlerThread.looper)
-            flushHandler.onEachIdle {
-              if (handlerThread.isAlive && scheduleFlush) {
-                scheduleFlush = false
-                // When the Handler thread becomes idle, we post a message to force it to move.
-                // Source: https://developer.squareup.com/blog/a-small-leak-will-sink-a-great-ship/
-                try {
-                  val posted = flushHandler.postDelayed({
-                    // Right after this postDelayed executes, the idle handler will likely be called
-                    // again (if the queue is otherwise empty), so we'll need to schedule a flush
-                    // again.
-                    scheduleFlush = true
-                  }, 1000)
-                  if (!posted) {
-                    SharkLog.d { "Failed to post to ${handlerThread.name}" }
+          flushedThreadIds += newHandlerThreadsById.map { it.first }
+          newHandlerThreadsById
+            .map { it.second }
+            .forEach { handlerThread ->
+              SharkLog.d { "Setting up flushing for $handlerThread" }
+              var scheduleFlush = true
+              val flushHandler = Handler(handlerThread.looper)
+              flushHandler.onEachIdle {
+                if (handlerThread.isAlive && scheduleFlush) {
+                  scheduleFlush = false
+                  // When the Handler thread becomes idle, we post a message to force it to move.
+                  // Source: https://developer.squareup.com/blog/a-small-leak-will-sink-a-great-ship/
+                  try {
+                    val posted = flushHandler.postDelayed({
+                      // Right after this postDelayed executes, the idle handler will likely be called
+                      // again (if the queue is otherwise empty), so we'll need to schedule a flush
+                      // again.
+                      scheduleFlush = true
+                    }, 1000)
+                    if (!posted) {
+                      SharkLog.d { "Failed to post to ${handlerThread.name}" }
+                    }
+                  } catch (ignored: RuntimeException) {
+                    // If the thread is quitting, posting to it may throw. There is no safe and atomic way
+                    // to check if a thread is quitting first then post it it.
+                    SharkLog.d(ignored) { "Failed to post to ${handlerThread.name}" }
                   }
-                } catch (ignored: RuntimeException) {
-                  // If the thread is quitting, posting to it may throw. There is no safe and atomic way
-                  // to check if a thread is quitting first then post it it.
-                  SharkLog.d(ignored) { "Failed to post to ${handlerThread.name}" }
                 }
               }
             }
-          }
-      }, 2, 3, SECONDS)
+          backgroundHandler.postDelayed(this, 3000)
+        }
+      }
+      backgroundHandler.postDelayed(flushNewHandlerThread, 2000)
     }
   },
 
@@ -212,13 +217,17 @@ enum class AndroidLeakFixes {
       if (SDK_INT >= 28) {
         return
       }
-      // Starve the pool every 5 seconds.
-      backgroundExecutor.scheduleAtFixedRate({
-        val maxPoolSize = 50
-        for (i in 0 until maxPoolSize) {
-          AccessibilityNodeInfo.obtain()
+
+      val starvePool = object : Runnable {
+        override fun run() {
+          val maxPoolSize = 50
+          for (i in 0 until maxPoolSize) {
+            AccessibilityNodeInfo.obtain()
+          }
+          backgroundHandler.postDelayed(this, 5000)
         }
-      }, 5, 5, SECONDS)
+      }
+      backgroundHandler.postDelayed(starvePool, 5000)
     }
   },
 
@@ -280,7 +289,7 @@ enum class AndroidLeakFixes {
         return
       }
 
-      backgroundExecutor.execute {
+      backgroundHandler.post {
         val helperField: Field
         try {
           val helperClass = Class.forName("android.widget.BubblePopupHelper")
@@ -288,7 +297,7 @@ enum class AndroidLeakFixes {
           helperField.isAccessible = true
         } catch (ignored: Exception) {
           SharkLog.d(ignored) { "Could not fix the $name leak" }
-          return@execute
+          return@post
         }
 
         application.onActivityDestroyed {
@@ -313,14 +322,14 @@ enum class AndroidLeakFixes {
         return
       }
 
-      backgroundExecutor.execute {
+      backgroundHandler.post {
         val field: Field
         try {
           field = TextView::class.java.getDeclaredField("mLastHoveredView")
           field.isAccessible = true
         } catch (ignored: Exception) {
           SharkLog.d(ignored) { "Could not fix the $name leak" }
-          return@execute
+          return@post
         }
 
         application.onActivityDestroyed {
@@ -347,7 +356,7 @@ enum class AndroidLeakFixes {
         return
       }
 
-      backgroundExecutor.execute {
+      backgroundHandler.post {
         val contextField: Field
         try {
           contextField = application
@@ -357,11 +366,11 @@ enum class AndroidLeakFixes {
           contextField.isAccessible = true
           if ((contextField.modifiers or Modifier.STATIC) != contextField.modifiers) {
             SharkLog.d { "Could not fix the $name leak, contextField=$contextField" }
-            return@execute
+            return@post
           }
         } catch (ignored: Exception) {
           SharkLog.d(ignored) { "Could not fix the $name leak" }
-          return@execute
+          return@post
         }
 
         application.onActivityDestroyed { activity ->
@@ -492,13 +501,14 @@ enum class AndroidLeakFixes {
         return
       }
       val mCurRootViewField = try {
-          InputMethodManager::class.java.getDeclaredField("mCurRootView").apply {
-            isAccessible = true
-          }
+        InputMethodManager::class.java.getDeclaredField("mCurRootView").apply {
+          isAccessible = true
+        }
       } catch (ignored: Throwable) {
         SharkLog.d(ignored) { "Could not read InputMethodManager.mCurRootView field" }
         return
       }
+      // Clear InputMethodManager.mCurRootView on activity destroy
       application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks
       by noOpDelegate() {
         override fun onActivityDestroyed(activity: Activity) {
@@ -517,6 +527,13 @@ enum class AndroidLeakFixes {
           }
         }
       })
+      // Clear InputMethodManager.mCurRootView on window removal (e.g. dialog dismiss)
+      Curtains.onRootViewsChangedListeners += OnRootViewRemovedListener { removedRootView ->
+        val immRootView = mCurRootViewField[inputMethodManager] as View?
+        if (immRootView === removedRootView) {
+          mCurRootViewField[inputMethodManager] = null
+        }
+      }
     }
 
     private val Context.activityOrNull: Activity?
@@ -719,18 +736,11 @@ enum class AndroidLeakFixes {
       }
     }
 
-    private val backgroundExecutor =
-      // Single thread => avoid dealing with concurrency (aside from background vs main thread)
-      Executors.newSingleThreadScheduledExecutor { runnable ->
-        val thread = object : Thread() {
-          override fun run() {
-            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
-            runnable.run()
-          }
-        }
-        thread.name = "plumber-android-leaks"
-        thread
-      }
+    internal val backgroundHandler by lazy {
+      val handlerThread = HandlerThread("plumber-android-leaks")
+      handlerThread.start()
+      Handler(handlerThread.looper)
+    }
 
     private fun Handler.onEachIdle(onIdle: () -> Unit) {
       try {
@@ -800,7 +810,7 @@ enum class AndroidLeakFixes {
 
     private class WindowDelegateCallback constructor(
       private val delegate: Window.Callback
-    ) : Window.Callback by delegate {
+    ) : FixedWindowCallback(delegate) {
 
       val onContentChangedCallbacks = mutableListOf<() -> Boolean>()
 

@@ -10,7 +10,6 @@ import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
 import shark.LeakTrace.GcRootType.JAVA_FRAME
 import shark.LeakTrace.GcRootType.STICKY_CLASS
-import java.io.FileOutputStream
 
 class DatabaseMigrationTest {
 
@@ -94,7 +93,7 @@ class DatabaseMigrationTest {
       .use { input ->
         val databaseFile = context.getDatabasePath(LeaksDbHelper.DATABASE_NAME)
         databaseFile.parentFile!!.mkdirs()
-        FileOutputStream(databaseFile).use { output ->
+        databaseFile.outputStream().use { output ->
           input.copyTo(output)
         }
       }

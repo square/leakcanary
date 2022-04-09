@@ -29,6 +29,7 @@ object ToastEventListener : EventListener {
       is HeapDump, is HeapDumpFailed -> {
         mainHandler.post {
           toastCurrentlyShown?.cancel()
+          toastCurrentlyShown = null
         }
       }
     }

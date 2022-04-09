@@ -208,7 +208,7 @@ enum class AndroidReferenceMatchers {
       references += instanceFieldLeak(
         "android.view.inputmethod.InputMethodManager", "mServedView", description
       ) {
-        sdkInt in 15..27
+        sdkInt in 15..28
       }
 
       references += instanceFieldLeak(
@@ -860,9 +860,9 @@ enum class AndroidReferenceMatchers {
       references += staticFieldLeak(
         "android.widget.TextView", "mLastHoveredView",
         description =
-        "mLastHoveredView is a static field in TextView that leaks the last hovered" + " view."
+        "mLastHoveredView is a static field in TextView that leaks the last hovered view."
       ) {
-        manufacturer == SAMSUNG && sdkInt in 19..29
+        manufacturer == SAMSUNG && sdkInt in 19..31
       }
     }
   },

@@ -1,7 +1,32 @@
 
 # Change Log
 
+## Version 2.8.1 (2022-01-06)
+
+This is a bugfix release, a quick follow up to `2.8` which had a few major issues 😅. If you haven't yet, you should definitely read the `2.8` changelog.
+
+### Thanks
+
+Please thank
+[@dicosta](https://github.com/dicosta),
+[@Goooler](https://github.com/Goooler),
+[@plnice](https://github.com/plnice),
+[@preetha1326](https://github.com/preetha1326)
+for their contributions, bug reports and feature requests 🙏 🙏 🙏.
+
+### Crash fixes 💥💥💥
+
+This patch release fixes not 1, not 2, but 3 crashes!
+
+* 💥 [#2268](https://github.com/square/leakcanary/pull/2268) WorkManager expedited request crashes before API 31.
+* 💥 [#2270](https://github.com/square/leakcanary/issues/2270) Updating `LeakCanary.config` crashes when `AppWatcher` is not installed.
+* 💥 [#2271](https://github.com/square/leakcanary/issues/2271) Analysis failure on API 25 because `HashMap$Entry` became `HashMap$HashMapEntry` (on API 25) before it finally changed to `HashMap$Node`.
+
+For more details, see the [2.8.1 Milestone](https://github.com/square/leakcanary/milestone/24) and the [full diff](https://github.com/square/leakcanary/compare/v2.8...v2.8.1).
+
 ## Version 2.8 (2022-01-04)
+
+Note: please update to `2.8.1` instead.
 
 ### Preface
 
@@ -57,9 +82,9 @@ Let's look at a `HashMap` example:
 class CheckoutController {
 
   val tabs = HashMap<String, Tab>()
-  
+
   fun addItemsTab(tab: Tab) {
-    tabs["ItemsTab"] = tab  
+    tabs["ItemsTab"] = tab
   }
 }
 ```
@@ -154,11 +179,11 @@ LeakCanary now reports the leak and adds animator state information, helping det
      Leaking: YES (View.mContext references a destroyed activity)
 ```
 
-To learn more, see this AOSP issue: [ObjectAnimator.mTarget weak ref creates memory leaks on infinite animators](https://issuetracker.google.com/issues/212993949). 
+To learn more, see this AOSP issue: [ObjectAnimator.mTarget weak ref creates memory leaks on infinite animators](https://issuetracker.google.com/issues/212993949).
 
 ### Leak detection in tests
 
-Previous releases of `leakcanary-android-instrumentation` introduced a `FailTestOnLeakRunListener` which could run leak detection after each UI tests. Unfortunately `FailTestOnLeakRunListener` relied on a hack around `androidx.test` internals to report failures. The internals keep changing with every `androidx.test` release and breaking `FailTestOnLeakRunListener` 😭. 
+Previous releases of `leakcanary-android-instrumentation` introduced a `FailTestOnLeakRunListener` which could run leak detection after each UI tests. Unfortunately `FailTestOnLeakRunListener` relied on a hack around `androidx.test` internals to report failures. The internals keep changing with every `androidx.test` release and breaking `FailTestOnLeakRunListener` 😭.
 
 `FailTestOnLeakRunListener` is now deprecated (👋) and replaced by the `DetectLeaksAfterTestSuccess` test rule, which you can add to your test like any normal test rule.
 
@@ -215,11 +240,11 @@ dependencies {
 class ExampleApplication : Application() {
 
   override fun onCreate() {
-    super.onCreate()
     if (LeakCanaryProcess.isInAnalyzerProcess(this)) {
       return
     }
-	// normal init goes here, skipped in :leakcanary process.
+    super.onCreate()
+    // normal init goes here, skipped in :leakcanary process.
   }
 }
 ```
@@ -478,11 +503,9 @@ class ReleaseExampleApplication : ExampleApplication() {
 
   private val analysisExecutor by lazy {
     Executors.newSingleThreadExecutor {
-      Thread {
+      thread(start = false, name = "Heap analysis executor") {
         android.os.Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND)
         it.run()
-      }.apply {
-        name = "Heap analysis executor"
       }
     }
   }

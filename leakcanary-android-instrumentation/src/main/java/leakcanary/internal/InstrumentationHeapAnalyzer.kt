@@ -1,5 +1,6 @@
 package leakcanary.internal
 
+import android.os.SystemClock
 import java.io.File
 import shark.ConstantMemoryMetricsDualSourceProvider
 import shark.FileSourceProvider
@@ -16,6 +17,7 @@ import shark.ObjectInspector
 import shark.OnAnalysisProgressListener
 import shark.ProguardMapping
 import shark.ReferenceMatcher
+import shark.SharkLog
 
 /**
  * Sets up [HeapAnalyzer] for instrumentation tests and delegates heap analysis.
@@ -30,7 +32,19 @@ internal class InstrumentationHeapAnalyzer(
 ) {
 
   fun analyze(heapDumpFile: File): HeapAnalysis {
-    val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
+    var lastStepUptimeMs = -1L
+    val heapAnalyzer = HeapAnalyzer { newStep ->
+      val now = SystemClock.uptimeMillis()
+      val lastStepString = if (lastStepUptimeMs != -1L) {
+        val lastStepDurationMs = now - lastStepUptimeMs
+        val lastStep = OnAnalysisProgressListener.Step.values()[newStep.ordinal - 1]
+        "${lastStep.humanReadableName} took $lastStepDurationMs ms, now "
+      } else {
+        ""
+      }
+      SharkLog.d { "${lastStepString}working on ${newStep.humanReadableName}" }
+      lastStepUptimeMs = now
+    }
 
     val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
 

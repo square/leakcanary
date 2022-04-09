@@ -4,6 +4,7 @@ import java.io.File
 import java.util.EnumSet
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit.SECONDS
+import kotlin.concurrent.thread
 import kotlin.math.absoluteValue
 import kotlin.reflect.KClass
 import org.assertj.core.api.AbstractIntegerAssert
@@ -71,7 +72,7 @@ class HprofRetainedHeapPerfTest {
 
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
-    assertThat(retained).isEqualTo(8.2 MB +-5 % margin)
+    assertThat(retained).isEqualTo(4.9 MB +-5 % margin)
   }
 
   @Test fun `freeze retained memory through analysis steps of leak_asynctask_o`() {
@@ -111,14 +112,14 @@ class HprofRetainedHeapPerfTest {
       retainedPair.first - retainedBeforeAnalysis to retainedPair.second
     }
 
-    assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(5.07 MB +-5 % margin)
-    assertThat(retained after EXTRACTING_METADATA).isEqualTo(5.12 MB +-5 % margin)
-    assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(5.22 MB +-5 % margin)
-    assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(6.62 MB +-5 % margin)
-    assertThat(retained after FINDING_DOMINATORS).isEqualTo(6.62 MB +-5 % margin)
-    assertThat(retained after INSPECTING_OBJECTS).isEqualTo(6.63 MB +-5 % margin)
-    assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(6.63 MB +-5 % margin)
-    assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(5.55 MB +-5 % margin)
+    assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(5.57 MB +-5 % margin)
+    assertThat(retained after EXTRACTING_METADATA).isEqualTo(5.62 MB +-5 % margin)
+    assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(5.72 MB +-5 % margin)
+    assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(7.12 MB +-5 % margin)
+    assertThat(retained after FINDING_DOMINATORS).isEqualTo(7.12 MB +-5 % margin)
+    assertThat(retained after INSPECTING_OBJECTS).isEqualTo(7.13 MB +-5 % margin)
+    assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(7.13 MB +-5 % margin)
+    assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(6.05 MB +-5 % margin)
   }
 
   private fun indexRecordsOf(hprofFile: File): HprofIndex {
@@ -154,12 +155,9 @@ class HprofRetainedHeapPerfTest {
   ): T {
     lateinit var result: T
     val latch = CountDownLatch(1)
-    Thread {
+    thread(name = threadName) {
       result = work()
       latch.countDown()
-    }.apply {
-      name = threadName
-      start()
     }
     check(latch.await(30, SECONDS))
     return result
