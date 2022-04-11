@@ -716,6 +716,24 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  PLAYER_BASE {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += nativeGlobalVariableLeak(
+        "android.media.PlayerBase\$1",
+        description = """
+          PlayerBase$1 implements IAppOpsCallback as an inner class and is held by a native
+          ref, preventing subclasses of PlayerBase to be GC'd.
+          Introduced in API 24: https://cs.android.com/android/_/android/platform/frameworks/base/+/3c86a343dfca1b9e2e28c240dc894f60709e392c
+          Fixed in API 28: https://cs.android.com/android/_/android/platform/frameworks/base/+/aee6ee94675d56e71a42d52b16b8d8e5fa6ea3ff
+        """.trimIndent()
+      ) {
+        sdkInt in 24..27
+      }
+    }
+  },
+
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG
