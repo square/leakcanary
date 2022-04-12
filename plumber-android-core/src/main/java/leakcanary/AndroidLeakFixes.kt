@@ -420,8 +420,8 @@ enum class AndroidLeakFixes {
     @TargetApi(23)
     @SuppressLint("PrivateApi")
     override fun apply(application: Application) {
-      // Fixed in API 24.
-      if (SDK_INT > 23) {
+      // Fixed in API 24, another variant found again in API 26 & API 28.
+      if (SDK_INT > 23 && SDK_INT != 26 && SDK_INT != 28) {
         return
       }
       val inputMethodManager =
