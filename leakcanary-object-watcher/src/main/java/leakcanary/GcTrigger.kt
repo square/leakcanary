@@ -15,6 +15,8 @@
  */
 package leakcanary
 
+import java.lang.ref.WeakReference
+
 /**
  * [GcTrigger] is used to try triggering garbage collection and enqueuing [KeyedWeakReference] into
  * the associated [java.lang.ref.ReferenceQueue]. The default implementation [Default] comes from
@@ -37,9 +39,14 @@ fun interface GcTrigger {
       // java/lang/ref/FinalizationTester.java
       // System.gc() does not garbage collect every time. Runtime.gc() is
       // more likely to perform a gc.
-      Runtime.getRuntime()
-        .gc()
-      enqueueReferences()
+
+      // Use a WeakReference to detect if the GC is triggered.
+      val objRef = WeakReference(Object())
+      do {
+        Runtime.getRuntime()
+          .gc()
+        enqueueReferences()
+      } while (objRef.get() != null)
       System.runFinalization()
     }
 
