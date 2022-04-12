@@ -9,18 +9,17 @@ import android.content.Context.INPUT_METHOD_SERVICE
 import android.content.ContextWrapper
 import android.os.Build.MANUFACTURER
 import android.os.Build.VERSION.SDK_INT
-import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.UserManager
 import android.view.View
-import android.view.Window
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inputmethod.InputMethodManager
 import android.view.textservice.TextServicesManager
 import android.widget.TextView
 import curtains.Curtains
+import curtains.OnRootViewAddedListener
 import curtains.OnRootViewRemovedListener
 import java.lang.reflect.Array
 import java.lang.reflect.Field
@@ -448,25 +447,16 @@ enum class AndroidLeakFixes {
         SharkLog.d(ignored) { "Could not fix the $name leak" }
         return
       }
-      application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks
-      by noOpDelegate() {
-        override fun onActivityCreated(
-          activity: Activity,
-          savedInstanceState: Bundle?
-        ) {
-          activity.window.onDecorViewReady {
-            val cleaner = ReferenceCleaner(
-              inputMethodManager,
-              mHField,
-              mServedViewField,
-              finishInputLockedMethod
-            )
-            val rootView = activity.window.decorView.rootView
-            val viewTreeObserver = rootView.viewTreeObserver
-            viewTreeObserver.addOnGlobalFocusChangeListener(cleaner)
-          }
-        }
-      })
+      Curtains.onRootViewsChangedListeners += OnRootViewAddedListener { rootView ->
+        val cleaner = ReferenceCleaner(
+          inputMethodManager,
+          mHField,
+          mServedViewField,
+          finishInputLockedMethod
+        )
+        val viewTreeObserver = rootView.viewTreeObserver
+        viewTreeObserver.addOnGlobalFocusChangeListener(cleaner)
+      }
     }
   },
 
@@ -779,47 +769,6 @@ enum class AndroidLeakFixes {
           block(activity)
         }
       })
-    }
-
-    private fun Window.onDecorViewReady(callback: () -> Unit) {
-      if (peekDecorView() == null) {
-        onContentChanged {
-          callback()
-          return@onContentChanged false
-        }
-      } else {
-        callback()
-      }
-    }
-
-    private fun Window.onContentChanged(block: () -> Boolean) {
-      val callback = wrapCallback()
-      callback.onContentChangedCallbacks += block
-    }
-
-    private fun Window.wrapCallback(): WindowDelegateCallback {
-      val currentCallback = callback
-      return if (currentCallback is WindowDelegateCallback) {
-        currentCallback
-      } else {
-        val newCallback = WindowDelegateCallback(currentCallback)
-        callback = newCallback
-        newCallback
-      }
-    }
-
-    private class WindowDelegateCallback constructor(
-      private val delegate: Window.Callback
-    ) : FixedWindowCallback(delegate) {
-
-      val onContentChangedCallbacks = mutableListOf<() -> Boolean>()
-
-      override fun onContentChanged() {
-        onContentChangedCallbacks.removeAll { callback ->
-          !callback()
-        }
-        delegate.onContentChanged()
-      }
     }
   }
 }
