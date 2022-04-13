@@ -188,8 +188,10 @@ internal enum class OpenJdkInstanceRefReaders : OptionalFactory {
         }
 
         override fun read(source: HeapInstance): Sequence<Reference> {
-          // "HashSet.map" is never null.
-          val map = source["java.util.HashSet", "map"]!!.valueAsInstance!!
+          // "HashSet.map" is never null when looking at the Android sources history, however
+          // we've had a crash report where it was null on API 24.
+          // https://github.com/square/leakcanary/issues/2342
+          val map = source["java.util.HashSet", "map"]!!.valueAsInstance ?: return emptySequence()
           return InternalSharedHashMapReferenceReader(
             className = "java.util.HashMap",
             tableFieldName = "table",
