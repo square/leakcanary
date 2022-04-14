@@ -203,7 +203,7 @@ object LeakCanary {
       when {
           RemoteWorkManagerHeapAnalyzer.remoteLeakCanaryServiceInClasspath ->
             RemoteWorkManagerHeapAnalyzer
-          WorkManagerHeapAnalyzer.workManagerInClasspath -> WorkManagerHeapAnalyzer
+          WorkManagerHeapAnalyzer.validWorkManagerInClasspath -> WorkManagerHeapAnalyzer
           else -> BackgroundThreadHeapAnalyzer
       }
     ),
