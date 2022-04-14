@@ -66,6 +66,7 @@ internal class LeakActivityTest {
     val hprofBytes = dumpToBytes {
       "android.os.Build" clazz {
         staticField["MANUFACTURER"] = string("Samsing")
+        staticField["ID"] = string("M4-rc20")
       }
       "android.os.Build\$VERSION" clazz {
         staticField["SDK_INT"] = IntHolder(47)
