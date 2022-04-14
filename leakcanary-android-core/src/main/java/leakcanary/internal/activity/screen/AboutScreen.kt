@@ -53,7 +53,6 @@ internal class AboutScreen : Screen() {
       is Nope -> view.resources.getString(
         R.string.leak_canary_heap_dump_disabled_text, iCanHasHeap.reason()
       )
-
     }
   }
 }
