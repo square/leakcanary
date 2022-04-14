@@ -15,16 +15,16 @@
  */
 package shark
 
+import java.lang.ref.PhantomReference
+import java.lang.ref.SoftReference
+import java.lang.ref.WeakReference
+import java.util.EnumSet
 import shark.AndroidReferenceMatchers.Companion.appDefaults
 import shark.AndroidReferenceMatchers.Companion.buildKnownReferences
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
 import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
-import java.lang.ref.PhantomReference
-import java.lang.ref.SoftReference
-import java.lang.ref.WeakReference
-import java.util.EnumSet
 
 /**
  * [AndroidReferenceMatchers] values add [ReferenceMatcher] instances to a global list via their
@@ -684,7 +684,7 @@ enum class AndroidReferenceMatchers {
 
   APPLICATION_PACKAGE_MANAGER__HAS_SYSTEM_FEATURE_QUERY {
     override fun add(references: MutableList<ReferenceMatcher>) {
-      references  += instanceFieldLeak(
+      references += instanceFieldLeak(
         "android.app.ApplicationPackageManager\$HasSystemFeatureQuery", "this\$0",
         description = """
           In Android 11 DP 2 ApplicationPackageManager.HasSystemFeatureQuery was an inner class.
@@ -700,7 +700,7 @@ enum class AndroidReferenceMatchers {
 
   COMPANION_DEVICE_SERVICE__STUB {
     override fun add(references: MutableList<ReferenceMatcher>) {
-      references  += instanceFieldLeak(
+      references += instanceFieldLeak(
         "android.companion.CompanionDeviceService\$Stub", "this\$0",
         description = """
           Android 12 added android.companion.CompanionDeviceService, a bounded service extended by
@@ -1228,7 +1228,9 @@ enum class AndroidReferenceMatchers {
       // Holds on to the resumed activity (which is never destroyed), so this will not cause leaks
       // but may surface on the path when a resumed activity holds on to destroyed objects.
       // Would have a path that doesn't include LeakCanary instead.
-      references += ignoredInstanceField("leakcanary.internal.InternalLeakCanary", "resumedActivity")
+      references += ignoredInstanceField(
+        "leakcanary.internal.InternalLeakCanary", "resumedActivity"
+      )
     }
   },
 
