@@ -21,27 +21,6 @@ public final class leakcanary/DetectLeaksAssert$Companion {
 	public final fun update (Lleakcanary/DetectLeaksAssert;)V
 }
 
-public final class leakcanary/FailAnnotatedTestOnLeakRunListener : leakcanary/FailTestOnLeakRunListener {
-	public fun <init> ()V
-}
-
-public abstract interface annotation class leakcanary/FailTestOnLeak : java/lang/annotation/Annotation {
-}
-
-public class leakcanary/FailTestOnLeakRunListener : org/junit/runner/notification/RunListener {
-	public fun <init> ()V
-	protected final fun failTest (Ljava/lang/String;)V
-	protected fun onAnalysisPerformed (Lshark/HeapAnalysis;)V
-	protected fun skipLeakDetectionReason (Lorg/junit/runner/Description;)Ljava/lang/String;
-	public fun testAssumptionFailure (Lorg/junit/runner/notification/Failure;)V
-	public fun testFailure (Lorg/junit/runner/notification/Failure;)V
-	public fun testFinished (Lorg/junit/runner/Description;)V
-	public fun testIgnored (Lorg/junit/runner/Description;)V
-	public fun testRunFinished (Lorg/junit/runner/Result;)V
-	public fun testRunStarted (Lorg/junit/runner/Description;)V
-	public fun testStarted (Lorg/junit/runner/Description;)V
-}
-
 public abstract interface class leakcanary/HeapAnalysisReporter {
 	public abstract fun reportHeapAnalysis (Lshark/HeapAnalysis;)V
 }

@@ -24,6 +24,9 @@ object TestUtils {
       )
     }
 
+    // Save disk space on emulator
+    heapAnalysis.heapDumpFile.delete()
+
     val applicationLeaks = heapAnalysis.applicationLeaks
     if (applicationLeaks.size != 1) {
       throw AssertionError(
