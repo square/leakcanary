@@ -36,6 +36,8 @@ android {
   compileSdk versions.compileSdk
   defaultConfig {
     minSdk versions.minSdk
+    // Avoid DeprecatedTargetSdkVersionDialog during UI tests
+    targetSdk versions.compileSdk
     buildConfigField "String", "LIBRARY_VERSION", "\"${rootProject.ext.VERSION_NAME}\""
     buildConfigField "String", "GIT_SHA", "\"${gitSha()}\""
     consumerProguardFiles 'consumer-proguard-rules.pro'

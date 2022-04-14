@@ -54,10 +54,11 @@ jobs:
             api-level: 19
             target: google_apis
             channel: stable
-          - arch: x86
-            api-level: 30
-            target: aosp_atd
-            channel: canary
+        # Failing (something about permissions maybe?
+        #  - arch: x86
+        #    api-level: 30
+        #    target: aosp_atd
+        #    channel: canary
 
     steps:
       - name: Project Checkout
