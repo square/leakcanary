@@ -1,6 +1,10 @@
 
 # Change Log
 
+## Version 2.9
+
+- FailTestOnLeakRunListener FailAnnotatedTestOnLeakRunListener, FailTestOnLeak removed to make it possible to upgrade androidx.test:runner to 1.4.0
+
 ## Version 2.8.1 (2022-01-06)
 
 This is a bugfix release, a quick follow up to `2.8` which had a few major issues 😅. If you haven't yet, you should definitely read the `2.8` changelog.
