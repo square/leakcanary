@@ -97,7 +97,6 @@ internal enum class AndroidReferenceReaders : OptionalFactory {
 
   SAFE_ITERABLE_MAP {
     override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
-      println(graph.findClassByName(SAFE_ITERABLE_MAP_CLASS_NAME))
       val mapClass =
         graph.findClassByName(SAFE_ITERABLE_MAP_CLASS_NAME) ?: return null
       // A subclass of SafeIterableMap with dual storage in a backing HashMap for fast get.
