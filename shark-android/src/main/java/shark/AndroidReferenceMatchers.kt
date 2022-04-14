@@ -734,6 +734,25 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  WINDOW_ON_BACK_INVOKED_DISPATCHER__STUB {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.window.WindowOnBackInvokedDispatcher\$OnBackInvokedCallbackWrapper", "mCallback",
+        description = """
+          WindowOnBackInvokedDispatcher.OnBackInvokedCallbackWrapper is an IPC stub that holds a
+          reference to a callback which itself holds a view root. Another process is keeping the
+          stub alive long after the view root has been detached.
+          Tracked here: https://issuetracker.google.com/issues/229007483
+        """.trimIndent()
+      ) {
+        // Detected in Android 13 DP2, should be fixed in the next release.
+        sdkInt == 32 && id == "TPP2.220218.008"
+      }
+    }
+  },
+
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG

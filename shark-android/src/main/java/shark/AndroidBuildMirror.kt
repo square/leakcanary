@@ -12,7 +12,12 @@ class AndroidBuildMirror(
   /**
    * Value of android.os.Build.VERSION.SDK_INT
    */
-  val sdkInt: Int
+  val sdkInt: Int,
+
+  /**
+   * Value of android.os.Build.ID
+   */
+  val id: String
 ) {
   companion object {
     /**
@@ -24,7 +29,8 @@ class AndroidBuildMirror(
         val versionClass = graph.findClassByName("android.os.Build\$VERSION")!!
         val manufacturer = buildClass["MANUFACTURER"]!!.value.readAsJavaString()!!
         val sdkInt = versionClass["SDK_INT"]!!.value.asInt!!
-        AndroidBuildMirror(manufacturer, sdkInt)
+        val id = buildClass["ID"]!!.value.readAsJavaString()!!
+        AndroidBuildMirror(manufacturer, sdkInt, id)
       }
     }
   }
