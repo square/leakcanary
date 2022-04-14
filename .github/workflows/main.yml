@@ -38,17 +38,26 @@ jobs:
       fail-fast: false
       matrix:
         arch: [x86_64]
+        target: [google_apis]
+        channel: [stable]
         api-level:
           - 21
           - 23
           - 26
-          - 29
-          - 30
+         # - 29 flaky
         include:
           - arch: x86
             api-level: 16
+            target: google_apis
+            channel: stable
           - arch: x86
             api-level: 19
+            target: google_apis
+            channel: stable
+          - arch: x86
+              api-level: 30
+              target: aosp_atd
+              channel: canary
 
     steps:
       - name: Project Checkout
@@ -64,7 +73,8 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
-          target: google_apis
+          target: ${{ matrix.target }}
+          channel: ${{ matrix.channel }}
           arch: ${{ matrix.arch }}
           script: |
             touch emulator.log                    # create log file
