@@ -18,7 +18,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.HprofWriterHelper
 import shark.ValueHolder.IntHolder
-import shark.dump
+import shark.dumpToBytes
 
 internal class LeakActivityTest {
 
@@ -54,15 +54,16 @@ internal class LeakActivityTest {
     }
     val intent = Intent(Intent.ACTION_VIEW, Uri.fromFile(hprof))
     activityTestRule.launchActivity(intent)
-    require(latch.await(5, SECONDS))
+    require(latch.await(5, SECONDS)) {
+      "Heap analysis not done within 5 seconds of starting import"
+    }
     onView(withText("1 Heap Dump")).check(matches(isDisplayed()))
     onView(withText("1 Distinct Leak")).perform(click())
     onView(withText("Holder.leak")).check(matches(isDisplayed()))
   }
 
   private fun writeHeapDump(block: HprofWriterHelper.() -> Unit): File {
-    val hprofFile = testFolder.newFile("temp.hprof")
-    hprofFile.dump {
+    val hprofBytes = dumpToBytes {
       "android.os.Build" clazz {
         staticField["MANUFACTURER"] = string("Samsing")
       }
@@ -71,7 +72,15 @@ internal class LeakActivityTest {
       }
       block()
     }
-    return hprofFile
+    return testFolder.newFile("temp.hprof").apply {
+      writeBytes(hprofBytes)
+      require(exists()) {
+        "$this does not exist"
+      }
+      require(length().toInt() == hprofBytes.size) {
+        "$this has size ${length()} instead of expected ${hprofBytes.size}"
+      }
+    }
   }
 
   private fun tryAndRestoreConfig(block: () -> Unit) {

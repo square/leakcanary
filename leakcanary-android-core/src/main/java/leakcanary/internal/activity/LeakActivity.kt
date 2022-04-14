@@ -172,7 +172,7 @@ internal class LeakActivity : NavigatingActivity() {
             }
         }
     } catch (e: IOException) {
-      SharkLog.d(e) { "Could not imported Hprof file" }
+      SharkLog.d(e) { "Could not import Hprof file" }
     }
   }
 
