@@ -2,17 +2,19 @@ package shark
 
 object AndroidMetadataExtractor : MetadataExtractor {
   override fun extractMetadata(graph: HeapGraph): Map<String, String> {
+    val metadata = mutableMapOf<String, String>()
+
     val build = AndroidBuildMirror.fromHeapGraph(graph)
+    metadata["Build.VERSION.SDK_INT"] = build.sdkInt.toString()
+    metadata["Build.MANUFACTURER"] = build.manufacturer
 
-    val leakCanaryVersion = readLeakCanaryVersion(graph)
-    val processName = readProcessName(graph)
+    metadata["LeakCanary version"] = readLeakCanaryVersion(graph)
 
-    return mapOf(
-      "Build.VERSION.SDK_INT" to build.sdkInt.toString(),
-      "Build.MANUFACTURER" to build.manufacturer,
-      "LeakCanary version" to leakCanaryVersion,
-      "App process name" to processName
-    )
+    metadata["App process name"] = readProcessName(graph)
+
+    metadata.putOpenDbsLabels(graph)
+
+    return metadata
   }
 
   private fun readLeakCanaryVersion(graph: HeapGraph): String {
@@ -32,5 +34,25 @@ object AndroidMetadataExtractor : MetadataExtractor {
     return appInfo?.get(
       "android.content.pm.ApplicationInfo", "processName"
     )?.valueAsInstance?.readAsJavaString() ?: "Unknown"
+  }
+
+  private fun MutableMap<String, String>.putOpenDbsLabels(graph: HeapGraph) {
+    val dbClass = graph.findClassByName("android.database.sqlite.SQLiteDatabase") ?: return
+
+    val openDbs = dbClass.instances.filter { instance ->
+      instance["android.database.sqlite.SQLiteDatabase", "mConnectionPoolLocked"]?.value?.isNonNullReference
+        ?: false
+    }
+
+    val openDbLabels = openDbs.mapNotNull { instance ->
+      val config =
+        instance["android.database.sqlite.SQLiteDatabase", "mConfigurationLocked"]?.valueAsInstance
+          ?: return@mapNotNull null
+      config["android.database.sqlite.SQLiteDatabaseConfiguration", "label"]?.value?.readAsJavaString()
+    }
+
+    openDbLabels.forEachIndexed { index, label ->
+      this["Open Db ${index + 1}"] = label
+    }
   }
 }
