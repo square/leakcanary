@@ -1,6 +1,7 @@
 public final class shark/AndroidBuildMirror {
 	public static final field Companion Lshark/AndroidBuildMirror$Companion;
-	public fun <init> (Ljava/lang/String;I)V
+	public fun <init> (Ljava/lang/String;ILjava/lang/String;)V
+	public final fun getId ()Ljava/lang/String;
 	public final fun getManufacturer ()Ljava/lang/String;
 	public final fun getSdkInt ()I
 }
@@ -136,6 +137,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field VIEWLOCATIONHOLDER_ROOT Lshark/AndroidReferenceMatchers;
 	public static final field VIEW_CONFIGURATION__MCONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field VIVO Ljava/lang/String;
+	public static final field WINDOW_ON_BACK_INVOKED_DISPATCHER__STUB Lshark/AndroidReferenceMatchers;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public static final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
 	public static final fun getAppDefaults ()Ljava/util/List;
