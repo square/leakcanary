@@ -150,6 +150,9 @@ enum class AndroidLeakFixes {
    */
   FLUSH_HANDLER_THREADS {
     override fun apply(application: Application) {
+      if (SDK_INT >= 31) {
+        return
+      }
       val flushedThreadIds = mutableSetOf<Int>()
       // Don't flush the backgroundHandler's thread, we're rescheduling all the time anyway.
       flushedThreadIds += (backgroundHandler.looper.thread as HandlerThread).threadId

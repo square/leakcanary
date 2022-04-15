@@ -180,12 +180,14 @@ enum class AndroidReferenceMatchers {
         + " The combination of these two things creates a high potential for memory leaks as soon"
         + " as you use dialogs. These memory leaks might be temporary, but some handler threads"
         + " sleep for a long time."
-        + " To fix this, you could post empty messages to the idle handler threads from time to"
-        + " time. This won't be easy because you cannot access all handler threads, but a library"
-        + " that is widely used should consider doing this for its own handler threads. This leaks"
-        + " has been shown to happen in both Dalvik and ART.")
+        + " This leak is fixed by AndroidLeakFixes.FLUSH_HANDLER_THREADS in plumber-android."
+        + " Bug report: https://issuetracker.google.com/issues/146144484"
+        + " Fixed in Android 12: https://cs.android.com/android/_/android/platform/frameworks/base"
+        + "/+/d577e728e9bccbafc707af3060ea914caa73c14f")
 
-      references += instanceFieldLeak("android.os.Message", "obj", description)
+      references += instanceFieldLeak("android.os.Message", "obj", description) {
+        sdkInt < 31
+      }
     }
   },
 
