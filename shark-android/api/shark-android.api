@@ -114,6 +114,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field RAZER Ljava/lang/String;
 	public static final field RAZER_TEXT_KEY_LISTENER__MCONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field REFERENCES Lshark/AndroidReferenceMatchers;
+	public static final field RENDER_NODE_ANIMATOR Lshark/AndroidReferenceMatchers;
 	public static final field RESOURCES__MCONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field SAMSUNG Ljava/lang/String;
 	public static final field SEM_APP_ICON_SOLUTION Lshark/AndroidReferenceMatchers;

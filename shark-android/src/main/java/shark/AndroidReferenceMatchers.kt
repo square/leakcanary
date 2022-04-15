@@ -718,6 +718,23 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  RENDER_NODE_ANIMATOR {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += nativeGlobalVariableLeak(
+        "android.graphics.animation.RenderNodeAnimator",
+        description = """
+          When a view is detached while a ripple animation is still playing on it, the native code
+          doesn't properly end the RenderNodeAnimator, i.e. it doesn't call
+          RenderNodeAnimator.callOnFinished and doesn't let go of the native ref, leading to a
+          leak of the detached animated view.
+          Tracked at: https://issuetracker.google.com/issues/229136453
+        """.trimIndent()
+      ) {
+        sdkInt in 31..32
+      }
+    }
+  },
+
   PLAYER_BASE {
     override fun add(
       references: MutableList<ReferenceMatcher>
