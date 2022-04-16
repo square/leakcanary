@@ -28,7 +28,7 @@ internal enum class AndroidReferenceReaders : OptionalFactory {
             node["android.os.Message", "next"]!!.valueAsInstance
           }
             .withIndex()
-            .mapNotNull { (index, node) ->
+            .map { (index, node) ->
               Reference(
                 valueObjectId = node.objectId,
                 isLowPriority = false,

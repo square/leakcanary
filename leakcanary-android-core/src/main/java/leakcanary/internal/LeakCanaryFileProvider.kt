@@ -34,7 +34,6 @@ import android.webkit.MimeTypeMap
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
-import java.util.HashMap
 import org.xmlpull.v1.XmlPullParser.END_DOCUMENT
 import org.xmlpull.v1.XmlPullParser.START_TAG
 import org.xmlpull.v1.XmlPullParserException
@@ -537,27 +536,26 @@ internal class LeakCanaryFileProvider : ContentProvider() {
      * Copied from ContentResolver.java
      */
     private fun modeToMode(mode: String): Int {
-      val modeBits: Int
-      if ("r" == mode) {
-        modeBits = ParcelFileDescriptor.MODE_READ_ONLY
-      } else if ("w" == mode || "wt" == mode) {
-        modeBits = (ParcelFileDescriptor.MODE_WRITE_ONLY
-          or ParcelFileDescriptor.MODE_CREATE
-          or ParcelFileDescriptor.MODE_TRUNCATE)
-      } else if ("wa" == mode) {
-        modeBits = (ParcelFileDescriptor.MODE_WRITE_ONLY
-          or ParcelFileDescriptor.MODE_CREATE
-          or ParcelFileDescriptor.MODE_APPEND)
-      } else if ("rw" == mode) {
-        modeBits = ParcelFileDescriptor.MODE_READ_WRITE or ParcelFileDescriptor.MODE_CREATE
-      } else if ("rwt" == mode) {
-        modeBits = (ParcelFileDescriptor.MODE_READ_WRITE
-          or ParcelFileDescriptor.MODE_CREATE
-          or ParcelFileDescriptor.MODE_TRUNCATE)
-      } else {
-        throw IllegalArgumentException("Invalid mode: $mode")
+      return when (mode) {
+        "r" -> ParcelFileDescriptor.MODE_READ_ONLY
+        "w", "wt" -> (
+          ParcelFileDescriptor.MODE_WRITE_ONLY
+            or ParcelFileDescriptor.MODE_CREATE
+            or ParcelFileDescriptor.MODE_TRUNCATE
+          )
+        "wa" -> (
+          ParcelFileDescriptor.MODE_WRITE_ONLY
+            or ParcelFileDescriptor.MODE_CREATE
+            or ParcelFileDescriptor.MODE_APPEND
+          )
+        "rw" -> ParcelFileDescriptor.MODE_READ_WRITE or ParcelFileDescriptor.MODE_CREATE
+        "rwt" -> (
+          ParcelFileDescriptor.MODE_READ_WRITE
+            or ParcelFileDescriptor.MODE_CREATE
+            or ParcelFileDescriptor.MODE_TRUNCATE
+          )
+        else -> throw IllegalArgumentException("Invalid mode: $mode")
       }
-      return modeBits
     }
 
     private fun buildPath(

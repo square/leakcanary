@@ -20,7 +20,7 @@ internal inline fun <R> Cursor.use(block: (Cursor) -> R): R {
       null -> close()
       else -> try {
         close()
-      } catch (ignoredCloseException: Throwable) {
+      } catch (_: Throwable) {
       }
     }
   }

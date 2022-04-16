@@ -27,9 +27,7 @@ data class HprofHeader(
   val recordsPosition: Int = version.versionString.toByteArray(Charsets.UTF_8).size + 1 + 4 + 8
 
   companion object {
-    private val supportedVersions = HprofVersion.values()
-      .map { it.versionString to it }
-      .toMap()
+    private val supportedVersions = HprofVersion.values().associateBy { it.versionString }
 
     /**
      * Reads the header of the provided [hprofFile] and returns it as a [HprofHeader]

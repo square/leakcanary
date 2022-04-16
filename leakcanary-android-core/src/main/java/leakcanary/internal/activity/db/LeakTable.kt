@@ -183,9 +183,9 @@ internal object LeakTable {
             isLibraryLeak = cursor.getInt(6) == 1,
             leakTraces = leakTraces
           )
-          leakTraces.addAll(generateSequence(cursor, {
+          leakTraces.addAll(generateSequence(cursor) {
             if (cursor.moveToNext()) cursor else null
-          }).map {
+          }.map {
             LeakTraceProjection(
               leakTraceIndex = cursor.getInt(0),
               heapAnalysisId = cursor.getLong(1),

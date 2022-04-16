@@ -1,7 +1,6 @@
 package shark
 
 import java.io.File
-import java.nio.charset.Charset
 import okio.Buffer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
