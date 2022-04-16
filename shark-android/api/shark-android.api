@@ -88,6 +88,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field FINALIZER_WATCHDOG_DAEMON Lshark/AndroidReferenceMatchers;
 	public static final field GESTURE_BOOST_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field HUAWEI Ljava/lang/String;
+	public static final field IMM_CURRENT_INPUT_CONNECTION Lshark/AndroidReferenceMatchers;
 	public static final field INPUT_METHOD_MANAGER_IS_TERRIBLE Lshark/AndroidReferenceMatchers;
 	public static final field INSTRUMENTATION_RECOMMEND_ACTIVITY Lshark/AndroidReferenceMatchers;
 	public static final field IREQUEST_FINISH_CALLBACK Lshark/AndroidReferenceMatchers;

@@ -247,16 +247,6 @@ enum class AndroidReferenceMatchers {
       ) {
         sdkInt == 28
       }
-
-      references += instanceFieldLeak(
-        "android.view.inputmethod.InputMethodManager", "mCurrentInputConnection",
-        description = """
-              In Android Q Beta InputMethodManager keeps its EditableInputConnection after the
-              activity has been destroyed.
-            """.trimIndent()
-      ) {
-        sdkInt in 28..29
-      }
     }
   },
 
@@ -1034,6 +1024,21 @@ enum class AndroidReferenceMatchers {
           """.trimMargin()
       ) {
         manufacturer == SAMSUNG && sdkInt in 26..29
+      }
+    }
+  },
+
+  IMM_CURRENT_INPUT_CONNECTION {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += instanceFieldLeak(
+        "android.view.inputmethod.InputMethodManager", "mCurrentInputConnection",
+        description = """
+              InputMethodManager keeps its EditableInputConnection after the activity has been
+              destroyed.
+              Filed here: https://github.com/square/leakcanary/issues/2300
+            """.trimIndent()
+      ) {
+        manufacturer == SAMSUNG && sdkInt in 28..30
       }
     }
   },
