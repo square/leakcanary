@@ -102,7 +102,6 @@ object AppWatcher {
     check(retainedDelayMillis >= 0) {
       "retainedDelayMillis $retainedDelayMillis must be at least 0 ms"
     }
-    installCause = RuntimeException("manualInstall() first called here")
     this.retainedDelayMillis = retainedDelayMillis
     if (application.isDebuggableBuild) {
       LogcatSharkLog.install()
@@ -113,6 +112,8 @@ object AppWatcher {
     watchersToInstall.forEach {
       it.install()
     }
+    // Only install after we're fully done with init.
+    installCause = RuntimeException("manualInstall() first called here")
   }
 
   /**

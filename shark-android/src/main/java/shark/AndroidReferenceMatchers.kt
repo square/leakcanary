@@ -15,16 +15,16 @@
  */
 package shark
 
+import java.lang.ref.PhantomReference
+import java.lang.ref.SoftReference
+import java.lang.ref.WeakReference
+import java.util.EnumSet
 import shark.AndroidReferenceMatchers.Companion.appDefaults
 import shark.AndroidReferenceMatchers.Companion.buildKnownReferences
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
 import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.ReferencePattern.StaticFieldPattern
-import java.lang.ref.PhantomReference
-import java.lang.ref.SoftReference
-import java.lang.ref.WeakReference
-import java.util.EnumSet
 
 /**
  * [AndroidReferenceMatchers] values add [ReferenceMatcher] instances to a global list via their
@@ -180,12 +180,14 @@ enum class AndroidReferenceMatchers {
         + " The combination of these two things creates a high potential for memory leaks as soon"
         + " as you use dialogs. These memory leaks might be temporary, but some handler threads"
         + " sleep for a long time."
-        + " To fix this, you could post empty messages to the idle handler threads from time to"
-        + " time. This won't be easy because you cannot access all handler threads, but a library"
-        + " that is widely used should consider doing this for its own handler threads. This leaks"
-        + " has been shown to happen in both Dalvik and ART.")
+        + " This leak is fixed by AndroidLeakFixes.FLUSH_HANDLER_THREADS in plumber-android."
+        + " Bug report: https://issuetracker.google.com/issues/146144484"
+        + " Fixed in Android 12: https://cs.android.com/android/_/android/platform/frameworks/base"
+        + "/+/d577e728e9bccbafc707af3060ea914caa73c14f")
 
-      references += instanceFieldLeak("android.os.Message", "obj", description)
+      references += instanceFieldLeak("android.os.Message", "obj", description) {
+        sdkInt < 31
+      }
     }
   },
 
@@ -244,16 +246,6 @@ enum class AndroidReferenceMatchers {
             """.trimIndent()
       ) {
         sdkInt == 28
-      }
-
-      references += instanceFieldLeak(
-        "android.view.inputmethod.InputMethodManager", "mCurrentInputConnection",
-        description = """
-              In Android Q Beta InputMethodManager keeps its EditableInputConnection after the
-              activity has been destroyed.
-            """.trimIndent()
-      ) {
-        sdkInt in 28..29
       }
     }
   },
@@ -684,7 +676,7 @@ enum class AndroidReferenceMatchers {
 
   APPLICATION_PACKAGE_MANAGER__HAS_SYSTEM_FEATURE_QUERY {
     override fun add(references: MutableList<ReferenceMatcher>) {
-      references  += instanceFieldLeak(
+      references += instanceFieldLeak(
         "android.app.ApplicationPackageManager\$HasSystemFeatureQuery", "this\$0",
         description = """
           In Android 11 DP 2 ApplicationPackageManager.HasSystemFeatureQuery was an inner class.
@@ -700,7 +692,7 @@ enum class AndroidReferenceMatchers {
 
   COMPANION_DEVICE_SERVICE__STUB {
     override fun add(references: MutableList<ReferenceMatcher>) {
-      references  += instanceFieldLeak(
+      references += instanceFieldLeak(
         "android.companion.CompanionDeviceService\$Stub", "this\$0",
         description = """
           Android 12 added android.companion.CompanionDeviceService, a bounded service extended by
@@ -712,6 +704,60 @@ enum class AndroidReferenceMatchers {
         """.trimIndent()
       ) {
         sdkInt == 31
+      }
+    }
+  },
+
+  RENDER_NODE_ANIMATOR {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += nativeGlobalVariableLeak(
+        "android.graphics.animation.RenderNodeAnimator",
+        description = """
+          When a view is detached while a ripple animation is still playing on it, the native code
+          doesn't properly end the RenderNodeAnimator, i.e. it doesn't call
+          RenderNodeAnimator.callOnFinished and doesn't let go of the native ref, leading to a
+          leak of the detached animated view.
+          Tracked at: https://issuetracker.google.com/issues/229136453
+        """.trimIndent()
+      ) {
+        sdkInt in 31..32
+      }
+    }
+  },
+
+  PLAYER_BASE {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += nativeGlobalVariableLeak(
+        "android.media.PlayerBase\$1",
+        description = """
+          PlayerBase$1 implements IAppOpsCallback as an inner class and is held by a native
+          ref, preventing subclasses of PlayerBase to be GC'd.
+          Introduced in API 24: https://cs.android.com/android/_/android/platform/frameworks/base/+/3c86a343dfca1b9e2e28c240dc894f60709e392c
+          Fixed in API 28: https://cs.android.com/android/_/android/platform/frameworks/base/+/aee6ee94675d56e71a42d52b16b8d8e5fa6ea3ff
+        """.trimIndent()
+      ) {
+        sdkInt in 24..27
+      }
+    }
+  },
+
+  WINDOW_ON_BACK_INVOKED_DISPATCHER__STUB {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.window.WindowOnBackInvokedDispatcher\$OnBackInvokedCallbackWrapper", "mCallback",
+        description = """
+          WindowOnBackInvokedDispatcher.OnBackInvokedCallbackWrapper is an IPC stub that holds a
+          reference to a callback which itself holds a view root. Another process is keeping the
+          stub alive long after the view root has been detached.
+          Tracked here: https://issuetracker.google.com/issues/229007483
+        """.trimIndent()
+      ) {
+        // Detected in Android 13 DP2, should be fixed in the next release.
+        sdkInt == 32 && id == "TPP2.220218.008"
       }
     }
   },
@@ -982,6 +1028,21 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  IMM_CURRENT_INPUT_CONNECTION {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += instanceFieldLeak(
+        "android.view.inputmethod.InputMethodManager", "mCurrentInputConnection",
+        description = """
+              InputMethodManager keeps its EditableInputConnection after the activity has been
+              destroyed.
+              Filed here: https://github.com/square/leakcanary/issues/2300
+            """.trimIndent()
+      ) {
+        manufacturer == SAMSUNG && sdkInt in 28..30
+      }
+    }
+  },
+
   // OTHER MANUFACTURERS
 
   GESTURE_BOOST_MANAGER {
@@ -1210,7 +1271,9 @@ enum class AndroidReferenceMatchers {
       // Holds on to the resumed activity (which is never destroyed), so this will not cause leaks
       // but may surface on the path when a resumed activity holds on to destroyed objects.
       // Would have a path that doesn't include LeakCanary instead.
-      references += ignoredInstanceField("leakcanary.internal.InternalLeakCanary", "resumedActivity")
+      references += ignoredInstanceField(
+        "leakcanary.internal.InternalLeakCanary", "resumedActivity"
+      )
     }
   },
 

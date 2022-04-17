@@ -1,8 +1,12 @@
 package shark
 
+import java.io.File
+import java.nio.charset.Charset
 import okio.Buffer
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
@@ -11,6 +15,9 @@ import shark.PrimitiveType.BOOLEAN
 import shark.PrimitiveType.CHAR
 
 class HprofPrimitiveArrayStripperTest {
+
+  @get:Rule
+  var testFolder = TemporaryFolder()
 
   private var lastId = 0L
   private val id: Long
@@ -45,6 +52,42 @@ class HprofPrimitiveArrayStripperTest {
       assertThat(charArrays).hasSize(1)
       assertThat(charArrays[0].id).isEqualTo(charArray.id)
       assertThat(charArrays[0].array).isEqualTo("????????????".toCharArray())
+    }
+  }
+
+  @Test
+  fun `ByteArray based String content is replaced with question marks`() {
+    val hprofFolder = testFolder.newFolder()
+    val hprofFile = File(hprofFolder, "jvm_heap.hprof")
+    val stringSavedToDump = "Yo!"
+    hold(TestStringHolder(stringSavedToDump)) {
+      JvmTestHeapDumper.dumpHeap(hprofFile.absolutePath)
+    }
+
+    val strippedFile = HprofPrimitiveArrayStripper().stripPrimitiveArrays(hprofFile)
+
+    val initialString = hprofFile.readHolderString()
+    val strippedString = strippedFile.readHolderString()
+    assertThat(initialString).isEqualTo(stringSavedToDump)
+    assertThat(strippedString).isEqualTo("?".repeat(stringSavedToDump.length))
+  }
+
+  private class TestStringHolder(val string: String)
+
+  private fun File.readHolderString() = openHeapGraph().use { graph ->
+    val className = "shark.HprofPrimitiveArrayStripperTest\$TestStringHolder"
+    val holderClass = graph.findClassByName(className)!!
+    val holderInstance = holderClass.instances.single()
+    holderInstance[className, "string"]!!.value.readAsJavaString()!!
+  }
+
+  private fun hold(held: Any, block: () -> Unit) {
+    try {
+      block()
+    } finally {
+      if (System.identityHashCode(held) * 0 > 0f) {
+        error("this will never happen")
+      }
     }
   }
 }

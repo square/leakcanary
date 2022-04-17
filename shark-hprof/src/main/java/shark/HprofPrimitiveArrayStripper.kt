@@ -91,7 +91,10 @@ class HprofPrimitiveArrayStripper {
                 )
                 is ByteArrayDump -> ByteArrayDump(
                   record.id, record.stackTraceSerialNumber,
-                  ByteArray(record.array.size)
+                  ByteArray(record.array.size) {
+                    // Converts to '?' in UTF-8 for byte backed strings
+                    63
+                  }
                 )
                 is ShortArrayDump -> ShortArrayDump(
                   record.id, record.stackTraceSerialNumber,

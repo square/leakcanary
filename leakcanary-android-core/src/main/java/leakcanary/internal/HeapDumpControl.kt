@@ -1,6 +1,8 @@
 package leakcanary.internal
 
 import android.app.Application
+import android.os.Handler
+import android.os.HandlerThread
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
 import leakcanary.LeakCanary
@@ -42,6 +44,12 @@ internal object HeapDumpControl {
     }
   }
 
+  private val backgroundUpdateHandler by lazy {
+    val handlerThread = HandlerThread("LeakCanary-Background-iCanHasHeap-Updater")
+    handlerThread.start()
+    Handler(handlerThread.looper)
+  }
+
   private const val leakAssertionsClassName = "leakcanary.LeakAssertions"
 
   private val hasLeakAssertionsClass by lazy {
@@ -53,8 +61,10 @@ internal object HeapDumpControl {
     }
   }
 
-  fun updateICanHasHeap() {
-    iCanHasHeap()
+  fun updateICanHasHeapInBackground() {
+    backgroundUpdateHandler.post {
+      iCanHasHeap()
+    }
   }
 
   fun iCanHasHeap(): ICanHazHeap {
@@ -80,8 +90,8 @@ internal object HeapDumpControl {
         )
       }
     } else if (!config.dumpHeapWhenDebugging && DebuggerControl.isDebuggerAttached) {
-      mainHandler.postDelayed({
-        updateICanHasHeap()
+      backgroundUpdateHandler.postDelayed({
+        iCanHasHeap()
       }, 20_000L)
       NotifyingNope { app.getString(R.string.leak_canary_notification_retained_debugger_attached) }
     } else Yup

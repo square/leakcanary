@@ -1,6 +1,7 @@
 public final class shark/AndroidBuildMirror {
 	public static final field Companion Lshark/AndroidBuildMirror$Companion;
-	public fun <init> (Ljava/lang/String;I)V
+	public fun <init> (Ljava/lang/String;ILjava/lang/String;)V
+	public final fun getId ()Ljava/lang/String;
 	public final fun getManufacturer ()Ljava/lang/String;
 	public final fun getSdkInt ()I
 }
@@ -30,6 +31,7 @@ public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/Obje
 	public static final field EDITOR Lshark/AndroidObjectInspectors;
 	public static final field FRAGMENT Lshark/AndroidObjectInspectors;
 	public static final field INPUT_METHOD_MANAGER Lshark/AndroidObjectInspectors;
+	public static final field LIFECYCLE_REGISTRY Lshark/AndroidObjectInspectors;
 	public static final field LOADED_APK Lshark/AndroidObjectInspectors;
 	public static final field MAIN_THREAD Lshark/AndroidObjectInspectors;
 	public static final field MESSAGE Lshark/AndroidObjectInspectors;
@@ -86,6 +88,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field FINALIZER_WATCHDOG_DAEMON Lshark/AndroidReferenceMatchers;
 	public static final field GESTURE_BOOST_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field HUAWEI Ljava/lang/String;
+	public static final field IMM_CURRENT_INPUT_CONNECTION Lshark/AndroidReferenceMatchers;
 	public static final field INPUT_METHOD_MANAGER_IS_TERRIBLE Lshark/AndroidReferenceMatchers;
 	public static final field INSTRUMENTATION_RECOMMEND_ACTIVITY Lshark/AndroidReferenceMatchers;
 	public static final field IREQUEST_FINISH_CALLBACK Lshark/AndroidReferenceMatchers;
@@ -109,9 +112,11 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field OEM_SCENE_CALL_BLOCKER Lshark/AndroidReferenceMatchers;
 	public static final field ONE_PLUS Ljava/lang/String;
 	public static final field PERSONA_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field PLAYER_BASE Lshark/AndroidReferenceMatchers;
 	public static final field RAZER Ljava/lang/String;
 	public static final field RAZER_TEXT_KEY_LISTENER__MCONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field REFERENCES Lshark/AndroidReferenceMatchers;
+	public static final field RENDER_NODE_ANIMATOR Lshark/AndroidReferenceMatchers;
 	public static final field RESOURCES__MCONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field SAMSUNG Ljava/lang/String;
 	public static final field SEM_APP_ICON_SOLUTION Lshark/AndroidReferenceMatchers;
@@ -135,6 +140,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field VIEWLOCATIONHOLDER_ROOT Lshark/AndroidReferenceMatchers;
 	public static final field VIEW_CONFIGURATION__MCONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field VIVO Ljava/lang/String;
+	public static final field WINDOW_ON_BACK_INVOKED_DISPATCHER__STUB Lshark/AndroidReferenceMatchers;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public static final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
 	public static final fun getAppDefaults ()Ljava/util/List;

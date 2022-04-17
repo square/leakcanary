@@ -28,8 +28,8 @@ interface HasActivityTestRule<T : Activity> {
 }
 
 inline fun <reified T : Activity> activityTestRule(
-  initialTouchMode: Boolean,
-  launchActivity: Boolean
+  initialTouchMode: Boolean = false,
+  launchActivity: Boolean = true
 ): ActivityTestRule<T> = ActivityTestRule(
   T::class.java, initialTouchMode, launchActivity
 )

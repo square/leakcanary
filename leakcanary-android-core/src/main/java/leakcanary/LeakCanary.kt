@@ -203,7 +203,7 @@ object LeakCanary {
       when {
           RemoteWorkManagerHeapAnalyzer.remoteLeakCanaryServiceInClasspath ->
             RemoteWorkManagerHeapAnalyzer
-          WorkManagerHeapAnalyzer.workManagerInClasspath -> WorkManagerHeapAnalyzer
+          WorkManagerHeapAnalyzer.validWorkManagerInClasspath -> WorkManagerHeapAnalyzer
           else -> BackgroundThreadHeapAnalyzer
       }
     ),
@@ -356,7 +356,7 @@ object LeakCanary {
       val previousConfig = field
       field = newConfig
       logConfigChange(previousConfig, newConfig)
-      HeapDumpControl.updateICanHasHeap()
+      HeapDumpControl.updateICanHasHeapInBackground()
     }
 
   private fun logConfigChange(

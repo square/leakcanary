@@ -1,4 +1,5 @@
 name: Main
+
 on:
   pull_request:
   push:
@@ -7,58 +8,114 @@ on:
 
 jobs:
   validation:
-    name: "Validation"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: gradle/wrapper-validation-action@v1
 
   checks:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
-
-      - name: Project Checkout
-        uses: actions/checkout@v2
-
-      - name: Setup JDK 1.8
-        uses: actions/setup-java@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
         with:
           java-version: 8
           distribution: 'zulu'
-
+      - uses: gradle/gradle-build-action@v2
       - name: Build project
         run: ./gradlew build --stacktrace
 
-      - name: Assemble Test APK
-        run: ./gradlew assembleAndroidTest --stacktrace
-
-      - name: Espresso Checks
-        uses: reactivecircus/android-emulator-runner@v2.14.3
-        with:
-          api-level: 16
-          script: ./gradlew leakcanary-android-core:connectedCheck leakcanary-android:connectedCheck leakcanary-android-instrumentation:connectedCheck --stacktrace
-
-  snapshot-deployment:
-    if: github.repository == 'square/leakcanary' && github.event_name == 'push'
-    needs: [ checks ]
-    runs-on: ubuntu-latest
+  instrumentation-tests:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    strategy:
+      # Allow tests to continue on other devices if they fail on one device.
+      fail-fast: false
+      matrix:
+        arch: [ x86_64 ]
+        target: [ google_apis ]
+        channel: [ stable ]
+        api-level:
+          - 21
+          - 23
+          - 26
+          # - 29 flaky
+        include:
+          - arch: x86
+            api-level: 16
+            target: google_apis
+            channel: stable
+          - arch: x86
+            api-level: 19
+            target: google_apis
+            channel: stable
+        # Failing (something about permissions maybe?
+        #  - arch: x86
+        #    api-level: 30
+        #    target: aosp_atd
+        #    channel: canary
     steps:
-
-      - name: Project Checkout
-        uses: actions/checkout@v2
-
-      - name: Setup JDK 1.8
-        uses: actions/setup-java@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
         with:
           java-version: 8
           distribution: 'zulu'
+      - uses: gradle/gradle-build-action@v2
+      - name: AVD cache
+        uses: actions/cache@v3
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}-${{ matrix.os }}-${{ matrix.target }}
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+      - name: Instrumentation Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          script: |
+            touch emulator.log                    # create log file
+            chmod 777 emulator.log                # allow writing to log file
+            adb logcat >> emulator.log &          # pipe all logcat messages into log file as a background process
+            ./gradlew leakcanary-android-core:connectedCheck leakcanary-android:connectedCheck leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
+      - name: Upload results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.api-level }}-${{ matrix.arch }}-instrumentation-test-results
+          path: |
+            emulator.log
+            ./**/build/reports/androidTests/connected/**
 
+  snapshot-deployment:
+    if: github.repository == 'square/leakcanary' && github.event_name == 'push'
+    needs: [ checks, instrumentation-tests ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          java-version: 8
+          distribution: 'zulu'
+      - uses: gradle/gradle-build-action@v2
       - name: Deploy snapshot
         run: ./gradlew publish
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.SONATYPE_NEXUS_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_NEXUS_PASSWORD }}
-
       - name: Cleanup secrets
         if: always()
         run: rm -rf ~/.gradle/gradle.properties

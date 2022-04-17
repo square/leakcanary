@@ -837,6 +837,27 @@ enum class AndroidObjectInspectors : ObjectInspector {
       }
     }
   },
+
+  LIFECYCLE_REGISTRY {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("androidx.lifecycle.LifecycleRegistry") { instance ->
+        val state = instance.lifecycleRegistryState
+        labels += "mState = $state"
+        // If state is DESTROYED, this doesn't mean the LifecycleRegistry itself is leaking.
+        // Fragment.mViewLifecycleRegistry becomes DESTROYED when the fragment view is destroyed,
+        // but the registry itself is still held in memory by the fragment.
+        if (state != "DESTROYED") {
+          notLeakingReasons += "mState is not DESTROYED"
+        }
+      }
+    }
+
+    private val HeapInstance.lifecycleRegistryState: String
+      get() {
+        val state = this["androidx.lifecycle.LifecycleRegistry", "mState"]!!.valueAsInstance!!
+        return state["java.lang.Enum", "name"]!!.value.readAsJavaString()!!
+      }
+  },
   ;
 
   internal open val leakingObjectFilter: ((heapObject: HeapObject) -> Boolean)? = null
