@@ -641,9 +641,8 @@ sealed class HeapObject {
 
   companion object {
 
-    internal val primitiveTypesByPrimitiveArrayClassName = PrimitiveType.values()
-      .map { "${it.name.toLowerCase(Locale.US)}[]" to it }
-      .toMap()
+    internal val primitiveTypesByPrimitiveArrayClassName =
+      PrimitiveType.values().associateBy { "${it.name.toLowerCase(Locale.US)}[]" }
 
     private val primitiveWrapperClassNames = setOf<String>(
       Boolean::class.javaObjectType.name, Char::class.javaObjectType.name,

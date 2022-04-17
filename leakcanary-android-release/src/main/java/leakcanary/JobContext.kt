@@ -28,9 +28,9 @@ class JobContext constructor(val starter: Class<*>? = null) {
     defaultValue: () -> T
   ): T {
     @Suppress("UNCHECKED_CAST")
-    return store.getOrPut(key, {
+    return store.getOrPut(key) {
       defaultValue()
-    }) as T
+    } as T
   }
 
   /**

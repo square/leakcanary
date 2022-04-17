@@ -237,7 +237,7 @@ class HeapAnalyzer constructor(
     val metadata = metadataExtractor.extractMetadata(graph)
 
     val retainedClearedWeakRefCount = KeyedWeakReferenceFinder.findKeyedWeakReferences(graph)
-      .filter { it.isRetained && !it.hasReferent }.count()
+      .count { it.isRetained && !it.hasReferent }
 
     // This should rarely happens, as we generally remove all cleared weak refs right before a heap
     // dump.
@@ -552,12 +552,10 @@ class HeapAnalyzer constructor(
       val heapObject = inspectedObject.heapObject
       val className = recordClassName(heapObject)
 
-      val objectType = if (heapObject is HeapClass) {
-        CLASS
-      } else if (heapObject is HeapObjectArray || heapObject is HeapPrimitiveArray) {
-        ARRAY
-      } else {
-        INSTANCE
+      val objectType = when (heapObject) {
+        is HeapClass -> CLASS
+        is HeapObjectArray, is HeapPrimitiveArray -> ARRAY
+        else -> INSTANCE
       }
 
       val retainedSizeAndObjectCount = retainedSizes?.get(inspectedObject.heapObject.objectId)

@@ -344,9 +344,7 @@ class InteractiveCommand : CliktCommand(
 
     val exactMatchingByName = matchingObjects.filter { classNamePart == namer(it) }
 
-    return if (exactMatchingByName.isNotEmpty()) {
-      exactMatchingByName
-    } else {
+    return exactMatchingByName.ifEmpty {
       matchingObjects
     }
   }
