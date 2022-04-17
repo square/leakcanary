@@ -32,8 +32,8 @@ buildscript {
 apply(plugin = "binary-compatibility-validator")
 
 extensions.configure<ApiValidationExtension> {
-  // Ignore all sample projects, since they're not part of our API.
-  ignoredProjects += setOf("leakcanary-android-sample")
+  // Ignore projects that are not uploaded to Maven Central.
+  ignoredProjects += setOf("leakcanary-android-sample", "shark-test", "shark-hprof-test")
 }
 
 allprojects {

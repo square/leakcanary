@@ -41,4 +41,5 @@ dependencies {
   androidTestImplementation(libs.androidX.test.runner)
   androidTestImplementation(libs.assertjCore)
   androidTestImplementation(project(":shark-hprof-test"))
+  androidTestUtil(libs.androidX.test.orchestrator)
 }
