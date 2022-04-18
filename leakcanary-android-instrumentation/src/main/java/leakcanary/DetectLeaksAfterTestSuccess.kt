@@ -19,9 +19,15 @@ class DetectLeaksAfterTestSuccess(
   override fun apply(base: Statement, description: Description): Statement {
     return TestDescriptionHolder.wrap(object : Statement() {
       override fun evaluate() {
-        // If the test fails, evaluate() will throw and we won't run the analysis (which is good).
-        base.evaluate()
-        LeakAssertions.assertNoLeaks(tag)
+        try {
+          base.evaluate()
+          // If the test fails, evaluate() will throw and we won't run the analysis (which is good).
+          LeakAssertions.assertNoLeaks(tag)
+        } finally {
+          // Otherwise upstream test failures will be reported as leaks.
+          // https://github.com/square/leakcanary/issues/2297
+          AppWatcher.objectWatcher.clearWatchedObjects()
+        }
       }
     }, description)
   }
