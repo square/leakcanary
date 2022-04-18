@@ -1,8 +1,8 @@
 public final class leakcanary/AndroidDetectLeaksAssert : leakcanary/DetectLeaksAssert {
 	public static final field Companion Lleakcanary/AndroidDetectLeaksAssert$Companion;
 	public fun <init> ()V
-	public fun <init> (Lleakcanary/HeapAnalysisReporter;Lleakcanary/DetectLeaksInterceptor;)V
-	public synthetic fun <init> (Lleakcanary/HeapAnalysisReporter;Lleakcanary/DetectLeaksInterceptor;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lleakcanary/DetectLeaksInterceptor;Lleakcanary/HeapAnalysisReporter;)V
+	public synthetic fun <init> (Lleakcanary/DetectLeaksInterceptor;Lleakcanary/HeapAnalysisReporter;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun assertNoLeaks (Ljava/lang/String;)V
 }
 

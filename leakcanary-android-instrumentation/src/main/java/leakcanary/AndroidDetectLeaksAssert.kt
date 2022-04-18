@@ -25,8 +25,8 @@ import shark.SharkLog
  * [AppWatcher] to also scanning for all objects of known types in the heap).
  */
 class AndroidDetectLeaksAssert(
-  private val heapAnalysisReporter: HeapAnalysisReporter = NoLeakAssertionFailedError.throwOnApplicationLeaks(),
-  private val detectLeaksInterceptor: DetectLeaksInterceptor = AndroidDetectLeaksInterceptor()
+  private val detectLeaksInterceptor: DetectLeaksInterceptor = AndroidDetectLeaksInterceptor(),
+  private val heapAnalysisReporter: HeapAnalysisReporter = NoLeakAssertionFailedError.throwOnApplicationLeaks()
 ) : DetectLeaksAssert {
   override fun assertNoLeaks(tag: String) {
     val assertionStartUptimeMillis = SystemClock.uptimeMillis()
