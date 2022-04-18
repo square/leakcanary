@@ -3,8 +3,7 @@ package leakcanary
 import android.os.SystemClock
 import leakcanary.internal.InstrumentationHeapAnalyzer
 import leakcanary.internal.InstrumentationHeapDumpFileProvider
-import leakcanary.internal.RetainedObjectsInstrumentationChecker
-import leakcanary.internal.RetainedObjectsInstrumentationChecker.YesNo.No
+import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 import leakcanary.internal.RetryingHeapAnalyzer
 import leakcanary.internal.friendly.checkNotMainThread
 import leakcanary.internal.friendly.measureDurationMillis
@@ -26,7 +25,8 @@ import shark.SharkLog
  * [AppWatcher] to also scanning for all objects of known types in the heap).
  */
 class AndroidDetectLeaksAssert(
-  private val heapAnalysisReporter: HeapAnalysisReporter = NoLeakAssertionFailedError.throwOnApplicationLeaks()
+  private val heapAnalysisReporter: HeapAnalysisReporter = NoLeakAssertionFailedError.throwOnApplicationLeaks(),
+  private val detectLeaksInterceptor: DetectLeaksInterceptor = AndroidDetectLeaksInterceptor()
 ) : DetectLeaksAssert {
   override fun assertNoLeaks(tag: String) {
     val assertionStartUptimeMillis = SystemClock.uptimeMillis()
@@ -48,10 +48,9 @@ class AndroidDetectLeaksAssert(
     }
     checkNotMainThread()
 
-    val retainedObjectsChecker = RetainedObjectsInstrumentationChecker()
     val waitForRetainedDurationMillis = measureDurationMillis {
-      val yesNo = retainedObjectsChecker.shouldDumpHeapWaitingForRetainedObjects()
-      if (yesNo is No) {
+      val yesNo = detectLeaksInterceptor.waitUntilReadyForHeapAnalysis()
+      if (yesNo is NoHeapAnalysis) {
         SharkLog.d { "Test can keep going: no heap dump performed (${yesNo.reason})" }
         return
       }
@@ -61,10 +60,12 @@ class AndroidDetectLeaksAssert(
 
     val config = LeakCanary.config
 
+    KeyedWeakReference.heapDumpUptimeMillis = SystemClock.uptimeMillis()
     val heapDumpDurationMillis = measureDurationMillis {
       config.heapDumper.dumpHeap(heapDumpFile)
     }
-    retainedObjectsChecker.clearObjectsWatchedBeforeHeapDump()
+    val heapDumpUptimeMillis = KeyedWeakReference.heapDumpUptimeMillis
+    AppWatcher.objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
 
     val heapAnalyzer = RetryingHeapAnalyzer(
       InstrumentationHeapAnalyzer(
