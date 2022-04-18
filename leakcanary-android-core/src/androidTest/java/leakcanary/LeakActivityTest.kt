@@ -14,7 +14,7 @@ import java.io.File
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable.AllLeaksProjection
-import leakcanary.internal.activity.db.LeaksDbHelper
+import leakcanary.internal.activity.db.ScopedLeaksDb
 import org.hamcrest.Description
 import org.hamcrest.Matcher
 import org.hamcrest.TypeSafeMatcher
@@ -118,7 +118,7 @@ internal class LeakActivityTest {
     )
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     val context = instrumentation.targetContext
-    LeaksDbHelper(context).writableDatabase.use { db ->
+    ScopedLeaksDb.writableDatabase(context) { db ->
       HeapAnalysisTable.insert(db, result)
     }
   }

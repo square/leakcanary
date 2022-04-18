@@ -5,6 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.LeaksDbHelper
+import leakcanary.internal.activity.db.ScopedLeaksDb
 import org.junit.Test
 import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
@@ -97,7 +98,7 @@ class DatabaseMigrationTest {
           input.copyTo(output)
         }
       }
-    LeaksDbHelper(context).readableDatabase.use { db ->
+    ScopedLeaksDb.readableDatabase(context) { db ->
       db.block()
     }
   }
