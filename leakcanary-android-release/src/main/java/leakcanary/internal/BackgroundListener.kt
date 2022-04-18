@@ -44,6 +44,7 @@ internal class BackgroundListener(
   fun uninstall(application: Application) {
     application.unregisterActivityLifecycleCallbacks(this)
     updateBackgroundState(appInBackgroundNow = false)
+    mainHandler.removeCallbacks(checkAppInBackground)
   }
 
   override fun onActivityPaused(activity: Activity) {
