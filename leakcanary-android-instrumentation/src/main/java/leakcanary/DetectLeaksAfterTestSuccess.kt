@@ -1,5 +1,6 @@
 package leakcanary
 
+import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
@@ -30,6 +31,31 @@ class DetectLeaksAfterTestSuccess(
         }
       }
     }, description)
+  }
+
+  companion object {
+    /**
+     * A helper function to trigger leak detection twice during test tear down, before and after
+     * the tear down of a set of wrapped rule chains. For example, this can be useful to detect
+     * leaks both right before and right after the activity under test is destroyed. Before means
+     * we can detect detached fragment leaks that go away when the activity is destroyed. After
+     * means we can detect activity leaks.
+     *
+     * ```
+     * RuleChain.outerRule(LoginRule())
+     *   .detectLeaksAfterTestSuccessWrapping("ActivitiesDestroyed") {
+     *     around(ActivityListenerRule)
+     *   }
+     *   .around(LoadingScreenRule)
+     * ```
+     */
+    fun RuleChain.detectLeaksAfterTestSuccessWrapping(
+      tag: String,
+      wrapped: RuleChain.() -> RuleChain
+    ): RuleChain {
+      return around(DetectLeaksAfterTestSuccess("After$tag")).wrapped()
+        .around(DetectLeaksAfterTestSuccess("Before$tag"))
+    }
   }
 }
 
