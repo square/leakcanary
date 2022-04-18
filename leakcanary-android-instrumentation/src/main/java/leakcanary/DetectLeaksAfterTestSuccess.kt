@@ -10,18 +10,20 @@ import org.junit.runners.model.Statement
  * rule chain as you might detect different leaks (e.g. around vs wrapped by the
  * activity rule). It's also possible to use this rule several times in a rule
  * chain.
+ *
+ * This rule automatically applies the [TestDescriptionHolder] rule.
  */
 class DetectLeaksAfterTestSuccess(
   private val tag: String = DetectLeaksAfterTestSuccess::class.java.simpleName
 ) : TestRule {
   override fun apply(base: Statement, description: Description): Statement {
-    return object : Statement() {
+    return TestDescriptionHolder.wrap(object : Statement() {
       override fun evaluate() {
         // If the test fails, evaluate() will throw and we won't run the analysis (which is good).
         base.evaluate()
         LeakAssertions.assertNoLeaks(tag)
       }
-    }
+    }, description)
   }
 }
 
