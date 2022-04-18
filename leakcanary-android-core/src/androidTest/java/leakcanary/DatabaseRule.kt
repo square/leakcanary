@@ -3,6 +3,7 @@ package leakcanary
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import leakcanary.internal.activity.db.LeaksDbHelper
+import leakcanary.internal.activity.db.ScopedLeaksDb
 import org.junit.rules.TestRule
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
@@ -17,7 +18,7 @@ class DatabaseRule(private val updateDb: (SQLiteDatabase) -> Unit = {}) : TestRu
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         context.deleteDatabase(LeaksDbHelper.DATABASE_NAME)
-        LeaksDbHelper(context).writableDatabase.use(updateDb)
+        ScopedLeaksDb.writableDatabase(context, updateDb)
         base.evaluate()
         context.deleteDatabase(LeaksDbHelper.DATABASE_NAME)
       }
