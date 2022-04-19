@@ -14,7 +14,7 @@ import shark.PrimitiveType.INT
  */
 class HprofIOPerfTest {
 
-  @Test fun `HeapObjectArray#readByteSize() reads only size of array`() {
+  @Test fun `HeapObjectArray#readByteSize() does not read`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     val arrayId = hprofFile.openHeapGraph().use { graph ->
       graph.objectArrays.maxBy { it.readRecord().elementIds.size * graph.identifierByteSize }!!.objectId
@@ -24,25 +24,25 @@ class HprofIOPerfTest {
 
     val bytesRead = source.openHeapGraph().use { graph ->
       val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
-      graph.findObjectById(arrayId).asObjectArray!!.readByteSize()
+      graph.findObjectById(arrayId).asObjectArray!!.byteSize
       bytesReadMetrics.sum()
     }
 
-    assertThat(bytesRead).isEqualTo(INT.byteSize)
+    assertThat(bytesRead).isEqualTo(0)
   }
 
-  @Test fun `HeapObjectArray#readByteSize() correctly reads size of array`() {
+  @Test fun `HeapObjectArray#byteSize correctly reads size of array`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     hprofFile.openHeapGraph().use { graph ->
       graph.objectArrays.forEach { array ->
-        assertThat(array.readByteSize()).isEqualTo(
+        assertThat(array.byteSize).isEqualTo(
           array.readRecord().elementIds.size * graph.identifierByteSize
         )
       }
     }
   }
 
-  @Test fun `HeapPrimitiveArray#readByteSize() reads only size of array`() {
+  @Test fun `HeapPrimitiveArray#byteSize does not read`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     val arrayId = hprofFile.openHeapGraph().use { graph ->
       graph.primitiveArrays.maxBy { it.readRecord().size * it.primitiveType.byteSize }!!.objectId
@@ -52,18 +52,18 @@ class HprofIOPerfTest {
 
     val bytesRead = source.openHeapGraph().use { graph ->
       val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
-      graph.findObjectById(arrayId).asPrimitiveArray!!.readByteSize()
+      graph.findObjectById(arrayId).asPrimitiveArray!!.byteSize
       bytesReadMetrics.sum()
     }
 
-    assertThat(bytesRead).isEqualTo(INT.byteSize)
+    assertThat(bytesRead).isEqualTo(0)
   }
 
   @Test fun `HeapPrimitiveArray#readByteSize() correctly reads size of array`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     hprofFile.openHeapGraph().use { graph ->
       graph.primitiveArrays.forEach { array ->
-        assertThat(array.readByteSize()).isEqualTo(
+        assertThat(array.byteSize).isEqualTo(
           array.readRecord().size * array.primitiveType.byteSize
         )
       }
@@ -180,7 +180,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          24380, 40.0, 1244663, 25799, 40.0, 1302571,
+          25752, 40.0, 1308325, 25757, 40.0, 1308505
         )
       )
   }
@@ -198,7 +198,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          22472, 40.0, 2202101, 22612, 40.0, 2202821
+          22489, 40.0, 2203274, 22494, 40.0, 2203454
         )
       )
   }
@@ -216,7 +216,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          16832, 32.0, 765736, 16901, 32.0, 766068
+          16888, 32.0, 768676, 16890, 32.0, 768740
         )
       )
   }

@@ -17,6 +17,7 @@ import java.nio.charset.Charset
 import java.util.Locale
 import kotlin.LazyThreadSafetyMode.NONE
 import kotlin.reflect.KClass
+import shark.PrimitiveType.INT
 
 /**
  * An object in the heap dump.
@@ -550,12 +551,15 @@ sealed class HeapObject {
     val arrayClassId: Long
       get() = indexedObject.arrayClassId
 
+
+    @Deprecated("Use byteSize property instead", ReplaceWith("byteSize"))
+    fun readByteSize() = byteSize
+
     /**
      * The total byte shallow size of elements in this array.
      */
-    fun readByteSize(): Int {
-      return hprofGraph.readObjectArrayByteSize(objectId, indexedObject)
-    }
+    val byteSize: Int
+      get() = recordSize - hprofGraph.objectArrayRecordNonElementSize
 
     /**
      * Reads and returns the underlying [ObjectArrayDumpRecord].
@@ -597,12 +601,15 @@ sealed class HeapObject {
     override val graph: HeapGraph
       get() = hprofGraph
 
+    @Deprecated("Use byteSize property instead", ReplaceWith("byteSize"))
+    fun readByteSize() = byteSize
+
     /**
      * The total byte shallow size of elements in this array.
      */
-    fun readByteSize(): Int {
-      return hprofGraph.readPrimitiveArrayByteSize(objectId, indexedObject)
-    }
+    val byteSize: Int
+      get() = recordSize - hprofGraph.primitiveArrayRecordNonElementSize
+
 
     /**
      * The [PrimitiveType] of elements in this array.

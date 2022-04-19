@@ -9,6 +9,12 @@ internal class AndroidNativeSizeMapper(private val graph: HeapGraph) {
    * Returns a map of Object id to native size as tracked by NativeAllocationRegistry$CleanerThunk
    */
   fun mapNativeSizes(): Map<Long, Int> {
+    return graph.context.getOrPut("AndroidNativeSizeMapper") {
+      buildNativeSizeMap()
+    }
+  }
+
+  private fun buildNativeSizeMap(): Map<Long, Int> {
     val nativeSizes = mutableMapOf<Long, Int>()
     // Doc from perflib:
     // Native allocations can be identified by looking at instances of
@@ -44,5 +50,11 @@ internal class AndroidNativeSizeMapper(private val graph: HeapGraph) {
       }
     }
     return nativeSizes
+  }
+
+  companion object {
+    fun mapNativeSizes(heapGraph: HeapGraph): Map<Long, Int> {
+      return AndroidNativeSizeMapper(heapGraph).mapNativeSizes()
+    }
   }
 }

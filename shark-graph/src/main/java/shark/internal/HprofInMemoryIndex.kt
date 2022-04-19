@@ -581,10 +581,12 @@ internal class HprofInMemoryIndex private constructor(
         OBJECT_ARRAY_DUMP -> {
           val bytesReadStart = reader.bytesRead
           val id = reader.readId()
+          // stack trace serial number
           reader.skip(INT.byteSize)
           val size = reader.readInt()
           val arrayClassId = reader.readId()
           reader.skip(identifierSize * size)
+          // record size - (ID+INT + INT + ID)
           val recordSize = reader.bytesRead - bytesReadStart
           objectArrayIndex.append(id)
             .apply {
