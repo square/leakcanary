@@ -99,4 +99,20 @@ interface HeapGraph {
    * Returns true if the provided [objectId] exists in the heap dump.
    */
   fun objectExists(objectId: Long): Boolean
+
+  /**
+   * Returns the 1-based index in the heap dump of the object corresponding to the provided
+   * [objectId], and throws [IllegalArgumentException] otherwise.
+   *
+   * This is the object index that YourKit provides in its Java profiler.
+   */
+  fun findHeapDumpIndex(objectId: Long): Int
+
+  /**
+   * Returns the [HeapObject] corresponding to the provided [heapDumpIndex], and throws
+   * [IllegalArgumentException] if [heapDumpIndex] is less than 1 or more than [objectCount].
+   *
+   * This is the object index that YourKit provides in its Java profiler.
+   */
+  fun findObjectByHeapDumpIndex(heapDumpIndex: Int): HeapObject
 }

@@ -23,6 +23,8 @@ public final class shark/HeapField {
 
 public abstract interface class shark/HeapGraph {
 	public abstract fun findClassByName (Ljava/lang/String;)Lshark/HeapObject$HeapClass;
+	public abstract fun findHeapDumpIndex (J)I
+	public abstract fun findObjectByHeapDumpIndex (I)Lshark/HeapObject;
 	public abstract fun findObjectById (J)Lshark/HeapObject;
 	public abstract fun findObjectByIdOrNull (J)Lshark/HeapObject;
 	public abstract fun findObjectByIndex (I)Lshark/HeapObject;
@@ -51,6 +53,7 @@ public abstract class shark/HeapObject {
 	public abstract fun getGraph ()Lshark/HeapGraph;
 	public abstract fun getObjectId ()J
 	public abstract fun getObjectIndex ()I
+	public final fun getPositiveObjectId ()J
 	public abstract fun getRecordSize ()I
 	public abstract fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
 }
@@ -171,6 +174,8 @@ public final class shark/HprofHeapGraph : shark/CloseableHeapGraph {
 	public static final field Companion Lshark/HprofHeapGraph$Companion;
 	public fun close ()V
 	public fun findClassByName (Ljava/lang/String;)Lshark/HeapObject$HeapClass;
+	public fun findHeapDumpIndex (J)I
+	public fun findObjectByHeapDumpIndex (I)Lshark/HeapObject;
 	public fun findObjectById (J)Lshark/HeapObject;
 	public fun findObjectByIdOrNull (J)Lshark/HeapObject;
 	public fun findObjectByIndex (I)Lshark/HeapObject;

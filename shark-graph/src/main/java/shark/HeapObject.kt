@@ -35,6 +35,12 @@ sealed class HeapObject {
   abstract val objectId: Long
 
   /**
+   * [objectId] masked to be a positive unique identifier, as reported in Android Studio.
+   */
+  val positiveObjectId: Long
+    get() = objectId and (-0x1L ushr (8 - graph.identifierByteSize) * 8)
+
+  /**
    * An positive object index that's specific to how Shark stores objects in memory.
    * The index starts at 0 and ends at [HeapGraph.objectCount] - 1. There are no gaps, every index
    * value corresponds to an object. Classes are first, then instances, then object arrays then

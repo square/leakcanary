@@ -195,6 +195,30 @@ class HprofHeapGraph internal constructor(
     return index.objectIdIsIndexed(objectId)
   }
 
+  override fun findHeapDumpIndex(objectId: Long): Int {
+    val (_, indexedObject) = index.indexedObjectOrNull(objectId)?: throw IllegalArgumentException(
+      "Object id $objectId not found in heap dump."
+    )
+    val position = indexedObject.position
+
+    var countObjectsBefore = 1
+    index.indexedObjectSequence()
+      .forEach {
+        if (position > it.second.position) {
+          countObjectsBefore++
+        }
+      }
+    return countObjectsBefore
+  }
+
+  override fun findObjectByHeapDumpIndex(heapDumpIndex: Int): HeapObject {
+    require(heapDumpIndex in 1..objectCount) {
+      "$heapDumpIndex should be in range [1, $objectCount]"
+    }
+    val (objectId, _) = index.indexedObjectSequence().toList().sortedBy { it.second.position }[heapDumpIndex]
+    return findObjectById(objectId)
+  }
+
   override fun close() {
     reader.close()
   }

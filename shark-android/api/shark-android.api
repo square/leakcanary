@@ -10,6 +10,11 @@ public final class shark/AndroidBuildMirror$Companion {
 	public final fun fromHeapGraph (Lshark/HeapGraph;)Lshark/AndroidBuildMirror;
 }
 
+public final class shark/AndroidExtensionsKt {
+	public static final fun getHexIdentityHashCode (Lshark/HeapObject$HeapInstance;)Ljava/lang/String;
+	public static final fun getIdentityHashCode (Lshark/HeapObject$HeapInstance;)Ljava/lang/Integer;
+}
+
 public final class shark/AndroidMetadataExtractor : shark/MetadataExtractor {
 	public static final field INSTANCE Lshark/AndroidMetadataExtractor;
 	public fun extractMetadata (Lshark/HeapGraph;)Ljava/util/Map;
