@@ -37,3 +37,6 @@ out
 
 # Docs
 site
+
+# Generated dokka
+docs/api

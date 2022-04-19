@@ -1,7 +1,0 @@
-$dokka.format:gfm-v1
-$dokka.linkExtension:md
-$dokka.location:leakcanary////PointingToDeclaration/leakcanary-android-process/leakcanary/index.md
-$dokka.location:leakcanary/LeakCanaryProcess///PointingToDeclaration/leakcanary-android-process/leakcanary/-leak-canary-process/index.md
-$dokka.location:leakcanary/LeakCanaryProcess/isInAnalyzerProcess/#android.content.Context/PointingToDeclaration/leakcanary-android-process/leakcanary/-leak-canary-process/is-in-analyzer-process.md
-leakcanary
-
