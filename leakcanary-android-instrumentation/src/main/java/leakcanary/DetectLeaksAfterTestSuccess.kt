@@ -41,7 +41,7 @@ class DetectLeaksAfterTestSuccess(
      * we can detect detached fragment leaks that go away when the activity is destroyed. After
      * means we can detect activity leaks.
      *
-     * ```
+     * ```kotlin
      * RuleChain.outerRule(LoginRule())
      *   .detectLeaksAfterTestSuccessWrapping("ActivitiesDestroyed") {
      *     around(ActivityListenerRule)
