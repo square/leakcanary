@@ -39,4 +39,27 @@ class HprofIndexParsingTest {
     assertThat(stickyClassRoots).hasSize(1)
     assertThat(stickyClassRoots.first().id).isEqualTo(loadClassRecord.id)
   }
+
+  @Test fun `heap dump index is computed based on position in heap dump`() {
+    val bytes = dump {
+      instance(clazz("com.example.MyClass1"))
+      instance(clazz("com.example.MyClass2"))
+    }
+
+    bytes.openHeapGraph().use { graph ->
+      val class1 = graph.findClassByName("com.example.MyClass1")!!
+      val class1Index = graph.findHeapDumpIndex(class1.objectId)
+      val instance1 = class1.instances.single()
+      val instance1Index = graph.findHeapDumpIndex(instance1.objectId)
+
+      val class2 = graph.findClassByName("com.example.MyClass2")!!
+      val class2Index = graph.findHeapDumpIndex(class2.objectId)
+      val instance2 = class2.instances.single()
+      val instance2Index = graph.findHeapDumpIndex(instance2.objectId)
+
+      assertThat(instance1Index).isEqualTo(class1Index + 1)
+      assertThat(class2Index).isEqualTo(instance1Index + 1)
+      assertThat(instance2Index).isEqualTo(class2Index + 1)
+    }
+  }
 }
