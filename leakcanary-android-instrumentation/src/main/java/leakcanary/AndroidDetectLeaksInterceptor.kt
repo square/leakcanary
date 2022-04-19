@@ -1,42 +1,34 @@
-package leakcanary.internal
+package leakcanary
 
 import android.app.Instrumentation
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
-import leakcanary.AppWatcher
 import leakcanary.GcTrigger.Default
-import leakcanary.KeyedWeakReference
-import leakcanary.ObjectWatcher
-import leakcanary.internal.RetainedObjectsInstrumentationChecker.YesNo.No
-import leakcanary.internal.RetainedObjectsInstrumentationChecker.YesNo.Yes
+import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
+import leakcanary.HeapAnalysisDecision.AnalyzeHeap
 
-internal class RetainedObjectsInstrumentationChecker(
+class AndroidDetectLeaksInterceptor(
   private val instrumentation: Instrumentation = InstrumentationRegistry.getInstrumentation(),
   private val objectWatcher: ObjectWatcher = AppWatcher.objectWatcher,
   private val retainedDelayMillis: Long = AppWatcher.retainedDelayMillis
-) {
-
-  sealed class YesNo {
-    object Yes : YesNo()
-    class No(val reason: String) : YesNo()
-  }
+) : DetectLeaksInterceptor {
 
   @Suppress("ReturnCount")
-  fun shouldDumpHeapWaitingForRetainedObjects(): YesNo {
+  override fun waitUntilReadyForHeapAnalysis(): HeapAnalysisDecision {
     val leakDetectionTime = SystemClock.uptimeMillis()
 
     if (!objectWatcher.hasWatchedObjects) {
-      return No("No watched objects.")
+      return NoHeapAnalysis("No watched objects.")
     }
 
     instrumentation.waitForIdleSync()
     if (!objectWatcher.hasWatchedObjects) {
-      return No("No watched objects after waiting for idle sync.")
+      return NoHeapAnalysis("No watched objects after waiting for idle sync.")
     }
 
     Default.runGc()
     if (!objectWatcher.hasWatchedObjects) {
-      return No("No watched objects after triggering an explicit GC.")
+      return NoHeapAnalysis("No watched objects after triggering an explicit GC.")
     }
 
     // Waiting for any delayed UI post (e.g. scroll) to clear. This shouldn't be needed, but
@@ -44,7 +36,7 @@ internal class RetainedObjectsInstrumentationChecker(
     SystemClock.sleep(2000)
 
     if (!objectWatcher.hasWatchedObjects) {
-      return No("No watched objects after delayed UI post is cleared.")
+      return NoHeapAnalysis("No watched objects after delayed UI post is cleared.")
     }
 
     // Aaand we wait some more.
@@ -60,14 +52,8 @@ internal class RetainedObjectsInstrumentationChecker(
     Default.runGc()
 
     if (!objectWatcher.hasRetainedObjects) {
-      return No("No retained objects after waiting for retained delay.")
+      return NoHeapAnalysis("No retained objects after waiting for retained delay.")
     }
-    KeyedWeakReference.heapDumpUptimeMillis = SystemClock.uptimeMillis()
-    return Yes
-  }
-
-  fun clearObjectsWatchedBeforeHeapDump() {
-    val heapDumpUptimeMillis = KeyedWeakReference.heapDumpUptimeMillis
-    objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
+    return AnalyzeHeap
   }
 }

@@ -1,9 +1,9 @@
 package leakcanary
 
-import leakcanary.internal.RetainedObjectsInstrumentationChecker.YesNo.No
+import android.os.SystemClock
 import leakcanary.internal.InstrumentationHeapAnalyzer
 import leakcanary.internal.InstrumentationHeapDumpFileProvider
-import leakcanary.internal.RetainedObjectsInstrumentationChecker
+import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 import leakcanary.internal.RetryingHeapAnalyzer
 import leakcanary.internal.friendly.checkNotMainThread
 import leakcanary.internal.friendly.measureDurationMillis
@@ -25,9 +25,21 @@ import shark.SharkLog
  * [AppWatcher] to also scanning for all objects of known types in the heap).
  */
 class AndroidDetectLeaksAssert(
+  private val detectLeaksInterceptor: DetectLeaksInterceptor = AndroidDetectLeaksInterceptor(),
   private val heapAnalysisReporter: HeapAnalysisReporter = NoLeakAssertionFailedError.throwOnApplicationLeaks()
 ) : DetectLeaksAssert {
   override fun assertNoLeaks(tag: String) {
+    val assertionStartUptimeMillis = SystemClock.uptimeMillis()
+    try {
+      runLeakChecks(tag, assertionStartUptimeMillis)
+    } finally {
+      val totalDurationMillis = SystemClock.uptimeMillis() - assertionStartUptimeMillis
+      totalVmDurationMillis += totalDurationMillis
+      SharkLog.d { "Spent $totalDurationMillis ms detecting leaks on $tag, VM total so far: $totalVmDurationMillis ms" }
+    }
+  }
+
+  private fun runLeakChecks(tag: String, assertionStartUptimeMillis: Long) {
     if (TestDescriptionHolder.isEvaluating()) {
       val testDescription = TestDescriptionHolder.testDescription
       if (SkipLeakDetection.shouldSkipTest(testDescription, tag)) {
@@ -35,19 +47,25 @@ class AndroidDetectLeaksAssert(
       }
     }
     checkNotMainThread()
-    val retainedObjectsChecker = RetainedObjectsInstrumentationChecker()
-    val yesNo = retainedObjectsChecker.shouldDumpHeapWaitingForRetainedObjects()
-    if (yesNo is No) {
-      SharkLog.d { "Test can keep going: no heap dump performed (${yesNo.reason})" }
-      return
+
+    val waitForRetainedDurationMillis = measureDurationMillis {
+      val yesNo = detectLeaksInterceptor.waitUntilReadyForHeapAnalysis()
+      if (yesNo is NoHeapAnalysis) {
+        SharkLog.d { "Test can keep going: no heap dump performed (${yesNo.reason})" }
+        return
+      }
     }
+
     val heapDumpFile = InstrumentationHeapDumpFileProvider().newHeapDumpFile()
 
     val config = LeakCanary.config
 
+    KeyedWeakReference.heapDumpUptimeMillis = SystemClock.uptimeMillis()
     val heapDumpDurationMillis = measureDurationMillis {
       config.heapDumper.dumpHeap(heapDumpFile)
     }
+    val heapDumpUptimeMillis = KeyedWeakReference.heapDumpUptimeMillis
+    AppWatcher.objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
 
     val heapAnalyzer = RetryingHeapAnalyzer(
       InstrumentationHeapAnalyzer(
@@ -59,13 +77,37 @@ class AndroidDetectLeaksAssert(
         proguardMapping = null
       )
     )
-    val heapAnalysis = heapAnalyzer.analyze(heapDumpFile).let {
+    val analysisResult = heapAnalyzer.analyze(heapDumpFile)
+    val totalDurationMillis = SystemClock.uptimeMillis() - assertionStartUptimeMillis
+    val heapAnalysisWithExtraDetails = analysisResult.let {
       when (it) {
-        is HeapAnalysisSuccess -> it.copy(dumpDurationMillis = heapDumpDurationMillis)
+        is HeapAnalysisSuccess -> it.copy(
+          dumpDurationMillis = heapDumpDurationMillis,
+          metadata = it.metadata + mapOf(
+            ASSERTION_TAG to tag,
+            WAIT_FOR_RETAINED to waitForRetainedDurationMillis.toString(),
+            TOTAL_DURATION to totalDurationMillis.toString()
+          ),
+        )
         is HeapAnalysisFailure -> it.copy(dumpDurationMillis = heapDumpDurationMillis)
       }
     }
-    retainedObjectsChecker.clearObjectsWatchedBeforeHeapDump()
-    heapAnalysisReporter.reportHeapAnalysis(heapAnalysis)
+    heapAnalysisReporter.reportHeapAnalysis(heapAnalysisWithExtraDetails)
+  }
+
+  companion object {
+    private const val ASSERTION_TAG = "assertionTag"
+    private const val WAIT_FOR_RETAINED = "waitForRetainedDurationMillis"
+    private const val TOTAL_DURATION = "totalDurationMillis"
+    private var totalVmDurationMillis = 0L
+
+    val HeapAnalysisSuccess.assertionTag: String?
+      get() = metadata[ASSERTION_TAG]
+
+    val HeapAnalysisSuccess.waitForRetainedDurationMillis: Int?
+      get() = metadata[WAIT_FOR_RETAINED]?.toInt()
+
+    val HeapAnalysisSuccess.totalDurationMillis: Int?
+      get() = metadata[TOTAL_DURATION]?.toInt()
   }
 }

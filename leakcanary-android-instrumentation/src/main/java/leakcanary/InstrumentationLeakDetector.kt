@@ -15,12 +15,12 @@
  */
 package leakcanary
 
+import android.os.SystemClock
 import leakcanary.InstrumentationLeakDetector.Result.AnalysisPerformed
 import leakcanary.InstrumentationLeakDetector.Result.NoAnalysis
-import leakcanary.internal.RetainedObjectsInstrumentationChecker.YesNo.No
+import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 import leakcanary.internal.InstrumentationHeapAnalyzer
 import leakcanary.internal.InstrumentationHeapDumpFileProvider
-import leakcanary.internal.RetainedObjectsInstrumentationChecker
 import leakcanary.internal.RetryingHeapAnalyzer
 import leakcanary.internal.friendly.measureDurationMillis
 import org.junit.runner.notification.RunListener
@@ -95,9 +95,9 @@ class InstrumentationLeakDetector {
    */
   @Suppress("ReturnCount")
   fun detectLeaks(): Result {
-    val retainedObjectsChecker = RetainedObjectsInstrumentationChecker()
-    when(val yesNo = retainedObjectsChecker.shouldDumpHeapWaitingForRetainedObjects()) {
-      is No -> {
+    val retainedObjectsChecker = AndroidDetectLeaksInterceptor()
+    when(val yesNo = retainedObjectsChecker.waitUntilReadyForHeapAnalysis()) {
+      is NoHeapAnalysis -> {
         return NoAnalysis(yesNo.reason)
       }
     }
@@ -106,6 +106,7 @@ class InstrumentationLeakDetector {
 
     val config = LeakCanary.config
 
+    KeyedWeakReference.heapDumpUptimeMillis = SystemClock.uptimeMillis()
     val heapDumpDurationMillis = try {
       measureDurationMillis {
         config.heapDumper.dumpHeap(heapDumpFile)
@@ -121,6 +122,9 @@ class InstrumentationLeakDetector {
           exception = HeapAnalysisException(exception)
         )
       )
+    } finally {
+      val heapDumpUptimeMillis = KeyedWeakReference.heapDumpUptimeMillis
+      AppWatcher.objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
     }
 
     val heapAnalyzer = RetryingHeapAnalyzer(
@@ -140,8 +144,6 @@ class InstrumentationLeakDetector {
         is HeapAnalysisFailure -> it.copy(dumpDurationMillis = heapDumpDurationMillis)
       }
     }
-
-    retainedObjectsChecker.clearObjectsWatchedBeforeHeapDump()
 
     return AnalysisPerformed(heapAnalysis)
   }
