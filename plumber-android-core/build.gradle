@@ -5,8 +5,8 @@ plugins {
 }
 
 dependencies {
-  api project(':shark-log')
-  api project(':leakcanary-android-utils')
+  api projects.sharkLog
+  api projects.leakcanaryAndroidUtils
 
   implementation libs.kotlin.stdlib
   implementation libs.curtains

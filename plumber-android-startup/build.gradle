@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-  api project(':plumber-android-core')
+  api projects.plumberAndroidCore
 
   implementation libs.kotlin.stdlib
   implementation libs.androidX.startup

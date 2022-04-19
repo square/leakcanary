@@ -7,7 +7,7 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
-  api project(':shark')
+  api projects.shark
 
   implementation libs.kotlin.stdlib
 
@@ -17,5 +17,5 @@ dependencies {
   testImplementation libs.mockito
   testImplementation libs.mockitoKotlin
   testImplementation libs.okio2
-  testImplementation project(':shark-test')
+  testImplementation projects.sharkTest
 }

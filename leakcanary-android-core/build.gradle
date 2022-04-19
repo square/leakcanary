@@ -5,10 +5,10 @@ plugins {
 }
 
 dependencies {
-  api project(':shark-android')
-  api project(':leakcanary-object-watcher-android-core')
-  api project(':leakcanary-object-watcher-android-androidx')
-  api project(':leakcanary-object-watcher-android-support-fragments')
+  api projects.sharkAndroid
+  api projects.leakcanaryObjectWatcherAndroidCore
+  api projects.leakcanaryObjectWatcherAndroidAndroidx
+  api projects.leakcanaryObjectWatcherAndroidSupportFragments
   implementation libs.kotlin.stdlib
 
   // Optional dependency
@@ -24,7 +24,7 @@ dependencies {
   androidTestImplementation libs.androidX.test.rules
   androidTestImplementation libs.androidX.test.runner
   androidTestImplementation libs.assertjCore
-  androidTestImplementation project(':shark-hprof-test')
+  androidTestImplementation projects.sharkHprofTest
   androidTestUtil libs.androidX.test.orchestrator
 }
 

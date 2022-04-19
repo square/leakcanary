@@ -5,8 +5,8 @@ plugins {
 }
 
 dependencies {
-  api project(':shark-log')
-  api project(':leakcanary-object-watcher-android-core')
+  api projects.sharkLog
+  api projects.leakcanaryObjectWatcherAndroidCore
 
   implementation libs.kotlin.stdlib
   implementation libs.androidX.work.multiprocess

@@ -7,13 +7,13 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
-  api project(':shark-hprof')
+  api projects.sharkHprof
 
   implementation libs.kotlin.stdlib
   implementation libs.okio2
 
   testImplementation libs.assertjCore
   testImplementation libs.junit
-  testImplementation project(':shark-test')
-  testImplementation project(':shark-hprof-test')
+  testImplementation projects.sharkTest
+  testImplementation projects.sharkHprofTest
 }

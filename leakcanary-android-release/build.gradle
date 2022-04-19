@@ -5,8 +5,8 @@ plugins {
 }
 
 dependencies {
-  api project(':shark-android')
-  api project(':leakcanary-android-utils')
+  api projects.sharkAndroid
+  api projects.leakcanaryAndroidUtils
 
   implementation libs.kotlin.stdlib
   implementation libs.okio2
