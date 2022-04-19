@@ -96,9 +96,9 @@ class AndroidDetectLeaksAssert(
   }
 
   companion object {
-    private val ASSERTION_TAG = "assertionTag"
-    private val WAIT_FOR_RETAINED = "waitForRetainedDurationMillis"
-    private val TOTAL_DURATION = "totalDurationMillis"
+    private const val ASSERTION_TAG = "assertionTag"
+    private const val WAIT_FOR_RETAINED = "waitForRetainedDurationMillis"
+    private const val TOTAL_DURATION = "totalDurationMillis"
     private var totalVmDurationMillis = 0L
 
     val HeapAnalysisSuccess.assertionTag: String?
