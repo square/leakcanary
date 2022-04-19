@@ -16,7 +16,7 @@ tasks.withType(KotlinCompile).configureEach {
 }
 
 dependencies {
-  api project(':shark-android')
+  api projects.sharkAndroid
 
   implementation libs.clikt
   implementation libs.jline

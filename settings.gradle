@@ -24,3 +24,5 @@ include ':shark-hprof-test'
 include ':shark-log'
 include ':shark-test'
 include ':leakcanary-deobfuscation-gradle-plugin'
+
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")

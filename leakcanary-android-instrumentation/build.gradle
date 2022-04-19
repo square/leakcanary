@@ -5,15 +5,15 @@ plugins {
 }
 
 dependencies {
-  api project(':leakcanary-android-core')
+  api projects.leakcanaryAndroidCore
 
   implementation libs.androidX.test.runner
   implementation libs.kotlin.stdlib
 
   // AppWatcher auto installer for running tests
-  androidTestImplementation project(':leakcanary-object-watcher-android')
+  androidTestImplementation projects.leakcanaryObjectWatcherAndroid
   // Plumber auto installer for running tests
-  androidTestImplementation project(':plumber-android')
+  androidTestImplementation projects.plumberAndroid
   androidTestImplementation libs.androidX.test.core
   androidTestImplementation libs.androidX.test.espresso
   androidTestImplementation libs.androidX.test.rules

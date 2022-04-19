@@ -10,5 +10,5 @@ dependencies {
     implementation libs.junit
     implementation libs.okio2
 
-    implementation project(':shark-hprof')
+    implementation projects.sharkHprof
 }

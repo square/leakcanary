@@ -5,8 +5,8 @@ plugins {
 }
 
 dependencies {
-  api project(':leakcanary-object-watcher')
-  api project(':leakcanary-android-utils')
+  api projects.leakcanaryObjectWatcher
+  api projects.leakcanaryAndroidUtils
 
   implementation libs.curtains
   implementation libs.kotlin.stdlib

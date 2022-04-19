@@ -5,11 +5,11 @@ plugins {
 }
 
 dependencies {
-  api project(':leakcanary-android-core')
+  api projects.leakcanaryAndroidCore
   // AppWatcher AndroidX Startup installer
-  implementation project(':leakcanary-object-watcher-android-startup')
+  implementation projects.leakcanaryObjectWatcherAndroidStartup
   // Plumber AndroidX Startup installer
-  implementation project(':plumber-android-startup')
+  implementation projects.plumberAndroidStartup
 }
 
 android {

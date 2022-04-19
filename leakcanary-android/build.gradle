@@ -5,17 +5,17 @@ plugins {
 }
 
 dependencies {
-  api project(':leakcanary-android-core')
+  api projects.leakcanaryAndroidCore
   // AppWatcher auto installer
-  api project(':leakcanary-object-watcher-android')
+  api projects.leakcanaryObjectWatcherAndroid
   // Plumber auto installer
-  implementation project(':plumber-android')
+  implementation projects.plumberAndroid
 
   androidTestImplementation libs.androidX.test.espresso
   androidTestImplementation libs.androidX.test.rules
   androidTestImplementation libs.androidX.test.runner
   androidTestImplementation libs.assertjCore
-  androidTestImplementation project(':shark-hprof-test')
+  androidTestImplementation projects.sharkHprofTest
 }
 
 android {
