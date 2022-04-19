@@ -46,6 +46,8 @@ import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.LruCache
 import java.io.File
 import kotlin.reflect.KClass
+import shark.PrimitiveType.BYTE
+import shark.PrimitiveType.INT
 
 /**
  * A [HeapGraph] that reads from an Hprof file indexed by [HprofIndex].
@@ -133,6 +135,11 @@ class HprofHeapGraph internal constructor(
 
   // java.lang.Object is the most accessed class in Heap, so we want to memoize a reference to it
   private val javaLangObjectClass: HeapClass? = findClassByName("java.lang.Object")
+
+  internal val objectArrayRecordNonElementSize = 2 * identifierByteSize + 2 * INT.byteSize
+
+  internal val primitiveArrayRecordNonElementSize =
+    identifierByteSize + 2 * INT.byteSize + BYTE.byteSize
 
   /**
    * This is only public so that we can publish stats. Accessing this requires casting

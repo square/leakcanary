@@ -53,11 +53,11 @@ internal class ShallowSizeCalculator(private val graph: HeapGraph) {
             shallowSize
           }
         } else {
-          heapObject.readByteSize()
+          heapObject.byteSize
         }
       }
       // Number of elements * primitive type size
-      is HeapPrimitiveArray -> heapObject.readByteSize()
+      is HeapPrimitiveArray -> heapObject.byteSize
       // This is probably way off but is a cheap approximation.
       is HeapClass -> heapObject.recordSize
     }
