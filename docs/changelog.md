@@ -12,7 +12,10 @@ What are some things you'd like to see in a future LeakCanary 3 version? Tell me
 Some ideas I'm playing with:
 
 * Moving heap analysis leak visualisation to a separate single app (written with Compose!) available on the PlayStore.
-* 
+* Bumping Okio to 3.0
+* Multiplatform heap analysis? Analyze a JVM heap dump in your browser?!
+* Visualize the heap dominators / retained size as a treemap.
+* A backend for LeakCanary?
 
 ### New metrics in heap analysis metadata
 
