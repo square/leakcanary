@@ -1,9 +1,62 @@
 
 # Change Log
 
-## Version 2.9
+Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-- FailTestOnLeakRunListener FailAnnotatedTestOnLeakRunListener, FailTestOnLeak removed to make it possible to upgrade androidx.test:runner to 1.4.0
+## Version 2.9.1 (2022-04-20)
+
+### Preface
+
+What are some things you'd like to see in a future LeakCanary 3 version? Tell me [on Twitter](https://twitter.com/Piwai)!
+
+Some ideas I'm playing with:
+
+* Moving heap analysis leak visualisation to a separate single app (written with Compose!) available on the PlayStore.
+* 
+
+### New metrics in heap analysis metadata
+
+I built LeakCanary to help fix leaks, but in doing so I accidentally wrote a fairly flexible heap dump parser. Since we're parsing the heap to find leaks anyway, we might as well report additional interesting metrics. Here's what you'll now see in the heap dump metadata:
+
+* Class count: count of loaded classes
+* Instance count
+* Primitive array count
+* Object array count
+* Thread count
+* Heap total bytes
+* Bitmap count
+* Bitmap total bytes
+* Large bitmap count (bitmaps with more pixels than 1.1x the pixels on screen)
+* Large bitmap total bytes
+* SQLiteDatabase in memory (open or closed, as well as their file path)
+
+This is just a first pass, feedback and ideas welcome! 
+
+### Performance improvements
+
+The heap analysis now traverses the heap dump using `RandomAccessFile` instead of `FileChannel.transferTo()` and is now 40% faster on API 23 and 20% faster on newer APIs.
+Also, sticky class GC roots are now deduplicated, which great reduces the memory footprint of LeakCanary on API 23 ([#2324](https://github.com/square/leakcanary/pull/2324)). You can read about the related investigation [on py.hashnode.dev](https://py.hashnode.dev/of-sharks-and-heaps-of-sticky-marshmallows).
+
+### Breaking change:  FailTestOnLeakRunListener deleted
+
+`FailTestOnLeakRunListener`, `FailTestOnLeak` and `FailAnnotatedTestOnLeakRunListener` were deprecated in LeakCanary 2.8 as they rely on hacking the Android Test library internals which have since changed, and have been replaced by `LeakAssertions.assertNoLeak()` and the `DetectLeaksAfterTestSuccess` test rule. I was initially planning of keep these around, but as I tried to increase API level coverage in LeakCanary I needed to upgrade the Android Test library to a more recent version, and the hacks now had compilation errors. So they're gone: [#2282](https://github.com/square/leakcanary/commit/7152d6e2f8bea866e3bd5397b882d5098bed7d8b). If you can't use the test rules just yet, you're welcome to copy paste the listener implementations in your own codebase.
+
+### Other bug fixes and improvements 🐛🔨
+
+* 💥 [#2367](https://github.com/square/leakcanary/pull/2367) Fixed `AndroidLeakFixes.FLUSH_HANDLER_THREADS` (`HandlerThread` can have a null `Looper`).
+* 💥 [#2286](https://github.com/square/leakcanary/issues/2286) Update Curtains to include Proguard rules and prevent `WindowCallbackWrapper` crashes.
+* 💥 [#2294](https://github.com/square/leakcanary/issues/2294) Fixed `WindowDelegateCallback.onMenuOpened()` crash.
+* 🐤 [#2328](https://github.com/square/leakcanary/pull/2328) Fixed ToastEventListener leak. Sorry 😬!
+* 💥 [#2310](https://github.com/square/leakcanary/issues/2310) Fixed crash when using WorkManager < 2.1.0.
+* 💥 [#2342](https://github.com/square/leakcanary/issues/2342) Fixed crash when `HashSet.map` is null (which isn't supposed to happen, oh well, Android 🤷‍♂️).
+* 🐛 [#2117](https://github.com/square/leakcanary/issues/2117) Fixed StrictMode disk read violations.
+* 💥 [#2351](https://github.com/square/leakcanary/pull/2351) Fixed a race causing a startup crash.
+* 💥 [#2315](https://github.com/square/leakcanary/issues/2315) Fixed crash when using Okio 1.14.
+* 🐛 [#2182](https://github.com/square/leakcanary/issues/2182) Fixed multi rescheduling of `BackgroundListener$checkAppInBackground`.
+* 💥 [#2360](https://github.com/square/leakcanary/issues/2360) Fixed SQLiteOpenHelper concurrent creation crash.
+
+This list reflects only a subset of all changes. For more details, see the [2.9 Milestone](https://github.com/square/leakcanary/milestone/23) and the [full diff](https://github.com/square/leakcanary/compare/v2.8.1...v2.9.1).
+
 
 ## Version 2.8.1 (2022-01-06)
 
