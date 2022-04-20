@@ -168,13 +168,17 @@ enum class AndroidLeakFixes {
                 threadId to thread
               }
             }
-          flushedThreadIds += newHandlerThreadsById.map { it.first }
           newHandlerThreadsById
-            .map { it.second }
-            .forEach { handlerThread ->
+            .forEach { (threadId, handlerThread) ->
+              val looper = handlerThread.looper
+              if (looper == null) {
+                SharkLog.d { "Handler thread found without a looper: $handlerThread" }
+                return@forEach
+              }
+              flushedThreadIds += threadId
               SharkLog.d { "Setting up flushing for $handlerThread" }
               var scheduleFlush = true
-              val flushHandler = Handler(handlerThread.looper)
+              val flushHandler = Handler(looper)
               flushHandler.onEachIdle {
                 if (handlerThread.isAlive && scheduleFlush) {
                   scheduleFlush = false
