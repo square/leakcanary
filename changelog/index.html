@@ -9,14 +9,13 @@
         <meta name="description" content="A memory leak detection library for Android">
       
       
-      
         <meta name="author" content="Square, Inc.">
       
       
         <link rel="canonical" href="https://square.github.io/leakcanary/changelog/">
       
-      <link rel="shortcut icon" href="../images/logo.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.2.2">
+      <link rel="icon" href="../images/logo.png">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-material-8.2.9">
     
     
       
@@ -24,10 +23,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.73f7c429.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.120efc48.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.39b8e14a.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.9647289d.min.css">
         
           
           
@@ -39,19 +38,17 @@
     
       
         
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
-        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
-      
-    
-    
-    
-    
-      
         
-<script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-142834539-1","auto"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){if(this.value){var e=document.location.pathname;ga("send","pageview",e+"?q="+this.value)}})}),document.addEventListener("DOMContentSwitch",function(){ga("send","pageview",document.location.pathname)})</script>
-<script async src="https://www.google-analytics.com/analytics.js"></script>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
+    
+    
+    <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
     
     
   </head>
@@ -63,8 +60,8 @@
     
     
     <body dir="ltr" data-md-color-scheme="" data-md-color-primary="deep-orange" data-md-color-accent="deep-purple">
-      
   
+    
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -79,36 +76,37 @@
     </div>
     <div data-md-component="announce">
       
-        <aside class="md-announce">
-          <div class="md-announce__inner md-grid md-typeset">
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.8.1</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.9.1</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
       
     </div>
     
+    
       
 
 <header class="md-header" data-md-component="header">
-  <nav class="md-header-nav md-grid" aria-label="Header">
-    <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-header-nav__button md-logo" aria-label="LeakCanary">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="LeakCanary" class="md-header__button md-logo" aria-label="LeakCanary" data-md-component="logo">
       
   <img src="../images/logo.png" alt="logo">
 
     </a>
-    <label class="md-header-nav__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
     </label>
-    <div class="md-header-nav__title" data-md-component="header-title">
-      <div class="md-header-nav__ellipsis">
-        <div class="md-header-nav__topic">
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
           <span class="md-ellipsis">
             LeakCanary
           </span>
         </div>
-        <div class="md-header-nav__topic">
+        <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
               Change Log
@@ -118,22 +116,27 @@
       </div>
     </div>
     
-      <label class="md-header-nav__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
       </label>
-      
-<div class="md-search" data-md-component="search" role="dialog">
+      <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
       </label>
-      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-      </button>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
@@ -149,12 +152,11 @@
 </div>
     
     
-      <div class="md-header-nav__source">
-        
-<a href="https://github.com/square/leakcanary/" title="Go to repository" class="md-source">
+      <div class="md-header__source">
+        <a href="https://github.com/square/leakcanary" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
   </div>
   <div class="md-source__repository">
     LeakCanary
@@ -163,11 +165,14 @@
       </div>
     
   </nav>
+  
 </header>
     
     <div class="md-container" data-md-component="container">
       
       
+        
+          
         
       
       <main class="md-main" data-md-component="main">
@@ -175,17 +180,15 @@
           
             
               
-              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation" >
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
 
 
-
-
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="https://square.github.io/leakcanary/" title="LeakCanary" class="md-nav__button md-logo" aria-label="LeakCanary">
+    <a href=".." title="LeakCanary" class="md-nav__button md-logo" aria-label="LeakCanary" data-md-component="logo">
       
   <img src="../images/logo.png" alt="logo">
 
@@ -194,11 +197,10 @@
   </label>
   
     <div class="md-nav__source">
-      
-<a href="https://github.com/square/leakcanary/" title="Go to repository" class="md-source">
+      <a href="https://github.com/square/leakcanary" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
   </div>
   <div class="md-source__repository">
     LeakCanary
@@ -212,553 +214,436 @@
       
       
 
-
-
-  <li class="md-nav__item">
-    <a href=".." class="md-nav__link">
-      Overview
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-
-  <li class="md-nav__item">
-    <a href="../getting_started/" class="md-nav__link">
-      Getting Started
-    </a>
-  </li>
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
 
     
       
       
       
-
-
 
   
-  <li class="md-nav__item md-nav__item--nested">
-    
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" >
-    
-    <label class="md-nav__link" for="nav-3">
-      Fundamentals
-      <span class="md-nav__icon md-icon"></span>
-    </label>
-    <nav class="md-nav" aria-label="Fundamentals" data-md-level="1">
-      <label class="md-nav__title" for="nav-3">
-        <span class="md-nav__icon md-icon"></span>
-        Fundamentals
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../fundamentals/" class="md-nav__link">
-      Introduction
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../fundamentals-how-leakcanary-works/" class="md-nav__link">
-      How LeakCanary works
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../fundamentals-fixing-a-memory-leak/" class="md-nav__link">
-      Fixing a memory leak
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/" class="md-nav__link">
+        Getting Started
+      </a>
+    </li>
+  
 
     
       
       
       
-
-
 
   
-  <li class="md-nav__item md-nav__item--nested">
-    
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" >
-    
-    <label class="md-nav__link" for="nav-4">
-      Help & Community
-      <span class="md-nav__icon md-icon"></span>
-    </label>
-    <nav class="md-nav" aria-label="Help & Community" data-md-level="1">
-      <label class="md-nav__title" for="nav-4">
-        <span class="md-nav__icon md-icon"></span>
-        Help & Community
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../recipes/" class="md-nav__link">
-      Code recipes
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../faq/" class="md-nav__link">
-      FAQ
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../support/" class="md-nav__link">
-      Support
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../upgrading-to-leakcanary-2.0/" class="md-nav__link">
-      Upgrading to LeakCanary 2
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../recorded-presentations/" class="md-nav__link">
-      Recorded Presentations
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../blog-articles/" class="md-nav__link">
-      Blog Articles
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" class="md-nav__link">
-      Stack Overflow ⏏
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
   
-  <li class="md-nav__item md-nav__item--nested">
+  
     
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4-8" type="checkbox" id="nav-4-8" >
-    
-    <label class="md-nav__link" for="nav-4-8">
-      Contributing
-      <span class="md-nav__icon md-icon"></span>
-    </label>
-    <nav class="md-nav" aria-label="Contributing" data-md-level="2">
-      <label class="md-nav__title" for="nav-4-8">
-        <span class="md-nav__icon md-icon"></span>
-        Contributing
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3">
+          Fundamentals
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Fundamentals" data-md-level="1">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Fundamentals
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fundamentals/" class="md-nav__link">
+        Introduction
+      </a>
+    </li>
+  
+
+            
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fundamentals-how-leakcanary-works/" class="md-nav__link">
+        How LeakCanary works
+      </a>
+    </li>
+  
+
+            
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fundamentals-fixing-a-memory-leak/" class="md-nav__link">
+        Fixing a memory leak
+      </a>
+    </li>
+  
 
-
-
-  <li class="md-nav__item">
-    <a href="../code_of_conduct/" class="md-nav__link">
-      Code of Conduct
-    </a>
-  </li>
-
-        
+            
           
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../dev-env/" class="md-nav__link">
-      Dev Environment
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../releasing/" class="md-nav__link">
-      Releasing
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../how_to_help/" class="md-nav__link">
-      How to help
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
+        </ul>
+      </nav>
+    </li>
+  
 
     
       
       
       
 
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4">
+          Help & Community
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Help & Community" data-md-level="1">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          Help & Community
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        Code recipes
+      </a>
+    </li>
+  
 
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        FAQ
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../support/" class="md-nav__link">
+        Support
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../upgrading-to-leakcanary-2.0/" class="md-nav__link">
+        Upgrading to LeakCanary 2
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recorded-presentations/" class="md-nav__link">
+        Recorded Presentations
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blog-articles/" class="md-nav__link">
+        Blog Articles
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" class="md-nav__link">
+        Stack Overflow ⏏
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_8" type="checkbox" id="__nav_4_8" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_8">
+          Contributing
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Contributing" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_8">
+          <span class="md-nav__icon md-icon"></span>
+          Contributing
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code_of_conduct/" class="md-nav__link">
+        Code of Conduct
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-env/" class="md-nav__link">
+        Dev Environment
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasing/" class="md-nav__link">
+        Releasing
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to_help/" class="md-nav__link">
+        How to help
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
 
   
-  <li class="md-nav__item md-nav__item--nested">
-    
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5" >
-    
-    <label class="md-nav__link" for="nav-5">
-      Shark
-      <span class="md-nav__icon md-icon"></span>
-    </label>
-    <nav class="md-nav" aria-label="Shark" data-md-level="1">
-      <label class="md-nav__title" for="nav-5">
-        <span class="md-nav__icon md-icon"></span>
-        Shark
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../shark/" class="md-nav__link">
-      Overview
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
   
-  <li class="md-nav__item md-nav__item--nested">
+  
     
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5-2" type="checkbox" id="nav-5-2" >
-    
-    <label class="md-nav__link" for="nav-5-2">
-      Shark API
-      <span class="md-nav__icon md-icon"></span>
-    </label>
-    <nav class="md-nav" aria-label="Shark API" data-md-level="2">
-      <label class="md-nav__title" for="nav-5-2">
-        <span class="md-nav__icon md-icon"></span>
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_5">
+          Shark
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Shark" data-md-level="1">
+        <label class="md-nav__title" for="__nav_5">
+          <span class="md-nav__icon md-icon"></span>
+          Shark
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shark/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
+      </a>
+    </li>
+  
+
+            
           
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/shark/shark/" class="md-nav__link">
-      Shark
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/shark-android/shark/" class="md-nav__link">
-      Extension: Shark Android
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/shark-graph/shark/" class="md-nav__link">
-      Core: Graph
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/shark-hprof/shark/" class="md-nav__link">
-      Core: Hprof
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/shark-log/shark/" class="md-nav__link">
-      Core: Logs
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
+        </ul>
+      </nav>
+    </li>
+  
 
     
       
       
       
-
-
 
   
-  <li class="md-nav__item md-nav__item--nested">
-    
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" >
-    
-    <label class="md-nav__link" for="nav-6">
-      LeakCanary API
-      <span class="md-nav__icon md-icon"></span>
-    </label>
-    <nav class="md-nav" aria-label="LeakCanary API" data-md-level="1">
-      <label class="md-nav__title" for="nav-6">
-        <span class="md-nav__icon md-icon"></span>
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/leakcanary-android-core/leakcanary/" class="md-nav__link">
-      LeakCanary
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/leakcanary-object-watcher-android/leakcanary/index.md" class="md-nav__link">
-      ObjectWatcher Android
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/leakcanary-android-instrumentation/leakcanary/" class="md-nav__link">
-      Extension: Instrumentation tests
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/leakcanary-android-process/leakcanary/" class="md-nav__link">
-      Extension: Separate process
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-
-  <li class="md-nav__item">
-    <a href="../api/leakcanary-object-watcher/leakcanary/" class="md-nav__link">
-      Core: ObjectWatcher
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
+      </a>
+    </li>
   
 
+    
+      
+      
+      
 
-  <li class="md-nav__item md-nav__item--active">
+  
+  
     
-    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
       
-    
-    
-      <label class="md-nav__link md-nav__link--active" for="__toc">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Change Log
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Change Log
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-    
-    <a href="./" class="md-nav__link md-nav__link--active">
-      Change Log
-    </a>
-    
+      </a>
       
+        
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
   
   
     
@@ -768,7 +653,55 @@
       <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
-    <ul class="md-nav__list" data-md-scrollfix>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#version-291-2022-04-20" class="md-nav__link">
+    Version 2.9.1 (2022-04-20)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 2.9.1 (2022-04-20)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preface" class="md-nav__link">
+    Preface
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-metrics-in-heap-analysis-metadata" class="md-nav__link">
+    New metrics in heap analysis metadata
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-improvements" class="md-nav__link">
+    Performance improvements
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#breaking-change-failtestonleakrunlistener-deleted" class="md-nav__link">
+    Breaking change:  FailTestOnLeakRunListener deleted
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+    Other bug fixes and improvements 🐛🔨
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#version-281-2022-01-06" class="md-nav__link">
@@ -806,7 +739,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#preface" class="md-nav__link">
+  <a href="#preface_1" class="md-nav__link">
     Preface
   </a>
   
@@ -876,7 +809,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -1464,8 +1397,9 @@
     </ul>
   
 </nav>
-    
-  </li>
+      
+    </li>
+  
 
     
   </ul>
@@ -1476,11 +1410,13 @@
             
             
               
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc" >
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
   
   
     
@@ -1490,7 +1426,55 @@
       <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
-    <ul class="md-nav__list" data-md-scrollfix>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#version-291-2022-04-20" class="md-nav__link">
+    Version 2.9.1 (2022-04-20)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 2.9.1 (2022-04-20)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preface" class="md-nav__link">
+    Preface
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-metrics-in-heap-analysis-metadata" class="md-nav__link">
+    New metrics in heap analysis metadata
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-improvements" class="md-nav__link">
+    Performance improvements
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#breaking-change-failtestonleakrunlistener-deleted" class="md-nav__link">
+    Breaking change:  FailTestOnLeakRunListener deleted
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+    Other bug fixes and improvements 🐛🔨
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#version-281-2022-01-06" class="md-nav__link">
@@ -1528,7 +1512,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#preface" class="md-nav__link">
+  <a href="#preface_1" class="md-nav__link">
     Preface
   </a>
   
@@ -1598,7 +1582,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -2191,7 +2175,7 @@
               </div>
             
           
-          <div class="md-content">
+          <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
               
   
@@ -2204,6 +2188,54 @@
   
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
+<p>Please thank our <a href="https://github.com/square/leakcanary/graphs/contributors">contributors</a> 🙏 🙏 🙏.</p>
+<h2 id="version-291-2022-04-20">Version 2.9.1 (2022-04-20)<a class="headerlink" href="#version-291-2022-04-20" title="Permanent link">&para;</a></h2>
+<h3 id="preface">Preface<a class="headerlink" href="#preface" title="Permanent link">&para;</a></h3>
+<p>What are some things you&rsquo;d like to see in a future LeakCanary 3 version? Tell me <a href="https://twitter.com/Piwai">on Twitter</a>!</p>
+<p>Some ideas I&rsquo;m playing with:</p>
+<ul>
+<li>Moving heap analysis leak visualisation to a separate single app (written with Compose!) available on the PlayStore.</li>
+<li>Bumping Okio to 3.0</li>
+<li>Multiplatform heap analysis? Analyze a JVM heap dump in your browser?!</li>
+<li>Visualize the heap dominators / retained size as a treemap.</li>
+<li>A backend for LeakCanary?</li>
+</ul>
+<h3 id="new-metrics-in-heap-analysis-metadata">New metrics in heap analysis metadata<a class="headerlink" href="#new-metrics-in-heap-analysis-metadata" title="Permanent link">&para;</a></h3>
+<p>I built LeakCanary to help fix leaks, but in doing so I accidentally wrote a fairly flexible heap dump parser. Since we&rsquo;re parsing the heap to find leaks anyway, we might as well report additional interesting metrics. Here&rsquo;s what you&rsquo;ll now see in the heap dump metadata:</p>
+<ul>
+<li>Class count: count of loaded classes</li>
+<li>Instance count</li>
+<li>Primitive array count</li>
+<li>Object array count</li>
+<li>Thread count</li>
+<li>Heap total bytes</li>
+<li>Bitmap count</li>
+<li>Bitmap total bytes</li>
+<li>Large bitmap count (bitmaps with more pixels than 1.1x the pixels on screen)</li>
+<li>Large bitmap total bytes</li>
+<li>SQLiteDatabase in memory (open or closed, as well as their file path)</li>
+</ul>
+<p>This is just a first pass, feedback and ideas welcome! </p>
+<h3 id="performance-improvements">Performance improvements<a class="headerlink" href="#performance-improvements" title="Permanent link">&para;</a></h3>
+<p>The heap analysis now traverses the heap dump using <code>RandomAccessFile</code> instead of <code>FileChannel.transferTo()</code> and is now 40% faster on API 23 and 20% faster on newer APIs.
+Also, sticky class GC roots are now deduplicated, which great reduces the memory footprint of LeakCanary on API 23 (<a href="https://github.com/square/leakcanary/pull/2324">#2324</a>). You can read about the related investigation <a href="https://py.hashnode.dev/of-sharks-and-heaps-of-sticky-marshmallows">on py.hashnode.dev</a>.</p>
+<h3 id="breaking-change-failtestonleakrunlistener-deleted">Breaking change:  FailTestOnLeakRunListener deleted<a class="headerlink" href="#breaking-change-failtestonleakrunlistener-deleted" title="Permanent link">&para;</a></h3>
+<p><code>FailTestOnLeakRunListener</code>, <code>FailTestOnLeak</code> and <code>FailAnnotatedTestOnLeakRunListener</code> were deprecated in LeakCanary 2.8 as they rely on hacking the Android Test library internals which have since changed, and have been replaced by <code>LeakAssertions.assertNoLeak()</code> and the <code>DetectLeaksAfterTestSuccess</code> test rule. I was initially planning of keep these around, but as I tried to increase API level coverage in LeakCanary I needed to upgrade the Android Test library to a more recent version, and the hacks now had compilation errors. So they&rsquo;re gone: <a href="https://github.com/square/leakcanary/commit/7152d6e2f8bea866e3bd5397b882d5098bed7d8b">#2282</a>. If you can&rsquo;t use the test rules just yet, you&rsquo;re welcome to copy paste the listener implementations in your own codebase.</p>
+<h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
+<ul>
+<li>💥 <a href="https://github.com/square/leakcanary/pull/2367">#2367</a> Fixed <code>AndroidLeakFixes.FLUSH_HANDLER_THREADS</code> (<code>HandlerThread</code> can have a null <code>Looper</code>).</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2286">#2286</a> Update Curtains to include Proguard rules and prevent <code>WindowCallbackWrapper</code> crashes.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2294">#2294</a> Fixed <code>WindowDelegateCallback.onMenuOpened()</code> crash.</li>
+<li>🐤 <a href="https://github.com/square/leakcanary/pull/2328">#2328</a> Fixed ToastEventListener leak. Sorry 😬!</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2310">#2310</a> Fixed crash when using WorkManager &lt; 2.1.0.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2342">#2342</a> Fixed crash when <code>HashSet.map</code> is null (which isn&rsquo;t supposed to happen, oh well, Android 🤷‍♂️).</li>
+<li>🐛 <a href="https://github.com/square/leakcanary/issues/2117">#2117</a> Fixed StrictMode disk read violations.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/pull/2351">#2351</a> Fixed a race causing a startup crash.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2315">#2315</a> Fixed crash when using Okio 1.14.</li>
+<li>🐛 <a href="https://github.com/square/leakcanary/issues/2182">#2182</a> Fixed multi rescheduling of <code>BackgroundListener$checkAppInBackground</code>.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2360">#2360</a> Fixed SQLiteOpenHelper concurrent creation crash.</li>
+</ul>
+<p>This list reflects only a subset of all changes. For more details, see the <a href="https://github.com/square/leakcanary/milestone/23">2.9 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.8.1...v2.9.1">full diff</a>.</p>
 <h2 id="version-281-2022-01-06">Version 2.8.1 (2022-01-06)<a class="headerlink" href="#version-281-2022-01-06" title="Permanent link">&para;</a></h2>
 <p>This is a bugfix release, a quick follow up to <code>2.8</code> which had a few major issues 😅. If you haven&rsquo;t yet, you should definitely read the <code>2.8</code> changelog.</p>
 <h3 id="thanks">Thanks<a class="headerlink" href="#thanks" title="Permanent link">&para;</a></h3>
@@ -2223,7 +2255,7 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/24">2.8.1 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.8...v2.8.1">full diff</a>.</p>
 <h2 id="version-28-2022-01-04">Version 2.8 (2022-01-04)<a class="headerlink" href="#version-28-2022-01-04" title="Permanent link">&para;</a></h2>
 <p>Note: please update to <code>2.8.1</code> instead.</p>
-<h3 id="preface">Preface<a class="headerlink" href="#preface" title="Permanent link">&para;</a></h3>
+<h3 id="preface_1">Preface<a class="headerlink" href="#preface_1" title="Permanent link">&para;</a></h3>
 <p>The last release was 9 months ago. What happened?! Well, soon after releasing LeakCanary 2.7, I had my 2<sup>nd</sup> baby, a wonderful daughter 😍. Having 2 young kids leaves a lot less time available for Open Source work&hellip; but it&rsquo;s worth it!</p>
 <p>― <a href="https://twitter.com/Piwai">P.Y.</a></p>
 <h3 id="thanks_1">Thanks<a class="headerlink" href="#thanks_1" title="Permanent link">&para;</a></h3>
@@ -2263,12 +2295,12 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <p>😅 WHAT?!</p>
 <p>👉 This means we can make known data structures look more like their APIs than their internals. For example, developers tend to think of setting a <code>HashMap</code> entry as <code>map["key"] = value</code> rather than <code>map.table[hash("key")].next.next.next = Node(value)</code>, which is what LeakCanary would previously show in its leak traces.</p>
 <p>Let&rsquo;s look at a <code>HashMap</code> example:</p>
-<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">CheckoutController</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">CheckoutController</span> <span class="p">{</span>
 
-  <span class="k">val</span> <span class="py">tabs</span> <span class="p">=</span> <span class="n">HashMap</span><span class="p">&lt;</span><span class="n">String</span><span class="p">,</span> <span class="n">Tab</span><span class="p">&gt;()</span>
+  <span class="kd">val</span> <span class="nv">tabs</span> <span class="o">=</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="kt">String</span><span class="p">,</span> <span class="n">Tab</span><span class="o">&gt;</span><span class="p">()</span>
 
-  <span class="k">fun</span> <span class="nf">addItemsTab</span><span class="p">(</span><span class="n">tab</span><span class="p">:</span> <span class="n">Tab</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">tabs</span><span class="p">[</span><span class="s">&quot;ItemsTab&quot;</span><span class="p">]</span> <span class="p">=</span> <span class="n">tab</span>
+  <span class="kd">fun</span> <span class="nf">addItemsTab</span><span class="p">(</span><span class="n">tab</span><span class="p">:</span> <span class="n">Tab</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">tabs</span><span class="o">[</span><span class="s">&quot;ItemsTab&quot;</span><span class="o">]</span> <span class="o">=</span> <span class="n">tab</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -2300,16 +2332,16 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <h3 id="objectanimator-leaks">ObjectAnimator leaks<a class="headerlink" href="#objectanimator-leaks" title="Permanent link">&para;</a></h3>
 <p>LeakCanary will now detect leaks that trigger when forgetting to cancel <code>ObjectAnimator</code>. This new feature is enabled by the node discovery changes described above!</p>
 <p>Let&rsquo;s say you accidentally start an infinite <code>ObjectAnimator</code> and never cancel it, like so:</p>
-<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ExampleActivity</span> <span class="p">:</span> <span class="n">Activity</span><span class="p">()</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">ExampleActivity</span> <span class="p">:</span> <span class="n">Activity</span><span class="p">()</span> <span class="p">{</span>
 
-  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">:</span> <span class="n">Bundle</span><span class="p">?)</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">)</span>
-    <span class="n">setContentView</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="n">layout</span><span class="p">.</span><span class="n">main_activity</span><span class="p">)</span>
-    <span class="n">findViewById</span><span class="p">&lt;</span><span class="n">Button</span><span class="p">&gt;(</span><span class="n">R</span><span class="p">.</span><span class="n">id</span><span class="p">.</span><span class="n">button</span><span class="p">).</span><span class="n">setOnClickListener</span> <span class="p">{</span> <span class="n">view</span> <span class="p">-&gt;</span>
-      <span class="n">ObjectAnimator</span><span class="p">.</span><span class="n">ofFloat</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">View</span><span class="p">.</span><span class="n">ALPHA</span><span class="p">,</span> <span class="m">0.1f</span><span class="p">,</span> <span class="m">0.2f</span><span class="p">).</span><span class="n">apply</span> <span class="p">{</span>
-        <span class="n">duration</span> <span class="p">=</span> <span class="m">100</span>
-        <span class="n">repeatMode</span> <span class="p">=</span> <span class="n">ValueAnimator</span><span class="p">.</span><span class="n">REVERSE</span>
-        <span class="n">repeatCount</span> <span class="p">=</span> <span class="n">ValueAnimator</span><span class="p">.</span><span class="n">INFINITE</span>
+  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">:</span> <span class="n">Bundle?)</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">)</span>
+    <span class="n">setContentView</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">layout</span><span class="p">.</span><span class="na">main_activity</span><span class="p">)</span>
+    <span class="n">findViewById</span><span class="o">&lt;</span><span class="n">Button</span><span class="o">&gt;</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">button</span><span class="p">).</span><span class="na">setOnClickListener</span> <span class="p">{</span> <span class="n">view</span> <span class="o">-&gt;</span>
+      <span class="n">ObjectAnimator</span><span class="p">.</span><span class="na">ofFloat</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">View</span><span class="p">.</span><span class="na">ALPHA</span><span class="p">,</span> <span class="m">0.1f</span><span class="p">,</span> <span class="m">0.2f</span><span class="p">).</span><span class="na">apply</span> <span class="p">{</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="m">100</span>
+        <span class="n">repeatMode</span> <span class="o">=</span> <span class="n">ValueAnimator</span><span class="p">.</span><span class="na">REVERSE</span>
+        <span class="n">repeatCount</span> <span class="o">=</span> <span class="n">ValueAnimator</span><span class="p">.</span><span class="na">INFINITE</span>
         <span class="n">start</span><span class="p">()</span>
       <span class="p">}</span>
     <span class="p">}</span>
@@ -2351,20 +2383,20 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <p>Previous releases of <code>leakcanary-android-instrumentation</code> introduced a <code>FailTestOnLeakRunListener</code> which could run leak detection after each UI tests. Unfortunately <code>FailTestOnLeakRunListener</code> relied on a hack around <code>androidx.test</code> internals to report failures. The internals keep changing with every <code>androidx.test</code> release and breaking <code>FailTestOnLeakRunListener</code> 😭.</p>
 <p><code>FailTestOnLeakRunListener</code> is now deprecated (👋) and replaced by the <code>DetectLeaksAfterTestSuccess</code> test rule, which you can add to your test like any normal test rule.</p>
 <p>Additionally, you can call <code>LeakAssertions.assertNoLeak()</code> from anywhere in your instrumentation tests. You can also annotate tests with <code>@SkipLeakDetection</code> (for that to work you&rsquo;ll also need to set up the <code>TestDescriptionHolder</code> test rule).</p>
-<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
-  <span class="n">@get</span><span class="p">:</span><span class="n">Rule</span>
-  <span class="k">val</span> <span class="py">rules</span> <span class="p">=</span> <span class="n">RuleChain</span><span class="p">.</span><span class="n">outerRule</span><span class="p">(</span><span class="n">TestDescriptionHolder</span><span class="p">)</span>
-    <span class="p">.</span><span class="n">around</span><span class="p">(</span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">())</span>
-    <span class="p">.</span><span class="n">around</span><span class="p">(</span><span class="n">ActivityScenarioRule</span><span class="p">(</span><span class="n">CartActivity</span><span class="o">::</span><span class="k">class</span><span class="p">.</span><span class="n">java</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
+  <span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
+  <span class="kd">val</span> <span class="nv">rules</span> <span class="o">=</span> <span class="n">RuleChain</span><span class="p">.</span><span class="na">outerRule</span><span class="p">(</span><span class="n">TestDescriptionHolder</span><span class="p">)</span>
+    <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">())</span>
+    <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">ActivityScenarioRule</span><span class="p">(</span><span class="n">CartActivity</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span><span class="p">))</span>
 
-  <span class="n">@Test</span>
-  <span class="k">fun</span> <span class="nf">addItemToCart</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nd">@Test</span>
+  <span class="kd">fun</span> <span class="nf">addItemToCart</span><span class="p">()</span> <span class="p">{</span>
     <span class="c1">// ...</span>
   <span class="p">}</span>
 
-  <span class="n">@SkipLeakDetection</span><span class="p">(</span><span class="s">&quot;See #1234&quot;</span><span class="p">)</span>
-  <span class="n">@Test</span>
-  <span class="k">fun</span> <span class="nf">removeItemFromCart</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nd">@SkipLeakDetection</span><span class="p">(</span><span class="s">&quot;See #1234&quot;</span><span class="p">)</span>
+  <span class="nd">@Test</span>
+  <span class="kd">fun</span> <span class="nf">removeItemFromCart</span><span class="p">()</span> <span class="p">{</span>
     <span class="c1">// ...</span>
   <span class="p">}</span>
 <span class="p">}</span>
@@ -2384,13 +2416,13 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <span class="o">}</span>
 </code></pre></div>
 <p>2) Skip the initialization code in the <code>Application</code> class</p>
-<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ExampleApplication</span> <span class="p">:</span> <span class="n">Application</span><span class="p">()</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">ExampleApplication</span> <span class="p">:</span> <span class="n">Application</span><span class="p">()</span> <span class="p">{</span>
 
-  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">LeakCanaryProcess</span><span class="p">.</span><span class="n">isInAnalyzerProcess</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="p">{</span>
+  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">LeakCanaryProcess</span><span class="p">.</span><span class="na">isInAnalyzerProcess</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="p">{</span>
       <span class="k">return</span>
     <span class="p">}</span>
+    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
     <span class="c1">// normal init goes here, skipped in :leakcanary process.</span>
   <span class="p">}</span>
 <span class="p">}</span>
@@ -2409,18 +2441,18 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <h3 id="event-listeners">Event listeners<a class="headerlink" href="#event-listeners" title="Permanent link">&para;</a></h3>
 <p><code>LeakCanary.Config</code> has a new <code>eventListeners</code> field allowing you to react to LeakCanary&rsquo;s lifecycle. If you want to customize this, you most likely should be keeping the default list of listeners and add or remove from it.</p>
 <p>For example, if you want to disable the LeakCanary toast:</p>
-<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">run</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">run</span> <span class="p">{</span>
   <span class="n">copy</span><span class="p">(</span>
-    <span class="n">eventListeners</span> <span class="p">=</span> <span class="n">eventListeners</span><span class="p">.</span><span class="n">filter</span> <span class="p">{</span>
-      <span class="n">it</span> <span class="p">!</span><span class="k">is</span> <span class="n">ToastEventListener</span>
+    <span class="n">eventListeners</span> <span class="o">=</span> <span class="n">eventListeners</span><span class="p">.</span><span class="na">filter</span> <span class="p">{</span>
+      <span class="nb">it</span> <span class="k">!is</span> <span class="n">ToastEventListener</span>
     <span class="p">}</span>
   <span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>If you want to upload heap analysis results:</p>
-<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">run</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">run</span> <span class="p">{</span>
   <span class="n">copy</span><span class="p">(</span>
-    <span class="n">eventListeners</span> <span class="p">=</span> <span class="n">eventListeners</span> <span class="p">+</span> <span class="n">EventListener</span> <span class="p">{</span> <span class="n">event</span> <span class="p">-&gt;</span>
+    <span class="n">eventListeners</span> <span class="o">=</span> <span class="n">eventListeners</span> <span class="o">+</span> <span class="n">EventListener</span> <span class="p">{</span> <span class="n">event</span> <span class="o">-&gt;</span>
       <span class="k">if</span> <span class="p">(</span><span class="n">event</span> <span class="k">is</span> <span class="n">HeapAnalysisSucceeded</span><span class="p">)</span> <span class="p">{</span>
         <span class="c1">// Upload event.heapAnalysis</span>
       <span class="p">}</span>
@@ -2430,7 +2462,7 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 </code></pre></div>
 <p>Note: <code>Leakcanary.Config.onHeapAnalyzedListener</code> still works but is now deprecated.</p>
 <p>Feedback welcome on this new API!</p>
-<h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
+<h3 id="other-bug-fixes-and-improvements_1">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><a href="https://github.com/square/leakcanary/issues/2096">#2096</a> Opening / sharing heap dump files now supports LeakCanary as an option.</li>
 <li><a href="https://github.com/square/leakcanary/issues/2210">#2210</a> First Compose dedicated object inspectors!</li>
@@ -2505,38 +2537,38 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <span class="nt">&lt;/resources&gt;</span>
 </code></pre></div>
 <p>Then you can install LeakCanary manually. LeakCanary 2.6 comes with 4 watchers installed by default: <code>ActivityWatcher</code>, <code>FragmentAndViewModelWatcher</code>, <code>RootViewWatcher</code>, <code>ServiceWatcher</code>. Here&rsquo;s an example to get all the default watchers except <code>ServiceWatcher</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
-  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
+  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
 
-    <span class="k">val</span> <span class="py">watchersToInstall</span> <span class="p">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="n">appDefaultWatchers</span><span class="p">(</span><span class="n">application</span><span class="p">)</span>
-      <span class="p">.</span><span class="n">filter</span> <span class="p">{</span> <span class="n">it</span> <span class="p">!</span><span class="k">is</span> <span class="n">ServiceWatcher</span> <span class="p">}</span>
+    <span class="kd">val</span> <span class="nv">watchersToInstall</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">appDefaultWatchers</span><span class="p">(</span><span class="n">application</span><span class="p">)</span>
+      <span class="p">.</span><span class="na">filter</span> <span class="p">{</span> <span class="nb">it</span> <span class="k">!is</span> <span class="n">ServiceWatcher</span> <span class="p">}</span>
 
-    <span class="n">AppWatcher</span><span class="p">.</span><span class="n">manualInstall</span><span class="p">(</span>
-      <span class="n">application</span> <span class="p">=</span> <span class="n">application</span><span class="p">,</span>
-      <span class="n">watchersToInstall</span> <span class="p">=</span> <span class="n">watchersToInstall</span>
+    <span class="n">AppWatcher</span><span class="p">.</span><span class="na">manualInstall</span><span class="p">(</span>
+      <span class="n">application</span> <span class="o">=</span> <span class="n">application</span><span class="p">,</span>
+      <span class="n">watchersToInstall</span> <span class="o">=</span> <span class="n">watchersToInstall</span>
     <span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>LeakCanary introduces a new functional (SAM) interface implemented by <code>ObjectWatcher</code>: <code>ReachabilityWatcher</code>, with a <code>ReachabilityWatcher.expectWeaklyReachable()</code> method that replaces the now deprecated <code>ObjectWatcher.watch()</code> method. You can create the default watcher instances with a custom <code>ReachabilityWatcher</code> that delegates to <code>AppWatcher.objectWatcher</code> but filters out specific instances (e.g. <code>BadSdkLeakingFragment</code>):</p>
-<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
-  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
+  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
 
-    <span class="k">val</span> <span class="py">delegate</span> <span class="p">=</span> <span class="n">ReachabilityWatcher</span> <span class="p">{</span> <span class="n">watchedObject</span><span class="p">,</span> <span class="n">description</span> <span class="p">-&gt;</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">watchedObject</span> <span class="p">!</span><span class="k">is</span> <span class="n">BadSdkLeakingFragment</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">AppWatcher</span><span class="p">.</span><span class="n">objectWatcher</span><span class="p">.</span><span class="n">expectWeaklyReachable</span><span class="p">(</span><span class="n">watchedObject</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span>
+    <span class="kd">val</span> <span class="nv">delegate</span> <span class="o">=</span> <span class="n">ReachabilityWatcher</span> <span class="p">{</span> <span class="n">watchedObject</span><span class="p">,</span> <span class="n">description</span> <span class="o">-&gt;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">watchedObject</span> <span class="k">!is</span> <span class="n">BadSdkLeakingFragment</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">AppWatcher</span><span class="p">.</span><span class="na">objectWatcher</span><span class="p">.</span><span class="na">expectWeaklyReachable</span><span class="p">(</span><span class="n">watchedObject</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span>
       <span class="p">}</span>
     <span class="p">}</span>
 
-    <span class="k">val</span> <span class="py">watchersToInstall</span> <span class="p">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="n">appDefaultWatchers</span><span class="p">(</span><span class="n">application</span><span class="p">,</span> <span class="n">delegate</span><span class="p">)</span>
+    <span class="kd">val</span> <span class="nv">watchersToInstall</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">appDefaultWatchers</span><span class="p">(</span><span class="n">application</span><span class="p">,</span> <span class="n">delegate</span><span class="p">)</span>
 
-    <span class="n">AppWatcher</span><span class="p">.</span><span class="n">manualInstall</span><span class="p">(</span>
-      <span class="n">application</span> <span class="p">=</span> <span class="n">application</span><span class="p">,</span>
-      <span class="n">watchersToInstall</span> <span class="p">=</span> <span class="n">watchersToInstall</span>
+    <span class="n">AppWatcher</span><span class="p">.</span><span class="na">manualInstall</span><span class="p">(</span>
+      <span class="n">application</span> <span class="o">=</span> <span class="n">application</span><span class="p">,</span>
+      <span class="n">watchersToInstall</span> <span class="o">=</span> <span class="n">watchersToInstall</span>
     <span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
@@ -2561,75 +2593,75 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <span class="o">}</span>
 </code></pre></div>
 <p>Here&rsquo;s a code example that runs a heap analysis when the screen is turned off or the app enters background, checking first if a <a href="https://firebase.google.com/products/remote-config">Firebase Remote Config</a> flag is turned on, and uploading the result to Bugsnag:</p>
-<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">ReleaseExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">ReleaseExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
   <span class="c1">// Cancels heap analysis if &quot;heap_analysis_flag&quot; is false.</span>
-  <span class="k">private</span> <span class="k">val</span> <span class="py">flagInterceptor</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
+  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">flagInterceptor</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
     <span class="k">object</span> <span class="p">:</span> <span class="nc">HeapAnalysisInterceptor</span> <span class="p">{</span>
 
-      <span class="k">val</span> <span class="py">remoteConfig</span><span class="p">:</span> <span class="n">FirebaseRemoteConfig</span> <span class="p">=</span> <span class="n">TODO</span><span class="p">()</span>
+      <span class="kd">val</span> <span class="nv">remoteConfig</span><span class="p">:</span> <span class="n">FirebaseRemoteConfig</span> <span class="o">=</span> <span class="n">TODO</span><span class="p">()</span>
 
-      <span class="k">override</span> <span class="k">fun</span> <span class="nf">intercept</span><span class="p">(</span><span class="n">chain</span><span class="p">:</span> <span class="n">Chain</span><span class="p">):</span> <span class="n">HeapAnalysisJob</span><span class="p">.</span><span class="n">Result</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">remoteConfig</span><span class="p">.</span><span class="n">getBoolean</span><span class="p">(</span><span class="s">&quot;heap_analysis_flag&quot;</span><span class="p">))</span> <span class="p">{</span>
-          <span class="n">chain</span><span class="p">.</span><span class="n">job</span><span class="p">.</span><span class="n">cancel</span><span class="p">(</span><span class="s">&quot;heap_analysis_flag false&quot;</span><span class="p">)</span>
+      <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">intercept</span><span class="p">(</span><span class="n">chain</span><span class="p">:</span> <span class="n">Chain</span><span class="p">):</span> <span class="n">HeapAnalysisJob</span><span class="p">.</span><span class="na">Result</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">remoteConfig</span><span class="p">.</span><span class="na">getBoolean</span><span class="p">(</span><span class="s">&quot;heap_analysis_flag&quot;</span><span class="p">))</span> <span class="p">{</span>
+          <span class="n">chain</span><span class="p">.</span><span class="na">job</span><span class="p">.</span><span class="na">cancel</span><span class="p">(</span><span class="s">&quot;heap_analysis_flag false&quot;</span><span class="p">)</span>
         <span class="p">}</span>
-        <span class="k">return</span> <span class="n">chain</span><span class="p">.</span><span class="n">proceed</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">chain</span><span class="p">.</span><span class="na">proceed</span><span class="p">()</span>
       <span class="p">}</span>
     <span class="p">}</span>
   <span class="p">}</span>
 
-  <span class="k">private</span> <span class="k">val</span> <span class="py">analysisClient</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
+  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">analysisClient</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
     <span class="n">HeapAnalysisClient</span><span class="p">(</span>
       <span class="c1">// Use private app storage. cacheDir is never backed up which is important.</span>
-      <span class="n">heapDumpDirectoryProvider</span> <span class="p">=</span> <span class="p">{</span> <span class="n">cacheDir</span> <span class="p">},</span>
+      <span class="n">heapDumpDirectoryProvider</span> <span class="o">=</span> <span class="p">{</span> <span class="n">cacheDir</span> <span class="p">},</span>
       <span class="c1">// stripHeapDump: remove all user data from hprof before analysis.</span>
-      <span class="n">config</span> <span class="p">=</span> <span class="n">HeapAnalysisConfig</span><span class="p">(</span><span class="n">stripHeapDump</span> <span class="p">=</span> <span class="k">true</span><span class="p">),</span>
+      <span class="n">config</span> <span class="o">=</span> <span class="n">HeapAnalysisConfig</span><span class="p">(</span><span class="n">stripHeapDump</span> <span class="o">=</span> <span class="kc">true</span><span class="p">),</span>
       <span class="c1">// Default interceptors may cancel analysis for several other reasons.</span>
-      <span class="n">interceptors</span> <span class="p">=</span> <span class="n">listOf</span><span class="p">(</span><span class="n">flagInterceptor</span><span class="p">)</span> <span class="p">+</span> <span class="n">HeapAnalysisClient</span><span class="p">.</span><span class="n">defaultInterceptors</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+      <span class="n">interceptors</span> <span class="o">=</span> <span class="n">listOf</span><span class="p">(</span><span class="n">flagInterceptor</span><span class="p">)</span> <span class="o">+</span> <span class="n">HeapAnalysisClient</span><span class="p">.</span><span class="na">defaultInterceptors</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
     <span class="p">)</span>
   <span class="p">}</span>
 
-  <span class="k">private</span> <span class="k">val</span> <span class="py">analysisExecutor</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
-    <span class="n">Executors</span><span class="p">.</span><span class="n">newSingleThreadExecutor</span> <span class="p">{</span>
-      <span class="n">thread</span><span class="p">(</span><span class="n">start</span> <span class="p">=</span> <span class="k">false</span><span class="p">,</span> <span class="n">name</span> <span class="p">=</span> <span class="s">&quot;Heap analysis executor&quot;</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">android</span><span class="p">.</span><span class="n">os</span><span class="p">.</span><span class="n">Process</span><span class="p">.</span><span class="n">setThreadPriority</span><span class="p">(</span><span class="n">THREAD_PRIORITY_BACKGROUND</span><span class="p">)</span>
-        <span class="n">it</span><span class="p">.</span><span class="n">run</span><span class="p">()</span>
+  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">analysisExecutor</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
+    <span class="n">Executors</span><span class="p">.</span><span class="na">newSingleThreadExecutor</span> <span class="p">{</span>
+      <span class="n">thread</span><span class="p">(</span><span class="n">start</span> <span class="o">=</span> <span class="kc">false</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Heap analysis executor&quot;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">android</span><span class="p">.</span><span class="na">os</span><span class="p">.</span><span class="na">Process</span><span class="p">.</span><span class="na">setThreadPriority</span><span class="p">(</span><span class="n">THREAD_PRIORITY_BACKGROUND</span><span class="p">)</span>
+        <span class="nb">it</span><span class="p">.</span><span class="na">run</span><span class="p">()</span>
       <span class="p">}</span>
     <span class="p">}</span>
   <span class="p">}</span>
 
-  <span class="k">private</span> <span class="k">val</span> <span class="py">analysisCallback</span><span class="p">:</span> <span class="p">(</span><span class="n">Result</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">Unit</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
-    <span class="k">val</span> <span class="py">uploader</span> <span class="p">=</span> <span class="n">BugsnagHeapAnalysisUploader</span><span class="p">(</span><span class="k">this</span><span class="n">@ReleaseExampleApplication</span><span class="p">)</span>
-    <span class="p">{</span> <span class="n">result</span> <span class="p">-&gt;</span>
+  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">analysisCallback</span><span class="p">:</span> <span class="p">(</span><span class="n">Result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Unit</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
+    <span class="kd">val</span> <span class="nv">uploader</span> <span class="o">=</span> <span class="n">BugsnagHeapAnalysisUploader</span><span class="p">(</span><span class="k">this</span><span class="nd">@ReleaseExampleApplication</span><span class="p">)</span>
+    <span class="p">{</span> <span class="n">result</span> <span class="o">-&gt;</span>
       <span class="k">if</span> <span class="p">(</span><span class="n">result</span> <span class="k">is</span> <span class="n">Done</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">uploader</span><span class="p">.</span><span class="n">upload</span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="n">analysis</span><span class="p">)</span>
+        <span class="n">uploader</span><span class="p">.</span><span class="na">upload</span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="na">analysis</span><span class="p">)</span>
       <span class="p">}</span>
     <span class="p">}</span>
   <span class="p">}</span>
 
-  <span class="k">override</span> <span class="k">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="n">onCreate</span><span class="p">()</span>
+  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
 
     <span class="c1">// Delete any remaining heap dump (if we crashed)</span>
-    <span class="n">analysisExecutor</span><span class="p">.</span><span class="n">execute</span> <span class="p">{</span>
-      <span class="n">analysisClient</span><span class="p">.</span><span class="n">deleteHeapDumpFiles</span><span class="p">()</span>
+    <span class="n">analysisExecutor</span><span class="p">.</span><span class="na">execute</span> <span class="p">{</span>
+      <span class="n">analysisClient</span><span class="p">.</span><span class="na">deleteHeapDumpFiles</span><span class="p">()</span>
     <span class="p">}</span>
 
     <span class="c1">// Starts heap analysis on background importance</span>
     <span class="n">BackgroundTrigger</span><span class="p">(</span>
-      <span class="n">application</span> <span class="p">=</span> <span class="k">this</span><span class="p">,</span>
-      <span class="n">analysisClient</span> <span class="p">=</span> <span class="n">analysisClient</span><span class="p">,</span>
-      <span class="n">analysisExecutor</span> <span class="p">=</span> <span class="n">analysisExecutor</span><span class="p">,</span>
-      <span class="n">analysisCallback</span> <span class="p">=</span> <span class="n">analysisCallback</span>
-    <span class="p">).</span><span class="n">start</span><span class="p">()</span>
+      <span class="n">application</span> <span class="o">=</span> <span class="k">this</span><span class="p">,</span>
+      <span class="n">analysisClient</span> <span class="o">=</span> <span class="n">analysisClient</span><span class="p">,</span>
+      <span class="n">analysisExecutor</span> <span class="o">=</span> <span class="n">analysisExecutor</span><span class="p">,</span>
+      <span class="n">analysisCallback</span> <span class="o">=</span> <span class="n">analysisCallback</span>
+    <span class="p">).</span><span class="na">start</span><span class="p">()</span>
 
     <span class="c1">// Starts heap analysis when screen off</span>
     <span class="n">ScreenOffTrigger</span><span class="p">(</span>
-      <span class="n">application</span> <span class="p">=</span> <span class="k">this</span><span class="p">,</span>
-      <span class="n">analysisClient</span> <span class="p">=</span> <span class="n">analysisClient</span><span class="p">,</span>
-      <span class="n">analysisExecutor</span> <span class="p">=</span> <span class="n">analysisExecutor</span><span class="p">,</span>
-      <span class="n">analysisCallback</span> <span class="p">=</span> <span class="n">analysisCallback</span>
-    <span class="p">).</span><span class="n">start</span><span class="p">()</span>
+      <span class="n">application</span> <span class="o">=</span> <span class="k">this</span><span class="p">,</span>
+      <span class="n">analysisClient</span> <span class="o">=</span> <span class="n">analysisClient</span><span class="p">,</span>
+      <span class="n">analysisExecutor</span> <span class="o">=</span> <span class="n">analysisExecutor</span><span class="p">,</span>
+      <span class="n">analysisCallback</span> <span class="o">=</span> <span class="n">analysisCallback</span>
+    <span class="p">).</span><span class="na">start</span><span class="p">()</span>
   <span class="p">}</span>
 
   <span class="cm">/**</span>
@@ -2639,10 +2671,10 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <span class="cm">   * This method returns a `HeapAnalysisJob` on which you can</span>
 <span class="cm">   * call `HeapAnalysisJob.cancel()` at any time.</span>
 <span class="cm">   */</span>
-  <span class="k">fun</span> <span class="nf">triggerHeapAnalysisNow</span><span class="p">():</span> <span class="n">HeapAnalysisJob</span> <span class="p">{</span>
-    <span class="k">val</span> <span class="py">job</span> <span class="p">=</span> <span class="n">analysisClient</span><span class="p">.</span><span class="n">newJob</span><span class="p">()</span>
-    <span class="n">analysisExecutor</span><span class="p">.</span><span class="n">execute</span> <span class="p">{</span>
-      <span class="k">val</span> <span class="py">result</span> <span class="p">=</span> <span class="n">job</span><span class="p">.</span><span class="n">execute</span><span class="p">()</span>
+  <span class="kd">fun</span> <span class="nf">triggerHeapAnalysisNow</span><span class="p">():</span> <span class="n">HeapAnalysisJob</span> <span class="p">{</span>
+    <span class="kd">val</span> <span class="nv">job</span> <span class="o">=</span> <span class="n">analysisClient</span><span class="p">.</span><span class="na">newJob</span><span class="p">()</span>
+    <span class="n">analysisExecutor</span><span class="p">.</span><span class="na">execute</span> <span class="p">{</span>
+      <span class="kd">val</span> <span class="nv">result</span> <span class="o">=</span> <span class="n">job</span><span class="p">.</span><span class="na">execute</span><span class="p">()</span>
       <span class="n">analysisCallback</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
     <span class="p">}</span>
     <span class="k">return</span> <span class="n">job</span>
@@ -2650,40 +2682,40 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <span class="p">}</span>
 </code></pre></div>
 <p>The Bugsnag uploader:</p>
-<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">BugsnagHeapAnalysisUploader</span><span class="p">(</span><span class="n">applicationContext</span><span class="p">:</span> <span class="n">Application</span><span class="p">)</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">BugsnagHeapAnalysisUploader</span><span class="p">(</span><span class="n">applicationContext</span><span class="p">:</span> <span class="n">Application</span><span class="p">)</span> <span class="p">{</span>
 
-  <span class="k">private</span> <span class="k">val</span> <span class="py">bugsnagClient</span><span class="p">:</span> <span class="n">Client</span>
+  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">bugsnagClient</span><span class="p">:</span> <span class="n">Client</span>
 
-  <span class="n">init</span> <span class="p">{</span>
-    <span class="n">bugsnagClient</span> <span class="p">=</span> <span class="n">Client</span><span class="p">(</span>
+  <span class="k">init</span> <span class="p">{</span>
+    <span class="n">bugsnagClient</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span>
       <span class="n">applicationContext</span><span class="p">,</span>
       <span class="n">BUGSNAG_API_KEY</span><span class="p">,</span>
       <span class="n">DO_NOT_ENABLE_EXCEPTION_HANDLER</span>
     <span class="p">)</span>
-    <span class="n">bugsnagClient</span><span class="p">.</span><span class="n">setSendThreads</span><span class="p">(</span><span class="k">false</span><span class="p">)</span>
+    <span class="n">bugsnagClient</span><span class="p">.</span><span class="na">setSendThreads</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span>
   <span class="p">}</span>
 
-  <span class="k">fun</span> <span class="nf">upload</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysis</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">fun</span> <span class="nf">upload</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysis</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">when</span> <span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">is</span> <span class="n">HeapAnalysisSuccess</span> <span class="p">-&gt;</span> <span class="p">{</span>
-        <span class="k">val</span> <span class="py">exception</span> <span class="p">=</span> <span class="n">HeapAnalysisReport</span><span class="p">()</span>
-        <span class="n">bugsnagClient</span><span class="p">.</span><span class="n">notify</span><span class="p">(</span><span class="n">exception</span><span class="p">)</span> <span class="p">{</span> <span class="n">report</span> <span class="p">-&gt;</span>
-          <span class="k">val</span> <span class="py">metaData</span> <span class="p">=</span> <span class="n">report</span><span class="p">.</span><span class="n">error</span><span class="p">.</span><span class="n">metaData</span>
-          <span class="n">metaData</span><span class="p">.</span><span class="n">addToTab</span><span class="p">(</span><span class="s">&quot;Heap Analysis&quot;</span><span class="p">,</span> <span class="s">&quot;result&quot;</span><span class="p">,</span> <span class="n">heapAnalysis</span><span class="p">.</span><span class="n">toString</span><span class="p">())</span>
+      <span class="k">is</span> <span class="n">HeapAnalysisSuccess</span> <span class="o">-&gt;</span> <span class="p">{</span>
+        <span class="kd">val</span> <span class="nv">exception</span> <span class="o">=</span> <span class="n">HeapAnalysisReport</span><span class="p">()</span>
+        <span class="n">bugsnagClient</span><span class="p">.</span><span class="na">notify</span><span class="p">(</span><span class="n">exception</span><span class="p">)</span> <span class="p">{</span> <span class="n">report</span> <span class="o">-&gt;</span>
+          <span class="kd">val</span> <span class="nv">metaData</span> <span class="o">=</span> <span class="n">report</span><span class="p">.</span><span class="na">error</span><span class="p">.</span><span class="na">metaData</span>
+          <span class="n">metaData</span><span class="p">.</span><span class="na">addToTab</span><span class="p">(</span><span class="s">&quot;Heap Analysis&quot;</span><span class="p">,</span> <span class="s">&quot;result&quot;</span><span class="p">,</span> <span class="n">heapAnalysis</span><span class="p">.</span><span class="na">toString</span><span class="p">())</span>
         <span class="p">}</span>
       <span class="p">}</span>
-      <span class="k">is</span> <span class="n">HeapAnalysisFailure</span> <span class="p">-&gt;</span> <span class="p">{</span>
+      <span class="k">is</span> <span class="n">HeapAnalysisFailure</span> <span class="o">-&gt;</span> <span class="p">{</span>
         <span class="c1">// Please file any reported failure to</span>
         <span class="c1">// https://github.com/square/leakcanary/issues</span>
-        <span class="n">bugsnagClient</span><span class="p">.</span><span class="n">notify</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">.</span><span class="n">exception</span><span class="p">)</span>
+        <span class="n">bugsnagClient</span><span class="p">.</span><span class="na">notify</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">.</span><span class="na">exception</span><span class="p">)</span>
       <span class="p">}</span>
     <span class="p">}</span>
   <span class="p">}</span>
 
   <span class="c1">// Exception with fake unique stacktrace to send all reports to the same error entry.</span>
-  <span class="k">class</span> <span class="nc">HeapAnalysisReport</span> <span class="p">:</span> <span class="n">Exception</span><span class="p">(</span><span class="s">&quot;Check the HEAP ANALYSIS tab&quot;</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">override</span> <span class="k">fun</span> <span class="nf">fillInStackTrace</span><span class="p">():</span> <span class="n">Throwable</span> <span class="p">{</span>
-      <span class="n">stackTrace</span> <span class="p">=</span> <span class="n">arrayOf</span><span class="p">(</span>
+  <span class="kd">class</span> <span class="nc">HeapAnalysisReport</span> <span class="p">:</span> <span class="n">Exception</span><span class="p">(</span><span class="s">&quot;Check the HEAP ANALYSIS tab&quot;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">fillInStackTrace</span><span class="p">():</span> <span class="n">Throwable</span> <span class="p">{</span>
+      <span class="n">stackTrace</span> <span class="o">=</span> <span class="n">arrayOf</span><span class="p">(</span>
         <span class="n">StackTraceElement</span><span class="p">(</span>
           <span class="s">&quot;HeapAnalysisReport&quot;</span><span class="p">,</span>
           <span class="s">&quot;analyzeHeap&quot;</span><span class="p">,</span>
@@ -2695,9 +2727,9 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
     <span class="p">}</span>
   <span class="p">}</span>
 
-  <span class="k">companion</span> <span class="k">object</span> <span class="p">{</span>
-    <span class="k">private</span> <span class="k">const</span> <span class="k">val</span> <span class="py">BUGSNAG_API_KEY</span> <span class="p">=</span> <span class="n">YOUR_BUGSNAG_API_KEY</span>
-    <span class="k">private</span> <span class="k">const</span> <span class="k">val</span> <span class="py">DO_NOT_ENABLE_EXCEPTION_HANDLER</span> <span class="p">=</span> <span class="k">false</span>
+  <span class="kd">companion</span> <span class="kd">object</span> <span class="err">{</span>
+    <span class="kd">private</span> <span class="kd">const</span> <span class="kd">val</span> <span class="nv">BUGSNAG_API_KEY</span> <span class="o">=</span> <span class="n">YOUR_BUGSNAG_API_KEY</span>
+    <span class="kd">private</span> <span class="kd">const</span> <span class="kd">val</span> <span class="nv">DO_NOT_ENABLE_EXCEPTION_HANDLER</span> <span class="o">=</span> <span class="kc">false</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -2936,9 +2968,9 @@ for the contributions, bug reports and feature requests.</p>
 <li>The APIs of the <code>Leak</code> and <code>LeakTrace</code> classes have significantly changed, e.g. all <code>LeakTrace</code> instances with an identical signature are grouped under the same Leak object. Despite these breaking changes, this release version is a minor update. Oh noes, what about semantic versioning 😱? Ask Don Quixote.</li>
 <li>You can now customize the way LeakCanary finds the leaking objects in the heap dump. For example, here&rsquo;s the configuration SharkCli uses to find leaks in heap dumps of apps that don&rsquo;t even have the LeakCanary dependency:</li>
 </ul>
-<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span> <span class="p">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">copy</span><span class="p">(</span>
-    <span class="n">leakingObjectFinder</span> <span class="p">=</span> <span class="n">FilteringLeakingObjectFinder</span><span class="p">(</span>
-        <span class="n">AndroidObjectInspectors</span><span class="p">.</span><span class="n">appLeakingObjectFilters</span>
+<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
+    <span class="n">leakingObjectFinder</span> <span class="o">=</span> <span class="n">FilteringLeakingObjectFinder</span><span class="p">(</span>
+        <span class="n">AndroidObjectInspectors</span><span class="p">.</span><span class="na">appLeakingObjectFilters</span>
     <span class="p">)</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -3428,112 +3460,102 @@ for the code contributions!</p>
 <h3 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h3>
   
 
-              
-                
-
-
-              
             </article>
           </div>
         </div>
+        
       </main>
       
-        
-<footer class="md-footer">
+        <footer class="md-footer">
   
-    <div class="md-footer-nav">
-      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
         
-          <a href="../api/leakcanary-object-watcher/leakcanary/" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-            <div class="md-footer-nav__button md-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        <a href="../api/leakcanary/" class="md-footer__link md-footer__link--prev" aria-label="Previous: LeakCanary API" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              LeakCanary API
             </div>
-            <div class="md-footer-nav__title">
-              <div class="md-ellipsis">
-                <span class="md-footer-nav__direction">
-                  Previous
-                </span>
-                Core: ObjectWatcher
-              </div>
-            </div>
-          </a>
-        
-        
-      </nav>
-    </div>
+          </div>
+        </a>
+      
+      
+    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
-      <div class="md-footer-copyright">
-        
-          <div class="md-footer-copyright__highlight">
-            Copyright &copy; 2015 Square, Inc.
-          </div>
-        
-        Made with
-        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
-          Material for MkDocs
-        </a>
-      </div>
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2015 Square, Inc.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
       
-  <div class="md-footer-social">
+        <div class="md-social">
+  
+    
     
       
       
-        
-        
-      
-      <a href="https://square.github.io/" target="_blank" rel="noopener" title="square.github.io" class="md-footer-social__link">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
-      </a>
+    
+    <a href="https://square.github.io/" target="_blank" rel="noopener" title="square.github.io" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z"/></svg>
+    </a>
+  
+    
     
       
       
-        
-        
-      
-      <a href="https://twitter.com/Piwai" target="_blank" rel="noopener" title="twitter.com" class="md-footer-social__link">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
-      </a>
+    
+    <a href="https://twitter.com/Piwai" target="_blank" rel="noopener" title="twitter.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+    
     
       
       
-        
-        
-      
-      <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" target="_blank" rel="noopener" title="stackoverflow.com" class="md-footer-social__link">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M290.7 311L95 269.7 86.8 309l195.7 41zm51-87L188.2 95.7l-25.5 30.8 153.5 128.3zm-31.2 39.7L129.2 179l-16.7 36.5L293.7 300zM262 32l-32 24 119.3 160.3 32-24zm20.5 328h-200v39.7h200zm39.7 80H42.7V320h-40v160h359.5V320h-40z"/></svg>
-      </a>
+    
+    <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" target="_blank" rel="noopener" title="stackoverflow.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M290.7 311 95 269.7 86.8 309l195.7 41zm51-87L188.2 95.7l-25.5 30.8 153.5 128.3zm-31.2 39.7L129.2 179l-16.7 36.5L293.7 300zM262 32l-32 24 119.3 160.3 32-24zm20.5 328h-200v39.7h200zm39.7 80H42.7V320h-40v160h359.5V320h-40z"/></svg>
+    </a>
+  
+    
     
       
       
-        
-        
-      
-      <a href="https://www.linkedin.com/company/joinsquare/" target="_blank" rel="noopener" title="www.linkedin.com" class="md-footer-social__link">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"/></svg>
-      </a>
     
-  </div>
-
+    <a href="https://www.linkedin.com/company/joinsquare/" target="_blank" rel="noopener" title="www.linkedin.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"/></svg>
+    </a>
+  
+</div>
+      
     </div>
   </div>
 </footer>
       
     </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "..", "features": ["tabs"], "search": "../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
     
-      <script src="../assets/javascripts/vendor.08c56446.min.js"></script>
-      <script src="../assets/javascripts/bundle.6ced434e.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
-      
-      <script>
-        app = initialize({
-          base: "..",
-          features: ['tabs'],
-          search: Object.assign({
-            worker: "../assets/javascripts/worker/search.8c7e0a7e.min.js"
-          }, typeof search !== "undefined" && search)
-        })
-      </script>
+    
+      <script src="../assets/javascripts/bundle.6e54b5cd.min.js"></script>
       
     
   </body>
