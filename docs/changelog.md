@@ -831,7 +831,7 @@ $ shark-cli --device emulator-5554 --process com.example.app.debug analyze
 
 ### Support for Android Test Orchestrator 🎼
 
-If you set up LeakCanary to report test failures when detecting leaks in [instrumentation tests](recipes.md#running-leakcanary-in-instrumentation-tests), it [now works](https://github.com/square/leakcanary/issues/1046) with Android Test Orchestrator as well. No change required, LeakCanary will automatically detect thatAndroid Test Orchestrator is running and hook into it.
+If you set up LeakCanary to report test failures when detecting leaks in instrumentation tests, it [now works](https://github.com/square/leakcanary/issues/1046) with Android Test Orchestrator as well. No change required, LeakCanary will automatically detect thatAndroid Test Orchestrator is running and hook into it.
 
 ### No more `master` branch
 
@@ -981,7 +981,7 @@ In 2.0 we changed the LeakCanary UI and UX, and built a foundation on which 2.1 
 ### Documentation goodies
 
 * The [Fundamentals](fundamentals.md) page was entirely rewritten, split into 3 pages and moved to its own tab. Please read it and provide feedback!
-* At Square, we have been uploading leaks to Bugsnag for 3 years now, so that no leak ever gets missed. Follow [this recipe](recipes.md#uploading-to-bugsnag)!
+* At Square, we have been uploading leaks to Bugsnag for 3 years now, so that no leak ever gets missed. Follow [this recipe](uploading.md)!
 * Did you know you can [run LeakCanary in a JVM](recipes.md#detecting-leaks-in-jvm-applications)?
 
 ### API <strike>breaking</strike> bettering changes
@@ -1357,7 +1357,7 @@ For more details, see the [1.6.2 Milestone](https://github.com/square/leakcanary
 * [#727](https://github.com/square/leakcanary/issues/727) Improved leak analysis: LeakCanary now identifies and highlights the potential causes of the leak.
 * [#1011](https://github.com/square/leakcanary/issues/1011) We noticed that computing the retained heap size could take a long time, so it's now optional and off by default.
 * [#633](https://github.com/square/leakcanary/pull/633) Support for detecting leaks in instrumentation tests ([see the wiki](https://github.com/square/leakcanary/wiki/Customizing-LeakCanary#running-leakcanary-in-instrumentation-tests)).
-* [#985](https://github.com/square/leakcanary/pull/985) Ability to convert leak traces into stack traces for easy remote reporting ([see the wiki](https://github.com/square/leakcanary/wiki/Customizing-LeakCanary#uploading-to-a-server)).
+* [#985](https://github.com/square/leakcanary/pull/985) Ability to convert leak traces into stack traces for easy remote reporting ([see the wiki](uploading.md)).
 * [#983](https://github.com/square/leakcanary/issues/983) Support for watching destroyed Fragments.
 * [#846](https://github.com/square/leakcanary/issues/846) LeakCanary now uses foreground services and displays a notification when the analysis is in progress. This also fixes crashes when analyzing in background on O+.
 * The LeakCanary icon (to start to DisplayLeakActivity) is now hidden by default, and only enabled after the first leak is found.

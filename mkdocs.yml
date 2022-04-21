@@ -57,6 +57,7 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.emoji
   - pymdownx.tabbed
+  - pymdownx.snippets
   - tables
   - admonition
 
@@ -72,6 +73,10 @@ nav:
     - 'Introduction': 'fundamentals.md'
     - 'How LeakCanary works': 'fundamentals-how-leakcanary-works.md'
     - 'Fixing a memory leak': 'fundamentals-fixing-a-memory-leak.md'
+  - 'LeakCanary at scale':
+    - 'Leak detection in UI tests': 'ui-tests.md'
+    - 'Uploading analysis results': 'uploading.md'
+    - 'LeakCanary for releases': 'leakcanary-for-releases.md'
   - 'Help & Community':
     - 'Code recipes': recipes.md
     - 'FAQ': faq.md
