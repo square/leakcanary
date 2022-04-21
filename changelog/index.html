@@ -333,12 +333,88 @@
       
       
         <label class="md-nav__link" for="__nav_4">
+          LeakCanary at scale
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="LeakCanary at scale" data-md-level="1">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          LeakCanary at scale
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ui-tests/" class="md-nav__link">
+        Leak detection in UI tests
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uploading/" class="md-nav__link">
+        Uploading analysis results
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../leakcanary-for-releases/" class="md-nav__link">
+        LeakCanary for releases
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_5">
           Help & Community
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <nav class="md-nav" aria-label="Help & Community" data-md-level="1">
-        <label class="md-nav__title" for="__nav_4">
+        <label class="md-nav__title" for="__nav_5">
           <span class="md-nav__icon md-icon"></span>
           Help & Community
         </label>
@@ -451,18 +527,18 @@
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_8" type="checkbox" id="__nav_4_8" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_8" type="checkbox" id="__nav_5_8" >
       
       
       
       
-        <label class="md-nav__link" for="__nav_4_8">
+        <label class="md-nav__link" for="__nav_5_8">
           Contributing
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <nav class="md-nav" aria-label="Contributing" data-md-level="2">
-        <label class="md-nav__title" for="__nav_4_8">
+        <label class="md-nav__title" for="__nav_5_8">
           <span class="md-nav__icon md-icon"></span>
           Contributing
         </label>
@@ -548,18 +624,18 @@
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_6" type="checkbox" id="__nav_6" >
       
       
       
       
-        <label class="md-nav__link" for="__nav_5">
+        <label class="md-nav__link" for="__nav_6">
           Shark
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <nav class="md-nav" aria-label="Shark" data-md-level="1">
-        <label class="md-nav__title" for="__nav_5">
+        <label class="md-nav__title" for="__nav_6">
           <span class="md-nav__icon md-icon"></span>
           Shark
         </label>
@@ -2849,7 +2925,7 @@ for their contributions, bug reports and feature requests.</p>
 <div class="highlight"><pre><span></span><code>$ shark-cli --device emulator-5554 --process com.example.app.debug analyze
 </code></pre></div>
 <h3 id="support-for-android-test-orchestrator">Support for Android Test Orchestrator 🎼<a class="headerlink" href="#support-for-android-test-orchestrator" title="Permanent link">&para;</a></h3>
-<p>If you set up LeakCanary to report test failures when detecting leaks in <a href="../recipes/#running-leakcanary-in-instrumentation-tests">instrumentation tests</a>, it <a href="https://github.com/square/leakcanary/issues/1046">now works</a> with Android Test Orchestrator as well. No change required, LeakCanary will automatically detect thatAndroid Test Orchestrator is running and hook into it.</p>
+<p>If you set up LeakCanary to report test failures when detecting leaks in instrumentation tests, it <a href="https://github.com/square/leakcanary/issues/1046">now works</a> with Android Test Orchestrator as well. No change required, LeakCanary will automatically detect thatAndroid Test Orchestrator is running and hook into it.</p>
 <h3 id="no-more-master-branch">No more <code>master</code> branch<a class="headerlink" href="#no-more-master-branch" title="Permanent link">&para;</a></h3>
 <p>The branch name <code>master</code> comes from the <em>master / slave</em> terminology. We renamed the default branch to <code>main</code>, a small step towards making the LeakCanary community a safer space. Here&rsquo;s a good <a href="https://twitter.com/mislav/status/1270388510684598272">thread on this topic</a>.</p>
 <h3 id="bug-fixes-and-improvements_3">Bug fixes and improvements 🐛🔨<a class="headerlink" href="#bug-fixes-and-improvements_3" title="Permanent link">&para;</a></h3>
@@ -2961,7 +3037,7 @@ for the contributions, bug reports and feature requests.</p>
 <h3 id="documentation-goodies">Documentation goodies<a class="headerlink" href="#documentation-goodies" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The <a href="../fundamentals/">Fundamentals</a> page was entirely rewritten, split into 3 pages and moved to its own tab. Please read it and provide feedback!</li>
-<li>At Square, we have been uploading leaks to Bugsnag for 3 years now, so that no leak ever gets missed. Follow <a href="../recipes/#uploading-to-bugsnag">this recipe</a>!</li>
+<li>At Square, we have been uploading leaks to Bugsnag for 3 years now, so that no leak ever gets missed. Follow <a href="../uploading/">this recipe</a>!</li>
 <li>Did you know you can <a href="../recipes/#detecting-leaks-in-jvm-applications">run LeakCanary in a JVM</a>?</li>
 </ul>
 <h3 id="api-breaking-bettering-changes">API <strike>breaking</strike> bettering changes<a class="headerlink" href="#api-breaking-bettering-changes" title="Permanent link">&para;</a></h3>
@@ -3303,7 +3379,7 @@ for the code contributions!</p>
 <li><a href="https://github.com/square/leakcanary/issues/727">#727</a> Improved leak analysis: LeakCanary now identifies and highlights the potential causes of the leak.</li>
 <li><a href="https://github.com/square/leakcanary/issues/1011">#1011</a> We noticed that computing the retained heap size could take a long time, so it&rsquo;s now optional and off by default.</li>
 <li><a href="https://github.com/square/leakcanary/pull/633">#633</a> Support for detecting leaks in instrumentation tests (<a href="https://github.com/square/leakcanary/wiki/Customizing-LeakCanary#running-leakcanary-in-instrumentation-tests">see the wiki</a>).</li>
-<li><a href="https://github.com/square/leakcanary/pull/985">#985</a> Ability to convert leak traces into stack traces for easy remote reporting (<a href="https://github.com/square/leakcanary/wiki/Customizing-LeakCanary#uploading-to-a-server">see the wiki</a>).</li>
+<li><a href="https://github.com/square/leakcanary/pull/985">#985</a> Ability to convert leak traces into stack traces for easy remote reporting (<a href="../uploading/">see the wiki</a>).</li>
 <li><a href="https://github.com/square/leakcanary/issues/983">#983</a> Support for watching destroyed Fragments.</li>
 <li><a href="https://github.com/square/leakcanary/issues/846">#846</a> LeakCanary now uses foreground services and displays a notification when the analysis is in progress. This also fixes crashes when analyzing in background on O+.</li>
 <li>The LeakCanary icon (to start to DisplayLeakActivity) is now hidden by default, and only enabled after the first leak is found.</li>

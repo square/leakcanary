@@ -56,6 +56,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://square.github.io/leakcanary/leakcanary-for-releases/</loc>
+         <lastmod>2022-04-21</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://square.github.io/leakcanary/recipes/</loc>
          <lastmod>2022-04-21</lastmod>
          <changefreq>daily</changefreq>
@@ -81,7 +86,17 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://square.github.io/leakcanary/ui-tests/</loc>
+         <lastmod>2022-04-21</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://square.github.io/leakcanary/upgrading-to-leakcanary-2.0/</loc>
+         <lastmod>2022-04-21</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://square.github.io/leakcanary/uploading/</loc>
          <lastmod>2022-04-21</lastmod>
          <changefreq>daily</changefreq>
     </url>
@@ -7027,6 +7042,11 @@
     </url>
     <url>
          <loc>https://square.github.io/leakcanary/api/shark/-value-holder/-short-holder/value/</loc>
+         <lastmod>2022-04-21</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://square.github.io/leakcanary/snippets/bugsnag-uploader/</loc>
          <lastmod>2022-04-21</lastmod>
          <changefreq>daily</changefreq>
     </url>
