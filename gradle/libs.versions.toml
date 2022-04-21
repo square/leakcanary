@@ -24,7 +24,7 @@ workManager = "2.7.0"
 [libraries]
 gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "4.2.2" }
 gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinCompiler" }
-gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.6.0" }
+gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.6.20" }
 gradlePlugin-binaryCompatibility = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version = "0.8.0" }
 gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.18.0" }
 gradlePlugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.6.0" }

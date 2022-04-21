@@ -89,15 +89,15 @@ gh alias set --shell closeMilestone "echo '{\"state\": \"closed\"}' | gh api --m
 ### Install the doc generation dependencies
 
 ```bash
-pip3 install mkdocs-material
+pip3 install mkdocs-material mkdocs-markdownextradata-plugin
 ```
 
 ## Releasing
 
 * Create a local release branch from `main`
 ```bash
-git checkout main
-git pull
+git checkout main && \
+git pull && \
 git checkout -b release_{{ leak_canary.next_release }}
 ```
 
@@ -108,14 +108,39 @@ sed -i '' 's/VERSION_NAME={{ leak_canary.next_release }}-SNAPSHOT/VERSION_NAME={
 
 * Update the current version and next version in `mkdocs.yml`
 ```bash
-sed -i '' 's/{{ leak_canary.next_release }}/REPLACE_WITH_NEXT_VERSION_NUMBER/' mkdocs.yml
+sed -i '' 's/{{ leak_canary.next_release }}/NEXT/' mkdocs.yml
 sed -i '' 's/{{ leak_canary.release }}/{{ leak_canary.next_release }}/' mkdocs.yml
+```
+
+* Create the release
+```bash
+git commit -am "Prepare {{ leak_canary.next_release }} release" && \
+./gradlew clean && \
+./gradlew build && \
+git tag v{{ leak_canary.next_release }} && \
+git push origin v{{ leak_canary.next_release }} && \
+./gradlew publish --no-daemon --no-parallel && \
+./gradlew closeAndReleaseRepository && \
+./gradlew shark-cli:distZip
+```
+
+Note: if anything goes wrong, you can manually drop the release at https://s01.oss.sonatype.org/
+
+* Merge back to main
+```bash
+git checkout main && \
+git pull && \
+git merge --no-ff release_{{ leak_canary.next_release }}
+```
+* Update `VERSION_NAME` in `gradle.properties` (increase version and add `-SNAPSHOT`)
+```gradle
+sed -i '' 's/VERSION_NAME={{ leak_canary.next_release }}/VERSION_NAME=NEXT-SNAPSHOT/' gradle.properties
 ```
 
 * Generate the Dokka docs
 ```bash
-rm -rf docs/api
-./gradlew leakcanary-android-core:dokka leakcanary-android-instrumentation:dokka leakcanary-android-process:dokka leakcanary-object-watcher-android:dokka leakcanary-object-watcher:dokka shark-android:dokka shark-graph:dokka shark-hprof:dokka shark-log:dokka shark:dokka plumber-android:dokka leakcanary-android-release:dokka
+rm -rf docs/api && \
+./gradlew leakcanary-android-core:dokkaGfm leakcanary-android-instrumentation:dokkaGfm leakcanary-android-process:dokkaGfm leakcanary-object-watcher-android-core:dokkaGfm leakcanary-object-watcher:dokkaGfm shark-android:dokkaGfm shark-graph:dokkaGfm shark-hprof:dokkaGfm shark-log:dokkaGfm shark:dokkaGfm plumber-android:dokkaGfm leakcanary-android-release:dokkaGfm
 ```
 
 * Update the changelog ([commit list](https://github.com/square/leakcanary/compare/v{{ leak_canary.release }}...main))
@@ -128,82 +153,18 @@ mate docs/changelog.md
 mkdocs serve
 ```
 
-* Commit all local changes
-```bash
-git commit -am "Prepare {{ leak_canary.next_release }} release"
-```
+* Finish up the release
 
-* Perform a clean build
 ```bash
-./gradlew clean
-./gradlew build
-```
-
-* Create a tag and push it
-```bash
-git tag v{{ leak_canary.next_release }}
-git push origin v{{ leak_canary.next_release }}
-```
-
-* Upload the artifacts to Sonatype OSS Nexus
-```bash
-./gradlew uploadArchives --no-daemon --no-parallel
-```
-
-* Generate the CLI zip
-```bash
-./gradlew shark-cli:distZip
-```
-
-* Release to Maven Central
-    * Login to Sonatype OSS Nexus: https://s01.oss.sonatype.org/
-    * Click on **Staging Repositories**
-    * Scroll to the bottom, you should see an entry named `comsquareup-XXXX`
-    * Check the box next to the `comsquareup-XXXX` entry, click **Close** then **Confirm**
-    * Wait a bit, hit **Refresh**, until the *Status* for that column changes to *Closed*.
-    * Check the box next to the `comsquareup-XXXX` entry, click **Release** then **Confirm**
-* Merge the release branch to main
-```bash
-git checkout main
-git pull
-git merge --no-ff release_{{ leak_canary.next_release }}
-```
-* Update `VERSION_NAME` in `gradle.properties` (increase version and add `-SNAPSHOT`)
-```gradle
-sed -i '' 's/VERSION_NAME={{ leak_canary.next_release }}/VERSION_NAME=REPLACE_WITH_NEXT_VERSION_NUMBER-SNAPSHOT/' gradle.properties
-```
-
-* Commit your changes
-```bash
-git commit -am "Prepare for next development iteration"
-```
-
-* Push your changes
-```bash
-git push
-```
-
-* Close the currently open milestone
-```bash
-gh listOpenMilestones | jq '.data.repository.milestones.nodes[0].number' | xargs gh closeMilestone
-```
-
-* Create a milestone for the new version
-```bash
+git commit -am "Prepare for next development iteration" && \
+git push && \
+gh listOpenMilestones | jq '.data.repository.milestones.nodes[0].number' | xargs gh closeMilestone && \
 echo '{
   "title": "REPLACE_WITH_NEXT_VERSION_NUMBER",
   "state": "open",
   "description": ""
-}' | gh createMilestone
-```
-
-* Redeploy the docs
-```bash
+}' | gh createMilestone && \
 mkdocs gh-deploy
-```
-
-* Create a new release
-```bash
 gh release create v{{ leak_canary.next_release }} ./shark-cli/build/distributions/shark-cli-{{ leak_canary.next_release }}.zip --title v{{ leak_canary.next_release }} --notes 'See [Change Log](https://square.github.io/leakcanary/changelog)'
 ```
 

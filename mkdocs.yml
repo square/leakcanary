@@ -56,8 +56,10 @@ markdown_extensions:
   - pymdownx.smartsymbols
   - pymdownx.superfences
   - pymdownx.emoji
+  - pymdownx.tabbed
   - tables
   - admonition
+
 
 plugins:
     - search
@@ -85,18 +87,8 @@ nav:
         - 'How to help': how_to_help.md
   - 'Shark':
     - 'Overview': shark.md
-    - 'Shark API':
-      - 'Shark': api/shark/shark/index.md
-      - 'Extension: Shark Android': api/shark-android/shark/index.md
-      - 'Core: Graph': api/shark-graph/shark/index.md
-      - 'Core: Hprof': api/shark-hprof/shark/index.md
-      - 'Core: Logs': api/shark-log/shark/index.md
-  - 'LeakCanary API':
-    - 'LeakCanary': api/leakcanary-android-core/leakcanary/index.md
-    - 'ObjectWatcher Android': api/leakcanary-object-watcher-android/leakcanary/index.md
-    - 'Extension: Instrumentation tests': api/leakcanary-android-instrumentation/leakcanary/index.md
-    - 'Extension: Separate process': api/leakcanary-android-process/leakcanary/index.md
-    - 'Core: ObjectWatcher': api/leakcanary-object-watcher/leakcanary/index.md
+    - 'Shark API': api/shark/index.md
+  - 'LeakCanary API': api/leakcanary/index.md
   - 'Change Log': changelog.md
 
 # Google Analytics. Add export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-XXXXXXXXX-X" to your ~/.bashrc

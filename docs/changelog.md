@@ -17,6 +17,8 @@ Some ideas I'm playing with:
 * Visualize the heap dominators / retained size as a treemap.
 * A backend for LeakCanary?
 
+Anyway, that's still very much the future, let's talk about what's in `2.9.1` now!
+
 ### New metrics in heap analysis metadata
 
 I built LeakCanary to help fix leaks, but in doing so I accidentally wrote a fairly flexible heap dump parser. Since we're parsing the heap to find leaks anyway, we might as well report additional interesting metrics. Here's what you'll now see in the heap dump metadata:
@@ -33,7 +35,7 @@ I built LeakCanary to help fix leaks, but in doing so I accidentally wrote a fai
 * Large bitmap total bytes
 * SQLiteDatabase in memory (open or closed, as well as their file path)
 
-This is just a first pass, feedback and ideas welcome! 
+This is just a first pass, feedback and ideas welcome!
 
 ### Performance improvements
 
