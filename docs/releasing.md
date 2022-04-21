@@ -140,7 +140,7 @@ sed -i '' 's/VERSION_NAME={{ leak_canary.next_release }}/VERSION_NAME=NEXT-SNAPS
 * Generate the Dokka docs
 ```bash
 rm -rf docs/api && \
-./gradlew leakcanary-android-core:dokkaGfm leakcanary-android-instrumentation:dokkaGfm leakcanary-android-process:dokkaGfm leakcanary-object-watcher-android:dokkaGfm leakcanary-object-watcher:dokkaGfm shark-android:dokkaGfm shark-graph:dokkaGfm shark-hprof:dokkaGfm shark-log:dokkaGfm shark:dokkaGfm plumber-android:dokkaGfm leakcanary-android-release:dokkaGfm
+./gradlew leakcanary-android-core:dokkaGfm leakcanary-android-instrumentation:dokkaGfm leakcanary-android-process:dokkaGfm leakcanary-object-watcher-android-core:dokkaGfm leakcanary-object-watcher:dokkaGfm shark-android:dokkaGfm shark-graph:dokkaGfm shark-hprof:dokkaGfm shark-log:dokkaGfm shark:dokkaGfm plumber-android:dokkaGfm leakcanary-android-release:dokkaGfm
 ```
 
 * Update the changelog ([commit list](https://github.com/square/leakcanary/compare/v{{ leak_canary.release }}...main))
