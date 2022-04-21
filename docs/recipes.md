@@ -57,14 +57,14 @@ LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 
 !!! info "Java"
     In Java, use [AppWatcher.Config.Builder](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/) and [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/) instead:
-    
+
     ```java
     AppWatcher.Config config = AppWatcher.getConfig().newBuilder()
        .watchFragmentViews(false)
        .build();
     AppWatcher.setConfig(config);
     ```
-    
+
     ```java
     LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
        .retainedVisibleThreshold(3)
@@ -129,58 +129,16 @@ We **do not recommend** including LeakCanary in release builds, as it could nega
 </resources>
 ```
 
-## Running LeakCanary in instrumentation tests
-
-Running leak detection in UI tests means you can detect memory leaks automatically in Continuous Integration prior to those leaks being merged into the codebase. However, as LeakCanary runs with a 5 seconds delay and freezes the VM to take a heap dump, this can introduce flakiness to the UI tests. Therefore it is automatically disabled by setting `LeakCanary.config.dumpHeap` to `false` when JUnit is on the runtime classpath.
-
-LeakCanary provides an artifact dedicated to detecting leaks in UI tests which provides a run listener that waits for the end of a test, and if the test succeeds then it look for retained objects, trigger a heap dump if needed and perform an analysis.
-
-To set it up, add the `leakcanary-android-instrumentation` dependency to your instrumentation tests:
-
-```
-androidTestImplementation "com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}"
-```
-
-Add the dedicated run listener to `defaultConfig` in your `build.gradle`:
-
-```
-android {
-  defaultConfig {
-    // ...
-
-    testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-    testInstrumentationRunnerArgument "listener", "leakcanary.FailTestOnLeakRunListener"	
-
-    // If you're using Android Test Orchestrator
-    testOptions {
-      execution 'ANDROIDX_TEST_ORCHESTRATOR'
-    }
-  }
-}
-```
-
-Run the instrumentation tests:
-
-```
-./gradlew leakcanary-android-sample:connectedCheck
-```
-
-You can extend `FailTestOnLeakRunListener` to customize the behavior.
-
-!!! bug "Obfuscated instrumentation tests"
-	When running instrumentation tests against obfuscated release builds, the LeakCanary classes end up spread over the test APK and the main APK. Unfortunately there is
-	a [bug](https://issuetracker.google.com/issues/126429384) in the Android Gradle Plugin that leads to runtime crashes when running tests, because code from the main APK is changed without the using code in the test APK being updated accordingly. If you run into this issue, setting up the [Keeper plugin](https://slackhq.github.io/keeper/) should fix it.
-
 ## Android TV
 
 LeakCanary works on Android TV devices (FireTV, Nexus player, Nvidia Shield, MiBox, etc.) without any additional setup. However, there are couple things you need to be aware of:
 
 -   Android TV doesn't have notifications. LeakCanary will display Toast messages when objects become retained and when leak analysis completes. You can also check Logcat for more details.
--   Due to lack of notifications, the only way to **manually** trigger a heap dump is to background the app.  
+-   Due to lack of notifications, the only way to **manually** trigger a heap dump is to background the app.
 -   There's a [bug on API 26+ devices](https://issuetracker.google.com/issues/141429184) that prevents the activity that displays leaks from appearing in apps list. As a workaround, LeakCanary prints an `adb shell` command in Logcat after heap dump analysis that launches leak list activity:
     ```
     adb shell am start -n "com.your.package.name/leakcanary.internal.activity.LeakLauncherActivity"
-    ``` 
+    ```
 -   Some Android TV devices have very little memory available per app process and this might impact LeakCanary. [Running the LeakCanary analysis in a separate process](#running-the-leakcanary-analysis-in-a-separate-process) might help in such cases.
 
 ## Icon and label
@@ -209,188 +167,6 @@ res/
   <string name="leak_canary_display_activity_label">MyLeaks</string>
 </resources>
 ```
-
-## Customizing the handling of analysis results
-
-You can change the default behavior of what to do when LeakCanary is done analyzing a heap dump, for example to upload the analysis result to a server of your choosing.
-
-Create a custom [OnHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/) that delegates to [DefaultOnHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-default-on-heap-analyzed-listener/): 
-
-```kotlin
-class LeakUploader : OnHeapAnalyzedListener {
-
-  val defaultListener = DefaultOnHeapAnalyzedListener.create()
-
-  override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
-    TODO("Upload heap analysis to server")
-
-    // Delegate to default behavior (notification and saving result)
-    defaultListener.onHeapAnalyzed(heapAnalysis)
-  }
-}
-```
-
-!!! info
-    `HeapAnalysis.toString()` returns a large string describing the analysis result and metadata. This string is formatted to be printable to Logcat and shareable on sites like StackOverflow.
-
-Set [LeakCanary.config.onHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/):
-
-```kotlin
-class DebugExampleApplication : ExampleApplication() {
-
-  override fun onCreate() {
-    super.onCreate()
-    LeakCanary.config = LeakCanary.config.copy(onHeapAnalyzedListener = LeakUploader())
-  }
-}
-```
-
-## Uploading to Bugsnag
-
-A leak trace has a lot in common with a stack trace, so if you lack the engineering resources to build a backend for LeakCanary, you can instead upload leak traces to a crash reporting backend. The client needs to support grouping via custom client-side hashing as well as custom metadata with support for newlines.
-
-!!! info
-    As of this writing, the only known library suitable for uploading leaks is the Bugsnag client. If you managed to make it work with another library, please [file an issue](https://github.com/square/leakcanary/issues/new/choose).
-
-Create a [Bugsnag account](https://app.bugsnag.com/user/new/), create a new project for leak reporting and grab an **API key**. Make sure the app has the `android.permission.INTERNET` permission then add the [latest version](https://docs.bugsnag.com/platforms/android/) of the Bugsnag Android client library to `build.gradle`:
-
-```groovy
-dependencies {
-  // debugImplementation because LeakCanary should only run in debug builds.
-  debugImplementation 'com.squareup.leakcanary:leakcanary-android:{{ leak_canary.release }}'
-  debugImplementation "com.bugsnag:bugsnag-android:$bugsnagVersion"
-}
-```
-
-!!! info
-    If you're only using Bugsnag for uploading leaks, then you do not need to set up the Bugsnag Gradle plugin or to configure the API key in your app manifest.
-
-
-Create a new `BugsnagLeakUploader`:
-
-```kotlin
-import android.app.Application
-import com.bugsnag.android.Bugsnag
-import com.bugsnag.android.Client
-import com.bugsnag.android.Configuration
-import com.bugsnag.android.ErrorTypes
-import com.bugsnag.android.Event
-import com.bugsnag.android.ThreadSendPolicy
-import leakcanary.DefaultOnHeapAnalyzedListener
-import leakcanary.OnHeapAnalyzedListener
-import shark.HeapAnalysis
-import shark.HeapAnalysisFailure
-import shark.HeapAnalysisSuccess
-import shark.Leak
-import shark.LeakTrace
-import shark.LibraryLeak
-
-class BugsnagLeakUploader(applicationContext: Application) :
-    OnHeapAnalyzedListener {
-
-  private val defaultLeakListener = DefaultOnHeapAnalyzedListener.create()
-  private val bugsnagClient: Client
-
-  init {
-    bugsnagClient = Bugsnag.start(
-        applicationContext,
-        Configuration(BUGSNAG_API_KEY).apply {
-          enabledErrorTypes = DISABLE_ALL_ERROR_TYPES
-          sendThreads = ThreadSendPolicy.NEVER
-        }
-    )
-  }
-
-  override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
-    // Delegate to default behavior (notification and saving result)
-    defaultLeakListener.onHeapAnalyzed(heapAnalysis)
-
-    when (heapAnalysis) {
-      is HeapAnalysisSuccess -> {
-        val allLeakTraces = heapAnalysis
-            .allLeaks
-            .toList()
-            .flatMap { leak ->
-              leak.leakTraces.map { leakTrace -> leak to leakTrace }
-            }
-
-        allLeakTraces.forEach { (leak, leakTrace) ->
-          val exception = FakeReportingException(leak.shortDescription)
-          bugsnagClient.notify(exception) { event ->
-            event.addHeapAnalysis(heapAnalysis)
-            event.addLeak(leak)
-            event.addLeakTrace(leakTrace)
-            event.groupingHash = leak.signature
-            true
-          }
-        }
-
-      }
-      is HeapAnalysisFailure -> {
-        // Please file any reported failure to
-        // https://github.com/square/leakcanary/issues
-        bugsnagClient.notify(heapAnalysis.exception)
-      }
-    }
-  }
-
-  private fun Event.addHeapAnalysis(heapAnalysis: HeapAnalysisSuccess) {
-    addMetadata("Leak", "heapDumpPath", heapAnalysis.heapDumpFile.absolutePath)
-    heapAnalysis.metadata.forEach { (key, value) ->
-      addMetadata("Leak", key, value)
-    }
-    addMetadata("Leak", "analysisDurationMs", heapAnalysis.analysisDurationMillis)
-  }
-
-  private fun Event.addLeak(leak: Leak) {
-    addMetadata("Leak", "libraryLeak", leak is LibraryLeak)
-    if (leak is LibraryLeak) {
-      addMetadata("Leak", "libraryLeakPattern", leak.pattern.toString())
-      addMetadata("Leak", "libraryLeakDescription", leak.description)
-    }
-  }
-
-  private fun Event.addLeakTrace(leakTrace: LeakTrace) {
-    addMetadata("Leak", "retainedHeapByteSize", leakTrace.retainedHeapByteSize)
-    addMetadata("Leak", "signature", leakTrace.signature)
-    addMetadata("Leak", "leakTrace", leakTrace.toString())
-  }
-
-  class FakeReportingException(message: String) : RuntimeException(message)
-
-  companion object {
-    private const val BUGSNAG_API_KEY = YOUR_BUGSNAG_API_KEY
-    private const val DISABLE_ALL_ERROR_TYPES = ErrorTypes(
-        anrs = false,
-        ndkCrashes = false,
-        unhandledExceptions = false,
-        unhandledRejections = false
-    )
-  }
-}
-```
-
-Set [LeakCanary.config.onHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/on-heap-analyzed-listener/) to `BugsnagLeakUploader`:
-
-```kotlin
-class DebugExampleApplication : ExampleApplication() {
-
-  override fun onCreate() {
-    super.onCreate()
-    LeakCanary.config = LeakCanary.config.copy(
-        onHeapAnalyzedListener = BugsnagLeakUploader(applicationContext = this)
-    )
-  }
-}
-```
-
-You should start seeing leaks reported into Bugsnag, grouped by their leak signature:
-
-![list](images/bugsnag-list.png)
-
-The `LEAK` tab contains the leak trace: 
-
-![leak](images/bugsnag-leak.png)
 
 ## Matching known library leaks
 

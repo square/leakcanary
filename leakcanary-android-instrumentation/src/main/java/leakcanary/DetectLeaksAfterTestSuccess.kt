@@ -44,9 +44,9 @@ class DetectLeaksAfterTestSuccess(
      * ```kotlin
      * RuleChain.outerRule(LoginRule())
      *   .detectLeaksAfterTestSuccessWrapping("ActivitiesDestroyed") {
-     *     around(ActivityListenerRule)
+     *     around(ActivityScenarioRule(MyActivity::class.java))
      *   }
-     *   .around(LoadingScreenRule)
+     *   .around(LoadingScreenRule())
      * ```
      */
     fun RuleChain.detectLeaksAfterTestSuccessWrapping(
