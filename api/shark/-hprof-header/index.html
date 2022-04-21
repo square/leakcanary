@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">HprofHeader</a></p>
 <h1 id="hprofheader">HprofHeader<a class="headerlink" href="#hprofheader" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-data class <a href="./">HprofHeader</a>(val heapDumpTimestamp: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = System.currentTimeMillis(), val version: <a href="../-hprof-version/">HprofVersion</a> = HprofVersion.ANDROID, val identifierByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 4)</p>
+<p>data class <a href="./">HprofHeader</a>(val heapDumpTimestamp: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = System.currentTimeMillis(), val version: <a href="../-hprof-version/">HprofVersion</a> = HprofVersion.ANDROID, val identifierByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 4)</p>
 <p>Represents the header metadata of a Hprof file.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -712,7 +711,7 @@ data class <a href="./">HprofHeader</a>(val heapDumpTimestamp: <a href="https://
 <tbody>
 <tr>
 <td><a href="-hprof-header/">HprofHeader</a></td>
-<td>[FOOFOO]<br>fun <a href="-hprof-header/">HprofHeader</a>(heapDumpTimestamp: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = System.currentTimeMillis(), version: <a href="../-hprof-version/">HprofVersion</a> = HprofVersion.ANDROID, identifierByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 4)</td>
+<td>fun <a href="-hprof-header/">HprofHeader</a>(heapDumpTimestamp: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = System.currentTimeMillis(), version: <a href="../-hprof-version/">HprofVersion</a> = HprofVersion.ANDROID, identifierByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 4)</td>
 </tr>
 </tbody>
 </table>
@@ -727,7 +726,7 @@ data class <a href="./">HprofHeader</a>(val heapDumpTimestamp: <a href="https://
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -742,19 +741,19 @@ data class <a href="./">HprofHeader</a>(val heapDumpTimestamp: <a href="https://
 <tbody>
 <tr>
 <td><a href="heap-dump-timestamp/">heapDumpTimestamp</a></td>
-<td>[FOOFOO]<br>val <a href="heap-dump-timestamp/">heapDumpTimestamp</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Unix timestamp at which the heap was dumped.</td>
+<td>val <a href="heap-dump-timestamp/">heapDumpTimestamp</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Unix timestamp at which the heap was dumped.</td>
 </tr>
 <tr>
 <td><a href="identifier-byte-size/">identifierByteSize</a></td>
-<td>[FOOFOO]<br>val <a href="identifier-byte-size/">identifierByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 4<br>Size of Hprof identifiers. Identifiers are used to represent UTF8 strings, objects, stack traces, etc. They can have the same size as host pointers or sizeof(void*), but are not required to be.</td>
+<td>val <a href="identifier-byte-size/">identifierByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 4<br>Size of Hprof identifiers. Identifiers are used to represent UTF8 strings, objects, stack traces, etc. They can have the same size as host pointers or sizeof(void*), but are not required to be.</td>
 </tr>
 <tr>
 <td><a href="records-position/">recordsPosition</a></td>
-<td>[FOOFOO]<br>val <a href="records-position/">recordsPosition</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>How many bytes from the beginning of the file can we find the hprof records at. Version string, 0 delimiter (1 byte), identifier byte size int (4 bytes) ,timestamp long (8 bytes)</td>
+<td>val <a href="records-position/">recordsPosition</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>How many bytes from the beginning of the file can we find the hprof records at. Version string, 0 delimiter (1 byte), identifier byte size int (4 bytes) ,timestamp long (8 bytes)</td>
 </tr>
 <tr>
 <td><a href="version/">version</a></td>
-<td>[FOOFOO]<br>val <a href="version/">version</a>: <a href="../-hprof-version/">HprofVersion</a><br>Hprof version, which is tied to the runtime where the heap was dumped.</td>
+<td>val <a href="version/">version</a>: <a href="../-hprof-version/">HprofVersion</a><br>Hprof version, which is tied to the runtime where the heap was dumped.</td>
 </tr>
 </tbody>
 </table>

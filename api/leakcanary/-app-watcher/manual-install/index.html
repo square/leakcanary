@@ -669,7 +669,6 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">leakcanary</a>/<a href="../">AppWatcher</a>/<a href="./">manualInstall</a></p>
 <h1 id="manualinstall">manualInstall<a class="headerlink" href="#manualinstall" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\</p>
 <p>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-overloads/index.html">JvmOverloads</a></p>
 <p>fun <a href="./">manualInstall</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, retainedDelayMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = TimeUnit.SECONDS.toMillis(5), watchersToInstall: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-installable-watcher/">InstallableWatcher</a>&gt; = appDefaultWatchers(application))</p>
 <p>Enables usage of <a href="../object-watcher/">AppWatcher.objectWatcher</a> which will expect passed in objects to become weakly reachable within <a href="./">retainedDelayMillis</a> ms and if not will trigger LeakCanary (if LeakCanary is in the classpath).</p>

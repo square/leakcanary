@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">LeakTraceReference</a></p>
 <h1 id="leaktracereference">LeakTraceReference<a class="headerlink" href="#leaktracereference" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-data class <a href="./">LeakTraceReference</a>(val originObject: <a href="../-leak-trace-object/">LeakTraceObject</a>, val referenceType: <a href="-reference-type/">LeakTraceReference.ReferenceType</a>, val owningClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val referenceName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
+<p>data class <a href="./">LeakTraceReference</a>(val originObject: <a href="../-leak-trace-object/">LeakTraceObject</a>, val referenceType: <a href="-reference-type/">LeakTraceReference.ReferenceType</a>, val owningClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val referenceName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
 <p>A <a href="./">LeakTraceReference</a> represents an origin <a href="../-leak-trace-object/">LeakTraceObject</a> and either a reference from that object to the <a href="../-leak-trace-object/">LeakTraceObject</a> in the next <a href="./">LeakTraceReference</a> in <a href="../-leak-trace/reference-path/">LeakTrace.referencePath</a>, or to <a href="../-leak-trace/leaking-object/">LeakTrace.leakingObject</a> if this is the last <a href="./">LeakTraceReference</a> in <a href="../-leak-trace/reference-path/">LeakTrace.referencePath</a>.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -712,7 +711,7 @@ data class <a href="./">LeakTraceReference</a>(val originObject: <a href="../-le
 <tbody>
 <tr>
 <td><a href="-leak-trace-reference/">LeakTraceReference</a></td>
-<td>[FOOFOO]<br>fun <a href="-leak-trace-reference/">LeakTraceReference</a>(originObject: <a href="../-leak-trace-object/">LeakTraceObject</a>, referenceType: <a href="-reference-type/">LeakTraceReference.ReferenceType</a>, owningClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, referenceName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
+<td>fun <a href="-leak-trace-reference/">LeakTraceReference</a>(originObject: <a href="../-leak-trace-object/">LeakTraceObject</a>, referenceType: <a href="-reference-type/">LeakTraceReference.ReferenceType</a>, owningClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, referenceName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -727,11 +726,11 @@ data class <a href="./">LeakTraceReference</a>(val originObject: <a href="../-le
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 <tr>
 <td><a href="-reference-type/">ReferenceType</a></td>
-<td>[FOOFOO]<br>enum <a href="-reference-type/">ReferenceType</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-reference-type/">LeakTraceReference.ReferenceType</a>&gt;</td>
+<td>enum <a href="-reference-type/">ReferenceType</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-reference-type/">LeakTraceReference.ReferenceType</a>&gt;</td>
 </tr>
 </tbody>
 </table>
@@ -746,31 +745,31 @@ data class <a href="./">LeakTraceReference</a>(val originObject: <a href="../-le
 <tbody>
 <tr>
 <td><a href="origin-object/">originObject</a></td>
-<td>[FOOFOO]<br>val <a href="origin-object/">originObject</a>: <a href="../-leak-trace-object/">LeakTraceObject</a></td>
+<td>val <a href="origin-object/">originObject</a>: <a href="../-leak-trace-object/">LeakTraceObject</a></td>
 </tr>
 <tr>
 <td><a href="owning-class-name/">owningClassName</a></td>
-<td>[FOOFOO]<br>val <a href="owning-class-name/">owningClassName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>val <a href="owning-class-name/">owningClassName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="owning-class-simple-name/">owningClassSimpleName</a></td>
-<td>[FOOFOO]<br>val <a href="owning-class-simple-name/">owningClassSimpleName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Returns {@link #className} without the package, ie stripped of any string content before the last period (included).</td>
+<td>val <a href="owning-class-simple-name/">owningClassSimpleName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Returns {@link #className} without the package, ie stripped of any string content before the last period (included).</td>
 </tr>
 <tr>
 <td><a href="reference-display-name/">referenceDisplayName</a></td>
-<td>[FOOFOO]<br>val <a href="reference-display-name/">referenceDisplayName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>val <a href="reference-display-name/">referenceDisplayName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="reference-generic-name/">referenceGenericName</a></td>
-<td>[FOOFOO]<br>val <a href="reference-generic-name/">referenceGenericName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>val <a href="reference-generic-name/">referenceGenericName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="reference-name/">referenceName</a></td>
-<td>[FOOFOO]<br>val <a href="reference-name/">referenceName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>val <a href="reference-name/">referenceName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="reference-type/">referenceType</a></td>
-<td>[FOOFOO]<br>val <a href="reference-type/">referenceType</a>: <a href="-reference-type/">LeakTraceReference.ReferenceType</a></td>
+<td>val <a href="reference-type/">referenceType</a>: <a href="-reference-type/">LeakTraceReference.ReferenceType</a></td>
 </tr>
 </tbody>
 </table>

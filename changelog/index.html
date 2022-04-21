@@ -2200,6 +2200,7 @@
 <li>Visualize the heap dominators / retained size as a treemap.</li>
 <li>A backend for LeakCanary?</li>
 </ul>
+<p>Anyway, that&rsquo;s still very much the future, let&rsquo;s talk about what&rsquo;s in <code>2.9.1</code> now!</p>
 <h3 id="new-metrics-in-heap-analysis-metadata">New metrics in heap analysis metadata<a class="headerlink" href="#new-metrics-in-heap-analysis-metadata" title="Permanent link">&para;</a></h3>
 <p>I built LeakCanary to help fix leaks, but in doing so I accidentally wrote a fairly flexible heap dump parser. Since we&rsquo;re parsing the heap to find leaks anyway, we might as well report additional interesting metrics. Here&rsquo;s what you&rsquo;ll now see in the heap dump metadata:</p>
 <ul>
@@ -2215,7 +2216,7 @@
 <li>Large bitmap total bytes</li>
 <li>SQLiteDatabase in memory (open or closed, as well as their file path)</li>
 </ul>
-<p>This is just a first pass, feedback and ideas welcome! </p>
+<p>This is just a first pass, feedback and ideas welcome!</p>
 <h3 id="performance-improvements">Performance improvements<a class="headerlink" href="#performance-improvements" title="Permanent link">&para;</a></h3>
 <p>The heap analysis now traverses the heap dump using <code>RandomAccessFile</code> instead of <code>FileChannel.transferTo()</code> and is now 40% faster on API 23 and 20% faster on newer APIs.
 Also, sticky class GC roots are now deduplicated, which great reduces the memory footprint of LeakCanary on API 23 (<a href="https://github.com/square/leakcanary/pull/2324">#2324</a>). You can read about the related investigation <a href="https://py.hashnode.dev/of-sharks-and-heaps-of-sticky-marshmallows">on py.hashnode.dev</a>.</p>

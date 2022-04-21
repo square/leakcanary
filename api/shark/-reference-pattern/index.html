@@ -691,8 +691,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">ReferencePattern</a></p>
 <h1 id="referencepattern">ReferencePattern<a class="headerlink" href="#referencepattern" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-sealed class <a href="./">ReferencePattern</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
+<p>sealed class <a href="./">ReferencePattern</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
 <p>A pattern that will match references for a given <a href="../-reference-matcher/">ReferenceMatcher</a>.</p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
@@ -705,23 +704,23 @@ sealed class <a href="./">ReferencePattern</a> : <a href="https://developer.andr
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 <tr>
 <td><a href="-instance-field-pattern/">InstanceFieldPattern</a></td>
-<td>[FOOFOO]<br>data class <a href="-instance-field-pattern/">InstanceFieldPattern</a>(val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">ReferencePattern</a><br>Matches instances field references, identified by <a href="-instance-field-pattern/class-name/">className</a> and <a href="-instance-field-pattern/field-name/">fieldName</a>.</td>
+<td>data class <a href="-instance-field-pattern/">InstanceFieldPattern</a>(val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">ReferencePattern</a><br>Matches instances field references, identified by <a href="-instance-field-pattern/class-name/">className</a> and <a href="-instance-field-pattern/field-name/">fieldName</a>.</td>
 </tr>
 <tr>
 <td><a href="-java-local-pattern/">JavaLocalPattern</a></td>
-<td>[FOOFOO]<br>data class <a href="-java-local-pattern/">JavaLocalPattern</a>(val threadName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">ReferencePattern</a><br>Matches local references held in the stack of frames of a given thread, identified by its name.</td>
+<td>data class <a href="-java-local-pattern/">JavaLocalPattern</a>(val threadName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">ReferencePattern</a><br>Matches local references held in the stack of frames of a given thread, identified by its name.</td>
 </tr>
 <tr>
 <td><a href="-native-global-variable-pattern/">NativeGlobalVariablePattern</a></td>
-<td>[FOOFOO]<br>data class <a href="-native-global-variable-pattern/">NativeGlobalVariablePattern</a>(val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">ReferencePattern</a><br>Matches native global variables (also known as jni global gc roots) that reference Java objects. The class name will match against classes, instances and object arrays with a matching class name.</td>
+<td>data class <a href="-native-global-variable-pattern/">NativeGlobalVariablePattern</a>(val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">ReferencePattern</a><br>Matches native global variables (also known as jni global gc roots) that reference Java objects. The class name will match against classes, instances and object arrays with a matching class name.</td>
 </tr>
 <tr>
 <td><a href="-static-field-pattern/">StaticFieldPattern</a></td>
-<td>[FOOFOO]<br>data class <a href="-static-field-pattern/">StaticFieldPattern</a>(val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">ReferencePattern</a><br>Matches static field references, identified by <a href="-static-field-pattern/class-name/">className</a> and <a href="-static-field-pattern/field-name/">fieldName</a>.</td>
+<td>data class <a href="-static-field-pattern/">StaticFieldPattern</a>(val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">ReferencePattern</a><br>Matches static field references, identified by <a href="-static-field-pattern/class-name/">className</a> and <a href="-static-field-pattern/field-name/">fieldName</a>.</td>
 </tr>
 </tbody>
 </table>

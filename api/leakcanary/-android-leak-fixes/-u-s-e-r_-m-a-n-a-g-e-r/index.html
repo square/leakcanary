@@ -684,8 +684,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">leakcanary</a>/<a href="../">AndroidLeakFixes</a>/<a href="./">USER_MANAGER</a></p>
 <h1 id="user_manager">USER_MANAGER<a class="headerlink" href="#user_manager" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-<a href="./">USER_MANAGER</a>()</p>
+<p><a href="./">USER_MANAGER</a>()</p>
 <p>Obtaining the UserManager service ends up calling the hidden UserManager.get() method which stores the context in a singleton UserManager instance and then stores that instance in a static field.</p>
 <p>We obtain the user manager from an activity context, so if it hasn&rsquo;t been created yet it will leak that activity forever.</p>
 <p>This fix makes sure the UserManager is created and holds on to the Application context.</p>
@@ -701,12 +700,12 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F121734517">name</a></td>
-<td>[FOOFOO]<br>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F121734517">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F44236444">name</a></td>
+<td>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F44236444">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
-<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F121734517">ordinal</a></td>
-<td>[FOOFOO]<br>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F121734517">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F44236444">ordinal</a></td>
+<td>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F44236444">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

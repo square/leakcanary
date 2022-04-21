@@ -691,8 +691,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">leakcanary</a>/<a href="./">TestDescriptionHolder</a></p>
 <h1 id="testdescriptionholder">TestDescriptionHolder<a class="headerlink" href="#testdescriptionholder" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-object <a href="./">TestDescriptionHolder</a> : TestRule</p>
+<p>object <a href="./">TestDescriptionHolder</a> : TestRule</p>
 <p>A TestRule that holds onto the test Description in a thread local while evaluating, making it possible to retrieve that test Description from the test thread via <a href="test-description/">testDescription</a>.</p>
 <p>This rule is automatically applied by <a href="../-detect-leaks-after-test-success/">DetectLeaksAfterTestSuccess</a>.</p>
 <h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
@@ -706,15 +705,15 @@ object <a href="./">TestDescriptionHolder</a> : TestRule</p>
 <tbody>
 <tr>
 <td><a href="apply/">apply</a></td>
-<td>[FOOFOO]<br>open override fun <a href="apply/">apply</a>(base: Statement, description: Description): Statement</td>
+<td>open override fun <a href="apply/">apply</a>(base: Statement, description: Description): Statement</td>
 </tr>
 <tr>
 <td><a href="is-evaluating/">isEvaluating</a></td>
-<td>[FOOFOO]<br>fun <a href="is-evaluating/">isEvaluating</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+<td>fun <a href="is-evaluating/">isEvaluating</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
 </tr>
 <tr>
 <td><a href="wrap/">wrap</a></td>
-<td>[FOOFOO]<br>fun <a href="wrap/">wrap</a>(base: Statement, description: Description): Statement</td>
+<td>fun <a href="wrap/">wrap</a>(base: Statement, description: Description): Statement</td>
 </tr>
 </tbody>
 </table>
@@ -729,7 +728,7 @@ object <a href="./">TestDescriptionHolder</a> : TestRule</p>
 <tbody>
 <tr>
 <td><a href="test-description/">testDescription</a></td>
-<td>[FOOFOO]<br>val <a href="test-description/">testDescription</a>: Description</td>
+<td>val <a href="test-description/">testDescription</a>: Description</td>
 </tr>
 </tbody>
 </table>

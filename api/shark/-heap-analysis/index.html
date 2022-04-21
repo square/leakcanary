@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">HeapAnalysis</a></p>
 <h1 id="heapanalysis">HeapAnalysis<a class="headerlink" href="#heapanalysis" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-sealed class <a href="./">HeapAnalysis</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
+<p>sealed class <a href="./">HeapAnalysis</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
 <p>The result of an analysis performed by <a href="../-heap-analyzer/">HeapAnalyzer</a>, either a <a href="../-heap-analysis-success/">HeapAnalysisSuccess</a> or a <a href="../-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward compatibility.</p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
@@ -712,7 +711,7 @@ sealed class <a href="./">HeapAnalysis</a> : <a href="https://developer.android.
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -727,19 +726,19 @@ sealed class <a href="./">HeapAnalysis</a> : <a href="https://developer.android.
 <tbody>
 <tr>
 <td><a href="analysis-duration-millis/">analysisDurationMillis</a></td>
-<td>[FOOFOO]<br>abstract val <a href="analysis-duration-millis/">analysisDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent analyzing the heap.</td>
+<td>abstract val <a href="analysis-duration-millis/">analysisDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent analyzing the heap.</td>
 </tr>
 <tr>
 <td><a href="created-at-time-millis/">createdAtTimeMillis</a></td>
-<td>[FOOFOO]<br>abstract val <a href="created-at-time-millis/">createdAtTimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The <a href="https://developer.android.com/reference/kotlin/java/lang/System.html#currenttimemillis">System.currentTimeMillis</a> when this <a href="./">HeapAnalysis</a> instance was created.</td>
+<td>abstract val <a href="created-at-time-millis/">createdAtTimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The <a href="https://developer.android.com/reference/kotlin/java/lang/System.html#currenttimemillis">System.currentTimeMillis</a> when this <a href="./">HeapAnalysis</a> instance was created.</td>
 </tr>
 <tr>
 <td><a href="dump-duration-millis/">dumpDurationMillis</a></td>
-<td>[FOOFOO]<br>abstract val <a href="dump-duration-millis/">dumpDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent dumping the heap.</td>
+<td>abstract val <a href="dump-duration-millis/">dumpDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent dumping the heap.</td>
 </tr>
 <tr>
 <td><a href="heap-dump-file/">heapDumpFile</a></td>
-<td>[FOOFOO]<br>abstract val <a href="heap-dump-file/">heapDumpFile</a>: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a><br>The hprof file that was analyzed.</td>
+<td>abstract val <a href="heap-dump-file/">heapDumpFile</a>: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a><br>The hprof file that was analyzed.</td>
 </tr>
 </tbody>
 </table>

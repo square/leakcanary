@@ -705,8 +705,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">ApplicationLeak</a></p>
 <h1 id="applicationleak">ApplicationLeak<a class="headerlink" href="#applicationleak" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-data class <a href="./">ApplicationLeak</a>(val leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace/">LeakTrace</a>&gt;) : <a href="../-leak/">Leak</a></p>
+<p>data class <a href="./">ApplicationLeak</a>(val leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace/">LeakTrace</a>&gt;) : <a href="../-leak/">Leak</a></p>
 <p>A leak found by <a href="../-heap-analyzer/">HeapAnalyzer</a> in your application.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -719,7 +718,7 @@ data class <a href="./">ApplicationLeak</a>(val leakTraces: <a href="https://kot
 <tbody>
 <tr>
 <td><a href="-application-leak/">ApplicationLeak</a></td>
-<td>[FOOFOO]<br>fun <a href="-application-leak/">ApplicationLeak</a>(leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace/">LeakTrace</a>&gt;)</td>
+<td>fun <a href="-application-leak/">ApplicationLeak</a>(leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace/">LeakTrace</a>&gt;)</td>
 </tr>
 </tbody>
 </table>
@@ -734,7 +733,7 @@ data class <a href="./">ApplicationLeak</a>(val leakTraces: <a href="https://kot
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -749,7 +748,7 @@ data class <a href="./">ApplicationLeak</a>(val leakTraces: <a href="https://kot
 <tbody>
 <tr>
 <td><a href="to-string/">toString</a></td>
-<td>[FOOFOO]<br>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>
@@ -764,23 +763,23 @@ data class <a href="./">ApplicationLeak</a>(val leakTraces: <a href="https://kot
 <tbody>
 <tr>
 <td><a href="leak-traces/">leakTraces</a></td>
-<td>[FOOFOO]<br>open override val <a href="leak-traces/">leakTraces</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace/">LeakTrace</a>&gt;<br>Group of leak traces which share the same leak signature.</td>
+<td>open override val <a href="leak-traces/">leakTraces</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace/">LeakTrace</a>&gt;<br>Group of leak traces which share the same leak signature.</td>
 </tr>
 <tr>
 <td><a href="short-description/">shortDescription</a></td>
-<td>[FOOFOO]<br>open override val <a href="short-description/">shortDescription</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>open override val <a href="short-description/">shortDescription</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="signature/">signature</a></td>
-<td>[FOOFOO]<br>open override val <a href="signature/">signature</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>A unique SHA1 hash that represents this group of leak traces.</td>
+<td>open override val <a href="signature/">signature</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>A unique SHA1 hash that represents this group of leak traces.</td>
 </tr>
 <tr>
 <td><a href="../-leak/total-retained-heap-byte-size/">totalRetainedHeapByteSize</a></td>
-<td>[FOOFOO]<br>val <a href="../-leak/total-retained-heap-byte-size/">totalRetainedHeapByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>Sum of <a href="../-leak-trace/retained-heap-byte-size/">LeakTrace.retainedHeapByteSize</a> for all elements in <a href="../-leak/leak-traces/">leakTraces</a>. Null if the retained heap size was not computed.</td>
+<td>val <a href="../-leak/total-retained-heap-byte-size/">totalRetainedHeapByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>Sum of <a href="../-leak-trace/retained-heap-byte-size/">LeakTrace.retainedHeapByteSize</a> for all elements in <a href="../-leak/leak-traces/">leakTraces</a>. Null if the retained heap size was not computed.</td>
 </tr>
 <tr>
 <td><a href="../-leak/total-retained-object-count/">totalRetainedObjectCount</a></td>
-<td>[FOOFOO]<br>val <a href="../-leak/total-retained-object-count/">totalRetainedObjectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>Sum of <a href="../-leak-trace/retained-object-count/">LeakTrace.retainedObjectCount</a> for all elements in <a href="../-leak/leak-traces/">leakTraces</a>. Null if the retained heap size was not computed.</td>
+<td>val <a href="../-leak/total-retained-object-count/">totalRetainedObjectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>Sum of <a href="../-leak-trace/retained-object-count/">LeakTrace.retainedObjectCount</a> for all elements in <a href="../-leak/leak-traces/">leakTraces</a>. Null if the retained heap size was not computed.</td>
 </tr>
 </tbody>
 </table>

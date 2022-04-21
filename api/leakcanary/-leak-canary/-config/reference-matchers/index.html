@@ -669,8 +669,7 @@
   
   <p>//<a href="../../../../..">leakcanary</a>/<a href="../../../">leakcanary</a>/<a href="../../">LeakCanary</a>/<a href="../">Config</a>/<a href="./">referenceMatchers</a></p>
 <h1 id="referencematchers">referenceMatchers<a class="headerlink" href="#referencematchers" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-val <a href="./">referenceMatchers</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../../../shark/-reference-matcher/">ReferenceMatcher</a>&gt;</p>
+<p>val <a href="./">referenceMatchers</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../../../shark/-reference-matcher/">ReferenceMatcher</a>&gt;</p>
 <p>Known patterns of references in the heap, added here either to ignore them (<a href="../../../../shark/-ignored-reference-matcher/">IgnoredReferenceMatcher</a>) or to mark them as library leaks (<a href="../../../../shark/-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>).</p>
 <p>When adding your own custom <a href="../../../../shark/-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> instances, you&rsquo;ll most likely want to set <a href="../../../../shark/-library-leak-reference-matcher/pattern-applies/">LibraryLeakReferenceMatcher.patternApplies</a> with a filter that checks for the Android OS version and manufacturer. The build information can be obtained by calling <a href="../../../../shark/-android-build-mirror/-companion/from-heap-graph/">shark.AndroidBuildMirror.fromHeapGraph</a>.</p>
 <p>Defaults to <a href="../../../../shark/-android-reference-matchers/-companion/app-defaults/">AndroidReferenceMatchers.appDefaults</a></p>

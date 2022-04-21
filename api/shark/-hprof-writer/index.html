@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">HprofWriter</a></p>
 <h1 id="hprofwriter">HprofWriter<a class="headerlink" href="#hprofwriter" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">HprofWriter</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></p>
+<p>class <a href="./">HprofWriter</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></p>
 <p>Generates Hprof files.</p>
 <p>Call <a href="-companion/open-writer-for/">openWriterFor</a> to obtain a new instance.</p>
 <p>Call <a href="write/">write</a> to add records and <a href="close/">close</a> when you&rsquo;re done.</p>
@@ -714,7 +713,7 @@ class <a href="./">HprofWriter</a> : <a href="https://developer.android.com/refe
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -729,15 +728,15 @@ class <a href="./">HprofWriter</a> : <a href="https://developer.android.com/refe
 <tbody>
 <tr>
 <td><a href="close/">close</a></td>
-<td>[FOOFOO]<br>open override fun <a href="close/">close</a>()<br>Flushes to disk all <a href="../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> that are currently written to the in memory buffer, then closes the file.</td>
+<td>open override fun <a href="close/">close</a>()<br>Flushes to disk all <a href="../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> that are currently written to the in memory buffer, then closes the file.</td>
 </tr>
 <tr>
 <td><a href="values-to-bytes/">valuesToBytes</a></td>
-<td>[FOOFOO]<br>fun <a href="values-to-bytes/">valuesToBytes</a>(values: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-value-holder/">ValueHolder</a>&gt;): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a><br>Helper method for creating a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a> for <a href="../-hprof-record/-heap-dump-record/-object-record/-instance-dump-record/field-values/">InstanceDumpRecord.fieldValues</a> from a list of <a href="../-value-holder/">ValueHolder</a>.</td>
+<td>fun <a href="values-to-bytes/">valuesToBytes</a>(values: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-value-holder/">ValueHolder</a>&gt;): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a><br>Helper method for creating a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a> for <a href="../-hprof-record/-heap-dump-record/-object-record/-instance-dump-record/field-values/">InstanceDumpRecord.fieldValues</a> from a list of <a href="../-value-holder/">ValueHolder</a>.</td>
 </tr>
 <tr>
 <td><a href="write/">write</a></td>
-<td>[FOOFOO]<br>fun <a href="write/">write</a>(record: <a href="../-hprof-record/">HprofRecord</a>)<br>Appends a <a href="../-hprof-record/">HprofRecord</a> to the heap dump. If <a href="write/">record</a> is a <a href="../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> then it will not be written to an in memory buffer and written to file only when the next a record that is not a <a href="../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> is written or when <a href="close/">close</a> is called.</td>
+<td>fun <a href="write/">write</a>(record: <a href="../-hprof-record/">HprofRecord</a>)<br>Appends a <a href="../-hprof-record/">HprofRecord</a> to the heap dump. If <a href="write/">record</a> is a <a href="../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> then it will not be written to an in memory buffer and written to file only when the next a record that is not a <a href="../-hprof-record/-heap-dump-record/">HprofRecord.HeapDumpRecord</a> is written or when <a href="close/">close</a> is called.</td>
 </tr>
 </tbody>
 </table>
@@ -752,7 +751,7 @@ class <a href="./">HprofWriter</a> : <a href="https://developer.android.com/refe
 <tbody>
 <tr>
 <td><a href="hprof-header/">hprofHeader</a></td>
-<td>[FOOFOO]<br>val <a href="hprof-header/">hprofHeader</a>: <a href="../-hprof-header/">HprofHeader</a></td>
+<td>val <a href="hprof-header/">hprofHeader</a>: <a href="../-hprof-header/">HprofHeader</a></td>
 </tr>
 </tbody>
 </table>

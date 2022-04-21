@@ -669,8 +669,7 @@
   
   <p>//<a href="../../../../..">leakcanary</a>/<a href="../../../">leakcanary</a>/<a href="../../">LeakCanary</a>/<a href="../">Config</a>/<a href="./">leakingObjectFinder</a></p>
 <h1 id="leakingobjectfinder">leakingObjectFinder<a class="headerlink" href="#leakingobjectfinder" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-val <a href="./">leakingObjectFinder</a>: <a href="../../../../shark/-leaking-object-finder/">LeakingObjectFinder</a></p>
+<p>val <a href="./">leakingObjectFinder</a>: <a href="../../../../shark/-leaking-object-finder/">LeakingObjectFinder</a></p>
 <p>Finds the objects that are leaking, for which LeakCanary will compute leak traces.</p>
 <p>Defaults to <a href="../../../../shark/-keyed-weak-reference-finder/">KeyedWeakReferenceFinder</a> which finds all objects tracked by a <a href="../../../-keyed-weak-reference/">KeyedWeakReference</a>, ie all objects that were passed to <a href="../../../-object-watcher/expect-weakly-reachable/">ObjectWatcher.expectWeaklyReachable</a>.</p>
 <p>You could instead replace it with a <a href="../../../../shark/-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a>, which scans all objects in the heap dump and delegates the decision to a list of <a href="../../../../shark/-filtering-leaking-object-finder/-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a>. This can lead to finding more leaks than the default and shorter leak traces. This also means that every analysis during a given process life will bring up the same leaking objects over and over again, unlike when using <a href="../../../../shark/-keyed-weak-reference-finder/">KeyedWeakReferenceFinder</a> (because <a href="../../../-keyed-weak-reference/">KeyedWeakReference</a> instances are cleared after each heap dump).</p>

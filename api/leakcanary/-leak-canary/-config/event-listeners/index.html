@@ -669,8 +669,7 @@
   
   <p>//<a href="../../../../..">leakcanary</a>/<a href="../../../">leakcanary</a>/<a href="../../">LeakCanary</a>/<a href="../">Config</a>/<a href="./">eventListeners</a></p>
 <h1 id="eventlisteners">eventListeners<a class="headerlink" href="#eventlisteners" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-val <a href="./">eventListeners</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../../-event-listener/">EventListener</a>&gt;</p>
+<p>val <a href="./">eventListeners</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../../-event-listener/">EventListener</a>&gt;</p>
 <p>Listeners for LeakCanary events. See <a href="../../../-event-listener/-event/">EventListener.Event</a> for the list of events and which thread they&rsquo;re sent from. You most likely want to keep this list and add to it, or remove a few entries but not all entries. Each listener is independent and provides additional behavior which you can disable by not excluding it:</p>
 <p>// No cute canary toast (very sad!)\
 LeakCanary.config = LeakCanary.config.run {\

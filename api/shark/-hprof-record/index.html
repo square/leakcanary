@@ -691,8 +691,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">HprofRecord</a></p>
 <h1 id="hprofrecord">HprofRecord<a class="headerlink" href="#hprofrecord" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-sealed class <a href="./">HprofRecord</a></p>
+<p>sealed class <a href="./">HprofRecord</a></p>
 <p>A Hprof record. These data structure map 1:1 with how records are written in hprof files.</p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
@@ -705,27 +704,27 @@ sealed class <a href="./">HprofRecord</a></p>
 <tbody>
 <tr>
 <td><a href="-heap-dump-end-record/">HeapDumpEndRecord</a></td>
-<td>[FOOFOO]<br>object <a href="-heap-dump-end-record/">HeapDumpEndRecord</a> : <a href="./">HprofRecord</a><br>Terminates a series of heap dump segments. Concatenation of heap dump segments equals a heap dump.</td>
+<td>object <a href="-heap-dump-end-record/">HeapDumpEndRecord</a> : <a href="./">HprofRecord</a><br>Terminates a series of heap dump segments. Concatenation of heap dump segments equals a heap dump.</td>
 </tr>
 <tr>
 <td><a href="-heap-dump-record/">HeapDumpRecord</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-heap-dump-record/">HeapDumpRecord</a> : <a href="./">HprofRecord</a></td>
+<td>sealed class <a href="-heap-dump-record/">HeapDumpRecord</a> : <a href="./">HprofRecord</a></td>
 </tr>
 <tr>
 <td><a href="-load-class-record/">LoadClassRecord</a></td>
-<td>[FOOFOO]<br>class <a href="-load-class-record/">LoadClassRecord</a>(val classSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val classNameStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">HprofRecord</a></td>
+<td>class <a href="-load-class-record/">LoadClassRecord</a>(val classSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val classNameStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="./">HprofRecord</a></td>
 </tr>
 <tr>
 <td><a href="-stack-frame-record/">StackFrameRecord</a></td>
-<td>[FOOFOO]<br>class <a href="-stack-frame-record/">StackFrameRecord</a>(val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val methodNameStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val methodSignatureStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val sourceFileNameStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val classSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val lineNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="./">HprofRecord</a></td>
+<td>class <a href="-stack-frame-record/">StackFrameRecord</a>(val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val methodNameStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val methodSignatureStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val sourceFileNameStringId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val classSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val lineNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="./">HprofRecord</a></td>
 </tr>
 <tr>
 <td><a href="-stack-trace-record/">StackTraceRecord</a></td>
-<td>[FOOFOO]<br>class <a href="-stack-trace-record/">StackTraceRecord</a>(val stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val stackFrameIds: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long-array/index.html">LongArray</a>) : <a href="./">HprofRecord</a></td>
+<td>class <a href="-stack-trace-record/">StackTraceRecord</a>(val stackTraceSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val stackFrameIds: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long-array/index.html">LongArray</a>) : <a href="./">HprofRecord</a></td>
 </tr>
 <tr>
 <td><a href="-string-record/">StringRecord</a></td>
-<td>[FOOFOO]<br>class <a href="-string-record/">StringRecord</a>(val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val string: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">HprofRecord</a></td>
+<td>class <a href="-string-record/">StringRecord</a>(val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val string: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">HprofRecord</a></td>
 </tr>
 </tbody>
 </table>

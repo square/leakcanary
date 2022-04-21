@@ -691,8 +691,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">RandomAccessHprofReader</a></p>
 <h1 id="randomaccesshprofreader">RandomAccessHprofReader<a class="headerlink" href="#randomaccesshprofreader" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">RandomAccessHprofReader</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></p>
+<p>class <a href="./">RandomAccessHprofReader</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></p>
 <p>Reads records in a Hprof source, one at a time with a specific position and size. Call <a href="-companion/open-reader-for/">openReaderFor</a> to obtain a new instance.</p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
@@ -705,7 +704,7 @@ class <a href="./">RandomAccessHprofReader</a> : <a href="https://developer.andr
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -720,11 +719,11 @@ class <a href="./">RandomAccessHprofReader</a> : <a href="https://developer.andr
 <tbody>
 <tr>
 <td><a href="close/">close</a></td>
-<td>[FOOFOO]<br>open override fun <a href="close/">close</a>()</td>
+<td>open override fun <a href="close/">close</a>()</td>
 </tr>
 <tr>
 <td><a href="read-record/">readRecord</a></td>
-<td>[FOOFOO]<br>fun &lt;<a href="read-record/">T</a>&gt; <a href="read-record/">readRecord</a>(recordPosition: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, recordSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, withRecordReader: <a href="../-hprof-record-reader/">HprofRecordReader</a>.() -&gt; <a href="read-record/">T</a>): <a href="read-record/">T</a><br>Loads <a href="read-record/">recordSize</a> bytes at <a href="read-record/">recordPosition</a> into the buffer that backs <a href="../-hprof-record-reader/">HprofRecordReader</a> then calls <a href="read-record/">withRecordReader</a> with that reader as a receiver. <a href="read-record/">withRecordReader</a> is expected to use the receiver reader to read one record of exactly <a href="read-record/">recordSize</a> bytes.</td>
+<td>fun &lt;<a href="read-record/">T</a>&gt; <a href="read-record/">readRecord</a>(recordPosition: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, recordSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, withRecordReader: <a href="../-hprof-record-reader/">HprofRecordReader</a>.() -&gt; <a href="read-record/">T</a>): <a href="read-record/">T</a><br>Loads <a href="read-record/">recordSize</a> bytes at <a href="read-record/">recordPosition</a> into the buffer that backs <a href="../-hprof-record-reader/">HprofRecordReader</a> then calls <a href="read-record/">withRecordReader</a> with that reader as a receiver. <a href="read-record/">withRecordReader</a> is expected to use the receiver reader to read one record of exactly <a href="read-record/">recordSize</a> bytes.</td>
 </tr>
 </tbody>
 </table>

@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">leakcanary</a>/<a href="./">JobContext</a></p>
 <h1 id="jobcontext">JobContext<a class="headerlink" href="#jobcontext" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">JobContext</a>(val starter: <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html">Class</a>&lt;*&gt;? = null)</p>
+<p>class <a href="./">JobContext</a>(val starter: <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html">Class</a>&lt;*&gt;? = null)</p>
 <p>In memory store that can be used to store objects in a given <a href="../-heap-analysis-job/">HeapAnalysisJob</a> instance. This is a simple <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/index.html">MutableMap</a> of <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> to <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, but with unsafe generics access.</p>
 <p>By convention, <a href="starter/">starter</a> should be the class that triggered the start of the job.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
@@ -713,11 +712,11 @@ class <a href="./">JobContext</a>(val starter: <a href="https://developer.androi
 <tbody>
 <tr>
 <td><a href="-job-context/">JobContext</a></td>
-<td>[FOOFOO]<br>fun <a href="-job-context/">JobContext</a>(starter: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html">KClass</a>&lt;*&gt;)</td>
+<td>fun <a href="-job-context/">JobContext</a>(starter: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html">KClass</a>&lt;*&gt;)</td>
 </tr>
 <tr>
 <td><a href="-job-context/">JobContext</a></td>
-<td>[FOOFOO]<br>fun <a href="-job-context/">JobContext</a>(starter: <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html">Class</a>&lt;*&gt;? = null)</td>
+<td>fun <a href="-job-context/">JobContext</a>(starter: <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html">Class</a>&lt;*&gt;? = null)</td>
 </tr>
 </tbody>
 </table>
@@ -732,23 +731,23 @@ class <a href="./">JobContext</a>(val starter: <a href="https://developer.androi
 <tbody>
 <tr>
 <td><a href="contains/">contains</a></td>
-<td>[FOOFOO]<br>operator fun <a href="contains/">contains</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+<td>operator fun <a href="contains/">contains</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
 </tr>
 <tr>
 <td><a href="get/">get</a></td>
-<td>[FOOFOO]<br>operator fun &lt;<a href="get/">T</a>&gt; <a href="get/">get</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="get/">T</a>?</td>
+<td>operator fun &lt;<a href="get/">T</a>&gt; <a href="get/">get</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="get/">T</a>?</td>
 </tr>
 <tr>
 <td><a href="get-or-put/">getOrPut</a></td>
-<td>[FOOFOO]<br>fun &lt;<a href="get-or-put/">T</a>&gt; <a href="get-or-put/">getOrPut</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, defaultValue: () -&gt; <a href="get-or-put/">T</a>): <a href="get-or-put/">T</a></td>
+<td>fun &lt;<a href="get-or-put/">T</a>&gt; <a href="get-or-put/">getOrPut</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, defaultValue: () -&gt; <a href="get-or-put/">T</a>): <a href="get-or-put/">T</a></td>
 </tr>
 <tr>
 <td><a href="minus-assign/">minusAssign</a></td>
-<td>[FOOFOO]<br>operator fun <a href="minus-assign/">minusAssign</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
+<td>operator fun <a href="minus-assign/">minusAssign</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
 </tr>
 <tr>
 <td><a href="set/">set</a></td>
-<td>[FOOFOO]<br>operator fun &lt;<a href="set/">T</a>&gt; <a href="set/">set</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, value: <a href="set/">T</a>)</td>
+<td>operator fun &lt;<a href="set/">T</a>&gt; <a href="set/">set</a>(key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, value: <a href="set/">T</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -763,7 +762,7 @@ class <a href="./">JobContext</a>(val starter: <a href="https://developer.androi
 <tbody>
 <tr>
 <td><a href="starter/">starter</a></td>
-<td>[FOOFOO]<br>val <a href="starter/">starter</a>: <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html">Class</a>&lt;*&gt;? = null</td>
+<td>val <a href="starter/">starter</a>: <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html">Class</a>&lt;*&gt;? = null</td>
 </tr>
 </tbody>
 </table>

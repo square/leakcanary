@@ -691,8 +691,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">leakcanary</a>/<a href="./">AppWatcher</a></p>
 <h1 id="appwatcher">AppWatcher<a class="headerlink" href="#appwatcher" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-object <a href="./">AppWatcher</a></p>
+<p>object <a href="./">AppWatcher</a></p>
 <p>The entry point API for using <a href="../-object-watcher/">ObjectWatcher</a> in an Android app. <a href="object-watcher/">AppWatcher.objectWatcher</a> is in charge of detecting retained objects, and <a href="./">AppWatcher</a> is auto configured on app start to pass it activity and fragment instances. Call ObjectWatcher.watch on <a href="object-watcher/">objectWatcher</a> to watch any other object that you expect to be unreachable.</p>
 <h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
@@ -705,11 +704,11 @@ object <a href="./">AppWatcher</a></p>
 <tbody>
 <tr>
 <td><a href="app-default-watchers/">appDefaultWatchers</a></td>
-<td>[FOOFOO]<br>fun <a href="app-default-watchers/">appDefaultWatchers</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, reachabilityWatcher: <a href="../-reachability-watcher/">ReachabilityWatcher</a> = objectWatcher): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-installable-watcher/">InstallableWatcher</a>&gt;<br>Creates a new list of default app <a href="../-installable-watcher/">InstallableWatcher</a>, created with the passed in <a href="app-default-watchers/">reachabilityWatcher</a> (which defaults to <a href="object-watcher/">objectWatcher</a>). Once installed, these watchers will pass in to <a href="app-default-watchers/">reachabilityWatcher</a> objects that they expect to become weakly reachable.</td>
+<td>fun <a href="app-default-watchers/">appDefaultWatchers</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, reachabilityWatcher: <a href="../-reachability-watcher/">ReachabilityWatcher</a> = objectWatcher): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-installable-watcher/">InstallableWatcher</a>&gt;<br>Creates a new list of default app <a href="../-installable-watcher/">InstallableWatcher</a>, created with the passed in <a href="app-default-watchers/">reachabilityWatcher</a> (which defaults to <a href="object-watcher/">objectWatcher</a>). Once installed, these watchers will pass in to <a href="app-default-watchers/">reachabilityWatcher</a> objects that they expect to become weakly reachable.</td>
 </tr>
 <tr>
 <td><a href="manual-install/">manualInstall</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-overloads/index.html">JvmOverloads</a><br>fun <a href="manual-install/">manualInstall</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, retainedDelayMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = TimeUnit.SECONDS.toMillis(5), watchersToInstall: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-installable-watcher/">InstallableWatcher</a>&gt; = appDefaultWatchers(application))<br>Enables usage of <a href="object-watcher/">AppWatcher.objectWatcher</a> which will expect passed in objects to become weakly reachable within <a href="manual-install/">retainedDelayMillis</a> ms and if not will trigger LeakCanary (if LeakCanary is in the classpath).</td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-overloads/index.html">JvmOverloads</a><br>fun <a href="manual-install/">manualInstall</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, retainedDelayMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = TimeUnit.SECONDS.toMillis(5), watchersToInstall: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-installable-watcher/">InstallableWatcher</a>&gt; = appDefaultWatchers(application))<br>Enables usage of <a href="object-watcher/">AppWatcher.objectWatcher</a> which will expect passed in objects to become weakly reachable within <a href="manual-install/">retainedDelayMillis</a> ms and if not will trigger LeakCanary (if LeakCanary is in the classpath).</td>
 </tr>
 </tbody>
 </table>
@@ -724,15 +723,15 @@ object <a href="./">AppWatcher</a></p>
 <tbody>
 <tr>
 <td><a href="is-installed/">isInstalled</a></td>
-<td>[FOOFOO]<br>val <a href="is-installed/">isInstalled</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+<td>val <a href="is-installed/">isInstalled</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
 </tr>
 <tr>
 <td><a href="object-watcher/">objectWatcher</a></td>
-<td>[FOOFOO]<br>val <a href="object-watcher/">objectWatcher</a>: <a href="../-object-watcher/">ObjectWatcher</a><br>The <a href="../-object-watcher/">ObjectWatcher</a> used by AppWatcher to detect retained objects. Only set when <a href="is-installed/">isInstalled</a> is true.</td>
+<td>val <a href="object-watcher/">objectWatcher</a>: <a href="../-object-watcher/">ObjectWatcher</a><br>The <a href="../-object-watcher/">ObjectWatcher</a> used by AppWatcher to detect retained objects. Only set when <a href="is-installed/">isInstalled</a> is true.</td>
 </tr>
 <tr>
 <td><a href="retained-delay-millis/">retainedDelayMillis</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-volatile/index.html">Volatile</a><br>val <a href="retained-delay-millis/">retainedDelayMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-volatile/index.html">Volatile</a><br>val <a href="retained-delay-millis/">retainedDelayMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
 </tr>
 </tbody>
 </table>

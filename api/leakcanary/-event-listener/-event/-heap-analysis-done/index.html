@@ -698,8 +698,7 @@
   
   <p>//<a href="../../../../..">leakcanary</a>/<a href="../../../">leakcanary</a>/<a href="../../">EventListener</a>/<a href="../">Event</a>/<a href="./">HeapAnalysisDone</a></p>
 <h1 id="heapanalysisdone">HeapAnalysisDone<a class="headerlink" href="#heapanalysisdone" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-sealed class <a href="./">HeapAnalysisDone</a>&lt;<a href="./">T</a> : <a href="../../../../shark/-heap-analysis/">HeapAnalysis</a>&gt; : <a href="../">EventListener.Event</a></p>
+<p>sealed class <a href="./">HeapAnalysisDone</a>&lt;<a href="./">T</a> : <a href="../../../../shark/-heap-analysis/">HeapAnalysis</a>&gt; : <a href="../">EventListener.Event</a></p>
 <p>Sent from the thread performing the analysis.</p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
@@ -712,11 +711,11 @@ sealed class <a href="./">HeapAnalysisDone</a>&lt;<a href="./">T</a> : <a href="
 <tbody>
 <tr>
 <td><a href="-heap-analysis-failed/">HeapAnalysisFailed</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-analysis-failed/">HeapAnalysisFailed</a>(uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, heapAnalysis: <a href="../../../../shark/-heap-analysis-failure/">HeapAnalysisFailure</a>, showIntent: <a href="https://developer.android.com/reference/kotlin/android/content/Intent.html">Intent</a>) : <a href="./">EventListener.Event.HeapAnalysisDone</a>&lt;<a href="../../../../shark/-heap-analysis-failure/">HeapAnalysisFailure</a>&gt;</td>
+<td>class <a href="-heap-analysis-failed/">HeapAnalysisFailed</a>(uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, heapAnalysis: <a href="../../../../shark/-heap-analysis-failure/">HeapAnalysisFailure</a>, showIntent: <a href="https://developer.android.com/reference/kotlin/android/content/Intent.html">Intent</a>) : <a href="./">EventListener.Event.HeapAnalysisDone</a>&lt;<a href="../../../../shark/-heap-analysis-failure/">HeapAnalysisFailure</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-succeeded/">HeapAnalysisSucceeded</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-analysis-succeeded/">HeapAnalysisSucceeded</a>(uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, heapAnalysis: <a href="../../../../shark/-heap-analysis-success/">HeapAnalysisSuccess</a>, val unreadLeakSignatures: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, showIntent: <a href="https://developer.android.com/reference/kotlin/android/content/Intent.html">Intent</a>) : <a href="./">EventListener.Event.HeapAnalysisDone</a>&lt;<a href="../../../../shark/-heap-analysis-success/">HeapAnalysisSuccess</a>&gt;</td>
+<td>class <a href="-heap-analysis-succeeded/">HeapAnalysisSucceeded</a>(uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, heapAnalysis: <a href="../../../../shark/-heap-analysis-success/">HeapAnalysisSuccess</a>, val unreadLeakSignatures: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, showIntent: <a href="https://developer.android.com/reference/kotlin/android/content/Intent.html">Intent</a>) : <a href="./">EventListener.Event.HeapAnalysisDone</a>&lt;<a href="../../../../shark/-heap-analysis-success/">HeapAnalysisSuccess</a>&gt;</td>
 </tr>
 </tbody>
 </table>
@@ -731,15 +730,15 @@ sealed class <a href="./">HeapAnalysisDone</a>&lt;<a href="./">T</a> : <a href="
 <tbody>
 <tr>
 <td><a href="heap-analysis/">heapAnalysis</a></td>
-<td>[FOOFOO]<br>val <a href="heap-analysis/">heapAnalysis</a>: <a href="./">T</a></td>
+<td>val <a href="heap-analysis/">heapAnalysis</a>: <a href="./">T</a></td>
 </tr>
 <tr>
 <td><a href="show-intent/">showIntent</a></td>
-<td>[FOOFOO]<br>val <a href="show-intent/">showIntent</a>: <a href="https://developer.android.com/reference/kotlin/android/content/Intent.html">Intent</a></td>
+<td>val <a href="show-intent/">showIntent</a>: <a href="https://developer.android.com/reference/kotlin/android/content/Intent.html">Intent</a></td>
 </tr>
 <tr>
 <td><a href="../unique-id/">uniqueId</a></td>
-<td>[FOOFOO]<br>val <a href="../unique-id/">uniqueId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Unique identifier for a related chain of event. The identifier for the events that run before <a href="../-heap-dump/">HeapDump</a> gets reset right before <a href="../-heap-dump/">HeapDump</a> is sent.</td>
+<td>val <a href="../unique-id/">uniqueId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Unique identifier for a related chain of event. The identifier for the events that run before <a href="../-heap-dump/">HeapDump</a> gets reset right before <a href="../-heap-dump/">HeapDump</a> is sent.</td>
 </tr>
 </tbody>
 </table>

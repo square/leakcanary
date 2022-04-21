@@ -705,8 +705,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">HeapObject</a></p>
 <h1 id="heapobject">HeapObject<a class="headerlink" href="#heapobject" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-sealed class <a href="./">HeapObject</a></p>
+<p>sealed class <a href="./">HeapObject</a></p>
 <p>An object in the heap dump.</p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
@@ -719,23 +718,23 @@ sealed class <a href="./">HeapObject</a></p>
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 <tr>
 <td><a href="-heap-class/">HeapClass</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-class/">HeapClass</a> : <a href="./">HeapObject</a><br>A class in the heap dump.</td>
+<td>class <a href="-heap-class/">HeapClass</a> : <a href="./">HeapObject</a><br>A class in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-heap-instance/">HeapInstance</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-instance/">HeapInstance</a> : <a href="./">HeapObject</a><br>An instance in the heap dump.</td>
+<td>class <a href="-heap-instance/">HeapInstance</a> : <a href="./">HeapObject</a><br>An instance in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-heap-object-array/">HeapObjectArray</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-object-array/">HeapObjectArray</a> : <a href="./">HeapObject</a><br>An object array in the heap dump.</td>
+<td>class <a href="-heap-object-array/">HeapObjectArray</a> : <a href="./">HeapObject</a><br>An object array in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-heap-primitive-array/">HeapPrimitiveArray</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-primitive-array/">HeapPrimitiveArray</a> : <a href="./">HeapObject</a><br>A primitive array in the heap dump.</td>
+<td>class <a href="-heap-primitive-array/">HeapPrimitiveArray</a> : <a href="./">HeapObject</a><br>A primitive array in the heap dump.</td>
 </tr>
 </tbody>
 </table>
@@ -750,7 +749,7 @@ sealed class <a href="./">HeapObject</a></p>
 <tbody>
 <tr>
 <td><a href="read-record/">readRecord</a></td>
-<td>[FOOFOO]<br>abstract fun <a href="read-record/">readRecord</a>(): <a href="../-hprof-record/-heap-dump-record/-object-record/">HprofRecord.HeapDumpRecord.ObjectRecord</a><br>Reads and returns the underlying <a href="../-hprof-record/-heap-dump-record/-object-record/">ObjectRecord</a>.</td>
+<td>abstract fun <a href="read-record/">readRecord</a>(): <a href="../-hprof-record/-heap-dump-record/-object-record/">HprofRecord.HeapDumpRecord.ObjectRecord</a><br>Reads and returns the underlying <a href="../-hprof-record/-heap-dump-record/-object-record/">ObjectRecord</a>.</td>
 </tr>
 </tbody>
 </table>
@@ -765,39 +764,39 @@ sealed class <a href="./">HeapObject</a></p>
 <tbody>
 <tr>
 <td><a href="as-class/">asClass</a></td>
-<td>[FOOFOO]<br>val <a href="as-class/">asClass</a>: <a href="-heap-class/">HeapObject.HeapClass</a>?<br>This <a href="./">HeapObject</a> as a <a href="-heap-class/">HeapClass</a> if it is one, or null otherwise</td>
+<td>val <a href="as-class/">asClass</a>: <a href="-heap-class/">HeapObject.HeapClass</a>?<br>This <a href="./">HeapObject</a> as a <a href="-heap-class/">HeapClass</a> if it is one, or null otherwise</td>
 </tr>
 <tr>
 <td><a href="as-instance/">asInstance</a></td>
-<td>[FOOFOO]<br>val <a href="as-instance/">asInstance</a>: <a href="-heap-instance/">HeapObject.HeapInstance</a>?<br>This <a href="./">HeapObject</a> as a <a href="-heap-instance/">HeapInstance</a> if it is one, or null otherwise</td>
+<td>val <a href="as-instance/">asInstance</a>: <a href="-heap-instance/">HeapObject.HeapInstance</a>?<br>This <a href="./">HeapObject</a> as a <a href="-heap-instance/">HeapInstance</a> if it is one, or null otherwise</td>
 </tr>
 <tr>
 <td><a href="as-object-array/">asObjectArray</a></td>
-<td>[FOOFOO]<br>val <a href="as-object-array/">asObjectArray</a>: <a href="-heap-object-array/">HeapObject.HeapObjectArray</a>?<br>This <a href="./">HeapObject</a> as a <a href="-heap-object-array/">HeapObjectArray</a> if it is one, or null otherwise</td>
+<td>val <a href="as-object-array/">asObjectArray</a>: <a href="-heap-object-array/">HeapObject.HeapObjectArray</a>?<br>This <a href="./">HeapObject</a> as a <a href="-heap-object-array/">HeapObjectArray</a> if it is one, or null otherwise</td>
 </tr>
 <tr>
 <td><a href="as-primitive-array/">asPrimitiveArray</a></td>
-<td>[FOOFOO]<br>val <a href="as-primitive-array/">asPrimitiveArray</a>: <a href="-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>?<br>This <a href="./">HeapObject</a> as a <a href="-heap-primitive-array/">HeapPrimitiveArray</a> if it is one, or null otherwise</td>
+<td>val <a href="as-primitive-array/">asPrimitiveArray</a>: <a href="-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>?<br>This <a href="./">HeapObject</a> as a <a href="-heap-primitive-array/">HeapPrimitiveArray</a> if it is one, or null otherwise</td>
 </tr>
 <tr>
 <td><a href="graph/">graph</a></td>
-<td>[FOOFOO]<br>abstract val <a href="graph/">graph</a>: <a href="../-heap-graph/">HeapGraph</a><br>The graph of objects in the heap, which you can use to navigate the heap.</td>
+<td>abstract val <a href="graph/">graph</a>: <a href="../-heap-graph/">HeapGraph</a><br>The graph of objects in the heap, which you can use to navigate the heap.</td>
 </tr>
 <tr>
 <td><a href="object-id/">objectId</a></td>
-<td>[FOOFOO]<br>abstract val <a href="object-id/">objectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The heap identifier of this object.</td>
+<td>abstract val <a href="object-id/">objectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The heap identifier of this object.</td>
 </tr>
 <tr>
 <td><a href="object-index/">objectIndex</a></td>
-<td>[FOOFOO]<br>abstract val <a href="object-index/">objectIndex</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>An positive object index that&rsquo;s specific to how Shark stores objects in memory. The index starts at 0 and ends at <a href="../-heap-graph/object-count/">HeapGraph.objectCount</a> - 1. There are no gaps, every index value corresponds to an object. Classes are first, then instances, then object arrays then primitive arrays.</td>
+<td>abstract val <a href="object-index/">objectIndex</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>An positive object index that&rsquo;s specific to how Shark stores objects in memory. The index starts at 0 and ends at <a href="../-heap-graph/object-count/">HeapGraph.objectCount</a> - 1. There are no gaps, every index value corresponds to an object. Classes are first, then instances, then object arrays then primitive arrays.</td>
 </tr>
 <tr>
 <td><a href="positive-object-id/">positiveObjectId</a></td>
-<td>[FOOFOO]<br>val <a href="positive-object-id/">positiveObjectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br><a href="object-id/">objectId</a> masked to be a positive unique identifier, as reported in Android Studio.</td>
+<td>val <a href="positive-object-id/">positiveObjectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br><a href="object-id/">objectId</a> masked to be a positive unique identifier, as reported in Android Studio.</td>
 </tr>
 <tr>
 <td><a href="record-size/">recordSize</a></td>
-<td>[FOOFOO]<br>abstract val <a href="record-size/">recordSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The total byte size for the record of this object in the heap dump.</td>
+<td>abstract val <a href="record-size/">recordSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The total byte size for the record of this object in the heap dump.</td>
 </tr>
 </tbody>
 </table>

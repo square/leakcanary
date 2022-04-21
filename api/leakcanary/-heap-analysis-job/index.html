@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">leakcanary</a>/<a href="./">HeapAnalysisJob</a></p>
 <h1 id="heapanalysisjob">HeapAnalysisJob<a class="headerlink" href="#heapanalysisjob" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-interface <a href="./">HeapAnalysisJob</a></p>
+<p>interface <a href="./">HeapAnalysisJob</a></p>
 <p>A <a href="./">HeapAnalysisJob</a> represents a single prepared request to analyze the heap. It cannot be executed twice.</p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
@@ -712,7 +711,7 @@ interface <a href="./">HeapAnalysisJob</a></p>
 <tbody>
 <tr>
 <td><a href="-result/">Result</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-result/">Result</a></td>
+<td>sealed class <a href="-result/">Result</a></td>
 </tr>
 </tbody>
 </table>
@@ -727,11 +726,11 @@ interface <a href="./">HeapAnalysisJob</a></p>
 <tbody>
 <tr>
 <td><a href="cancel/">cancel</a></td>
-<td>[FOOFOO]<br>abstract fun <a href="cancel/">cancel</a>(cancelReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)<br>Cancels the job, if possible. Jobs that are already complete cannot be canceled.</td>
+<td>abstract fun <a href="cancel/">cancel</a>(cancelReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)<br>Cancels the job, if possible. Jobs that are already complete cannot be canceled.</td>
 </tr>
 <tr>
 <td><a href="execute/">execute</a></td>
-<td>[FOOFOO]<br>abstract fun <a href="execute/">execute</a>(): <a href="-result/">HeapAnalysisJob.Result</a><br>Starts the analysis job immediately, and blocks until a result is available.</td>
+<td>abstract fun <a href="execute/">execute</a>(): <a href="-result/">HeapAnalysisJob.Result</a><br>Starts the analysis job immediately, and blocks until a result is available.</td>
 </tr>
 </tbody>
 </table>
@@ -746,15 +745,15 @@ interface <a href="./">HeapAnalysisJob</a></p>
 <tbody>
 <tr>
 <td><a href="canceled/">canceled</a></td>
-<td>[FOOFOO]<br>abstract val <a href="canceled/">canceled</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>true of <a href="cancel/">cancel</a> has been called or if an <a href="../-heap-analysis-interceptor/">HeapAnalysisInterceptor</a> has returned <a href="-result/-canceled/">Result.Canceled</a> from <a href="../-heap-analysis-interceptor/intercept/">HeapAnalysisInterceptor.intercept</a>.</td>
+<td>abstract val <a href="canceled/">canceled</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>true of <a href="cancel/">cancel</a> has been called or if an <a href="../-heap-analysis-interceptor/">HeapAnalysisInterceptor</a> has returned <a href="-result/-canceled/">Result.Canceled</a> from <a href="../-heap-analysis-interceptor/intercept/">HeapAnalysisInterceptor.intercept</a>.</td>
 </tr>
 <tr>
 <td><a href="context/">context</a></td>
-<td>[FOOFOO]<br>abstract val <a href="context/">context</a>: <a href="../-job-context/">JobContext</a><br>In memory store, mutable and thread safe. This allows passing data to interceptors.</td>
+<td>abstract val <a href="context/">context</a>: <a href="../-job-context/">JobContext</a><br>In memory store, mutable and thread safe. This allows passing data to interceptors.</td>
 </tr>
 <tr>
 <td><a href="executed/">executed</a></td>
-<td>[FOOFOO]<br>abstract val <a href="executed/">executed</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>true if <a href="execute/">execute</a> has been called. It is an error to call <a href="execute/">execute</a> more than once.</td>
+<td>abstract val <a href="executed/">executed</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>true if <a href="execute/">execute</a> has been called. It is an error to call <a href="execute/">execute</a> more than once.</td>
 </tr>
 </tbody>
 </table>

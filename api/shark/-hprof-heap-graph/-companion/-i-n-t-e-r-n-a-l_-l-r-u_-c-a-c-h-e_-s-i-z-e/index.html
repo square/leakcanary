@@ -669,8 +669,7 @@
   
   <p>//<a href="../../../../..">leakcanary</a>/<a href="../../../">shark</a>/<a href="../../">HprofHeapGraph</a>/<a href="../">Companion</a>/<a href="./">INTERNAL_LRU_CACHE_SIZE</a></p>
 <h1 id="internal_lru_cache_size">INTERNAL_LRU_CACHE_SIZE<a class="headerlink" href="#internal_lru_cache_size" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-var <a href="./">INTERNAL_LRU_CACHE_SIZE</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 3000</p>
+<p>var <a href="./">INTERNAL_LRU_CACHE_SIZE</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 3000</p>
 <p>This is not a public API, it&rsquo;s only public so that we can evaluate the effectiveness of different cache size in tests in a different module.</p>
 <p>LRU cache size of 3000 is a sweet spot to balance hits vs memory usage. This is based on running InstrumentationLeakDetectorTest a bunch of time on a Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K</p>
   

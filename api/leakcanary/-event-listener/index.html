@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">leakcanary</a>/<a href="./">EventListener</a></p>
 <h1 id="eventlistener">EventListener<a class="headerlink" href="#eventlistener" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-fun interface <a href="./">EventListener</a></p>
+<p>fun interface <a href="./">EventListener</a></p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -711,7 +710,7 @@ fun interface <a href="./">EventListener</a></p>
 <tbody>
 <tr>
 <td><a href="-event/">Event</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-event/">Event</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>Note: <a href="-event/">Event</a> is <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a> for convenience but we currently make no guarantee that the Serialization is backward / forward compatible across LeakCanary versions, so plan accordingly. This is convenient for passing events around processes, and shouldn&rsquo;t be used to store them.</td>
+<td>sealed class <a href="-event/">Event</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>Note: <a href="-event/">Event</a> is <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a> for convenience but we currently make no guarantee that the Serialization is backward / forward compatible across LeakCanary versions, so plan accordingly. This is convenient for passing events around processes, and shouldn&rsquo;t be used to store them.</td>
 </tr>
 </tbody>
 </table>
@@ -726,7 +725,7 @@ fun interface <a href="./">EventListener</a></p>
 <tbody>
 <tr>
 <td><a href="on-event/">onEvent</a></td>
-<td>[FOOFOO]<br>abstract fun <a href="on-event/">onEvent</a>(event: <a href="-event/">EventListener.Event</a>)<br><a href="on-event/">onEvent</a> is always called from the thread the events are emitted from, which is documented for each event. This enables you to potentially block a chain of events, waiting for some pre work to be done.</td>
+<td>abstract fun <a href="on-event/">onEvent</a>(event: <a href="-event/">EventListener.Event</a>)<br><a href="on-event/">onEvent</a> is always called from the thread the events are emitted from, which is documented for each event. This enables you to potentially block a chain of events, waiting for some pre work to be done.</td>
 </tr>
 </tbody>
 </table>

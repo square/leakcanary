@@ -691,8 +691,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">shark</a>/<a href="../">HeapObject</a>/<a href="./">HeapClass</a></p>
 <h1 id="heapclass">HeapClass<a class="headerlink" href="#heapclass" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">HeapClass</a> : <a href="../">HeapObject</a></p>
+<p>class <a href="./">HeapClass</a> : <a href="../">HeapObject</a></p>
 <p>A class in the heap dump.</p>
 <h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
@@ -705,47 +704,47 @@ class <a href="./">HeapClass</a> : <a href="../">HeapObject</a></p>
 <tbody>
 <tr>
 <td><a href="get/">get</a></td>
-<td>[FOOFOO]<br>operator fun <a href="get/">get</a>(fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../../-heap-field/">HeapField</a>?</td>
+<td>operator fun <a href="get/">get</a>(fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../../-heap-field/">HeapField</a>?</td>
 </tr>
 <tr>
 <td><a href="instance-field-name/">instanceFieldName</a></td>
-<td>[FOOFOO]<br>fun <a href="instance-field-name/">instanceFieldName</a>(fieldRecord: <a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Returns the name of the field declared in this class for the specified <a href="instance-field-name/">fieldRecord</a>.</td>
+<td>fun <a href="instance-field-name/">instanceFieldName</a>(fieldRecord: <a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Returns the name of the field declared in this class for the specified <a href="instance-field-name/">fieldRecord</a>.</td>
 </tr>
 <tr>
 <td><a href="read-fields-byte-size/">readFieldsByteSize</a></td>
-<td>[FOOFOO]<br>fun <a href="read-fields-byte-size/">readFieldsByteSize</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The total byte size of fields for instances of this class, computed as the sum of the individual size of each field of this class. This does not include the size of fields from superclasses.</td>
+<td>fun <a href="read-fields-byte-size/">readFieldsByteSize</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The total byte size of fields for instances of this class, computed as the sum of the individual size of each field of this class. This does not include the size of fields from superclasses.</td>
 </tr>
 <tr>
 <td><a href="read-record/">readRecord</a></td>
-<td>[FOOFOO]<br>open override fun <a href="read-record/">readRecord</a>(): <a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord</a><br>Reads and returns the underlying <a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/">ClassDumpRecord</a>.</td>
+<td>open override fun <a href="read-record/">readRecord</a>(): <a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord</a><br>Reads and returns the underlying <a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/">ClassDumpRecord</a>.</td>
 </tr>
 <tr>
 <td><a href="read-record-fields/">readRecordFields</a></td>
-<td>[FOOFOO]<br>fun <a href="read-record-fields/">readRecordFields</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord</a>&gt;</td>
+<td>fun <a href="read-record-fields/">readRecordFields</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="read-record-static-fields/">readRecordStaticFields</a></td>
-<td>[FOOFOO]<br>fun <a href="read-record-static-fields/">readRecordStaticFields</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/-static-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord</a>&gt;</td>
+<td>fun <a href="read-record-static-fields/">readRecordStaticFields</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-hprof-record/-heap-dump-record/-object-record/-class-dump-record/-static-field-record/">HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="read-static-field/">readStaticField</a></td>
-<td>[FOOFOO]<br>fun <a href="read-static-field/">readStaticField</a>(fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../../-heap-field/">HeapField</a>?<br>Returns a <a href="../../-heap-field/">HeapField</a> object that reflects the specified declared field of the class represented by this <a href="./">HeapClass</a> object, or null if this field does not exist. The <a href="name/">name</a> parameter specifies the simple name of the desired field.</td>
+<td>fun <a href="read-static-field/">readStaticField</a>(fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../../-heap-field/">HeapField</a>?<br>Returns a <a href="../../-heap-field/">HeapField</a> object that reflects the specified declared field of the class represented by this <a href="./">HeapClass</a> object, or null if this field does not exist. The <a href="name/">name</a> parameter specifies the simple name of the desired field.</td>
 </tr>
 <tr>
 <td><a href="read-static-fields/">readStaticFields</a></td>
-<td>[FOOFOO]<br>fun <a href="read-static-fields/">readStaticFields</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../../-heap-field/">HeapField</a>&gt;<br>The static fields of this class, as a sequence of <a href="../../-heap-field/">HeapField</a>.</td>
+<td>fun <a href="read-static-fields/">readStaticFields</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../../-heap-field/">HeapField</a>&gt;<br>The static fields of this class, as a sequence of <a href="../../-heap-field/">HeapField</a>.</td>
 </tr>
 <tr>
 <td><a href="subclass-of/">subclassOf</a></td>
-<td>[FOOFOO]<br>infix fun <a href="subclass-of/">subclassOf</a>(superclass: <a href="./">HeapObject.HeapClass</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if <a href="subclass-of/">superclass</a> is a superclass of this <a href="./">HeapClass</a>.</td>
+<td>infix fun <a href="subclass-of/">subclassOf</a>(superclass: <a href="./">HeapObject.HeapClass</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if <a href="subclass-of/">superclass</a> is a superclass of this <a href="./">HeapClass</a>.</td>
 </tr>
 <tr>
 <td><a href="superclass-of/">superclassOf</a></td>
-<td>[FOOFOO]<br>infix fun <a href="superclass-of/">superclassOf</a>(subclass: <a href="./">HeapObject.HeapClass</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if <a href="superclass-of/">subclass</a> is a sub class of this <a href="./">HeapClass</a>.</td>
+<td>infix fun <a href="superclass-of/">superclassOf</a>(subclass: <a href="./">HeapObject.HeapClass</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if <a href="superclass-of/">subclass</a> is a sub class of this <a href="./">HeapClass</a>.</td>
 </tr>
 <tr>
 <td><a href="to-string/">toString</a></td>
-<td>[FOOFOO]<br>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>
@@ -760,99 +759,99 @@ class <a href="./">HeapClass</a> : <a href="../">HeapObject</a></p>
 <tbody>
 <tr>
 <td><a href="../as-class/">asClass</a></td>
-<td>[FOOFOO]<br>val <a href="../as-class/">asClass</a>: <a href="./">HeapObject.HeapClass</a>?<br>This <a href="../">HeapObject</a> as a <a href="./">HeapClass</a> if it is one, or null otherwise</td>
+<td>val <a href="../as-class/">asClass</a>: <a href="./">HeapObject.HeapClass</a>?<br>This <a href="../">HeapObject</a> as a <a href="./">HeapClass</a> if it is one, or null otherwise</td>
 </tr>
 <tr>
 <td><a href="../as-instance/">asInstance</a></td>
-<td>[FOOFOO]<br>val <a href="../as-instance/">asInstance</a>: <a href="../-heap-instance/">HeapObject.HeapInstance</a>?<br>This <a href="../">HeapObject</a> as a <a href="../-heap-instance/">HeapInstance</a> if it is one, or null otherwise</td>
+<td>val <a href="../as-instance/">asInstance</a>: <a href="../-heap-instance/">HeapObject.HeapInstance</a>?<br>This <a href="../">HeapObject</a> as a <a href="../-heap-instance/">HeapInstance</a> if it is one, or null otherwise</td>
 </tr>
 <tr>
 <td><a href="../as-object-array/">asObjectArray</a></td>
-<td>[FOOFOO]<br>val <a href="../as-object-array/">asObjectArray</a>: <a href="../-heap-object-array/">HeapObject.HeapObjectArray</a>?<br>This <a href="../">HeapObject</a> as a <a href="../-heap-object-array/">HeapObjectArray</a> if it is one, or null otherwise</td>
+<td>val <a href="../as-object-array/">asObjectArray</a>: <a href="../-heap-object-array/">HeapObject.HeapObjectArray</a>?<br>This <a href="../">HeapObject</a> as a <a href="../-heap-object-array/">HeapObjectArray</a> if it is one, or null otherwise</td>
 </tr>
 <tr>
 <td><a href="../as-primitive-array/">asPrimitiveArray</a></td>
-<td>[FOOFOO]<br>val <a href="../as-primitive-array/">asPrimitiveArray</a>: <a href="../-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>?<br>This <a href="../">HeapObject</a> as a <a href="../-heap-primitive-array/">HeapPrimitiveArray</a> if it is one, or null otherwise</td>
+<td>val <a href="../as-primitive-array/">asPrimitiveArray</a>: <a href="../-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>?<br>This <a href="../">HeapObject</a> as a <a href="../-heap-primitive-array/">HeapPrimitiveArray</a> if it is one, or null otherwise</td>
 </tr>
 <tr>
 <td><a href="class-hierarchy/">classHierarchy</a></td>
-<td>[FOOFOO]<br>val <a href="class-hierarchy/">classHierarchy</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="./">HeapObject.HeapClass</a>&gt;<br>The class hierarchy starting at this class (included) and ending at the <a href="https://developer.android.com/reference/kotlin/java/lang/Object.html">Object</a> class (included).</td>
+<td>val <a href="class-hierarchy/">classHierarchy</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="./">HeapObject.HeapClass</a>&gt;<br>The class hierarchy starting at this class (included) and ending at the <a href="https://developer.android.com/reference/kotlin/java/lang/Object.html">Object</a> class (included).</td>
 </tr>
 <tr>
 <td><a href="direct-instances/">directInstances</a></td>
-<td>[FOOFOO]<br>val <a href="direct-instances/">directInstances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-instance/">HeapObject.HeapInstance</a>&gt;<br>All direct instances of this class, ie excluding any instance of subclasses of this class.</td>
+<td>val <a href="direct-instances/">directInstances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-instance/">HeapObject.HeapInstance</a>&gt;<br>All direct instances of this class, ie excluding any instance of subclasses of this class.</td>
 </tr>
 <tr>
 <td><a href="graph/">graph</a></td>
-<td>[FOOFOO]<br>open override val <a href="graph/">graph</a>: <a href="../../-heap-graph/">HeapGraph</a><br>The graph of objects in the heap, which you can use to navigate the heap.</td>
+<td>open override val <a href="graph/">graph</a>: <a href="../../-heap-graph/">HeapGraph</a><br>The graph of objects in the heap, which you can use to navigate the heap.</td>
 </tr>
 <tr>
 <td><a href="has-reference-instance-fields/">hasReferenceInstanceFields</a></td>
-<td>[FOOFOO]<br>val <a href="has-reference-instance-fields/">hasReferenceInstanceFields</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+<td>val <a href="has-reference-instance-fields/">hasReferenceInstanceFields</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
 </tr>
 <tr>
 <td><a href="instance-byte-size/">instanceByteSize</a></td>
-<td>[FOOFOO]<br>val <a href="instance-byte-size/">instanceByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The total byte size of fields for instances of this class, as registered in the class dump. This includes the size of fields from superclasses.</td>
+<td>val <a href="instance-byte-size/">instanceByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The total byte size of fields for instances of this class, as registered in the class dump. This includes the size of fields from superclasses.</td>
 </tr>
 <tr>
 <td><a href="instances/">instances</a></td>
-<td>[FOOFOO]<br>val <a href="instances/">instances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-instance/">HeapObject.HeapInstance</a>&gt;<br>All instances of this class, including instances of subclasses of this class.</td>
+<td>val <a href="instances/">instances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-instance/">HeapObject.HeapInstance</a>&gt;<br>All instances of this class, including instances of subclasses of this class.</td>
 </tr>
 <tr>
 <td><a href="is-array-class/">isArrayClass</a></td>
-<td>[FOOFOO]<br>val <a href="is-array-class/">isArrayClass</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if this class is an array class, and false otherwise.</td>
+<td>val <a href="is-array-class/">isArrayClass</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if this class is an array class, and false otherwise.</td>
 </tr>
 <tr>
 <td><a href="is-object-array-class/">isObjectArrayClass</a></td>
-<td>[FOOFOO]<br>val <a href="is-object-array-class/">isObjectArrayClass</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+<td>val <a href="is-object-array-class/">isObjectArrayClass</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
 </tr>
 <tr>
 <td><a href="is-primitive-array-class/">isPrimitiveArrayClass</a></td>
-<td>[FOOFOO]<br>val <a href="is-primitive-array-class/">isPrimitiveArrayClass</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+<td>val <a href="is-primitive-array-class/">isPrimitiveArrayClass</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
 </tr>
 <tr>
 <td><a href="is-primitive-wrapper-class/">isPrimitiveWrapperClass</a></td>
-<td>[FOOFOO]<br>val <a href="is-primitive-wrapper-class/">isPrimitiveWrapperClass</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Whether this is class is a primitive wrapper type</td>
+<td>val <a href="is-primitive-wrapper-class/">isPrimitiveWrapperClass</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Whether this is class is a primitive wrapper type</td>
 </tr>
 <tr>
 <td><a href="name/">name</a></td>
-<td>[FOOFOO]<br>val <a href="name/">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>The name of this class, identical to <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html#getname">Class.getName</a>. If this class is an array class, the name has a suffix of brackets for each dimension of the array, e.g. com.Foo[][] is a class for 2 dimensional arrays of com.Foo.</td>
+<td>val <a href="name/">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>The name of this class, identical to <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html#getname">Class.getName</a>. If this class is an array class, the name has a suffix of brackets for each dimension of the array, e.g. com.Foo[][] is a class for 2 dimensional arrays of com.Foo.</td>
 </tr>
 <tr>
 <td><a href="object-array-instances/">objectArrayInstances</a></td>
-<td>[FOOFOO]<br>val <a href="object-array-instances/">objectArrayInstances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object-array/">HeapObject.HeapObjectArray</a>&gt;</td>
+<td>val <a href="object-array-instances/">objectArrayInstances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object-array/">HeapObject.HeapObjectArray</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="object-id/">objectId</a></td>
-<td>[FOOFOO]<br>open override val <a href="object-id/">objectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The heap identifier of this object.</td>
+<td>open override val <a href="object-id/">objectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The heap identifier of this object.</td>
 </tr>
 <tr>
 <td><a href="object-index/">objectIndex</a></td>
-<td>[FOOFOO]<br>open override val <a href="object-index/">objectIndex</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>An positive object index that&rsquo;s specific to how Shark stores objects in memory. The index starts at 0 and ends at <a href="../../-heap-graph/object-count/">HeapGraph.objectCount</a> - 1. There are no gaps, every index value corresponds to an object. Classes are first, then instances, then object arrays then primitive arrays.</td>
+<td>open override val <a href="object-index/">objectIndex</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>An positive object index that&rsquo;s specific to how Shark stores objects in memory. The index starts at 0 and ends at <a href="../../-heap-graph/object-count/">HeapGraph.objectCount</a> - 1. There are no gaps, every index value corresponds to an object. Classes are first, then instances, then object arrays then primitive arrays.</td>
 </tr>
 <tr>
 <td><a href="../positive-object-id/">positiveObjectId</a></td>
-<td>[FOOFOO]<br>val <a href="../positive-object-id/">positiveObjectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br><a href="../object-id/">objectId</a> masked to be a positive unique identifier, as reported in Android Studio.</td>
+<td>val <a href="../positive-object-id/">positiveObjectId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br><a href="../object-id/">objectId</a> masked to be a positive unique identifier, as reported in Android Studio.</td>
 </tr>
 <tr>
 <td><a href="primitive-array-instances/">primitiveArrayInstances</a></td>
-<td>[FOOFOO]<br>val <a href="primitive-array-instances/">primitiveArrayInstances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>&gt;<br>Primitive arrays are one dimensional arrays of a primitive type. N-dimension arrays of primitive types (e.g. int[][]) are object arrays pointing to primitive arrays.</td>
+<td>val <a href="primitive-array-instances/">primitiveArrayInstances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>&gt;<br>Primitive arrays are one dimensional arrays of a primitive type. N-dimension arrays of primitive types (e.g. int[][]) are object arrays pointing to primitive arrays.</td>
 </tr>
 <tr>
 <td><a href="record-size/">recordSize</a></td>
-<td>[FOOFOO]<br>open override val <a href="record-size/">recordSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The total byte size for the record of this object in the heap dump.</td>
+<td>open override val <a href="record-size/">recordSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>The total byte size for the record of this object in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="simple-name/">simpleName</a></td>
-<td>[FOOFOO]<br>val <a href="simple-name/">simpleName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Returns <a href="name/">name</a> stripped of any string content before the last period (included).</td>
+<td>val <a href="simple-name/">simpleName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Returns <a href="name/">name</a> stripped of any string content before the last period (included).</td>
 </tr>
 <tr>
 <td><a href="subclasses/">subclasses</a></td>
-<td>[FOOFOO]<br>val <a href="subclasses/">subclasses</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="./">HeapObject.HeapClass</a>&gt;<br>All the subclasses (direct and indirect) of this class, in the order they were recorded in the heap dump.</td>
+<td>val <a href="subclasses/">subclasses</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="./">HeapObject.HeapClass</a>&gt;<br>All the subclasses (direct and indirect) of this class, in the order they were recorded in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="superclass/">superclass</a></td>
-<td>[FOOFOO]<br>val <a href="superclass/">superclass</a>: <a href="./">HeapObject.HeapClass</a>?<br>The <a href="./">HeapClass</a> representing the superclass of this <a href="./">HeapClass</a>. If this <a href="./">HeapClass</a> represents either the <a href="https://developer.android.com/reference/kotlin/java/lang/Object.html">Object</a> class or a primitive type, then null is returned. If this <a href="./">HeapClass</a> represents an array class then the <a href="./">HeapClass</a> object representing the <a href="https://developer.android.com/reference/kotlin/java/lang/Object.html">Object</a> class is returned.</td>
+<td>val <a href="superclass/">superclass</a>: <a href="./">HeapObject.HeapClass</a>?<br>The <a href="./">HeapClass</a> representing the superclass of this <a href="./">HeapClass</a>. If this <a href="./">HeapClass</a> represents either the <a href="https://developer.android.com/reference/kotlin/java/lang/Object.html">Object</a> class or a primitive type, then null is returned. If this <a href="./">HeapClass</a> represents an array class then the <a href="./">HeapClass</a> object representing the <a href="https://developer.android.com/reference/kotlin/java/lang/Object.html">Object</a> class is returned.</td>
 </tr>
 </tbody>
 </table>

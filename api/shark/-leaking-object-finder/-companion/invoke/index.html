@@ -669,8 +669,7 @@
   
   <p>//<a href="../../../../..">leakcanary</a>/<a href="../../../">shark</a>/<a href="../../">LeakingObjectFinder</a>/<a href="../">Companion</a>/<a href="./">invoke</a></p>
 <h1 id="invoke">invoke<a class="headerlink" href="#invoke" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-inline operator fun <a href="./">invoke</a>(crossinline block: (<a href="../../../-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>&gt;): <a href="../../">LeakingObjectFinder</a></p>
+<p>inline operator fun <a href="./">invoke</a>(crossinline block: (<a href="../../../-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>&gt;): <a href="../../">LeakingObjectFinder</a></p>
 <p>Utility function to create a <a href="../../">LeakingObjectFinder</a> from the passed in <a href="./">block</a> lambda instead of using the anonymous object : LeakingObjectFinder syntax.</p>
 <p>Usage:</p>
 <p>val listener = LeakingObjectFinder {\

@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">HprofHeapGraph</a></p>
 <h1 id="hprofheapgraph">HprofHeapGraph<a class="headerlink" href="#hprofheapgraph" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">HprofHeapGraph</a> : <a href="../-closeable-heap-graph/">CloseableHeapGraph</a></p>
+<p>class <a href="./">HprofHeapGraph</a> : <a href="../-closeable-heap-graph/">CloseableHeapGraph</a></p>
 <p>A <a href="../-heap-graph/">HeapGraph</a> that reads from an Hprof file indexed by <a href="../-hprof-index/">HprofIndex</a>.</p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
@@ -712,7 +711,7 @@ class <a href="./">HprofHeapGraph</a> : <a href="../-closeable-heap-graph/">Clos
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -727,39 +726,39 @@ class <a href="./">HprofHeapGraph</a> : <a href="../-closeable-heap-graph/">Clos
 <tbody>
 <tr>
 <td><a href="close/">close</a></td>
-<td>[FOOFOO]<br>open override fun <a href="close/">close</a>()</td>
+<td>open override fun <a href="close/">close</a>()</td>
 </tr>
 <tr>
 <td><a href="find-class-by-name/">findClassByName</a></td>
-<td>[FOOFOO]<br>open override fun <a href="find-class-by-name/">findClassByName</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>?<br>Returns the <a href="../-heap-object/-heap-class/">HeapClass</a> corresponding to the provided <a href="find-class-by-name/">className</a>, or null if the class cannot be found.</td>
+<td>open override fun <a href="find-class-by-name/">findClassByName</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>?<br>Returns the <a href="../-heap-object/-heap-class/">HeapClass</a> corresponding to the provided <a href="find-class-by-name/">className</a>, or null if the class cannot be found.</td>
 </tr>
 <tr>
 <td><a href="find-heap-dump-index/">findHeapDumpIndex</a></td>
-<td>[FOOFOO]<br>open override fun <a href="find-heap-dump-index/">findHeapDumpIndex</a>(objectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>Returns the 1-based index in the heap dump of the object corresponding to the provided <a href="find-heap-dump-index/">objectId</a>, and throws <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> otherwise.</td>
+<td>open override fun <a href="find-heap-dump-index/">findHeapDumpIndex</a>(objectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>Returns the 1-based index in the heap dump of the object corresponding to the provided <a href="find-heap-dump-index/">objectId</a>, and throws <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> otherwise.</td>
 </tr>
 <tr>
 <td><a href="find-object-by-heap-dump-index/">findObjectByHeapDumpIndex</a></td>
-<td>[FOOFOO]<br>open override fun <a href="find-object-by-heap-dump-index/">findObjectByHeapDumpIndex</a>(heapDumpIndex: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>): <a href="../-heap-object/">HeapObject</a><br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-heap-dump-index/">heapDumpIndex</a>, and throws <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> if <a href="find-object-by-heap-dump-index/">heapDumpIndex</a> is less than 1 or more than <a href="object-count/">objectCount</a>.</td>
+<td>open override fun <a href="find-object-by-heap-dump-index/">findObjectByHeapDumpIndex</a>(heapDumpIndex: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>): <a href="../-heap-object/">HeapObject</a><br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-heap-dump-index/">heapDumpIndex</a>, and throws <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> if <a href="find-object-by-heap-dump-index/">heapDumpIndex</a> is less than 1 or more than <a href="object-count/">objectCount</a>.</td>
 </tr>
 <tr>
 <td><a href="find-object-by-id/">findObjectById</a></td>
-<td>[FOOFOO]<br>open override fun <a href="find-object-by-id/">findObjectById</a>(objectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="../-heap-object/">HeapObject</a><br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-id/">objectId</a>, and throws <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> otherwise.</td>
+<td>open override fun <a href="find-object-by-id/">findObjectById</a>(objectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="../-heap-object/">HeapObject</a><br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-id/">objectId</a>, and throws <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> otherwise.</td>
 </tr>
 <tr>
 <td><a href="find-object-by-id-or-null/">findObjectByIdOrNull</a></td>
-<td>[FOOFOO]<br>open override fun <a href="find-object-by-id-or-null/">findObjectByIdOrNull</a>(objectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="../-heap-object/">HeapObject</a>?<br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-id-or-null/">objectId</a> or null if it cannot be found.</td>
+<td>open override fun <a href="find-object-by-id-or-null/">findObjectByIdOrNull</a>(objectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="../-heap-object/">HeapObject</a>?<br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-id-or-null/">objectId</a> or null if it cannot be found.</td>
 </tr>
 <tr>
 <td><a href="find-object-by-index/">findObjectByIndex</a></td>
-<td>[FOOFOO]<br>open override fun <a href="find-object-by-index/">findObjectByIndex</a>(objectIndex: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>): <a href="../-heap-object/">HeapObject</a><br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-index/">objectIndex</a>, and throws <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> if <a href="find-object-by-index/">objectIndex</a> is less than 0 or more than <a href="object-count/">objectCount</a> - 1.</td>
+<td>open override fun <a href="find-object-by-index/">findObjectByIndex</a>(objectIndex: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>): <a href="../-heap-object/">HeapObject</a><br>Returns the <a href="../-heap-object/">HeapObject</a> corresponding to the provided <a href="find-object-by-index/">objectIndex</a>, and throws <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> if <a href="find-object-by-index/">objectIndex</a> is less than 0 or more than <a href="object-count/">objectCount</a> - 1.</td>
 </tr>
 <tr>
 <td><a href="lru-cache-stats/">lruCacheStats</a></td>
-<td>[FOOFOO]<br>fun <a href="lru-cache-stats/">lruCacheStats</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>This is only public so that we can publish stats. Accessing this requires casting <a href="../-heap-graph/">HeapGraph</a> to <a href="./">HprofHeapGraph</a> so it&rsquo;s really not a public API. May change at any time!</td>
+<td>fun <a href="lru-cache-stats/">lruCacheStats</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>This is only public so that we can publish stats. Accessing this requires casting <a href="../-heap-graph/">HeapGraph</a> to <a href="./">HprofHeapGraph</a> so it&rsquo;s really not a public API. May change at any time!</td>
 </tr>
 <tr>
 <td><a href="object-exists/">objectExists</a></td>
-<td>[FOOFOO]<br>open override fun <a href="object-exists/">objectExists</a>(objectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if the provided <a href="object-exists/">objectId</a> exists in the heap dump.</td>
+<td>open override fun <a href="object-exists/">objectExists</a>(objectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Returns true if the provided <a href="object-exists/">objectId</a> exists in the heap dump.</td>
 </tr>
 </tbody>
 </table>
@@ -774,55 +773,55 @@ class <a href="./">HprofHeapGraph</a> : <a href="../-closeable-heap-graph/">Clos
 <tbody>
 <tr>
 <td><a href="class-count/">classCount</a></td>
-<td>[FOOFOO]<br>open override val <a href="class-count/">classCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td>open override val <a href="class-count/">classCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 <tr>
 <td><a href="classes/">classes</a></td>
-<td>[FOOFOO]<br>open override val <a href="classes/">classes</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>&gt;<br>Sequence of all classes in the heap dump.</td>
+<td>open override val <a href="classes/">classes</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>&gt;<br>Sequence of all classes in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="context/">context</a></td>
-<td>[FOOFOO]<br>open override val <a href="context/">context</a>: <a href="../-graph-context/">GraphContext</a><br>In memory store that can be used to store objects this <a href="../-heap-graph/">HeapGraph</a> instance.</td>
+<td>open override val <a href="context/">context</a>: <a href="../-graph-context/">GraphContext</a><br>In memory store that can be used to store objects this <a href="../-heap-graph/">HeapGraph</a> instance.</td>
 </tr>
 <tr>
 <td><a href="gc-roots/">gcRoots</a></td>
-<td>[FOOFOO]<br>open override val <a href="gc-roots/">gcRoots</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-gc-root/">GcRoot</a>&gt;<br>All GC roots which type matches types known to this heap graph and which point to non null references. You can retrieve the object that a GC Root points to by calling <a href="find-object-by-id/">findObjectById</a> with <a href="../-gc-root/id/">GcRoot.id</a>, however you need to first check that <a href="object-exists/">objectExists</a> returns true because GC roots can point to objects that don&rsquo;t exist in the heap dump.</td>
+<td>open override val <a href="gc-roots/">gcRoots</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-gc-root/">GcRoot</a>&gt;<br>All GC roots which type matches types known to this heap graph and which point to non null references. You can retrieve the object that a GC Root points to by calling <a href="find-object-by-id/">findObjectById</a> with <a href="../-gc-root/id/">GcRoot.id</a>, however you need to first check that <a href="object-exists/">objectExists</a> returns true because GC roots can point to objects that don&rsquo;t exist in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="identifier-byte-size/">identifierByteSize</a></td>
-<td>[FOOFOO]<br>open override val <a href="identifier-byte-size/">identifierByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td>open override val <a href="identifier-byte-size/">identifierByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 <tr>
 <td><a href="instance-count/">instanceCount</a></td>
-<td>[FOOFOO]<br>open override val <a href="instance-count/">instanceCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td>open override val <a href="instance-count/">instanceCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 <tr>
 <td><a href="instances/">instances</a></td>
-<td>[FOOFOO]<br>open override val <a href="instances/">instances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/-heap-instance/">HeapObject.HeapInstance</a>&gt;<br>Sequence of all instances in the heap dump.</td>
+<td>open override val <a href="instances/">instances</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/-heap-instance/">HeapObject.HeapInstance</a>&gt;<br>Sequence of all instances in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="object-array-count/">objectArrayCount</a></td>
-<td>[FOOFOO]<br>open override val <a href="object-array-count/">objectArrayCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td>open override val <a href="object-array-count/">objectArrayCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 <tr>
 <td><a href="object-arrays/">objectArrays</a></td>
-<td>[FOOFOO]<br>open override val <a href="object-arrays/">objectArrays</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/-heap-object-array/">HeapObject.HeapObjectArray</a>&gt;<br>Sequence of all object arrays in the heap dump.</td>
+<td>open override val <a href="object-arrays/">objectArrays</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/-heap-object-array/">HeapObject.HeapObjectArray</a>&gt;<br>Sequence of all object arrays in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="object-count/">objectCount</a></td>
-<td>[FOOFOO]<br>open override val <a href="object-count/">objectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td>open override val <a href="object-count/">objectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 <tr>
 <td><a href="objects/">objects</a></td>
-<td>[FOOFOO]<br>open override val <a href="objects/">objects</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/">HeapObject</a>&gt;<br>Sequence of all objects in the heap dump.</td>
+<td>open override val <a href="objects/">objects</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/">HeapObject</a>&gt;<br>Sequence of all objects in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="primitive-array-count/">primitiveArrayCount</a></td>
-<td>[FOOFOO]<br>open override val <a href="primitive-array-count/">primitiveArrayCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td>open override val <a href="primitive-array-count/">primitiveArrayCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 <tr>
 <td><a href="primitive-arrays/">primitiveArrays</a></td>
-<td>[FOOFOO]<br>open override val <a href="primitive-arrays/">primitiveArrays</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>&gt;<br>Sequence of all primitive arrays in the heap dump.</td>
+<td>open override val <a href="primitive-arrays/">primitiveArrays</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-heap-object/-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>&gt;<br>Sequence of all primitive arrays in the heap dump.</td>
 </tr>
 </tbody>
 </table>

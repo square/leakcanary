@@ -698,8 +698,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">leakcanary</a>/<a href="../">EventListener</a>/<a href="./">Event</a></p>
 <h1 id="event">Event<a class="headerlink" href="#event" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-sealed class <a href="./">Event</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
+<p>sealed class <a href="./">Event</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
 <p>Note: <a href="./">Event</a> is <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a> for convenience but we currently make no guarantee that the Serialization is backward / forward compatible across LeakCanary versions, so plan accordingly. This is convenient for passing events around processes, and shouldn&rsquo;t be used to store them.</p>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
@@ -712,23 +711,23 @@ sealed class <a href="./">Event</a> : <a href="https://developer.android.com/ref
 <tbody>
 <tr>
 <td><a href="-dumping-heap/">DumpingHeap</a></td>
-<td>[FOOFOO]<br>class <a href="-dumping-heap/">DumpingHeap</a>(val uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">EventListener.Event</a><br>Sent from the &quot;LeakCanary-Heap-Dump&quot; HandlerThread.</td>
+<td>class <a href="-dumping-heap/">DumpingHeap</a>(val uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">EventListener.Event</a><br>Sent from the &quot;LeakCanary-Heap-Dump&quot; HandlerThread.</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-done/">HeapAnalysisDone</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-heap-analysis-done/">HeapAnalysisDone</a>&lt;<a href="-heap-analysis-done/">T</a> : <a href="../../../shark/-heap-analysis/">HeapAnalysis</a>&gt; : <a href="./">EventListener.Event</a><br>Sent from the thread performing the analysis.</td>
+<td>sealed class <a href="-heap-analysis-done/">HeapAnalysisDone</a>&lt;<a href="-heap-analysis-done/">T</a> : <a href="../../../shark/-heap-analysis/">HeapAnalysis</a>&gt; : <a href="./">EventListener.Event</a><br>Sent from the thread performing the analysis.</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-progress/">HeapAnalysisProgress</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-analysis-progress/">HeapAnalysisProgress</a>(val uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val step: <a href="../../../shark/-on-analysis-progress-listener/-step/">OnAnalysisProgressListener.Step</a>, val progressPercent: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a>) : <a href="./">EventListener.Event</a><br><a href="-heap-analysis-progress/progress-percent/">progressPercent</a> is a value between 0..1</td>
+<td>class <a href="-heap-analysis-progress/">HeapAnalysisProgress</a>(val uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val step: <a href="../../../shark/-on-analysis-progress-listener/-step/">OnAnalysisProgressListener.Step</a>, val progressPercent: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a>) : <a href="./">EventListener.Event</a><br><a href="-heap-analysis-progress/progress-percent/">progressPercent</a> is a value between 0..1</td>
 </tr>
 <tr>
 <td><a href="-heap-dump/">HeapDump</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-dump/">HeapDump</a>(val uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val file: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val durationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val reason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">EventListener.Event</a><br>Sent from the &quot;LeakCanary-Heap-Dump&quot; HandlerThread.</td>
+<td>class <a href="-heap-dump/">HeapDump</a>(val uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val file: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val durationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val reason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="./">EventListener.Event</a><br>Sent from the &quot;LeakCanary-Heap-Dump&quot; HandlerThread.</td>
 </tr>
 <tr>
 <td><a href="-heap-dump-failed/">HeapDumpFailed</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-dump-failed/">HeapDumpFailed</a>(val uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val exception: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html">Throwable</a>, val willRetryLater: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="./">EventListener.Event</a><br>Sent from the &quot;LeakCanary-Heap-Dump&quot; HandlerThread.</td>
+<td>class <a href="-heap-dump-failed/">HeapDumpFailed</a>(val uniqueId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val exception: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html">Throwable</a>, val willRetryLater: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="./">EventListener.Event</a><br>Sent from the &quot;LeakCanary-Heap-Dump&quot; HandlerThread.</td>
 </tr>
 </tbody>
 </table>
@@ -743,7 +742,7 @@ sealed class <a href="./">Event</a> : <a href="https://developer.android.com/ref
 <tbody>
 <tr>
 <td><a href="unique-id/">uniqueId</a></td>
-<td>[FOOFOO]<br>val <a href="unique-id/">uniqueId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Unique identifier for a related chain of event. The identifier for the events that run before <a href="-heap-dump/">HeapDump</a> gets reset right before <a href="-heap-dump/">HeapDump</a> is sent.</td>
+<td>val <a href="unique-id/">uniqueId</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Unique identifier for a related chain of event. The identifier for the events that run before <a href="-heap-dump/">HeapDump</a> gets reset right before <a href="-heap-dump/">HeapDump</a> is sent.</td>
 </tr>
 </tbody>
 </table>

@@ -691,8 +691,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">HeapField</a></p>
 <h1 id="heapfield">HeapField<a class="headerlink" href="#heapfield" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">HeapField</a>(val declaringClass: <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>, val name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val value: <a href="../-heap-value/">HeapValue</a>)</p>
+<p>class <a href="./">HeapField</a>(val declaringClass: <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>, val name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val value: <a href="../-heap-value/">HeapValue</a>)</p>
 <p>Represents a static field or an instance field.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -705,7 +704,7 @@ class <a href="./">HeapField</a>(val declaringClass: <a href="../-heap-object/-h
 <tbody>
 <tr>
 <td><a href="-heap-field/">HeapField</a></td>
-<td>[FOOFOO]<br>fun <a href="-heap-field/">HeapField</a>(declaringClass: <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>, name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, value: <a href="../-heap-value/">HeapValue</a>)</td>
+<td>fun <a href="-heap-field/">HeapField</a>(declaringClass: <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>, name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, value: <a href="../-heap-value/">HeapValue</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -720,31 +719,31 @@ class <a href="./">HeapField</a>(val declaringClass: <a href="../-heap-object/-h
 <tbody>
 <tr>
 <td><a href="declaring-class/">declaringClass</a></td>
-<td>[FOOFOO]<br>val <a href="declaring-class/">declaringClass</a>: <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a><br>The class this field was declared in.</td>
+<td>val <a href="declaring-class/">declaringClass</a>: <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a><br>The class this field was declared in.</td>
 </tr>
 <tr>
 <td><a href="name/">name</a></td>
-<td>[FOOFOO]<br>val <a href="name/">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Name of the field</td>
+<td>val <a href="name/">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Name of the field</td>
 </tr>
 <tr>
 <td><a href="value/">value</a></td>
-<td>[FOOFOO]<br>val <a href="value/">value</a>: <a href="../-heap-value/">HeapValue</a><br>Value of the field. Also see shorthands <a href="value-as-class/">valueAsClass</a>, <a href="value-as-instance/">valueAsInstance</a>, <a href="value-as-object-array/">valueAsObjectArray</a>, <a href="value-as-primitive-array/">valueAsPrimitiveArray</a>.</td>
+<td>val <a href="value/">value</a>: <a href="../-heap-value/">HeapValue</a><br>Value of the field. Also see shorthands <a href="value-as-class/">valueAsClass</a>, <a href="value-as-instance/">valueAsInstance</a>, <a href="value-as-object-array/">valueAsObjectArray</a>, <a href="value-as-primitive-array/">valueAsPrimitiveArray</a>.</td>
 </tr>
 <tr>
 <td><a href="value-as-class/">valueAsClass</a></td>
-<td>[FOOFOO]<br>val <a href="value-as-class/">valueAsClass</a>: <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>?<br>Return a <a href="../-heap-object/-heap-class/">HeapClass</a> is <a href="value/">value</a> references a class, and null otherwise.</td>
+<td>val <a href="value-as-class/">valueAsClass</a>: <a href="../-heap-object/-heap-class/">HeapObject.HeapClass</a>?<br>Return a <a href="../-heap-object/-heap-class/">HeapClass</a> is <a href="value/">value</a> references a class, and null otherwise.</td>
 </tr>
 <tr>
 <td><a href="value-as-instance/">valueAsInstance</a></td>
-<td>[FOOFOO]<br>val <a href="value-as-instance/">valueAsInstance</a>: <a href="../-heap-object/-heap-instance/">HeapObject.HeapInstance</a>?<br>Return a <a href="../-heap-object/-heap-instance/">HeapInstance</a> is <a href="value/">value</a> references an instance, and null otherwise.</td>
+<td>val <a href="value-as-instance/">valueAsInstance</a>: <a href="../-heap-object/-heap-instance/">HeapObject.HeapInstance</a>?<br>Return a <a href="../-heap-object/-heap-instance/">HeapInstance</a> is <a href="value/">value</a> references an instance, and null otherwise.</td>
 </tr>
 <tr>
 <td><a href="value-as-object-array/">valueAsObjectArray</a></td>
-<td>[FOOFOO]<br>val <a href="value-as-object-array/">valueAsObjectArray</a>: <a href="../-heap-object/-heap-object-array/">HeapObject.HeapObjectArray</a>?<br>Return a <a href="../-heap-object/-heap-object-array/">HeapObjectArray</a> is <a href="value/">value</a> references an object array, and null otherwise.</td>
+<td>val <a href="value-as-object-array/">valueAsObjectArray</a>: <a href="../-heap-object/-heap-object-array/">HeapObject.HeapObjectArray</a>?<br>Return a <a href="../-heap-object/-heap-object-array/">HeapObjectArray</a> is <a href="value/">value</a> references an object array, and null otherwise.</td>
 </tr>
 <tr>
 <td><a href="value-as-primitive-array/">valueAsPrimitiveArray</a></td>
-<td>[FOOFOO]<br>val <a href="value-as-primitive-array/">valueAsPrimitiveArray</a>: <a href="../-heap-object/-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>?<br>Return a <a href="../-heap-object/-heap-primitive-array/">HeapPrimitiveArray</a> is <a href="value/">value</a> references a primitive array, and null otherwise.</td>
+<td>val <a href="value-as-primitive-array/">valueAsPrimitiveArray</a>: <a href="../-heap-object/-heap-primitive-array/">HeapObject.HeapPrimitiveArray</a>?<br>Return a <a href="../-heap-object/-heap-primitive-array/">HeapPrimitiveArray</a> is <a href="value/">value</a> references a primitive array, and null otherwise.</td>
 </tr>
 </tbody>
 </table>

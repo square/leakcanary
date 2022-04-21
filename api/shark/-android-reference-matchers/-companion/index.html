@@ -691,8 +691,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">shark</a>/<a href="../">AndroidReferenceMatchers</a>/<a href="./">Companion</a></p>
 <h1 id="companion">Companion<a class="headerlink" href="#companion" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-object <a href="./">Companion</a></p>
+<p>object <a href="./">Companion</a></p>
 <h2 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -704,27 +703,27 @@ object <a href="./">Companion</a></p>
 <tbody>
 <tr>
 <td><a href="build-known-references/">buildKnownReferences</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="build-known-references/">buildKnownReferences</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="../">AndroidReferenceMatchers</a>&gt;): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-reference-matcher/">ReferenceMatcher</a>&gt;<br>Builds a list of <a href="../../-reference-matcher/">ReferenceMatcher</a> from the <a href="build-known-references/">referenceMatchers</a> set of <a href="../">AndroidReferenceMatchers</a>.</td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="build-known-references/">buildKnownReferences</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="../">AndroidReferenceMatchers</a>&gt;): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-reference-matcher/">ReferenceMatcher</a>&gt;<br>Builds a list of <a href="../../-reference-matcher/">ReferenceMatcher</a> from the <a href="build-known-references/">referenceMatchers</a> set of <a href="../">AndroidReferenceMatchers</a>.</td>
 </tr>
 <tr>
 <td><a href="ignored-instance-field/">ignoredInstanceField</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="ignored-instance-field/">ignoredInstanceField</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a><br>Creates a <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a> that matches a <a href="../../-reference-pattern/-instance-field-pattern/">InstanceFieldPattern</a>.</td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="ignored-instance-field/">ignoredInstanceField</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a><br>Creates a <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a> that matches a <a href="../../-reference-pattern/-instance-field-pattern/">InstanceFieldPattern</a>.</td>
 </tr>
 <tr>
 <td><a href="ignored-java-local/">ignoredJavaLocal</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="ignored-java-local/">ignoredJavaLocal</a>(threadName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a><br>Creates a <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a> that matches a <a href="../../-reference-pattern/-java-local-pattern/">JavaLocalPattern</a>.</td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="ignored-java-local/">ignoredJavaLocal</a>(threadName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>): <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a><br>Creates a <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a> that matches a <a href="../../-reference-pattern/-java-local-pattern/">JavaLocalPattern</a>.</td>
 </tr>
 <tr>
 <td><a href="instance-field-leak/">instanceFieldLeak</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="instance-field-leak/">instanceFieldLeak</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, patternApplies: <a href="../../-android-build-mirror/">AndroidBuildMirror</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = ALWAYS): <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a><br>Creates a <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> that matches a <a href="../../-reference-pattern/-instance-field-pattern/">InstanceFieldPattern</a>. <a href="instance-field-leak/">description</a> should convey what we know about this library leak.</td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="instance-field-leak/">instanceFieldLeak</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, patternApplies: <a href="../../-android-build-mirror/">AndroidBuildMirror</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = ALWAYS): <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a><br>Creates a <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> that matches a <a href="../../-reference-pattern/-instance-field-pattern/">InstanceFieldPattern</a>. <a href="instance-field-leak/">description</a> should convey what we know about this library leak.</td>
 </tr>
 <tr>
 <td><a href="native-global-variable-leak/">nativeGlobalVariableLeak</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="native-global-variable-leak/">nativeGlobalVariableLeak</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, patternApplies: <a href="../../-android-build-mirror/">AndroidBuildMirror</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = ALWAYS): <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a></td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="native-global-variable-leak/">nativeGlobalVariableLeak</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, patternApplies: <a href="../../-android-build-mirror/">AndroidBuildMirror</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = ALWAYS): <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a></td>
 </tr>
 <tr>
 <td><a href="static-field-leak/">staticFieldLeak</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="static-field-leak/">staticFieldLeak</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, patternApplies: <a href="../../-android-build-mirror/">AndroidBuildMirror</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = ALWAYS): <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a><br>Creates a <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> that matches a <a href="../../-reference-pattern/-static-field-pattern/">StaticFieldPattern</a>. <a href="static-field-leak/">description</a> should convey what we know about this library leak.</td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>fun <a href="static-field-leak/">staticFieldLeak</a>(className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, fieldName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, patternApplies: <a href="../../-android-build-mirror/">AndroidBuildMirror</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = ALWAYS): <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a><br>Creates a <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> that matches a <a href="../../-reference-pattern/-static-field-pattern/">StaticFieldPattern</a>. <a href="static-field-leak/">description</a> should convey what we know about this library leak.</td>
 </tr>
 </tbody>
 </table>
@@ -739,55 +738,55 @@ object <a href="./">Companion</a></p>
 <tbody>
 <tr>
 <td><a href="app-defaults/">appDefaults</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>val <a href="app-defaults/">appDefaults</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-reference-matcher/">ReferenceMatcher</a>&gt;</td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>val <a href="app-defaults/">appDefaults</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-reference-matcher/">ReferenceMatcher</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="-h-u-a-w-e-i/">HUAWEI</a></td>
-<td>[FOOFOO]<br>const val <a href="-h-u-a-w-e-i/">HUAWEI</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-h-u-a-w-e-i/">HUAWEI</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="ignored-references-only/">ignoredReferencesOnly</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>val <a href="ignored-references-only/">ignoredReferencesOnly</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-reference-matcher/">ReferenceMatcher</a>&gt;<br>Returns a list of <a href="../../-reference-matcher/">ReferenceMatcher</a> that only contains <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a> and no <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>.</td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-static/index.html">JvmStatic</a><br>val <a href="ignored-references-only/">ignoredReferencesOnly</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-reference-matcher/">ReferenceMatcher</a>&gt;<br>Returns a list of <a href="../../-reference-matcher/">ReferenceMatcher</a> that only contains <a href="../../-ignored-reference-matcher/">IgnoredReferenceMatcher</a> and no <a href="../../-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>.</td>
 </tr>
 <tr>
 <td><a href="-l-e-n-o-v-o/">LENOVO</a></td>
-<td>[FOOFOO]<br>const val <a href="-l-e-n-o-v-o/">LENOVO</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-l-e-n-o-v-o/">LENOVO</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="-l-g/">LG</a></td>
-<td>[FOOFOO]<br>const val <a href="-l-g/">LG</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-l-g/">LG</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="-m-e-i-z-u/">MEIZU</a></td>
-<td>[FOOFOO]<br>const val <a href="-m-e-i-z-u/">MEIZU</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-m-e-i-z-u/">MEIZU</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="-m-o-t-o-r-o-l-a/">MOTOROLA</a></td>
-<td>[FOOFOO]<br>const val <a href="-m-o-t-o-r-o-l-a/">MOTOROLA</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-m-o-t-o-r-o-l-a/">MOTOROLA</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="-n-v-i-d-i-a/">NVIDIA</a></td>
-<td>[FOOFOO]<br>const val <a href="-n-v-i-d-i-a/">NVIDIA</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-n-v-i-d-i-a/">NVIDIA</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="-o-n-e_-p-l-u-s/">ONE_PLUS</a></td>
-<td>[FOOFOO]<br>const val <a href="-o-n-e_-p-l-u-s/">ONE_PLUS</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-o-n-e_-p-l-u-s/">ONE_PLUS</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="-r-a-z-e-r/">RAZER</a></td>
-<td>[FOOFOO]<br>const val <a href="-r-a-z-e-r/">RAZER</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-r-a-z-e-r/">RAZER</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="-s-a-m-s-u-n-g/">SAMSUNG</a></td>
-<td>[FOOFOO]<br>const val <a href="-s-a-m-s-u-n-g/">SAMSUNG</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-s-a-m-s-u-n-g/">SAMSUNG</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="-s-h-a-r-p/">SHARP</a></td>
-<td>[FOOFOO]<br>const val <a href="-s-h-a-r-p/">SHARP</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-s-h-a-r-p/">SHARP</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="-v-i-v-o/">VIVO</a></td>
-<td>[FOOFOO]<br>const val <a href="-v-i-v-o/">VIVO</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>const val <a href="-v-i-v-o/">VIVO</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>

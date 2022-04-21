@@ -705,8 +705,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">LeakTraceObject</a></p>
 <h1 id="leaktraceobject">LeakTraceObject<a class="headerlink" href="#leaktraceobject" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-data class <a href="./">LeakTraceObject</a>(val type: <a href="-object-type/">LeakTraceObject.ObjectType</a>, val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val leakingStatus: <a href="-leaking-status/">LeakTraceObject.LeakingStatus</a>, val leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, val retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
+<p>data class <a href="./">LeakTraceObject</a>(val type: <a href="-object-type/">LeakTraceObject.ObjectType</a>, val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val leakingStatus: <a href="-leaking-status/">LeakTraceObject.LeakingStatus</a>, val leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, val retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -718,7 +717,7 @@ data class <a href="./">LeakTraceObject</a>(val type: <a href="-object-type/">Le
 <tbody>
 <tr>
 <td><a href="-leak-trace-object/">LeakTraceObject</a></td>
-<td>[FOOFOO]<br>fun <a href="-leak-trace-object/">LeakTraceObject</a>(type: <a href="-object-type/">LeakTraceObject.ObjectType</a>, className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, leakingStatus: <a href="-leaking-status/">LeakTraceObject.LeakingStatus</a>, leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?)</td>
+<td>fun <a href="-leak-trace-object/">LeakTraceObject</a>(type: <a href="-object-type/">LeakTraceObject.ObjectType</a>, className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, leakingStatus: <a href="-leaking-status/">LeakTraceObject.LeakingStatus</a>, leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?)</td>
 </tr>
 </tbody>
 </table>
@@ -733,15 +732,15 @@ data class <a href="./">LeakTraceObject</a>(val type: <a href="-object-type/">Le
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 <tr>
 <td><a href="-leaking-status/">LeakingStatus</a></td>
-<td>[FOOFOO]<br>enum <a href="-leaking-status/">LeakingStatus</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-leaking-status/">LeakTraceObject.LeakingStatus</a>&gt;</td>
+<td>enum <a href="-leaking-status/">LeakingStatus</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-leaking-status/">LeakTraceObject.LeakingStatus</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="-object-type/">ObjectType</a></td>
-<td>[FOOFOO]<br>enum <a href="-object-type/">ObjectType</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-object-type/">LeakTraceObject.ObjectType</a>&gt;</td>
+<td>enum <a href="-object-type/">ObjectType</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-object-type/">LeakTraceObject.ObjectType</a>&gt;</td>
 </tr>
 </tbody>
 </table>
@@ -756,7 +755,7 @@ data class <a href="./">LeakTraceObject</a>(val type: <a href="-object-type/">Le
 <tbody>
 <tr>
 <td><a href="to-string/">toString</a></td>
-<td>[FOOFOO]<br>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>
@@ -771,39 +770,39 @@ data class <a href="./">LeakTraceObject</a>(val type: <a href="-object-type/">Le
 <tbody>
 <tr>
 <td><a href="class-name/">className</a></td>
-<td>[FOOFOO]<br>val <a href="class-name/">className</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Class name of the object. The class name format is the same as what would be returned by <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html#getname">Class.getName</a>.</td>
+<td>val <a href="class-name/">className</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Class name of the object. The class name format is the same as what would be returned by <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html#getname">Class.getName</a>.</td>
 </tr>
 <tr>
 <td><a href="class-simple-name/">classSimpleName</a></td>
-<td>[FOOFOO]<br>val <a href="class-simple-name/">classSimpleName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Returns {@link #className} without the package, ie stripped of any string content before the last period (included).</td>
+<td>val <a href="class-simple-name/">classSimpleName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Returns {@link #className} without the package, ie stripped of any string content before the last period (included).</td>
 </tr>
 <tr>
 <td><a href="labels/">labels</a></td>
-<td>[FOOFOO]<br>val <a href="labels/">labels</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;<br>Labels that were computed during analysis. A label provides extra information that helps understand the state of the leak trace object.</td>
+<td>val <a href="labels/">labels</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;<br>Labels that were computed during analysis. A label provides extra information that helps understand the state of the leak trace object.</td>
 </tr>
 <tr>
 <td><a href="leaking-status/">leakingStatus</a></td>
-<td>[FOOFOO]<br>val <a href="leaking-status/">leakingStatus</a>: <a href="-leaking-status/">LeakTraceObject.LeakingStatus</a></td>
+<td>val <a href="leaking-status/">leakingStatus</a>: <a href="-leaking-status/">LeakTraceObject.LeakingStatus</a></td>
 </tr>
 <tr>
 <td><a href="leaking-status-reason/">leakingStatusReason</a></td>
-<td>[FOOFOO]<br>val <a href="leaking-status-reason/">leakingStatusReason</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>val <a href="leaking-status-reason/">leakingStatusReason</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="retained-heap-byte-size/">retainedHeapByteSize</a></td>
-<td>[FOOFOO]<br>val <a href="retained-heap-byte-size/">retainedHeapByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>The minimum number of bytes which would be freed if all references to this object were released. Not null only if the retained heap size was computed AND <a href="leaking-status/">leakingStatus</a> is equal to <a href="-leaking-status/-u-n-k-n-o-w-n/">LeakingStatus.UNKNOWN</a> or <a href="-leaking-status/-l-e-a-k-i-n-g/">LeakingStatus.LEAKING</a>.</td>
+<td>val <a href="retained-heap-byte-size/">retainedHeapByteSize</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>The minimum number of bytes which would be freed if all references to this object were released. Not null only if the retained heap size was computed AND <a href="leaking-status/">leakingStatus</a> is equal to <a href="-leaking-status/-u-n-k-n-o-w-n/">LeakingStatus.UNKNOWN</a> or <a href="-leaking-status/-l-e-a-k-i-n-g/">LeakingStatus.LEAKING</a>.</td>
 </tr>
 <tr>
 <td><a href="retained-object-count/">retainedObjectCount</a></td>
-<td>[FOOFOO]<br>val <a href="retained-object-count/">retainedObjectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>The minimum number of objects which would be unreachable if all references to this object were released. Not null only if the retained heap size was computed AND <a href="leaking-status/">leakingStatus</a> is equal to <a href="-leaking-status/-u-n-k-n-o-w-n/">LeakingStatus.UNKNOWN</a> or <a href="-leaking-status/-l-e-a-k-i-n-g/">LeakingStatus.LEAKING</a>.</td>
+<td>val <a href="retained-object-count/">retainedObjectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>The minimum number of objects which would be unreachable if all references to this object were released. Not null only if the retained heap size was computed AND <a href="leaking-status/">leakingStatus</a> is equal to <a href="-leaking-status/-u-n-k-n-o-w-n/">LeakingStatus.UNKNOWN</a> or <a href="-leaking-status/-l-e-a-k-i-n-g/">LeakingStatus.LEAKING</a>.</td>
 </tr>
 <tr>
 <td><a href="type/">type</a></td>
-<td>[FOOFOO]<br>val <a href="type/">type</a>: <a href="-object-type/">LeakTraceObject.ObjectType</a></td>
+<td>val <a href="type/">type</a>: <a href="-object-type/">LeakTraceObject.ObjectType</a></td>
 </tr>
 <tr>
 <td><a href="type-name/">typeName</a></td>
-<td>[FOOFOO]<br>val <a href="type-name/">typeName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>val <a href="type-name/">typeName</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>

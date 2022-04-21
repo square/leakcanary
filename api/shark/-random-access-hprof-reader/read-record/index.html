@@ -684,8 +684,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">shark</a>/<a href="../">RandomAccessHprofReader</a>/<a href="./">readRecord</a></p>
 <h1 id="readrecord">readRecord<a class="headerlink" href="#readrecord" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-fun &lt;<a href="./">T</a>&gt; <a href="./">readRecord</a>(recordPosition: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, recordSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, withRecordReader: <a href="../../-hprof-record-reader/">HprofRecordReader</a>.() -&gt; <a href="./">T</a>): <a href="./">T</a></p>
+<p>fun &lt;<a href="./">T</a>&gt; <a href="./">readRecord</a>(recordPosition: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, recordSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, withRecordReader: <a href="../../-hprof-record-reader/">HprofRecordReader</a>.() -&gt; <a href="./">T</a>): <a href="./">T</a></p>
 <p>Loads <a href="./">recordSize</a> bytes at <a href="./">recordPosition</a> into the buffer that backs <a href="../../-hprof-record-reader/">HprofRecordReader</a> then calls <a href="./">withRecordReader</a> with that reader as a receiver. <a href="./">withRecordReader</a> is expected to use the receiver reader to read one record of exactly <a href="./">recordSize</a> bytes.</p>
 <h4 id="return">Return<a class="headerlink" href="#return" title="Permanent link">&para;</a></h4>
 <p>the results from <a href="./">withRecordReader</a></p>

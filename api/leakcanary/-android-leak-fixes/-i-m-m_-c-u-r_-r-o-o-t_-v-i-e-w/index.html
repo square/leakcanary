@@ -684,8 +684,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">leakcanary</a>/<a href="../">AndroidLeakFixes</a>/<a href="./">IMM_CUR_ROOT_VIEW</a></p>
 <h1 id="imm_cur_root_view">IMM_CUR_ROOT_VIEW<a class="headerlink" href="#imm_cur_root_view" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-<a href="./">IMM_CUR_ROOT_VIEW</a>()</p>
+<p><a href="./">IMM_CUR_ROOT_VIEW</a>()</p>
 <p>When an activity is destroyed, the corresponding ViewRootImpl instance is released and ready to be garbage collected. Some time after that, ViewRootImpl#W receives a windowfocusChanged() callback, which it normally delegates to ViewRootImpl which in turn calls InputMethodManager#onPreWindowFocus which clears InputMethodManager#mCurRootView.</p>
 <p>Unfortunately, since the ViewRootImpl instance is garbage collectable it may be garbage collected before that happens. ViewRootImpl#W has a weak reference on ViewRootImpl, so that weak reference will then return null and the windowfocusChanged() callback will be ignored, leading to InputMethodManager#mCurRootView not being cleared.</p>
 <p>Filed here: <a href="https://issuetracker.google.com/u/0/issues/116078227">https://issuetracker.google.com/u/0/issues/116078227</a> Fixed here: <a href="https://android.googlesource.com/platform/frameworks/base/+/dff365ef4dc61239fac70953b631e92972a9f41f%5E%21/#F0">https://android.googlesource.com/platform/frameworks/base/+/dff365ef4dc61239fac70953b631e92972a9f41f%5E%21/#F0</a> InputMethodManager.mCurRootView is part of the unrestricted grey list on Android 9: <a href="https://android.googlesource.com/platform/frameworks/base/+/pie-release/config/hiddenapi-light-greylist.txt#6057">https://android.googlesource.com/platform/frameworks/base/+/pie-release/config/hiddenapi-light-greylist.txt#6057</a></p>
@@ -699,12 +698,12 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F121734517">name</a></td>
-<td>[FOOFOO]<br>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F121734517">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F44236444">name</a></td>
+<td>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F44236444">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
-<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F121734517">ordinal</a></td>
-<td>[FOOFOO]<br>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F121734517">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F44236444">ordinal</a></td>
+<td>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F44236444">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

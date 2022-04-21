@@ -705,8 +705,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">leakcanary</a>/<a href="./">KeyedWeakReference</a></p>
 <h1 id="keyedweakreference">KeyedWeakReference<a class="headerlink" href="#keyedweakreference" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, val key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val watchUptimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, referenceQueue: <a href="https://developer.android.com/reference/kotlin/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;) : <a href="https://developer.android.com/reference/kotlin/java/lang/ref/WeakReference.html">WeakReference</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt; </p>
+<p>class <a href="./">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, val key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val watchUptimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, referenceQueue: <a href="https://developer.android.com/reference/kotlin/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;) : <a href="https://developer.android.com/reference/kotlin/java/lang/ref/WeakReference.html">WeakReference</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt; </p>
 <p>A weak reference used by <a href="../-object-watcher/">ObjectWatcher</a> to determine which objects become weakly reachable and which don&rsquo;t. <a href="../-object-watcher/">ObjectWatcher</a> uses <a href="key/">key</a> to keep track of <a href="./">KeyedWeakReference</a> instances that haven&rsquo;t made it into the associated <a href="https://developer.android.com/reference/kotlin/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a> yet.</p>
 <p><a href="-companion/heap-dump-uptime-millis/">heapDumpUptimeMillis</a> should be set with the current time from <a href="../-clock/uptime-millis/">Clock.uptimeMillis</a> right before dumping the heap, so that we can later determine how long an object was retained.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
@@ -720,7 +719,7 @@ class <a href="./">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.
 <tbody>
 <tr>
 <td><a href="-keyed-weak-reference/">KeyedWeakReference</a></td>
-<td>[FOOFOO]<br>fun <a href="-keyed-weak-reference/">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, watchUptimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, referenceQueue: <a href="https://developer.android.com/reference/kotlin/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;)</td>
+<td>fun <a href="-keyed-weak-reference/">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, watchUptimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, referenceQueue: <a href="https://developer.android.com/reference/kotlin/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;)</td>
 </tr>
 </tbody>
 </table>
@@ -735,7 +734,7 @@ class <a href="./">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -750,23 +749,23 @@ class <a href="./">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.
 <tbody>
 <tr>
 <td><a href="clear/">clear</a></td>
-<td>[FOOFOO]<br>open override fun <a href="clear/">clear</a>()</td>
+<td>open override fun <a href="clear/">clear</a>()</td>
 </tr>
 <tr>
-<td><a href="./#2146380180%2FFunctions%2F121734517">clone</a></td>
-<td>[FOOFOO]<br>open fun <a href="./#2146380180%2FFunctions%2F121734517">clone</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a></td>
+<td><a href="./#2146380180%2FFunctions%2F44236444">clone</a></td>
+<td>open fun <a href="./#2146380180%2FFunctions%2F44236444">clone</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a></td>
 </tr>
 <tr>
-<td><a href="./#-1582683575%2FFunctions%2F121734517">enqueue</a></td>
-<td>[FOOFOO]<br>open fun <a href="./#-1582683575%2FFunctions%2F121734517">enqueue</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+<td><a href="./#-1582683575%2FFunctions%2F44236444">enqueue</a></td>
+<td>open fun <a href="./#-1582683575%2FFunctions%2F44236444">enqueue</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
 </tr>
 <tr>
-<td><a href="./#1424066235%2FFunctions%2F121734517">get</a></td>
-<td>[FOOFOO]<br>open fun <a href="./#1424066235%2FFunctions%2F121734517">get</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>?</td>
+<td><a href="./#1424066235%2FFunctions%2F44236444">get</a></td>
+<td>open fun <a href="./#1424066235%2FFunctions%2F44236444">get</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>?</td>
 </tr>
 <tr>
-<td><a href="./#1222417347%2FFunctions%2F121734517">isEnqueued</a></td>
-<td>[FOOFOO]<br>open fun <a href="./#1222417347%2FFunctions%2F121734517">isEnqueued</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+<td><a href="./#1222417347%2FFunctions%2F44236444">isEnqueued</a></td>
+<td>open fun <a href="./#1222417347%2FFunctions%2F44236444">isEnqueued</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
 </tr>
 </tbody>
 </table>
@@ -781,27 +780,27 @@ class <a href="./">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.
 <tbody>
 <tr>
 <td><a href="description/">description</a></td>
-<td>[FOOFOO]<br>val <a href="description/">description</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>val <a href="description/">description</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
 <td><a href="key/">key</a></td>
-<td>[FOOFOO]<br>val <a href="key/">key</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>val <a href="key/">key</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
-<td><a href="./#-1393079018%2FProperties%2F121734517">next</a></td>
-<td>[FOOFOO]<br>val <a href="./#-1393079018%2FProperties%2F121734517">next</a>: <a href="https://developer.android.com/reference/kotlin/java/lang/ref/Reference.html">Reference</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;</td>
+<td><a href="./#-1393079018%2FProperties%2F44236444">next</a></td>
+<td>val <a href="./#-1393079018%2FProperties%2F44236444">next</a>: <a href="https://developer.android.com/reference/kotlin/java/lang/ref/Reference.html">Reference</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;</td>
 </tr>
 <tr>
-<td><a href="./#641515616%2FProperties%2F121734517">queue</a></td>
-<td>[FOOFOO]<br>val <a href="./#641515616%2FProperties%2F121734517">queue</a>: <a href="https://developer.android.com/reference/kotlin/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a>&lt;in <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;</td>
+<td><a href="./#641515616%2FProperties%2F44236444">queue</a></td>
+<td>val <a href="./#641515616%2FProperties%2F44236444">queue</a>: <a href="https://developer.android.com/reference/kotlin/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a>&lt;in <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="retained-uptime-millis/">retainedUptimeMillis</a></td>
-<td>[FOOFOO]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-volatile/index.html">Volatile</a><br>var <a href="retained-uptime-millis/">retainedUptimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Time at which the associated object (referent) was considered retained, or -1 if it hasn&rsquo;t been yet.</td>
+<td>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-volatile/index.html">Volatile</a><br>var <a href="retained-uptime-millis/">retainedUptimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Time at which the associated object (referent) was considered retained, or -1 if it hasn&rsquo;t been yet.</td>
 </tr>
 <tr>
 <td><a href="watch-uptime-millis/">watchUptimeMillis</a></td>
-<td>[FOOFOO]<br>val <a href="watch-uptime-millis/">watchUptimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
+<td>val <a href="watch-uptime-millis/">watchUptimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
 </tr>
 </tbody>
 </table>

@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">leakcanary</a>/<a href="./">AndroidLeakFixes</a></p>
 <h1 id="androidleakfixes">AndroidLeakFixes<a class="headerlink" href="#androidleakfixes" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-enum <a href="./">AndroidLeakFixes</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="./">AndroidLeakFixes</a>&gt; </p>
+<p>enum <a href="./">AndroidLeakFixes</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="./">AndroidLeakFixes</a>&gt; </p>
 <p>A collection of hacks to fix leaks in the Android Framework and other Google Android libraries.</p>
 <h2 id="entries">Entries<a class="headerlink" href="#entries" title="Permanent link">&para;</a></h2>
 <table>
@@ -712,59 +711,59 @@ enum <a href="./">AndroidLeakFixes</a> : <a href="https://kotlinlang.org/api/lat
 <tbody>
 <tr>
 <td><a href="-s-p-e-l-l_-c-h-e-c-k-e-r/">SPELL_CHECKER</a></td>
-<td>[FOOFOO]<br><a href="-s-p-e-l-l_-c-h-e-c-k-e-r/">SPELL_CHECKER</a>()<br>Every editable TextView has an Editor instance which has a SpellChecker instance. SpellChecker is in charge of displaying the little squiggle spans that show typos. SpellChecker starts a SpellCheckerSession as needed and then closes it when the TextView is detached from the window. A SpellCheckerSession is in charge of communicating with the spell checker service (which lives in another process) through TextServicesManager.</td>
+<td><a href="-s-p-e-l-l_-c-h-e-c-k-e-r/">SPELL_CHECKER</a>()<br>Every editable TextView has an Editor instance which has a SpellChecker instance. SpellChecker is in charge of displaying the little squiggle spans that show typos. SpellChecker starts a SpellCheckerSession as needed and then closes it when the TextView is detached from the window. A SpellCheckerSession is in charge of communicating with the spell checker service (which lives in another process) through TextServicesManager.</td>
 </tr>
 <tr>
 <td><a href="-i-m-m_-c-u-r_-r-o-o-t_-v-i-e-w/">IMM_CUR_ROOT_VIEW</a></td>
-<td>[FOOFOO]<br><a href="-i-m-m_-c-u-r_-r-o-o-t_-v-i-e-w/">IMM_CUR_ROOT_VIEW</a>()<br>When an activity is destroyed, the corresponding ViewRootImpl instance is released and ready to be garbage collected. Some time after that, ViewRootImpl#W receives a windowfocusChanged() callback, which it normally delegates to ViewRootImpl which in turn calls InputMethodManager#onPreWindowFocus which clears InputMethodManager#mCurRootView.</td>
+<td><a href="-i-m-m_-c-u-r_-r-o-o-t_-v-i-e-w/">IMM_CUR_ROOT_VIEW</a>()<br>When an activity is destroyed, the corresponding ViewRootImpl instance is released and ready to be garbage collected. Some time after that, ViewRootImpl#W receives a windowfocusChanged() callback, which it normally delegates to ViewRootImpl which in turn calls InputMethodManager#onPreWindowFocus which clears InputMethodManager#mCurRootView.</td>
 </tr>
 <tr>
 <td><a href="-i-m-m_-f-o-c-u-s-e-d_-v-i-e-w/">IMM_FOCUSED_VIEW</a></td>
-<td>[FOOFOO]<br><a href="-i-m-m_-f-o-c-u-s-e-d_-v-i-e-w/">IMM_FOCUSED_VIEW</a>()<br>Fix for <a href="https://code.google.com/p/android/issues/detail?id=171190">https://code.google.com/p/android/issues/detail?id=171190</a> .</td>
+<td><a href="-i-m-m_-f-o-c-u-s-e-d_-v-i-e-w/">IMM_FOCUSED_VIEW</a>()<br>Fix for <a href="https://code.google.com/p/android/issues/detail?id=171190">https://code.google.com/p/android/issues/detail?id=171190</a> .</td>
 </tr>
 <tr>
 <td><a href="-v-i-e-w_-l-o-c-a-t-i-o-n_-h-o-l-d-e-r/">VIEW_LOCATION_HOLDER</a></td>
-<td>[FOOFOO]<br><a href="-v-i-e-w_-l-o-c-a-t-i-o-n_-h-o-l-d-e-r/">VIEW_LOCATION_HOLDER</a>()<br>In Android P, ViewLocationHolder has an mRoot field that is not cleared in its clear() method. Introduced in <a href="https://github.com/aosp-mirror/platform_frameworks_base/commit">https://github.com/aosp-mirror/platform_frameworks_base/commit</a> /86b326012813f09d8f1de7d6d26c986a909d</td>
+<td><a href="-v-i-e-w_-l-o-c-a-t-i-o-n_-h-o-l-d-e-r/">VIEW_LOCATION_HOLDER</a>()<br>In Android P, ViewLocationHolder has an mRoot field that is not cleared in its clear() method. Introduced in <a href="https://github.com/aosp-mirror/platform_frameworks_base/commit">https://github.com/aosp-mirror/platform_frameworks_base/commit</a> /86b326012813f09d8f1de7d6d26c986a909d</td>
 </tr>
 <tr>
 <td><a href="-a-c-t-i-v-i-t-y_-m-a-n-a-g-e-r/">ACTIVITY_MANAGER</a></td>
-<td>[FOOFOO]<br><a href="-a-c-t-i-v-i-t-y_-m-a-n-a-g-e-r/">ACTIVITY_MANAGER</a>()<br>Samsung added a static mContext field to ActivityManager, holding a reference to the activity.</td>
+<td><a href="-a-c-t-i-v-i-t-y_-m-a-n-a-g-e-r/">ACTIVITY_MANAGER</a>()<br>Samsung added a static mContext field to ActivityManager, holding a reference to the activity.</td>
 </tr>
 <tr>
 <td><a href="-l-a-s-t_-h-o-v-e-r-e-d_-v-i-e-w/">LAST_HOVERED_VIEW</a></td>
-<td>[FOOFOO]<br><a href="-l-a-s-t_-h-o-v-e-r-e-d_-v-i-e-w/">LAST_HOVERED_VIEW</a>()<br>mLastHoveredView is a static field in TextView that leaks the last hovered view.</td>
+<td><a href="-l-a-s-t_-h-o-v-e-r-e-d_-v-i-e-w/">LAST_HOVERED_VIEW</a>()<br>mLastHoveredView is a static field in TextView that leaks the last hovered view.</td>
 </tr>
 <tr>
 <td><a href="-b-u-b-b-l-e_-p-o-p-u-p/">BUBBLE_POPUP</a></td>
-<td>[FOOFOO]<br><a href="-b-u-b-b-l-e_-p-o-p-u-p/">BUBBLE_POPUP</a>()<br>A static helper for EditText bubble popups leaks a reference to the latest focused view.</td>
+<td><a href="-b-u-b-b-l-e_-p-o-p-u-p/">BUBBLE_POPUP</a>()<br>A static helper for EditText bubble popups leaks a reference to the latest focused view.</td>
 </tr>
 <tr>
 <td><a href="-s-a-m-s-u-n-g_-c-l-i-p-b-o-a-r-d_-m-a-n-a-g-e-r/">SAMSUNG_CLIPBOARD_MANAGER</a></td>
-<td>[FOOFOO]<br><a href="-s-a-m-s-u-n-g_-c-l-i-p-b-o-a-r-d_-m-a-n-a-g-e-r/">SAMSUNG_CLIPBOARD_MANAGER</a>()<br>ClipboardUIManager is a static singleton that leaks an activity context. This fix makes sure the manager is called with an application context.</td>
+<td><a href="-s-a-m-s-u-n-g_-c-l-i-p-b-o-a-r-d_-m-a-n-a-g-e-r/">SAMSUNG_CLIPBOARD_MANAGER</a>()<br>ClipboardUIManager is a static singleton that leaks an activity context. This fix makes sure the manager is called with an application context.</td>
 </tr>
 <tr>
 <td><a href="-c-o-n-n-e-c-t-i-v-i-t-y_-m-a-n-a-g-e-r/">CONNECTIVITY_MANAGER</a></td>
-<td>[FOOFOO]<br><a href="-c-o-n-n-e-c-t-i-v-i-t-y_-m-a-n-a-g-e-r/">CONNECTIVITY_MANAGER</a>()<br>ConnectivityManager has a sInstance field that is set when the first ConnectivityManager instance is created. ConnectivityManager has a mContext field. When calling activity.getSystemService(Context.CONNECTIVITY_SERVICE) , the first ConnectivityManager instance is created with the activity context and stored in sInstance. That activity context then leaks forever.</td>
+<td><a href="-c-o-n-n-e-c-t-i-v-i-t-y_-m-a-n-a-g-e-r/">CONNECTIVITY_MANAGER</a>()<br>ConnectivityManager has a sInstance field that is set when the first ConnectivityManager instance is created. ConnectivityManager has a mContext field. When calling activity.getSystemService(Context.CONNECTIVITY_SERVICE) , the first ConnectivityManager instance is created with the activity context and stored in sInstance. That activity context then leaks forever.</td>
 </tr>
 <tr>
 <td><a href="-a-c-c-e-s-s-i-b-i-l-i-t-y_-n-o-d-e_-i-n-f-o/">ACCESSIBILITY_NODE_INFO</a></td>
-<td>[FOOFOO]<br><a href="-a-c-c-e-s-s-i-b-i-l-i-t-y_-n-o-d-e_-i-n-f-o/">ACCESSIBILITY_NODE_INFO</a>()<br>Until API 28, AccessibilityNodeInfo has a mOriginalText field that was not properly cleared when instance were put back in the pool. Leak introduced here: <a href="https://android.googlesource.com/platform/frameworks/base/+">https://android.googlesource.com/platform/frameworks/base/+</a> /193520e3dff5248ddcf8435203bf99d2ba667219%5E%21/core/java/android/view/accessibility /AccessibilityNodeInfo.java</td>
+<td><a href="-a-c-c-e-s-s-i-b-i-l-i-t-y_-n-o-d-e_-i-n-f-o/">ACCESSIBILITY_NODE_INFO</a>()<br>Until API 28, AccessibilityNodeInfo has a mOriginalText field that was not properly cleared when instance were put back in the pool. Leak introduced here: <a href="https://android.googlesource.com/platform/frameworks/base/+">https://android.googlesource.com/platform/frameworks/base/+</a> /193520e3dff5248ddcf8435203bf99d2ba667219%5E%21/core/java/android/view/accessibility /AccessibilityNodeInfo.java</td>
 </tr>
 <tr>
 <td><a href="-f-l-u-s-h_-h-a-n-d-l-e-r_-t-h-r-e-a-d-s/">FLUSH_HANDLER_THREADS</a></td>
-<td>[FOOFOO]<br><a href="-f-l-u-s-h_-h-a-n-d-l-e-r_-t-h-r-e-a-d-s/">FLUSH_HANDLER_THREADS</a>()<br>HandlerThread instances keep local reference to their last handled message after recycling it. That message is obtained by a dialog which sets on an OnClickListener on it and then never recycles it, expecting it to be garbage collected but it ends up being held by the HandlerThread.</td>
+<td><a href="-f-l-u-s-h_-h-a-n-d-l-e-r_-t-h-r-e-a-d-s/">FLUSH_HANDLER_THREADS</a>()<br>HandlerThread instances keep local reference to their last handled message after recycling it. That message is obtained by a dialog which sets on an OnClickListener on it and then never recycles it, expecting it to be garbage collected but it ends up being held by the HandlerThread.</td>
 </tr>
 <tr>
 <td><a href="-u-s-e-r_-m-a-n-a-g-e-r/">USER_MANAGER</a></td>
-<td>[FOOFOO]<br><a href="-u-s-e-r_-m-a-n-a-g-e-r/">USER_MANAGER</a>()<br>Obtaining the UserManager service ends up calling the hidden UserManager.get() method which stores the context in a singleton UserManager instance and then stores that instance in a static field.</td>
+<td><a href="-u-s-e-r_-m-a-n-a-g-e-r/">USER_MANAGER</a>()<br>Obtaining the UserManager service ends up calling the hidden UserManager.get() method which stores the context in a singleton UserManager instance and then stores that instance in a static field.</td>
 </tr>
 <tr>
 <td><a href="-t-e-x-t_-l-i-n-e_-p-o-o-l/">TEXT_LINE_POOL</a></td>
-<td>[FOOFOO]<br><a href="-t-e-x-t_-l-i-n-e_-p-o-o-l/">TEXT_LINE_POOL</a>()<br>This flushes the TextLine pool when an activity is destroyed, to prevent memory leaks.</td>
+<td><a href="-t-e-x-t_-l-i-n-e_-p-o-o-l/">TEXT_LINE_POOL</a>()<br>This flushes the TextLine pool when an activity is destroyed, to prevent memory leaks.</td>
 </tr>
 <tr>
 <td><a href="-m-e-d-i-a_-s-e-s-s-i-o-n_-l-e-g-a-c-y_-h-e-l-p-e-r/">MEDIA_SESSION_LEGACY_HELPER</a></td>
-<td>[FOOFOO]<br><a href="-m-e-d-i-a_-s-e-s-s-i-o-n_-l-e-g-a-c-y_-h-e-l-p-e-r/">MEDIA_SESSION_LEGACY_HELPER</a>()<br>MediaSessionLegacyHelper is a static singleton and did not use the application context. Introduced in android-5.0.1_r1, fixed in Android 5.1.0_r1. <a href="https://github.com/android/platform_frameworks_base/commit/">https://github.com/android/platform_frameworks_base/commit/</a> 9b5257c9c99c4cb541d8e8e78fb04f008b1a9091</td>
+<td><a href="-m-e-d-i-a_-s-e-s-s-i-o-n_-l-e-g-a-c-y_-h-e-l-p-e-r/">MEDIA_SESSION_LEGACY_HELPER</a>()<br>MediaSessionLegacyHelper is a static singleton and did not use the application context. Introduced in android-5.0.1_r1, fixed in Android 5.1.0_r1. <a href="https://github.com/android/platform_frameworks_base/commit/">https://github.com/android/platform_frameworks_base/commit/</a> 9b5257c9c99c4cb541d8e8e78fb04f008b1a9091</td>
 </tr>
 </tbody>
 </table>
@@ -779,7 +778,7 @@ enum <a href="./">AndroidLeakFixes</a> : <a href="https://kotlinlang.org/api/lat
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -793,12 +792,12 @@ enum <a href="./">AndroidLeakFixes</a> : <a href="https://kotlinlang.org/api/lat
 </thead>
 <tbody>
 <tr>
-<td><a href="../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F121734517">name</a></td>
-<td>[FOOFOO]<br>val <a href="../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F121734517">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td><a href="../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F44236444">name</a></td>
+<td>val <a href="../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F44236444">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
-<td><a href="../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F121734517">ordinal</a></td>
-<td>[FOOFOO]<br>val <a href="../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F121734517">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td><a href="../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F44236444">ordinal</a></td>
+<td>val <a href="../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F44236444">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

@@ -766,303 +766,303 @@
 <tbody>
 <tr>
 <td><a href="-analyze-command/">AnalyzeCommand</a></td>
-<td>[FOOFOO]<br>class <a href="-analyze-command/">AnalyzeCommand</a> : CliktCommand</td>
+<td>class <a href="-analyze-command/">AnalyzeCommand</a> : CliktCommand</td>
 </tr>
 <tr>
 <td><a href="-android-build-mirror/">AndroidBuildMirror</a></td>
-<td>[FOOFOO]<br>class <a href="-android-build-mirror/">AndroidBuildMirror</a>(val manufacturer: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val sdkInt: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)<br>Caches values from the android.os.Build class in the heap dump. Retrieve a cached instances via <a href="-android-build-mirror/-companion/from-heap-graph/">fromHeapGraph</a>.</td>
+<td>class <a href="-android-build-mirror/">AndroidBuildMirror</a>(val manufacturer: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val sdkInt: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)<br>Caches values from the android.os.Build class in the heap dump. Retrieve a cached instances via <a href="-android-build-mirror/-companion/from-heap-graph/">fromHeapGraph</a>.</td>
 </tr>
 <tr>
 <td><a href="-android-metadata-extractor/">AndroidMetadataExtractor</a></td>
-<td>[FOOFOO]<br>object <a href="-android-metadata-extractor/">AndroidMetadataExtractor</a> : <a href="-metadata-extractor/">MetadataExtractor</a></td>
+<td>object <a href="-android-metadata-extractor/">AndroidMetadataExtractor</a> : <a href="-metadata-extractor/">MetadataExtractor</a></td>
 </tr>
 <tr>
 <td><a href="-android-object-inspectors/">AndroidObjectInspectors</a></td>
-<td>[FOOFOO]<br>enum <a href="-android-object-inspectors/">AndroidObjectInspectors</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-android-object-inspectors/">AndroidObjectInspectors</a>&gt; , <a href="-object-inspector/">ObjectInspector</a><br>A set of default <a href="-object-inspector/">ObjectInspector</a>s that knows about common AOSP and library classes.</td>
+<td>enum <a href="-android-object-inspectors/">AndroidObjectInspectors</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-android-object-inspectors/">AndroidObjectInspectors</a>&gt; , <a href="-object-inspector/">ObjectInspector</a><br>A set of default <a href="-object-inspector/">ObjectInspector</a>s that knows about common AOSP and library classes.</td>
 </tr>
 <tr>
 <td><a href="-android-reference-matchers/">AndroidReferenceMatchers</a></td>
-<td>[FOOFOO]<br>enum <a href="-android-reference-matchers/">AndroidReferenceMatchers</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-android-reference-matchers/">AndroidReferenceMatchers</a>&gt; <br><a href="-android-reference-matchers/">AndroidReferenceMatchers</a> values add <a href="-reference-matcher/">ReferenceMatcher</a> instances to a global list via their add method. A <a href="-reference-matcher/">ReferenceMatcher</a> is either a <a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a> or a <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>.</td>
+<td>enum <a href="-android-reference-matchers/">AndroidReferenceMatchers</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-android-reference-matchers/">AndroidReferenceMatchers</a>&gt; <br><a href="-android-reference-matchers/">AndroidReferenceMatchers</a> values add <a href="-reference-matcher/">ReferenceMatcher</a> instances to a global list via their add method. A <a href="-reference-matcher/">ReferenceMatcher</a> is either a <a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a> or a <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>.</td>
 </tr>
 <tr>
 <td><a href="-android-resource-id-names/">AndroidResourceIdNames</a></td>
-<td>[FOOFOO]<br>class <a href="-android-resource-id-names/">AndroidResourceIdNames</a></td>
+<td>class <a href="-android-resource-id-names/">AndroidResourceIdNames</a></td>
 </tr>
 <tr>
 <td><a href="-android-services/">AndroidServices</a></td>
-<td>[FOOFOO]<br>object <a href="-android-services/">AndroidServices</a></td>
+<td>object <a href="-android-services/">AndroidServices</a></td>
 </tr>
 <tr>
 <td><a href="-application-leak/">ApplicationLeak</a></td>
-<td>[FOOFOO]<br>data class <a href="-application-leak/">ApplicationLeak</a>(val leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace/">LeakTrace</a>&gt;) : <a href="-leak/">Leak</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a> in your application.</td>
+<td>data class <a href="-application-leak/">ApplicationLeak</a>(val leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace/">LeakTrace</a>&gt;) : <a href="-leak/">Leak</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a> in your application.</td>
 </tr>
 <tr>
 <td><a href="-app-singleton-inspector/">AppSingletonInspector</a></td>
-<td>[FOOFOO]<br>class <a href="-app-singleton-inspector/">AppSingletonInspector</a>(singletonClasses: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="-object-inspector/">ObjectInspector</a><br>Inspector that automatically marks instances of the provided class names as not leaking because they&rsquo;re app wide singletons.</td>
+<td>class <a href="-app-singleton-inspector/">AppSingletonInspector</a>(singletonClasses: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="-object-inspector/">ObjectInspector</a><br>Inspector that automatically marks instances of the provided class names as not leaking because they&rsquo;re app wide singletons.</td>
 </tr>
 <tr>
 <td><a href="-byte-array-source-provider/">ByteArraySourceProvider</a></td>
-<td>[FOOFOO]<br>class <a href="-byte-array-source-provider/">ByteArraySourceProvider</a>(byteArray: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a>) : <a href="-dual-source-provider/">DualSourceProvider</a></td>
+<td>class <a href="-byte-array-source-provider/">ByteArraySourceProvider</a>(byteArray: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a>) : <a href="-dual-source-provider/">DualSourceProvider</a></td>
 </tr>
 <tr>
 <td><a href="-closeable-heap-graph/">CloseableHeapGraph</a></td>
-<td>[FOOFOO]<br>interface <a href="-closeable-heap-graph/">CloseableHeapGraph</a> : <a href="-heap-graph/">HeapGraph</a>, <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a><br>A <a href="-heap-graph/">HeapGraph</a> that should be closed after being used.</td>
+<td>interface <a href="-closeable-heap-graph/">CloseableHeapGraph</a> : <a href="-heap-graph/">HeapGraph</a>, <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a><br>A <a href="-heap-graph/">HeapGraph</a> that should be closed after being used.</td>
 </tr>
 <tr>
 <td><a href="-constant-memory-metrics-dual-source-provider/">ConstantMemoryMetricsDualSourceProvider</a></td>
-<td>[FOOFOO]<br>class <a href="-constant-memory-metrics-dual-source-provider/">ConstantMemoryMetricsDualSourceProvider</a>(realSourceProvider: <a href="-dual-source-provider/">DualSourceProvider</a>) : <a href="-dual-source-provider/">DualSourceProvider</a><br>Captures IO read metrics without using much memory.</td>
+<td>class <a href="-constant-memory-metrics-dual-source-provider/">ConstantMemoryMetricsDualSourceProvider</a>(realSourceProvider: <a href="-dual-source-provider/">DualSourceProvider</a>) : <a href="-dual-source-provider/">DualSourceProvider</a><br>Captures IO read metrics without using much memory.</td>
 </tr>
 <tr>
 <td><a href="-deobfuscate-hprof-command/">DeobfuscateHprofCommand</a></td>
-<td>[FOOFOO]<br>class <a href="-deobfuscate-hprof-command/">DeobfuscateHprofCommand</a> : CliktCommand</td>
+<td>class <a href="-deobfuscate-hprof-command/">DeobfuscateHprofCommand</a> : CliktCommand</td>
 </tr>
 <tr>
 <td><a href="-dual-source-provider/">DualSourceProvider</a></td>
-<td>[FOOFOO]<br>interface <a href="-dual-source-provider/">DualSourceProvider</a> : <a href="-streaming-source-provider/">StreamingSourceProvider</a>, <a href="-random-access-source-provider/">RandomAccessSourceProvider</a><br>Both a <a href="-streaming-source-provider/">StreamingSourceProvider</a> and a <a href="-random-access-source-provider/">RandomAccessSourceProvider</a></td>
+<td>interface <a href="-dual-source-provider/">DualSourceProvider</a> : <a href="-streaming-source-provider/">StreamingSourceProvider</a>, <a href="-random-access-source-provider/">RandomAccessSourceProvider</a><br>Both a <a href="-streaming-source-provider/">StreamingSourceProvider</a> and a <a href="-random-access-source-provider/">RandomAccessSourceProvider</a></td>
 </tr>
 <tr>
 <td><a href="-dump-process-command/">DumpProcessCommand</a></td>
-<td>[FOOFOO]<br>class <a href="-dump-process-command/">DumpProcessCommand</a> : CliktCommand</td>
+<td>class <a href="-dump-process-command/">DumpProcessCommand</a> : CliktCommand</td>
 </tr>
 <tr>
 <td><a href="-file-source-provider/">FileSourceProvider</a></td>
-<td>[FOOFOO]<br>class <a href="-file-source-provider/">FileSourceProvider</a>(file: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>) : <a href="-dual-source-provider/">DualSourceProvider</a></td>
+<td>class <a href="-file-source-provider/">FileSourceProvider</a>(file: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>) : <a href="-dual-source-provider/">DualSourceProvider</a></td>
 </tr>
 <tr>
 <td><a href="-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a></td>
-<td>[FOOFOO]<br>class <a href="-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a>(filters: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-filtering-leaking-object-finder/-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a>&gt;) : <a href="-leaking-object-finder/">LeakingObjectFinder</a><br>Finds the objects that are leaking by scanning all objects in the heap dump and delegating the decision to a list of <a href="-filtering-leaking-object-finder/-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a></td>
+<td>class <a href="-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a>(filters: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-filtering-leaking-object-finder/-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a>&gt;) : <a href="-leaking-object-finder/">LeakingObjectFinder</a><br>Finds the objects that are leaking by scanning all objects in the heap dump and delegating the decision to a list of <a href="-filtering-leaking-object-finder/-leaking-object-filter/">FilteringLeakingObjectFinder.LeakingObjectFilter</a></td>
 </tr>
 <tr>
 <td><a href="-gc-root/">GcRoot</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-gc-root/">GcRoot</a><br>A GcRoot as identified by <a href="-hprof-record/-heap-dump-record/-gc-root-record/">HprofRecord.HeapDumpRecord.GcRootRecord</a> in the heap dump.</td>
+<td>sealed class <a href="-gc-root/">GcRoot</a><br>A GcRoot as identified by <a href="-hprof-record/-heap-dump-record/-gc-root-record/">HprofRecord.HeapDumpRecord.GcRootRecord</a> in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-graph-context/">GraphContext</a></td>
-<td>[FOOFOO]<br>class <a href="-graph-context/">GraphContext</a><br>In memory store that can be used to store objects in a given <a href="-heap-graph/">HeapGraph</a> instance. This is a simple <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/index.html">MutableMap</a> of <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> to <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, but with unsafe generics access.</td>
+<td>class <a href="-graph-context/">GraphContext</a><br>In memory store that can be used to store objects in a given <a href="-heap-graph/">HeapGraph</a> instance. This is a simple <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/index.html">MutableMap</a> of <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> to <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, but with unsafe generics access.</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis/">HeapAnalysis</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-heap-analysis/">HeapAnalysis</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>The result of an analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>, either a <a href="-heap-analysis-success/">HeapAnalysisSuccess</a> or a <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward compatibility.</td>
+<td>sealed class <a href="-heap-analysis/">HeapAnalysis</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>The result of an analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>, either a <a href="-heap-analysis-success/">HeapAnalysisSuccess</a> or a <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward compatibility.</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-exception/">HeapAnalysisException</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-analysis-exception/">HeapAnalysisException</a>(cause: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html">Throwable</a>) : <a href="https://developer.android.com/reference/kotlin/java/lang/RuntimeException.html">RuntimeException</a></td>
+<td>class <a href="-heap-analysis-exception/">HeapAnalysisException</a>(cause: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html">Throwable</a>) : <a href="https://developer.android.com/reference/kotlin/java/lang/RuntimeException.html">RuntimeException</a></td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-failure/">HeapAnalysisFailure</a></td>
-<td>[FOOFOO]<br>data class <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>(val heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val exception: <a href="-heap-analysis-exception/">HeapAnalysisException</a>) : <a href="-heap-analysis/">HeapAnalysis</a><br>The analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a> did not complete successfully.</td>
+<td>data class <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>(val heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val exception: <a href="-heap-analysis-exception/">HeapAnalysisException</a>) : <a href="-heap-analysis/">HeapAnalysis</a><br>The analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a> did not complete successfully.</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-success/">HeapAnalysisSuccess</a></td>
-<td>[FOOFOO]<br>data class <a href="-heap-analysis-success/">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val metadata: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val applicationLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-application-leak/">ApplicationLeak</a>&gt;, val libraryLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-library-leak/">LibraryLeak</a>&gt;, val unreachableObjects: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-object/">LeakTraceObject</a>&gt;) : <a href="-heap-analysis/">HeapAnalysis</a><br>The result of a successful heap analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>.</td>
+<td>data class <a href="-heap-analysis-success/">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val metadata: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val applicationLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-application-leak/">ApplicationLeak</a>&gt;, val libraryLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-library-leak/">LibraryLeak</a>&gt;, val unreachableObjects: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-object/">LeakTraceObject</a>&gt;) : <a href="-heap-analysis/">HeapAnalysis</a><br>The result of a successful heap analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>.</td>
 </tr>
 <tr>
 <td><a href="-heap-analyzer/">HeapAnalyzer</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-analyzer/">HeapAnalyzer</a>(listener: <a href="-on-analysis-progress-listener/">OnAnalysisProgressListener</a>)<br>Analyzes heap dumps to look for leaks.</td>
+<td>class <a href="-heap-analyzer/">HeapAnalyzer</a>(listener: <a href="-on-analysis-progress-listener/">OnAnalysisProgressListener</a>)<br>Analyzes heap dumps to look for leaks.</td>
 </tr>
 <tr>
 <td><a href="-heap-dump-rule/">HeapDumpRule</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-dump-rule/">HeapDumpRule</a> : ExternalResource</td>
+<td>class <a href="-heap-dump-rule/">HeapDumpRule</a> : ExternalResource</td>
 </tr>
 <tr>
 <td><a href="-heap-field/">HeapField</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-field/">HeapField</a>(val declaringClass: <a href="-heap-object/-heap-class/">HeapObject.HeapClass</a>, val name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val value: <a href="-heap-value/">HeapValue</a>)<br>Represents a static field or an instance field.</td>
+<td>class <a href="-heap-field/">HeapField</a>(val declaringClass: <a href="-heap-object/-heap-class/">HeapObject.HeapClass</a>, val name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val value: <a href="-heap-value/">HeapValue</a>)<br>Represents a static field or an instance field.</td>
 </tr>
 <tr>
 <td><a href="-heap-graph/">HeapGraph</a></td>
-<td>[FOOFOO]<br>interface <a href="-heap-graph/">HeapGraph</a><br>Enables navigation through the heap graph of objects.</td>
+<td>interface <a href="-heap-graph/">HeapGraph</a><br>Enables navigation through the heap graph of objects.</td>
 </tr>
 <tr>
 <td><a href="-heap-object/">HeapObject</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-heap-object/">HeapObject</a><br>An object in the heap dump.</td>
+<td>sealed class <a href="-heap-object/">HeapObject</a><br>An object in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-heap-value/">HeapValue</a></td>
-<td>[FOOFOO]<br>class <a href="-heap-value/">HeapValue</a>(val graph: <a href="-heap-graph/">HeapGraph</a>, val holder: <a href="-value-holder/">ValueHolder</a>)<br>Represents a value in the heap dump, which can be an object reference or a primitive type.</td>
+<td>class <a href="-heap-value/">HeapValue</a>(val graph: <a href="-heap-graph/">HeapGraph</a>, val holder: <a href="-value-holder/">ValueHolder</a>)<br>Represents a value in the heap dump, which can be an object reference or a primitive type.</td>
 </tr>
 <tr>
 <td><a href="-hprof-deobfuscator/">HprofDeobfuscator</a></td>
-<td>[FOOFOO]<br>class <a href="-hprof-deobfuscator/">HprofDeobfuscator</a><br>Converts a Hprof file to another file with deobfuscated class and field names.</td>
+<td>class <a href="-hprof-deobfuscator/">HprofDeobfuscator</a><br>Converts a Hprof file to another file with deobfuscated class and field names.</td>
 </tr>
 <tr>
 <td><a href="-hprof-header/">HprofHeader</a></td>
-<td>[FOOFOO]<br>data class <a href="-hprof-header/">HprofHeader</a>(val heapDumpTimestamp: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = System.currentTimeMillis(), val version: <a href="-hprof-version/">HprofVersion</a> = HprofVersion.ANDROID, val identifierByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 4)<br>Represents the header metadata of a Hprof file.</td>
+<td>data class <a href="-hprof-header/">HprofHeader</a>(val heapDumpTimestamp: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = System.currentTimeMillis(), val version: <a href="-hprof-version/">HprofVersion</a> = HprofVersion.ANDROID, val identifierByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 4)<br>Represents the header metadata of a Hprof file.</td>
 </tr>
 <tr>
 <td><a href="-hprof-heap-graph/">HprofHeapGraph</a></td>
-<td>[FOOFOO]<br>class <a href="-hprof-heap-graph/">HprofHeapGraph</a> : <a href="-closeable-heap-graph/">CloseableHeapGraph</a><br>A <a href="-heap-graph/">HeapGraph</a> that reads from an Hprof file indexed by <a href="-hprof-index/">HprofIndex</a>.</td>
+<td>class <a href="-hprof-heap-graph/">HprofHeapGraph</a> : <a href="-closeable-heap-graph/">CloseableHeapGraph</a><br>A <a href="-heap-graph/">HeapGraph</a> that reads from an Hprof file indexed by <a href="-hprof-index/">HprofIndex</a>.</td>
 </tr>
 <tr>
 <td><a href="-hprof-index/">HprofIndex</a></td>
-<td>[FOOFOO]<br>class <a href="-hprof-index/">HprofIndex</a><br>An index on a Hprof file. See <a href="-hprof-index/open-heap-graph/">openHeapGraph</a>.</td>
+<td>class <a href="-hprof-index/">HprofIndex</a><br>An index on a Hprof file. See <a href="-hprof-index/open-heap-graph/">openHeapGraph</a>.</td>
 </tr>
 <tr>
 <td><a href="-hprof-primitive-array-stripper/">HprofPrimitiveArrayStripper</a></td>
-<td>[FOOFOO]<br>class <a href="-hprof-primitive-array-stripper/">HprofPrimitiveArrayStripper</a><br>Converts a Hprof file to another file with all primitive arrays replaced with arrays of zeroes, which can be useful to remove PII. Char arrays are handled slightly differently because 0 would be the null character so instead these become arrays of &lsquo;?&rsquo;.</td>
+<td>class <a href="-hprof-primitive-array-stripper/">HprofPrimitiveArrayStripper</a><br>Converts a Hprof file to another file with all primitive arrays replaced with arrays of zeroes, which can be useful to remove PII. Char arrays are handled slightly differently because 0 would be the null character so instead these become arrays of &lsquo;?&rsquo;.</td>
 </tr>
 <tr>
 <td><a href="-hprof-record/">HprofRecord</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-hprof-record/">HprofRecord</a><br>A Hprof record. These data structure map 1:1 with how records are written in hprof files.</td>
+<td>sealed class <a href="-hprof-record/">HprofRecord</a><br>A Hprof record. These data structure map 1:1 with how records are written in hprof files.</td>
 </tr>
 <tr>
 <td><a href="-hprof-record-reader/">HprofRecordReader</a></td>
-<td>[FOOFOO]<br>class <a href="-hprof-record-reader/">HprofRecordReader</a><br>Reads hprof content from an Okio <a href="https://square.github.io/okio/2.x/okio/okio/-buffered-source/index.html">BufferedSource</a>.</td>
+<td>class <a href="-hprof-record-reader/">HprofRecordReader</a><br>Reads hprof content from an Okio <a href="https://square.github.io/okio/2.x/okio/okio/-buffered-source/index.html">BufferedSource</a>.</td>
 </tr>
 <tr>
 <td><a href="-hprof-record-tag/">HprofRecordTag</a></td>
-<td>[FOOFOO]<br>enum <a href="-hprof-record-tag/">HprofRecordTag</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-hprof-record-tag/">HprofRecordTag</a>&gt;</td>
+<td>enum <a href="-hprof-record-tag/">HprofRecordTag</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-hprof-record-tag/">HprofRecordTag</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="-hprof-version/">HprofVersion</a></td>
-<td>[FOOFOO]<br>enum <a href="-hprof-version/">HprofVersion</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-hprof-version/">HprofVersion</a>&gt; <br>Supported hprof versions</td>
+<td>enum <a href="-hprof-version/">HprofVersion</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-hprof-version/">HprofVersion</a>&gt; <br>Supported hprof versions</td>
 </tr>
 <tr>
 <td><a href="-hprof-writer/">HprofWriter</a></td>
-<td>[FOOFOO]<br>class <a href="-hprof-writer/">HprofWriter</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a><br>Generates Hprof files.</td>
+<td>class <a href="-hprof-writer/">HprofWriter</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a><br>Generates Hprof files.</td>
 </tr>
 <tr>
 <td><a href="-hprof-writer-helper/">HprofWriterHelper</a></td>
-<td>[FOOFOO]<br>class <a href="-hprof-writer-helper/">HprofWriterHelper</a>(writer: <a href="-hprof-writer/">HprofWriter</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></td>
+<td>class <a href="-hprof-writer-helper/">HprofWriterHelper</a>(writer: <a href="-hprof-writer/">HprofWriter</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></td>
 </tr>
 <tr>
 <td><a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a></td>
-<td>[FOOFOO]<br>class <a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a>(val pattern: <a href="-reference-pattern/">ReferencePattern</a>) : <a href="-reference-matcher/">ReferenceMatcher</a><br><a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a> should be used to match references that cannot ever create leaks. The shortest path finder will never go through matching references.</td>
+<td>class <a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a>(val pattern: <a href="-reference-pattern/">ReferencePattern</a>) : <a href="-reference-matcher/">ReferenceMatcher</a><br><a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a> should be used to match references that cannot ever create leaks. The shortest path finder will never go through matching references.</td>
 </tr>
 <tr>
 <td><a href="-interactive-command/">InteractiveCommand</a></td>
-<td>[FOOFOO]<br>class <a href="-interactive-command/">InteractiveCommand</a> : CliktCommand</td>
+<td>class <a href="-interactive-command/">InteractiveCommand</a> : CliktCommand</td>
 </tr>
 <tr>
 <td><a href="-jvm-test-heap-dumper/">JvmTestHeapDumper</a></td>
-<td>[FOOFOO]<br>object <a href="-jvm-test-heap-dumper/">JvmTestHeapDumper</a></td>
+<td>object <a href="-jvm-test-heap-dumper/">JvmTestHeapDumper</a></td>
 </tr>
 <tr>
 <td><a href="-keyed-weak-reference-finder/">KeyedWeakReferenceFinder</a></td>
-<td>[FOOFOO]<br>object <a href="-keyed-weak-reference-finder/">KeyedWeakReferenceFinder</a> : <a href="-leaking-object-finder/">LeakingObjectFinder</a><br>Finds all objects tracked by a KeyedWeakReference, ie all objects that were passed to ObjectWatcher.watch.</td>
+<td>object <a href="-keyed-weak-reference-finder/">KeyedWeakReferenceFinder</a> : <a href="-leaking-object-finder/">LeakingObjectFinder</a><br>Finds all objects tracked by a KeyedWeakReference, ie all objects that were passed to ObjectWatcher.watch.</td>
 </tr>
 <tr>
 <td><a href="-leak/">Leak</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-leak/">Leak</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, either an <a href="-application-leak/">ApplicationLeak</a> or a <a href="-library-leak/">LibraryLeak</a>.</td>
+<td>sealed class <a href="-leak/">Leak</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, either an <a href="-application-leak/">ApplicationLeak</a> or a <a href="-library-leak/">LibraryLeak</a>.</td>
 </tr>
 <tr>
 <td><a href="-leaking-object-finder/">LeakingObjectFinder</a></td>
-<td>[FOOFOO]<br>fun interface <a href="-leaking-object-finder/">LeakingObjectFinder</a><br>Finds the objects that are leaking, for which Shark will compute leak traces.</td>
+<td>fun interface <a href="-leaking-object-finder/">LeakingObjectFinder</a><br>Finds the objects that are leaking, for which Shark will compute leak traces.</td>
 </tr>
 <tr>
 <td><a href="-leak-trace/">LeakTrace</a></td>
-<td>[FOOFOO]<br>data class <a href="-leak-trace/">LeakTrace</a>(val gcRootType: <a href="-leak-trace/-gc-root-type/">LeakTrace.GcRootType</a>, val referencePath: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-reference/">LeakTraceReference</a>&gt;, val leakingObject: <a href="-leak-trace-object/">LeakTraceObject</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>The best strong reference path from a GC root to the leaking object. &quot;Best&quot; here means the shortest prioritized path. A large number of distinct paths can generally be found leading to a leaking object. Shark prioritizes paths that don&rsquo;t go through known <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> (because those are known to create leaks so it&rsquo;s more interesting to find other paths causing leaks), then it prioritize paths that don&rsquo;t go through java local gc roots (because those are harder to reason about). Taking those priorities into account, finding the shortest path means there are less <a href="-leak-trace-reference/">LeakTraceReference</a> that can be suspected to cause the leak.</td>
+<td>data class <a href="-leak-trace/">LeakTrace</a>(val gcRootType: <a href="-leak-trace/-gc-root-type/">LeakTrace.GcRootType</a>, val referencePath: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-reference/">LeakTraceReference</a>&gt;, val leakingObject: <a href="-leak-trace-object/">LeakTraceObject</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>The best strong reference path from a GC root to the leaking object. &quot;Best&quot; here means the shortest prioritized path. A large number of distinct paths can generally be found leading to a leaking object. Shark prioritizes paths that don&rsquo;t go through known <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> (because those are known to create leaks so it&rsquo;s more interesting to find other paths causing leaks), then it prioritize paths that don&rsquo;t go through java local gc roots (because those are harder to reason about). Taking those priorities into account, finding the shortest path means there are less <a href="-leak-trace-reference/">LeakTraceReference</a> that can be suspected to cause the leak.</td>
 </tr>
 <tr>
 <td><a href="-leak-trace-object/">LeakTraceObject</a></td>
-<td>[FOOFOO]<br>data class <a href="-leak-trace-object/">LeakTraceObject</a>(val type: <a href="-leak-trace-object/-object-type/">LeakTraceObject.ObjectType</a>, val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val leakingStatus: <a href="-leak-trace-object/-leaking-status/">LeakTraceObject.LeakingStatus</a>, val leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, val retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></td>
+<td>data class <a href="-leak-trace-object/">LeakTraceObject</a>(val type: <a href="-leak-trace-object/-object-type/">LeakTraceObject.ObjectType</a>, val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val leakingStatus: <a href="-leak-trace-object/-leaking-status/">LeakTraceObject.LeakingStatus</a>, val leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, val retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></td>
 </tr>
 <tr>
 <td><a href="-leak-trace-reference/">LeakTraceReference</a></td>
-<td>[FOOFOO]<br>data class <a href="-leak-trace-reference/">LeakTraceReference</a>(val originObject: <a href="-leak-trace-object/">LeakTraceObject</a>, val referenceType: <a href="-leak-trace-reference/-reference-type/">LeakTraceReference.ReferenceType</a>, val owningClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val referenceName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>A <a href="-leak-trace-reference/">LeakTraceReference</a> represents an origin <a href="-leak-trace-object/">LeakTraceObject</a> and either a reference from that object to the <a href="-leak-trace-object/">LeakTraceObject</a> in the next <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>, or to <a href="-leak-trace/leaking-object/">LeakTrace.leakingObject</a> if this is the last <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>.</td>
+<td>data class <a href="-leak-trace-reference/">LeakTraceReference</a>(val originObject: <a href="-leak-trace-object/">LeakTraceObject</a>, val referenceType: <a href="-leak-trace-reference/-reference-type/">LeakTraceReference.ReferenceType</a>, val owningClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val referenceName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>A <a href="-leak-trace-reference/">LeakTraceReference</a> represents an origin <a href="-leak-trace-object/">LeakTraceObject</a> and either a reference from that object to the <a href="-leak-trace-object/">LeakTraceObject</a> in the next <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>, or to <a href="-leak-trace/leaking-object/">LeakTrace.leakingObject</a> if this is the last <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>.</td>
 </tr>
 <tr>
 <td><a href="-library-leak/">LibraryLeak</a></td>
-<td>[FOOFOO]<br>data class <a href="-library-leak/">LibraryLeak</a>(val leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace/">LeakTrace</a>&gt;, val pattern: <a href="-reference-pattern/">ReferencePattern</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="-leak/">Leak</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, where the only path to the leaking object required going through a reference matched by <a href="-library-leak/pattern/">pattern</a>, as provided to a <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> instance. This is a known leak in library code that is beyond your control.</td>
+<td>data class <a href="-library-leak/">LibraryLeak</a>(val leakTraces: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace/">LeakTrace</a>&gt;, val pattern: <a href="-reference-pattern/">ReferencePattern</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="-leak/">Leak</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, where the only path to the leaking object required going through a reference matched by <a href="-library-leak/pattern/">pattern</a>, as provided to a <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> instance. This is a known leak in library code that is beyond your control.</td>
 </tr>
 <tr>
 <td><a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a></td>
-<td>[FOOFOO]<br>data class <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>(val pattern: <a href="-reference-pattern/">ReferencePattern</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, val patternApplies: (<a href="-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = { true }) : <a href="-reference-matcher/">ReferenceMatcher</a><br><a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> should be used to match references in library code that are known to create leaks and are beyond your control. The shortest path finder will only go through matching references after it has exhausted references that don&rsquo;t match, prioritizing finding an application leak over a known library leak. Library leaks will be reported as <a href="-library-leak/">LibraryLeak</a> instead of <a href="-application-leak/">ApplicationLeak</a>.</td>
+<td>data class <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>(val pattern: <a href="-reference-pattern/">ReferencePattern</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, val patternApplies: (<a href="-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = { true }) : <a href="-reference-matcher/">ReferenceMatcher</a><br><a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> should be used to match references in library code that are known to create leaks and are beyond your control. The shortest path finder will only go through matching references after it has exhausted references that don&rsquo;t match, prioritizing finding an application leak over a known library leak. Library leaks will be reported as <a href="-library-leak/">LibraryLeak</a> instead of <a href="-application-leak/">ApplicationLeak</a>.</td>
 </tr>
 <tr>
 <td><a href="-metadata-extractor/">MetadataExtractor</a></td>
-<td>[FOOFOO]<br>fun interface <a href="-metadata-extractor/">MetadataExtractor</a><br>Extracts metadata from a hprof to be reported in <a href="-heap-analysis-success/metadata/">HeapAnalysisSuccess.metadata</a>.</td>
+<td>fun interface <a href="-metadata-extractor/">MetadataExtractor</a><br>Extracts metadata from a hprof to be reported in <a href="-heap-analysis-success/metadata/">HeapAnalysisSuccess.metadata</a>.</td>
 </tr>
 <tr>
 <td><a href="-object-inspector/">ObjectInspector</a></td>
-<td>[FOOFOO]<br>fun interface <a href="-object-inspector/">ObjectInspector</a><br>Provides LeakCanary with insights about objects (classes, instances and arrays) found in the heap. <a href="-object-inspector/inspect/">inspect</a> will be called for each object that LeakCanary wants to know more about. The implementation can then use the provided <a href="-object-reporter/">ObjectReporter</a> to provide insights for that object.</td>
+<td>fun interface <a href="-object-inspector/">ObjectInspector</a><br>Provides LeakCanary with insights about objects (classes, instances and arrays) found in the heap. <a href="-object-inspector/inspect/">inspect</a> will be called for each object that LeakCanary wants to know more about. The implementation can then use the provided <a href="-object-reporter/">ObjectReporter</a> to provide insights for that object.</td>
 </tr>
 <tr>
 <td><a href="-object-inspectors/">ObjectInspectors</a></td>
-<td>[FOOFOO]<br>enum <a href="-object-inspectors/">ObjectInspectors</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-object-inspectors/">ObjectInspectors</a>&gt; , <a href="-object-inspector/">ObjectInspector</a><br>A set of default <a href="-object-inspector/">ObjectInspector</a>s that knows about common JDK objects.</td>
+<td>enum <a href="-object-inspectors/">ObjectInspectors</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-object-inspectors/">ObjectInspectors</a>&gt; , <a href="-object-inspector/">ObjectInspector</a><br>A set of default <a href="-object-inspector/">ObjectInspector</a>s that knows about common JDK objects.</td>
 </tr>
 <tr>
 <td><a href="-object-reporter/">ObjectReporter</a></td>
-<td>[FOOFOO]<br>class <a href="-object-reporter/">ObjectReporter</a>(val heapObject: <a href="-heap-object/">HeapObject</a>)<br>Enables <a href="-object-inspector/">ObjectInspector</a> implementations to provide insights on <a href="-object-reporter/heap-object/">heapObject</a>, which is an object (class, instance or array) found in the heap.</td>
+<td>class <a href="-object-reporter/">ObjectReporter</a>(val heapObject: <a href="-heap-object/">HeapObject</a>)<br>Enables <a href="-object-inspector/">ObjectInspector</a> implementations to provide insights on <a href="-object-reporter/heap-object/">heapObject</a>, which is an object (class, instance or array) found in the heap.</td>
 </tr>
 <tr>
 <td><a href="-on-analysis-progress-listener/">OnAnalysisProgressListener</a></td>
-<td>[FOOFOO]<br>fun interface <a href="-on-analysis-progress-listener/">OnAnalysisProgressListener</a><br>Reports progress from the <a href="-heap-analyzer/">HeapAnalyzer</a> as they occur, as <a href="-on-analysis-progress-listener/-step/">Step</a> values.</td>
+<td>fun interface <a href="-on-analysis-progress-listener/">OnAnalysisProgressListener</a><br>Reports progress from the <a href="-heap-analyzer/">HeapAnalyzer</a> as they occur, as <a href="-on-analysis-progress-listener/-step/">Step</a> values.</td>
 </tr>
 <tr>
 <td><a href="-on-hprof-record-listener/">OnHprofRecordListener</a></td>
-<td>[FOOFOO]<br>fun interface <a href="-on-hprof-record-listener/">OnHprofRecordListener</a><br>Listener passed in to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="-hprof-record/">HprofRecord</a> found in the heap dump which types is in the set of the recordTypes parameter passed to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>.</td>
+<td>fun interface <a href="-on-hprof-record-listener/">OnHprofRecordListener</a><br>Listener passed in to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="-hprof-record/">HprofRecord</a> found in the heap dump which types is in the set of the recordTypes parameter passed to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>.</td>
 </tr>
 <tr>
 <td><a href="-on-hprof-record-tag-listener/">OnHprofRecordTagListener</a></td>
-<td>[FOOFOO]<br>fun interface <a href="-on-hprof-record-tag-listener/">OnHprofRecordTagListener</a><br>Listener passed in to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="-hprof-record-tag/">HprofRecordTag</a> found in the heap dump.</td>
+<td>fun interface <a href="-on-hprof-record-tag-listener/">OnHprofRecordTagListener</a><br>Listener passed in to <a href="-streaming-hprof-reader/read-records/">StreamingHprofReader.readRecords</a>, gets notified for each <a href="-hprof-record-tag/">HprofRecordTag</a> found in the heap dump.</td>
 </tr>
 <tr>
 <td><a href="-primitive-type/">PrimitiveType</a></td>
-<td>[FOOFOO]<br>enum <a href="-primitive-type/">PrimitiveType</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-primitive-type/">PrimitiveType</a>&gt; <br>A primitive type in the prof.</td>
+<td>enum <a href="-primitive-type/">PrimitiveType</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-primitive-type/">PrimitiveType</a>&gt; <br>A primitive type in the prof.</td>
 </tr>
 <tr>
 <td><a href="-proguard-mapping/">ProguardMapping</a></td>
-<td>[FOOFOO]<br>class <a href="-proguard-mapping/">ProguardMapping</a></td>
+<td>class <a href="-proguard-mapping/">ProguardMapping</a></td>
 </tr>
 <tr>
 <td><a href="-proguard-mapping-helper/">ProguardMappingHelper</a></td>
-<td>[FOOFOO]<br>class <a href="-proguard-mapping-helper/">ProguardMappingHelper</a>(proguardMapping: <a href="-proguard-mapping/">ProguardMapping</a>)</td>
+<td>class <a href="-proguard-mapping-helper/">ProguardMappingHelper</a>(proguardMapping: <a href="-proguard-mapping/">ProguardMapping</a>)</td>
 </tr>
 <tr>
 <td><a href="-proguard-mapping-reader/">ProguardMappingReader</a></td>
-<td>[FOOFOO]<br>class <a href="-proguard-mapping-reader/">ProguardMappingReader</a>(proguardMappingInputStream: <a href="https://developer.android.com/reference/kotlin/java/io/InputStream.html">InputStream</a>)</td>
+<td>class <a href="-proguard-mapping-reader/">ProguardMappingReader</a>(proguardMappingInputStream: <a href="https://developer.android.com/reference/kotlin/java/io/InputStream.html">InputStream</a>)</td>
 </tr>
 <tr>
 <td><a href="-random-access-hprof-reader/">RandomAccessHprofReader</a></td>
-<td>[FOOFOO]<br>class <a href="-random-access-hprof-reader/">RandomAccessHprofReader</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a><br>Reads records in a Hprof source, one at a time with a specific position and size. Call <a href="-random-access-hprof-reader/-companion/open-reader-for/">openReaderFor</a> to obtain a new instance.</td>
+<td>class <a href="-random-access-hprof-reader/">RandomAccessHprofReader</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a><br>Reads records in a Hprof source, one at a time with a specific position and size. Call <a href="-random-access-hprof-reader/-companion/open-reader-for/">openReaderFor</a> to obtain a new instance.</td>
 </tr>
 <tr>
 <td><a href="-random-access-source/">RandomAccessSource</a></td>
-<td>[FOOFOO]<br>interface <a href="-random-access-source/">RandomAccessSource</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></td>
+<td>interface <a href="-random-access-source/">RandomAccessSource</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></td>
 </tr>
 <tr>
 <td><a href="-random-access-source-provider/">RandomAccessSourceProvider</a></td>
-<td>[FOOFOO]<br>fun interface <a href="-random-access-source-provider/">RandomAccessSourceProvider</a><br>Can open <a href="-random-access-source/">RandomAccessSource</a> instances.</td>
+<td>fun interface <a href="-random-access-source-provider/">RandomAccessSourceProvider</a><br>Can open <a href="-random-access-source/">RandomAccessSource</a> instances.</td>
 </tr>
 <tr>
 <td><a href="-reference-matcher/">ReferenceMatcher</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-reference-matcher/">ReferenceMatcher</a><br>Used to pattern match known patterns of references in the heap, either to ignore them (<a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a>) or to mark them as library leaks (<a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>).</td>
+<td>sealed class <a href="-reference-matcher/">ReferenceMatcher</a><br>Used to pattern match known patterns of references in the heap, either to ignore them (<a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a>) or to mark them as library leaks (<a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>).</td>
 </tr>
 <tr>
 <td><a href="-reference-pattern/">ReferencePattern</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-reference-pattern/">ReferencePattern</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>A pattern that will match references for a given <a href="-reference-matcher/">ReferenceMatcher</a>.</td>
+<td>sealed class <a href="-reference-pattern/">ReferencePattern</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>A pattern that will match references for a given <a href="-reference-matcher/">ReferenceMatcher</a>.</td>
 </tr>
 <tr>
 <td><a href="-shark-cli-command/">SharkCliCommand</a></td>
-<td>[FOOFOO]<br>class <a href="-shark-cli-command/">SharkCliCommand</a> : CliktCommand</td>
+<td>class <a href="-shark-cli-command/">SharkCliCommand</a> : CliktCommand</td>
 </tr>
 <tr>
 <td><a href="-shark-log/">SharkLog</a></td>
-<td>[FOOFOO]<br>object <a href="-shark-log/">SharkLog</a><br>Central Logger for all Shark artifacts. Set <a href="-shark-log/logger/">logger</a> to change where these logs go.</td>
+<td>object <a href="-shark-log/">SharkLog</a><br>Central Logger for all Shark artifacts. Set <a href="-shark-log/logger/">logger</a> to change where these logs go.</td>
 </tr>
 <tr>
 <td><a href="-streaming-hprof-reader/">StreamingHprofReader</a></td>
-<td>[FOOFOO]<br>class <a href="-streaming-hprof-reader/">StreamingHprofReader</a><br>Reads the entire content of a Hprof source in one fell swoop. Call <a href="-streaming-hprof-reader/-companion/reader-for/">readerFor</a> to obtain a new instance.</td>
+<td>class <a href="-streaming-hprof-reader/">StreamingHprofReader</a><br>Reads the entire content of a Hprof source in one fell swoop. Call <a href="-streaming-hprof-reader/-companion/reader-for/">readerFor</a> to obtain a new instance.</td>
 </tr>
 <tr>
 <td><a href="-streaming-record-reader-adapter/">StreamingRecordReaderAdapter</a></td>
-<td>[FOOFOO]<br>class <a href="-streaming-record-reader-adapter/">StreamingRecordReaderAdapter</a>(streamingHprofReader: <a href="-streaming-hprof-reader/">StreamingHprofReader</a>)<br>Wraps a <a href="-streaming-hprof-reader/">StreamingHprofReader</a> to provide a higher level API that streams <a href="-hprof-record/">HprofRecord</a> instances.</td>
+<td>class <a href="-streaming-record-reader-adapter/">StreamingRecordReaderAdapter</a>(streamingHprofReader: <a href="-streaming-hprof-reader/">StreamingHprofReader</a>)<br>Wraps a <a href="-streaming-hprof-reader/">StreamingHprofReader</a> to provide a higher level API that streams <a href="-hprof-record/">HprofRecord</a> instances.</td>
 </tr>
 <tr>
 <td><a href="-streaming-source-provider/">StreamingSourceProvider</a></td>
-<td>[FOOFOO]<br>fun interface <a href="-streaming-source-provider/">StreamingSourceProvider</a><br>Can open <a href="https://square.github.io/okio/2.x/okio/okio/-source/index.html">Source</a> instances.</td>
+<td>fun interface <a href="-streaming-source-provider/">StreamingSourceProvider</a><br>Can open <a href="https://square.github.io/okio/2.x/okio/okio/-source/index.html">Source</a> instances.</td>
 </tr>
 <tr>
 <td><a href="-strip-hprof-command/">StripHprofCommand</a></td>
-<td>[FOOFOO]<br>class <a href="-strip-hprof-command/">StripHprofCommand</a> : CliktCommand</td>
+<td>class <a href="-strip-hprof-command/">StripHprofCommand</a> : CliktCommand</td>
 </tr>
 <tr>
 <td><a href="-throwing-cancelable-file-source-provider/">ThrowingCancelableFileSourceProvider</a></td>
-<td>[FOOFOO]<br>class <a href="-throwing-cancelable-file-source-provider/">ThrowingCancelableFileSourceProvider</a>(file: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, throwIfCanceled: <a href="https://developer.android.com/reference/kotlin/java/lang/Runnable.html">Runnable</a>) : <a href="-dual-source-provider/">DualSourceProvider</a><br>A <a href="-dual-source-provider/">DualSourceProvider</a> that invokes throwIfCanceled before every read, allowing cancellation of IO based work built on top by throwing an exception.</td>
+<td>class <a href="-throwing-cancelable-file-source-provider/">ThrowingCancelableFileSourceProvider</a>(file: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, throwIfCanceled: <a href="https://developer.android.com/reference/kotlin/java/lang/Runnable.html">Runnable</a>) : <a href="-dual-source-provider/">DualSourceProvider</a><br>A <a href="-dual-source-provider/">DualSourceProvider</a> that invokes throwIfCanceled before every read, allowing cancellation of IO based work built on top by throwing an exception.</td>
 </tr>
 <tr>
 <td><a href="-value-holder/">ValueHolder</a></td>
-<td>[FOOFOO]<br>sealed class <a href="-value-holder/">ValueHolder</a><br>A value in the heap dump, which can be a <a href="-value-holder/-reference-holder/">ReferenceHolder</a> or a primitive type.</td>
+<td>sealed class <a href="-value-holder/">ValueHolder</a><br>A value in the heap dump, which can be a <a href="-value-holder/-reference-holder/">ReferenceHolder</a> or a primitive type.</td>
 </tr>
 </tbody>
 </table>
@@ -1077,23 +1077,23 @@
 <tbody>
 <tr>
 <td><a href="as-hprof-bytes/">asHprofBytes</a></td>
-<td>[FOOFOO]<br>fun <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-hprof-record/">HprofRecord</a>&gt;.<a href="as-hprof-bytes/">asHprofBytes</a>(): <a href="-dual-source-provider/">DualSourceProvider</a></td>
+<td>fun <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-hprof-record/">HprofRecord</a>&gt;.<a href="as-hprof-bytes/">asHprofBytes</a>(): <a href="-dual-source-provider/">DualSourceProvider</a></td>
 </tr>
 <tr>
 <td><a href="create/">create</a></td>
-<td>[FOOFOO]<br>fun <a href="-proguard-mapping/">ProguardMapping</a>.<a href="create/">create</a>(block: <a href="-proguard-mapping-helper/">ProguardMappingHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="-proguard-mapping/">ProguardMapping</a></td>
+<td>fun <a href="-proguard-mapping/">ProguardMapping</a>.<a href="create/">create</a>(block: <a href="-proguard-mapping-helper/">ProguardMappingHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="-proguard-mapping/">ProguardMapping</a></td>
 </tr>
 <tr>
 <td><a href="dump/">dump</a></td>
-<td>[FOOFOO]<br>fun <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>.<a href="dump/">dump</a>(block: <a href="-hprof-writer-helper/">HprofWriterHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)<br>fun <a href="dump/">dump</a>(hprofHeader: <a href="-hprof-header/">HprofHeader</a> = HprofHeader(), block: <a href="-hprof-writer-helper/">HprofWriterHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="-dual-source-provider/">DualSourceProvider</a></td>
+<td>fun <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>.<a href="dump/">dump</a>(block: <a href="-hprof-writer-helper/">HprofWriterHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)<br>fun <a href="dump/">dump</a>(hprofHeader: <a href="-hprof-header/">HprofHeader</a> = HprofHeader(), block: <a href="-hprof-writer-helper/">HprofWriterHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="-dual-source-provider/">DualSourceProvider</a></td>
 </tr>
 <tr>
 <td><a href="dump-to-bytes/">dumpToBytes</a></td>
-<td>[FOOFOO]<br>fun <a href="dump-to-bytes/">dumpToBytes</a>(hprofHeader: <a href="-hprof-header/">HprofHeader</a> = HprofHeader(), block: <a href="-hprof-writer-helper/">HprofWriterHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a></td>
+<td>fun <a href="dump-to-bytes/">dumpToBytes</a>(hprofHeader: <a href="-hprof-header/">HprofHeader</a> = HprofHeader(), block: <a href="-hprof-writer-helper/">HprofWriterHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html">ByteArray</a></td>
 </tr>
 <tr>
 <td><a href="main/">main</a></td>
-<td>[FOOFOO]<br>fun <a href="main/">main</a>(args: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-array/index.html">Array</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;)</td>
+<td>fun <a href="main/">main</a>(args: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-array/index.html">Array</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;)</td>
 </tr>
 </tbody>
 </table>
@@ -1108,11 +1108,11 @@
 <tbody>
 <tr>
 <td><a href="hex-identity-hash-code/">hexIdentityHashCode</a></td>
-<td>[FOOFOO]<br>val <a href="-heap-object/-heap-instance/">HeapObject.HeapInstance</a>.<a href="hex-identity-hash-code/">hexIdentityHashCode</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>?<br>The system identity hashCode represented as hex, or null if it couldn&rsquo;t be found. This is the string identifier you see when calling Object.toString() at runtime on a class that does not override its hashCode() method, e.g. com.example.MyThing@6bd57cf</td>
+<td>val <a href="-heap-object/-heap-instance/">HeapObject.HeapInstance</a>.<a href="hex-identity-hash-code/">hexIdentityHashCode</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>?<br>The system identity hashCode represented as hex, or null if it couldn&rsquo;t be found. This is the string identifier you see when calling Object.toString() at runtime on a class that does not override its hashCode() method, e.g. com.example.MyThing@6bd57cf</td>
 </tr>
 <tr>
 <td><a href="identity-hash-code/">identityHashCode</a></td>
-<td>[FOOFOO]<br>val <a href="-heap-object/-heap-instance/">HeapObject.HeapInstance</a>.<a href="identity-hash-code/">identityHashCode</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>The system identity hash code, or null if it couldn&rsquo;t be found.</td>
+<td>val <a href="-heap-object/-heap-instance/">HeapObject.HeapInstance</a>.<a href="identity-hash-code/">identityHashCode</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>The system identity hash code, or null if it couldn&rsquo;t be found.</td>
 </tr>
 </tbody>
 </table>

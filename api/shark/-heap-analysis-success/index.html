@@ -712,8 +712,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">HeapAnalysisSuccess</a></p>
 <h1 id="heapanalysissuccess">HeapAnalysisSuccess<a class="headerlink" href="#heapanalysissuccess" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-data class <a href="./">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val metadata: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val applicationLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-application-leak/">ApplicationLeak</a>&gt;, val libraryLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-library-leak/">LibraryLeak</a>&gt;, val unreachableObjects: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace-object/">LeakTraceObject</a>&gt;) : <a href="../-heap-analysis/">HeapAnalysis</a></p>
+<p>data class <a href="./">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val metadata: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val applicationLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-application-leak/">ApplicationLeak</a>&gt;, val libraryLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-library-leak/">LibraryLeak</a>&gt;, val unreachableObjects: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace-object/">LeakTraceObject</a>&gt;) : <a href="../-heap-analysis/">HeapAnalysis</a></p>
 <p>The result of a successful heap analysis performed by <a href="../-heap-analyzer/">HeapAnalyzer</a>.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -726,7 +725,7 @@ data class <a href="./">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https
 <tbody>
 <tr>
 <td><a href="-heap-analysis-success/">HeapAnalysisSuccess</a></td>
-<td>[FOOFOO]<br>fun <a href="-heap-analysis-success/">HeapAnalysisSuccess</a>(heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, metadata: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, applicationLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-application-leak/">ApplicationLeak</a>&gt;, libraryLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-library-leak/">LibraryLeak</a>&gt;, unreachableObjects: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace-object/">LeakTraceObject</a>&gt;)</td>
+<td>fun <a href="-heap-analysis-success/">HeapAnalysisSuccess</a>(heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, metadata: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, applicationLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-application-leak/">ApplicationLeak</a>&gt;, libraryLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-library-leak/">LibraryLeak</a>&gt;, unreachableObjects: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace-object/">LeakTraceObject</a>&gt;)</td>
 </tr>
 </tbody>
 </table>
@@ -741,7 +740,7 @@ data class <a href="./">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -756,7 +755,7 @@ data class <a href="./">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https
 <tbody>
 <tr>
 <td><a href="to-string/">toString</a></td>
-<td>[FOOFOO]<br>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>
@@ -771,39 +770,39 @@ data class <a href="./">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https
 <tbody>
 <tr>
 <td><a href="all-leaks/">allLeaks</a></td>
-<td>[FOOFOO]<br>val <a href="all-leaks/">allLeaks</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-leak/">Leak</a>&gt;<br>The list of <a href="../-leak/">Leak</a> found in the heap dump by <a href="../-heap-analyzer/">HeapAnalyzer</a>, ie all <a href="application-leaks/">applicationLeaks</a> and all <a href="library-leaks/">libraryLeaks</a> in one list.</td>
+<td>val <a href="all-leaks/">allLeaks</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../-leak/">Leak</a>&gt;<br>The list of <a href="../-leak/">Leak</a> found in the heap dump by <a href="../-heap-analyzer/">HeapAnalyzer</a>, ie all <a href="application-leaks/">applicationLeaks</a> and all <a href="library-leaks/">libraryLeaks</a> in one list.</td>
 </tr>
 <tr>
 <td><a href="analysis-duration-millis/">analysisDurationMillis</a></td>
-<td>[FOOFOO]<br>open override val <a href="analysis-duration-millis/">analysisDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent analyzing the heap.</td>
+<td>open override val <a href="analysis-duration-millis/">analysisDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent analyzing the heap.</td>
 </tr>
 <tr>
 <td><a href="application-leaks/">applicationLeaks</a></td>
-<td>[FOOFOO]<br>val <a href="application-leaks/">applicationLeaks</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-application-leak/">ApplicationLeak</a>&gt;<br>The list of <a href="../-application-leak/">ApplicationLeak</a> found in the heap dump by <a href="../-heap-analyzer/">HeapAnalyzer</a>.</td>
+<td>val <a href="application-leaks/">applicationLeaks</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-application-leak/">ApplicationLeak</a>&gt;<br>The list of <a href="../-application-leak/">ApplicationLeak</a> found in the heap dump by <a href="../-heap-analyzer/">HeapAnalyzer</a>.</td>
 </tr>
 <tr>
 <td><a href="created-at-time-millis/">createdAtTimeMillis</a></td>
-<td>[FOOFOO]<br>open override val <a href="created-at-time-millis/">createdAtTimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The <a href="https://developer.android.com/reference/kotlin/java/lang/System.html#currenttimemillis">System.currentTimeMillis</a> when this <a href="../-heap-analysis/">HeapAnalysis</a> instance was created.</td>
+<td>open override val <a href="created-at-time-millis/">createdAtTimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The <a href="https://developer.android.com/reference/kotlin/java/lang/System.html#currenttimemillis">System.currentTimeMillis</a> when this <a href="../-heap-analysis/">HeapAnalysis</a> instance was created.</td>
 </tr>
 <tr>
 <td><a href="dump-duration-millis/">dumpDurationMillis</a></td>
-<td>[FOOFOO]<br>open override val <a href="dump-duration-millis/">dumpDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent dumping the heap.</td>
+<td>open override val <a href="dump-duration-millis/">dumpDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Total time spent dumping the heap.</td>
 </tr>
 <tr>
 <td><a href="heap-dump-file/">heapDumpFile</a></td>
-<td>[FOOFOO]<br>open override val <a href="heap-dump-file/">heapDumpFile</a>: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a><br>The hprof file that was analyzed.</td>
+<td>open override val <a href="heap-dump-file/">heapDumpFile</a>: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a><br>The hprof file that was analyzed.</td>
 </tr>
 <tr>
 <td><a href="library-leaks/">libraryLeaks</a></td>
-<td>[FOOFOO]<br>val <a href="library-leaks/">libraryLeaks</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-library-leak/">LibraryLeak</a>&gt;<br>The list of <a href="../-library-leak/">LibraryLeak</a> found in the heap dump by <a href="../-heap-analyzer/">HeapAnalyzer</a>.</td>
+<td>val <a href="library-leaks/">libraryLeaks</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-library-leak/">LibraryLeak</a>&gt;<br>The list of <a href="../-library-leak/">LibraryLeak</a> found in the heap dump by <a href="../-heap-analyzer/">HeapAnalyzer</a>.</td>
 </tr>
 <tr>
 <td><a href="metadata/">metadata</a></td>
-<td>[FOOFOO]<br>val <a href="metadata/">metadata</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;</td>
+<td>val <a href="metadata/">metadata</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="unreachable-objects/">unreachableObjects</a></td>
-<td>[FOOFOO]<br>val <a href="unreachable-objects/">unreachableObjects</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace-object/">LeakTraceObject</a>&gt;</td>
+<td>val <a href="unreachable-objects/">unreachableObjects</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../-leak-trace-object/">LeakTraceObject</a>&gt;</td>
 </tr>
 </tbody>
 </table>
@@ -818,15 +817,15 @@ data class <a href="./">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https
 <tbody>
 <tr>
 <td><a href="../../leakcanary/-android-detect-leaks-assert/-companion/assertion-tag/">assertionTag</a></td>
-<td>[FOOFOO]<br>val <a href="./">HeapAnalysisSuccess</a>.<a href="../../leakcanary/-android-detect-leaks-assert/-companion/assertion-tag/">assertionTag</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>?</td>
+<td>val <a href="./">HeapAnalysisSuccess</a>.<a href="../../leakcanary/-android-detect-leaks-assert/-companion/assertion-tag/">assertionTag</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>?</td>
 </tr>
 <tr>
 <td><a href="../../leakcanary/-android-detect-leaks-assert/-companion/total-duration-millis/">totalDurationMillis</a></td>
-<td>[FOOFOO]<br>val <a href="./">HeapAnalysisSuccess</a>.<a href="../../leakcanary/-android-detect-leaks-assert/-companion/total-duration-millis/">totalDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?</td>
+<td>val <a href="./">HeapAnalysisSuccess</a>.<a href="../../leakcanary/-android-detect-leaks-assert/-companion/total-duration-millis/">totalDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?</td>
 </tr>
 <tr>
 <td><a href="../../leakcanary/-android-detect-leaks-assert/-companion/wait-for-retained-duration-millis/">waitForRetainedDurationMillis</a></td>
-<td>[FOOFOO]<br>val <a href="./">HeapAnalysisSuccess</a>.<a href="../../leakcanary/-android-detect-leaks-assert/-companion/wait-for-retained-duration-millis/">waitForRetainedDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?</td>
+<td>val <a href="./">HeapAnalysisSuccess</a>.<a href="../../leakcanary/-android-detect-leaks-assert/-companion/wait-for-retained-duration-millis/">waitForRetainedDurationMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?</td>
 </tr>
 </tbody>
 </table>

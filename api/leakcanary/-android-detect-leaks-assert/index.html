@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">leakcanary</a>/<a href="./">AndroidDetectLeaksAssert</a></p>
 <h1 id="androiddetectleaksassert">AndroidDetectLeaksAssert<a class="headerlink" href="#androiddetectleaksassert" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">AndroidDetectLeaksAssert</a>(detectLeaksInterceptor: <a href="../-detect-leaks-interceptor/">DetectLeaksInterceptor</a> = AndroidDetectLeaksInterceptor(), heapAnalysisReporter: <a href="../-heap-analysis-reporter/">HeapAnalysisReporter</a> = NoLeakAssertionFailedError.throwOnApplicationLeaks()) : <a href="../-detect-leaks-assert/">DetectLeaksAssert</a></p>
+<p>class <a href="./">AndroidDetectLeaksAssert</a>(detectLeaksInterceptor: <a href="../-detect-leaks-interceptor/">DetectLeaksInterceptor</a> = AndroidDetectLeaksInterceptor(), heapAnalysisReporter: <a href="../-heap-analysis-reporter/">HeapAnalysisReporter</a> = NoLeakAssertionFailedError.throwOnApplicationLeaks()) : <a href="../-detect-leaks-assert/">DetectLeaksAssert</a></p>
 <p>Default <a href="../-detect-leaks-assert/">DetectLeaksAssert</a> implementation. Uses public helpers so you should be able to create our own implementation if needed.</p>
 <p>Leak detection can be skipped by annotating tests with <a href="../-skip-leak-detection/">SkipLeakDetection</a> which requires the <a href="../-test-description-holder/">TestDescriptionHolder</a> test rule be applied and evaluating when <a href="assert-no-leaks/">assertNoLeaks</a> is called.</p>
 <p>For improved leak detection, you should consider updating <a href="../-leak-canary/-config/leaking-object-finder/">LeakCanary.Config.leakingObjectFinder</a> to FilteringLeakingObjectFinder(AndroidObjectInspectors.appLeakingObjectFilters) when running in instrumentation tests. This changes leak detection from being incremental (based on <a href="../-app-watcher/">AppWatcher</a> to also scanning for all objects of known types in the heap).</p>
@@ -714,7 +713,7 @@ class <a href="./">AndroidDetectLeaksAssert</a>(detectLeaksInterceptor: <a href=
 <tbody>
 <tr>
 <td><a href="-android-detect-leaks-assert/">AndroidDetectLeaksAssert</a></td>
-<td>[FOOFOO]<br>fun <a href="-android-detect-leaks-assert/">AndroidDetectLeaksAssert</a>(detectLeaksInterceptor: <a href="../-detect-leaks-interceptor/">DetectLeaksInterceptor</a> = AndroidDetectLeaksInterceptor(), heapAnalysisReporter: <a href="../-heap-analysis-reporter/">HeapAnalysisReporter</a> = NoLeakAssertionFailedError.throwOnApplicationLeaks())</td>
+<td>fun <a href="-android-detect-leaks-assert/">AndroidDetectLeaksAssert</a>(detectLeaksInterceptor: <a href="../-detect-leaks-interceptor/">DetectLeaksInterceptor</a> = AndroidDetectLeaksInterceptor(), heapAnalysisReporter: <a href="../-heap-analysis-reporter/">HeapAnalysisReporter</a> = NoLeakAssertionFailedError.throwOnApplicationLeaks())</td>
 </tr>
 </tbody>
 </table>
@@ -729,7 +728,7 @@ class <a href="./">AndroidDetectLeaksAssert</a>(detectLeaksInterceptor: <a href=
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -744,7 +743,7 @@ class <a href="./">AndroidDetectLeaksAssert</a>(detectLeaksInterceptor: <a href=
 <tbody>
 <tr>
 <td><a href="assert-no-leaks/">assertNoLeaks</a></td>
-<td>[FOOFOO]<br>open override fun <a href="assert-no-leaks/">assertNoLeaks</a>(tag: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
+<td>open override fun <a href="assert-no-leaks/">assertNoLeaks</a>(tag: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
 </tr>
 </tbody>
 </table>

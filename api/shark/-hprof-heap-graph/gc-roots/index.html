@@ -669,8 +669,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">shark</a>/<a href="../">HprofHeapGraph</a>/<a href="./">gcRoots</a></p>
 <h1 id="gcroots">gcRoots<a class="headerlink" href="#gcroots" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-open override val <a href="./">gcRoots</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-gc-root/">GcRoot</a>&gt;</p>
+<p>open override val <a href="./">gcRoots</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-gc-root/">GcRoot</a>&gt;</p>
 <p>All GC roots which type matches types known to this heap graph and which point to non null references. You can retrieve the object that a GC Root points to by calling <a href="../find-object-by-id/">findObjectById</a> with <a href="../../-gc-root/id/">GcRoot.id</a>, however you need to first check that <a href="../object-exists/">objectExists</a> returns true because GC roots can point to objects that don&rsquo;t exist in the heap dump.</p>
   
 

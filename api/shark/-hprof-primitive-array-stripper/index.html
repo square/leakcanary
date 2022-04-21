@@ -691,8 +691,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">HprofPrimitiveArrayStripper</a></p>
 <h1 id="hprofprimitivearraystripper">HprofPrimitiveArrayStripper<a class="headerlink" href="#hprofprimitivearraystripper" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">HprofPrimitiveArrayStripper</a></p>
+<p>class <a href="./">HprofPrimitiveArrayStripper</a></p>
 <p>Converts a Hprof file to another file with all primitive arrays replaced with arrays of zeroes, which can be useful to remove PII. Char arrays are handled slightly differently because 0 would be the null character so instead these become arrays of &lsquo;?&rsquo;.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -705,7 +704,7 @@ class <a href="./">HprofPrimitiveArrayStripper</a></p>
 <tbody>
 <tr>
 <td><a href="-hprof-primitive-array-stripper/">HprofPrimitiveArrayStripper</a></td>
-<td>[FOOFOO]<br>fun <a href="-hprof-primitive-array-stripper/">HprofPrimitiveArrayStripper</a>()</td>
+<td>fun <a href="-hprof-primitive-array-stripper/">HprofPrimitiveArrayStripper</a>()</td>
 </tr>
 </tbody>
 </table>
@@ -720,7 +719,7 @@ class <a href="./">HprofPrimitiveArrayStripper</a></p>
 <tbody>
 <tr>
 <td><a href="strip-primitive-arrays/">stripPrimitiveArrays</a></td>
-<td>[FOOFOO]<br>fun <a href="strip-primitive-arrays/">stripPrimitiveArrays</a>(inputHprofFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, outputHprofFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a> = File(       inputHprofFile.parent, inputHprofFile.name.replace(       &quot;.hprof&quot;, &quot;-stripped.hprof&quot;     ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + &quot;-stripped&quot; })): <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a><br>fun <a href="strip-primitive-arrays/">stripPrimitiveArrays</a>(hprofSourceProvider: <a href="../-streaming-source-provider/">StreamingSourceProvider</a>, hprofSink: <a href="https://square.github.io/okio/2.x/okio/okio/-buffered-sink/index.html">BufferedSink</a>)</td>
+<td>fun <a href="strip-primitive-arrays/">stripPrimitiveArrays</a>(inputHprofFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, outputHprofFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a> = File(       inputHprofFile.parent, inputHprofFile.name.replace(       &quot;.hprof&quot;, &quot;-stripped.hprof&quot;     ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + &quot;-stripped&quot; })): <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a><br>fun <a href="strip-primitive-arrays/">stripPrimitiveArrays</a>(hprofSourceProvider: <a href="../-streaming-source-provider/">StreamingSourceProvider</a>, hprofSink: <a href="https://square.github.io/okio/2.x/okio/okio/-buffered-sink/index.html">BufferedSink</a>)</td>
 </tr>
 </tbody>
 </table>

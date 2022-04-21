@@ -684,8 +684,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">leakcanary</a>/<a href="../">AndroidLeakFixes</a>/<a href="./">SPELL_CHECKER</a></p>
 <h1 id="spell_checker">SPELL_CHECKER<a class="headerlink" href="#spell_checker" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-<a href="./">SPELL_CHECKER</a>()</p>
+<p><a href="./">SPELL_CHECKER</a>()</p>
 <p>Every editable TextView has an Editor instance which has a SpellChecker instance. SpellChecker is in charge of displaying the little squiggle spans that show typos. SpellChecker starts a SpellCheckerSession as needed and then closes it when the TextView is detached from the window. A SpellCheckerSession is in charge of communicating with the spell checker service (which lives in another process) through TextServicesManager.</p>
 <p>The SpellChecker sends the TextView content to the spell checker service every 400ms, ie every time the service calls back with a result the SpellChecker schedules another check for 400ms later.</p>
 <p>When the TextView is detached from the window, the spell checker closes the session. In practice, SpellCheckerSessionListenerImpl.mHandler is set to null and when the service calls SpellCheckerSessionListenerImpl.onGetSuggestions or SpellCheckerSessionListenerImpl.onGetSentenceSuggestions back from another process, there&rsquo;s a null check for SpellCheckerSessionListenerImpl.mHandler and the callback is dropped.</p>
@@ -705,12 +704,12 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F121734517">name</a></td>
-<td>[FOOFOO]<br>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F121734517">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F44236444">name</a></td>
+<td>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-372974862%2FProperties%2F44236444">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 <tr>
-<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F121734517">ordinal</a></td>
-<td>[FOOFOO]<br>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F121734517">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td><a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F44236444">ordinal</a></td>
+<td>val <a href="../../../shark/-primitive-type/-b-o-o-l-e-a-n/#-739389684%2FProperties%2F44236444">ordinal</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

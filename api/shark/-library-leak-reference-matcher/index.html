@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">shark</a>/<a href="./">LibraryLeakReferenceMatcher</a></p>
 <h1 id="libraryleakreferencematcher">LibraryLeakReferenceMatcher<a class="headerlink" href="#libraryleakreferencematcher" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-data class <a href="./">LibraryLeakReferenceMatcher</a>(val pattern: <a href="../-reference-pattern/">ReferencePattern</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, val patternApplies: (<a href="../-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = { true }) : <a href="../-reference-matcher/">ReferenceMatcher</a></p>
+<p>data class <a href="./">LibraryLeakReferenceMatcher</a>(val pattern: <a href="../-reference-pattern/">ReferencePattern</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, val patternApplies: (<a href="../-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = { true }) : <a href="../-reference-matcher/">ReferenceMatcher</a></p>
 <p><a href="./">LibraryLeakReferenceMatcher</a> should be used to match references in library code that are known to create leaks and are beyond your control. The shortest path finder will only go through matching references after it has exhausted references that don&rsquo;t match, prioritizing finding an application leak over a known library leak. Library leaks will be reported as <a href="../-library-leak/">LibraryLeak</a> instead of <a href="../-application-leak/">ApplicationLeak</a>.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -712,7 +711,7 @@ data class <a href="./">LibraryLeakReferenceMatcher</a>(val pattern: <a href="..
 <tbody>
 <tr>
 <td><a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a></td>
-<td>[FOOFOO]<br>fun <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>(pattern: <a href="../-reference-pattern/">ReferencePattern</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, patternApplies: (<a href="../-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = { true })</td>
+<td>fun <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a>(pattern: <a href="../-reference-pattern/">ReferencePattern</a>, description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, patternApplies: (<a href="../-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = { true })</td>
 </tr>
 </tbody>
 </table>
@@ -727,7 +726,7 @@ data class <a href="./">LibraryLeakReferenceMatcher</a>(val pattern: <a href="..
 <tbody>
 <tr>
 <td><a href="to-string/">toString</a></td>
-<td>[FOOFOO]<br>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>open override fun <a href="to-string/">toString</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>
@@ -742,15 +741,15 @@ data class <a href="./">LibraryLeakReferenceMatcher</a>(val pattern: <a href="..
 <tbody>
 <tr>
 <td><a href="description/">description</a></td>
-<td>[FOOFOO]<br>val <a href="description/">description</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>A description that conveys what we know about this library leak.</td>
+<td>val <a href="description/">description</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>A description that conveys what we know about this library leak.</td>
 </tr>
 <tr>
 <td><a href="pattern/">pattern</a></td>
-<td>[FOOFOO]<br>open override val <a href="pattern/">pattern</a>: <a href="../-reference-pattern/">ReferencePattern</a><br>The pattern that references will be matched against.</td>
+<td>open override val <a href="pattern/">pattern</a>: <a href="../-reference-pattern/">ReferencePattern</a><br>The pattern that references will be matched against.</td>
 </tr>
 <tr>
 <td><a href="pattern-applies/">patternApplies</a></td>
-<td>[FOOFOO]<br>val <a href="pattern-applies/">patternApplies</a>: (<a href="../-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Whether the identified leak may exist in the provided <a href="../-heap-graph/">HeapGraph</a>. Defaults to true. If the heap dump comes from a VM that runs a different version of the library that doesn&rsquo;t have the leak, then this should return false.</td>
+<td>val <a href="pattern-applies/">patternApplies</a>: (<a href="../-heap-graph/">HeapGraph</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><br>Whether the identified leak may exist in the provided <a href="../-heap-graph/">HeapGraph</a>. Defaults to true. If the heap dump comes from a VM that runs a different version of the library that doesn&rsquo;t have the leak, then this should return false.</td>
 </tr>
 </tbody>
 </table>

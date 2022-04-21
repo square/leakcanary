@@ -691,8 +691,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">shark</a>/<a href="../">GcRoot</a>/<a href="./">JniLocal</a></p>
 <h1 id="jnilocal">JniLocal<a class="headerlink" href="#jnilocal" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-class <a href="./">JniLocal</a>(val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val frameNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="../">GcRoot</a></p>
+<p>class <a href="./">JniLocal</a>(val id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val frameNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>) : <a href="../">GcRoot</a></p>
 <p>A local variable in native code.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -705,7 +704,7 @@ class <a href="./">JniLocal</a>(val id: <a href="https://kotlinlang.org/api/late
 <tbody>
 <tr>
 <td><a href="-jni-local/">JniLocal</a></td>
-<td>[FOOFOO]<br>fun <a href="-jni-local/">JniLocal</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, frameNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>)</td>
+<td>fun <a href="-jni-local/">JniLocal</a>(id: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, threadSerialNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, frameNumber: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -720,15 +719,15 @@ class <a href="./">JniLocal</a>(val id: <a href="https://kotlinlang.org/api/late
 <tbody>
 <tr>
 <td><a href="frame-number/">frameNumber</a></td>
-<td>[FOOFOO]<br>val <a href="frame-number/">frameNumber</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>frame number in stack trace (-1 for empty)</td>
+<td>val <a href="frame-number/">frameNumber</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>frame number in stack trace (-1 for empty)</td>
 </tr>
 <tr>
 <td><a href="id/">id</a></td>
-<td>[FOOFOO]<br>open override val <a href="id/">id</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The object id of the object that this gc root references.</td>
+<td>open override val <a href="id/">id</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The object id of the object that this gc root references.</td>
 </tr>
 <tr>
 <td><a href="thread-serial-number/">threadSerialNumber</a></td>
-<td>[FOOFOO]<br>val <a href="thread-serial-number/">threadSerialNumber</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>Corresponds to <a href="../-thread-object/thread-serial-number/">ThreadObject.threadSerialNumber</a></td>
+<td>val <a href="thread-serial-number/">threadSerialNumber</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>Corresponds to <a href="../-thread-object/thread-serial-number/">ThreadObject.threadSerialNumber</a></td>
 </tr>
 </tbody>
 </table>

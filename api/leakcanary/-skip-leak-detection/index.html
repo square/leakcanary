@@ -698,8 +698,7 @@
   
   <p>//<a href="../../..">leakcanary</a>/<a href="../">leakcanary</a>/<a href="./">SkipLeakDetection</a></p>
 <h1 id="skipleakdetection">SkipLeakDetection<a class="headerlink" href="#skipleakdetection" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-target/index.html">Target</a>(allowedTargets = [<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-annotation-target/-c-l-a-s-s/index.html">AnnotationTarget.CLASS</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-annotation-target/-f-u-n-c-t-i-o-n/index.html">AnnotationTarget.FUNCTION</a>])</p>
+<p>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-target/index.html">Target</a>(allowedTargets = [<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-annotation-target/-c-l-a-s-s/index.html">AnnotationTarget.CLASS</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-annotation-target/-f-u-n-c-t-i-o-n/index.html">AnnotationTarget.FUNCTION</a>])</p>
 <p>annotation class <a href="./">SkipLeakDetection</a>(val message: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val assertionTags: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</p>
 <p>Annotation for skipping leak detection in a UI test that calls <a href="../-leak-assertions/assert-no-leaks/">LeakAssertions.assertNoLeaks</a>. This annotation is useful to skip a leak detection in a test until the leaks are fixed.</p>
 <p>The check is performed by <a href="-companion/should-skip-test/">shouldSkipTest</a> which is called by <a href="../-android-detect-leaks-assert/">AndroidDetectLeaksAssert</a>, which requires that the <a href="../-test-description-holder/">TestDescriptionHolder</a> rule be applied and evaluating when <a href="../-leak-assertions/assert-no-leaks/">LeakAssertions.assertNoLeaks</a> is called.</p>
@@ -716,7 +715,7 @@
 <tbody>
 <tr>
 <td><a href="-skip-leak-detection/">SkipLeakDetection</a></td>
-<td>[FOOFOO]<br>fun <a href="-skip-leak-detection/">SkipLeakDetection</a>(message: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, vararg assertionTags: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
+<td>fun <a href="-skip-leak-detection/">SkipLeakDetection</a>(message: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, vararg assertionTags: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -731,7 +730,7 @@
 <tbody>
 <tr>
 <td><a href="-companion/">Companion</a></td>
-<td>[FOOFOO]<br>object <a href="-companion/">Companion</a></td>
+<td>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -746,11 +745,11 @@
 <tbody>
 <tr>
 <td><a href="assertion-tags/">assertionTags</a></td>
-<td>[FOOFOO]<br>val <a href="assertion-tags/">assertionTags</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-array/index.html">Array</a>&lt;out <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;</td>
+<td>val <a href="assertion-tags/">assertionTags</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-array/index.html">Array</a>&lt;out <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;</td>
 </tr>
 <tr>
 <td><a href="message/">message</a></td>
-<td>[FOOFOO]<br>val <a href="message/">message</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
+<td>val <a href="message/">message</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></td>
 </tr>
 </tbody>
 </table>

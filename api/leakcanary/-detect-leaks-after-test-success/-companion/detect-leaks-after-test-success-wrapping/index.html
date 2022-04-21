@@ -669,8 +669,7 @@
   
   <p>//<a href="../../../../..">leakcanary</a>/<a href="../../../">leakcanary</a>/<a href="../../">DetectLeaksAfterTestSuccess</a>/<a href="../">Companion</a>/<a href="./">detectLeaksAfterTestSuccessWrapping</a></p>
 <h1 id="detectleaksaftertestsuccesswrapping">detectLeaksAfterTestSuccessWrapping<a class="headerlink" href="#detectleaksaftertestsuccesswrapping" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-fun RuleChain.<a href="./">detectLeaksAfterTestSuccessWrapping</a>(tag: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, wrapped: RuleChain.() -&gt; RuleChain): RuleChain</p>
+<p>fun RuleChain.<a href="./">detectLeaksAfterTestSuccessWrapping</a>(tag: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, wrapped: RuleChain.() -&gt; RuleChain): RuleChain</p>
 <p>A helper function to trigger leak detection twice during test tear down, before and after the tear down of a set of wrapped rule chains. For example, this can be useful to detect leaks both right before and right after the activity under test is destroyed. Before means we can detect detached fragment leaks that go away when the activity is destroyed. After means we can detect activity leaks.</p>
 <p>RuleChain.outerRule(LoginRule())\
   .detectLeaksAfterTestSuccessWrapping(&quot;ActivitiesDestroyed&quot;) {\

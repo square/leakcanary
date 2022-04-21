@@ -669,8 +669,7 @@
   
   <p>//<a href="../../../..">leakcanary</a>/<a href="../../">leakcanary</a>/<a href="../">AppWatcher</a>/<a href="./">appDefaultWatchers</a></p>
 <h1 id="appdefaultwatchers">appDefaultWatchers<a class="headerlink" href="#appdefaultwatchers" title="Permanent link">&para;</a></h1>
-<p>[FOOFOO]\
-fun <a href="./">appDefaultWatchers</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, reachabilityWatcher: <a href="../../-reachability-watcher/">ReachabilityWatcher</a> = objectWatcher): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-installable-watcher/">InstallableWatcher</a>&gt;</p>
+<p>fun <a href="./">appDefaultWatchers</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, reachabilityWatcher: <a href="../../-reachability-watcher/">ReachabilityWatcher</a> = objectWatcher): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-installable-watcher/">InstallableWatcher</a>&gt;</p>
 <p>Creates a new list of default app <a href="../../-installable-watcher/">InstallableWatcher</a>, created with the passed in <a href="./">reachabilityWatcher</a> (which defaults to <a href="../object-watcher/">objectWatcher</a>). Once installed, these watchers will pass in to <a href="./">reachabilityWatcher</a> objects that they expect to become weakly reachable.</p>
 <p>The passed in <a href="./">reachabilityWatcher</a> should probably delegate to <a href="../object-watcher/">objectWatcher</a> but can be used to filter out specific instances.</p>
   
