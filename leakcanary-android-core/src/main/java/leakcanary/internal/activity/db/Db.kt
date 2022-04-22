@@ -45,6 +45,7 @@ internal object Db {
     // Closing on the serial IO thread to ensure we don't close while using the db.
     Io.execute {
       dbHelper?.close()
+      dbHelper = null
     }
   }
 }
