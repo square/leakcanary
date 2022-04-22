@@ -54,6 +54,7 @@ androidX-work-multiprocess = { module = "androidx.work:work-multiprocess", versi
 androidSupport = { module = "com.android.support:support-v4", version = "28.0.0" }
 assertjCore = { module = "org.assertj:assertj-core", version = "3.9.1" }
 clikt = { module = "com.github.ajalt:clikt", version = "2.3.0" }
+neo4j = { module = "org.neo4j:neo4j", version = "4.4.6" }
 curtains = { module = "com.squareup.curtains:curtains", version = "1.2.4" }
 jline = { module = "jline:jline", version = "2.14.6" }
 junit = { module = "junit:junit", version = "4.12" }
