@@ -23,6 +23,7 @@
       android:layout_height="match_parent"
       android:divider="@null"
       android:dividerHeight="0dp"
+      android:requiresFadingEdge="vertical"
       android:visibility="invisible"
       />
 </LinearLayout>
