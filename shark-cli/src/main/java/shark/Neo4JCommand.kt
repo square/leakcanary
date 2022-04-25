@@ -30,6 +30,15 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.SharkCliCommand.Companion.echo
 import shark.SharkCliCommand.Companion.retrieveHeapDumpFile
 import shark.SharkCliCommand.Companion.sharkCliParams
+import shark.ValueHolder.BooleanHolder
+import shark.ValueHolder.ByteHolder
+import shark.ValueHolder.CharHolder
+import shark.ValueHolder.DoubleHolder
+import shark.ValueHolder.FloatHolder
+import shark.ValueHolder.IntHolder
+import shark.ValueHolder.LongHolder
+import shark.ValueHolder.ReferenceHolder
+import shark.ValueHolder.ShortHolder
 
 class Neo4JCommand : CliktCommand(
   name = "neo4j",
@@ -53,6 +62,8 @@ class Neo4JCommand : CliktCommand(
   }
 
   companion object {
+    val REFERENCE = "REF"
+
     fun CliktCommand.dump(
       heapDumpFile: File,
       dbParentFolder: File,
@@ -184,7 +195,7 @@ class Neo4JCommand : CliktCommand(
               edgeTx.execute(
                 "unwind \$fields as field" +
                   " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:field.targetObjectId})" +
-                  " create (source)-[:REFERENCE {name:field.name}]->(target)", mapOf(
+                  " create (source)-[$REFERENCE {name:field.name}]->(target)", mapOf(
                   "sourceObjectId" to heapObject.objectId,
                   "fields" to fields
                 )
@@ -192,7 +203,7 @@ class Neo4JCommand : CliktCommand(
 
               val primitiveAndNullFields = heapObject.readStaticFields().mapNotNull { field ->
                 if (!field.value.isNonNullReference) {
-                  "${field.name} = ${field.value.holder}"
+                  "${field.name}: ${field.value.heapValueAsString()}"
                 } else {
                   null
                 }
@@ -222,7 +233,7 @@ class Neo4JCommand : CliktCommand(
               edgeTx.execute(
                 "unwind \$fields as field" +
                   " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:field.targetObjectId})" +
-                  " create (source)-[:REFERENCE {name:field.name}]->(target)", mapOf(
+                  " create (source)-[$REFERENCE {name:field.name}]->(target)", mapOf(
                   "sourceObjectId" to heapObject.objectId,
                   "fields" to fields
                 )
@@ -230,7 +241,7 @@ class Neo4JCommand : CliktCommand(
 
               val primitiveAndNullFields = heapObject.readFields().mapNotNull { field ->
                 if (!field.value.isNonNullReference) {
-                  "${heapObject.instanceClassName}.${field.name} = ${field.value.holder}"
+                  "${field.declaringClass.name}.${field.name} = ${field.value.heapValueAsString()}"
                 } else {
                   null
                 }
@@ -247,7 +258,6 @@ class Neo4JCommand : CliktCommand(
             }
             is HeapObjectArray -> {
               // TODO Add null values somehow?
-
               val elements = heapObject.readRecord().elementIds.mapIndexed { arrayIndex, objectId ->
                 if (objectId != ValueHolder.NULL_REFERENCE) {
                   mapOf(
@@ -262,7 +272,7 @@ class Neo4JCommand : CliktCommand(
               edgeTx.execute(
                 "unwind \$elements as element" +
                   " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:element.targetObjectId})" +
-                  " create (source)-[:REFERENCE {name:element.name}]->(target)", mapOf(
+                  " create (source)-[$REFERENCE {name:element.name}]->(target)", mapOf(
                   "sourceObjectId" to heapObject.objectId,
                   "elements" to elements
                 )
@@ -276,7 +286,7 @@ class Neo4JCommand : CliktCommand(
                       " set node.values = \$values",
                     mapOf(
                       "objectId" to heapObject.objectId,
-                      "values" to record.array
+                      "values" to record.array.joinToString()
                     )
                   )
                 }
@@ -286,7 +296,7 @@ class Neo4JCommand : CliktCommand(
                       " set node.values = \$values",
                     mapOf(
                       "objectId" to heapObject.objectId,
-                      "values" to record.array
+                      "values" to record.array.joinToString()
                     )
                   )
                 }
@@ -296,7 +306,7 @@ class Neo4JCommand : CliktCommand(
                       " set node.values = \$values",
                     mapOf(
                       "objectId" to heapObject.objectId,
-                      "values" to record.array
+                      "values" to record.array.joinToString()
                     )
                   )
                 }
@@ -306,7 +316,7 @@ class Neo4JCommand : CliktCommand(
                       " set node.values = \$values",
                     mapOf(
                       "objectId" to heapObject.objectId,
-                      "values" to record.array
+                      "values" to record.array.joinToString()
                     )
                   )
                 }
@@ -316,7 +326,7 @@ class Neo4JCommand : CliktCommand(
                       " set node.values = \$values",
                     mapOf(
                       "objectId" to heapObject.objectId,
-                      "values" to record.array
+                      "values" to record.array.joinToString()
                     )
                   )
                 }
@@ -326,7 +336,7 @@ class Neo4JCommand : CliktCommand(
                       " set node.values = \$values",
                     mapOf(
                       "objectId" to heapObject.objectId,
-                      "values" to record.array
+                      "values" to record.array.joinToString()
                     )
                   )
                 }
@@ -336,7 +346,7 @@ class Neo4JCommand : CliktCommand(
                       " set node.values = \$values",
                     mapOf(
                       "objectId" to heapObject.objectId,
-                      "values" to record.array
+                      "values" to record.array.joinToString()
                     )
                   )
                 }
@@ -346,7 +356,7 @@ class Neo4JCommand : CliktCommand(
                       " set node.values = \$values",
                     mapOf(
                       "objectId" to heapObject.objectId,
-                      "values" to record.array
+                      "values" to record.array.joinToString()
                     )
                   )
                 }
@@ -380,5 +390,25 @@ class Neo4JCommand : CliktCommand(
       echo("Shutting down...")
       managementService.shutdown()
     }
+    fun HeapValue.heapValueAsString(): String {
+      return when (val heapValue = holder) {
+        is ReferenceHolder -> {
+          if (isNullReference) {
+            "null"
+          } else {
+            error("should not happen")
+          }
+        }
+        is BooleanHolder -> heapValue.value.toString()
+        is CharHolder -> heapValue.value.toString()
+        is FloatHolder -> heapValue.value.toString()
+        is DoubleHolder -> heapValue.value.toString()
+        is ByteHolder -> heapValue.value.toString()
+        is ShortHolder -> heapValue.value.toString()
+        is IntHolder -> heapValue.value.toString()
+        is LongHolder -> heapValue.value.toString()
+      }
+    }
   }
+
 }
