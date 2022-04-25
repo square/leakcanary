@@ -195,7 +195,7 @@ class Neo4JCommand : CliktCommand(
               edgeTx.execute(
                 "unwind \$fields as field" +
                   " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:field.targetObjectId})" +
-                  " create (source)-[$REFERENCE {name:field.name}]->(target)", mapOf(
+                  " create (source)-[:$REFERENCE {name:field.name}]->(target)", mapOf(
                   "sourceObjectId" to heapObject.objectId,
                   "fields" to fields
                 )
@@ -233,7 +233,7 @@ class Neo4JCommand : CliktCommand(
               edgeTx.execute(
                 "unwind \$fields as field" +
                   " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:field.targetObjectId})" +
-                  " create (source)-[$REFERENCE {name:field.name}]->(target)", mapOf(
+                  " create (source)-[:$REFERENCE {name:field.name}]->(target)", mapOf(
                   "sourceObjectId" to heapObject.objectId,
                   "fields" to fields
                 )
@@ -272,7 +272,7 @@ class Neo4JCommand : CliktCommand(
               edgeTx.execute(
                 "unwind \$elements as element" +
                   " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:element.targetObjectId})" +
-                  " create (source)-[$REFERENCE {name:element.name}]->(target)", mapOf(
+                  " create (source)-[:$REFERENCE {name:element.name}]->(target)", mapOf(
                   "sourceObjectId" to heapObject.objectId,
                   "elements" to elements
                 )
