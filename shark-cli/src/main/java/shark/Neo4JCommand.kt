@@ -6,8 +6,14 @@ import com.github.ajalt.clikt.output.TermUi
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.types.file
+import io.netty.util.internal.SocketUtils
 import java.io.File
+import java.util.regex.Pattern
+import jline.console.ConsoleReader
+import org.neo4j.configuration.connectors.BoltConnector
+import org.neo4j.configuration.helpers.SocketAddress
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder
+import org.neo4j.graphdb.ResultTransformer
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -75,9 +81,18 @@ class Neo4JCommand : CliktCommand(
 
       // TODO Support driver + embedded?
 
+      // Get a random, free port. We could do this by using new SocketAddress("localhost", 0)
+      // but we wouldn't be able to retrieve the port via Neo4j means afterwards (it would indicate 0 as ephemeral port)
+
+      // TODO Find an available TCP port instead?
+      val boltListenPort = 2929
+
       echo("Creating db in $dbFolder")
       val managementService =
-        DatabaseManagementServiceBuilder(dbFolder.toPath().normalize()).build()
+        DatabaseManagementServiceBuilder(dbFolder.toPath().normalize())
+          .setConfig(BoltConnector.enabled, true)
+          .setConfig(BoltConnector.listen_address, SocketAddress("localhost", boltListenPort))
+          .build()
       val dbService = managementService.database("neo4j")
       echo("Done with creating empty db, now importing heap dump")
       heapDumpFile.openHeapGraph(proguardMapping).use { graph ->
@@ -101,17 +116,20 @@ class Neo4JCommand : CliktCommand(
                 field.value
               }
               nodeTx.execute(
-                "create (:Object {objectType: 'Class', name:\$name, objectId:\$objectId})",
+                "create (:Object :Class {objectType: 'Class', name:\$name, className:\$className, objectId:\$objectId})",
                 mapOf(
-                  "name" to heapObject.name,
+                  "name" to heapObject.simpleName,
+                  "className" to heapObject.name,
                   "objectId" to heapObject.objectId
                 )
               )
             }
             is HeapInstance -> {
               nodeTx.execute(
-                "create (:Object {objectType: 'Instance', className:\$className, objectId:\$objectId})",
+                "create (:Object :Instance {objectType: 'Instance', name:\$name, className:\$className, objectId:\$objectId})",
                 mapOf(
+                  "name" to "${heapObject.instanceClassSimpleName}@" + (heapObject.hexIdentityHashCode
+                    ?: heapObject.positiveObjectId),
                   "className" to heapObject.instanceClassName,
                   "objectId" to heapObject.objectId
                 )
@@ -119,8 +137,9 @@ class Neo4JCommand : CliktCommand(
             }
             is HeapObjectArray -> {
               nodeTx.execute(
-                "create (:Object {objectType: 'ObjectArray', className:\$className, objectId:\$objectId})",
+                "create (:Object :ObjectArray {objectType: 'ObjectArray', name:\$name, className:\$className, objectId:\$objectId})",
                 mapOf(
+                  "name" to "${heapObject.arrayClassSimpleName}[]@${heapObject.positiveObjectId}",
                   "className" to heapObject.arrayClassName,
                   "objectId" to heapObject.objectId
                 )
@@ -128,8 +147,9 @@ class Neo4JCommand : CliktCommand(
             }
             is HeapPrimitiveArray -> {
               nodeTx.execute(
-                "create (:Object {objectType: 'PrimitiveArray', className:\$className, objectId:\$objectId})",
+                "create (:Object :PrimitiveArray {objectType: 'PrimitiveArray', name:\$name, className:\$className, objectId:\$objectId})",
                 mapOf(
+                  "name" to "${heapObject.arrayClassName}@${heapObject.positiveObjectId}",
                   "className" to heapObject.arrayClassName,
                   "objectId" to heapObject.objectId
                 )
@@ -137,7 +157,7 @@ class Neo4JCommand : CliktCommand(
             }
           }
         }
-        echo("Progress nodes: 100%")
+        echo("Progress nodes: 100%, committing transaction")
         nodeTx.commit()
         val edgeTx = dbService.beginTx()
         echo("Progress edges: 0%")
@@ -334,9 +354,30 @@ class Neo4JCommand : CliktCommand(
             }
           }
         }
-        echo("Progress edges: 100%")
+        echo("Progress edges: 100%, committing transaction")
         edgeTx.commit()
       }
+
+      echo("Retrieving server bolt port...")
+
+      val boltPort = dbService.executeTransactionally("CALL dbms.listConfig() yield name, value " +
+        "WHERE name = 'dbms.connector.bolt.listen_address' " +
+        "RETURN value", mapOf()
+      ) { result ->
+        val listenAddress = result.next()["value"] as String
+        val pattern = Pattern.compile("(?:\\w+:)?(\\d+)")
+        val matcher = pattern.matcher(listenAddress)
+        if (!matcher.matches()) {
+          error("Could not extract bolt port from [$listenAddress]");
+        }
+        matcher.toMatchResult().group(1)
+      }
+
+      val browserUrl = "http://browser.graphapp.io/?dbms=bolt://localhost:$boltPort"
+      echo("Opening: $browserUrl")
+      Runtime.getRuntime().exec("open $browserUrl")
+      ConsoleReader().readLine("Press ENTER to shut down Neo4j server")
+      echo("Shutting down...")
       managementService.shutdown()
     }
   }
