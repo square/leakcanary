@@ -6,14 +6,15 @@ import com.github.ajalt.clikt.output.TermUi
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.types.file
-import io.netty.util.internal.SocketUtils
 import java.io.File
+import java.lang.ref.PhantomReference
+import java.lang.ref.SoftReference
+import java.lang.ref.WeakReference
 import java.util.regex.Pattern
 import jline.console.ConsoleReader
 import org.neo4j.configuration.connectors.BoltConnector
 import org.neo4j.configuration.helpers.SocketAddress
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder
-import org.neo4j.graphdb.ResultTransformer
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -63,6 +64,9 @@ class Neo4JCommand : CliktCommand(
 
   companion object {
     val REFERENCE = "REF"
+    val WEAK_REFERENCE = "WEAK_REF"
+    val SOFT_REFERENCE = "SOFT_REF"
+    val PHANTOM_REFERENCE = "PHANTOM_REF"
 
     fun CliktCommand.dump(
       heapDumpFile: File,
@@ -107,10 +111,15 @@ class Neo4JCommand : CliktCommand(
       val dbService = managementService.database("neo4j")
       echo("Done with creating empty db, now importing heap dump")
       heapDumpFile.openHeapGraph(proguardMapping).use { graph ->
+
         val total = graph.objectCount
         var lastPct = 0
 
         dbService.executeTransactionally("create constraint for (object:Object) require object.objectId is unique")
+        dbService.executeTransactionally("create constraint for (class:Class) require class.objectId is unique")
+        dbService.executeTransactionally("create constraint for (instance:Instance) require instance.objectId is unique")
+        dbService.executeTransactionally("create constraint for (array:ObjectArray) require array.objectId is unique")
+        dbService.executeTransactionally("create constraint for (array:PrimitiveArray) require array.objectId is unique")
         // TODO Split in several transactions when reaching a predefined threshold.
         val nodeTx = dbService.beginTx()
         echo("Progress nodes: 0%")
@@ -142,7 +151,7 @@ class Neo4JCommand : CliktCommand(
                   "name" to "${heapObject.instanceClassSimpleName}@" + (heapObject.hexIdentityHashCode
                     ?: heapObject.positiveObjectId),
                   "className" to heapObject.instanceClassName,
-                  "objectId" to heapObject.objectId
+                  "objectId" to heapObject.objectId,
                 )
               )
             }
@@ -152,7 +161,7 @@ class Neo4JCommand : CliktCommand(
                 mapOf(
                   "name" to "${heapObject.arrayClassSimpleName}[]@${heapObject.positiveObjectId}",
                   "className" to heapObject.arrayClassName,
-                  "objectId" to heapObject.objectId
+                  "objectId" to heapObject.objectId,
                 )
               )
             }
@@ -170,6 +179,50 @@ class Neo4JCommand : CliktCommand(
         }
         echo("Progress nodes: 100%, committing transaction")
         nodeTx.commit()
+
+        val classTx = dbService.beginTx()
+        echo("Progress class hierarchy: 0%")
+        graph.objects.forEachIndexed { index, heapObject ->
+          val pct = ((index * 10f) / total).toInt()
+          if (pct != lastPct) {
+            lastPct = pct
+            echo("Progress class hierarchy: ${pct * 10}%")
+          }
+          when (heapObject) {
+            is HeapClass -> {
+              heapObject.superclass?.let { superclass ->
+                classTx.execute(
+                  "match (superclass:Class{objectId:\$superclassObjectId}) , (class:Class {objectId:\$objectId}) create (class) -[:SUPER]->(superclass)",
+                  mapOf(
+                    "objectId" to heapObject.objectId,
+                    "superclassObjectId" to superclass.objectId
+                  )
+                )
+              }
+            }
+            is HeapInstance -> {
+              classTx.execute(
+                "match (class:Class{objectId:\$classObjectId}) , (instance:Instance {objectId:\$objectId}) create (instance) -[:CLASS]->(class)",
+                mapOf(
+                  "objectId" to heapObject.objectId,
+                  "classObjectId" to heapObject.instanceClassId
+                )
+              )
+            }
+            is HeapObjectArray -> {
+              classTx.execute(
+                "match (class:Class{objectId:\$classObjectId}) , (array:ObjectArray {objectId:\$objectId}) create (array) -[:CLASS]->(class)",
+                mapOf(
+                  "objectId" to heapObject.objectId,
+                  "classObjectId" to heapObject.arrayClassId
+                )
+              )
+            }
+          }
+        }
+        echo("Progress class hierarchy: 100%, committing transaction")
+        classTx.commit()
+
         val edgeTx = dbService.beginTx()
         echo("Progress edges: 0%")
         lastPct = 0
@@ -223,21 +276,60 @@ class Neo4JCommand : CliktCommand(
                 if (field.value.isNonNullReference) {
                   mapOf(
                     "targetObjectId" to field.value.asObjectId!!,
-                    "name" to "${heapObject.instanceClassName}.${field.name}"
+                    "name" to "${field.declaringClass.name}.${field.name}"
                   )
                 } else {
                   null
                 }
               }.toList()
 
+              val (updatedFields, referentField, refType) = when {
+                heapObject instanceOf WeakReference::class -> {
+                  val referentField = heapObject["java.lang.ref.Reference", "referent"]
+                  Triple(
+                    fields.filter { it["name"] != "java.lang.ref.Reference.referent" },
+                    referentField,
+                    WEAK_REFERENCE
+                  )
+                }
+                heapObject instanceOf SoftReference::class -> {
+                  val referentField = heapObject["java.lang.ref.Reference", "referent"]
+                  Triple(
+                    fields.filter { it["name"] != "java.lang.ref.Reference.referent" },
+                    referentField,
+                    SOFT_REFERENCE
+                  )
+                }
+                heapObject instanceOf PhantomReference::class -> {
+                  val referentField = heapObject["java.lang.ref.Reference", "referent"]
+                  Triple(
+                    fields.filter { it["name"] != "java.lang.ref.Reference.referent" },
+                    referentField,
+                    PHANTOM_REFERENCE
+                  )
+                }
+                else -> Triple(fields, null, null)
+              }
+
               edgeTx.execute(
                 "unwind \$fields as field" +
                   " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:field.targetObjectId})" +
                   " create (source)-[:$REFERENCE {name:field.name}]->(target)", mapOf(
                   "sourceObjectId" to heapObject.objectId,
-                  "fields" to fields
+                  "fields" to updatedFields
                 )
               )
+
+              if (referentField != null) {
+                edgeTx.execute(
+                  "match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:\$targetObjectId})" +
+                    " create (source)-[:$refType {name:\"java.lang.ref.Reference.referent\"}]->(target)",
+                  mapOf(
+                    "sourceObjectId" to heapObject.objectId,
+                    "targetObjectId" to referentField.value.asObjectId!!,
+                  )
+                )
+              }
 
               val primitiveAndNullFields = heapObject.readFields().mapNotNull { field ->
                 if (!field.value.isNonNullReference) {
@@ -366,13 +458,39 @@ class Neo4JCommand : CliktCommand(
         }
         echo("Progress edges: 100%, committing transaction")
         edgeTx.commit()
+
+        val gcRootsTx = dbService.beginTx()
+        echo("Progress gc roots: 0%")
+        lastPct = 0
+        val gcRootTotal = graph.gcRoots.size
+
+        // A root for all gc roots that makes it easy to query starting from that single root.
+        gcRootsTx.execute("create (:GcRoots {name:\"GC roots\"})")
+
+        graph.gcRoots.forEachIndexed { index, gcRoot ->
+          val pct = ((index * 10f) / gcRootTotal).toInt()
+          if (pct != lastPct) {
+            lastPct = pct
+            echo("Progress gc roots: ${pct * 10}%")
+          }
+          gcRootsTx.execute(
+            "match (roots:GcRoots), (object:Object{objectId:\$objectId}) create (roots)-[:ROOT]->(:GcRoot {type:\$type})-[:ROOT]->(object)",
+            mapOf(
+              "objectId" to gcRoot.id,
+              "type" to gcRoot::class.java.simpleName
+            )
+          )
+        }
+        gcRootsTx.commit()
       }
 
       echo("Retrieving server bolt port...")
 
-      val boltPort = dbService.executeTransactionally("CALL dbms.listConfig() yield name, value " +
-        "WHERE name = 'dbms.connector.bolt.listen_address' " +
-        "RETURN value", mapOf()
+      // TODO Unclear why we need to query the port again?
+      val boltPort = dbService.executeTransactionally(
+        "CALL dbms.listConfig() yield name, value " +
+          "WHERE name = 'dbms.connector.bolt.listen_address' " +
+          "RETURN value", mapOf()
       ) { result ->
         val listenAddress = result.next()["value"] as String
         val pattern = Pattern.compile("(?:\\w+:)?(\\d+)")
@@ -390,6 +508,7 @@ class Neo4JCommand : CliktCommand(
       echo("Shutting down...")
       managementService.shutdown()
     }
+
     fun HeapValue.heapValueAsString(): String {
       return when (val heapValue = holder) {
         is ReferenceHolder -> {
@@ -410,5 +529,4 @@ class Neo4JCommand : CliktCommand(
       }
     }
   }
-
 }
