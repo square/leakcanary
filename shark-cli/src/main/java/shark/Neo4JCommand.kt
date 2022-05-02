@@ -10,11 +10,13 @@ import java.io.File
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
 import java.lang.ref.WeakReference
+import java.util.EnumSet
 import java.util.regex.Pattern
 import jline.console.ConsoleReader
 import org.neo4j.configuration.connectors.BoltConnector
 import org.neo4j.configuration.helpers.SocketAddress
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder
+import shark.AndroidObjectInspectors.Companion
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -28,6 +30,9 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
+import shark.LeakTraceObject.LeakingStatus.LEAKING
+import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
+import shark.LeakTraceObject.LeakingStatus.UNKNOWN
 import shark.SharkCliCommand.Companion.echo
 import shark.SharkCliCommand.Companion.retrieveHeapDumpFile
 import shark.SharkCliCommand.Companion.sharkCliParams
@@ -182,6 +187,7 @@ class Neo4JCommand : CliktCommand(
 
         val classTx = dbService.beginTx()
         echo("Progress class hierarchy: 0%")
+        lastPct = 0
         graph.objects.forEachIndexed { index, heapObject ->
           val pct = ((index * 10f) / total).toInt()
           if (pct != lastPct) {
@@ -458,6 +464,81 @@ class Neo4JCommand : CliktCommand(
         }
         echo("Progress edges: 100%, committing transaction")
         edgeTx.commit()
+
+        val labelsTx = dbService.beginTx()
+        echo("Progress labels: 0%")
+        lastPct = 0
+        val inspectors = AndroidObjectInspectors.appDefaults
+        val leakFilters = ObjectInspectors.jdkLeakingObjectFilters
+
+        graph.objects.forEachIndexed { index, heapObject ->
+          val pct = ((index * 10f) / total).toInt()
+          if (pct != lastPct) {
+            lastPct = pct
+            echo("Progress labels: ${pct * 10}%")
+          }
+
+          val leaked = leakFilters.any { filter ->
+            filter.isLeakingObject(heapObject)
+          }
+
+          val reporter = ObjectReporter(heapObject)
+          inspectors.forEach { inspector ->
+            inspector.inspect(reporter)
+          }
+
+          // Cribbed from shark.HeapAnalyzer.resolveStatus
+          var status = UNKNOWN
+          var reason = ""
+          if (reporter.notLeakingReasons.isNotEmpty()) {
+            status = NOT_LEAKING
+            reason = reporter.notLeakingReasons.joinToString(" and ")
+          }
+          val leakingReasons = reporter.leakingReasons
+          if (leakingReasons.isNotEmpty()) {
+            val winReasons = leakingReasons.joinToString(" and ")
+            // Conflict
+            if (status == NOT_LEAKING) {
+                reason += ". Conflicts with $winReasons"
+            } else {
+              status = LEAKING
+              reason = winReasons
+            }
+          }
+
+          labelsTx.execute(
+            "match (node:Object{objectId:\$objectId})" +
+              " set node.leakingStatus = \$leakingStatus, node.leakingStatusReason = \$leakingStatusReason",
+            mapOf(
+              "objectId" to heapObject.objectId,
+              "leakingStatus" to status.name,
+              "leakingStatusReason" to reason
+            )
+          )
+
+          if (reporter.labels.isNotEmpty()) {
+            labelsTx.execute(
+              "match (node:Object{objectId:\$objectId})" +
+                " set node.labels = \$labels",
+              mapOf(
+                "objectId" to heapObject.objectId,
+                "labels" to reporter.labels,
+              )
+            )
+          }
+
+          if (leaked) {
+            labelsTx.execute(
+              "match (node:Object{objectId:\$objectId})" +
+                " set node.leaked = true",
+              mapOf(
+                "objectId" to heapObject.objectId,
+              )
+            )
+          }
+        }
+        echo("Progress labels: 100%, committing transaction")
+        labelsTx.commit()
 
         val gcRootsTx = dbService.beginTx()
         echo("Progress gc roots: 0%")
