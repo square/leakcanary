@@ -10,5 +10,6 @@
       android:listSelector="@drawable/leak_canary_list_selector"
       android:divider="@null"
       android:dividerHeight="0dp"
+      android:requiresFadingEdge="vertical"
       />
 </FrameLayout>
