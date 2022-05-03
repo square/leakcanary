@@ -76,7 +76,7 @@
   <string name="leak_canary_options_menu_generate_hq_bitmap">Generate HQ Bitmap</string>
   <string name="leak_canary_options_menu_permission_toast">Please grant the External Storage Permission first, see notification…</string>
   <string name="leak_canary_generating_hq_bitmap_toast_notice">Rendering HQ Bitmap, this may take a while…</string>
-  <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Rendering HQ Bitmap, this may take a while…</string>
+  <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Could not save HQ Bitmap</string>
   <string name="leak_canary_share_heap_dump_bitmap_screen_title">Share Heap Dump Bitmap</string>
   <string name="leak_canary_heap_dump_screen_title">Heap Dump %s</string>
   <string name="leak_canary_analysis_deleted_title">Analysis Deleted</string>
