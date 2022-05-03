@@ -260,7 +260,7 @@ internal object HeapDumpRenderer {
     canvas.drawBitmap(bitmap, source, destination, null)
     height -= legendHeight.toInt()
 
-    val pixelPaint = Paint()
+    val pixelPaint = Paint(Paint.ANTI_ALIAS_FLAG.inv())
     pixelPaint.style = FILL
 
     var recordIndex = 0
