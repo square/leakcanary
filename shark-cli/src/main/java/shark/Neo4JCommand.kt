@@ -7,16 +7,26 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.types.file
 import java.io.File
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
 import java.lang.ref.WeakReference
-import java.util.EnumSet
 import java.util.regex.Pattern
 import jline.console.ConsoleReader
+import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.connectors.BoltConnector
 import org.neo4j.configuration.helpers.SocketAddress
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder
-import shark.AndroidObjectInspectors.Companion
+import org.neo4j.graphdb.Entity
+import org.neo4j.graphdb.Path
+import org.neo4j.graphdb.Relationship
+import org.neo4j.graphdb.RelationshipType
+import org.neo4j.graphdb.Transaction
+import org.neo4j.kernel.api.procedure.GlobalProcedures
+import org.neo4j.kernel.internal.GraphDatabaseAPI
+import org.neo4j.logging.Level
+import org.neo4j.procedure.UserFunction
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -112,8 +122,16 @@ class Neo4JCommand : CliktCommand(
         DatabaseManagementServiceBuilder(dbFolder.toPath().normalize())
           .setConfig(BoltConnector.enabled, true)
           .setConfig(BoltConnector.listen_address, SocketAddress("localhost", boltListenPort))
+          .setConfig(GraphDatabaseSettings.store_internal_log_level, Level.DEBUG)
           .build()
       val dbService = managementService.database("neo4j")
+      val api = dbService as GraphDatabaseAPI
+      val registry = api.dependencyResolver.resolveDependency(GlobalProcedures::class.java)
+      registry.registerFunction(FindLeakPaths::class.java)
+
+      // TODO Add test.
+      // TODO merge this
+
       echo("Done with creating empty db, now importing heap dump")
       heapDumpFile.openHeapGraph(proguardMapping).use { graph ->
 
@@ -499,7 +517,7 @@ class Neo4JCommand : CliktCommand(
             val winReasons = leakingReasons.joinToString(" and ")
             // Conflict
             if (status == NOT_LEAKING) {
-                reason += ". Conflicts with $winReasons"
+              reason += ". Conflicts with $winReasons"
             } else {
               status = LEAKING
               reason = winReasons
@@ -546,7 +564,7 @@ class Neo4JCommand : CliktCommand(
         val gcRootTotal = graph.gcRoots.size
 
         // A root for all gc roots that makes it easy to query starting from that single root.
-        gcRootsTx.execute("create (:GcRoots {name:\"GC roots\"})")
+        gcRootsTx.execute("create (:GcRoots {name:\"GC roots\", leakingStatus:\"${NOT_LEAKING.name}\"})")
 
         graph.gcRoots.forEachIndexed { index, gcRoot ->
           val pct = ((index * 10f) / gcRootTotal).toInt()
@@ -609,5 +627,74 @@ class Neo4JCommand : CliktCommand(
         is LongHolder -> heapValue.value.toString()
       }
     }
+  }
+}
+
+class FindLeakPaths {
+
+  @org.neo4j.procedure.Context
+  lateinit var transaction: Transaction
+
+  @UserFunction("shark.leakPaths")
+  fun leakPaths(): List<Path> {
+    try {
+      val result = transaction.execute(
+        """
+      match (roots:GcRoots)
+      match (object:Object {leaked: true})
+        with shortestPath((roots)-[:ROOT|REF*]->(object)) as path
+        where reduce(
+            leakCount=0, n in nodes(path) | leakCount + case n.leaked when true then 1 else 0 end
+          ) = 1
+      return path
+      """.trimIndent()
+      )
+
+      return result.asSequence().map { row ->
+        val realPath = row["path"] as Path
+        DecoratedPath(realPath)
+      }.toList()
+    } catch (e: Throwable) {
+      TermUi.echo("failed to findLeakPaths: " + getStackTraceString(e))
+      throw e
+    }
+  }
+
+  private fun getStackTraceString(throwable: Throwable): String {
+    val stringWriter = StringWriter()
+    val printWriter = PrintWriter(stringWriter, false)
+    throwable.printStackTrace(printWriter)
+    printWriter.flush()
+    return stringWriter.toString()
+  }
+}
+
+class DecoratedPath(private val delegate: Path) : Path by delegate {
+
+  private val relationships by lazy {
+    // TODO Here we'll map a subset of relationships as one of not leaking, leak suspect, leaking.
+    // We can then add the "leaking reason" as an attribute of the relationship.
+    // Then we should remove these 2 from the full dump. We can find the leaking nodes early
+    // and set those attribute as part of node creation instead of a separate transaction.
+    // The mapping of relationships here can be down dy duplicating the logic in
+    // shark.HeapAnalyzer.computeLeakStatuses which goes through relationships and splits
+    // the path in 3 areas (not leaking, leak suspect, leaking).
+    delegate.relationships().toList()
+  }
+
+  override fun relationships(): Iterable<Relationship> {
+    return relationships
+  }
+
+  override fun reverseRelationships(): Iterable<Relationship> {
+    return relationships.asReversed()
+  }
+
+  override fun iterator(): MutableIterator<Entity> {
+    val nodeList = nodes().toList()
+    val relationshipsList = relationships
+    return (listOf(nodeList[0]) + relationshipsList.indices.flatMap { index ->
+      listOf(relationshipsList[index], nodeList[index])
+    }).toMutableList().iterator()
   }
 }
