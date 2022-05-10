@@ -67,148 +67,148 @@ class StreamingRecordReaderAdapter(private val streamingHprofReader: StreamingHp
         STRING_IN_UTF8 -> {
           val recordPosition = reader.bytesRead
           val record = reader.readStringRecord(length)
-          listener.onHprofRecord(recordPosition, record)
+          listener.onHprofRecord(recordPosition, length, record)
         }
         LOAD_CLASS -> {
           val recordPosition = reader.bytesRead
           val record = reader.readLoadClassRecord()
-          listener.onHprofRecord(recordPosition, record)
+          listener.onHprofRecord(recordPosition, length, record)
         }
         STACK_FRAME -> {
           val recordPosition = reader.bytesRead
           val record = reader.readStackFrameRecord()
-          listener.onHprofRecord(recordPosition, record)
+          listener.onHprofRecord(recordPosition, length, record)
         }
         STACK_TRACE -> {
           val recordPosition = reader.bytesRead
           val record = reader.readStackTraceRecord()
-          listener.onHprofRecord(recordPosition, record)
+          listener.onHprofRecord(recordPosition, length, record)
         }
         ROOT_UNKNOWN -> {
           val recordPosition = reader.bytesRead
           val record = reader.readUnknownGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(record))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(record))
         }
         ROOT_JNI_GLOBAL -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readJniGlobalGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
         ROOT_JNI_LOCAL -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readJniLocalGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_JAVA_FRAME -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readJavaFrameGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_NATIVE_STACK -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readNativeStackGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_STICKY_CLASS -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readStickyClassGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_THREAD_BLOCK -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readThreadBlockGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_MONITOR_USED -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readMonitorUsedGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_THREAD_OBJECT -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readThreadObjectGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_INTERNED_STRING -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readInternedStringGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_FINALIZING -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readFinalizingGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_DEBUGGER -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readDebuggerGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_REFERENCE_CLEANUP -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readReferenceCleanupGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_VM_INTERNAL -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readVmInternalGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_JNI_MONITOR -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readJniMonitorGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
 
         ROOT_UNREACHABLE -> {
           val recordPosition = reader.bytesRead
           val gcRootRecord = reader.readUnreachableGcRootRecord()
-          listener.onHprofRecord(recordPosition, GcRootRecord(gcRootRecord))
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, GcRootRecord(gcRootRecord))
         }
         CLASS_DUMP -> {
           val recordPosition = reader.bytesRead
           val record = reader.readClassDumpRecord()
-          listener.onHprofRecord(recordPosition, record)
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, record)
         }
         INSTANCE_DUMP -> {
           val recordPosition = reader.bytesRead
           val record = reader.readInstanceDumpRecord()
-          listener.onHprofRecord(recordPosition, record)
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, record)
         }
 
         OBJECT_ARRAY_DUMP -> {
           val recordPosition = reader.bytesRead
           val arrayRecord = reader.readObjectArrayDumpRecord()
-          listener.onHprofRecord(recordPosition, arrayRecord)
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, arrayRecord)
         }
 
         PRIMITIVE_ARRAY_DUMP -> {
           val recordPosition = reader.bytesRead
           val record = reader.readPrimitiveArrayDumpRecord()
-          listener.onHprofRecord(recordPosition, record)
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, record)
         }
 
         HEAP_DUMP_INFO -> {
           val recordPosition = reader.bytesRead
           val record = reader.readHeapDumpInfoRecord()
-          listener.onHprofRecord(recordPosition, record)
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, record)
         }
         HEAP_DUMP_END -> {
           val recordPosition = reader.bytesRead
           val record = HeapDumpEndRecord
-          listener.onHprofRecord(recordPosition, record)
+          listener.onHprofRecord(recordPosition, reader.bytesRead - recordPosition, record)
         }
         else -> error("Unexpected heap dump tag $tag at position ${reader.bytesRead}")
       }

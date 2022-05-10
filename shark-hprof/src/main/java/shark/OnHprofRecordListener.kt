@@ -13,6 +13,10 @@ fun interface OnHprofRecordListener {
      * The position of the record in the underlying hprof file.
      */
     position: Long,
+    /**
+     * Length of the record
+     */
+    length: Long,
     record: HprofRecord
   )
 
@@ -29,7 +33,7 @@ fun interface OnHprofRecordListener {
      * }
      * ```
      */
-    inline operator fun invoke(crossinline block: (Long, HprofRecord) -> Unit): OnHprofRecordListener =
-      OnHprofRecordListener { position, record -> block(position, record) }
+    inline operator fun invoke(crossinline block: (Long, Long, HprofRecord) -> Unit): OnHprofRecordListener =
+      OnHprofRecordListener { position, length, record -> block(position, length, record) }
   }
 }

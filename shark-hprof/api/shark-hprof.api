@@ -518,11 +518,11 @@ public final class shark/HprofWriter$Companion {
 
 public abstract interface class shark/OnHprofRecordListener {
 	public static final field Companion Lshark/OnHprofRecordListener$Companion;
-	public abstract fun onHprofRecord (JLshark/HprofRecord;)V
+	public abstract fun onHprofRecord (JJLshark/HprofRecord;)V
 }
 
 public final class shark/OnHprofRecordListener$Companion {
-	public final fun invoke (Lkotlin/jvm/functions/Function2;)Lshark/OnHprofRecordListener;
+	public final fun invoke (Lkotlin/jvm/functions/Function3;)Lshark/OnHprofRecordListener;
 }
 
 public abstract interface class shark/OnHprofRecordTagListener {

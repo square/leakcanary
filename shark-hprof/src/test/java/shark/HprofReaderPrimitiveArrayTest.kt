@@ -18,7 +18,7 @@ class HprofReaderPrimitiveArrayTest {
       hprof.reader.readHprofRecords(
         emptySet()
       ) // skip everything including primitive arrays
-      { _, _ -> }
+      { _, _, _ -> }
     }
   }
 
@@ -34,7 +34,7 @@ class HprofReaderPrimitiveArrayTest {
     Hprof.open(heapDump).use { hprof ->
       hprof.reader.readHprofRecords(
         setOf(HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord::class)
-      ) { _, record ->
+      ) { _, _, record ->
         if (record is HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump) {
           if (byteArray.contentEquals(record.array)) {
             myByteArrayIsInHeapDump = true

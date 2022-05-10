@@ -64,7 +64,7 @@ class HprofDeobfuscator {
 
     val reader = StreamingHprofReader.readerFor(inputHprofFile).asStreamingRecordReader()
     reader.readRecords(setOf(HprofRecord::class)
-    ) { _, record ->
+    ) { _, _, record ->
       when (record) {
         is StringRecord -> {
           maxId = maxId.coerceAtLeast(record.id)
@@ -110,7 +110,7 @@ class HprofDeobfuscator {
       )
     ).use { writer ->
       reader.readRecords(setOf(HprofRecord::class),
-        OnHprofRecordListener { _,
+        OnHprofRecordListener { _, _,
           record ->
           // HprofWriter automatically emits HeapDumpEndRecord, because it flushes
           // all continuous heap dump sub records as one heap dump record.
