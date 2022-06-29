@@ -5,7 +5,7 @@ import android.content.Context
 import androidx.startup.Initializer
 import leakcanary.AndroidLeakFixes
 
-internal class PlumberStartupInitializer : Initializer<PlumberStartupInitializer> {
+class PlumberStartupInitializer : Initializer<PlumberStartupInitializer> {
   override fun create(context: Context) = apply {
     val application = context.applicationContext as Application
     AndroidLeakFixes.applyFixes(application)
