@@ -86,6 +86,14 @@ fun interface EventListener {
         showIntent: Intent
       ) : HeapAnalysisDone<HeapAnalysisFailure>(uniqueId, heapAnalysis, showIntent)
     }
+
+    class NoRetainedObjectFound(
+      uniqueId: String,
+    ) : Event(uniqueId)
+
+    class HeapDumpReceived(
+      uniqueId: String,
+    ) : Event(uniqueId)
   }
 
   /**
