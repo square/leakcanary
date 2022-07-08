@@ -1,9 +1,8 @@
-package leakcanary.internal
+package leakcanary
 
 import android.app.Application
 import android.content.Context
 import androidx.startup.Initializer
-import leakcanary.AppWatcher
 
 class AppWatcherStartupInitializer : Initializer<AppWatcherStartupInitializer> {
   override fun create(context: Context) = apply {

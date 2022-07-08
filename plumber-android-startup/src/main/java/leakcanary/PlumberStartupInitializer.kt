@@ -1,9 +1,8 @@
-package leakcanary.internal
+package leakcanary
 
 import android.app.Application
 import android.content.Context
 import androidx.startup.Initializer
-import leakcanary.AndroidLeakFixes
 
 class PlumberStartupInitializer : Initializer<PlumberStartupInitializer> {
   override fun create(context: Context) = apply {
