@@ -8,6 +8,7 @@ import com.squareup.leakcanary.core.R
 import java.util.UUID
 import leakcanary.AppWatcher
 import leakcanary.EventListener
+import leakcanary.EventListener.Event.DismissNoRetainedOnTapNotification
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.EventListener.Event.HeapDumpFailed
@@ -220,7 +221,7 @@ internal class HeapDumpTrigger(
 
   fun onDumpHeapReceived(forceDump: Boolean) {
     backgroundHandler.post {
-      InternalLeakCanary.sendEvent(EventListener.Event.DismissNoRetainedOnTapNotification(currentEventUniqueId!!))
+      InternalLeakCanary.sendEvent(DismissNoRetainedOnTapNotification(currentEventUniqueId!!))
       gcTrigger.runGc()
       val retainedReferenceCount = objectWatcher.retainedObjectCount
       if (!forceDump && retainedReferenceCount == 0) {

@@ -42,7 +42,6 @@ object NotificationEventListener : EventListener {
     }
     when (event) {
       is DumpingHeap -> {
-        dismissRetainedCountNotification()
         val dumpingHeap = appContext.getString(R.string.leak_canary_notification_dumping)
         val builder = Notification.Builder(appContext)
           .setContentTitle(dumpingHeap)
