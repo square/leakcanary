@@ -137,10 +137,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     val backgroundHandler = Handler(handlerThread.looper)
 
     heapDumpTrigger = HeapDumpTrigger(
-      application,
-      backgroundHandler,
-      AppWatcher.objectWatcher,
-      gcTrigger,
+      application, backgroundHandler, AppWatcher.objectWatcher, gcTrigger,
       configProvider
     )
     application.registerVisibilityListener { applicationVisible ->

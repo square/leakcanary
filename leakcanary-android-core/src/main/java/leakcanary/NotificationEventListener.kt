@@ -5,8 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.os.Build
-import android.os.Handler
-import android.os.HandlerThread
 import com.squareup.leakcanary.core.R
 import leakcanary.EventListener.Event
 import leakcanary.EventListener.Event.DumpingHeap
@@ -20,9 +18,8 @@ import leakcanary.internal.NotificationReceiver
 import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import leakcanary.internal.NotificationType.LEAKCANARY_MAX
 import leakcanary.internal.Notifications
-import leakcanary.internal.RetainInstanceEvent
+import leakcanary.internal.friendly.mainHandler
 
-private const val BACKGROUND_THREAD_NAME = "Leakcanary-Notification-Event-listener"
 private const val DISMISS_NO_RETAINED_OBJECT_NOTIFICATION_MILLIS = 30_000L
 
 object NotificationEventListener : EventListener {
@@ -30,18 +27,11 @@ object NotificationEventListener : EventListener {
   private val appContext = InternalLeakCanary.application
   private val notificationManager =
     appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-  private val backgroundHandler: Handler
-  private val scheduleDismissNoRetainedOnTapNotification = {
-    dismissNoRetainedOnTapNotification()
-  }
   private val scheduleDismissRetainedCountNotification = {
     dismissRetainedCountNotification()
   }
-
-  init {
-    val handlerThread = HandlerThread(BACKGROUND_THREAD_NAME)
-    handlerThread.start()
-    backgroundHandler = Handler(handlerThread.looper)
+  private val scheduleDismissNoRetainedOnTapNotification = {
+    dismissNoRetainedOnTapNotification()
   }
 
   override fun onEvent(event: Event) {
@@ -52,7 +42,6 @@ object NotificationEventListener : EventListener {
     }
     when (event) {
       is DumpingHeap -> {
-        // do like this on main thread
         dismissRetainedCountNotification()
         val dumpingHeap = appContext.getString(R.string.leak_canary_notification_dumping)
         val builder = Notification.Builder(appContext)
@@ -102,9 +91,10 @@ object NotificationEventListener : EventListener {
         dismissNoRetainedOnTapNotification()
       }
 
-      is Event.NoRetainedObjectFound -> {
-        backgroundHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
+      is Event.NoMoreRetainedObjectFound -> {
+        mainHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
 
+        @Suppress("DEPRECATION")
         val builder = Notification.Builder(appContext)
           .setContentTitle(
             appContext.getString(R.string.leak_canary_notification_no_retained_object_title)
@@ -127,7 +117,7 @@ object NotificationEventListener : EventListener {
           R.id.leak_canary_notification_no_retained_object_on_tap, notification
         )
 
-        backgroundHandler.postDelayed(
+        mainHandler.postDelayed(
           scheduleDismissNoRetainedOnTapNotification,
           DISMISS_NO_RETAINED_OBJECT_NOTIFICATION_MILLIS
         )
@@ -153,12 +143,12 @@ object NotificationEventListener : EventListener {
   }
 
   private fun dismissNoRetainedOnTapNotification() {
-    backgroundHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
+    mainHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
     notificationManager.cancel(R.id.leak_canary_notification_no_retained_object_on_tap)
   }
 
   private fun dismissRetainedCountNotification() {
-    backgroundHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
+    mainHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
     notificationManager.cancel(R.id.leak_canary_notification_retained_objects)
   }
 

@@ -1,20 +1,18 @@
 package leakcanary.internal
 
 import android.app.Application
-import android.app.NotificationManager
-import android.content.Context
 import android.content.res.Resources.NotFoundException
 import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
-import java.util.*
+import java.util.UUID
 import leakcanary.AppWatcher
 import leakcanary.EventListener
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.EventListener.Event.HeapDumpReceived
-import leakcanary.EventListener.Event.NoRetainedObjectFound
+import leakcanary.EventListener.Event.NoMoreRetainedObjectFound
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
@@ -228,8 +226,7 @@ internal class HeapDumpTrigger(
       val retainedReferenceCount = objectWatcher.retainedObjectCount
       if (!forceDump && retainedReferenceCount == 0) {
         SharkLog.d { "Ignoring user request to dump heap: no retained objects remaining after GC" }
-        @Suppress("DEPRECATION")
-        InternalLeakCanary.sendEvent(NoRetainedObjectFound(currentEventUniqueId!!))
+        InternalLeakCanary.sendEvent(NoMoreRetainedObjectFound(currentEventUniqueId!!))
 
         lastDisplayedRetainedObjectCount = 0
         return@post
@@ -327,7 +324,7 @@ internal class HeapDumpTrigger(
   }
 
   private fun showNoMoreRetainedObjectNotification() {
-    InternalLeakCanary.sendEvent(NoRetainedObjectFound(currentEventUniqueId!!))
+    InternalLeakCanary.sendEvent(NoMoreRetainedObjectFound(currentEventUniqueId!!))
   }
 
   private fun showRetainedCountNotification(
