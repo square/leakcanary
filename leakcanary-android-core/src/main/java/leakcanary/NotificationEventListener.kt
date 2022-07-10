@@ -92,30 +92,8 @@ object NotificationEventListener : EventListener {
 
       is Event.ShowNoMoreRetainedObjectFoundNotification -> {
         mainHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
-
-        @Suppress("DEPRECATION")
-        val builder = Notification.Builder(appContext)
-          .setContentTitle(
-            appContext.getString(R.string.leak_canary_notification_no_retained_object_title)
-          )
-          .setContentText(
-            appContext.getString(
-              R.string.leak_canary_notification_no_retained_object_content
-            )
-          )
-          .setAutoCancel(true)
-          .setContentIntent(
-            NotificationReceiver.pendingIntent(
-              appContext,
-              NotificationReceiver.Action.CANCEL_NOTIFICATION
-            )
-          )
-        val notification =
-          Notifications.buildNotification(appContext, builder, LEAKCANARY_LOW)
-        notificationManager.notify(
-          R.id.leak_canary_notification_no_retained_object_on_tap, notification
-        )
-
+        sendShowNoMoreRetainedObjectFoundNotification()
+        
         mainHandler.postDelayed(
           scheduleDismissNoRetainedOnTapNotification,
           DISMISS_NO_RETAINED_OBJECT_NOTIFICATION_MILLIS
@@ -124,20 +102,48 @@ object NotificationEventListener : EventListener {
 
       is Event.ShowRetainedCountNotification -> {
         mainHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
-
-        @Suppress("DEPRECATION")
-        val builder = Notification.Builder(appContext)
-          .setContentTitle(
-            appContext.getString(R.string.leak_canary_notification_retained_title, event.objectCount)
-          )
-          .setContentText(event.contentText)
-          .setAutoCancel(true)
-          .setContentIntent(NotificationReceiver.pendingIntent(appContext, NotificationReceiver.Action.DUMP_HEAP))
-        val notification =
-          Notifications.buildNotification(appContext, builder, LEAKCANARY_LOW)
-        notificationManager.notify(R.id.leak_canary_notification_retained_objects, notification)
+        sendShowRetainedCountNotification(event.objectCount, event.contentText)
       }
     }
+  }
+
+  private fun sendShowNoMoreRetainedObjectFoundNotification() {
+    @Suppress("DEPRECATION")
+    val builder = Notification.Builder(appContext)
+      .setContentTitle(
+        appContext.getString(R.string.leak_canary_notification_no_retained_object_title)
+      )
+      .setContentText(
+        appContext.getString(
+          R.string.leak_canary_notification_no_retained_object_content
+        )
+      )
+      .setAutoCancel(true)
+      .setContentIntent(
+        NotificationReceiver.pendingIntent(
+          appContext,
+          NotificationReceiver.Action.CANCEL_NOTIFICATION
+        )
+      )
+    val notification =
+      Notifications.buildNotification(appContext, builder, LEAKCANARY_LOW)
+    notificationManager.notify(
+      R.id.leak_canary_notification_no_retained_object_on_tap, notification
+    )
+  }
+
+  private fun sendShowRetainedCountNotification(objectCount: Int, contentText: String) {
+    @Suppress("DEPRECATION")
+    val builder = Notification.Builder(appContext)
+      .setContentTitle(
+        appContext.getString(R.string.leak_canary_notification_retained_title, objectCount)
+      )
+      .setContentText(contentText)
+      .setAutoCancel(true)
+      .setContentIntent(NotificationReceiver.pendingIntent(appContext, NotificationReceiver.Action.DUMP_HEAP))
+    val notification =
+      Notifications.buildNotification(appContext, builder, LEAKCANARY_LOW)
+    notificationManager.notify(R.id.leak_canary_notification_retained_objects, notification)
   }
 
   private fun dismissNoRetainedOnTapNotification() {
