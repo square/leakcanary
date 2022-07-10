@@ -87,10 +87,6 @@ object NotificationEventListener : EventListener {
         showHeapAnalysisResultNotification(contentTitle, pendingIntent)
       }
 
-      is Event.HeapDumpReceived -> {
-        dismissNoRetainedOnTapNotification()
-      }
-
       is Event.NoMoreRetainedObjectFound -> {
         mainHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
 

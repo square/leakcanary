@@ -11,7 +11,6 @@ import leakcanary.EventListener
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.EventListener.Event.HeapDumpFailed
-import leakcanary.EventListener.Event.HeapDumpReceived
 import leakcanary.EventListener.Event.NoMoreRetainedObjectFound
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
@@ -221,7 +220,6 @@ internal class HeapDumpTrigger(
 
   fun onDumpHeapReceived(forceDump: Boolean) {
     backgroundHandler.post {
-      InternalLeakCanary.sendEvent(HeapDumpReceived(currentEventUniqueId!!))
       gcTrigger.runGc()
       val retainedReferenceCount = objectWatcher.retainedObjectCount
       if (!forceDump && retainedReferenceCount == 0) {

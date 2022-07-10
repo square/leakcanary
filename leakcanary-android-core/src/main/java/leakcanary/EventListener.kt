@@ -91,10 +91,6 @@ fun interface EventListener {
       uniqueId: String,
     ) : Event(uniqueId)
 
-    class HeapDumpReceived(
-      uniqueId: String,
-    ) : Event(uniqueId)
-
     class ShowRetainedCount(
       uniqueId: String,
       val objectCount: Int,
