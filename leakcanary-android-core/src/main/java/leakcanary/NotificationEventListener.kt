@@ -87,7 +87,11 @@ object NotificationEventListener : EventListener {
         showHeapAnalysisResultNotification(contentTitle, pendingIntent)
       }
 
-      is Event.NoMoreRetainedObjectFound -> {
+      is Event.DismissNoRetainedOnTapNotification -> {
+        dismissNoRetainedOnTapNotification()
+      }
+
+      is Event.ShowNoMoreRetainedObjectFoundNotification -> {
         mainHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
 
         @Suppress("DEPRECATION")
@@ -119,8 +123,8 @@ object NotificationEventListener : EventListener {
         )
       }
 
-      is Event.ShowRetainedCount -> {
-        dismissRetainedCountNotification()
+      is Event.ShowRetainedCountNotification -> {
+        mainHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
 
         @Suppress("DEPRECATION")
         val builder = Notification.Builder(appContext)
@@ -133,7 +137,6 @@ object NotificationEventListener : EventListener {
         val notification =
           Notifications.buildNotification(appContext, builder, LEAKCANARY_LOW)
         notificationManager.notify(R.id.leak_canary_notification_retained_objects, notification)
-
       }
     }
   }

@@ -87,11 +87,15 @@ fun interface EventListener {
       ) : HeapAnalysisDone<HeapAnalysisFailure>(uniqueId, heapAnalysis, showIntent)
     }
 
-    class NoMoreRetainedObjectFound(
+    class DismissNoRetainedOnTapNotification(
       uniqueId: String,
     ) : Event(uniqueId)
 
-    class ShowRetainedCount(
+    class ShowNoMoreRetainedObjectFoundNotification(
+      uniqueId: String,
+    ) : Event(uniqueId)
+
+    class ShowRetainedCountNotification(
       uniqueId: String,
       val objectCount: Int,
       val contentText: String

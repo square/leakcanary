@@ -11,7 +11,7 @@ import leakcanary.EventListener
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.EventListener.Event.HeapDumpFailed
-import leakcanary.EventListener.Event.NoMoreRetainedObjectFound
+import leakcanary.EventListener.Event.ShowNoMoreRetainedObjectFoundNotification
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
@@ -220,11 +220,12 @@ internal class HeapDumpTrigger(
 
   fun onDumpHeapReceived(forceDump: Boolean) {
     backgroundHandler.post {
+      InternalLeakCanary.sendEvent(EventListener.Event.DismissNoRetainedOnTapNotification(currentEventUniqueId!!))
       gcTrigger.runGc()
       val retainedReferenceCount = objectWatcher.retainedObjectCount
       if (!forceDump && retainedReferenceCount == 0) {
         SharkLog.d { "Ignoring user request to dump heap: no retained objects remaining after GC" }
-        InternalLeakCanary.sendEvent(NoMoreRetainedObjectFound(currentEventUniqueId!!))
+        InternalLeakCanary.sendEvent(ShowNoMoreRetainedObjectFoundNotification(currentEventUniqueId!!))
 
         lastDisplayedRetainedObjectCount = 0
         return@post
@@ -322,7 +323,7 @@ internal class HeapDumpTrigger(
   }
 
   private fun showNoMoreRetainedObjectNotification() {
-    InternalLeakCanary.sendEvent(NoMoreRetainedObjectFound(currentEventUniqueId!!))
+    InternalLeakCanary.sendEvent(ShowNoMoreRetainedObjectFoundNotification(currentEventUniqueId!!))
   }
 
   private fun showRetainedCountNotification(
@@ -330,7 +331,7 @@ internal class HeapDumpTrigger(
     contentText: String
   ) {
     InternalLeakCanary.sendEvent(
-      EventListener.Event.ShowRetainedCount(
+      EventListener.Event.ShowRetainedCountNotification(
         uniqueId = currentEventUniqueId!!,
         objectCount = objectCount,
         contentText = contentText
