@@ -63,7 +63,9 @@ internal class HeapDumpTrigger(
   // Needs to be lazy because on Android 16, UUID.randomUUID().toString() will trigger a disk read
   // violation by calling RandomBitsSupplier.getUnixDeviceRandom()
   // Can't be lazy because this is a var.
-  private var currentEventUniqueId: String? = null
+  private val currentEventUniqueId: String by lazy {
+    UUID.randomUUID().toString()
+  }
 
   fun onApplicationVisibilityChanged(applicationVisible: Boolean) {
     if (applicationVisible) {
@@ -157,11 +159,8 @@ internal class HeapDumpTrigger(
     val heapDumpFile = directoryProvider.newHeapDumpFile()
 
     val durationMillis: Long
-    if (currentEventUniqueId == null) {
-      currentEventUniqueId = UUID.randomUUID().toString()
-    }
     try {
-      InternalLeakCanary.sendEvent(DumpingHeap(currentEventUniqueId!!))
+      InternalLeakCanary.sendEvent(DumpingHeap(currentEventUniqueId))
       if (heapDumpFile == null) {
         throw RuntimeException("Could not create heap dump file")
       }
@@ -177,10 +176,9 @@ internal class HeapDumpTrigger(
       lastDisplayedRetainedObjectCount = 0
       lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
       objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
-      currentEventUniqueId = UUID.randomUUID().toString()
-      InternalLeakCanary.sendEvent(HeapDump(currentEventUniqueId!!, heapDumpFile, durationMillis, reason))
+      InternalLeakCanary.sendEvent(HeapDump(currentEventUniqueId, heapDumpFile, durationMillis, reason))
     } catch (throwable: Throwable) {
-      InternalLeakCanary.sendEvent(HeapDumpFailed(currentEventUniqueId!!, throwable, retry))
+      InternalLeakCanary.sendEvent(HeapDumpFailed(currentEventUniqueId, throwable, retry))
       if (retry) {
         scheduleRetainedObjectCheck(
           delayMillis = WAIT_AFTER_DUMP_FAILED_MILLIS
@@ -221,12 +219,12 @@ internal class HeapDumpTrigger(
 
   fun onDumpHeapReceived(forceDump: Boolean) {
     backgroundHandler.post {
-      InternalLeakCanary.sendEvent(DismissNoRetainedOnTapNotification(currentEventUniqueId!!))
+      InternalLeakCanary.sendEvent(DismissNoRetainedOnTapNotification(currentEventUniqueId))
       gcTrigger.runGc()
       val retainedReferenceCount = objectWatcher.retainedObjectCount
       if (!forceDump && retainedReferenceCount == 0) {
         SharkLog.d { "Ignoring user request to dump heap: no retained objects remaining after GC" }
-        InternalLeakCanary.sendEvent(ShowNoMoreRetainedObjectFoundNotification(currentEventUniqueId!!))
+        InternalLeakCanary.sendEvent(ShowNoMoreRetainedObjectFoundNotification(currentEventUniqueId))
 
         lastDisplayedRetainedObjectCount = 0
         return@post
@@ -324,7 +322,7 @@ internal class HeapDumpTrigger(
   }
 
   private fun showNoMoreRetainedObjectNotification() {
-    InternalLeakCanary.sendEvent(ShowNoMoreRetainedObjectFoundNotification(currentEventUniqueId!!))
+    InternalLeakCanary.sendEvent(ShowNoMoreRetainedObjectFoundNotification(currentEventUniqueId))
   }
 
   private fun showRetainedCountNotification(
@@ -333,7 +331,7 @@ internal class HeapDumpTrigger(
   ) {
     InternalLeakCanary.sendEvent(
       EventListener.Event.ShowRetainedCountNotification(
-        uniqueId = currentEventUniqueId!!,
+        uniqueId = currentEventUniqueId,
         objectCount = objectCount,
         contentText = contentText
       )

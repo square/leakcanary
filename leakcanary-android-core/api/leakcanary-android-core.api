@@ -36,6 +36,10 @@ public abstract class leakcanary/EventListener$Event : java/io/Serializable {
 	public final fun getUniqueId ()Ljava/lang/String;
 }
 
+public final class leakcanary/EventListener$Event$DismissNoRetainedOnTapNotification : leakcanary/EventListener$Event {
+	public fun <init> (Ljava/lang/String;)V
+}
+
 public final class leakcanary/EventListener$Event$DumpingHeap : leakcanary/EventListener$Event {
 	public fun <init> (Ljava/lang/String;)V
 }
@@ -72,6 +76,16 @@ public final class leakcanary/EventListener$Event$HeapDumpFailed : leakcanary/Ev
 	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;Z)V
 	public final fun getException ()Ljava/lang/Throwable;
 	public final fun getWillRetryLater ()Z
+}
+
+public final class leakcanary/EventListener$Event$ShowNoMoreRetainedObjectFoundNotification : leakcanary/EventListener$Event {
+	public fun <init> (Ljava/lang/String;)V
+}
+
+public final class leakcanary/EventListener$Event$ShowRetainedCountNotification : leakcanary/EventListener$Event {
+	public fun <init> (Ljava/lang/String;ILjava/lang/String;)V
+	public final fun getContentText ()Ljava/lang/String;
+	public final fun getObjectCount ()I
 }
 
 public abstract interface class leakcanary/HeapDumper {

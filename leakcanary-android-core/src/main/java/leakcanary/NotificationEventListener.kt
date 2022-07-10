@@ -93,7 +93,7 @@ object NotificationEventListener : EventListener {
       is Event.ShowNoMoreRetainedObjectFoundNotification -> {
         mainHandler.removeCallbacks(scheduleDismissNoRetainedOnTapNotification)
         sendShowNoMoreRetainedObjectFoundNotification()
-        
+
         mainHandler.postDelayed(
           scheduleDismissNoRetainedOnTapNotification,
           DISMISS_NO_RETAINED_OBJECT_NOTIFICATION_MILLIS
