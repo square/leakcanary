@@ -1,20 +1,20 @@
 package leakcanary.internal
 
 import android.app.Application
-import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.content.res.Resources.NotFoundException
 import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
-import java.util.UUID
+import java.util.*
 import leakcanary.AppWatcher
-import leakcanary.EventListener.Event.HeapDumpReceived
-import leakcanary.EventListener.Event.NoRetainedObjectFound
+import leakcanary.EventListener
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.EventListener.Event.HeapDumpFailed
+import leakcanary.EventListener.Event.HeapDumpReceived
+import leakcanary.EventListener.Event.NoRetainedObjectFound
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
@@ -22,9 +22,6 @@ import leakcanary.ObjectWatcher
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.NotifyingNope
 import leakcanary.internal.InternalLeakCanary.onRetainInstanceListener
-import leakcanary.internal.NotificationReceiver.Action.CANCEL_NOTIFICATION
-import leakcanary.internal.NotificationReceiver.Action.DUMP_HEAP
-import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import leakcanary.internal.RetainInstanceEvent.CountChanged.BelowThreshold
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpHappenedRecently
 import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
@@ -40,10 +37,6 @@ internal class HeapDumpTrigger(
   private val gcTrigger: GcTrigger,
   private val configProvider: () -> Config
 ) {
-
-  private val notificationManager
-    get() =
-      application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
   private val applicationVisible
     get() = applicationInvisibleAt == -1L
@@ -334,48 +327,20 @@ internal class HeapDumpTrigger(
   }
 
   private fun showNoMoreRetainedObjectNotification() {
-    backgroundHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
-    if (!Notifications.canShowNotification) {
-      return
-    }
-    val builder = Notification.Builder(application)
-      .setContentTitle(
-        application.getString(R.string.leak_canary_notification_no_retained_object_title)
-      )
-      .setContentText(
-        application.getString(
-          R.string.leak_canary_notification_no_retained_object_content
-        )
-      )
-      .setAutoCancel(true)
-      .setContentIntent(NotificationReceiver.pendingIntent(application, CANCEL_NOTIFICATION))
-    val notification =
-      Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
-    notificationManager.notify(R.id.leak_canary_notification_retained_objects, notification)
-    backgroundHandler.postDelayed(
-      scheduleDismissRetainedCountNotification, DISMISS_NO_RETAINED_OBJECT_NOTIFICATION_MILLIS
-    )
+    InternalLeakCanary.sendEvent(NoRetainedObjectFound(currentEventUniqueId!!))
   }
 
   private fun showRetainedCountNotification(
     objectCount: Int,
     contentText: String
   ) {
-    backgroundHandler.removeCallbacks(scheduleDismissRetainedCountNotification)
-    if (!Notifications.canShowNotification) {
-      return
-    }
-    @Suppress("DEPRECATION")
-    val builder = Notification.Builder(application)
-      .setContentTitle(
-        application.getString(R.string.leak_canary_notification_retained_title, objectCount)
+    InternalLeakCanary.sendEvent(
+      EventListener.Event.ShowRetainedCount(
+        uniqueId = currentEventUniqueId!!,
+        objectCount = objectCount,
+        contentText = contentText
       )
-      .setContentText(contentText)
-      .setAutoCancel(true)
-      .setContentIntent(NotificationReceiver.pendingIntent(application, DUMP_HEAP))
-    val notification =
-      Notifications.buildNotification(application, builder, LEAKCANARY_LOW)
-    notificationManager.notify(R.id.leak_canary_notification_retained_objects, notification)
+    )
   }
 
   companion object {
