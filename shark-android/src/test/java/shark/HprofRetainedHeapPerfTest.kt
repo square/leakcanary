@@ -55,7 +55,7 @@ class HprofRetainedHeapPerfTest {
 
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
-    assertThat(retained).isEqualTo(4.83 MB +-5 % margin)
+    assertThat(retained).isEqualTo(5.07 MB +-5 % margin)
   }
 
   @Test fun `freeze retained memory when indexing leak_asynctask_m`() {
@@ -72,7 +72,7 @@ class HprofRetainedHeapPerfTest {
 
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
-    assertThat(retained).isEqualTo(4.7 MB +-5 % margin)
+    assertThat(retained).isEqualTo(4.9 MB +-5 % margin)
   }
 
   @Test fun `freeze retained memory through analysis steps of leak_asynctask_o`() {
