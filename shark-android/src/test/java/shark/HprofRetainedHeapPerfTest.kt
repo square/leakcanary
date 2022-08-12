@@ -112,7 +112,7 @@ class HprofRetainedHeapPerfTest {
       retainedPair.first - retainedBeforeAnalysis to retainedPair.second
     }
 
-    assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(4.91 MB +-5 % margin)
+    assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(5.57 MB +-5 % margin)
     assertThat(retained after EXTRACTING_METADATA).isEqualTo(5.10 MB +-5 % margin)
     assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(5.15 MB +-5 % margin)
     assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(6.39 MB +-5 % margin)
