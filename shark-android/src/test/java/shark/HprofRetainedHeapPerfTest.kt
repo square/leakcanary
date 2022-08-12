@@ -119,7 +119,7 @@ class HprofRetainedHeapPerfTest {
     assertThat(retained after FINDING_DOMINATORS).isEqualTo(7.02 MB +-5 % margin)
     assertThat(retained after INSPECTING_OBJECTS).isEqualTo(7.02 MB +-5 % margin)
     assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(7.02 MB +-5 % margin)
-    assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(5.54 MB +-5 % margin)
+    assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(5.77 MB +-5 % margin)
   }
 
   private fun indexRecordsOf(hprofFile: File): HprofIndex {
