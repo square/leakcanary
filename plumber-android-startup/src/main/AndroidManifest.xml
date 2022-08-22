@@ -10,7 +10,7 @@
       tools:node="merge">
 
       <meta-data
-        android:name="leakcanary.internal.PlumberStartupInitializer"
+        android:name="leakcanary.PlumberStartupInitializer"
         android:value="androidx.startup"/>
     </provider>
 

@@ -10,7 +10,7 @@
       tools:node="merge">
 
       <meta-data
-        android:name="leakcanary.internal.AppWatcherStartupInitializer"
+        android:name="leakcanary.AppWatcherStartupInitializer"
         android:value="androidx.startup"/>
     </provider>
 

@@ -1,14 +1,13 @@
-package leakcanary.internal
+package leakcanary
 
 import android.app.Application
 import android.content.Context
 import androidx.startup.Initializer
-import leakcanary.AppWatcher
 
-internal class AppWatcherStartupInitializer : Initializer<AppWatcherStartupInitializer> {
+class PlumberStartupInitializer : Initializer<PlumberStartupInitializer> {
   override fun create(context: Context) = apply {
     val application = context.applicationContext as Application
-    AppWatcher.manualInstall(application)
+    AndroidLeakFixes.applyFixes(application)
   }
   override fun dependencies() = emptyList<Class<out Initializer<*>>>()
 }

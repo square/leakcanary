@@ -1,0 +1,7 @@
+public final class leakcanary/PlumberStartupInitializer : androidx/startup/Initializer {
+	public fun <init> ()V
+	public synthetic fun create (Landroid/content/Context;)Ljava/lang/Object;
+	public fun create (Landroid/content/Context;)Lleakcanary/PlumberStartupInitializer;
+	public fun dependencies ()Ljava/util/List;
+}
+

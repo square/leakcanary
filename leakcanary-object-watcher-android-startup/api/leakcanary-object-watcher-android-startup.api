@@ -1,0 +1,7 @@
+public final class leakcanary/AppWatcherStartupInitializer : androidx/startup/Initializer {
+	public fun <init> ()V
+	public synthetic fun create (Landroid/content/Context;)Ljava/lang/Object;
+	public fun create (Landroid/content/Context;)Lleakcanary/AppWatcherStartupInitializer;
+	public fun dependencies ()Ljava/util/List;
+}
+
