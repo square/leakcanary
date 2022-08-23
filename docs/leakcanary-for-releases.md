@@ -23,9 +23,9 @@ LeakCanary provides an artifact dedicated to detecting leaks in release builds:
 ```groovy
 dependencies {
   // LeakCanary for releases
-  releaseImplementation "com.squareup.leakcanary:leakcanary-android-release:${leakCanaryVersion}"
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-android-release:{{ leak_canary.release }}'
   // Optional: detect retained objects. This helps but is not required.
-  releaseImplementation "com.squareup.leakcanary:leakcanary-object-watcher-android:${leakCanaryVersion}"
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:{{ leak_canary.release }}'
 }
 ```
 
