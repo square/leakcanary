@@ -14,6 +14,7 @@ keeper {
 
 dependencies {
   debugImplementation projects.leakcanaryAndroid
+  debugImplementation projects.leakcanaryAppService
   // debugImplementation projects.leakcanaryAndroidStartup
 
   // Uncomment to use the :leakcanary process

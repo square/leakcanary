@@ -18,6 +18,8 @@ buildscript {
     classpath libs.gradlePlugin.detekt
     classpath libs.gradlePlugin.binaryCompatibility
     classpath libs.gradlePlugin.keeper
+    classpath libs.gradlePlugin.sqldelight
+    classpath 'com.google.dagger:hilt-android-gradle-plugin:2.43.2'
   }
 }
 
@@ -30,7 +32,7 @@ apply plugin: 'binary-compatibility-validator'
 
 apiValidation {
   // Ignore projects that are not uploaded to Maven Central
-  ignoredProjects += ["leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli"]
+  ignoredProjects += ["leakcanary-app", "leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli"]
 }
 
 // This plugin needs to be applied to the root projects for the dokkaGfmCollector task we use to
@@ -42,12 +44,8 @@ repositories {
   gradlePluginPortal()
 }
 
+// Config shared for all subprojects
 subprojects {
-  // Note: to skip Dokka on some projects we could add it individually to projects we actually
-  // want.
-  apply plugin: 'org.jetbrains.dokka'
-  group = GROUP
-  version = VERSION_NAME
 
   repositories {
     google()
@@ -61,43 +59,6 @@ subprojects {
 
   apply plugin: 'io.gitlab.arturbosch.detekt'
 
-  tasks.withType(DokkaTask.class).configureEach {
-    dokkaSourceSets.configureEach {
-      reportUndocumented.set(false)
-      displayName.set(null)
-      platform.set(org.jetbrains.dokka.Platform.jvm)
-
-      perPackageOption {
-        // will match all .internal packages and sub-packages
-        matchingRegex.set("(.*\\.internal.*)")
-        suppress.set(true)
-      }
-      perPackageOption {
-        // BuildConfig files
-        matchingRegex.set("com.squareup.leakcanary\\..*")
-        suppress.set(true)
-      }
-      perPackageOption {
-        // Example app
-        matchingRegex.set("com.example.leakcanary\\..*")
-        suppress.set(true)
-      }
-      skipDeprecated.set(true)
-      externalDocumentationLink {
-        url.set(new URL("https://square.github.io/okio/2.x/okio/"))
-      }
-      externalDocumentationLink {
-        url.set(new URL("https://square.github.io/moshi/1.x/moshi/"))
-      }
-    }
-  }
-
-  pluginManager.withPlugin("com.vanniktech.maven.publish") {
-    mavenPublish {
-      sonatypeHost = "S01"
-    }
-  }
-
   tasks.withType(JavaCompile).configureEach {
     options.compilerArgs += [
         '-Xlint:all',
@@ -107,13 +68,6 @@ subprojects {
         // warning: [classfile] MethodParameters attribute introduced in version 52.0 class files is ignored in version 51.0 class files
         // '-Werror'
     ]
-  }
-
-  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    kotlinOptions {
-      // Avoid warnings of using older stdlib version 1.3 than compiler version 1.4
-      apiVersion = "1.3"
-    }
   }
 
   tasks.withType(Test).configureEach {
@@ -137,6 +91,56 @@ subprojects {
     tasks.named("check") { dependsOn("detekt") }
     tasks.named("assemble") { dependsOn(rootProject.tasks.named("installGitHooks")) }
     tasks.named("clean") { dependsOn(rootProject.tasks.named("installGitHooks")) }
+  }
+}
+
+// Config shared for subprojects except apps
+configure(subprojects.findAll {
+    !(["leakcanary-app", "leakcanary-android-sample"].contains(it.name))
+}) {
+  // Note: to skip Dokka on some projects we could add it individually to projects we actually
+  // want.
+  apply plugin: 'org.jetbrains.dokka'
+  group = GROUP
+  version = VERSION_NAME
+
+  tasks.withType(DokkaTask.class).configureEach {
+    dokkaSourceSets.configureEach {
+      reportUndocumented.set(false)
+      displayName.set(null)
+      platform.set(org.jetbrains.dokka.Platform.jvm)
+
+      perPackageOption {
+        // will match all .internal packages and sub-packages
+        matchingRegex.set("(.*\\.internal.*)")
+        suppress.set(true)
+      }
+      perPackageOption {
+        // BuildConfig files
+        matchingRegex.set("com.squareup.leakcanary\\..*")
+        suppress.set(true)
+      }
+      skipDeprecated.set(true)
+      externalDocumentationLink {
+        url.set(new URL("https://square.github.io/okio/2.x/okio/"))
+      }
+      externalDocumentationLink {
+        url.set(new URL("https://square.github.io/moshi/1.x/moshi/"))
+      }
+    }
+  }
+
+  pluginManager.withPlugin("com.vanniktech.maven.publish") {
+    mavenPublish {
+      sonatypeHost = "S01"
+    }
+  }
+
+  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+      // Avoid warnings of using older stdlib version 1.3 than compiler version 1.4
+      apiVersion = "1.3"
+    }
   }
 }
 

@@ -13,22 +13,23 @@
 # limitations under the License.
 
 [versions]
-# We would like to use Kotlin 1.4 language features but keep Kotlin 1.3 library APIs
+# We would like to use Kotlin recent language features but keep Kotlin 1.3 library APIs
 # The benefit is that depending clients do not have to upgrade to Kotlin 1.4
-kotlinCompiler = "1.4.21"
+kotlinCompiler = "1.6.10"
 kotlinLib = "1.3.72"
 androidXTest = "1.1.0"
 androidXJunit = "1.1.3"
 workManager = "2.7.0"
 
 [libraries]
-gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "4.2.2" }
+gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "7.3.0-rc01" }
 gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinCompiler" }
 gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.6.20" }
 gradlePlugin-binaryCompatibility = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version = "0.8.0" }
 gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.18.0" }
 gradlePlugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.6.0" }
 gradlePlugin-keeper = { module = "com.slack.keeper:keeper", version = "0.7.0" }
+gradlePlugin-sqldelight = { module = "com.squareup.sqldelight:gradle-plugin", version = "1.5.3" }
 
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlinLib" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlinLib" }

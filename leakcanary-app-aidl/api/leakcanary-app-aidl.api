@@ -1,0 +1,52 @@
+public abstract interface class org/leakcanary/internal/HeapDataRepository : android/os/IInterface {
+	public abstract fun sayHi ()V
+}
+
+public class org/leakcanary/internal/HeapDataRepository$Default : org/leakcanary/internal/HeapDataRepository {
+	public fun <init> ()V
+	public fun asBinder ()Landroid/os/IBinder;
+	public fun sayHi ()V
+}
+
+public abstract class org/leakcanary/internal/HeapDataRepository$Stub : android/os/Binder, org/leakcanary/internal/HeapDataRepository {
+	public fun <init> ()V
+	public fun asBinder ()Landroid/os/IBinder;
+	public static fun asInterface (Landroid/os/IBinder;)Lorg/leakcanary/internal/HeapDataRepository;
+	public static fun getDefaultImpl ()Lorg/leakcanary/internal/HeapDataRepository;
+	public fun onTransact (ILandroid/os/Parcel;Landroid/os/Parcel;I)Z
+	public static fun setDefaultImpl (Lorg/leakcanary/internal/HeapDataRepository;)Z
+}
+
+public abstract interface class org/leakcanary/internal/LeakUiApp : android/os/IInterface {
+	public abstract fun sendHeapAnalysis (Lorg/leakcanary/internal/ParcelableHeapAnalysis;)V
+}
+
+public class org/leakcanary/internal/LeakUiApp$Default : org/leakcanary/internal/LeakUiApp {
+	public fun <init> ()V
+	public fun asBinder ()Landroid/os/IBinder;
+	public fun sendHeapAnalysis (Lorg/leakcanary/internal/ParcelableHeapAnalysis;)V
+}
+
+public abstract class org/leakcanary/internal/LeakUiApp$Stub : android/os/Binder, org/leakcanary/internal/LeakUiApp {
+	public fun <init> ()V
+	public fun asBinder ()Landroid/os/IBinder;
+	public static fun asInterface (Landroid/os/IBinder;)Lorg/leakcanary/internal/LeakUiApp;
+	public static fun getDefaultImpl ()Lorg/leakcanary/internal/LeakUiApp;
+	public fun onTransact (ILandroid/os/Parcel;Landroid/os/Parcel;I)Z
+	public static fun setDefaultImpl (Lorg/leakcanary/internal/LeakUiApp;)Z
+}
+
+public final class org/leakcanary/internal/ParcelableHeapAnalysis : android/os/Parcelable {
+	public static final field CREATOR Landroid/os/Parcelable$Creator;
+	public static final field Companion Lorg/leakcanary/internal/ParcelableHeapAnalysis$Companion;
+	public synthetic fun <init> (Landroid/os/Parcel;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lshark/HeapAnalysis;)V
+	public fun describeContents ()I
+	public final fun getWrapped ()Lshark/HeapAnalysis;
+	public fun writeToParcel (Landroid/os/Parcel;I)V
+}
+
+public final class org/leakcanary/internal/ParcelableHeapAnalysis$Companion {
+	public final fun asParcelable (Lshark/HeapAnalysis;)Lorg/leakcanary/internal/ParcelableHeapAnalysis;
+}
+
