@@ -19,6 +19,7 @@ dependencies {
   api projects.sharkAndroid
 
   implementation libs.clikt
+  implementation libs.neo4j
   implementation libs.jline
   implementation libs.kotlin.stdlib
 }

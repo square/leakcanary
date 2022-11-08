@@ -6,6 +6,7 @@ fun main(args: Array<String>) =
   SharkCliCommand().subcommands(
     InteractiveCommand(),
     AnalyzeCommand(),
+    Neo4JCommand(),
     DumpProcessCommand(),
     StripHprofCommand(),
     DeobfuscateHprofCommand()
