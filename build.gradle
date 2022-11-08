@@ -30,7 +30,7 @@ apply plugin: 'binary-compatibility-validator'
 
 apiValidation {
   // Ignore projects that are not uploaded to Maven Central
-  ignoredProjects += ["leakcanary-android-sample", "shark-test", "shark-hprof-test"]
+  ignoredProjects += ["leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli"]
 }
 
 // This plugin needs to be applied to the root projects for the dokkaGfmCollector task we use to

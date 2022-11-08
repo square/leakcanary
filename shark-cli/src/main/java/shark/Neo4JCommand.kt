@@ -19,9 +19,9 @@ import org.neo4j.configuration.connectors.BoltConnector
 import org.neo4j.configuration.helpers.SocketAddress
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder
 import org.neo4j.graphdb.Entity
+import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.Path
 import org.neo4j.graphdb.Relationship
-import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.Transaction
 import org.neo4j.kernel.api.procedure.GlobalProcedures
 import org.neo4j.kernel.internal.GraphDatabaseAPI
@@ -56,6 +56,26 @@ import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
 
+
+/**
+ * Example commands:
+ *
+ * MATCH (roots: GcRoots)
+ * RETURN roots
+ *
+ * MATCH (activity: Instance) -[:CLASS|SUPER*1..]-> (c:Class {className: "android.app.Activity"})
+ * RETURN activity
+ *
+ * MATCH (activity: Instance) -[:CLASS|SUPER*1..]-> (c:Class {className: "android.app.Activity"})
+ * WHERE "android.app.Activity.mDestroyed = true" in activity.fields
+ * RETURN activity
+ *
+ * MATCH (roots: GcRoots)
+ * MATCH (activity: Instance) -[:CLASS|SUPER*1..]->(c:Class {className: "android.app.Activity"})
+ * WHERE "android.app.Activity.mDestroyed = true" in activity.fields
+ * RETURN shortestPath((roots)-[:ROOT|REF*]->(activity))
+ */
+@SuppressWarnings("MaxLineLength", "LongMethod")
 class Neo4JCommand : CliktCommand(
   name = "neo4j",
   help = "Convert heap dump to Neo4j database"
@@ -109,15 +129,14 @@ class Neo4JCommand : CliktCommand(
         dbFolder.deleteRecursively()
       }
 
-      // TODO Support driver + embedded?
-
-      // Get a random, free port. We could do this by using new SocketAddress("localhost", 0)
-      // but we wouldn't be able to retrieve the port via Neo4j means afterwards (it would indicate 0 as ephemeral port)
-
-      // TODO Find an available TCP port instead?
+      // Ideally we'd get a random free port. We could do this by using
+      // `new SocketAddress("localhost", 0)` but we wouldn't be able to retrieve the port via Neo4j
+      // means afterwards (it would indicate 0 as ephemeral port)
       val boltListenPort = 2929
 
       echo("Creating db in $dbFolder")
+      // Note: we're creating an embedded neo4j rather than connecting to a real neo4j instance,
+      // mostly out of convenience (ie this is a demo that works without installing anything)
       val managementService =
         DatabaseManagementServiceBuilder(dbFolder.toPath().normalize())
           .setConfig(BoltConnector.enabled, true)
@@ -129,14 +148,11 @@ class Neo4JCommand : CliktCommand(
       val registry = api.dependencyResolver.resolveDependency(GlobalProcedures::class.java)
       registry.registerFunction(FindLeakPaths::class.java)
 
-      // TODO Add test.
-      // TODO merge this
-
       echo("Done with creating empty db, now importing heap dump")
       heapDumpFile.openHeapGraph(proguardMapping).use { graph ->
 
         val total = graph.objectCount
-        var lastPct = 0
+
 
         dbService.executeTransactionally("create constraint for (object:Object) require object.objectId is unique")
         dbService.executeTransactionally("create constraint for (class:Class) require class.objectId is unique")
@@ -144,443 +160,12 @@ class Neo4JCommand : CliktCommand(
         dbService.executeTransactionally("create constraint for (array:ObjectArray) require array.objectId is unique")
         dbService.executeTransactionally("create constraint for (array:PrimitiveArray) require array.objectId is unique")
         // TODO Split in several transactions when reaching a predefined threshold.
-        val nodeTx = dbService.beginTx()
-        echo("Progress nodes: 0%")
-        graph.objects.forEachIndexed { index, heapObject ->
-          val pct = ((index * 10f) / total).toInt()
-          if (pct != lastPct) {
-            lastPct = pct
-            echo("Progress nodes: ${pct * 10}%")
-          }
-          when (heapObject) {
-            is HeapClass -> {
-              heapObject.readStaticFields().forEach { field ->
-                field.name
-                field.value
-              }
-              nodeTx.execute(
-                "create (:Object :Class {objectType: 'Class', name:\$name, className:\$className, objectId:\$objectId})",
-                mapOf(
-                  "name" to heapObject.simpleName,
-                  "className" to heapObject.name,
-                  "objectId" to heapObject.objectId
-                )
-              )
-            }
-            is HeapInstance -> {
-              nodeTx.execute(
-                "create (:Object :Instance {objectType: 'Instance', name:\$name, className:\$className, objectId:\$objectId})",
-                mapOf(
-                  "name" to "${heapObject.instanceClassSimpleName}@" + (heapObject.hexIdentityHashCode
-                    ?: heapObject.positiveObjectId),
-                  "className" to heapObject.instanceClassName,
-                  "objectId" to heapObject.objectId,
-                )
-              )
-            }
-            is HeapObjectArray -> {
-              nodeTx.execute(
-                "create (:Object :ObjectArray {objectType: 'ObjectArray', name:\$name, className:\$className, objectId:\$objectId})",
-                mapOf(
-                  "name" to "${heapObject.arrayClassSimpleName}[]@${heapObject.positiveObjectId}",
-                  "className" to heapObject.arrayClassName,
-                  "objectId" to heapObject.objectId,
-                )
-              )
-            }
-            is HeapPrimitiveArray -> {
-              nodeTx.execute(
-                "create (:Object :PrimitiveArray {objectType: 'PrimitiveArray', name:\$name, className:\$className, objectId:\$objectId})",
-                mapOf(
-                  "name" to "${heapObject.arrayClassName}@${heapObject.positiveObjectId}",
-                  "className" to heapObject.arrayClassName,
-                  "objectId" to heapObject.objectId
-                )
-              )
-            }
-          }
-        }
-        echo("Progress nodes: 100%, committing transaction")
-        nodeTx.commit()
 
-        val classTx = dbService.beginTx()
-        echo("Progress class hierarchy: 0%")
-        lastPct = 0
-        graph.objects.forEachIndexed { index, heapObject ->
-          val pct = ((index * 10f) / total).toInt()
-          if (pct != lastPct) {
-            lastPct = pct
-            echo("Progress class hierarchy: ${pct * 10}%")
-          }
-          when (heapObject) {
-            is HeapClass -> {
-              heapObject.superclass?.let { superclass ->
-                classTx.execute(
-                  "match (superclass:Class{objectId:\$superclassObjectId}) , (class:Class {objectId:\$objectId}) create (class) -[:SUPER]->(superclass)",
-                  mapOf(
-                    "objectId" to heapObject.objectId,
-                    "superclassObjectId" to superclass.objectId
-                  )
-                )
-              }
-            }
-            is HeapInstance -> {
-              classTx.execute(
-                "match (class:Class{objectId:\$classObjectId}) , (instance:Instance {objectId:\$objectId}) create (instance) -[:CLASS]->(class)",
-                mapOf(
-                  "objectId" to heapObject.objectId,
-                  "classObjectId" to heapObject.instanceClassId
-                )
-              )
-            }
-            is HeapObjectArray -> {
-              classTx.execute(
-                "match (class:Class{objectId:\$classObjectId}) , (array:ObjectArray {objectId:\$objectId}) create (array) -[:CLASS]->(class)",
-                mapOf(
-                  "objectId" to heapObject.objectId,
-                  "classObjectId" to heapObject.arrayClassId
-                )
-              )
-            }
-          }
-        }
-        echo("Progress class hierarchy: 100%, committing transaction")
-        classTx.commit()
-
-        val edgeTx = dbService.beginTx()
-        echo("Progress edges: 0%")
-        lastPct = 0
-        graph.objects.forEachIndexed { index, heapObject ->
-          val pct = ((index * 10f) / total).toInt()
-          if (pct != lastPct) {
-            lastPct = pct
-            echo("Progress edges: ${pct * 10}%")
-          }
-          when (heapObject) {
-            is HeapClass -> {
-              val fields = heapObject.readStaticFields().mapNotNull { field ->
-                if (field.value.isNonNullReference) {
-                  mapOf(
-                    "targetObjectId" to field.value.asObjectId!!,
-                    "name" to field.name
-                  )
-                } else {
-                  null
-                }
-              }.toList()
-
-              edgeTx.execute(
-                "unwind \$fields as field" +
-                  " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:field.targetObjectId})" +
-                  " create (source)-[:$REFERENCE {name:field.name}]->(target)", mapOf(
-                  "sourceObjectId" to heapObject.objectId,
-                  "fields" to fields
-                )
-              )
-
-              val primitiveAndNullFields = heapObject.readStaticFields().mapNotNull { field ->
-                if (!field.value.isNonNullReference) {
-                  "${field.name}: ${field.value.heapValueAsString()}"
-                } else {
-                  null
-                }
-              }.toList()
-
-              edgeTx.execute(
-                "match (node:Object{objectId:\$objectId})" +
-                  " set node.staticFields = \$values",
-                mapOf(
-                  "objectId" to heapObject.objectId,
-                  "values" to primitiveAndNullFields
-                )
-              )
-            }
-            is HeapInstance -> {
-              val fields = heapObject.readFields().mapNotNull { field ->
-                if (field.value.isNonNullReference) {
-                  mapOf(
-                    "targetObjectId" to field.value.asObjectId!!,
-                    "name" to "${field.declaringClass.name}.${field.name}"
-                  )
-                } else {
-                  null
-                }
-              }.toList()
-
-              val (updatedFields, referentField, refType) = when {
-                heapObject instanceOf WeakReference::class -> {
-                  val referentField = heapObject["java.lang.ref.Reference", "referent"]
-                  Triple(
-                    fields.filter { it["name"] != "java.lang.ref.Reference.referent" },
-                    referentField,
-                    WEAK_REFERENCE
-                  )
-                }
-                heapObject instanceOf SoftReference::class -> {
-                  val referentField = heapObject["java.lang.ref.Reference", "referent"]
-                  Triple(
-                    fields.filter { it["name"] != "java.lang.ref.Reference.referent" },
-                    referentField,
-                    SOFT_REFERENCE
-                  )
-                }
-                heapObject instanceOf PhantomReference::class -> {
-                  val referentField = heapObject["java.lang.ref.Reference", "referent"]
-                  Triple(
-                    fields.filter { it["name"] != "java.lang.ref.Reference.referent" },
-                    referentField,
-                    PHANTOM_REFERENCE
-                  )
-                }
-                else -> Triple(fields, null, null)
-              }
-
-              edgeTx.execute(
-                "unwind \$fields as field" +
-                  " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:field.targetObjectId})" +
-                  " create (source)-[:$REFERENCE {name:field.name}]->(target)", mapOf(
-                  "sourceObjectId" to heapObject.objectId,
-                  "fields" to updatedFields
-                )
-              )
-
-              if (referentField != null) {
-                edgeTx.execute(
-                  "match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:\$targetObjectId})" +
-                    " create (source)-[:$refType {name:\"java.lang.ref.Reference.referent\"}]->(target)",
-                  mapOf(
-                    "sourceObjectId" to heapObject.objectId,
-                    "targetObjectId" to referentField.value.asObjectId!!,
-                  )
-                )
-              }
-
-              val primitiveAndNullFields = heapObject.readFields().mapNotNull { field ->
-                if (!field.value.isNonNullReference) {
-                  "${field.declaringClass.name}.${field.name} = ${field.value.heapValueAsString()}"
-                } else {
-                  null
-                }
-              }.toList()
-
-              edgeTx.execute(
-                "match (node:Object{objectId:\$objectId})" +
-                  " set node.fields = \$values",
-                mapOf(
-                  "objectId" to heapObject.objectId,
-                  "values" to primitiveAndNullFields
-                )
-              )
-            }
-            is HeapObjectArray -> {
-              // TODO Add null values somehow?
-              val elements = heapObject.readRecord().elementIds.mapIndexed { arrayIndex, objectId ->
-                if (objectId != ValueHolder.NULL_REFERENCE) {
-                  mapOf(
-                    "targetObjectId" to objectId,
-                    "name" to "[$arrayIndex]"
-                  )
-                } else {
-                  null
-                }
-              }.filterNotNull().toList()
-
-              edgeTx.execute(
-                "unwind \$elements as element" +
-                  " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:element.targetObjectId})" +
-                  " create (source)-[:$REFERENCE {name:element.name}]->(target)", mapOf(
-                  "sourceObjectId" to heapObject.objectId,
-                  "elements" to elements
-                )
-              )
-            }
-            is HeapPrimitiveArray -> {
-              when (val record = heapObject.readRecord()) {
-                is BooleanArrayDump -> {
-                  edgeTx.execute(
-                    "match (node:Object{objectId:\$objectId})" +
-                      " set node.values = \$values",
-                    mapOf(
-                      "objectId" to heapObject.objectId,
-                      "values" to record.array.joinToString()
-                    )
-                  )
-                }
-                is ByteArrayDump -> {
-                  edgeTx.execute(
-                    "match (node:Object{objectId:\$objectId})" +
-                      " set node.values = \$values",
-                    mapOf(
-                      "objectId" to heapObject.objectId,
-                      "values" to record.array.joinToString()
-                    )
-                  )
-                }
-                is CharArrayDump -> {
-                  edgeTx.execute(
-                    "match (node:Object{objectId:\$objectId})" +
-                      " set node.values = \$values",
-                    mapOf(
-                      "objectId" to heapObject.objectId,
-                      "values" to record.array.joinToString()
-                    )
-                  )
-                }
-                is DoubleArrayDump -> {
-                  edgeTx.execute(
-                    "match (node:Object{objectId:\$objectId})" +
-                      " set node.values = \$values",
-                    mapOf(
-                      "objectId" to heapObject.objectId,
-                      "values" to record.array.joinToString()
-                    )
-                  )
-                }
-                is FloatArrayDump -> {
-                  edgeTx.execute(
-                    "match (node:Object{objectId:\$objectId})" +
-                      " set node.values = \$values",
-                    mapOf(
-                      "objectId" to heapObject.objectId,
-                      "values" to record.array.joinToString()
-                    )
-                  )
-                }
-                is IntArrayDump -> {
-                  edgeTx.execute(
-                    "match (node:Object{objectId:\$objectId})" +
-                      " set node.values = \$values",
-                    mapOf(
-                      "objectId" to heapObject.objectId,
-                      "values" to record.array.joinToString()
-                    )
-                  )
-                }
-                is LongArrayDump -> {
-                  edgeTx.execute(
-                    "match (node:Object{objectId:\$objectId})" +
-                      " set node.values = \$values",
-                    mapOf(
-                      "objectId" to heapObject.objectId,
-                      "values" to record.array.joinToString()
-                    )
-                  )
-                }
-                is ShortArrayDump -> {
-                  edgeTx.execute(
-                    "match (node:Object{objectId:\$objectId})" +
-                      " set node.values = \$values",
-                    mapOf(
-                      "objectId" to heapObject.objectId,
-                      "values" to record.array.joinToString()
-                    )
-                  )
-                }
-              }
-            }
-          }
-        }
-        echo("Progress edges: 100%, committing transaction")
-        edgeTx.commit()
-
-        val labelsTx = dbService.beginTx()
-        echo("Progress labels: 0%")
-        lastPct = 0
-        val inspectors = AndroidObjectInspectors.appDefaults
-        val leakFilters = ObjectInspectors.jdkLeakingObjectFilters
-
-        graph.objects.forEachIndexed { index, heapObject ->
-          val pct = ((index * 10f) / total).toInt()
-          if (pct != lastPct) {
-            lastPct = pct
-            echo("Progress labels: ${pct * 10}%")
-          }
-
-          val leaked = leakFilters.any { filter ->
-            filter.isLeakingObject(heapObject)
-          }
-
-          val reporter = ObjectReporter(heapObject)
-          inspectors.forEach { inspector ->
-            inspector.inspect(reporter)
-          }
-
-          // Cribbed from shark.HeapAnalyzer.resolveStatus
-          var status = UNKNOWN
-          var reason = ""
-          if (reporter.notLeakingReasons.isNotEmpty()) {
-            status = NOT_LEAKING
-            reason = reporter.notLeakingReasons.joinToString(" and ")
-          }
-          val leakingReasons = reporter.leakingReasons
-          if (leakingReasons.isNotEmpty()) {
-            val winReasons = leakingReasons.joinToString(" and ")
-            // Conflict
-            if (status == NOT_LEAKING) {
-              reason += ". Conflicts with $winReasons"
-            } else {
-              status = LEAKING
-              reason = winReasons
-            }
-          }
-
-          labelsTx.execute(
-            "match (node:Object{objectId:\$objectId})" +
-              " set node.leakingStatus = \$leakingStatus, node.leakingStatusReason = \$leakingStatusReason",
-            mapOf(
-              "objectId" to heapObject.objectId,
-              "leakingStatus" to status.name,
-              "leakingStatusReason" to reason
-            )
-          )
-
-          if (reporter.labels.isNotEmpty()) {
-            labelsTx.execute(
-              "match (node:Object{objectId:\$objectId})" +
-                " set node.labels = \$labels",
-              mapOf(
-                "objectId" to heapObject.objectId,
-                "labels" to reporter.labels,
-              )
-            )
-          }
-
-          if (leaked) {
-            labelsTx.execute(
-              "match (node:Object{objectId:\$objectId})" +
-                " set node.leaked = true",
-              mapOf(
-                "objectId" to heapObject.objectId,
-              )
-            )
-          }
-        }
-        echo("Progress labels: 100%, committing transaction")
-        labelsTx.commit()
-
-        val gcRootsTx = dbService.beginTx()
-        echo("Progress gc roots: 0%")
-        lastPct = 0
-        val gcRootTotal = graph.gcRoots.size
-
-        // A root for all gc roots that makes it easy to query starting from that single root.
-        gcRootsTx.execute("create (:GcRoots {name:\"GC roots\", leakingStatus:\"${NOT_LEAKING.name}\"})")
-
-        graph.gcRoots.forEachIndexed { index, gcRoot ->
-          val pct = ((index * 10f) / gcRootTotal).toInt()
-          if (pct != lastPct) {
-            lastPct = pct
-            echo("Progress gc roots: ${pct * 10}%")
-          }
-          gcRootsTx.execute(
-            "match (roots:GcRoots), (object:Object{objectId:\$objectId}) create (roots)-[:ROOT]->(:GcRoot {type:\$type})-[:ROOT]->(object)",
-            mapOf(
-              "objectId" to gcRoot.id,
-              "type" to gcRoot::class.java.simpleName
-            )
-          )
-        }
-        gcRootsTx.commit()
+        dumpNodes(dbService, graph, total)
+        dumpClassHierarchy(dbService, graph, total)
+        dumpEdges(dbService, graph, total)
+        dumpLabels(dbService, graph, total)
+        dumpGcRoots(dbService, graph)
       }
 
       echo("Retrieving server bolt port...")
@@ -595,7 +180,7 @@ class Neo4JCommand : CliktCommand(
         val pattern = Pattern.compile("(?:\\w+:)?(\\d+)")
         val matcher = pattern.matcher(listenAddress)
         if (!matcher.matches()) {
-          error("Could not extract bolt port from [$listenAddress]");
+          error("Could not extract bolt port from [$listenAddress]")
         }
         matcher.toMatchResult().group(1)
       }
@@ -606,6 +191,480 @@ class Neo4JCommand : CliktCommand(
       ConsoleReader().readLine("Press ENTER to shut down Neo4j server")
       echo("Shutting down...")
       managementService.shutdown()
+    }
+
+    private fun CliktCommand.dumpGcRoots(
+      dbService: GraphDatabaseService,
+      graph: CloseableHeapGraph
+    ) {
+      val gcRootsTx = dbService.beginTx()
+      echo("Progress gc roots: 0%")
+      var lastPct = 0
+      val gcRootTotal = graph.gcRoots.size
+
+      // A root for all gc roots that makes it easy to query starting from that single root.
+      gcRootsTx.execute("create (:GcRoots {name:\"GC roots\", leakingStatus:\"${NOT_LEAKING.name}\"})")
+
+      graph.gcRoots.forEachIndexed { index, gcRoot ->
+        val pct = ((index * 10f) / gcRootTotal).toInt()
+        if (pct != lastPct) {
+          lastPct = pct
+          echo("Progress gc roots: ${pct * 10}%")
+        }
+        gcRootsTx.execute(
+          "match (roots:GcRoots), (object:Object{objectId:\$objectId}) create (roots)-[:ROOT]->(:GcRoot {type:\$type})-[:ROOT]->(object)",
+          mapOf(
+            "objectId" to gcRoot.id,
+            "type" to gcRoot::class.java.simpleName
+          )
+        )
+      }
+      echo("Progress gc roots: 100%, committing transaction")
+      gcRootsTx.commit()
+    }
+
+    private fun CliktCommand.dumpLabels(
+      dbService: GraphDatabaseService,
+      graph: CloseableHeapGraph,
+      total: Int
+    ) {
+      val labelsTx = dbService.beginTx()
+      echo("Progress labels: 0%")
+      var lastPct = 0
+      val inspectors = AndroidObjectInspectors.appDefaults
+      val leakFilters = ObjectInspectors.jdkLeakingObjectFilters
+
+      graph.objects.forEachIndexed { index, heapObject ->
+        val pct = ((index * 10f) / total).toInt()
+        if (pct != lastPct) {
+          lastPct = pct
+          echo("Progress labels: ${pct * 10}%")
+        }
+
+        val leaked = leakFilters.any { filter ->
+          filter.isLeakingObject(heapObject)
+        }
+
+        val reporter = ObjectReporter(heapObject)
+        inspectors.forEach { inspector ->
+          inspector.inspect(reporter)
+        }
+
+        // Cribbed from shark.HeapAnalyzer.resolveStatus
+        var status = UNKNOWN
+        var reason = ""
+        if (reporter.notLeakingReasons.isNotEmpty()) {
+          status = NOT_LEAKING
+          reason = reporter.notLeakingReasons.joinToString(" and ")
+        }
+        val leakingReasons = reporter.leakingReasons
+        if (leakingReasons.isNotEmpty()) {
+          val winReasons = leakingReasons.joinToString(" and ")
+          // Conflict
+          if (status == NOT_LEAKING) {
+            reason += ". Conflicts with $winReasons"
+          } else {
+            status = LEAKING
+            reason = winReasons
+          }
+        }
+
+        labelsTx.execute(
+          "match (node:Object{objectId:\$objectId})" +
+            " set node.leakingStatus = \$leakingStatus, node.leakingStatusReason = \$leakingStatusReason",
+          mapOf(
+            "objectId" to heapObject.objectId,
+            "leakingStatus" to status.name,
+            "leakingStatusReason" to reason
+          )
+        )
+
+        if (reporter.labels.isNotEmpty()) {
+          labelsTx.execute(
+            "match (node:Object{objectId:\$objectId})" +
+              " set node.labels = \$labels",
+            mapOf(
+              "objectId" to heapObject.objectId,
+              "labels" to reporter.labels,
+            )
+          )
+        }
+
+        if (leaked) {
+          labelsTx.execute(
+            "match (node:Object{objectId:\$objectId})" +
+              " set node.leaked = true",
+            mapOf(
+              "objectId" to heapObject.objectId,
+            )
+          )
+        }
+      }
+      echo("Progress labels: 100%, committing transaction")
+      labelsTx.commit()
+    }
+
+    private fun CliktCommand.dumpEdges(
+      dbService: GraphDatabaseService,
+      graph: CloseableHeapGraph,
+      total: Int
+    ) {
+      val edgeTx = dbService.beginTx()
+      echo("Progress edges: 0%")
+      var lastPct = 0
+      graph.objects.forEachIndexed { index, heapObject ->
+        val pct = ((index * 10f) / total).toInt()
+        if (pct != lastPct) {
+          lastPct = pct
+          echo("Progress edges: ${pct * 10}%")
+        }
+        when (heapObject) {
+          is HeapClass -> {
+            val fields = heapObject.readStaticFields().mapNotNull { field ->
+              if (field.value.isNonNullReference) {
+                mapOf(
+                  "targetObjectId" to field.value.asObjectId!!,
+                  "name" to field.name
+                )
+              } else {
+                null
+              }
+            }.toList()
+
+            edgeTx.execute(
+              "unwind \$fields as field" +
+                " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:field.targetObjectId})" +
+                " create (source)-[:$REFERENCE {name:field.name}]->(target)", mapOf(
+                "sourceObjectId" to heapObject.objectId,
+                "fields" to fields
+              )
+            )
+
+            val primitiveAndNullFields = heapObject.readStaticFields().mapNotNull { field ->
+              if (!field.value.isNonNullReference) {
+                "${field.name}: ${field.value.heapValueAsString()}"
+              } else {
+                null
+              }
+            }.toList()
+
+            edgeTx.execute(
+              "match (node:Object{objectId:\$objectId})" +
+                " set node.staticFields = \$values",
+              mapOf(
+                "objectId" to heapObject.objectId,
+                "values" to primitiveAndNullFields
+              )
+            )
+          }
+          is HeapInstance -> {
+            val fields = heapObject.readFields().mapNotNull { field ->
+              if (field.value.isNonNullReference) {
+                mapOf(
+                  "targetObjectId" to field.value.asObjectId!!,
+                  "name" to "${field.declaringClass.name}.${field.name}"
+                )
+              } else {
+                null
+              }
+            }.toList()
+
+            val (updatedFields, referentField, refType) = when {
+              heapObject instanceOf WeakReference::class -> {
+                val referentField = heapObject["java.lang.ref.Reference", "referent"]
+                Triple(
+                  fields.filter { it["name"] != "java.lang.ref.Reference.referent" },
+                  referentField,
+                  WEAK_REFERENCE
+                )
+              }
+              heapObject instanceOf SoftReference::class -> {
+                val referentField = heapObject["java.lang.ref.Reference", "referent"]
+                Triple(
+                  fields.filter { it["name"] != "java.lang.ref.Reference.referent" },
+                  referentField,
+                  SOFT_REFERENCE
+                )
+              }
+              heapObject instanceOf PhantomReference::class -> {
+                val referentField = heapObject["java.lang.ref.Reference", "referent"]
+                Triple(
+                  fields.filter { it["name"] != "java.lang.ref.Reference.referent" },
+                  referentField,
+                  PHANTOM_REFERENCE
+                )
+              }
+              else -> Triple(fields, null, null)
+            }
+
+            edgeTx.execute(
+              "unwind \$fields as field" +
+                " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:field.targetObjectId})" +
+                " create (source)-[:$REFERENCE {name:field.name}]->(target)", mapOf(
+                "sourceObjectId" to heapObject.objectId,
+                "fields" to updatedFields
+              )
+            )
+
+            if (referentField != null) {
+              edgeTx.execute(
+                "match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:\$targetObjectId})" +
+                  " create (source)-[:$refType {name:\"java.lang.ref.Reference.referent\"}]->(target)",
+                mapOf(
+                  "sourceObjectId" to heapObject.objectId,
+                  "targetObjectId" to referentField.value.asObjectId!!,
+                )
+              )
+            }
+
+            val primitiveAndNullFields = heapObject.readFields().mapNotNull { field ->
+              if (!field.value.isNonNullReference) {
+                "${field.declaringClass.name}.${field.name} = ${field.value.heapValueAsString()}"
+              } else {
+                null
+              }
+            }.toList()
+
+            edgeTx.execute(
+              "match (node:Object{objectId:\$objectId})" +
+                " set node.fields = \$values",
+              mapOf(
+                "objectId" to heapObject.objectId,
+                "values" to primitiveAndNullFields
+              )
+            )
+          }
+          is HeapObjectArray -> {
+            // TODO Add null values somehow?
+            val elements = heapObject.readRecord().elementIds.mapIndexed { arrayIndex, objectId ->
+              if (objectId != ValueHolder.NULL_REFERENCE) {
+                mapOf(
+                  "targetObjectId" to objectId,
+                  "name" to "[$arrayIndex]"
+                )
+              } else {
+                null
+              }
+            }.filterNotNull().toList()
+
+            edgeTx.execute(
+              "unwind \$elements as element" +
+                " match (source:Object{objectId:\$sourceObjectId}), (target:Object{objectId:element.targetObjectId})" +
+                " create (source)-[:$REFERENCE {name:element.name}]->(target)", mapOf(
+                "sourceObjectId" to heapObject.objectId,
+                "elements" to elements
+              )
+            )
+          }
+          is HeapPrimitiveArray -> {
+            when (val record = heapObject.readRecord()) {
+              is BooleanArrayDump -> {
+                edgeTx.execute(
+                  "match (node:Object{objectId:\$objectId})" +
+                    " set node.values = \$values",
+                  mapOf(
+                    "objectId" to heapObject.objectId,
+                    "values" to record.array.joinToString()
+                  )
+                )
+              }
+              is ByteArrayDump -> {
+                edgeTx.execute(
+                  "match (node:Object{objectId:\$objectId})" +
+                    " set node.values = \$values",
+                  mapOf(
+                    "objectId" to heapObject.objectId,
+                    "values" to record.array.joinToString()
+                  )
+                )
+              }
+              is CharArrayDump -> {
+                edgeTx.execute(
+                  "match (node:Object{objectId:\$objectId})" +
+                    " set node.values = \$values",
+                  mapOf(
+                    "objectId" to heapObject.objectId,
+                    "values" to record.array.joinToString()
+                  )
+                )
+              }
+              is DoubleArrayDump -> {
+                edgeTx.execute(
+                  "match (node:Object{objectId:\$objectId})" +
+                    " set node.values = \$values",
+                  mapOf(
+                    "objectId" to heapObject.objectId,
+                    "values" to record.array.joinToString()
+                  )
+                )
+              }
+              is FloatArrayDump -> {
+                edgeTx.execute(
+                  "match (node:Object{objectId:\$objectId})" +
+                    " set node.values = \$values",
+                  mapOf(
+                    "objectId" to heapObject.objectId,
+                    "values" to record.array.joinToString()
+                  )
+                )
+              }
+              is IntArrayDump -> {
+                edgeTx.execute(
+                  "match (node:Object{objectId:\$objectId})" +
+                    " set node.values = \$values",
+                  mapOf(
+                    "objectId" to heapObject.objectId,
+                    "values" to record.array.joinToString()
+                  )
+                )
+              }
+              is LongArrayDump -> {
+                edgeTx.execute(
+                  "match (node:Object{objectId:\$objectId})" +
+                    " set node.values = \$values",
+                  mapOf(
+                    "objectId" to heapObject.objectId,
+                    "values" to record.array.joinToString()
+                  )
+                )
+              }
+              is ShortArrayDump -> {
+                edgeTx.execute(
+                  "match (node:Object{objectId:\$objectId})" +
+                    " set node.values = \$values",
+                  mapOf(
+                    "objectId" to heapObject.objectId,
+                    "values" to record.array.joinToString()
+                  )
+                )
+              }
+            }
+          }
+        }
+      }
+      echo("Progress edges: 100%, committing transaction")
+      edgeTx.commit()
+    }
+
+    private fun CliktCommand.dumpNodes(
+      dbService: GraphDatabaseService,
+      graph: CloseableHeapGraph,
+      total: Int,
+    ) {
+      var lastPct = 0
+      val nodeTx = dbService.beginTx()
+      echo("Progress nodes: 0%")
+      graph.objects.forEachIndexed { index, heapObject ->
+        val pct = ((index * 10f) / total).toInt()
+        if (pct != lastPct) {
+          lastPct = pct
+          echo("Progress nodes: ${pct * 10}%")
+        }
+        when (heapObject) {
+          is HeapClass -> {
+            heapObject.readStaticFields().forEach { field ->
+              field.name
+              field.value
+            }
+            nodeTx.execute(
+              "create (:Object :Class {objectType: 'Class', name:\$name, className:\$className, objectId:\$objectId})",
+              mapOf(
+                "name" to heapObject.simpleName,
+                "className" to heapObject.name,
+                "objectId" to heapObject.objectId
+              )
+            )
+          }
+          is HeapInstance -> {
+            nodeTx.execute(
+              "create (:Object :Instance {objectType: 'Instance', name:\$name, className:\$className, objectId:\$objectId})",
+              mapOf(
+                "name" to "${heapObject.instanceClassSimpleName}@" + (heapObject.hexIdentityHashCode
+                  ?: heapObject.positiveObjectId),
+                "className" to heapObject.instanceClassName,
+                "objectId" to heapObject.objectId,
+              )
+            )
+          }
+          is HeapObjectArray -> {
+            nodeTx.execute(
+              "create (:Object :ObjectArray {objectType: 'ObjectArray', name:\$name," +
+                " className:\$className, objectId:\$objectId})",
+              mapOf(
+                "name" to "${heapObject.arrayClassSimpleName}[]@${heapObject.positiveObjectId}",
+                "className" to heapObject.arrayClassName,
+                "objectId" to heapObject.objectId,
+              )
+            )
+          }
+          is HeapPrimitiveArray -> {
+            nodeTx.execute(
+              "create (:Object :PrimitiveArray {objectType: 'PrimitiveArray', name:\$name," +
+                " className:\$className, objectId:\$objectId})",
+              mapOf(
+                "name" to "${heapObject.arrayClassName}@${heapObject.positiveObjectId}",
+                "className" to heapObject.arrayClassName,
+                "objectId" to heapObject.objectId
+              )
+            )
+          }
+        }
+      }
+      echo("Progress nodes: 100%, committing transaction")
+      nodeTx.commit()
+    }
+
+    private fun CliktCommand.dumpClassHierarchy(
+      dbService: GraphDatabaseService,
+      graph: CloseableHeapGraph,
+      total: Int
+    ) {
+      val classTx = dbService.beginTx()
+      echo("Progress class hierarchy: 0%")
+      var lastPct = 0
+      graph.objects.forEachIndexed { index, heapObject ->
+        val pct = ((index * 10f) / total).toInt()
+        if (pct != lastPct) {
+          lastPct = pct
+          echo("Progress class hierarchy: ${pct * 10}%")
+        }
+        when (heapObject) {
+          is HeapClass -> {
+            heapObject.superclass?.let { superclass ->
+              classTx.execute(
+                "match (superclass:Class{objectId:\$superclassObjectId}) ," +
+                  " (class:Class {objectId:\$objectId}) create (class) -[:SUPER]->(superclass)",
+                mapOf(
+                  "objectId" to heapObject.objectId,
+                  "superclassObjectId" to superclass.objectId
+                )
+              )
+            }
+          }
+          is HeapInstance -> {
+            classTx.execute(
+              "match (class:Class{objectId:\$classObjectId}) ," +
+                " (instance:Instance {objectId:\$objectId}) create (instance) -[:CLASS]->(class)",
+              mapOf(
+                "objectId" to heapObject.objectId,
+                "classObjectId" to heapObject.instanceClassId
+              )
+            )
+          }
+          is HeapObjectArray -> {
+            classTx.execute(
+              "match (class:Class{objectId:\$classObjectId}) ," +
+                " (array:ObjectArray {objectId:\$objectId}) create (array) -[:CLASS]->(class)",
+              mapOf(
+                "objectId" to heapObject.objectId,
+                "classObjectId" to heapObject.arrayClassId
+              )
+            )
+          }
+        }
+      }
+      echo("Progress class hierarchy: 100%, committing transaction")
+      classTx.commit()
     }
 
     fun HeapValue.heapValueAsString(): String {
