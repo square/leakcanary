@@ -212,8 +212,12 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       // Instant Apps don't have access to ShortcutManager
       return
     }
-
-    val shortcutManager = application.getSystemService(ShortcutManager::class.java)!!
+    val shortcutManager = application.getSystemService(ShortcutManager::class.java)
+    if (shortcutManager == null) {
+      // https://github.com/square/leakcanary/issues/2430
+      // ShortcutManager null on Android TV
+      return
+    }
     val dynamicShortcuts = shortcutManager.dynamicShortcuts
 
     val shortcutInstalled =
