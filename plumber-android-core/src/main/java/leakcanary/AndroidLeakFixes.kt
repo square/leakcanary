@@ -43,8 +43,7 @@ enum class AndroidLeakFixes {
   /**
    * MediaSessionLegacyHelper is a static singleton and did not use the application context.
    * Introduced in android-5.0.1_r1, fixed in Android 5.1.0_r1.
-   * https://github.com/android/platform_frameworks_base/commit/
-   * 9b5257c9c99c4cb541d8e8e78fb04f008b1a9091
+   * https://github.com/android/platform_frameworks_base/commit/9b5257c9c99c4cb541d8e8e78fb04f008b1a9091
    *
    * We fix this leak by invoking MediaSessionLegacyHelper.getHelper() early in the app lifecycle.
    */
@@ -69,11 +68,9 @@ enum class AndroidLeakFixes {
    * This flushes the TextLine pool when an activity is destroyed, to prevent memory leaks.
    *
    * The first memory leak has been fixed in android-5.1.0_r1
-   * https://github.com/android/platform_frameworks_base/commit/
-   * 893d6fe48d37f71e683f722457bea646994a10bf
+   * https://github.com/android/platform_frameworks_base/commit/893d6fe48d37f71e683f722457bea646994a10bf
    *
-   * Second memory leak: https://github.com/android/platform_frameworks_base/commit/
-   * b3a9bc038d3a218b1dbdf7b5668e3d6c12be5ee4
+   * Second memory leak: https://github.com/android/platform_frameworks_base/commit/b3a9bc038d3a218b1dbdf7b5668e3d6c12be5ee4
    */
   TEXT_LINE_POOL {
     override fun apply(application: Application) {
@@ -124,8 +121,8 @@ enum class AndroidLeakFixes {
    *
    * Issue: https://code.google.com/p/android/issues/detail?id=173789
    *
-   * Fixed in https://android.googlesource.com/platform/frameworks/base/+/
-   * 5200e1cb07190a1f6874d72a4561064cad3ee3e0%5E%21/#F0 (Android O)
+   * Fixed in https://android.googlesource.com/platform/frameworks/base/+/5200e1cb07190a1f6874d72a4561064cad3ee3e0%5E%21/#F0
+   * (Android O)
    */
   USER_MANAGER {
     @SuppressLint("NewApi")
@@ -212,12 +209,9 @@ enum class AndroidLeakFixes {
   /**
    * Until API 28, AccessibilityNodeInfo has a mOriginalText field that was not properly cleared
    * when instance were put back in the pool.
-   * Leak introduced here: https://android.googlesource.com/platform/frameworks/base/+
-   * /193520e3dff5248ddcf8435203bf99d2ba667219%5E%21/core/java/android/view/accessibility
-   * /AccessibilityNodeInfo.java
+   * Leak introduced here: https://android.googlesource.com/platform/frameworks/base/+/193520e3dff5248ddcf8435203bf99d2ba667219%5E%21/core/java/android/view/accessibility/AccessibilityNodeInfo.java
    *
-   * Fixed here: https://android.googlesource.com/platform/frameworks/base/+
-   * /6f8ec1fd8c159b09d617ed6d9132658051443c0c
+   * Fixed here: https://android.googlesource.com/platform/frameworks/base/+/6f8ec1fd8c159b09d617ed6d9132658051443c0c
    */
   ACCESSIBILITY_NODE_INFO {
     override fun apply(application: Application) {
@@ -395,8 +389,7 @@ enum class AndroidLeakFixes {
 
   /**
    * In Android P, ViewLocationHolder has an mRoot field that is not cleared in its clear() method.
-   * Introduced in https://github.com/aosp-mirror/platform_frameworks_base/commit
-   * /86b326012813f09d8f1de7d6d26c986a909d
+   * Introduced in https://github.com/aosp-mirror/platform_frameworks_base/commit/86b326012813f09d8f1de7d6d26c986a909d
    *
    * This leaks triggers very often when accessibility is on. To fix this leak we need to clear
    * the ViewGroup.ViewLocationHolder.sPool pool. Unfortunately Android P prevents accessing that
@@ -613,11 +606,10 @@ enum class AndroidLeakFixes {
    *
    * Sources to corroborate:
    *
-   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release
-   * /core/java/android/view/textservice/SpellCheckerSession.java
-   * /core/java/android/view/textservice/TextServicesManager.java
-   * /core/java/android/widget/SpellChecker.java
-   * /core/java/android/view/ViewRootImpl.java
+   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release/core/java/android/view/textservice/SpellCheckerSession.java
+   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release/core/java/android/view/textservice/TextServicesManager.java
+   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release/core/java/android/widget/SpellChecker.java
+   * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release/core/java/android/view/ViewRootImpl.java
    */
   SPELL_CHECKER {
     @TargetApi(23)
