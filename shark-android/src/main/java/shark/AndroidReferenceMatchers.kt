@@ -72,17 +72,18 @@ enum class AndroidReferenceMatchers {
     }
   },
 
-  ACTIVITY_CLIENT_RECORD__NEXT_IDLE {
+  ACTIVITY_THREAD__M_NEW_ACTIVITIES {
     override fun add(
       references: MutableList<ReferenceMatcher>
     ) {
       references += instanceFieldLeak(
-        "android.app.ActivityThread\$ActivityClientRecord", "nextIdle",
-        description = "Android AOSP sometimes keeps a reference to a destroyed activity as a"
-          + " nextIdle client record in the android.app.ActivityThread.mActivities map."
-          + " Not sure what's going on there, input welcome."
+        "android.app.ActivityThread", "mNewActivities",
+        description = """
+          New activities are leaks by ActivityThread until the main thread becomes idle.
+          Tracked here: https://issuetracker.google.com/issues/258390457
+        """.trimIndent()
       ) {
-        sdkInt in 19..27
+        sdkInt in 19..33
       }
     }
   },
@@ -762,6 +763,109 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  CONNECTIVITY_MANAGER_CALLBACK_HANDLER {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "ConnectivityManager\$CallbackHandler", "this\$0",
+        description = """
+          ConnectivityManager.CallbackHandler instances can be held statically and hold
+          a reference to ConnectivityManager instances created with a local context (e.g. activity).
+          Filed: https://issuetracker.google.com/issues/258053962
+          Fixed in API 34.
+        """.trimIndent()
+      ) {
+        sdkInt == 33
+      }
+    }
+  },
+
+  HOST_ADPU_SERVICE_MSG_HANDLER {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.nfc.cardemulation.HostApduService\$MsgHandler", "this\$0",
+        description = """
+          Destroyed HostApduService instances are held by a handler instance that lives longer
+          than the service.
+          Report: https://github.com/square/leakcanary/issues/2390
+        """.trimIndent()
+      ) {
+        sdkInt in 29..33
+      }
+    }
+  },
+
+  APP_OPS_MANAGER__CALLBACK_STUB {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.app.AppOpsManager\$3", "this\$0",
+        description = """
+          AppOpsManager\$3 implements IAppOpsActiveCallback.Stub and is held by a native ref and
+          holds on to am AppOpsManager which references an activity context.
+          Report: https://issuetracker.google.com/issues/210899127
+        """.trimIndent()
+      ) {
+        sdkInt in 31..33
+      }
+    }
+  },
+
+  VIEW_GROUP__M_PRE_SORTED_CHILDREN {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.view.ViewGroup", "mPreSortedChildren",
+        description = """
+          ViewGroup.mPreSortedChildren is used as a temporary list but not cleared after being
+          used.
+          Report: https://issuetracker.google.com/issues/178029590
+          Fix: https://cs.android.com/android/_/android/platform/frameworks/base/+/73590c7751b9185137de962ba9ad9ff5a6e11e5d
+        """.trimIndent()
+      ) {
+        sdkInt == 30
+      }
+    }
+  },
+
+  VIEW_GROUP__M_CURRENT_DRAG_CHILD {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.view.ViewGroup", "mCurrentDragChild",
+        description = """
+          ViewGroup.mCurrentDragChild keeps a reference to a view that was dragged after that view
+          has been detached.
+          Report: https://issuetracker.google.com/issues/170276524
+        """.trimIndent()
+      ) {
+        sdkInt in 29..30
+      }
+    }
+  },
+
+  ACTIVITY_TRANSITION_STATE__M_EXITING_TO_VIEW {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.app.ActivityTransitionState", "mExitingToView",
+        description = """
+          Shared element transition leak the view that was used in the transition.
+          Report: https://issuetracker.google.com/issues/141132765
+        """.trimIndent()
+      ) {
+        sdkInt in 28..29
+      }
+    }
+  },
+
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG
@@ -1101,6 +1205,22 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  IMM_LAST_FOCUS_VIEW {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.view.inputmethod.InputMethodManager", "mLastFocusView",
+        description = """
+          InputMethodManager has a mLastFocusView field that doesn't get cleared when the last
+          focused view becomes detached.
+        """.trimIndent()
+      ) {
+        manufacturer == LG && sdkInt == 29
+      }
+    }
+  },
+
   MAPPER_CLIENT {
     override fun add(
       references: MutableList<ReferenceMatcher>
@@ -1178,7 +1298,7 @@ enum class AndroidReferenceMatchers {
             field which references a decor context which references a destroyed activity.
           """.trimIndent()
       ) {
-        manufacturer == SHARP && sdkInt == 29
+        manufacturer == SHARP && sdkInt == 30
       }
     }
   },
@@ -1195,6 +1315,22 @@ enum class AndroidReferenceMatchers {
           """.trimIndent()
       ) {
         manufacturer == ONE_PLUS && sdkInt == 28
+      }
+    }
+  },
+
+  PERF_MONITOR_LAST_CALLBACK {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += staticFieldLeak(
+        "android.os.PerfMonitor", "mLastCallback",
+        description =
+        """
+            PerfMonitor has a mLastCallback static field which holds on to View.PerformClick.
+          """.trimIndent()
+      ) {
+        manufacturer == ONE_PLUS && sdkInt == 30
       }
     }
   },
