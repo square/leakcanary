@@ -68,9 +68,11 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field ACCESSIBILITY_NODE_INFO__MORIGINALTEXT Lshark/AndroidReferenceMatchers;
 	public static final field ACCOUNT_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field ACTIVITY_CHOOSE_MODEL Lshark/AndroidReferenceMatchers;
-	public static final field ACTIVITY_CLIENT_RECORD__NEXT_IDLE Lshark/AndroidReferenceMatchers;
 	public static final field ACTIVITY_MANAGER_MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field ACTIVITY_THREAD__M_NEW_ACTIVITIES Lshark/AndroidReferenceMatchers;
+	public static final field ACTIVITY_TRANSITION_STATE__M_EXITING_TO_VIEW Lshark/AndroidReferenceMatchers;
 	public static final field APPLICATION_PACKAGE_MANAGER__HAS_SYSTEM_FEATURE_QUERY Lshark/AndroidReferenceMatchers;
+	public static final field APP_OPS_MANAGER__CALLBACK_STUB Lshark/AndroidReferenceMatchers;
 	public static final field APP_WIDGET_HOST_CALLBACKS Lshark/AndroidReferenceMatchers;
 	public static final field ASSIST_STRUCTURE Lshark/AndroidReferenceMatchers;
 	public static final field AUDIO_MANAGER Lshark/AndroidReferenceMatchers;
@@ -83,6 +85,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field CLIPBOARD_EX_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field CLIPBOARD_UI_MANAGER__SINSTANCE Lshark/AndroidReferenceMatchers;
 	public static final field COMPANION_DEVICE_SERVICE__STUB Lshark/AndroidReferenceMatchers;
+	public static final field CONNECTIVITY_MANAGER_CALLBACK_HANDLER Lshark/AndroidReferenceMatchers;
 	public static final field CONNECTIVITY_MANAGER__SINSTANCE Lshark/AndroidReferenceMatchers;
 	public static final field CONTROLLED_INPUT_CONNECTION_WRAPPER Lshark/AndroidReferenceMatchers;
 	public static final field Companion Lshark/AndroidReferenceMatchers$Companion;
@@ -92,8 +95,10 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field EXTENDED_STATUS_BAR_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field FINALIZER_WATCHDOG_DAEMON Lshark/AndroidReferenceMatchers;
 	public static final field GESTURE_BOOST_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field HOST_ADPU_SERVICE_MSG_HANDLER Lshark/AndroidReferenceMatchers;
 	public static final field HUAWEI Ljava/lang/String;
 	public static final field IMM_CURRENT_INPUT_CONNECTION Lshark/AndroidReferenceMatchers;
+	public static final field IMM_LAST_FOCUS_VIEW Lshark/AndroidReferenceMatchers;
 	public static final field INPUT_METHOD_MANAGER_IS_TERRIBLE Lshark/AndroidReferenceMatchers;
 	public static final field INSTRUMENTATION_RECOMMEND_ACTIVITY Lshark/AndroidReferenceMatchers;
 	public static final field IREQUEST_FINISH_CALLBACK Lshark/AndroidReferenceMatchers;
@@ -116,6 +121,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field NVIDIA Ljava/lang/String;
 	public static final field OEM_SCENE_CALL_BLOCKER Lshark/AndroidReferenceMatchers;
 	public static final field ONE_PLUS Ljava/lang/String;
+	public static final field PERF_MONITOR_LAST_CALLBACK Lshark/AndroidReferenceMatchers;
 	public static final field PERSONA_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field PLAYER_BASE Lshark/AndroidReferenceMatchers;
 	public static final field RAZER Ljava/lang/String;
@@ -144,6 +150,8 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field USER_MANAGER__SINSTANCE Lshark/AndroidReferenceMatchers;
 	public static final field VIEWLOCATIONHOLDER_ROOT Lshark/AndroidReferenceMatchers;
 	public static final field VIEW_CONFIGURATION__MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field VIEW_GROUP__M_CURRENT_DRAG_CHILD Lshark/AndroidReferenceMatchers;
+	public static final field VIEW_GROUP__M_PRE_SORTED_CHILDREN Lshark/AndroidReferenceMatchers;
 	public static final field VIVO Ljava/lang/String;
 	public static final field WINDOW_ON_BACK_INVOKED_DISPATCHER__STUB Lshark/AndroidReferenceMatchers;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
