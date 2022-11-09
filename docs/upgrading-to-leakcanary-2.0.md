@@ -192,24 +192,8 @@ public class InstrumentationTestExampleApplication extends DebugExampleApplicati
 
 ### Now
 
-In your `build.gradle` file:
-
-```groovy
-dependencies {
-  androidTestImplementation "com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}"
-}
-
-android {
-  defaultConfig {
-    // ...
-
-    testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-    testInstrumentationRunnerArgument "listener", "leakcanary.FailTestOnLeakRunListener"
-  }
-}
-```
-
-No code is necessary.
+Remove all the previous test related leak detection code then follow
+[Leak detection in UI tests](ui-tests.md).
 
 ## Analysis listener / uploading to a server
 
