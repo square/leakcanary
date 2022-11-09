@@ -10,6 +10,7 @@ dependencies {
   api projects.leakcanaryObjectWatcherAndroid
   // Plumber auto installer
   implementation projects.plumberAndroid
+  implementation libs.kotlin.stdlib
 
   androidTestImplementation libs.androidX.test.espresso
   androidTestImplementation libs.androidX.test.rules
