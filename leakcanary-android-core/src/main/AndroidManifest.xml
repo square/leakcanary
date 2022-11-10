@@ -22,8 +22,9 @@
   <!-- To store the heap dumps and leak analysis results. -->
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-  <!-- To allow starting foreground services on Android P+ - https://developer.android.com/preview/behavior-changes#fg-svc -->
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
+  <!-- To allow posting notifications on Android 13 -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
   <application>
     <provider
@@ -92,7 +93,7 @@
     </activity-alias>
 
     <activity
-        android:name="leakcanary.internal.RequestStoragePermissionActivity"
+        android:name="leakcanary.internal.RequestPermissionActivity"
         android:excludeFromRecents="true"
         android:icon="@mipmap/leak_canary_icon"
         android:label="@string/leak_canary_storage_permission_activity_label"
