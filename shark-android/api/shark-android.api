@@ -71,6 +71,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field ACTIVITY_MANAGER_MCONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field ACTIVITY_THREAD__M_NEW_ACTIVITIES Lshark/AndroidReferenceMatchers;
 	public static final field ACTIVITY_TRANSITION_STATE__M_EXITING_TO_VIEW Lshark/AndroidReferenceMatchers;
+	public static final field ANIMATION_HANDLER__ANIMATOR_REQUESTORS Lshark/AndroidReferenceMatchers;
 	public static final field APPLICATION_PACKAGE_MANAGER__HAS_SYSTEM_FEATURE_QUERY Lshark/AndroidReferenceMatchers;
 	public static final field APP_OPS_MANAGER__CALLBACK_STUB Lshark/AndroidReferenceMatchers;
 	public static final field APP_WIDGET_HOST_CALLBACKS Lshark/AndroidReferenceMatchers;
