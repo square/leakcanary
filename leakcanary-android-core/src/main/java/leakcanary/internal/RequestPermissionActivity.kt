@@ -15,7 +15,6 @@
  */
 package leakcanary.internal
 
-import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.annotation.TargetApi
 import android.app.Activity
 import android.app.PendingIntent
@@ -33,17 +32,20 @@ import android.widget.Toast.LENGTH_LONG
 import com.squareup.leakcanary.core.R
 
 @TargetApi(Build.VERSION_CODES.M) //
-internal class RequestStoragePermissionActivity : Activity() {
+internal class RequestPermissionActivity : Activity() {
+
+  private val targetPermission: String
+    get() = intent.getStringExtra(TARGET_PERMISSION_EXTRA)!!
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
     if (savedInstanceState == null) {
-      if (hasStoragePermission()) {
+      if (hasTargetPermission()) {
         finish()
         return
       }
-      val permissions = arrayOf(WRITE_EXTERNAL_STORAGE)
+      val permissions = arrayOf(targetPermission)
       requestPermissions(permissions, 42)
     }
   }
@@ -53,7 +55,7 @@ internal class RequestStoragePermissionActivity : Activity() {
     permissions: Array<String>,
     grantResults: IntArray
   ) {
-    if (!hasStoragePermission()) {
+    if (!hasTargetPermission()) {
       Toast.makeText(application, R.string.leak_canary_permission_not_granted, LENGTH_LONG)
         .show()
     }
@@ -66,15 +68,22 @@ internal class RequestStoragePermissionActivity : Activity() {
     super.finish()
   }
 
-  private fun hasStoragePermission(): Boolean {
-    return checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED
+  private fun hasTargetPermission(): Boolean {
+    return checkSelfPermission(targetPermission) == PERMISSION_GRANTED
   }
 
   companion object {
+    private const val TARGET_PERMISSION_EXTRA = "targetPermission"
 
-    fun createPendingIntent(context: Context): PendingIntent {
-      val intent = Intent(context, RequestStoragePermissionActivity::class.java)
-      intent.flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TOP
+    fun createIntent(context: Context, permission: String): Intent {
+      return Intent(context, RequestPermissionActivity::class.java).apply {
+        flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TOP
+        putExtra(TARGET_PERMISSION_EXTRA, permission)
+      }
+    }
+
+    fun createPendingIntent(context: Context, permission: String): PendingIntent {
+      val intent = createIntent(context, permission)
       val flags = if (Build.VERSION.SDK_INT >= 23) {
         FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
       } else {

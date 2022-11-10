@@ -111,12 +111,13 @@ internal class LeakDirectoryProvider constructor(
   }
 
   fun requestWritePermissionNotification() {
-    if (permissionNotificationDisplayed) {
+    if (permissionNotificationDisplayed || !Notifications.canShowNotification) {
       return
     }
     permissionNotificationDisplayed = true
 
-    val pendingIntent = RequestStoragePermissionActivity.createPendingIntent(context)
+    val pendingIntent =
+      RequestPermissionActivity.createPendingIntent(context, WRITE_EXTERNAL_STORAGE)
     val contentTitle = context.getString(
       R.string.leak_canary_permission_notification_title
     )
