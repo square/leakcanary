@@ -162,9 +162,45 @@ internal enum class AndroidReferenceReaders : OptionalFactory {
         }
       }
     }
-  };
+  },
+
+  ARRAY_SET {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
+      val arraySetClassId = graph.findClassByName(ARRAY_SET_CLASS_NAME)?.objectId ?:return null
+
+      return object : VirtualInstanceReferenceReader {
+        override fun matches(instance: HeapInstance) = instance.instanceClassId == arraySetClassId
+
+        override fun read(source: HeapInstance): Sequence<Reference> {
+          val mArray = source[ARRAY_SET_CLASS_NAME, "mArray"]!!.valueAsObjectArray!!
+          val locationClassObjectId = source.instanceClassId
+          return mArray.readElements()
+            .filter { it.isNonNullReference }
+            .map { reference ->
+              Reference(
+                valueObjectId = reference.asNonNullObjectId!!,
+                isLowPriority = false,
+                lazyDetailsResolver = {
+                  LazyDetails(
+                    name = "element()",
+                    locationClassObjectId = locationClassObjectId,
+                    locationType = ARRAY_ENTRY,
+                    isVirtual = true,
+                    matchedLibraryLeak = null,
+                  )
+                }
+              )
+            }
+        }
+      }
+    }
+  },
+
+  ;
 
   companion object {
+    private const val ARRAY_SET_CLASS_NAME = "android.util.ArraySet"
+
     // Note: not supporting the support lib version of these, which is identical but with an
     // "android" package prefix instead of "androidx".
     private const val SAFE_ITERABLE_MAP_CLASS_NAME = "androidx.arch.core.internal.SafeIterableMap"
