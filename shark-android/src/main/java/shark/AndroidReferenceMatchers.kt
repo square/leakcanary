@@ -866,6 +866,23 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  ANIMATION_HANDLER__ANIMATOR_REQUESTORS {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.animation.AnimationHandler", "mAnimatorRequestors",
+        description = """
+          AnimationHandler is a singleton holding an activity ViewRootImpl requestor after the
+          activity has been destroyed.
+          Report: https://issuetracker.google.com/issues/258534826
+        """.trimIndent()
+      ) {
+        sdkInt == 33
+      }
+    }
+  },
+
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG
