@@ -24,6 +24,7 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.JELLY_BEAN
 import android.os.Build.VERSION_CODES.O
 import com.squareup.leakcanary.core.R
+import leakcanary.LeakCanary
 import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
 
 internal object Notifications {
@@ -34,7 +35,8 @@ internal object Notifications {
   // Watch devices: not sure, but probably not a good idea anyway?
   val canShowNotification: Boolean
     get() = InternalLeakCanary.formFactor == MOBILE &&
-      (!InternalLeakCanary.isInstantApp || InternalLeakCanary.applicationVisible)
+      (!InternalLeakCanary.isInstantApp || InternalLeakCanary.applicationVisible) &&
+      LeakCanary.config.showNotifications
 
   @Suppress("LongParameterList")
   fun showNotification(

@@ -209,6 +209,15 @@ object LeakCanary {
     ),
 
     /**
+     * Whether to show LeakCanary notifications. When [showNotifications] is true, LeakCanary
+     * will only display notifications if the app is in foreground and is not an instant, TV or
+     * Wear app.
+     *
+     * Defaults to true.
+     */
+    val showNotifications: Boolean = true,
+
+    /**
      * Deprecated: This is a no-op, set a custom [leakingObjectFinder] instead.
      */
     @Deprecated("This is a no-op, set a custom leakingObjectFinder instead")
@@ -256,6 +265,7 @@ object LeakCanary {
       private var heapDumper = config.heapDumper
       private var eventListeners = config.eventListeners
       private var useExperimentalLeakFinders = config.useExperimentalLeakFinders
+      private var showNotifications = config.showNotifications
 
       /** @see [LeakCanary.Config.dumpHeap] */
       fun dumpHeap(dumpHeap: Boolean) =
@@ -315,6 +325,11 @@ object LeakCanary {
       fun useExperimentalLeakFinders(useExperimentalLeakFinders: Boolean) =
         apply { this.useExperimentalLeakFinders = useExperimentalLeakFinders }
 
+      /** @see [LeakCanary.Config.showNotifications] */
+      fun showNotifications(showNotifications: Boolean) =
+        apply { this.showNotifications = showNotifications }
+
+
       fun build() = config.copy(
         dumpHeap = dumpHeap,
         dumpHeapWhenDebugging = dumpHeapWhenDebugging,
@@ -329,7 +344,8 @@ object LeakCanary {
         leakingObjectFinder = leakingObjectFinder,
         heapDumper = heapDumper,
         eventListeners = eventListeners,
-        useExperimentalLeakFinders = useExperimentalLeakFinders
+        useExperimentalLeakFinders = useExperimentalLeakFinders,
+        showNotifications = showNotifications,
       )
     }
   }
