@@ -43,24 +43,6 @@ internal class LeakDirectoryProvider constructor(
 ) {
   private val context: Context = context.applicationContext
 
-  fun listFiles(filter: FilenameFilter): MutableList<File> {
-    if (!hasStoragePermission() && requestExternalStoragePermission()) {
-      requestWritePermissionNotification()
-    }
-    val files = ArrayList<File>()
-
-    val externalFiles = externalStorageDirectory().listFiles(filter)
-    if (externalFiles != null) {
-      files.addAll(externalFiles)
-    }
-
-    val appFiles = appStorageDirectory().listFiles(filter)
-    if (appFiles != null) {
-      files.addAll(appFiles)
-    }
-    return files
-  }
-
   fun newHeapDumpFile(): File? {
     cleanupOldHeapDumps()
 
@@ -147,7 +129,7 @@ internal class LeakDirectoryProvider constructor(
   }
 
   private fun cleanupOldHeapDumps() {
-    val hprofFiles = listFiles { _, name ->
+    val hprofFiles = listWritableFiles { _, name ->
       name.endsWith(
         HPROF_SUFFIX
       )
@@ -175,6 +157,24 @@ internal class LeakDirectoryProvider constructor(
         }
       }
     }
+  }
+
+  private fun listWritableFiles(filter: FilenameFilter): MutableList<File> {
+    val files = ArrayList<File>()
+
+    val externalStorageDirectory = externalStorageDirectory()
+    if (externalStorageDirectory.exists() && externalStorageDirectory.canWrite()) {
+      val externalFiles = externalStorageDirectory.listFiles(filter)
+      if (externalFiles != null) {
+        files.addAll(externalFiles)
+      }
+    }
+
+    val appFiles = appStorageDirectory().listFiles(filter)
+    if (appFiles != null) {
+      files.addAll(appFiles)
+    }
+    return files
   }
 
   companion object {
