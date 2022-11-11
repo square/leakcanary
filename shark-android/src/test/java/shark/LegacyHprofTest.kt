@@ -31,7 +31,7 @@ class LegacyHprofTest {
         "LeakCanary version" to "Unknown"
       )
     )
-    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(193431)
+    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(193055)
   }
 
   @Test fun androidM() {

@@ -48,6 +48,53 @@ internal enum class AndroidReferenceReaders : OptionalFactory {
     }
   },
 
+  DRAWABLE_CALLBACK_WEAK_REF {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
+      val drawableClass =
+        graph.findClassByName("android.graphics.drawable.Drawable") ?: return null
+      val drawableSubclassIds = drawableClass.subclasses.map { it.objectId }.toSet()
+
+      val weakRefClassId =
+        graph.findClassByName("java.lang.ref.WeakReference")?.objectId ?: return null
+
+      return object : VirtualInstanceReferenceReader {
+        override fun matches(instance: HeapInstance) =
+          instance.instanceClassId in drawableSubclassIds
+
+        override fun read(source: HeapInstance): Sequence<Reference> {
+          val mCallback = source["android.graphics.drawable.Drawable", "mCallback"]?.valueAsInstance
+            ?: return emptySequence()
+
+          // https://cs.android.com/android/_/android/platform/frameworks/base/+/f2a47782f31b58d2d31bd00b50fe43604af8b9c2
+          if (mCallback.instanceClassId != weakRefClassId) {
+            return emptySequence()
+          }
+
+          val actualRef =
+            mCallback["java.lang.ref.Reference", "referent"]!!.value.holder as ReferenceHolder
+
+          return if (actualRef.isNull) {
+            emptySequence()
+          } else {
+            sequenceOf(Reference(
+              valueObjectId = actualRef.value,
+              isLowPriority = true,
+              lazyDetailsResolver = {
+                LazyDetails(
+                  name = "mCallback",
+                  locationClassObjectId = source.instanceClassId,
+                  locationType = INSTANCE_FIELD,
+                  matchedLibraryLeak = null,
+                  isVirtual = true
+                )
+              }
+            ))
+          }
+        }
+      }
+    }
+  },
+
   ANIMATOR_WEAK_REF_SUCKS {
     override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
       val objectAnimatorClass =
@@ -166,7 +213,7 @@ internal enum class AndroidReferenceReaders : OptionalFactory {
 
   ARRAY_SET {
     override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
-      val arraySetClassId = graph.findClassByName(ARRAY_SET_CLASS_NAME)?.objectId ?:return null
+      val arraySetClassId = graph.findClassByName(ARRAY_SET_CLASS_NAME)?.objectId ?: return null
 
       return object : VirtualInstanceReferenceReader {
         override fun matches(instance: HeapInstance) = instance.instanceClassId == arraySetClassId
