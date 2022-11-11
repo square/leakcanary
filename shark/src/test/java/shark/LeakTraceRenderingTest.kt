@@ -103,9 +103,9 @@ class LeakTraceRenderingTest {
               leakingReasons += "because reasons"
             }
           }
-        }), leakFilters = listOf(LeakingObjectFilter { heapObject ->
+        }), leakingObjectFinder = FilteringLeakingObjectFinder(listOf(LeakingObjectFilter { heapObject ->
           heapObject is HeapInstance && heapObject instanceOf "ClassB"
-      })
+      }))
       )
 
     analysis renders """

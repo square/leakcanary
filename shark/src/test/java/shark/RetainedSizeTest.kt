@@ -330,10 +330,10 @@ class RetainedSizeTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysis>(
       computeRetainedHeapSize = true,
-      leakFilters = listOf(FilteringLeakingObjectFinder.LeakingObjectFilter { heapObject ->
+      leakingObjectFinder = FilteringLeakingObjectFinder(listOf(FilteringLeakingObjectFinder.LeakingObjectFilter { heapObject ->
         heapObject is HeapInstance &&
           heapObject.instanceClassName == Thread::class.java.name
-      })
+      }))
     )
     println(analysis.toString())
     analysis as HeapAnalysisSuccess
