@@ -7,7 +7,7 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 
 ### Experimental Neo4j heap dump exploration
 
-`shard-cli` has a new experiment `neo4j` command that will convert a heap dump into an embedded Neo4j database and then open Neo4j Browser to explore the heap dump.
+`shark-cli` has a new experiment `neo4j` command that will convert a heap dump into an embedded Neo4j database and then open Neo4j Browser to explore the heap dump.
 
 ```
 brew install leakcanary-shark
