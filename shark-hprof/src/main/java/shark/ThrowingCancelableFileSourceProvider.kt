@@ -1,6 +1,7 @@
 package shark
 
 import java.io.File
+import java.io.IOException
 import okio.Buffer
 import okio.BufferedSource
 import okio.Okio
@@ -40,7 +41,13 @@ class ThrowingCancelableFileSourceProvider(
         return channel.transferTo(position, byteCount, sink)
       }
 
-      override fun close() = channel.close()
+      override fun close() {
+        try {
+          channel.close()
+        } catch (ignored: Throwable) {
+          SharkLog.d(ignored) { "Failed to close file, ignoring" }
+        }
+      }
     }
   }
 }
