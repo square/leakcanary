@@ -148,7 +148,7 @@ rm -rf docs/api && \
 mate docs/changelog.md
 ```	
 
-* Deploy the docs locally then [open the changelog](http://127.0.0.1:8000/changelog/) and check everything looks good
+* Deploy the docs locally then [open the changelog](http://127.0.0.1:8000/leakcanary/changelog/) and check everything looks good
 ```bash
 mkdocs serve
 ```

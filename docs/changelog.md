@@ -3,6 +3,31 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Version 2.10 (2022-11-10)
+
+### Experimental Neo4j heap dump exploration
+
+`shard-cli` has a new experiment `neo4j` command that will convert a heap dump into an embedded Neo4j database and then open Neo4j Browser to explore the heap dump.
+
+```
+brew install leakcanary-shark
+
+shark-cli --process com.example.app.debug neo4j 
+```
+
+![Neo4J heap dump](https://user-images.githubusercontent.com/557033/200693468-aa783bb4-9a5a-4a41-8b92-582d44b31b92.png)
+
+### Other bug fixes and improvements 🐛🔨
+
+* 🐤 [#2440](https://github.com/square/leakcanary/pull/2440) Add Android 13 `POST_NOTICICATIONS` permission as well as a new `LeakCanary.Config.showNotifications` config to disable notifications entirely.
+* 🐤 [#2416](https://github.com/square/leakcanary/pull/2416) Add Android 13 monochrome icon.
+* 💥 [#2371](https://github.com/square/leakcanary/issues/2371) Fix db crash when navigating heap dump screen.
+* 🐛 [#2393](https://github.com/square/leakcanary/issues/2393) Allow LeakCanary to be defined as an AndroidX Startup dependency.
+* 💥 [#2430](https://github.com/square/leakcanary/issues/2430) Fix ShortcutManager crash on Android TV.
+* 💥 [#2382](https://github.com/square/leakcanary/issues/2382) Fix heap dump close crash.
+
+This list reflects only a subset of all changes. For more details, see the [2.10 Milestone](https://github.com/square/leakcanary/milestone/24) and the [full diff](https://github.com/square/leakcanary/compare/v2.9.1...v2.10).
+
 ## Version 2.9.1 (2022-04-20)
 
 ### Preface
