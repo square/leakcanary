@@ -79,7 +79,7 @@
         <aside class="md-banner">
           <div class="md-banner__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.9.1</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.10</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -661,7 +661,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/" class="md-nav__link">
+      <a href="../api/shark/index.md" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -683,7 +683,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/" class="md-nav__link">
+      <a href="../api/leakcanary/index.md" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -732,6 +732,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-210-2022-11-10" class="md-nav__link">
+    Version 2.10 (2022-11-10)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 2.10 (2022-11-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#experimental-neo4j-heap-dump-exploration" class="md-nav__link">
+    Experimental Neo4j heap dump exploration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+    Other bug fixes and improvements 🐛🔨
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-291-2022-04-20" class="md-nav__link">
     Version 2.9.1 (2022-04-20)
   </a>
@@ -768,7 +795,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -885,7 +912,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_2" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -1505,6 +1532,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-210-2022-11-10" class="md-nav__link">
+    Version 2.10 (2022-11-10)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 2.10 (2022-11-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#experimental-neo4j-heap-dump-exploration" class="md-nav__link">
+    Experimental Neo4j heap dump exploration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+    Other bug fixes and improvements 🐛🔨
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-291-2022-04-20" class="md-nav__link">
     Version 2.9.1 (2022-04-20)
   </a>
@@ -1541,7 +1595,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -1658,7 +1712,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_2" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -2265,6 +2319,24 @@
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
 <p>Please thank our <a href="https://github.com/square/leakcanary/graphs/contributors">contributors</a> 🙏 🙏 🙏.</p>
+<h2 id="version-210-2022-11-10">Version 2.10 (2022-11-10)<a class="headerlink" href="#version-210-2022-11-10" title="Permanent link">&para;</a></h2>
+<h3 id="experimental-neo4j-heap-dump-exploration">Experimental Neo4j heap dump exploration<a class="headerlink" href="#experimental-neo4j-heap-dump-exploration" title="Permanent link">&para;</a></h3>
+<p><code>shard-cli</code> has a new experiment <code>neo4j</code> command that will convert a heap dump into an embedded Neo4j database and then open Neo4j Browser to explore the heap dump.</p>
+<div class="highlight"><pre><span></span><code>brew install leakcanary-shark
+
+shark-cli --process com.example.app.debug neo4j 
+</code></pre></div>
+<p><img alt="Neo4J heap dump" src="https://user-images.githubusercontent.com/557033/200693468-aa783bb4-9a5a-4a41-8b92-582d44b31b92.png" /></p>
+<h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
+<ul>
+<li>🐤 <a href="https://github.com/square/leakcanary/pull/2440">#2440</a> Add Android 13 <code>POST_NOTICICATIONS</code> permission as well as a new <code>LeakCanary.Config.showNotifications</code> config to disable notifications entirely.</li>
+<li>🐤 <a href="https://github.com/square/leakcanary/pull/2416">#2416</a> Add Android 13 monochrome icon.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2371">#2371</a> Fix db crash when navigating heap dump screen.</li>
+<li>🐛 <a href="https://github.com/square/leakcanary/issues/2393">#2393</a> Allow LeakCanary to be defined as an AndroidX Startup dependency.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2430">#2430</a> Fix ShortcutManager crash on Android TV.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2382">#2382</a> Fix heap dump close crash.</li>
+</ul>
+<p>This list reflects only a subset of all changes. For more details, see the <a href="https://github.com/square/leakcanary/milestone/24">2.10 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.9.1...v2.10">full diff</a>.</p>
 <h2 id="version-291-2022-04-20">Version 2.9.1 (2022-04-20)<a class="headerlink" href="#version-291-2022-04-20" title="Permanent link">&para;</a></h2>
 <h3 id="preface">Preface<a class="headerlink" href="#preface" title="Permanent link">&para;</a></h3>
 <p>What are some things you&rsquo;d like to see in a future LeakCanary 3 version? Tell me <a href="https://twitter.com/Piwai">on Twitter</a>!</p>
@@ -2298,7 +2370,7 @@
 Also, sticky class GC roots are now deduplicated, which great reduces the memory footprint of LeakCanary on API 23 (<a href="https://github.com/square/leakcanary/pull/2324">#2324</a>). You can read about the related investigation <a href="https://py.hashnode.dev/of-sharks-and-heaps-of-sticky-marshmallows">on py.hashnode.dev</a>.</p>
 <h3 id="breaking-change-failtestonleakrunlistener-deleted">Breaking change:  FailTestOnLeakRunListener deleted<a class="headerlink" href="#breaking-change-failtestonleakrunlistener-deleted" title="Permanent link">&para;</a></h3>
 <p><code>FailTestOnLeakRunListener</code>, <code>FailTestOnLeak</code> and <code>FailAnnotatedTestOnLeakRunListener</code> were deprecated in LeakCanary 2.8 as they rely on hacking the Android Test library internals which have since changed, and have been replaced by <code>LeakAssertions.assertNoLeak()</code> and the <code>DetectLeaksAfterTestSuccess</code> test rule. I was initially planning of keep these around, but as I tried to increase API level coverage in LeakCanary I needed to upgrade the Android Test library to a more recent version, and the hacks now had compilation errors. So they&rsquo;re gone: <a href="https://github.com/square/leakcanary/commit/7152d6e2f8bea866e3bd5397b882d5098bed7d8b">#2282</a>. If you can&rsquo;t use the test rules just yet, you&rsquo;re welcome to copy paste the listener implementations in your own codebase.</p>
-<h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
+<h3 id="other-bug-fixes-and-improvements_1">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>💥 <a href="https://github.com/square/leakcanary/pull/2367">#2367</a> Fixed <code>AndroidLeakFixes.FLUSH_HANDLER_THREADS</code> (<code>HandlerThread</code> can have a null <code>Looper</code>).</li>
 <li>💥 <a href="https://github.com/square/leakcanary/issues/2286">#2286</a> Update Curtains to include Proguard rules and prevent <code>WindowCallbackWrapper</code> crashes.</li>
@@ -2539,7 +2611,7 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 </code></pre></div>
 <p>Note: <code>Leakcanary.Config.onHeapAnalyzedListener</code> still works but is now deprecated.</p>
 <p>Feedback welcome on this new API!</p>
-<h3 id="other-bug-fixes-and-improvements_1">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_1" title="Permanent link">&para;</a></h3>
+<h3 id="other-bug-fixes-and-improvements_2">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><a href="https://github.com/square/leakcanary/issues/2096">#2096</a> Opening / sharing heap dump files now supports LeakCanary as an option.</li>
 <li><a href="https://github.com/square/leakcanary/issues/2210">#2210</a> First Compose dedicated object inspectors!</li>
@@ -3548,7 +3620,7 @@ for the code contributions!</p>
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../api/leakcanary/" class="md-footer__link md-footer__link--prev" aria-label="Previous: LeakCanary API" rel="prev">
+        <a href="../shark/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Overview" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
           </div>
@@ -3557,7 +3629,7 @@ for the code contributions!</p>
               <span class="md-footer__direction">
                 Previous
               </span>
-              LeakCanary API
+              Overview
             </div>
           </div>
         </a>

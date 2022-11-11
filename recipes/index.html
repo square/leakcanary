@@ -79,7 +79,7 @@
         <aside class="md-banner">
           <div class="md-banner__inner md-grid md-typeset">
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.9.1</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.10</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
         </aside>
@@ -816,7 +816,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/" class="md-nav__link">
+      <a href="../api/shark/index.md" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -838,7 +838,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/" class="md-nav__link">
+      <a href="../api/leakcanary/index.md" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -1033,7 +1033,7 @@
 </div>
 <h2 id="watching-objects-with-a-lifecycle">Watching objects with a lifecycle<a class="headerlink" href="#watching-objects-with-a-lifecycle" title="Permanent link">&para;</a></h2>
 <p>The default configuration of LeakCanary will automatically watch Activity, Fragment, Fragment View and ViewModel instances.</p>
-<p>In your application, you may have other objects with a lifecycle, such as services, Dagger components, etc. Use <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to watch instances that should be garbage collected:</p>
+<p>In your application, you may have other objects with a lifecycle, such as services, Dagger components, etc. Use <a href="/leakcanary/api/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to watch instances that should be garbage collected:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">MyService</span> <span class="p">:</span> <span class="n">Service</span> <span class="p">{</span>
 
   <span class="c1">// ...</span>
@@ -1061,20 +1061,20 @@
 <p class="admonition-title">Info</p>
 <p>Create a debug application class in your <code>src/debug/java</code> folder. Don&rsquo;t forget to also register it in <code>src/debug/AndroidManifest.xml</code>.</p>
 </div>
-<p>To customize the detection of retained objects at runtime, update <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/">AppWatcher.config</a>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">AppWatcher</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">watchFragmentViews</span> <span class="o">=</span> <span class="kc">false</span><span class="p">)</span>
+<p>To customize the detection of retained objects at runtime, specify the watchers you wish to install via <a href="/leakcanary/api/leakcanary/-app-watcher/manual-install/">AppWatcher.manualInstall()</a>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">watchersToInstall</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">appDefaultWatchers</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
+  <span class="p">.</span><span class="na">filter</span> <span class="p">{</span> <span class="nb">it</span> <span class="k">!is</span> <span class="n">FragmentAndViewModelWatcher</span> <span class="p">}</span>
+<span class="n">AppWatcher</span><span class="p">.</span><span class="na">manualInstall</span><span class="p">(</span>
+  <span class="n">application</span> <span class="o">=</span> <span class="k">this</span><span class="p">,</span>
+  <span class="n">watchersToInstall</span> <span class="o">=</span> <span class="n">watchersToInstall</span>
+<span class="p">)</span>
 </code></pre></div>
-<p>To customize the heap dumping &amp; analysis, update <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
+<p>To customize the heap dumping &amp; analysis, update <a href="/leakcanary/api/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">retainedVisibleThreshold</span> <span class="o">=</span> <span class="m">3</span><span class="p">)</span>
 </code></pre></div>
 <div class="admonition info">
 <p class="admonition-title">Java</p>
-<p>In Java, use <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/-config/-builder/">AppWatcher.Config.Builder</a> and <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/">LeakCanary.Config.Builder</a> instead:</p>
-<div class="highlight"><pre><span></span><code><span class="n">AppWatcher</span><span class="p">.</span><span class="na">Config</span> <span class="n">config</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">getConfig</span><span class="p">().</span><span class="na">newBuilder</span><span class="p">()</span>
-   <span class="p">.</span><span class="na">watchFragmentViews</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span>
-   <span class="p">.</span><span class="na">build</span><span class="p">();</span>
-<span class="n">AppWatcher</span><span class="p">.</span><span class="na">setConfig</span><span class="p">(</span><span class="n">config</span><span class="p">);</span>
-</code></pre></div>
+<p>In Java, use <a href="/leakcanary/api/leakcanary/-leak-canary/-config/-builder/">LeakCanary.Config.Builder</a> instead:</p>
 <div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">Config</span> <span class="n">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">getConfig</span><span class="p">().</span><span class="na">newBuilder</span><span class="p">()</span>
    <span class="p">.</span><span class="na">retainedVisibleThreshold</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
    <span class="p">.</span><span class="na">build</span><span class="p">();</span>
@@ -1110,7 +1110,7 @@
 <p>The <code>com.squareup.leakcanary:leakcanary-android</code> dependency should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in release builds to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code>dependencies {
-  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.9.1&#39;
+  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.10&#39;
 }
 </code></pre></div>
 <p>In your leak reporting code:
@@ -1155,7 +1155,7 @@
 <span class="nt">&lt;/resources&gt;</span>
 </code></pre></div>
 <h2 id="matching-known-library-leaks">Matching known library leaks<a class="headerlink" href="#matching-known-library-leaks" title="Permanent link">&para;</a></h2>
-<p>Set <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/">LeakCanary.Config.referenceMatchers</a> to a list that builds on top of <a href="/leakcanary/api/shark-android/shark/-android-reference-matchers/app-defaults/">AndroidReferenceMatchers.appDefaults</a>:</p>
+<p>Set <a href="/leakcanary/api/leakcanary/-leak-canary/-config/reference-matchers/">LeakCanary.Config.referenceMatchers</a> to a list that builds on top of <a href="/leakcanary/api/shark/-android-reference-matchers/-companion/app-defaults/">AndroidReferenceMatchers.appDefaults</a>:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
   <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
@@ -1222,7 +1222,7 @@
   <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-process:${version}&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-<p>You can call <a href="/leakcanary/api/leakcanary-android-process/leakcanary/-leak-canary-process/is-in-analyzer-process/">LeakCanaryProcess.isInAnalyzerProcess</a> to check if your Application class is being created in the LeakCanary process. This is useful when configuring libraries like Firebase that may crash when running in an unexpected process.</p>
+<p>You can call <a href="/leakcanary/api/leakcanary/-leak-canary-process/is-in-analyzer-process/">LeakCanaryProcess.isInAnalyzerProcess</a> to check if your Application class is being created in the LeakCanary process. This is useful when configuring libraries like Firebase that may crash when running in an unexpected process.</p>
 <h2 id="setting-up-leakcanary-for-different-product-flavors">Setting up LeakCanary for different product flavors<a class="headerlink" href="#setting-up-leakcanary-for-different-product-flavors" title="Permanent link">&para;</a></h2>
 <p>You can setup LeakCanary to run in a specific product flavors of your app. For example, create:</p>
 <div class="highlight"><pre><span></span><code>android {
@@ -1254,7 +1254,7 @@ configurations {
 }
 </code></pre></div>
 <h2 id="extracting-metadata-from-the-heap-dump">Extracting metadata from the heap dump<a class="headerlink" href="#extracting-metadata-from-the-heap-dump" title="Permanent link">&para;</a></h2>
-<p><a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/-config/metadata-extractor/">LeakCanary.Config.metadataExtractor</a> extracts metadata from a heap dump. The metadata is then available in <code>HeapAnalysisSuccess.metadata</code>. <code>LeakCanary.Config.metadataExtractor</code> defaults to <code>AndroidMetadataExtractor</code> but you can replace it to extract additional metadata from the hprof.</p>
+<p><a href="/leakcanary/api/leakcanary/-leak-canary/-config/metadata-extractor/">LeakCanary.Config.metadataExtractor</a> extracts metadata from a heap dump. The metadata is then available in <code>HeapAnalysisSuccess.metadata</code>. <code>LeakCanary.Config.metadataExtractor</code> defaults to <code>AndroidMetadataExtractor</code> but you can replace it to extract additional metadata from the hprof.</p>
 <p>For example, if you want to include the app version name in your heap analysis reports, you need to first store it in memory (e.g. in a static field) and then you can retrieve it in <code>MetadataExtractor</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1311,8 +1311,8 @@ configurations {
 <p>While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.</p>
 <p>Add the ObjectWatcher and Shark dependencies to your build file:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.9.1&#39;</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.9.1&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.10&#39;</span>
+  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.10&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
 <p>Define a <code>HotSpotHeapDumper</code> to dump the heap:</p>
