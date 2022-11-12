@@ -104,10 +104,7 @@ class HprofDeobfuscator {
       StreamingHprofReader.readerFor(inputHprofFile, hprofHeader).asStreamingRecordReader()
     HprofWriter.openWriterFor(
       outputHprofFile,
-      hprofHeader = HprofHeader(
-        identifierByteSize = hprofHeader.identifierByteSize,
-        version = hprofHeader.version
-      )
+      hprofHeader = hprofHeader
     ).use { writer ->
       reader.readRecords(setOf(HprofRecord::class),
         OnHprofRecordListener { _,

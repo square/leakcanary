@@ -1,15 +1,18 @@
 package shark
 
+import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.HeapObject.HeapInstance
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.HprofRecordTag.LOAD_CLASS
+import shark.HprofRecordTag.ROOT_STICKY_CLASS
+import shark.HprofRecordTag.STRING_IN_UTF8
 import shark.LeakTrace.GcRootType
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.DESTROYED
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_ACTIVITY
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_DESTROYED
 import shark.SharkLog.Logger
-import java.io.File
-import shark.HeapObject.HeapInstance
 
 class LegacyHprofTest {
 
@@ -161,6 +164,77 @@ class LegacyHprofTest {
     val firstReference = leak.referencePath.first()
     assertThat(firstReference.originObject.className).isEqualTo("android.os.MessageQueue")
     assertThat(firstReference.referenceDisplayName).isEqualTo("[0]")
+  }
+
+  @Test fun `duplicated unloaded classes are ignored`() {
+    val expectedDuplicatedClassNames = setOf(
+      "leakcanary.internal.DebuggerControl",
+      "shark.AndroidResourceIdNames\$Companion",
+      "shark.GraphContext",
+      "shark.AndroidResourceIdNames\$Companion\$readFromHeap$1",
+      "leakcanary.internal.HeapDumpTrigger\$saveResourceIdNamesToMemory$1",
+      "leakcanary.internal.HeapDumpTrigger\$saveResourceIdNamesToMemory$2",
+      "shark.AndroidResourceIdNames",
+      "leakcanary.internal.FutureResult",
+      "leakcanary.internal.AndroidHeapDumper\$showToast$1",
+      "android.widget.Toast\$TN",
+      "android.widget.Toast\$TN$1",
+      "android.widget.Toast\$TN$2",
+      "leakcanary.internal.AndroidHeapDumper\$showToast$1$1",
+      "com.squareup.leakcanary.core.R\$dimen",
+      "com.squareup.leakcanary.core.R\$layout",
+      "android.text.style.WrapTogetherSpan[]"
+    )
+
+    val file = "unloaded_classes-stripped.hprof".classpathFile()
+
+    val header = HprofHeader.parseHeaderOf(file)
+
+    val stickyClasses = mutableListOf<Long>()
+    val classesAndNameStringId = mutableMapOf<Long, Long>()
+    val stringRecordById = mutableMapOf<Long, String>()
+    StreamingHprofReader.readerFor(file, header).readRecords(setOf(ROOT_STICKY_CLASS, STRING_IN_UTF8, LOAD_CLASS)) { tag, length, reader ->
+      when(tag) {
+        ROOT_STICKY_CLASS -> reader.readStickyClassGcRootRecord().apply {
+          stickyClasses += id
+        }
+        STRING_IN_UTF8 -> reader.readStringRecord(length).apply {
+          stringRecordById[id] = string
+        }
+        LOAD_CLASS -> reader.readLoadClassRecord().apply {
+          classesAndNameStringId[id] = classNameStringId
+        }
+      }
+    }
+    val duplicatedClassObjectIdsByNameStringId =
+      classesAndNameStringId.entries
+        .groupBy { (_, className) -> className }
+        .mapValues { (_, value) -> value.map { (key, _) -> key } }
+        .filter { (_, values) -> values.size > 1 }
+
+    val actualDuplicatedClassNames = duplicatedClassObjectIdsByNameStringId.keys
+      .map { stringRecordById.getValue(it) }
+      .toSet()
+    assertThat(actualDuplicatedClassNames).isEqualTo(expectedDuplicatedClassNames)
+
+    val duplicateRootClassObjectIdByClassName = duplicatedClassObjectIdsByNameStringId
+      .mapKeys { (key, _) -> stringRecordById.getValue(key) }
+      .mapValues { (_, value) -> value.single { it in stickyClasses } }
+
+    file.openHeapGraph().use { graph ->
+      val expectedDuplicatedRootClassObjectIds =
+        duplicateRootClassObjectIdByClassName.values.toSortedSet()
+
+      val actualDuplicatedRootClassObjectIds = duplicateRootClassObjectIdByClassName.keys
+        .map { className ->
+          graph.findClassByName(className)!!.objectId
+        }
+        .toSortedSet()
+
+      assertThat(actualDuplicatedRootClassObjectIds).isEqualTo(
+        expectedDuplicatedRootClassObjectIds
+      )
+    }
   }
 
   private fun analyzeHprof(fileName: String): HeapAnalysisSuccess {

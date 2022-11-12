@@ -409,6 +409,10 @@ class HprofRecordReader internal constructor(
     return source.skip(byteCount.toLong())
   }
 
+  fun skipId() {
+    skip(identifierByteSize)
+  }
+
   fun skip(byteCount: Long) {
     bytesRead += byteCount
     return source.skip(byteCount)

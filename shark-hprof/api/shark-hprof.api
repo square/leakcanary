@@ -431,6 +431,7 @@ public final class shark/HprofRecordReader {
 	public final fun skipClassDumpRecord ()V
 	public final fun skipClassDumpStaticFields ()V
 	public final fun skipHeapDumpInfoRecord ()V
+	public final fun skipId ()V
 	public final fun skipInstanceDumpRecord ()V
 	public final fun skipObjectArrayDumpRecord ()V
 	public final fun skipPrimitiveArrayDumpRecord ()V

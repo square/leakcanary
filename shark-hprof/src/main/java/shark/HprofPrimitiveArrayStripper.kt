@@ -55,10 +55,7 @@ class HprofPrimitiveArrayStripper {
       StreamingHprofReader.readerFor(hprofSourceProvider, header).asStreamingRecordReader()
     HprofWriter.openWriterFor(
       hprofSink,
-      hprofHeader = HprofHeader(
-        identifierByteSize = header.identifierByteSize,
-        version = header.version
-      )
+      hprofHeader = header
     )
       .use { writer ->
         reader.readRecords(setOf(HprofRecord::class),
