@@ -124,6 +124,7 @@ internal object Notifications {
         val channelName = context.getString(type.nameResId)
         notificationChannel =
           NotificationChannel(type.name, channelName, type.importance)
+        notificationChannel.setSound(null, null)
         notificationManager.createNotificationChannel(notificationChannel)
       }
       builder.setChannelId(type.name)
