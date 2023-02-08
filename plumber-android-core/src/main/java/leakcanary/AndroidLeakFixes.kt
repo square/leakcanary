@@ -79,31 +79,31 @@ enum class AndroidLeakFixes {
         return
       }
       backgroundHandler.post {
-        // Pool of TextLine instances.
-        val sCached: Any?
         try {
           val textLineClass = Class.forName("android.text.TextLine")
           val sCachedField = textLineClass.getDeclaredField("sCached")
           sCachedField.isAccessible = true
-          sCached = sCachedField.get(null)
+          // One time retrieval to make sure this will work.
+          val sCached = sCachedField.get(null)
           // Can't happen in current Android source, but hidden APIs can change.
           if (sCached == null || !sCached.javaClass.isArray) {
             SharkLog.d { "Could not fix the $name leak, sCached=$sCached" }
             return@post
           }
+          application.onActivityDestroyed {
+            // Pool of TextLine instances.
+            val sCached = sCachedField.get(null)
+            // TextLine locks on sCached. We take that lock and clear the whole array at once.
+            synchronized(sCached) {
+              val length = Array.getLength(sCached)
+              for (i in 0 until length) {
+                Array.set(sCached, i, null)
+              }
+            }
+          }
         } catch (ignored: Exception) {
           SharkLog.d(ignored) { "Could not fix the $name leak" }
           return@post
-        }
-
-        application.onActivityDestroyed {
-          // TextLine locks on sCached. We take that lock and clear the whole array at once.
-          synchronized(sCached) {
-            val length = Array.getLength(sCached)
-            for (i in 0 until length) {
-              Array.set(sCached, i, null)
-            }
-          }
         }
       }
     }
