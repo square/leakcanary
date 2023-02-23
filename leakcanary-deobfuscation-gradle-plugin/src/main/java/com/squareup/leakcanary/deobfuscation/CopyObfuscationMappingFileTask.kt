@@ -15,8 +15,10 @@
  */
 package com.squareup.leakcanary.deobfuscation
 
+import java.io.File
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
@@ -25,25 +27,24 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
-import java.io.File
 
 @CacheableTask
-open class CopyObfuscationMappingFileTask : DefaultTask() {
+abstract class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @Input
   var variantName: String = ""
 
-  @InputFile
-  @PathSensitive(PathSensitivity.RELATIVE)
-  var mappingFile: File? = null
+  @get:InputFile
+  @get:PathSensitive(PathSensitivity.RELATIVE)
+  abstract val mappingFile: Property<File?>
 
-  @InputDirectory
-  @PathSensitive(PathSensitivity.RELATIVE)
-  var mergeAssetsDirectory: File? = null
+  @get:InputDirectory
+  @get:PathSensitive(PathSensitivity.RELATIVE)
+  abstract val mergeAssetsDirectory: Property<File>
 
   @get:OutputFile
   val leakCanaryAssetsOutputFile: File
-    get() = File(mergeAssetsDirectory, "leakCanaryObfuscationMapping.txt")
+    get() = File(mergeAssetsDirectory.orNull, "leakCanaryObfuscationMapping.txt")
 
   init {
     description = "Puts obfuscation mapping file in assets directory."
@@ -57,11 +58,11 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   }
 
   private fun validateMappingFile(): File {
-    val mapping = mappingFile
+    val mapping = mappingFile.orNull
     if (mapping == null || !mapping.exists()) {
       throw GradleException(
         """
-        The plugin was configured to be applied to a variant which doesn't define 
+        The plugin was configured to be applied to a variant which doesn't define
         an obfuscation mapping file: make sure that isMinified is true for variant: $variantName.
         """
       )
@@ -70,7 +71,7 @@ open class CopyObfuscationMappingFileTask : DefaultTask() {
   }
 
   private fun validateMergeAssetsDir() {
-    mergeAssetsDirectory?.let { mergeAssetsDir ->
+    mergeAssetsDirectory.orNull?.let { mergeAssetsDir ->
       if (!mergeAssetsDir.exists()) {
         val mergeAssetsDirCreated = mergeAssetsDir.mkdirs()
         if (!mergeAssetsDirCreated) {
