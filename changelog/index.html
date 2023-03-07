@@ -661,7 +661,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -683,7 +683,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -732,33 +732,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#version-210-2022-11-10" class="md-nav__link">
-    Version 2.10 (2022-11-10)
-  </a>
-  
-    <nav class="md-nav" aria-label="Version 2.10 (2022-11-10)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#experimental-neo4j-heap-dump-exploration" class="md-nav__link">
-    Experimental Neo4j heap dump exploration
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
-    Other bug fixes and improvements 🐛🔨
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#version-291-2022-04-20" class="md-nav__link">
     Version 2.9.1 (2022-04-20)
   </a>
@@ -795,7 +768,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -912,7 +885,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_2" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -1532,33 +1505,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#version-210-2022-11-10" class="md-nav__link">
-    Version 2.10 (2022-11-10)
-  </a>
-  
-    <nav class="md-nav" aria-label="Version 2.10 (2022-11-10)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#experimental-neo4j-heap-dump-exploration" class="md-nav__link">
-    Experimental Neo4j heap dump exploration
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
-    Other bug fixes and improvements 🐛🔨
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#version-291-2022-04-20" class="md-nav__link">
     Version 2.9.1 (2022-04-20)
   </a>
@@ -1595,7 +1541,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -1712,7 +1658,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_2" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -2319,24 +2265,6 @@
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
 <p>Please thank our <a href="https://github.com/square/leakcanary/graphs/contributors">contributors</a> 🙏 🙏 🙏.</p>
-<h2 id="version-210-2022-11-10">Version 2.10 (2022-11-10)<a class="headerlink" href="#version-210-2022-11-10" title="Permanent link">&para;</a></h2>
-<h3 id="experimental-neo4j-heap-dump-exploration">Experimental Neo4j heap dump exploration<a class="headerlink" href="#experimental-neo4j-heap-dump-exploration" title="Permanent link">&para;</a></h3>
-<p><code>shark-cli</code> has a new experiment <code>neo4j</code> command that will convert a heap dump into an embedded Neo4j database and then open Neo4j Browser to explore the heap dump.</p>
-<div class="highlight"><pre><span></span><code>brew install leakcanary-shark
-
-shark-cli --process com.example.app.debug neo4j 
-</code></pre></div>
-<p><img alt="Neo4J heap dump" src="https://user-images.githubusercontent.com/557033/200693468-aa783bb4-9a5a-4a41-8b92-582d44b31b92.png" /></p>
-<h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
-<ul>
-<li>🐤 <a href="https://github.com/square/leakcanary/pull/2440">#2440</a> Add Android 13 <code>POST_NOTICICATIONS</code> permission as well as a new <code>LeakCanary.Config.showNotifications</code> config to disable notifications entirely.</li>
-<li>🐤 <a href="https://github.com/square/leakcanary/pull/2416">#2416</a> Add Android 13 monochrome icon.</li>
-<li>💥 <a href="https://github.com/square/leakcanary/issues/2371">#2371</a> Fix db crash when navigating heap dump screen.</li>
-<li>🐛 <a href="https://github.com/square/leakcanary/issues/2393">#2393</a> Allow LeakCanary to be defined as an AndroidX Startup dependency.</li>
-<li>💥 <a href="https://github.com/square/leakcanary/issues/2430">#2430</a> Fix ShortcutManager crash on Android TV.</li>
-<li>💥 <a href="https://github.com/square/leakcanary/issues/2382">#2382</a> Fix heap dump close crash.</li>
-</ul>
-<p>This list reflects only a subset of all changes. For more details, see the <a href="https://github.com/square/leakcanary/milestone/24">2.10 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.9.1...v2.10">full diff</a>.</p>
 <h2 id="version-291-2022-04-20">Version 2.9.1 (2022-04-20)<a class="headerlink" href="#version-291-2022-04-20" title="Permanent link">&para;</a></h2>
 <h3 id="preface">Preface<a class="headerlink" href="#preface" title="Permanent link">&para;</a></h3>
 <p>What are some things you&rsquo;d like to see in a future LeakCanary 3 version? Tell me <a href="https://twitter.com/Piwai">on Twitter</a>!</p>
@@ -2370,7 +2298,7 @@ shark-cli --process com.example.app.debug neo4j
 Also, sticky class GC roots are now deduplicated, which great reduces the memory footprint of LeakCanary on API 23 (<a href="https://github.com/square/leakcanary/pull/2324">#2324</a>). You can read about the related investigation <a href="https://py.hashnode.dev/of-sharks-and-heaps-of-sticky-marshmallows">on py.hashnode.dev</a>.</p>
 <h3 id="breaking-change-failtestonleakrunlistener-deleted">Breaking change:  FailTestOnLeakRunListener deleted<a class="headerlink" href="#breaking-change-failtestonleakrunlistener-deleted" title="Permanent link">&para;</a></h3>
 <p><code>FailTestOnLeakRunListener</code>, <code>FailTestOnLeak</code> and <code>FailAnnotatedTestOnLeakRunListener</code> were deprecated in LeakCanary 2.8 as they rely on hacking the Android Test library internals which have since changed, and have been replaced by <code>LeakAssertions.assertNoLeak()</code> and the <code>DetectLeaksAfterTestSuccess</code> test rule. I was initially planning of keep these around, but as I tried to increase API level coverage in LeakCanary I needed to upgrade the Android Test library to a more recent version, and the hacks now had compilation errors. So they&rsquo;re gone: <a href="https://github.com/square/leakcanary/commit/7152d6e2f8bea866e3bd5397b882d5098bed7d8b">#2282</a>. If you can&rsquo;t use the test rules just yet, you&rsquo;re welcome to copy paste the listener implementations in your own codebase.</p>
-<h3 id="other-bug-fixes-and-improvements_1">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_1" title="Permanent link">&para;</a></h3>
+<h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
 <ul>
 <li>💥 <a href="https://github.com/square/leakcanary/pull/2367">#2367</a> Fixed <code>AndroidLeakFixes.FLUSH_HANDLER_THREADS</code> (<code>HandlerThread</code> can have a null <code>Looper</code>).</li>
 <li>💥 <a href="https://github.com/square/leakcanary/issues/2286">#2286</a> Update Curtains to include Proguard rules and prevent <code>WindowCallbackWrapper</code> crashes.</li>
@@ -2444,17 +2372,16 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <p>😅 WHAT?!</p>
 <p>👉 This means we can make known data structures look more like their APIs than their internals. For example, developers tend to think of setting a <code>HashMap</code> entry as <code>map["key"] = value</code> rather than <code>map.table[hash("key")].next.next.next = Node(value)</code>, which is what LeakCanary would previously show in its leak traces.</p>
 <p>Let&rsquo;s look at a <code>HashMap</code> example:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">CheckoutController</span> <span class="p">{</span>
-
-  <span class="kd">val</span> <span class="nv">tabs</span> <span class="o">=</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="kt">String</span><span class="p">,</span> <span class="n">Tab</span><span class="o">&gt;</span><span class="p">()</span>
-
-  <span class="kd">fun</span> <span class="nf">addItemsTab</span><span class="p">(</span><span class="n">tab</span><span class="p">:</span> <span class="n">Tab</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">tabs</span><span class="o">[</span><span class="s">&quot;ItemsTab&quot;</span><span class="o">]</span> <span class="o">=</span> <span class="n">tab</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+class CheckoutController {</p>
+<p>val tabs = HashMap<String, Tab>()</p>
+<p>fun addItemsTab(tab: Tab) {
+    tabs[&ldquo;ItemsTab&rdquo;] = tab
+  }
+}
+```</p>
 <p>If the <code>Tab</code> instance holds on to a view, we might see a leak trace that would look like this:</p>
-<div class="highlight"><pre><span></span><code>│ ...
+<p><code>│ ...
 ├─ com.example.CheckoutController instance
 │    ↓ CheckoutController.tabs
 ├─ java.util.HashMap instance
@@ -2466,45 +2393,43 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 ├─ java.util.HashMap$Node instance
 │    ↓ HashMap$Node.value
 ├─ com.example.Tab instance
-│ ...
-</code></pre></div>
+│ ...</code></p>
 <p>With the improved data structure support, the leak trace is much clearer (also note how the <code>ItemsTab</code> string key is now surfaced):</p>
-<div class="highlight"><pre><span></span><code>│ ...
+<p><code>│ ...
 ├─ com.example.CheckoutController instance
 │    ↓ CheckoutController.tabs
 ├─ java.util.HashMap instance
 │    ↓ HashMap[ItemsTab]
 ├─ com.example.Tab instance
-│ ...
-</code></pre></div>
+│ ...</code></p>
 <p>Another benefit of this change is that leak signatures become less dependent of the runtime, and therefore are more consistent. This is especially true for any data structure that relies on a linked list (<code>HashMap</code>, <code>LinkedList</code>, <code>MessageQueue</code>, &hellip;). Currently LeakCanary supports a limited set of common data structures from Apache Harmony, Open JDK, and the Android SDK. Let me know what else you need!</p>
 <h3 id="objectanimator-leaks">ObjectAnimator leaks<a class="headerlink" href="#objectanimator-leaks" title="Permanent link">&para;</a></h3>
 <p>LeakCanary will now detect leaks that trigger when forgetting to cancel <code>ObjectAnimator</code>. This new feature is enabled by the node discovery changes described above!</p>
 <p>Let&rsquo;s say you accidentally start an infinite <code>ObjectAnimator</code> and never cancel it, like so:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">ExampleActivity</span> <span class="p">:</span> <span class="n">Activity</span><span class="p">()</span> <span class="p">{</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">:</span> <span class="n">Bundle?)</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">)</span>
-    <span class="n">setContentView</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">layout</span><span class="p">.</span><span class="na">main_activity</span><span class="p">)</span>
-    <span class="n">findViewById</span><span class="o">&lt;</span><span class="n">Button</span><span class="o">&gt;</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">button</span><span class="p">).</span><span class="na">setOnClickListener</span> <span class="p">{</span> <span class="n">view</span> <span class="o">-&gt;</span>
-      <span class="n">ObjectAnimator</span><span class="p">.</span><span class="na">ofFloat</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">View</span><span class="p">.</span><span class="na">ALPHA</span><span class="p">,</span> <span class="m">0.1f</span><span class="p">,</span> <span class="m">0.2f</span><span class="p">).</span><span class="na">apply</span> <span class="p">{</span>
-        <span class="n">duration</span> <span class="o">=</span> <span class="m">100</span>
-        <span class="n">repeatMode</span> <span class="o">=</span> <span class="n">ValueAnimator</span><span class="p">.</span><span class="na">REVERSE</span>
-        <span class="n">repeatCount</span> <span class="o">=</span> <span class="n">ValueAnimator</span><span class="p">.</span><span class="na">INFINITE</span>
-        <span class="n">start</span><span class="p">()</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+class ExampleActivity : Activity() {</p>
+<p>override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.main_activity)
+    findViewById<Button>(R.id.button).setOnClickListener { view -&gt;
+      ObjectAnimator.ofFloat(view, View.ALPHA, 0.1f, 0.2f).apply {
+        duration = 100
+        repeatMode = ValueAnimator.REVERSE
+        repeatCount = ValueAnimator.INFINITE
+        start()
+      }
+    }
+  }
+}
+```</p>
 <p>In previous releases, LeakCanary would detect that the animated view is leaking but it wouldn&rsquo;t be able to find the leak and instead would report it as an unreachable object: <em>An unreachable object is still in memory but LeakCanary could not find a strong reference path from GC roots.</em></p>
 <p>LeakCanary now reports the leak and adds animator state information, helping detect and fix any infinite <code>ObjectAnimator</code>.</p>
-<div class="highlight"><pre><span></span><code>┬───
+<p><code>┬───
 │ GC Root: Thread object
 │
 ├─ java.lang.Thread instance
 │    Leaking: NO (the main thread always runs)
-│    Thread name: &#39;main&#39;
+│    Thread name: 'main'
 │    ↓ Thread.threadLocals
 │             ~~~~~~~~~~~~
 ...
@@ -2525,31 +2450,29 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 │    ↓ ObjectAnimator.mTarget
 │                     ~~~~~~~
 ╰→ android.widget.Button instance
-     Leaking: YES (View.mContext references a destroyed activity)
-</code></pre></div>
+     Leaking: YES (View.mContext references a destroyed activity)</code></p>
 <p>To learn more, see this AOSP issue: <a href="https://issuetracker.google.com/issues/212993949">ObjectAnimator.mTarget weak ref creates memory leaks on infinite animators</a>.</p>
 <h3 id="leak-detection-in-tests">Leak detection in tests<a class="headerlink" href="#leak-detection-in-tests" title="Permanent link">&para;</a></h3>
 <p>Previous releases of <code>leakcanary-android-instrumentation</code> introduced a <code>FailTestOnLeakRunListener</code> which could run leak detection after each UI tests. Unfortunately <code>FailTestOnLeakRunListener</code> relied on a hack around <code>androidx.test</code> internals to report failures. The internals keep changing with every <code>androidx.test</code> release and breaking <code>FailTestOnLeakRunListener</code> 😭.</p>
 <p><code>FailTestOnLeakRunListener</code> is now deprecated (👋) and replaced by the <code>DetectLeaksAfterTestSuccess</code> test rule, which you can add to your test like any normal test rule.</p>
 <p>Additionally, you can call <code>LeakAssertions.assertNoLeak()</code> from anywhere in your instrumentation tests. You can also annotate tests with <code>@SkipLeakDetection</code> (for that to work you&rsquo;ll also need to set up the <code>TestDescriptionHolder</code> test rule).</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
-  <span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-  <span class="kd">val</span> <span class="nv">rules</span> <span class="o">=</span> <span class="n">RuleChain</span><span class="p">.</span><span class="na">outerRule</span><span class="p">(</span><span class="n">TestDescriptionHolder</span><span class="p">)</span>
-    <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">())</span>
-    <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">ActivityScenarioRule</span><span class="p">(</span><span class="n">CartActivity</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span><span class="p">))</span>
-
-  <span class="nd">@Test</span>
-  <span class="kd">fun</span> <span class="nf">addItemToCart</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// ...</span>
-  <span class="p">}</span>
-
-  <span class="nd">@SkipLeakDetection</span><span class="p">(</span><span class="s">&quot;See #1234&quot;</span><span class="p">)</span>
-  <span class="nd">@Test</span>
-  <span class="kd">fun</span> <span class="nf">removeItemFromCart</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// ...</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+class CartTest {
+  @get:Rule
+  val rules = RuleChain.outerRule(TestDescriptionHolder)
+    .around(DetectLeaksAfterTestSuccess())
+    .around(ActivityScenarioRule(CartActivity::class.java))</p>
+<p>@Test
+  fun addItemToCart() {
+    // &hellip;
+  }</p>
+<p>@SkipLeakDetection(&ldquo;See #1234&rdquo;)
+  @Test
+  fun removeItemFromCart() {
+    // &hellip;
+  }
+}
+```</p>
 <h3 id="android-12">Android 12<a class="headerlink" href="#android-12" title="Permanent link">&para;</a></h3>
 <p>Hopefully this time we fixed everything that Android 12 broke: missing <code>exported:true</code> tags, missing pending intent flags, and <code>ForegroundServiceStartNotAllowedException</code> crashes. If not, let us know! Can&rsquo;t wait for Android 13 to break everything again 🤬.</p>
 <h3 id="workmanager">WorkManager<a class="headerlink" href="#workmanager" title="Permanent link">&para;</a></h3>
@@ -2559,59 +2482,59 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <p>Switching to WorkManager also impacts the LeakCanary multi process approach, which now leverages WorkManager remote jobs. Blog on how I got this working: <a href="https://py.hashnode.dev/workmanager-multi-process-for-libraries">WorkManager multi-process for libraries</a>.</p>
 <p>Multi process is harder to get right so you should only use this if LeakCanary frequently runs out of memory while performing the heap analysis. Here are the updated set up steps:</p>
 <p>1) Add the <code>leakcanary-android-process</code> dependency and <strong>keep the <code>leakcanary-android</code> dependency</strong>.</p>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.8&#39;</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-process:2.8&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.8'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-process:2.8'
+}</code></p>
 <p>2) Skip the initialization code in the <code>Application</code> class</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">ExampleApplication</span> <span class="p">:</span> <span class="n">Application</span><span class="p">()</span> <span class="p">{</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">LeakCanaryProcess</span><span class="p">.</span><span class="na">isInAnalyzerProcess</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="p">{</span>
-      <span class="k">return</span>
-    <span class="p">}</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
-    <span class="c1">// normal init goes here, skipped in :leakcanary process.</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+class ExampleApplication : Application() {</p>
+<p>override fun onCreate() {
+    if (LeakCanaryProcess.isInAnalyzerProcess(this)) {
+      return
+    }
+    super.onCreate()
+    // normal init goes here, skipped in :leakcanary process.
+  }
+}
+```</p>
 <p>That&rsquo;s it! Note that event listeners (see below) related to the analysis will fire in the remote process.</p>
 <h3 id="androidx-app-startup">AndroidX App Startup<a class="headerlink" href="#androidx-app-startup" title="Permanent link">&para;</a></h3>
 <p>LeakCanary now optionally supports the <a href="https://developer.android.com/topic/libraries/app-startup">AndroidX App Startup library</a>. All you need to do is replace the <code>leakcanary-android</code> dependency with <code>leakcanary-android-startup</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="c1">// Remove the normal leakcanary-android dependency</span>
-  <span class="c1">// debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.8&#39;</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-startup:2.8&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  // Remove the normal leakcanary-android dependency
+  // debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.8'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-startup:2.8'
+}</code></p>
 <p>Note 1: <code>leakcanary-android</code> adds the code for automatic installl to <code>leakcanary-android-core</code>. If you&rsquo;re calling <code>AppWatcher.manualInstall()</code>, you can depend directly on <code>leakcanary-android-core</code> instead of <code>leakcanary-android</code>, and you won&rsquo;t need the disable any automatic install.</p>
 <p>Note 2: the same principle applies to <code>leakcanary-object-watcher-android</code>: it depends on <code>leakcanary-object-watcher-android-core</code> and adds automatic install, while <code>leakcanary-object-watcher-android-startup</code> leverages the App Startup library. Same for <code>plumber-android</code>, <code>plumber-android-core</code> and  <code>plumber-android-startup</code>.</p>
 <h3 id="event-listeners">Event listeners<a class="headerlink" href="#event-listeners" title="Permanent link">&para;</a></h3>
 <p><code>LeakCanary.Config</code> has a new <code>eventListeners</code> field allowing you to react to LeakCanary&rsquo;s lifecycle. If you want to customize this, you most likely should be keeping the default list of listeners and add or remove from it.</p>
 <p>For example, if you want to disable the LeakCanary toast:</p>
-<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">run</span> <span class="p">{</span>
-  <span class="n">copy</span><span class="p">(</span>
-    <span class="n">eventListeners</span> <span class="o">=</span> <span class="n">eventListeners</span><span class="p">.</span><span class="na">filter</span> <span class="p">{</span>
-      <span class="nb">it</span> <span class="k">!is</span> <span class="n">ToastEventListener</span>
-    <span class="p">}</span>
-  <span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
+<p><code>kotlin
+LeakCanary.config = LeakCanary.config.run {
+  copy(
+    eventListeners = eventListeners.filter {
+      it !is ToastEventListener
+    }
+  )
+}</code></p>
 <p>If you want to upload heap analysis results:</p>
-<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">run</span> <span class="p">{</span>
-  <span class="n">copy</span><span class="p">(</span>
-    <span class="n">eventListeners</span> <span class="o">=</span> <span class="n">eventListeners</span> <span class="o">+</span> <span class="n">EventListener</span> <span class="p">{</span> <span class="n">event</span> <span class="o">-&gt;</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">event</span> <span class="k">is</span> <span class="n">HeapAnalysisSucceeded</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// Upload event.heapAnalysis</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
+<p><code>kotlin
+LeakCanary.config = LeakCanary.config.run {
+  copy(
+    eventListeners = eventListeners + EventListener { event -&gt;
+      if (event is HeapAnalysisSucceeded) {
+        // Upload event.heapAnalysis
+      }
+    }
+  )
+}</code></p>
 <p>Note: <code>Leakcanary.Config.onHeapAnalyzedListener</code> still works but is now deprecated.</p>
 <p>Feedback welcome on this new API!</p>
-<h3 id="other-bug-fixes-and-improvements_2">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_2" title="Permanent link">&para;</a></h3>
+<h3 id="other-bug-fixes-and-improvements_1">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><a href="https://github.com/square/leakcanary/issues/2096">#2096</a> Opening / sharing heap dump files now supports LeakCanary as an option.</li>
 <li><a href="https://github.com/square/leakcanary/issues/2210">#2210</a> First Compose dedicated object inspectors!</li>
@@ -2630,11 +2553,12 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <h3 id="finer-grained-root-view-watching">Finer grained root view watching<a class="headerlink" href="#finer-grained-root-view-watching" title="Permanent link">&para;</a></h3>
 <p>In version 2.6, LeakCanary added detection of root views retained after  <code>View.onDetachedFromWindow()</code>. This helps find more leaks, but unfortunately some Android widgets keep a detached root view around to reattach it later (e.g. spinner). App developers also sometimes do the same with dialogs, keeping a single instance around and calling <code>show()</code> and <code>hide()</code> as needed. As a result, LeakCanary would report leaks that were actually not leaks.</p>
 <p>In version 2.7, the default behavior changed: LeakCanary will continue to detect leaks of toasts, but will ignore root views created by a PopupWindow (which is what Android widgets use). It will also ignore root views created by a dialog by default, and you can turn this back on by setting the <code>leak_canary_watcher_watch_dismissed_dialogs</code> resource boolean to true:</p>
-<div class="highlight"><pre><span></span><code><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
-<span class="nt">&lt;resources&gt;</span>
-  <span class="nt">&lt;bool</span> <span class="na">name=</span><span class="s">&quot;leak_canary_watcher_watch_dismissed_dialogs&quot;</span><span class="nt">&gt;</span>true<span class="nt">&lt;/bool&gt;</span>
-<span class="nt">&lt;/resources&gt;</span>
-</code></pre></div>
+<p>```xml</p>
+<?xml version="1.0" encoding="utf-8"?>
+<p><resources>
+  <bool name="leak_canary_watcher_watch_dismissed_dialogs">true</bool>
+</resources>
+```</p>
 <p>This is implemented using a new Square library: <a href="https://github.com/square/curtains">Curtains</a>.</p>
 <h3 id="targeting-android-12">Targeting Android 12<a class="headerlink" href="#targeting-android-12" title="Permanent link">&para;</a></h3>
 <p>We fixed two issues for apps that want to target Android 12:</p>
@@ -2680,48 +2604,51 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <h3 id="configuring-retained-object-detection">Configuring retained object detection<a class="headerlink" href="#configuring-retained-object-detection" title="Permanent link">&para;</a></h3>
 <p>With the detection of 2 new types of retained objects, we&rsquo;re also adding APIs to configure which <em>watchers</em> should be installed as well as adding filtering capabilities.</p>
 <p>First, disable the automatic install:</p>
-<div class="highlight"><pre><span></span><code><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
-<span class="nt">&lt;resources&gt;</span>
-  <span class="nt">&lt;bool</span> <span class="na">name=</span><span class="s">&quot;leak_canary_watcher_auto_install&quot;</span><span class="nt">&gt;</span>false<span class="nt">&lt;/bool&gt;</span>
-<span class="nt">&lt;/resources&gt;</span>
-</code></pre></div>
+<p>```xml</p>
+<?xml version="1.0" encoding="utf-8"?>
+<p><resources>
+  <bool name="leak_canary_watcher_auto_install">false</bool>
+</resources>
+```</p>
 <p>Then you can install LeakCanary manually. LeakCanary 2.6 comes with 4 watchers installed by default: <code>ActivityWatcher</code>, <code>FragmentAndViewModelWatcher</code>, <code>RootViewWatcher</code>, <code>ServiceWatcher</code>. Here&rsquo;s an example to get all the default watchers except <code>ServiceWatcher</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+<p>```kotlin
+class DebugExampleApplication : ExampleApplication() {</p>
+<p>override fun onCreate() {
+    super.onCreate()</p>
+<div class="codehilite"><pre><span></span><code>val watchersToInstall = AppWatcher.appDefaultWatchers(application)
+  .filter { it !is ServiceWatcher }
 
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
-
-    <span class="kd">val</span> <span class="nv">watchersToInstall</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">appDefaultWatchers</span><span class="p">(</span><span class="n">application</span><span class="p">)</span>
-      <span class="p">.</span><span class="na">filter</span> <span class="p">{</span> <span class="nb">it</span> <span class="k">!is</span> <span class="n">ServiceWatcher</span> <span class="p">}</span>
-
-    <span class="n">AppWatcher</span><span class="p">.</span><span class="na">manualInstall</span><span class="p">(</span>
-      <span class="n">application</span> <span class="o">=</span> <span class="n">application</span><span class="p">,</span>
-      <span class="n">watchersToInstall</span> <span class="o">=</span> <span class="n">watchersToInstall</span>
-    <span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+AppWatcher.manualInstall(
+  application = application,
+  watchersToInstall = watchersToInstall
+)
 </code></pre></div>
+
+<p>}
+}
+```</p>
 <p>LeakCanary introduces a new functional (SAM) interface implemented by <code>ObjectWatcher</code>: <code>ReachabilityWatcher</code>, with a <code>ReachabilityWatcher.expectWeaklyReachable()</code> method that replaces the now deprecated <code>ObjectWatcher.watch()</code> method. You can create the default watcher instances with a custom <code>ReachabilityWatcher</code> that delegates to <code>AppWatcher.objectWatcher</code> but filters out specific instances (e.g. <code>BadSdkLeakingFragment</code>):</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+<p>```kotlin
+class DebugExampleApplication : ExampleApplication() {</p>
+<p>override fun onCreate() {
+    super.onCreate()</p>
+<div class="codehilite"><pre><span></span><code>val delegate = ReachabilityWatcher { watchedObject, description -&gt;
+  if (watchedObject !is BadSdkLeakingFragment) {
+    AppWatcher.objectWatcher.expectWeaklyReachable(watchedObject, description)
+  }
+}
 
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
+val watchersToInstall = AppWatcher.appDefaultWatchers(application, delegate)
 
-    <span class="kd">val</span> <span class="nv">delegate</span> <span class="o">=</span> <span class="n">ReachabilityWatcher</span> <span class="p">{</span> <span class="n">watchedObject</span><span class="p">,</span> <span class="n">description</span> <span class="o">-&gt;</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">watchedObject</span> <span class="k">!is</span> <span class="n">BadSdkLeakingFragment</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">AppWatcher</span><span class="p">.</span><span class="na">objectWatcher</span><span class="p">.</span><span class="na">expectWeaklyReachable</span><span class="p">(</span><span class="n">watchedObject</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="kd">val</span> <span class="nv">watchersToInstall</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">appDefaultWatchers</span><span class="p">(</span><span class="n">application</span><span class="p">,</span> <span class="n">delegate</span><span class="p">)</span>
-
-    <span class="n">AppWatcher</span><span class="p">.</span><span class="na">manualInstall</span><span class="p">(</span>
-      <span class="n">application</span> <span class="o">=</span> <span class="n">application</span><span class="p">,</span>
-      <span class="n">watchersToInstall</span> <span class="o">=</span> <span class="n">watchersToInstall</span>
-    <span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+AppWatcher.manualInstall(
+  application = application,
+  watchersToInstall = watchersToInstall
+)
 </code></pre></div>
+
+<p>}
+}
+```</p>
 <p>With these new configuration options, <code>AppWatcher.config</code> is now deprecated and a no-op.</p>
 <h3 id="dumping-the-heap-on-screen-off">Dumping the heap on screen off<a class="headerlink" href="#dumping-the-heap-on-screen-off" title="Permanent link">&para;</a></h3>
 <p>The default threshold to dump the heap is <strong>5 retained objects</strong> when the app is <strong>visible</strong>, and <strong>1 retained object</strong> when the app is <strong>not visible</strong>. Up until now, visible meant &ldquo;the app has at least one activity in <strong>started</strong> state&rdquo;. In LeakCanary 2.6, the app will now be considered <strong>not visible</strong> if the device screen is <strong>off</strong>, lowering the threshold to trigger heap dumps when you turn off the device screen.</p>
@@ -2731,167 +2658,160 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <p class="admonition-title">Danger</p>
 <p>Everything about this is experimental. Running a heap analysis in production is not a very common thing to do, and we&rsquo;re still learning and experimenting with this. Also, both the artifact name and the APIs may change.</p>
 </div>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="c1">// debugImplementation because LeakCanary should only run in debug builds.</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.6&#39;</span>
-
-  <span class="c1">// NEW: LeakCanary for releases!</span>
-  <span class="n">releaseImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-release:2.6&#39;</span>
-  <span class="c1">// Optional: detect retained objects. This helps but is not required.</span>
-  <span class="n">releaseImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.6&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p>```groovy
+dependencies {
+  // debugImplementation because LeakCanary should only run in debug builds.
+  debugImplementation &lsquo;com.squareup.leakcanary:leakcanary-android:2.6&rsquo;</p>
+<p>// NEW: LeakCanary for releases!
+  releaseImplementation &lsquo;com.squareup.leakcanary:leakcanary-android-release:2.6&rsquo;
+  // Optional: detect retained objects. This helps but is not required.
+  releaseImplementation &lsquo;com.squareup.leakcanary:leakcanary-object-watcher-android:2.6&rsquo;
+}
+```</p>
 <p>Here&rsquo;s a code example that runs a heap analysis when the screen is turned off or the app enters background, checking first if a <a href="https://firebase.google.com/products/remote-config">Firebase Remote Config</a> flag is turned on, and uploading the result to Bugsnag:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">ReleaseExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+<p>```kotlin
+class ReleaseExampleApplication : ExampleApplication() {</p>
+<p>// Cancels heap analysis if &ldquo;heap_analysis_flag&rdquo; is false.
+  private val flagInterceptor by lazy {
+    object : HeapAnalysisInterceptor {</p>
+<div class="codehilite"><pre><span></span><code>  val remoteConfig: FirebaseRemoteConfig = TODO()
 
-  <span class="c1">// Cancels heap analysis if &quot;heap_analysis_flag&quot; is false.</span>
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">flagInterceptor</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
-    <span class="k">object</span> <span class="p">:</span> <span class="nc">HeapAnalysisInterceptor</span> <span class="p">{</span>
-
-      <span class="kd">val</span> <span class="nv">remoteConfig</span><span class="p">:</span> <span class="n">FirebaseRemoteConfig</span> <span class="o">=</span> <span class="n">TODO</span><span class="p">()</span>
-
-      <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">intercept</span><span class="p">(</span><span class="n">chain</span><span class="p">:</span> <span class="n">Chain</span><span class="p">):</span> <span class="n">HeapAnalysisJob</span><span class="p">.</span><span class="na">Result</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">remoteConfig</span><span class="p">.</span><span class="na">getBoolean</span><span class="p">(</span><span class="s">&quot;heap_analysis_flag&quot;</span><span class="p">))</span> <span class="p">{</span>
-          <span class="n">chain</span><span class="p">.</span><span class="na">job</span><span class="p">.</span><span class="na">cancel</span><span class="p">(</span><span class="s">&quot;heap_analysis_flag false&quot;</span><span class="p">)</span>
-        <span class="p">}</span>
-        <span class="k">return</span> <span class="n">chain</span><span class="p">.</span><span class="na">proceed</span><span class="p">()</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">analysisClient</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
-    <span class="n">HeapAnalysisClient</span><span class="p">(</span>
-      <span class="c1">// Use private app storage. cacheDir is never backed up which is important.</span>
-      <span class="n">heapDumpDirectoryProvider</span> <span class="o">=</span> <span class="p">{</span> <span class="n">cacheDir</span> <span class="p">},</span>
-      <span class="c1">// stripHeapDump: remove all user data from hprof before analysis.</span>
-      <span class="n">config</span> <span class="o">=</span> <span class="n">HeapAnalysisConfig</span><span class="p">(</span><span class="n">stripHeapDump</span> <span class="o">=</span> <span class="kc">true</span><span class="p">),</span>
-      <span class="c1">// Default interceptors may cancel analysis for several other reasons.</span>
-      <span class="n">interceptors</span> <span class="o">=</span> <span class="n">listOf</span><span class="p">(</span><span class="n">flagInterceptor</span><span class="p">)</span> <span class="o">+</span> <span class="n">HeapAnalysisClient</span><span class="p">.</span><span class="na">defaultInterceptors</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
-    <span class="p">)</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">analysisExecutor</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
-    <span class="n">Executors</span><span class="p">.</span><span class="na">newSingleThreadExecutor</span> <span class="p">{</span>
-      <span class="n">thread</span><span class="p">(</span><span class="n">start</span> <span class="o">=</span> <span class="kc">false</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Heap analysis executor&quot;</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">android</span><span class="p">.</span><span class="na">os</span><span class="p">.</span><span class="na">Process</span><span class="p">.</span><span class="na">setThreadPriority</span><span class="p">(</span><span class="n">THREAD_PRIORITY_BACKGROUND</span><span class="p">)</span>
-        <span class="nb">it</span><span class="p">.</span><span class="na">run</span><span class="p">()</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">analysisCallback</span><span class="p">:</span> <span class="p">(</span><span class="n">Result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Unit</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
-    <span class="kd">val</span> <span class="nv">uploader</span> <span class="o">=</span> <span class="n">BugsnagHeapAnalysisUploader</span><span class="p">(</span><span class="k">this</span><span class="nd">@ReleaseExampleApplication</span><span class="p">)</span>
-    <span class="p">{</span> <span class="n">result</span> <span class="o">-&gt;</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">result</span> <span class="k">is</span> <span class="n">Done</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">uploader</span><span class="p">.</span><span class="na">upload</span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="na">analysis</span><span class="p">)</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
-
-    <span class="c1">// Delete any remaining heap dump (if we crashed)</span>
-    <span class="n">analysisExecutor</span><span class="p">.</span><span class="na">execute</span> <span class="p">{</span>
-      <span class="n">analysisClient</span><span class="p">.</span><span class="na">deleteHeapDumpFiles</span><span class="p">()</span>
-    <span class="p">}</span>
-
-    <span class="c1">// Starts heap analysis on background importance</span>
-    <span class="n">BackgroundTrigger</span><span class="p">(</span>
-      <span class="n">application</span> <span class="o">=</span> <span class="k">this</span><span class="p">,</span>
-      <span class="n">analysisClient</span> <span class="o">=</span> <span class="n">analysisClient</span><span class="p">,</span>
-      <span class="n">analysisExecutor</span> <span class="o">=</span> <span class="n">analysisExecutor</span><span class="p">,</span>
-      <span class="n">analysisCallback</span> <span class="o">=</span> <span class="n">analysisCallback</span>
-    <span class="p">).</span><span class="na">start</span><span class="p">()</span>
-
-    <span class="c1">// Starts heap analysis when screen off</span>
-    <span class="n">ScreenOffTrigger</span><span class="p">(</span>
-      <span class="n">application</span> <span class="o">=</span> <span class="k">this</span><span class="p">,</span>
-      <span class="n">analysisClient</span> <span class="o">=</span> <span class="n">analysisClient</span><span class="p">,</span>
-      <span class="n">analysisExecutor</span> <span class="o">=</span> <span class="n">analysisExecutor</span><span class="p">,</span>
-      <span class="n">analysisCallback</span> <span class="o">=</span> <span class="n">analysisCallback</span>
-    <span class="p">).</span><span class="na">start</span><span class="p">()</span>
-  <span class="p">}</span>
-
-  <span class="cm">/**</span>
-<span class="cm">   * Call this to trigger heap analysis manually, e.g. from</span>
-<span class="cm">   * a help button.</span>
-<span class="cm">   *</span>
-<span class="cm">   * This method returns a `HeapAnalysisJob` on which you can</span>
-<span class="cm">   * call `HeapAnalysisJob.cancel()` at any time.</span>
-<span class="cm">   */</span>
-  <span class="kd">fun</span> <span class="nf">triggerHeapAnalysisNow</span><span class="p">():</span> <span class="n">HeapAnalysisJob</span> <span class="p">{</span>
-    <span class="kd">val</span> <span class="nv">job</span> <span class="o">=</span> <span class="n">analysisClient</span><span class="p">.</span><span class="na">newJob</span><span class="p">()</span>
-    <span class="n">analysisExecutor</span><span class="p">.</span><span class="na">execute</span> <span class="p">{</span>
-      <span class="kd">val</span> <span class="nv">result</span> <span class="o">=</span> <span class="n">job</span><span class="p">.</span><span class="na">execute</span><span class="p">()</span>
-      <span class="n">analysisCallback</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="n">job</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
-<p>The Bugsnag uploader:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">BugsnagHeapAnalysisUploader</span><span class="p">(</span><span class="n">applicationContext</span><span class="p">:</span> <span class="n">Application</span><span class="p">)</span> <span class="p">{</span>
-
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">bugsnagClient</span><span class="p">:</span> <span class="n">Client</span>
-
-  <span class="k">init</span> <span class="p">{</span>
-    <span class="n">bugsnagClient</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span>
-      <span class="n">applicationContext</span><span class="p">,</span>
-      <span class="n">BUGSNAG_API_KEY</span><span class="p">,</span>
-      <span class="n">DO_NOT_ENABLE_EXCEPTION_HANDLER</span>
-    <span class="p">)</span>
-    <span class="n">bugsnagClient</span><span class="p">.</span><span class="na">setSendThreads</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span>
-  <span class="p">}</span>
-
-  <span class="kd">fun</span> <span class="nf">upload</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysis</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">when</span> <span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">is</span> <span class="n">HeapAnalysisSuccess</span> <span class="o">-&gt;</span> <span class="p">{</span>
-        <span class="kd">val</span> <span class="nv">exception</span> <span class="o">=</span> <span class="n">HeapAnalysisReport</span><span class="p">()</span>
-        <span class="n">bugsnagClient</span><span class="p">.</span><span class="na">notify</span><span class="p">(</span><span class="n">exception</span><span class="p">)</span> <span class="p">{</span> <span class="n">report</span> <span class="o">-&gt;</span>
-          <span class="kd">val</span> <span class="nv">metaData</span> <span class="o">=</span> <span class="n">report</span><span class="p">.</span><span class="na">error</span><span class="p">.</span><span class="na">metaData</span>
-          <span class="n">metaData</span><span class="p">.</span><span class="na">addToTab</span><span class="p">(</span><span class="s">&quot;Heap Analysis&quot;</span><span class="p">,</span> <span class="s">&quot;result&quot;</span><span class="p">,</span> <span class="n">heapAnalysis</span><span class="p">.</span><span class="na">toString</span><span class="p">())</span>
-        <span class="p">}</span>
-      <span class="p">}</span>
-      <span class="k">is</span> <span class="n">HeapAnalysisFailure</span> <span class="o">-&gt;</span> <span class="p">{</span>
-        <span class="c1">// Please file any reported failure to</span>
-        <span class="c1">// https://github.com/square/leakcanary/issues</span>
-        <span class="n">bugsnagClient</span><span class="p">.</span><span class="na">notify</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">.</span><span class="na">exception</span><span class="p">)</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="c1">// Exception with fake unique stacktrace to send all reports to the same error entry.</span>
-  <span class="kd">class</span> <span class="nc">HeapAnalysisReport</span> <span class="p">:</span> <span class="n">Exception</span><span class="p">(</span><span class="s">&quot;Check the HEAP ANALYSIS tab&quot;</span><span class="p">)</span> <span class="p">{</span>
-    <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">fillInStackTrace</span><span class="p">():</span> <span class="n">Throwable</span> <span class="p">{</span>
-      <span class="n">stackTrace</span> <span class="o">=</span> <span class="n">arrayOf</span><span class="p">(</span>
-        <span class="n">StackTraceElement</span><span class="p">(</span>
-          <span class="s">&quot;HeapAnalysisReport&quot;</span><span class="p">,</span>
-          <span class="s">&quot;analyzeHeap&quot;</span><span class="p">,</span>
-          <span class="s">&quot;HeapAnalysisReport.kt&quot;</span><span class="p">,</span>
-          <span class="m">1</span>
-        <span class="p">)</span>
-      <span class="p">)</span>
-      <span class="k">return</span> <span class="k">this</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kd">companion</span> <span class="kd">object</span> <span class="err">{</span>
-    <span class="kd">private</span> <span class="kd">const</span> <span class="kd">val</span> <span class="nv">BUGSNAG_API_KEY</span> <span class="o">=</span> <span class="n">YOUR_BUGSNAG_API_KEY</span>
-    <span class="kd">private</span> <span class="kd">const</span> <span class="kd">val</span> <span class="nv">DO_NOT_ENABLE_EXCEPTION_HANDLER</span> <span class="o">=</span> <span class="kc">false</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
-<h3 id="more-leak-fixes-in-plumber">More leak fixes in Plumber<a class="headerlink" href="#more-leak-fixes-in-plumber" title="Permanent link">&para;</a></h3>
-<p>We added 3 new automatic fixes for known AOSP leaks in <code>plumber-android</code> (details: <a href="https://github.com/square/leakcanary/issues/1993">#1993</a>). As a reminder, <code>plumber-android</code> is automatically included when you add <code>leakcanary-android</code>, and you can add it manually for build types that don&rsquo;t include LeakCanary:</p>
-<div class="highlight"><pre><span></span><code>dependencies {
-  // leakcanary-android adds plumber-android to debug builds
-  debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.6&#39;
-
-  // This adds plumber-android to all build types
-  implementation &#39;com.squareup.leakcanary:plumber-android:2.6&#39;
+  override fun intercept(chain: Chain): HeapAnalysisJob.Result {
+    if (remoteConfig.getBoolean(&quot;heap_analysis_flag&quot;)) {
+      chain.job.cancel(&quot;heap_analysis_flag false&quot;)
+    }
+    return chain.proceed()
+  }
 }
 </code></pre></div>
+
+<p>}</p>
+<p>private val analysisClient by lazy {
+    HeapAnalysisClient(
+      // Use private app storage. cacheDir is never backed up which is important.
+      heapDumpDirectoryProvider = { cacheDir },
+      // stripHeapDump: remove all user data from hprof before analysis.
+      config = HeapAnalysisConfig(stripHeapDump = true),
+      // Default interceptors may cancel analysis for several other reasons.
+      interceptors = listOf(flagInterceptor) + HeapAnalysisClient.defaultInterceptors(this)
+    )
+  }</p>
+<p>private val analysisExecutor by lazy {
+    Executors.newSingleThreadExecutor {
+      thread(start = false, name = &ldquo;Heap analysis executor&rdquo;) {
+        android.os.Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND)
+        it.run()
+      }
+    }
+  }</p>
+<p>private val analysisCallback: (Result) -&gt; Unit by lazy {
+    val uploader = BugsnagHeapAnalysisUploader(this@ReleaseExampleApplication)
+    { result -&gt;
+      if (result is Done) {
+        uploader.upload(result.analysis)
+      }
+    }
+  }</p>
+<p>override fun onCreate() {
+    super.onCreate()</p>
+<div class="codehilite"><pre><span></span><code>// Delete any remaining heap dump (if we crashed)
+analysisExecutor.execute {
+  analysisClient.deleteHeapDumpFiles()
+}
+
+// Starts heap analysis on background importance
+BackgroundTrigger(
+  application = this,
+  analysisClient = analysisClient,
+  analysisExecutor = analysisExecutor,
+  analysisCallback = analysisCallback
+).start()
+
+// Starts heap analysis when screen off
+ScreenOffTrigger(
+  application = this,
+  analysisClient = analysisClient,
+  analysisExecutor = analysisExecutor,
+  analysisCallback = analysisCallback
+).start()
+</code></pre></div>
+
+<p>}</p>
+<p>/**
+   * Call this to trigger heap analysis manually, e.g. from
+   * a help button.
+   *
+   * This method returns a <code>HeapAnalysisJob</code> on which you can
+   * call <code>HeapAnalysisJob.cancel()</code> at any time.
+   */
+  fun triggerHeapAnalysisNow(): HeapAnalysisJob {
+    val job = analysisClient.newJob()
+    analysisExecutor.execute {
+      val result = job.execute()
+      analysisCallback(result)
+    }
+    return job
+  }
+}
+```</p>
+<p>The Bugsnag uploader:</p>
+<p>```kotlin
+class BugsnagHeapAnalysisUploader(applicationContext: Application) {</p>
+<p>private val bugsnagClient: Client</p>
+<p>init {
+    bugsnagClient = Client(
+      applicationContext,
+      BUGSNAG_API_KEY,
+      DO_NOT_ENABLE_EXCEPTION_HANDLER
+    )
+    bugsnagClient.setSendThreads(false)
+  }</p>
+<p>fun upload(heapAnalysis: HeapAnalysis) {
+    when (heapAnalysis) {
+      is HeapAnalysisSuccess -&gt; {
+        val exception = HeapAnalysisReport()
+        bugsnagClient.notify(exception) { report -&gt;
+          val metaData = report.error.metaData
+          metaData.addToTab(&ldquo;Heap Analysis&rdquo;, &ldquo;result&rdquo;, heapAnalysis.toString())
+        }
+      }
+      is HeapAnalysisFailure -&gt; {
+        // Please file any reported failure to
+        // <a href="https://github.com/square/leakcanary/issues">https://github.com/square/leakcanary/issues</a>
+        bugsnagClient.notify(heapAnalysis.exception)
+      }
+    }
+  }</p>
+<p>// Exception with fake unique stacktrace to send all reports to the same error entry.
+  class HeapAnalysisReport : Exception(&ldquo;Check the HEAP ANALYSIS tab&rdquo;) {
+    override fun fillInStackTrace(): Throwable {
+      stackTrace = arrayOf(
+        StackTraceElement(
+          &ldquo;HeapAnalysisReport&rdquo;,
+          &ldquo;analyzeHeap&rdquo;,
+          &ldquo;HeapAnalysisReport.kt&rdquo;,
+          1
+        )
+      )
+      return this
+    }
+  }</p>
+<p>companion object {
+    private const val BUGSNAG_API_KEY = YOUR_BUGSNAG_API_KEY
+    private const val DO_NOT_ENABLE_EXCEPTION_HANDLER = false
+  }
+}
+```</p>
+<h3 id="more-leak-fixes-in-plumber">More leak fixes in Plumber<a class="headerlink" href="#more-leak-fixes-in-plumber" title="Permanent link">&para;</a></h3>
+<p>We added 3 new automatic fixes for known AOSP leaks in <code>plumber-android</code> (details: <a href="https://github.com/square/leakcanary/issues/1993">#1993</a>). As a reminder, <code>plumber-android</code> is automatically included when you add <code>leakcanary-android</code>, and you can add it manually for build types that don&rsquo;t include LeakCanary:</p>
+<p>```gradle
+dependencies {
+  // leakcanary-android adds plumber-android to debug builds
+  debugImplementation &lsquo;com.squareup.leakcanary:leakcanary-android:2.6&rsquo;</p>
+<p>// This adds plumber-android to all build types
+  implementation &lsquo;com.squareup.leakcanary:plumber-android:2.6&rsquo;
+}
+```</p>
 <h3 id="bug-fixes-and-improvements_1">Bug fixes and improvements 🐛🔨<a class="headerlink" href="#bug-fixes-and-improvements_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><a href="https://github.com/square/leakcanary/pull/1948">#1948</a> Leakcanary is now compiled against Kotlin 1.4 (while staying 1.3 compatible) to support <a href="https://kotlinlang.org/docs/reference/fun-interfaces.html">Functional (SAM) interfaces</a>.</li>
@@ -2925,7 +2845,7 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 <p>No one asked, so we delivered! We rewrote several core components in Shark (LeakCanary&rsquo;s heap analyzer) to dramatically reduce IO reads and allocations while keeping memory constant. More details on Twitter: <a href="https://twitter.com/ArtemChubaryan/status/1311078061895553030">thread by @ArtemChubaryan</a> and <a href="https://twitter.com/Piwai/status/1311085280753926144">thread by @Piwai</a>.</p>
 <h3 id="compute-retained-size-within-the-leak-trace">Compute retained size within the leak trace<a class="headerlink" href="#compute-retained-size-within-the-leak-trace" title="Permanent link">&para;</a></h3>
 <p>Previously, LeakCanary computed the retained size for the leaking object (the last object in the leak trace). However, the bad reference causing objects to leak is often higher up in the leak trace and everything that it holds onto is actually leaking. So LeakCanary now computes the retained size for <a href="https://github.com/square/leakcanary/issues/1880">all the objects in the leaktrace that have a LEAKING or UNKNOWN status</a>:</p>
-<div class="highlight"><pre><span></span><code>┬───
+<p><code>┬───
 │ GC Root: System class
 │
 ├─ com.example.MySingleton class
@@ -2938,17 +2858,16 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 │    ↓ TextView.mContext
 ╰→ com.example.MainActivity instance
 ​     Leaking: YES (Activity#mDestroyed is true)
-​     Retaining 1432 bytes in 36 objects
-</code></pre></div>
+​     Retaining 1432 bytes in 36 objects</code></p>
 <h3 id="disable-leakcanary-from-the-ui">Disable LeakCanary from the UI<a class="headerlink" href="#disable-leakcanary-from-the-ui" title="Permanent link">&para;</a></h3>
 <p>New toggle to disable <a href="https://github.com/square/leakcanary/issues/1886">heap dumping</a>, which can be useful for QA, or when doing a product demo. LeakCanary will still show a notification when an object is retained.</p>
 <p><img alt="disable heap dumping" src="../images/disable_dumping.png" /></p>
 <h3 id="deobfuscating-hprof-files">Deobfuscating hprof files<a class="headerlink" href="#deobfuscating-hprof-files" title="Permanent link">&para;</a></h3>
 <p>The <a href="../shark/#shark-cli">Shark CLI</a> can now <a href="https://github.com/square/leakcanary/issues/1698">deobfuscate heap dumps</a>:</p>
-<div class="highlight"><pre><span></span><code>brew install leakcanary-shark
-
-shark-cli --hprof heapdump.hprof -m mapping.txt deobfuscate-hprof
-</code></pre></div>
+<p>```
+brew install leakcanary-shark</p>
+<p>shark-cli &ndash;hprof heapdump.hprof -m mapping.txt deobfuscate-hprof
+```</p>
 <h3 id="bug-fixes-and-improvements_2">Bug fixes and improvements 🐛🔨<a class="headerlink" href="#bug-fixes-and-improvements_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Heap analysis text results now <a href="https://github.com/square/leakcanary/issues/1811">wrap to a max width</a> when sharing them from the LeakCanary activity or printing to logcat. This will make it harder to miss details that are lost at the end of long lines of text.</li>
@@ -2981,21 +2900,19 @@ for their contributions, bug reports and feature requests.</p>
 <h3 id="plumber-android-is-a-new-artifact-that-fixes-known-android-leaks"><code>plumber-android</code> is a new artifact that fixes known Android leaks 🚽🔧<a class="headerlink" href="#plumber-android-is-a-new-artifact-that-fixes-known-android-leaks" title="Permanent link">&para;</a></h3>
 <p>LeakCanary reports all leaks, including leaks caused by a known bug in 3<sup>rd</sup> party code that you do not have control over (reported as <a href="../fundamentals-how-leakcanary-works/#4-categorizing-leaks">Library leaks</a>). That can be annoying! LeakCanary now ships with a new dependency, <code>plumber-android</code>, which performs hacks at runtime to fix some of these known leaks. This releases has fixes for <strong>11 known leaks</strong>, but this is just the beginning. Contributions welcome! 🙏</p>
 <p>Note that since the <code>leakcanary-android</code> dependency is usually added as a <code>debugImplementation</code> dependency, the <code>plumber-android</code> is transitively added only in debug builds, so it will not fix leaks in your release builds. You can add the dependency directly as <code>implementation</code> to get these fixes in release builds as well:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:plumber-android:2.4&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:plumber-android:2.4'
+}</code></p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>While several of these fixes already ship in release builds of Square apps, this is the first official release of <code>plumber-android</code>, so you should consider it <strong>experimental</strong>.</p>
 </div>
 <h3 id="analyzing-leaks-from-the-cli-is-easier-than-ever">Analyzing leaks from the CLI is easier than ever 🍺<a class="headerlink" href="#analyzing-leaks-from-the-cli-is-easier-than-ever" title="Permanent link">&para;</a></h3>
 <p>The <a href="../shark/#shark-cli">Shark CLI</a> can now be installed via <a href="https://brew.sh/">Homebrew</a></p>
-<div class="highlight"><pre><span></span><code>brew install leakcanary-shark
-</code></pre></div>
+<p><code>brew install leakcanary-shark</code></p>
 <p>You can then look for leaks in apps on any connected device, for example:</p>
-<div class="highlight"><pre><span></span><code>$ shark-cli --device emulator-5554 --process com.example.app.debug analyze
-</code></pre></div>
+<p><code>$ shark-cli --device emulator-5554 --process com.example.app.debug analyze</code></p>
 <h3 id="support-for-android-test-orchestrator">Support for Android Test Orchestrator 🎼<a class="headerlink" href="#support-for-android-test-orchestrator" title="Permanent link">&para;</a></h3>
 <p>If you set up LeakCanary to report test failures when detecting leaks in instrumentation tests, it <a href="https://github.com/square/leakcanary/issues/1046">now works</a> with Android Test Orchestrator as well. No change required, LeakCanary will automatically detect thatAndroid Test Orchestrator is running and hook into it.</p>
 <h3 id="no-more-master-branch">No more <code>master</code> branch<a class="headerlink" href="#no-more-master-branch" title="Permanent link">&para;</a></h3>
@@ -3068,12 +2985,11 @@ for the contributions, bug reports and feature requests.</p>
 <h3 id="java-friendly-config-builders">Java-friendly Config builders<a class="headerlink" href="#java-friendly-config-builders" title="Permanent link">&para;</a></h3>
 <p><a href="https://github.com/square/leakcanary/issues/1714">It was brought to our attention</a> that configuring <code>LeakCanary</code> and <code>AppWatcher</code> was a miserable experience from Java code. Well, not anymore!</p>
 <p>Now you can use <code>LeakCanary.Config.Builder</code> and <code>AppWatcher.Config.Builder</code> to have idiomatic Java when updating the configurations. For example:</p>
-<div class="highlight"><pre><span></span><code>LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
+<p><code>LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
   .retainedVisibleThreshold(3)
   .computeRetainedHeapSize(false)
   .build();
-LeakCanary.setConfig(config);
-</code></pre></div>
+LeakCanary.setConfig(config);</code></p>
 <p>If you notice any other problems when using LeakCanary from Java, please <a href="https://github.com/square/leakcanary/issues/new?assignees=&amp;labels=type%3A+enhancement&amp;template=3-feature.md&amp;title=">file an issue</a>! We take Java-interop seriously and will be happy to improve LeakCanary&rsquo;s API!</p>
 <p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/16">2.2 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.1...v2.2">full diff</a>.</p>
 <h2 id="version-21-2019-12-31">Version 2.1 (2019-12-31)<a class="headerlink" href="#version-21-2019-12-31" title="Permanent link">&para;</a></h2>
@@ -3103,9 +3019,8 @@ for the contributions, bug reports and feature requests.</p>
 <li>The leak result notification has an importance now set to MAX so that it&rsquo;ll show up right in your face. If you turn it off, the canary will haunt you in your dreams 🐤👻. To save your sanity and your device battery, automatic heap dumps now won&rsquo;t happen more often than once per minute.</li>
 <li>The resource id name for <code>View</code> instances is now displayed in the leak trace. You shouldn&rsquo;t look at the <a href="https://github.com/square/leakcanary/pull/1663">implementation</a>.</li>
 </ul>
-<div class="highlight"><pre><span></span><code>├─ android.widget.TextView instance
-│    View.mID = R.id.helper_text
-</code></pre></div>
+<p><code>├─ android.widget.TextView instance
+│    View.mID = R.id.helper_text</code></p>
 <h3 id="documentation-goodies">Documentation goodies<a class="headerlink" href="#documentation-goodies" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The <a href="../fundamentals/">Fundamentals</a> page was entirely rewritten, split into 3 pages and moved to its own tab. Please read it and provide feedback!</li>
@@ -3117,59 +3032,59 @@ for the contributions, bug reports and feature requests.</p>
 <li>The APIs of the <code>Leak</code> and <code>LeakTrace</code> classes have significantly changed, e.g. all <code>LeakTrace</code> instances with an identical signature are grouped under the same Leak object. Despite these breaking changes, this release version is a minor update. Oh noes, what about semantic versioning 😱? Ask Don Quixote.</li>
 <li>You can now customize the way LeakCanary finds the leaking objects in the heap dump. For example, here&rsquo;s the configuration SharkCli uses to find leaks in heap dumps of apps that don&rsquo;t even have the LeakCanary dependency:</li>
 </ul>
-<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
-    <span class="n">leakingObjectFinder</span> <span class="o">=</span> <span class="n">FilteringLeakingObjectFinder</span><span class="p">(</span>
-        <span class="n">AndroidObjectInspectors</span><span class="p">.</span><span class="na">appLeakingObjectFilters</span>
-    <span class="p">)</span>
-<span class="p">)</span>
-</code></pre></div>
+<p><code>kotlin
+LeakCanary.config = LeakCanary.config.copy(
+    leakingObjectFinder = FilteringLeakingObjectFinder(
+        AndroidObjectInspectors.appLeakingObjectFilters
+    )
+)</code></p>
 <ul>
 <li>LeakCanary automatically disables itself in tests by detecting that the <code>org.junit.Test</code> is in the classpath. Unfortunately, some apps ship Junit in their app debug classpath (e.g. when using OkHttp MockWebServer). You can now customize which class is used to detect tests:</li>
 </ul>
-<div class="highlight"><pre><span></span><code><span class="nt">&lt;resources&gt;</span>
-  <span class="nt">&lt;string</span> <span class="na">name=</span><span class="s">&quot;leak_canary_test_class_name&quot;</span><span class="nt">&gt;</span>assertk.Assert<span class="nt">&lt;/string&gt;</span>
-<span class="nt">&lt;/resources&gt;</span>
-</code></pre></div>
+<p><code>xml
+&lt;resources&gt;
+  &lt;string name="leak_canary_test_class_name"&gt;assertk.Assert&lt;/string&gt;
+&lt;/resources&gt;</code></p>
 <h3 id="interactive-cli">Interactive CLI<a class="headerlink" href="#interactive-cli" title="Permanent link">&para;</a></h3>
 <p><a href="https://github.com/square/leakcanary/releases/download/v2.1/shark-cli-2.1.zip">Shark CLI</a> was rewritten on top of <a href="https://github.com/ajalt/clikt">Clikt</a>:</p>
-<div class="highlight"><pre><span></span><code>$ shark-cli
-Usage: shark-cli <span class="o">[</span>OPTIONS<span class="o">]</span> COMMAND <span class="o">[</span>ARGS<span class="o">]</span>...
+<p>```bash
+$ shark-cli
+Usage: shark-cli [OPTIONS] COMMAND [ARGS]&hellip;</p>
+<div class="codehilite"><pre><span></span><code>             ^`.                 .=&quot;&quot;=.
+</code></pre></div>
 
-                 ^<span class="sb">`</span>.                 .<span class="o">=</span><span class="s2">&quot;&quot;</span><span class="o">=</span>.
- ^_              <span class="se">\ </span> <span class="se">\ </span>              / _  _ <span class="se">\</span>
- <span class="se">\ \ </span>            <span class="o">{</span>   <span class="se">\ </span>            <span class="p">|</span>  d  b  <span class="p">|</span>
- <span class="o">{</span>  <span class="se">\ </span>          /     <span class="sb">`</span>~~~--__     <span class="se">\ </span>  /<span class="se">\ </span>  /
- <span class="o">{</span>   <span class="se">\_</span>__----~~<span class="s1">&#39;              `~~-_/&#39;</span>-<span class="o">=</span><span class="se">\/</span><span class="o">=</span>-<span class="s1">&#39;\,</span>
-<span class="s1">  \                         /// a  `~.      \ \</span>
-<span class="s1">  / /~~~~-, ,__.    ,      ///  __,,,,)      \ |</span>
-<span class="s1">  \/      \/    `~~~;   ,---~~-_`/ \        / \/</span>
-<span class="s1">                   /   /            &#39;</span>.    .<span class="s1">&#39;</span>
-<span class="s1">                  &#39;</span>._.<span class="err">&#39;</span>             _<span class="p">|</span><span class="sb">`</span>~~<span class="sb">`</span><span class="p">|</span>_
-                                    /<span class="p">|</span><span class="se">\ </span> /<span class="p">|</span><span class="se">\</span>
-
-Options:
-  -p, --process NAME              Full or partial name of a process, e.g.
-                                  <span class="s2">&quot;example&quot;</span> would match <span class="s2">&quot;com.example.app&quot;</span>
-  -d, --device ID                 device/emulator id
-  -m, --obfuscation-mapping PATH  path to obfuscation mapping file
-  --verbose / --no-verbose        provide additional details as to what
+<p>^_                               / _  _ \
+               {                |  d  b  |
+ {             /     <code>~~~--__     \   /\   /
+ {   \___----~~'</code>~~-<em>/&rsquo;-=\/=-&lsquo;\,
+                           /// a  <code>~.      \ \
+  / /~~~~-, ,__.    ,      ///  __,,,,)      \ |
+  \/      \/</code>~~~;   ,&mdash;~~-</em><code>/ \        / \/
+                   /   /            '.    .'
+                  '._.'             _|</code>~~`|_
+                                    /|  /|\</p>
+<p>Options:
+  -p, &ndash;process NAME              Full or partial name of a process, e.g.
+                                  &ldquo;example&rdquo; would match &ldquo;com.example.app&rdquo;
+  -d, &ndash;device ID                 device/emulator id
+  -m, &ndash;obfuscation-mapping PATH  path to obfuscation mapping file
+  &ndash;verbose / &ndash;no-verbose        provide additional details as to what
                                   shark-cli is doing
-  -h, --hprof FILE                path to a .hprof file
-  --help                          Show this message and <span class="nb">exit</span>
-
-Commands:
+  -h, &ndash;hprof FILE                path to a .hprof file
+  &ndash;help                          Show this message and exit</p>
+<p>Commands:
   interactive   Explore a heap dump.
   analyze       Analyze a heap dump.
   dump-process  Dump the heap and pull the hprof file.
   strip-hprof   Replace all primitive arrays from the provided heap dump with
-                arrays of zeroes and generate a new <span class="s2">&quot;-stripped.hprof&quot;</span> file.
-</code></pre></div>
+                arrays of zeroes and generate a new &ldquo;-stripped.hprof&rdquo; file.
+```</p>
 <p>There&rsquo;s a new <code>interactive</code> command which enables exploring the heap dump from the command line:</p>
-<div class="highlight"><pre><span></span><code>$ shark-cli -h heapdump.hprof interactive
-Enter <span class="nb">command</span> <span class="o">[</span>help<span class="o">]</span>:
-<span class="nb">help</span>
-
-Available commands:
+<p>```bash
+$ shark-cli -h heapdump.hprof interactive
+Enter command [help]:
+help</p>
+<p>Available commands:
   analyze                   Analyze the heap dump.
   class NAME@ID             Show class with a matching NAME and Object ID.
   instance CLASS_NAME@ID    Show instance with a matching CLASS_NAME and Object
@@ -3179,9 +3094,9 @@ Object ID.
   -&gt;instance CLASS_NAME@ID  Show path from GC Roots to instance.
   ~&gt;instance CLASS_NAME@ID  Show path from GC Roots to instance, highlighting
 suspect references.
-  <span class="nb">help</span>                      Show this message.
-  <span class="nb">exit</span>                      Exit this interactive prompt.
-</code></pre></div>
+  help                      Show this message.
+  exit                      Exit this interactive prompt.
+```</p>
 <p>We&rsquo;re currently exploring the idea of adding <a href="https://twitter.com/Piwai/status/1211795647273160704">support for SQL queries</a>, feedback welcome!</p>
 <p>For more details, see the <a href="https://github.com/square/leakcanary/milestone/15">2.1 Milestone</a> and the <a href="https://github.com/square/leakcanary/compare/v2.0...v2.1">full diff</a>.</p>
 <h2 id="version-20-2019-11-27">Version 2.0 (2019-11-27)<a class="headerlink" href="#version-20-2019-11-27" title="Permanent link">&para;</a></h2>
@@ -3620,7 +3535,7 @@ for the code contributions!</p>
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../shark/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Overview" rel="prev">
+        <a href="../api/leakcanary/" class="md-footer__link md-footer__link--prev" aria-label="Previous: LeakCanary API" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
           </div>
@@ -3629,7 +3544,7 @@ for the code contributions!</p>
               <span class="md-footer__direction">
                 Previous
               </span>
-              Overview
+              LeakCanary API
             </div>
           </div>
         </a>

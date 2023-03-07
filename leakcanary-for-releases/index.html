@@ -707,7 +707,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -729,7 +729,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -828,218 +828,205 @@ artifact name and the APIs may change.</p>
 </div>
 <h2 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
 <p>LeakCanary provides an artifact dedicated to detecting leaks in release builds:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="c1">// LeakCanary for releases</span>
-  <span class="n">releaseImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-release:2.10&#39;</span>
-  <span class="c1">// Optional: detect retained objects. This helps but is not required.</span>
-  <span class="n">releaseImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.10&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  // LeakCanary for releases
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-android-release:2.10'
+  // Optional: detect retained objects. This helps but is not required.
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:2.10'
+}</code></p>
 <p>Here&rsquo;s a code example that runs a heap analysis when the screen is turned off or the app enters background, checking first if a <a href="https://firebase.google.com/products/remote-config">Firebase Remote Config</a> flag is turned on, and uploading the result to Bugsnag:</p>
-<div class="highlight"><pre><span></span><code><span class="k">import</span> <span class="nn">android.os.Process.THREAD_PRIORITY_BACKGROUND</span>
-<span class="k">import</span> <span class="nn">java.util.concurrent.Executors</span>
-<span class="k">import</span> <span class="nn">kotlin.concurrent.thread</span>
-<span class="k">import</span> <span class="nn">leakcanary.BackgroundTrigger</span>
-<span class="k">import</span> <span class="nn">leakcanary.HeapAnalysisClient</span>
-<span class="k">import</span> <span class="nn">leakcanary.HeapAnalysisConfig</span>
-<span class="k">import</span> <span class="nn">leakcanary.HeapAnalysisInterceptor</span>
-<span class="k">import</span> <span class="nn">leakcanary.HeapAnalysisInterceptor.Chain</span>
-<span class="k">import</span> <span class="nn">leakcanary.HeapAnalysisJob</span>
-<span class="k">import</span> <span class="nn">leakcanary.HeapAnalysisJob.Result.Done</span>
-<span class="k">import</span> <span class="nn">leakcanary.ScreenOffTrigger</span>
+<p>```kotlin
+import android.os.Process.THREAD_PRIORITY_BACKGROUND
+import java.util.concurrent.Executors
+import kotlin.concurrent.thread
+import leakcanary.BackgroundTrigger
+import leakcanary.HeapAnalysisClient
+import leakcanary.HeapAnalysisConfig
+import leakcanary.HeapAnalysisInterceptor
+import leakcanary.HeapAnalysisInterceptor.Chain
+import leakcanary.HeapAnalysisJob
+import leakcanary.HeapAnalysisJob.Result.Done
+import leakcanary.ScreenOffTrigger</p>
+<p>class ReleaseExampleApplication : ExampleApplication() {</p>
+<p>override fun onCreate() {
+    super.onCreate()</p>
+<div class="codehilite"><pre><span></span><code>// Delete any remaining heap dump (if we crashed)
+analysisExecutor.execute {
+  analysisClient.deleteHeapDumpFiles()
+}
 
-<span class="kd">class</span> <span class="nc">ReleaseExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+// Starts heap analysis on background importance
+BackgroundTrigger(
+  application = this,
+  analysisClient = analysisClient,
+  analysisExecutor = analysisExecutor,
+  analysisCallback = analysisCallback
+).start()
 
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
-
-    <span class="c1">// Delete any remaining heap dump (if we crashed)</span>
-    <span class="n">analysisExecutor</span><span class="p">.</span><span class="na">execute</span> <span class="p">{</span>
-      <span class="n">analysisClient</span><span class="p">.</span><span class="na">deleteHeapDumpFiles</span><span class="p">()</span>
-    <span class="p">}</span>
-
-    <span class="c1">// Starts heap analysis on background importance</span>
-    <span class="n">BackgroundTrigger</span><span class="p">(</span>
-      <span class="n">application</span> <span class="o">=</span> <span class="k">this</span><span class="p">,</span>
-      <span class="n">analysisClient</span> <span class="o">=</span> <span class="n">analysisClient</span><span class="p">,</span>
-      <span class="n">analysisExecutor</span> <span class="o">=</span> <span class="n">analysisExecutor</span><span class="p">,</span>
-      <span class="n">analysisCallback</span> <span class="o">=</span> <span class="n">analysisCallback</span>
-    <span class="p">).</span><span class="na">start</span><span class="p">()</span>
-
-    <span class="c1">// Starts heap analysis when screen off</span>
-    <span class="n">ScreenOffTrigger</span><span class="p">(</span>
-      <span class="n">application</span> <span class="o">=</span> <span class="k">this</span><span class="p">,</span>
-      <span class="n">analysisClient</span> <span class="o">=</span> <span class="n">analysisClient</span><span class="p">,</span>
-      <span class="n">analysisExecutor</span> <span class="o">=</span> <span class="n">analysisExecutor</span><span class="p">,</span>
-      <span class="n">analysisCallback</span> <span class="o">=</span> <span class="n">analysisCallback</span>
-    <span class="p">).</span><span class="na">start</span><span class="p">()</span>
-  <span class="p">}</span>
-
-  <span class="cm">/**</span>
-<span class="cm">   * Call this to trigger heap analysis manually, e.g. from</span>
-<span class="cm">   * a help button.</span>
-<span class="cm">   *</span>
-<span class="cm">   * This method returns a `HeapAnalysisJob` on which you can</span>
-<span class="cm">   * call `HeapAnalysisJob.cancel()` at any time.</span>
-<span class="cm">   */</span>
-  <span class="kd">fun</span> <span class="nf">triggerHeapAnalysisNow</span><span class="p">():</span> <span class="n">HeapAnalysisJob</span> <span class="p">{</span>
-    <span class="kd">val</span> <span class="nv">job</span> <span class="o">=</span> <span class="n">analysisClient</span><span class="p">.</span><span class="na">newJob</span><span class="p">()</span>
-    <span class="n">analysisExecutor</span><span class="p">.</span><span class="na">execute</span> <span class="p">{</span>
-      <span class="kd">val</span> <span class="nv">result</span> <span class="o">=</span> <span class="n">job</span><span class="p">.</span><span class="na">execute</span><span class="p">()</span>
-      <span class="n">analysisCallback</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="n">job</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">analysisClient</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
-    <span class="n">HeapAnalysisClient</span><span class="p">(</span>
-      <span class="c1">// Use private app storage. cacheDir is never backed up which is important.</span>
-      <span class="n">heapDumpDirectoryProvider</span> <span class="o">=</span> <span class="p">{</span> <span class="n">cacheDir</span> <span class="p">},</span>
-      <span class="c1">// stripHeapDump: remove all user data from hprof before analysis.</span>
-      <span class="n">config</span> <span class="o">=</span> <span class="n">HeapAnalysisConfig</span><span class="p">(</span><span class="n">stripHeapDump</span> <span class="o">=</span> <span class="kc">true</span><span class="p">),</span>
-      <span class="c1">// Default interceptors may cancel analysis for several other reasons.</span>
-      <span class="n">interceptors</span> <span class="o">=</span> <span class="n">listOf</span><span class="p">(</span><span class="n">flagInterceptor</span><span class="p">)</span> <span class="o">+</span> <span class="n">HeapAnalysisClient</span><span class="p">.</span><span class="na">defaultInterceptors</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
-    <span class="p">)</span>
-  <span class="p">}</span>
-
-  <span class="c1">// Cancels heap analysis if &quot;heap_analysis_flag&quot; is false.</span>
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">flagInterceptor</span> <span class="o">=</span> <span class="k">object</span> <span class="p">:</span> <span class="nc">HeapAnalysisInterceptor</span> <span class="p">{</span>
-    <span class="kd">val</span> <span class="nv">remoteConfig</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span> <span class="n">FirebaseRemoteConfig</span><span class="p">.</span><span class="na">getInstance</span><span class="p">()</span> <span class="p">}</span>
-
-    <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">intercept</span><span class="p">(</span><span class="n">chain</span><span class="p">:</span> <span class="n">Chain</span><span class="p">):</span> <span class="n">HeapAnalysisJob</span><span class="p">.</span><span class="na">Result</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">remoteConfig</span><span class="p">.</span><span class="na">getBoolean</span><span class="p">(</span><span class="s">&quot;heap_analysis_flag&quot;</span><span class="p">))</span> <span class="p">{</span>
-        <span class="n">chain</span><span class="p">.</span><span class="na">job</span><span class="p">.</span><span class="na">cancel</span><span class="p">(</span><span class="s">&quot;heap_analysis_flag false&quot;</span><span class="p">)</span>
-      <span class="p">}</span>
-      <span class="k">return</span> <span class="n">chain</span><span class="p">.</span><span class="na">proceed</span><span class="p">()</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">analysisExecutor</span> <span class="o">=</span> <span class="n">Executors</span><span class="p">.</span><span class="na">newSingleThreadExecutor</span> <span class="p">{</span>
-    <span class="n">thread</span><span class="p">(</span><span class="n">start</span> <span class="o">=</span> <span class="kc">false</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Heap analysis executor&quot;</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">android</span><span class="p">.</span><span class="na">os</span><span class="p">.</span><span class="na">Process</span><span class="p">.</span><span class="na">setThreadPriority</span><span class="p">(</span><span class="n">THREAD_PRIORITY_BACKGROUND</span><span class="p">)</span>
-      <span class="nb">it</span><span class="p">.</span><span class="na">run</span><span class="p">()</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">analysisCallback</span><span class="p">:</span> <span class="p">(</span><span class="n">HeapAnalysisJob</span><span class="p">.</span><span class="na">Result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="p">{</span> <span class="n">result</span> <span class="o">-&gt;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">result</span> <span class="k">is</span> <span class="n">Done</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">uploader</span><span class="p">.</span><span class="na">upload</span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="na">analysis</span><span class="p">)</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">uploader</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
-    <span class="n">BugsnagLeakUploader</span><span class="p">(</span><span class="k">this</span><span class="nd">@ReleaseExampleApplication</span><span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+// Starts heap analysis when screen off
+ScreenOffTrigger(
+  application = this,
+  analysisClient = analysisClient,
+  analysisExecutor = analysisExecutor,
+  analysisCallback = analysisCallback
+).start()
 </code></pre></div>
+
+<p>}</p>
+<p>/**
+   * Call this to trigger heap analysis manually, e.g. from
+   * a help button.
+   *
+   * This method returns a <code>HeapAnalysisJob</code> on which you can
+   * call <code>HeapAnalysisJob.cancel()</code> at any time.
+   */
+  fun triggerHeapAnalysisNow(): HeapAnalysisJob {
+    val job = analysisClient.newJob()
+    analysisExecutor.execute {
+      val result = job.execute()
+      analysisCallback(result)
+    }
+    return job
+  }</p>
+<p>private val analysisClient by lazy {
+    HeapAnalysisClient(
+      // Use private app storage. cacheDir is never backed up which is important.
+      heapDumpDirectoryProvider = { cacheDir },
+      // stripHeapDump: remove all user data from hprof before analysis.
+      config = HeapAnalysisConfig(stripHeapDump = true),
+      // Default interceptors may cancel analysis for several other reasons.
+      interceptors = listOf(flagInterceptor) + HeapAnalysisClient.defaultInterceptors(this)
+    )
+  }</p>
+<p>// Cancels heap analysis if &ldquo;heap_analysis_flag&rdquo; is false.
+  private val flagInterceptor = object : HeapAnalysisInterceptor {
+    val remoteConfig by lazy { FirebaseRemoteConfig.getInstance() }</p>
+<div class="codehilite"><pre><span></span><code>override fun intercept(chain: Chain): HeapAnalysisJob.Result {
+  if (remoteConfig.getBoolean(&quot;heap_analysis_flag&quot;)) {
+    chain.job.cancel(&quot;heap_analysis_flag false&quot;)
+  }
+  return chain.proceed()
+}
+</code></pre></div>
+
+<p>}</p>
+<p>private val analysisExecutor = Executors.newSingleThreadExecutor {
+    thread(start = false, name = &ldquo;Heap analysis executor&rdquo;) {
+      android.os.Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND)
+      it.run()
+    }
+  }</p>
+<p>private val analysisCallback: (HeapAnalysisJob.Result) -&gt; Unit = { result -&gt;
+    if (result is Done) {
+      uploader.upload(result.analysis)
+    }
+  }</p>
+<p>private val uploader by lazy {
+    BugsnagLeakUploader(this@ReleaseExampleApplication)
+  }
+}
+```</p>
 <p>Here&rsquo;s the <code>BugsnagLeakUploader</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="k">import</span> <span class="nn">android.app.Application</span>
-<span class="k">import</span> <span class="nn">com.bugsnag.android.Bugsnag</span>
-<span class="k">import</span> <span class="nn">com.bugsnag.android.Configuration</span>
-<span class="k">import</span> <span class="nn">com.bugsnag.android.ErrorTypes</span>
-<span class="k">import</span> <span class="nn">com.bugsnag.android.Event</span>
-<span class="k">import</span> <span class="nn">com.bugsnag.android.ThreadSendPolicy</span>
-<span class="k">import</span> <span class="nn">shark.HeapAnalysis</span>
-<span class="k">import</span> <span class="nn">shark.HeapAnalysisFailure</span>
-<span class="k">import</span> <span class="nn">shark.HeapAnalysisSuccess</span>
-<span class="k">import</span> <span class="nn">shark.Leak</span>
-<span class="k">import</span> <span class="nn">shark.LeakTrace</span>
-<span class="k">import</span> <span class="nn">shark.LeakTraceReference</span>
-<span class="k">import</span> <span class="nn">shark.LibraryLeak</span>
-
-<span class="kd">class</span> <span class="nc">BugsnagLeakUploader</span><span class="p">(</span><span class="n">applicationContext</span><span class="p">:</span> <span class="n">Application</span><span class="p">)</span> <span class="p">{</span>
-
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">bugsnagClient</span> <span class="o">=</span> <span class="n">Bugsnag</span><span class="p">.</span><span class="na">start</span><span class="p">(</span>
-    <span class="n">applicationContext</span><span class="p">,</span>
-    <span class="n">Configuration</span><span class="p">(</span><span class="s">&quot;YOUR_BUGSNAG_API_KEY&quot;</span><span class="p">).</span><span class="na">apply</span> <span class="p">{</span>
-      <span class="n">enabledErrorTypes</span> <span class="o">=</span> <span class="n">ErrorTypes</span><span class="p">(</span>
-        <span class="n">anrs</span> <span class="o">=</span> <span class="kc">false</span><span class="p">,</span>
-        <span class="n">ndkCrashes</span> <span class="o">=</span> <span class="kc">false</span><span class="p">,</span>
-        <span class="n">unhandledExceptions</span> <span class="o">=</span> <span class="kc">false</span><span class="p">,</span>
-        <span class="n">unhandledRejections</span> <span class="o">=</span> <span class="kc">false</span>
-      <span class="p">)</span>
-      <span class="n">sendThreads</span> <span class="o">=</span> <span class="n">ThreadSendPolicy</span><span class="p">.</span><span class="na">NEVER</span>
-    <span class="p">}</span>
-  <span class="p">)</span>
-
-  <span class="kd">fun</span> <span class="nf">upload</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysis</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">when</span> <span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">is</span> <span class="n">HeapAnalysisSuccess</span> <span class="o">-&gt;</span> <span class="p">{</span>
-        <span class="kd">val</span> <span class="nv">allLeakTraces</span> <span class="o">=</span> <span class="n">heapAnalysis</span>
-          <span class="p">.</span><span class="na">allLeaks</span>
-          <span class="p">.</span><span class="na">toList</span><span class="p">()</span>
-          <span class="p">.</span><span class="na">flatMap</span> <span class="p">{</span> <span class="n">leak</span> <span class="o">-&gt;</span>
-            <span class="n">leak</span><span class="p">.</span><span class="na">leakTraces</span><span class="p">.</span><span class="na">map</span> <span class="p">{</span> <span class="n">leakTrace</span> <span class="o">-&gt;</span> <span class="n">leak</span> <span class="n">to</span> <span class="n">leakTrace</span> <span class="p">}</span>
-          <span class="p">}</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">allLeakTraces</span><span class="p">.</span><span class="na">isEmpty</span><span class="p">())</span> <span class="p">{</span>
-          <span class="c1">// Track how often we perform a heap analysis that yields no result.</span>
-          <span class="n">bugsnagClient</span><span class="p">.</span><span class="na">notify</span><span class="p">(</span><span class="n">NoLeakException</span><span class="p">())</span> <span class="p">{</span> <span class="n">event</span> <span class="o">-&gt;</span>
-            <span class="n">event</span><span class="p">.</span><span class="na">addHeapAnalysis</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
-            <span class="kc">true</span>
-          <span class="p">}</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-          <span class="n">allLeakTraces</span><span class="p">.</span><span class="na">forEach</span> <span class="p">{</span> <span class="p">(</span><span class="n">leak</span><span class="p">,</span> <span class="n">leakTrace</span><span class="p">)</span> <span class="o">-&gt;</span>
-            <span class="kd">val</span> <span class="nv">message</span> <span class="o">=</span> <span class="s">&quot;Memory leak: </span><span class="si">${</span><span class="n">leak</span><span class="p">.</span><span class="na">shortDescription</span><span class="si">}</span><span class="s">. See LEAK tab.&quot;</span>
-            <span class="kd">val</span> <span class="nv">exception</span> <span class="o">=</span> <span class="n">leakTrace</span><span class="p">.</span><span class="na">asFakeException</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-            <span class="n">bugsnagClient</span><span class="p">.</span><span class="na">notify</span><span class="p">(</span><span class="n">exception</span><span class="p">)</span> <span class="p">{</span> <span class="n">event</span> <span class="o">-&gt;</span>
-              <span class="n">event</span><span class="p">.</span><span class="na">addHeapAnalysis</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
-              <span class="n">event</span><span class="p">.</span><span class="na">addLeak</span><span class="p">(</span><span class="n">leak</span><span class="p">)</span>
-              <span class="n">event</span><span class="p">.</span><span class="na">addLeakTrace</span><span class="p">(</span><span class="n">leakTrace</span><span class="p">)</span>
-              <span class="n">event</span><span class="p">.</span><span class="na">groupingHash</span> <span class="o">=</span> <span class="n">leak</span><span class="p">.</span><span class="na">signature</span>
-              <span class="kc">true</span>
-            <span class="p">}</span>
-          <span class="p">}</span>
-        <span class="p">}</span>
-      <span class="p">}</span>
-      <span class="k">is</span> <span class="n">HeapAnalysisFailure</span> <span class="o">-&gt;</span> <span class="p">{</span>
-        <span class="c1">// Please file any reported failure to</span>
-        <span class="c1">// https://github.com/square/leakcanary/issues</span>
-        <span class="n">bugsnagClient</span><span class="p">.</span><span class="na">notify</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">.</span><span class="na">exception</span><span class="p">)</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kd">class</span> <span class="nc">NoLeakException</span> <span class="p">:</span> <span class="n">RuntimeException</span><span class="p">()</span>
-
-  <span class="kd">private</span> <span class="kd">fun</span> <span class="n">Event</span><span class="p">.</span><span class="nf">addHeapAnalysis</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysisSuccess</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">addMetadata</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;heapDumpPath&quot;</span><span class="p">,</span> <span class="n">heapAnalysis</span><span class="p">.</span><span class="na">heapDumpFile</span><span class="p">.</span><span class="na">absolutePath</span><span class="p">)</span>
-    <span class="n">heapAnalysis</span><span class="p">.</span><span class="na">metadata</span><span class="p">.</span><span class="na">forEach</span> <span class="p">{</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span>
-      <span class="n">addMetadata</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-    <span class="p">}</span>
-    <span class="n">addMetadata</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;analysisDurationMs&quot;</span><span class="p">,</span> <span class="n">heapAnalysis</span><span class="p">.</span><span class="na">analysisDurationMillis</span><span class="p">)</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">fun</span> <span class="n">Event</span><span class="p">.</span><span class="nf">addLeak</span><span class="p">(</span><span class="n">leak</span><span class="p">:</span> <span class="n">Leak</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">addMetadata</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;libraryLeak&quot;</span><span class="p">,</span> <span class="n">leak</span> <span class="k">is</span> <span class="n">LibraryLeak</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">leak</span> <span class="k">is</span> <span class="n">LibraryLeak</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">addMetadata</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;libraryLeakPattern&quot;</span><span class="p">,</span> <span class="n">leak</span><span class="p">.</span><span class="na">pattern</span><span class="p">.</span><span class="na">toString</span><span class="p">())</span>
-      <span class="n">addMetadata</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;libraryLeakDescription&quot;</span><span class="p">,</span> <span class="n">leak</span><span class="p">.</span><span class="na">description</span><span class="p">)</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">fun</span> <span class="n">Event</span><span class="p">.</span><span class="nf">addLeakTrace</span><span class="p">(</span><span class="n">leakTrace</span><span class="p">:</span> <span class="n">LeakTrace</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">addMetadata</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;retainedHeapByteSize&quot;</span><span class="p">,</span> <span class="n">leakTrace</span><span class="p">.</span><span class="na">retainedHeapByteSize</span><span class="p">)</span>
-    <span class="n">addMetadata</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;signature&quot;</span><span class="p">,</span> <span class="n">leakTrace</span><span class="p">.</span><span class="na">signature</span><span class="p">)</span>
-    <span class="n">addMetadata</span><span class="p">(</span><span class="s">&quot;Leak&quot;</span><span class="p">,</span> <span class="s">&quot;leakTrace&quot;</span><span class="p">,</span> <span class="n">leakTrace</span><span class="p">.</span><span class="na">toString</span><span class="p">())</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">fun</span> <span class="n">LeakTrace</span><span class="p">.</span><span class="nf">asFakeException</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="kt">String</span><span class="p">):</span> <span class="n">RuntimeException</span> <span class="p">{</span>
-    <span class="kd">val</span> <span class="nv">exception</span> <span class="o">=</span> <span class="n">RuntimeException</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-    <span class="kd">val</span> <span class="nv">stackTrace</span> <span class="o">=</span> <span class="n">mutableListOf</span><span class="o">&lt;</span><span class="n">StackTraceElement</span><span class="o">&gt;</span><span class="p">()</span>
-    <span class="n">stackTrace</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">StackTraceElement</span><span class="p">(</span><span class="s">&quot;GcRoot&quot;</span><span class="p">,</span> <span class="n">gcRootType</span><span class="p">.</span><span class="na">name</span><span class="p">,</span> <span class="s">&quot;GcRoot.kt&quot;</span><span class="p">,</span> <span class="m">42</span><span class="p">))</span>
-    <span class="k">for</span> <span class="p">(</span><span class="n">cause</span> <span class="k">in</span> <span class="n">referencePath</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">stackTrace</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">buildStackTraceElement</span><span class="p">(</span><span class="n">cause</span><span class="p">))</span>
-    <span class="p">}</span>
-    <span class="n">exception</span><span class="p">.</span><span class="na">stackTrace</span> <span class="o">=</span> <span class="n">stackTrace</span><span class="p">.</span><span class="na">toTypedArray</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">exception</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">fun</span> <span class="nf">buildStackTraceElement</span><span class="p">(</span><span class="n">reference</span><span class="p">:</span> <span class="n">LeakTraceReference</span><span class="p">):</span> <span class="n">StackTraceElement</span> <span class="p">{</span>
-    <span class="kd">val</span> <span class="nv">file</span> <span class="o">=</span> <span class="n">reference</span><span class="p">.</span><span class="na">owningClassName</span><span class="p">.</span><span class="na">substringAfterLast</span><span class="p">(</span><span class="s">&quot;.&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;.kt&quot;</span>
-    <span class="k">return</span> <span class="n">StackTraceElement</span><span class="p">(</span><span class="n">reference</span><span class="p">.</span><span class="na">owningClassName</span><span class="p">,</span> <span class="n">reference</span><span class="p">.</span><span class="na">referenceDisplayName</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="m">42</span><span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+import android.app.Application
+import com.bugsnag.android.Bugsnag
+import com.bugsnag.android.Configuration
+import com.bugsnag.android.ErrorTypes
+import com.bugsnag.android.Event
+import com.bugsnag.android.ThreadSendPolicy
+import shark.HeapAnalysis
+import shark.HeapAnalysisFailure
+import shark.HeapAnalysisSuccess
+import shark.Leak
+import shark.LeakTrace
+import shark.LeakTraceReference
+import shark.LibraryLeak</p>
+<p>class BugsnagLeakUploader(applicationContext: Application) {</p>
+<p>private val bugsnagClient = Bugsnag.start(
+    applicationContext,
+    Configuration(&ldquo;YOUR_BUGSNAG_API_KEY&rdquo;).apply {
+      enabledErrorTypes = ErrorTypes(
+        anrs = false,
+        ndkCrashes = false,
+        unhandledExceptions = false,
+        unhandledRejections = false
+      )
+      sendThreads = ThreadSendPolicy.NEVER
+    }
+  )</p>
+<p>fun upload(heapAnalysis: HeapAnalysis) {
+    when (heapAnalysis) {
+      is HeapAnalysisSuccess -&gt; {
+        val allLeakTraces = heapAnalysis
+          .allLeaks
+          .toList()
+          .flatMap { leak -&gt;
+            leak.leakTraces.map { leakTrace -&gt; leak to leakTrace }
+          }
+        if (allLeakTraces.isEmpty()) {
+          // Track how often we perform a heap analysis that yields no result.
+          bugsnagClient.notify(NoLeakException()) { event -&gt;
+            event.addHeapAnalysis(heapAnalysis)
+            true
+          }
+        } else {
+          allLeakTraces.forEach { (leak, leakTrace) -&gt;
+            val message = &ldquo;Memory leak: ${leak.shortDescription}. See LEAK tab.&rdquo;
+            val exception = leakTrace.asFakeException(message)
+            bugsnagClient.notify(exception) { event -&gt;
+              event.addHeapAnalysis(heapAnalysis)
+              event.addLeak(leak)
+              event.addLeakTrace(leakTrace)
+              event.groupingHash = leak.signature
+              true
+            }
+          }
+        }
+      }
+      is HeapAnalysisFailure -&gt; {
+        // Please file any reported failure to
+        // <a href="https://github.com/square/leakcanary/issues">https://github.com/square/leakcanary/issues</a>
+        bugsnagClient.notify(heapAnalysis.exception)
+      }
+    }
+  }</p>
+<p>class NoLeakException : RuntimeException()</p>
+<p>private fun Event.addHeapAnalysis(heapAnalysis: HeapAnalysisSuccess) {
+    addMetadata(&ldquo;Leak&rdquo;, &ldquo;heapDumpPath&rdquo;, heapAnalysis.heapDumpFile.absolutePath)
+    heapAnalysis.metadata.forEach { (key, value) -&gt;
+      addMetadata(&ldquo;Leak&rdquo;, key, value)
+    }
+    addMetadata(&ldquo;Leak&rdquo;, &ldquo;analysisDurationMs&rdquo;, heapAnalysis.analysisDurationMillis)
+  }</p>
+<p>private fun Event.addLeak(leak: Leak) {
+    addMetadata(&ldquo;Leak&rdquo;, &ldquo;libraryLeak&rdquo;, leak is LibraryLeak)
+    if (leak is LibraryLeak) {
+      addMetadata(&ldquo;Leak&rdquo;, &ldquo;libraryLeakPattern&rdquo;, leak.pattern.toString())
+      addMetadata(&ldquo;Leak&rdquo;, &ldquo;libraryLeakDescription&rdquo;, leak.description)
+    }
+  }</p>
+<p>private fun Event.addLeakTrace(leakTrace: LeakTrace) {
+    addMetadata(&ldquo;Leak&rdquo;, &ldquo;retainedHeapByteSize&rdquo;, leakTrace.retainedHeapByteSize)
+    addMetadata(&ldquo;Leak&rdquo;, &ldquo;signature&rdquo;, leakTrace.signature)
+    addMetadata(&ldquo;Leak&rdquo;, &ldquo;leakTrace&rdquo;, leakTrace.toString())
+  }</p>
+<p>private fun LeakTrace.asFakeException(message: String): RuntimeException {
+    val exception = RuntimeException(message)
+    val stackTrace = mutableListOf<StackTraceElement>()
+    stackTrace.add(StackTraceElement(&ldquo;GcRoot&rdquo;, gcRootType.name, &ldquo;GcRoot.kt&rdquo;, 42))
+    for (cause in referencePath) {
+      stackTrace.add(buildStackTraceElement(cause))
+    }
+    exception.stackTrace = stackTrace.toTypedArray()
+    return exception
+  }</p>
+<p>private fun buildStackTraceElement(reference: LeakTraceReference): StackTraceElement {
+    val file = reference.owningClassName.substringAfterLast(&ldquo;.&rdquo;) + &ldquo;.kt&rdquo;
+    return StackTraceElement(reference.owningClassName, reference.referenceDisplayName, file, 42)
+  }
+}
+```</p>
   
 
             </article>

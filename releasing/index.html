@@ -637,43 +637,8 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#set-up-your-home-gradleproperties" class="md-nav__link">
-    Set up your home gradle.properties
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#set-up-the-google-analytics-docs-key" class="md-nav__link">
-    Set up the Google Analytics docs key
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#set-up-github-cli" class="md-nav__link">
-    Set up GitHub CLI
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-the-doc-generation-dependencies" class="md-nav__link">
-    Install the doc generation dependencies
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#releasing" class="md-nav__link">
-    Releasing
-  </a>
   
 </li>
       
@@ -761,7 +726,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -783,7 +748,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -853,43 +818,8 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#set-up-your-home-gradleproperties" class="md-nav__link">
-    Set up your home gradle.properties
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#set-up-the-google-analytics-docs-key" class="md-nav__link">
-    Set up the Google Analytics docs key
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#set-up-github-cli" class="md-nav__link">
-    Set up GitHub CLI
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-the-doc-generation-dependencies" class="md-nav__link">
-    Install the doc generation dependencies
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#releasing" class="md-nav__link">
-    Releasing
-  </a>
   
 </li>
       
@@ -922,149 +852,146 @@
 <li>Then ask someone with deployer role from the LeakCanary team to confirm access.</li>
 </ul>
 <h3 id="set-up-your-signing-key">Set up your signing key<a class="headerlink" href="#set-up-your-signing-key" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># Create a new key</span>
-gpg --gen-key
-<span class="c1"># List local keys. Key id is last 8 characters</span>
-gpg -K
-<span class="nb">cd</span> ~/.gnupg
-<span class="c1"># Export key locally</span>
-gpg --export-secret-keys -o secring.gpg
-<span class="c1"># Upload key to Ubuntu servers</span>
-gpg --send-keys --keyserver keyserver.ubuntu.com &lt;KEY ID&gt;
-<span class="c1"># Confirm the key can now be found</span>
-gpg --recv-keys --keyserver keyserver.ubuntu.com &lt;KEY ID&gt;
-</code></pre></div>
+<p>```bash</p>
+<h1 id="create-a-new-key">Create a new key<a class="headerlink" href="#create-a-new-key" title="Permanent link">&para;</a></h1>
+<p>gpg &ndash;gen-key</p>
+<h1 id="list-local-keys-key-id-is-last-8-characters">List local keys. Key id is last 8 characters<a class="headerlink" href="#list-local-keys-key-id-is-last-8-characters" title="Permanent link">&para;</a></h1>
+<p>gpg -K
+cd ~/.gnupg</p>
+<h1 id="export-key-locally">Export key locally<a class="headerlink" href="#export-key-locally" title="Permanent link">&para;</a></h1>
+<p>gpg &ndash;export-secret-keys -o secring.gpg</p>
+<h1 id="upload-key-to-ubuntu-servers">Upload key to Ubuntu servers<a class="headerlink" href="#upload-key-to-ubuntu-servers" title="Permanent link">&para;</a></h1>
+<p>gpg &ndash;send-keys &ndash;keyserver keyserver.ubuntu.com <KEY ID></p>
+<h1 id="confirm-the-key-can-now-be-found">Confirm the key can now be found<a class="headerlink" href="#confirm-the-key-can-now-be-found" title="Permanent link">&para;</a></h1>
+<p>gpg &ndash;recv-keys &ndash;keyserver keyserver.ubuntu.com <KEY ID>
+```</p>
 <h3 id="set-up-your-home-gradleproperties">Set up your home gradle.properties<a class="headerlink" href="#set-up-your-home-gradleproperties" title="Permanent link">&para;</a></h3>
 <p>Add this to your <code>~/.gradle/gradle.properties</code>:</p>
-<div class="highlight"><pre><span></span><code>signing.keyId=&lt;KEY ID&gt;
+<p><code>signing.keyId=&lt;KEY ID&gt;
 signing.password=&lt;KEY PASSWORD&gt;
 signing.secretKeyRingFile=/Users/YOUR_USERNAME_/.gnupg/secring.gpg
 SONATYPE_NEXUS_USERNAME=&lt;SONATYPE_USERNAME&gt;
-SONATYPE_NEXUS_PASSWORD=&lt;SONATYPE_PASSWORD&gt;
-</code></pre></div>
+SONATYPE_NEXUS_PASSWORD=&lt;SONATYPE_PASSWORD&gt;</code></p>
 <h3 id="set-up-the-google-analytics-docs-key">Set up the Google Analytics docs key<a class="headerlink" href="#set-up-the-google-analytics-docs-key" title="Permanent link">&para;</a></h3>
 <p>Add this to your <code>~/.bashrc</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">export</span> <span class="nv">LEAKCANARY_GOOGLE_ANALYTICS_KEY</span><span class="o">=</span><span class="s2">&quot;UA-142834539-1&quot;</span>
-</code></pre></div>
+<p><code>bash
+export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-142834539-1"</code></p>
 <h3 id="set-up-github-cli">Set up GitHub CLI<a class="headerlink" href="#set-up-github-cli" title="Permanent link">&para;</a></h3>
 <p>Install GitHub CLI</p>
-<div class="highlight"><pre><span></span><code>brew install gh
-</code></pre></div>
+<p><code>bash
+brew install gh</code></p>
 <p>Install jq, a CLI Json processor</p>
-<div class="highlight"><pre><span></span><code>brew install jq
-</code></pre></div>
+<p><code>bash
+brew install jq</code></p>
 <p>Set up aliases for milestone management:</p>
-<div class="highlight"><pre><span></span><code>gh <span class="nb">alias</span> <span class="nb">set</span> listOpenMilestones <span class="s2">&quot;api graphql -F owner=&#39;:owner&#39; -F name=&#39;:repo&#39; -f query=&#39;</span>
-<span class="s2">    query ListOpenMilestones(\$name: String\!, \$owner: String\!) {</span>
-<span class="s2">        repository(owner: \$owner, name: \$name) {</span>
-<span class="s2">            milestones(first: 100, states: OPEN) {</span>
-<span class="s2">                nodes {</span>
-<span class="s2">                    title</span>
-<span class="s2">                    number</span>
-<span class="s2">                    description</span>
-<span class="s2">                    dueOn</span>
-<span class="s2">                    url</span>
-<span class="s2">                    state</span>
-<span class="s2">                    closed</span>
-<span class="s2">                    closedAt</span>
-<span class="s2">                    updatedAt</span>
-<span class="s2">                }</span>
-<span class="s2">            }</span>
-<span class="s2">        }</span>
-<span class="s2">    }</span>
-<span class="s2">&#39;&quot;</span>
-
-gh <span class="nb">alias</span> <span class="nb">set</span> --shell createMilestone <span class="s2">&quot;gh api --method POST repos/:owner/:repo/milestones --input - | jq &#39;{ html_url: .html_url, state: .state, created_at: .created_at }&#39;&quot;</span>
-
-gh <span class="nb">alias</span> <span class="nb">set</span> --shell closeMilestone <span class="s2">&quot;echo &#39;{\&quot;state\&quot;: \&quot;closed\&quot;}&#39; | gh api --method PATCH repos/:owner/:repo/milestones/\$1 --input - | jq &#39;{ html_url: .html_url, state: .state, closed_at: .closed_at }&#39;&quot;</span>
-</code></pre></div>
+<p>```bash
+gh alias set listOpenMilestones &ldquo;api graphql -F owner=&rsquo;:owner&rsquo; -F name=&rsquo;:repo&rsquo; -f query=&rsquo;
+    query ListOpenMilestones(\$name: String!, \$owner: String!) {
+        repository(owner: \$owner, name: \$name) {
+            milestones(first: 100, states: OPEN) {
+                nodes {
+                    title
+                    number
+                    description
+                    dueOn
+                    url
+                    state
+                    closed
+                    closedAt
+                    updatedAt
+                }
+            }
+        }
+    }
+&lsquo;&ldquo;</p>
+<p>gh alias set &ndash;shell createMilestone &ldquo;gh api &ndash;method POST repos/:owner/:repo/milestones &ndash;input - | jq &lsquo;{ html_url: .html_url, state: .state, created_at: .created_at }&rsquo;&ldquo;</p>
+<p>gh alias set &ndash;shell closeMilestone &ldquo;echo &lsquo;{"state": "closed"}&rsquo; | gh api &ndash;method PATCH repos/:owner/:repo/milestones/\$1 &ndash;input - | jq &lsquo;{ html_url: .html_url, state: .state, closed_at: .closed_at }&rsquo;&rdquo;
+```</p>
 <h3 id="install-the-doc-generation-dependencies">Install the doc generation dependencies<a class="headerlink" href="#install-the-doc-generation-dependencies" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>pip3 install mkdocs-material mkdocs-markdownextradata-plugin
-</code></pre></div>
+<p><code>bash
+pip3 install mkdocs-material mkdocs-markdownextradata-plugin</code></p>
 <h2 id="releasing">Releasing<a class="headerlink" href="#releasing" title="Permanent link">&para;</a></h2>
 <ul>
 <li>
 <p>Create a local release branch from <code>main</code>
-<div class="highlight"><pre><span></span><code>git checkout main <span class="o">&amp;&amp;</span> <span class="se">\</span>
-git pull <span class="o">&amp;&amp;</span> <span class="se">\</span>
-git checkout -b release_2.11
-</code></pre></div></p>
+<code>bash
+git checkout main &amp;&amp; \
+git pull &amp;&amp; \
+git checkout -b release_2.11</code></p>
 </li>
 <li>
 <p>Update <code>VERSION_NAME</code> in <code>gradle.properties</code> (remove <code>-SNAPSHOT</code>)
-<div class="highlight"><pre><span></span><code>sed -i &#39;&#39; &#39;s/VERSION_NAME=2.11-SNAPSHOT/VERSION_NAME=2.11/&#39; gradle.properties
-</code></pre></div></p>
+<code>gradle
+sed -i '' 's/VERSION_NAME=2.11-SNAPSHOT/VERSION_NAME=2.11/' gradle.properties</code></p>
 </li>
 <li>
 <p>Update the current version and next version in <code>mkdocs.yml</code>
-<div class="highlight"><pre><span></span><code>sed -i <span class="s1">&#39;&#39;</span> <span class="s1">&#39;s/2.11/NEXT/&#39;</span> mkdocs.yml
-sed -i <span class="s1">&#39;&#39;</span> <span class="s1">&#39;s/2.10/2.11/&#39;</span> mkdocs.yml
-</code></pre></div></p>
+<code>bash
+sed -i '' 's/2.11/NEXT/' mkdocs.yml
+sed -i '' 's/2.10/2.11/' mkdocs.yml</code></p>
 </li>
 <li>
 <p>Create the release
-<div class="highlight"><pre><span></span><code>git commit -am <span class="s2">&quot;Prepare 2.11 release&quot;</span> <span class="o">&amp;&amp;</span> <span class="se">\</span>
-./gradlew clean <span class="o">&amp;&amp;</span> <span class="se">\</span>
-./gradlew build <span class="o">&amp;&amp;</span> <span class="se">\</span>
-git tag v2.11 <span class="o">&amp;&amp;</span> <span class="se">\</span>
-git push origin v2.11 <span class="o">&amp;&amp;</span> <span class="se">\</span>
-./gradlew publish --no-daemon --no-parallel <span class="o">&amp;&amp;</span> <span class="se">\</span>
-./gradlew closeAndReleaseRepository <span class="o">&amp;&amp;</span> <span class="se">\</span>
-./gradlew shark-cli:distZip
-</code></pre></div></p>
+<code>bash
+git commit -am "Prepare 2.11 release" &amp;&amp; \
+./gradlew clean &amp;&amp; \
+./gradlew build &amp;&amp; \
+git tag v2.11 &amp;&amp; \
+git push origin v2.11 &amp;&amp; \
+./gradlew publish --no-daemon --no-parallel &amp;&amp; \
+./gradlew closeAndReleaseRepository &amp;&amp; \
+./gradlew shark-cli:distZip</code></p>
 </li>
 </ul>
 <p>Note: if anything goes wrong, you can manually drop the release at <a href="https://s01.oss.sonatype.org/">https://s01.oss.sonatype.org/</a></p>
 <ul>
 <li>Merge back to main
-<div class="highlight"><pre><span></span><code>git checkout main <span class="o">&amp;&amp;</span> <span class="se">\</span>
-git pull <span class="o">&amp;&amp;</span> <span class="se">\</span>
-git merge --no-ff release_2.11
-</code></pre></div></li>
+<code>bash
+git checkout main &amp;&amp; \
+git pull &amp;&amp; \
+git merge --no-ff release_2.11</code></li>
 <li>
 <p>Update <code>VERSION_NAME</code> in <code>gradle.properties</code> (increase version and add <code>-SNAPSHOT</code>)
-<div class="highlight"><pre><span></span><code>sed -i &#39;&#39; &#39;s/VERSION_NAME=2.11/VERSION_NAME=NEXT-SNAPSHOT/&#39; gradle.properties
-</code></pre></div></p>
+<code>gradle
+sed -i '' 's/VERSION_NAME=2.11/VERSION_NAME=NEXT-SNAPSHOT/' gradle.properties</code></p>
 </li>
 <li>
 <p>Generate the Dokka docs
-<div class="highlight"><pre><span></span><code>rm -rf docs/api <span class="o">&amp;&amp;</span> <span class="se">\</span>
-./gradlew leakcanary-android-core:dokkaGfm leakcanary-android-instrumentation:dokkaGfm leakcanary-android-process:dokkaGfm leakcanary-object-watcher-android-core:dokkaGfm leakcanary-object-watcher:dokkaGfm shark-android:dokkaGfm shark-graph:dokkaGfm shark-hprof:dokkaGfm shark-log:dokkaGfm shark:dokkaGfm plumber-android:dokkaGfm leakcanary-android-release:dokkaGfm
-</code></pre></div></p>
+<code>bash
+rm -rf docs/api &amp;&amp; ./gradlew siteDokka</code></p>
 </li>
 <li>
 <p>Update the changelog (<a href="https://github.com/square/leakcanary/compare/v2.10...main">commit list</a>)
-<div class="highlight"><pre><span></span><code>mate docs/changelog.md
-</code></pre></div></p>
+<code>mate docs/changelog.md</code> </p>
 </li>
 <li>
-<p>Deploy the docs locally then <a href="http://127.0.0.1:8000/leakcanary/changelog/">open the changelog</a> and check everything looks good
-<div class="highlight"><pre><span></span><code>mkdocs serve
-</code></pre></div></p>
+<p>Deploy the docs locally then <a href="http://127.0.0.1:8000/changelog/">open the changelog</a> and check everything looks good
+<code>bash
+mkdocs serve</code></p>
 </li>
 <li>
 <p>Finish up the release</p>
 </li>
 </ul>
-<div class="highlight"><pre><span></span><code>git commit -am <span class="s2">&quot;Prepare for next development iteration&quot;</span> <span class="o">&amp;&amp;</span> <span class="se">\</span>
-git push <span class="o">&amp;&amp;</span> <span class="se">\</span>
-gh listOpenMilestones <span class="p">|</span> jq <span class="s1">&#39;.data.repository.milestones.nodes[0].number&#39;</span> <span class="p">|</span> xargs gh closeMilestone <span class="o">&amp;&amp;</span> <span class="se">\</span>
-<span class="nb">echo</span> <span class="s1">&#39;{</span>
-<span class="s1">  &quot;title&quot;: &quot;REPLACE_WITH_NEXT_VERSION_NUMBER&quot;,</span>
-<span class="s1">  &quot;state&quot;: &quot;open&quot;,</span>
-<span class="s1">  &quot;description&quot;: &quot;&quot;</span>
-<span class="s1">}&#39;</span> <span class="p">|</span> gh createMilestone <span class="o">&amp;&amp;</span> <span class="se">\</span>
+<p><code>bash
+git commit -am "Prepare for next development iteration" &amp;&amp; \
+git push &amp;&amp; \
+gh listOpenMilestones | jq '.data.repository.milestones.nodes[0].number' | xargs gh closeMilestone &amp;&amp; \
+echo '{
+  "title": "REPLACE_WITH_NEXT_VERSION_NUMBER",
+  "state": "open",
+  "description": ""
+}' | gh createMilestone &amp;&amp; \
 mkdocs gh-deploy
-gh release create v2.11 ./shark-cli/build/distributions/shark-cli-2.11.zip --title v2.11 --notes <span class="s1">&#39;See [Change Log](https://square.github.io/leakcanary/changelog)&#39;</span>
-</code></pre></div>
+gh release create v2.11 ./shark-cli/build/distributions/shark-cli-2.11.zip --title v2.11 --notes 'See [Change Log](https://square.github.io/leakcanary/changelog)'</code></p>
 <ul>
 <li>
 <p>Open the <a href="https://github.com/square/leakcanary/releases/tag/v2.11">v2.11 release</a> to confirm everything looks good.</p>
 </li>
 <li>
 <p>Upload shark-cli to <a href="https://brew.sh/">brew</a>:
-<div class="highlight"><pre><span></span><code>brew bump-formula-pr --url https://github.com/square/leakcanary/releases/download/v2.11/shark-cli-2.11.zip leakcanary-shark
-</code></pre></div></p>
+<code>bash
+brew bump-formula-pr --url https://github.com/square/leakcanary/releases/download/v2.11/shark-cli-2.11.zip leakcanary-shark</code></p>
 </li>
 <li>
 <p>Wait for the release to be available <a href="https://repo1.maven.org/maven2/com/squareup/leakcanary/leakcanary-android/">on Maven Central</a>.</p>

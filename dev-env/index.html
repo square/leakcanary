@@ -727,7 +727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -749,7 +749,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -864,24 +864,21 @@
 </ul>
 <h2 id="deploying-locally">Deploying locally<a class="headerlink" href="#deploying-locally" title="Permanent link">&para;</a></h2>
 <p>To deploy LeakCanary to your local maven repository, run the following command, changing the path to the path of your local repository:</p>
-<div class="highlight"><pre><span></span><code>./gradlew uploadArchives -PSNAPSHOT_REPOSITORY_URL=file:///Users/py/.m2/repository
-</code></pre></div>
+<p><code>./gradlew uploadArchives -PSNAPSHOT_REPOSITORY_URL=file:///Users/py/.m2/repository</code></p>
 <p>Then add the SNAPSHOT dependency and <code>mavenLocal()</code> repository to your project:</p>
-<div class="highlight"><pre><span></span><code>dependencies {
-  debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.11-SNAPSHOT&#39;
-}
-
-repositories {
+<p>```gradle
+dependencies {
+  debugImplementation &lsquo;com.squareup.leakcanary:leakcanary-android:2.11-SNAPSHOT&rsquo;
+}</p>
+<p>repositories {
   mavenLocal()
 }
-</code></pre></div>
+```</p>
 <h2 id="deploying-the-docs-locally">Deploying the docs locally<a class="headerlink" href="#deploying-the-docs-locally" title="Permanent link">&para;</a></h2>
 <p>Installing the markdownextradata plugin:</p>
-<div class="highlight"><pre><span></span><code>pip install mkdocs-markdownextradata-plugin
-</code></pre></div>
+<p><code>pip install mkdocs-markdownextradata-plugin</code></p>
 <p>Deploying locally</p>
-<div class="highlight"><pre><span></span><code>mkdocs serve
-</code></pre></div>
+<p><code>mkdocs serve</code></p>
   
 
             </article>

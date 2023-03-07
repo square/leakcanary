@@ -767,7 +767,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -789,7 +789,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -941,18 +941,18 @@
 </ol>
 <h2 id="how-do-i-know-if-leakcanary-is-running">How do I know if LeakCanary is running?<a class="headerlink" href="#how-do-i-know-if-leakcanary-is-running" title="Permanent link">&para;</a></h2>
 <p>You can confirm that LeakCanary starts correctly by filtering on the LeakCanary tag in Logcat:</p>
-<div class="highlight"><pre><span></span><code>$ adb logcat | grep LeakCanary
-
-D/LeakCanary: Installing AppWatcher
-</code></pre></div>
+<p>```
+$ adb logcat | grep LeakCanary</p>
+<p>D/LeakCanary: Installing AppWatcher
+```</p>
 <p>If you do not see <code>Installing AppWatcher</code> in the logs, check your dependencies (<code>./gradlew app:dependencies</code>) and make sure LeakCanary is there.</p>
 <p>Note that LeakCanary is automatically disabled in tests (see <a href="../recipes/#leakcanary-test-environment-detection">LeakCanary test environment detection</a>):</p>
-<div class="highlight"><pre><span></span><code>$ adb logcat | grep LeakCanary
-
-D/LeakCanary: Installing AppWatcher
+<p>```
+$ adb logcat | grep LeakCanary</p>
+<p>D/LeakCanary: Installing AppWatcher
 D/LeakCanary: JUnit detected in classpath, app is running tests =&gt; disabling heap dumping &amp; analysis
 D/LeakCanary: Updated LeakCanary.config: Config(dumpHeap=false)
-</code></pre></div>
+```</p>
 <h2 id="where-does-leakcanary-store-heap-dumps">Where does LeakCanary store heap dumps?<a class="headerlink" href="#where-does-leakcanary-store-heap-dumps" title="Permanent link">&para;</a></h2>
 <p>The default behavior is to store heap dumps in a <code>leakcanary</code> folder under the app directory. If the app has been granted the <code>android.permission.WRITE_EXTERNAL_STORAGE</code> permission, then heap dumps will be stored
 in a <code>leakcanary-com.example</code> folder (where <code>com.example</code> is your app package name) under the <code>Download</code> folder of the external storage. If the app has not been granted the <code>android.permission.WRITE_EXTERNAL_STORAGE</code> permission but that permission is listed in <code>AndroidManifest.xml</code> then LeakCanary will show a notification that can be tapped to grant permission.</p>
@@ -975,18 +975,18 @@ in a <code>leakcanary-com.example</code> folder (where <code>com.example</code> 
 <p><strong>0</strong>. LeakCanary is a debug only library.</p>
 <h2 id="how-do-i-use-the-snapshot-version">How do I use the SNAPSHOT version?<a class="headerlink" href="#how-do-i-use-the-snapshot-version" title="Permanent link">&para;</a></h2>
 <p>Update your dependencies to the latest SNAPSHOT (see <a href="https://github.com/square/leakcanary/blob/main/build.gradle">build.gradle</a>):</p>
-<div class="highlight"><pre><span></span><code>dependencies {
-  debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:2.11-SNAPSHOT&#39;
-}
-</code></pre></div>
+<p><code>gradle
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.11-SNAPSHOT'
+}</code></p>
 <p>Add Sonatype&rsquo;s <code>snapshots</code> repository:</p>
-<div class="highlight"><pre><span></span><code>repositories {
+<p><code>gradle
+repositories {
   mavenCentral()
   maven {
-    url &#39;https://s01.oss.sonatype.org/content/repositories/snapshots/&#39;
+    url 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
   }
-}
-</code></pre></div>
+}</code></p>
 <p>Status of the snapshot build: <a href="https://travis-ci.org/square/leakcanary"><img alt="Build Status" src="https://travis-ci.org/square/leakcanary.svg?branch=main" /></a></p>
 <h2 id="whos-behind-leakcanary">Who&rsquo;s behind LeakCanary?<a class="headerlink" href="#whos-behind-leakcanary" title="Permanent link">&para;</a></h2>
 <p>LeakCanary was created and open sourced by <a href="https://github.com/pyricau">@pyricau</a>, with <a href="https://github.com/square/leakcanary/graphs/contributors">many contributions</a> from the community.</p>

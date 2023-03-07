@@ -406,20 +406,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#test-rule-chains" class="md-nav__link">
-    Test rule chains
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#customizing-assertnoleak" class="md-nav__link">
-    Customizing assertNoLeak()
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -732,7 +718,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -754,7 +740,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -823,20 +809,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#test-rule-chains" class="md-nav__link">
-    Test rule chains
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#customizing-assertnoleak" class="md-nav__link">
-    Customizing assertNoLeak()
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -870,27 +842,26 @@ for UI tests, so LeakCanary is automatically disabled when JUnit is on the runti
 </div>
 <h2 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
 <p>LeakCanary provides an artifact dedicated to detecting leaks in UI tests:</p>
-<div class="highlight"><pre><span></span><code>androidTestImplementation &quot;com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}&quot;
-</code></pre></div>
+<p><code>androidTestImplementation "com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}"</code></p>
 <p>You can then call <code>LeakAssertions.assertNoLeak()</code> at any point in your tests to check for leaks:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
-
-  <span class="nd">@Test</span>
-  <span class="kd">fun</span> <span class="nf">addItemToCart</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// ...</span>
-    <span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+ class CartTest {</p>
+<p>@Test
+   fun addItemToCart() {
+     // &hellip;
+     LeakAssertions.assertNoLeak()
+   }
+ }
+ ```</p>
 <p>If retained instances are detected, LeakCanary will dump and analyze the heap. If application leaks
 are found, <code>LeakAssertions.assertNoLeak()</code> will throw a <code>NoLeakAssertionFailedError</code>.</p>
-<div class="highlight"><pre><span></span><code>leakcanary.NoLeakAssertionFailedError: Application memory leaks were detected:
+<p>```
+leakcanary.NoLeakAssertionFailedError: Application memory leaks were detected:
 ====================================
 HEAP ANALYSIS RESULT
 ====================================
-1 APPLICATION LEAKS
-
-┬───
+1 APPLICATION LEAKS</p>
+<p>┬───
 │ GC Root: System class
 │
 ├─ com.example.MySingleton class
@@ -906,7 +877,7 @@ HEAP ANALYSIS RESULT
   at leakcanary.AndroidDetectLeaksAssert.assertNoLeaks(AndroidDetectLeaksAssert.kt:34)
   at leakcanary.LeakAssertions.assertNoLeaks(LeakAssertions.kt:21)
   at com.example.CartTest.addItemToCart(TuPeuxPasTest.kt:41)
-</code></pre></div>
+```</p>
 <div class="admonition bug">
 <p class="admonition-title">Obfuscated instrumentation tests</p>
 <p>When running instrumentation tests against obfuscated release builds, the LeakCanary classes end
@@ -919,130 +890,129 @@ using code in the test APK being updated accordingly. If you run into this issue
 <h2 id="test-rule">Test rule<a class="headerlink" href="#test-rule" title="Permanent link">&para;</a></h2>
 <p>You can use the <code>DetectLeaksAfterTestSuccess</code> test rule to automatically call
  <code>LeakAssertions.assertNoLeak()</code> at the end of a test:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
-  <span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-  <span class="kd">val</span> <span class="nv">rule</span> <span class="o">=</span> <span class="n">DetectLeaksAfterTestSuccess</span><span class="p">()</span>
-
-  <span class="nd">@Test</span>
-  <span class="kd">fun</span> <span class="nf">addItemToCart</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// ...</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+ class CartTest {
+   @get:Rule
+   val rule = DetectLeaksAfterTestSuccess()</p>
+<p>@Test
+   fun addItemToCart() {
+     // &hellip;
+   }
+ }
+ ```</p>
 <p>You can call also <code>LeakAssertions.assertNoLeak()</code> as many times as you want in a single test:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
-  <span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-  <span class="kd">val</span> <span class="nv">rule</span> <span class="o">=</span> <span class="n">DetectLeaksAfterTestSuccess</span><span class="p">()</span>
-
-  <span class="c1">// This test has 3 leak assertions (2 in the test + 1 from the rule).</span>
-  <span class="nd">@Test</span>
-  <span class="kd">fun</span> <span class="nf">addItemToCart</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// ...</span>
-    <span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
-    <span class="c1">// ...</span>
-    <span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
-    <span class="c1">// ...</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+ class CartTest {
+   @get:Rule
+   val rule = DetectLeaksAfterTestSuccess()</p>
+<p>// This test has 3 leak assertions (2 in the test + 1 from the rule).
+   @Test
+   fun addItemToCart() {
+     // &hellip;
+     LeakAssertions.assertNoLeak()
+     // &hellip;
+     LeakAssertions.assertNoLeak()
+     // &hellip;
+   }
+ }
+ ```</p>
 <h2 id="skipping-leak-detection">Skipping leak detection<a class="headerlink" href="#skipping-leak-detection" title="Permanent link">&para;</a></h2>
 <p>Use <code>@SkipLeakDetection</code> to disable <code>LeakAssertions.assertNoLeak()</code> calls:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
-  <span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-  <span class="kd">val</span> <span class="nv">rule</span> <span class="o">=</span> <span class="n">DetectLeaksAfterTestSuccess</span><span class="p">()</span>
-
-  <span class="c1">// This test will not perform any leak assertion.</span>
-  <span class="nd">@SkipLeakDetection</span><span class="p">(</span><span class="s">&quot;See issue #1234&quot;</span><span class="p">)</span>
-  <span class="nd">@Test</span>
-  <span class="kd">fun</span> <span class="nf">addItemToCart</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// ...</span>
-    <span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
-    <span class="c1">// ...</span>
-    <span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
-    <span class="c1">// ...</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+ class CartTest {
+   @get:Rule
+   val rule = DetectLeaksAfterTestSuccess()</p>
+<p>// This test will not perform any leak assertion.
+   @SkipLeakDetection(&ldquo;See issue #1234&rdquo;)
+   @Test
+   fun addItemToCart() {
+     // &hellip;
+     LeakAssertions.assertNoLeak()
+     // &hellip;
+     LeakAssertions.assertNoLeak()
+     // &hellip;
+   }
+ }
+ ```</p>
 <p>You can use <strong>tags</strong> to identify each <code>LeakAssertions.assertNoLeak()</code> call and disable only a subset of these calls:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">CartTest</span> <span class="p">{</span>
-  <span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-  <span class="kd">val</span> <span class="nv">rule</span> <span class="o">=</span> <span class="n">DetectLeaksAfterTestSuccess</span><span class="p">(</span><span class="n">tag</span> <span class="o">=</span> <span class="s">&quot;EndOfTest&quot;</span><span class="p">)</span>
-
-  <span class="c1">// This test will only perform the second leak assertion.</span>
-  <span class="nd">@SkipLeakDetection</span><span class="p">(</span><span class="s">&quot;See issue #1234&quot;</span><span class="p">,</span> <span class="s">&quot;First Assertion&quot;</span><span class="p">,</span> <span class="s">&quot;EndOfTest&quot;</span><span class="p">)</span>
-  <span class="nd">@Test</span>
-  <span class="kd">fun</span> <span class="nf">addItemToCart</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// ...</span>
-    <span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">(</span><span class="n">tag</span> <span class="o">=</span> <span class="s">&quot;First Assertion&quot;</span><span class="p">)</span>
-    <span class="c1">// ...</span>
-    <span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">(</span><span class="n">tag</span> <span class="o">=</span> <span class="s">&quot;Second Assertion&quot;</span><span class="p">)</span>
-    <span class="c1">// ...</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+ class CartTest {
+   @get:Rule
+   val rule = DetectLeaksAfterTestSuccess(tag = &ldquo;EndOfTest&rdquo;)</p>
+<p>// This test will only perform the second leak assertion.
+   @SkipLeakDetection(&ldquo;See issue #1234&rdquo;, &ldquo;First Assertion&rdquo;, &ldquo;EndOfTest&rdquo;)
+   @Test
+   fun addItemToCart() {
+     // &hellip;
+     LeakAssertions.assertNoLeak(tag = &ldquo;First Assertion&rdquo;)
+     // &hellip;
+     LeakAssertions.assertNoLeak(tag = &ldquo;Second Assertion&rdquo;)
+     // &hellip;
+   }
+ }
+ ```</p>
 <p>Tags can be retrieved by calling <code>HeapAnalysisSuccess.assertionTag</code> and are also reported in the
 heap analysis result metadata:</p>
-<div class="highlight"><pre><span></span><code>====================================
-METADATA
-
-Please include this in bug reports and Stack Overflow questions.
-
-Build.VERSION.SDK_INT: 23
-...
+<h1 id="_1">```<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>METADATA</p>
+<p>Please include this in bug reports and Stack Overflow questions.</p>
+<p>Build.VERSION.SDK_INT: 23
+&hellip;
 assertionTag: Second Assertion
-</code></pre></div>
+```</p>
 <h2 id="test-rule-chains">Test rule chains<a class="headerlink" href="#test-rule-chains" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="c1">// Example test rule chain</span>
-<span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-<span class="kd">val</span> <span class="nv">rule</span> <span class="o">=</span> <span class="n">RuleChain</span><span class="p">.</span><span class="na">outerRule</span><span class="p">(</span><span class="n">LoginRule</span><span class="p">())</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">ActivityScenarioRule</span><span class="p">(</span><span class="n">CartActivity</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span><span class="p">))</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">LoadingScreenRule</span><span class="p">())</span>
-</code></pre></div>
+<p>```kotlin
+// Example test rule chain
+@get:Rule
+val rule = RuleChain.outerRule(LoginRule())
+  .around(ActivityScenarioRule(CartActivity::class.java))
+  .around(LoadingScreenRule())</p>
+<p>```</p>
 <p>If you use a test rule chain, the position of the <code>DetectLeaksAfterTestSuccess</code> rule in that chain
 could be significant. For example, if you use an <code>ActivityScenarioRule</code> that automatically
 finishes the activity at the end of a test, having <code>DetectLeaksAfterTestSuccess</code> around
 <code>ActivityScenarioRule</code> will detect leaks after the activity is destroyed and therefore detect any
 activity leak. But then  <code>DetectLeaksAfterTestSuccess</code> will not detect fragment leaks that go away
 when the activity is destroyed.</p>
-<div class="highlight"><pre><span></span><code><span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-<span class="kd">val</span> <span class="nv">rule</span> <span class="o">=</span> <span class="n">RuleChain</span><span class="p">.</span><span class="na">outerRule</span><span class="p">(</span><span class="n">LoginRule</span><span class="p">())</span>
-  <span class="c1">// Detect leaks AFTER activity is destroyed</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">(</span><span class="n">tag</span> <span class="o">=</span> <span class="s">&quot;AfterActivityDestroyed&quot;</span><span class="p">))</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">ActivityScenarioRule</span><span class="p">())</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">LoadingScreenRule</span><span class="p">())</span>
-</code></pre></div>
+<p><code>kotlin
+@get:Rule
+val rule = RuleChain.outerRule(LoginRule())
+  // Detect leaks AFTER activity is destroyed
+  .around(DetectLeaksAfterTestSuccess(tag = "AfterActivityDestroyed"))
+  .around(ActivityScenarioRule())
+  .around(LoadingScreenRule())</code></p>
 <p>If instead you set up <code>ActivityScenarioRule</code> around <code>DetectLeaksAfterTestSuccess</code>, destroyed
 activity leaks will not be detected as the activity will still be created when the leak assertion
 rule runs, but more fragment leaks might be detected.</p>
-<div class="highlight"><pre><span></span><code><span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-<span class="kd">val</span> <span class="nv">rule</span> <span class="o">=</span> <span class="n">RuleChain</span><span class="p">.</span><span class="na">outerRule</span><span class="p">(</span><span class="n">LoginRule</span><span class="p">())</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">ActivityScenarioRule</span><span class="p">(</span><span class="n">CartActivity</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span><span class="p">))</span>
-  <span class="c1">// Detect leaks BEFORE activity is destroyed</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">(</span><span class="n">tag</span> <span class="o">=</span> <span class="s">&quot;BeforeActivityDestroyed&quot;</span><span class="p">))</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">LoadingScreenRule</span><span class="p">())</span>
-</code></pre></div>
+<p><code>kotlin
+@get:Rule
+val rule = RuleChain.outerRule(LoginRule())
+  .around(ActivityScenarioRule(CartActivity::class.java))
+  // Detect leaks BEFORE activity is destroyed
+  .around(DetectLeaksAfterTestSuccess(tag = "BeforeActivityDestroyed"))
+  .around(LoadingScreenRule())</code></p>
 <p>To detect all leaks, the best option is to
 set up the <code>DetectLeaksAfterTestSuccess</code> rule twice, before and after the <code>ActivityScenarioRule</code>
 rule.</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Detect leaks BEFORE and AFTER activity is destroyed</span>
-<span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-<span class="kd">val</span> <span class="nv">rule</span> <span class="o">=</span> <span class="n">RuleChain</span><span class="p">.</span><span class="na">outerRule</span><span class="p">(</span><span class="n">LoginRule</span><span class="p">())</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">(</span><span class="n">tag</span> <span class="o">=</span> <span class="s">&quot;AfterActivityDestroyed&quot;</span><span class="p">))</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">ActivityScenarioRule</span><span class="p">(</span><span class="n">CartActivity</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span><span class="p">))</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">(</span><span class="n">tag</span> <span class="o">=</span> <span class="s">&quot;BeforeActivityDestroyed&quot;</span><span class="p">))</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">LoadingScreenRule</span><span class="p">())</span>
-</code></pre></div>
+<p><code>kotlin
+// Detect leaks BEFORE and AFTER activity is destroyed
+@get:Rule
+val rule = RuleChain.outerRule(LoginRule())
+  .around(DetectLeaksAfterTestSuccess(tag = "AfterActivityDestroyed"))
+  .around(ActivityScenarioRule(CartActivity::class.java))
+  .around(DetectLeaksAfterTestSuccess(tag = "BeforeActivityDestroyed"))
+  .around(LoadingScreenRule())</code></p>
 <p><code>RuleChain.detectLeaksAfterTestSuccessWrapping()</code> is a helper for doing just that:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Detect leaks BEFORE and AFTER activity is destroyed</span>
-<span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
-<span class="kd">val</span> <span class="nv">rule</span> <span class="o">=</span> <span class="n">RuleChain</span><span class="p">.</span><span class="na">outerRule</span><span class="p">(</span><span class="n">LoginRule</span><span class="p">())</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">(</span><span class="n">CartActivity</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span><span class="p">))</span>
-  <span class="c1">// The tag will be suffixed with &quot;Before&quot; and &quot;After&quot;.</span>
-  <span class="p">.</span><span class="na">detectLeaksAfterTestSuccessWrapping</span><span class="p">(</span><span class="n">tag</span> <span class="o">=</span> <span class="s">&quot;ActivitiesDestroyed&quot;</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">around</span><span class="p">(</span><span class="n">ActivityScenarioRule</span><span class="p">(</span><span class="n">CartActivity</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span><span class="p">))</span>
-  <span class="p">}</span>
-  <span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">LoadingScreenRule</span><span class="p">())</span>
-</code></pre></div>
+<p><code>kotlin
+// Detect leaks BEFORE and AFTER activity is destroyed
+@get:Rule
+val rule = RuleChain.outerRule(LoginRule())
+  .around(DetectLeaksAfterTestSuccess(CartActivity::class.java))
+  // The tag will be suffixed with "Before" and "After".
+  .detectLeaksAfterTestSuccessWrapping(tag = "ActivitiesDestroyed") {
+    around(ActivityScenarioRule(CartActivity::class.java))
+  }
+  .around(LoadingScreenRule())</code></p>
 <h2 id="customizing-assertnoleak">Customizing <code>assertNoLeak()</code><a class="headerlink" href="#customizing-assertnoleak" title="Permanent link">&para;</a></h2>
 <p><code>LeakAssertions.assertNoLeak()</code> delegates calls to a global <code>DetectLeaksAssert</code> implementation,
 which by default is an instance of <code>AndroidDetectLeaksAssert</code>. You can change the
@@ -1053,17 +1023,17 @@ detected, analyzes the heap, then passes the result to a <code>HeapAnalysisRepor
 <code>NoLeakAssertionFailedError</code> if an application leak is detected.</p>
 <p>You could provide a custom implementation to also upload heap analysis results to a central place
 before failing the test:
-<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">throwingReporter</span> <span class="o">=</span> <span class="n">NoLeakAssertionFailedError</span><span class="p">.</span><span class="na">throwOnApplicationLeaks</span><span class="p">()</span>
-
-<span class="n">DetectLeaksAssert</span><span class="p">.</span><span class="na">update</span><span class="p">(</span><span class="n">AndroidDetectLeaksAssert</span><span class="p">(</span>
-  <span class="n">heapAnalysisReporter</span> <span class="o">=</span> <span class="p">{</span> <span class="n">heapAnalysis</span> <span class="o">-&gt;</span>
-    <span class="c1">// Upload the heap analysis result</span>
-    <span class="n">heapAnalysisUploader</span><span class="p">.</span><span class="na">upload</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
-    <span class="c1">// Fail the test if there are application leaks</span>
-    <span class="n">throwingReporter</span><span class="p">.</span><span class="na">reportHeapAnalysis</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">))</span>
-</code></pre></div></p>
+```kotlin
+val throwingReporter = NoLeakAssertionFailedError.throwOnApplicationLeaks()</p>
+<p>DetectLeaksAssert.update(AndroidDetectLeaksAssert(
+  heapAnalysisReporter = { heapAnalysis -&gt;
+    // Upload the heap analysis result
+    heapAnalysisUploader.upload(heapAnalysis)
+    // Fail the test if there are application leaks
+    throwingReporter.reportHeapAnalysis(heapAnalysis)
+  }
+))
+```</p>
   
 
             </article>

@@ -671,7 +671,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -693,7 +693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -755,15 +755,14 @@
   
   <h1 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
 <p>To use LeakCanary, add the <code>leakcanary-android</code> dependency to your app&rsquo;s <code>build.gradle</code> file:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="c1">// debugImplementation because LeakCanary should only run in debug builds.</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.10&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  // debugImplementation because LeakCanary should only run in debug builds.
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.10'
+}</code></p>
 <p><strong>That&rsquo;s it, there is no code change needed!</strong></p>
 <p>Confirm that LeakCanary is running on startup by filtering on the <code>LeakCanary</code> tag in <a href="https://developer.android.com/studio/command-line/logcat">Logcat</a>:</p>
-<div class="highlight"><pre><span></span><code>D LeakCanary: LeakCanary is running and ready to detect leaks
-</code></pre></div>
+<p><code>D LeakCanary: LeakCanary is running and ready to detect leaks</code></p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>LeakCanary automatically detects leaks of the following objects:</p>

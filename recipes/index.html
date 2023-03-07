@@ -816,7 +816,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -838,7 +838,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -1034,52 +1034,51 @@
 <h2 id="watching-objects-with-a-lifecycle">Watching objects with a lifecycle<a class="headerlink" href="#watching-objects-with-a-lifecycle" title="Permanent link">&para;</a></h2>
 <p>The default configuration of LeakCanary will automatically watch Activity, Fragment, Fragment View and ViewModel instances.</p>
 <p>In your application, you may have other objects with a lifecycle, such as services, Dagger components, etc. Use <a href="/leakcanary/api/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a> to watch instances that should be garbage collected:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">MyService</span> <span class="p">:</span> <span class="n">Service</span> <span class="p">{</span>
-
-  <span class="c1">// ...</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onDestroy</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onDestroy</span><span class="p">()</span>
-    <span class="n">AppWatcher</span><span class="p">.</span><span class="na">objectWatcher</span><span class="p">.</span><span class="na">watch</span><span class="p">(</span>
-      <span class="n">watchedObject</span> <span class="o">=</span> <span class="k">this</span><span class="p">,</span>
-      <span class="n">description</span> <span class="o">=</span> <span class="s">&quot;MyService received Service#onDestroy() callback&quot;</span>
-    <span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+class MyService : Service {</p>
+<p>// &hellip;</p>
+<p>override fun onDestroy() {
+    super.onDestroy()
+    AppWatcher.objectWatcher.watch(
+      watchedObject = this,
+      description = &ldquo;MyService received Service#onDestroy() callback&rdquo;
+    )
+  }
+}
+```</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <p>LeakCanary has a default configuration that works well for most apps. You can also customize it to your needs. The LeakCanary configuration is held by two singleton objects (<code>AppWatcher</code> and <code>LeakCanary</code>) and can be updated at any time. Most developers configure LeakCanary in their <strong>debug</strong> <a href="https://developer.android.com/reference/android/app/Application">Application</a> class:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
-    <span class="n">AppWatcher</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">watchFragmentViews</span> <span class="o">=</span> <span class="kc">false</span><span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+class DebugExampleApplication : ExampleApplication() {</p>
+<p>override fun onCreate() {
+    super.onCreate()
+    AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
+  }
+}
+```</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>Create a debug application class in your <code>src/debug/java</code> folder. Don&rsquo;t forget to also register it in <code>src/debug/AndroidManifest.xml</code>.</p>
 </div>
 <p>To customize the detection of retained objects at runtime, specify the watchers you wish to install via <a href="/leakcanary/api/leakcanary/-app-watcher/manual-install/">AppWatcher.manualInstall()</a>:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">watchersToInstall</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">appDefaultWatchers</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
-  <span class="p">.</span><span class="na">filter</span> <span class="p">{</span> <span class="nb">it</span> <span class="k">!is</span> <span class="n">FragmentAndViewModelWatcher</span> <span class="p">}</span>
-<span class="n">AppWatcher</span><span class="p">.</span><span class="na">manualInstall</span><span class="p">(</span>
-  <span class="n">application</span> <span class="o">=</span> <span class="k">this</span><span class="p">,</span>
-  <span class="n">watchersToInstall</span> <span class="o">=</span> <span class="n">watchersToInstall</span>
-<span class="p">)</span>
-</code></pre></div>
+<p><code>kotlin
+val watchersToInstall = AppWatcher.appDefaultWatchers(this)
+  .filter { it !is FragmentAndViewModelWatcher }
+AppWatcher.manualInstall(
+  application = this,
+  watchersToInstall = watchersToInstall
+)</code></p>
 <p>To customize the heap dumping &amp; analysis, update <a href="/leakcanary/api/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">retainedVisibleThreshold</span> <span class="o">=</span> <span class="m">3</span><span class="p">)</span>
-</code></pre></div>
+<p><code>kotlin
+LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)</code></p>
 <div class="admonition info">
 <p class="admonition-title">Java</p>
 <p>In Java, use <a href="/leakcanary/api/leakcanary/-leak-canary/-config/-builder/">LeakCanary.Config.Builder</a> instead:</p>
-<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">Config</span> <span class="n">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">getConfig</span><span class="p">().</span><span class="na">newBuilder</span><span class="p">()</span>
-   <span class="p">.</span><span class="na">retainedVisibleThreshold</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-   <span class="p">.</span><span class="na">build</span><span class="p">();</span>
-<span class="n">LeakCanary</span><span class="p">.</span><span class="na">setConfig</span><span class="p">(</span><span class="n">config</span><span class="p">);</span>
-</code></pre></div>
+<p><code>java
+LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
+   .retainedVisibleThreshold(3)
+   .build();
+LeakCanary.setConfig(config);</code></p>
 </div>
 <p>Configure the LeakCanary UI by overriding the following resources:</p>
 <ul>
@@ -1102,40 +1101,40 @@
 </div>
 <h2 id="leakcanary-test-environment-detection">LeakCanary test environment detection<a class="headerlink" href="#leakcanary-test-environment-detection" title="Permanent link">&para;</a></h2>
 <p>By default, LeakCanary will look for the <code>org.junit.Test</code> class in your classpath and if found, will disable itself to avoid running in tests. However, some apps may ship JUnit in their debug classpaths (for example, when using OkHttp&rsquo;s MockWebServer) so we offer a way to customise the class that is used to determine that the app is running in a test environment.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">&lt;resources&gt;</span>
-  <span class="nt">&lt;string</span> <span class="na">name=</span><span class="s">&quot;leak_canary_test_class_name&quot;</span><span class="nt">&gt;</span>assertk.Assert<span class="nt">&lt;/string&gt;</span>
-<span class="nt">&lt;/resources&gt;</span>
-</code></pre></div>
+<p><code>xml
+&lt;resources&gt;
+  &lt;string name="leak_canary_test_class_name"&gt;assertk.Assert&lt;/string&gt;
+&lt;/resources&gt;</code></p>
 <h2 id="counting-retained-instances-in-release-builds">Counting retained instances in release builds<a class="headerlink" href="#counting-retained-instances-in-release-builds" title="Permanent link">&para;</a></h2>
 <p>The <code>com.squareup.leakcanary:leakcanary-android</code> dependency should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in release builds to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
-<div class="highlight"><pre><span></span><code>dependencies {
-  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.10&#39;
-}
-</code></pre></div>
+<p><code>gradle
+dependencies {
+  implementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:2.10'
+}</code></p>
 <p>In your leak reporting code:
-<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">retainedInstanceCount</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">objectWatcher</span><span class="p">.</span><span class="na">retainedObjectCount</span>
-</code></pre></div></p>
+<code>kotlin
+val retainedInstanceCount = AppWatcher.objectWatcher.retainedObjectCount</code></p>
 <h2 id="leakcanary-in-release-builds">LeakCanary in release builds<a class="headerlink" href="#leakcanary-in-release-builds" title="Permanent link">&para;</a></h2>
 <p>We <strong>do not recommend</strong> including LeakCanary in release builds, as it could negatively impact the experience of your customers. To avoid accidentally including the <code>com.squareup.leakcanary:leakcanary-android</code> dependency in a release build, LeakCanary crashes during initialization if the APK is not debuggable. You may have a good reason to create a non debuggable build that includes LeakCanary, for example for a QA build. If necessary, the crashing check can be disabled by overriding the <code>bool/leak_canary_allow_in_non_debuggable_build</code> resource, e.g. by creating a file under <code>res/values</code> with the following contents:</p>
-<div class="highlight"><pre><span></span><code><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
-<span class="nt">&lt;resources&gt;</span>
-  <span class="nt">&lt;bool</span> <span class="na">name=</span><span class="s">&quot;leak_canary_allow_in_non_debuggable_build&quot;</span><span class="nt">&gt;</span>true<span class="nt">&lt;/bool&gt;</span>
-<span class="nt">&lt;/resources&gt;</span>
-</code></pre></div>
+<p>```xml</p>
+<?xml version="1.0" encoding="utf-8"?>
+<p><resources>
+  <bool name="leak_canary_allow_in_non_debuggable_build">true</bool>
+</resources>
+```</p>
 <h2 id="android-tv">Android TV<a class="headerlink" href="#android-tv" title="Permanent link">&para;</a></h2>
 <p>LeakCanary works on Android TV devices (FireTV, Nexus player, Nvidia Shield, MiBox, etc.) without any additional setup. However, there are couple things you need to be aware of:</p>
 <ul>
 <li>Android TV doesn&rsquo;t have notifications. LeakCanary will display Toast messages when objects become retained and when leak analysis completes. You can also check Logcat for more details.</li>
 <li>Due to lack of notifications, the only way to <strong>manually</strong> trigger a heap dump is to background the app.</li>
 <li>There&rsquo;s a <a href="https://issuetracker.google.com/issues/141429184">bug on API 26+ devices</a> that prevents the activity that displays leaks from appearing in apps list. As a workaround, LeakCanary prints an <code>adb shell</code> command in Logcat after heap dump analysis that launches leak list activity:
-    <div class="highlight"><pre><span></span><code>adb shell am start -n &quot;com.your.package.name/leakcanary.internal.activity.LeakLauncherActivity&quot;
-</code></pre></div></li>
+    <code>adb shell am start -n "com.your.package.name/leakcanary.internal.activity.LeakLauncherActivity"</code></li>
 <li>Some Android TV devices have very little memory available per app process and this might impact LeakCanary. <a href="#running-the-leakcanary-analysis-in-a-separate-process">Running the LeakCanary analysis in a separate process</a> might help in such cases.</li>
 </ul>
 <h2 id="icon-and-label">Icon and label<a class="headerlink" href="#icon-and-label" title="Permanent link">&para;</a></h2>
 <p>The activity that displays leaks comes with a default icon and label, which you can change by providing <code>R.mipmap.leak_canary_icon</code> and <code>R.string.leak_canary_display_activity_label</code> in your app:</p>
-<div class="highlight"><pre><span></span><code>res/
+<p><code>res/
   mipmap-hdpi/
     leak_canary_icon.png
   mipmap-mdpi/
@@ -1147,33 +1146,33 @@
   mipmap-xxxhdpi/
     leak_canary_icon.png
    mipmap-anydpi-v26/
-     leak_canary_icon.xml
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
-<span class="nt">&lt;resources&gt;</span>
-  <span class="nt">&lt;string</span> <span class="na">name=</span><span class="s">&quot;leak_canary_display_activity_label&quot;</span><span class="nt">&gt;</span>MyLeaks<span class="nt">&lt;/string&gt;</span>
-<span class="nt">&lt;/resources&gt;</span>
-</code></pre></div>
+     leak_canary_icon.xml</code></p>
+<p>```xml</p>
+<?xml version="1.0" encoding="utf-8"?>
+<p><resources>
+  <string name="leak_canary_display_activity_label">MyLeaks</string>
+</resources>
+```</p>
 <h2 id="matching-known-library-leaks">Matching known library leaks<a class="headerlink" href="#matching-known-library-leaks" title="Permanent link">&para;</a></h2>
 <p>Set <a href="/leakcanary/api/leakcanary/-leak-canary/-config/reference-matchers/">LeakCanary.Config.referenceMatchers</a> to a list that builds on top of <a href="/leakcanary/api/shark/-android-reference-matchers/-companion/app-defaults/">AndroidReferenceMatchers.appDefaults</a>:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
-    <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
-        <span class="n">referenceMatchers</span> <span class="o">=</span> <span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">appDefaults</span> <span class="o">+</span>
-            <span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">staticFieldLeak</span><span class="p">(</span>
-                <span class="n">className</span> <span class="o">=</span> <span class="s">&quot;com.samsing.SomeSingleton&quot;</span><span class="p">,</span>
-                <span class="n">fieldName</span> <span class="o">=</span> <span class="s">&quot;sContext&quot;</span><span class="p">,</span>
-                <span class="n">description</span> <span class="o">=</span> <span class="s">&quot;SomeSingleton has a static field leaking a context.&quot;</span><span class="p">,</span>
-                <span class="n">patternApplies</span> <span class="o">=</span> <span class="p">{</span>
-                  <span class="n">manufacturer</span> <span class="o">==</span> <span class="s">&quot;Samsing&quot;</span> <span class="o">&amp;&amp;</span> <span class="n">sdkInt</span> <span class="o">==</span> <span class="m">26</span>
-                <span class="p">}</span>
-            <span class="p">)</span>
-    <span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+class DebugExampleApplication : ExampleApplication() {</p>
+<p>override fun onCreate() {
+    super.onCreate()
+    LeakCanary.config = LeakCanary.config.copy(
+        referenceMatchers = AndroidReferenceMatchers.appDefaults +
+            AndroidReferenceMatchers.staticFieldLeak(
+                className = &ldquo;com.samsing.SomeSingleton&rdquo;,
+                fieldName = &ldquo;sContext&rdquo;,
+                description = &ldquo;SomeSingleton has a static field leaking a context.&rdquo;,
+                patternApplies = {
+                  manufacturer == &ldquo;Samsing&rdquo; &amp;&amp; sdkInt == 26
+                }
+            )
+    )
+  }
+}
+```</p>
 <h2 id="ignoring-specific-activities-or-fragment-classes">Ignoring specific activities or fragment classes<a class="headerlink" href="#ignoring-specific-activities-or-fragment-classes" title="Permanent link">&para;</a></h2>
 <p>Sometimes a 3<sup>rd</sup> party library provides its own activities or fragments which contain a number of bugs leading to leaks of those specific 3<sup>rd</sup> party activities and fragments. You should push hard on that library to fix their memory leaks as it&rsquo;s directly impacting your application. That being said, until those are fixed, you have two options:</p>
 <ol>
@@ -1181,52 +1180,53 @@
 <li>Disable LeakCanary automatic activity or fragment watching (e.g. <code>AppWatcher.config = AppWatcher.config.copy(watchActivities = false)</code>) and then manually pass objects to <code>AppWatcher.objectWatcher.watch</code>.</li>
 </ol>
 <h2 id="identifying-leaking-objects-and-labeling-objects">Identifying leaking objects and labeling objects<a class="headerlink" href="#identifying-leaking-objects-and-labeling-objects" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+<p>```kotlin
+class DebugExampleApplication : ExampleApplication() {</p>
+<p>override fun onCreate() {
+    super.onCreate()
+    val addEntityIdLabel = ObjectInspector { reporter -&gt;
+      reporter.whenInstanceOf(&ldquo;com.example.DbEntity&rdquo;) { instance -&gt;
+        val databaseIdField = instance[&ldquo;com.example.DbEntity&rdquo;, &ldquo;databaseId&rdquo;]!!
+        val databaseId = databaseIdField.value.asInt!!
+        labels += &ldquo;DbEntity.databaseId = $databaseId&rdquo;
+      }
+    }</p>
+<div class="codehilite"><pre><span></span><code>val singletonsInspector =
+  AppSingletonInspector(&quot;com.example.MySingleton&quot;, &quot;com.example.OtherSingleton&quot;)
 
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
-    <span class="kd">val</span> <span class="nv">addEntityIdLabel</span> <span class="o">=</span> <span class="n">ObjectInspector</span> <span class="p">{</span> <span class="n">reporter</span> <span class="o">-&gt;</span>
-      <span class="n">reporter</span><span class="p">.</span><span class="na">whenInstanceOf</span><span class="p">(</span><span class="s">&quot;com.example.DbEntity&quot;</span><span class="p">)</span> <span class="p">{</span> <span class="n">instance</span> <span class="o">-&gt;</span>
-        <span class="kd">val</span> <span class="nv">databaseIdField</span> <span class="o">=</span> <span class="n">instance</span><span class="o">[</span><span class="s">&quot;com.example.DbEntity&quot;</span><span class="p">,</span> <span class="s">&quot;databaseId&quot;</span><span class="o">]!!</span>
-        <span class="kd">val</span> <span class="nv">databaseId</span> <span class="o">=</span> <span class="n">databaseIdField</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">asInt</span><span class="o">!!</span>
-        <span class="n">labels</span> <span class="o">+=</span> <span class="s">&quot;DbEntity.databaseId = </span><span class="si">$</span><span class="n">databaseId</span><span class="s">&quot;</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
+val mmvmInspector = ObjectInspector { reporter -&gt;
+  reporter.whenInstanceOf(&quot;com.mmvm.SomeViewModel&quot;) { instance -&gt;
+    val destroyedField = instance[&quot;com.mmvm.SomeViewModel&quot;, &quot;destroyed&quot;]!!
+    if (destroyedField.value.asBoolean!!) {
+      leakingReasons += &quot;SomeViewModel.destroyed is true&quot;
+    } else {
+      notLeakingReasons += &quot;SomeViewModel.destroyed is false&quot;
+    }
+  }
+}
 
-    <span class="kd">val</span> <span class="nv">singletonsInspector</span> <span class="o">=</span>
-      <span class="n">AppSingletonInspector</span><span class="p">(</span><span class="s">&quot;com.example.MySingleton&quot;</span><span class="p">,</span> <span class="s">&quot;com.example.OtherSingleton&quot;</span><span class="p">)</span>
-
-    <span class="kd">val</span> <span class="nv">mmvmInspector</span> <span class="o">=</span> <span class="n">ObjectInspector</span> <span class="p">{</span> <span class="n">reporter</span> <span class="o">-&gt;</span>
-      <span class="n">reporter</span><span class="p">.</span><span class="na">whenInstanceOf</span><span class="p">(</span><span class="s">&quot;com.mmvm.SomeViewModel&quot;</span><span class="p">)</span> <span class="p">{</span> <span class="n">instance</span> <span class="o">-&gt;</span>
-        <span class="kd">val</span> <span class="nv">destroyedField</span> <span class="o">=</span> <span class="n">instance</span><span class="o">[</span><span class="s">&quot;com.mmvm.SomeViewModel&quot;</span><span class="p">,</span> <span class="s">&quot;destroyed&quot;</span><span class="o">]!!</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">destroyedField</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">asBoolean</span><span class="o">!!</span><span class="p">)</span> <span class="p">{</span>
-          <span class="n">leakingReasons</span> <span class="o">+=</span> <span class="s">&quot;SomeViewModel.destroyed is true&quot;</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-          <span class="n">notLeakingReasons</span> <span class="o">+=</span> <span class="s">&quot;SomeViewModel.destroyed is false&quot;</span>
-        <span class="p">}</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
-        <span class="n">objectInspectors</span> <span class="o">=</span> <span class="n">AndroidObjectInspectors</span><span class="p">.</span><span class="na">appDefaults</span> <span class="o">+</span>
-            <span class="n">listOf</span><span class="p">(</span><span class="n">addObjectIdLabel</span><span class="p">,</span> <span class="n">singletonsInspector</span><span class="p">,</span> <span class="n">mmvmInspector</span><span class="p">)</span>
-    <span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+LeakCanary.config = LeakCanary.config.copy(
+    objectInspectors = AndroidObjectInspectors.appDefaults +
+        listOf(addObjectIdLabel, singletonsInspector, mmvmInspector)
+)
 </code></pre></div>
+
+<p>}
+}
+```</p>
 <h2 id="running-the-leakcanary-analysis-in-a-separate-process">Running the LeakCanary analysis in a separate process<a class="headerlink" href="#running-the-leakcanary-analysis-in-a-separate-process" title="Permanent link">&para;</a></h2>
 <p>LeakCanary runs in your main app process. LeakCanary 2 is optimized to keep memory usage low while analysing and runs in a background thread with priority <code>Process.THREAD_PRIORITY_BACKGROUND</code>. If you find that LeakCanary is still using too much memory or impacting the app process performance, you can configure it to run the analysis in a separate process.</p>
 <p>All you have to do is replace the <code>leakcanary-android</code> dependency with <code>leakcanary-android-process</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="c1">// debugImplementation &#39;com.squareup.leakcanary:leakcanary-android:${version}&#39;</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-process:${version}&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  // debugImplementation 'com.squareup.leakcanary:leakcanary-android:${version}'
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android-process:${version}'
+}</code></p>
 <p>You can call <a href="/leakcanary/api/leakcanary/-leak-canary-process/is-in-analyzer-process/">LeakCanaryProcess.isInAnalyzerProcess</a> to check if your Application class is being created in the LeakCanary process. This is useful when configuring libraries like Firebase that may crash when running in an unexpected process.</p>
 <h2 id="setting-up-leakcanary-for-different-product-flavors">Setting up LeakCanary for different product flavors<a class="headerlink" href="#setting-up-leakcanary-for-different-product-flavors" title="Permanent link">&para;</a></h2>
 <p>You can setup LeakCanary to run in a specific product flavors of your app. For example, create:</p>
-<div class="highlight"><pre><span></span><code>android {
-  flavorDimensions &quot;default&quot;
+<p><code>android {
+  flavorDimensions "default"
   productFlavors {
     prod {
       // ...
@@ -1238,167 +1238,161 @@
       // ...
     }
   }
-}
-</code></pre></div>
+}</code></p>
 <p>Then, define a custom configuration for the flavor for which you want to enable LeakCanary:</p>
-<div class="highlight"><pre><span></span><code>android {
+<p><code>android {
   // ...
 }
 configurations {
     devDebugImplementation {}
-}
-</code></pre></div>
+}</code></p>
 <p>You can now add the LeakCanary dependency for that configuration:</p>
-<div class="highlight"><pre><span></span><code>dependencies {
-  devDebugImplementation &quot;com.squareup.leakcanary:leakcanary-android:${version}&quot;
-}
-</code></pre></div>
+<p><code>dependencies {
+  devDebugImplementation "com.squareup.leakcanary:leakcanary-android:${version}"
+}</code></p>
 <h2 id="extracting-metadata-from-the-heap-dump">Extracting metadata from the heap dump<a class="headerlink" href="#extracting-metadata-from-the-heap-dump" title="Permanent link">&para;</a></h2>
 <p><a href="/leakcanary/api/leakcanary/-leak-canary/-config/metadata-extractor/">LeakCanary.Config.metadataExtractor</a> extracts metadata from a heap dump. The metadata is then available in <code>HeapAnalysisSuccess.metadata</code>. <code>LeakCanary.Config.metadataExtractor</code> defaults to <code>AndroidMetadataExtractor</code> but you can replace it to extract additional metadata from the hprof.</p>
 <p>For example, if you want to include the app version name in your heap analysis reports, you need to first store it in memory (e.g. in a static field) and then you can retrieve it in <code>MetadataExtractor</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
+<p>```kotlin
+class DebugExampleApplication : ExampleApplication() {</p>
+<p>companion object {
+    @JvmStatic
+    lateinit var savedVersionName: String
+  }</p>
+<p>override fun onCreate() {
+    super.onCreate()</p>
+<div class="codehilite"><pre><span></span><code>val packageInfo = packageManager.getPackageInfo(packageName, 0)
+savedVersionName = packageInfo.versionName
 
-  <span class="kd">companion</span> <span class="kd">object</span> <span class="err">{</span>
-    <span class="nd">@JvmStatic</span>
-    <span class="kd">lateinit</span> <span class="kd">var</span> <span class="nv">savedVersionName</span><span class="p">:</span> <span class="kt">String</span>
-  <span class="p">}</span>
+LeakCanary.config = LeakCanary.config.copy(
+    metadataExtractor = MetadataExtractor { graph -&gt;
+      val companionClass =
+        graph.findClassByName(&quot;com.example.DebugExampleApplication&quot;)!!
 
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
+      val versionNameField = companionClass[&quot;savedVersionName&quot;]!!
+      val versionName = versionNameField.valueAsInstance!!.readAsJavaString()!!
 
-    <span class="kd">val</span> <span class="nv">packageInfo</span> <span class="o">=</span> <span class="n">packageManager</span><span class="p">.</span><span class="na">getPackageInfo</span><span class="p">(</span><span class="n">packageName</span><span class="p">,</span> <span class="m">0</span><span class="p">)</span>
-    <span class="n">savedVersionName</span> <span class="o">=</span> <span class="n">packageInfo</span><span class="p">.</span><span class="na">versionName</span>
+      val defaultMetadata = AndroidMetadataExtractor.extractMetadata(graph)
 
-    <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
-        <span class="n">metadataExtractor</span> <span class="o">=</span> <span class="n">MetadataExtractor</span> <span class="p">{</span> <span class="n">graph</span> <span class="o">-&gt;</span>
-          <span class="kd">val</span> <span class="nv">companionClass</span> <span class="o">=</span>
-            <span class="n">graph</span><span class="p">.</span><span class="na">findClassByName</span><span class="p">(</span><span class="s">&quot;com.example.DebugExampleApplication&quot;</span><span class="p">)</span><span class="o">!!</span>
-
-          <span class="kd">val</span> <span class="nv">versionNameField</span> <span class="o">=</span> <span class="n">companionClass</span><span class="o">[</span><span class="s">&quot;savedVersionName&quot;</span><span class="o">]!!</span>
-          <span class="kd">val</span> <span class="nv">versionName</span> <span class="o">=</span> <span class="n">versionNameField</span><span class="p">.</span><span class="na">valueAsInstance</span><span class="o">!!</span><span class="p">.</span><span class="na">readAsJavaString</span><span class="p">()</span><span class="o">!!</span>
-
-          <span class="kd">val</span> <span class="nv">defaultMetadata</span> <span class="o">=</span> <span class="n">AndroidMetadataExtractor</span><span class="p">.</span><span class="na">extractMetadata</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
-
-          <span class="n">mapOf</span><span class="p">(</span><span class="s">&quot;App Version Name&quot;</span> <span class="n">to</span> <span class="n">versionName</span><span class="p">)</span> <span class="o">+</span> <span class="n">defaultMetadata</span>
-        <span class="p">})</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+      mapOf(&quot;App Version Name&quot; to versionName) + defaultMetadata
+    })
 </code></pre></div>
+
+<p>}
+}
+```</p>
 <h2 id="using-leakcanary-with-obfuscated-apps">Using LeakCanary with obfuscated apps<a class="headerlink" href="#using-leakcanary-with-obfuscated-apps" title="Permanent link">&para;</a></h2>
 <p>If obfuscation is turned on then leak traces will be obfuscated. It&rsquo;s possible to automatically deobfuscate leak traces by using a deobfuscation gradle plugin provided by LeakCanary.</p>
 <p>You have to add a plugin dependency in your root <code>build.gradle</code> file:</p>
-<div class="highlight"><pre><span></span><code><span class="n">buildscript</span> <span class="o">{</span>
-  <span class="n">dependencies</span> <span class="o">{</span>
-    <span class="n">classpath</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-deobfuscation-gradle-plugin:${version}&#39;</span>
-  <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+buildscript {
+  dependencies {
+    classpath 'com.squareup.leakcanary:leakcanary-deobfuscation-gradle-plugin:${version}'
+  }
+}</code></p>
 <p>And then you need to apply and configure the plugin in your app (or library) specific <code>build.gradle</code> file:</p>
-<div class="highlight"><pre><span></span><code><span class="n">apply</span> <span class="nl">plugin:</span> <span class="s1">&#39;com.android.application&#39;</span>
-<span class="n">apply</span> <span class="nl">plugin:</span> <span class="s1">&#39;com.squareup.leakcanary.deobfuscation&#39;</span>
-
-<span class="n">leakCanary</span> <span class="o">{</span>
-  <span class="c1">// LeakCanary needs to know which variants have obfuscation turned on</span>
-  <span class="n">filterObfuscatedVariants</span> <span class="o">{</span> <span class="n">variant</span> <span class="o">-&gt;</span>
-    <span class="n">variant</span><span class="o">.</span><span class="na">name</span> <span class="o">==</span> <span class="s2">&quot;debug&quot;</span>
-  <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div>
+<p>```groovy
+apply plugin: &lsquo;com.android.application&rsquo;
+apply plugin: &lsquo;com.squareup.leakcanary.deobfuscation&rsquo;</p>
+<p>leakCanary {
+  // LeakCanary needs to know which variants have obfuscation turned on
+  filterObfuscatedVariants { variant -&gt;
+    variant.name == &ldquo;debug&rdquo;
+  }
+}
+```</p>
 <p>Now you can run LeakCanary on an obfuscated app and leak traces will be automatically deobfuscated.</p>
 <p><strong>Important:</strong> never use this plugin on a release variant. This plugin copies obfuscation mapping file and puts it inside the .apk, so if you use it on release build then the obfuscation becomes pointless because the code can be easily deobfuscated using mapping file.</p>
 <p><strong>Warning:</strong> R8 (Google Proguard replacement) can now understand Kotlin language constructs but the side effect is that mapping files can get very large (a couple dozen megabytes). It means that the size of .apk containing copied mapping file will increase as well. This is another reason for not using this plugin on a release variant.</p>
 <h2 id="detecting-leaks-in-jvm-applications">Detecting leaks in JVM applications<a class="headerlink" href="#detecting-leaks-in-jvm-applications" title="Permanent link">&para;</a></h2>
 <p>While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.</p>
 <p>Add the ObjectWatcher and Shark dependencies to your build file:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.10&#39;</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:2.10&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:leakcanary-object-watcher:2.10'
+  implementation 'com.squareup.leakcanary:shark:2.10'
+}</code></p>
 <p>Define a <code>HotSpotHeapDumper</code> to dump the heap:</p>
-<div class="highlight"><pre><span></span><code><span class="k">import</span> <span class="nn">com.sun.management.HotSpotDiagnosticMXBean</span>
-<span class="k">import</span> <span class="nn">java.lang.management.ManagementFactory</span>
-
-<span class="kd">object</span> <span class="nc">HotSpotHeapDumper</span> <span class="p">{</span>
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">mBean</span><span class="p">:</span> <span class="n">HotSpotDiagnosticMXBean</span> <span class="k">by</span> <span class="n">lazy</span> <span class="p">{</span>
-    <span class="kd">val</span> <span class="nv">server</span> <span class="o">=</span> <span class="n">ManagementFactory</span><span class="p">.</span><span class="na">getPlatformMBeanServer</span><span class="p">()</span>
-    <span class="n">ManagementFactory</span><span class="p">.</span><span class="na">newPlatformMXBeanProxy</span><span class="p">(</span>
-        <span class="n">server</span><span class="p">,</span>
-        <span class="s">&quot;com.sun.management:type=HotSpotDiagnostic&quot;</span><span class="p">,</span>
-        <span class="n">HotSpotDiagnosticMXBean</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span>
-    <span class="p">)</span>
-  <span class="p">}</span>
-
-  <span class="kd">fun</span> <span class="nf">dumpHeap</span><span class="p">(</span><span class="n">fileName</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">mBean</span><span class="p">.</span><span class="na">dumpHeap</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">LIVE</span><span class="p">)</span>
-  <span class="p">}</span>
-
-  <span class="kd">private</span> <span class="kd">const</span> <span class="kd">val</span> <span class="nv">LIVE</span> <span class="o">=</span> <span class="kc">true</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+import com.sun.management.HotSpotDiagnosticMXBean
+import java.lang.management.ManagementFactory</p>
+<p>object HotSpotHeapDumper {
+  private val mBean: HotSpotDiagnosticMXBean by lazy {
+    val server = ManagementFactory.getPlatformMBeanServer()
+    ManagementFactory.newPlatformMXBeanProxy(
+        server,
+        &ldquo;com.sun.management:type=HotSpotDiagnostic&rdquo;,
+        HotSpotDiagnosticMXBean::class.java
+    )
+  }</p>
+<p>fun dumpHeap(fileName: String) {
+    mBean.dumpHeap(fileName, LIVE)
+  }</p>
+<p>private const val LIVE = true
+}
+```</p>
 <p>Define a <code>JvmHeapAnalyzer</code> to analyze the heap when objects are retained and print the result to the console:</p>
-<div class="highlight"><pre><span></span><code><span class="k">import</span> <span class="nn">leakcanary.GcTrigger</span>
-<span class="k">import</span> <span class="nn">leakcanary.ObjectWatcher</span>
-<span class="k">import</span> <span class="nn">leakcanary.OnObjectRetainedListener</span>
-<span class="k">import</span> <span class="nn">java.io.File</span>
-<span class="k">import</span> <span class="nn">java.text.SimpleDateFormat</span>
-<span class="k">import</span> <span class="nn">java.util.Date</span>
-<span class="k">import</span> <span class="nn">java.util.Locale.US</span>
+<p>```kotlin
+import leakcanary.GcTrigger
+import leakcanary.ObjectWatcher
+import leakcanary.OnObjectRetainedListener
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale.US</p>
+<p>class JvmHeapAnalyzer(private val objectWatcher: ObjectWatcher) :
+    OnObjectRetainedListener {</p>
+<p>private val fileNameFormat = SimpleDateFormat(DATE_PATTERN, US)</p>
+<p>override fun onObjectRetained() {
+    GcTrigger.Default.runGc()
+    if (objectWatcher.retainedObjectCount == 0) {
+      return
+    }
+    val fileName = fileNameFormat.format(Date())
+    val hprofFile = File(fileName)</p>
+<div class="codehilite"><pre><span></span><code>println(&quot;Dumping the heap to ${hprofFile.absolutePath}&quot;)
+HotSpotHeapDumper.dumpHeap(hprofFile.absolutePath)
 
-<span class="kd">class</span> <span class="nc">JvmHeapAnalyzer</span><span class="p">(</span><span class="kd">private</span> <span class="kd">val</span> <span class="nv">objectWatcher</span><span class="p">:</span> <span class="n">ObjectWatcher</span><span class="p">)</span> <span class="p">:</span>
-    <span class="n">OnObjectRetainedListener</span> <span class="p">{</span>
+val analyzer = HeapAnalyzer(
+    OnAnalysisProgressListener { step -&gt;
+      println(&quot;Analysis in progress, working on: ${step.name}&quot;)
+    })
 
-  <span class="kd">private</span> <span class="kd">val</span> <span class="nv">fileNameFormat</span> <span class="o">=</span> <span class="n">SimpleDateFormat</span><span class="p">(</span><span class="n">DATE_PATTERN</span><span class="p">,</span> <span class="n">US</span><span class="p">)</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onObjectRetained</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">GcTrigger</span><span class="p">.</span><span class="na">Default</span><span class="p">.</span><span class="na">runGc</span><span class="p">()</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">objectWatcher</span><span class="p">.</span><span class="na">retainedObjectCount</span> <span class="o">==</span> <span class="m">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">return</span>
-    <span class="p">}</span>
-    <span class="kd">val</span> <span class="nv">fileName</span> <span class="o">=</span> <span class="n">fileNameFormat</span><span class="p">.</span><span class="na">format</span><span class="p">(</span><span class="n">Date</span><span class="p">())</span>
-    <span class="kd">val</span> <span class="nv">hprofFile</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
-
-    <span class="n">println</span><span class="p">(</span><span class="s">&quot;Dumping the heap to </span><span class="si">${</span><span class="n">hprofFile</span><span class="p">.</span><span class="na">absolutePath</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
-    <span class="n">HotSpotHeapDumper</span><span class="p">.</span><span class="na">dumpHeap</span><span class="p">(</span><span class="n">hprofFile</span><span class="p">.</span><span class="na">absolutePath</span><span class="p">)</span>
-
-    <span class="kd">val</span> <span class="nv">analyzer</span> <span class="o">=</span> <span class="n">HeapAnalyzer</span><span class="p">(</span>
-        <span class="n">OnAnalysisProgressListener</span> <span class="p">{</span> <span class="n">step</span> <span class="o">-&gt;</span>
-          <span class="n">println</span><span class="p">(</span><span class="s">&quot;Analysis in progress, working on: </span><span class="si">${</span><span class="n">step</span><span class="p">.</span><span class="na">name</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span>
-        <span class="p">})</span>
-
-    <span class="kd">val</span> <span class="nv">heapDumpAnalysis</span> <span class="o">=</span> <span class="n">analyzer</span><span class="p">.</span><span class="na">analyze</span><span class="p">(</span>
-        <span class="n">heapDumpFile</span> <span class="o">=</span> <span class="n">hprofFile</span><span class="p">,</span>
-        <span class="n">leakingObjectFinder</span> <span class="o">=</span> <span class="n">KeyedWeakReferenceFinder</span><span class="p">,</span>
-        <span class="n">computeRetainedHeapSize</span> <span class="o">=</span> <span class="kc">true</span><span class="p">,</span>
-        <span class="n">objectInspectors</span> <span class="o">=</span> <span class="n">ObjectInspectors</span><span class="p">.</span><span class="na">jdkDefaults</span>
-    <span class="p">)</span>
-    <span class="n">println</span><span class="p">(</span><span class="n">heapDumpAnalysis</span><span class="p">)</span>
-  <span class="p">}</span>
-  <span class="kd">companion</span> <span class="kd">object</span> <span class="err">{</span>
-    <span class="kd">private</span> <span class="kd">const</span> <span class="kd">val</span> <span class="nv">DATE_PATTERN</span> <span class="o">=</span> <span class="s">&quot;yyyy-MM-dd_HH-mm-ss_SSS&#39;.hprof&#39;&quot;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+val heapDumpAnalysis = analyzer.analyze(
+    heapDumpFile = hprofFile,
+    leakingObjectFinder = KeyedWeakReferenceFinder,
+    computeRetainedHeapSize = true,
+    objectInspectors = ObjectInspectors.jdkDefaults
+)
+println(heapDumpAnalysis)
 </code></pre></div>
+
+<p>}
+  companion object {
+    private const val DATE_PATTERN = &ldquo;yyyy-MM-dd_HH-mm-ss_SSS&rsquo;.hprof&rsquo;&rdquo;
+  }
+}
+```</p>
 <p>Create an <code>ObjectWatcher</code> instance and configure it to watch objects for 5 seconds before notifying a <code>JvmHeapAnalyzer</code> instance:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">scheduledExecutor</span> <span class="o">=</span> <span class="n">Executors</span><span class="p">.</span><span class="na">newSingleThreadScheduledExecutor</span><span class="p">()</span>
-<span class="kd">val</span> <span class="nv">objectWatcher</span> <span class="o">=</span> <span class="n">ObjectWatcher</span><span class="p">(</span>
-    <span class="n">clock</span> <span class="o">=</span> <span class="n">Clock</span> <span class="p">{</span>
-      <span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">()</span>
-    <span class="p">},</span>
-    <span class="n">checkRetainedExecutor</span> <span class="o">=</span> <span class="n">Executor</span> <span class="p">{</span> <span class="n">command</span> <span class="o">-&gt;</span>
-      <span class="n">scheduledExecutor</span><span class="p">.</span><span class="na">schedule</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="m">5</span><span class="p">,</span> <span class="n">SECONDS</span><span class="p">)</span>
-    <span class="p">}</span>
-<span class="p">)</span>
-
-<span class="kd">val</span> <span class="nv">heapAnalyzer</span> <span class="o">=</span> <span class="n">JvmHeapAnalyzer</span><span class="p">(</span><span class="n">objectWatcher</span><span class="p">)</span>
-<span class="n">objectWatcher</span><span class="p">.</span><span class="na">addOnObjectRetainedListener</span><span class="p">(</span><span class="n">heapAnalyzer</span><span class="p">)</span>
-</code></pre></div>
+<p>```kotlin
+val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
+val objectWatcher = ObjectWatcher(
+    clock = Clock {
+      System.currentTimeMillis()
+    },
+    checkRetainedExecutor = Executor { command -&gt;
+      scheduledExecutor.schedule(command, 5, SECONDS)
+    }
+)</p>
+<p>val heapAnalyzer = JvmHeapAnalyzer(objectWatcher)
+objectWatcher.addOnObjectRetainedListener(heapAnalyzer)
+```</p>
 <p>Pass objects that you expect to be garbage collected (e.g. closed resources) to the <code>ObjectWatcher</code> instance:</p>
-<div class="highlight"><pre><span></span><code><span class="n">objectWatcher</span><span class="p">.</span><span class="na">watch</span><span class="p">(</span>
-    <span class="n">watchedObject</span> <span class="o">=</span> <span class="n">closedResource</span><span class="p">,</span>
-    <span class="n">description</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">$</span><span class="n">closedResource</span><span class="s"> is closed and should be garbage collected&quot;</span>
-<span class="p">)</span>
-</code></pre></div>
+<p><code>kotlin
+objectWatcher.watch(
+    watchedObject = closedResource,
+    description = "$closedResource is closed and should be garbage collected"
+)</code></p>
 <p>If you end up using LeakCanary on a JVM, the community will definitely benefit from your experience, so don&rsquo;t hesitate to <a href="https://github.com/square/leakcanary/issues/">let us know</a>!</p>
 <h2 id="packagemanagergetlaunchintentforpackage-returns-leaklauncheractivity">PackageManager.getLaunchIntentForPackage() returns LeakLauncherActivity<a class="headerlink" href="#packagemanagergetlaunchintentforpackage-returns-leaklauncheractivity" title="Permanent link">&para;</a></h2>
 <p>LeakCanary adds a main activity that has a <a href="https://developer.android.com/reference/android/content/Intent#CATEGORY_LAUNCHER">Intent#CATEGORY_LAUNCHER</a> category. <a href="https://developer.android.com/reference/android/content/pm/PackageManager#getLaunchIntentForPackage(java.lang.String)">PackageManager.getLaunchIntentForPackage()</a> looks for a main activity in the category <code>Intent#CATEGORY_INFO</code>, and next for a main activity in the category <code>Intent#CATEGORY_LAUNCHER</code>. <code>PackageManager.getLaunchIntentForPackage()</code> returns the first activity that matches in the merged manifest of your app. If your app relies on <code>PackageManager.getLaunchIntentForPackage()</code>, you have two options:</p>

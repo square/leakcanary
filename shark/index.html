@@ -745,7 +745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -767,7 +767,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -913,127 +913,124 @@
 <h2 id="shark-cli">Shark CLI<a class="headerlink" href="#shark-cli" title="Permanent link">&para;</a></h2>
 <p>The Shark Command Line Interface (CLI) enables you to analyze heaps directly from your computer. It can dump the heap of an app installed on a connected Android device, analyze it, and even strip a heap dump of any sensitive data (e.g. PII, passwords or encryption keys) which is useful when sharing a heap dump.</p>
 <p>Install it via <a href="https://brew.sh/">Homebrew</a>:</p>
-<div class="highlight"><pre><span></span><code>brew install leakcanary-shark
-</code></pre></div>
+<p><code>bash
+brew install leakcanary-shark</code></p>
 <p>You can also download it <a href="https://github.com/square/leakcanary/releases/download/v2.10/shark-cli-2.10.zip">here</a>.</p>
 <p>You can then look for leaks in apps on any connected device, for example: </p>
-<div class="highlight"><pre><span></span><code>$ shark-cli --device emulator-5554 --process com.example.app.debug analyze
-</code></pre></div>
+<p><code>$ shark-cli --device emulator-5554 --process com.example.app.debug analyze</code></p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p><code>shark-cli</code> works with all debuggable apps, even if they don&rsquo;t include the <code>leakcanary-android</code> dependency.</p>
 </div>
 <p>Run <code>shark-cli</code> to see usage instructions:</p>
-<div class="highlight"><pre><span></span><code>$ shark-cli
+<p>```
+$ shark-cli</p>
+<p>Usage: shark-cli [OPTIONS] COMMAND [ARGS]&hellip;</p>
+<div class="codehilite"><pre><span></span><code>               ^`.                 .=&quot;&quot;=.
+</code></pre></div>
 
-Usage: shark-cli [OPTIONS] COMMAND [ARGS]...
-
-                   ^`.                 .=&quot;&quot;=.
-   ^_              \  \               / _  _ \
-   \ \             {   \             |  d  b  |
-   {  \           /     `~~~--__     \   /\   /
-   {   \___----~~&#39;              `~~-_/&#39;-=\/=-&#39;\,
-    \                         /// a  `~.      \ \
+<p>^_                               / _  _ \
+                 {                |  d  b  |
+   {             /     <code>~~~--__     \   /\   /
+   {   \___----~~'</code>~~-<em>/&rsquo;-=\/=-&lsquo;\,
+                             /// a  <code>~.      \ \
     / /~~~~-, ,__.    ,      ///  __,,,,)      \ |
-    \/      \/    `~~~;   ,---~~-_`/ \        / \/
-                     /   /            &#39;.    .&#39;
-                    &#39;._.&#39;             _|`~~`|_
-                                      /|\  /|\
-
-Options:
-  -p, --process TEXT              Full or partial name of a process, e.g.
-                                  &quot;example&quot; would match &quot;com.example.app&quot;
-  -d, --device ID                 device/emulator id
-  -m, --obfuscation-mapping PATH  path to obfuscation mapping file
-  --verbose / --no-verbose        provide additional details as to what
+    \/      \/</code>~~~;   ,&mdash;~~-</em><code>/ \        / \/
+                     /   /            '.    .'
+                    '._.'             _|</code>~~`|_
+                                      /|  /|\</p>
+<p>Options:
+  -p, &ndash;process TEXT              Full or partial name of a process, e.g.
+                                  &ldquo;example&rdquo; would match &ldquo;com.example.app&rdquo;
+  -d, &ndash;device ID                 device/emulator id
+  -m, &ndash;obfuscation-mapping PATH  path to obfuscation mapping file
+  &ndash;verbose / &ndash;no-verbose        provide additional details as to what
                                   shark-cli is doing
-  -h, --hprof FILE                path to a .hprof file
-  --help                          Show this message and exit
-
-Commands:
+  -h, &ndash;hprof FILE                path to a .hprof file
+  &ndash;help                          Show this message and exit</p>
+<p>Commands:
   interactive   Explore a heap dump.
   analyze       Analyze a heap dump.
   dump-process  Dump the heap and pull the hprof file.
   strip-hprof   Replace all primitive arrays from the provided heap dump with
-                arrays of zeroes and generate a new &quot;-stripped.hprof&quot; file.
-</code></pre></div>
+                arrays of zeroes and generate a new &ldquo;-stripped.hprof&rdquo; file.
+```</p>
 <h2 id="shark-code-examples">Shark code examples<a class="headerlink" href="#shark-code-examples" title="Permanent link">&para;</a></h2>
 <h3 id="reading-records-in-a-hprof-file">Reading records in a hprof file<a class="headerlink" href="#reading-records-in-a-hprof-file" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark-hprof:$sharkVersion&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="c1">// Prints all class and field names</span>
-<span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
-    <span class="p">.</span><span class="na">use</span> <span class="p">{</span> <span class="n">hprof</span> <span class="o">-&gt;</span>
-      <span class="n">hprof</span><span class="p">.</span><span class="na">reader</span><span class="p">.</span><span class="na">readHprofRecords</span><span class="p">(</span>
-          <span class="n">recordTypes</span> <span class="o">=</span> <span class="n">setOf</span><span class="p">(</span><span class="n">StringRecord</span><span class="o">::</span><span class="n">class</span><span class="p">),</span>
-          <span class="n">listener</span> <span class="o">=</span> <span class="n">OnHprofRecordListener</span> <span class="p">{</span> <span class="n">position</span><span class="p">,</span> <span class="n">record</span> <span class="o">-&gt;</span>
-            <span class="n">println</span><span class="p">((</span><span class="n">record</span> <span class="k">as</span> <span class="n">StringRecord</span><span class="p">).</span><span class="na">string</span><span class="p">)</span>
-          <span class="p">})</span>
-    <span class="p">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:shark-hprof:$sharkVersion'
+}</code></p>
+<p><code>kotlin
+// Prints all class and field names
+Hprof.open(heapDumpFile)
+    .use { hprof -&gt;
+      hprof.reader.readHprofRecords(
+          recordTypes = setOf(StringRecord::class),
+          listener = OnHprofRecordListener { position, record -&gt;
+            println((record as StringRecord).string)
+          })
+    }</code></p>
 <h3 id="navigating-the-heap-object-graph">Navigating the heap object graph<a class="headerlink" href="#navigating-the-heap-object-graph" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark-graph:$sharkVersion&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="c1">// Prints all thread names</span>
-<span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
-    <span class="p">.</span><span class="na">use</span> <span class="p">{</span> <span class="n">hprof</span> <span class="o">-&gt;</span>
-      <span class="kd">val</span> <span class="nv">heapGraph</span> <span class="o">=</span> <span class="n">HprofHeapGraph</span><span class="p">.</span><span class="na">indexHprof</span><span class="p">(</span><span class="n">hprof</span><span class="p">)</span>
-      <span class="kd">val</span> <span class="nv">threadClass</span> <span class="o">=</span> <span class="n">heapGraph</span><span class="p">.</span><span class="na">findClassByName</span><span class="p">(</span><span class="s">&quot;java.lang.Thread&quot;</span><span class="p">)</span><span class="o">!!</span>
-      <span class="kd">val</span> <span class="nv">threadNames</span><span class="p">:</span> <span class="n">Sequence</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">threadClass</span><span class="p">.</span><span class="na">instances</span><span class="p">.</span><span class="na">map</span> <span class="p">{</span> <span class="n">instance</span> <span class="o">-&gt;</span>
-        <span class="kd">val</span> <span class="nv">nameField</span> <span class="o">=</span> <span class="n">instance</span><span class="o">[</span><span class="s">&quot;java.lang.Thread&quot;</span><span class="p">,</span> <span class="s">&quot;name&quot;</span><span class="o">]!!</span>
-        <span class="n">nameField</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">readAsJavaString</span><span class="p">()</span><span class="o">!!</span>
-      <span class="p">}</span>
-      <span class="n">threadNames</span><span class="p">.</span><span class="na">forEach</span> <span class="p">{</span> <span class="n">println</span><span class="p">(</span><span class="nb">it</span><span class="p">)</span> <span class="p">}</span>
-    <span class="p">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:shark-graph:$sharkVersion'
+}</code></p>
+<p><code>kotlin
+// Prints all thread names
+Hprof.open(heapDumpFile)
+    .use { hprof -&gt;
+      val heapGraph = HprofHeapGraph.indexHprof(hprof)
+      val threadClass = heapGraph.findClassByName("java.lang.Thread")!!
+      val threadNames: Sequence&lt;String&gt; = threadClass.instances.map { instance -&gt;
+        val nameField = instance["java.lang.Thread", "name"]!!
+        nameField.value.readAsJavaString()!!
+      }
+      threadNames.forEach { println(it) }
+    }</code></p>
 <h3 id="generating-a-heap-analysis-report">Generating a heap analysis report<a class="headerlink" href="#generating-a-heap-analysis-report" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark:$sharkVersion&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="c1">// Marks any instance of com.example.ThingWithLifecycle with</span>
-<span class="c1">// ThingWithLifecycle.destroyed=true as leaking</span>
-<span class="kd">val</span> <span class="nv">leakingObjectFilter</span> <span class="o">=</span> <span class="k">object</span> <span class="p">:</span> <span class="nc">LeakingObjectFilter</span> <span class="p">{</span>
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">isLeakingObject</span><span class="p">(</span><span class="n">heapObject</span><span class="p">:</span> <span class="n">HeapObject</span><span class="p">):</span> <span class="kt">Boolean</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="k">if</span> <span class="p">(</span><span class="n">heapObject</span> <span class="n">instanceOf</span> <span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">)</span> <span class="p">{</span>
-      <span class="kd">val</span> <span class="nv">instance</span> <span class="o">=</span> <span class="n">heapObject</span> <span class="k">as</span> <span class="n">HeapInstance</span>
-      <span class="kd">val</span> <span class="nv">destroyedField</span> <span class="o">=</span> <span class="n">instance</span><span class="o">[</span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">,</span> <span class="s">&quot;destroyed&quot;</span><span class="o">]!!</span>
-      <span class="n">destroyedField</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">asBoolean</span><span class="o">!!</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="kc">false</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kd">val</span> <span class="nv">leakingObjectFinder</span> <span class="o">=</span> <span class="n">FilteringLeakingObjectFinder</span><span class="p">(</span><span class="n">listOf</span><span class="p">(</span><span class="n">leakingObjectFilter</span><span class="p">))</span>
-
-<span class="kd">val</span> <span class="nv">heapAnalysis</span> <span class="o">=</span> <span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
-    <span class="p">.</span><span class="na">use</span> <span class="p">{</span> <span class="n">hprof</span> <span class="o">-&gt;</span>
-      <span class="kd">val</span> <span class="nv">heapGraph</span> <span class="o">=</span> <span class="n">HprofHeapGraph</span><span class="p">.</span><span class="na">indexHprof</span><span class="p">(</span><span class="n">hprof</span><span class="p">)</span>
-      <span class="kd">val</span> <span class="nv">heapAnalyzer</span> <span class="o">=</span> <span class="n">HeapAnalyzer</span><span class="p">(</span><span class="n">AnalyzerProgressListener</span><span class="p">.</span><span class="na">NONE</span><span class="p">)</span>
-      <span class="n">heapAnalyzer</span><span class="p">.</span><span class="na">analyze</span><span class="p">(</span>
-          <span class="n">heapDumpFile</span> <span class="o">=</span> <span class="n">heapDumpFile</span><span class="p">,</span>
-          <span class="n">graph</span> <span class="o">=</span> <span class="n">heapGraph</span><span class="p">,</span>
-          <span class="n">leakingObjectFinder</span> <span class="o">=</span> <span class="n">leakingObjectFinder</span><span class="p">,</span>
-      <span class="p">)</span>
-    <span class="p">}</span>
-<span class="n">println</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:shark:$sharkVersion'
+}</code></p>
+<p>```kotlin
+// Marks any instance of com.example.ThingWithLifecycle with
+// ThingWithLifecycle.destroyed=true as leaking
+val leakingObjectFilter = object : LeakingObjectFilter {
+  override fun isLeakingObject(heapObject: HeapObject): Boolean {
+    return if (heapObject instanceOf &ldquo;com.example.ThingWithLifecycle&rdquo;) {
+      val instance = heapObject as HeapInstance
+      val destroyedField = instance[&ldquo;com.example.ThingWithLifecycle&rdquo;, &ldquo;destroyed&rdquo;]!!
+      destroyedField.value.asBoolean!!
+    } else false
+  }
+}</p>
+<p>val leakingObjectFinder = FilteringLeakingObjectFinder(listOf(leakingObjectFilter))</p>
+<p>val heapAnalysis = Hprof.open(heapDumpFile)
+    .use { hprof -&gt;
+      val heapGraph = HprofHeapGraph.indexHprof(hprof)
+      val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
+      heapAnalyzer.analyze(
+          heapDumpFile = heapDumpFile,
+          graph = heapGraph,
+          leakingObjectFinder = leakingObjectFinder,
+      )
+    }
+println(analysis)
+```</p>
 <h3 id="generating-an-android-heap-analysis-report">Generating an Android heap analysis report<a class="headerlink" href="#generating-an-android-heap-analysis-report" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:shark-android:$sharkVersion&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">heapAnalyzer</span> <span class="o">=</span> <span class="n">HeapAnalyzer</span><span class="p">(</span><span class="n">AnalyzerProgressListener</span><span class="p">.</span><span class="na">NONE</span><span class="p">)</span>
-<span class="kd">val</span> <span class="nv">analysis</span> <span class="o">=</span> <span class="n">heapAnalyzer</span><span class="p">.</span><span class="na">checkForLeaks</span><span class="p">(</span>
-    <span class="n">heapDumpFile</span> <span class="o">=</span> <span class="n">heapDumpFile</span><span class="p">,</span>
-    <span class="n">referenceMatchers</span> <span class="o">=</span> <span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">appDefaults</span><span class="p">,</span>
-    <span class="n">objectInspectors</span> <span class="o">=</span> <span class="n">AndroidObjectInspectors</span><span class="p">.</span><span class="na">appDefaults</span>
-<span class="p">)</span>
-<span class="n">println</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:shark-android:$sharkVersion'
+}</code></p>
+<p><code>kotlin
+val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
+val analysis = heapAnalyzer.checkForLeaks(
+    heapDumpFile = heapDumpFile,
+    referenceMatchers = AndroidReferenceMatchers.appDefaults,
+    objectInspectors = AndroidObjectInspectors.appDefaults
+)
+println(analysis)</code></p>
   
 
             </article>
@@ -1063,13 +1060,13 @@ Commands:
       
       
         
-        <a href="../changelog/" class="md-footer__link md-footer__link--next" aria-label="Next: Change Log" rel="next">
+        <a href="../api/shark/" class="md-footer__link md-footer__link--next" aria-label="Next: Shark API" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Change Log
+              Shark API
             </div>
           </div>
           <div class="md-footer__button md-icon">

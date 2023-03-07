@@ -341,8 +341,42 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    ```
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#heap-analysis-result" class="md-nav__link">
+    HEAP ANALYSIS RESULT
+  </a>
+  
+    <nav class="md-nav" aria-label="HEAP ANALYSIS RESULT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#4-categorizing-leaks" class="md-nav__link">
     4. Categorizing leaks
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    ```
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#heap-analysis-result_1" class="md-nav__link">
+    HEAP ANALYSIS RESULT
   </a>
   
 </li>
@@ -721,7 +755,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -743,7 +777,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -811,8 +845,42 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    ```
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#heap-analysis-result" class="md-nav__link">
+    HEAP ANALYSIS RESULT
+  </a>
+  
+    <nav class="md-nav" aria-label="HEAP ANALYSIS RESULT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#4-categorizing-leaks" class="md-nav__link">
     4. Categorizing leaks
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    ```
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#heap-analysis-result_1" class="md-nav__link">
+    HEAP ANALYSIS RESULT
   </a>
   
 </li>
@@ -837,8 +905,6 @@
     
   
   
-    <h1>How LeakCanary works</h1>
-  
   <p>Once LeakCanary is installed, it automatically detects and report memory leaks, in 4 steps:</p>
 <ol>
 <li>Detecting retained objects.</li>
@@ -855,23 +921,21 @@
 <li>cleared <code>ViewModel</code> instances</li>
 </ul>
 <p>You can watch any objects that is no longer needed, for example a detached view or a destroyed presenter:</p>
-<div class="highlight"><pre><span></span><code><span class="n">AppWatcher</span><span class="p">.</span><span class="na">objectWatcher</span><span class="p">.</span><span class="na">watch</span><span class="p">(</span><span class="n">myDetachedView</span><span class="p">,</span> <span class="s">&quot;View was detached&quot;</span><span class="p">)</span>
-</code></pre></div>
+<p><code>kotlin
+AppWatcher.objectWatcher.watch(myDetachedView, "View was detached")</code></p>
 <p>If the weak reference held by <code>ObjectWatcher</code> isn&rsquo;t cleared after <strong>waiting 5 seconds</strong> and running garbage collection, the watched object is considered <strong>retained</strong>, and potentially leaking. LeakCanary logs this to Logcat:</p>
-<div class="highlight"><pre><span></span><code>D LeakCanary: Watching instance of com.example.leakcanary.MainActivity
-  (Activity received Activity#onDestroy() callback) 
-
-... 5 seconds later ...
-
-D LeakCanary: Scheduling check for retained objects because found new object
+<p>```
+D LeakCanary: Watching instance of com.example.leakcanary.MainActivity
+  (Activity received Activity#onDestroy() callback) </p>
+<p>&hellip; 5 seconds later &hellip;</p>
+<p>D LeakCanary: Scheduling check for retained objects because found new object
   retained
-</code></pre></div>
+```</p>
 <p>LeakCanary waits for the count of retained objects to reach a threshold before dumping the heap, and displays a notification with the latest count.</p>
 <p><img alt="notification" src="../images/retained-notification.png" />
 <strong>Figure 1.</strong> LeakCanary found 4 retained objects.</p>
-<div class="highlight"><pre><span></span><code>D LeakCanary: Rescheduling check for retained objects in 2000ms because found
-  only 4 retained objects (&lt; 5 while app visible)
-</code></pre></div>
+<p><code>D LeakCanary: Rescheduling check for retained objects in 2000ms because found
+  only 4 retained objects (&lt; 5 while app visible)</code></p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>The default threshold is <strong>5 retained objects</strong> when the app is <strong>visible</strong>, and <strong>1 retained object</strong> when the app is <strong>not visible</strong>. If you see the retained objects notification and then put the app in background (for example by pressing the Home button), then the threshold changes from 5 to 1 and LeakCanary dumps the heap within 5 seconds. Tapping the notification forces LeakCanary to dump the heap immediately.</p>
@@ -890,18 +954,16 @@ D LeakCanary: Scheduling check for retained objects because found new object
 <p>When the analysis is done, LeakCanary displays a <strong>notification</strong> with a summary, and also prints the result in <strong>Logcat</strong>. Notice below how the <strong>4 retained objects</strong> are grouped as <strong>2 distinct leaks</strong>. LeakCanary creates a <strong>signature for each leak trace</strong>, and groups together leaks that have the same signature, ie leaks that are caused by the same bug.</p>
 <p><img alt="done" src="../images/analysis-done.png" />
 <strong>Figure 5.</strong> The 4 leak traces turned into 2 distinct leak signatures.</p>
-<div class="highlight"><pre><span></span><code>====================================
-HEAP ANALYSIS RESULT
-====================================
-2 APPLICATION LEAKS
-
-Displaying only 1 leak trace out of 2 with the same signature
+<h1 id="_1">```<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<h1 id="heap-analysis-result">HEAP ANALYSIS RESULT<a class="headerlink" href="#heap-analysis-result" title="Permanent link">&para;</a></h1>
+<p>2 APPLICATION LEAKS</p>
+<p>Displaying only 1 leak trace out of 2 with the same signature
 Signature: ce9dee3a1feb859fd3b3a9ff51e3ddfd8efbc6
 ┬───
 │ GC Root: Local variable in native code
 │
-...
-</code></pre></div>
+&hellip;
+```</p>
 <p>Tapping the notification starts an activity that provides more details. Come back to it again later by tapping the LeakCanary launcher icon:</p>
 <p><img alt="toast" src="../images/launcher.png" />
 <strong>Figure 6.</strong> LeakCanary adds a launcher icon for each app it&rsquo;s installed in.</p>
@@ -915,7 +977,7 @@ Signature: ce9dee3a1feb859fd3b3a9ff51e3ddfd8efbc6
 <p><img alt="toast" src="../images/signature.png" />
 <strong>Figure 9.</strong> A leak trace with 3 suspect references.</p>
 <p>These same suspicious references are underlined with <code>~~~</code> when the leak trace is shared as text:</p>
-<div class="highlight"><pre><span></span><code>...
+<p><code>...
 │  
 ├─ com.example.leakcanary.LeakingSingleton class
 │    Leaking: NO (a class is never leaking)
@@ -931,39 +993,35 @@ Signature: ce9dee3a1feb859fd3b3a9ff51e3ddfd8efbc6
 │               ~~~
 ├─ android.widget.TextView instance
 │    Leaking: YES (View.mContext references a destroyed activity)
-...
-</code></pre></div>
+...</code></p>
 <p>In the example above, the signature of the leak would be computed as:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">leakSignature</span> <span class="o">=</span> <span class="n">sha1Hash</span><span class="p">(</span>
-    <span class="s">&quot;com.example.leakcanary.LeakingSingleton.leakedView&quot;</span> <span class="o">+</span>
-    <span class="s">&quot;java.util.ArrayList.elementData&quot;</span> <span class="o">+</span>
-    <span class="s">&quot;java.lang.Object[].[x]&quot;</span>
-<span class="p">)</span>
-<span class="n">println</span><span class="p">(</span><span class="n">leakSignature</span><span class="p">)</span>
-<span class="c1">// dbfa277d7e5624792e8b60bc950cd164190a11aa</span>
-</code></pre></div>
+<p><code>kotlin
+val leakSignature = sha1Hash(
+    "com.example.leakcanary.LeakingSingleton.leakedView" +
+    "java.util.ArrayList.elementData" +
+    "java.lang.Object[].[x]"
+)
+println(leakSignature)
+// dbfa277d7e5624792e8b60bc950cd164190a11aa</code></p>
 <h2 id="4-categorizing-leaks">4. Categorizing leaks<a class="headerlink" href="#4-categorizing-leaks" title="Permanent link">&para;</a></h2>
 <p>LeakCanary separates the leaks it finds in your app into two categories: <strong>Application Leaks</strong> and <strong>Library Leaks</strong>. A <strong>Library Leak</strong> is a leak caused by a known bug in 3<sup>rd</sup> party code that you do not have control over. This leak is impacting your application, but unfortunately fixing it may not be in your control so LeakCanary separates it out.</p>
 <p>The two categories are separated in the result printed in <strong>Logcat</strong>:</p>
-<div class="highlight"><pre><span></span><code>====================================
-HEAP ANALYSIS RESULT
-====================================
-0 APPLICATION LEAKS
-
-====================================
-1 LIBRARY LEAK
-
-...
+<h1 id="_2">```<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h1>
+<h1 id="heap-analysis-result_1">HEAP ANALYSIS RESULT<a class="headerlink" href="#heap-analysis-result_1" title="Permanent link">&para;</a></h1>
+<p>0 APPLICATION LEAKS</p>
+<p>====================================
+1 LIBRARY LEAK</p>
+<p>&hellip;
 ┬───
 │ GC Root: Local variable in native code
 │
-...
-</code></pre></div>
+&hellip;
+```</p>
 <p>LeakCanary marks a row as a <span style="border-radius: 20px; background: #4e462f; padding-left: 8px; padding-right: 8px; padding-top: 2px; padding-bottom: 2px; color: #ffcc32;">Library Leak</span> in its list of leaks:</p>
 <p><img alt="Library Leak" src="../images/library-leak.png" />
 <strong>Figure 10.</strong> LeakCanary found a Library Leak.</p>
 <p>LeakCanary ships with a database of known leaks, which it recognizes by pattern matching on reference names. For example:</p>
-<div class="highlight"><pre><span></span><code>Leak pattern: instance field android.app.Activity$1#this$0
+<p><code>Leak pattern: instance field android.app.Activity$1#this$0
 Description: Android Q added a new IRequestFinishCallback$Stub class [...]
 ┬───
 │ GC Root: Global variable in native code
@@ -973,8 +1031,7 @@ Description: Android Q added a new IRequestFinishCallback$Stub class [...]
 │    Anonymous subclass of android.app.IRequestFinishCallback$Stub
 │    ↓ Activity$1.this$0
 │                 ~~~~~~
-╰→ com.example.MainActivity instance
-</code></pre></div>
+╰→ com.example.MainActivity instance</code></p>
 <div class="admonition quote">
 <p class="admonition-title">What did I do to cause this leak?</p>
 <p>Nothing wrong! You used an API the way it was intended but the implementation has a bug that is causing this leak.</p>

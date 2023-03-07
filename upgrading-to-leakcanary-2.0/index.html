@@ -944,7 +944,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -966,7 +966,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -1294,18 +1294,18 @@
 </ul>
 <h2 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h2>
 <h3 id="before">Before<a class="headerlink" href="#before" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:1.6.3&#39;</span>
-  <span class="n">releaseImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-no-op:1.6.3&#39;</span>
-  <span class="c1">// Optional, if you use support library fragments:</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-support-fragment:1.6.3&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.3'
+  releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.3'
+  // Optional, if you use support library fragments:
+  debugImplementation 'com.squareup.leakcanary:leakcanary-support-fragment:1.6.3'
+}</code></p>
 <h3 id="now">Now<a class="headerlink" href="#now" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">debugImplementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.10&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.10'
+}</code></p>
 <h3 id="worth-noting">Worth noting<a class="headerlink" href="#worth-noting" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The <code>leakcanary-android-no-op</code> artifact is gone. If you have compile errors, see below.</li>
@@ -1316,20 +1316,20 @@
 </ul>
 <h2 id="default-setup-code">Default setup code<a class="headerlink" href="#default-setup-code" title="Permanent link">&para;</a></h2>
 <h3 id="before_1">Before<a class="headerlink" href="#before_1" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ExampleApplication</span> <span class="kd">extends</span> <span class="n">Application</span> <span class="p">{</span>
-
-  <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kd">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">();</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">LeakCanary</span><span class="p">.</span><span class="na">isInAnalyzerProcess</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="p">{</span>
-      <span class="c1">// This process is dedicated to LeakCanary for heap analysis.</span>
-      <span class="c1">// You should not init your app in this process.</span>
-      <span class="k">return</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">LeakCanary</span><span class="p">.</span><span class="na">install</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
-    <span class="c1">// Normal app init code...</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```java
+public class ExampleApplication extends Application {</p>
+<p>@Override public void onCreate() {
+    super.onCreate();
+    if (LeakCanary.isInAnalyzerProcess(this)) {
+      // This process is dedicated to LeakCanary for heap analysis.
+      // You should not init your app in this process.
+      return;
+    }
+    LeakCanary.install(this);
+    // Normal app init code&hellip;
+  }
+}
+```</p>
 <h3 id="now_1">Now<a class="headerlink" href="#now_1" title="Permanent link">&para;</a></h3>
 <p>There is no more code for default setup.</p>
 <h3 id="worth-noting_1">Worth noting<a class="headerlink" href="#worth-noting_1" title="Permanent link">&para;</a></h3>
@@ -1339,159 +1339,158 @@
 </ul>
 <h2 id="retrieve-the-refwatcher">Retrieve the RefWatcher<a class="headerlink" href="#retrieve-the-refwatcher" title="Permanent link">&para;</a></h2>
 <h3 id="before_2">Before<a class="headerlink" href="#before_2" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">refWatcher</span><span class="p">:</span> <span class="n">RefWatcher</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">installedRefWatcher</span><span class="p">()</span>
-</code></pre></div>
+<p><code>kotlin
+val refWatcher: RefWatcher = LeakCanary.installedRefWatcher()</code></p>
 <h3 id="now_2">Now<a class="headerlink" href="#now_2" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">objectWatcher</span><span class="p">:</span> <span class="n">ObjectWatcher</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">objectWatcher</span>
-</code></pre></div>
+<p><code>kotlin
+val objectWatcher: ObjectWatcher = AppWatcher.objectWatcher</code></p>
 <h2 id="compile-errors-because-refwatcher-is-used-in-release-code">Compile errors because RefWatcher is used in release code<a class="headerlink" href="#compile-errors-because-refwatcher-is-used-in-release-code" title="Permanent link">&para;</a></h2>
 <p>If you were using <code>RefWatcher</code> in non debug code, you now get a compile error because the no-op artifact is gone. <a href="/leakcanary/api/leakcanary-object-watcher/leakcanary/-object-watcher/">ObjectWatcher</a> now lives in the <code>object-watcher</code> artifact, which is suitable for release builds. You have two options:</p>
 <h3 id="option-1-add-object-watcher-android-to-release-builds">Option 1: Add <code>object-watcher-android</code> to release builds.<a class="headerlink" href="#option-1-add-object-watcher-android-to-release-builds" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">implementation</span> <span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.10&#39;</span>
-<span class="o">}</span>
-</code></pre></div>
+<p><code>groovy
+dependencies {
+  implementation 'com.squareup.leakcanary:leakcanary-object-watcher-android:2.10'
+}</code></p>
 <ul>
 <li>It will automatically keep weak references to destroyed activities, fragments, and any instance you pass to <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher</a>.</li>
 <li>It will not trigger heap dumps or anything else that LeakCanary does.</li>
 <li>It&rsquo;s very little code and should have a no impact on your release app.</li>
 <li>You can use it to count how many objects are retained, for example to add metadata to OutOfMemoryError crashes:</li>
 </ul>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span> <span class="nv">retainedObjectCount</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">objectWatcher</span><span class="p">.</span><span class="na">retainedObjectCount</span>
-</code></pre></div>
+<p><code>kotlin
+val retainedObjectCount = AppWatcher.objectWatcher.retainedObjectCount</code></p>
 <h3 id="option-2-make-your-own-objectwatcher-interface">Option 2: Make your own <code>ObjectWatcher</code> interface<a class="headerlink" href="#option-2-make-your-own-objectwatcher-interface" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1">// In shared code</span>
-<span class="kd">interface</span> <span class="nc">MaybeObjectWatcher</span> <span class="p">{</span>
-  <span class="kd">fun</span> <span class="nf">watch</span><span class="p">(</span><span class="n">watchedObject</span><span class="p">:</span> <span class="kt">Any</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span>
-
-  <span class="kd">object</span> <span class="nc">None</span> <span class="p">:</span> <span class="n">MaybeObjectWatcher</span> <span class="p">{</span>
-    <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">watch</span><span class="p">(</span><span class="n">watchedObject</span><span class="p">:</span> <span class="kt">Any</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="p">{</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="c1">// In debug code</span>
-<span class="kd">class</span> <span class="nc">RealObjectWatcher</span> <span class="p">:</span> <span class="n">MaybeObjectWatcher</span> <span class="p">{</span>
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">watch</span><span class="p">(</span><span class="n">watchedObject</span><span class="p">:</span> <span class="kt">Any</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">AppWatcher</span><span class="p">.</span><span class="na">objectWatcher</span><span class="p">.</span><span class="na">watch</span><span class="p">(</span><span class="n">watchedObject</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+// In shared code
+interface MaybeObjectWatcher {
+  fun watch(watchedObject: Any, description: String)</p>
+<p>object None : MaybeObjectWatcher {
+    override fun watch(watchedObject: Any, description: String) {
+    }
+  }
+}</p>
+<p>// In debug code
+class RealObjectWatcher : MaybeObjectWatcher {
+  override fun watch(watchedObject: Any, description: String) {
+    AppWatcher.objectWatcher.watch(watchedObject, description)
+  }
+}
+```</p>
 <p>Use <code>MaybeObjectWatcher.None</code> in release code and <code>RealObjectWatcher</code> in debug code.</p>
 <h2 id="configuring-leakcanary">Configuring LeakCanary<a class="headerlink" href="#configuring-leakcanary" title="Permanent link">&para;</a></h2>
 <h3 id="before_3">Before<a class="headerlink" href="#before_3" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="kd">extends</span> <span class="n">ExampleApplication</span> <span class="p">{</span>
-
-  <span class="nd">@Override</span> <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">installLeakCanary</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">RefWatcher</span> <span class="n">refWatcher</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">refWatcher</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
-      <span class="p">.</span><span class="na">watchActivities</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span>
-      <span class="p">.</span><span class="na">buildAndInstall</span><span class="p">();</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```java
+public class DebugExampleApplication extends ExampleApplication {</p>
+<p>@Override protected void installLeakCanary() {
+    RefWatcher refWatcher = LeakCanary.refWatcher(this)
+      .watchActivities(false)
+      .buildAndInstall();
+  }
+}
+```</p>
 <h3 id="now_3">Now<a class="headerlink" href="#now_3" title="Permanent link">&para;</a></h3>
 <p>AppWatcher is in charge of detecting retained objects. Its configuration can be updated at any time by replacing <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/config/">AppWatcher.config</a>:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
-    <span class="n">AppWatcher</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">AppWatcher</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">watchFragmentViews</span> <span class="o">=</span> <span class="kc">false</span><span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```kotlin
+class DebugExampleApplication : ExampleApplication() {</p>
+<p>override fun onCreate() {
+    super.onCreate()
+    AppWatcher.config = AppWatcher.config.copy(watchFragmentViews = false)
+  }
+}
+```</p>
 <p>LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing <a href="/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/config/">LeakCanary.config</a>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">disableLeakCanaryButton</span><span class="p">.</span><span class="na">setOnClickListener</span> <span class="p">{</span>
-  <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">dumpHeap</span> <span class="o">=</span> <span class="kc">false</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
+<p><code>kotlin
+disableLeakCanaryButton.setOnClickListener {
+  LeakCanary.config = LeakCanary.config.copy(dumpHeap = false)
+}</code></p>
 <h2 id="running-leakcanary-in-instrumentation-tests">Running LeakCanary in instrumentation tests<a class="headerlink" href="#running-leakcanary-in-instrumentation-tests" title="Permanent link">&para;</a></h2>
 <h3 id="before_4">Before<a class="headerlink" href="#before_4" title="Permanent link">&para;</a></h3>
 <p>In your <code>build.gradle</code> file:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span> <span class="o">{</span>
-  <span class="n">androidTestImplementation</span> <span class="s2">&quot;com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}&quot;</span>
-<span class="o">}</span>
-
-<span class="n">android</span> <span class="o">{</span>
-  <span class="n">defaultConfig</span> <span class="o">{</span>
-    <span class="c1">// ...</span>
-
-    <span class="n">testInstrumentationRunner</span> <span class="s2">&quot;android.support.test.runner.AndroidJUnitRunner&quot;</span>
-    <span class="n">testInstrumentationRunnerArgument</span> <span class="s2">&quot;listener&quot;</span><span class="o">,</span> <span class="s2">&quot;com.squareup.leakcanary.FailTestOnLeakRunListener&quot;</span>
-  <span class="o">}</span>
-<span class="o">}</span>
+<p>```groovy
+dependencies {
+  androidTestImplementation &ldquo;com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}&rdquo;
+}</p>
+<p>android {
+  defaultConfig {
+    // &hellip;</p>
+<div class="codehilite"><pre><span></span><code>testInstrumentationRunner &quot;android.support.test.runner.AndroidJUnitRunner&quot;
+testInstrumentationRunnerArgument &quot;listener&quot;, &quot;com.squareup.leakcanary.FailTestOnLeakRunListener&quot;
 </code></pre></div>
+
+<p>}
+}
+```</p>
 <p>In your test <code>Application</code> class:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">InstrumentationTestExampleApplication</span> <span class="kd">extends</span> <span class="n">DebugExampleApplication</span> <span class="p">{</span>
-  <span class="nd">@Override</span> <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">installLeakCanary</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">InstrumentationLeakDetector</span><span class="p">.</span><span class="na">instrumentationRefWatcher</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
-      <span class="p">.</span><span class="na">buildAndInstall</span><span class="p">();</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
+<p><code>java
+public class InstrumentationTestExampleApplication extends DebugExampleApplication {
+  @Override protected void installLeakCanary() {
+    InstrumentationLeakDetector.instrumentationRefWatcher(this)
+      .buildAndInstall();
+  }
+}</code></p>
 <h3 id="now_4">Now<a class="headerlink" href="#now_4" title="Permanent link">&para;</a></h3>
 <p>Remove all the previous test related leak detection code then follow
 <a href="../ui-tests/">Leak detection in UI tests</a>.</p>
 <h2 id="analysis-listener-uploading-to-a-server">Analysis listener / uploading to a server<a class="headerlink" href="#analysis-listener-uploading-to-a-server" title="Permanent link">&para;</a></h2>
 <h3 id="before_5">Before<a class="headerlink" href="#before_5" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">LeakUploadService</span> <span class="kd">extends</span> <span class="n">DisplayLeakService</span> <span class="p">{</span>
-  <span class="nd">@Override</span> <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">afterDefaultHandling</span><span class="p">(</span><span class="n">HeapDump</span> <span class="n">heapDump</span><span class="p">,</span> <span class="n">AnalysisResult</span> <span class="n">result</span><span class="p">,</span> <span class="n">String</span> <span class="n">leakInfo</span><span class="p">)</span> <span class="p">{</span>
-    <span class="c1">// TODO Upload result to server</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="n">RefWatcher</span> <span class="n">refWatcher</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">refWatcher</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
-  <span class="p">.</span><span class="na">listenerServiceClass</span><span class="p">(</span><span class="n">LeakUploadService</span><span class="p">.</span><span class="na">class</span><span class="p">)</span>
-  <span class="p">.</span><span class="na">buildAndInstall</span><span class="p">();</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
-<span class="nt">&lt;manifest</span> <span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span><span class="nt">&gt;</span>
-  <span class="nt">&lt;application</span> <span class="na">android:name=</span><span class="s">&quot;com.example.DebugExampleApplication&quot;</span><span class="nt">&gt;</span>
-    <span class="nt">&lt;service</span> <span class="na">android:name=</span><span class="s">&quot;com.example.LeakUploadService&quot;</span> <span class="nt">/&gt;</span>
-  <span class="nt">&lt;/application&gt;</span>
-<span class="nt">&lt;/manifest&gt;</span>
-</code></pre></div>
+<p><code>java
+public class LeakUploadService extends DisplayLeakService {
+  @Override protected void afterDefaultHandling(HeapDump heapDump, AnalysisResult result, String leakInfo) {
+    // TODO Upload result to server
+  }
+}</code></p>
+<p><code>java
+RefWatcher refWatcher = LeakCanary.refWatcher(this)
+  .listenerServiceClass(LeakUploadService.class)
+  .buildAndInstall();</code></p>
+<p>```xml</p>
+<?xml version="1.0" encoding="utf-8"?>
+<p><manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application android:name="com.example.DebugExampleApplication">
+    <service android:name="com.example.LeakUploadService" />
+  </application>
+</manifest>
+```</p>
 <h3 id="now_5">Now<a class="headerlink" href="#now_5" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">LeakUploader</span> <span class="p">:</span> <span class="n">OnHeapAnalyzedListener</span> <span class="p">{</span>
-
-  <span class="kd">val</span> <span class="nv">defaultListener</span> <span class="o">=</span> <span class="n">DefaultOnHeapAnalyzedListener</span><span class="p">.</span><span class="na">create</span><span class="p">()</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onHeapAnalyzed</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">:</span> <span class="n">HeapAnalysis</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">TODO</span><span class="p">(</span><span class="s">&quot;Upload heap analysis to server&quot;</span><span class="p">)</span>
-
-    <span class="c1">// Delegate to default behavior (notification and saving result)</span>
-    <span class="n">defaultListener</span><span class="p">.</span><span class="na">onHeapAnalyzed</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kd">class</span> <span class="nc">DebugExampleApplication</span> <span class="p">:</span> <span class="n">ExampleApplication</span><span class="p">()</span> <span class="p">{</span>
-
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">()</span>
-    <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
-        <span class="n">onHeapAnalyzedListener</span> <span class="o">=</span> <span class="n">LeakUploader</span><span class="p">()</span>
-    <span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+<p>```Kotlin
+class LeakUploader : OnHeapAnalyzedListener {</p>
+<p>val defaultListener = DefaultOnHeapAnalyzedListener.create()</p>
+<p>override fun onHeapAnalyzed(heapAnalysis: HeapAnalysis) {
+    TODO(&ldquo;Upload heap analysis to server&rdquo;)</p>
+<div class="codehilite"><pre><span></span><code>// Delegate to default behavior (notification and saving result)
+defaultListener.onHeapAnalyzed(heapAnalysis)
 </code></pre></div>
+
+<p>}
+}</p>
+<p>class DebugExampleApplication : ExampleApplication() {</p>
+<p>override fun onCreate() {
+    super.onCreate()
+    LeakCanary.config = LeakCanary.config.copy(
+        onHeapAnalyzedListener = LeakUploader()
+    )
+  }
+}
+```</p>
 <h3 id="matching-known-library-leaks">Matching known library leaks<a class="headerlink" href="#matching-known-library-leaks" title="Permanent link">&para;</a></h3>
 <h3 id="before_6">Before<a class="headerlink" href="#before_6" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">ExcludedRefs</span> <span class="n">excludedRefs</span> <span class="o">=</span> <span class="n">AndroidExcludedRefs</span><span class="p">.</span><span class="na">createAppDefaults</span><span class="p">()</span>
-    <span class="p">.</span><span class="na">staticField</span><span class="p">(</span><span class="s">&quot;com.samsing.SomeSingleton&quot;</span><span class="p">,</span> <span class="s">&quot;sContext&quot;</span><span class="p">)</span>
-    <span class="p">.</span><span class="na">build</span><span class="p">();</span>
-<span class="n">RefWatcher</span> <span class="n">refWatcher</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">refWatcher</span><span class="p">(</span><span class="k">this</span><span class="p">)</span>
-  <span class="p">.</span><span class="na">excludedRefs</span><span class="p">(</span><span class="n">excludedRefs</span><span class="p">)</span>
-  <span class="p">.</span><span class="na">buildAndInstall</span><span class="p">();</span>
-<span class="p">}</span>
-</code></pre></div>
+<p><code>java
+ExcludedRefs excludedRefs = AndroidExcludedRefs.createAppDefaults()
+    .staticField("com.samsing.SomeSingleton", "sContext")
+    .build();
+RefWatcher refWatcher = LeakCanary.refWatcher(this)
+  .excludedRefs(excludedRefs)
+  .buildAndInstall();
+}</code></p>
 <h3 id="now_6">Now<a class="headerlink" href="#now_6" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span> <span class="o">=</span> <span class="n">LeakCanary</span><span class="p">.</span><span class="na">config</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
-    <span class="n">referenceMatchers</span> <span class="o">=</span> <span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">appDefaults</span> <span class="o">+</span>
-        <span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">staticFieldLeak</span><span class="p">(</span>
-            <span class="s">&quot;com.samsing.SomeSingleton&quot;</span><span class="p">,</span>
-            <span class="s">&quot;sContext&quot;</span>
-        <span class="p">)</span>
-<span class="p">)</span>
-</code></pre></div>
+<p><code>kotlin
+LeakCanary.config = LeakCanary.config.copy(
+    referenceMatchers = AndroidReferenceMatchers.appDefaults +
+        AndroidReferenceMatchers.staticFieldLeak(
+            "com.samsing.SomeSingleton",
+            "sContext"
+        )
+)</code></p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>There is no equivalent API to <code>ExcludedRefs.Builder.clazz()</code> because it led to abuses. Instead see <a href="../recipes/#ignoring-specific-activities-or-fragment-classes">Ignoring specific activities or fragment classes</a>.</p>

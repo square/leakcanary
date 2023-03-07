@@ -721,7 +721,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/shark/index.md" class="md-nav__link">
+      <a href="../api/shark/" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -743,7 +743,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/leakcanary/index.md" class="md-nav__link">
+      <a href="../api/leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -851,18 +851,17 @@
 <h2 id="1-find-the-leak-trace">1. Find the leak trace<a class="headerlink" href="#1-find-the-leak-trace" title="Permanent link">&para;</a></h2>
 <p>A <strong>leak trace</strong> is a shorter name for the <em>best strong reference path from garbage collection roots to the retained object</em>, ie the path of references that is holding an object in memory, therefore preventing it from being garbage collected.</p>
 <p>For example, let&rsquo;s store a helper singleton in a static field:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">Helper</span> <span class="p">{</span>
-<span class="p">}</span>
-
-<span class="kd">class</span> <span class="nc">Utils</span> <span class="p">{</span>
-  <span class="kd">public</span> <span class="kd">static</span> <span class="n">Helper</span> <span class="n">helper</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Helper</span><span class="p">();</span>
-<span class="p">}</span>
-</code></pre></div>
+<p>```java
+class Helper {
+}</p>
+<p>class Utils {
+  public static Helper helper = new Helper();
+}
+```</p>
 <p>Let&rsquo;s tell LeakCanary that the singleton instance is expected to be garbage collected:</p>
-<div class="highlight"><pre><span></span><code>AppWatcher.objectWatcher.watch(Utils.helper)
-</code></pre></div>
+<p><code>AppWatcher.objectWatcher.watch(Utils.helper)</code></p>
 <p>The leak trace for that singleton looks like this:</p>
-<div class="highlight"><pre><span></span><code>┬───
+<p><code>┬───
 │ GC Root: Local variable in native code
 │
 ├─ dalvik.system.PathClassLoader instance
@@ -871,8 +870,7 @@
 │    ↓ Object[].[43]
 ├─ com.example.Utils class
 │    ↓ static Utils.helper
-╰→ java.example.Helper
-</code></pre></div>
+╰→ java.example.Helper</code></p>
 <p>Let&rsquo;s break it down! At the top, a <code>PathClassLoader</code> instance is held by a <strong>garbage collection (GC) root</strong>, more specifically a local variable in native code. GC roots are special objects that are always reachable, ie they cannot be garbage collected. There are 4 main types of GC root:</p>
 <ul>
 <li><strong>Local variables</strong>, which belong to the stack of a thread.</li>
@@ -880,50 +878,47 @@
 <li><strong>System Classes</strong>, which never unload.</li>
 <li><strong>Native references</strong>, which are controlled by native code.</li>
 </ul>
-<div class="highlight"><pre><span></span><code>┬───
+<p><code>┬───
 │ GC Root: Local variable in native code
 │
-├─ dalvik.system.PathClassLoader instance
-</code></pre></div>
+├─ dalvik.system.PathClassLoader instance</code></p>
 <p>A line starting with <code>├─</code> represents a Java object (either a class, an object array or an instance), and a line starting with <code>│    ↓</code> represents a reference to the Java object on the next line.</p>
 <p><code>PathClassLoader</code> has a <code>runtimeInternalObjects</code> field that is a reference to an array of <code>Object</code>:</p>
-<div class="highlight"><pre><span></span><code>├─ dalvik.system.PathClassLoader instance
+<p><code>├─ dalvik.system.PathClassLoader instance
 │    ↓ PathClassLoader.runtimeInternalObjects
-├─ java.lang.Object[] array
-</code></pre></div>
+├─ java.lang.Object[] array</code></p>
 <p>The element at position 43 in that array of <code>Object</code> is a reference to the <code>Utils</code> class.</p>
-<div class="highlight"><pre><span></span><code>├─ java.lang.Object[] array
+<p><code>├─ java.lang.Object[] array
 │    ↓ Object[].[43]
-├─ com.example.Utils class
-</code></pre></div>
+├─ com.example.Utils class</code></p>
 <p>A line starting with <code>╰→</code> represents the leaking object, ie the object that is passed to <a href="/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/">AppWatcher.objectWatcher.watch()</a>.</p>
 <p>The <code>Utils</code> class has a static <code>helper</code> field which is a reference to the leaking object, which is the Helper singleton instance:</p>
-<div class="highlight"><pre><span></span><code>├─ com.example.Utils class
+<p><code>├─ com.example.Utils class
 │    ↓ static Utils.helper
-╰→ java.example.Helper instance
-</code></pre></div>
+╰→ java.example.Helper instance</code></p>
 <h2 id="2-narrow-down-the-suspect-references">2. Narrow down the suspect references<a class="headerlink" href="#2-narrow-down-the-suspect-references" title="Permanent link">&para;</a></h2>
 <p>A leak trace is a path of references. Initially, all references in that path are suspected of causing the leak, but LeakCanary can automatically narrow down the suspect references. To understand what that means, let&rsquo;s go through that process manually.</p>
 <p>Here&rsquo;s an example of bad Android code:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span> <span class="nc">ExampleApplication</span> <span class="p">:</span> <span class="n">Application</span><span class="p">()</span> <span class="p">{</span>
-  <span class="kd">val</span> <span class="nv">leakedViews</span> <span class="o">=</span> <span class="n">mutableListOf</span><span class="o">&lt;</span><span class="n">View</span><span class="o">&gt;</span><span class="p">()</span>
-<span class="p">}</span>
+<p>```kotlin
+class ExampleApplication : Application() {
+  val leakedViews = mutableListOf<View>()
+}</p>
+<p>class MainActivity : Activity() {
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.main_activity)</p>
+<div class="codehilite"><pre><span></span><code>val textView = findViewById&lt;View&gt;(R.id.helper_text)
 
-<span class="kd">class</span> <span class="nc">MainActivity</span> <span class="p">:</span> <span class="n">Activity</span><span class="p">()</span> <span class="p">{</span>
-  <span class="kd">override</span> <span class="kd">fun</span> <span class="nf">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">:</span> <span class="n">Bundle?)</span> <span class="p">{</span>
-    <span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">)</span>
-    <span class="n">setContentView</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">layout</span><span class="p">.</span><span class="na">main_activity</span><span class="p">)</span>
-
-    <span class="kd">val</span> <span class="nv">textView</span> <span class="o">=</span> <span class="n">findViewById</span><span class="o">&lt;</span><span class="n">View</span><span class="o">&gt;</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">helper_text</span><span class="p">)</span>
-
-    <span class="kd">val</span> <span class="nv">app</span> <span class="o">=</span> <span class="n">application</span> <span class="k">as</span> <span class="n">ExampleApplication</span>
-    <span class="c1">// This creates a leak, What a Terrible Failure!</span>
-    <span class="n">app</span><span class="p">.</span><span class="na">leakedViews</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">textView</span><span class="p">)</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+val app = application as ExampleApplication
+// This creates a leak, What a Terrible Failure!
+app.leakedViews.add(textView)
 </code></pre></div>
+
+<p>}
+}
+```</p>
 <p>LeakCanary produces a leak trace that looks like this:</p>
-<div class="highlight"><pre><span></span><code>┬───
+<p><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -936,14 +931,13 @@
 │    ↓ Object[].[0]
 ├─ android.widget.TextView instance
 │    ↓ TextView.mContext
-╰→ com.example.leakcanary.MainActivity instance
-</code></pre></div>
+╰→ com.example.leakcanary.MainActivity instance</code></p>
 <p>Here&rsquo;s how to read that leak trace:</p>
 <blockquote>
 <p>The <code>FontsContract</code> class is a system class (see <code>GC Root: System class</code>) and has an <code>sContext</code> static field which references an <code>ExampleApplication</code> instance which has a <code>leakedViews</code> field which references an <code>ArrayList</code> instance which references an array (the array backing the array list implementation) which has an element that references a <code>TextView</code> which has an <code>mContext</code> field which references a destroyed instance of <code>MainActivity</code>.</p>
 </blockquote>
 <p>LeakCanary highlights all references suspected of causing this leak using ~~~ underlines. Initially, all references are suspect:</p>
-<div class="highlight"><pre><span></span><code>┬───
+<p><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -962,10 +956,9 @@
 ├─ android.widget.TextView instance
 │    ↓ TextView.mContext
 │               ~~~~~~~~
-╰→ com.example.leakcanary.MainActivity instance
-</code></pre></div>
+╰→ com.example.leakcanary.MainActivity instance</code></p>
 <p>Then, LeakCanary makes deductions about the <strong>state</strong> and the <strong>lifecycle</strong> of the objects in the leak trace. In an Android app the <code>Application</code> instance is a singleton that is never garbage collected, so it&rsquo;s never leaking (<code>Leaking: NO (Application is a singleton)</code>). From that, LeakCanary concludes that the leak is not caused by <code>FontsContract.sContext</code> (removal of corresponding <code>~~~</code>). Here&rsquo;s the updated leak trace:</p>
-<div class="highlight"><pre><span></span><code>┬───
+<p><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -983,10 +976,9 @@
 ├─ android.widget.TextView instance
 │    ↓ TextView.mContext
 │               ~~~~~~~~
-╰→ com.example.leakcanary.MainActivity instance
-</code></pre></div>
+╰→ com.example.leakcanary.MainActivity instance</code></p>
 <p>The <code>TextView</code> instance references the destroyed <code>MainActivity</code> instance via it&rsquo;s <code>mContext</code> field. Views should not survive the lifecycle of their context, so LeakCanary knows that this <code>TextView</code> instance is leaking (<code>Leaking: YES (View.mContext references a destroyed activity)</code>), and therefore that the leak is not caused by <code>TextView.mContext</code> (removal of corresponding <code>~~~</code>). Here&rsquo;s the updated leak trace:</p>
-<div class="highlight"><pre><span></span><code>┬───
+<p><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -1004,12 +996,11 @@
 ├─ android.widget.TextView instance
 │    Leaking: YES (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
-╰→ com.example.leakcanary.MainActivity instance
-</code></pre></div>
+╰→ com.example.leakcanary.MainActivity instance</code></p>
 <p>To summarize, LeakCanary inspects the state of objects in the leak trace to figure out if these objects are leaking (<code>Leaking: YES</code> vs <code>Leaking: NO</code>), and leverages that information to narrow down the suspect references. You can provide custom <code>ObjectInspector</code> implementations to improve how LeakCanary works in your codebase (see <a href="../recipes/#identifying-leaking-objects-and-labeling-objects">Identifying leaking objects and labeling objects</a>).</p>
 <h2 id="3-find-the-reference-causing-the-leak">3. Find the reference causing the leak<a class="headerlink" href="#3-find-the-reference-causing-the-leak" title="Permanent link">&para;</a></h2>
 <p>In the previous example, LeakCanary narrowed down the suspect references to <code>ExampleApplication.leakedViews</code>, <code>ArrayList.elementData</code> and <code>Object[].[0]</code>:</p>
-<div class="highlight"><pre><span></span><code>┬───
+<p><code>┬───
 │ GC Root: System class
 │
 ├─ android.provider.FontsContract class
@@ -1027,8 +1018,7 @@
 ├─ android.widget.TextView instance
 │    Leaking: YES (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
-╰→ com.example.leakcanary.MainActivity instance
-</code></pre></div>
+╰→ com.example.leakcanary.MainActivity instance</code></p>
 <p><code>ArrayList.elementData</code> and <code>Object[].[0]</code> are implementation details of <code>ArrayList</code>, and it&rsquo;s unlikely that there&rsquo;s a bug in the <code>ArrayList</code> implementation, so the reference causing the leak is the only remaining reference: <code>ExampleApplication.leakedViews</code>.</p>
 <h2 id="4-fix-the-leak">4. Fix the leak<a class="headerlink" href="#4-fix-the-leak" title="Permanent link">&para;</a></h2>
 <p>Once you find the reference causing the leak, you need to figure out what that reference is about, when it should have been cleared and why it hasn&rsquo;t been. Sometimes it&rsquo;s obvious, like in the previous example. Sometimes you need more information to figure it out. You can <a href="../recipes/#identifying-leaking-objects-and-labeling-objects">add labels</a>, or explore the hprof directly (see <a href="../faq/#how-can-i-dig-beyond-the-leak-trace">How can I dig beyond the leak trace?</a>).</p>
