@@ -26,7 +26,7 @@ shark-cli --process com.example.app.debug neo4j
 * 💥 [#2430](https://github.com/square/leakcanary/issues/2430) Fix ShortcutManager crash on Android TV.
 * 💥 [#2382](https://github.com/square/leakcanary/issues/2382) Fix heap dump close crash.
 
-This list reflects only a subset of all changes. For more details, see the [2.10 Milestone](https://github.com/square/leakcanary/milestone/24) and the [full diff](https://github.com/square/leakcanary/compare/v2.9.1...v2.10).
+This list reflects only a subset of all changes. For more details, see the [2.10 Milestone](https://github.com/square/leakcanary/milestone/25) and the [full diff](https://github.com/square/leakcanary/compare/v2.9.1...v2.10).
 
 ## Version 2.9.1 (2022-04-20)
 
