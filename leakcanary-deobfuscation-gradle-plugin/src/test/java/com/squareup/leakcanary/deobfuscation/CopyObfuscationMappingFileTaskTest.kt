@@ -32,7 +32,7 @@ class CopyObfuscationMappingFileTaskTest {
 
   @Test
   fun `should throw if mapping file is not specified`() {
-    task.mergeAssetsDirectory = tempFolder.newFolder("mergeAssetsDir")
+    task.mergeAssetsDirectory.set(tempFolder.newFolder("mergeAssetsDir"))
 
     assertThatExceptionOfType(GradleException::class.java)
       .isThrownBy { task.copyObfuscationMappingFile() }
@@ -40,7 +40,7 @@ class CopyObfuscationMappingFileTaskTest {
 
   @Test
   fun `should throw if merge assets dir is not specified`() {
-    task.mappingFile = tempFolder.newFile("mapping.txt")
+    task.mappingFile.set(tempFolder.newFile("mapping.txt"))
 
     assertThatExceptionOfType(GradleException::class.java)
       .isThrownBy { task.copyObfuscationMappingFile() }
@@ -48,33 +48,33 @@ class CopyObfuscationMappingFileTaskTest {
 
   @Test
   fun `existing mapping copied and merge assets dir generated if not exists`() {
-    task.mappingFile = tempFolder.newFile("mapping.txt")
-    task.mergeAssetsDirectory = File(tempFolder.root, "mergeAssetsDir")
+    task.mappingFile.set(tempFolder.newFile("mapping.txt"))
+    task.mergeAssetsDirectory.set(File(tempFolder.root, "mergeAssetsDir"))
 
-    assertThat(task.mergeAssetsDirectory!!.exists()).isFalse()
+    assertThat(task.mergeAssetsDirectory.get().exists()).isFalse()
 
     task.copyObfuscationMappingFile()
 
-    assertThat(task.mergeAssetsDirectory!!.exists()).isTrue()
+    assertThat(task.mergeAssetsDirectory.get().exists()).isTrue()
     assertThat(task.leakCanaryAssetsOutputFile.exists()).isTrue()
   }
 
   @Test
   fun `previous mapping overwritten`() {
-    task.mergeAssetsDirectory = tempFolder.newFolder("mergeAssetsDir")
+    task.mergeAssetsDirectory.set(tempFolder.newFolder("mergeAssetsDir"))
 
     // create first mapping file
-    task.mappingFile = tempFolder.newFile("firstMappingFile.txt")
+    task.mappingFile.set(tempFolder.newFile("firstMappingFile.txt")
       .apply {
         writeText("firstMappingFile")
-      }
+      })
     task.copyObfuscationMappingFile()
 
     // create second mapping file
-    task.mappingFile = tempFolder.newFile("secondMappingFile.txt")
+    task.mappingFile.set(tempFolder.newFile("secondMappingFile.txt")
       .apply {
         writeText("secondMappingFile")
-      }
+      })
     task.copyObfuscationMappingFile()
 
     assertThat(task.leakCanaryAssetsOutputFile.exists()).isTrue()

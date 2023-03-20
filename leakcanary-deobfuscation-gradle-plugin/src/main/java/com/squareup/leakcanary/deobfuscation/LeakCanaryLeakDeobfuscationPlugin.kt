@@ -74,8 +74,8 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
       CopyObfuscationMappingFileTask::class.java
     ) {
       it.variantName = variant.name
-      it.mappingFile = variant.mappingFile
-      it.mergeAssetsDirectory = variant.mergeAssetsProvider.get().outputDir.get().asFile
+      it.mappingFile.set(variant.mappingFileProvider.map { files -> files.firstOrNull() })
+      it.mergeAssetsDirectory.set(variant.mergeAssetsProvider.map { folders -> folders.outputDir.get().asFile })
 
       val mappingGeneratingTaskProvider =
         findTaskProviderOrNull(
@@ -138,7 +138,7 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
     throw GradleException(
       """
         LeakCanary deobfuscation plugin couldn't find any variant with minification enabled.
-        Please make sure that there is at least 1 minified variant in your project. 
+        Please make sure that there is at least 1 minified variant in your project.
       """
     )
   }
