@@ -36,10 +36,10 @@ repositories {
 
 ## Deploying the docs locally
 
-Installing the markdownextradata plugin:
+Installing or updating the docs dependencies:
 
 ```
-pip install mkdocs-markdownextradata-plugin
+pip install --requirement docs/requirements.txt
 ```
 
 Deploying locally

@@ -86,10 +86,10 @@ gh alias set --shell createMilestone "gh api --method POST repos/:owner/:repo/mi
 gh alias set --shell closeMilestone "echo '{\"state\": \"closed\"}' | gh api --method PATCH repos/:owner/:repo/milestones/\$1 --input - | jq '{ html_url: .html_url, state: .state, closed_at: .closed_at }'"
 ```
 
-### Install the doc generation dependencies
+### Install or update the doc generation dependencies
 
 ```bash
-pip3 install mkdocs-material mkdocs-markdownextradata-plugin
+pip3 install --requirement docs/requirements.txt
 ```
 
 ## Releasing
