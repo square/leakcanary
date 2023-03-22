@@ -1,7 +1,3 @@
-# pip install mkdocs mkdocs-material
-# mkdocs serve
-# mkdocs gh-deploy
-
 extra:
   leak_canary:
     release: '2.10'
