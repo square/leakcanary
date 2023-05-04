@@ -9,7 +9,8 @@ import java.util.concurrent.Executors
 
 internal object Io {
 
-  private val serialExecutor = Executors.newSingleThreadExecutor()
+  private val serialExecutor =
+    Executors.newSingleThreadExecutor { runnable -> Thread(runnable, "LeakCanary-Activity-DB") }
 
   fun interface OnIo {
     fun updateUi(updateUi: View.() -> Unit)
