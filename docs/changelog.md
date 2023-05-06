@@ -304,7 +304,7 @@ Hopefully this time we fixed everything that Android 12 broke: missing `exported
 
 Running an Android Service without crashing (`ForegroundServiceStartNotAllowedException`...) is becoming harder with every release of Android, so I got rid of the LeakCanary heap analyzer service! Instead, LeakCanary leverages WorkManager if you already have it as a dependency. If you don't use WorkManager, then LeakCanary will fall back to using a simple thread.
 
-Note: I recommend using at least [WorkManager 2.7.0](https://developer.android.com/jetpack/androidx/releases/work#2.7.0) as it adds the `WorkRequest.Builder.setExpedited()` API which LeakCanarty leverages if available.
+Note: I recommend using at least [WorkManager 2.7.0](https://developer.android.com/jetpack/androidx/releases/work#2.7.0) as it adds the `WorkRequest.Builder.setExpedited()` API which LeakCanary leverages if available.
 
 ### Multi process
 
