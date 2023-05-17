@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import leakcanary.ReachabilityWatcher
 import leakcanary.internal.ViewModelClearedWatcher.Companion.install
+import shark.SharkLog
 
 /**
  * [AndroidXFragmentDestroyWatcher] calls [install] to add a spy [ViewModel] in every
@@ -23,11 +24,19 @@ internal class ViewModelClearedWatcher(
   // however that was added in 2.1.0 and we support AndroidX first stable release. viewmodel-2.0.0
   // does not have ViewModelStore#keys. All versions currently have the mMap field.
   private val viewModelMap: Map<String, ViewModel>? = try {
-    val mMapField = ViewModelStore::class.java.getDeclaredField("mMap")
-    mMapField.isAccessible = true
+    val storeClass = ViewModelStore::class.java
+    val mapField = try {
+      storeClass.getDeclaredField("map")
+    } catch (exception: NoSuchFieldException) {
+      // Field name changed from mMap to map with Kotlin conversion
+      // https://cs.android.com/androidx/platform/frameworks/support/+/8aa6ca1c924ab10d263b21b99b8790d5f0b50cc6
+      storeClass.getDeclaredField("mMap")
+    }
+    mapField.isAccessible = true
     @Suppress("UNCHECKED_CAST")
-    mMapField[storeOwner.viewModelStore] as Map<String, ViewModel>
+    mapField[storeOwner.viewModelStore] as Map<String, ViewModel>
   } catch (ignored: Exception) {
+    SharkLog.d(ignored) { "Could not find ViewModelStore map of view models" }
     null
   }
 
