@@ -220,7 +220,6 @@ val rule = RuleChain.outerRule(LoginRule())
 // Detect leaks BEFORE and AFTER activity is destroyed
 @get:Rule
 val rule = RuleChain.outerRule(LoginRule())
-  .around(DetectLeaksAfterTestSuccess(CartActivity::class.java))
   // The tag will be suffixed with "Before" and "After".
   .detectLeaksAfterTestSuccessWrapping(tag = "ActivitiesDestroyed") {
     around(ActivityScenarioRule(CartActivity::class.java))
