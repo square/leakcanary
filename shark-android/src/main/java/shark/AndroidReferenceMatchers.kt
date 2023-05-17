@@ -205,7 +205,7 @@ enum class AndroidReferenceMatchers {
       references += instanceFieldLeak(
         "android.view.inputmethod.InputMethodManager", "mNextServedView", description
       ) {
-        sdkInt in 15..28
+        sdkInt in 15..33
       }
 
       references += instanceFieldLeak(
@@ -242,11 +242,10 @@ enum class AndroidReferenceMatchers {
       references += instanceFieldLeak(
         "android.view.inputmethod.InputMethodManager", "mImeInsetsConsumer",
         description = """
-              Android Q Beta has a leak where InputMethodManager.mImeInsetsConsumer isn't set to
-              null when the activity is destroyed.
+              InputMethodManager.mImeInsetsConsumer isn't set to null when the activity is destroyed.
             """.trimIndent()
       ) {
-        sdkInt == 28
+        sdkInt == 31
       }
     }
   },
