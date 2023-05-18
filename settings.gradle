@@ -28,4 +28,6 @@ include ':shark:shark-hprof-test'
 include ':shark:shark-log'
 include ':shark:shark-test'
 
+rootProject.name = 'leakcanary-repo'
+
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
