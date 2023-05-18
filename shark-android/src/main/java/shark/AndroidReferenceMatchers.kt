@@ -250,6 +250,19 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  INPUT_MANAGER__M_LATE_INIT_CONTEXT {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.hardware.input.InputManager", "mLateInitContext",
+        description = "InputManager singleton leaks its init context which is an activity"
+      ) {
+        sdkInt == 33
+      }
+    }
+  },
+
   LAYOUT_TRANSITION {
     override fun add(
       references: MutableList<ReferenceMatcher>
