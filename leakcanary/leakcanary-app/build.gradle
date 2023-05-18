@@ -17,17 +17,13 @@ def gitSha() {
 
 android {
   namespace 'org.leakcanary'
-  // TODO update versions.compileSdk to 33
-  compileSdk 33
-  // compileSdk versions.compileSdk
+   compileSdk versions.compileSdk
 
   defaultConfig {
     applicationId "org.leakcanary"
     // 21 required by Compose
     minSdk 21
-    // TODO update versions.compileSdk to 33
-    targetSdk 33
-    // targetSdk versions.compileSdk
+    targetSdk versions.compileSdk
 
     buildConfigField "String", "GIT_SHA", "\"${gitSha()}\""
 
