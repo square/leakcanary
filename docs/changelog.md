@@ -3,6 +3,14 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Version 2.11 (2023-05-17)
+
+This is most likely the last release before the work starts on LeakCanary 3.0.
+
+* 🐛 [#1764](https://github.com/square/leakcanary/issues/1764) Ignore phantom classes that were unloaded than reloaded (long time LeakCanary bug).
+* 🐛 [#2471](https://github.com/square/leakcanary/issues/2471) Fix LeakCanary introducing a weird leak in Google's CI infra.
+* 🐛 [#2496](https://github.com/square/leakcanary/issues/2496) Fix broken ViewModel leak detection
+
 ## Version 2.10 (2022-11-10)
 
 ### Experimental Neo4j heap dump exploration
