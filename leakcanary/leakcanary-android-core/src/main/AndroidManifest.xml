@@ -15,9 +15,7 @@
   ~ limitations under the License.
   -->
 <manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.squareup.leakcanary.core"
-    >
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
   <!-- To store the heap dumps and leak analysis results. -->
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>

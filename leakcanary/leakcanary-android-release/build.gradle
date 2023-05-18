@@ -25,9 +25,10 @@ android {
     buildConfigField "String", "GIT_SHA", "\"${gitSha()}\""
     consumerProguardFiles 'consumer-proguard-rules.pro'
   }
-  lintOptions {
+  namespace 'com.squareup.leakcanary.release'
+  lint {
+    checkOnly 'Interoperability'
     disable 'GoogleAppIndexingWarning'
     error 'ObsoleteSdkInt'
-    checkOnly 'Interoperability'
   }
 }

@@ -19,9 +19,10 @@ android {
     consumerProguardFiles 'consumer-proguard-rules.pro'
   }
   buildFeatures.buildConfig = false
-  lintOptions {
+  namespace 'com.squareup.leakcanary.fragments.androidx'
+  lint {
+    checkOnly 'Interoperability'
     disable 'GoogleAppIndexingWarning'
     error 'ObsoleteSdkInt'
-    checkOnly 'Interoperability'
   }
 }

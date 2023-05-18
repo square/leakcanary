@@ -1,7 +1,7 @@
 plugins {
   id("com.android.application")
   id("org.jetbrains.kotlin.android")
-  id("com.squareup.sqldelight")
+  id("app.cash.sqldelight")
   id("com.google.dagger.hilt.android")
   id("kotlin-kapt")
   id("kotlin-parcelize")
@@ -17,7 +17,7 @@ def gitSha() {
 
 android {
   namespace 'org.leakcanary'
-   compileSdk versions.compileSdk
+  compileSdk versions.compileSdk
 
   defaultConfig {
     applicationId "org.leakcanary"
