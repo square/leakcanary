@@ -1,32 +1,5 @@
 $dokka.format:gfm-v1
 $dokka.linkExtension:md
-$dokka.location:com.example.leakcanary////PointingToDeclaration/leakcanary/com.example.leakcanary/index.md
-$dokka.location:com.example.leakcanary/ExampleApplication///PointingToDeclaration/leakcanary/com.example.leakcanary/-example-application/index.md
-$dokka.location:com.example.leakcanary/ExampleApplication/ExampleApplication/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-example-application/-example-application.md
-$dokka.location:com.example.leakcanary/ExampleApplication/leakedDialogs/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-example-application/leaked-dialogs.md
-$dokka.location:com.example.leakcanary/ExampleApplication/leakedServices/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-example-application/leaked-services.md
-$dokka.location:com.example.leakcanary/ExampleApplication/leakedViews/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-example-application/leaked-views.md
-$dokka.location:com.example.leakcanary/ExampleApplication/onCreate/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-example-application/on-create.md
-$dokka.location:com.example.leakcanary/LeakingService///PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-service/index.md
-$dokka.location:com.example.leakcanary/LeakingService/LeakingService/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-service/-leaking-service.md
-$dokka.location:com.example.leakcanary/LeakingService/onBind/#android.content.Intent?/PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-service/on-bind.md
-$dokka.location:com.example.leakcanary/LeakingService/onCreate/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-service/on-create.md
-$dokka.location:com.example.leakcanary/LeakingSingleton///PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-singleton/index.md
-$dokka.location:com.example.leakcanary/LeakingSingleton/leakedViews/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-singleton/leaked-views.md
-$dokka.location:com.example.leakcanary/LeakingThread.Companion///PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-thread/-companion/index.md
-$dokka.location:com.example.leakcanary/LeakingThread.Companion/thread/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-thread/-companion/thread.md
-$dokka.location:com.example.leakcanary/LeakingThread///PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-thread/index.md
-$dokka.location:com.example.leakcanary/LeakingThread/LeakingThread/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-thread/-leaking-thread.md
-$dokka.location:com.example.leakcanary/LeakingThread/leakedViews/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-thread/leaked-views.md
-$dokka.location:com.example.leakcanary/LeakingThread/run/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-leaking-thread/run.md
-$dokka.location:com.example.leakcanary/MainActivity.NoOpBroadcastReceiver///PointingToDeclaration/leakcanary/com.example.leakcanary/-main-activity/-no-op-broadcast-receiver/index.md
-$dokka.location:com.example.leakcanary/MainActivity.NoOpBroadcastReceiver/NoOpBroadcastReceiver/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-main-activity/-no-op-broadcast-receiver/-no-op-broadcast-receiver.md
-$dokka.location:com.example.leakcanary/MainActivity.NoOpBroadcastReceiver/onReceive/#android.content.Context#android.content.Intent/PointingToDeclaration/leakcanary/com.example.leakcanary/-main-activity/-no-op-broadcast-receiver/on-receive.md
-$dokka.location:com.example.leakcanary/MainActivity///PointingToDeclaration/leakcanary/com.example.leakcanary/-main-activity/index.md
-$dokka.location:com.example.leakcanary/MainActivity/MainActivity/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-main-activity/-main-activity.md
-$dokka.location:com.example.leakcanary/ReleaseExampleApplication///PointingToDeclaration/leakcanary/com.example.leakcanary/-release-example-application/index.md
-$dokka.location:com.example.leakcanary/ReleaseExampleApplication/ReleaseExampleApplication/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-release-example-application/-release-example-application.md
-$dokka.location:com.example.leakcanary/ReleaseExampleApplication/onCreate/#/PointingToDeclaration/leakcanary/com.example.leakcanary/-release-example-application/on-create.md
 $dokka.location:leakcanary////PointingToDeclaration/leakcanary/leakcanary/index.md
 $dokka.location:leakcanary/ActivityWatcher///PointingToDeclaration/leakcanary/leakcanary/-activity-watcher/index.md
 $dokka.location:leakcanary/ActivityWatcher/ActivityWatcher/#android.app.Application#leakcanary.ReachabilityWatcher/PointingToDeclaration/leakcanary/leakcanary/-activity-watcher/-activity-watcher.md
@@ -1478,7 +1451,6 @@ $dokka.location:shark/ValueHolder.ShortHolder///PointingToDeclaration/leakcanar
 $dokka.location:shark/ValueHolder.ShortHolder/ShortHolder/#kotlin.Short/PointingToDeclaration/leakcanary/shark/-value-holder/-short-holder/-short-holder.md
 $dokka.location:shark/ValueHolder.ShortHolder/value/#/PointingToDeclaration/leakcanary/shark/-value-holder/-short-holder/value.md
 $dokka.location:shark/ValueHolder///PointingToDeclaration/leakcanary/shark/-value-holder/index.md
-com.example.leakcanary
 leakcanary
 shark
 
