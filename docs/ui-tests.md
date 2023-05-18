@@ -14,8 +14,10 @@ Integration prior to new leaks being merged into the codebase.
 
 LeakCanary provides an artifact dedicated to detecting leaks in UI tests:
 
-```
-androidTestImplementation "com.squareup.leakcanary:leakcanary-android-instrumentation:${leakCanaryVersion}"
+```groovy
+androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-instrumentation:{{ leak_canary.release }}'
+// You still need to include the LeakCanary artifact in your app:
+debugImplementation 'com.squareup.leakcanary:leakcanary-android:{{ leak_canary.release }}'
 ```
 
 You can then call `LeakAssertions.assertNoLeak()` at any point in your tests to check for leaks:
