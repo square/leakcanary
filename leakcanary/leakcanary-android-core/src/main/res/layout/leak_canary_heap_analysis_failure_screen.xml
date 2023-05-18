@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    >
+
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    >
+
+  <include layout="@layout/leak_canary_leak_header" />
+
+  <TextView
+      android:id="@+id/leak_canary_stacktrace"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_margin="20dp"
+      android:textSize="12sp"
+      android:fontFamily="monospace"
+      />
+</LinearLayout>
+
+</ScrollView>
