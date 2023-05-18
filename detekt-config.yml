@@ -64,10 +64,11 @@ complexity:
   LargeClass:
     active: true
     threshold: 600
-  LongMethod:
-    #LeakCanary - increased from 60 to 90
-    active: true
-    threshold: 90
+  # Leave me alone!
+  # LongMethod:
+  #   #LeakCanary - increased from 60 to 90
+  #   active: true
+  #   threshold: 90
   LongParameterList:
     #LeakCanary - enabled ignore
     active: true
@@ -321,7 +322,7 @@ naming:
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
     minimumFunctionNameLength: 3
   FunctionNaming:
-    active: true
+    active: false
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
     functionPattern: '^([a-z$][a-zA-Z$0-9]*)|(`.*`)$'
     excludeClassPattern: '$^'

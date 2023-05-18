@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="com.squareup.leakcanary.app.service">
+
+  <application>
+    <service
+      android:name="org.leakcanary.internal.HeapDataRepositoryService"
+      android:exported="true">
+      <!-- TODO Double check this is the right setup.-->
+      <!-- TODO Probs use $applicationId in package name instead.-->
+      <intent-filter>
+        <action android:name="org.leakcanary.internal.HeapDataRepositoryService.BIND" />
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+    </service>
+  </application>
+
+  <queries>
+    <package android:name="org.leakcanary" />
+  </queries>
+
+</manifest>

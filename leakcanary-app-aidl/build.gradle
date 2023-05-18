@@ -1,0 +1,24 @@
+plugins {
+  id("com.android.library")
+  id("org.jetbrains.kotlin.android")
+  id("com.vanniktech.maven.publish")
+}
+
+dependencies {
+  implementation libs.kotlin.stdlib
+  implementation projects.shark
+}
+
+android {
+  compileSdk versions.compileSdk
+  defaultConfig {
+    minSdk versions.minSdk
+  }
+  buildFeatures.buildConfig = false
+  lintOptions {
+    disable 'GoogleAppIndexingWarning'
+    // junit references java.lang.management
+    ignore 'InvalidPackage'
+    checkOnly 'Interoperability'
+  }
+}
