@@ -148,7 +148,6 @@ configure(subprojects.findAll {
       signAllPublications()
     }
   }
-
 }
 
 //Copies git hooks from /hooks folder into .git; currently used to run Detekt during push
