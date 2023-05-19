@@ -1,4 +1,5 @@
 import org.jetbrains.dokka.gradle.DokkaTask
+import com.vanniktech.maven.publish.SonatypeHost
 
 buildscript {
   ext.versions = [
@@ -142,10 +143,12 @@ configure(subprojects.findAll {
   }
 
   pluginManager.withPlugin("com.vanniktech.maven.publish") {
-    mavenPublish {
-      sonatypeHost = "S01"
+    mavenPublishing {
+      publishToMavenCentral(SonatypeHost.S01)
+      signAllPublications()
     }
   }
+
 }
 
 //Copies git hooks from /hooks folder into .git; currently used to run Detekt during push
