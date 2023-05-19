@@ -22,6 +22,7 @@ object TvEventListener : EventListener {
         showToast(event.heapAnalysis)
         printIntentInfo()
       }
+      else -> {}
     }
   }
 

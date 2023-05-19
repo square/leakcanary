@@ -1,6 +1,6 @@
 CREATE TABLE app (
   package_name TEXT NOT NULL PRIMARY KEY,
-  leak_count INTEGER AS Integer NOT NULL DEFAULT 0
+  leak_count INTEGER NOT NULL DEFAULT 0
 );
 
 insertOrIgnore:

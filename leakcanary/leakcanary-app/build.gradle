@@ -1,14 +1,14 @@
 plugins {
   id("com.android.application")
   id("org.jetbrains.kotlin.android")
-  id("com.squareup.sqldelight")
+  id("app.cash.sqldelight")
   id("com.google.dagger.hilt.android")
   id("kotlin-kapt")
   id("kotlin-parcelize")
 }
 
 ext {
-  compose_version = '1.2.1'
+  compose_version = '1.4.3'
 }
 
 def gitSha() {
@@ -17,17 +17,13 @@ def gitSha() {
 
 android {
   namespace 'org.leakcanary'
-  // TODO update versions.compileSdk to 33
-  compileSdk 33
-  // compileSdk versions.compileSdk
+  compileSdk versions.compileSdk
 
   defaultConfig {
     applicationId "org.leakcanary"
     // 21 required by Compose
     minSdk 21
-    // TODO update versions.compileSdk to 33
-    targetSdk 33
-    // targetSdk versions.compileSdk
+    targetSdk versions.compileSdk
 
     buildConfigField "String", "GIT_SHA", "\"${gitSha()}\""
 
@@ -66,7 +62,7 @@ android {
   }
 
   composeOptions {
-    kotlinCompilerExtensionVersion '1.1.1'
+    kotlinCompilerExtensionVersion '1.4.7'
   }
 
   packagingOptions {
@@ -79,8 +75,8 @@ android {
 dependencies {
   implementation projects.leakcanary.leakcanaryAppAidl
   // TODO Move these to ./gradle/libs/versions/toml
-  implementation "com.squareup.sqldelight:android-driver:1.5.3"
-  implementation "com.squareup.sqldelight:coroutines-extensions:1.5.3"
+  implementation "app.cash.sqldelight:android-driver:2.0.0-alpha05"
+  implementation "app.cash.sqldelight:coroutines-extensions:2.0.0-alpha05"
   implementation 'androidx.core:core-ktx:1.9.0'
   implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.5.1'
   implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1'

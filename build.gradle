@@ -94,6 +94,17 @@ subprojects {
   }
 }
 
+// Config shared for subprojects except leakcanary-deobfuscation-gradle-plugin
+configure(subprojects.findAll {
+  !(["leakcanary-deobfuscation-gradle-plugin"].contains(it.name))
+}) {
+  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+      jvmTarget = '1.8'
+    }
+  }
+}
+
 // Config shared for subprojects except apps
 configure(subprojects.findAll {
     !(["leakcanary-app", "leakcanary-android-sample"].contains(it.name))
@@ -133,13 +144,6 @@ configure(subprojects.findAll {
   pluginManager.withPlugin("com.vanniktech.maven.publish") {
     mavenPublish {
       sonatypeHost = "S01"
-    }
-  }
-
-  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    kotlinOptions {
-      // Avoid warnings of using older stdlib version 1.3 than compiler version 1.4
-      apiVersion = "1.3"
     }
   }
 }

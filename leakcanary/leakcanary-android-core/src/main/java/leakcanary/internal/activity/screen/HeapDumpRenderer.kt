@@ -117,6 +117,7 @@ internal object HeapDumpRenderer {
         is LoadClassRecord -> {
           classNames[record.id] = record.classNameStringId
         }
+        else -> {}
       }
       val localCurrentRecord = currentRecord
       when {

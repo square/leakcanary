@@ -96,10 +96,9 @@ class InstrumentationLeakDetector {
   @Suppress("ReturnCount")
   fun detectLeaks(): Result {
     val retainedObjectsChecker = AndroidDetectLeaksInterceptor()
-    when(val yesNo = retainedObjectsChecker.waitUntilReadyForHeapAnalysis()) {
-      is NoHeapAnalysis -> {
-        return NoAnalysis(yesNo.reason)
-      }
+    val yesNo = retainedObjectsChecker.waitUntilReadyForHeapAnalysis()
+    if (yesNo is NoHeapAnalysis) {
+      return NoAnalysis(yesNo.reason)
     }
 
     val heapDumpFile = InstrumentationHeapDumpFileProvider().newHeapDumpFile()

@@ -18,10 +18,10 @@ android {
     minSdk versions.minSdk
   }
   buildFeatures.buildConfig = false
-  lintOptions {
-    disable 'GoogleAppIndexingWarning'
-    // junit references java.lang.management
-    ignore 'InvalidPackage'
+  namespace 'com.squareup.leakcanary.startup'
+  lint {
     checkOnly 'Interoperability'
+    disable 'GoogleAppIndexingWarning'
+    ignore 'InvalidPackage'
   }
 }

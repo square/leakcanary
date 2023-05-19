@@ -25,12 +25,12 @@ android {
     consumerProguardFiles 'consumer-proguard-rules.pro'
   }
 
-  lintOptions {
-    disable 'GoogleAppIndexingWarning'
-    checkOnly 'Interoperability'
-  }
-
   buildFeatures {
     buildConfig = false
+  }
+  namespace 'com.squareup.leakcanary.objectwatcher.core'
+  lint {
+    checkOnly 'Interoperability'
+    disable 'GoogleAppIndexingWarning'
   }
 }

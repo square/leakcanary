@@ -661,6 +661,10 @@ class Neo4JCommand : CliktCommand(
               )
             )
           }
+
+          is HeapPrimitiveArray -> {
+            // Not interesting.
+          }
         }
       }
       echo("Progress class hierarchy: 100%, committing transaction")

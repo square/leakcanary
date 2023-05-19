@@ -118,13 +118,13 @@ class LeakViewModel @Inject constructor(
               LeakData(
                 leak = heapAnalysis.allLeaks.first { it.signature == destination.leakSignature },
                 shortDescription = short_description,
-                isNew = !is_read,
-                isLibraryLeak = is_library_leak,
+                isNew = is_read != 1L,
+                isLibraryLeak = is_library_leak == 1L,
                 heapAnalysis = heapAnalysis,
                 selectedLeakTraceIndex = selectedLeakTraceIndex,
                 leakTraces = leakTraces.map {
                   LeakTraceData(
-                    leakTraceIndex = it.leak_trace_index,
+                    leakTraceIndex = it.leak_trace_index.toInt(),
                     heapAnalysisId = it.heap_analysis_id,
                     classSimpleName = it.class_simple_name,
                     createdAtTimeMillis = it.created_at_time_millis

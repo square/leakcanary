@@ -56,6 +56,31 @@ import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
 import java.io.Closeable
 import java.io.File
+import shark.HprofRecord.StackFrameRecord
+import shark.HprofRecordTag.CLASS_DUMP
+import shark.HprofRecordTag.HEAP_DUMP_INFO
+import shark.HprofRecordTag.INSTANCE_DUMP
+import shark.HprofRecordTag.LOAD_CLASS
+import shark.HprofRecordTag.OBJECT_ARRAY_DUMP
+import shark.HprofRecordTag.PRIMITIVE_ARRAY_DUMP
+import shark.HprofRecordTag.ROOT_DEBUGGER
+import shark.HprofRecordTag.ROOT_FINALIZING
+import shark.HprofRecordTag.ROOT_INTERNED_STRING
+import shark.HprofRecordTag.ROOT_JAVA_FRAME
+import shark.HprofRecordTag.ROOT_JNI_GLOBAL
+import shark.HprofRecordTag.ROOT_JNI_LOCAL
+import shark.HprofRecordTag.ROOT_JNI_MONITOR
+import shark.HprofRecordTag.ROOT_MONITOR_USED
+import shark.HprofRecordTag.ROOT_NATIVE_STACK
+import shark.HprofRecordTag.ROOT_REFERENCE_CLEANUP
+import shark.HprofRecordTag.ROOT_STICKY_CLASS
+import shark.HprofRecordTag.ROOT_THREAD_BLOCK
+import shark.HprofRecordTag.ROOT_THREAD_OBJECT
+import shark.HprofRecordTag.ROOT_UNKNOWN
+import shark.HprofRecordTag.ROOT_UNREACHABLE
+import shark.HprofRecordTag.ROOT_VM_INTERNAL
+import shark.HprofRecordTag.STACK_TRACE
+import shark.HprofRecordTag.STRING_IN_UTF8
 
 /**
  * Generates Hprof files.
@@ -133,13 +158,13 @@ class HprofWriter private constructor(
   private fun BufferedSink.write(record: HprofRecord) {
     when (record) {
       is StringRecord -> {
-        writeNonHeapRecord(HprofRecordTag.STRING_IN_UTF8.tag) {
+        writeNonHeapRecord(STRING_IN_UTF8.tag) {
           writeId(record.id)
           writeUtf8(record.string)
         }
       }
       is LoadClassRecord -> {
-        writeNonHeapRecord(HprofRecordTag.LOAD_CLASS.tag) {
+        writeNonHeapRecord(LOAD_CLASS.tag) {
           writeInt(record.classSerialNumber)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
@@ -147,7 +172,7 @@ class HprofWriter private constructor(
         }
       }
       is StackTraceRecord -> {
-        writeNonHeapRecord(HprofRecordTag.STACK_TRACE.tag) {
+        writeNonHeapRecord(STACK_TRACE.tag) {
           writeInt(record.stackTraceSerialNumber)
           writeInt(record.threadSerialNumber)
           writeInt(record.stackFrameIds.size)
@@ -158,80 +183,80 @@ class HprofWriter private constructor(
         with(workBuffer) {
           when (val gcRoot = record.gcRoot) {
             is Unknown -> {
-              writeByte(HprofRecordTag.ROOT_UNKNOWN.tag)
+              writeByte(ROOT_UNKNOWN.tag)
               writeId(gcRoot.id)
             }
             is JniGlobal -> {
               writeByte(
-                HprofRecordTag.ROOT_JNI_GLOBAL.tag
+                ROOT_JNI_GLOBAL.tag
               )
               writeId(gcRoot.id)
               writeId(gcRoot.jniGlobalRefId)
             }
             is JniLocal -> {
-              writeByte(HprofRecordTag.ROOT_JNI_LOCAL.tag)
+              writeByte(ROOT_JNI_LOCAL.tag)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
               writeInt(gcRoot.frameNumber)
             }
             is JavaFrame -> {
-              writeByte(HprofRecordTag.ROOT_JAVA_FRAME.tag)
+              writeByte(ROOT_JAVA_FRAME.tag)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
               writeInt(gcRoot.frameNumber)
             }
             is NativeStack -> {
-              writeByte(HprofRecordTag.ROOT_NATIVE_STACK.tag)
+              writeByte(ROOT_NATIVE_STACK.tag)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
             }
             is StickyClass -> {
-              writeByte(HprofRecordTag.ROOT_STICKY_CLASS.tag)
+              writeByte(ROOT_STICKY_CLASS.tag)
               writeId(gcRoot.id)
             }
             is ThreadBlock -> {
-              writeByte(HprofRecordTag.ROOT_THREAD_BLOCK.tag)
+              writeByte(ROOT_THREAD_BLOCK.tag)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
             }
             is MonitorUsed -> {
-              writeByte(HprofRecordTag.ROOT_MONITOR_USED.tag)
+              writeByte(ROOT_MONITOR_USED.tag)
               writeId(gcRoot.id)
             }
             is ThreadObject -> {
-              writeByte(HprofRecordTag.ROOT_THREAD_OBJECT.tag)
+              writeByte(ROOT_THREAD_OBJECT.tag)
               writeId(gcRoot.id)
               writeInt(gcRoot.threadSerialNumber)
               writeInt(gcRoot.stackTraceSerialNumber)
             }
             is ReferenceCleanup -> {
-              writeByte(HprofRecordTag.ROOT_REFERENCE_CLEANUP.tag)
+              writeByte(ROOT_REFERENCE_CLEANUP.tag)
               writeId(gcRoot.id)
             }
             is VmInternal -> {
-              writeByte(HprofRecordTag.ROOT_VM_INTERNAL.tag)
+              writeByte(ROOT_VM_INTERNAL.tag)
               writeId(gcRoot.id)
             }
             is JniMonitor -> {
-              writeByte(HprofRecordTag.ROOT_JNI_MONITOR.tag)
+              writeByte(ROOT_JNI_MONITOR.tag)
               writeId(gcRoot.id)
               writeInt(gcRoot.stackTraceSerialNumber)
               writeInt(gcRoot.stackDepth)
             }
             is InternedString -> {
-              writeByte(HprofRecordTag.ROOT_INTERNED_STRING.tag)
+              writeByte(ROOT_INTERNED_STRING.tag)
               writeId(gcRoot.id)
             }
             is Finalizing -> {
-              writeByte(HprofRecordTag.ROOT_FINALIZING.tag)
+              writeByte(ROOT_FINALIZING.tag)
               writeId(gcRoot.id)
             }
             is Debugger -> {
-              writeByte(HprofRecordTag.ROOT_DEBUGGER.tag)
+              writeByte(ROOT_DEBUGGER.tag)
               writeId(gcRoot.id)
             }
             is Unreachable -> {
-              writeByte(HprofRecordTag.ROOT_UNREACHABLE.tag)
+              writeByte(ROOT_UNREACHABLE.tag)
               writeId(gcRoot.id)
             }
           }
@@ -239,7 +264,7 @@ class HprofWriter private constructor(
       }
       is ClassDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofRecordTag.CLASS_DUMP.tag)
+          writeByte(CLASS_DUMP.tag)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeId(record.superclassId)
@@ -269,7 +294,7 @@ class HprofWriter private constructor(
       }
       is InstanceDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofRecordTag.INSTANCE_DUMP.tag)
+          writeByte(INSTANCE_DUMP.tag)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeId(record.classId)
@@ -279,7 +304,7 @@ class HprofWriter private constructor(
       }
       is ObjectArrayDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofRecordTag.OBJECT_ARRAY_DUMP.tag)
+          writeByte(OBJECT_ARRAY_DUMP.tag)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeInt(record.elementIds.size)
@@ -289,7 +314,7 @@ class HprofWriter private constructor(
       }
       is PrimitiveArrayDumpRecord -> {
         with(workBuffer) {
-          writeByte(HprofRecordTag.PRIMITIVE_ARRAY_DUMP.tag)
+          writeByte(PRIMITIVE_ARRAY_DUMP.tag)
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
 
@@ -339,13 +364,17 @@ class HprofWriter private constructor(
       }
       is HeapDumpInfoRecord -> {
         with(workBuffer) {
-          writeByte(HprofRecordTag.HEAP_DUMP_INFO.tag)
+          writeByte(HEAP_DUMP_INFO.tag)
           writeInt(record.heapId)
           writeId(record.heapNameStringId)
         }
       }
       is HeapDumpEndRecord -> {
         throw IllegalArgumentException("HprofWriter automatically emits HeapDumpEndRecord")
+      }
+
+      is StackFrameRecord -> {
+        SharkLog.d { "Ignoring writing of StackFrameRecord, not supported yet." }
       }
     }
   }

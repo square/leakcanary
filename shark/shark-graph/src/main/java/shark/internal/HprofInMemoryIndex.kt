@@ -7,11 +7,21 @@ import shark.GcRoot.StickyClass
 import shark.HprofHeader
 import shark.HprofRecordReader
 import shark.HprofRecordTag
+import shark.HprofRecordTag.ALLOC_SITES
 import shark.HprofRecordTag.CLASS_DUMP
+import shark.HprofRecordTag.CONTROL_SETTINGS
+import shark.HprofRecordTag.CPU_SAMPLES
+import shark.HprofRecordTag.END_THREAD
+import shark.HprofRecordTag.HEAP_DUMP
+import shark.HprofRecordTag.HEAP_DUMP_END
+import shark.HprofRecordTag.HEAP_DUMP_INFO
+import shark.HprofRecordTag.HEAP_DUMP_SEGMENT
+import shark.HprofRecordTag.HEAP_SUMMARY
 import shark.HprofRecordTag.INSTANCE_DUMP
 import shark.HprofRecordTag.LOAD_CLASS
 import shark.HprofRecordTag.OBJECT_ARRAY_DUMP
 import shark.HprofRecordTag.PRIMITIVE_ARRAY_DUMP
+import shark.HprofRecordTag.PRIMITIVE_ARRAY_NODATA
 import shark.HprofRecordTag.ROOT_DEBUGGER
 import shark.HprofRecordTag.ROOT_FINALIZING
 import shark.HprofRecordTag.ROOT_INTERNED_STRING
@@ -28,7 +38,11 @@ import shark.HprofRecordTag.ROOT_THREAD_OBJECT
 import shark.HprofRecordTag.ROOT_UNKNOWN
 import shark.HprofRecordTag.ROOT_UNREACHABLE
 import shark.HprofRecordTag.ROOT_VM_INTERNAL
+import shark.HprofRecordTag.STACK_FRAME
+import shark.HprofRecordTag.STACK_TRACE
+import shark.HprofRecordTag.START_THREAD
 import shark.HprofRecordTag.STRING_IN_UTF8
+import shark.HprofRecordTag.UNLOAD_CLASS
 import shark.HprofVersion
 import shark.HprofVersion.ANDROID
 import shark.OnHprofRecordTagListener
@@ -628,6 +642,9 @@ internal class HprofInMemoryIndex private constructor(
               writeTruncatedLong(recordSize, bytesForPrimitiveArraySize)
             }
         }
+        else -> {
+          // Not interesting.
+        }
       }
     }
 
@@ -741,6 +758,9 @@ internal class HprofInMemoryIndex private constructor(
             if (id != ValueHolder.NULL_REFERENCE) {
               stickyClassGcRootIds += id
             }
+          }
+          else -> {
+            // Not interesting.
           }
         }
       }

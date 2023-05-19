@@ -74,7 +74,7 @@ class ClientAppAnalysesViewModel @Inject constructor(
           Success(
             id = row.id,
             createdAtTimeMillis = row.created_at_time_millis,
-            leakCount = row.leak_count
+            leakCount = row.leak_count.toInt()
           )
         } else {
           Failure(

@@ -18,9 +18,10 @@ android {
     minSdk versions.minSdk
   }
   buildFeatures.buildConfig = false
-  lintOptions {
+  namespace 'com.squareup.leakcanary.plumber.startup'
+  lint {
+    checkOnly 'Interoperability'
     disable 'GoogleAppIndexingWarning'
     error 'ObsoleteSdkInt'
-    checkOnly 'Interoperability'
   }
 }

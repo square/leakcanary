@@ -21,6 +21,7 @@ import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.api.BaseVariant
 import com.android.build.gradle.api.LibraryVariant
+import java.io.File
 import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.DomainObjectSet
@@ -28,8 +29,11 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.Transformer
 import org.gradle.api.UnknownTaskException
+import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.AppliedPlugin
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 
 class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
@@ -74,7 +78,12 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
       CopyObfuscationMappingFileTask::class.java
     ) {
       it.variantName = variant.name
-      it.mappingFile.set(variant.mappingFileProvider.map { files -> files.firstOrNull() })
+
+      // https://github.com/gradle/gradle/issues/12388#issuecomment-691356141
+      it.mappingFile.set(variant.mappingFileProvider.flatMap { fileCollection ->
+        project.provider { fileCollection.firstOrNull() }
+      })
+
       it.mergeAssetsDirectory.set(variant.mergeAssetsProvider.map { folders -> folders.outputDir.get().asFile })
 
       val mappingGeneratingTaskProvider =

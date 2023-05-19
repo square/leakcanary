@@ -85,13 +85,14 @@ android {
     dexInProcess false
   }
 
-  lintOptions {
-    disable 'GoogleAppIndexingWarning'
-  }
-
   testOptions {
     unitTests {
       includeAndroidResources = true
     }
+  }
+  namespace 'com.example.leakcanary'
+  testNamespace 'com.squareup.leakcanary.instrumentation.test'
+  lint {
+    disable 'GoogleAppIndexingWarning'
   }
 }

@@ -29,10 +29,11 @@ android {
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
   }
   buildFeatures.buildConfig = false
-  lintOptions {
-    disable 'GoogleAppIndexingWarning'
-    // junit references java.lang.management
-    ignore 'InvalidPackage'
+  namespace 'com.squareup.leakcanary.instrumentation'
+  testNamespace 'com.squareup.leakcanary.instrumentation.test'
+  lint {
     checkOnly 'Interoperability'
+    disable 'GoogleAppIndexingWarning'
+    ignore 'InvalidPackage'
   }
 }

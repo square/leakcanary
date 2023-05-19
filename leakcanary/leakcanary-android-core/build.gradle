@@ -49,9 +49,11 @@ android {
       execution 'ANDROIDX_TEST_ORCHESTRATOR'
     }
   }
-  lintOptions {
+  namespace 'com.squareup.leakcanary.core'
+  testNamespace 'com.squareup.leakcanary.core.test'
+  lint {
+    checkOnly 'Interoperability'
     disable 'GoogleAppIndexingWarning'
     error 'ObsoleteSdkInt'
-    checkOnly 'Interoperability'
   }
 }
