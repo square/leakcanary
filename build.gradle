@@ -80,7 +80,7 @@ subprojects {
   }
 
   detekt {
-    config = rootProject.files('detekt-config.yml')
+    config = rootProject.files('config/detekt-config.yml')
     parallel = true
     reports {
       xml.enabled = false
@@ -151,7 +151,7 @@ configure(subprojects.findAll {
 //Copies git hooks from /hooks folder into .git; currently used to run Detekt during push
 //Git hook installation
 tasks.register("installGitHooks", Copy) {
-  from new File(rootProject.rootDir, 'hooks')
+  from new File(rootProject.rootDir, 'config/hooks')
   into { new File(rootProject.rootDir, '.git/hooks') }
   fileMode 0777 //Make files executable
 }
