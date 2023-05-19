@@ -50,21 +50,22 @@ class LeakCanaryLeakDeobfuscationPluginTest {
           id 'com.android.application'
           id 'com.squareup.leakcanary.deobfuscation'
         }
-        
+
         allprojects {
           repositories {
             google()
             jcenter()
           }
         }
-        
+
         android {
+          namespace 'com.leakcanary.test'
           compileSdk 29
-  
+
           defaultConfig {
             minSdk 29
           }
-  
+
           buildTypes {
             debug {
               minifyEnabled true
@@ -72,7 +73,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
             }
           }
         }
-        
+
         leakCanary {
           filterObfuscatedVariants { variant ->
             variant.name == "debug"
@@ -119,21 +120,22 @@ class LeakCanaryLeakDeobfuscationPluginTest {
           id 'com.squareup.leakcanary.deobfuscation'
           id 'com.android.application'
         }
-        
+
         allprojects {
           repositories {
             google()
             jcenter()
           }
         }
-        
+
         android {
+          namespace 'com.leakcanary.test'
           compileSdk 29
-  
+
           defaultConfig {
             minSdk 29
           }
-  
+
           buildTypes {
             debug {
               minifyEnabled true
@@ -173,26 +175,27 @@ class LeakCanaryLeakDeobfuscationPluginTest {
           id 'com.android.application'
           id 'com.squareup.leakcanary.deobfuscation'
         }
-        
+
         allprojects {
           repositories {
             google()
             jcenter()
           }
         }
-        
+
         android {
+          namespace 'com.leakcanary.test'
           compileSdk 29
-  
+
           defaultConfig {
             minSdk 29
           }
-  
+
           buildTypes {
             debug {}
           }
         }
-        
+
         leakCanary {
           filterObfuscatedVariants { variant ->
             variant.name == "debug"

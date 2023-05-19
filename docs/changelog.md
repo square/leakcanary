@@ -3,6 +3,13 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Version 3.0 (TBD)
+
+### Bumped dependencies
+
+* Kotlin: updated to 1.8.21
+*
+
 ## Version 2.11 (2023-05-17)
 
 This is most likely the last release before the work starts on LeakCanary 3.0.
@@ -20,7 +27,7 @@ This is most likely the last release before the work starts on LeakCanary 3.0.
 ```
 brew install leakcanary-shark
 
-shark-cli --process com.example.app.debug neo4j 
+shark-cli --process com.example.app.debug neo4j
 ```
 
 ![Neo4J heap dump](https://user-images.githubusercontent.com/557033/200693468-aa783bb4-9a5a-4a41-8b92-582d44b31b92.png)

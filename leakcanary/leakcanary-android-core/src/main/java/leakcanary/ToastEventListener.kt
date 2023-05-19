@@ -32,6 +32,7 @@ object ToastEventListener : EventListener {
           toastCurrentlyShown = null
         }
       }
+      else -> {}
     }
   }
 

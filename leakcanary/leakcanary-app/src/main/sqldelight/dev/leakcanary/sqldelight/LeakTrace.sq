@@ -1,7 +1,7 @@
 CREATE TABLE leak_trace (
   id INTEGER PRIMARY KEY,
   class_simple_name TEXT NOT NULL,
-  leak_trace_index INTEGER AS Integer NOT NULL,
+  leak_trace_index INTEGER NOT NULL,
   heap_analysis_id INTEGER NOT NULL,
   leak_signature TEXT NOT NULL,
   FOREIGN KEY(heap_analysis_id) REFERENCES heap_analysis(id),

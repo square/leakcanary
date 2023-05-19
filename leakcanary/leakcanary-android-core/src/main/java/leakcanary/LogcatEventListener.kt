@@ -26,6 +26,7 @@ object LogcatEventListener : EventListener {
       is HeapAnalysisDone<*> ->  {
         SharkLog.d { "\u200B\n${LeakTraceWrapper.wrap(event.heapAnalysis.toString(), 120)}" }
       }
+      else -> {}
     }
   }
 }

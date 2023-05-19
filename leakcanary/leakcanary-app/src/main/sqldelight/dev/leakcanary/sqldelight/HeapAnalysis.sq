@@ -2,7 +2,7 @@ CREATE TABLE heap_analysis (
   id INTEGER PRIMARY KEY,
   created_at_time_millis INTEGER NOT NULL,
   dump_duration_millis INTEGER NOT NULL,
-  leak_count INTEGER AS Integer NOT NULL DEFAULT 0,
+  leak_count INTEGER NOT NULL DEFAULT 0,
   exception_summary TEXT DEFAULT NULL,
   raw_object BLOB NOT NULL,
   app_package_name TEXT NOT NULL,

@@ -36,10 +36,9 @@ internal class GcRootProvider(
   init {
     val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
     referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
-      when (val pattern = referenceMatcher.pattern) {
-        is NativeGlobalVariablePattern -> {
-          jniGlobals[pattern.className] = referenceMatcher
-        }
+      val pattern = referenceMatcher.pattern
+      if (pattern is NativeGlobalVariablePattern) {
+        jniGlobals[pattern.className] = referenceMatcher
       }
     }
     this.jniGlobalReferenceMatchers = jniGlobals

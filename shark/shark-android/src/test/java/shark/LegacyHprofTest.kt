@@ -204,6 +204,7 @@ class LegacyHprofTest {
         LOAD_CLASS -> reader.readLoadClassRecord().apply {
           classesAndNameStringId[id] = classNameStringId
         }
+        else -> {}
       }
     }
     val duplicatedClassObjectIdsByNameStringId =

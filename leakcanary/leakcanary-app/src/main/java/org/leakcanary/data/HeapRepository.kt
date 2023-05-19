@@ -1,9 +1,9 @@
 package org.leakcanary.data
 
-import com.squareup.sqldelight.db.SqlDriver
-import com.squareup.sqldelight.runtime.coroutines.asFlow
-import com.squareup.sqldelight.runtime.coroutines.mapToList
-import com.squareup.sqldelight.runtime.coroutines.mapToOne
+import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOne
 import dev.leakcanary.sqldelight.App
 import dev.leakcanary.sqldelight.RetrieveLeakBySignature
 import dev.leakcanary.sqldelight.SelectAllByApp
@@ -48,7 +48,7 @@ class HeapRepository @Inject constructor(
               app_package_name = packageName,
               created_at_time_millis = heapAnalysis.createdAtTimeMillis,
               dump_duration_millis = heapAnalysis.dumpDurationMillis,
-              leak_count = leakCount,
+              leak_count = leakCount.toLong(),
               raw_object = heapAnalysis.toByteArray(),
             )
             val heapAnalysisId = db.heapAnalysisQueries.lastInsertRowId().executeAsOne()
@@ -56,12 +56,12 @@ class HeapRepository @Inject constructor(
               db.leakQueries.insert(
                 signature = leak.signature,
                 short_description = leak.shortDescription,
-                is_library_leak = leak is LibraryLeak
+                is_library_leak = if(leak is LibraryLeak) 1 else 0
               )
               leak.leakTraces.forEachIndexed { index, leakTrace ->
                 db.leakTraceQueries.insert(
                   class_simple_name = leakTrace.leakingObject.classSimpleName,
-                  leak_trace_index = index,
+                  leak_trace_index = index.toLong(),
                   heap_analysis_id = heapAnalysisId,
                   leak_signature = leak.signature
                 )
@@ -111,7 +111,7 @@ class HeapRepository @Inject constructor(
   fun getLeakReadStatuses(heapAnalysisId: Long): Flow<Map<String, Boolean>> {
     return db.leakQueries.retrieveLeakReadStatuses(heapAnalysisId).asFlow()
       .mapToList(databaseDispatchers.forReads)
-      .map { it.associate { (signature, isRead) -> signature to isRead } }
+      .map { it.associate { (signature, isRead) -> signature to (isRead == 1L) } }
   }
 
   fun getLeak(leakSignature: String): Flow<List<RetrieveLeakBySignature>> {

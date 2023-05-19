@@ -1,8 +1,13 @@
+-- import kotlin.Boolean;
+
 CREATE TABLE leak (
   signature TEXT PRIMARY KEY,
   short_description TEXT NOT NULL,
-  is_library_leak INTEGER AS Boolean NOT NULL,
-  is_read INTEGER AS Boolean NOT NULL DEFAULT 0
+  -- When this is a boolean MIN(l.is_library_leak) fails compilation.
+  -- is_library_leak INTEGER AS Boolean NOT NULL,
+  -- is_read INTEGER AS Boolean NOT NULL DEFAULT 0
+  is_library_leak INTEGER NOT NULL,
+  is_read INTEGER NOT NULL DEFAULT 0
 );
 
 insert:

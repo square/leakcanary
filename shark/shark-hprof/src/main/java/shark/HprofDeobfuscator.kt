@@ -83,6 +83,9 @@ class HprofDeobfuscator {
             is PrimitiveArrayDumpRecord -> maxId.coerceAtLeast(record.id)
           }
         }
+        else -> {
+          // Don't care.
+        }
       }
     }
     return Triple(hprofStringCache, classNames, maxId)

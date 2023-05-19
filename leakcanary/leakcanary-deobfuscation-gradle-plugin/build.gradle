@@ -9,7 +9,7 @@ gradlePlugin {
     leakCanary {
       id = 'com.squareup.leakcanary.deobfuscation'
       implementationClass =
-          'com.squareup.leakcanary.deobfuscation.LeakCanaryLeakDeobfuscationPlugin'
+        'com.squareup.leakcanary.deobfuscation.LeakCanaryLeakDeobfuscationPlugin'
     }
   }
 
@@ -28,5 +28,12 @@ dependencies {
   testImplementation libs.junit
 }
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+      kotlinOptions {
+        jvmTarget = '11'
+      }
+}
+

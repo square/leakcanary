@@ -28,10 +28,9 @@ internal class JavaLocalReferenceReader(
   init {
     val threadNames = mutableMapOf<String, ReferenceMatcher>()
     referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
-      when (val pattern = referenceMatcher.pattern) {
-        is JavaLocalPattern -> {
-          threadNames[pattern.threadName] = referenceMatcher
-        }
+      val pattern = referenceMatcher.pattern
+      if (pattern is JavaLocalPattern) {
+        threadNames[pattern.threadName] = referenceMatcher
       }
     }
     this.threadNameReferenceMatchers = threadNames
