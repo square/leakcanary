@@ -130,7 +130,6 @@ public final class shark/HeapObject$HeapObjectArray : shark/HeapObject {
 	public fun getObjectId ()J
 	public fun getObjectIndex ()I
 	public fun getRecordSize ()I
-	public final fun readByteSize ()I
 	public final fun readElements ()Lkotlin/sequences/Sequence;
 	public fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ObjectArrayDumpRecord;
 	public synthetic fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
