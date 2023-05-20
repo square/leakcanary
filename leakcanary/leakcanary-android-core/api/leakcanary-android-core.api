@@ -147,15 +147,6 @@ public final class leakcanary/NotificationEventListener : leakcanary/EventListen
 	public fun onEvent (Lleakcanary/EventListener$Event;)V
 }
 
-public abstract interface class leakcanary/OnHeapAnalyzedListener {
-	public static final field Companion Lleakcanary/OnHeapAnalyzedListener$Companion;
-	public abstract fun onHeapAnalyzed (Lshark/HeapAnalysis;)V
-}
-
-public final class leakcanary/OnHeapAnalyzedListener$Companion {
-	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lleakcanary/OnHeapAnalyzedListener;
-}
-
 public final class leakcanary/RemoteWorkManagerHeapAnalyzer : leakcanary/EventListener {
 	public static final field INSTANCE Lleakcanary/RemoteWorkManagerHeapAnalyzer;
 	public fun onEvent (Lleakcanary/EventListener$Event;)V

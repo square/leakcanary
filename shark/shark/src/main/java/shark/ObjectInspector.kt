@@ -18,7 +18,7 @@ fun interface ObjectInspector {
   companion object {
     /**
      * Utility function to create a [ObjectInspector] from the passed in [block] lambda instead of
-     * using the anonymous `object : OnHeapAnalyzedListener` syntax.
+     * using the anonymous `object : ObjectInspector` syntax.
      *
      * Usage:
      *
