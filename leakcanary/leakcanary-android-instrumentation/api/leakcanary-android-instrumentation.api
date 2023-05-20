@@ -60,29 +60,6 @@ public abstract interface class leakcanary/HeapAnalysisReporter {
 	public abstract fun reportHeapAnalysis (Lshark/HeapAnalysis;)V
 }
 
-public final class leakcanary/InstrumentationLeakDetector {
-	public static final field Companion Lleakcanary/InstrumentationLeakDetector$Companion;
-	public fun <init> ()V
-	public final fun detectLeaks ()Lleakcanary/InstrumentationLeakDetector$Result;
-}
-
-public final class leakcanary/InstrumentationLeakDetector$Companion {
-	public final fun updateConfig ()V
-}
-
-public abstract class leakcanary/InstrumentationLeakDetector$Result {
-}
-
-public final class leakcanary/InstrumentationLeakDetector$Result$AnalysisPerformed : leakcanary/InstrumentationLeakDetector$Result {
-	public fun <init> (Lshark/HeapAnalysis;)V
-	public final fun getHeapAnalysis ()Lshark/HeapAnalysis;
-}
-
-public final class leakcanary/InstrumentationLeakDetector$Result$NoAnalysis : leakcanary/InstrumentationLeakDetector$Result {
-	public fun <init> (Ljava/lang/String;)V
-	public final fun getReason ()Ljava/lang/String;
-}
-
 public final class leakcanary/LeakAssertions {
 	public static final field INSTANCE Lleakcanary/LeakAssertions;
 	public static final field NO_TAG Ljava/lang/String;

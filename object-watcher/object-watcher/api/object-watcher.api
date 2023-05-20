@@ -46,8 +46,6 @@ public final class leakcanary/ObjectWatcher : leakcanary/ReachabilityWatcher {
 	public final fun getRetainedObjectCount ()I
 	public final fun getRetainedObjects ()Ljava/util/List;
 	public final fun removeOnObjectRetainedListener (Lleakcanary/OnObjectRetainedListener;)V
-	public final fun watch (Ljava/lang/Object;)V
-	public final fun watch (Ljava/lang/Object;Ljava/lang/String;)V
 }
 
 public abstract interface class leakcanary/OnObjectRetainedListener {

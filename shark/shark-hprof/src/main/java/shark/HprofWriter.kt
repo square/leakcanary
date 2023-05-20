@@ -94,20 +94,6 @@ class HprofWriter private constructor(
   val hprofHeader: HprofHeader
 ) : Closeable {
 
-  @Deprecated(
-    "Replaced by HprofWriter.hprofHeader.identifierByteSize",
-    ReplaceWith("hprofHeader.identifierByteSize")
-  )
-  val identifierByteSize: Int
-    get() = hprofHeader.identifierByteSize
-
-  @Deprecated(
-    "Replaced by HprofWriter.hprofHeader.version",
-    ReplaceWith("hprofHeader.version")
-  )
-  val hprofVersion: Hprof.HprofVersion
-    get() = Hprof.HprofVersion.valueOf(hprofHeader.version.name)
-
   private val workBuffer = Buffer()
 
   /**
@@ -480,23 +466,5 @@ class HprofWriter private constructor(
       hprofSink.writeLong(hprofHeader.heapDumpTimestamp)
       return HprofWriter(hprofSink, hprofHeader)
     }
-
-    @Deprecated(
-      "Replaced by HprofWriter.openWriterFor()",
-      ReplaceWith(
-        "shark.HprofWriter.openWriterFor(hprofFile)"
-      )
-    )
-    fun open(
-      hprofFile: File,
-      identifierByteSize: Int = 4,
-      hprofVersion: Hprof.HprofVersion = Hprof.HprofVersion.ANDROID
-    ): HprofWriter = openWriterFor(
-      hprofFile,
-      HprofHeader(
-        version = HprofVersion.valueOf(hprofVersion.name),
-        identifierByteSize = identifierByteSize
-      )
-    )
   }
 }

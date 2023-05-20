@@ -1,21 +1,6 @@
 package shark
 
-import shark.GcRoot.Debugger
-import shark.GcRoot.Finalizing
-import shark.GcRoot.InternedString
-import shark.GcRoot.JavaFrame
-import shark.GcRoot.JniGlobal
-import shark.GcRoot.JniLocal
-import shark.GcRoot.JniMonitor
-import shark.GcRoot.MonitorUsed
-import shark.GcRoot.NativeStack
-import shark.GcRoot.ReferenceCleanup
-import shark.GcRoot.StickyClass
-import shark.GcRoot.ThreadBlock
-import shark.GcRoot.ThreadObject
-import shark.GcRoot.Unknown
-import shark.GcRoot.Unreachable
-import shark.GcRoot.VmInternal
+import java.io.File
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -36,6 +21,8 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.In
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import shark.HprofVersion.ANDROID
+import shark.PrimitiveType.BYTE
+import shark.PrimitiveType.INT
 import shark.internal.FieldValuesReader
 import shark.internal.HprofInMemoryIndex
 import shark.internal.IndexedObject
@@ -44,10 +31,6 @@ import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.LruCache
-import java.io.File
-import kotlin.reflect.KClass
-import shark.PrimitiveType.BYTE
-import shark.PrimitiveType.INT
 
 /**
  * A [HeapGraph] that reads from an Hprof file indexed by [HprofIndex].
@@ -428,59 +411,5 @@ class HprofHeapGraph internal constructor(
       val index = HprofIndex.indexRecordsOf(this, header, proguardMapping, indexedGcRootTypes)
       return index.openHeapGraph()
     }
-
-    @Deprecated(
-      "Replaced by HprofIndex.indexRecordsOf().openHeapGraph() or File.openHeapGraph()",
-      replaceWith = ReplaceWith(
-        "HprofIndex.indexRecordsOf(hprof, proguardMapping, indexedGcRootTypes)" +
-          ".openHeapGraph()"
-      )
-    )
-    fun indexHprof(
-      hprof: Hprof,
-      proguardMapping: ProguardMapping? = null,
-      indexedGcRootTypes: Set<KClass<out GcRoot>> = deprecatedDefaultIndexedGcRootTypes()
-    ): HeapGraph {
-      val indexedRootTags = indexedGcRootTypes.map {
-        when (it) {
-          Unknown::class -> HprofRecordTag.ROOT_UNKNOWN
-          JniGlobal::class -> HprofRecordTag.ROOT_JNI_GLOBAL
-          JniLocal::class -> HprofRecordTag.ROOT_JNI_LOCAL
-          JavaFrame::class -> HprofRecordTag.ROOT_JAVA_FRAME
-          NativeStack::class -> HprofRecordTag.ROOT_NATIVE_STACK
-          StickyClass::class -> HprofRecordTag.ROOT_STICKY_CLASS
-          ThreadBlock::class -> HprofRecordTag.ROOT_THREAD_BLOCK
-          MonitorUsed::class -> HprofRecordTag.ROOT_MONITOR_USED
-          ThreadObject::class -> HprofRecordTag.ROOT_THREAD_OBJECT
-          InternedString::class -> HprofRecordTag.ROOT_INTERNED_STRING
-          Finalizing::class -> HprofRecordTag.ROOT_FINALIZING
-          Debugger::class -> HprofRecordTag.ROOT_DEBUGGER
-          ReferenceCleanup::class -> HprofRecordTag.ROOT_REFERENCE_CLEANUP
-          VmInternal::class -> HprofRecordTag.ROOT_VM_INTERNAL
-          JniMonitor::class -> HprofRecordTag.ROOT_JNI_MONITOR
-          Unreachable::class -> HprofRecordTag.ROOT_UNREACHABLE
-          else -> error("Unknown root $it")
-        }
-      }.toSet()
-      val index =
-        HprofIndex.indexRecordsOf(
-          FileSourceProvider(hprof.file), hprof.header, proguardMapping, indexedRootTags
-        )
-      val graph = index.openHeapGraph()
-      hprof.attachClosable(graph)
-      return graph
-    }
-
-    private fun deprecatedDefaultIndexedGcRootTypes() = setOf(
-      JniGlobal::class,
-      JavaFrame::class,
-      JniLocal::class,
-      MonitorUsed::class,
-      NativeStack::class,
-      StickyClass::class,
-      ThreadBlock::class,
-      ThreadObject::class,
-      JniMonitor::class
-    )
   }
 }

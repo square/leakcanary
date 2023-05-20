@@ -118,33 +118,6 @@ public final class shark/GcRoot$VmInternal : shark/GcRoot {
 	public fun getId ()J
 }
 
-public final class shark/Hprof : java/io/Closeable {
-	public static final field Companion Lshark/Hprof$Companion;
-	public synthetic fun <init> (Ljava/io/File;Lshark/HprofHeader;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun attachClosable (Ljava/io/Closeable;)V
-	public fun close ()V
-	public final fun getFile ()Ljava/io/File;
-	public final fun getFileLength ()J
-	public final fun getHeader ()Lshark/HprofHeader;
-	public final fun getHeapDumpTimestamp ()J
-	public final fun getHprofVersion ()Lshark/Hprof$HprofVersion;
-	public final fun getReader ()Lshark/HprofReader;
-}
-
-public final class shark/Hprof$Companion {
-	public final fun open (Ljava/io/File;)Lshark/Hprof;
-}
-
-public final class shark/Hprof$HprofVersion : java/lang/Enum {
-	public static final field ANDROID Lshark/Hprof$HprofVersion;
-	public static final field JDK1_2_BETA3 Lshark/Hprof$HprofVersion;
-	public static final field JDK1_2_BETA4 Lshark/Hprof$HprofVersion;
-	public static final field JDK_6 Lshark/Hprof$HprofVersion;
-	public final fun getVersionString ()Ljava/lang/String;
-	public static fun valueOf (Ljava/lang/String;)Lshark/Hprof$HprofVersion;
-	public static fun values ()[Lshark/Hprof$HprofVersion;
-}
-
 public final class shark/HprofDeobfuscator {
 	public fun <init> ()V
 	public final fun deobfuscate (Lshark/ProguardMapping;Ljava/io/File;Ljava/io/File;)Ljava/io/File;
@@ -180,12 +153,6 @@ public final class shark/HprofPrimitiveArrayStripper {
 	public final fun stripPrimitiveArrays (Ljava/io/File;Ljava/io/File;)Ljava/io/File;
 	public final fun stripPrimitiveArrays (Lshark/StreamingSourceProvider;Lokio/BufferedSink;)V
 	public static synthetic fun stripPrimitiveArrays$default (Lshark/HprofPrimitiveArrayStripper;Ljava/io/File;Ljava/io/File;ILjava/lang/Object;)Ljava/io/File;
-}
-
-public final class shark/HprofReader {
-	public final fun getIdentifierByteSize ()I
-	public final fun getStartPosition ()J
-	public final fun readHprofRecords (Ljava/util/Set;Lshark/OnHprofRecordListener;)V
 }
 
 public abstract class shark/HprofRecord {
@@ -502,15 +469,11 @@ public final class shark/HprofWriter : java/io/Closeable {
 	public synthetic fun <init> (Lokio/BufferedSink;Lshark/HprofHeader;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun close ()V
 	public final fun getHprofHeader ()Lshark/HprofHeader;
-	public final fun getHprofVersion ()Lshark/Hprof$HprofVersion;
-	public final fun getIdentifierByteSize ()I
 	public final fun valuesToBytes (Ljava/util/List;)[B
 	public final fun write (Lshark/HprofRecord;)V
 }
 
 public final class shark/HprofWriter$Companion {
-	public final fun open (Ljava/io/File;ILshark/Hprof$HprofVersion;)Lshark/HprofWriter;
-	public static synthetic fun open$default (Lshark/HprofWriter$Companion;Ljava/io/File;ILshark/Hprof$HprofVersion;ILjava/lang/Object;)Lshark/HprofWriter;
 	public final fun openWriterFor (Ljava/io/File;Lshark/HprofHeader;)Lshark/HprofWriter;
 	public final fun openWriterFor (Lokio/BufferedSink;Lshark/HprofHeader;)Lshark/HprofWriter;
 	public static synthetic fun openWriterFor$default (Lshark/HprofWriter$Companion;Ljava/io/File;Lshark/HprofHeader;ILjava/lang/Object;)Lshark/HprofWriter;

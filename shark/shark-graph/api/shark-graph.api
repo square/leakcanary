@@ -200,8 +200,6 @@ public final class shark/HprofHeapGraph : shark/CloseableHeapGraph {
 
 public final class shark/HprofHeapGraph$Companion {
 	public final fun getINTERNAL_LRU_CACHE_SIZE ()I
-	public final fun indexHprof (Lshark/Hprof;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/HeapGraph;
-	public static synthetic fun indexHprof$default (Lshark/HprofHeapGraph$Companion;Lshark/Hprof;Lshark/ProguardMapping;Ljava/util/Set;ILjava/lang/Object;)Lshark/HeapGraph;
 	public final fun openHeapGraph (Ljava/io/File;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/CloseableHeapGraph;
 	public final fun openHeapGraph (Lshark/DualSourceProvider;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/CloseableHeapGraph;
 	public static synthetic fun openHeapGraph$default (Lshark/HprofHeapGraph$Companion;Ljava/io/File;Lshark/ProguardMapping;Ljava/util/Set;ILjava/lang/Object;)Lshark/CloseableHeapGraph;

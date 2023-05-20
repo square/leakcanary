@@ -4,6 +4,7 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
@@ -12,7 +13,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.AndroidResourceIdNames.Companion.FIRST_APP_RESOURCE_ID
 import shark.AndroidResourceIdNames.Companion.RESOURCE_ID_TYPE_ITERATOR
-import java.io.File
+import shark.HprofHeapGraph.Companion.openHeapGraph
 
 class AndroidResourceIdNamesTest {
 
@@ -136,11 +137,9 @@ class AndroidResourceIdNamesTest {
     val hprofFolder = testFolder.newFolder()
     val hprofFile = File(hprofFolder, "heapdump.hprof")
     JvmTestHeapDumper.dumpHeap(hprofFile.absolutePath)
-    Hprof.open(hprofFile)
-      .use { hprof ->
-        val graph = HprofHeapGraph.indexHprof(hprof)
-        val idNames = AndroidResourceIdNames.readFromHeap(graph)
-        block(idNames)
-      }
+    hprofFile.openHeapGraph().use {graph ->
+      val idNames = AndroidResourceIdNames.readFromHeap(graph)
+      block(idNames)
+    }
   }
 }
