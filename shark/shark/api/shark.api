@@ -262,12 +262,7 @@ public final class shark/LeakTraceReference$ReferenceType : java/lang/Enum {
 }
 
 public abstract interface class shark/LeakingObjectFinder {
-	public static final field Companion Lshark/LeakingObjectFinder$Companion;
 	public abstract fun findLeakingObjectIds (Lshark/HeapGraph;)Ljava/util/Set;
-}
-
-public final class shark/LeakingObjectFinder$Companion {
-	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lshark/LeakingObjectFinder;
 }
 
 public final class shark/LibraryLeak : shark/Leak {
@@ -314,16 +309,10 @@ public abstract interface class shark/MetadataExtractor {
 
 public final class shark/MetadataExtractor$Companion {
 	public final fun getNO_OP ()Lshark/MetadataExtractor;
-	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lshark/MetadataExtractor;
 }
 
 public abstract interface class shark/ObjectInspector {
-	public static final field Companion Lshark/ObjectInspector$Companion;
 	public abstract fun inspect (Lshark/ObjectReporter;)V
-}
-
-public final class shark/ObjectInspector$Companion {
-	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lshark/ObjectInspector;
 }
 
 public abstract class shark/ObjectInspectors : java/lang/Enum, shark/ObjectInspector {
@@ -361,7 +350,6 @@ public abstract interface class shark/OnAnalysisProgressListener {
 
 public final class shark/OnAnalysisProgressListener$Companion {
 	public final fun getNO_OP ()Lshark/OnAnalysisProgressListener;
-	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lshark/OnAnalysisProgressListener;
 }
 
 public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {

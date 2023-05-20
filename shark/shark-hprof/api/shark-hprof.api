@@ -481,21 +481,11 @@ public final class shark/HprofWriter$Companion {
 }
 
 public abstract interface class shark/OnHprofRecordListener {
-	public static final field Companion Lshark/OnHprofRecordListener$Companion;
 	public abstract fun onHprofRecord (JLshark/HprofRecord;)V
 }
 
-public final class shark/OnHprofRecordListener$Companion {
-	public final fun invoke (Lkotlin/jvm/functions/Function2;)Lshark/OnHprofRecordListener;
-}
-
 public abstract interface class shark/OnHprofRecordTagListener {
-	public static final field Companion Lshark/OnHprofRecordTagListener$Companion;
 	public abstract fun onHprofRecord (Lshark/HprofRecordTag;JLshark/HprofRecordReader;)V
-}
-
-public final class shark/OnHprofRecordTagListener$Companion {
-	public final fun invoke (Lkotlin/jvm/functions/Function3;)Lshark/OnHprofRecordTagListener;
 }
 
 public final class shark/PrimitiveType : java/lang/Enum {

@@ -11,21 +11,4 @@ fun interface OnObjectRetainedListener {
    * A watched object became retained.
    */
   fun onObjectRetained()
-
-  companion object {
-    /**
-     * Utility function to create a [OnObjectRetainedListener] from the passed in [block] lambda
-     * instead of using the anonymous `object : OnObjectRetainedListener` syntax.
-     *
-     * Usage:
-     *
-     * ```kotlin
-     * val listener = OnObjectRetainedListener {
-     *
-     * }
-     * ```
-     */
-    inline operator fun invoke(crossinline block: () -> Unit): OnObjectRetainedListener =
-      OnObjectRetainedListener { block() }
-  }
 }
