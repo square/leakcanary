@@ -15,10 +15,10 @@
  */
 package leakcanary
 
-import shark.SharkLog
 import java.lang.ref.ReferenceQueue
 import java.util.UUID
 import java.util.concurrent.Executor
+import shark.SharkLog
 
 /**
  * [ObjectWatcher] can be passed objects to [watch]. It will create [KeyedWeakReference] instances
@@ -108,33 +108,6 @@ class ObjectWatcher constructor(
   @Synchronized fun removeOnObjectRetainedListener(listener: OnObjectRetainedListener) {
     onObjectRetainedListeners.remove(listener)
   }
-
-  /**
-   * Identical to [watch] with an empty string reference name.
-   */
-  @Deprecated(
-    "Add description parameter explaining why an object is watched to help understand leak traces.",
-    replaceWith = ReplaceWith(
-      "expectWeaklyReachable(watchedObject, \"Explain why this object should be garbage collected soon\")"
-    )
-  )
-  fun watch(watchedObject: Any) {
-    expectWeaklyReachable(watchedObject, "")
-  }
-
-  @Deprecated(
-    "Method renamed expectWeaklyReachable() to clarify usage.",
-    replaceWith = ReplaceWith(
-      "expectWeaklyReachable(watchedObject, description)"
-    )
-  )
-  fun watch(
-    watchedObject: Any,
-    description: String
-  ) {
-    expectWeaklyReachable(watchedObject, description)
-  }
-
 
   @Synchronized override fun expectWeaklyReachable(
     watchedObject: Any,
