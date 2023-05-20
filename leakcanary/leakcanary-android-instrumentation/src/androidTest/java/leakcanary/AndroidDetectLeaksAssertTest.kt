@@ -7,10 +7,10 @@ import org.junit.Test
 import java.util.Date
 
 /**
- * Tests that the [InstrumentationLeakDetector] can detect leaks
+ * Tests that the [AndroidDetectLeaksAssert] can detect leaks
  * in instrumentation tests
  */
-class InstrumentationLeakDetectorTest {
+class AndroidDetectLeaksAssertTest {
 
   @Before fun setUp() {
     AppWatcher.objectWatcher

@@ -402,7 +402,7 @@ class HprofHeapGraph internal constructor(
      * different cache size in tests in a different module.
      *
      * LRU cache size of 3000 is a sweet spot to balance hits vs memory usage.
-     * This is based on running InstrumentationLeakDetectorTest a bunch of time on a
+     * This is based on running an instrumented test a bunch of time on a
      * Pixel 2 XL API 28. Hit count was ~120K, miss count ~290K
      */
     var INTERNAL_LRU_CACHE_SIZE = 3000
