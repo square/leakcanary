@@ -216,12 +216,6 @@ object LeakCanary {
      * Defaults to true.
      */
     val showNotifications: Boolean = true,
-
-    /**
-     * Deprecated: This is a no-op, set a custom [leakingObjectFinder] instead.
-     */
-    @Deprecated("This is a no-op, set a custom leakingObjectFinder instead")
-    val useExperimentalLeakFinders: Boolean = false
   ) {
 
     /**
@@ -264,7 +258,6 @@ object LeakCanary {
       private var leakingObjectFinder = config.leakingObjectFinder
       private var heapDumper = config.heapDumper
       private var eventListeners = config.eventListeners
-      private var useExperimentalLeakFinders = config.useExperimentalLeakFinders
       private var showNotifications = config.showNotifications
 
       /** @see [LeakCanary.Config.dumpHeap] */
@@ -320,11 +313,6 @@ object LeakCanary {
       fun eventListeners(eventListeners: List<EventListener>) =
         apply { this.eventListeners = eventListeners }
 
-      /** @see [LeakCanary.Config.useExperimentalLeakFinders] */
-      @Deprecated("Set a custom leakingObjectFinder instead")
-      fun useExperimentalLeakFinders(useExperimentalLeakFinders: Boolean) =
-        apply { this.useExperimentalLeakFinders = useExperimentalLeakFinders }
-
       /** @see [LeakCanary.Config.showNotifications] */
       fun showNotifications(showNotifications: Boolean) =
         apply { this.showNotifications = showNotifications }
@@ -344,7 +332,6 @@ object LeakCanary {
         leakingObjectFinder = leakingObjectFinder,
         heapDumper = heapDumper,
         eventListeners = eventListeners,
-        useExperimentalLeakFinders = useExperimentalLeakFinders,
         showNotifications = showNotifications,
       )
     }
