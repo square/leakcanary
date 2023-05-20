@@ -349,7 +349,6 @@ public final class shark/ObjectReporter {
 	public final fun getHeapObject ()Lshark/HeapObject;
 	public final fun getLabels ()Ljava/util/LinkedHashSet;
 	public final fun getLeakingReasons ()Ljava/util/Set;
-	public final fun getLikelyLeakingReasons ()Ljava/util/Set;
 	public final fun getNotLeakingReasons ()Ljava/util/Set;
 	public final fun whenInstanceOf (Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
 	public final fun whenInstanceOf (Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function2;)V

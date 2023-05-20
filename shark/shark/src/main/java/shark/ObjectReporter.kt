@@ -23,18 +23,6 @@ class ObjectReporter constructor(val heapObject: HeapObject) {
   val leakingReasons = mutableSetOf<String>()
 
   /**
-   * Deprecated, use leakingReasons instead.
-   */
-  @Deprecated(
-    "Replace likelyLeakingReasons with leakingReasons",
-    replaceWith = ReplaceWith(
-      "leakingReasons"
-    )
-  )
-  val likelyLeakingReasons
-    get() = leakingReasons
-
-  /**
    * Reasons for which this object is expected to be reachable (ie it's not leaking).
    */
   val notLeakingReasons = mutableSetOf<String>()
