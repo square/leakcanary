@@ -3,6 +3,21 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Version 3.0 (TBD)
+
+### Bumped dependencies
+
+* Kotlin: updated to 1.8.21
+*
+
+## Version 2.11 (2023-05-17)
+
+This is most likely the last release before the work starts on LeakCanary 3.0.
+
+* 🐛 [#1764](https://github.com/square/leakcanary/issues/1764) Ignore phantom classes that were unloaded than reloaded (long time LeakCanary bug).
+* 🐛 [#2471](https://github.com/square/leakcanary/issues/2471) Fix LeakCanary introducing a weird leak in Google's CI infra.
+* 🐛 [#2496](https://github.com/square/leakcanary/issues/2496) Fix broken ViewModel leak detection
+
 ## Version 2.10 (2022-11-10)
 
 ### Experimental Neo4j heap dump exploration
@@ -12,7 +27,7 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 ```
 brew install leakcanary-shark
 
-shark-cli --process com.example.app.debug neo4j 
+shark-cli --process com.example.app.debug neo4j
 ```
 
 ![Neo4J heap dump](https://user-images.githubusercontent.com/557033/200693468-aa783bb4-9a5a-4a41-8b92-582d44b31b92.png)
@@ -26,7 +41,7 @@ shark-cli --process com.example.app.debug neo4j
 * 💥 [#2430](https://github.com/square/leakcanary/issues/2430) Fix ShortcutManager crash on Android TV.
 * 💥 [#2382](https://github.com/square/leakcanary/issues/2382) Fix heap dump close crash.
 
-This list reflects only a subset of all changes. For more details, see the [2.10 Milestone](https://github.com/square/leakcanary/milestone/24) and the [full diff](https://github.com/square/leakcanary/compare/v2.9.1...v2.10).
+This list reflects only a subset of all changes. For more details, see the [2.10 Milestone](https://github.com/square/leakcanary/milestone/25) and the [full diff](https://github.com/square/leakcanary/compare/v2.9.1...v2.10).
 
 ## Version 2.9.1 (2022-04-20)
 
@@ -304,7 +319,7 @@ Hopefully this time we fixed everything that Android 12 broke: missing `exported
 
 Running an Android Service without crashing (`ForegroundServiceStartNotAllowedException`...) is becoming harder with every release of Android, so I got rid of the LeakCanary heap analyzer service! Instead, LeakCanary leverages WorkManager if you already have it as a dependency. If you don't use WorkManager, then LeakCanary will fall back to using a simple thread.
 
-Note: I recommend using at least [WorkManager 2.7.0](https://developer.android.com/jetpack/androidx/releases/work#2.7.0) as it adds the `WorkRequest.Builder.setExpedited()` API which LeakCanarty leverages if available.
+Note: I recommend using at least [WorkManager 2.7.0](https://developer.android.com/jetpack/androidx/releases/work#2.7.0) as it adds the `WorkRequest.Builder.setExpedited()` API which LeakCanary leverages if available.
 
 ### Multi process
 

@@ -1,0 +1,57 @@
+CREATE TABLE heap_analysis (
+  id INTEGER PRIMARY KEY,
+  created_at_time_millis INTEGER NOT NULL,
+  dump_duration_millis INTEGER NOT NULL,
+  leak_count INTEGER NOT NULL DEFAULT 0,
+  exception_summary TEXT DEFAULT NULL,
+  raw_object BLOB NOT NULL,
+  app_package_name TEXT NOT NULL,
+  FOREIGN KEY(app_package_name) REFERENCES app(package_name)
+);
+
+-- Note: FK doesn't automatically create an index.
+CREATE INDEX heap_analysis_app_package_name ON heap_analysis(app_package_name);
+
+insertSuccess:
+INSERT INTO heap_analysis (
+  app_package_name,
+  created_at_time_millis,
+  dump_duration_millis,
+  leak_count,
+  raw_object
+)
+VALUES (?, ?, ?, ?, ?);
+
+insertFailure:
+INSERT INTO heap_analysis (
+  app_package_name,
+  created_at_time_millis,
+  dump_duration_millis,
+  exception_summary,
+  raw_object
+)
+VALUES (?, ?, ?, ?, ?);
+
+selectById:
+SELECT
+raw_object
+FROM heap_analysis
+WHERE id=:id;
+
+selectAllByApp:
+SELECT
+id
+, created_at_time_millis
+, leak_count
+, exception_summary
+FROM heap_analysis
+WHERE app_package_name=:packageName
+ORDER BY created_at_time_millis DESC;
+
+lastInsertRowId:
+SELECT last_insert_rowid();
+
+deleteById:
+DELETE FROM heap_analysis
+WHERE id=:id;
+

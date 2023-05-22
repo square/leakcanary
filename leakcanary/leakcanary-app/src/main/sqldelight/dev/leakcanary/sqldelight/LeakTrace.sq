@@ -1,0 +1,41 @@
+CREATE TABLE leak_trace (
+  id INTEGER PRIMARY KEY,
+  class_simple_name TEXT NOT NULL,
+  leak_trace_index INTEGER NOT NULL,
+  heap_analysis_id INTEGER NOT NULL,
+  leak_signature TEXT NOT NULL,
+  FOREIGN KEY(heap_analysis_id) REFERENCES heap_analysis(id),
+  FOREIGN KEY(leak_signature) REFERENCES leak(signature)
+);
+
+-- Note: FK doesn't automatically create an index.
+CREATE INDEX leak_trace_heap_analysis_id ON leak_trace(heap_analysis_id);
+CREATE INDEX leak_trace_leak_signature ON leak_trace(leak_signature);
+
+insert:
+INSERT INTO leak_trace (
+class_simple_name,
+leak_trace_index,
+heap_analysis_id,
+leak_signature
+)
+VALUES (?, ?, ?, ?);
+
+deleteByHeapAnalysisId:
+DELETE FROM leak_trace
+WHERE heap_analysis_id=:heap_analysis_id;
+
+retrieveLeakBySignature:
+SELECT
+lt.leak_trace_index
+, lt.heap_analysis_id
+, lt.class_simple_name
+, h.created_at_time_millis
+, l.short_description
+, l.is_read
+, l.is_library_leak
+FROM leak_trace lt
+JOIN leak l ON lt.leak_signature = l.signature
+JOIN heap_analysis h ON lt.heap_analysis_id = h.id
+WHERE l.signature = :signature
+ORDER BY h.created_at_time_millis DESC;

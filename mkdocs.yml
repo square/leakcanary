@@ -1,11 +1,7 @@
-# pip install mkdocs mkdocs-material
-# mkdocs serve
-# mkdocs gh-deploy
-
 extra:
   leak_canary:
-    release: '2.10'
-    next_release: '2.11'
+    release: '2.11'
+    next_release: '3.0'
   social:
     - icon: fontawesome/brands/github-alt
       link: https://square.github.io/

@@ -1,0 +1,26 @@
+CREATE TABLE app (
+  package_name TEXT NOT NULL PRIMARY KEY,
+  leak_count INTEGER NOT NULL DEFAULT 0
+);
+
+insertOrIgnore:
+INSERT OR IGNORE INTO app (
+package_name
+)
+VALUES (?);
+
+selectAll:
+SELECT
+package_name
+, leak_count
+FROM app;
+
+updateLeakCounts:
+UPDATE app
+SET leak_count = (
+SELECT
+COUNT(DISTINCT lt.leak_signature)
+FROM leak_trace lt
+JOIN heap_analysis h ON lt.heap_analysis_id = h.id
+WHERE h.app_package_name=app.package_name
+);

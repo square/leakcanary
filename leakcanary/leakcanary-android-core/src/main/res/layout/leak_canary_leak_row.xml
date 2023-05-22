@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    >
+
+  <RelativeLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginLeft="20dp"
+      android:layout_marginTop="4dp"
+      android:layout_marginRight="20dp"
+      android:layout_marginBottom="4dp"
+      android:background="@drawable/leak_canary_gray_fill"
+      android:orientation="horizontal"
+      android:paddingTop="20dp"
+      android:paddingRight="20dp"
+      android:paddingBottom="20dp"
+      >
+
+    <TextView
+        android:id="@+id/leak_canary_count_text"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="20dp"
+        android:background="@drawable/leak_canary_count_background"
+        android:gravity="center"
+        android:padding="16dp"
+        android:textColor="@color/leak_canary_count_text"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        tools:text="1"
+        />
+
+    <TextView
+        android:id="@+id/leak_canary_leak_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@id/leak_canary_count_text"
+        android:layout_gravity="center_vertical"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="3dp"
+        android:layout_toRightOf="@id/leak_canary_count_text"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:textColor="@color/leak_canary_white"
+        android:textSize="18sp"
+        tools:text="ExampleApplication.leakedViews"
+        />
+
+    <TextView
+        android:id="@+id/leak_canary_time_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/leak_canary_leak_text"
+        android:layout_alignLeft="@id/leak_canary_leak_text"
+        android:textColor="@color/leak_canary_gray_light"
+        android:textSize="14sp"
+        tools:text="Last leaked April 26th, 4:20 PM"
+        />
+
+    <include
+        layout="@layout/leak_canary_leak_chips"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/leak_canary_time_text"
+        android:layout_alignLeft="@id/leak_canary_leak_text"
+        android:layout_marginTop="8dp"
+        />
+
+  </RelativeLayout>
+</FrameLayout>

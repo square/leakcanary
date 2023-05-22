@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <application>
+    <provider
+        android:name="leakcanary.internal.MainProcessAppWatcherInstaller"
+        android:authorities="${applicationId}.leakcanary-installer"
+        android:enabled="@bool/leak_canary_watcher_auto_install"
+        android:exported="false"/>
+  </application>
+</manifest>

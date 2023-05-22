@@ -1,0 +1,201 @@
+public final class shark/AndroidBuildMirror {
+	public static final field Companion Lshark/AndroidBuildMirror$Companion;
+	public fun <init> (Ljava/lang/String;ILjava/lang/String;)V
+	public final fun getId ()Ljava/lang/String;
+	public final fun getManufacturer ()Ljava/lang/String;
+	public final fun getSdkInt ()I
+}
+
+public final class shark/AndroidBuildMirror$Companion {
+	public final fun fromHeapGraph (Lshark/HeapGraph;)Lshark/AndroidBuildMirror;
+}
+
+public final class shark/AndroidExtensionsKt {
+	public static final fun getHexIdentityHashCode (Lshark/HeapObject$HeapInstance;)Ljava/lang/String;
+	public static final fun getIdentityHashCode (Lshark/HeapObject$HeapInstance;)Ljava/lang/Integer;
+}
+
+public final class shark/AndroidMetadataExtractor : shark/MetadataExtractor {
+	public static final field INSTANCE Lshark/AndroidMetadataExtractor;
+	public fun extractMetadata (Lshark/HeapGraph;)Ljava/util/Map;
+}
+
+public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/ObjectInspector {
+	public static final field ACTIVITY Lshark/AndroidObjectInspectors;
+	public static final field ANDROIDX_FRAGMENT Lshark/AndroidObjectInspectors;
+	public static final field ANIMATOR Lshark/AndroidObjectInspectors;
+	public static final field APPLICATION Lshark/AndroidObjectInspectors;
+	public static final field APPLICATION_PACKAGE_MANAGER Lshark/AndroidObjectInspectors;
+	public static final field COMPOSITION_IMPL Lshark/AndroidObjectInspectors;
+	public static final field CONTEXT_FIELD Lshark/AndroidObjectInspectors;
+	public static final field CONTEXT_IMPL Lshark/AndroidObjectInspectors;
+	public static final field CONTEXT_WRAPPER Lshark/AndroidObjectInspectors;
+	public static final field COORDINATOR Lshark/AndroidObjectInspectors;
+	public static final field Companion Lshark/AndroidObjectInspectors$Companion;
+	public static final field DIALOG Lshark/AndroidObjectInspectors;
+	public static final field EDITOR Lshark/AndroidObjectInspectors;
+	public static final field FRAGMENT Lshark/AndroidObjectInspectors;
+	public static final field INPUT_METHOD_MANAGER Lshark/AndroidObjectInspectors;
+	public static final field LIFECYCLE_REGISTRY Lshark/AndroidObjectInspectors;
+	public static final field LOADED_APK Lshark/AndroidObjectInspectors;
+	public static final field MAIN_THREAD Lshark/AndroidObjectInspectors;
+	public static final field MESSAGE Lshark/AndroidObjectInspectors;
+	public static final field MESSAGE_QUEUE Lshark/AndroidObjectInspectors;
+	public static final field MORTAR_PRESENTER Lshark/AndroidObjectInspectors;
+	public static final field MORTAR_SCOPE Lshark/AndroidObjectInspectors;
+	public static final field OBJECT_ANIMATOR Lshark/AndroidObjectInspectors;
+	public static final field RECOMPOSER Lshark/AndroidObjectInspectors;
+	public static final field SERVICE Lshark/AndroidObjectInspectors;
+	public static final field SUPPORT_FRAGMENT Lshark/AndroidObjectInspectors;
+	public static final field TOAST Lshark/AndroidObjectInspectors;
+	public static final field VIEW Lshark/AndroidObjectInspectors;
+	public static final field VIEW_ROOT_IMPL Lshark/AndroidObjectInspectors;
+	public static final field WINDOW Lshark/AndroidObjectInspectors;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/AndroidObjectInspectors;
+	public static fun values ()[Lshark/AndroidObjectInspectors;
+}
+
+public final class shark/AndroidObjectInspectors$Companion {
+	public final fun createLeakingObjectFilters (Ljava/util/Set;)Ljava/util/List;
+	public final fun getAppDefaults ()Ljava/util/List;
+	public final fun getAppLeakingObjectFilters ()Ljava/util/List;
+}
+
+public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
+	public static final field ACCESSIBILITY_ITERATORS Lshark/AndroidReferenceMatchers;
+	public static final field ACCESSIBILITY_NODE_ID_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field ACCESSIBILITY_NODE_INFO__MORIGINALTEXT Lshark/AndroidReferenceMatchers;
+	public static final field ACCOUNT_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field ACTIVITY_CHOOSE_MODEL Lshark/AndroidReferenceMatchers;
+	public static final field ACTIVITY_MANAGER_MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field ACTIVITY_THREAD__M_NEW_ACTIVITIES Lshark/AndroidReferenceMatchers;
+	public static final field ACTIVITY_TRANSITION_STATE__M_EXITING_TO_VIEW Lshark/AndroidReferenceMatchers;
+	public static final field ANIMATION_HANDLER__ANIMATOR_REQUESTORS Lshark/AndroidReferenceMatchers;
+	public static final field APPLICATION_PACKAGE_MANAGER__HAS_SYSTEM_FEATURE_QUERY Lshark/AndroidReferenceMatchers;
+	public static final field APP_OPS_MANAGER__CALLBACK_STUB Lshark/AndroidReferenceMatchers;
+	public static final field APP_WIDGET_HOST_CALLBACKS Lshark/AndroidReferenceMatchers;
+	public static final field ASSIST_STRUCTURE Lshark/AndroidReferenceMatchers;
+	public static final field AUDIO_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field AUDIO_MANAGER__MCONTEXT_STATIC Lshark/AndroidReferenceMatchers;
+	public static final field AW_RESOURCE__SRESOURCES Lshark/AndroidReferenceMatchers;
+	public static final field BACKDROP_FRAME_RENDERER__MDECORVIEW Lshark/AndroidReferenceMatchers;
+	public static final field BIOMETRIC_PROMPT Lshark/AndroidReferenceMatchers;
+	public static final field BLOCKING_QUEUE Lshark/AndroidReferenceMatchers;
+	public static final field BUBBLE_POPUP_HELPER__SHELPER Lshark/AndroidReferenceMatchers;
+	public static final field CLIPBOARD_EX_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field CLIPBOARD_UI_MANAGER__SINSTANCE Lshark/AndroidReferenceMatchers;
+	public static final field COMPANION_DEVICE_SERVICE__STUB Lshark/AndroidReferenceMatchers;
+	public static final field CONNECTIVITY_MANAGER_CALLBACK_HANDLER Lshark/AndroidReferenceMatchers;
+	public static final field CONNECTIVITY_MANAGER__SINSTANCE Lshark/AndroidReferenceMatchers;
+	public static final field CONTROLLED_INPUT_CONNECTION_WRAPPER Lshark/AndroidReferenceMatchers;
+	public static final field Companion Lshark/AndroidReferenceMatchers$Companion;
+	public static final field DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER Lshark/AndroidReferenceMatchers;
+	public static final field EDITTEXT_BLINK_MESSAGEQUEUE Lshark/AndroidReferenceMatchers;
+	public static final field EVENT_RECEIVER__MMESSAGE_QUEUE Lshark/AndroidReferenceMatchers;
+	public static final field EXTENDED_STATUS_BAR_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field FINALIZER_WATCHDOG_DAEMON Lshark/AndroidReferenceMatchers;
+	public static final field GESTURE_BOOST_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field HOST_ADPU_SERVICE_MSG_HANDLER Lshark/AndroidReferenceMatchers;
+	public static final field HUAWEI Ljava/lang/String;
+	public static final field IMM_CURRENT_INPUT_CONNECTION Lshark/AndroidReferenceMatchers;
+	public static final field IMM_LAST_FOCUS_VIEW Lshark/AndroidReferenceMatchers;
+	public static final field INPUT_MANAGER__M_LATE_INIT_CONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field INPUT_METHOD_MANAGER_IS_TERRIBLE Lshark/AndroidReferenceMatchers;
+	public static final field INSTRUMENTATION_RECOMMEND_ACTIVITY Lshark/AndroidReferenceMatchers;
+	public static final field IREQUEST_FINISH_CALLBACK Lshark/AndroidReferenceMatchers;
+	public static final field LAYOUT_TRANSITION Lshark/AndroidReferenceMatchers;
+	public static final field LEAK_CANARY_HEAP_DUMPER Lshark/AndroidReferenceMatchers;
+	public static final field LEAK_CANARY_INTERNAL Lshark/AndroidReferenceMatchers;
+	public static final field LEAK_CANARY_THREAD Lshark/AndroidReferenceMatchers;
+	public static final field LENOVO Ljava/lang/String;
+	public static final field LG Ljava/lang/String;
+	public static final field LGCONTEXT__MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field MAGNIFIER Lshark/AndroidReferenceMatchers;
+	public static final field MAIN Lshark/AndroidReferenceMatchers;
+	public static final field MAPPER_CLIENT Lshark/AndroidReferenceMatchers;
+	public static final field MEDIA_PROJECTION_CALLBACK Lshark/AndroidReferenceMatchers;
+	public static final field MEDIA_SCANNER_CONNECTION Lshark/AndroidReferenceMatchers;
+	public static final field MEDIA_SESSION_LEGACY_HELPER__SINSTANCE Lshark/AndroidReferenceMatchers;
+	public static final field MEIZU Ljava/lang/String;
+	public static final field MOTOROLA Ljava/lang/String;
+	public static final field MULTI_WINDOW_DECOR_SUPPORT__MWINDOW Lshark/AndroidReferenceMatchers;
+	public static final field NVIDIA Ljava/lang/String;
+	public static final field OEM_SCENE_CALL_BLOCKER Lshark/AndroidReferenceMatchers;
+	public static final field ONE_PLUS Ljava/lang/String;
+	public static final field PERF_MONITOR_LAST_CALLBACK Lshark/AndroidReferenceMatchers;
+	public static final field PERSONA_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field PLAYER_BASE Lshark/AndroidReferenceMatchers;
+	public static final field RAZER Ljava/lang/String;
+	public static final field RAZER_TEXT_KEY_LISTENER__MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field REFERENCES Lshark/AndroidReferenceMatchers;
+	public static final field RENDER_NODE_ANIMATOR Lshark/AndroidReferenceMatchers;
+	public static final field RESOURCES__MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field SAMSUNG Ljava/lang/String;
+	public static final field SEM_APP_ICON_SOLUTION Lshark/AndroidReferenceMatchers;
+	public static final field SEM_CLIPBOARD_MANAGER__MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field SEM_EMERGENCY_MANAGER__MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field SEM_PERSONA_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field SHARP Ljava/lang/String;
+	public static final field SMART_COVER_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field SPAN_CONTROLLER Lshark/AndroidReferenceMatchers;
+	public static final field SPEECH_RECOGNIZER Lshark/AndroidReferenceMatchers;
+	public static final field SPELL_CHECKER Lshark/AndroidReferenceMatchers;
+	public static final field SPELL_CHECKER_SESSION Lshark/AndroidReferenceMatchers;
+	public static final field SPEN_GESTURE_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field STATIC_MTARGET_VIEW Lshark/AndroidReferenceMatchers;
+	public static final field SYSTEM_SENSOR_MANAGER__MAPPCONTEXTIMPL Lshark/AndroidReferenceMatchers;
+	public static final field TEXT_LINE__SCACHED Lshark/AndroidReferenceMatchers;
+	public static final field TEXT_TO_SPEECH Lshark/AndroidReferenceMatchers;
+	public static final field TEXT_VIEW__MLAST_HOVERED_VIEW Lshark/AndroidReferenceMatchers;
+	public static final field TOAST_TN Lshark/AndroidReferenceMatchers;
+	public static final field USER_MANAGER__SINSTANCE Lshark/AndroidReferenceMatchers;
+	public static final field VIEWLOCATIONHOLDER_ROOT Lshark/AndroidReferenceMatchers;
+	public static final field VIEW_CONFIGURATION__MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field VIEW_GROUP__M_CURRENT_DRAG_CHILD Lshark/AndroidReferenceMatchers;
+	public static final field VIEW_GROUP__M_PRE_SORTED_CHILDREN Lshark/AndroidReferenceMatchers;
+	public static final field VIVO Ljava/lang/String;
+	public static final field WINDOW_ON_BACK_INVOKED_DISPATCHER__STUB Lshark/AndroidReferenceMatchers;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
+	public static final fun getAppDefaults ()Ljava/util/List;
+	public static final fun getIgnoredReferencesOnly ()Ljava/util/List;
+	public static final fun ignoredInstanceField (Ljava/lang/String;Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
+	public static final fun ignoredJavaLocal (Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
+	public static final fun instanceFieldLeak (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/LibraryLeakReferenceMatcher;
+	public static final fun nativeGlobalVariableLeak (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/LibraryLeakReferenceMatcher;
+	public static final fun staticFieldLeak (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/LibraryLeakReferenceMatcher;
+	public static fun valueOf (Ljava/lang/String;)Lshark/AndroidReferenceMatchers;
+	public static fun values ()[Lshark/AndroidReferenceMatchers;
+}
+
+public final class shark/AndroidReferenceMatchers$Companion {
+	public final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
+	public final fun getAppDefaults ()Ljava/util/List;
+	public final fun getIgnoredReferencesOnly ()Ljava/util/List;
+	public final fun ignoredInstanceField (Ljava/lang/String;Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
+	public final fun ignoredJavaLocal (Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
+	public final fun instanceFieldLeak (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/LibraryLeakReferenceMatcher;
+	public static synthetic fun instanceFieldLeak$default (Lshark/AndroidReferenceMatchers$Companion;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lshark/LibraryLeakReferenceMatcher;
+	public final fun nativeGlobalVariableLeak (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/LibraryLeakReferenceMatcher;
+	public static synthetic fun nativeGlobalVariableLeak$default (Lshark/AndroidReferenceMatchers$Companion;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lshark/LibraryLeakReferenceMatcher;
+	public final fun staticFieldLeak (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/LibraryLeakReferenceMatcher;
+	public static synthetic fun staticFieldLeak$default (Lshark/AndroidReferenceMatchers$Companion;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lshark/LibraryLeakReferenceMatcher;
+}
+
+public final class shark/AndroidResourceIdNames {
+	public static final field Companion Lshark/AndroidResourceIdNames$Companion;
+	public synthetic fun <init> ([I[Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun get (I)Ljava/lang/String;
+}
+
+public final class shark/AndroidResourceIdNames$Companion {
+	public final fun readFromHeap (Lshark/HeapGraph;)Lshark/AndroidResourceIdNames;
+	public final fun saveToMemory (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class shark/AndroidServices {
+	public static final field INSTANCE Lshark/AndroidServices;
+	public final fun getAliveAndroidServiceObjectIds (Lshark/HeapGraph;)Ljava/util/List;
+}
+
