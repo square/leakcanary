@@ -1,14 +1,11 @@
-package shark.internal
+package shark
 
 import shark.GcRoot.ThreadObject
-import shark.HeapGraph
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.IgnoredReferenceMatcher
-import shark.OnAnalysisProgressListener
-import shark.ValueHolder
+import shark.internal.ShallowSizeCalculator
 
 /**
  * Exposes high level APIs to compute and render a dominator tree. This class
@@ -22,7 +19,7 @@ import shark.ValueHolder
  */
 class ObjectDominators {
 
-  internal data class DominatorNode(
+  data class DominatorNode(
     val shallowSize: Int,
     val retainedSize: Int,
     val retainedCount: Int,
@@ -138,23 +135,20 @@ class ObjectDominators {
     graph: HeapGraph,
     ignoredRefs: List<IgnoredReferenceMatcher>
   ): Map<Long, DominatorNode> {
-    val referenceReader = DelegatingObjectReferenceReader(
-      classReferenceReader = ClassReferenceReader(graph, emptyList()),
-      instanceReferenceReader = ChainingInstanceReferenceReader(
-        listOf(JavaLocalReferenceReader(graph, emptyList())),
-        FieldInstanceReferenceReader(graph, emptyList())
-      ),      objectArrayReferenceReader = ObjectArrayReferenceReader()
-    )
+    val pathFinder = PrioritizingShortestPathFinder.Factory(
+      listener = {  },
+        referenceReaderFactory = ActualMatchingReferenceReaderFactory(
+          referenceMatchers = emptyList()
+        ),
+        gcRootProvider = MatchingGcRootProvider(ignoredRefs),
+        computeRetainedHeapSize = true,
+    ).createFor(graph)
 
-    val pathFinder = PathFinder(
-      graph,
-      OnAnalysisProgressListener.NO_OP, referenceReader,  ignoredRefs
-    )
     val nativeSizeMapper = AndroidNativeSizeMapper(graph)
     val nativeSizes = nativeSizeMapper.mapNativeSizes()
     val shallowSizeCalculator = ShallowSizeCalculator(graph)
 
-    val result = pathFinder.findPathsFromGcRoots(setOf(), true)
+    val result = pathFinder.findShortestPathsFromGcRoots(setOf())
     return result.dominatorTree!!.buildFullDominatorTree { objectId ->
       val nativeSize = nativeSizes[objectId] ?: 0
       val shallowSize = shallowSizeCalculator.computeShallowSize(objectId)

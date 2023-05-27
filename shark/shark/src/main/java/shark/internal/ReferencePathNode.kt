@@ -2,9 +2,9 @@ package shark.internal
 
 import shark.GcRoot
 import shark.LibraryLeakReferenceMatcher
-import shark.internal.Reference.LazyDetails
+import shark.Reference.LazyDetails
 
-internal sealed class ReferencePathNode {
+sealed class ReferencePathNode {
   abstract val objectId: Long
 
   sealed class RootNode : ReferencePathNode() {

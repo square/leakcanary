@@ -2,6 +2,7 @@ package shark.internal
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.DominatorTree
 import shark.ValueHolder
 
 @Suppress("UsePropertyAccessSyntax")

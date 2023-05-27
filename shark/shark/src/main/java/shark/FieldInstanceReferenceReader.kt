@@ -1,14 +1,10 @@
-package shark.internal
+package shark
 
 import java.util.LinkedHashMap
 import kotlin.LazyThreadSafetyMode.NONE
-import shark.HeapGraph
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
-import shark.IgnoredReferenceMatcher
-import shark.LibraryLeakReferenceMatcher
-import shark.PrimitiveType
 import shark.PrimitiveType.BOOLEAN
 import shark.PrimitiveType.BYTE
 import shark.PrimitiveType.CHAR
@@ -17,16 +13,15 @@ import shark.PrimitiveType.FLOAT
 import shark.PrimitiveType.INT
 import shark.PrimitiveType.LONG
 import shark.PrimitiveType.SHORT
-import shark.internal.Reference.LazyDetails
-import shark.internal.ReferenceLocationType.INSTANCE_FIELD
-import shark.ReferenceMatcher
+import shark.Reference.LazyDetails
+import shark.ReferenceLocationType.INSTANCE_FIELD
 import shark.ReferencePattern.InstanceFieldPattern
-import shark.filterFor
+import shark.internal.FieldIdReader
 
 /**
  * Expands instance fields that hold non null references.
  */
-internal class FieldInstanceReferenceReader(
+class FieldInstanceReferenceReader(
   graph: HeapGraph,
   referenceMatchers: List<ReferenceMatcher>
 ) : ReferenceReader<HeapInstance> {

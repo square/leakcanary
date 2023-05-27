@@ -1,9 +1,7 @@
-package shark.internal
+package shark
 
-import shark.HeapGraph
-import shark.HeapObject
-
-internal fun interface ReferenceReader<T : HeapObject> {
+// TODO Reevaluate name. Maybe not "Reader"? Something about navigating?
+fun interface ReferenceReader<T : HeapObject> {
 
   /**
    * Returns the sequences of non null outgoing references from [source]. Outgoing refs
@@ -19,6 +17,6 @@ internal fun interface ReferenceReader<T : HeapObject> {
   fun read(source: T): Sequence<Reference>
 
   fun interface Factory<T : HeapObject> {
-    fun create(graph: HeapGraph): ReferenceReader<T>
+    fun createFor(heapGraph: HeapGraph): ReferenceReader<T>
   }
 }

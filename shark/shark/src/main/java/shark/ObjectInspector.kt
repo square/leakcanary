@@ -5,8 +5,6 @@ package shark
  * heap. [inspect] will be called for each object that LeakCanary wants to know more about.
  * The implementation can then use the provided [ObjectReporter] to provide insights for that
  * object.
- *
- * This is a functional interface with which you can create a [ObjectInspector] from a lambda.
  */
 fun interface ObjectInspector {
 

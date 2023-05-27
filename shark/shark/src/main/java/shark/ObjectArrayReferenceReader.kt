@@ -1,9 +1,8 @@
-package shark.internal
+package shark
 
 import shark.HeapObject.HeapObjectArray
-import shark.internal.Reference.LazyDetails
-import shark.internal.ReferenceLocationType.ARRAY_ENTRY
-import shark.ValueHolder
+import shark.Reference.LazyDetails
+import shark.ReferenceLocationType.ARRAY_ENTRY
 
 internal class ObjectArrayReferenceReader : ReferenceReader<HeapObjectArray> {
   override fun read(source: HeapObjectArray): Sequence<Reference> {

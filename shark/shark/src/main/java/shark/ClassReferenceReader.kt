@@ -1,17 +1,12 @@
-package shark.internal
+package shark
 
-import shark.HeapGraph
 import shark.HeapObject.HeapClass
-import shark.IgnoredReferenceMatcher
-import shark.LibraryLeakReferenceMatcher
-import shark.internal.Reference.LazyDetails
-import shark.internal.ReferenceLocationType.STATIC_FIELD
-import shark.ReferenceMatcher
+import shark.Reference.LazyDetails
+import shark.ReferenceLocationType.STATIC_FIELD
 import shark.ReferencePattern.StaticFieldPattern
 import shark.ValueHolder.ReferenceHolder
-import shark.filterFor
 
-internal class ClassReferenceReader(
+class ClassReferenceReader(
   graph: HeapGraph,
   referenceMatchers: List<ReferenceMatcher>
 ) : ReferenceReader<HeapClass> {

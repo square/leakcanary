@@ -407,6 +407,18 @@ class HprofHeapGraph internal constructor(
       proguardMapping: ProguardMapping? = null,
       indexedGcRootTypes: Set<HprofRecordTag> = HprofIndex.defaultIndexedGcRootTags()
     ): CloseableHeapGraph {
+      // TODO We can probably remove the concept of DualSourceProvider. Opening a heap graph requires
+      //  a random access reader which is built from a random access source + headers.
+      //  Also require headers, and the index.
+      //  So really we're:
+      //  1) Reader the headers from an okio source
+      //  2) Reading the whole source streaming to create the index. Wondering if we really need to parse
+      //  the headers, close the file then parse / skip the header part. Can't the parsing + indexing give
+      //  us headers + index?
+      //  3) Using the index + headers + a random access source on the content to create a closeable
+      //  abstraction.
+      //  Note: should see if Okio has a better abstraction for random access now.
+      //  Also Use FileSystem + Path instead of File as the core way to open a file based heap dump.
       val header = openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
       val index = HprofIndex.indexRecordsOf(this, header, proguardMapping, indexedGcRootTypes)
       return index.openHeapGraph()

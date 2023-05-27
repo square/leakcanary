@@ -3,8 +3,6 @@ package shark
 /**
  * Finds the objects that are leaking, for which Shark will compute
  * leak traces.
- *
- * This is a functional interface with which you can create a [LeakingObjectFinder] from a lambda.
  */
 fun interface LeakingObjectFinder {
 

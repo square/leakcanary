@@ -6,7 +6,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.nield.kotlinstatistics.median
 import shark.HprofHeapGraph.Companion.openHeapGraph
-import shark.PrimitiveType.INT
 
 /**
  * IO reads is the largest factor on Shark's performance so this helps prevents
@@ -245,22 +244,24 @@ class HprofIOPerfTest {
     printResult: Boolean = false
   ): List<List<Int>> {
     val source = MetricsDualSourceProvider(hprofFile)
-    val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = source.openHeapGraph().use { graph ->
-      heapAnalyzer.analyze(
-        heapDumpFile = hprofFile,
-        graph = graph,
-        leakingObjectFinder = FilteringLeakingObjectFinder(
-          AndroidObjectInspectors.appLeakingObjectFilters
-        ),
+
+      val leakingObjectFinder = FilteringLeakingObjectFinder(
+        AndroidObjectInspectors.appLeakingObjectFilters
+      )
+
+      val objectIds = leakingObjectFinder.findLeakingObjectIds(graph)
+      val tracer = RealLeakTracerFactory(
         referenceMatchers = AndroidReferenceMatchers.appDefaults,
         computeRetainedHeapSize = computeRetainedHeapSize,
         objectInspectors = AndroidObjectInspectors.appDefaults,
-        metadataExtractor = AndroidMetadataExtractor
-      )
-    }
-    check(analysis is HeapAnalysisSuccess) {
-      "Expected success not $analysis"
+        referenceReaderFactory = AndroidReferenceReaderFactory(
+          AndroidReferenceMatchers.appDefaults
+        ),
+        listener = {}
+      ).createFor(graph)
+
+      tracer.traceObjects(objectIds)
     }
     if (printResult) {
       println(analysis)

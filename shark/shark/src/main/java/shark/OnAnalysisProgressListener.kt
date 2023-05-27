@@ -4,8 +4,6 @@ import java.util.Locale
 
 /**
  * Reports progress from the [HeapAnalyzer] as they occur, as [Step] values.
- *
- * This is a functional interface with which you can create a [OnAnalysisProgressListener] from a lambda.
  */
 fun interface OnAnalysisProgressListener {
 

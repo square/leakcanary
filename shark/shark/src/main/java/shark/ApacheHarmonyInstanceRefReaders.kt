@@ -1,9 +1,11 @@
-package shark.internal
+package shark
 
-import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
-import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
-import shark.HeapGraph
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
 import shark.HeapObject.HeapInstance
+import shark.internal.InternalSharedArrayListReferenceReader
+import shark.internal.InternalSharedHashMapReferenceReader
+import shark.internal.InternalSharedLinkedListReferenceReader
 
 /**
  * Defines [VirtualInstanceReferenceReader] factories for common Apache Harmony data structures.
@@ -11,7 +13,7 @@ import shark.HeapObject.HeapInstance
  * Note: the expanders target the direct classes and don't target subclasses, as these might
  * include additional out going references that would be missed.
  */
-internal enum class ApacheHarmonyInstanceRefReaders : OptionalFactory {
+enum class ApacheHarmonyInstanceRefReaders : OptionalFactory {
 
   // https://cs.android.com/android/platform/superproject/+/android-6.0.1_r81:libcore/luni/src/main/java/java/util/LinkedList.java
   LINKED_LIST {
@@ -139,9 +141,9 @@ internal enum class ApacheHarmonyInstanceRefReaders : OptionalFactory {
           return (instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId)
         }
 
-        override fun read(instance: HeapInstance): Sequence<Reference> {
+        override fun read(source: HeapInstance): Sequence<Reference> {
           // "HashSet.backingMap" is never null.
-          val map = instance["java.util.HashSet", "backingMap"]!!.valueAsInstance!!
+          val map = source["java.util.HashSet", "backingMap"]!!.valueAsInstance!!
           return InternalSharedHashMapReferenceReader(
             className = "java.util.HashMap",
             tableFieldName = "table",
@@ -152,7 +154,7 @@ internal enum class ApacheHarmonyInstanceRefReaders : OptionalFactory {
             keyName = "element()",
             keysOnly = true,
             matches = { true },
-            declaringClassId = { instance.instanceClassId }
+            declaringClassId = { source.instanceClassId }
           ).read(map)
         }
       }

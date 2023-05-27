@@ -1,15 +1,14 @@
-package shark.internal
+package shark
 
-import shark.HeapGraph
 import shark.HeapObject.HeapInstance
 import shark.ValueHolder.ReferenceHolder
-import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
-import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
-import shark.internal.Reference.LazyDetails
-import shark.internal.ReferenceLocationType.ARRAY_ENTRY
-import shark.internal.ReferenceLocationType.INSTANCE_FIELD
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
+import shark.Reference.LazyDetails
+import shark.ReferenceLocationType.ARRAY_ENTRY
+import shark.ReferenceLocationType.INSTANCE_FIELD
 
-internal enum class AndroidReferenceReaders : OptionalFactory {
+enum class AndroidReferenceReaders : OptionalFactory {
 
   MESSAGE_QUEUE {
     override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
