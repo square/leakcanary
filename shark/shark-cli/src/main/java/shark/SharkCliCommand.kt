@@ -20,7 +20,6 @@ import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.Properties
-import java.util.concurrent.TimeUnit.SECONDS
 
 class SharkCliCommand : CliktCommand(
   name = "shark-cli",
@@ -183,7 +182,7 @@ class SharkCliCommand : CliktCommand(
       val process = ProcessBuilder(*arguments)
         .directory(directory)
         .start()
-        .also { it.waitFor(10, SECONDS) }
+        .also { it.waitFor() }
 
       // See https://github.com/square/leakcanary/issues/1711
       // On Windows, the process doesn't always exit; calling to readText() makes it finish, so
