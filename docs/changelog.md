@@ -8,7 +8,10 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 ### Bumped dependencies
 
 * Kotlin: updated to 1.8.21
-*
+
+### Other changes
+
+* Dropped support for detecting support fragment leaks: apps should all have migrated to Android X by now, and if not they can easily add this.
 
 ## Version 2.11 (2023-05-17)
 
