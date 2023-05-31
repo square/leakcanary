@@ -93,17 +93,6 @@ object LeakCanary {
     val objectInspectors: List<ObjectInspector> = AndroidObjectInspectors.appDefaults,
 
     /**
-     * Deprecated, add to LeakCanary.config.eventListeners instead.
-     * Called on a background thread when the heap analysis is complete.
-     * If you want leaks to be added to the activity that lists leaks, make sure to delegate
-     * calls to a [DefaultOnHeapAnalyzedListener].
-     *
-     * Defaults to [DefaultOnHeapAnalyzedListener]
-     */
-    @Deprecated(message = "Add to LeakCanary.config.eventListeners instead")
-    val onHeapAnalyzedListener: OnHeapAnalyzedListener = DefaultOnHeapAnalyzedListener.create(),
-
-    /**
      * Extracts metadata from a hprof to be reported in [HeapAnalysisSuccess.metadata].
      * Called on a background thread during heap analysis.
      *
@@ -216,12 +205,6 @@ object LeakCanary {
      * Defaults to true.
      */
     val showNotifications: Boolean = true,
-
-    /**
-     * Deprecated: This is a no-op, set a custom [leakingObjectFinder] instead.
-     */
-    @Deprecated("This is a no-op, set a custom leakingObjectFinder instead")
-    val useExperimentalLeakFinders: Boolean = false
   ) {
 
     /**
@@ -255,7 +238,6 @@ object LeakCanary {
       private var retainedVisibleThreshold = config.retainedVisibleThreshold
       private var referenceMatchers = config.referenceMatchers
       private var objectInspectors = config.objectInspectors
-      private var onHeapAnalyzedListener = config.onHeapAnalyzedListener
       private var metadataExtractor = config.metadataExtractor
       private var computeRetainedHeapSize = config.computeRetainedHeapSize
       private var maxStoredHeapDumps = config.maxStoredHeapDumps
@@ -264,7 +246,6 @@ object LeakCanary {
       private var leakingObjectFinder = config.leakingObjectFinder
       private var heapDumper = config.heapDumper
       private var eventListeners = config.eventListeners
-      private var useExperimentalLeakFinders = config.useExperimentalLeakFinders
       private var showNotifications = config.showNotifications
 
       /** @see [LeakCanary.Config.dumpHeap] */
@@ -286,11 +267,6 @@ object LeakCanary {
       /** @see [LeakCanary.Config.objectInspectors] */
       fun objectInspectors(objectInspectors: List<ObjectInspector>) =
         apply { this.objectInspectors = objectInspectors }
-
-      /** @see [LeakCanary.Config.onHeapAnalyzedListener] */
-      @Deprecated(message = "Add to LeakCanary.config.eventListeners instead")
-      fun onHeapAnalyzedListener(onHeapAnalyzedListener: OnHeapAnalyzedListener) =
-        apply { this.onHeapAnalyzedListener = onHeapAnalyzedListener }
 
       /** @see [LeakCanary.Config.metadataExtractor] */
       fun metadataExtractor(metadataExtractor: MetadataExtractor) =
@@ -320,11 +296,6 @@ object LeakCanary {
       fun eventListeners(eventListeners: List<EventListener>) =
         apply { this.eventListeners = eventListeners }
 
-      /** @see [LeakCanary.Config.useExperimentalLeakFinders] */
-      @Deprecated("Set a custom leakingObjectFinder instead")
-      fun useExperimentalLeakFinders(useExperimentalLeakFinders: Boolean) =
-        apply { this.useExperimentalLeakFinders = useExperimentalLeakFinders }
-
       /** @see [LeakCanary.Config.showNotifications] */
       fun showNotifications(showNotifications: Boolean) =
         apply { this.showNotifications = showNotifications }
@@ -336,7 +307,6 @@ object LeakCanary {
         retainedVisibleThreshold = retainedVisibleThreshold,
         referenceMatchers = referenceMatchers,
         objectInspectors = objectInspectors,
-        onHeapAnalyzedListener = onHeapAnalyzedListener,
         metadataExtractor = metadataExtractor,
         computeRetainedHeapSize = computeRetainedHeapSize,
         maxStoredHeapDumps = maxStoredHeapDumps,
@@ -344,7 +314,6 @@ object LeakCanary {
         leakingObjectFinder = leakingObjectFinder,
         heapDumper = heapDumper,
         eventListeners = eventListeners,
-        useExperimentalLeakFinders = useExperimentalLeakFinders,
         showNotifications = showNotifications,
       )
     }

@@ -1,10 +1,5 @@
 public abstract interface class leakcanary/Clock {
-	public static final field Companion Lleakcanary/Clock$Companion;
 	public abstract fun uptimeMillis ()J
-}
-
-public final class leakcanary/Clock$Companion {
-	public final fun invoke (Lkotlin/jvm/functions/Function0;)Lleakcanary/Clock;
 }
 
 public abstract interface class leakcanary/GcTrigger {
@@ -46,17 +41,10 @@ public final class leakcanary/ObjectWatcher : leakcanary/ReachabilityWatcher {
 	public final fun getRetainedObjectCount ()I
 	public final fun getRetainedObjects ()Ljava/util/List;
 	public final fun removeOnObjectRetainedListener (Lleakcanary/OnObjectRetainedListener;)V
-	public final fun watch (Ljava/lang/Object;)V
-	public final fun watch (Ljava/lang/Object;Ljava/lang/String;)V
 }
 
 public abstract interface class leakcanary/OnObjectRetainedListener {
-	public static final field Companion Lleakcanary/OnObjectRetainedListener$Companion;
 	public abstract fun onObjectRetained ()V
-}
-
-public final class leakcanary/OnObjectRetainedListener$Companion {
-	public final fun invoke (Lkotlin/jvm/functions/Function0;)Lleakcanary/OnObjectRetainedListener;
 }
 
 public abstract interface class leakcanary/ReachabilityWatcher {

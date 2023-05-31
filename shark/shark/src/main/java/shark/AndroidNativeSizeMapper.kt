@@ -1,9 +1,8 @@
-package shark.internal
+package shark
 
-import shark.HeapGraph
 import shark.HeapObject.HeapInstance
 
-internal class AndroidNativeSizeMapper(private val graph: HeapGraph) {
+class AndroidNativeSizeMapper(private val graph: HeapGraph) {
 
   /**
    * Returns a map of Object id to native size as tracked by NativeAllocationRegistry$CleanerThunk

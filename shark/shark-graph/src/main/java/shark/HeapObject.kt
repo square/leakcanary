@@ -1,5 +1,9 @@
 package shark
 
+import java.nio.charset.Charset
+import java.util.Locale
+import kotlin.LazyThreadSafetyMode.NONE
+import kotlin.reflect.KClass
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
@@ -13,11 +17,6 @@ import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
-import java.nio.charset.Charset
-import java.util.Locale
-import kotlin.LazyThreadSafetyMode.NONE
-import kotlin.reflect.KClass
-import shark.PrimitiveType.INT
 
 /**
  * An object in the heap dump.
@@ -557,9 +556,6 @@ sealed class HeapObject {
     val arrayClassId: Long
       get() = indexedObject.arrayClassId
 
-
-    @Deprecated("Use byteSize property instead", ReplaceWith("byteSize"))
-    fun readByteSize() = byteSize
 
     /**
      * The total byte shallow size of elements in this array.

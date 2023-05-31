@@ -17,16 +17,6 @@ public final class leakcanary/BackgroundThreadHeapAnalyzer : leakcanary/EventLis
 	public fun onEvent (Lleakcanary/EventListener$Event;)V
 }
 
-public final class leakcanary/DefaultOnHeapAnalyzedListener : leakcanary/OnHeapAnalyzedListener {
-	public static final field Companion Lleakcanary/DefaultOnHeapAnalyzedListener$Companion;
-	public fun <init> (Landroid/app/Application;)V
-	public fun onHeapAnalyzed (Lshark/HeapAnalysis;)V
-}
-
-public final class leakcanary/DefaultOnHeapAnalyzedListener$Companion {
-	public final fun create ()Lleakcanary/OnHeapAnalyzedListener;
-}
-
 public abstract interface class leakcanary/EventListener {
 	public abstract fun onEvent (Lleakcanary/EventListener$Event;)V
 }
@@ -94,25 +84,23 @@ public final class leakcanary/LeakCanary {
 
 public final class leakcanary/LeakCanary$Config {
 	public fun <init> ()V
-	public fun <init> (ZZILjava/util/List;Ljava/util/List;Lleakcanary/OnHeapAnalyzedListener;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Lleakcanary/HeapDumper;Ljava/util/List;ZZ)V
-	public synthetic fun <init> (ZZILjava/util/List;Ljava/util/List;Lleakcanary/OnHeapAnalyzedListener;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Lleakcanary/HeapDumper;Ljava/util/List;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZILjava/util/List;Ljava/util/List;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Lleakcanary/HeapDumper;Ljava/util/List;Z)V
+	public synthetic fun <init> (ZZILjava/util/List;Ljava/util/List;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Lleakcanary/HeapDumper;Ljava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Z
-	public final fun component10 ()Z
-	public final fun component11 ()Lshark/LeakingObjectFinder;
-	public final fun component12 ()Lleakcanary/HeapDumper;
-	public final fun component13 ()Ljava/util/List;
-	public final fun component14 ()Z
-	public final fun component15 ()Z
+	public final fun component10 ()Lshark/LeakingObjectFinder;
+	public final fun component11 ()Lleakcanary/HeapDumper;
+	public final fun component12 ()Ljava/util/List;
+	public final fun component13 ()Z
 	public final fun component2 ()Z
 	public final fun component3 ()I
 	public final fun component4 ()Ljava/util/List;
 	public final fun component5 ()Ljava/util/List;
-	public final fun component6 ()Lleakcanary/OnHeapAnalyzedListener;
-	public final fun component7 ()Lshark/MetadataExtractor;
-	public final fun component8 ()Z
-	public final fun component9 ()I
-	public final fun copy (ZZILjava/util/List;Ljava/util/List;Lleakcanary/OnHeapAnalyzedListener;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Lleakcanary/HeapDumper;Ljava/util/List;ZZ)Lleakcanary/LeakCanary$Config;
-	public static synthetic fun copy$default (Lleakcanary/LeakCanary$Config;ZZILjava/util/List;Ljava/util/List;Lleakcanary/OnHeapAnalyzedListener;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Lleakcanary/HeapDumper;Ljava/util/List;ZZILjava/lang/Object;)Lleakcanary/LeakCanary$Config;
+	public final fun component6 ()Lshark/MetadataExtractor;
+	public final fun component7 ()Z
+	public final fun component8 ()I
+	public final fun component9 ()Z
+	public final fun copy (ZZILjava/util/List;Ljava/util/List;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Lleakcanary/HeapDumper;Ljava/util/List;Z)Lleakcanary/LeakCanary$Config;
+	public static synthetic fun copy$default (Lleakcanary/LeakCanary$Config;ZZILjava/util/List;Ljava/util/List;Lshark/MetadataExtractor;ZIZLshark/LeakingObjectFinder;Lleakcanary/HeapDumper;Ljava/util/List;ZILjava/lang/Object;)Lleakcanary/LeakCanary$Config;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getComputeRetainedHeapSize ()Z
 	public final fun getDumpHeap ()Z
@@ -123,12 +111,10 @@ public final class leakcanary/LeakCanary$Config {
 	public final fun getMaxStoredHeapDumps ()I
 	public final fun getMetadataExtractor ()Lshark/MetadataExtractor;
 	public final fun getObjectInspectors ()Ljava/util/List;
-	public final fun getOnHeapAnalyzedListener ()Lleakcanary/OnHeapAnalyzedListener;
 	public final fun getReferenceMatchers ()Ljava/util/List;
 	public final fun getRequestWriteExternalStoragePermission ()Z
 	public final fun getRetainedVisibleThreshold ()I
 	public final fun getShowNotifications ()Z
-	public final fun getUseExperimentalLeakFinders ()Z
 	public fun hashCode ()I
 	public final fun newBuilder ()Lleakcanary/LeakCanary$Config$Builder;
 	public fun toString ()Ljava/lang/String;
@@ -145,12 +131,10 @@ public final class leakcanary/LeakCanary$Config$Builder {
 	public final fun maxStoredHeapDumps (I)Lleakcanary/LeakCanary$Config$Builder;
 	public final fun metadataExtractor (Lshark/MetadataExtractor;)Lleakcanary/LeakCanary$Config$Builder;
 	public final fun objectInspectors (Ljava/util/List;)Lleakcanary/LeakCanary$Config$Builder;
-	public final fun onHeapAnalyzedListener (Lleakcanary/OnHeapAnalyzedListener;)Lleakcanary/LeakCanary$Config$Builder;
 	public final fun referenceMatchers (Ljava/util/List;)Lleakcanary/LeakCanary$Config$Builder;
 	public final fun requestWriteExternalStoragePermission (Z)Lleakcanary/LeakCanary$Config$Builder;
 	public final fun retainedVisibleThreshold (I)Lleakcanary/LeakCanary$Config$Builder;
 	public final fun showNotifications (Z)Lleakcanary/LeakCanary$Config$Builder;
-	public final fun useExperimentalLeakFinders (Z)Lleakcanary/LeakCanary$Config$Builder;
 }
 
 public final class leakcanary/LogcatEventListener : leakcanary/EventListener {
@@ -161,15 +145,6 @@ public final class leakcanary/LogcatEventListener : leakcanary/EventListener {
 public final class leakcanary/NotificationEventListener : leakcanary/EventListener {
 	public static final field INSTANCE Lleakcanary/NotificationEventListener;
 	public fun onEvent (Lleakcanary/EventListener$Event;)V
-}
-
-public abstract interface class leakcanary/OnHeapAnalyzedListener {
-	public static final field Companion Lleakcanary/OnHeapAnalyzedListener$Companion;
-	public abstract fun onHeapAnalyzed (Lshark/HeapAnalysis;)V
-}
-
-public final class leakcanary/OnHeapAnalyzedListener$Companion {
-	public final fun invoke (Lkotlin/jvm/functions/Function1;)Lleakcanary/OnHeapAnalyzedListener;
 }
 
 public final class leakcanary/RemoteWorkManagerHeapAnalyzer : leakcanary/EventListener {

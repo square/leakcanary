@@ -1,13 +1,14 @@
 package leakcanary
 
-import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Test
-import shark.Hprof
-import shark.HprofHeapGraph
-import shark.SharkLog
 import java.io.File
 import java.io.FileOutputStream
+import leakcanary.internal.friendly.measureDurationMillis
+import org.junit.Test
+import shark.FileSourceProvider
+import shark.HprofHeader
+import shark.HprofIndex
+import shark.SharkLog
 
 class IndexingTest {
 
@@ -18,13 +19,17 @@ class IndexingTest {
     val heapDumpFile = File(context.filesDir, "AnalysisDurationTest.hprof")
     context.assets.open("large-dump.hprof").copyTo(FileOutputStream(heapDumpFile))
 
-    Hprof.open(heapDumpFile).use { hprof ->
-      SharkLog.d { "Start indexing" }
-      val before = SystemClock.uptimeMillis()
-      HprofHeapGraph.indexHprof(hprof)
-      val durationMs = (SystemClock.uptimeMillis() - before)
-      SharkLog.d { "Indexing took $durationMs ms" }
+    val sourceProvider = FileSourceProvider(heapDumpFile)
+    val parsedHeaders = HprofHeader.parseHeaderOf(heapDumpFile)
+
+    SharkLog.d { "Start indexing" }
+    val durationMs = measureDurationMillis {
+      HprofIndex.indexRecordsOf(
+        hprofSourceProvider = sourceProvider,
+        hprofHeader = parsedHeaders
+      )
     }
+    SharkLog.d { "Indexing took $durationMs ms" }
   }
 }
 

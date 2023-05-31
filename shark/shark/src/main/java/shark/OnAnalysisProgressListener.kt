@@ -4,8 +4,6 @@ import java.util.Locale
 
 /**
  * Reports progress from the [HeapAnalyzer] as they occur, as [Step] values.
- *
- * This is a functional interface with which you can create a [OnAnalysisProgressListener] from a lambda.
  */
 fun interface OnAnalysisProgressListener {
 
@@ -26,9 +24,9 @@ fun interface OnAnalysisProgressListener {
 
     init {
       val lowercaseName = name.replace("_", " ")
-        .toLowerCase(Locale.US)
+        .lowercase(Locale.US)
       humanReadableName =
-        lowercaseName.substring(0, 1).toUpperCase(Locale.US) + lowercaseName.substring(1)
+        lowercaseName.substring(0, 1).uppercase(Locale.US) + lowercaseName.substring(1)
     }
   }
 
@@ -40,20 +38,5 @@ fun interface OnAnalysisProgressListener {
      * A no-op [OnAnalysisProgressListener]
      */
     val NO_OP = OnAnalysisProgressListener {}
-
-    /**
-     * Utility function to create a [OnAnalysisProgressListener] from the passed in [block] lambda
-     * instead of using the anonymous `object : OnAnalysisProgressListener` syntax.
-     *
-     * Usage:
-     *
-     * ```kotlin
-     * val listener = OnAnalysisProgressListener {
-     *
-     * }
-     * ```
-     */
-    inline operator fun invoke(crossinline block: (Step) -> Unit): OnAnalysisProgressListener =
-      OnAnalysisProgressListener { step -> block(step) }
   }
 }

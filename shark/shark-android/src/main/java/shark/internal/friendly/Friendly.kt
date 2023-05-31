@@ -3,7 +3,8 @@
 
 package shark.internal.friendly
 
+import shark.AndroidNativeSizeMapper
 import shark.HeapGraph
 
 internal inline fun HeapGraph.mapNativeSizes() =
-  shark.internal.AndroidNativeSizeMapper.mapNativeSizes(this)
+  AndroidNativeSizeMapper.mapNativeSizes(this)

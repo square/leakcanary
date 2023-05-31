@@ -7,6 +7,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.ValueHolder.IntHolder
 import java.io.File
+import shark.HprofHeapGraph.Companion.openHeapGraph
 
 class HprofDeobfuscatorTest {
 
@@ -219,9 +220,6 @@ class HprofDeobfuscatorTest {
   }
 
   private fun File.readHprof(block: (HeapGraph) -> Unit) {
-    Hprof.open(this)
-      .use { hprof ->
-        block(HprofHeapGraph.indexHprof(hprof))
-      }
+    openHeapGraph().use { block(it) }
   }
 }

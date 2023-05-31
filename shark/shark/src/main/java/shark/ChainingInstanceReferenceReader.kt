@@ -1,6 +1,5 @@
-package shark.internal
+package shark
 
-import shark.HeapGraph
 import shark.HeapObject.HeapInstance
 
 /**
@@ -10,7 +9,7 @@ import shark.HeapObject.HeapInstance
  * that we correctly track which objects have been visited and correctly compute dominators and
  * retained size.
  */
-internal class ChainingInstanceReferenceReader(
+class ChainingInstanceReferenceReader(
   private val virtualRefReaders: List<VirtualInstanceReferenceReader>,
   private val fieldRefReader: FieldInstanceReferenceReader
 ) : ReferenceReader<HeapInstance> {
@@ -44,13 +43,23 @@ internal class ChainingInstanceReferenceReader(
     fun matches(instance: HeapInstance): Boolean
 
     /**
-     * May create a new InstanceExpander, depending on what's in the heap graph.
+     * May create a new [VirtualInstanceReferenceReader], depending on what's in the heap graph.
      * [OptionalFactory] implementations might return a different [ReferenceReader]
      * depending on which version of a class is present in the heap dump, or they might return null if
      * that class is missing.
      */
     fun interface OptionalFactory {
       fun create(graph: HeapGraph): VirtualInstanceReferenceReader?
+    }
+
+    /**
+     * Creates a list of [VirtualInstanceReferenceReader] where the content of the list depends on
+     * the classes in the heap graph and their implementation. This is a chain as
+     * [VirtualInstanceReferenceReader] elements in the list will process references in order in
+     * [ChainingInstanceReferenceReader].
+     */
+    fun interface ChainFactory {
+      fun createFor(graph: HeapGraph): List<VirtualInstanceReferenceReader>
     }
   }
 }

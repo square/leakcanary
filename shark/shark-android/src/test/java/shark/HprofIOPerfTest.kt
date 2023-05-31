@@ -6,7 +6,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import org.nield.kotlinstatistics.median
 import shark.HprofHeapGraph.Companion.openHeapGraph
-import shark.PrimitiveType.INT
 
 /**
  * IO reads is the largest factor on Shark's performance so this helps prevents
@@ -180,7 +179,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          25760, 40.0, 1309045, 25765, 40.0, 1309225
+          24384, 40.0, 1244990, 25653, 40.0, 1302298
         )
       )
   }
@@ -198,7 +197,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          22493, 40.0, 2203818, 22498, 40.0, 2203998
+          22472, 40.0, 2202271, 22477, 40.0, 2202451
         )
       )
   }
@@ -216,7 +215,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          16889, 32.0, 768692, 16891, 32.0, 768756
+          16829, 32.0, 765450, 16831, 32.0, 765514
         )
       )
   }
@@ -245,22 +244,28 @@ class HprofIOPerfTest {
     printResult: Boolean = false
   ): List<List<Int>> {
     val source = MetricsDualSourceProvider(hprofFile)
-    val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
     val analysis = source.openHeapGraph().use { graph ->
-      heapAnalyzer.analyze(
-        heapDumpFile = hprofFile,
-        graph = graph,
-        leakingObjectFinder = FilteringLeakingObjectFinder(
-          AndroidObjectInspectors.appLeakingObjectFilters
-        ),
-        referenceMatchers = AndroidReferenceMatchers.appDefaults,
-        computeRetainedHeapSize = computeRetainedHeapSize,
-        objectInspectors = AndroidObjectInspectors.appDefaults,
-        metadataExtractor = AndroidMetadataExtractor
+
+      val leakingObjectFinder = FilteringLeakingObjectFinder(
+        AndroidObjectInspectors.appLeakingObjectFilters
       )
-    }
-    check(analysis is HeapAnalysisSuccess) {
-      "Expected success not $analysis"
+
+      val objectIds = leakingObjectFinder.findLeakingObjectIds(graph)
+
+      val referenceMatchers = AndroidReferenceMatchers.appDefaults
+
+      val tracer = RealLeakTracerFactory(
+        shortestPathFinderFactory = PrioritizingShortestPathFinder.Factory(
+          listener = {},
+          referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
+          gcRootProvider = MatchingGcRootProvider(referenceMatchers),
+          computeRetainedHeapSize = computeRetainedHeapSize,
+        ),
+        objectInspectors = AndroidObjectInspectors.appDefaults,
+        listener = {}
+      ).createFor(graph)
+
+      tracer.traceObjects(objectIds)
     }
     if (printResult) {
       println(analysis)

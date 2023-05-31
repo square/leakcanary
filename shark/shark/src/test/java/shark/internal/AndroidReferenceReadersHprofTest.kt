@@ -3,20 +3,14 @@ package shark.internal
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.FilteringLeakingObjectFinder
 import shark.HeapAnalysisSuccess
 import shark.HeapGraph
-import shark.HeapObject
-import shark.HeapObject.HeapInstance
-import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.IgnoredReferenceMatcher
 import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakingObjectFinder
-import shark.ReferenceMatcher
 import shark.ReferencePattern.StaticFieldPattern
 import shark.checkForLeaks
 import shark.defaultReferenceMatchers
-import shark.internal.AndroidReferenceReaders.Companion
 
 class AndroidReferenceReadersHprofTest {
 

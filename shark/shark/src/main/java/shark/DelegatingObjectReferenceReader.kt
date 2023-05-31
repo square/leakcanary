@@ -1,6 +1,5 @@
-package shark.internal
+package shark
 
-import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray

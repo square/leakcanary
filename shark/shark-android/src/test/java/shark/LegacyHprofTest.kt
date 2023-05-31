@@ -101,9 +101,8 @@ class LegacyHprofTest {
   }
 
   @Test fun androidOCountActivityWrappingContexts() {
-    val contextWrapperStatuses = Hprof.open("leak_asynctask_o.hprof".classpathFile())
-      .use { hprof ->
-        val graph = HprofHeapGraph.indexHprof(hprof)
+    val contextWrapperStatuses = "leak_asynctask_o.hprof".classpathFile()
+      .openHeapGraph().use { graph ->
         graph.instances.filter {
           it instanceOf "android.content.ContextWrapper"
             && !(it instanceOf "android.app.Activity")
@@ -193,20 +192,24 @@ class LegacyHprofTest {
     val stickyClasses = mutableListOf<Long>()
     val classesAndNameStringId = mutableMapOf<Long, Long>()
     val stringRecordById = mutableMapOf<Long, String>()
-    StreamingHprofReader.readerFor(file, header).readRecords(setOf(ROOT_STICKY_CLASS, STRING_IN_UTF8, LOAD_CLASS)) { tag, length, reader ->
-      when(tag) {
-        ROOT_STICKY_CLASS -> reader.readStickyClassGcRootRecord().apply {
-          stickyClasses += id
+    StreamingHprofReader.readerFor(file, header)
+      .readRecords(setOf(ROOT_STICKY_CLASS, STRING_IN_UTF8, LOAD_CLASS)) { tag, length, reader ->
+        when (tag) {
+          ROOT_STICKY_CLASS -> reader.readStickyClassGcRootRecord().apply {
+            stickyClasses += id
+          }
+
+          STRING_IN_UTF8 -> reader.readStringRecord(length).apply {
+            stringRecordById[id] = string
+          }
+
+          LOAD_CLASS -> reader.readLoadClassRecord().apply {
+            classesAndNameStringId[id] = classNameStringId
+          }
+
+          else -> {}
         }
-        STRING_IN_UTF8 -> reader.readStringRecord(length).apply {
-          stringRecordById[id] = string
-        }
-        LOAD_CLASS -> reader.readLoadClassRecord().apply {
-          classesAndNameStringId[id] = classNameStringId
-        }
-        else -> {}
       }
-    }
     val duplicatedClassObjectIdsByNameStringId =
       classesAndNameStringId.entries
         .groupBy { (_, className) -> className }

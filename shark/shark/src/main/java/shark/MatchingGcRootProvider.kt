@@ -1,57 +1,41 @@
-package shark.internal
+package shark
 
-import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
 import shark.GcRoot.ThreadObject
-import shark.HeapGraph
-import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.IgnoredReferenceMatcher
-import shark.LibraryLeakReferenceMatcher
-import shark.ReferenceMatcher
 import shark.ReferencePattern.NativeGlobalVariablePattern
-import shark.filterFor
+import shark.internal.ThreadObjects
 
 /**
- * Extracted from PathFinder, this should eventually be part of public API surface
- * and we should likely also revisit the gc root type filtering which happens during
- * heap parsing, as that's not really a concern for the heap parser and more for path
- * finding. There are probably memory concerns as well there though. We could:
- * - compress the storing of these roots
- * - keep only the roots locations and read / deserialize as needed
- * - Ensure a unique / consistent view of roots by doing the work of GcRootProvider
- * at parsing time and keeping that list.
+ * TODO Extracted from PathFinder, this should eventually be part of public API surface
+ *  and we should likely also revisit the gc root type filtering which happens during
+ *  heap parsing, as that's not really a concern for the heap parser and more for path
+ *  finding. There are probably memory concerns as well there though. We could:
+ *  - compress the storing of these roots
+ *  - keep only the roots locations and read / deserialize as needed
+ *  - Ensure a unique / consistent view of roots by doing the work of GcRootProvider
+ *  at parsing time and keeping that list.
+ *
+ *  A [GcRootProvider] that matches roots against [referenceMatchers].
  */
-internal class GcRootProvider(
-  private val graph: HeapGraph,
-  referenceMatchers: List<ReferenceMatcher>
-) {
+class MatchingGcRootProvider(
+  private val referenceMatchers: List<ReferenceMatcher>
+) : GcRootProvider {
 
-  private val jniGlobalReferenceMatchers: Map<String, ReferenceMatcher>
-
-  init {
-    val jniGlobals = mutableMapOf<String, ReferenceMatcher>()
+  override fun provideGcRoots(graph: HeapGraph): Sequence<GcRootReference> {
+    val jniGlobalReferenceMatchers = mutableMapOf<String, ReferenceMatcher>()
     referenceMatchers.filterFor(graph).forEach { referenceMatcher ->
       val pattern = referenceMatcher.pattern
       if (pattern is NativeGlobalVariablePattern) {
-        jniGlobals[pattern.className] = referenceMatcher
+        jniGlobalReferenceMatchers[pattern.className] = referenceMatcher
       }
     }
-    this.jniGlobalReferenceMatchers = jniGlobals
-  }
 
-  class GcRootReference(
-    val gcRoot: GcRoot,
-    val isLowPriority: Boolean,
-    val matchedLibraryLeak: LibraryLeakReferenceMatcher?,
-  )
-
-  fun provideGcRoots(): Sequence<GcRootReference> {
-    return sortedGcRoots().asSequence().mapNotNull { (heapObject, gcRoot) ->
+    return sortedGcRoots(graph).asSequence().mapNotNull { (heapObject, gcRoot) ->
       when (gcRoot) {
         // Note: in sortedGcRoots we already filter out any java frame that has an associated
         // thread. These are the remaining ones (shouldn't be any, this is just in case).
@@ -104,7 +88,7 @@ internal class GcRootProvider(
    * This ensures ThreadObjects are visited before JavaFrames, and threadsBySerialNumber can be
    * built before JavaFrames.
    */
-  private fun sortedGcRoots(): List<Pair<HeapObject, GcRoot>> {
+  private fun sortedGcRoots(graph: HeapGraph): List<Pair<HeapObject, GcRoot>> {
     val rootClassName: (HeapObject) -> String = { graphObject ->
       when (graphObject) {
         is HeapClass -> {

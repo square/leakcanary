@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
 import kotlin.text.Charsets.UTF_8
+import shark.StreamingRecordReaderAdapter.Companion.asStreamingRecordReader
 
 class HprofReaderPrimitiveArrayTest {
 
@@ -14,11 +15,8 @@ class HprofReaderPrimitiveArrayTest {
   fun skips_primitive_arrays_correctly() {
     val heapDump = heapDumpRule.dumpHeap()
 
-    Hprof.open(heapDump).use { hprof ->
-      hprof.reader.readHprofRecords(
-        emptySet()
-      ) // skip everything including primitive arrays
-      { _, _ -> }
+    StreamingHprofReader.readerFor(heapDump).readRecords(emptySet()) { _, _, _ ->
+      error("Should skip all records, including primitive arrays")
     }
   }
 
@@ -31,14 +29,12 @@ class HprofReaderPrimitiveArrayTest {
     val heapDump = heapDumpRule.dumpHeap()
 
     var myByteArrayIsInHeapDump = false
-    Hprof.open(heapDump).use { hprof ->
-      hprof.reader.readHprofRecords(
-        setOf(HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord::class)
-      ) { _, record ->
-        if (record is HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump) {
-          if (byteArray.contentEquals(record.array)) {
-            myByteArrayIsInHeapDump = true
-          }
+
+    val reader = StreamingHprofReader.readerFor(heapDump).asStreamingRecordReader()
+    reader.readRecords(setOf(HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord::class)) {  _, record ->
+      if (record is HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump) {
+        if (byteArray.contentEquals(record.array)) {
+          myByteArrayIsInHeapDump = true
         }
       }
     }

@@ -1,18 +1,14 @@
 @file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
 
-package shark.internal
+package shark
 
 import java.util.ArrayDeque
 import java.util.Deque
-import shark.HeapGraph
-import shark.HeapObject
-import shark.OnAnalysisProgressListener
-import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
-import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
-import shark.ReferenceMatcher
-import shark.ValueHolder
-import shark.internal.PathFinder.VisitTracker.Dominated
-import shark.internal.PathFinder.VisitTracker.Visited
+import shark.PrioritizingShortestPathFinder.Event.StartedFindingDominators
+import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
+import shark.PrioritizingShortestPathFinder.VisitTracker.Dominated
+import shark.PrioritizingShortestPathFinder.VisitTracker.Visited
+import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
@@ -26,19 +22,43 @@ import shark.internal.hppc.LongScatterSet
  * identified as "to visit last" and then visiting them as needed if no path is
  * found.
  */
-internal class PathFinder(
+class PrioritizingShortestPathFinder private constructor(
   private val graph: HeapGraph,
-  private val listener: OnAnalysisProgressListener,
+  private val listener: Event.Listener,
   private val objectReferenceReader: ReferenceReader<HeapObject>,
-  referenceMatchers: List<ReferenceMatcher>
-) {
+  private val gcRootProvider: GcRootProvider,
+  private val computeRetainedHeapSize: Boolean
+) : ShortestPathFinder {
 
-  class PathFindingResults(
-    val pathsToLeakingObjects: List<ReferencePathNode>,
-    val dominatorTree: DominatorTree?
-  )
+  class Factory(
+    private val listener: Event.Listener,
+    private val referenceReaderFactory: ReferenceReader.Factory<HeapObject>,
+    private val gcRootProvider: GcRootProvider,
+    private val computeRetainedHeapSize: Boolean
+  ) : ShortestPathFinder.Factory {
+    override fun createFor(heapGraph: HeapGraph): ShortestPathFinder {
+      return PrioritizingShortestPathFinder(
+        graph = heapGraph,
+        listener = listener,
+        objectReferenceReader = referenceReaderFactory.createFor(heapGraph),
+        gcRootProvider = gcRootProvider,
+        computeRetainedHeapSize = computeRetainedHeapSize
+      )
+    }
+  }
 
-  sealed class VisitTracker {
+  // TODO Enum or sealed? class makes it possible to report progress. Enum
+  // provides ordering of events.
+  sealed interface Event {
+    object StartedFindingPathsToRetainedObjects : Event
+    object StartedFindingDominators : Event
+
+    fun interface Listener {
+      fun onEvent(event: Event)
+    }
+  }
+
+  private sealed class VisitTracker {
 
     abstract fun visited(
       objectId: Long,
@@ -47,7 +67,7 @@ internal class PathFinder(
 
     class Dominated(expectedElements: Int) : VisitTracker() {
       /**
-       * Tracks visited objecs and their dominator.
+       * Tracks visited objects and their dominator.
        * If an object is not in [dominatorTree] then it hasn't been enqueued yet.
        * If an object is in [dominatorTree] but not in [State.toVisitSet] nor [State.toVisitLastSet]
        * then it has already been dequeued.
@@ -115,13 +135,10 @@ internal class PathFinder(
     var visitingLast = false
   }
 
-  private val gcRootProvider = GcRootProvider(graph, referenceMatchers)
-
-  fun findPathsFromGcRoots(
-    leakingObjectIds: Set<Long>,
-    computeRetainedHeapSize: Boolean
+  override fun findShortestPathsFromGcRoots(
+    leakingObjectIds: Set<Long>
   ): PathFindingResults {
-    listener.onAnalysisProgress(FINDING_PATHS_TO_RETAINED_OBJECTS)
+    listener.onEvent(StartedFindingPathsToRetainedObjects)
     // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
     // visit more than that but this limits the number of early array growths.
     val estimatedVisitedObjects = (graph.instanceCount / 2).coerceAtLeast(4)
@@ -153,7 +170,7 @@ internal class PathFinder(
         // Found all refs, stop searching (unless computing retained size)
         if (shortestPathsToLeakingObjects.size == leakingObjectIds.size()) {
           if (computeRetainedHeapSize) {
-            listener.onAnalysisProgress(FINDING_DOMINATORS)
+            listener.onEvent(StartedFindingDominators)
           } else {
             break@visitingQueue
           }
@@ -190,7 +207,7 @@ internal class PathFinder(
   }
 
   private fun State.enqueueGcRoots() {
-    gcRootProvider.provideGcRoots().forEach { gcRootReference ->
+    gcRootProvider.provideGcRoots(graph).forEach { gcRootReference ->
       enqueue(
         gcRootReference.matchedLibraryLeak?.let { matchedLibraryLeak ->
           LibraryLeakRootNode(
@@ -242,10 +259,12 @@ internal class PathFinder(
           toVisitLastSet.remove(node.objectId)
         }
       }
+
       visitLast -> {
         toVisitLastQueue.add(node)
         toVisitLastSet.add(node.objectId)
       }
+
       else -> {
         toVisitQueue.add(node)
         toVisitSet.add(node.objectId)

@@ -115,7 +115,6 @@ internal object AndroidDebugHeapAnalyzer {
         }
       }
     }
-    LeakCanary.config.onHeapAnalyzedListener.onHeapAnalyzed(fullHeapAnalysis)
     return analysisDoneEvent
   }
 

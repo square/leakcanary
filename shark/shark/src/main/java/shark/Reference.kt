@@ -1,9 +1,11 @@
-package shark.internal
+package shark
 
-import shark.LibraryLeakReferenceMatcher
-import shark.internal.Reference.LazyDetails.Resolver
+import shark.Reference.LazyDetails.Resolver
 
-internal class Reference(
+/**
+ * TODO Review as public API.
+ */
+class Reference(
   /**
    * The value of the reference, i.e. the object the reference is pointing to.
    */

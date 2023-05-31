@@ -1,9 +1,11 @@
-package shark.internal
+package shark
 
-import shark.HeapGraph
-import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
-import shark.internal.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
 import shark.HeapObject.HeapInstance
+import shark.internal.InternalSharedArrayListReferenceReader
+import shark.internal.InternalSharedHashMapReferenceReader
+import shark.internal.InternalSharedLinkedListReferenceReader
 
 /**
  * Defines [VirtualInstanceReferenceReader] factories for common OpenJDK data structures.
