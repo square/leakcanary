@@ -99,6 +99,11 @@ public final class shark/DominatorTree {
 	public final fun updateDominatedAsRoot (J)Z
 }
 
+public final class shark/Dominators : java/io/Serializable {
+	public fun <init> (Ljava/util/Map;)V
+	public final fun getDominatorNodes ()Ljava/util/Map;
+}
+
 public final class shark/FieldInstanceReferenceReader : shark/ReferenceReader {
 	public fun <init> (Lshark/HeapGraph;Ljava/util/List;)V
 	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
@@ -437,11 +442,13 @@ public final class shark/MetadataExtractor$Companion {
 
 public final class shark/ObjectDominators {
 	public fun <init> ()V
+	public final fun buildDominatorTree (Lshark/HeapGraph;Ljava/util/List;)Ljava/util/Map;
+	public final fun buildOfflineDominatorTree (Lshark/HeapGraph;Ljava/util/List;)Ljava/util/Map;
 	public final fun renderDominatorTree (Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;Z)Ljava/lang/String;
 	public static synthetic fun renderDominatorTree$default (Lshark/ObjectDominators;Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;ZILjava/lang/Object;)Ljava/lang/String;
 }
 
-public final class shark/ObjectDominators$DominatorNode {
+public final class shark/ObjectDominators$DominatorNode : java/io/Serializable {
 	public fun <init> (IIILjava/util/List;)V
 	public final fun component1 ()I
 	public final fun component2 ()I
@@ -454,6 +461,19 @@ public final class shark/ObjectDominators$DominatorNode {
 	public final fun getRetainedCount ()I
 	public final fun getRetainedSize ()I
 	public final fun getShallowSize ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ObjectDominators$OfflineDominatorNode : java/io/Serializable {
+	public fun <init> (Lshark/ObjectDominators$DominatorNode;Ljava/lang/String;)V
+	public final fun component1 ()Lshark/ObjectDominators$DominatorNode;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Lshark/ObjectDominators$DominatorNode;Ljava/lang/String;)Lshark/ObjectDominators$OfflineDominatorNode;
+	public static synthetic fun copy$default (Lshark/ObjectDominators$OfflineDominatorNode;Lshark/ObjectDominators$DominatorNode;Ljava/lang/String;ILjava/lang/Object;)Lshark/ObjectDominators$OfflineDominatorNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getNode ()Lshark/ObjectDominators$DominatorNode;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }

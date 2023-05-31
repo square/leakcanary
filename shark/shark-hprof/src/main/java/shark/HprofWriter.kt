@@ -1,5 +1,7 @@
 package shark
 
+import java.io.Closeable
+import java.io.File
 import okio.Buffer
 import okio.BufferedSink
 import okio.Okio
@@ -35,28 +37,9 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.In
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import shark.HprofRecord.LoadClassRecord
+import shark.HprofRecord.StackFrameRecord
 import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecord.StringRecord
-import shark.PrimitiveType.BOOLEAN
-import shark.PrimitiveType.BYTE
-import shark.PrimitiveType.CHAR
-import shark.PrimitiveType.DOUBLE
-import shark.PrimitiveType.FLOAT
-import shark.PrimitiveType.INT
-import shark.PrimitiveType.LONG
-import shark.PrimitiveType.SHORT
-import shark.ValueHolder.BooleanHolder
-import shark.ValueHolder.ByteHolder
-import shark.ValueHolder.CharHolder
-import shark.ValueHolder.DoubleHolder
-import shark.ValueHolder.FloatHolder
-import shark.ValueHolder.IntHolder
-import shark.ValueHolder.LongHolder
-import shark.ValueHolder.ReferenceHolder
-import shark.ValueHolder.ShortHolder
-import java.io.Closeable
-import java.io.File
-import shark.HprofRecord.StackFrameRecord
 import shark.HprofRecordTag.CLASS_DUMP
 import shark.HprofRecordTag.HEAP_DUMP_INFO
 import shark.HprofRecordTag.INSTANCE_DUMP
@@ -81,6 +64,24 @@ import shark.HprofRecordTag.ROOT_UNREACHABLE
 import shark.HprofRecordTag.ROOT_VM_INTERNAL
 import shark.HprofRecordTag.STACK_TRACE
 import shark.HprofRecordTag.STRING_IN_UTF8
+import shark.HprofWriter.Companion.openWriterFor
+import shark.PrimitiveType.BOOLEAN
+import shark.PrimitiveType.BYTE
+import shark.PrimitiveType.CHAR
+import shark.PrimitiveType.DOUBLE
+import shark.PrimitiveType.FLOAT
+import shark.PrimitiveType.INT
+import shark.PrimitiveType.LONG
+import shark.PrimitiveType.SHORT
+import shark.ValueHolder.BooleanHolder
+import shark.ValueHolder.ByteHolder
+import shark.ValueHolder.CharHolder
+import shark.ValueHolder.DoubleHolder
+import shark.ValueHolder.FloatHolder
+import shark.ValueHolder.IntHolder
+import shark.ValueHolder.LongHolder
+import shark.ValueHolder.ReferenceHolder
+import shark.ValueHolder.ShortHolder
 
 /**
  * Generates Hprof files.
@@ -140,7 +141,6 @@ class HprofWriter private constructor(
     }
   }
 
-  @Suppress("LongMethod")
   private fun BufferedSink.write(record: HprofRecord) {
     when (record) {
       is StringRecord -> {

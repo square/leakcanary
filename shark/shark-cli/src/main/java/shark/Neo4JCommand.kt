@@ -75,7 +75,7 @@ import shark.ValueHolder.ShortHolder
  * WHERE "android.app.Activity.mDestroyed = true" in activity.fields
  * RETURN shortestPath((roots)-[:ROOT|REF*]->(activity))
  */
-@SuppressWarnings("MaxLineLength", "LongMethod")
+@SuppressWarnings("MaxLineLength")
 class Neo4JCommand : CliktCommand(
   name = "neo4j",
   help = "Convert heap dump to Neo4j database"

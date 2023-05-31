@@ -25,10 +25,9 @@ import shark.SharkLog
  * We can ensure apps have the LeakCanary app in their manifest, however the other way round
  * isn't possible, we don't know in advance which apps we'll talk to.
  *
- * One of the automatic cases is "Any app that starts or binds to a service in your app".
- *
- * So we'll have apps poke the LeakCanary app by binding, which then gives it permission to bind
- * a service back.
+ * One of the automatic cases is "Any app that starts or binds to a service in your app", so if we
+ * ever need the LeakCanary app to talk back we could have apps first poke the LeakCanary app by
+ * binding, which then gives it permission to bind a service back.
  *
  * On AIDL backward compatibility: HeapAnalysis is Serializable so we need to ensure compatibility
  * via Serializable.

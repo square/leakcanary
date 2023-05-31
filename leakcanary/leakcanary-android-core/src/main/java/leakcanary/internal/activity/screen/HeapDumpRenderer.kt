@@ -11,6 +11,9 @@ import android.graphics.Paint.Style.FILL
 import android.graphics.Paint.Style.STROKE
 import android.graphics.Rect
 import com.squareup.leakcanary.core.R
+import java.io.File
+import kotlin.math.ceil
+import kotlin.math.max
 import leakcanary.internal.navigation.getColorCompat
 import shark.HprofRecord
 import shark.HprofRecord.HeapDumpEndRecord
@@ -32,9 +35,6 @@ import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecord.StringRecord
 import shark.StreamingHprofReader
 import shark.StreamingRecordReaderAdapter.Companion.asStreamingRecordReader
-import java.io.File
-import kotlin.math.ceil
-import kotlin.math.max
 
 internal object HeapDumpRenderer {
 
@@ -48,7 +48,6 @@ internal object HeapDumpRenderer {
       get() = this * density
   }
 
-  @Suppress("LongMethod")
   fun render(
     context: Context,
     heapDumpFile: File,
