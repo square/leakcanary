@@ -42,4 +42,11 @@
     </service>
   </application>
 
+
+  <!-- TODO Remove, just debugging. Yep that's the issue wasn't authorized calling back. -->
+  <!--  Looks like we lose permission on reboot or reinstall?-->
+  <queries>
+    <package android:name="com.example.leakcanary" />
+  </queries>
+
 </manifest>

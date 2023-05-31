@@ -1,5 +1,7 @@
 package org.leakcanary.internal;
 
+parcelable ParcelableDominators;
+
 interface HeapDataRepository {
-	void sayHi();
+	ParcelableDominators sayHi(String heapDumpFilePath);
 }

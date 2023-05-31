@@ -36,10 +36,12 @@ import org.leakcanary.data.HeapRepository
 import org.leakcanary.screens.ClientAppAnalysisState.Loading
 import org.leakcanary.screens.ClientAppAnalysisState.Success
 import org.leakcanary.screens.Destination.ClientAppAnalysisDestination
+import org.leakcanary.screens.Destination.TreeMapDestination
 import org.leakcanary.screens.HeaderCardLink.EXPLORE_HPROF
 import org.leakcanary.screens.HeaderCardLink.PRINT
 import org.leakcanary.screens.HeaderCardLink.SHARE_ANALYSIS
 import org.leakcanary.screens.HeaderCardLink.SHARE_HPROF
+import org.leakcanary.screens.HeaderCardLink.SHOW_TREE_MAP
 import org.leakcanary.util.LeakTraceWrapper
 import org.leakcanary.util.Sharer
 import shark.HeapAnalysisSuccess
@@ -91,6 +93,9 @@ class ClientAppAnalysisViewModel @Inject constructor(
         SharkLog.d { "\u200B\n" + LeakTraceWrapper.wrap(heapAnalysis.toString(), 120) }
       }
       SHARE_HPROF -> TODO()
+      SHOW_TREE_MAP -> {
+        navigator.goTo(TreeMapDestination(heapAnalysis.heapDumpFile))
+      }
     }
   }
 
@@ -105,7 +110,8 @@ enum class HeaderCardLink {
   EXPLORE_HPROF,
   SHARE_ANALYSIS,
   PRINT,
-  SHARE_HPROF
+  SHARE_HPROF,
+  SHOW_TREE_MAP
 }
 
 @Composable fun ClientAppAnalysisScreen(viewModel: ClientAppAnalysisViewModel = viewModel()) {
@@ -145,6 +151,10 @@ enum class HeaderCardLink {
                 appendLink("Heap Dump file", SHARE_HPROF)
                 append("\n\n")
               }
+              // TODO check we can connect to app
+              append("Show ")
+              appendLink("Tree Map", SHOW_TREE_MAP)
+              append("\n\n")
               // TODO this should be an expendable item row instead.
               /*
               val dumpDurationMillis =
@@ -170,11 +180,12 @@ enum class HeaderCardLink {
             ClickableText(text = annotatedString,
               style = MaterialTheme.typography.bodySmall,
               onClick = { offset ->
-                val link = HeaderCardLink.valueOf(
-                  annotatedString.getStringAnnotations(tag = "link", start = offset, end = offset)
-                    .single().item
-                )
-                viewModel.onHeaderCardLinkClicked(heapAnalysis, link)
+
+                val annotations = annotatedString.getStringAnnotations(tag = "link", start = offset, end = offset)
+                if (annotations.size == 1) {
+                  val link = HeaderCardLink.valueOf(annotations.single().item)
+                  viewModel.onHeaderCardLinkClicked(heapAnalysis, link)
+                }
               })
           }
         }

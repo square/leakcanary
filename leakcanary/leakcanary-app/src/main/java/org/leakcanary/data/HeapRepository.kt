@@ -88,7 +88,7 @@ class HeapRepository @Inject constructor(
     """.trimMargin(),
         parameters = 1,
         binders = {
-          bindString(1, signature)
+          bindString(0, signature)
         }
       )
     }

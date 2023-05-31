@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
 
     val intent = Intent("org.leakcanary.internal.HeapDataRepositoryService.BIND")
       .apply {
+        // TODO pass package in.
         setPackage("com.example.leakcanary")
       }
 
