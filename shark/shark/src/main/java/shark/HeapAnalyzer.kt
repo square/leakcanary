@@ -128,8 +128,6 @@ class HeapAnalyzer constructor(
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
-    val referenceReader = AndroidReferenceReaderFactory(referenceMatchers).createFor(graph)
-
     return try {
       val leakTracer = RealLeakTracerFactory(
         shortestPathFinderFactory = PrioritizingShortestPathFinder.Factory(
@@ -141,7 +139,7 @@ class HeapAnalyzer constructor(
               )
             }
           },
-          referenceReaderFactory = { referenceReader },
+          referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
           computeRetainedHeapSize = computeRetainedHeapSize,
         ),

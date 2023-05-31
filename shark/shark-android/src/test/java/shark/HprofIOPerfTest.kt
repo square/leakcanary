@@ -179,7 +179,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          25760, 40.0, 1309045, 25765, 40.0, 1309225
+          24384, 40.0, 1244990, 25653, 40.0, 1302298
         )
       )
   }
@@ -197,7 +197,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          22493, 40.0, 2203818, 22498, 40.0, 2203998
+          22472, 40.0, 2202271, 22477, 40.0, 2202451
         )
       )
   }
@@ -215,7 +215,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          16889, 32.0, 768692, 16891, 32.0, 768756
+          16829, 32.0, 765450, 16831, 32.0, 765514
         )
       )
   }
@@ -251,13 +251,17 @@ class HprofIOPerfTest {
       )
 
       val objectIds = leakingObjectFinder.findLeakingObjectIds(graph)
+
+      val referenceMatchers = AndroidReferenceMatchers.appDefaults
+
       val tracer = RealLeakTracerFactory(
-        referenceMatchers = AndroidReferenceMatchers.appDefaults,
-        computeRetainedHeapSize = computeRetainedHeapSize,
-        objectInspectors = AndroidObjectInspectors.appDefaults,
-        referenceReaderFactory = AndroidReferenceReaderFactory(
-          AndroidReferenceMatchers.appDefaults
+        shortestPathFinderFactory = PrioritizingShortestPathFinder.Factory(
+          listener = {},
+          referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
+          gcRootProvider = MatchingGcRootProvider(referenceMatchers),
+          computeRetainedHeapSize = computeRetainedHeapSize,
         ),
+        objectInspectors = AndroidObjectInspectors.appDefaults,
         listener = {}
       ).createFor(graph)
 

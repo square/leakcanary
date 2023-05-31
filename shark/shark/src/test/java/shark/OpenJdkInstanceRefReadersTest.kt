@@ -1,18 +1,18 @@
 package shark
 
+import java.io.File
+import java.util.LinkedList
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
-import shark.OpenJdkInstanceRefReaders.LINKED_LIST
-import java.io.File
-import java.util.LinkedList
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
 import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
+import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.OpenJdkInstanceRefReaders.LINKED_LIST
 
 class OpenJdkInstanceRefReadersTest {
 
@@ -394,11 +394,15 @@ class OpenJdkInstanceRefReadersTest {
         }
       }))
       val objectIds = leakingObjectFinder.findLeakingObjectIds(graph)
+
       val tracer = RealLeakTracerFactory(
-        referenceMatchers = referenceMatchers,
-        computeRetainedHeapSize = computeRetainedHeapSize,
+        shortestPathFinderFactory = PrioritizingShortestPathFinder.Factory(
+          listener = {},
+          referenceReaderFactory = { referenceReader },
+          gcRootProvider = MatchingGcRootProvider(referenceMatchers),
+          computeRetainedHeapSize = computeRetainedHeapSize,
+        ),
         objectInspectors = emptyList(),
-        referenceReaderFactory = { referenceReader },
         listener = {}
       ).createFor(graph)
 
