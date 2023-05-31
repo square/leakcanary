@@ -1,3 +1,48 @@
+public final class shark/ActualMatchingReferenceReaderFactory : shark/ReferenceReader$Factory {
+	public fun <init> (Ljava/util/List;)V
+	public fun createFor (Lshark/HeapGraph;)Lshark/ReferenceReader;
+}
+
+public final class shark/AndroidNativeSizeMapper {
+	public static final field Companion Lshark/AndroidNativeSizeMapper$Companion;
+	public fun <init> (Lshark/HeapGraph;)V
+	public final fun mapNativeSizes ()Ljava/util/Map;
+}
+
+public final class shark/AndroidNativeSizeMapper$Companion {
+	public final fun mapNativeSizes (Lshark/HeapGraph;)Ljava/util/Map;
+}
+
+public final class shark/AndroidReferenceReaderFactory : shark/ReferenceReader$Factory {
+	public fun <init> (Ljava/util/List;)V
+	public fun createFor (Lshark/HeapGraph;)Lshark/ReferenceReader;
+}
+
+public abstract class shark/AndroidReferenceReaders : java/lang/Enum, shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$OptionalFactory {
+	public static final field ANIMATOR_WEAK_REF_SUCKS Lshark/AndroidReferenceReaders;
+	public static final field ARRAY_SET Lshark/AndroidReferenceReaders;
+	public static final field Companion Lshark/AndroidReferenceReaders$Companion;
+	public static final field MESSAGE_QUEUE Lshark/AndroidReferenceReaders;
+	public static final field SAFE_ITERABLE_MAP Lshark/AndroidReferenceReaders;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/AndroidReferenceReaders;
+	public static fun values ()[Lshark/AndroidReferenceReaders;
+}
+
+public final class shark/AndroidReferenceReaders$Companion {
+}
+
+public abstract class shark/ApacheHarmonyInstanceRefReaders : java/lang/Enum, shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$OptionalFactory {
+	public static final field ARRAY_LIST Lshark/ApacheHarmonyInstanceRefReaders;
+	public static final field COPY_ON_WRITE_ARRAY_LIST Lshark/ApacheHarmonyInstanceRefReaders;
+	public static final field HASH_MAP Lshark/ApacheHarmonyInstanceRefReaders;
+	public static final field HASH_SET Lshark/ApacheHarmonyInstanceRefReaders;
+	public static final field LINKED_LIST Lshark/ApacheHarmonyInstanceRefReaders;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/ApacheHarmonyInstanceRefReaders;
+	public static fun values ()[Lshark/ApacheHarmonyInstanceRefReaders;
+}
+
 public final class shark/AppSingletonInspector : shark/ObjectInspector {
 	public fun <init> ([Ljava/lang/String;)V
 	public fun inspect (Lshark/ObjectReporter;)V
@@ -20,6 +65,46 @@ public final class shark/ApplicationLeak : shark/Leak {
 public final class shark/ApplicationLeak$Companion {
 }
 
+public final class shark/ChainingInstanceReferenceReader : shark/ReferenceReader {
+	public fun <init> (Ljava/util/List;Lshark/FieldInstanceReferenceReader;)V
+	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
+public abstract interface class shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader : shark/ReferenceReader {
+	public abstract fun matches (Lshark/HeapObject$HeapInstance;)Z
+}
+
+public abstract interface class shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$ChainFactory {
+	public abstract fun createFor (Lshark/HeapGraph;)Ljava/util/List;
+}
+
+public abstract interface class shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$OptionalFactory {
+	public abstract fun create (Lshark/HeapGraph;)Lshark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader;
+}
+
+public final class shark/ClassReferenceReader : shark/ReferenceReader {
+	public fun <init> (Lshark/HeapGraph;Ljava/util/List;)V
+	public fun read (Lshark/HeapObject$HeapClass;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
+public final class shark/DominatorTree {
+	public fun <init> ()V
+	public fun <init> (I)V
+	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun buildFullDominatorTree (Lkotlin/jvm/functions/Function1;)Ljava/util/Map;
+	public final fun computeRetainedSizes (Ljava/util/Set;Lkotlin/jvm/functions/Function1;)Ljava/util/Map;
+	public final fun updateDominated (JJ)Z
+	public final fun updateDominatedAsRoot (J)Z
+}
+
+public final class shark/FieldInstanceReferenceReader : shark/ReferenceReader {
+	public fun <init> (Lshark/HeapGraph;Ljava/util/List;)V
+	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
 public final class shark/FilteringLeakingObjectFinder : shark/LeakingObjectFinder {
 	public fun <init> (Ljava/util/List;)V
 	public fun findLeakingObjectIds (Lshark/HeapGraph;)Ljava/util/Set;
@@ -27,6 +112,17 @@ public final class shark/FilteringLeakingObjectFinder : shark/LeakingObjectFinde
 
 public abstract interface class shark/FilteringLeakingObjectFinder$LeakingObjectFilter {
 	public abstract fun isLeakingObject (Lshark/HeapObject;)Z
+}
+
+public abstract interface class shark/GcRootProvider {
+	public abstract fun provideGcRoots (Lshark/HeapGraph;)Lkotlin/sequences/Sequence;
+}
+
+public final class shark/GcRootReference {
+	public fun <init> (Lshark/GcRoot;ZLshark/LibraryLeakReferenceMatcher;)V
+	public final fun getGcRoot ()Lshark/GcRoot;
+	public final fun getMatchedLibraryLeak ()Lshark/LibraryLeakReferenceMatcher;
+	public final fun isLowPriority ()Z
 }
 
 public abstract class shark/HeapAnalysis : java/io/Serializable {
@@ -261,8 +357,31 @@ public final class shark/LeakTraceReference$ReferenceType : java/lang/Enum {
 	public static fun values ()[Lshark/LeakTraceReference$ReferenceType;
 }
 
+public abstract interface class shark/LeakTracer {
+	public abstract fun traceObjects (Ljava/util/Set;)Lshark/LeaksAndUnreachableObjects;
+}
+
+public abstract interface class shark/LeakTracer$Factory {
+	public abstract fun createFor (Lshark/HeapGraph;)Lshark/LeakTracer;
+}
+
 public abstract interface class shark/LeakingObjectFinder {
 	public abstract fun findLeakingObjectIds (Lshark/HeapGraph;)Ljava/util/Set;
+}
+
+public final class shark/LeaksAndUnreachableObjects {
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;Ljava/util/List;Ljava/util/List;)Lshark/LeaksAndUnreachableObjects;
+	public static synthetic fun copy$default (Lshark/LeaksAndUnreachableObjects;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lshark/LeaksAndUnreachableObjects;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getApplicationLeaks ()Ljava/util/List;
+	public final fun getLibraryLeaks ()Ljava/util/List;
+	public final fun getUnreachableObjects ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class shark/LibraryLeak : shark/Leak {
@@ -302,6 +421,11 @@ public final class shark/LibraryLeakReferenceMatcher : shark/ReferenceMatcher {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class shark/MatchingGcRootProvider : shark/GcRootProvider {
+	public fun <init> (Ljava/util/List;)V
+	public fun provideGcRoots (Lshark/HeapGraph;)Lkotlin/sequences/Sequence;
+}
+
 public abstract interface class shark/MetadataExtractor {
 	public static final field Companion Lshark/MetadataExtractor$Companion;
 	public abstract fun extractMetadata (Lshark/HeapGraph;)Ljava/util/Map;
@@ -309,6 +433,29 @@ public abstract interface class shark/MetadataExtractor {
 
 public final class shark/MetadataExtractor$Companion {
 	public final fun getNO_OP ()Lshark/MetadataExtractor;
+}
+
+public final class shark/ObjectDominators {
+	public fun <init> ()V
+	public final fun renderDominatorTree (Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;Z)Ljava/lang/String;
+	public static synthetic fun renderDominatorTree$default (Lshark/ObjectDominators;Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;ZILjava/lang/Object;)Ljava/lang/String;
+}
+
+public final class shark/ObjectDominators$DominatorNode {
+	public fun <init> (IIILjava/util/List;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()Ljava/util/List;
+	public final fun copy (IIILjava/util/List;)Lshark/ObjectDominators$DominatorNode;
+	public static synthetic fun copy$default (Lshark/ObjectDominators$DominatorNode;IIILjava/util/List;ILjava/lang/Object;)Lshark/ObjectDominators$DominatorNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDominatedObjectIds ()Ljava/util/List;
+	public final fun getRetainedCount ()I
+	public final fun getRetainedSize ()I
+	public final fun getShallowSize ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public abstract interface class shark/ObjectInspector {
@@ -366,6 +513,94 @@ public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {
 	public final fun getHumanReadableName ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Lshark/OnAnalysisProgressListener$Step;
 	public static fun values ()[Lshark/OnAnalysisProgressListener$Step;
+}
+
+public final class shark/PathFindingResults {
+	public fun <init> (Ljava/util/List;Lshark/DominatorTree;)V
+	public final fun getDominatorTree ()Lshark/DominatorTree;
+	public final fun getPathsToLeakingObjects ()Ljava/util/List;
+}
+
+public final class shark/PrioritizingShortestPathFinder : shark/ShortestPathFinder {
+	public synthetic fun <init> (Lshark/HeapGraph;Lshark/PrioritizingShortestPathFinder$Event$Listener;Lshark/ReferenceReader;Lshark/GcRootProvider;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun findShortestPathsFromGcRoots (Ljava/util/Set;)Lshark/PathFindingResults;
+}
+
+public abstract interface class shark/PrioritizingShortestPathFinder$Event {
+}
+
+public abstract interface class shark/PrioritizingShortestPathFinder$Event$Listener {
+	public abstract fun onEvent (Lshark/PrioritizingShortestPathFinder$Event;)V
+}
+
+public final class shark/PrioritizingShortestPathFinder$Event$StartedFindingDominators : shark/PrioritizingShortestPathFinder$Event {
+	public static final field INSTANCE Lshark/PrioritizingShortestPathFinder$Event$StartedFindingDominators;
+}
+
+public final class shark/PrioritizingShortestPathFinder$Event$StartedFindingPathsToRetainedObjects : shark/PrioritizingShortestPathFinder$Event {
+	public static final field INSTANCE Lshark/PrioritizingShortestPathFinder$Event$StartedFindingPathsToRetainedObjects;
+}
+
+public final class shark/PrioritizingShortestPathFinder$Factory : shark/ShortestPathFinder$Factory {
+	public fun <init> (Lshark/PrioritizingShortestPathFinder$Event$Listener;Lshark/ReferenceReader$Factory;Lshark/GcRootProvider;Z)V
+	public fun createFor (Lshark/HeapGraph;)Lshark/ShortestPathFinder;
+}
+
+public final class shark/RealLeakTracerFactory : shark/LeakTracer$Factory {
+	public fun <init> (Lshark/ShortestPathFinder$Factory;Ljava/util/List;Lshark/RealLeakTracerFactory$Event$Listener;)V
+	public fun createFor (Lshark/HeapGraph;)Lshark/LeakTracer;
+}
+
+public abstract interface class shark/RealLeakTracerFactory$Event {
+}
+
+public abstract interface class shark/RealLeakTracerFactory$Event$Listener {
+	public abstract fun onEvent (Lshark/RealLeakTracerFactory$Event;)V
+}
+
+public final class shark/RealLeakTracerFactory$Event$StartedBuildingLeakTraces : shark/RealLeakTracerFactory$Event {
+	public static final field INSTANCE Lshark/RealLeakTracerFactory$Event$StartedBuildingLeakTraces;
+}
+
+public final class shark/RealLeakTracerFactory$Event$StartedComputingJavaHeapRetainedSize : shark/RealLeakTracerFactory$Event {
+	public static final field INSTANCE Lshark/RealLeakTracerFactory$Event$StartedComputingJavaHeapRetainedSize;
+}
+
+public final class shark/RealLeakTracerFactory$Event$StartedComputingNativeRetainedSize : shark/RealLeakTracerFactory$Event {
+	public static final field INSTANCE Lshark/RealLeakTracerFactory$Event$StartedComputingNativeRetainedSize;
+}
+
+public final class shark/RealLeakTracerFactory$Event$StartedInspectingObjects : shark/RealLeakTracerFactory$Event {
+	public static final field INSTANCE Lshark/RealLeakTracerFactory$Event$StartedInspectingObjects;
+}
+
+public final class shark/Reference {
+	public fun <init> (JZLshark/Reference$LazyDetails$Resolver;)V
+	public final fun getLazyDetailsResolver ()Lshark/Reference$LazyDetails$Resolver;
+	public final fun getValueObjectId ()J
+	public final fun isLowPriority ()Z
+}
+
+public final class shark/Reference$LazyDetails {
+	public fun <init> (Ljava/lang/String;JLshark/ReferenceLocationType;Lshark/LibraryLeakReferenceMatcher;Z)V
+	public final fun getLocationClassObjectId ()J
+	public final fun getLocationType ()Lshark/ReferenceLocationType;
+	public final fun getMatchedLibraryLeak ()Lshark/LibraryLeakReferenceMatcher;
+	public final fun getName ()Ljava/lang/String;
+	public final fun isVirtual ()Z
+}
+
+public abstract interface class shark/Reference$LazyDetails$Resolver {
+	public abstract fun resolve ()Lshark/Reference$LazyDetails;
+}
+
+public final class shark/ReferenceLocationType : java/lang/Enum {
+	public static final field ARRAY_ENTRY Lshark/ReferenceLocationType;
+	public static final field INSTANCE_FIELD Lshark/ReferenceLocationType;
+	public static final field LOCAL Lshark/ReferenceLocationType;
+	public static final field STATIC_FIELD Lshark/ReferenceLocationType;
+	public static fun valueOf (Ljava/lang/String;)Lshark/ReferenceLocationType;
+	public static fun values ()[Lshark/ReferenceLocationType;
 }
 
 public abstract class shark/ReferenceMatcher {
@@ -443,14 +678,56 @@ public final class shark/ReferencePattern$StaticFieldPattern : shark/ReferencePa
 public final class shark/ReferencePattern$StaticFieldPattern$Companion {
 }
 
+public abstract interface class shark/ReferenceReader {
+	public abstract fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
+public abstract interface class shark/ReferenceReader$Factory {
+	public abstract fun createFor (Lshark/HeapGraph;)Lshark/ReferenceReader;
+}
+
+public abstract interface class shark/ShortestPathFinder {
+	public abstract fun findShortestPathsFromGcRoots (Ljava/util/Set;)Lshark/PathFindingResults;
+}
+
+public abstract interface class shark/ShortestPathFinder$Factory {
+	public abstract fun createFor (Lshark/HeapGraph;)Lshark/ShortestPathFinder;
+}
+
+public final class shark/VirtualizingMatchingReferenceReaderFactory : shark/ReferenceReader$Factory {
+	public fun <init> (Ljava/util/List;Lshark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$ChainFactory;)V
+	public fun createFor (Lshark/HeapGraph;)Lshark/ReferenceReader;
+}
+
 public final class shark/internal/InternalSharkCollectionsHelper {
 	public static final field INSTANCE Lshark/internal/InternalSharkCollectionsHelper;
 	public final fun arrayListValues (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
 }
 
-public final class shark/internal/ObjectDominators {
-	public fun <init> ()V
-	public final fun renderDominatorTree (Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;Z)Ljava/lang/String;
-	public static synthetic fun renderDominatorTree$default (Lshark/internal/ObjectDominators;Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;ZILjava/lang/Object;)Ljava/lang/String;
+public abstract class shark/internal/ReferencePathNode {
+	public abstract fun getObjectId ()J
+}
+
+public final class shark/internal/ReferencePathNode$ChildNode : shark/internal/ReferencePathNode {
+	public fun <init> (JLshark/internal/ReferencePathNode;Lshark/Reference$LazyDetails$Resolver;)V
+	public final fun getLazyDetailsResolver ()Lshark/Reference$LazyDetails$Resolver;
+	public fun getObjectId ()J
+	public final fun getParent ()Lshark/internal/ReferencePathNode;
+}
+
+public abstract class shark/internal/ReferencePathNode$RootNode : shark/internal/ReferencePathNode {
+	public abstract fun getGcRoot ()Lshark/GcRoot;
+	public fun getObjectId ()J
+}
+
+public final class shark/internal/ReferencePathNode$RootNode$LibraryLeakRootNode : shark/internal/ReferencePathNode$RootNode {
+	public fun <init> (Lshark/GcRoot;Lshark/LibraryLeakReferenceMatcher;)V
+	public fun getGcRoot ()Lshark/GcRoot;
+	public final fun getMatcher ()Lshark/LibraryLeakReferenceMatcher;
+}
+
+public final class shark/internal/ReferencePathNode$RootNode$NormalRootNode : shark/internal/ReferencePathNode$RootNode {
+	public fun <init> (Lshark/GcRoot;)V
+	public fun getGcRoot ()Lshark/GcRoot;
 }
 
