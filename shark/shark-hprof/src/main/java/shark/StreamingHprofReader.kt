@@ -50,7 +50,7 @@ class StreamingHprofReader private constructor(
    *
    * @return the number of bytes read from the source
    */
-  @Suppress("ComplexMethod", "LongMethod", "NestedBlockDepth")
+  @Suppress("ComplexMethod", "NestedBlockDepth")
   fun readRecords(
     recordTags: Set<HprofRecordTag>,
     listener: OnHprofRecordTagListener

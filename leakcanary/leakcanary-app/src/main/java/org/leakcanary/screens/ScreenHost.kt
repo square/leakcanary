@@ -27,6 +27,7 @@ import org.leakcanary.screens.Destination.ClientAppAnalysisDestination
 import org.leakcanary.screens.Destination.ClientAppsDestination
 import org.leakcanary.screens.Destination.LeakDestination
 import org.leakcanary.screens.Destination.LeaksDestination
+import org.leakcanary.screens.Destination.TreeMapDestination
 
 // TODO Handle intents
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -78,6 +79,7 @@ fun ScreenHost(backStack: BackStackViewModel = viewModel()) {
           is ClientAppAnalysisDestination -> ClientAppAnalysisScreen()
           ClientAppsDestination -> ClientAppsScreen()
           is LeakDestination -> LeakScreen()
+          is TreeMapDestination -> TreeMapScreen()
           LeaksDestination -> TODO()
         }
       }

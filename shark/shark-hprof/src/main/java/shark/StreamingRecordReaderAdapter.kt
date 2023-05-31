@@ -54,7 +54,7 @@ class StreamingRecordReaderAdapter(private val streamingHprofReader: StreamingHp
    *
    * @return the number of bytes read from the source
    */
-  @Suppress("ComplexMethod", "LongMethod", "NestedBlockDepth")
+  @Suppress("ComplexMethod", "NestedBlockDepth")
   fun readRecords(
     recordTypes: Set<KClass<out HprofRecord>>,
     listener: OnHprofRecordListener

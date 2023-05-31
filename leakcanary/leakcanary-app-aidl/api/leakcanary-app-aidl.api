@@ -1,30 +1,11 @@
-public abstract interface class org/leakcanary/internal/HeapDataRepository : android/os/IInterface {
-	public abstract fun sayHi ()V
-}
-
-public class org/leakcanary/internal/HeapDataRepository$Default : org/leakcanary/internal/HeapDataRepository {
-	public fun <init> ()V
-	public fun asBinder ()Landroid/os/IBinder;
-	public fun sayHi ()V
-}
-
-public abstract class org/leakcanary/internal/HeapDataRepository$Stub : android/os/Binder, org/leakcanary/internal/HeapDataRepository {
-	public fun <init> ()V
-	public fun asBinder ()Landroid/os/IBinder;
-	public static fun asInterface (Landroid/os/IBinder;)Lorg/leakcanary/internal/HeapDataRepository;
-	public static fun getDefaultImpl ()Lorg/leakcanary/internal/HeapDataRepository;
-	public fun onTransact (ILandroid/os/Parcel;Landroid/os/Parcel;I)Z
-	public static fun setDefaultImpl (Lorg/leakcanary/internal/HeapDataRepository;)Z
-}
-
 public abstract interface class org/leakcanary/internal/LeakUiApp : android/os/IInterface {
-	public abstract fun sendHeapAnalysis (Lorg/leakcanary/internal/ParcelableHeapAnalysis;)V
+	public abstract fun sendHeapAnalysis (Lorg/leakcanary/internal/ParcelableHeapAnalysis;Landroid/net/Uri;)V
 }
 
 public class org/leakcanary/internal/LeakUiApp$Default : org/leakcanary/internal/LeakUiApp {
 	public fun <init> ()V
 	public fun asBinder ()Landroid/os/IBinder;
-	public fun sendHeapAnalysis (Lorg/leakcanary/internal/ParcelableHeapAnalysis;)V
+	public fun sendHeapAnalysis (Lorg/leakcanary/internal/ParcelableHeapAnalysis;Landroid/net/Uri;)V
 }
 
 public abstract class org/leakcanary/internal/LeakUiApp$Stub : android/os/Binder, org/leakcanary/internal/LeakUiApp {

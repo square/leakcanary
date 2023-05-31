@@ -69,11 +69,11 @@ complexity:
   #   #LeakCanary - increased from 60 to 90
   #   active: true
   #   threshold: 90
-  LongParameterList:
-    #LeakCanary - enabled ignore
-    active: true
-    threshold: 6
-    ignoreDefaultParameters: true
+  # LongParameterList:
+  #   #LeakCanary - enabled ignore
+  #   active: true
+  #   threshold: 6
+  #   ignoreDefaultParameters: true
   MethodOverloading:
     active: false
     threshold: 6
