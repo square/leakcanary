@@ -22,6 +22,7 @@ public final class shark/AndroidMetadataExtractor : shark/MetadataExtractor {
 
 public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/ObjectInspector {
 	public static final field ACTIVITY Lshark/AndroidObjectInspectors;
+	public static final field ACTIVITY_THREAD Lshark/AndroidObjectInspectors;
 	public static final field ANDROIDX_FRAGMENT Lshark/AndroidObjectInspectors;
 	public static final field ANIMATOR Lshark/AndroidObjectInspectors;
 	public static final field APPLICATION Lshark/AndroidObjectInspectors;
@@ -78,6 +79,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field ASSIST_STRUCTURE Lshark/AndroidReferenceMatchers;
 	public static final field AUDIO_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field AUDIO_MANAGER__MCONTEXT_STATIC Lshark/AndroidReferenceMatchers;
+	public static final field AW_CONTENTS__A0 Lshark/AndroidReferenceMatchers;
 	public static final field AW_RESOURCE__SRESOURCES Lshark/AndroidReferenceMatchers;
 	public static final field BACKDROP_FRAME_RENDERER__MDECORVIEW Lshark/AndroidReferenceMatchers;
 	public static final field BIOMETRIC_PROMPT Lshark/AndroidReferenceMatchers;
@@ -91,10 +93,12 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field CONTROLLED_INPUT_CONNECTION_WRAPPER Lshark/AndroidReferenceMatchers;
 	public static final field Companion Lshark/AndroidReferenceMatchers$Companion;
 	public static final field DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER Lshark/AndroidReferenceMatchers;
+	public static final field DREAM_SERVICE Lshark/AndroidReferenceMatchers;
 	public static final field EDITTEXT_BLINK_MESSAGEQUEUE Lshark/AndroidReferenceMatchers;
 	public static final field EVENT_RECEIVER__MMESSAGE_QUEUE Lshark/AndroidReferenceMatchers;
 	public static final field EXTENDED_STATUS_BAR_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field FINALIZER_WATCHDOG_DAEMON Lshark/AndroidReferenceMatchers;
+	public static final field FLIPPER__APPLICATION_DESCRIPTOR Lshark/AndroidReferenceMatchers;
 	public static final field GESTURE_BOOST_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field HMD_GLOBAL Ljava/lang/String;
 	public static final field HOST_ADPU_SERVICE_MSG_HANDLER Lshark/AndroidReferenceMatchers;
@@ -106,6 +110,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field INPUT_METHOD_MANAGER_IS_TERRIBLE Lshark/AndroidReferenceMatchers;
 	public static final field INSTRUMENTATION_RECOMMEND_ACTIVITY Lshark/AndroidReferenceMatchers;
 	public static final field IREQUEST_FINISH_CALLBACK Lshark/AndroidReferenceMatchers;
+	public static final field JOB_SERVICE Lshark/AndroidReferenceMatchers;
 	public static final field LAYOUT_TRANSITION Lshark/AndroidReferenceMatchers;
 	public static final field LEAK_CANARY_HEAP_DUMPER Lshark/AndroidReferenceMatchers;
 	public static final field LEAK_CANARY_INTERNAL Lshark/AndroidReferenceMatchers;
