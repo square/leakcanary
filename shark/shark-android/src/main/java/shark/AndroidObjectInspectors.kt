@@ -854,7 +854,11 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
     private val HeapInstance.lifecycleRegistryState: String
       get() {
-        val state = this["androidx.lifecycle.LifecycleRegistry", "mState"]!!.valueAsInstance!!
+        // LifecycleRegistry was converted to Kotlin
+        // https://cs.android.com/androidx/platform/frameworks/support/+/36833f9ab0c50bf449fc795e297a0e124df3356e
+        val stateField = this["androidx.lifecycle.LifecycleRegistry", "state"]
+          ?: this["androidx.lifecycle.LifecycleRegistry", "mState"]!!
+        val state = stateField.valueAsInstance!!
         return state["java.lang.Enum", "name"]!!.value.readAsJavaString()!!
       }
   },
