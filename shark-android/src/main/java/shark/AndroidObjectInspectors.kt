@@ -376,6 +376,14 @@ enum class AndroidObjectInspectors : ObjectInspector {
     }
   },
 
+  ACTIVITY_THREAD {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.app.ActivityThread") {
+        notLeakingReasons += "ActivityThread is a singleton"
+      }
+    }
+  },
+
   APPLICATION {
     override fun inspect(
       reporter: ObjectReporter
