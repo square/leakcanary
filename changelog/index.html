@@ -82,7 +82,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.11</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.12</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -743,6 +743,13 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#version-212-2023-06-29" class="md-nav__link">
+    Version 2.12 (2023-06-29)
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#version-211-2023-05-17" class="md-nav__link">
@@ -1552,6 +1559,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-212-2023-06-29" class="md-nav__link">
+    Version 2.12 (2023-06-29)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-211-2023-05-17" class="md-nav__link">
     Version 2.11 (2023-05-17)
   </a>
@@ -2347,8 +2361,13 @@
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
 <p>Please thank our <a href="https://github.com/square/leakcanary/graphs/contributors">contributors</a> 🙏 🙏 🙏.</p>
+<p>I&rsquo;ve started working on LeakCanary 3.0 so new 2.x releases only contain bug fixes and new known leak patterns.</p>
+<h2 id="version-212-2023-06-29">Version 2.12 (2023-06-29)<a class="headerlink" href="#version-212-2023-06-29" title="Permanent link">&para;</a></h2>
+<ul>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2527">#2527</a> <code>LifecycleRegistry</code> in <code>androidx.lifecycle:lifecycle-runtime</code> was migrated to kotlin and its <code>mState</code> field name changed to <code>state</code> which broke LeakCanary expectations.</li>
+<li>🐤 <a href="https://github.com/square/leakcanary/pull/2545">#2545</a> Added several known manufacturer &amp; framework leaks.</li>
+</ul>
 <h2 id="version-211-2023-05-17">Version 2.11 (2023-05-17)<a class="headerlink" href="#version-211-2023-05-17" title="Permanent link">&para;</a></h2>
-<p>This is most likely the last release before the work starts on LeakCanary 3.0.</p>
 <ul>
 <li>🐛 <a href="https://github.com/square/leakcanary/issues/1764">#1764</a> Ignore phantom classes that were unloaded than reloaded (long time LeakCanary bug).</li>
 <li>🐛 <a href="https://github.com/square/leakcanary/issues/2471">#2471</a> Fix LeakCanary introducing a weird leak in Google&rsquo;s CI infra.</li>
@@ -2359,7 +2378,7 @@
 <p><code>shark-cli</code> has a new experiment <code>neo4j</code> command that will convert a heap dump into an embedded Neo4j database and then open Neo4j Browser to explore the heap dump.</p>
 <div class="highlight"><pre><span></span><code>brew install leakcanary-shark
 
-shark-cli --process com.example.app.debug neo4j 
+shark-cli --process com.example.app.debug neo4j
 </code></pre></div>
 <p><img alt="Neo4J heap dump" src="https://user-images.githubusercontent.com/557033/200693468-aa783bb4-9a5a-4a41-8b92-582d44b31b92.png" /></p>
 <h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>

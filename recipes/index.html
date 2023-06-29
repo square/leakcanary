@@ -84,7 +84,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.11</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.12</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -1126,7 +1126,7 @@
 <p>The <code>com.squareup.leakcanary:leakcanary-android</code> dependency should only be used in debug builds. It depends on <code>com.squareup.leakcanary:leakcanary-object-watcher-android</code> which you can use in release builds to track and count retained instances.</p>
 <p>In your <code>build.gradle</code>:</p>
 <div class="highlight"><pre><span></span><code>dependencies {
-  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.11&#39;
+  implementation &#39;com.squareup.leakcanary:leakcanary-object-watcher-android:2.12&#39;
 }
 </code></pre></div>
 <p>In your leak reporting code:
@@ -1327,8 +1327,8 @@ configurations {
 <p>While LeakCanary was designed to work out of the box on Android, it can run on any JVM with a bit of configuration.</p>
 <p>Add the ObjectWatcher and Shark dependencies to your build file:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
-<span class="w">  </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.11&#39;</span>
-<span class="w">  </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:shark:2.11&#39;</span>
+<span class="w">  </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-object-watcher:2.12&#39;</span>
+<span class="w">  </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:shark:2.12&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
 <p>Define a <code>HotSpotHeapDumper</code> to dump the heap:</p>
