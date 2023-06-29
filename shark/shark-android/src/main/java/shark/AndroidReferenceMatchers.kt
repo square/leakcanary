@@ -72,6 +72,9 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  /**
+   * See AndroidReferenceReaders.ACTIVITY_THREAD__NEW_ACTIVITIES for more context
+   */
   ACTIVITY_THREAD__M_NEW_ACTIVITIES {
     override fun add(
       references: MutableList<ReferenceMatcher>
@@ -79,11 +82,11 @@ enum class AndroidReferenceMatchers {
       references += instanceFieldLeak(
         "android.app.ActivityThread", "mNewActivities",
         description = """
-          New activities are leaks by ActivityThread until the main thread becomes idle.
+          New activities are leaked by ActivityThread until the main thread becomes idle.
           Tracked here: https://issuetracker.google.com/issues/258390457
         """.trimIndent()
       ) {
-        sdkInt in 19..33
+        sdkInt >= 19
       }
     }
   },
@@ -558,6 +561,8 @@ enum class AndroidReferenceMatchers {
       }
     }
   },
+
+
 
   BIOMETRIC_PROMPT {
     override fun add(references: MutableList<ReferenceMatcher>) {
