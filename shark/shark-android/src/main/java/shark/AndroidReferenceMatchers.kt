@@ -562,8 +562,6 @@ enum class AndroidReferenceMatchers {
     }
   },
 
-
-
   BIOMETRIC_PROMPT {
     override fun add(references: MutableList<ReferenceMatcher>) {
       references += instanceFieldLeak(
