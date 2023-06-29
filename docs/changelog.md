@@ -3,6 +3,20 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+I've started working on LeakCanary 3.0 so new 2.x releases only contain bug fixes and new known leak patterns.
+
+## Version 2.12 (2023-06-29)
+
+* 💥 [#2527](https://github.com/square/leakcanary/issues/2527) `LifecycleRegistry` in `androidx.lifecycle:lifecycle-runtime` was migrated to kotlin and its `mState` field name changed to `state` which broke LeakCanary expectations.
+* 🐤 [#2545](https://github.com/square/leakcanary/pull/2545) Added several known manufacturer & framework leaks.
+
+
+## Version 2.11 (2023-05-17)
+
+* 🐛 [#1764](https://github.com/square/leakcanary/issues/1764) Ignore phantom classes that were unloaded than reloaded (long time LeakCanary bug).
+* 🐛 [#2471](https://github.com/square/leakcanary/issues/2471) Fix LeakCanary introducing a weird leak in Google's CI infra.
+* 🐛 [#2496](https://github.com/square/leakcanary/issues/2496) Fix broken ViewModel leak detection
+
 ## Version 2.10 (2022-11-10)
 
 ### Experimental Neo4j heap dump exploration
@@ -12,7 +26,7 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 ```
 brew install leakcanary-shark
 
-shark-cli --process com.example.app.debug neo4j 
+shark-cli --process com.example.app.debug neo4j
 ```
 
 ![Neo4J heap dump](https://user-images.githubusercontent.com/557033/200693468-aa783bb4-9a5a-4a41-8b92-582d44b31b92.png)
