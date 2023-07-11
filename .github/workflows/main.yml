@@ -77,7 +77,7 @@ jobs:
           target: ${{ matrix.target }}
           arch: ${{ matrix.arch }}
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-load
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
       - name: Instrumentation Tests
@@ -86,6 +86,7 @@ jobs:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
           arch: ${{ matrix.arch }}
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
           script: |
             touch emulator.log                    # create log file
             chmod 777 emulator.log                # allow writing to log file
