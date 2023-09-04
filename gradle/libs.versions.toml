@@ -17,7 +17,7 @@
 # The benefit is that depending clients do not have to upgrade to Kotlin 1.4
 kotlin = "1.8.21"
 coroutines = "1.7.3"
-androidXTest = "1.1.0"
+androidXTest = "1.5.0"
 androidXJunit = "1.1.3"
 workManager = "2.7.0"
 
