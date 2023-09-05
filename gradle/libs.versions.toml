@@ -19,7 +19,7 @@ kotlin = "1.8.21"
 coroutines = "1.7.3"
 androidXTest = "1.5.0"
 androidXJunit = "1.1.5"
-workManager = "2.7.0"
+workManager = "2.8.1"
 
 [libraries]
 gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "8.0.0" }
