@@ -74,9 +74,8 @@ android {
 
 dependencies {
   implementation projects.leakcanary.leakcanaryAppAidl
-  // TODO Move these to ./gradle/libs/versions/toml
-  implementation "app.cash.sqldelight:android-driver:2.0.0-alpha05"
-  implementation "app.cash.sqldelight:coroutines-extensions:2.0.0-alpha05"
+  implementation libs.sqldelight.android.driver
+  implementation libs.sqldelight.coroutines.extensions
   implementation 'androidx.core:core-ktx:1.10.1'
   implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.1'
   implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1'
