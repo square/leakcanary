@@ -94,9 +94,9 @@ dependencies {
   debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
   // TODO Split out what's included in debug vs the subset for release
   implementation projects.leakcanary.leakcanaryAndroid
-  implementation 'com.google.dagger:hilt-android:2.43.2'
+  implementation libs.hilt.android
   implementation libs.okio2
-  kapt 'com.google.dagger:hilt-compiler:2.43.2'
+  kapt libs.hilt.compiler
 }
 
 kapt {

@@ -20,6 +20,7 @@ coroutines = "1.7.3"
 androidXTest = "1.5.0"
 androidXJunit = "1.1.5"
 workManager = "2.8.1"
+hilt = "2.48"
 
 [libraries]
 gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "8.1.1" }
@@ -30,6 +31,7 @@ gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plug
 gradlePlugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.6.0" }
 gradlePlugin-keeper = { module = "com.slack.keeper:keeper", version = "0.7.0" }
 gradlePlugin-sqldelight = { module = "app.cash.sqldelight:gradle-plugin", version = "2.0.0-alpha05" }
+gradlePlugin-hilt = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
 
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 
@@ -67,3 +69,5 @@ mockitoKotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version
 robolectric = { module = "org.robolectric:robolectric", version = "4.10.3" }
 okio2 = { module = "com.squareup.okio:okio", version = "2.10.0" }
 okio1 = { module = "com.squareup.okio:okio", version = "1.17.5" }
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
