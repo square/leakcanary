@@ -26,6 +26,7 @@ public abstract class shark/AndroidReferenceReaders : java/lang/Enum, shark/Chai
 	public static final field MESSAGE_QUEUE Lshark/AndroidReferenceReaders;
 	public static final field SAFE_ITERABLE_MAP Lshark/AndroidReferenceReaders;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/AndroidReferenceReaders;
 	public static fun values ()[Lshark/AndroidReferenceReaders;
 }
@@ -40,6 +41,7 @@ public abstract class shark/ApacheHarmonyInstanceRefReaders : java/lang/Enum, sh
 	public static final field HASH_SET Lshark/ApacheHarmonyInstanceRefReaders;
 	public static final field LINKED_LIST Lshark/ApacheHarmonyInstanceRefReaders;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/ApacheHarmonyInstanceRefReaders;
 	public static fun values ()[Lshark/ApacheHarmonyInstanceRefReaders;
 }
@@ -237,6 +239,7 @@ public abstract class shark/JdkReferenceMatchers : java/lang/Enum {
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public static final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
 	public static final fun getDefaults ()Ljava/util/List;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static final fun ignoredInstanceField (Ljava/lang/String;Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
 	public static final fun ignoredJavaLocal (Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
 	public static fun valueOf (Ljava/lang/String;)Lshark/JdkReferenceMatchers;
@@ -306,6 +309,7 @@ public final class shark/LeakTrace$GcRootType : java/lang/Enum {
 	public static final field THREAD_BLOCK Lshark/LeakTrace$GcRootType;
 	public static final field THREAD_OBJECT Lshark/LeakTrace$GcRootType;
 	public final fun getDescription ()Ljava/lang/String;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTrace$GcRootType;
 	public static fun values ()[Lshark/LeakTrace$GcRootType;
 }
@@ -347,6 +351,7 @@ public final class shark/LeakTraceObject$LeakingStatus : java/lang/Enum {
 	public static final field LEAKING Lshark/LeakTraceObject$LeakingStatus;
 	public static final field NOT_LEAKING Lshark/LeakTraceObject$LeakingStatus;
 	public static final field UNKNOWN Lshark/LeakTraceObject$LeakingStatus;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTraceObject$LeakingStatus;
 	public static fun values ()[Lshark/LeakTraceObject$LeakingStatus;
 }
@@ -355,6 +360,7 @@ public final class shark/LeakTraceObject$ObjectType : java/lang/Enum {
 	public static final field ARRAY Lshark/LeakTraceObject$ObjectType;
 	public static final field CLASS Lshark/LeakTraceObject$ObjectType;
 	public static final field INSTANCE Lshark/LeakTraceObject$ObjectType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTraceObject$ObjectType;
 	public static fun values ()[Lshark/LeakTraceObject$ObjectType;
 }
@@ -388,6 +394,7 @@ public final class shark/LeakTraceReference$ReferenceType : java/lang/Enum {
 	public static final field INSTANCE_FIELD Lshark/LeakTraceReference$ReferenceType;
 	public static final field LOCAL Lshark/LeakTraceReference$ReferenceType;
 	public static final field STATIC_FIELD Lshark/LeakTraceReference$ReferenceType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTraceReference$ReferenceType;
 	public static fun values ()[Lshark/LeakTraceReference$ReferenceType;
 }
@@ -520,6 +527,7 @@ public abstract class shark/ObjectInspectors : java/lang/Enum, shark/ObjectInspe
 	public static final field KEYED_WEAK_REFERENCE Lshark/ObjectInspectors;
 	public static final field THREAD Lshark/ObjectInspectors;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/ObjectInspectors;
 	public static fun values ()[Lshark/ObjectInspectors;
 }
@@ -560,6 +568,7 @@ public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {
 	public static final field INSPECTING_OBJECTS Lshark/OnAnalysisProgressListener$Step;
 	public static final field PARSING_HEAP_DUMP Lshark/OnAnalysisProgressListener$Step;
 	public static final field REPORTING_HEAP_ANALYSIS Lshark/OnAnalysisProgressListener$Step;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public final fun getHumanReadableName ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Lshark/OnAnalysisProgressListener$Step;
 	public static fun values ()[Lshark/OnAnalysisProgressListener$Step;
@@ -573,6 +582,7 @@ public abstract class shark/OpenJdkInstanceRefReaders : java/lang/Enum, shark/Ch
 	public static final field HASH_SET Lshark/OpenJdkInstanceRefReaders;
 	public static final field LINKED_LIST Lshark/OpenJdkInstanceRefReaders;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/OpenJdkInstanceRefReaders;
 	public static fun values ()[Lshark/OpenJdkInstanceRefReaders;
 }
@@ -661,6 +671,7 @@ public final class shark/ReferenceLocationType : java/lang/Enum {
 	public static final field INSTANCE_FIELD Lshark/ReferenceLocationType;
 	public static final field LOCAL Lshark/ReferenceLocationType;
 	public static final field STATIC_FIELD Lshark/ReferenceLocationType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/ReferenceLocationType;
 	public static fun values ()[Lshark/ReferenceLocationType;
 }

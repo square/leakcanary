@@ -54,6 +54,7 @@ public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/Obje
 	public static final field VIEW_ROOT_IMPL Lshark/AndroidObjectInspectors;
 	public static final field WINDOW Lshark/AndroidObjectInspectors;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/AndroidObjectInspectors;
 	public static fun values ()[Lshark/AndroidObjectInspectors;
 }
@@ -174,6 +175,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public static final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
 	public static final fun getAppDefaults ()Ljava/util/List;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static final fun getIgnoredReferencesOnly ()Ljava/util/List;
 	public static final fun ignoredInstanceField (Ljava/lang/String;Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
 	public static final fun ignoredJavaLocal (Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
