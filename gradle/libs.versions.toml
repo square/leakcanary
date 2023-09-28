@@ -25,7 +25,7 @@ hilt = "2.48"
 sqldelight = "2.0.0"
 
 [libraries]
-gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "8.1.1" }
+gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "8.1.2" }
 gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.9.0" }
 gradlePlugin-binaryCompatibility = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version = "0.13.2" }
