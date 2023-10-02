@@ -72,7 +72,7 @@ mockito = { module = "org.mockito:mockito-core", version = "5.5.0" }
 mockitoKotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version = "2.2.0" }
 robolectric = { module = "org.robolectric:robolectric", version = "4.10.3" }
 okio2 = { module = "com.squareup.okio:okio", version = "2.10.0" }
-okio1 = { module = "com.squareup.okio:okio", version = "1.17.5" }
+okio1 = { module = "com.squareup.okio:okio", version = "1.17.6" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
