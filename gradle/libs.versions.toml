@@ -21,7 +21,7 @@ androidXTest = "1.5.0"
 androidXJunit = "1.1.5"
 workManager = "2.8.1"
 composeCompiler = "1.5.3"
-hilt = "2.48"
+hilt = "2.48.1"
 sqldelight = "2.0.0"
 
 [libraries]
