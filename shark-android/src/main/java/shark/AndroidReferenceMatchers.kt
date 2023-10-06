@@ -1445,11 +1445,12 @@ enum class AndroidReferenceMatchers {
       references += staticFieldLeak(
         "android.content.res.ResourcesImpl", "mAppContext",
         description = """
-          Both Nokia & Xiaomi added a static mAppContext field to the ResourcesImpl class and
-          that field ends up referencing lower contexts (e.g. service).
+          A few device manufacturers added a static mAppContext field to the ResourcesImpl class
+          and that field ends up referencing lower contexts (e.g. service).
         """.trimIndent()
       ) {
-        (manufacturer == XIAOMI || manufacturer == HMD_GLOBAL)  && sdkInt >= 30
+        listOf(HMD_GLOBAL, INFINIX, LENOVO, XIAOMI).contains(manufacturer) &&
+          sdkInt >= 30
       }
     }
   },
@@ -1554,6 +1555,8 @@ enum class AndroidReferenceMatchers {
     const val SHARP = "SHARP"
     const val XIAOMI = "Xiaomi"
     const val HMD_GLOBAL = "HMD Global"
+    const val INFINIX = "INFINIX"
+
 
     /**
      * Returns a list of [ReferenceMatcher] that only contains [IgnoredReferenceMatcher] and no
