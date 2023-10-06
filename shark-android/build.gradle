@@ -17,5 +17,6 @@ dependencies {
   testImplementation libs.mockito
   testImplementation libs.mockitoKotlin
   testImplementation libs.okio2
+  testImplementation projects.sharkHprofTest
   testImplementation projects.sharkTest
 }
