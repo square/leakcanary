@@ -1381,6 +1381,21 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  XIAMI__RESOURCES_IMPL {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      references += staticFieldLeak(
+        "android.content.res.ResourcesImpl", "mAppContext",
+        description = """
+          A few device manufacturers added a static mAppContext field to the ResourcesImpl class
+          and that field ends up referencing lower contexts (e.g. service).
+        """.trimIndent()
+      ) {
+        listOf(HMD_GLOBAL, INFINIX, LENOVO, XIAOMI).contains(manufacturer) &&
+          sdkInt >= 30
+      }
+    }
+  },
+
   // ######## Ignored references (not leaks) ########
 
   REFERENCES {
@@ -1479,6 +1494,10 @@ enum class AndroidReferenceMatchers {
     const val VIVO = "vivo"
     const val RAZER = "Razer"
     const val SHARP = "SHARP"
+    const val XIAOMI = "Xiaomi"
+    const val HMD_GLOBAL = "HMD Global"
+    const val INFINIX = "INFINIX"
+
 
     /**
      * Returns a list of [ReferenceMatcher] that only contains [IgnoredReferenceMatcher] and no
