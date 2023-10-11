@@ -96,10 +96,12 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field EXTENDED_STATUS_BAR_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field FINALIZER_WATCHDOG_DAEMON Lshark/AndroidReferenceMatchers;
 	public static final field GESTURE_BOOST_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field HMD_GLOBAL Ljava/lang/String;
 	public static final field HOST_ADPU_SERVICE_MSG_HANDLER Lshark/AndroidReferenceMatchers;
 	public static final field HUAWEI Ljava/lang/String;
 	public static final field IMM_CURRENT_INPUT_CONNECTION Lshark/AndroidReferenceMatchers;
 	public static final field IMM_LAST_FOCUS_VIEW Lshark/AndroidReferenceMatchers;
+	public static final field INFINIX Ljava/lang/String;
 	public static final field INPUT_MANAGER__M_LATE_INIT_CONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field INPUT_METHOD_MANAGER_IS_TERRIBLE Lshark/AndroidReferenceMatchers;
 	public static final field INSTRUMENTATION_RECOMMEND_ACTIVITY Lshark/AndroidReferenceMatchers;
@@ -156,6 +158,8 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field VIEW_GROUP__M_PRE_SORTED_CHILDREN Lshark/AndroidReferenceMatchers;
 	public static final field VIVO Ljava/lang/String;
 	public static final field WINDOW_ON_BACK_INVOKED_DISPATCHER__STUB Lshark/AndroidReferenceMatchers;
+	public static final field XIAMI__RESOURCES_IMPL Lshark/AndroidReferenceMatchers;
+	public static final field XIAOMI Ljava/lang/String;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public static final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
 	public static final fun getAppDefaults ()Ljava/util/List;
