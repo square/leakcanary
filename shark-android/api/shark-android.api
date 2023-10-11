@@ -105,6 +105,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field HUAWEI Ljava/lang/String;
 	public static final field IMM_CURRENT_INPUT_CONNECTION Lshark/AndroidReferenceMatchers;
 	public static final field IMM_LAST_FOCUS_VIEW Lshark/AndroidReferenceMatchers;
+	public static final field INFINIX Ljava/lang/String;
 	public static final field INPUT_MANAGER__M_LATE_INIT_CONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field INPUT_METHOD_MANAGER_IS_TERRIBLE Lshark/AndroidReferenceMatchers;
 	public static final field INSTRUMENTATION_RECOMMEND_ACTIVITY Lshark/AndroidReferenceMatchers;
