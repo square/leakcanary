@@ -8,7 +8,7 @@ plugins {
 }
 
 ext {
-  compose_version = '1.5.3'
+  compose_version = '1.5.4'
 }
 
 def gitSha() {
