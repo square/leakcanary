@@ -219,6 +219,9 @@ internal class RealHeapAnalysisJob(
   }
 
   private fun dumpHeap(heapDumpFile: File) {
+    heapDumpFile.setWritable(true)
+    heapDumpFile.setReadable(true)
+
     Debug.dumpHprofData(heapDumpFile.absolutePath)
 
     check(heapDumpFile.exists()) {
