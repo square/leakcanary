@@ -70,7 +70,7 @@ junit = { module = "junit:junit", version = "4.13.2" }
 kotlinStatistics = { module = "org.nield:kotlin-statistics", version = "1.2.1" }
 mockito = { module = "org.mockito:mockito-core", version = "5.6.0" }
 mockitoKotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version = "2.2.0" }
-robolectric = { module = "org.robolectric:robolectric", version = "4.10.3" }
+robolectric = { module = "org.robolectric:robolectric", version = "4.11" }
 okio2 = { module = "com.squareup.okio:okio", version = "2.10.0" }
 okio1 = { module = "com.squareup.okio:okio", version = "1.17.6" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
