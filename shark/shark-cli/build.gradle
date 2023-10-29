@@ -15,6 +15,28 @@ tasks.withType(KotlinCompile).configureEach {
   kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8.toString()
 }
 
+jar {
+  manifest {
+    attributes "Main-Class": "shark.MainKt"
+  }
+
+  // super strange issue where we need to excludes these meta
+  // otherwise it would lead to load shark.MainKt is not found
+  // see https://stackoverflow.com/a/56242000
+  exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+
+  configurations.implementation.setCanBeResolved(true)
+  // to be use to exclude META-INF/*
+  duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+
+  // This line of code recursively collects and copies all of a project's files
+  // and adds them to the JAR itself. One can extend this task, to skip certain
+  // files or particular types at will
+  from {
+    configurations.implementation.collect { it.isDirectory() ? it : zipTree(it) }
+  }
+}
+
 dependencies {
   api projects.shark.sharkAndroid
 
@@ -25,7 +47,7 @@ dependencies {
 }
 
 application {
-  mainClassName = 'shark.MainKt'
+  mainClassName = "shark.MainKt"
 }
 
 def generatedVersionDir = "${buildDir}/generated-version"
