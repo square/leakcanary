@@ -4,6 +4,7 @@ import java.io.File
 import java.util.ArrayDeque
 import java.util.Deque
 import java.util.LinkedList
+import java.util.UUID
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -19,22 +20,49 @@ class BleakDiffTest {
   @get:Rule
   val testFolder = TemporaryFolder()
 
-  // TODO Something is up with strings, this field doesn't even show up.
-  val string = "Yo".trim()
-
+  class CustomLinkedList(var next: CustomLinkedList? = null)
   class Thing
+
   val leaky = mutableListOf<Thing>()
   val leakyLinkedList = LinkedList<Thing>()
+  val leakyHashMap = HashMap<String, Thing>()
+  val leakyLinkedHashMap = LinkedHashMap<String, Thing>()
+  var customLeakyLinkedList = CustomLinkedList()
 
   @Test
-  fun bleakDiff() {
-    val loopingScenario = {
+  fun bleakDiffPlayground() {
+    assertNoRepeatedHeapGrowth(heapDumps = 10) {
       leaky += Thing()
       leakyLinkedList += Thing()
+      leakyHashMap[UUID.randomUUID().toString()] = Thing()
+      leakyLinkedHashMap[UUID.randomUUID().toString()] = Thing()
+      customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
     }
+  }
 
+  // TODO Investigate if strings are skipped / something funky native might be going on.
+
+  private fun assertNoRepeatedHeapGrowth(
+    heapDumps: Int,
+    loopingScenario: () -> Unit
+  ) {
+    val constantlyGrowingNodes = findRepeatedHeapGrowth(heapDumps, loopingScenario)
+
+    if (constantlyGrowingNodes.isNotEmpty()) {
+      val resultString =
+        constantlyGrowingNodes.joinToString(separator = "##################\n") { leafNode ->
+          leafNode.pathFromRootAsString()
+        }
+      throw AssertionError("Repeated heap growth detected, leak roots:\n$resultString")
+    }
+  }
+
+  private fun findRepeatedHeapGrowth(
+    heapDumps: Int,
+    loopingScenario: () -> Unit
+  ): List<ShortestPathNode> {
     val dumps = mutableListOf<File>()
-    for (i in 1..10) {
+    for (i in 1..heapDumps) {
       loopingScenario()
       loopingScenario()
       dumps += dumpHeap()
@@ -45,10 +73,7 @@ class BleakDiffTest {
       // We run the scenario twice per heap dumps, to ignore side effects of dumping the heap.
       detectedGrowth = 2
     )
-
-    println(constantlyGrowingNodes.joinToString(separator = "##################\n") { leafNode ->
-      leafNode.pathFromRootAsString()
-    })
+    return constantlyGrowingNodes
   }
 
   private fun findNodesConstantlyGrowing(
@@ -70,12 +95,14 @@ class BleakDiffTest {
         lastGrowingNodes = growingNodes
       }
     }
-    return lastGrowingNodes!!
+    // TODO Keep filter new nodes
+    return lastGrowingNodes!!.filter { true }//!it.newNode }
   }
 
   class ShortestPathNode(
     val nodeAndEdgeName: String,
     val parentPathNode: ShortestPathNode?,
+    val newNode: Boolean
   ) {
     val children = mutableListOf<ShortestPathNode>()
     var selfObjectCount = 0
@@ -138,7 +165,7 @@ class BleakDiffTest {
     // TODO LongScatterSet
     val visitedSet = mutableSetOf<Long>()
 
-    val tree = ShortestPathNode("root", null).apply {
+    val tree = ShortestPathNode("root", null, newNode = false).apply {
       selfObjectCount = 1
     }
 
@@ -194,7 +221,6 @@ class BleakDiffTest {
             visitedObjectCount++
             val heapObject = graph.findObjectById(objectId)
             val refs = objectReferenceReader.read(heapObject)
-            // TODO For arrays change the name to not include the index.
             refs.mapNotNull { reference ->
               if (reference.valueObjectId in visitedSet) {
                 null
@@ -220,12 +246,24 @@ class BleakDiffTest {
         }.groupBy {
           it.nodeAndEdgeName + if (it.isLowPriority) "low-priority" else ""
         }
+
         if (visitedObjectCount > 0) {
-          node.shortestPathNode.parentPathNode!!.children += node.shortestPathNode
-          node.shortestPathNode.selfObjectCount = visitedObjectCount
+          val parent = node.shortestPathNode.parentPathNode!!
+          val current = node.shortestPathNode
+          parent.children += current
+          if (current.nodeAndEdgeName == parent.nodeAndEdgeName) {
+            var linkedListStartNode = current
+            while (linkedListStartNode.nodeAndEdgeName == linkedListStartNode.parentPathNode!!.nodeAndEdgeName) {
+              // Never null, we don't expect to ever see "root" -> "root"
+              linkedListStartNode = linkedListStartNode.parentPathNode!!
+            }
+            linkedListStartNode.selfObjectCount += visitedObjectCount
+          } else {
+            current.selfObjectCount = visitedObjectCount
+          }
           // First iteration, all nodes are growing.
           if (previousTree == null) {
-            node.shortestPathNode.growing = true
+            current.growing = true
           }
         }
 
@@ -254,21 +292,23 @@ class BleakDiffTest {
       val growingNodes = if (previousTree != null) {
         nodesMaybeGrowing.mapNotNull { node ->
           val shortestPathNode = node.shortestPathNode
-          if (node.previousPathNode != null) {
+          val growing = if (node.previousPathNode != null) {
             // Existing node. Growing if was growing (already true) and edges increased at least detectedGrowth.
             // Why detectedGrowth? We perform N scenarios and only take N/detectedGrowth heap dumps, which avoids including
             // any side effects of heap dumps in our leak detection.
-            if (shortestPathNode.childrenObjectCount >= node.previousPathNode.childrenObjectCount + detectedGrowth) {
-              shortestPathNode.growing = true
-            }
+            shortestPathNode.childrenObjectCount >= node.previousPathNode.childrenObjectCount + detectedGrowth
           } else {
+            val parent = shortestPathNode.parentPathNode!!
             // New node. Growing if parent is growing.
             // New node always have a parent.
-            if (shortestPathNode.parentPathNode!!.growing) {
-              shortestPathNode.growing = true
-            }
+            // check for more than 0 because linked list structures will bubble their count up
+            // and don't need to be marked as growing.
+            parent.growing && shortestPathNode.selfObjectCount > 0
           }
-          if (shortestPathNode.growing) {
+          if (growing) {
+            // Mark as growing in the tree(useful for next iteration)
+            shortestPathNode.growing = true
+            // Return in list of growing nodes.
             shortestPathNode
           } else {
             null
@@ -347,7 +387,8 @@ class BleakDiffTest {
         return
       }
 
-      val shortestPathNode = ShortestPathNode(nodeAndEdgeName, parentPathNode)
+      val shortestPathNode =
+        ShortestPathNode(nodeAndEdgeName, parentPathNode, newNode = previousPathNode == null)
 
       val node = Node(
         objectIds = filteredObjectIds,
