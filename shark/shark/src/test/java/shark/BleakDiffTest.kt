@@ -17,11 +17,13 @@ import shark.ReferenceLocationType.ARRAY_ENTRY
 
 class BleakDiffTest {
 
+  class Thing
+  class CustomLinkedList(var next: CustomLinkedList? = null)
+
   @get:Rule
   val testFolder = TemporaryFolder()
 
-  class CustomLinkedList(var next: CustomLinkedList? = null)
-  class Thing
+  // TODO Investigate if strings are skipped / something funky native might be going on.
 
   val leaky = mutableListOf<Thing>()
   val leakyLinkedList = LinkedList<Thing>()
@@ -39,8 +41,6 @@ class BleakDiffTest {
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
     }
   }
-
-  // TODO Investigate if strings are skipped / something funky native might be going on.
 
   private fun assertNoRepeatedHeapGrowth(
     heapDumps: Int,
@@ -95,8 +95,7 @@ class BleakDiffTest {
         lastGrowingNodes = growingNodes
       }
     }
-    // TODO Keep filter new nodes
-    return lastGrowingNodes!!.filter { true }//!it.newNode }
+    return lastGrowingNodes!!.filter { !it.newNode }
   }
 
   class ShortestPathNode(
@@ -137,11 +136,22 @@ class BleakDiffTest {
         pathFromRoot.add(0, unwindingNode)
         unwindingNode = unwindingNode.parentPathNode
       }
+      val pathAfterRoot = pathFromRoot.drop(1)
       val result = StringBuilder()
-      pathFromRoot.forEachIndexed { index, pathNode ->
-        result.append("  ".repeat(index))
+      result.append("┬───").appendLine()
+      pathAfterRoot.forEachIndexed { index, pathNode ->
+        if (index == 0) {
+          result.append("│ ")
+        } else if (index < pathAfterRoot.lastIndex) {
+          result.append("├─")
+        } else {
+          result.append("╰→")
+        }
         result.append(pathNode.nodeAndEdgeName)
         result.appendLine()
+        if (index < pathAfterRoot.lastIndex) {
+          result.append("│ ").appendLine()
+        }
       }
       return result.toString()
     }
