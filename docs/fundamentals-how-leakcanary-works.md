@@ -190,6 +190,6 @@ Description: Android Q added a new IRequestFinishCallback$Stub class [...]
 !!! quote "Since I can't do much about this leak, is there a way I can ask LeakCanary to ignore it?"
 	There's no way for LeakCanary to know whether a leak is a Library Leak prior to dumping the heap and analyzing it. If LeakCanary didn't show the result notification when a Library Leak is found then you'd start wondering what happened to the LeakCanary analysis after the dumping toast.
 
-You can see the full list of known leaks in the [AndroidReferenceMatchers](https://github.com/square/leakcanary/blob/main/shark-android/src/main/java/shark/AndroidReferenceMatchers.kt#L49) class. If you find an Android SDK leak that isn't recognized, please [report it](faq.md#can-a-leak-be-caused-by-the-android-sdk). You can also [customize the list of known Library Leaks](recipes.md#matching-known-library-leaks).
+You can see the full list of known leaks in the [AndroidReferenceMatchers](https://github.com/square/leakcanary/blob/main/shark/shark-android/src/main/java/shark/AndroidReferenceMatchers.kt#L49) class. If you find an Android SDK leak that isn't recognized, please [report it](faq.md#can-a-leak-be-caused-by-the-android-sdk). You can also [customize the list of known Library Leaks](recipes.md#matching-known-library-leaks).
 
 What's next? Learn how to [fix a memory leak](fundamentals-fixing-a-memory-leak.md)!
