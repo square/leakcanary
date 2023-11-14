@@ -1449,7 +1449,7 @@ enum class AndroidReferenceMatchers {
           and that field ends up referencing lower contexts (e.g. service).
         """.trimIndent()
       ) {
-        listOf(HMD_GLOBAL, INFINIX, LENOVO, XIAOMI).contains(manufacturer) &&
+        listOf(HMD_GLOBAL, INFINIX, LENOVO, XIAOMI, TES).contains(manufacturer) &&
           sdkInt >= 30
       }
     }
@@ -1556,7 +1556,7 @@ enum class AndroidReferenceMatchers {
     const val XIAOMI = "Xiaomi"
     const val HMD_GLOBAL = "HMD Global"
     const val INFINIX = "INFINIX"
-
+    const val TES = "TES"
 
     /**
      * Returns a list of [ReferenceMatcher] that only contains [IgnoredReferenceMatcher] and no
