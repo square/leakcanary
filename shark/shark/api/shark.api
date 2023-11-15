@@ -19,6 +19,7 @@ public final class shark/AndroidReferenceReaderFactory : shark/ReferenceReader$F
 }
 
 public abstract class shark/AndroidReferenceReaders : java/lang/Enum, shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$OptionalFactory {
+	public static final field ACTIVITY_THREAD__NEW_ACTIVITIES Lshark/AndroidReferenceReaders;
 	public static final field ANIMATOR_WEAK_REF_SUCKS Lshark/AndroidReferenceReaders;
 	public static final field ARRAY_SET Lshark/AndroidReferenceReaders;
 	public static final field Companion Lshark/AndroidReferenceReaders$Companion;

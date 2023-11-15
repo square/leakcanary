@@ -513,8 +513,7 @@ style:
   RedundantVisibilityModifierRule:
     active: false
   ReturnCount:
-    #LeakCanary - increased from 2 to 4
-    active: true
+    active: false
     max: 4
     excludedFunctions: "equals"
     excludeLabeled: false

@@ -72,6 +72,9 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  /**
+   * See AndroidReferenceReaders.ACTIVITY_THREAD__NEW_ACTIVITIES for more context
+   */
   ACTIVITY_THREAD__M_NEW_ACTIVITIES {
     override fun add(
       references: MutableList<ReferenceMatcher>
@@ -79,11 +82,11 @@ enum class AndroidReferenceMatchers {
       references += instanceFieldLeak(
         "android.app.ActivityThread", "mNewActivities",
         description = """
-          New activities are leaks by ActivityThread until the main thread becomes idle.
+          New activities are leaked by ActivityThread until the main thread becomes idle.
           Tracked here: https://issuetracker.google.com/issues/258390457
         """.trimIndent()
       ) {
-        sdkInt in 19..33
+        sdkInt >= 19
       }
     }
   },
@@ -245,7 +248,7 @@ enum class AndroidReferenceMatchers {
               InputMethodManager.mImeInsetsConsumer isn't set to null when the activity is destroyed.
             """.trimIndent()
       ) {
-        sdkInt == 31
+        sdkInt >= 31
       }
     }
   },
@@ -541,7 +544,7 @@ enum class AndroidReferenceMatchers {
           " on the screen. TextView.ChangeWatcher and android.widget.Editor end up in spans and" +
           " typically hold on to the view hierarchy"
       ) {
-        sdkInt in 24..30
+        sdkInt >= 24
       }
     }
   },
@@ -814,15 +817,17 @@ enum class AndroidReferenceMatchers {
     override fun add(
       references: MutableList<ReferenceMatcher>
     ) {
-      references += instanceFieldLeak(
-        "android.app.AppOpsManager\$3", "this\$0",
+      references += nativeGlobalVariableLeak(
+        "android.app.AppOpsManager\$3",
         description = """
-          AppOpsManager\$3 implements IAppOpsActiveCallback.Stub and is held by a native ref and
-          holds on to am AppOpsManager which references an activity context.
-          Report: https://issuetracker.google.com/issues/210899127
+          Fix: Update androidx.core:core to 1.10.0-alpha01 or greater as it includes an Android 12
+          fix for this leak on Android 12, see https://github.com/androidx/androidx/pull/435 .
+          AppOpsManager\$3 implements IAppOpsActiveCallback.Stub and is held by a native ref long
+          until the calling side gets GCed, which can happen long after the stub is no longer of
+          use.
         """.trimIndent()
       ) {
-        sdkInt in 31..33
+        sdkInt in 31..32
       }
     }
   },
@@ -892,6 +897,60 @@ enum class AndroidReferenceMatchers {
       ) {
         sdkInt == 33
       }
+    }
+  },
+
+  FLIPPER__APPLICATION_DESCRIPTOR {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += staticFieldLeak(
+        "com.facebook.flipper.plugins.inspector.descriptors.ApplicationDescriptor", "editedDelegates",
+        description = """
+          Flipper's ApplicationDescriptor leaks root views after they've been detached.
+          https://github.com/facebook/flipper/issues/4270
+        """.trimIndent()
+      )
+    }
+  },
+
+  AW_CONTENTS__A0 {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      staticFieldLeak(
+        "org.chromium.android_webview.AwContents",
+        "A0",
+        description = """
+          WindowAndroidWrapper has a strong ref to the context key so this breaks the WeakHashMap
+          contracts and WeakHashMap is unable to perform its job of auto cleaning.
+          https://github.com/square/leakcanary/issues/2538
+        """.trimIndent()
+      )
+    }
+  },
+
+  JOB_SERVICE {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      AndroidReferenceMatchers.nativeGlobalVariableLeak(
+        className = "android.app.job.JobService\$1",
+        description = """
+          JobService used to be leaked via a binder stub.
+          Fix: https://cs.android.com/android/_/android/platform/frameworks/base/+/0796e9fb3dc2dd03fa5ff2053c63f14861cffa2f
+        """.trimIndent()
+      ) { sdkInt < 24 }
+    }
+  },
+
+  DREAM_SERVICE {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      AndroidReferenceMatchers.nativeGlobalVariableLeak(
+        className = "android.service.dreams.DreamService\$1",
+        description = """
+          DreamService leaks a binder stub.
+          https://github.com/square/leakcanary/issues/2534
+        """.trimIndent()
+      ) { sdkInt >= 33 }
     }
   },
 
@@ -1319,15 +1378,15 @@ enum class AndroidReferenceMatchers {
     override fun add(
       references: MutableList<ReferenceMatcher>
     ) {
-      references += staticFieldLeak(
-        "android.app.ExtendedStatusBarManager", "sInstance",
+      references += instanceFieldLeak(
+        "android.app.ExtendedStatusBarManager", "mContext",
         description =
         """
-            ExtendedStatusBarManager is held in a static sInstance field and has a mContext
-            field which references a decor context which references a destroyed activity.
+            ExtendedStatusBarManager has a mContext field which references a decor context which
+            references a destroyed activity.
           """.trimIndent()
       ) {
-        manufacturer == SHARP && sdkInt == 30
+        manufacturer == SHARP && sdkInt >= 30
       }
     }
   },
@@ -1390,7 +1449,7 @@ enum class AndroidReferenceMatchers {
           and that field ends up referencing lower contexts (e.g. service).
         """.trimIndent()
       ) {
-        listOf(HMD_GLOBAL, INFINIX, LENOVO, XIAOMI).contains(manufacturer) &&
+        listOf(HMD_GLOBAL, INFINIX, LENOVO, XIAOMI, TES).contains(manufacturer) &&
           sdkInt >= 30
       }
     }
@@ -1497,7 +1556,7 @@ enum class AndroidReferenceMatchers {
     const val XIAOMI = "Xiaomi"
     const val HMD_GLOBAL = "HMD Global"
     const val INFINIX = "INFINIX"
-
+    const val TES = "TES"
 
     /**
      * Returns a list of [ReferenceMatcher] that only contains [IgnoredReferenceMatcher] and no
