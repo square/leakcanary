@@ -152,6 +152,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field SPEN_GESTURE_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field STATIC_MTARGET_VIEW Lshark/AndroidReferenceMatchers;
 	public static final field SYSTEM_SENSOR_MANAGER__MAPPCONTEXTIMPL Lshark/AndroidReferenceMatchers;
+	public static final field TES Ljava/lang/String;
 	public static final field TEXT_LINE__SCACHED Lshark/AndroidReferenceMatchers;
 	public static final field TEXT_TO_SPEECH Lshark/AndroidReferenceMatchers;
 	public static final field TEXT_VIEW__MLAST_HOVERED_VIEW Lshark/AndroidReferenceMatchers;
