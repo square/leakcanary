@@ -17,7 +17,7 @@ import java.util.WeakHashMap
  * callback.
  */
 @SuppressLint("PrivateApi")
-class ServiceWatcher(private val reachabilityWatcher: ReachabilityWatcher) : InstallableWatcher {
+class ServiceWatcher(private val deletableObjectReporter: DeletableObjectReporter) : InstallableWatcher {
 
   private val servicesToBeDestroyed = WeakHashMap<IBinder, WeakReference<Service>>()
 
@@ -120,7 +120,7 @@ class ServiceWatcher(private val reachabilityWatcher: ReachabilityWatcher) : Ins
   private fun onServiceDestroyed(token: IBinder) {
     servicesToBeDestroyed.remove(token)?.also { serviceWeakReference ->
       serviceWeakReference.get()?.let { service ->
-        reachabilityWatcher.expectWeaklyReachable(
+        deletableObjectReporter.expectDeletionFor(
           service, "${service::class.java.name} received Service#onDestroy() callback"
         )
       }

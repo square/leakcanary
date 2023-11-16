@@ -2,8 +2,8 @@ package leakcanary
 
 import android.app.Application
 import android.os.SystemClock
+import com.squareup.leakcanary.objectwatcher.core.R
 import java.util.concurrent.TimeUnit
-import leakcanary.AppWatcher.objectWatcher
 import leakcanary.internal.LeakCanaryDelegate
 import leakcanary.internal.friendly.checkMainThread
 import leakcanary.internal.friendly.mainHandler
@@ -118,22 +118,26 @@ object AppWatcher {
 
   /**
    * Creates a new list of default app [InstallableWatcher], created with the passed in
-   * [reachabilityWatcher] (which defaults to [objectWatcher]). Once installed,
-   * these watchers will pass in to [reachabilityWatcher] objects that they expect to become
+   * [deletableObjectReporter] (which defaults to [objectWatcher]). Once installed,
+   * these watchers will pass in to [deletableObjectReporter] objects that they expect to become
    * weakly reachable.
    *
-   * The passed in [reachabilityWatcher] should probably delegate to [objectWatcher] but can
+   * The passed in [deletableObjectReporter] should probably delegate to [objectWatcher] but can
    * be used to filter out specific instances.
    */
   fun appDefaultWatchers(
     application: Application,
-    reachabilityWatcher: ReachabilityWatcher = objectWatcher
+    deletableObjectReporter: DeletableObjectReporter = objectWatcher
   ): List<InstallableWatcher> {
+    // Use app context resources to avoid NotFoundException
+    // https://github.com/square/leakcanary/issues/2137
+    val resources = application.resources
+    val watchDismissedDialogs = resources.getBoolean(R.bool.leak_canary_watcher_watch_dismissed_dialogs)
     return listOf(
-      ActivityWatcher(application, reachabilityWatcher),
-      FragmentAndViewModelWatcher(application, reachabilityWatcher),
-      RootViewWatcher(reachabilityWatcher),
-      ServiceWatcher(reachabilityWatcher)
+      ActivityWatcher(application, deletableObjectReporter),
+      FragmentAndViewModelWatcher(application, deletableObjectReporter),
+      RootViewWatcher(deletableObjectReporter, watchDismissedDialogs),
+      ServiceWatcher(deletableObjectReporter)
     )
   }
 }

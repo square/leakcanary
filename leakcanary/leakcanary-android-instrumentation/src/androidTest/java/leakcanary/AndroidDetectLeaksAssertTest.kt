@@ -14,18 +14,18 @@ class AndroidDetectLeaksAssertTest {
 
   @Before fun setUp() {
     AppWatcher.objectWatcher
-      .clearWatchedObjects()
+      .clearAllObjectsTracked()
   }
 
   @After fun tearDown() {
     AppWatcher.objectWatcher
-      .clearWatchedObjects()
+      .clearAllObjectsTracked()
   }
 
   @Test fun detectsLeak() {
     leaking = Date()
     val objectWatcher = AppWatcher.objectWatcher
-    objectWatcher.expectWeaklyReachable(leaking, "This date should not live beyond the test")
+    objectWatcher.expectDeletionFor(leaking, "This date should not live beyond the test")
     assertLeak(Date::class.java)
   }
 

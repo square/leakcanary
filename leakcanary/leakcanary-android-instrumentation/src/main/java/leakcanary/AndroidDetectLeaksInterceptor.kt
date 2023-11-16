@@ -4,12 +4,12 @@ import android.app.Instrumentation
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
 import leakcanary.GcTrigger.Default
-import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 import leakcanary.HeapAnalysisDecision.AnalyzeHeap
+import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 
 class AndroidDetectLeaksInterceptor(
   private val instrumentation: Instrumentation = InstrumentationRegistry.getInstrumentation(),
-  private val objectWatcher: ObjectWatcher = AppWatcher.objectWatcher,
+  private val retainedObjectTracker: RetainedObjectTracker = AppWatcher.objectWatcher,
   private val retainedDelayMillis: Long = AppWatcher.retainedDelayMillis
 ) : DetectLeaksInterceptor {
 
@@ -17,17 +17,17 @@ class AndroidDetectLeaksInterceptor(
   override fun waitUntilReadyForHeapAnalysis(): HeapAnalysisDecision {
     val leakDetectionTime = SystemClock.uptimeMillis()
 
-    if (!objectWatcher.hasWatchedObjects) {
+    if (!retainedObjectTracker.hasTrackedObjects) {
       return NoHeapAnalysis("No watched objects.")
     }
 
     instrumentation.waitForIdleSync()
-    if (!objectWatcher.hasWatchedObjects) {
+    if (!retainedObjectTracker.hasTrackedObjects) {
       return NoHeapAnalysis("No watched objects after waiting for idle sync.")
     }
 
     Default.runGc()
-    if (!objectWatcher.hasWatchedObjects) {
+    if (!retainedObjectTracker.hasTrackedObjects) {
       return NoHeapAnalysis("No watched objects after triggering an explicit GC.")
     }
 
@@ -35,7 +35,7 @@ class AndroidDetectLeaksInterceptor(
     // Android simply has way too many delayed posts that aren't canceled when views are detached.
     SystemClock.sleep(2000)
 
-    if (!objectWatcher.hasWatchedObjects) {
+    if (!retainedObjectTracker.hasTrackedObjects) {
       return NoHeapAnalysis("No watched objects after delayed UI post is cleared.")
     }
 
@@ -51,7 +51,7 @@ class AndroidDetectLeaksInterceptor(
 
     Default.runGc()
 
-    if (!objectWatcher.hasRetainedObjects) {
+    if (!retainedObjectTracker.hasRetainedObjects) {
       return NoHeapAnalysis("No retained objects after waiting for retained delay.")
     }
     return AnalyzeHeap

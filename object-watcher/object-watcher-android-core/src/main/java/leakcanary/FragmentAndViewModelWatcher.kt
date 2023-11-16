@@ -19,7 +19,7 @@ import leakcanary.internal.friendly.noOpDelegate
  */
 class FragmentAndViewModelWatcher(
   private val application: Application,
-  private val reachabilityWatcher: ReachabilityWatcher
+  private val deletableObjectReporter: DeletableObjectReporter
 ) : InstallableWatcher {
 
   private val fragmentDestroyWatchers: List<(Activity) -> Unit> = run {
@@ -27,22 +27,23 @@ class FragmentAndViewModelWatcher(
 
     if (SDK_INT >= O) {
       fragmentDestroyWatchers.add(
-        AndroidOFragmentDestroyWatcher(reachabilityWatcher)
+        AndroidOFragmentDestroyWatcher(deletableObjectReporter)
       )
     }
 
     getWatcherIfAvailable(
       ANDROIDX_FRAGMENT_CLASS_NAME,
       ANDROIDX_FRAGMENT_DESTROY_WATCHER_CLASS_NAME,
-      reachabilityWatcher
+      deletableObjectReporter
     )?.let {
       fragmentDestroyWatchers.add(it)
     }
 
+    // TODO turn this off by default.
     getWatcherIfAvailable(
       ANDROID_SUPPORT_FRAGMENT_CLASS_NAME,
       ANDROID_SUPPORT_FRAGMENT_DESTROY_WATCHER_CLASS_NAME,
-      reachabilityWatcher
+      deletableObjectReporter
     )?.let {
       fragmentDestroyWatchers.add(it)
     }
@@ -72,16 +73,16 @@ class FragmentAndViewModelWatcher(
   private fun getWatcherIfAvailable(
     fragmentClassName: String,
     watcherClassName: String,
-    reachabilityWatcher: ReachabilityWatcher
+    deletableObjectReporter: DeletableObjectReporter
   ): ((Activity) -> Unit)? {
 
     return if (classAvailable(fragmentClassName) &&
       classAvailable(watcherClassName)
     ) {
       val watcherConstructor =
-        Class.forName(watcherClassName).getDeclaredConstructor(ReachabilityWatcher::class.java)
+        Class.forName(watcherClassName).getDeclaredConstructor(DeletableObjectReporter::class.java)
       @Suppress("UNCHECKED_CAST")
-      watcherConstructor.newInstance(reachabilityWatcher) as (Activity) -> Unit
+      watcherConstructor.newInstance(deletableObjectReporter) as (Activity) -> Unit
     } else {
       null
     }

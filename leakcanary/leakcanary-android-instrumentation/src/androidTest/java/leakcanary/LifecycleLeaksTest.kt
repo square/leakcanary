@@ -41,12 +41,12 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
 
   @Before fun setUp() {
     AppWatcher.objectWatcher
-      .clearWatchedObjects()
+      .clearAllObjectsTracked()
   }
 
   @After fun tearDown() {
     AppWatcher.objectWatcher
-      .clearWatchedObjects()
+      .clearAllObjectsTracked()
   }
 
   @Test fun activityLeakDetected() {

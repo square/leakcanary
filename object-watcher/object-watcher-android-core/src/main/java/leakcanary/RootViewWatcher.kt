@@ -19,7 +19,6 @@ import android.app.Activity
 import android.app.Dialog
 import android.view.View
 import android.view.View.OnAttachStateChangeListener
-import com.squareup.leakcanary.objectwatcher.core.R
 import curtains.Curtains
 import curtains.OnRootViewAddedListener
 import curtains.WindowType.PHONE_WINDOW
@@ -37,7 +36,8 @@ import leakcanary.internal.friendly.mainHandler
  * manager.
  */
 class RootViewWatcher(
-  private val reachabilityWatcher: ReachabilityWatcher
+  private val deletableObjectReporter: DeletableObjectReporter,
+  private val watchDismissedDialogs: Boolean
 ) : InstallableWatcher {
 
   private val listener = OnRootViewAddedListener { rootView ->
@@ -46,12 +46,7 @@ class RootViewWatcher(
         when (rootView.phoneWindow?.callback?.wrappedCallback) {
           // Activities are already tracked by ActivityWatcher
           is Activity -> false
-          is Dialog -> {
-            // Use app context resources to avoid NotFoundException
-            // https://github.com/square/leakcanary/issues/2137
-            val resources = rootView.context.applicationContext.resources
-            resources.getBoolean(R.bool.leak_canary_watcher_watch_dismissed_dialogs)
-          }
+          is Dialog -> watchDismissedDialogs
           // Probably a DreamService
           else -> true
         }
@@ -64,7 +59,7 @@ class RootViewWatcher(
       rootView.addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
 
         val watchDetachedView = Runnable {
-          reachabilityWatcher.expectWeaklyReachable(
+          deletableObjectReporter.expectDeletionFor(
             rootView, "${rootView::class.java.name} received View#onDetachedFromWindow() callback"
           )
         }

@@ -7,17 +7,11 @@ import android.app.UiModeManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Context.UI_MODE_SERVICE
-import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
 import android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
 import android.content.pm.PackageManager.DONT_KILL_APP
-import android.content.pm.ShortcutInfo.Builder
-import android.content.pm.ShortcutManager
 import android.content.res.Configuration
-import android.graphics.drawable.Icon
-import android.os.Build.VERSION
-import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.HandlerThread
 import com.squareup.leakcanary.core.BuildConfig
@@ -26,6 +20,7 @@ import leakcanary.AppWatcher
 import leakcanary.EventListener.Event
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
+import leakcanary.LeakCanaryAndroidInternalUtils
 import leakcanary.OnObjectRetainedListener
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
@@ -39,7 +34,6 @@ import shark.SharkLog
 
 internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedListener {
 
-  private const val DYNAMIC_SHORTCUT_ID = "com.squareup.leakcanary.dynamic_shortcut"
 
   private lateinit var heapDumpTrigger: HeapDumpTrigger
 
@@ -93,7 +87,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   }
 
   val isInstantApp by lazy {
-    VERSION.SDK_INT >= VERSION_CODES.O && application.packageManager.isInstantApp
+    LeakCanaryAndroidInternalUtils.isInstantApp(application)
   }
 
   val onRetainInstanceListener by lazy {
@@ -145,9 +139,10 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
       heapDumpTrigger.onApplicationVisibilityChanged(applicationVisible)
     }
     registerResumedActivityListener(application)
-    addDynamicShortcut(application)
+    LeakCanaryAndroidInternalUtils.addLeakActivityDynamicShortcut(application)
 
-    // We post so that the log happens after Application.onCreate()
+    // We post so that the log happens after Application.onCreate() where
+    // the config could be updated.
     mainHandler.post {
       // https://github.com/square/leakcanary/issues/1981
       // We post to a background handler because HeapDumpControl.iCanHasHeap() checks a shared pref
@@ -200,112 +195,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     })
   }
 
-  @Suppress("ReturnCount")
-  private fun addDynamicShortcut(application: Application) {
-    if (VERSION.SDK_INT < VERSION_CODES.N_MR1) {
-      return
-    }
-    if (!application.resources.getBoolean(R.bool.leak_canary_add_dynamic_shortcut)) {
-      return
-    }
-    if (isInstantApp) {
-      // Instant Apps don't have access to ShortcutManager
-      return
-    }
-    val shortcutManager = application.getSystemService(ShortcutManager::class.java)
-    if (shortcutManager == null) {
-      // https://github.com/square/leakcanary/issues/2430
-      // ShortcutManager null on Android TV
-      return
-    }
-    val dynamicShortcuts = shortcutManager.dynamicShortcuts
 
-    val shortcutInstalled =
-      dynamicShortcuts.any { shortcut -> shortcut.id == DYNAMIC_SHORTCUT_ID }
-
-    if (shortcutInstalled) {
-      return
-    }
-
-    val mainIntent = Intent(Intent.ACTION_MAIN, null)
-    mainIntent.addCategory(Intent.CATEGORY_LAUNCHER)
-    mainIntent.setPackage(application.packageName)
-    val activities = application.packageManager.queryIntentActivities(mainIntent, 0)
-      .filter {
-        it.activityInfo.name != "leakcanary.internal.activity.LeakLauncherActivity"
-      }
-
-    if (activities.isEmpty()) {
-      return
-    }
-
-    val firstMainActivity = activities.first()
-      .activityInfo
-
-    // Displayed on long tap on app icon
-    val longLabel: String
-    // Label when dropping shortcut to launcher
-    val shortLabel: String
-
-    val leakActivityLabel = application.getString(R.string.leak_canary_shortcut_label)
-
-    if (activities.isEmpty()) {
-      longLabel = leakActivityLabel
-      shortLabel = leakActivityLabel
-    } else {
-      val firstLauncherActivityLabel = if (firstMainActivity.labelRes != 0) {
-        application.getString(firstMainActivity.labelRes)
-      } else {
-        application.packageManager.getApplicationLabel(application.applicationInfo)
-      }
-      val fullLengthLabel = "$firstLauncherActivityLabel $leakActivityLabel"
-      // short label should be under 10 and long label under 25
-      if (fullLengthLabel.length > 10) {
-        if (fullLengthLabel.length <= 25) {
-          longLabel = fullLengthLabel
-          shortLabel = leakActivityLabel
-        } else {
-          longLabel = leakActivityLabel
-          shortLabel = leakActivityLabel
-        }
-      } else {
-        longLabel = fullLengthLabel
-        shortLabel = fullLengthLabel
-      }
-    }
-
-    val componentName = ComponentName(firstMainActivity.packageName, firstMainActivity.name)
-
-    val shortcutCount = dynamicShortcuts.count { shortcutInfo ->
-      shortcutInfo.activity == componentName
-    } + shortcutManager.manifestShortcuts.count { shortcutInfo ->
-      shortcutInfo.activity == componentName
-    }
-
-    if (shortcutCount >= shortcutManager.maxShortcutCountPerActivity) {
-      return
-    }
-
-    val intent = LeakCanary.newLeakDisplayActivityIntent()
-    intent.action = "Dummy Action because Android is stupid"
-    val shortcut = Builder(application, DYNAMIC_SHORTCUT_ID)
-      .setLongLabel(longLabel)
-      .setShortLabel(shortLabel)
-      .setActivity(componentName)
-      .setIcon(Icon.createWithResource(application, R.mipmap.leak_canary_icon))
-      .setIntent(intent)
-      .build()
-
-    try {
-      shortcutManager.addDynamicShortcuts(listOf(shortcut))
-    } catch (ignored: Throwable) {
-      SharkLog.d(ignored) {
-        "Could not add dynamic shortcut. " +
-          "shortcutCount=$shortcutCount, " +
-          "maxShortcutCountPerActivity=${shortcutManager.maxShortcutCountPerActivity}"
-      }
-    }
-  }
 
   override fun onObjectRetained() = scheduleRetainedObjectCheck()
 

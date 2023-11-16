@@ -15,16 +15,16 @@
  */
 package leakcanary
 
-import leakcanary.KeyedWeakReference.Companion.heapDumpUptimeMillis
 import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
+import leakcanary.KeyedWeakReference.Companion.heapDumpUptimeMillis
 
 /**
- * A weak reference used by [ObjectWatcher] to determine which objects become weakly reachable
- * and which don't. [ObjectWatcher] uses [key] to keep track of [KeyedWeakReference] instances that
- * haven't made it into the associated [ReferenceQueue] yet.
+ * A weak reference used by [ReferenceQueueRetainedObjectTracker] to determine which objects become
+ * weakly reachable and which don't. [ReferenceQueueRetainedObjectTracker] uses [key] to keep track
+ * of [KeyedWeakReference] instances that haven't made it into the associated [ReferenceQueue] yet.
  *
- * [heapDumpUptimeMillis] should be set with the current time from [Clock.uptimeMillis] right
+ * [heapDumpUptimeMillis] should be set with the current time from [UptimeClock.uptime] right
  * before dumping the heap, so that we can later determine how long an object was retained.
  */
 class KeyedWeakReference(
@@ -43,9 +43,27 @@ class KeyedWeakReference(
   @Volatile
   var retainedUptimeMillis = -1L
 
+  val retained: Boolean
+    get() = retainedUptimeMillis != -1L
+
   override fun clear() {
     super.clear()
     retainedUptimeMillis = -1L
+  }
+
+  override fun get(): Any? {
+    error("Calling KeyedWeakReference.get() is a mistake as it revives the reference")
+  }
+
+  /**
+   * Same as [WeakReference.get] but does not trigger an intentional crash.
+   *
+   * Calling this method will end up creating local references to the objects, preventing them from
+   * becoming weakly reachable, and creating a leak. If you need to check for identity equality, use
+   * Reference.refersTo instead.
+   */
+  fun getAndLeakReferent(): Any? {
+    return super.get()
   }
 
   companion object {

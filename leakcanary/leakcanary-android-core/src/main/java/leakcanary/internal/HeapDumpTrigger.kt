@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
 import leakcanary.AppWatcher
 import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDump
@@ -16,7 +17,7 @@ import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.GcTrigger
 import leakcanary.KeyedWeakReference
 import leakcanary.LeakCanary.Config
-import leakcanary.ObjectWatcher
+import leakcanary.RetainedObjectTracker
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.NotifyingNope
 import leakcanary.internal.InternalLeakCanary.onRetainInstanceListener
@@ -34,7 +35,7 @@ import shark.SharkLog
 internal class HeapDumpTrigger(
   private val application: Application,
   private val backgroundHandler: Handler,
-  private val objectWatcher: ObjectWatcher,
+  private val retainedObjectTracker: RetainedObjectTracker,
   private val gcTrigger: GcTrigger,
   private val configProvider: () -> Config
 ) {
@@ -101,11 +102,11 @@ internal class HeapDumpTrigger(
     if (iCanHasHeap is Nope) {
       if (iCanHasHeap is NotifyingNope) {
         // Before notifying that we can't dump heap, let's check if we still have retained object.
-        var retainedReferenceCount = objectWatcher.retainedObjectCount
+        var retainedReferenceCount = retainedObjectTracker.retainedObjectCount
 
         if (retainedReferenceCount > 0) {
           gcTrigger.runGc()
-          retainedReferenceCount = objectWatcher.retainedObjectCount
+          retainedReferenceCount = retainedObjectTracker.retainedObjectCount
         }
 
         val nopeReason = iCanHasHeap.reason()
@@ -131,11 +132,11 @@ internal class HeapDumpTrigger(
       return
     }
 
-    var retainedReferenceCount = objectWatcher.retainedObjectCount
+    var retainedReferenceCount = retainedObjectTracker.retainedObjectCount
 
     if (retainedReferenceCount > 0) {
       gcTrigger.runGc()
-      retainedReferenceCount = objectWatcher.retainedObjectCount
+      retainedReferenceCount = retainedObjectTracker.retainedObjectCount
     }
 
     if (checkRetainedCount(retainedReferenceCount, config.retainedVisibleThreshold)) return
@@ -192,7 +193,7 @@ internal class HeapDumpTrigger(
       }
       lastDisplayedRetainedObjectCount = 0
       lastHeapDumpUptimeMillis = SystemClock.uptimeMillis()
-      objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
+      retainedObjectTracker.clearObjectsTrackedBefore(heapDumpUptimeMillis.milliseconds)
       currentEventUniqueId = UUID.randomUUID().toString()
       InternalLeakCanary.sendEvent(HeapDump(currentEventUniqueId!!, heapDumpFile, durationMillis, reason))
     } catch (throwable: Throwable) {
@@ -239,7 +240,7 @@ internal class HeapDumpTrigger(
     backgroundHandler.post {
       dismissNoRetainedOnTapNotification()
       gcTrigger.runGc()
-      val retainedReferenceCount = objectWatcher.retainedObjectCount
+      val retainedReferenceCount = retainedObjectTracker.retainedObjectCount
       if (!forceDump && retainedReferenceCount == 0) {
         SharkLog.d { "Ignoring user request to dump heap: no retained objects remaining after GC" }
         @Suppress("DEPRECATION")

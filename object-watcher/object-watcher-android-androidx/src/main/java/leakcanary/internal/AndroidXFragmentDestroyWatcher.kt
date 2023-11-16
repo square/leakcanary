@@ -20,10 +20,10 @@ import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
-import leakcanary.ReachabilityWatcher
+import leakcanary.DeletableObjectReporter
 
 internal class AndroidXFragmentDestroyWatcher(
-  private val reachabilityWatcher: ReachabilityWatcher
+  private val deletableObjectReporter: DeletableObjectReporter
 ) : (Activity) -> Unit {
 
   private val fragmentLifecycleCallbacks = object : FragmentManager.FragmentLifecycleCallbacks() {
@@ -33,7 +33,7 @@ internal class AndroidXFragmentDestroyWatcher(
       fragment: Fragment,
       savedInstanceState: Bundle?
     ) {
-      ViewModelClearedWatcher.install(fragment, reachabilityWatcher)
+      ViewModelClearedWatcher.install(fragment, deletableObjectReporter)
     }
 
     override fun onFragmentViewDestroyed(
@@ -42,7 +42,7 @@ internal class AndroidXFragmentDestroyWatcher(
     ) {
       val view = fragment.view
       if (view != null) {
-        reachabilityWatcher.expectWeaklyReachable(
+        deletableObjectReporter.expectDeletionFor(
           view, "${fragment::class.java.name} received Fragment#onDestroyView() callback " +
           "(references to its views should be cleared to prevent leaks)"
         )
@@ -53,7 +53,7 @@ internal class AndroidXFragmentDestroyWatcher(
       fm: FragmentManager,
       fragment: Fragment
     ) {
-      reachabilityWatcher.expectWeaklyReachable(
+      deletableObjectReporter.expectDeletionFor(
         fragment, "${fragment::class.java.name} received Fragment#onDestroy() callback"
       )
     }
@@ -63,7 +63,7 @@ internal class AndroidXFragmentDestroyWatcher(
     if (activity is FragmentActivity) {
       val supportFragmentManager = activity.supportFragmentManager
       supportFragmentManager.registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, true)
-      ViewModelClearedWatcher.install(activity, reachabilityWatcher)
+      ViewModelClearedWatcher.install(activity, deletableObjectReporter)
     }
   }
 }
