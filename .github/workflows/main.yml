@@ -94,7 +94,7 @@ jobs:
             ./gradlew leakcanary:leakcanary-android-core:connectedCheck leakcanary:leakcanary-android:connectedCheck leakcanary:leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
       - name: Upload results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.api-level }}-${{ matrix.arch }}-instrumentation-test-results
           path: |
