@@ -3,7 +3,7 @@ import org.jetbrains.dokka.gradle.DokkaTask
 buildscript {
   ext.versions = [
     'minSdk'    : 14,
-    'compileSdk': 33,
+    'compileSdk': 34,
   ]
   repositories {
     google()
