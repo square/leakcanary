@@ -752,3 +752,7 @@ public final class shark/internal/ReferencePathNode$RootNode$NormalRootNode : sh
 	public fun getGcRoot ()Lshark/GcRoot;
 }
 
+public final class shark/internal/ReferencePathNodeKt {
+	public static final fun invalidObjectIdErrorMessage (Lshark/HeapGraph;Lshark/internal/ReferencePathNode;)Ljava/lang/String;
+}
+
