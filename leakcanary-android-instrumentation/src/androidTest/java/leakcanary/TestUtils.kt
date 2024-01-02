@@ -2,10 +2,22 @@ package leakcanary
 
 import shark.HeapAnalysis
 import shark.HeapAnalysisSuccess
+import shark.LeakTrace
 
 object TestUtils {
 
   fun assertLeak(expectedLeakClass: Class<*>) {
+    assertLeak { (heapAnalysis, leakTrace) ->
+      val className = leakTrace.leakingObject.className
+      if (className != expectedLeakClass.name) {
+        throw AssertionError(
+          "Expected a leak of $expectedLeakClass, not $className in $heapAnalysis"
+        )
+      }
+    }
+  }
+
+  fun assertLeak(inspectLeakTrace: (Pair<HeapAnalysisSuccess, LeakTrace>) -> Unit = {}) {
     val heapAnalysis = detectLeaks()
     val applicationLeaks = heapAnalysis.applicationLeaks
     if (applicationLeaks.size != 1) {
@@ -17,12 +29,7 @@ object TestUtils {
     val leak = applicationLeaks.first()
 
     val leakTrace = leak.leakTraces.first()
-    val className = leakTrace.leakingObject.className
-    if (className != expectedLeakClass.name) {
-      throw AssertionError(
-        "Expected a leak of $expectedLeakClass, not $className in $heapAnalysis"
-      )
-    }
+    inspectLeakTrace(heapAnalysis to leakTrace)
   }
 
   fun detectLeaks(): HeapAnalysisSuccess {
