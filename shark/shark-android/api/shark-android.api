@@ -67,7 +67,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field ACCESSIBILITY_ITERATORS Lshark/AndroidReferenceMatchers;
 	public static final field ACCESSIBILITY_NODE_ID_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field ACCESSIBILITY_NODE_INFO__MORIGINALTEXT Lshark/AndroidReferenceMatchers;
-	public static final field ACCOUNT_MANAGER Lshark/AndroidReferenceMatchers;
+	public static final field ACCOUNT_MANAGER__AMS_TASK__RESPONSE Lshark/AndroidReferenceMatchers;
 	public static final field ACTIVITY_CHOOSE_MODEL Lshark/AndroidReferenceMatchers;
 	public static final field ACTIVITY_MANAGER_MCONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field ACTIVITY_THREAD__M_NEW_ACTIVITIES Lshark/AndroidReferenceMatchers;
@@ -79,6 +79,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field ASSIST_STRUCTURE Lshark/AndroidReferenceMatchers;
 	public static final field AUDIO_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field AUDIO_MANAGER__MCONTEXT_STATIC Lshark/AndroidReferenceMatchers;
+	public static final field AW_CONTENTS_POSTED_CALLBACK Lshark/AndroidReferenceMatchers;
 	public static final field AW_CONTENTS__A0 Lshark/AndroidReferenceMatchers;
 	public static final field AW_RESOURCE__SRESOURCES Lshark/AndroidReferenceMatchers;
 	public static final field BACKDROP_FRAME_RENDERER__MDECORVIEW Lshark/AndroidReferenceMatchers;
@@ -135,6 +136,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field PLAYER_BASE Lshark/AndroidReferenceMatchers;
 	public static final field RAZER Ljava/lang/String;
 	public static final field RAZER_TEXT_KEY_LISTENER__MCONTEXT Lshark/AndroidReferenceMatchers;
+	public static final field REALME Ljava/lang/String;
 	public static final field REFERENCES Lshark/AndroidReferenceMatchers;
 	public static final field RENDER_NODE_ANIMATOR Lshark/AndroidReferenceMatchers;
 	public static final field RESOURCES__MCONTEXT Lshark/AndroidReferenceMatchers;
@@ -162,6 +164,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field VIEW_CONFIGURATION__MCONTEXT Lshark/AndroidReferenceMatchers;
 	public static final field VIEW_GROUP__M_CURRENT_DRAG_CHILD Lshark/AndroidReferenceMatchers;
 	public static final field VIEW_GROUP__M_PRE_SORTED_CHILDREN Lshark/AndroidReferenceMatchers;
+	public static final field VIEW_TOOLTIP_CALLBACK Lshark/AndroidReferenceMatchers;
 	public static final field VIVO Ljava/lang/String;
 	public static final field WINDOW_ON_BACK_INVOKED_DISPATCHER__STUB Lshark/AndroidReferenceMatchers;
 	public static final field XIAMI__RESOURCES_IMPL Lshark/AndroidReferenceMatchers;
