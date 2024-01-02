@@ -14,6 +14,7 @@ import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppc.LongScatterSet
+import shark.internal.invalidObjectIdErrorMessage
 
 /**
  * Not thread safe.
@@ -177,7 +178,13 @@ class PrioritizingShortestPathFinder private constructor(
         }
       }
 
-      val heapObject = graph.findObjectById(node.objectId)
+      val heapObject = try {
+        graph.findObjectById(node.objectId)
+      } catch (objectIdNotFound: IllegalArgumentException) {
+        // This should never happen (a heap should only have references to objects that exist)
+        // but when it does happen, let's at least display how we got there.
+        throw RuntimeException(graph.invalidObjectIdErrorMessage(node), objectIdNotFound)
+      }
       objectReferenceReader.read(heapObject).forEach { reference ->
         val newNode = ChildNode(
           objectId = reference.valueObjectId,
