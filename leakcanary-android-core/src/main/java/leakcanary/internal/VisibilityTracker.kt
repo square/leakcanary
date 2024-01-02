@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.Intent.ACTION_SCREEN_OFF
 import android.content.Intent.ACTION_SCREEN_ON
 import android.content.IntentFilter
+import android.os.Build
 import leakcanary.internal.friendly.noOpDelegate
 
 internal class VisibilityTracker(
@@ -70,8 +71,16 @@ internal class VisibilityTracker(
 internal fun Application.registerVisibilityListener(listener: (Boolean) -> Unit) {
   val visibilityTracker = VisibilityTracker(listener)
   registerActivityLifecycleCallbacks(visibilityTracker)
-  registerReceiver(visibilityTracker, IntentFilter().apply {
+
+  val intentFilter = IntentFilter().apply {
     addAction(ACTION_SCREEN_ON)
     addAction(ACTION_SCREEN_OFF)
-  })
+  }
+
+  if (Build.VERSION.SDK_INT >= 33) {
+    val flags = Context.RECEIVER_EXPORTED
+    registerReceiver(visibilityTracker, intentFilter, flags)
+  } else {
+    registerReceiver(visibilityTracker, intentFilter)
+  }
 }
