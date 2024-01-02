@@ -5,6 +5,13 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 
 I've started working on LeakCanary 3.0 so new 2.x releases only contain bug fixes and new known leak patterns.
 
+## Version 2.13 (2024-01-01)
+
+* 🐛 [#2565](https://github.com/square/leakcanary/issues/2565) Fix AndroidX Fragments incorrectly marked as leaking if detached but not destroyed.
+* 💥 [#2568](https://github.com/square/leakcanary/issues/2568) Fixed missing `RECEIVER_EXPORTED` flag when calling `registerReceiver()` on API 34+.
+* 🔨 [#2555](https://github.com/square/leakcanary/issues/2555) Binder stubs are now called out in leak traces.
+* 🐤 [#2601](https://github.com/square/leakcanary/pull/2601) Added several known manufacturer & framework leaks.
+
 ## Version 2.12 (2023-06-29)
 
 * 💥 [#2527](https://github.com/square/leakcanary/issues/2527) `LifecycleRegistry` in `androidx.lifecycle:lifecycle-runtime` was migrated to kotlin and its `mState` field name changed to `state` which broke LeakCanary expectations.
