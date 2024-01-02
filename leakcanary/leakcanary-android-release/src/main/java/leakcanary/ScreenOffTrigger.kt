@@ -7,9 +7,10 @@ import android.content.Intent
 import android.content.Intent.ACTION_SCREEN_OFF
 import android.content.Intent.ACTION_SCREEN_ON
 import android.content.IntentFilter
+import android.os.Build
+import java.util.concurrent.Executor
 import leakcanary.internal.friendly.checkMainThread
 import shark.SharkLog
-import java.util.concurrent.Executor
 
 class ScreenOffTrigger(
   private val application: Application,
@@ -61,10 +62,16 @@ class ScreenOffTrigger(
 
   fun start() {
     checkMainThread()
-    application.registerReceiver(screenReceiver, IntentFilter().apply {
+    val intentFilter = IntentFilter().apply {
       addAction(ACTION_SCREEN_ON)
       addAction(ACTION_SCREEN_OFF)
-    })
+    }
+    if (Build.VERSION.SDK_INT >= 33) {
+      val flags = Context.RECEIVER_EXPORTED
+      application.registerReceiver(screenReceiver, intentFilter, flags)
+    } else {
+      application.registerReceiver(screenReceiver, intentFilter)
+    }
   }
 
   fun stop() {
