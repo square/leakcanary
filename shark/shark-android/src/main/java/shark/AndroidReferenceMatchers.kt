@@ -248,7 +248,7 @@ enum class AndroidReferenceMatchers {
               InputMethodManager.mImeInsetsConsumer isn't set to null when the activity is destroyed.
             """.trimIndent()
       ) {
-        sdkInt >= 31
+        sdkInt >= 30
       }
     }
   },
@@ -368,24 +368,20 @@ enum class AndroidReferenceMatchers {
     }
   },
 
-  ACCOUNT_MANAGER {
+  ACCOUNT_MANAGER__AMS_TASK__RESPONSE {
     override fun add(
       references: MutableList<ReferenceMatcher>
     ) {
-      references += instanceFieldLeak(
-        "android.accounts.AccountManager\$AmsTask\$Response", "this$1",
-        description =
-        "AccountManager\$AmsTask\$Response is a stub and is held in memory by native code,"
-          + " probably because the reference to the response in the other process hasn't been"
-          + " cleared."
-          + " AccountManager\$AmsTask is holding on to the activity reference to use for"
-          + " launching a new sub- Activity."
-          + " Tracked here: https://code.google.com/p/android/issues/detail?id=173689"
-          + " Fix: Pass a null activity reference to the AccountManager methods and then deal"
-          + " with the returned future to to get the result and correctly start an activity"
-          + " when it's available."
+      references += nativeGlobalVariableLeak(
+        "android.accounts.AccountManager\$AmsTask\$Response",
+        description = """
+          AccountManager.AmsTask.Response is a stub, and as all stubs it's held in memory by a
+          native ref until the calling side gets GCed, which can happen long after the stub is no
+          longer of use.
+          https://issuetracker.google.com/issues/318303120
+        """.trimIndent()
       ) {
-        sdkInt <= 27
+        sdkInt >= 5
       }
     }
   },
@@ -867,6 +863,30 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  VIEW_TOOLTIP_CALLBACK {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      // Note: the lambda order changes every release, so ideally we'd pull the dex code for
+      // every release and look at the exact class name for the this::showHoverTooltip and the
+      // this::hideTooltip lambda references in View.java . That's too much work, so we'll just
+      // rely on reports from the field:
+      // - API 33: android.view.View$$ExternalSyntheticLambda3.f$0
+      references += instanceFieldLeak(
+        "android.view.View\$\$ExternalSyntheticLambda3", "f\$0",
+        description = """
+          When a View has tooltip text set, every hover event will fire a callback
+          to hide the tooltip after a 15 second timeout. Since the callback holds
+          a reference to the View, it will leak the View for that duration after
+          the Activity is finished or the View is removed.
+          https://cs.android.com/android/_/android/platform/frameworks/base/+/708dbe80902b963388c412f670c56ae00953273a
+        """.trimIndent()
+      ) {
+        sdkInt in 26..34
+      }
+    }
+  },
+
   ACTIVITY_TRANSITION_STATE__M_EXITING_TO_VIEW {
     override fun add(
       references: MutableList<ReferenceMatcher>
@@ -905,7 +925,8 @@ enum class AndroidReferenceMatchers {
       references: MutableList<ReferenceMatcher>
     ) {
       references += staticFieldLeak(
-        "com.facebook.flipper.plugins.inspector.descriptors.ApplicationDescriptor", "editedDelegates",
+        "com.facebook.flipper.plugins.inspector.descriptors.ApplicationDescriptor",
+        "editedDelegates",
         description = """
           Flipper's ApplicationDescriptor leaks root views after they've been detached.
           https://github.com/facebook/flipper/issues/4270
@@ -924,6 +945,38 @@ enum class AndroidReferenceMatchers {
           contracts and WeakHashMap is unable to perform its job of auto cleaning.
           https://github.com/square/leakcanary/issues/2538
         """.trimIndent()
+      )
+    }
+  },
+
+  AW_CONTENTS_POSTED_CALLBACK {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      val description = "Android System WebView leak: " +
+        "https://bugs.chromium.org/p/chromium/issues/detail?id=1499154"
+      instanceFieldLeak(
+        "WV.R9",
+        "e",
+        description
+      )
+      instanceFieldLeak(
+        "WV.a6",
+        "c",
+        description
+      )
+      instanceFieldLeak(
+        "WV.H5",
+        "c",
+        description
+      )
+      instanceFieldLeak(
+        "WV.Y9",
+        "e",
+        description
+      )
+      instanceFieldLeak(
+        "WV.U4",
+        "c",
+        description
       )
     }
   },
@@ -1445,11 +1498,19 @@ enum class AndroidReferenceMatchers {
       references += staticFieldLeak(
         "android.content.res.ResourcesImpl", "mAppContext",
         description = """
-          A few device manufacturers added a static mAppContext field to the ResourcesImpl class
-          and that field ends up referencing lower contexts (e.g. service).
+          A fork of Android added a static mAppContext field to the ResourcesImpl class
+          and that field ends up referencing lower contexts (e.g. service). Several Android
+          manufacturers seem to be using the same broken Android fork sources.
         """.trimIndent()
       ) {
-        listOf(HMD_GLOBAL, INFINIX, LENOVO, XIAOMI, TES).contains(manufacturer) &&
+        listOf(
+          HMD_GLOBAL,
+          INFINIX,
+          LENOVO,
+          XIAOMI,
+          TES,
+          REALME
+        ).contains(manufacturer) &&
           sdkInt >= 30
       }
     }
@@ -1557,6 +1618,7 @@ enum class AndroidReferenceMatchers {
     const val HMD_GLOBAL = "HMD Global"
     const val INFINIX = "INFINIX"
     const val TES = "TES"
+    const val REALME = "realme"
 
     /**
      * Returns a list of [ReferenceMatcher] that only contains [IgnoredReferenceMatcher] and no
