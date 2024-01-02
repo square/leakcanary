@@ -870,6 +870,19 @@ enum class AndroidObjectInspectors : ObjectInspector {
         return state["java.lang.Enum", "name"]!!.value.readAsJavaString()!!
       }
   },
+
+  STUB {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.os.Binder") { instance ->
+        labels + "${instance.instanceClassSimpleName} is a binder stub. Binder stubs will often be" +
+          " retained long after the associated activity or service is destroyed, as by design stubs" +
+          " are retained until the other side gets GCed. If ${instance.instanceClassSimpleName} is" +
+          " not a *static* inner class then that's most likely the root cause of this leak. Make" +
+          " it static. If ${instance.instanceClassSimpleName} is an Android Framework class, file" +
+          " a ticket here: https://issuetracker.google.com/issues/new?component=192705"
+      }
+    }
+  },
   ;
 
   internal open val leakingObjectFilter: ((heapObject: HeapObject) -> Boolean)? = null
