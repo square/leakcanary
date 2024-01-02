@@ -15,12 +15,12 @@
  */
 package shark
 
+import java.util.EnumSet
+import kotlin.math.absoluteValue
 import shark.AndroidObjectInspectors.Companion.appDefaults
 import shark.AndroidServices.aliveAndroidServiceObjectIds
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapInstance
-import java.util.EnumSet
-import kotlin.math.absoluteValue
 import shark.internal.InternalSharkCollectionsHelper
 
 /**
@@ -462,25 +462,31 @@ enum class AndroidObjectInspectors : ObjectInspector {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
         heapObject instanceOf "androidx.fragment.app.Fragment" &&
-        heapObject.getOrThrow(
-          "androidx.fragment.app.Fragment", "mFragmentManager"
-        ).value.isNullReference
+        heapObject["androidx.fragment.app.Fragment", "mLifecycleRegistry"]!!
+          .valueAsInstance
+          ?.lifecycleRegistryState == "DESTROYED"
     }
 
     override fun inspect(
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("androidx.fragment.app.Fragment") { instance ->
-        val fragmentManager =
-          instance.getOrThrow("androidx.fragment.app.Fragment", "mFragmentManager")
-        if (fragmentManager.value.isNullReference) {
-          leakingReasons += fragmentManager describedWithValue "null"
+        val lifecycleRegistryField = instance["androidx.fragment.app.Fragment", "mLifecycleRegistry"]!!
+        val lifecycleRegistry = lifecycleRegistryField.valueAsInstance
+        if (lifecycleRegistry != null) {
+          val state = lifecycleRegistry.lifecycleRegistryState
+          val reason = "Fragment.mLifecycleRegistry.state is $state"
+          if (state == "DESTROYED") {
+            leakingReasons += reason
+          } else {
+            notLeakingReasons += reason
+          }
         } else {
-          notLeakingReasons += fragmentManager describedWithValue "not null"
+          labels += "Fragment.mLifecycleRegistry = null"
         }
         val mTag = instance["androidx.fragment.app.Fragment", "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          labels += "Fragment.mTag=$mTag"
+          labels += "Fragment.mTag = $mTag"
         }
       }
     }
@@ -850,25 +856,16 @@ enum class AndroidObjectInspectors : ObjectInspector {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("androidx.lifecycle.LifecycleRegistry") { instance ->
         val state = instance.lifecycleRegistryState
-        labels += "mState = $state"
         // If state is DESTROYED, this doesn't mean the LifecycleRegistry itself is leaking.
         // Fragment.mViewLifecycleRegistry becomes DESTROYED when the fragment view is destroyed,
         // but the registry itself is still held in memory by the fragment.
         if (state != "DESTROYED") {
-          notLeakingReasons += "mState is not DESTROYED"
+          notLeakingReasons += "state is $state"
+        } else {
+          labels += "state = $state"
         }
       }
     }
-
-    private val HeapInstance.lifecycleRegistryState: String
-      get() {
-        // LifecycleRegistry was converted to Kotlin
-        // https://cs.android.com/androidx/platform/frameworks/support/+/36833f9ab0c50bf449fc795e297a0e124df3356e
-        val stateField = this["androidx.lifecycle.LifecycleRegistry", "state"]
-          ?: this["androidx.lifecycle.LifecycleRegistry", "mState"]!!
-        val state = stateField.valueAsInstance!!
-        return state["java.lang.Enum", "name"]!!.value.readAsJavaString()!!
-      }
   },
 
   STUB {
@@ -974,6 +971,16 @@ private fun ObjectReporter.applyFromField(
   labels += delegateReporter.labels.map { "$prefix $it" }
   leakingReasons += delegateReporter.leakingReasons.map { "$prefix $it" }
   notLeakingReasons += delegateReporter.notLeakingReasons.map { "$prefix $it" }
+}
+
+private val HeapInstance.lifecycleRegistryState: String
+  get() {
+    // LifecycleRegistry was converted to Kotlin
+    // https://cs.android.com/androidx/platform/frameworks/support/+/36833f9ab0c50bf449fc795e297a0e124df3356e
+    val stateField = this["androidx.lifecycle.LifecycleRegistry", "state"]
+      ?: this["androidx.lifecycle.LifecycleRegistry", "mState"]!!
+    val state = stateField.valueAsInstance!!
+    return state["java.lang.Enum", "name"]!!.value.readAsJavaString()!!
 }
 
 /**

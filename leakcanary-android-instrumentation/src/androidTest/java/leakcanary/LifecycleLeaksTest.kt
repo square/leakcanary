@@ -8,10 +8,12 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModel
 import com.squareup.leakcanary.instrumentation.test.R
 import leakcanary.TestUtils.assertLeak
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import shark.LeakTraceObject.LeakingStatus
 
 class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
 
@@ -25,6 +27,10 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
     ): View {
       return View(context)
     }
+  }
+
+  class FragmentHoldingLeaky : Fragment() {
+    val leaky = Any()
   }
 
   @get:Rule
@@ -105,7 +111,46 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
     }
 
     fragment retained {
-      assertLeak(Fragment::class.java)
+      val expectedLeakClass = Fragment::class.java
+      assertLeak { (heapAnalysis, leakTrace) ->
+        val className = leakTrace.leakingObject.className
+        assertThat(className)
+          .describedAs("$heapAnalysis")
+          .isEqualTo(expectedLeakClass.name)
+        assertThat(leakTrace.leakingObject.leakingStatusReason)
+          .describedAs("$heapAnalysis")
+          .contains("Fragment.mLifecycleRegistry.state is DESTROYED")
+      }
+    }
+  }
+
+  @Test
+  fun fragmentNotLeakingDetected() {
+    triggersOnActivityCreated {
+      activityRule.launchActivity(null)
+    }
+
+    getOnMainSync {
+      val fragment = FragmentHoldingLeaky()
+      activity.addFragmentNow(fragment)
+      AppWatcher.objectWatcher.expectWeaklyReachable(fragment.leaky, "leaky leaks")
+    }
+
+    assertLeak { (heapAnalysis, leakTrace) ->
+      val refToLeaky = leakTrace.referencePath.last()
+      assertThat(refToLeaky.referenceName)
+        .describedAs("$heapAnalysis")
+        .isEqualTo("leaky")
+      val fragment = refToLeaky.originObject
+      // AssertJ uses lambdas when comparing enum values, which fails on older Android versions.
+      if (fragment.leakingStatus != LeakingStatus.NOT_LEAKING) {
+        throw AssertionError(
+          "${fragment.leakingStatus} should be ${LeakingStatus.NOT_LEAKING}"
+        )
+      }
+      assertThat(fragment.leakingStatusReason).isEqualTo(
+        "Fragment.mLifecycleRegistry.state is RESUMED"
+      )
     }
   }
 
