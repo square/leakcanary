@@ -5,7 +5,7 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 
 I've started working on LeakCanary 3.0 so new 2.x releases only contain bug fixes and new known leak patterns.
 
-## Version 2.13 (2024-01-01)
+## Version 2.13 (2024-01-03)
 
 * 🐛 [#2565](https://github.com/square/leakcanary/issues/2565) Fix AndroidX Fragments incorrectly marked as leaking if detached but not destroyed.
 * 💥 [#2568](https://github.com/square/leakcanary/issues/2568) Fixed missing `RECEIVER_EXPORTED` flag when calling `registerReceiver()` on API 34+.
