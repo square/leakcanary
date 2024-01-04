@@ -370,7 +370,7 @@ class OpenJdkInstanceRefReadersTest {
     virtualRefReaderFactory: OptionalFactory,
   ): List<LeakTraceReference> {
     val leaks = openHeapGraph().use { graph ->
-      val referenceMatchers = defaultReferenceMatchers
+      val referenceMatchers = JdkReferenceMatchers.defaults
 
       val virtualRefReaders = virtualRefReaderFactory.create(graph)?.let {
         listOf(it)

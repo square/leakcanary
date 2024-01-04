@@ -1,9 +1,6 @@
 package shark
 
 import java.io.File
-import java.lang.ref.PhantomReference
-import java.lang.ref.SoftReference
-import java.lang.ref.WeakReference
 import java.util.ArrayDeque
 import java.util.Deque
 import shark.HeapObject.HeapClass
@@ -12,8 +9,6 @@ import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.ReferenceLocationType.ARRAY_ENTRY
-import shark.ReferencePattern.InstanceFieldPattern
-import shark.ReferencePattern.JavaLocalPattern
 
 class HeapGrowth(
   private val dumpHeap: () -> File
@@ -165,7 +160,7 @@ class HeapGrowth(
   class Bfs(val graph: HeapGraph) {
 
     private val objectReferenceReader: ReferenceReader<HeapObject> =
-      AndroidReferenceReaderFactory(defaultReferenceMatchers).createFor(graph)
+      AndroidReferenceReaderFactory(JdkReferenceMatchers.defaults).createFor(graph)
 
     var visitingLast = false
 
@@ -196,7 +191,7 @@ class HeapGrowth(
         tree.growing = true
       }
 
-      val referenceMatchers = defaultReferenceMatchers
+      val referenceMatchers = JdkReferenceMatchers.defaults
       val gcRootProvider = MatchingGcRootProvider(referenceMatchers)
 
       val roots = groupRoots(gcRootProvider)
@@ -448,53 +443,4 @@ class HeapGrowth(
     val shortestPathNode: ShortestPathNode,
     val previousPathNode: ShortestPathNode?
   )
-
-  companion object {
-    val defaultReferenceMatchers: List<ReferenceMatcher> =
-      listOf(
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern(WeakReference::class.java.name, "referent")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern("leakcanary.KeyedWeakReference", "referent")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern(SoftReference::class.java.name, "referent")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern(PhantomReference::class.java.name, "referent")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern("java.lang.ref.Finalizer", "prev")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern("java.lang.ref.Finalizer", "element")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern("java.lang.ref.Finalizer", "next")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern("java.lang.ref.FinalizerReference", "prev")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern("java.lang.ref.FinalizerReference", "element")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern("java.lang.ref.FinalizerReference", "next")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern("sun.misc.Cleaner", "prev")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = InstanceFieldPattern("sun.misc.Cleaner", "next")
-        ),
-
-        IgnoredReferenceMatcher(
-          pattern = JavaLocalPattern("FinalizerWatchdogDaemon")
-        ),
-        IgnoredReferenceMatcher(
-          pattern = JavaLocalPattern("main")
-        )
-      )
-  }
 }

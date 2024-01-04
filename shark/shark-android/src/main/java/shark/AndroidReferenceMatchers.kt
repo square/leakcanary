@@ -15,9 +15,6 @@
  */
 package shark
 
-import java.lang.ref.PhantomReference
-import java.lang.ref.SoftReference
-import java.lang.ref.WeakReference
 import java.util.EnumSet
 import shark.AndroidReferenceMatchers.Companion.appDefaults
 import shark.AndroidReferenceMatchers.Companion.buildKnownReferences
@@ -1522,18 +1519,9 @@ enum class AndroidReferenceMatchers {
     override fun add(
       references: MutableList<ReferenceMatcher>
     ) {
-      references += ignoredInstanceField(WeakReference::class.java.name, "referent")
-      references += ignoredInstanceField("leakcanary.KeyedWeakReference", "referent")
-      references += ignoredInstanceField(SoftReference::class.java.name, "referent")
-      references += ignoredInstanceField(PhantomReference::class.java.name, "referent")
-      references += ignoredInstanceField("java.lang.ref.Finalizer", "prev")
-      references += ignoredInstanceField("java.lang.ref.Finalizer", "element")
-      references += ignoredInstanceField("java.lang.ref.Finalizer", "next")
-      references += ignoredInstanceField("java.lang.ref.FinalizerReference", "prev")
-      references += ignoredInstanceField("java.lang.ref.FinalizerReference", "element")
-      references += ignoredInstanceField("java.lang.ref.FinalizerReference", "next")
-      references += ignoredInstanceField("sun.misc.Cleaner", "prev")
-      references += ignoredInstanceField("sun.misc.Cleaner", "next")
+      references.addAll(
+        JdkReferenceMatchers.buildKnownReferences(EnumSet.of(JdkReferenceMatchers.REFERENCES))
+      )
     }
   },
 
@@ -1541,9 +1529,9 @@ enum class AndroidReferenceMatchers {
     override fun add(
       references: MutableList<ReferenceMatcher>
     ) {
-      // If the FinalizerWatchdogDaemon thread is on the shortest path, then there was no other
-      // reference to the object and it was about to be GCed.
-      references += ignoredJavaLocal("FinalizerWatchdogDaemon")
+      references.addAll(
+        JdkReferenceMatchers.buildKnownReferences(EnumSet.of(JdkReferenceMatchers.FINALIZER_WATCHDOG_DAEMON))
+      )
     }
   },
 
@@ -1551,10 +1539,9 @@ enum class AndroidReferenceMatchers {
     override fun add(
       references: MutableList<ReferenceMatcher>
     ) {
-      // The main thread stack is ever changing so local variables aren't likely to hold references
-      // for long. If this is on the shortest path, it's probably that there's a longer path with
-      // a real leak.
-      references += ignoredJavaLocal("main")
+      references.addAll(
+        JdkReferenceMatchers.buildKnownReferences(EnumSet.of(JdkReferenceMatchers.MAIN))
+      )
     }
   },
 

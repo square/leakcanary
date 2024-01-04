@@ -1,20 +1,17 @@
 package shark
 
 import java.io.File
-import java.lang.ref.PhantomReference
-import java.lang.ref.SoftReference
-import java.lang.ref.WeakReference
 import shark.HprofHeapGraph.Companion.openHeapGraph
-import shark.ReferencePattern.InstanceFieldPattern
-import shark.ReferencePattern.JavaLocalPattern
 
 fun <T : HeapAnalysis> DualSourceProvider.checkForLeaks(
   objectInspectors: List<ObjectInspector> = emptyList(),
   computeRetainedHeapSize: Boolean = false,
-  referenceMatchers: List<ReferenceMatcher> = defaultReferenceMatchers,
+  referenceMatchers: List<ReferenceMatcher> = JdkReferenceMatchers.defaults,
   metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
   proguardMapping: ProguardMapping? = null,
-  leakingObjectFinder: LeakingObjectFinder = FilteringLeakingObjectFinder(ObjectInspectors.jdkLeakingObjectFilters),
+  leakingObjectFinder: LeakingObjectFinder = FilteringLeakingObjectFinder(
+    ObjectInspectors.jdkLeakingObjectFilters
+  ),
   file: File = File("/no/file")
 ): T {
   val inspectors = if (ObjectInspectors.KEYED_WEAK_REFERENCE !in objectInspectors) {
@@ -45,60 +42,15 @@ fun <T : HeapAnalysis> DualSourceProvider.checkForLeaks(
 fun <T : HeapAnalysis> File.checkForLeaks(
   objectInspectors: List<ObjectInspector> = emptyList(),
   computeRetainedHeapSize: Boolean = false,
-  referenceMatchers: List<ReferenceMatcher> = defaultReferenceMatchers,
+  referenceMatchers: List<ReferenceMatcher> = JdkReferenceMatchers.defaults,
   metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
   proguardMapping: ProguardMapping? = null,
-  leakingObjectFinder: LeakingObjectFinder = FilteringLeakingObjectFinder(ObjectInspectors.jdkLeakingObjectFilters),
+  leakingObjectFinder: LeakingObjectFinder = FilteringLeakingObjectFinder(
+    ObjectInspectors.jdkLeakingObjectFilters
+  ),
 ): T {
   return FileSourceProvider(this).checkForLeaks(
     objectInspectors, computeRetainedHeapSize, referenceMatchers, metadataExtractor,
     proguardMapping, leakingObjectFinder, this
   )
 }
-
-val defaultReferenceMatchers: List<ReferenceMatcher> =
-  listOf(
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern(WeakReference::class.java.name, "referent")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern("leakcanary.KeyedWeakReference", "referent")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern(SoftReference::class.java.name, "referent")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern(PhantomReference::class.java.name, "referent")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern("java.lang.ref.Finalizer", "prev")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern("java.lang.ref.Finalizer", "element")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern("java.lang.ref.Finalizer", "next")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern("java.lang.ref.FinalizerReference", "prev")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern("java.lang.ref.FinalizerReference", "element")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern("java.lang.ref.FinalizerReference", "next")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern("sun.misc.Cleaner", "prev")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = InstanceFieldPattern("sun.misc.Cleaner", "next")
-    ),
-
-    IgnoredReferenceMatcher(
-      pattern = JavaLocalPattern("FinalizerWatchdogDaemon")
-    ),
-    IgnoredReferenceMatcher(
-      pattern = JavaLocalPattern("main")
-    )
-  )
