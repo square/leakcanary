@@ -42,7 +42,10 @@ class HeapGrowth(
       if (lastGrowingNodes != null) {
         val constantlyGrowingNodeCount = lastGrowingNodes!!.filter { !it.newNode }.size
         val iterationCount = i * scenarioLoopsPerDump
-        SharkLog.d { "After $iterationCount (+ $scenarioLoopsPerDump) iterations and heap dump $i/$heapDumps: $constantlyGrowingNodeCount growing nodes" }
+        SharkLog.d {
+          "After $iterationCount (+ $scenarioLoopsPerDump) iterations and heap dump $i/$heapDumps: " +
+            "$constantlyGrowingNodeCount growing nodes"
+        }
         if (constantlyGrowingNodeCount == 0) {
           SharkLog.d { "Success, no more constantly growing nodes after ${i * scenarioLoopsPerDump} iterations" }
           return
