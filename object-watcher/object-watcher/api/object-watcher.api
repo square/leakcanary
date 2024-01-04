@@ -2,6 +2,24 @@ public abstract interface class leakcanary/Clock {
 	public abstract fun uptimeMillis ()J
 }
 
+public final class leakcanary/DefaultDelayDeletableObjectReporter : leakcanary/DeletableObjectReporter {
+	public synthetic fun <init> (JLleakcanary/DelayedDeletableObjectReporter;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun expectDeletionFor (Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TrackedObjectReachability;
+}
+
+public final class leakcanary/DelayedDeletableObjectReporter {
+	public fun <init> (Lleakcanary/TriggeredDeletableObjectReporter;Lleakcanary/DelayedExecutor;)V
+	public final fun expectDelayedDeletionFor-SxA4cEA (Ljava/lang/Object;Ljava/lang/String;J)Lleakcanary/TrackedObjectReachability;
+}
+
+public abstract interface class leakcanary/DelayedExecutor {
+	public abstract fun executeWithDelay-VtjQ1oo (JLjava/lang/Runnable;)V
+}
+
+public abstract interface class leakcanary/DeletableObjectReporter {
+	public abstract fun expectDeletionFor (Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TrackedObjectReachability;
+}
+
 public abstract interface class leakcanary/GcTrigger {
 	public abstract fun runGc ()V
 }
@@ -15,9 +33,12 @@ public final class leakcanary/KeyedWeakReference : java/lang/ref/WeakReference {
 	public static final field Companion Lleakcanary/KeyedWeakReference$Companion;
 	public fun <init> (Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;JLjava/lang/ref/ReferenceQueue;)V
 	public fun clear ()V
+	public fun get ()Ljava/lang/Object;
+	public final fun getAndLeakReferent ()Ljava/lang/Object;
 	public final fun getDescription ()Ljava/lang/String;
 	public static final fun getHeapDumpUptimeMillis ()J
 	public final fun getKey ()Ljava/lang/String;
+	public final fun getRetained ()Z
 	public final fun getRetainedUptimeMillis ()J
 	public final fun getWatchUptimeMillis ()J
 	public static final fun setHeapDumpUptimeMillis (J)V
@@ -29,25 +50,85 @@ public final class leakcanary/KeyedWeakReference$Companion {
 	public final fun setHeapDumpUptimeMillis (J)V
 }
 
-public final class leakcanary/ObjectWatcher : leakcanary/ReachabilityWatcher {
+public final class leakcanary/ObjectWatcher : leakcanary/ReachabilityWatcher, leakcanary/RetainedObjectTracker {
 	public fun <init> (Lleakcanary/Clock;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function0;)V
 	public synthetic fun <init> (Lleakcanary/Clock;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun addOnObjectRetainedListener (Lleakcanary/OnObjectRetainedListener;)V
+	public fun clearAllObjectsTracked ()V
+	public fun clearObjectsTrackedBefore-LRDsOJo (J)V
 	public final fun clearObjectsWatchedBefore (J)V
 	public final fun clearWatchedObjects ()V
+	public fun expectDeletionFor (Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TrackedObjectReachability;
 	public fun expectWeaklyReachable (Ljava/lang/Object;Ljava/lang/String;)V
-	public final fun getHasRetainedObjects ()Z
+	public fun getHasRetainedObjects ()Z
+	public fun getHasTrackedObjects ()Z
 	public final fun getHasWatchedObjects ()Z
-	public final fun getRetainedObjectCount ()I
+	public fun getRetainedObjectCount ()I
 	public final fun getRetainedObjects ()Ljava/util/List;
+	public fun getTrackedObjectCount ()I
 	public final fun removeOnObjectRetainedListener (Lleakcanary/OnObjectRetainedListener;)V
+	public final fun watch (Ljava/lang/Object;)V
+	public final fun watch (Ljava/lang/Object;Ljava/lang/String;)V
 }
 
 public abstract interface class leakcanary/OnObjectRetainedListener {
 	public abstract fun onObjectRetained ()V
 }
 
-public abstract interface class leakcanary/ReachabilityWatcher {
+public abstract interface class leakcanary/ReachabilityWatcher : leakcanary/DeletableObjectReporter {
+	public abstract fun expectDeletionFor (Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TrackedObjectReachability;
 	public abstract fun expectWeaklyReachable (Ljava/lang/Object;Ljava/lang/String;)V
+}
+
+public final class leakcanary/ReachabilityWatcher$DefaultImpls {
+	public static fun expectDeletionFor (Lleakcanary/ReachabilityWatcher;Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TrackedObjectReachability;
+}
+
+public final class leakcanary/ReferenceQueueRetainedObjectTracker : leakcanary/RetainedObjectTracker, leakcanary/TriggeredDeletableObjectReporter {
+	public fun <init> (Lleakcanary/UptimeClock;Lleakcanary/OnObjectRetainedListener;)V
+	public fun clearAllObjectsTracked ()V
+	public fun clearObjectsTrackedBefore-LRDsOJo (J)V
+	public fun expectDeletionOnTriggerFor (Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TriggeredDeletableObjectReporter$RetainTrigger;
+	public fun getHasRetainedObjects ()Z
+	public fun getHasTrackedObjects ()Z
+	public fun getRetainedObjectCount ()I
+	public final fun getRetainedWeakReferences ()Ljava/util/List;
+	public fun getTrackedObjectCount ()I
+	public final fun getTrackedWeakReferences ()Ljava/util/List;
+}
+
+public abstract interface class leakcanary/RetainedObjectTracker {
+	public abstract fun clearAllObjectsTracked ()V
+	public abstract fun clearObjectsTrackedBefore-LRDsOJo (J)V
+	public abstract fun getHasRetainedObjects ()Z
+	public abstract fun getHasTrackedObjects ()Z
+	public abstract fun getRetainedObjectCount ()I
+	public abstract fun getTrackedObjectCount ()I
+}
+
+public abstract interface class leakcanary/TrackedObjectReachability {
+	public abstract fun isDeletable ()Z
+	public abstract fun isRetained ()Z
+	public abstract fun isStronglyReachable ()Z
+}
+
+public final class leakcanary/TrackedObjectReachability$DefaultImpls {
+	public static fun isDeletable (Lleakcanary/TrackedObjectReachability;)Z
+}
+
+public abstract interface class leakcanary/TriggeredDeletableObjectReporter {
+	public abstract fun expectDeletionOnTriggerFor (Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TriggeredDeletableObjectReporter$RetainTrigger;
+}
+
+public abstract interface class leakcanary/TriggeredDeletableObjectReporter$RetainTrigger : leakcanary/TrackedObjectReachability {
+	public abstract fun markRetainedIfStronglyReachable ()V
+}
+
+public final class leakcanary/TriggeredDeletableObjectReporter$RetainTrigger$DefaultImpls {
+	public static fun isDeletable (Lleakcanary/TriggeredDeletableObjectReporter$RetainTrigger;)Z
+}
+
+public abstract interface class leakcanary/UptimeClock {
+	public abstract fun uptime-UwyO8pc ()J
 }
 

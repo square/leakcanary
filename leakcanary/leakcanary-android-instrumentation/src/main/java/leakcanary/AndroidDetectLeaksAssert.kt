@@ -1,15 +1,16 @@
 package leakcanary
 
 import android.os.SystemClock
+import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 import leakcanary.internal.InstrumentationHeapAnalyzer
 import leakcanary.internal.InstrumentationHeapDumpFileProvider
-import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 import leakcanary.internal.RetryingHeapAnalyzer
 import leakcanary.internal.friendly.checkNotMainThread
 import leakcanary.internal.friendly.measureDurationMillis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
 import shark.SharkLog
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Default [DetectLeaksAssert] implementation. Uses public helpers so you should be able to
@@ -65,7 +66,9 @@ class AndroidDetectLeaksAssert(
       config.heapDumper.dumpHeap(heapDumpFile)
     }
     val heapDumpUptimeMillis = KeyedWeakReference.heapDumpUptimeMillis
-    AppWatcher.objectWatcher.clearObjectsWatchedBefore(heapDumpUptimeMillis)
+    AppWatcher.objectWatcher.clearObjectsTrackedBefore(
+      heapDumpUptimeMillis.milliseconds
+    )
 
     val heapAnalyzer = RetryingHeapAnalyzer(
       InstrumentationHeapAnalyzer(

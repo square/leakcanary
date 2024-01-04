@@ -137,6 +137,12 @@ public final class leakcanary/LeakCanary$Config$Builder {
 	public final fun showNotifications (Z)Lleakcanary/LeakCanary$Config$Builder;
 }
 
+public final class leakcanary/LeakCanaryAndroidInternalUtils {
+	public static final field INSTANCE Lleakcanary/LeakCanaryAndroidInternalUtils;
+	public final fun addLeakActivityDynamicShortcut (Landroid/app/Application;)V
+	public final fun isInstantApp (Landroid/app/Application;)Z
+}
+
 public final class leakcanary/LogcatEventListener : leakcanary/EventListener {
 	public static final field INSTANCE Lleakcanary/LogcatEventListener;
 	public fun onEvent (Lleakcanary/EventListener$Event;)V

@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.Factory
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
-import leakcanary.ReachabilityWatcher
+import leakcanary.DeletableObjectReporter
 import leakcanary.internal.ViewModelClearedWatcher.Companion.install
 import shark.SharkLog
 
@@ -13,11 +13,11 @@ import shark.SharkLog
  * [AndroidXFragmentDestroyWatcher] calls [install] to add a spy [ViewModel] in every
  * [ViewModelStoreOwner] instance (i.e. FragmentActivity and Fragment). [ViewModelClearedWatcher]
  * holds on to the map of [ViewModel]s backing its store. When [ViewModelClearedWatcher] receives
- * the [onCleared] callback, it adds each live [ViewModel] from the store to the [ReachabilityWatcher].
+ * the [onCleared] callback, it adds each live [ViewModel] from the store to the [DeletableObjectReporter].
  */
 internal class ViewModelClearedWatcher(
   storeOwner: ViewModelStoreOwner,
-  private val reachabilityWatcher: ReachabilityWatcher
+  private val deletableObjectReporter: DeletableObjectReporter
 ) : ViewModel() {
 
   // We could call ViewModelStore#keys with a package spy in androidx.lifecycle instead,
@@ -42,7 +42,7 @@ internal class ViewModelClearedWatcher(
 
   override fun onCleared() {
     viewModelMap?.values?.forEach { viewModel ->
-      reachabilityWatcher.expectWeaklyReachable(
+      deletableObjectReporter.expectDeletionFor(
         viewModel, "${viewModel::class.java.name} received ViewModel#onCleared() callback"
       )
     }
@@ -51,12 +51,12 @@ internal class ViewModelClearedWatcher(
   companion object {
     fun install(
       storeOwner: ViewModelStoreOwner,
-      reachabilityWatcher: ReachabilityWatcher
+      deletableObjectReporter: DeletableObjectReporter
     ) {
       val provider = ViewModelProvider(storeOwner, object : Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel?> create(modelClass: Class<T>): T =
-          ViewModelClearedWatcher(storeOwner, reachabilityWatcher) as T
+          ViewModelClearedWatcher(storeOwner, deletableObjectReporter) as T
       })
       provider.get(ViewModelClearedWatcher::class.java)
     }

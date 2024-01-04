@@ -14,8 +14,8 @@ public final class leakcanary/AndroidDetectLeaksAssert$Companion {
 
 public final class leakcanary/AndroidDetectLeaksInterceptor : leakcanary/DetectLeaksInterceptor {
 	public fun <init> ()V
-	public fun <init> (Landroid/app/Instrumentation;Lleakcanary/ObjectWatcher;J)V
-	public synthetic fun <init> (Landroid/app/Instrumentation;Lleakcanary/ObjectWatcher;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Landroid/app/Instrumentation;Lleakcanary/RetainedObjectTracker;J)V
+	public synthetic fun <init> (Landroid/app/Instrumentation;Lleakcanary/RetainedObjectTracker;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun waitUntilReadyForHeapAnalysis ()Lleakcanary/HeapAnalysisDecision;
 }
 

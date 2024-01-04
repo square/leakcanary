@@ -27,7 +27,7 @@ class DetectLeaksAfterTestSuccess(
         } finally {
           // Otherwise upstream test failures will be reported as leaks.
           // https://github.com/square/leakcanary/issues/2297
-          AppWatcher.objectWatcher.clearWatchedObjects()
+          AppWatcher.objectWatcher.clearAllObjectsTracked()
         }
       }
     }, description)

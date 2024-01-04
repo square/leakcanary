@@ -10,13 +10,13 @@ import leakcanary.internal.friendly.noOpDelegate
  */
 class ActivityWatcher(
   private val application: Application,
-  private val reachabilityWatcher: ReachabilityWatcher
+  private val deletableObjectReporter: DeletableObjectReporter
 ) : InstallableWatcher {
 
   private val lifecycleCallbacks =
     object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
       override fun onActivityDestroyed(activity: Activity) {
-        reachabilityWatcher.expectWeaklyReachable(
+        deletableObjectReporter.expectDeletionFor(
           activity, "${activity::class.java.name} received Activity#onDestroy() callback"
         )
       }

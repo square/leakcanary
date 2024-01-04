@@ -14,11 +14,11 @@ class ObjectInspectorTest : HasActivityTestRule<TestActivity> {
   override val activityRule = activityTestRule<TestActivity>(launchActivity = false)
 
   @Before fun setUp() {
-    AppWatcher.objectWatcher.clearWatchedObjects()
+    AppWatcher.objectWatcher.clearAllObjectsTracked()
   }
 
   @After fun tearDown() {
-    AppWatcher.objectWatcher.clearWatchedObjects()
+    AppWatcher.objectWatcher.clearAllObjectsTracked()
   }
 
   @Test fun LifecycleRegistry_LeakingStatus_Is_Reported() {
@@ -29,7 +29,7 @@ class ObjectInspectorTest : HasActivityTestRule<TestActivity> {
       runOnMainSync {
         val observer = object : LifecycleObserver {}
         activity.lifecycle.addObserver(observer)
-        AppWatcher.objectWatcher.expectWeaklyReachable(observer, "observer")
+        AppWatcher.objectWatcher.expectDeletionFor(observer, "observer")
       }
       triggersOnActivityDestroyed {
         activityRule.finishActivity()
