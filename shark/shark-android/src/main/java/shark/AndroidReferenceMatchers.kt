@@ -61,7 +61,9 @@ enum class AndroidReferenceMatchers {
         "Fix: you can \"fix\" this leak by calling getSystemService(\"permission_controller\") " +
         "on an application context. " +
         "Tracked here: https://issuetracker.google.com/issues/318415056"
-      )
+      ) {
+        sdkInt >= 29
+      }
     }
   },
 

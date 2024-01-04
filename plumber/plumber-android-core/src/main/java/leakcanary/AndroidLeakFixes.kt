@@ -721,6 +721,9 @@ enum class AndroidLeakFixes {
   PERMISSION_CONTROLLER_MANAGER {
     @SuppressLint("WrongConstant")
     override fun apply(application: Application) {
+      if (SDK_INT < 29) {
+        return
+      }
       try {
         application.getSystemService("permission_controller")
       } catch (ignored: Exception) {
