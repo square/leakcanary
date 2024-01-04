@@ -1,0 +1,4 @@
+package shark
+
+class JdkReferenceMatchers {
+}
