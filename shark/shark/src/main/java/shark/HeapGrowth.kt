@@ -95,24 +95,6 @@ class HeapGrowth(
     val childrenObjectCount: Int
       get() = children.sumOf { it.selfObjectCount }
 
-    fun print(maxLevel: Int) {
-      val stack = mutableListOf<Pair<Int, ShortestPathNode>>()
-      stack.add(0 to this)
-      while (stack.isNotEmpty()) {
-        val (level, node) = stack.removeLast()
-        println(
-          "  ".repeat(
-            level
-          ) + node.nodeAndEdgeName + "| growing: ${node.growing} | ${node.selfObjectCount} objects going to ${node.childrenObjectCount} children"
-        )
-        if (level + 1 <= maxLevel) {
-          for (child in node.children.reversed()) {
-            stack.add(level + 1 to child)
-          }
-        }
-      }
-    }
-
     fun pathFromRootAsString(): String {
       val pathFromRoot = mutableListOf<ShortestPathNode>()
       var unwindingNode: ShortestPathNode? = this
