@@ -21,41 +21,52 @@ class HeapGrowth(
 
   fun assertNoRepeatedHeapGrowth(
     heapDumps: Int,
+    scenarioLoopsPerDump: Int = 1,
     loopingScenario: () -> Unit
   ) {
-    val constantlyGrowingNodes = findRepeatedHeapGrowth(heapDumps, loopingScenario)
-
-    if (constantlyGrowingNodes.isNotEmpty()) {
-      val resultString =
-        constantlyGrowingNodes.joinToString(separator = "##################\n") { leafNode ->
-          leafNode.pathFromRootAsString()
-        }
-      throw AssertionError("Repeated heap growth detected, leak roots:\n$resultString")
+    check(heapDumps > 1) {
+      "There should be at least 2 heap dumps"
     }
-  }
 
-  private fun findRepeatedHeapGrowth(
-    heapDumps: Int,
-    loopingScenario: () -> Unit
-  ): List<ShortestPathNode> {
-    val dumps = mutableListOf<File>()
+    var lastGrowingNodes: List<ShortestPathNode>? = null
+    var previousShortestPathTree: ShortestPathNode? = null
     for (i in 1..heapDumps) {
-      loopingScenario()
-      loopingScenario()
-      dumps += dumpHeap()
+      for (j in 1..scenarioLoopsPerDump) {
+        loopingScenario()
+      }
+      val heapDumpFile = dumpHeap()
+      check(heapDumpFile.exists())
+      heapDumpFile.openHeapGraph().use { graph ->
+        val bfs = Bfs(graph)
+        val (shortestPathTree, growingNodes) = bfs.computeShortestPathTreeDiff(
+          previousShortestPathTree, scenarioLoopsPerDump
+        )
+        previousShortestPathTree = shortestPathTree
+        lastGrowingNodes = growingNodes
+      }
+      if (lastGrowingNodes != null) {
+        val constantlyGrowingNodeCount = lastGrowingNodes!!.filter { !it.newNode }.size
+        val iterationCount = i * scenarioLoopsPerDump
+        SharkLog.d { "After $iterationCount (+ $scenarioLoopsPerDump) iterations and heap dump $i/$heapDumps: $constantlyGrowingNodeCount growing nodes" }
+        if (constantlyGrowingNodeCount == 0) {
+          SharkLog.d { "Success, no more constantly growing nodes after ${i * scenarioLoopsPerDump} iterations" }
+          return
+        }
+      }
     }
 
-    val constantlyGrowingNodes = findNodesConstantlyGrowing(
-      dumps = dumps,
-      // We run the scenario twice per heap dumps, to ignore side effects of dumping the heap.
-      detectedGrowth = 2
-    )
-    return constantlyGrowingNodes
+    val constantlyGrowingNodes = lastGrowingNodes!!.filter { !it.newNode }
+    check(constantlyGrowingNodes.isNotEmpty())
+    val resultString =
+      constantlyGrowingNodes.joinToString(separator = "##################\n") { leafNode ->
+        leafNode.pathFromRootAsString()
+      }
+    throw AssertionError("Repeated heap growth detected, leak roots:\n$resultString")
   }
 
-  private fun findNodesConstantlyGrowing(
+  fun findNodesConstantlyGrowing(
     dumps: MutableList<File>,
-    detectedGrowth: Int
+    detectedGrowth: Int = 1
   ): List<ShortestPathNode> {
     check(dumps.size > 1) {
       "There should be at least 2 heap dumps"
@@ -82,6 +93,7 @@ class HeapGrowth(
   ) {
     val children = mutableListOf<ShortestPathNode>()
     var selfObjectCount = 0
+    var selfObjectCountIncrease = 0
 
     var growing = false
 
@@ -125,8 +137,24 @@ class HeapGrowth(
           result.append("╰→")
         }
         result.append(pathNode.nodeAndEdgeName)
-        result.appendLine()
-        if (index < pathAfterRoot.lastIndex) {
+        result.append(" (")
+        result.append(pathNode.selfObjectCount)
+        result.append(" objects)")
+        if (index == pathAfterRoot.lastIndex) {
+          result.appendLine()
+          result.append("    Children:")
+          result.appendLine()
+          val childrenByMostIncreasedFirst =
+            pathNode.children.sortedBy { -it.selfObjectCountIncrease }
+          result.append(
+            childrenByMostIncreasedFirst.joinToString(
+              separator = "\n",
+              postfix = "\n"
+            ) { child ->
+              "    ${child.selfObjectCount} objects (${child.selfObjectCountIncrease} new): ${child.nodeAndEdgeName}"
+            })
+        } else {
+          result.appendLine()
           result.append("│ ").appendLine()
         }
       }
@@ -231,7 +259,13 @@ class HeapGrowth(
             }
           }
         }.groupBy {
-          it.nodeAndEdgeName + if (it.isLowPriority) "low-priority" else ""
+          try {
+            it.nodeAndEdgeName + if (it.isLowPriority) "low-priority" else ""
+          } catch (e: Throwable) {
+            println("Wow that's unexpected trying to add to ${it.nodeAndEdgeName}")
+            e.printStackTrace()
+            throw e
+          }
         }
 
         if (visitedObjectCount > 0) {
@@ -293,6 +327,23 @@ class HeapGrowth(
             parent.growing && shortestPathNode.selfObjectCount > 0
           }
           if (growing) {
+            if (node.previousPathNode != null) {
+              val previousChildrenByName =
+                node.previousPathNode.children.associateBy { it.nodeAndEdgeName }
+              shortestPathNode.children.forEach { child ->
+                val previousChild = previousChildrenByName[child.nodeAndEdgeName]
+                if (previousChild != null) {
+                  child.selfObjectCountIncrease =
+                    child.selfObjectCount - previousChild.selfObjectCount
+                } else {
+                  child.selfObjectCountIncrease = child.selfObjectCount
+                }
+              }
+            } else {
+              shortestPathNode.children.forEach { child ->
+                child.selfObjectCountIncrease = child.selfObjectCount
+              }
+            }
             // Mark as growing in the tree(useful for next iteration)
             shortestPathNode.growing = true
             // Return in list of growing nodes.
