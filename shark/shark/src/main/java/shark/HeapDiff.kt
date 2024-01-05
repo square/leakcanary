@@ -10,78 +10,120 @@ import shark.HeapObject.HeapPrimitiveArray
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.ReferenceLocationType.ARRAY_ENTRY
 
-class HeapGrowth(
+class HeapDiff(
   private val dumpHeap: () -> File
 ) {
 
   fun assertNoRepeatedHeapGrowth(
-    heapDumps: Int,
+    maxHeapDumps: Int,
     scenarioLoopsPerDump: Int = 1,
     loopingScenario: () -> Unit
   ) {
-    check(heapDumps > 1) {
+    check(maxHeapDumps > 1) {
       "There should be at least 2 heap dumps"
     }
 
-    var lastGrowingNodes: List<ShortestPathNode>? = null
-    var previousShortestPathTree: ShortestPathNode? = null
-    for (i in 1..heapDumps) {
-      for (j in 1..scenarioLoopsPerDump) {
-        loopingScenario()
-      }
-      val heapDumpFile = dumpHeap()
-      check(heapDumpFile.exists())
-      heapDumpFile.openHeapGraph().use { graph ->
-        val bfs = Bfs(graph)
-        val (shortestPathTree, growingNodes) = bfs.computeShortestPathTreeDiff(
-          previousShortestPathTree, scenarioLoopsPerDump
-        )
-        previousShortestPathTree = shortestPathTree
-        lastGrowingNodes = growingNodes
-      }
-      if (lastGrowingNodes != null) {
-        val constantlyGrowingNodeCount = lastGrowingNodes!!.filter { !it.newNode }.size
-        val iterationCount = i * scenarioLoopsPerDump
-        SharkLog.d {
-          "After $iterationCount (+ $scenarioLoopsPerDump) iterations and heap dump $i/$heapDumps: " +
-            "$constantlyGrowingNodeCount growing nodes"
+    var i = 0
+    val heapDumps = generateSequence {
+      if (i == maxHeapDumps) {
+        null
+      } else {
+        i++
+        for (j in 1..scenarioLoopsPerDump) {
+          loopingScenario()
         }
-        if (constantlyGrowingNodeCount == 0) {
-          SharkLog.d { "Success, no more constantly growing nodes after ${i * scenarioLoopsPerDump} iterations" }
-          return
-        }
+        val heapDumpFile = dumpHeap()
+        check(heapDumpFile.exists())
+        HeapDump(heapDumpFile, scenarioLoopsPerDump)
       }
     }
 
-    val constantlyGrowingNodes = lastGrowingNodes!!.filter { !it.newNode }
-    check(constantlyGrowingNodes.isNotEmpty())
-    val resultString =
-      constantlyGrowingNodes.joinToString(separator = "##################\n") { leafNode ->
-        leafNode.pathFromRootAsString()
-      }
-    throw AssertionError("Repeated heap growth detected, leak roots:\n$resultString")
+    assertNoRepeatedHeapGrowth(heapDumps)
   }
 
-  fun findNodesConstantlyGrowing(
-    dumps: MutableList<File>,
-    detectedGrowth: Int = 1
-  ): List<ShortestPathNode> {
-    check(dumps.size > 1) {
-      "There should be at least 2 heap dumps"
+  data class HeapDump(
+    val file: File,
+    val scenarioLoops: Int
+  )
+
+  fun assertNoRepeatedHeapGrowth(
+    heapDumps: Sequence<HeapDump>
+  ) {
+    val loopDiffResult = loopDiffs(heapDumps)
+    val constantlyGrowingNodes = loopDiffResult.constantlyGrowingNodes
+
+    if (constantlyGrowingNodes.isEmpty()) {
+      SharkLog.d { "Success, no more constantly growing nodes" }
+    } else {
+      val resultString =
+        constantlyGrowingNodes.joinToString(separator = "##################\n") { leafNode ->
+          leafNode.pathFromRootAsString()
+        }
+      throw AssertionError("Repeated heap growth detected, leak roots:\n$resultString")
     }
-    var lastGrowingNodes: List<ShortestPathNode>? = null
-    var previousShortestPathTree: ShortestPathNode? = null
-    for (dump in dumps) {
-      dump.openHeapGraph().use { graph ->
-        val bfs = Bfs(graph)
-        val (shortestPathTree, growingNodes) = bfs.computeShortestPathTreeDiff(
-          previousShortestPathTree, detectedGrowth
-        )
-        previousShortestPathTree = shortestPathTree
-        lastGrowingNodes = growingNodes
+  }
+
+  fun loopDiffs(
+    heapDumps: Sequence<HeapDump>
+  ): HeapDiff {
+    var i = 1
+    var lastDiffResult: InputDiffResult = NoRun
+    for (heapDump in heapDumps) {
+      val diffResult = diffHeap(heapDump, lastDiffResult)
+      if (diffResult is HeapDiff) {
+        val iterationCount = i * heapDump.scenarioLoops
+        SharkLog.d {
+          "After $iterationCount (+ ${heapDump.scenarioLoops}) iterations and heap dump $i: ${diffResult.constantlyGrowingNodes.size} growing nodes"
+        }
+        if (diffResult.constantlyGrowingNodes.isEmpty()) {
+          return diffResult
+        }
       }
+      lastDiffResult = diffResult
+      i++
     }
-    return lastGrowingNodes!!.filter { !it.newNode }
+    val finalDiffResult = lastDiffResult
+    check(finalDiffResult is HeapDiff) {
+      "finalDiffResult $finalDiffResult should be a HeapDiff as i ${i - 1} should be >= 2"
+    }
+    return finalDiffResult
+  }
+
+  sealed interface DiffResult
+  sealed interface InputDiffResult : DiffResult
+  sealed interface OutputDiffResult : InputDiffResult
+  object NoRun : InputDiffResult
+  class InitialRun(val shortestPathTree: ShortestPathNode) : OutputDiffResult
+  class HeapDiff(
+    val shortestPathTree: ShortestPathNode,
+    val growingNodes: List<ShortestPathNode>
+  ) : OutputDiffResult {
+    val constantlyGrowingNodes: List<ShortestPathNode>
+      get() = growingNodes.filter { !it.newNode }
+  }
+
+  fun diffHeap(
+    heapDump: HeapDump,
+    previousResult: InputDiffResult
+  ): OutputDiffResult {
+    val previousShortestPathTree = when (previousResult) {
+      is HeapDiff -> previousResult.shortestPathTree
+      is InitialRun -> previousResult.shortestPathTree
+      NoRun -> null
+    }
+    val (shortestPathTree, growingNodes) = heapDump.file.openHeapGraph().use { graph ->
+      val bfs = Bfs(graph)
+      bfs.computeShortestPathTreeDiff(
+        previousShortestPathTree, heapDump.scenarioLoops
+      )
+    }
+    return if (growingNodes == null) {
+      check(previousResult is NoRun)
+      InitialRun(shortestPathTree)
+    } else {
+      check(previousResult !is NoRun)
+      HeapDiff(shortestPathTree, growingNodes)
+    }
   }
 
   class ShortestPathNode(

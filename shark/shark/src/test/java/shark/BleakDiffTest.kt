@@ -25,9 +25,9 @@ class BleakDiffTest {
 
   @Test
   fun bleakDiffPlayground() {
-    val heapGrowth = HeapGrowth(this::dumpHeap)
+    val heapGrowth = HeapDiff(this::dumpHeap)
 
-    heapGrowth.assertNoRepeatedHeapGrowth(heapDumps = 10) {
+    heapGrowth.assertNoRepeatedHeapGrowth(maxHeapDumps = 10) {
       leaky += Thing()
       leakyLinkedList += Thing()
       leakyHashMap[UUID.randomUUID().toString()] = Thing()
