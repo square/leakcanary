@@ -3,7 +3,15 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-I've started working on LeakCanary 3.0 so new 2.x releases only contain bug fixes and new known leak patterns.
+## Version 3.0 (2024-??-??)
+
+### Bumped dependencies
+
+* Kotlin: updated to 1.8.21
+
+### Other changes
+
+* Dropped support for detecting support fragment leaks: apps should all have migrated to Android X by now, and if not they can easily add this.
 
 ## Version 2.13 (2024-01-03)
 
