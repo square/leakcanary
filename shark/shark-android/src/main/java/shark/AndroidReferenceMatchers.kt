@@ -47,6 +47,23 @@ enum class AndroidReferenceMatchers {
 
   // ######## Android Framework known leaks ########
 
+  PERMISSION_CONTROLLER_MANAGER {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += instanceFieldLeak(
+        "android.permission.PermissionControllerManager", "mContext",
+        description = "On some devices PermissionControllerManager " +
+        "may be initialized with Activity as its Context field. " +
+        "Fix: you can \"fix\" this leak by calling getSystemService(\"permission_controller\") " +
+        "on an application context. " +
+        "Tracked here: https://issuetracker.google.com/issues/318415056"
+      ) {
+        sdkInt >= 29
+      }
+    }
+  },
+
   IREQUEST_FINISH_CALLBACK {
     override fun add(
       references: MutableList<ReferenceMatcher>

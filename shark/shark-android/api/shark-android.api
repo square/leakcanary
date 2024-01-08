@@ -133,6 +133,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field OEM_SCENE_CALL_BLOCKER Lshark/AndroidReferenceMatchers;
 	public static final field ONE_PLUS Ljava/lang/String;
 	public static final field PERF_MONITOR_LAST_CALLBACK Lshark/AndroidReferenceMatchers;
+	public static final field PERMISSION_CONTROLLER_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field PERSONA_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field PLAYER_BASE Lshark/AndroidReferenceMatchers;
 	public static final field RAZER Ljava/lang/String;

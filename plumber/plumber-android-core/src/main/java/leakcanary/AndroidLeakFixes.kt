@@ -707,6 +707,29 @@ enum class AndroidLeakFixes {
         SharkLog.d(ignored) { "Unable to fix SpellChecker leak" }
       }
     }
+  },
+
+  /**
+   * PermissionControllerManager stores the first context it's initialized with forever.
+   * Sometimes it's an Activity context which then leaks after Activity is destroyed.
+   *
+   * This fix makes sure the PermissionControllerManager is created with the application context.
+   *
+   * For Pixel devices the issue can be tracked here
+   * https://issuetracker.google.com/issues/318415056
+   */
+  PERMISSION_CONTROLLER_MANAGER {
+    @SuppressLint("WrongConstant")
+    override fun apply(application: Application) {
+      if (SDK_INT < 29) {
+        return
+      }
+      try {
+        application.getSystemService("permission_controller")
+      } catch (ignored: Exception) {
+        SharkLog.d(ignored) { "Unable to fix PermissionControllerManager leak" }
+      }
+    }
   }
 
   ;
