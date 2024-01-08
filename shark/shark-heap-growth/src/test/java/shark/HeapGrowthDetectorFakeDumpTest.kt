@@ -5,7 +5,7 @@ import org.junit.Test
 import shark.DiffingHeapGrowthDetector.HeapDumpAfterLoopingScenario
 import shark.HprofHeapGraph.Companion.openHeapGraph
 
-class DiffingHeapGrowthDetectorFakeDumpTest {
+class HeapGrowthDetectorFakeDumpTest {
 
   @Test
   fun `first traversal returns InitialHeapTraversal`() {

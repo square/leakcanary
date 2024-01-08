@@ -19,11 +19,6 @@ public final class shark/DiffingHeapGrowthDetector$HeapDumpAfterLoopingScenario 
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class shark/HeapGrowthAssertionsKt {
-	public static final fun assertNoHeapGrowth (Lkotlin/sequences/Sequence;)V
-	public static final fun assertNoHeapGrowth (Lshark/ScenarioLoopHeapDumper;Lkotlin/jvm/functions/Function0;)V
-}
-
 public abstract interface class shark/HeapTraversal : shark/InputHeapTraversal {
 	public static final field Companion Lshark/HeapTraversal$Companion;
 	public abstract fun getGrowing ()Z
@@ -51,6 +46,12 @@ public final class shark/InitialHeapTraversal : shark/HeapTraversal {
 public abstract interface class shark/InputHeapTraversal {
 }
 
+public final class shark/LoopingHeapDumper {
+	public fun <init> (ILshark/HeapGraphProvider;I)V
+	public synthetic fun <init> (ILshark/HeapGraphProvider;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun dumpHeapRepeated (Lkotlin/jvm/functions/Function0;)Lkotlin/sequences/Sequence;
+}
+
 public final class shark/LoopingHeapGrowthDetector {
 	public fun <init> (Lshark/DiffingHeapGrowthDetector;)V
 	public final fun repeatDiffsWhileGrowing (Lkotlin/sequences/Sequence;)Lshark/HeapTraversalWithDiff;
@@ -58,12 +59,6 @@ public final class shark/LoopingHeapGrowthDetector {
 
 public final class shark/NoHeapTraversalYet : shark/InputHeapTraversal {
 	public static final field INSTANCE Lshark/NoHeapTraversalYet;
-}
-
-public final class shark/ScenarioLoopHeapDumper {
-	public fun <init> (ILshark/HeapGraphProvider;I)V
-	public synthetic fun <init> (ILshark/HeapGraphProvider;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun sequenceOfHeapDumps (Lkotlin/jvm/functions/Function0;)Lkotlin/sequences/Sequence;
 }
 
 public final class shark/ShortestPathNode {

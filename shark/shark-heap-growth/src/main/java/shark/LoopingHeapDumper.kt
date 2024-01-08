@@ -1,9 +1,8 @@
 package shark
 
 import shark.DiffingHeapGrowthDetector.HeapDumpAfterLoopingScenario
-import shark.HprofHeapGraph.Companion.openHeapGraph
 
-class ScenarioLoopHeapDumper(
+class LoopingHeapDumper(
   private val maxHeapDumps: Int,
   private val heapGraphProvider: HeapGraphProvider,
   private val scenarioLoopsPerDump: Int = 1,
@@ -19,13 +18,13 @@ class ScenarioLoopHeapDumper(
   }
 
   // todo name repeat?
-  fun sequenceOfHeapDumps(
-    loopingScenario: () -> Unit,
+  fun dumpHeapRepeated(
+    repeatedScenario: () -> Unit,
   ): Sequence<HeapDumpAfterLoopingScenario> {
 
     val heapDumps = (1..maxHeapDumps).asSequence().map {
       repeat(scenarioLoopsPerDump) {
-        loopingScenario()
+        repeatedScenario()
       }
       HeapDumpAfterLoopingScenario(heapGraphProvider.openHeapGraph(), scenarioLoopsPerDump)
     }

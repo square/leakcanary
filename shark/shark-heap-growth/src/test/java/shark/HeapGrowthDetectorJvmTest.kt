@@ -35,7 +35,7 @@ class HeapGrowthDetectorJvmTest {
   fun `empty scenario leads to no heap growth`() {
     val detector = simpleDetector()
 
-    val heapDumper = ScenarioLoopHeapDumper(
+    val heapDumper = LoopingHeapDumper(
       maxHeapDumps = 10,
       heapGraphProvider = this::dumpHeapGraph,
       scenarioLoopsPerDump = 1
@@ -43,7 +43,7 @@ class HeapGrowthDetectorJvmTest {
 
     val emptyScenario = {}
 
-    val dumps = heapDumper.sequenceOfHeapDumps(emptyScenario)
+    val dumps = heapDumper.dumpHeapRepeated(emptyScenario)
 
     val heapTraversal = detector.repeatDiffsWhileGrowing(dumps)
 
@@ -181,12 +181,12 @@ class HeapGrowthDetectorJvmTest {
     maxHeapDumps: Int = 5,
     loopingScenario: () -> Unit,
   ): Sequence<HeapDumpAfterLoopingScenario> {
-    val heapDumper = ScenarioLoopHeapDumper(
+    val heapDumper = LoopingHeapDumper(
       maxHeapDumps = maxHeapDumps,
       heapGraphProvider = this::dumpHeapGraph,
       scenarioLoopsPerDump = scenarioLoopsPerDump
     )
-    return heapDumper.sequenceOfHeapDumps(loopingScenario)
+    return heapDumper.dumpHeapRepeated(loopingScenario)
   }
 
   private fun simpleDetector(): LoopingHeapGrowthDetector {

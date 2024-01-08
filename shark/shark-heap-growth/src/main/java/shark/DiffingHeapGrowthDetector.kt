@@ -136,13 +136,7 @@ class DiffingHeapGrowthDetector(
           }
         }
       }.groupBy {
-        try {
-          it.nodeAndEdgeName + if (it.isLowPriority) "low-priority" else ""
-        } catch (e: Throwable) {
-          println("Wow that's unexpected trying to add to ${it.nodeAndEdgeName}")
-          e.printStackTrace()
-          throw e
-        }
+        it.nodeAndEdgeName + if (it.isLowPriority) "low-priority" else ""
       }
 
       if (visitedObjectCount > 0) {
