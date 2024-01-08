@@ -47,7 +47,7 @@ class HeapGrowthDetectorJvmTest {
 
     val heapTraversal = detector.repeatDiffsWhileGrowing(dumps)
 
-    assertThat(heapTraversal.growing).isFalse
+    assertThat(heapTraversal.growingNodes).isEmpty()
   }
 
   @Test
@@ -58,7 +58,7 @@ class HeapGrowthDetectorJvmTest {
       leakies += Leaky()
     })
 
-    assertThat(heapTraversal.growing).isTrue
+    assertThat(heapTraversal.growingNodes).isNotEmpty
   }
 
   @Test
@@ -70,7 +70,7 @@ class HeapGrowthDetectorJvmTest {
       stringLeaks += "Yo ${++index}"
     })
 
-    assertThat(heapTraversal.growing).isTrue
+    assertThat(heapTraversal.growingNodes).isNotEmpty
   }
 
   @Test
@@ -88,7 +88,7 @@ class HeapGrowthDetectorJvmTest {
         }
       })
 
-    assertThat(heapTraversal.growing).isFalse
+    assertThat(heapTraversal.growingNodes).isEmpty()
   }
 
   @Test
@@ -101,7 +101,6 @@ class HeapGrowthDetectorJvmTest {
       leakies += Leaky()
     })
 
-    assertThat(heapTraversal.growing).isTrue
     assertThat(heapTraversal.growingNodes).hasSize(1)
 
     val growingNode = heapTraversal.growingNodes.first()
@@ -116,7 +115,7 @@ class HeapGrowthDetectorJvmTest {
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
     })
 
-    assertThat(heapTraversal.growing).isTrue
+    assertThat(heapTraversal.growingNodes).isNotEmpty
   }
 
   @Test

@@ -15,12 +15,6 @@ sealed interface HeapTraversal : InputHeapTraversal {
    */
   val shortestPathTree: ShortestPathNode
 
-  /**
-   * Whether this traversal yielded a [shortestPathTree] that grew compared to the previous
-   * traversal.
-   */
-  val growing: Boolean
-
   companion object {
 
     /**
@@ -40,9 +34,7 @@ sealed interface HeapTraversal : InputHeapTraversal {
 
 class InitialHeapTraversal constructor(
   override val shortestPathTree: ShortestPathNode
-) : HeapTraversal {
-  override val growing get() = true
-}
+) : HeapTraversal
 
 class HeapTraversalWithDiff(
   override val shortestPathTree: ShortestPathNode,
@@ -52,8 +44,7 @@ class HeapTraversalWithDiff(
    */
   val growingNodes: List<ShortestPathNode>
 ) : HeapTraversal {
-  override val growing get() = growingNodes.isNotEmpty()
   override fun toString(): String {
-    return "HeapTraversalWithDiff(growing=$growing), growingNodes=\n$growingNodes"
+    return "HeapTraversalWithDiff(growingNodes=\n$growingNodes"
   }
 }

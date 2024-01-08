@@ -18,7 +18,7 @@ class LoopingHeapGrowthDetector(
         SharkLog.d {
           "After $iterationCount (+ ${heapDump.scenarioLoopCount}) iterations and heap dump $i: ${diffResult.growingNodes.size} growing nodes"
         }
-        if (!diffResult.growing) {
+        if (diffResult.growingNodes.isEmpty()) {
           return diffResult
         }
       }
