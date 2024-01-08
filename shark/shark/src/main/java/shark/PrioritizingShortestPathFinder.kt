@@ -94,6 +94,7 @@ class PrioritizingShortestPathFinder private constructor(
         objectId: Long,
         parentObjectId: Long
       ): Boolean {
+        LongScatterSet(0)
         return !visitedSet.add(objectId)
       }
     }

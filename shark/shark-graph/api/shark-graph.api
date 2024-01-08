@@ -44,6 +44,10 @@ public abstract interface class shark/HeapGraph {
 	public abstract fun objectExists (J)Z
 }
 
+public abstract interface class shark/HeapGraphProvider {
+	public abstract fun openHeapGraph ()Lshark/CloseableHeapGraph;
+}
+
 public abstract class shark/HeapObject {
 	public static final field Companion Lshark/HeapObject$Companion;
 	public final fun getAsClass ()Lshark/HeapObject$HeapClass;

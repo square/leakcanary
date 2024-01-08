@@ -1,5 +1,7 @@
 package shark
 
+import shark.ReferencePattern.InstanceFieldPattern
+
 sealed interface InputHeapTraversal
 object NoHeapTraversalYet : InputHeapTraversal
 sealed interface HeapTraversal : InputHeapTraversal {
@@ -10,7 +12,6 @@ sealed interface HeapTraversal : InputHeapTraversal {
    * - objects are grouped by identical path into a single node
    * - Path element names are determined using the edge name to reach them (e.g. field name) and
    * the object class name.
-   * - We only keep nodes that were new or growing in the previous traversal.
    */
   val shortestPathTree: ShortestPathNode
 
@@ -19,6 +20,22 @@ sealed interface HeapTraversal : InputHeapTraversal {
    * traversal.
    */
   val growing: Boolean
+
+  companion object {
+
+    /**
+     * When running a heap growth analysis in the same process as where the scenario runs,
+     * we should ignore the part of the graph used to keep track of the tree in the previous
+     * iteration of the scenario.
+     */
+    val ignoredReferences: List<IgnoredReferenceMatcher>
+      get() {
+        val shortestPathNodeClass = ShortestPathNode::class.java
+        return shortestPathNodeClass.declaredFields.map { classField ->
+          IgnoredReferenceMatcher(InstanceFieldPattern(shortestPathNodeClass.name, classField.name))
+        }
+      }
+  }
 }
 
 class InitialHeapTraversal constructor(
@@ -36,4 +53,7 @@ class HeapTraversalWithDiff(
   val growingNodes: List<ShortestPathNode>
 ) : HeapTraversal {
   override val growing get() = growingNodes.isNotEmpty()
+  override fun toString(): String {
+    return "HeapTraversalWithDiff(growing=$growing), growingNodes=\n$growingNodes"
+  }
 }

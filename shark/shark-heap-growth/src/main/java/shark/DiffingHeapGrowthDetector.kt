@@ -1,3 +1,5 @@
+@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
+
 package shark
 
 import java.util.ArrayDeque
@@ -6,6 +8,7 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
+import shark.internal.hppc.LongScatterSet
 import shark.ReferenceLocationType.ARRAY_ENTRY
 
 class DiffingHeapGrowthDetector(
@@ -43,8 +46,7 @@ class DiffingHeapGrowthDetector(
      */
     val toVisitLastQueue: Deque<Node> = ArrayDeque()
 
-    // TODO LongScatterSet
-    val visitedSet = mutableSetOf<Long>()
+    val visitedSet = LongScatterSet()
 
     val tree = ShortestPathNode("root", null, newNode = false).apply {
       selfObjectCount = 1
@@ -53,6 +55,7 @@ class DiffingHeapGrowthDetector(
       get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
   }
 
+  @Suppress("ComplexMethod")
   private fun TraversalState.traverseHeapDiffingShortestPaths(
     heapDump: HeapDumpAfterLoopingScenario,
     previousTraversal: InputHeapTraversal,
@@ -235,7 +238,12 @@ class DiffingHeapGrowthDetector(
       InitialHeapTraversal(tree)
     } else {
       check(previousTraversal !is NoHeapTraversalYet)
-      val repeatedlyGrowingNodes = growingNodes.filter { !it.newNode }
+      val repeatedlyGrowingNodes =
+        growingNodes.filter {
+          val previouslyGrowing = !it.newNode
+          val parentAlreadyReported = (it.parent?.growing) ?: false
+          previouslyGrowing && !parentAlreadyReported
+        }
       HeapTraversalWithDiff(tree, repeatedlyGrowingNodes)
     }
   }

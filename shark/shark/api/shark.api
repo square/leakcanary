@@ -221,6 +221,35 @@ public final class shark/IgnoredReferenceMatcher : shark/ReferenceMatcher {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class shark/JavaLocalReferenceReader : shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader {
+	public fun <init> (Lshark/HeapGraph;Ljava/util/List;)V
+	public final fun getGraph ()Lshark/HeapGraph;
+	public fun matches (Lshark/HeapObject$HeapInstance;)Z
+	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
+public abstract class shark/JdkReferenceMatchers : java/lang/Enum {
+	public static final field Companion Lshark/JdkReferenceMatchers$Companion;
+	public static final field FINALIZER_WATCHDOG_DAEMON Lshark/JdkReferenceMatchers;
+	public static final field MAIN Lshark/JdkReferenceMatchers;
+	public static final field REFERENCES Lshark/JdkReferenceMatchers;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
+	public static final fun getDefaults ()Ljava/util/List;
+	public static final fun ignoredInstanceField (Ljava/lang/String;Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
+	public static final fun ignoredJavaLocal (Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
+	public static fun valueOf (Ljava/lang/String;)Lshark/JdkReferenceMatchers;
+	public static fun values ()[Lshark/JdkReferenceMatchers;
+}
+
+public final class shark/JdkReferenceMatchers$Companion {
+	public final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
+	public final fun getDefaults ()Ljava/util/List;
+	public final fun ignoredInstanceField (Ljava/lang/String;Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
+	public final fun ignoredJavaLocal (Ljava/lang/String;)Lshark/IgnoredReferenceMatcher;
+}
+
 public final class shark/KeyedWeakReferenceFinder : shark/LeakingObjectFinder {
 	public static final field INSTANCE Lshark/KeyedWeakReferenceFinder;
 	public fun findLeakingObjectIds (Lshark/HeapGraph;)Ljava/util/Set;
@@ -534,6 +563,18 @@ public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {
 	public final fun getHumanReadableName ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Lshark/OnAnalysisProgressListener$Step;
 	public static fun values ()[Lshark/OnAnalysisProgressListener$Step;
+}
+
+public abstract class shark/OpenJdkInstanceRefReaders : java/lang/Enum, shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader$OptionalFactory {
+	public static final field ARRAY_LIST Lshark/OpenJdkInstanceRefReaders;
+	public static final field CONCURRENT_HASH_MAP Lshark/OpenJdkInstanceRefReaders;
+	public static final field COPY_ON_WRITE_ARRAY_LIST Lshark/OpenJdkInstanceRefReaders;
+	public static final field HASH_MAP Lshark/OpenJdkInstanceRefReaders;
+	public static final field HASH_SET Lshark/OpenJdkInstanceRefReaders;
+	public static final field LINKED_LIST Lshark/OpenJdkInstanceRefReaders;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/OpenJdkInstanceRefReaders;
+	public static fun values ()[Lshark/OpenJdkInstanceRefReaders;
 }
 
 public final class shark/PathFindingResults {

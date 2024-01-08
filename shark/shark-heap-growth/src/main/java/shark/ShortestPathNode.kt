@@ -5,6 +5,7 @@ class ShortestPathNode(
   val parent: ShortestPathNode?,
   internal val newNode: Boolean
 ) {
+  @Suppress("VariableNaming")
   internal val _children = mutableListOf<ShortestPathNode>()
   val children: List<ShortestPathNode>
     get() = _children
@@ -18,6 +19,11 @@ class ShortestPathNode(
 
   val childrenObjectCount: Int
     get() = _children.sumOf { it.selfObjectCount }
+
+  val childrenObjectCountIncrease: Int
+    get() = _children.sumOf { it.selfObjectCountIncrease }
+
+  override fun toString() = pathFromRootAsString()
 
   fun pathFromRootAsString(): String {
     val pathFromRoot = mutableListOf<ShortestPathNode>()

@@ -1,6 +1,6 @@
 package shark
 
-interface GcRootProvider {
+fun interface GcRootProvider {
   /**
    * Provides a sequence of GC Roots to traverse the graph from, ideally in a stable order.
    */
