@@ -3,14 +3,14 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-## Version 3.0 (2024-??-??)
+## Version 3.0 Alpha 1 (2024-??-??)
 
-### Bumped dependencies
+This release marks the start of the work on LeakCanary 3. It's not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.
 
-* Kotlin: updated to 1.8.21
-
-### Other changes
-
+* New APIs, not stable yet: Reference readers, aka expanders, are starting to make their way into public APIs.
+* New APIs, not stable yet: the `shark-heap-growth` artifact contains APIs for writing test scenarios that detect repeated heap growth.
+* [#2612](https://github.com/square/leakcanary/pull/2612) Refactor reachability APIs
+* Bumped Kotlin to 1.8.21
 * Dropped support for detecting support fragment leaks: apps should all have migrated to Android X by now, and if not they can easily add this.
 
 ## Version 2.13 (2024-01-03)
