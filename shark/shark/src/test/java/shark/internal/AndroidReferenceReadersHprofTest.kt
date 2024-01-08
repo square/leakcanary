@@ -6,11 +6,11 @@ import org.junit.Test
 import shark.HeapAnalysisSuccess
 import shark.HeapGraph
 import shark.IgnoredReferenceMatcher
+import shark.JdkReferenceMatchers
 import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakingObjectFinder
 import shark.ReferencePattern.StaticFieldPattern
 import shark.checkForLeaks
-import shark.defaultReferenceMatchers
 
 class AndroidReferenceReadersHprofTest {
 
@@ -78,7 +78,7 @@ fun File.checkForFakeArraySetLeak(): HeapAnalysisSuccess {
     }
   }
   return checkForLeaks(
-    referenceMatchers = defaultReferenceMatchers + IgnoredReferenceMatcher(
+    referenceMatchers = JdkReferenceMatchers.defaults + IgnoredReferenceMatcher(
       StaticFieldPattern(
         instanceHeldByArraySet,
         "ACTION_FOCUS"

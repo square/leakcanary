@@ -8,7 +8,7 @@ import shark.ReferencePattern.JavaLocalPattern
 import shark.internal.JavaFrames
 import shark.internal.ThreadObjects
 
-internal class JavaLocalReferenceReader(
+class JavaLocalReferenceReader(
   val graph: HeapGraph,
   referenceMatchers: List<ReferenceMatcher>
 ) : VirtualInstanceReferenceReader {

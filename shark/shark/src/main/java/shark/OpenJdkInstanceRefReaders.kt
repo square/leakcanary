@@ -13,7 +13,7 @@ import shark.internal.InternalSharedLinkedListReferenceReader
  * Note: the expanders target the direct classes and don't target subclasses, as these might
  * include additional out going references that would be missed.
  */
-internal enum class OpenJdkInstanceRefReaders : OptionalFactory {
+enum class OpenJdkInstanceRefReaders : OptionalFactory {
 
   // https://cs.android.com/android/platform/superproject/+/master:libcore/ojluni/src/main/java/java/util/LinkedList.java
   LINKED_LIST {
