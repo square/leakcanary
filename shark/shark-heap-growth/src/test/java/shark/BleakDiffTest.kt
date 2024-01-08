@@ -6,6 +6,7 @@ import java.util.UUID
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.HprofHeapGraph.Companion.openHeapGraph
 
 class BleakDiffTest {
 
@@ -25,9 +26,13 @@ class BleakDiffTest {
 
   @Test
   fun bleakDiffPlayground() {
-    val heapGrowth = HeapDiff(this::dumpHeap)
+    val heapDumper = ScenarioLoopHeapDumper(
+      maxHeapDumps = 10,
+      heapGraphProvider = this::dumpHeapGraph,
+      scenarioLoopsPerDump = 1
+    )
 
-    heapGrowth.assertNoRepeatedHeapGrowth(maxHeapDumps = 10) {
+    heapDumper.assertNoHeapGrowth {
       leaky += Thing()
       leakyLinkedList += Thing()
       leakyHashMap[UUID.randomUUID().toString()] = Thing()
@@ -36,11 +41,10 @@ class BleakDiffTest {
     }
   }
 
-
-  private fun dumpHeap(): File {
+  private fun dumpHeapGraph(): CloseableHeapGraph {
     val hprofFolder = testFolder.newFolder()
     val hprofFile = File(hprofFolder, "${System.nanoTime()}.hprof")
     JvmTestHeapDumper.dumpHeap(hprofFile.absolutePath)
-    return hprofFile
+    return hprofFile.openHeapGraph()
   }
 }
