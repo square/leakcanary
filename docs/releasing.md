@@ -121,7 +121,7 @@ git tag v{{ leak_canary.next_release }} && \
 git push origin v{{ leak_canary.next_release }} && \
 ./gradlew publish --no-daemon --no-parallel && \
 ./gradlew closeAndReleaseRepository && \
-./gradlew shark-cli:distZip
+./gradlew shark:shark-cli:distZip
 ```
 
 Note: if anything goes wrong, you can manually drop the release at https://s01.oss.sonatype.org/
