@@ -82,7 +82,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.13</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>3.0-alpha-1</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -745,6 +745,47 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-30-alpha-1-2024-01-09" class="md-nav__link">
+    Version 3.0 Alpha 1 (2024-01-09)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 3.0 Alpha 1 (2024-01-09)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth" class="md-nav__link">
+    Heap Growth
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reference-readers" class="md-nav__link">
+    Reference readers
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objectwatcher-apis-refactor" class="md-nav__link">
+    ObjectWatcher APIs refactor
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+    Other bug fixes and improvements 🐛🔨
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-213-2024-01-03" class="md-nav__link">
     Version 2.13 (2024-01-03)
   </a>
@@ -781,7 +822,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -829,7 +870,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_2" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -946,7 +987,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_2" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_3" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -1566,6 +1607,47 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-30-alpha-1-2024-01-09" class="md-nav__link">
+    Version 3.0 Alpha 1 (2024-01-09)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 3.0 Alpha 1 (2024-01-09)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth" class="md-nav__link">
+    Heap Growth
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reference-readers" class="md-nav__link">
+    Reference readers
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objectwatcher-apis-refactor" class="md-nav__link">
+    ObjectWatcher APIs refactor
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+    Other bug fixes and improvements 🐛🔨
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-213-2024-01-03" class="md-nav__link">
     Version 2.13 (2024-01-03)
   </a>
@@ -1602,7 +1684,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -1650,7 +1732,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_1" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_2" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -1767,7 +1849,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-bug-fixes-and-improvements_2" class="md-nav__link">
+  <a href="#other-bug-fixes-and-improvements_3" class="md-nav__link">
     Other bug fixes and improvements 🐛🔨
   </a>
   
@@ -2375,7 +2457,112 @@
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
 <p>Please thank our <a href="https://github.com/square/leakcanary/graphs/contributors">contributors</a> 🙏 🙏 🙏.</p>
-<p>I&rsquo;ve started working on LeakCanary 3.0 so new 2.x releases only contain bug fixes and new known leak patterns.</p>
+<h2 id="version-30-alpha-1-2024-01-09">Version 3.0 Alpha 1 (2024-01-09)<a class="headerlink" href="#version-30-alpha-1-2024-01-09" title="Permanent link">&para;</a></h2>
+<p>These alpha releases mark the start of the work on LeakCanary 3. It&rsquo;s not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.</p>
+<h3 id="heap-growth">Heap Growth<a class="headerlink" href="#heap-growth" title="Permanent link">&para;</a></h3>
+<p>New APIs, not stable yet: the <code>shark-heap-growth</code> artifact contains APIs for writing test scenarios that detect repeated heap growth.</p>
+<p>Here&rsquo;s an example set up, this is all very manual for now.</p>
+<p>Add the new dependency:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<span class="w">  </span><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:shark-heap-growth:3.0-alpha-1&#39;</span>
+<span class="w">  </span><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-core:3.0-alpha-1&#39;</span>
+<span class="o">}</span>
+</code></pre></div>
+<p>Create an implementation setup for Espresso in process UI tests:</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">leakcanary.AndroidDebugHeapDumper</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.AndroidReferenceMatchers</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.AndroidReferenceReaderFactory</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.DiffingHeapGrowthDetector</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapGraphProvider</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapTraversal</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HprofHeapGraph.Companion.openHeapGraph</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.LiveHeapGrowthDetector</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.LoopingHeapGrowthDetector</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.MatchingGcRootProvider</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">java.io.File</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">java.text.SimpleDateFormat</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">java.util.Date</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">java.util.EnumSet</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">java.util.Locale</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Heap growth detector for in process Espresso UI tests.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Call [LiveHeapGrowthDetector.detectRepeatedHeapGrowth] with a scenario to repeat,</span>
+<span class="cm"> * then assert that the resulting [shark.HeapTraversalWithDiff.growingNodes] is empty.</span>
+<span class="cm"> */</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">HeapGrowthDetector</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">lazy</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">referenceMatchers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">appDefaults</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">HeapTraversal</span><span class="p">.</span><span class="na">ignoredReferences</span>
+
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">dateFormat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SimpleDateFormat</span><span class="p">(</span><span class="s">&quot;yyyy-MM-dd_HH-mm-ss_SSS&#39;-heap-growth.hprof&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Locale</span><span class="p">.</span><span class="na">US</span><span class="p">)</span>
+<span class="w">  </span><span class="c1">// Magical path that we automatically upload as artifacts of failed builds in CI.</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">uploadedTracesDirectory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">(</span><span class="s">&quot;/sdcard/traces/&quot;</span><span class="p">)</span>
+<span class="w">  </span><span class="n">uploadedTracesDirectory</span><span class="p">.</span><span class="na">mkdirs</span><span class="p">()</span>
+<span class="w">  </span><span class="n">check</span><span class="p">(</span><span class="n">uploadedTracesDirectory</span><span class="p">.</span><span class="na">exists</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="s">&quot;Expected heap dump folder to exist: </span><span class="si">${</span><span class="n">uploadedTracesDirectory</span><span class="p">.</span><span class="na">absolutePath</span><span class="si">}</span><span class="s">&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapGraphProvider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapGraphProvider</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">fileName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dateFormat</span><span class="p">.</span><span class="na">format</span><span class="p">(</span><span class="n">Date</span><span class="p">())</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapDumpFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">(</span><span class="n">uploadedTracesDirectory</span><span class="p">,</span><span class="w"> </span><span class="n">fileName</span><span class="p">)</span>
+<span class="w">    </span><span class="n">AndroidDebugHeapDumper</span><span class="p">.</span><span class="na">dumpHeap</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
+<span class="w">    </span><span class="n">check</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">.</span><span class="na">exists</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="s">&quot;Expected file to exist after heap dump: </span><span class="si">${</span><span class="n">heapDumpFile</span><span class="p">.</span><span class="na">absolutePath</span><span class="si">}</span><span class="s">&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">heapDumpFile</span><span class="p">.</span><span class="na">openHeapGraph</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">LiveHeapGrowthDetector</span><span class="p">(</span>
+<span class="w">    </span><span class="n">maxHeapDumps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span><span class="p">,</span>
+<span class="w">    </span><span class="n">heapGraphProvider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapGraphProvider</span><span class="p">,</span>
+<span class="w">    </span><span class="n">scenarioLoopsPerDump</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span><span class="p">,</span>
+<span class="w">    </span><span class="n">detector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LoopingHeapGrowthDetector</span><span class="p">(</span>
+<span class="w">      </span><span class="n">DiffingHeapGrowthDetector</span><span class="p">(</span>
+<span class="w">        </span><span class="n">referenceReaderFactory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AndroidReferenceReaderFactory</span><span class="p">(</span><span class="n">referenceMatchers</span><span class="p">),</span>
+<span class="w">        </span><span class="n">gcRootProvider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MatchingGcRootProvider</span><span class="p">(</span><span class="n">referenceMatchers</span><span class="p">)</span>
+<span class="w">      </span><span class="p">)</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Ensure your UI tests have enough heap by updating <code>src/androidTest/AndroidManifest.xml</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+<span class="nt">&lt;manifest</span>
+<span class="w">    </span><span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span><span class="nt">&gt;</span>
+
+<span class="w">  </span><span class="cm">&lt;!-- Performing the heap growth analysis in process requires more heap. --&gt;</span>
+<span class="w">  </span><span class="nt">&lt;application</span>
+<span class="w">      </span><span class="na">android:largeHeap=</span><span class="s">&quot;true&quot;</span><span class="nt">/&gt;</span>
+<span class="nt">&lt;/manifest&gt;</span>
+</code></pre></div>
+<p>Use it:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">MyEspressoTest</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">greeter_says_hello_does_not_leak</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Runs in a loop until the heap stops growing or we reach max heap dumps.</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapTraversal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapGrowthDetector</span><span class="p">.</span><span class="na">detectRepeatedHeapGrowth</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Runs repeatedly until the heap stops growing or we reach maxHeapDumps.</span>
+<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withId</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">name_field</span><span class="p">)).</span><span class="na">perform</span><span class="p">(</span><span class="n">typeText</span><span class="p">(</span><span class="s">&quot;Steve&quot;</span><span class="p">))</span>
+<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withId</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">greet_button</span><span class="p">)).</span><span class="na">perform</span><span class="p">(</span><span class="n">click</span><span class="p">())</span>
+<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withText</span><span class="p">(</span><span class="s">&quot;Hello Steve!&quot;</span><span class="p">)).</span><span class="na">check</span><span class="p">(</span><span class="n">matches</span><span class="p">(</span><span class="n">isDisplayed</span><span class="p">()))</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">heapTraversal</span><span class="p">.</span><span class="na">growingNodes</span><span class="p">).</span><span class="na">isEmpty</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="reference-readers">Reference readers<a class="headerlink" href="#reference-readers" title="Permanent link">&para;</a></h3>
+<p>New APIs, not stable yet: <code>ReferenceReader</code> implementations aka expanders, are now public APIs. The names might change. These class define how LeakCanary traverses the graph, and allow for the creating of virtual references, as <a href="#improved-support-for-data-structure-internals">introduced here</a>. These new APIs make it possible to add support for more custom data structures, and they&rsquo;re also useful when working directly with the <code>shark</code> APIs (for example, these APIs were necessary to build the heap growth detection tooling mentioned above).</p>
+<h3 id="objectwatcher-apis-refactor">ObjectWatcher APIs refactor<a class="headerlink" href="#objectwatcher-apis-refactor" title="Permanent link">&para;</a></h3>
+<p><a href="https://github.com/square/leakcanary/pull/2612">#2612</a> is a first attempt at refactoring the reachability APIs. I already found backward compatibility issues (<a href="https://github.com/square/leakcanary/issues/2617">#2617</a>), will fix in the next alpha, and probably still change the API shape.</p>
+<p>The general purpose of this refactor is to move away from the static singletons and high coupling of the current implementation, making the reachability APIs more useful in a variaty of contexts.</p>
+<h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Bumped Kotlin to 1.8.21</li>
+<li>Dropped support for detecting support fragment leaks: apps should all have migrated to Android X by now, and if not they can easily add their own implementation back.</li>
+</ul>
+<p>This list reflects only a subset of all changes. For more details, the <a href="https://github.com/square/leakcanary/compare/v2.13...v3.0-alpha-1">full diff</a>.</p>
 <h2 id="version-213-2024-01-03">Version 2.13 (2024-01-03)<a class="headerlink" href="#version-213-2024-01-03" title="Permanent link">&para;</a></h2>
 <ul>
 <li>🐛 <a href="https://github.com/square/leakcanary/issues/2565">#2565</a> Fix AndroidX Fragments incorrectly marked as leaking if detached but not destroyed.</li>
@@ -2402,7 +2589,7 @@
 shark-cli --process com.example.app.debug neo4j
 </code></pre></div>
 <p><img alt="Neo4J heap dump" src="https://user-images.githubusercontent.com/557033/200693468-aa783bb4-9a5a-4a41-8b92-582d44b31b92.png" /></p>
-<h3 id="other-bug-fixes-and-improvements">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements" title="Permanent link">&para;</a></h3>
+<h3 id="other-bug-fixes-and-improvements_1">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>🐤 <a href="https://github.com/square/leakcanary/pull/2440">#2440</a> Add Android 13 <code>POST_NOTICICATIONS</code> permission as well as a new <code>LeakCanary.Config.showNotifications</code> config to disable notifications entirely.</li>
 <li>🐤 <a href="https://github.com/square/leakcanary/pull/2416">#2416</a> Add Android 13 monochrome icon.</li>
@@ -2445,7 +2632,7 @@ shark-cli --process com.example.app.debug neo4j
 Also, sticky class GC roots are now deduplicated, which great reduces the memory footprint of LeakCanary on API 23 (<a href="https://github.com/square/leakcanary/pull/2324">#2324</a>). You can read about the related investigation <a href="https://py.hashnode.dev/of-sharks-and-heaps-of-sticky-marshmallows">on py.hashnode.dev</a>.</p>
 <h3 id="breaking-change-failtestonleakrunlistener-deleted">Breaking change:  FailTestOnLeakRunListener deleted<a class="headerlink" href="#breaking-change-failtestonleakrunlistener-deleted" title="Permanent link">&para;</a></h3>
 <p><code>FailTestOnLeakRunListener</code>, <code>FailTestOnLeak</code> and <code>FailAnnotatedTestOnLeakRunListener</code> were deprecated in LeakCanary 2.8 as they rely on hacking the Android Test library internals which have since changed, and have been replaced by <code>LeakAssertions.assertNoLeak()</code> and the <code>DetectLeaksAfterTestSuccess</code> test rule. I was initially planning of keep these around, but as I tried to increase API level coverage in LeakCanary I needed to upgrade the Android Test library to a more recent version, and the hacks now had compilation errors. So they&rsquo;re gone: <a href="https://github.com/square/leakcanary/commit/7152d6e2f8bea866e3bd5397b882d5098bed7d8b">#2282</a>. If you can&rsquo;t use the test rules just yet, you&rsquo;re welcome to copy paste the listener implementations in your own codebase.</p>
-<h3 id="other-bug-fixes-and-improvements_1">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_1" title="Permanent link">&para;</a></h3>
+<h3 id="other-bug-fixes-and-improvements_2">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>💥 <a href="https://github.com/square/leakcanary/pull/2367">#2367</a> Fixed <code>AndroidLeakFixes.FLUSH_HANDLER_THREADS</code> (<code>HandlerThread</code> can have a null <code>Looper</code>).</li>
 <li>💥 <a href="https://github.com/square/leakcanary/issues/2286">#2286</a> Update Curtains to include Proguard rules and prevent <code>WindowCallbackWrapper</code> crashes.</li>
@@ -2686,7 +2873,7 @@ for their contributions, bug reports and feature requests 🙏 🙏 🙏.</p>
 </code></pre></div>
 <p>Note: <code>Leakcanary.Config.onHeapAnalyzedListener</code> still works but is now deprecated.</p>
 <p>Feedback welcome on this new API!</p>
-<h3 id="other-bug-fixes-and-improvements_2">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_2" title="Permanent link">&para;</a></h3>
+<h3 id="other-bug-fixes-and-improvements_3">Other bug fixes and improvements 🐛🔨<a class="headerlink" href="#other-bug-fixes-and-improvements_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><a href="https://github.com/square/leakcanary/issues/2096">#2096</a> Opening / sharing heap dump files now supports LeakCanary as an option.</li>
 <li><a href="https://github.com/square/leakcanary/issues/2210">#2210</a> First Compose dedicated object inspectors!</li>

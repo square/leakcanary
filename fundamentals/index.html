@@ -84,7 +84,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.13</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>3.0-alpha-1</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -843,7 +843,7 @@
   
   <p>The fundamentals describe how LeakCanary works and how to use it to detect and fix memory leaks. This documentation is designed to help developers of all levels, so please don&rsquo;t hesitate to report any confusing section.</p>
 <h2 id="what-is-a-memory-leak">What is a memory leak?<a class="headerlink" href="#what-is-a-memory-leak" title="Permanent link">&para;</a></h2>
-<p>In a Java based runtime, a memory leak is a programming error that causes an application to keep a reference to an object that is no longer needed. As a result, the memory allocated for that object cannot be reclaimed, eventually leading to an <strong>OutOfMemoryError (OOM)</strong> crash.</p>
+<p>In a Java based runtime, a memory leak is a programming error that causes an application to keep a reference to an object that is no longer needed. As a result, the memory allocated for that object cannot be reclaimed.</p>
 <p>For example, an Android <code>Activity</code> instance is no longer needed after its <code>onDestroy()</code> method is called, and storing a reference to that instance in a static field prevents it from being garbage collected.</p>
 <h2 id="common-causes-for-memory-leaks">Common causes for memory leaks<a class="headerlink" href="#common-causes-for-memory-leaks" title="Permanent link">&para;</a></h2>
 <p>Most memory leaks are caused by bugs related to the lifecycle of objects. Here are a few common Android mistakes:</p>
@@ -853,10 +853,10 @@
 <li>Registering a listener, broadcast receiver or RxJava subscription which references an object with lifecycle, and forgetting to unregister when the lifecycle reaches its end.</li>
 </ul>
 <h2 id="why-should-i-use-leakcanary">Why should I use LeakCanary?<a class="headerlink" href="#why-should-i-use-leakcanary" title="Permanent link">&para;</a></h2>
-<p>Memory leaks are very common in Android apps and the accumulation of small memory leaks causes apps to run out of memory and crash with an OOM. LeakCanary will help you find and fix these memory leaks during development. When Square engineers first enabled LeakCanary in the Square Point Of Sale app, they were able to fix several leaks and reduced the OOM crash rate by <strong>94%</strong>.</p>
+<p>Memory leaks are very common in Android apps. As small memory leaks accumulate, memory usage grows, the Garbage Collector (GC) runs more frequently and consumes more CPU, causing jank, UI freezes and <strong>Application Not Responding (ANR)</strong> reports, eventually leading to an <strong>OutOfMemoryError (OOME)</strong> crash. LeakCanary will help you find and fix these memory leaks during development. When Square engineers first enabled LeakCanary in the Square Point Of Sale app, they were able to fix several leaks and reduced the OOM crash rate by <strong>94%</strong>.</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p><strong>Your crash reporting tool might not correctly report OOMs</strong>. When memory is low because of memory leak accumulation, an OOM can be thrown from anywhere in the app code, which means that every OOM has a different stacktrace. So instead of one crash entry with a 1000 crashes, OOMs get reported as 1000 distinct crashes and hide in the long tail of low occurring crashes.</p>
+<p><strong>Your crash reporting tool might not correctly report OOMEs</strong>. When memory is low because of memory leak accumulation, an OOM can be thrown from anywhere in the app code, which means that every OOM has a different stacktrace. So instead of one crash entry with a 1000 crashes, OOMs get reported as 1000 distinct crashes and hide in the long tail of low occurring crashes.</p>
 </div>
 <p>What&rsquo;s next? Learn <a href="../fundamentals-how-leakcanary-works/">how LeakCanary works</a>!</p>
   
