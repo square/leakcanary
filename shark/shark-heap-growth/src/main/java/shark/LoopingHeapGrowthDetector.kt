@@ -5,7 +5,7 @@ import shark.DiffingHeapGrowthDetector.HeapDumpAfterLoopingScenario
 class LoopingHeapGrowthDetector(
   private val heapGrowthDetector: DiffingHeapGrowthDetector
 ) {
-  fun repeatDiffsWhileGrowing(
+  fun detectRepeatedHeapGrowth(
     heapDumps: Sequence<HeapDumpAfterLoopingScenario>
   ): HeapTraversalWithDiff {
     var i = 1

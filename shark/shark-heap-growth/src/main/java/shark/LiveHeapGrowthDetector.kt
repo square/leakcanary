@@ -2,10 +2,11 @@ package shark
 
 import shark.DiffingHeapGrowthDetector.HeapDumpAfterLoopingScenario
 
-class LoopingHeapDumper(
+class LiveHeapGrowthDetector(
   private val maxHeapDumps: Int,
   private val heapGraphProvider: HeapGraphProvider,
-  private val scenarioLoopsPerDump: Int = 1,
+  private val scenarioLoopsPerDump: Int,
+  private val detector: LoopingHeapGrowthDetector
 ) {
 
   init {
@@ -17,8 +18,12 @@ class LoopingHeapDumper(
     }
   }
 
-  // todo name repeat?
-  fun dumpHeapRepeated(
+  fun detectRepeatedHeapGrowth(repeatedScenario: () -> Unit): HeapTraversalWithDiff {
+    val heapDumps = dumpHeapRepeated(repeatedScenario)
+    return detector.detectRepeatedHeapGrowth(heapDumps)
+  }
+
+  private fun dumpHeapRepeated(
     repeatedScenario: () -> Unit,
   ): Sequence<HeapDumpAfterLoopingScenario> {
 
