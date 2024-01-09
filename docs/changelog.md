@@ -11,92 +11,7 @@ These alpha releases mark the start of the work on LeakCanary 3. It's not stable
 
 New APIs, not stable yet: the `shark-heap-growth` artifact contains APIs for writing test scenarios that detect repeated heap growth.
 
-Here's an example set up, this is all very manual for now.
-
-Add the new dependency:
-
-```groovy
-dependencies {
-  androidTestImplementation 'com.squareup.leakcanary:shark-heap-growth:3.0-alpha-1'
-  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-core:3.0-alpha-1'
-}
-```
-
-Create an implementation setup for Espresso in process UI tests:
-
-```kotlin
-
-import leakcanary.AndroidDebugHeapDumper
-import shark.AndroidReferenceMatchers
-import shark.AndroidReferenceReaderFactory
-import shark.DiffingHeapGrowthDetector
-import shark.HeapGraphProvider
-import shark.HeapTraversal
-import shark.HprofHeapGraph.Companion.openHeapGraph
-import shark.LiveHeapGrowthDetector
-import shark.LoopingHeapGrowthDetector
-import shark.MatchingGcRootProvider
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.EnumSet
-import java.util.Locale
-
-/**
- * Heap growth detector for in process Espresso UI tests.
- *
- * Call [LiveHeapGrowthDetector.detectRepeatedHeapGrowth] with a scenario to repeat,
- * then assert that the resulting [shark.HeapTraversalWithDiff.growingNodes] is empty.
- */
-val HeapGrowthDetector by lazy {
-  val referenceMatchers = AndroidReferenceMatchers.appDefaults + HeapTraversal.ignoredReferences
-
-  val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'-heap-growth.hprof'", Locale.US)
-  // Magical path that we automatically upload as artifacts of failed builds in CI.
-  val uploadedTracesDirectory = File("/sdcard/traces/")
-  uploadedTracesDirectory.mkdirs()
-  check(uploadedTracesDirectory.exists()) {
-    "Expected heap dump folder to exist: ${uploadedTracesDirectory.absolutePath}"
-  }
-
-  val heapGraphProvider = HeapGraphProvider {
-    val fileName = dateFormat.format(Date())
-    val heapDumpFile = File(uploadedTracesDirectory, fileName)
-    AndroidDebugHeapDumper.dumpHeap(heapDumpFile)
-    check(heapDumpFile.exists()) {
-      "Expected file to exist after heap dump: ${heapDumpFile.absolutePath}"
-    }
-    heapDumpFile.openHeapGraph()
-  }
-
-  LiveHeapGrowthDetector(
-    maxHeapDumps = 5,
-    heapGraphProvider = heapGraphProvider,
-    scenarioLoopsPerDump = 5,
-    detector = LoopingHeapGrowthDetector(
-      DiffingHeapGrowthDetector(
-        referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
-        gcRootProvider = MatchingGcRootProvider(referenceMatchers)
-      )
-    )
-  )
-}
-```
-
-Ensure your UI tests have enough heap by updating `src/androidTest/AndroidManifest.xml`:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android">
-
-  <!-- Performing the heap growth analysis in process requires more heap. -->
-  <application
-      android:largeHeap="true"/>
-</manifest>
-```
-
-Use it:
+Here's how it's used with an Espresso test:
 
 ```kotlin
 class MyEspressoTest {
@@ -114,6 +29,101 @@ class MyEspressoTest {
     assertThat(heapTraversal.growingNodes).isEmpty()
   }
 }
+```
+
+Here's an example set up, this is all very manual for now.
+
+Add the new dependency:
+
+```groovy
+dependencies {
+  androidTestImplementation 'com.squareup.leakcanary:shark-heap-growth:3.0-alpha-1'
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-core:3.0-alpha-1'
+}
+```
+
+Create an implementation setup for Espresso in process UI tests:
+
+```kotlin
+import leakcanary.AndroidDebugHeapDumper
+import shark.AndroidReferenceMatchers
+import shark.AndroidReferenceReaderFactory
+import shark.CloseableHeapGraph
+import shark.DiffingHeapGrowthDetector
+import shark.HeapGraphProvider
+import shark.HeapTraversal
+import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.IgnoredReferenceMatcher
+import shark.LiveHeapGrowthDetector
+import shark.LoopingHeapGrowthDetector
+import shark.MatchingGcRootProvider
+import shark.ReferencePattern.InstanceFieldPattern
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+/**
+ * Heap growth detector for in process Espresso UI tests.
+ *
+ * Call [LiveHeapGrowthDetector.detectRepeatedHeapGrowth] with a scenario to repeat,
+ * then assert that the resulting [shark.HeapTraversalWithDiff.growingNodes] is empty.
+ */
+val HeapGrowthDetector by lazy {
+  val referenceMatchers = AndroidReferenceMatchers.appDefaults +
+    HeapTraversal.ignoredReferences +
+    // https://cs.android.com/android/_/android/platform/frameworks/base/+/6985fb39f07294fb979b14ba0ebabfd2fea06d34
+    IgnoredReferenceMatcher(InstanceFieldPattern("android.os.StrictMode", "sLastVmViolationTime"))
+
+  val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'-heap-growth.hprof'", Locale.US)
+  val uploadedTracesDirectory = File("/sdcard/traces/")
+  uploadedTracesDirectory.mkdirs()
+  check(uploadedTracesDirectory.exists()) {
+    "Expected heap dump folder to exist: ${uploadedTracesDirectory.absolutePath}"
+  }
+
+  val heapGraphProvider = HeapGraphProvider {
+    val fileName = dateFormat.format(Date())
+    val heapDumpFile = File(uploadedTracesDirectory, fileName)
+    AndroidDebugHeapDumper.dumpHeap(heapDumpFile)
+    check(heapDumpFile.exists()) {
+      "Expected file to exist after heap dump: ${heapDumpFile.absolutePath}"
+    }
+    val realGraph = heapDumpFile.openHeapGraph()
+    object : CloseableHeapGraph by realGraph {
+      override fun close() {
+        realGraph.close()
+        heapDumpFile.delete()
+      }
+    }
+  }
+
+  LiveHeapGrowthDetector(
+    maxHeapDumps = 5,
+    heapGraphProvider = heapGraphProvider,
+    scenarioLoopsPerDump = 5,
+    detector = LoopingHeapGrowthDetector(
+      DiffingHeapGrowthDetector(
+        referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
+        gcRootProvider = MatchingGcRootProvider(referenceMatchers)
+      )
+    )
+  )
+}
+
+```
+
+Ensure your UI tests have enough heap by updating `src/androidTest/AndroidManifest.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Performing the heap growth analysis in process requires more heap. -->
+  <application
+      android:largeHeap="true"/>
+</manifest>
 ```
 
 ### Reference readers
