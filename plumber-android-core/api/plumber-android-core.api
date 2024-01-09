@@ -9,6 +9,7 @@ public abstract class leakcanary/AndroidLeakFixes : java/lang/Enum {
 	public static final field IMM_FOCUSED_VIEW Lleakcanary/AndroidLeakFixes;
 	public static final field LAST_HOVERED_VIEW Lleakcanary/AndroidLeakFixes;
 	public static final field MEDIA_SESSION_LEGACY_HELPER Lleakcanary/AndroidLeakFixes;
+	public static final field PERMISSION_CONTROLLER_MANAGER Lleakcanary/AndroidLeakFixes;
 	public static final field SAMSUNG_CLIPBOARD_MANAGER Lleakcanary/AndroidLeakFixes;
 	public static final field SPELL_CHECKER Lleakcanary/AndroidLeakFixes;
 	public static final field TEXT_LINE_POOL Lleakcanary/AndroidLeakFixes;
