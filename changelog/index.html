@@ -2461,6 +2461,23 @@
 <p>These alpha releases mark the start of the work on LeakCanary 3. It&rsquo;s not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.</p>
 <h3 id="heap-growth">Heap Growth<a class="headerlink" href="#heap-growth" title="Permanent link">&para;</a></h3>
 <p>New APIs, not stable yet: the <code>shark-heap-growth</code> artifact contains APIs for writing test scenarios that detect repeated heap growth.</p>
+<p>Here&rsquo;s how it&rsquo;s used with an Espresso test:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">MyEspressoTest</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">greeter_says_hello_does_not_leak</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Runs in a loop until the heap stops growing or we reach max heap dumps.</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapTraversal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapGrowthDetector</span><span class="p">.</span><span class="na">detectRepeatedHeapGrowth</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Runs repeatedly until the heap stops growing or we reach maxHeapDumps.</span>
+<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withId</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">name_field</span><span class="p">)).</span><span class="na">perform</span><span class="p">(</span><span class="n">typeText</span><span class="p">(</span><span class="s">&quot;Steve&quot;</span><span class="p">))</span>
+<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withId</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">greet_button</span><span class="p">)).</span><span class="na">perform</span><span class="p">(</span><span class="n">click</span><span class="p">())</span>
+<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withText</span><span class="p">(</span><span class="s">&quot;Hello Steve!&quot;</span><span class="p">)).</span><span class="na">check</span><span class="p">(</span><span class="n">matches</span><span class="p">(</span><span class="n">isDisplayed</span><span class="p">()))</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">heapTraversal</span><span class="p">.</span><span class="na">growingNodes</span><span class="p">).</span><span class="na">isEmpty</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Here&rsquo;s an example set up, this is all very manual for now.</p>
 <p>Add the new dependency:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
@@ -2472,17 +2489,19 @@
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">leakcanary.AndroidDebugHeapDumper</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">shark.AndroidReferenceMatchers</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">shark.AndroidReferenceReaderFactory</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.CloseableHeapGraph</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">shark.DiffingHeapGrowthDetector</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapGraphProvider</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapTraversal</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">shark.HprofHeapGraph.Companion.openHeapGraph</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.IgnoredReferenceMatcher</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">shark.LiveHeapGrowthDetector</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">shark.LoopingHeapGrowthDetector</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">shark.MatchingGcRootProvider</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.ReferencePattern.InstanceFieldPattern</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">java.io.File</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">java.text.SimpleDateFormat</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">java.util.Date</span>
-<span class="k">import</span><span class="w"> </span><span class="nn">java.util.EnumSet</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">java.util.Locale</span>
 
 <span class="cm">/**</span>
@@ -2492,10 +2511,12 @@
 <span class="cm"> * then assert that the resulting [shark.HeapTraversalWithDiff.growingNodes] is empty.</span>
 <span class="cm"> */</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">HeapGrowthDetector</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">lazy</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">referenceMatchers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">appDefaults</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">HeapTraversal</span><span class="p">.</span><span class="na">ignoredReferences</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">referenceMatchers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">appDefaults</span><span class="w"> </span><span class="o">+</span>
+<span class="w">    </span><span class="n">HeapTraversal</span><span class="p">.</span><span class="na">ignoredReferences</span><span class="w"> </span><span class="o">+</span>
+<span class="w">    </span><span class="c1">// https://cs.android.com/android/_/android/platform/frameworks/base/+/6985fb39f07294fb979b14ba0ebabfd2fea06d34</span>
+<span class="w">    </span><span class="n">IgnoredReferenceMatcher</span><span class="p">(</span><span class="n">InstanceFieldPattern</span><span class="p">(</span><span class="s">&quot;android.os.StrictMode&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;sLastVmViolationTime&quot;</span><span class="p">))</span>
 
 <span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">dateFormat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SimpleDateFormat</span><span class="p">(</span><span class="s">&quot;yyyy-MM-dd_HH-mm-ss_SSS&#39;-heap-growth.hprof&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Locale</span><span class="p">.</span><span class="na">US</span><span class="p">)</span>
-<span class="w">  </span><span class="c1">// Magical path that we automatically upload as artifacts of failed builds in CI.</span>
 <span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">uploadedTracesDirectory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">(</span><span class="s">&quot;/sdcard/traces/&quot;</span><span class="p">)</span>
 <span class="w">  </span><span class="n">uploadedTracesDirectory</span><span class="p">.</span><span class="na">mkdirs</span><span class="p">()</span>
 <span class="w">  </span><span class="n">check</span><span class="p">(</span><span class="n">uploadedTracesDirectory</span><span class="p">.</span><span class="na">exists</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
@@ -2509,7 +2530,13 @@
 <span class="w">    </span><span class="n">check</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">.</span><span class="na">exists</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="s">&quot;Expected file to exist after heap dump: </span><span class="si">${</span><span class="n">heapDumpFile</span><span class="p">.</span><span class="na">absolutePath</span><span class="si">}</span><span class="s">&quot;</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">    </span><span class="n">heapDumpFile</span><span class="p">.</span><span class="na">openHeapGraph</span><span class="p">()</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">realGraph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapDumpFile</span><span class="p">.</span><span class="na">openHeapGraph</span><span class="p">()</span>
+<span class="w">    </span><span class="k">object</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nc">CloseableHeapGraph</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">realGraph</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">close</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">realGraph</span><span class="p">.</span><span class="na">close</span><span class="p">()</span>
+<span class="w">        </span><span class="n">heapDumpFile</span><span class="p">.</span><span class="na">delete</span><span class="p">()</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 
 <span class="w">  </span><span class="n">LiveHeapGrowthDetector</span><span class="p">(</span>
@@ -2534,23 +2561,6 @@
 <span class="w">  </span><span class="nt">&lt;application</span>
 <span class="w">      </span><span class="na">android:largeHeap=</span><span class="s">&quot;true&quot;</span><span class="nt">/&gt;</span>
 <span class="nt">&lt;/manifest&gt;</span>
-</code></pre></div>
-<p>Use it:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">MyEspressoTest</span><span class="w"> </span><span class="p">{</span>
-
-<span class="w">  </span><span class="nd">@Test</span>
-<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">greeter_says_hello_does_not_leak</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// Runs in a loop until the heap stops growing or we reach max heap dumps.</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapTraversal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapGrowthDetector</span><span class="p">.</span><span class="na">detectRepeatedHeapGrowth</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="c1">// Runs repeatedly until the heap stops growing or we reach maxHeapDumps.</span>
-<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withId</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">name_field</span><span class="p">)).</span><span class="na">perform</span><span class="p">(</span><span class="n">typeText</span><span class="p">(</span><span class="s">&quot;Steve&quot;</span><span class="p">))</span>
-<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withId</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">greet_button</span><span class="p">)).</span><span class="na">perform</span><span class="p">(</span><span class="n">click</span><span class="p">())</span>
-<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withText</span><span class="p">(</span><span class="s">&quot;Hello Steve!&quot;</span><span class="p">)).</span><span class="na">check</span><span class="p">(</span><span class="n">matches</span><span class="p">(</span><span class="n">isDisplayed</span><span class="p">()))</span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">heapTraversal</span><span class="p">.</span><span class="na">growingNodes</span><span class="p">).</span><span class="na">isEmpty</span><span class="p">()</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
 </code></pre></div>
 <h3 id="reference-readers">Reference readers<a class="headerlink" href="#reference-readers" title="Permanent link">&para;</a></h3>
 <p>New APIs, not stable yet: <code>ReferenceReader</code> implementations aka expanders, are now public APIs. The names might change. These class define how LeakCanary traverses the graph, and allow for the creating of virtual references, as <a href="#improved-support-for-data-structure-internals">introduced here</a>. These new APIs make it possible to add support for more custom data structures, and they&rsquo;re also useful when working directly with the <code>shark</code> APIs (for example, these APIs were necessary to build the heap growth detection tooling mentioned above).</p>
