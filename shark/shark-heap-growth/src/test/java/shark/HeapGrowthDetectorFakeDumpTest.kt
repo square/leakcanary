@@ -18,7 +18,6 @@ class HeapGrowthDetectorFakeDumpTest {
     )
 
     assertThat(heapTraversal).isInstanceOf(InitialHeapTraversal::class.java)
-    assertThat(heapTraversal.growing).isTrue
   }
 
   @Test
@@ -51,7 +50,7 @@ class HeapGrowthDetectorFakeDumpTest {
 
     val traversal = detector.detectHeapGrowth(dumps)
 
-    assertThat(traversal.growing).isFalse
+    assertThat(traversal.growingNodes).isEmpty()
   }
 
   @Test
@@ -69,7 +68,7 @@ class HeapGrowthDetectorFakeDumpTest {
 
     val traversal = detector.detectHeapGrowth(dumps)
 
-    assertThat(traversal.growing).isFalse
+    assertThat(traversal.growingNodes).isEmpty()
   }
 
   @Test
@@ -86,9 +85,6 @@ class HeapGrowthDetectorFakeDumpTest {
 
     val traversal = detector.detectHeapGrowth(dumps)
 
-    assertThat(traversal.growing).isTrue
-
-    traversal as HeapTraversalWithDiff
     assertThat(traversal.growingNodes).hasSize(1)
   }
 
@@ -106,7 +102,7 @@ class HeapGrowthDetectorFakeDumpTest {
 
     val traversal = detector.detectHeapGrowth(dumps)
 
-    assertThat(traversal.growing).isFalse
+    assertThat(traversal.growingNodes).isEmpty()
   }
 
   @Test
@@ -126,7 +122,6 @@ class HeapGrowthDetectorFakeDumpTest {
 
     val traversal = detector.detectHeapGrowth(dumps)
 
-    traversal as HeapTraversalWithDiff
     val growingNode = traversal.growingNodes.first()
 
     assertThat(growingNode.selfObjectCount).isEqualTo(1)
@@ -135,12 +130,12 @@ class HeapGrowthDetectorFakeDumpTest {
     assertThat(growingNode.children).hasSize(1)
   }
 
-  private fun DiffingHeapGrowthDetector.detectHeapGrowth(heapDumps: List<HeapDumpAfterLoopingScenario>): HeapTraversal {
+  private fun DiffingHeapGrowthDetector.detectHeapGrowth(heapDumps: List<HeapDumpAfterLoopingScenario>): HeapTraversalWithDiff {
     return heapDumps.fold<HeapDumpAfterLoopingScenario, InputHeapTraversal>(
       initial = NoHeapTraversalYet
     ) { previous, dump ->
       detectHeapGrowth(dump, previous)
-    } as HeapTraversal
+    } as HeapTraversalWithDiff
   }
 
   private fun HprofWriterHelper.classWithStringsInStaticField(vararg strings: String) {

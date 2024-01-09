@@ -1,7 +1,0 @@
-package shark
-
-class DiffingHeapGrowthDetectorTest {
-
-
-
-}

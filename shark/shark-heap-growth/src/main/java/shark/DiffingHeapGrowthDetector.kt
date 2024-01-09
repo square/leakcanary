@@ -8,16 +8,12 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.internal.hppc.LongScatterSet
 import shark.ReferenceLocationType.ARRAY_ENTRY
+import shark.internal.hppc.LongScatterSet
 
 class DiffingHeapGrowthDetector(
-  private val referenceReaderFactory: ReferenceReader.Factory<HeapObject> = AndroidReferenceReaderFactory(
-    JdkReferenceMatchers.defaults
-  ),
-  private val gcRootProvider: GcRootProvider = MatchingGcRootProvider(
-    JdkReferenceMatchers.defaults
-  ),
+  private val referenceReaderFactory: ReferenceReader.Factory<HeapObject>,
+  private val gcRootProvider: GcRootProvider,
 ) {
 
   data class HeapDumpAfterLoopingScenario(
