@@ -3,19 +3,30 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-## Version 3.0 (TBD)
+## Version 3.0 Alpha 1 (2024-??-??)
 
-### Bumped dependencies
+This release marks the start of the work on LeakCanary 3. It's not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.
 
-* Kotlin: updated to 1.8.21
-
-### Other changes
-
+* New APIs, not stable yet: Reference readers, aka expanders, are starting to make their way into public APIs.
+* New APIs, not stable yet: the `shark-heap-growth` artifact contains APIs for writing test scenarios that detect repeated heap growth.
+* [#2612](https://github.com/square/leakcanary/pull/2612) Refactor reachability APIs
+* Bumped Kotlin to 1.8.21
 * Dropped support for detecting support fragment leaks: apps should all have migrated to Android X by now, and if not they can easily add this.
 
-## Version 2.11 (2023-05-17)
+## Version 2.13 (2024-01-03)
 
-This is most likely the last release before the work starts on LeakCanary 3.0.
+* 🐛 [#2565](https://github.com/square/leakcanary/issues/2565) Fix AndroidX Fragments incorrectly marked as leaking if detached but not destroyed.
+* 💥 [#2568](https://github.com/square/leakcanary/issues/2568) Fixed missing `RECEIVER_EXPORTED` flag when calling `registerReceiver()` on API 34+.
+* 🔨 [#2555](https://github.com/square/leakcanary/issues/2555) Binder stubs are now called out in leak traces.
+* 🐤 [#2601](https://github.com/square/leakcanary/pull/2601) Added several known manufacturer & framework leaks.
+
+## Version 2.12 (2023-06-29)
+
+* 💥 [#2527](https://github.com/square/leakcanary/issues/2527) `LifecycleRegistry` in `androidx.lifecycle:lifecycle-runtime` was migrated to kotlin and its `mState` field name changed to `state` which broke LeakCanary expectations.
+* 🐤 [#2545](https://github.com/square/leakcanary/pull/2545) Added several known manufacturer & framework leaks.
+
+
+## Version 2.11 (2023-05-17)
 
 * 🐛 [#1764](https://github.com/square/leakcanary/issues/1764) Ignore phantom classes that were unloaded than reloaded (long time LeakCanary bug).
 * 🐛 [#2471](https://github.com/square/leakcanary/issues/2471) Fix LeakCanary introducing a weird leak in Google's CI infra.
