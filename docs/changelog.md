@@ -3,15 +3,135 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-## Version 3.0 Alpha 1 (2024-??-??)
+## Version 3.0 Alpha 1 (2024-01-09)
 
-This release marks the start of the work on LeakCanary 3. It's not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.
+These alpha releases mark the start of the work on LeakCanary 3. It's not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.
 
-* New APIs, not stable yet: Reference readers, aka expanders, are starting to make their way into public APIs.
-* New APIs, not stable yet: the `shark-heap-growth` artifact contains APIs for writing test scenarios that detect repeated heap growth.
-* [#2612](https://github.com/square/leakcanary/pull/2612) Refactor reachability APIs
+### Heap Growth
+
+New APIs, not stable yet: the `shark-heap-growth` artifact contains APIs for writing test scenarios that detect repeated heap growth.
+
+Here's an example set up, this is all very manual for now.
+
+Add the new dependency:
+
+```groovy
+dependencies {
+  androidTestImplementation 'com.squareup.leakcanary:shark-heap-growth:3.0-alpha-1'
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-core:3.0-alpha-1'
+}
+```
+
+Create an implementation setup for Espresso in process UI tests:
+
+```kotlin
+
+import leakcanary.AndroidDebugHeapDumper
+import shark.AndroidReferenceMatchers
+import shark.AndroidReferenceReaderFactory
+import shark.DiffingHeapGrowthDetector
+import shark.HeapGraphProvider
+import shark.HeapTraversal
+import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.LiveHeapGrowthDetector
+import shark.LoopingHeapGrowthDetector
+import shark.MatchingGcRootProvider
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.EnumSet
+import java.util.Locale
+
+/**
+ * Heap growth detector for in process Espresso UI tests.
+ *
+ * Call [LiveHeapGrowthDetector.detectRepeatedHeapGrowth] with a scenario to repeat,
+ * then assert that the resulting [shark.HeapTraversalWithDiff.growingNodes] is empty.
+ */
+val HeapGrowthDetector by lazy {
+  val referenceMatchers = AndroidReferenceMatchers.appDefaults + HeapTraversal.ignoredReferences
+
+  val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'-heap-growth.hprof'", Locale.US)
+  // Magical path that we automatically upload as artifacts of failed builds in CI.
+  val uploadedTracesDirectory = File("/sdcard/traces/")
+  uploadedTracesDirectory.mkdirs()
+  check(uploadedTracesDirectory.exists()) {
+    "Expected heap dump folder to exist: ${uploadedTracesDirectory.absolutePath}"
+  }
+
+  val heapGraphProvider = HeapGraphProvider {
+    val fileName = dateFormat.format(Date())
+    val heapDumpFile = File(uploadedTracesDirectory, fileName)
+    AndroidDebugHeapDumper.dumpHeap(heapDumpFile)
+    check(heapDumpFile.exists()) {
+      "Expected file to exist after heap dump: ${heapDumpFile.absolutePath}"
+    }
+    heapDumpFile.openHeapGraph()
+  }
+
+  LiveHeapGrowthDetector(
+    maxHeapDumps = 5,
+    heapGraphProvider = heapGraphProvider,
+    scenarioLoopsPerDump = 5,
+    detector = LoopingHeapGrowthDetector(
+      DiffingHeapGrowthDetector(
+        referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
+        gcRootProvider = MatchingGcRootProvider(referenceMatchers)
+      )
+    )
+  )
+}
+```
+
+Ensure your UI tests have enough heap by updating `src/androidTest/AndroidManifest.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Performing the heap growth analysis in process requires more heap. -->
+  <application
+      android:largeHeap="true"/>
+</manifest>
+```
+
+Use it:
+
+```kotlin
+class MyEspressoTest {
+
+  @Test
+  fun greeter_says_hello_does_not_leak() {
+    // Runs in a loop until the heap stops growing or we reach max heap dumps.
+    val heapTraversal = HeapGrowthDetector.detectRepeatedHeapGrowth {
+      // Runs repeatedly until the heap stops growing or we reach maxHeapDumps.
+      onView(withId(R.id.name_field)).perform(typeText("Steve"))
+      onView(withId(R.id.greet_button)).perform(click())
+      onView(withText("Hello Steve!")).check(matches(isDisplayed()))
+    }
+
+    assertThat(heapTraversal.growingNodes).isEmpty()
+  }
+}
+```
+
+### Reference readers
+
+ New APIs, not stable yet: `ReferenceReader` implementations aka expanders, are now public APIs. The names might change. These class define how LeakCanary traverses the graph, and allow for the creating of virtual references, as [introduced here](#improved-support-for-data-structure-internals). These new APIs make it possible to add support for more custom data structures, and they're also useful when working directly with the `shark` APIs (for example, these APIs were necessary to build the heap growth detection tooling mentioned above).
+
+### ObjectWatcher APIs refactor
+
+[#2612](https://github.com/square/leakcanary/pull/2612) is a first attempt at refactoring the reachability APIs. I already found backward compatibility issues ([#2617](https://github.com/square/leakcanary/issues/2617)), will fix in the next alpha, and probably still change the API shape.
+
+The general purpose of this refactor is to move away from the static singletons and high coupling of the current implementation, making the reachability APIs more useful in a variaty of contexts.
+
+### Other bug fixes and improvements 🐛🔨
+
 * Bumped Kotlin to 1.8.21
-* Dropped support for detecting support fragment leaks: apps should all have migrated to Android X by now, and if not they can easily add this.
+* Dropped support for detecting support fragment leaks: apps should all have migrated to Android X by now, and if not they can easily add their own implementation back.
+
+This list reflects only a subset of all changes. For more details, the [full diff](https://github.com/square/leakcanary/compare/v2.13...v3.0-alpha-1).
 
 ## Version 2.13 (2024-01-03)
 
