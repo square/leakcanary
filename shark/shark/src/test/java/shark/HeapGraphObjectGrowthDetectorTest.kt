@@ -2,18 +2,18 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.DiffingHeapGrowthDetector.HeapDumpAfterLoopingScenario
 import shark.HprofHeapGraph.Companion.openHeapGraph
 
-class HeapGrowthDetectorFakeDumpTest {
+class HeapGraphObjectGrowthDetectorTest {
 
   @Test
   fun `first traversal returns InitialHeapTraversal`() {
     val detector = newSimpleDetector()
 
-    val heapTraversal = detector.detectHeapGrowth(
-      heapDump = dump {
+    val heapTraversal = detector.findGrowingObjects(
+      dump {
       },
+      1,
       previousTraversal = NoHeapTraversalYet
     )
 
@@ -23,13 +23,15 @@ class HeapGrowthDetectorFakeDumpTest {
   @Test
   fun `second traversal returns HeapTraversalWithDiff`() {
     val detector = newSimpleDetector()
-    val first = detector.detectHeapGrowth(
-      heapDump = emptyHeapDump(),
+    val first = detector.findGrowingObjects(
+      emptyHeapDump(),
+      1,
       previousTraversal = NoHeapTraversalYet
     )
 
-    val secondTraversal = detector.detectHeapGrowth(
-      heapDump = emptyHeapDump(),
+    val secondTraversal = detector.findGrowingObjects(
+      emptyHeapDump(),
+      1,
       previousTraversal = first
     )
 
@@ -42,10 +44,10 @@ class HeapGrowthDetectorFakeDumpTest {
     val dumps = listOf(
       dump {
         classWithStringsInStaticField("Hi")
-      },
+      } to 1,
       dump {
         classWithStringsInStaticField("Hi")
-      }
+      } to 1
     )
 
     val traversal = detector.detectHeapGrowth(dumps)
@@ -60,10 +62,10 @@ class HeapGrowthDetectorFakeDumpTest {
     val dumps = listOf(
       dump {
         classWithStringsInStaticField("Hi")
-      },
+      } to 1,
       dump {
         classWithStringsInStaticField("Bonjour")
-      }
+      } to 1
     )
 
     val traversal = detector.detectHeapGrowth(dumps)
@@ -77,10 +79,10 @@ class HeapGrowthDetectorFakeDumpTest {
     val dumps = listOf(
       dump {
         classWithStringsInStaticField("Hello")
-      },
+      } to 1,
       dump {
         classWithStringsInStaticField("Hello", "World!")
-      }
+      } to 1
     )
 
     val traversal = detector.detectHeapGrowth(dumps)
@@ -94,10 +96,10 @@ class HeapGrowthDetectorFakeDumpTest {
     val dumps = listOf(
       dump {
         classWithStringsInStaticField("Hello")
-      },
-      dump(2) {
+      } to 1,
+      dump {
         classWithStringsInStaticField("Hello", "World!")
-      }
+      } to 2
     )
 
     val traversal = detector.detectHeapGrowth(dumps)
@@ -117,7 +119,7 @@ class HeapGrowthDetectorFakeDumpTest {
       val strings = (1..stringCount).toList().map { "Hi $it" }.toTypedArray()
       dump {
         classWithStringsInStaticField(*strings)
-      }
+      } to 1
     }
 
     val traversal = detector.detectHeapGrowth(dumps)
@@ -130,11 +132,11 @@ class HeapGrowthDetectorFakeDumpTest {
     assertThat(growingNode.children).hasSize(1)
   }
 
-  private fun DiffingHeapGrowthDetector.detectHeapGrowth(heapDumps: List<HeapDumpAfterLoopingScenario>): HeapTraversalWithDiff {
-    return heapDumps.fold<HeapDumpAfterLoopingScenario, InputHeapTraversal>(
+  private fun HeapGraphObjectGrowthDetector.detectHeapGrowth(heapDumps: List<Pair<CloseableHeapGraph, Int>>): HeapTraversalWithDiff {
+    return heapDumps.fold<Pair<CloseableHeapGraph, Int>, InputHeapTraversal>(
       initial = NoHeapTraversalYet
-    ) { previous, dump ->
-      detectHeapGrowth(dump, previous)
+    ) { previous, (graph, count) ->
+      findGrowingObjects(graph, count, previous)
     } as HeapTraversalWithDiff
   }
 
@@ -148,16 +150,12 @@ class HeapGrowthDetectorFakeDumpTest {
   private fun emptyHeapDump() = dump {}
 
   private fun dump(
-    scenarioLoopCount: Int = 1,
     block: HprofWriterHelper.() -> Unit
-  ): HeapDumpAfterLoopingScenario {
-    return HeapDumpAfterLoopingScenario(
-      heapGraph = dump(HprofHeader(), block).openHeapGraph(),
-      scenarioLoopCount = scenarioLoopCount
-    )
+  ): CloseableHeapGraph {
+    return  dump(HprofHeader(), block).openHeapGraph()
   }
 
-  private fun newSimpleDetector(): DiffingHeapGrowthDetector {
+  private fun newSimpleDetector(): HeapGraphObjectGrowthDetector {
     val referenceReaderFactory = ActualMatchingReferenceReaderFactory(
       referenceMatchers = emptyList()
     )
@@ -170,6 +168,6 @@ class HeapGrowthDetectorFakeDumpTest {
         )
       }
     }
-    return DiffingHeapGrowthDetector(referenceReaderFactory, gcRootProvider)
+    return HeapGraphObjectGrowthDetector(gcRootProvider, referenceReaderFactory)
   }
 }

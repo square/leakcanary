@@ -1,0 +1,30 @@
+public final class leakcanary/DateFormatHeapDumpFileProvider : leakcanary/HeapDumpFileProvider {
+	public static final field Companion Lleakcanary/DateFormatHeapDumpFileProvider$Companion;
+	public static final field TIME_PATTERN Ljava/lang/String;
+	public fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun newHeapDumpFile ()Ljava/io/File;
+}
+
+public final class leakcanary/DateFormatHeapDumpFileProvider$Companion {
+}
+
+public final class leakcanary/DumpingDeletingOnCloseHeapGraphProvider : shark/HeapGraphProvider {
+	public fun <init> (Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;)V
+	public fun openHeapGraph ()Lshark/CloseableHeapGraph;
+}
+
+public abstract interface class leakcanary/HeapDumpFileProvider {
+	public static final field Companion Lleakcanary/HeapDumpFileProvider$Companion;
+	public abstract fun newHeapDumpFile ()Ljava/io/File;
+}
+
+public final class leakcanary/HeapDumpFileProvider$Companion {
+	public final fun dateFormatted (Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Lleakcanary/HeapDumpFileProvider;
+	public static synthetic fun dateFormatted$default (Lleakcanary/HeapDumpFileProvider$Companion;Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Lleakcanary/HeapDumpFileProvider;
+}
+
+public abstract interface class leakcanary/HeapDumper {
+	public abstract fun dumpHeap (Ljava/io/File;)V
+}
+

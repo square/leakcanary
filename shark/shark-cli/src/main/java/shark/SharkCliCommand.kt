@@ -17,9 +17,11 @@ import shark.SharkCliCommand.HeapDumpSource.HprofFileSource
 import shark.SharkCliCommand.HeapDumpSource.ProcessSource
 import shark.SharkLog.Logger
 import java.io.File
+import java.io.FileFilter
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.Properties
+import shark.SharkCliCommand.HeapDumpSource.HprofDirectorySource
 
 class SharkCliCommand : CliktCommand(
   name = "shark-cli",
@@ -64,9 +66,11 @@ class SharkCliCommand : CliktCommand(
     help = "provide additional details as to what shark-cli is doing"
   ).flag("--no-verbose")
 
-  private val heapDumpFile by option("--hprof", "-h", help = "path to a .hprof file").file(
+  private val heapDumpFile by option(
+    "--hprof", "-h", help = "path to a .hprof file or a folder containing hprof files"
+  ).file(
     exists = true,
-    folderOkay = false,
+    folderOkay = true,
     readable = true
   )
 
@@ -81,6 +85,11 @@ class SharkCliCommand : CliktCommand(
 
   sealed class HeapDumpSource {
     class HprofFileSource(val file: File) : HeapDumpSource()
+    class HprofDirectorySource(val directory: File) : HeapDumpSource() {
+      val hprofFiles: List<File>
+        get() = directory.listFiles(FileFilter { it.extension == "hprof" })?.toList() ?: emptyList()
+    }
+
     class ProcessSource(
       val processName: String,
       val deviceId: String?
@@ -99,10 +108,18 @@ class SharkCliCommand : CliktCommand(
         obfuscationMappingPath = obfuscationMappingPath
       )
     } else if (heapDumpFile != null) {
-      context.sharkCliParams = CommandParams(
-        source = HprofFileSource(heapDumpFile!!),
-        obfuscationMappingPath = obfuscationMappingPath
-      )
+      val file = heapDumpFile!!
+      if (file.isDirectory) {
+        context.sharkCliParams = CommandParams(
+          source = HprofDirectorySource(file),
+          obfuscationMappingPath = obfuscationMappingPath
+        )
+      } else {
+        context.sharkCliParams = CommandParams(
+          source = HprofFileSource(file),
+          obfuscationMappingPath = obfuscationMappingPath
+        )
+      }
     } else {
       throw UsageError("Must provide one of --process, --hprof")
     }
@@ -154,6 +171,17 @@ class SharkCliCommand : CliktCommand(
     fun CliktCommand.retrieveHeapDumpFile(params: CommandParams): File {
       return when (val source = params.source) {
         is HprofFileSource -> source.file
+        is HprofDirectorySource -> {
+          val hprofFiles = source.hprofFiles
+          if (hprofFiles.size != 1) {
+            throw CliktError(
+              "Directory ${source.directory.absolutePath} should have exactly one hprof " +
+                "file, not ${hprofFiles.size}: ${hprofFiles.map { it.name }}"
+            )
+          }
+          hprofFiles.single()
+        }
+
         is ProcessSource -> dumpHeap(source.processName, source.deviceId)
       }
     }

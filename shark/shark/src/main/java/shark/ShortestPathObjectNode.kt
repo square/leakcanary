@@ -1,13 +1,15 @@
 package shark
 
-class ShortestPathNode(
+typealias GrowingObjectNodes = List<ShortestPathObjectNode>
+
+class ShortestPathObjectNode(
   val nodeAndEdgeName: String,
-  val parent: ShortestPathNode?,
+  val parent: ShortestPathObjectNode?,
   internal val newNode: Boolean
 ) {
   @Suppress("VariableNaming")
-  internal val _children = mutableListOf<ShortestPathNode>()
-  val children: List<ShortestPathNode>
+  internal val _children = mutableListOf<ShortestPathObjectNode>()
+  val children: List<ShortestPathObjectNode>
     get() = _children
 
   var selfObjectCount = 0
@@ -26,15 +28,15 @@ class ShortestPathNode(
   override fun toString() = pathFromRootAsString()
 
   fun pathFromRootAsString(): String {
-    val pathFromRoot = mutableListOf<ShortestPathNode>()
-    var unwindingNode: ShortestPathNode? = this
+    val pathFromRoot = mutableListOf<ShortestPathObjectNode>()
+    var unwindingNode: ShortestPathObjectNode? = this
     while (unwindingNode != null) {
       pathFromRoot.add(0, unwindingNode)
       unwindingNode = unwindingNode.parent
     }
     val pathAfterRoot = pathFromRoot.drop(1)
     val result = StringBuilder()
-    result.append("┬───").appendLine()
+    result.append("\n┬───").appendLine()
     pathAfterRoot.forEachIndexed { index, pathNode ->
       if (index == 0) {
         result.append("│ ")
