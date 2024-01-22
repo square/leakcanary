@@ -20,7 +20,7 @@ androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-instrument
 debugImplementation 'com.squareup.leakcanary:leakcanary-android:{{ leak_canary.release }}'
 ```
 
-You can then call `LeakAssertions.assertNoLeak()` at any point in your tests to check for leaks:
+You can then call `LeakAssertions.assertNoLeaks()` at any point in your tests to check for leaks:
 
  ```kotlin
  class CartTest {
@@ -28,13 +28,13 @@ You can then call `LeakAssertions.assertNoLeak()` at any point in your tests to 
    @Test
    fun addItemToCart() {
      // ...
-     LeakAssertions.assertNoLeak()
+     LeakAssertions.assertNoLeaks()
    }
  }
  ```
 
 If retained instances are detected, LeakCanary will dump and analyze the heap. If application leaks
-are found, `LeakAssertions.assertNoLeak()` will throw a `NoLeakAssertionFailedError`.
+are found, `LeakAssertions.assertNoLeaks()` will throw a `NoLeakAssertionFailedError`.
 
 ```
 leakcanary.NoLeakAssertionFailedError: Application memory leaks were detected:
@@ -73,7 +73,7 @@ HEAP ANALYSIS RESULT
 ## Test rule
 
  You can use the `DetectLeaksAfterTestSuccess` test rule to automatically call
- `LeakAssertions.assertNoLeak()` at the end of a test:
+ `LeakAssertions.assertNoLeaks()` at the end of a test:
 
  ```kotlin
  class CartTest {
@@ -87,7 +87,7 @@ HEAP ANALYSIS RESULT
  }
  ```
 
- You can call also `LeakAssertions.assertNoLeak()` as many times as you want in a single test:
+ You can call also `LeakAssertions.assertNoLeaks()` as many times as you want in a single test:
 
  ```kotlin
  class CartTest {
@@ -98,9 +98,9 @@ HEAP ANALYSIS RESULT
    @Test
    fun addItemToCart() {
      // ...
-     LeakAssertions.assertNoLeak()
+     LeakAssertions.assertNoLeaks()
      // ...
-     LeakAssertions.assertNoLeak()
+     LeakAssertions.assertNoLeaks()
      // ...
    }
  }
@@ -108,7 +108,7 @@ HEAP ANALYSIS RESULT
 
 ## Skipping leak detection
 
-Use `@SkipLeakDetection` to disable `LeakAssertions.assertNoLeak()` calls:
+Use `@SkipLeakDetection` to disable `LeakAssertions.assertNoLeaks()` calls:
 
  ```kotlin
  class CartTest {
@@ -120,15 +120,15 @@ Use `@SkipLeakDetection` to disable `LeakAssertions.assertNoLeak()` calls:
    @Test
    fun addItemToCart() {
      // ...
-     LeakAssertions.assertNoLeak()
+     LeakAssertions.assertNoLeaks()
      // ...
-     LeakAssertions.assertNoLeak()
+     LeakAssertions.assertNoLeaks()
      // ...
    }
  }
  ```
 
-You can use **tags** to identify each `LeakAssertions.assertNoLeak()` call and disable only a subset of these calls:
+You can use **tags** to identify each `LeakAssertions.assertNoLeaks()` call and disable only a subset of these calls:
 
  ```kotlin
  class CartTest {
@@ -229,9 +229,9 @@ val rule = RuleChain.outerRule(LoginRule())
   .around(LoadingScreenRule())
 ```
 
-## Customizing `assertNoLeak()`
+## Customizing `assertNoLeaks()`
 
-`LeakAssertions.assertNoLeak()` delegates calls to a global `DetectLeaksAssert` implementation,
+`LeakAssertions.assertNoLeaks()` delegates calls to a global `DetectLeaksAssert` implementation,
 which by default is an instance of `AndroidDetectLeaksAssert`. You can change the
 `DetectLeaksAssert` implementation by calling `DetectLeaksAssert.update(customLeaksAssert)`.
 
