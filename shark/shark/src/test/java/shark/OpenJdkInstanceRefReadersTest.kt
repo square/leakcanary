@@ -1,7 +1,9 @@
 package shark
 
 import java.io.File
+import java.lang.ref.ReferenceQueue
 import java.util.LinkedList
+import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import org.assertj.core.api.Assertions.assertThat
@@ -303,6 +305,203 @@ class OpenJdkInstanceRefReadersTest {
     }
   }
 
+  @Test fun `WeakHashMap no expander`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map[SomeKey()] = Retained()
+
+    System.gc()
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).hasSize(3)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("queue")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo(ReferenceQueue::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("head")
+    }
+    with(refPath[2]) {
+      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
+      assertThat(referenceDisplayName).isEqualTo("value")
+    }
+  }
+
+  @Test fun `WeakHashMap no expander with string key`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map["StringKey"] = Retained()
+
+    System.gc()
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).hasSize(3)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("table")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry[]")
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+    with(refPath[2]) {
+      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
+      assertThat(referenceDisplayName).isEqualTo("value")
+    }
+  }
+
+  @Test fun `WeakHashMap no expander with singleton key`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map[leakRoot] = Retained()
+
+    System.gc()
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).hasSize(3)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("table")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry[]")
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+    with(refPath[2]) {
+      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
+      assertThat(referenceDisplayName).isEqualTo("value")
+    }
+  }
+
+  @Test fun `WeakHashMap no expander with null key`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map[null] = Retained()
+
+    System.gc()
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).hasSize(3)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("table")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry[]")
+      assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+    with(refPath[2]) {
+      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
+      assertThat(referenceDisplayName).isEqualTo("value")
+    }
+  }
+
+  @Test fun `WeakHashMap no expander with retained key`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map[Retained()] = "value"
+
+    System.gc()
+
+    val refPath = findLeak { null }
+
+    assertThat(refPath).isEmpty()
+  }
+
+  @Test fun `WeakHashMap expanded`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map[SomeKey()] = Retained()
+
+    System.gc()
+
+    val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP)
+
+    assertThat(refPath).hasSize(3)
+
+    with(refPath[0]) {
+      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("queue")
+    }
+    with(refPath[1]) {
+      assertThat(owningClassName).isEqualTo(ReferenceQueue::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("head")
+    }
+    with(refPath[2]) {
+      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
+      assertThat(referenceDisplayName).isEqualTo("value")
+    }
+  }
+
+  @Test fun `WeakHashMap expanded with string key`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map["StringKey"] = Retained()
+
+    System.gc()
+
+    val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(referenceDisplayName).isEqualTo("[\"StringKey\"]")
+    }
+  }
+
+  @Test fun `WeakHashMap expanded with singleton key`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map[leakRoot] = Retained()
+
+    System.gc()
+
+    val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(referenceDisplayName).matches("\\[instance @\\d* of java.util.WeakHashMap]")
+    }
+  }
+
+  @Test fun `WeakHashMap expanded with null key`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map[null] = Retained()
+
+    System.gc()
+
+    val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(referenceDisplayName).isEqualTo("[null]")
+    }
+  }
+
+  @Test fun `WeakHashMap expanded with retained key`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    map[Retained()] = "value"
+
+    System.gc()
+
+    val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP)
+
+    assertThat(refPath).isEmpty()
+  }
+
   @Test fun `HashSet expanded`() {
     val set = HashSet<Any>()
     set += Retained()
@@ -410,7 +609,8 @@ class OpenJdkInstanceRefReadersTest {
         println(this)
       }
     }
-    val leakTrace = leaks.applicationLeaks[0].leakTraces.first()
+    val firstApplicationLeak = leaks.applicationLeaks.firstOrNull() ?: return emptyList()
+    val leakTrace = firstApplicationLeak.leakTraces.first()
     println(leakTrace.toSimplePathString())
     val index = leakTrace.referencePath.indexOfFirst { it.referenceName == ::leakRoot.name }
     val refFromExpandedTypeIndex = index + 1

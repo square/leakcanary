@@ -1,11 +1,12 @@
 package shark
 
-import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
 import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
+import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.OptionalFactory
 import shark.HeapObject.HeapInstance
 import shark.internal.InternalSharedArrayListReferenceReader
 import shark.internal.InternalSharedHashMapReferenceReader
 import shark.internal.InternalSharedLinkedListReferenceReader
+import shark.internal.InternalSharedWeakHashMapReferenceReader
 
 /**
  * Defines [VirtualInstanceReferenceReader] factories for common OpenJDK data structures.
@@ -154,6 +155,32 @@ enum class OpenJdkInstanceRefReaders : OptionalFactory {
         keysOnly = false,
         matches = { it.instanceClassId == hashMapClassId },
         declaringClassId = { it.instanceClassId }
+      )
+    }
+  },
+
+  // https://cs.android.com/android/platform/superproject/main/+/main:libcore/ojluni/src/main/java/java/util/WeakHashMap.java
+  WEAK_HASH_MAP {
+    override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
+      val weakHashMapClass = graph.findClassByName("java.util.WeakHashMap") ?: return null
+
+      // No table field in Apache Harmony impl.
+      val isOpenJdkImpl = weakHashMapClass.readRecordFields()
+        .any { weakHashMapClass.instanceFieldName(it) == "table" }
+
+      if (!isOpenJdkImpl) {
+        return null
+      }
+
+      val nullKeyObjectId = weakHashMapClass.readStaticField("NULL_KEY")!!.value.asObjectId
+
+      return InternalSharedWeakHashMapReferenceReader(
+        classObjectId = weakHashMapClass.objectId,
+        tableFieldName = "table",
+        isEntryWithNullKey = { entry ->
+          val key = entry["java.lang.ref.Reference", "referent"]!!.value
+          key.asObjectId == nullKeyObjectId
+        },
       )
     }
   },

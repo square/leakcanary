@@ -103,6 +103,70 @@ internal class InternalSharedHashMapReferenceReader(
   }
 }
 
+internal class InternalSharedWeakHashMapReferenceReader(
+  private val classObjectId: Long,
+  private val tableFieldName: String,
+  private val isEntryWithNullKey: (HeapInstance) -> Boolean,
+) : VirtualInstanceReferenceReader {
+  override fun matches(instance: HeapInstance): Boolean {
+    return instance.instanceClassId == classObjectId
+  }
+
+  override fun read(source: HeapInstance): Sequence<Reference> {
+    val table = source["java.util.WeakHashMap", tableFieldName]!!.valueAsObjectArray
+    return if (table != null) {
+      val entries = table.readElements().mapNotNull { entryRef ->
+        if (entryRef.isNonNullReference) {
+          val entry = entryRef.asObject!!.asInstance!!
+          generateSequence(entry) { node ->
+            node["java.util.WeakHashMap\$Entry", "next"]!!.valueAsInstance
+          }
+        } else {
+          null
+        }
+      }.flatten()
+
+      val declaringClassId = source.instanceClassId
+
+      entries.flatMap { entry ->
+        val key = if (isEntryWithNullKey(entry)) {
+          null
+        } else {
+          entry["java.lang.ref.Reference", "referent"]!!.value
+        }
+        if (key?.isNullReference == true) {
+          return@flatMap emptySequence() // cleared key
+        }
+        val value = entry["java.util.WeakHashMap\$Entry", "value"]!!.value
+        val valueRef = if (value.isNonNullReference) {
+          Reference(
+            valueObjectId = value.asObjectId!!,
+            isLowPriority = false,
+            lazyDetailsResolver = {
+              val keyAsString = key?.asObject?.asInstance?.readAsJavaString()?.let { "\"$it\"" }
+              val keyAsName = keyAsString ?: key?.asObject?.toString() ?: "null"
+              LazyDetails(
+                name = keyAsName,
+                locationClassObjectId = declaringClassId,
+                locationType = ARRAY_ENTRY,
+                isVirtual = true,
+                matchedLibraryLeak = null
+              )
+            }
+          )
+        } else null
+        if (valueRef != null) {
+          sequenceOf(valueRef)
+        } else {
+          emptySequence()
+        }
+      }
+    } else {
+      emptySequence()
+    }
+  }
+}
+
 internal class InternalSharedArrayListReferenceReader(
   private val className: String,
   private val classObjectId: Long,
