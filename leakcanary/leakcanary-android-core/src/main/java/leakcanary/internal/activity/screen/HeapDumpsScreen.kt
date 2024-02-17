@@ -2,6 +2,7 @@ package leakcanary.internal.activity.screen
 
 import android.app.ActivityManager
 import android.app.AlertDialog
+import android.os.Parcelable
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ListView
@@ -23,6 +24,8 @@ import leakcanary.internal.navigation.onCreateOptionsMenu
 import leakcanary.internal.navigation.onScreenExiting
 
 internal class HeapDumpsScreen : Screen() {
+  private var listViewState: Parcelable? = null
+
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_heap_dumps_screen).apply {
 
@@ -111,5 +114,10 @@ internal class HeapDumpsScreen : Screen() {
         )
         countView.text = count
       }
+
+    if (listViewState != null) {
+      listView.onRestoreInstanceState(listViewState)
+    }
+    onScreenExiting { listViewState = listView.onSaveInstanceState() }
   }
 }

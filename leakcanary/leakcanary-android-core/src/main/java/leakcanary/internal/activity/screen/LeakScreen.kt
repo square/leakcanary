@@ -1,5 +1,6 @@
 package leakcanary.internal.activity.screen
 
+import android.os.Parcelable
 import android.text.Html
 import android.text.SpannableStringBuilder
 import android.util.Patterns
@@ -28,6 +29,7 @@ import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
+import leakcanary.internal.navigation.onScreenExiting
 import shark.HeapAnalysisSuccess
 import shark.LeakTrace
 import shark.LibraryLeak
@@ -37,6 +39,8 @@ internal class LeakScreen(
   private val leakSignature: String,
   private val selectedHeapAnalysisId: Long? = null
 ) : Screen() {
+  private var listViewState: Parcelable? = null
+
   override fun createView(container: ViewGroup) =
     container.inflate(R.layout.leak_canary_leak_screen)
       .apply {
@@ -248,6 +252,11 @@ internal class LeakScreen(
 
     val adapter = DisplayLeakAdapter(context, leakTrace, title)
     listView.adapter = adapter
+
+    if (listViewState != null) {
+      listView.onRestoreInstanceState(listViewState)
+    }
+    onScreenExiting { listViewState = listView.onSaveInstanceState() }
   }
 
   private fun leakToString(
