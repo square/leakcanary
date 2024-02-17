@@ -161,6 +161,7 @@ public abstract class shark/AndroidReferenceMatchers : java/lang/Enum {
 	public static final field TEXT_TO_SPEECH Lshark/AndroidReferenceMatchers;
 	public static final field TEXT_VIEW__MLAST_HOVERED_VIEW Lshark/AndroidReferenceMatchers;
 	public static final field TOAST_TN Lshark/AndroidReferenceMatchers;
+	public static final field UI_MODE_MANAGER Lshark/AndroidReferenceMatchers;
 	public static final field USER_MANAGER__SINSTANCE Lshark/AndroidReferenceMatchers;
 	public static final field VIEWLOCATIONHOLDER_ROOT Lshark/AndroidReferenceMatchers;
 	public static final field VIEW_CONFIGURATION__MCONTEXT Lshark/AndroidReferenceMatchers;
