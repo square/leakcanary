@@ -16,91 +16,25 @@
 package leakcanary.internal
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
 import android.text.SpannableStringBuilder
-import android.text.style.ReplacementSpan
+import android.text.TextPaint
+import android.text.style.CharacterStyle
 import android.text.style.UnderlineSpan
 import com.squareup.leakcanary.core.R
-import kotlin.math.sin
 import leakcanary.internal.navigation.getColorCompat
 
 /**
  * Inspired from https://github.com/flavienlaurent/spans and
  * https://github.com/andyxialm/WavyLineView
  */
-internal class SquigglySpan(context: Context) : ReplacementSpan() {
+internal class SquigglySpan(context: Context) : CharacterStyle() {
+  private val referenceColor: Int = context.getColorCompat(R.color.leak_canary_reference)
 
-  private val squigglyPaint: Paint = Paint(Paint.ANTI_ALIAS_FLAG)
-  private val path: Path
-  private val referenceColor: Int
-  private val halfStrokeWidth: Float
-  private val amplitude: Float
-  private val halfWaveHeight: Float
-  private val periodDegrees: Float
-
-  private var width: Int = 0
-
-  init {
-    val resources = context.resources
-    squigglyPaint.style = Paint.Style.STROKE
-    squigglyPaint.color = context.getColorCompat(R.color.leak_canary_leak)
-    val strokeWidth =
-      resources.getDimensionPixelSize(R.dimen.leak_canary_squiggly_span_stroke_width)
-        .toFloat()
-    squigglyPaint.strokeWidth = strokeWidth
-
-    halfStrokeWidth = strokeWidth / 2
-    amplitude = resources.getDimensionPixelSize(R.dimen.leak_canary_squiggly_span_amplitude)
-      .toFloat()
-    periodDegrees =
-      resources.getDimensionPixelSize(R.dimen.leak_canary_squiggly_span_period_degrees)
-        .toFloat()
-    path = Path()
-    val waveHeight = 2 * amplitude + strokeWidth
-    halfWaveHeight = waveHeight / 2
-    referenceColor = context.getColorCompat(R.color.leak_canary_reference)
-  }
-
-  override fun getSize(
-    paint: Paint,
-    text: CharSequence,
-    start: Int,
-    end: Int,
-    fm: Paint.FontMetricsInt?
-  ): Int {
-    width = paint.measureText(text, start, end)
-      .toInt()
-    return width
-  }
-
-  override fun draw(
-    canvas: Canvas,
-    text: CharSequence,
-    start: Int,
-    end: Int,
-    x: Float,
-    top: Int,
-    y: Int,
-    bottom: Int,
-    paint: Paint
-  ) {
-    squigglyHorizontalPath(
-      path,
-      x + halfStrokeWidth,
-      x + width - halfStrokeWidth,
-      bottom - halfWaveHeight,
-      amplitude, periodDegrees
-    )
-    canvas.drawPath(path, squigglyPaint)
-
-    paint.color = referenceColor
-    canvas.drawText(text, start, end, x, y.toFloat(), paint)
+  override fun updateDrawState(textPaint: TextPaint) {
+    textPaint.color = referenceColor
   }
 
   companion object {
-
     fun replaceUnderlineSpans(
       builder: SpannableStringBuilder,
       context: Context
@@ -111,29 +45,6 @@ internal class SquigglySpan(context: Context) : ReplacementSpan() {
         val end = builder.getSpanEnd(span)
         builder.removeSpan(span)
         builder.setSpan(SquigglySpan(context), start, end, 0)
-      }
-    }
-
-    @Suppress("LongParameterList")
-    private fun squigglyHorizontalPath(
-      path: Path,
-      left: Float,
-      right: Float,
-      centerY: Float,
-      amplitude: Float,
-      periodDegrees: Float
-    ) {
-      path.reset()
-
-      var y: Float
-      path.moveTo(left, centerY)
-      val period = (2 * Math.PI / periodDegrees).toFloat()
-
-      var x = 0f
-      while (x <= right - left) {
-        y = (amplitude * sin((40 + period * x).toDouble()) + centerY).toFloat()
-        path.lineTo(left + x, y)
-        x += 1f
       }
     }
   }
