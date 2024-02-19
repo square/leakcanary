@@ -12,5 +12,9 @@ import java.io.File
 object AndroidDebugHeapDumper : HeapDumper {
   override fun dumpHeap(heapDumpFile: File) {
     Debug.dumpHprofData(heapDumpFile.absolutePath)
+
+    check(heapDumpFile.setReadable(true)) {
+      "File has no Read access."
+    }
   }
 }

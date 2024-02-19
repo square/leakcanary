@@ -228,6 +228,10 @@ internal class RealHeapAnalysisJob(
     check(heapDumpFile.length() > 0L) {
       "File has length ${heapDumpFile.length()} after dump"
     }
+
+    check(heapDumpFile.setReadable(true)) {
+      "File has no Read access."
+    }
   }
 
   private fun stripHeapDump(
