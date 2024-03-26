@@ -21,6 +21,7 @@ import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onCreateOptionsMenu
 import leakcanary.internal.navigation.onScreenExiting
+import leakcanary.internal.navigation.restoreViewStateFromTag
 
 internal class HeapDumpsScreen : Screen() {
   override fun createView(container: ViewGroup) =
@@ -111,5 +112,6 @@ internal class HeapDumpsScreen : Screen() {
         )
         countView.text = count
       }
+    restoreViewStateFromTag()
   }
 }
