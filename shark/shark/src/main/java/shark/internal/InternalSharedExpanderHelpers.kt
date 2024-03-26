@@ -128,17 +128,17 @@ internal class InternalSharedWeakHashMapReferenceReader(
 
       val declaringClassId = source.instanceClassId
 
-      entries.flatMap { entry ->
+      entries.mapNotNull { entry ->
         val key = if (isEntryWithNullKey(entry)) {
           null
         } else {
           entry["java.lang.ref.Reference", "referent"]!!.value
         }
         if (key?.isNullReference == true) {
-          return@flatMap emptySequence() // cleared key
+          return@mapNotNull null // cleared key
         }
         val value = entry["java.util.WeakHashMap\$Entry", "value"]!!.value
-        val valueRef = if (value.isNonNullReference) {
+        if (value.isNonNullReference) {
           Reference(
             valueObjectId = value.asObjectId!!,
             isLowPriority = false,
@@ -155,11 +155,6 @@ internal class InternalSharedWeakHashMapReferenceReader(
             }
           )
         } else null
-        if (valueRef != null) {
-          sequenceOf(valueRef)
-        } else {
-          emptySequence()
-        }
       }
     } else {
       emptySequence()
