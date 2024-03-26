@@ -33,8 +33,9 @@ class AndroidObjectInspectorsTest {
         it.originObject.type == INSTANCE
           && it.owningClassSimpleName == "Recomposer"
       }
-    assertThat(recomposerNode.originObject.leakingStatus == NOT_LEAKING)
-    assertThat(recomposerNode.originObject.leakingStatusReason == "Recomposer is in state PendingWork")
+    assertThat(recomposerNode.originObject.leakingStatus).isEqualTo(NOT_LEAKING)
+    assertThat(recomposerNode.originObject.leakingStatusReason)
+      .isEqualTo("Recomposer is in state PendingWork")
   }
 
   @Test fun `COMPOSITION_IMPL leaking status relies on disposal`() {
@@ -61,7 +62,7 @@ class AndroidObjectInspectorsTest {
       .referencePath.single {
         it.owningClassSimpleName == "CompositionImpl"
       }
-    assertThat(recomposerNode.originObject.leakingStatus == LEAKING)
-    assertThat(recomposerNode.originObject.leakingStatusReason == "Composition disposed")
+    assertThat(recomposerNode.originObject.leakingStatus).isEqualTo(LEAKING)
+    assertThat(recomposerNode.originObject.leakingStatusReason).isEqualTo("Composition disposed")
   }
 }

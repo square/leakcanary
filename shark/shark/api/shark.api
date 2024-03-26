@@ -39,6 +39,7 @@ public abstract class shark/ApacheHarmonyInstanceRefReaders : java/lang/Enum, sh
 	public static final field HASH_MAP Lshark/ApacheHarmonyInstanceRefReaders;
 	public static final field HASH_SET Lshark/ApacheHarmonyInstanceRefReaders;
 	public static final field LINKED_LIST Lshark/ApacheHarmonyInstanceRefReaders;
+	public static final field WEAK_HASH_MAP Lshark/ApacheHarmonyInstanceRefReaders;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public static fun valueOf (Ljava/lang/String;)Lshark/ApacheHarmonyInstanceRefReaders;
 	public static fun values ()[Lshark/ApacheHarmonyInstanceRefReaders;
@@ -572,6 +573,7 @@ public abstract class shark/OpenJdkInstanceRefReaders : java/lang/Enum, shark/Ch
 	public static final field HASH_MAP Lshark/OpenJdkInstanceRefReaders;
 	public static final field HASH_SET Lshark/OpenJdkInstanceRefReaders;
 	public static final field LINKED_LIST Lshark/OpenJdkInstanceRefReaders;
+	public static final field WEAK_HASH_MAP Lshark/OpenJdkInstanceRefReaders;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public static fun valueOf (Ljava/lang/String;)Lshark/OpenJdkInstanceRefReaders;
 	public static fun values ()[Lshark/OpenJdkInstanceRefReaders;
