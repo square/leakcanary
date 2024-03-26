@@ -84,7 +84,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>3.0-alpha-1</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.13</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -426,8 +426,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#customizing-assertnoleak" class="md-nav__link">
-    Customizing assertNoLeak()
+  <a href="#customizing-assertnoleaks" class="md-nav__link">
+    Customizing assertNoLeaks()
   </a>
   
 </li>
@@ -846,8 +846,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#customizing-assertnoleak" class="md-nav__link">
-    Customizing assertNoLeak()
+  <a href="#customizing-assertnoleaks" class="md-nav__link">
+    Customizing assertNoLeaks()
   </a>
   
 </li>
@@ -886,22 +886,22 @@ for UI tests, so LeakCanary is automatically disabled when JUnit is on the runti
 </div>
 <h2 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
 <p>LeakCanary provides an artifact dedicated to detecting leaks in UI tests:</p>
-<div class="highlight"><pre><span></span><code><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-instrumentation:3.0-alpha-1&#39;</span>
+<div class="highlight"><pre><span></span><code><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-instrumentation:2.13&#39;</span>
 <span class="c1">// You still need to include the LeakCanary artifact in your app:</span>
-<span class="n">debugImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:3.0-alpha-1&#39;</span>
+<span class="n">debugImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.13&#39;</span>
 </code></pre></div>
-<p>You can then call <code>LeakAssertions.assertNoLeak()</code> at any point in your tests to check for leaks:</p>
+<p>You can then call <code>LeakAssertions.assertNoLeaks()</code> at any point in your tests to check for leaks:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">CartTest</span><span class="w"> </span><span class="p">{</span>
 
 <span class="w">  </span><span class="nd">@Test</span>
 <span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">addItemToCart</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// ...</span>
-<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
+<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeaks</span><span class="p">()</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>If retained instances are detected, LeakCanary will dump and analyze the heap. If application leaks
-are found, <code>LeakAssertions.assertNoLeak()</code> will throw a <code>NoLeakAssertionFailedError</code>.</p>
+are found, <code>LeakAssertions.assertNoLeaks()</code> will throw a <code>NoLeakAssertionFailedError</code>.</p>
 <div class="highlight"><pre><span></span><code>leakcanary.NoLeakAssertionFailedError: Application memory leaks were detected:
 ====================================
 HEAP ANALYSIS RESULT
@@ -936,7 +936,7 @@ using code in the test APK being updated accordingly. If you run into this issue
 </div>
 <h2 id="test-rule">Test rule<a class="headerlink" href="#test-rule" title="Permanent link">&para;</a></h2>
 <p>You can use the <code>DetectLeaksAfterTestSuccess</code> test rule to automatically call
- <code>LeakAssertions.assertNoLeak()</code> at the end of a test:</p>
+ <code>LeakAssertions.assertNoLeaks()</code> at the end of a test:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">CartTest</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
 <span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">()</span>
@@ -947,7 +947,7 @@ using code in the test APK being updated accordingly. If you run into this issue
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>You can call also <code>LeakAssertions.assertNoLeak()</code> as many times as you want in a single test:</p>
+<p>You can call also <code>LeakAssertions.assertNoLeaks()</code> as many times as you want in a single test:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">CartTest</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
 <span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">()</span>
@@ -956,15 +956,15 @@ using code in the test APK being updated accordingly. If you run into this issue
 <span class="w">  </span><span class="nd">@Test</span>
 <span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">addItemToCart</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// ...</span>
-<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
+<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeaks</span><span class="p">()</span>
 <span class="w">    </span><span class="c1">// ...</span>
-<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
+<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeaks</span><span class="p">()</span>
 <span class="w">    </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="skipping-leak-detection">Skipping leak detection<a class="headerlink" href="#skipping-leak-detection" title="Permanent link">&para;</a></h2>
-<p>Use <code>@SkipLeakDetection</code> to disable <code>LeakAssertions.assertNoLeak()</code> calls:</p>
+<p>Use <code>@SkipLeakDetection</code> to disable <code>LeakAssertions.assertNoLeaks()</code> calls:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">CartTest</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
 <span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">()</span>
@@ -974,14 +974,14 @@ using code in the test APK being updated accordingly. If you run into this issue
 <span class="w">  </span><span class="nd">@Test</span>
 <span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">addItemToCart</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// ...</span>
-<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
+<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeaks</span><span class="p">()</span>
 <span class="w">    </span><span class="c1">// ...</span>
-<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeak</span><span class="p">()</span>
+<span class="w">    </span><span class="n">LeakAssertions</span><span class="p">.</span><span class="na">assertNoLeaks</span><span class="p">()</span>
 <span class="w">    </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>You can use <strong>tags</strong> to identify each <code>LeakAssertions.assertNoLeak()</code> call and disable only a subset of these calls:</p>
+<p>You can use <strong>tags</strong> to identify each <code>LeakAssertions.assertNoLeaks()</code> call and disable only a subset of these calls:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">CartTest</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nd">@get</span><span class="p">:</span><span class="n">Rule</span>
 <span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">rule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DetectLeaksAfterTestSuccess</span><span class="p">(</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;EndOfTest&quot;</span><span class="p">)</span>
@@ -1060,8 +1060,8 @@ rule.</p>
 <span class="w">  </span><span class="p">}</span>
 <span class="w">  </span><span class="p">.</span><span class="na">around</span><span class="p">(</span><span class="n">LoadingScreenRule</span><span class="p">())</span>
 </code></pre></div>
-<h2 id="customizing-assertnoleak">Customizing <code>assertNoLeak()</code><a class="headerlink" href="#customizing-assertnoleak" title="Permanent link">&para;</a></h2>
-<p><code>LeakAssertions.assertNoLeak()</code> delegates calls to a global <code>DetectLeaksAssert</code> implementation,
+<h2 id="customizing-assertnoleaks">Customizing <code>assertNoLeaks()</code><a class="headerlink" href="#customizing-assertnoleaks" title="Permanent link">&para;</a></h2>
+<p><code>LeakAssertions.assertNoLeaks()</code> delegates calls to a global <code>DetectLeaksAssert</code> implementation,
 which by default is an instance of <code>AndroidDetectLeaksAssert</code>. You can change the
 <code>DetectLeaksAssert</code> implementation by calling <code>DetectLeaksAssert.update(customLeaksAssert)</code>.</p>
 <p>The <code>AndroidDetectLeaksAssert</code> implementation performs a heap dump when retained instances are
