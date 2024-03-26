@@ -172,14 +172,14 @@ enum class OpenJdkInstanceRefReaders : OptionalFactory {
         return null
       }
 
-      val nullKeyObjectId = weakHashMapClass.readStaticField("NULL_KEY")!!.value.asObjectId
+      val nullKeyObjectId = weakHashMapClass.readStaticField("NULL_KEY")!!.value.asObjectId!!
 
       return InternalSharedWeakHashMapReferenceReader(
         classObjectId = weakHashMapClass.objectId,
         tableFieldName = "table",
         isEntryWithNullKey = { entry ->
-          val key = entry["java.lang.ref.Reference", "referent"]!!.value
-          key.asObjectId == nullKeyObjectId
+          val keyObjectId = entry["java.lang.ref.Reference", "referent"]!!.value.asObjectId!!
+          keyObjectId == nullKeyObjectId
         },
       )
     }
