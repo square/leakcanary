@@ -19,6 +19,7 @@ import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goTo
 import leakcanary.internal.navigation.inflate
 import leakcanary.internal.navigation.onScreenExiting
+import leakcanary.internal.navigation.restoreViewStateFromTag
 
 internal class LeaksScreen : Screen() {
   override fun createView(container: ViewGroup) =
@@ -70,5 +71,6 @@ internal class LeaksScreen : Screen() {
     listView.setOnItemClickListener { _, _, position, _ ->
       goTo(LeakScreen(projections[position].signature))
     }
+    restoreViewStateFromTag()
   }
 }
