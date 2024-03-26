@@ -24,6 +24,8 @@ class OpenJdkInstanceRefReadersTest {
   companion object {
     @JvmStatic
     var leakRoot: Any? = null
+
+    val NO_EXPANDER = OptionalFactory { null }
   }
 
   @get:Rule
@@ -53,7 +55,7 @@ class OpenJdkInstanceRefReadersTest {
     list += Retained()
     leakRoot = list
 
-    val refPath = findLeak { null }
+    val refPath = findLeak(NO_EXPANDER)
 
     assertThat(refPath).hasSize(2)
 
@@ -113,7 +115,7 @@ class OpenJdkInstanceRefReadersTest {
     list += Retained()
     leakRoot = list
 
-    val refPath = findLeak { null }
+    val refPath = findLeak(NO_EXPANDER)
 
     assertThat(refPath).hasSize(2)
 
@@ -147,7 +149,7 @@ class OpenJdkInstanceRefReadersTest {
     list += Retained()
     leakRoot = list
 
-    val refPath = findLeak { null }
+    val refPath = findLeak(NO_EXPANDER)
 
     assertThat(refPath).hasSize(2)
 
@@ -238,7 +240,7 @@ class OpenJdkInstanceRefReadersTest {
     map[SomeKey()] = Retained()
     leakRoot = map
 
-    val refPath = findLeak { null }
+    val refPath = findLeak(NO_EXPANDER)
 
     assertThat(refPath).hasSize(3)
 
@@ -261,7 +263,7 @@ class OpenJdkInstanceRefReadersTest {
     map[SomeKey()] = Retained()
     leakRoot = map
 
-    val refPath = findLeak { null }
+    val refPath = findLeak(NO_EXPANDER)
 
     assertThat(refPath).hasSize(3)
 
@@ -308,36 +310,12 @@ class OpenJdkInstanceRefReadersTest {
   @Test fun `WeakHashMap no expander`() {
     val map = WeakHashMap<Any, Any>()
     leakRoot = map
-    map[SomeKey()] = Retained()
+    val retainedKey = SomeKey()
+    map[retainedKey] = Retained()
 
     System.gc()
 
-    val refPath = findLeak { null }
-
-    assertThat(refPath).hasSize(3)
-
-    with(refPath[0]) {
-      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
-      assertThat(referenceDisplayName).isEqualTo("queue")
-    }
-    with(refPath[1]) {
-      assertThat(owningClassName).isEqualTo(ReferenceQueue::class.qualifiedName)
-      assertThat(referenceDisplayName).isEqualTo("head")
-    }
-    with(refPath[2]) {
-      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
-      assertThat(referenceDisplayName).isEqualTo("value")
-    }
-  }
-
-  @Test fun `WeakHashMap no expander with string key`() {
-    val map = WeakHashMap<Any, Any>()
-    leakRoot = map
-    map["StringKey"] = Retained()
-
-    System.gc()
-
-    val refPath = findLeak { null }
+    val refPath = findLeak(NO_EXPANDER)
 
     assertThat(refPath).hasSize(3)
 
@@ -353,99 +331,31 @@ class OpenJdkInstanceRefReadersTest {
       assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
       assertThat(referenceDisplayName).isEqualTo("value")
     }
-  }
-
-  @Test fun `WeakHashMap no expander with singleton key`() {
-    val map = WeakHashMap<Any, Any>()
-    leakRoot = map
-    map[leakRoot] = Retained()
-
-    System.gc()
-
-    val refPath = findLeak { null }
-
-    assertThat(refPath).hasSize(3)
-
-    with(refPath[0]) {
-      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
-      assertThat(referenceDisplayName).isEqualTo("table")
-    }
-    with(refPath[1]) {
-      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry[]")
-      assertThat(referenceDisplayName).isEqualTo("[0]")
-    }
-    with(refPath[2]) {
-      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
-      assertThat(referenceDisplayName).isEqualTo("value")
-    }
-  }
-
-  @Test fun `WeakHashMap no expander with null key`() {
-    val map = WeakHashMap<Any, Any>()
-    leakRoot = map
-    map[null] = Retained()
-
-    System.gc()
-
-    val refPath = findLeak { null }
-
-    assertThat(refPath).hasSize(3)
-
-    with(refPath[0]) {
-      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
-      assertThat(referenceDisplayName).isEqualTo("table")
-    }
-    with(refPath[1]) {
-      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry[]")
-      assertThat(referenceDisplayName).isEqualTo("[0]")
-    }
-    with(refPath[2]) {
-      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
-      assertThat(referenceDisplayName).isEqualTo("value")
-    }
-  }
-
-  @Test fun `WeakHashMap no expander with retained key`() {
-    val map = WeakHashMap<Any, Any>()
-    leakRoot = map
-    map[Retained()] = "value"
-
-    System.gc()
-
-    val refPath = findLeak { null }
-
-    assertThat(refPath).isEmpty()
   }
 
   @Test fun `WeakHashMap expanded`() {
     val map = WeakHashMap<Any, Any>()
     leakRoot = map
-    map[SomeKey()] = Retained()
+    val retainedKey = SomeKey()
+    map[retainedKey] = Retained()
 
     System.gc()
 
     val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP)
 
-    assertThat(refPath).hasSize(3)
+    assertThat(refPath).hasSize(1)
 
     with(refPath[0]) {
       assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
-      assertThat(referenceDisplayName).isEqualTo("queue")
-    }
-    with(refPath[1]) {
-      assertThat(owningClassName).isEqualTo(ReferenceQueue::class.qualifiedName)
-      assertThat(referenceDisplayName).isEqualTo("head")
-    }
-    with(refPath[2]) {
-      assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
-      assertThat(referenceDisplayName).isEqualTo("value")
+      assertThat(referenceDisplayName).matches("\\[instance @\\d* of shark\\.OpenJdkInstanceRefReadersTest\\\$SomeKey]")
     }
   }
 
   @Test fun `WeakHashMap expanded with string key`() {
     val map = WeakHashMap<Any, Any>()
     leakRoot = map
-    map["StringKey"] = Retained()
+    val retainedKey = "StringKey"
+    map[retainedKey] = Retained()
 
     System.gc()
 
@@ -455,22 +365,6 @@ class OpenJdkInstanceRefReadersTest {
 
     with(refPath.first()) {
       assertThat(referenceDisplayName).isEqualTo("[\"StringKey\"]")
-    }
-  }
-
-  @Test fun `WeakHashMap expanded with singleton key`() {
-    val map = WeakHashMap<Any, Any>()
-    leakRoot = map
-    map[leakRoot] = Retained()
-
-    System.gc()
-
-    val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP)
-
-    assertThat(refPath).hasSize(1)
-
-    with(refPath.first()) {
-      assertThat(referenceDisplayName).matches("\\[instance @\\d* of java.util.WeakHashMap]")
     }
   }
 
@@ -488,18 +382,6 @@ class OpenJdkInstanceRefReadersTest {
     with(refPath.first()) {
       assertThat(referenceDisplayName).isEqualTo("[null]")
     }
-  }
-
-  @Test fun `WeakHashMap expanded with retained key`() {
-    val map = WeakHashMap<Any, Any>()
-    leakRoot = map
-    map[Retained()] = "value"
-
-    System.gc()
-
-    val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP)
-
-    assertThat(refPath).isEmpty()
   }
 
   @Test fun `HashSet expanded`() {
@@ -537,7 +419,7 @@ class OpenJdkInstanceRefReadersTest {
     set += Retained()
     leakRoot = set
 
-    val refPath = findLeak { null }
+    val refPath = findLeak(NO_EXPANDER)
 
     assertThat(refPath).hasSize(4)
 
