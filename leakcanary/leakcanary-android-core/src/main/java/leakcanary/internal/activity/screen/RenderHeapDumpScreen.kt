@@ -46,7 +46,10 @@ internal class RenderHeapDumpScreen(
 
       viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
         override fun onGlobalLayout() {
-
+          // Extract values from the main thread, these could change by the time
+          // we get to the IO thread.
+          val measuredWidth = measuredWidth
+          val measuredHeight = measuredHeight
           executeOnIo {
             val bitmap = HeapDumpRenderer.render(
               context, heapDumpFile, measuredWidth, measuredHeight, 0
