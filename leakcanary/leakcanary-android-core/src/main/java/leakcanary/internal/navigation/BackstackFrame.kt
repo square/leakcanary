@@ -4,6 +4,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.SparseArray
 import android.view.View
+import com.squareup.leakcanary.core.R
 
 internal class BackstackFrame : Parcelable {
 
@@ -32,11 +33,15 @@ internal class BackstackFrame : Parcelable {
     this.screen = screen
     viewState = SparseArray()
     view.saveHierarchyState(viewState)
+    view.setTag(R.id.leak_canary_restored_view_state, null)
   }
 
   fun restore(view: View) {
     if (viewState != null) {
       view.restoreHierarchyState(viewState)
+      view.setTag(R.id.leak_canary_restored_view_state, viewState)
+    } else {
+      view.setTag(R.id.leak_canary_restored_view_state, null)
     }
   }
 
