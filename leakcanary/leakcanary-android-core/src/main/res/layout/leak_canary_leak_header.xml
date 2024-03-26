@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     >
-  <TextView
+  <leakcanary.internal.LeakCanaryTextView
       android:id="@+id/leak_canary_header_text"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
