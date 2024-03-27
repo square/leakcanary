@@ -9,5 +9,6 @@ fun main(args: Array<String>) =
     Neo4JCommand(),
     DumpProcessCommand(),
     StripHprofCommand(),
-    DeobfuscateHprofCommand()
+    DeobfuscateHprofCommand(),
+    HeapGrowthCommand()
   ).main(args)

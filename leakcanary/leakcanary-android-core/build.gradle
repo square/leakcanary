@@ -8,6 +8,7 @@ dependencies {
   api projects.shark.sharkAndroid
   api projects.objectWatcher.objectWatcherAndroidCore
   api projects.objectWatcher.objectWatcherAndroidAndroidx
+  api projects.leakcanary.leakcanaryCore
   implementation libs.kotlin.stdlib
 
   // Optional dependency

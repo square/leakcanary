@@ -13,7 +13,7 @@ sealed interface HeapTraversal : InputHeapTraversal {
    * - Path element names are determined using the edge name to reach them (e.g. field name) and
    * the object class name.
    */
-  val shortestPathTree: ShortestPathNode
+  val shortestPathTree: ShortestPathObjectNode
 
   companion object {
 
@@ -24,7 +24,7 @@ sealed interface HeapTraversal : InputHeapTraversal {
      */
     val ignoredReferences: List<IgnoredReferenceMatcher>
       get() {
-        val shortestPathNodeClass = ShortestPathNode::class.java
+        val shortestPathNodeClass = ShortestPathObjectNode::class.java
         return shortestPathNodeClass.declaredFields.map { classField ->
           IgnoredReferenceMatcher(InstanceFieldPattern(shortestPathNodeClass.name, classField.name))
         }
@@ -33,16 +33,16 @@ sealed interface HeapTraversal : InputHeapTraversal {
 }
 
 class InitialHeapTraversal constructor(
-  override val shortestPathTree: ShortestPathNode
+  override val shortestPathTree: ShortestPathObjectNode
 ) : HeapTraversal
 
 class HeapTraversalWithDiff(
-  override val shortestPathTree: ShortestPathNode,
+  override val shortestPathTree: ShortestPathObjectNode,
   /**
    * Nodes that already existed in the previous traversal, still exist in this
    * [shortestPathTree], and have grown compared to the previous traversal.
    */
-  val growingNodes: List<ShortestPathNode>
+  val growingNodes: List<ShortestPathObjectNode>
 ) : HeapTraversal {
   override fun toString(): String {
     return "HeapTraversalWithDiff(growingNodes=\n$growingNodes"

@@ -19,6 +19,12 @@ public final class leakcanary/AndroidDetectLeaksInterceptor : leakcanary/DetectL
 	public fun waitUntilReadyForHeapAnalysis ()Lleakcanary/HeapAnalysisDecision;
 }
 
+public final class leakcanary/AndroidLiveObjectGrowthDetector {
+	public static final field INSTANCE Lleakcanary/AndroidLiveObjectGrowthDetector;
+	public final fun create (IILleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lshark/RepeatedObjectGrowthDetector;)Lshark/LiveObjectGrowthDetector;
+	public static synthetic fun create$default (Lleakcanary/AndroidLiveObjectGrowthDetector;IILleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lshark/RepeatedObjectGrowthDetector;ILjava/lang/Object;)Lshark/LiveObjectGrowthDetector;
+}
+
 public final class leakcanary/DetectLeaksAfterTestSuccess : org/junit/rules/TestRule {
 	public static final field Companion Lleakcanary/DetectLeaksAfterTestSuccess$Companion;
 	public fun <init> ()V

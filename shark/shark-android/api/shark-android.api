@@ -15,6 +15,24 @@ public final class shark/AndroidExtensionsKt {
 	public static final fun getIdentityHashCode (Lshark/HeapObject$HeapInstance;)Ljava/lang/Integer;
 }
 
+public abstract class shark/AndroidHeapGrowthIgnoredReferences : java/lang/Enum {
+	public static final field ANDROID_DEFAULTS Lshark/AndroidHeapGrowthIgnoredReferences;
+	public static final field COMPOSE_TEST_CONTEXT_STATES Lshark/AndroidHeapGrowthIgnoredReferences;
+	public static final field Companion Lshark/AndroidHeapGrowthIgnoredReferences$Companion;
+	public static final field HEAP_TRAVERSAL Lshark/AndroidHeapGrowthIgnoredReferences;
+	public static final field RESOURCES_THEME_REFS Lshark/AndroidHeapGrowthIgnoredReferences;
+	public static final field STRICT_MODE_VIOLATION_TIME Lshark/AndroidHeapGrowthIgnoredReferences;
+	public static final field VIEW_ROOT_IMPL_W_VIEW_ANCESTOR Lshark/AndroidHeapGrowthIgnoredReferences;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/AndroidHeapGrowthIgnoredReferences;
+	public static fun values ()[Lshark/AndroidHeapGrowthIgnoredReferences;
+}
+
+public final class shark/AndroidHeapGrowthIgnoredReferences$Companion {
+	public final fun buildKnownReferences (Ljava/util/Set;)Ljava/util/List;
+	public final fun getDefaults ()Ljava/util/List;
+}
+
 public final class shark/AndroidMetadataExtractor : shark/MetadataExtractor {
 	public static final field INSTANCE Lshark/AndroidMetadataExtractor;
 	public fun extractMetadata (Lshark/HeapGraph;)Ljava/util/Map;
@@ -213,5 +231,11 @@ public final class shark/AndroidResourceIdNames$Companion {
 public final class shark/AndroidServices {
 	public static final field INSTANCE Lshark/AndroidServices;
 	public final fun getAliveAndroidServiceObjectIds (Lshark/HeapGraph;)Ljava/util/List;
+}
+
+public final class shark/RepeatedObjectGrowthDetectorAndroidFactory {
+	public static final field INSTANCE Lshark/RepeatedObjectGrowthDetectorAndroidFactory;
+	public final fun create (Ljava/util/List;)Lshark/RepeatedObjectGrowthDetector;
+	public static synthetic fun create$default (Lshark/RepeatedObjectGrowthDetectorAndroidFactory;Ljava/util/List;ILjava/lang/Object;)Lshark/RepeatedObjectGrowthDetector;
 }
 

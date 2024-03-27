@@ -1,0 +1,16 @@
+public final class leakcanary/HotSpotHeapDumper : leakcanary/HeapDumper {
+	public static final field INSTANCE Lleakcanary/HotSpotHeapDumper;
+	public fun dumpHeap (Ljava/io/File;)V
+}
+
+public final class leakcanary/JvmLiveObjectGrowthDetector {
+	public static final field INSTANCE Lleakcanary/JvmLiveObjectGrowthDetector;
+	public final fun create (IILleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lshark/RepeatedObjectGrowthDetector;)Lshark/LiveObjectGrowthDetector;
+	public static synthetic fun create$default (Lleakcanary/JvmLiveObjectGrowthDetector;IILleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lshark/RepeatedObjectGrowthDetector;ILjava/lang/Object;)Lshark/LiveObjectGrowthDetector;
+}
+
+public final class leakcanary/TempHeapDumpFileProvider : leakcanary/HeapDumpFileProvider {
+	public static final field INSTANCE Lleakcanary/TempHeapDumpFileProvider;
+	public fun newHeapDumpFile ()Ljava/io/File;
+}
+

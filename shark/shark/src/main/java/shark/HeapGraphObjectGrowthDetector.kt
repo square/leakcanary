@@ -9,25 +9,22 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.ReferenceLocationType.ARRAY_ENTRY
+import shark.ReferenceReader.Factory
 import shark.internal.hppc.LongScatterSet
 
-class DiffingHeapGrowthDetector(
-  private val referenceReaderFactory: ReferenceReader.Factory<HeapObject>,
+class HeapGraphObjectGrowthDetector(
   private val gcRootProvider: GcRootProvider,
+  private val referenceReaderFactory: Factory<HeapObject>,
 ) {
 
-  data class HeapDumpAfterLoopingScenario(
-    val heapGraph: CloseableHeapGraph,
-    val scenarioLoopCount: Int
-  )
-
-  fun detectHeapGrowth(
-    heapDump: HeapDumpAfterLoopingScenario,
+  fun findGrowingObjects(
+    heapGraph: CloseableHeapGraph,
+    scenarioLoops: Int,
     previousTraversal: InputHeapTraversal = NoHeapTraversalYet,
   ): HeapTraversal {
     val state = TraversalState()
-    return heapDump.heapGraph.use {
-      state.traverseHeapDiffingShortestPaths(heapDump, previousTraversal)
+    return heapGraph.use {
+      state.traverseHeapDiffingShortestPaths(heapGraph, scenarioLoops, previousTraversal)
     }
   }
 
@@ -44,7 +41,7 @@ class DiffingHeapGrowthDetector(
 
     val visitedSet = LongScatterSet()
 
-    val tree = ShortestPathNode("root", null, newNode = false).apply {
+    val tree = ShortestPathObjectNode("root", null, newNode = false).apply {
       selfObjectCount = 1
     }
     val queuesNotEmpty: Boolean
@@ -53,7 +50,8 @@ class DiffingHeapGrowthDetector(
 
   @Suppress("ComplexMethod")
   private fun TraversalState.traverseHeapDiffingShortestPaths(
-    heapDump: HeapDumpAfterLoopingScenario,
+    graph: CloseableHeapGraph,
+    detectedGrowth: Int,
     previousTraversal: InputHeapTraversal,
   ): HeapTraversal {
 
@@ -67,9 +65,6 @@ class DiffingHeapGrowthDetector(
       is HeapTraversal -> previousTraversal.shortestPathTree
     }
 
-    val detectedGrowth = heapDump.scenarioLoopCount
-
-    val graph = heapDump.heapGraph
     val objectReferenceReader = referenceReaderFactory.createFor(graph)
 
     val roots = graph.groupRoots()
@@ -256,7 +251,7 @@ class DiffingHeapGrowthDetector(
   }
 
   private fun TraversalState.enqueueRoots(
-    previousTree: ShortestPathNode?,
+    previousTree: ShortestPathObjectNode?,
     roots: Map<String, List<Pair<String, GcRootReference>>>
   ) {
     val previousTreeRootMap = previousTree?.let { tree ->
@@ -282,8 +277,8 @@ class DiffingHeapGrowthDetector(
   }
 
   private fun TraversalState.enqueue(
-    parentPathNode: ShortestPathNode,
-    previousPathNode: ShortestPathNode?,
+    parentPathNode: ShortestPathObjectNode,
+    previousPathNode: ShortestPathObjectNode?,
     objectIds: List<Long>,
     nodeAndEdgeName: String,
     isLowPriority: Boolean,
@@ -304,7 +299,7 @@ class DiffingHeapGrowthDetector(
     }
 
     val shortestPathNode =
-      ShortestPathNode(nodeAndEdgeName, parentPathNode, newNode = previousPathNode == null)
+      ShortestPathObjectNode(nodeAndEdgeName, parentPathNode, newNode = previousPathNode == null)
 
     val node = Node(
       objectIds = filteredObjectIds,
@@ -322,7 +317,7 @@ class DiffingHeapGrowthDetector(
   private data class Node(
     // All objects that you can reach through paths that all resolves to the same structure.
     val objectIds: Set<Long>,
-    val shortestPathNode: ShortestPathNode,
-    val previousPathNode: ShortestPathNode?
+    val shortestPathNode: ShortestPathObjectNode,
+    val previousPathNode: ShortestPathObjectNode?
   )
 }

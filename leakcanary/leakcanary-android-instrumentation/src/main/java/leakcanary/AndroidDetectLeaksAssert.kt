@@ -1,9 +1,10 @@
 package leakcanary
 
 import android.os.SystemClock
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
 import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 import leakcanary.internal.InstrumentationHeapAnalyzer
-import leakcanary.internal.InstrumentationHeapDumpFileProvider
 import leakcanary.internal.RetryingHeapAnalyzer
 import leakcanary.internal.friendly.checkNotMainThread
 import leakcanary.internal.friendly.measureDurationMillis
@@ -57,7 +58,15 @@ class AndroidDetectLeaksAssert(
       }
     }
 
-    val heapDumpFile = InstrumentationHeapDumpFileProvider().newHeapDumpFile()
+    val heapDumpFileProvider = leakcanary.HeapDumpFileProvider.dateFormatted(
+      directory = File(
+        InstrumentationRegistry.getInstrumentation().targetContext.filesDir,
+        "instrumentation_tests"
+      ),
+      prefix = "instrumentation_tests"
+    )
+
+    val heapDumpFile = heapDumpFileProvider.newHeapDumpFile()
 
     val config = LeakCanary.config
 

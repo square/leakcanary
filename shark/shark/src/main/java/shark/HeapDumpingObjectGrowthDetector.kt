@@ -1,13 +1,11 @@
 package shark
 
-import shark.DiffingHeapGrowthDetector.HeapDumpAfterLoopingScenario
-
-class LiveHeapGrowthDetector(
+class HeapDumpingObjectGrowthDetector(
   private val maxHeapDumps: Int,
   private val heapGraphProvider: HeapGraphProvider,
   private val scenarioLoopsPerDump: Int,
-  private val detector: LoopingHeapGrowthDetector
-) {
+  private val detector: RepeatedObjectGrowthDetector
+) : LiveObjectGrowthDetector {
 
   init {
     check(maxHeapDumps >= 2) {
@@ -18,20 +16,19 @@ class LiveHeapGrowthDetector(
     }
   }
 
-  fun detectRepeatedHeapGrowth(repeatedScenario: () -> Unit): HeapTraversalWithDiff {
-    val heapDumps = dumpHeapRepeated(repeatedScenario)
-    return detector.detectRepeatedHeapGrowth(heapDumps)
+  override fun findRepeatedlyGrowingObjects(roundTripScenario: () -> Unit): List<ShortestPathObjectNode> {
+    val heapDumpSequence = dumpHeapOnNext(roundTripScenario)
+    return detector.findRepeatedlyGrowingObjects(heapDumpSequence, scenarioLoopsPerDump)
   }
 
-  private fun dumpHeapRepeated(
+  private fun dumpHeapOnNext(
     repeatedScenario: () -> Unit,
-  ): Sequence<HeapDumpAfterLoopingScenario> {
-
+  ): Sequence<CloseableHeapGraph> {
     val heapDumps = (1..maxHeapDumps).asSequence().map {
       repeat(scenarioLoopsPerDump) {
         repeatedScenario()
       }
-      HeapDumpAfterLoopingScenario(heapGraphProvider.openHeapGraph(), scenarioLoopsPerDump)
+      heapGraphProvider.openHeapGraph()
     }
     return heapDumps
   }

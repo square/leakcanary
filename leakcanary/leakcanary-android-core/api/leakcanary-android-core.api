@@ -64,10 +64,6 @@ public final class leakcanary/EventListener$Event$HeapDumpFailed : leakcanary/Ev
 	public final fun getWillRetryLater ()Z
 }
 
-public abstract interface class leakcanary/HeapDumper {
-	public abstract fun dumpHeap (Ljava/io/File;)V
-}
-
 public final class leakcanary/LazyForwardingEventListener : leakcanary/EventListener {
 	public fun <init> (Lkotlin/jvm/functions/Function0;)V
 	public fun onEvent (Lleakcanary/EventListener$Event;)V
