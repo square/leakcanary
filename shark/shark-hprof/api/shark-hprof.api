@@ -445,6 +445,7 @@ public final class shark/HprofRecordTag : java/lang/Enum {
 	public static final field START_THREAD Lshark/HprofRecordTag;
 	public static final field STRING_IN_UTF8 Lshark/HprofRecordTag;
 	public static final field UNLOAD_CLASS Lshark/HprofRecordTag;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public final fun getTag ()I
 	public static fun valueOf (Ljava/lang/String;)Lshark/HprofRecordTag;
 	public static fun values ()[Lshark/HprofRecordTag;
@@ -459,6 +460,7 @@ public final class shark/HprofVersion : java/lang/Enum {
 	public static final field JDK1_2_BETA3 Lshark/HprofVersion;
 	public static final field JDK1_2_BETA4 Lshark/HprofVersion;
 	public static final field JDK_6 Lshark/HprofVersion;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public final fun getVersionString ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Lshark/HprofVersion;
 	public static fun values ()[Lshark/HprofVersion;
@@ -500,6 +502,7 @@ public final class shark/PrimitiveType : java/lang/Enum {
 	public static final field REFERENCE_HPROF_TYPE I
 	public static final field SHORT Lshark/PrimitiveType;
 	public final fun getByteSize ()I
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public final fun getHprofType ()I
 	public static fun valueOf (Ljava/lang/String;)Lshark/PrimitiveType;
 	public static fun values ()[Lshark/PrimitiveType;

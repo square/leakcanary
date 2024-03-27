@@ -55,7 +55,7 @@ internal class ViewModelClearedWatcher(
     ) {
       val provider = ViewModelProvider(storeOwner, object : Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T =
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
           ViewModelClearedWatcher(storeOwner, deletableObjectReporter) as T
       })
       provider.get(ViewModelClearedWatcher::class.java)

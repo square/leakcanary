@@ -1,4 +1,5 @@
 public abstract interface class org/leakcanary/internal/LeakUiApp : android/os/IInterface {
+	public static final field DESCRIPTOR Ljava/lang/String;
 	public abstract fun sendHeapAnalysis (Lorg/leakcanary/internal/ParcelableHeapAnalysis;Landroid/net/Uri;)V
 }
 
@@ -12,9 +13,11 @@ public abstract class org/leakcanary/internal/LeakUiApp$Stub : android/os/Binder
 	public fun <init> ()V
 	public fun asBinder ()Landroid/os/IBinder;
 	public static fun asInterface (Landroid/os/IBinder;)Lorg/leakcanary/internal/LeakUiApp;
-	public static fun getDefaultImpl ()Lorg/leakcanary/internal/LeakUiApp;
 	public fun onTransact (ILandroid/os/Parcel;Landroid/os/Parcel;I)Z
-	public static fun setDefaultImpl (Lorg/leakcanary/internal/LeakUiApp;)Z
+}
+
+public class org/leakcanary/internal/LeakUiApp$_Parcel {
+	public fun <init> ()V
 }
 
 public final class org/leakcanary/internal/ParcelableHeapAnalysis : android/os/Parcelable {

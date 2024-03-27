@@ -30,13 +30,14 @@ class RemoteLeakCanaryWorkerService : RemoteWorkerService() {
     // No real app context for you, sorry!
     override fun getApplicationContext() = this
 
-    override fun getWorkManagerConfiguration() = Configuration.Builder()
-      // If the default package name is not set, WorkManager will cancel all runnables
-      // when initialized as it can't tell that it's not running in the main process.
-      // This would lead to an extra round trip where the canceling reaches the main process
-      // which then cancels the remote job and reschedules it and then only the work gets done.
-      .setDefaultProcessName(packageName)
-      .build()
+    override val workManagerConfiguration: Configuration
+      get() = Configuration.Builder()
+        // If the default package name is not set, WorkManager will cancel all runnables
+        // when initialized as it can't tell that it's not running in the main process.
+        // This would lead to an extra round trip where the canceling reaches the main process
+        // which then cancels the remote job and reschedules it and then only the work gets done.
+        .setDefaultProcessName(packageName)
+        .build()
   }
 
   private val fakeAppContext by lazy {
