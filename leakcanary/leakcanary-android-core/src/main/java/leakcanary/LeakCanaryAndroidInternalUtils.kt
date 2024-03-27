@@ -12,11 +12,7 @@ import android.os.Build.VERSION_CODES
 import com.squareup.leakcanary.core.R
 import shark.SharkLog
 
-/**
- * This class is visible so that other LeakCanary modules may use it, but it only exists for
- * internal purposes and its APIs may change at any time.
- */
-object LeakCanaryAndroidInternalUtils {
+internal object LeakCanaryAndroidInternalUtils {
 
   private const val DYNAMIC_SHORTCUT_ID = "com.squareup.leakcanary.dynamic_shortcut"
 

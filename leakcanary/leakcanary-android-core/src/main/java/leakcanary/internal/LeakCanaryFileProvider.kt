@@ -40,11 +40,10 @@ import org.xmlpull.v1.XmlPullParserException
 
 /**
  * Copy of androidx.core.content.FileProvider, converted to Kotlin.
- * This is an internal class, only public to be usable in another module.
  * TODO Consider building a public API for exposing files with the right permissions to
  * be shared.
  */
-class LeakCanaryFileProvider : ContentProvider() {
+internal class LeakCanaryFileProvider : ContentProvider() {
 
   private lateinit var mStrategy: PathStrategy
 
