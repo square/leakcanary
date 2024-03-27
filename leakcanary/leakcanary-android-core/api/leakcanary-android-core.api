@@ -137,12 +137,6 @@ public final class leakcanary/LeakCanary$Config$Builder {
 	public final fun showNotifications (Z)Lleakcanary/LeakCanary$Config$Builder;
 }
 
-public final class leakcanary/LeakCanaryAndroidInternalUtils {
-	public static final field INSTANCE Lleakcanary/LeakCanaryAndroidInternalUtils;
-	public final fun addLeakActivityDynamicShortcut (Landroid/app/Application;)V
-	public final fun isInstantApp (Landroid/app/Application;)Z
-}
-
 public final class leakcanary/LogcatEventListener : leakcanary/EventListener {
 	public static final field INSTANCE Lleakcanary/LogcatEventListener;
 	public fun onEvent (Lleakcanary/EventListener$Event;)V
@@ -171,22 +165,5 @@ public final class leakcanary/TvEventListener : leakcanary/EventListener {
 public final class leakcanary/WorkManagerHeapAnalyzer : leakcanary/EventListener {
 	public static final field INSTANCE Lleakcanary/WorkManagerHeapAnalyzer;
 	public fun onEvent (Lleakcanary/EventListener$Event;)V
-}
-
-public final class leakcanary/internal/LeakCanaryFileProvider : android/content/ContentProvider {
-	public static final field Companion Lleakcanary/internal/LeakCanaryFileProvider$Companion;
-	public fun <init> ()V
-	public fun attachInfo (Landroid/content/Context;Landroid/content/pm/ProviderInfo;)V
-	public fun delete (Landroid/net/Uri;Ljava/lang/String;[Ljava/lang/String;)I
-	public fun getType (Landroid/net/Uri;)Ljava/lang/String;
-	public fun insert (Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;
-	public fun onCreate ()Z
-	public fun openFile (Landroid/net/Uri;Ljava/lang/String;)Landroid/os/ParcelFileDescriptor;
-	public fun query (Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;
-	public fun update (Landroid/net/Uri;Landroid/content/ContentValues;Ljava/lang/String;[Ljava/lang/String;)I
-}
-
-public final class leakcanary/internal/LeakCanaryFileProvider$Companion {
-	public final fun getUriForFile (Landroid/content/Context;Ljava/lang/String;Ljava/io/File;)Landroid/net/Uri;
 }
 
