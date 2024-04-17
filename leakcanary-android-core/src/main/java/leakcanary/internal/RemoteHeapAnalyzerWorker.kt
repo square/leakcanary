@@ -9,10 +9,13 @@ import com.google.common.util.concurrent.ListenableFuture
 import leakcanary.BackgroundThreadHeapAnalyzer.heapAnalyzerThreadHandler
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.HeapAnalyzerWorker.Companion.asEvent
-import leakcanary.internal.HeapAnalyzerWorker.Companion.heapAnalysisForegroundInfoAsync
+import leakcanary.internal.HeapAnalyzerWorker.Companion.heapAnalysisForegroundInfo
 import shark.SharkLog
 
-internal class RemoteHeapAnalyzerWorker(appContext: Context, workerParams: WorkerParameters) :
+internal class RemoteHeapAnalyzerWorker(
+  appContext: Context,
+  workerParams: WorkerParameters
+) :
   RemoteListenableWorker(appContext, workerParams) {
 
   override fun startRemoteWork(): ListenableFuture<Result> {
@@ -37,6 +40,8 @@ internal class RemoteHeapAnalyzerWorker(appContext: Context, workerParams: Worke
   }
 
   override fun getForegroundInfoAsync(): ListenableFuture<ForegroundInfo> {
-    return applicationContext.heapAnalysisForegroundInfoAsync()
+    return LazyImmediateFuture {
+      applicationContext.heapAnalysisForegroundInfo()
+    }
   }
 }
