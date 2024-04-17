@@ -6,12 +6,14 @@ import androidx.work.Data
 import androidx.work.ForegroundInfo
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import androidx.work.impl.utils.futures.SettableFuture
 import com.google.common.util.concurrent.ListenableFuture
 import com.squareup.leakcanary.core.R
 import leakcanary.EventListener.Event
 
-internal class HeapAnalyzerWorker(appContext: Context, workerParams: WorkerParameters) :
+internal class HeapAnalyzerWorker(
+  appContext: Context,
+  workerParams: WorkerParameters
+) :
   Worker(appContext, workerParams) {
   override fun doWork(): Result {
     val doneEvent =
@@ -23,7 +25,9 @@ internal class HeapAnalyzerWorker(appContext: Context, workerParams: WorkerParam
   }
 
   override fun getForegroundInfoAsync(): ListenableFuture<ForegroundInfo> {
-    return applicationContext.heapAnalysisForegroundInfoAsync()
+    return LazyImmediateFuture {
+      applicationContext.heapAnalysisForegroundInfo()
+    }
   }
 
   companion object {
@@ -36,21 +40,17 @@ internal class HeapAnalyzerWorker(appContext: Context, workerParams: WorkerParam
     inline fun <reified T> Data.asEvent(): T =
       Serializables.fromByteArray<T>(getByteArray(EVENT_BYTES)!!)!!
 
-    fun Context.heapAnalysisForegroundInfoAsync(): ListenableFuture<ForegroundInfo> {
-      val infoFuture = SettableFuture.create<ForegroundInfo>()
+    fun Context.heapAnalysisForegroundInfo(): ForegroundInfo {
       val builder = Notification.Builder(this)
         .setContentTitle(getString(R.string.leak_canary_notification_analysing))
         .setContentText("LeakCanary is working.")
         .setProgress(100, 0, true)
       val notification =
         Notifications.buildNotification(this, builder, NotificationType.LEAKCANARY_LOW)
-      infoFuture.set(
-        ForegroundInfo(
-          R.id.leak_canary_notification_analyzing_heap,
-          notification
-        )
+      return ForegroundInfo(
+        R.id.leak_canary_notification_analyzing_heap,
+        notification
       )
-      return infoFuture
     }
   }
 }
