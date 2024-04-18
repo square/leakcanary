@@ -4,12 +4,13 @@ import shark.AndroidMetadataExtractor
 import shark.AndroidObjectInspectors
 import shark.AndroidReferenceMatchers
 import shark.FilteringLeakingObjectFinder
+import shark.IgnoredReferenceMatcher
 import shark.LeakingObjectFinder
+import shark.LibraryLeakReferenceMatcher
 import shark.MetadataExtractor
 import shark.ObjectInspector
-import shark.IgnoredReferenceMatcher
+import shark.ProguardMapping
 import shark.ReferenceMatcher
-import shark.LibraryLeakReferenceMatcher
 
 data class HeapAnalysisConfig(
 
@@ -71,5 +72,7 @@ data class HeapAnalysisConfig(
    * zeroes. This increases the overall processing time but limits the amount of time the heap
    * dump exists on disk with potential PII.
    */
-  val stripHeapDump: Boolean = false
+  val stripHeapDump: Boolean = false,
+
+  val proguardMappingProvider: () -> ProguardMapping? = { null }
 )
