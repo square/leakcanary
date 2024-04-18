@@ -82,7 +82,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.13</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.14</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -743,6 +743,13 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#version-214-2024-04-17" class="md-nav__link">
+    Version 2.14 (2024-04-17)
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#version-30-alpha-1-2024-01-09" class="md-nav__link">
@@ -1607,6 +1614,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-214-2024-04-17" class="md-nav__link">
+    Version 2.14 (2024-04-17)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-30-alpha-1-2024-01-09" class="md-nav__link">
     Version 3.0 Alpha 1 (2024-01-09)
   </a>
@@ -2457,8 +2471,17 @@
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
 <p>Please thank our <a href="https://github.com/square/leakcanary/graphs/contributors">contributors</a> 🙏 🙏 🙏.</p>
+<h2 id="version-214-2024-04-17">Version 2.14 (2024-04-17)<a class="headerlink" href="#version-214-2024-04-17" title="Permanent link">&para;</a></h2>
+<ul>
+<li>🐛 <a href="https://github.com/square/leakcanary/issues/2650">#2650</a> Removed accidental usage of <code>SettableFuture</code>, a <code>WorkManager</code> internal class, which will be removed in a <strong>future release</strong> of WorkManager. After updating WorkManager to that future release, <strong>all versions of LeakCanary from 2.8 to 2.13 will crash on leak analysis</strong>. To avoid a nasty surprise in the near future, <strong>update to LeakCanary 2.14</strong>.</li>
+<li>🔨 <a href="https://github.com/square/leakcanary/pull/2660">#2660</a> Add proguard mapping support for LeakCanary release.</li>
+<li>🐛 <a href="https://github.com/square/leakcanary/issues/2531">#2531</a> Heap dump &amp; leak lists not preserving list position when navigating.</li>
+<li>🐤 <a href="https://github.com/square/leakcanary/pull/2615">#2615</a> Automatic fix of AOSP PermissionControllerManager leak (<a href="https://issuetracker.google.com/issues/318415056">issuetracker.google.com/issues/318415056</a>).</li>
+<li>🐤 <a href="https://github.com/square/leakcanary/issues/2559">#2559</a> Ignore <code>UiModeManager</code> AOSP leak.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/issues/2643">#2643</a> Fixed rare crash on RenderHeapDumpScreen.</li>
+</ul>
 <h2 id="version-30-alpha-1-2024-01-09">Version 3.0 Alpha 1 (2024-01-09)<a class="headerlink" href="#version-30-alpha-1-2024-01-09" title="Permanent link">&para;</a></h2>
-<p>These alpha releases mark the start of the work on LeakCanary 3. It&rsquo;s not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.</p>
+<p>This alpha release marks the start of the work on LeakCanary 3. It&rsquo;s not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.</p>
 <h3 id="heap-growth">Heap Growth<a class="headerlink" href="#heap-growth" title="Permanent link">&para;</a></h3>
 <p>New APIs, not stable yet: the <code>shark-heap-growth</code> artifact contains APIs for writing test scenarios that detect repeated heap growth.</p>
 <p>Here&rsquo;s how it&rsquo;s used with an Espresso test:</p>

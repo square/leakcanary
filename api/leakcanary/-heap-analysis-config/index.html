@@ -80,7 +80,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.13</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.14</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -781,7 +781,7 @@
 <h1 id="heapanalysisconfig">HeapAnalysisConfig<a class="headerlink" href="#heapanalysisconfig" title="Permanent link">&para;</a></h1>
 <p>data class <a href="./">HeapAnalysisConfig</a>(val referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../shark/-reference-matcher/">ReferenceMatcher</a>&gt; = AndroidReferenceMatchers.appDefaults, val objectInspectors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../shark/-object-inspector/">ObjectInspector</a>&gt; = AndroidObjectInspectors.appDefaults, val metadataExtractor: <a href="../../shark/-metadata-extractor/">MetadataExtractor</a> = AndroidMetadataExtractor, val computeRetainedHeapSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = true, val leakingObjectFinder: <a href="../../shark/-leaking-object-finder/">LeakingObjectFinder</a> = FilteringLeakingObjectFinder(
     AndroidObjectInspectors.appLeakingObjectFilters
-  ), val stripHeapDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = false)</p>
+  ), val stripHeapDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = false, val proguardMappingProvider: () -&gt; <a href="../../shark/-proguard-mapping/">ProguardMapping</a>? = { null })</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -793,7 +793,7 @@
 <tbody>
 <tr>
 <td><a href="-heap-analysis-config/">HeapAnalysisConfig</a></td>
-<td>fun <a href="-heap-analysis-config/">HeapAnalysisConfig</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../shark/-reference-matcher/">ReferenceMatcher</a>&gt; = AndroidReferenceMatchers.appDefaults, objectInspectors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../shark/-object-inspector/">ObjectInspector</a>&gt; = AndroidObjectInspectors.appDefaults, metadataExtractor: <a href="../../shark/-metadata-extractor/">MetadataExtractor</a> = AndroidMetadataExtractor, computeRetainedHeapSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = true, leakingObjectFinder: <a href="../../shark/-leaking-object-finder/">LeakingObjectFinder</a> = FilteringLeakingObjectFinder(     AndroidObjectInspectors.appLeakingObjectFilters   ), stripHeapDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = false)</td>
+<td>fun <a href="-heap-analysis-config/">HeapAnalysisConfig</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../shark/-reference-matcher/">ReferenceMatcher</a>&gt; = AndroidReferenceMatchers.appDefaults, objectInspectors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../shark/-object-inspector/">ObjectInspector</a>&gt; = AndroidObjectInspectors.appDefaults, metadataExtractor: <a href="../../shark/-metadata-extractor/">MetadataExtractor</a> = AndroidMetadataExtractor, computeRetainedHeapSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = true, leakingObjectFinder: <a href="../../shark/-leaking-object-finder/">LeakingObjectFinder</a> = FilteringLeakingObjectFinder(     AndroidObjectInspectors.appLeakingObjectFilters   ), stripHeapDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = false, proguardMappingProvider: () -&gt; <a href="../../shark/-proguard-mapping/">ProguardMapping</a>? = { null })</td>
 </tr>
 </tbody>
 </table>
@@ -821,6 +821,10 @@
 <tr>
 <td><a href="object-inspectors/">objectInspectors</a></td>
 <td>val <a href="object-inspectors/">objectInspectors</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../shark/-object-inspector/">ObjectInspector</a>&gt;<br>List of <a href="../../shark/-object-inspector/">ObjectInspector</a> that provide LeakCanary with insights about objects found in the heap. You can create your own <a href="../../shark/-object-inspector/">ObjectInspector</a> implementations, and also add a <a href="../../shark/-app-singleton-inspector/">shark.AppSingletonInspector</a> instance created with the list of internal singletons.</td>
+</tr>
+<tr>
+<td><a href="proguard-mapping-provider/">proguardMappingProvider</a></td>
+<td>val <a href="proguard-mapping-provider/">proguardMappingProvider</a>: () -&gt; <a href="../../shark/-proguard-mapping/">ProguardMapping</a>?</td>
 </tr>
 <tr>
 <td><a href="reference-matchers/">referenceMatchers</a></td>

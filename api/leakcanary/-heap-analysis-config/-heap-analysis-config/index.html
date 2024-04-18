@@ -80,7 +80,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.13</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.14</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -759,7 +759,7 @@
 <h1 id="heapanalysisconfig">HeapAnalysisConfig<a class="headerlink" href="#heapanalysisconfig" title="Permanent link">&para;</a></h1>
 <p>fun <a href="./">HeapAnalysisConfig</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../../shark/-reference-matcher/">ReferenceMatcher</a>&gt; = AndroidReferenceMatchers.appDefaults, objectInspectors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../../shark/-object-inspector/">ObjectInspector</a>&gt; = AndroidObjectInspectors.appDefaults, metadataExtractor: <a href="../../../shark/-metadata-extractor/">MetadataExtractor</a> = AndroidMetadataExtractor, computeRetainedHeapSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = true, leakingObjectFinder: <a href="../../../shark/-leaking-object-finder/">LeakingObjectFinder</a> = FilteringLeakingObjectFinder(
     AndroidObjectInspectors.appLeakingObjectFilters
-  ), stripHeapDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = false)</p>
+  ), stripHeapDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a> = false, proguardMappingProvider: () -&gt; <a href="../../../shark/-proguard-mapping/">ProguardMapping</a>? = { null })</p>
   
 
               </article>

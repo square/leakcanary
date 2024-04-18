@@ -80,7 +80,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.13</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../changelog/">LeakCanary <strong>2.14</strong></a> 🐤 Want to help?  <a href="../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -797,6 +797,10 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><a href="-p-e-r-m-i-s-s-i-o-n_-c-o-n-t-r-o-l-l-e-r_-m-a-n-a-g-e-r/">PERMISSION_CONTROLLER_MANAGER</a></td>
+<td><a href="-p-e-r-m-i-s-s-i-o-n_-c-o-n-t-r-o-l-l-e-r_-m-a-n-a-g-e-r/">PERMISSION_CONTROLLER_MANAGER</a>()<br>PermissionControllerManager stores the first context it&rsquo;s initialized with forever. Sometimes it&rsquo;s an Activity context which then leaks after Activity is destroyed.</td>
+</tr>
 <tr>
 <td><a href="-s-p-e-l-l_-c-h-e-c-k-e-r/">SPELL_CHECKER</a></td>
 <td><a href="-s-p-e-l-l_-c-h-e-c-k-e-r/">SPELL_CHECKER</a>()<br>Every editable TextView has an Editor instance which has a SpellChecker instance. SpellChecker is in charge of displaying the little squiggle spans that show typos. SpellChecker starts a SpellCheckerSession as needed and then closes it when the TextView is detached from the window. A SpellCheckerSession is in charge of communicating with the spell checker service (which lives in another process) through TextServicesManager.</td>

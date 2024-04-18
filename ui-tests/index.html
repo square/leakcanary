@@ -84,7 +84,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../changelog/">LeakCanary <strong>2.13</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.14</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -886,9 +886,9 @@ for UI tests, so LeakCanary is automatically disabled when JUnit is on the runti
 </div>
 <h2 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
 <p>LeakCanary provides an artifact dedicated to detecting leaks in UI tests:</p>
-<div class="highlight"><pre><span></span><code><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-instrumentation:2.13&#39;</span>
+<div class="highlight"><pre><span></span><code><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-instrumentation:2.14&#39;</span>
 <span class="c1">// You still need to include the LeakCanary artifact in your app:</span>
-<span class="n">debugImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.13&#39;</span>
+<span class="n">debugImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android:2.14&#39;</span>
 </code></pre></div>
 <p>You can then call <code>LeakAssertions.assertNoLeaks()</code> at any point in your tests to check for leaks:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">CartTest</span><span class="w"> </span><span class="p">{</span>
