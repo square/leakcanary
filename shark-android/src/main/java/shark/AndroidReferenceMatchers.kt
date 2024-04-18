@@ -1024,6 +1024,25 @@ enum class AndroidReferenceMatchers {
     }
   },
 
+  UI_MODE_MANAGER {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      references += nativeGlobalVariableLeak(
+        "android.app.UiModeManager\$1",
+        description = """
+          UiModeManager$1 is an anonymous class of the IUiModeManagerCallback.Stub that is
+          stored in memory native code. `this$0` is an instance of the UiModeManager that
+          contains the `mContext` field, which is why retain this reference.
+          Introduced in Android 14.0.0_r11: https://cs.android.com/android/_/android/platform/frameworks/base/+/cbbc772a41d20645ae434d74c482f3f4ad377e2c
+          Fixed in Android 14.0.0_r16: https://cs.android.com/android/_/android/platform/frameworks/base/+/2bc364179327022d0f60224a1f2420349074c5d2
+        """.trimIndent()
+      ) {
+        sdkInt == 34
+      }
+    }
+  },
+
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG

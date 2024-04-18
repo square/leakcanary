@@ -3,6 +3,8 @@ package leakcanary.internal.navigation
 import android.app.Activity
 import android.content.Context
 import android.os.Build.VERSION
+import android.os.Parcelable
+import android.util.SparseArray
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
@@ -11,6 +13,13 @@ import com.squareup.leakcanary.core.R
 
 internal fun ViewGroup.inflate(layoutResId: Int) = LayoutInflater.from(context)
   .inflate(layoutResId, this, false)!!
+
+internal fun View.restoreViewStateFromTag() {
+  val viewState = getTag(R.id.leak_canary_restored_view_state) as SparseArray<Parcelable>?
+  if (viewState != null) {
+    restoreHierarchyState(viewState)
+  }
+}
 
 internal val View.activity
   get() = context as Activity
