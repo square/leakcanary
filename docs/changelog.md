@@ -3,9 +3,18 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Version 2.14 (2024-04-17)
+
+* 🐛 [#2650](https://github.com/square/leakcanary/issues/2650) Removed accidental usage of `SettableFuture`, a `WorkManager` internal class, which will be removed in a **future release** of WorkManager. After updating WorkManager to that future release, **all versions of LeakCanary from 2.8 to 2.13 will crash on leak analysis**. To avoid a nasty surprise in the near future, **update to LeakCanary 2.14**.
+* 🔨 [#2660](https://github.com/square/leakcanary/pull/2660) Add proguard mapping support for LeakCanary release.
+* 🐛 [#2531](https://github.com/square/leakcanary/issues/2531) Heap dump & leak lists not preserving list position when navigating.
+* 🐤 [#2615](https://github.com/square/leakcanary/pull/2615) Automatic fix of AOSP PermissionControllerManager leak ([issuetracker.google.com/issues/318415056](https://issuetracker.google.com/issues/318415056)).
+* 🐤 [#2559](https://github.com/square/leakcanary/issues/2559) Ignore `UiModeManager` AOSP leak.
+* 💥 [#2643](https://github.com/square/leakcanary/issues/2643) Fixed rare crash on RenderHeapDumpScreen.
+
 ## Version 3.0 Alpha 1 (2024-01-09)
 
-These alpha releases mark the start of the work on LeakCanary 3. It's not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.
+This alpha release marks the start of the work on LeakCanary 3. It's not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.
 
 ### Heap Growth
 
