@@ -280,7 +280,7 @@ internal class RealHeapAnalysisJob(
       }
     }
 
-    return deletingFileSourceProvider.openHeapGraph().use { graph ->
+    return deletingFileSourceProvider.openHeapGraph(config.proguardMappingProvider()).use { graph ->
       val heapAnalysis = analyzeHeap(heapDumpFile, graph)
       val lruCacheStats = (graph as HprofHeapGraph).lruCacheStats()
       val randomAccessStats =
