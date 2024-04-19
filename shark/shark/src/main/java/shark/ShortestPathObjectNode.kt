@@ -54,7 +54,10 @@ class ShortestPathObjectNode(
         result.append("    Children:")
         result.appendLine()
         val childrenByMostIncreasedFirst =
-          pathNode.children.sortedBy { -it.selfObjectCountIncrease }
+          pathNode.children
+            // TODO Ideally here we'd filter on the increase threshold (e.g. 5 instead of 0)
+            .filter { it.selfObjectCountIncrease > 0 }
+            .sortedBy { -it.selfObjectCountIncrease }
         result.append(
           childrenByMostIncreasedFirst.joinToString(
             separator = "\n",

@@ -15,22 +15,26 @@ class ChainingInstanceReferenceReader(
 ) : ReferenceReader<HeapInstance> {
 
   override fun read(source: HeapInstance): Sequence<Reference> {
-    val virtualRefs = expandVirtualRefs(source)
-    // Note: always forwarding to fieldRefReader means we may navigate the structure twice
-    // which increases IO reads. However this is a trade-of that allows virtualRef impls to
-    // focus on a subset of references and more importantly it means we still get a proper
-    // calculation of retained size as we don't skip any instance.
-    val fieldRefs = fieldRefReader.read(source)
-    return virtualRefs + fieldRefs
+    val (virtualRefs, flattened) = expandVirtualRefs(source)
+    return if (flattened) {
+      virtualRefs
+    } else {
+      // Note: always forwarding to fieldRefReader means we may navigate the structure twice
+      // which increases IO reads. However this is a trade-of that allows virtualRef impls to
+      // focus on a subset of references and more importantly it means we still get a proper
+      // calculation of retained size as we don't skip any instance.
+      val fieldRefs = fieldRefReader.read(source)
+      virtualRefs + fieldRefs
+    }
   }
 
-  private fun expandVirtualRefs(instance: HeapInstance): Sequence<Reference> {
+  private fun expandVirtualRefs(instance: HeapInstance): Pair<Sequence<Reference>, Boolean> {
     for (expander in virtualRefReaders) {
       if (expander.matches(instance)) {
-        return expander.read(instance)
+        return expander.read(instance) to (expander is FlatteningFiniteTraversalReferenceReader)
       }
     }
-    return emptySequence()
+    return emptySequence<Reference>() to false
   }
 
   /**

@@ -90,7 +90,8 @@ class HeapGraphObjectGrowthDetector(
       class ExpandedObject(
         val valueObjectId: Long,
         val nodeAndEdgeName: String,
-        val isLowPriority: Boolean
+        val isLowPriority: Boolean,
+        val isLeafObject: Boolean
       )
 
       var visitedObjectCount = 0
@@ -102,6 +103,9 @@ class HeapGraphObjectGrowthDetector(
           emptySequence()
         } else {
           visitedObjectCount++
+          if (node.isLeafObject) {
+            emptySequence()
+          } else {
           val heapObject = graph.findObjectById(objectId)
           val refs = objectReferenceReader.read(heapObject)
           refs.mapNotNull { reference ->
@@ -122,8 +126,12 @@ class HeapGraphObjectGrowthDetector(
                 }
               val nodeAndEdgeName =
                 "$refType ${owningClassSimpleName}.${refName} -> $referencedObjectName"
-              ExpandedObject(reference.valueObjectId, nodeAndEdgeName, reference.isLowPriority)
+              ExpandedObject(
+                reference.valueObjectId, nodeAndEdgeName, reference.isLowPriority,
+                reference.isLeafObject
+              )
             }
+          }
           }
         }
       }.groupBy {
@@ -156,6 +164,7 @@ class HeapGraphObjectGrowthDetector(
 
       edges.forEach { (_, expandedObjects) ->
         val firstOfGroup = expandedObjects.first()
+        val leafObject = expandedObjects.all { it.isLeafObject }
         val nodeAndEdgeName = firstOfGroup.nodeAndEdgeName
         val previousPathNode = if (previousNodeMap != null) {
           previousNodeMap[nodeAndEdgeName]
@@ -167,7 +176,8 @@ class HeapGraphObjectGrowthDetector(
           previousPathNode = previousPathNode,
           objectIds = expandedObjects.map { it.valueObjectId },
           nodeAndEdgeName = nodeAndEdgeName,
-          isLowPriority = firstOfGroup.isLowPriority
+          isLowPriority = firstOfGroup.isLowPriority,
+          isLeafObject = leafObject
         )
       }
     }
@@ -271,7 +281,8 @@ class HeapGraphObjectGrowthDetector(
         previousPathNode = previousPathNode,
         objectIds = gcRootReferences.map { it.second.gcRoot.id },
         nodeAndEdgeName = nodeAndEdgeName,
-        isLowPriority = firstOfGroup.second.isLowPriority
+        isLowPriority = firstOfGroup.second.isLowPriority,
+        isLeafObject = false
       )
     }
   }
@@ -282,6 +293,7 @@ class HeapGraphObjectGrowthDetector(
     objectIds: List<Long>,
     nodeAndEdgeName: String,
     isLowPriority: Boolean,
+    isLeafObject: Boolean
   ) {
     // TODO Maybe the filtering should happen at the callsite.
     val filteredObjectIds = objectIds.filter { objectId ->
@@ -304,7 +316,8 @@ class HeapGraphObjectGrowthDetector(
     val node = Node(
       objectIds = filteredObjectIds,
       shortestPathNode = shortestPathNode,
-      previousPathNode = previousPathNode
+      previousPathNode = previousPathNode,
+      isLeafObject = isLeafObject
     )
 
     if (isLowPriority || visitingLast) {
@@ -318,6 +331,7 @@ class HeapGraphObjectGrowthDetector(
     // All objects that you can reach through paths that all resolves to the same structure.
     val objectIds: Set<Long>,
     val shortestPathNode: ShortestPathObjectNode,
-    val previousPathNode: ShortestPathObjectNode?
+    val previousPathNode: ShortestPathObjectNode?,
+    val isLeafObject: Boolean,
   )
 }

@@ -22,7 +22,14 @@ class Reference(
    */
   val isLowPriority: Boolean,
 
-  val lazyDetailsResolver: Resolver
+  // TODO Leverage this on the leakcanary side.
+  /**
+   * Whether this object should be treated as a leaf object with no outgoing references (regardless
+   * of its actual content).
+   */
+  val isLeafObject: Boolean = false,
+
+  val lazyDetailsResolver: Resolver,
 ) {
   class LazyDetails(
     val name: String,
