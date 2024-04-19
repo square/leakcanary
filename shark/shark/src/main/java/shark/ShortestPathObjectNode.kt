@@ -17,6 +17,26 @@ class ShortestPathObjectNode(
   var selfObjectCountIncrease = 0
     internal set
 
+  /**
+   * Set for growing nodes if the traversal requested the computation of retained sizes, otherwise
+   * null.
+   * This is on the last 2 traversals.
+   */
+  var retainedOrNull: Retained? = null
+    internal set
+
+  /**
+   * Set for growing nodes if [retainedOrNull] is not null. Non 0 if the previous traversal also
+   * computed retained size.
+   * This is on the last 2 traversals.
+   */
+  var retainedIncreaseOrNull: Retained? = null
+    internal set
+
+  val retained: Retained get() = retainedOrNull!!
+
+  val retainedIncrease: Retained get() = retainedIncreaseOrNull!!
+
   internal var growing = false
 
   val childrenObjectCount: Int
@@ -51,6 +71,10 @@ class ShortestPathObjectNode(
       result.append(" objects)")
       if (index == pathAfterRoot.lastIndex) {
         result.appendLine()
+        result.append("    Retained size: ${retained.heapSize} (+ ${retainedIncrease.heapSize})")
+        result.appendLine()
+        result.append("    Retained objects: ${retained.objectCount} (+ ${retainedIncrease.objectCount})")
+        result.appendLine()
         result.append("    Children:")
         result.appendLine()
         val childrenByMostIncreasedFirst =
@@ -72,4 +96,18 @@ class ShortestPathObjectNode(
     }
     return result.toString()
   }
+
+  class Retained(
+    /**
+     * The minimum number of bytes which would be freed if all references to this object were
+     * released.
+     */
+    val heapSize: ByteSize,
+
+    /**
+     * The minimum number of objects which would be unreachable if all references to this object were
+     * released.
+     */
+    val objectCount: Int,
+  )
 }

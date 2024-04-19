@@ -6,7 +6,6 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.internal.ShallowSizeCalculator
 
 /**
  * Exposes high level APIs to compute and render a dominator tree. This class
@@ -169,15 +168,9 @@ class ObjectDominators {
         computeRetainedHeapSize = true,
     ).createFor(graph)
 
-    val nativeSizeMapper = AndroidNativeSizeMapper(graph)
-    val nativeSizes = nativeSizeMapper.mapNativeSizes()
-    val shallowSizeCalculator = ShallowSizeCalculator(graph)
+    val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
 
     val result = pathFinder.findShortestPathsFromGcRoots(setOf())
-    return result.dominatorTree!!.buildFullDominatorTree { objectId ->
-      val nativeSize = nativeSizes[objectId] ?: 0
-      val shallowSize = shallowSizeCalculator.computeShallowSize(objectId)
-      nativeSize + shallowSize
-    }
+    return result.dominatorTree!!.buildFullDominatorTree(objectSizeCalculator)
   }
 }

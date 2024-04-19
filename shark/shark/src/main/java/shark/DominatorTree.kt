@@ -8,6 +8,10 @@ import shark.internal.hppc.LongScatterSet
 
 class DominatorTree(expectedElements: Int = 4) {
 
+  fun interface ObjectSizeCalculator {
+    fun computeSize(objectId: Long): Int
+  }
+
   /**
    * Map of objects to their dominator.
    *
@@ -15,6 +19,8 @@ class DominatorTree(expectedElements: Int = 4) {
    * [ValueHolder.NULL_REFERENCE].
    */
   private val dominated = LongLongScatterMap(expectedElements)
+
+  operator fun contains(objectId: Long): Boolean = dominated.containsKey(objectId)
 
   /**
    * Records that [objectId] is a root.
@@ -98,7 +104,7 @@ class DominatorTree(expectedElements: Int = 4) {
     val dominated = mutableListOf<Long>()
   }
 
-  fun buildFullDominatorTree(computeSize: (Long) -> Int): Map<Long, DominatorNode> {
+  fun buildFullDominatorTree(objectSizeCalculator: ObjectSizeCalculator): Map<Long, DominatorNode> {
     val dominators = mutableMapOf<Long, MutableDominatorNode>()
     dominated.forEach(ForEachCallback {key, value ->
       // create entry for dominated
@@ -115,7 +121,7 @@ class DominatorTree(expectedElements: Int = 4) {
     val allReachableObjectIds = dominators.keys.toSet() - ValueHolder.NULL_REFERENCE
 
     val retainedSizes = computeRetainedSizes(allReachableObjectIds) { objectId ->
-      val shallowSize = computeSize(objectId)
+      val shallowSize = objectSizeCalculator.computeSize(objectId)
       dominators.getValue(objectId).shallowSize = shallowSize
       shallowSize
     }
@@ -147,12 +153,12 @@ class DominatorTree(expectedElements: Int = 4) {
 
   /**
    * Computes the size retained by [retainedObjectIds] using the dominator tree built using
-   * [updateDominatedAsRoot]. The shallow size of each object is provided by [computeSize].
+   * [updateDominated]. The shallow size of each object is provided by [objectSizeCalculator].
    * @return a map of object id to retained size.
    */
   fun computeRetainedSizes(
     retainedObjectIds: Set<Long>,
-    computeSize: (Long) -> Int
+    objectSizeCalculator: ObjectSizeCalculator
   ): Map<Long, Pair<Int, Int>> {
     val nodeRetainedSizes = mutableMapOf<Long, Pair<Int, Int>>()
     retainedObjectIds.forEach { objectId ->
@@ -169,7 +175,7 @@ class DominatorTree(expectedElements: Int = 4) {
 
         // If the entry is a node, add its size to nodeRetainedSizes
         nodeRetainedSizes[key]?.let { (currentRetainedSize, currentRetainedCount) ->
-          instanceSize = computeSize(key)
+          instanceSize = objectSizeCalculator.computeSize(key)
           nodeRetainedSizes[key] = currentRetainedSize + instanceSize to currentRetainedCount + 1
         }
 
@@ -186,7 +192,7 @@ class DominatorTree(expectedElements: Int = 4) {
                 dominated[objectId] = dominator
               }
               if (instanceSize == -1) {
-                instanceSize = computeSize(key)
+                instanceSize = objectSizeCalculator.computeSize(key)
               }
               // Update retained size for that node
               val (currentRetainedSize, currentRetainedCount) = nodeRetainedSizes.getValue(

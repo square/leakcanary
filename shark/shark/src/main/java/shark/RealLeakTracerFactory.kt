@@ -57,6 +57,7 @@ class RealLeakTracerFactory constructor(
   sealed interface Event {
     object StartedBuildingLeakTraces : Event
     object StartedInspectingObjects : Event
+    @Deprecated("Event not sent anymore")
     object StartedComputingNativeRetainedSize: Event
     object StartedComputingJavaHeapRetainedSize: Event
 
@@ -350,16 +351,9 @@ class RealLeakTracerFactory constructor(
       inspectedObjects.filter { it.leakingStatus == UNKNOWN || it.leakingStatus == LEAKING }
         .map { it.heapObject.objectId }
     }.toSet()
-    listener.onEvent(StartedComputingNativeRetainedSize)
-    val nativeSizeMapper = AndroidNativeSizeMapper(graph)
-    val nativeSizes = nativeSizeMapper.mapNativeSizes()
     listener.onEvent(StartedComputingJavaHeapRetainedSize)
-    val shallowSizeCalculator = ShallowSizeCalculator(graph)
-    return dominatorTree.computeRetainedSizes(nodeObjectIds) { objectId ->
-      val nativeSize = nativeSizes[objectId] ?: 0
-      val shallowSize = shallowSizeCalculator.computeShallowSize(objectId)
-      nativeSize + shallowSize
-    }
+    val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
+    return dominatorTree.computeRetainedSizes(nodeObjectIds, objectSizeCalculator)
   }
 
   private fun buildLeakTraceObjects(
