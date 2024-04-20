@@ -5,7 +5,7 @@ import shark.Reference.LazyDetails.Resolver
 /**
  * TODO Review as public API.
  */
-class Reference(
+data class Reference(
   /**
    * The value of the reference, i.e. the object the reference is pointing to.
    */
