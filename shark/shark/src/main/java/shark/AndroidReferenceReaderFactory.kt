@@ -23,7 +23,7 @@ class AndroidReferenceReaderFactory(
             ApacheHarmonyInstanceRefReaders.values().mapNotNull { it.create(graph) }
           )
           .map { virtualInstanceReader ->
-            FlatteningFiniteTraversalReferenceReader(
+            FlatteningPartitionedStructReferenceReader(
               graph = graph,
               virtualInstanceReader = virtualInstanceReader,
               instanceReferenceReader = FieldInstanceReferenceReader(graph, referenceMatchers),

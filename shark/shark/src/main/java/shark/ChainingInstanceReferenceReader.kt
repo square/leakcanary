@@ -31,7 +31,7 @@ class ChainingInstanceReferenceReader(
   private fun expandVirtualRefs(instance: HeapInstance): Pair<Sequence<Reference>, Boolean> {
     for (expander in virtualRefReaders) {
       if (expander.matches(instance)) {
-        return expander.read(instance) to (expander is FlatteningFiniteTraversalReferenceReader)
+        return expander.read(instance) to (expander is FlatteningPartitionedStructReferenceReader)
       }
     }
     return emptySequence<Reference>() to false
