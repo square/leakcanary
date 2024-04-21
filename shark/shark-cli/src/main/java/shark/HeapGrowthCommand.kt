@@ -7,8 +7,11 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.int
 import jline.console.ConsoleReader
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.nanoseconds
 import shark.DumpProcessCommand.Companion.dumpHeap
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.ReferencePattern.InstanceFieldPattern
 import shark.SharkCliCommand.Companion.sharkCliParams
 import shark.SharkCliCommand.HeapDumpSource.HprofDirectorySource
 import shark.SharkCliCommand.HeapDumpSource.HprofFileSource
@@ -33,6 +36,14 @@ class HeapGrowthCommand : CliktCommand(
 
     val detector = RepeatedObjectGrowthDetectorAndroidFactory.create()
 
+    data class Metrics(
+      val randomAccessByteReads: Long,
+      val randomAccessReadCount: Long,
+      val duration: Duration
+    )
+    val metrics = mutableListOf<Metrics>()
+
+
     val results = when (val source = params.source) {
       is HprofFileSource -> throw CliktError(
         "$commandName requires passing in a directory containing more than one hprof files."
@@ -52,10 +63,27 @@ class HeapGrowthCommand : CliktCommand(
             "order:\n${hprofFiles.joinToString("\n") { it.name }}"
         )
 
-        val heapGraphs = hprofFiles.asSequence().map { it.openHeapGraph() }
+        var previous: ConstantMemoryMetricsDualSourceProvider? = null
+        var previousStartTime = 0L.nanoseconds
 
-        detector.findRepeatedlyGrowingObjects(heapGraphs, scenarioLoopsPerDump)
+        val heapGraphs = hprofFiles.asSequence().map { file ->
+          val openTime = System.nanoTime().nanoseconds
+          previous?.let {
+            metrics += Metrics(it.randomAccessByteReads, it.randomAccessReadCount, openTime - previousStartTime)
+          }
+          val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(file))
+          previous = sourceProvider
+          previousStartTime = openTime
+          sourceProvider.openHeapGraph()
+        }
+        detector.findRepeatedlyGrowingObjects(heapGraphs, scenarioLoopsPerDump).also {
+          previous?.let {
+            val finishTime = System.nanoTime().nanoseconds
+            metrics += Metrics(it.randomAccessByteReads, it.randomAccessReadCount, finishTime - previousStartTime)
+          }
+        }
       }
+
 
       is ProcessSource -> {
         echo("Detecting heap growth live")
@@ -77,5 +105,7 @@ class HeapGrowthCommand : CliktCommand(
       }
     }
     echo("Results:\n" + results.joinToString("\n"))
+    echo("Found ${results.size} growing objects")
+    SharkLog.d { "Metrics:\n${metrics.joinToString("\n")}" }
   }
 }
