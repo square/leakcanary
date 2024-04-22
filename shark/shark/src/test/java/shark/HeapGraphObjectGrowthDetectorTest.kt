@@ -11,10 +11,11 @@ class HeapGraphObjectGrowthDetectorTest {
     val detector = newSimpleDetector()
 
     val heapTraversal = detector.findGrowingObjects(
-      dump {
+      heapGraph = dump {
       },
-      1,
-      previousTraversal = NoHeapTraversalYet
+      scenarioLoops = 1,
+      previousTraversal = NoHeapTraversalYet,
+      computeRetainedHeapSize = false
     )
 
     assertThat(heapTraversal).isInstanceOf(InitialHeapTraversal::class.java)
@@ -24,15 +25,17 @@ class HeapGraphObjectGrowthDetectorTest {
   fun `second traversal returns HeapTraversalWithDiff`() {
     val detector = newSimpleDetector()
     val first = detector.findGrowingObjects(
-      emptyHeapDump(),
-      1,
-      previousTraversal = NoHeapTraversalYet
+      heapGraph = emptyHeapDump(),
+      scenarioLoops = 1,
+      previousTraversal = NoHeapTraversalYet,
+      computeRetainedHeapSize = false
     )
 
     val secondTraversal = detector.findGrowingObjects(
-      emptyHeapDump(),
-      1,
-      previousTraversal = first
+      heapGraph =emptyHeapDump(),
+      scenarioLoops =1,
+      previousTraversal = first,
+      computeRetainedHeapSize = false
     )
 
     assertThat(secondTraversal).isInstanceOf(HeapTraversalWithDiff::class.java)
@@ -136,7 +139,7 @@ class HeapGraphObjectGrowthDetectorTest {
     return heapDumps.fold<Pair<CloseableHeapGraph, Int>, InputHeapTraversal>(
       initial = NoHeapTraversalYet
     ) { previous, (graph, count) ->
-      findGrowingObjects(graph, count, previous)
+      findGrowingObjects(graph, count, previous, false)
     } as HeapTraversalWithDiff
   }
 

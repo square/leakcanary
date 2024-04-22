@@ -22,9 +22,9 @@ class HeapGraphObjectGrowthDetector(
   fun findGrowingObjects(
     heapGraph: CloseableHeapGraph,
     scenarioLoops: Int,
-    previousTraversal: InputHeapTraversal = NoHeapTraversalYet
+    previousTraversal: InputHeapTraversal = NoHeapTraversalYet,
+    computeRetainedHeapSize: Boolean
   ): HeapTraversal {
-    val computeRetainedHeapSize = previousTraversal !is NoHeapTraversalYet
     // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
     // visit more than that but this limits the number of early array growths.
     val estimatedVisitedObjects = (heapGraph.instanceCount / 2).coerceAtLeast(4)

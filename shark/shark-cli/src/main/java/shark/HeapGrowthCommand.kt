@@ -106,7 +106,11 @@ class HeapGrowthCommand : CliktCommand(
           previousStartTime = openTime
           sourceProvider.openHeapGraph()
         }
-        detector.findRepeatedlyGrowingObjects(heapGraphs, scenarioLoopsPerDump).also {
+        detector.findRepeatedlyGrowingObjects(
+          heapGraphs = heapGraphs,
+          scenarioLoopsPerGraph = scenarioLoopsPerDump,
+          heapGraphCount = hprofFiles.size
+        ).also {
           previous?.let {
             val finishTime = System.nanoTime().nanoseconds
             metrics += Metrics(

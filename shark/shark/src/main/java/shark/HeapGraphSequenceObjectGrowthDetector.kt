@@ -6,14 +6,25 @@ class HeapGraphSequenceObjectGrowthDetector(
 
   override fun findRepeatedlyGrowingObjects(
     heapGraphs: Sequence<CloseableHeapGraph>,
-    scenarioLoopsPerGraph: Int
+    scenarioLoopsPerGraph: Int,
+    heapGraphCount: Int?
   ): GrowingObjectNodes {
     var i = 1
     var lastDiffResult: InputHeapTraversal = NoHeapTraversalYet
     for (heapGraph in heapGraphs) {
+      val computeRetainedHeapSize = if (heapGraphCount != null) {
+        // Compute retained size for the prior to last and the last graphs.
+        i >= heapGraphCount - 1
+      } else {
+        i > 1
+      }
+
       val diffResult =
         heapGrowthDetector.findGrowingObjects(
-          heapGraph, scenarioLoopsPerGraph, lastDiffResult
+          heapGraph = heapGraph,
+          scenarioLoops = scenarioLoopsPerGraph,
+          previousTraversal = lastDiffResult,
+          computeRetainedHeapSize = computeRetainedHeapSize
         )
       if (diffResult is HeapTraversalWithDiff) {
         val iterationCount = i * scenarioLoopsPerGraph

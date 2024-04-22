@@ -278,13 +278,13 @@ public final class shark/HeapDumpingObjectGrowthDetector : shark/LiveObjectGrowt
 
 public final class shark/HeapGraphObjectGrowthDetector {
 	public fun <init> (Lshark/GcRootProvider;Lshark/ReferenceReader$Factory;)V
-	public final fun findGrowingObjects (Lshark/CloseableHeapGraph;ILshark/InputHeapTraversal;)Lshark/HeapTraversal;
-	public static synthetic fun findGrowingObjects$default (Lshark/HeapGraphObjectGrowthDetector;Lshark/CloseableHeapGraph;ILshark/InputHeapTraversal;ILjava/lang/Object;)Lshark/HeapTraversal;
+	public final fun findGrowingObjects (Lshark/CloseableHeapGraph;ILshark/InputHeapTraversal;Z)Lshark/HeapTraversal;
+	public static synthetic fun findGrowingObjects$default (Lshark/HeapGraphObjectGrowthDetector;Lshark/CloseableHeapGraph;ILshark/InputHeapTraversal;ZILjava/lang/Object;)Lshark/HeapTraversal;
 }
 
 public final class shark/HeapGraphSequenceObjectGrowthDetector : shark/RepeatedObjectGrowthDetector {
 	public fun <init> (Lshark/HeapGraphObjectGrowthDetector;)V
-	public fun findRepeatedlyGrowingObjects (Lkotlin/sequences/Sequence;I)Ljava/util/List;
+	public fun findRepeatedlyGrowingObjects (Lkotlin/sequences/Sequence;ILjava/lang/Integer;)Ljava/util/List;
 }
 
 public abstract interface class shark/HeapTraversal : shark/InputHeapTraversal {
@@ -893,7 +893,11 @@ public abstract interface class shark/ReferenceReader$Factory {
 }
 
 public abstract interface class shark/RepeatedObjectGrowthDetector {
-	public abstract fun findRepeatedlyGrowingObjects (Lkotlin/sequences/Sequence;I)Ljava/util/List;
+	public abstract fun findRepeatedlyGrowingObjects (Lkotlin/sequences/Sequence;ILjava/lang/Integer;)Ljava/util/List;
+}
+
+public final class shark/RepeatedObjectGrowthDetector$DefaultImpls {
+	public static synthetic fun findRepeatedlyGrowingObjects$default (Lshark/RepeatedObjectGrowthDetector;Lkotlin/sequences/Sequence;ILjava/lang/Integer;ILjava/lang/Object;)Ljava/util/List;
 }
 
 public final class shark/RepeatedObjectGrowthDetectorJvmFactory {

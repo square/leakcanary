@@ -70,10 +70,14 @@ class ShortestPathObjectNode(
       result.append(pathNode.selfObjectCount)
       result.append(" objects)")
       if (index == pathAfterRoot.lastIndex) {
-        result.appendLine()
-        result.append("    Retained size: ${retained.heapSize} (+ ${retainedIncrease.heapSize})")
-        result.appendLine()
-        result.append("    Retained objects: ${retained.objectCount} (+ ${retainedIncrease.objectCount})")
+        if (retainedOrNull != null) {
+          result.appendLine()
+          result.append("    Retained size: ${retained.heapSize} (+ ${retainedIncrease.heapSize})")
+          result.appendLine()
+          result.append(
+            "    Retained objects: ${retained.objectCount} (+ ${retainedIncrease.objectCount})"
+          )
+        }
         result.appendLine()
         result.append("    Children:")
         result.appendLine()

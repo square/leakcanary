@@ -18,7 +18,11 @@ class HeapDumpingObjectGrowthDetector(
 
   override fun findRepeatedlyGrowingObjects(roundTripScenario: () -> Unit): List<ShortestPathObjectNode> {
     val heapDumpSequence = dumpHeapOnNext(roundTripScenario)
-    return detector.findRepeatedlyGrowingObjects(heapDumpSequence, scenarioLoopsPerDump)
+    return detector.findRepeatedlyGrowingObjects(
+      heapGraphs = heapDumpSequence,
+      scenarioLoopsPerGraph = scenarioLoopsPerDump,
+      heapGraphCount = maxHeapDumps
+    )
   }
 
   private fun dumpHeapOnNext(
