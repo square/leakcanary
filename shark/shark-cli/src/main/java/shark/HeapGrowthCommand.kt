@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.split
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.int
 import jline.console.ConsoleReader
@@ -12,6 +13,7 @@ import kotlin.time.Duration.Companion.nanoseconds
 import shark.DumpProcessCommand.Companion.dumpHeap
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.ReferencePattern.InstanceFieldPattern
+import shark.ReferencePattern.StaticFieldPattern
 import shark.SharkCliCommand.Companion.sharkCliParams
 import shark.SharkCliCommand.HeapDumpSource.HprofDirectorySource
 import shark.SharkCliCommand.HeapDumpSource.HprofFileSource
@@ -31,18 +33,44 @@ class HeapGrowthCommand : CliktCommand(
     help = "The max number of heap dumps to perform live before returning the results."
   ).int().default(5).validate { if (it <= 1) fail("$it is not greater than 1") }
 
+  private val ignoredFields by option("--ignored-fields")
+    .split(",")
+
+  private val ignoredStaticFields by option("--ignored-static-fields")
+    .split(",")
+
   override fun run() {
     val params = context.sharkCliParams
 
-    val detector = RepeatedObjectGrowthDetectorAndroidFactory.create()
+    val ignoredInstanceFieldReferences = ignoredFields?.let { ignoredFields ->
+      ignoredFields.map { ignoredField ->
+        val className = ignoredField.substringBeforeLast(".")
+        val fieldName = ignoredField.substringAfterLast(".")
+        IgnoredReferenceMatcher(InstanceFieldPattern(className, fieldName))
+      }
+    } ?: emptyList()
+
+    val ignoredStaticFieldReferences = ignoredStaticFields?.let { ignoredStaticFields ->
+      ignoredStaticFields.map { ignoredStaticField ->
+        val className = ignoredStaticField.substringBeforeLast(".")
+        val fieldName = ignoredStaticField.substringAfterLast(".")
+        IgnoredReferenceMatcher(StaticFieldPattern(className, fieldName))
+      }
+    } ?: emptyList()
+
+    val referenceMatchers = AndroidHeapGrowthIgnoredReferences.defaults +
+      ignoredInstanceFieldReferences +
+      ignoredStaticFieldReferences
+
+    val detector = RepeatedObjectGrowthDetectorAndroidFactory.create(referenceMatchers)
 
     data class Metrics(
       val randomAccessByteReads: Long,
       val randomAccessReadCount: Long,
       val duration: Duration
     )
-    val metrics = mutableListOf<Metrics>()
 
+    val metrics = mutableListOf<Metrics>()
 
     val results = when (val source = params.source) {
       is HprofFileSource -> throw CliktError(
@@ -69,7 +97,9 @@ class HeapGrowthCommand : CliktCommand(
         val heapGraphs = hprofFiles.asSequence().map { file ->
           val openTime = System.nanoTime().nanoseconds
           previous?.let {
-            metrics += Metrics(it.randomAccessByteReads, it.randomAccessReadCount, openTime - previousStartTime)
+            metrics += Metrics(
+              it.randomAccessByteReads, it.randomAccessReadCount, openTime - previousStartTime
+            )
           }
           val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(file))
           previous = sourceProvider
@@ -79,11 +109,12 @@ class HeapGrowthCommand : CliktCommand(
         detector.findRepeatedlyGrowingObjects(heapGraphs, scenarioLoopsPerDump).also {
           previous?.let {
             val finishTime = System.nanoTime().nanoseconds
-            metrics += Metrics(it.randomAccessByteReads, it.randomAccessReadCount, finishTime - previousStartTime)
+            metrics += Metrics(
+              it.randomAccessByteReads, it.randomAccessReadCount, finishTime - previousStartTime
+            )
           }
         }
       }
-
 
       is ProcessSource -> {
         echo("Detecting heap growth live")
