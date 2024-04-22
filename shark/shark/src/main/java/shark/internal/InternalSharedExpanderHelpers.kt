@@ -23,6 +23,8 @@ internal class InternalSharedHashMapReferenceReader(
     return matches.invoke(instance)
   }
 
+  override val readsCutSet = true
+
   override fun read(source: HeapInstance): Sequence<Reference> {
     val table = source[className, tableFieldName]!!.valueAsObjectArray
     return if (table != null) {
@@ -112,6 +114,8 @@ internal class InternalSharedWeakHashMapReferenceReader(
     return instance.instanceClassId == classObjectId
   }
 
+  override val readsCutSet = true
+
   override fun read(source: HeapInstance): Sequence<Reference> {
     val table = source["java.util.WeakHashMap", tableFieldName]!!.valueAsObjectArray
     return if (table != null) {
@@ -173,6 +177,8 @@ internal class InternalSharedArrayListReferenceReader(
     return instance.instanceClassId == classObjectId
   }
 
+  override val readsCutSet = true
+
   override fun read(source: HeapInstance): Sequence<Reference> {
     val instanceClassId = source.instanceClassId
     val elementFieldRef =
@@ -218,6 +224,8 @@ internal class InternalSharedLinkedListReferenceReader(
   override fun matches(instance: HeapInstance): Boolean {
     return instance.instanceClassId == classObjectId
   }
+
+  override val readsCutSet = true
 
   override fun read(source: HeapInstance): Sequence<Reference> {
     val instanceClassId = source.instanceClassId

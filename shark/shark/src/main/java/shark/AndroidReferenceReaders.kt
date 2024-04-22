@@ -77,6 +77,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
           instance.instanceClassId == activityThreadClassId ||
             instance.instanceClassId == activityClientRecordClassId
 
+        override val readsCutSet = false
+
         override fun read(source: HeapInstance): Sequence<Reference> {
           return if (source.instanceClassId == activityThreadClassId) {
             val mNewActivities =
@@ -159,6 +161,9 @@ enum class AndroidReferenceReaders : OptionalFactory {
         override fun matches(instance: HeapInstance) =
           instance.instanceClassId == messageQueueClassId
 
+        // TODO Figure out whether this one could be true.
+        override val readsCutSet = false
+
         override fun read(source: HeapInstance): Sequence<Reference> {
           val firstMessage = source["android.os.MessageQueue", "mMessages"]!!.valueAsInstance
           return generateSequence(firstMessage) { node ->
@@ -198,6 +203,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
       return object : VirtualInstanceReferenceReader {
         override fun matches(instance: HeapInstance) =
           instance.instanceClassId == objectAnimatorClassId
+
+        override val readsCutSet = false
 
         override fun read(source: HeapInstance): Sequence<Reference> {
           val mTarget = source["android.animation.ObjectAnimator", "mTarget"]?.valueAsInstance
@@ -248,6 +255,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
           instance.instanceClassId.let { classId ->
             classId == mapClassId || classId == fastMapClassId
           }
+
+        override val readsCutSet = true
 
         override fun read(source: HeapInstance): Sequence<Reference> {
           val start = source[SAFE_ITERABLE_MAP_CLASS_NAME, "mStart"]!!.valueAsInstance
@@ -307,6 +316,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
 
       return object : VirtualInstanceReferenceReader {
         override fun matches(instance: HeapInstance) = instance.instanceClassId == arraySetClassId
+
+        override val readsCutSet = true
 
         override fun read(source: HeapInstance): Sequence<Reference> {
           val mArray = source[ARRAY_SET_CLASS_NAME, "mArray"]!!.valueAsObjectArray!!

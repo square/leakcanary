@@ -14,11 +14,13 @@ class VirtualizingMatchingReferenceReaderFactory(
   private val virtualRefReadersFactory: VirtualInstanceReferenceReader.ChainFactory
   ) : ReferenceReader.Factory<HeapObject> {
   override fun createFor(heapGraph: HeapGraph): ReferenceReader<HeapObject> {
+    val fieldRefReader = FieldInstanceReferenceReader(heapGraph, referenceMatchers)
     return DelegatingObjectReferenceReader(
       classReferenceReader = ClassReferenceReader(heapGraph, referenceMatchers),
       instanceReferenceReader = ChainingInstanceReferenceReader(
         virtualRefReaders = virtualRefReadersFactory.createFor(heapGraph),
-        fieldRefReader = FieldInstanceReferenceReader(heapGraph, referenceMatchers)
+        flatteningInstanceReader = FlatteningPartitionedInstanceReferenceReader(heapGraph, fieldRefReader),
+        fieldRefReader = fieldRefReader
       ),
       objectArrayReferenceReader = ObjectArrayReferenceReader()
     )

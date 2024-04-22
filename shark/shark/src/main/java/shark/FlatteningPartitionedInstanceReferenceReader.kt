@@ -10,8 +10,8 @@ import shark.HeapObject.HeapPrimitiveArray
 import shark.internal.hppc.LongScatterSet
 
 /**
- * A [VirtualInstanceReferenceReader] provides us with a synthetic and stable representation of a
- * data structure that maps how we think about that data structure instead of how it is internally
+ * [FlatteningPartitionedInstanceReferenceReader] provides a synthetic and stable representation of
+ * a data structure that maps how we think about that data structure instead of how it is internally
  * implemented. You can think of it as surfacing additional direct references to
  * entries that the data structure holds. [VirtualInstanceReferenceReader] implementations
  * scan references based on known patterns rather than through generic traversals. As a result,
@@ -31,7 +31,7 @@ import shark.internal.hppc.LongScatterSet
  * growing objects, the internal objects will also be surfaced as a distinct location of object
  * growth, creating noise in the result.
  *
- * [FlatteningPartitionedStructReferenceReader] exists to fix both of the issues mentioned in the
+ * [FlatteningPartitionedInstanceReferenceReader] exists to fix both of the issues mentioned in the
  * previous paragraph. It performs a local graph traversal and returns all internal objects
  * directly and indirectly dominated by a data structure as if they were all direct child of that
  * data structure, removing the need for a an additional processing step with
@@ -40,24 +40,26 @@ import shark.internal.hppc.LongScatterSet
  * these internal objects are all surfaced as direct children of the source instance, they'll
  * never appear to grow, removing noise in the result.
  *
- * [FlatteningPartitionedStructReferenceReader] wraps a [VirtualInstanceReferenceReader] itself
+ * [FlatteningPartitionedInstanceReferenceReader] wraps a [VirtualInstanceReferenceReader] itself
  * dedicated to a data structure that has no out edges beyond the one returned by the
  * [VirtualInstanceReferenceReader]. Once the [VirtualInstanceReferenceReader] is done emitting all
- * the out edges it knows about, [FlatteningPartitionedStructReferenceReader] will then explore
+ * the out edges it knows about, [FlatteningPartitionedInstanceReferenceReader] will then explore
  * instances and object arrays in the rest of the local graph using [instanceReferenceReader] and
  * [objectArrayReferenceReader],
  * starting from the source, and emit all found nodes as virtual direct children of source.
- * [FlatteningPartitionedStructReferenceReader] communicates to its consumers that the inner nodes
+ * [FlatteningPartitionedInstanceReferenceReader] communicates to its consumers that the inner nodes
  * should not be reloaded and explored by setting [Reference.isLeafObject] to true.
  *
- * Note: [FlatteningPartitionedStructReferenceReader] should only be used together with a
+ * Note: [FlatteningPartitionedInstanceReferenceReader] should only be used together with a
  * [VirtualInstanceReferenceReader] that identifies all inner out edges of the data structure,
- * as [FlatteningPartitionedStructReferenceReader] keeps track of those edges and knows to not
+ * as [FlatteningPartitionedInstanceReferenceReader] keeps track of those edges and knows to not
  * follow them. If we missed an out edge, the inner traversal would then keep going and end up
  * traversing the rest of the graph and presenting the entirety of the rest of the graph as
- * directly referenced by the source instance.
+ * directly referenced by the source instance. [VirtualInstanceReferenceReader] that can be used
+ * with [FlatteningPartitionedInstanceReferenceReader] return true from
+ * [VirtualInstanceReferenceReader.readsCutSet].
  *
- * [FlatteningPartitionedStructReferenceReader] makes the assumption that there's no need to
+ * [FlatteningPartitionedInstanceReferenceReader] makes the assumption that there's no need to
  * explore any class found as those would have already be found through classloaders.
  *
  * A side effect of the flattening is that a path involving indirect internal objects will look a
@@ -65,18 +67,16 @@ import shark.internal.hppc.LongScatterSet
  * the reference will be directly attached to the data structure which doesn't have that class
  * in its class hierarchy.
  */
-class FlatteningPartitionedStructReferenceReader(
+class FlatteningPartitionedInstanceReferenceReader(
   private val graph: HeapGraph,
-  private val virtualInstanceReader: VirtualInstanceReferenceReader,
   private val instanceReferenceReader: FieldInstanceReferenceReader,
-  private val objectArrayReferenceReader: ObjectArrayReferenceReader,
-) : VirtualInstanceReferenceReader {
+) {
+  private val objectArrayReferenceReader = ObjectArrayReferenceReader()
+
 
   private val visited = LongScatterSet()
 
-  override fun matches(instance: HeapInstance) = virtualInstanceReader.matches(instance)
-
-  override fun read(source: HeapInstance): Sequence<Reference> {
+ fun read(virtualInstanceReader: VirtualInstanceReferenceReader, source: HeapInstance): Sequence<Reference> {
     visited.clear()
     val toVisit = mutableListOf<Reference>()
     visited += source.objectId

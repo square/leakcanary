@@ -18,18 +18,8 @@ class AndroidReferenceReaderFactory(
         JavaLocalReferenceReader(graph, referenceMatchers),
       ) +
         AndroidReferenceReaders.values().mapNotNull { it.create(graph) } +
-        (
-          OpenJdkInstanceRefReaders.values().mapNotNull { it.create(graph) } +
-            ApacheHarmonyInstanceRefReaders.values().mapNotNull { it.create(graph) }
-          )
-          .map { virtualInstanceReader ->
-            FlatteningPartitionedStructReferenceReader(
-              graph = graph,
-              virtualInstanceReader = virtualInstanceReader,
-              instanceReferenceReader = FieldInstanceReferenceReader(graph, referenceMatchers),
-              objectArrayReferenceReader = ObjectArrayReferenceReader()
-            )
-          }
+        OpenJdkInstanceRefReaders.values().mapNotNull { it.create(graph) } +
+        ApacheHarmonyInstanceRefReaders.values().mapNotNull { it.create(graph) }
     }
   )
 
