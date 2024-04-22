@@ -13,6 +13,11 @@ public final class shark/AndroidNativeSizeMapper$Companion {
 	public final fun mapNativeSizes (Lshark/HeapGraph;)Ljava/util/Map;
 }
 
+public final class shark/AndroidObjectSizeCalculator : shark/DominatorTree$ObjectSizeCalculator {
+	public fun <init> (Lshark/HeapGraph;)V
+	public fun computeSize (J)I
+}
+
 public final class shark/AndroidReferenceReaderFactory : shark/ReferenceReader$Factory {
 	public fun <init> (Ljava/util/List;)V
 	public fun createFor (Lshark/HeapGraph;)Lshark/ReferenceReader;
@@ -67,13 +72,53 @@ public final class shark/ApplicationLeak : shark/Leak {
 public final class shark/ApplicationLeak$Companion {
 }
 
+public final class shark/ByteSize : java/lang/Comparable {
+	public static final field BYTES_PER_GB J
+	public static final field BYTES_PER_KB J
+	public static final field BYTES_PER_MB J
+	public static final field Companion Lshark/ByteSize$Companion;
+	public static final synthetic fun box-impl (J)Lshark/ByteSize;
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public fun compareTo-rK2stxE (J)I
+	public static fun compareTo-rK2stxE (JJ)I
+	public static final fun div-BWD4q2E (JJ)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public final fun getInWholeBytes ()J
+	public static final fun getInWholeGigabytes-impl (J)J
+	public static final fun getInWholeKilobytes-impl (J)J
+	public static final fun getInWholeMegabytes-impl (J)J
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun minus-BWD4q2E (JJ)J
+	public static final fun plus-BWD4q2E (JJ)J
+	public static final fun times-BWD4q2E (JJ)J
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class shark/ByteSize$Companion {
+	public final fun getBytes-1A9dbZA (I)J
+	public final fun getBytes-1A9dbZA (J)J
+	public final fun getGigabytes-1A9dbZA (I)J
+	public final fun getGigabytes-1A9dbZA (J)J
+	public final fun getKilobytes-1A9dbZA (I)J
+	public final fun getKilobytes-1A9dbZA (J)J
+	public final fun getMegabytes-1A9dbZA (I)J
+	public final fun getMegabytes-1A9dbZA (J)J
+	public final fun getZERO-UyN4wxk ()J
+}
+
 public final class shark/ChainingInstanceReferenceReader : shark/ReferenceReader {
-	public fun <init> (Ljava/util/List;Lshark/FieldInstanceReferenceReader;)V
+	public fun <init> (Ljava/util/List;Lshark/FlatteningPartitionedInstanceReferenceReader;Lshark/FieldInstanceReferenceReader;)V
 	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
 	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
 
 public abstract interface class shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader : shark/ReferenceReader {
+	public abstract fun getReadsCutSet ()Z
 	public abstract fun matches (Lshark/HeapObject$HeapInstance;)Z
 }
 
@@ -95,10 +140,15 @@ public final class shark/DominatorTree {
 	public fun <init> ()V
 	public fun <init> (I)V
 	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun buildFullDominatorTree (Lkotlin/jvm/functions/Function1;)Ljava/util/Map;
-	public final fun computeRetainedSizes (Ljava/util/Set;Lkotlin/jvm/functions/Function1;)Ljava/util/Map;
+	public final fun buildFullDominatorTree (Lshark/DominatorTree$ObjectSizeCalculator;)Ljava/util/Map;
+	public final fun computeRetainedSizes (Ljava/util/Set;Lshark/DominatorTree$ObjectSizeCalculator;)Ljava/util/Map;
+	public final fun contains (J)Z
 	public final fun updateDominated (JJ)Z
 	public final fun updateDominatedAsRoot (J)Z
+}
+
+public abstract interface class shark/DominatorTree$ObjectSizeCalculator {
+	public abstract fun computeSize (J)I
 }
 
 public final class shark/Dominators : java/io/Serializable {
@@ -119,6 +169,11 @@ public final class shark/FilteringLeakingObjectFinder : shark/LeakingObjectFinde
 
 public abstract interface class shark/FilteringLeakingObjectFinder$LeakingObjectFilter {
 	public abstract fun isLeakingObject (Lshark/HeapObject;)Z
+}
+
+public final class shark/FlatteningPartitionedInstanceReferenceReader {
+	public fun <init> (Lshark/HeapGraph;Lshark/FieldInstanceReferenceReader;)V
+	public final fun read (Lshark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader;Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
 }
 
 public abstract interface class shark/GcRootProvider {
@@ -265,6 +320,7 @@ public abstract interface class shark/InputHeapTraversal {
 public final class shark/JavaLocalReferenceReader : shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader {
 	public fun <init> (Lshark/HeapGraph;Ljava/util/List;)V
 	public final fun getGraph ()Lshark/HeapGraph;
+	public fun getReadsCutSet ()Z
 	public fun matches (Lshark/HeapObject$HeapInstance;)Z
 	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
 	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
@@ -535,6 +591,12 @@ public final class shark/NoHeapTraversalYet : shark/InputHeapTraversal {
 	public static final field INSTANCE Lshark/NoHeapTraversalYet;
 }
 
+public final class shark/ObjectArrayReferenceReader : shark/ReferenceReader {
+	public fun <init> ()V
+	public fun read (Lshark/HeapObject$HeapObjectArray;)Lkotlin/sequences/Sequence;
+	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
+}
+
 public final class shark/ObjectDominators {
 	public fun <init> ()V
 	public final fun buildDominatorTree (Lshark/HeapGraph;Ljava/util/List;)Ljava/util/Map;
@@ -708,10 +770,21 @@ public final class shark/RealLeakTracerFactory$Event$StartedInspectingObjects : 
 }
 
 public final class shark/Reference {
-	public fun <init> (JZLshark/Reference$LazyDetails$Resolver;)V
+	public fun <init> (JZZLshark/Reference$LazyDetails$Resolver;)V
+	public synthetic fun <init> (JZZLshark/Reference$LazyDetails$Resolver;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()J
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun component4 ()Lshark/Reference$LazyDetails$Resolver;
+	public final fun copy (JZZLshark/Reference$LazyDetails$Resolver;)Lshark/Reference;
+	public static synthetic fun copy$default (Lshark/Reference;JZZLshark/Reference$LazyDetails$Resolver;ILjava/lang/Object;)Lshark/Reference;
+	public fun equals (Ljava/lang/Object;)Z
 	public final fun getLazyDetailsResolver ()Lshark/Reference$LazyDetails$Resolver;
 	public final fun getValueObjectId ()J
+	public fun hashCode ()I
+	public final fun isLeafObject ()Z
 	public final fun isLowPriority ()Z
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class shark/Reference$LazyDetails {
@@ -844,10 +917,20 @@ public final class shark/ShortestPathObjectNode {
 	public final fun getChildrenObjectCountIncrease ()I
 	public final fun getNodeAndEdgeName ()Ljava/lang/String;
 	public final fun getParent ()Lshark/ShortestPathObjectNode;
+	public final fun getRetained ()Lshark/ShortestPathObjectNode$Retained;
+	public final fun getRetainedIncrease ()Lshark/ShortestPathObjectNode$Retained;
+	public final fun getRetainedIncreaseOrNull ()Lshark/ShortestPathObjectNode$Retained;
+	public final fun getRetainedOrNull ()Lshark/ShortestPathObjectNode$Retained;
 	public final fun getSelfObjectCount ()I
 	public final fun getSelfObjectCountIncrease ()I
 	public final fun pathFromRootAsString ()Ljava/lang/String;
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/ShortestPathObjectNode$Retained {
+	public synthetic fun <init> (JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getHeapSize-UyN4wxk ()J
+	public final fun getObjectCount ()I
 }
 
 public final class shark/VirtualizingMatchingReferenceReaderFactory : shark/ReferenceReader$Factory {
