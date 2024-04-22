@@ -10,8 +10,8 @@ sealed interface HeapTraversal : InputHeapTraversal {
    * object in the heap, where:
    * - object identity is lost
    * - objects are grouped by identical path into a single node
-   * - Path element names are determined using the edge name to reach them (e.g. field name) and
-   * the object class name.
+   * - Path element names are determined using the node & edge name to reach them (e.g. class name
+   * + field name) as well as the class name of the reached object.
    */
   val shortestPathTree: ShortestPathObjectNode
 
