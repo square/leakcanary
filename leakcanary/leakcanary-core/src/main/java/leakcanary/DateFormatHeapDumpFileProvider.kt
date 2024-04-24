@@ -37,3 +37,24 @@ class DateFormatHeapDumpFileProvider(
     const val TIME_PATTERN = "yyyy-MM-dd_HH-mm-ss_SSS"
   }
 }
+
+fun HeapDumpFileProvider.Companion.dateFormattedFileProvider(
+  directory: File,
+  prefix: String = "",
+  suffix: String = "",
+  dateProvider: () -> Date = { Date() },
+): HeapDumpFileProvider {
+  return DateFormatHeapDumpFileProvider(
+    heapDumpDirectoryProvider = {
+      directory.apply {
+        mkdirs()
+        check(exists()) {
+          "Expected heap dump folder to exist: $absolutePath"
+        }
+      }
+    },
+    dateProvider = dateProvider,
+    prefix = prefix,
+    suffix = suffix
+  )
+}

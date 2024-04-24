@@ -10,26 +10,9 @@ fun interface HeapDumpFileProvider {
    */
   fun newHeapDumpFile(): File
 
-  companion object {
-    fun dateFormatted(
-      directory: File,
-      prefix: String = "",
-      suffix: String = "",
-      dateProvider: () -> Date = { Date() },
-    ): HeapDumpFileProvider {
-      return DateFormatHeapDumpFileProvider(
-        heapDumpDirectoryProvider = {
-          directory.apply {
-            mkdirs()
-            check(exists()) {
-              "Expected heap dump folder to exist: $absolutePath"
-            }
-          }
-        },
-        dateProvider = dateProvider,
-        prefix = prefix,
-        suffix = suffix
-      )
-    }
-  }
+  /**
+   * This allows external modules to add factory methods for implementations of this interface as
+   * extension functions of this companion object.
+   */
+  companion object
 }

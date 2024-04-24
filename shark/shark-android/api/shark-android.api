@@ -38,6 +38,11 @@ public final class shark/AndroidMetadataExtractor : shark/MetadataExtractor {
 	public fun extractMetadata (Lshark/HeapGraph;)Ljava/util/Map;
 }
 
+public final class shark/AndroidObjectGrowthDetectorKt {
+	public static final fun androidDetector (Lshark/ObjectGrowthDetector$Companion;Ljava/util/List;)Lshark/ObjectGrowthDetector;
+	public static synthetic fun androidDetector$default (Lshark/ObjectGrowthDetector$Companion;Ljava/util/List;ILjava/lang/Object;)Lshark/ObjectGrowthDetector;
+}
+
 public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/ObjectInspector {
 	public static final field ACTIVITY Lshark/AndroidObjectInspectors;
 	public static final field ACTIVITY_THREAD Lshark/AndroidObjectInspectors;
@@ -231,11 +236,5 @@ public final class shark/AndroidResourceIdNames$Companion {
 public final class shark/AndroidServices {
 	public static final field INSTANCE Lshark/AndroidServices;
 	public final fun getAliveAndroidServiceObjectIds (Lshark/HeapGraph;)Ljava/util/List;
-}
-
-public final class shark/RepeatedObjectGrowthDetectorAndroidFactory {
-	public static final field INSTANCE Lshark/RepeatedObjectGrowthDetectorAndroidFactory;
-	public final fun create (Ljava/util/List;)Lshark/RepeatedObjectGrowthDetector;
-	public static synthetic fun create$default (Lshark/RepeatedObjectGrowthDetectorAndroidFactory;Ljava/util/List;ILjava/lang/Object;)Lshark/RepeatedObjectGrowthDetector;
 }
 

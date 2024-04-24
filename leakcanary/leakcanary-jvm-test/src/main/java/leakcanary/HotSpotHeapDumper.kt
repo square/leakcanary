@@ -19,3 +19,6 @@ object HotSpotHeapDumper : HeapDumper {
     hotspotMBean.dumpHeap(heapDumpFile.absolutePath, live)
   }
 }
+
+fun HeapDumper.Companion.jvmDumper() = HotSpotHeapDumper
+

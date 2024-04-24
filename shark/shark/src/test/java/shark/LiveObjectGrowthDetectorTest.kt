@@ -32,34 +32,35 @@ class LiveObjectGrowthDetectorTest {
 
   @Test
   fun `empty scenario leads to no heap growth`() {
-    val detector = simpleDetector().live()
+    val detector = simpleDetector().fromScenario()
 
     val emptyScenario = {}
 
-    val growingNodes = detector.findRepeatedlyGrowingObjects(emptyScenario)
+    val growingNodes = detector.findRepeatedlyGrowingObjects(roundTripScenario = emptyScenario)
+      .growingNodes
 
     assertThat(growingNodes).isEmpty()
   }
 
   @Test
   fun `leaky increase leads to heap growth`() {
-    val detector = simpleDetector().live()
+    val detector = simpleDetector().fromScenario()
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakies += Leaky()
-    }
+    }.growingNodes
 
     assertThat(growingNodes).isNotEmpty
   }
 
   @Test
   fun `string leak increase leads to heap growth`() {
-    val detector = simpleDetector().live()
+    val detector = simpleDetector().fromScenario()
 
     var index = 0
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       stringLeaks += "Yo ${++index}"
-    }
+    }.growingNodes
 
     assertThat(growingNodes).isNotEmpty
   }
@@ -68,14 +69,14 @@ class LiveObjectGrowthDetectorTest {
   fun `leak increase that ends leads to no heap growth`() {
     val maxHeapDumps = 10
     val stopLeakingIndex = maxHeapDumps / 2
-    val detector = simpleDetector().live(maxHeapDumps = maxHeapDumps)
+    val detector = simpleDetector().fromScenario(maxHeapDumps = maxHeapDumps)
 
     var index = 0
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       if (++index < stopLeakingIndex) {
         leakies += Leaky()
       }
-    }
+    }.growingNodes
 
     assertThat(growingNodes).isEmpty()
   }
@@ -83,11 +84,12 @@ class LiveObjectGrowthDetectorTest {
   @Test
   fun `multiple leaky scenarios per dump leads to heap growth`() {
     val scenarioLoopsPerDump = 5
-    val detector = simpleDetector().live(scenarioLoopsPerDump = scenarioLoopsPerDump)
+    val detector =
+      simpleDetector().fromScenario(scenarioLoopsPerDump = scenarioLoopsPerDump)
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakies += Leaky()
-    }
+    }.growingNodes
 
     assertThat(growingNodes).hasSize(1)
 
@@ -97,25 +99,25 @@ class LiveObjectGrowthDetectorTest {
 
   @Test
   fun `custom leaky linked list leads to heap growth`() {
-    val detector = simpleDetector().live()
+    val detector = simpleDetector().fromScenario()
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
-    }
+    }.growingNodes
 
     assertThat(growingNodes).isNotEmpty
   }
 
   @Test
   fun `custom leaky linked list reports descendant to root as flattened collection`() {
-    val detector = simpleDetector().live()
+    val detector = simpleDetector().fromScenario()
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
-    }
+    }.growingNodes
 
     assertThat(growingNodes).hasSize(1)
 
@@ -126,11 +128,11 @@ class LiveObjectGrowthDetectorTest {
 
   @Test
   fun `growth along shared sub paths reported as single growth of shortest path`() {
-    val detector = simpleDetector().live()
+    val detector = simpleDetector().fromScenario()
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       multiLeakies += MultiLeaky()
-    }
+    }.growingNodes
 
     assertThat(growingNodes).hasSize(1)
 
@@ -140,12 +142,12 @@ class LiveObjectGrowthDetectorTest {
 
   @Test
   fun `OpenJdk HashMap virtualized as array`() {
-    val detector = openJdkDetector().live()
+    val detector = openJdkDetector().fromScenario(maxHeapDumps = 5)
 
     var index = 0
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakyHashMap["key${++index}"] = Leaky()
-    }
+    }.growingNodes
 
     val growingNode = growingNodes.first()
     assertThat(growingNode.nodeAndEdgeName).contains("leakyHashMap")
@@ -153,32 +155,36 @@ class LiveObjectGrowthDetectorTest {
 
   @Test
   fun `OpenJdk ArrayList virtualized as array`() {
-    val detector = openJdkDetector().live()
+    val detector = openJdkDetector().fromScenario()
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakies += Leaky()
-    }
+    }.growingNodes
 
     val growingNode = growingNodes.first()
     assertThat(growingNode.nodeAndEdgeName).contains("leakies")
   }
 
-  private fun HeapGraphObjectGrowthDetector.live(
+  private fun ObjectGrowthDetector.fromScenario(
     scenarioLoopsPerDump: Int = 1,
     maxHeapDumps: Int = 5
   ): HeapDumpingObjectGrowthDetector {
-    return HeapDumpingObjectGrowthDetector(maxHeapDumps, ::dumpHeapGraph, scenarioLoopsPerDump, HeapGraphSequenceObjectGrowthDetector(this))
+    return fromHeapDumpingRepeatedScenario(
+      heapGraphProvider = ::dumpHeapGraph,
+      maxHeapDumps = maxHeapDumps,
+      scenarioLoopsPerDump = scenarioLoopsPerDump
+    )
   }
 
-  private fun simpleDetector(): HeapGraphObjectGrowthDetector {
-    val referenceMatchers = JdkReferenceMatchers.defaults + HeapTraversal.ignoredReferences
+  private fun simpleDetector(): ObjectGrowthDetector {
+    val referenceMatchers = JdkReferenceMatchers.defaults + HeapTraversalOutput.ignoredReferences
     val referenceReaderFactory = ActualMatchingReferenceReaderFactory(referenceMatchers)
     val gcRootProvider = MatchingGcRootProvider(referenceMatchers)
-    return HeapGraphObjectGrowthDetector(gcRootProvider, referenceReaderFactory)
+    return ObjectGrowthDetector(gcRootProvider, referenceReaderFactory)
   }
 
-  private fun openJdkDetector(): HeapGraphObjectGrowthDetector {
-    val referenceMatchers = JdkReferenceMatchers.defaults + HeapTraversal.ignoredReferences
+  private fun openJdkDetector(): ObjectGrowthDetector {
+    val referenceMatchers = JdkReferenceMatchers.defaults + HeapTraversalOutput.ignoredReferences
 
     val referenceReaderFactory = VirtualizingMatchingReferenceReaderFactory(
       referenceMatchers = referenceMatchers,
@@ -191,7 +197,7 @@ class LiveObjectGrowthDetectorTest {
     )
 
     val gcRootProvider = MatchingGcRootProvider(referenceMatchers)
-    return HeapGraphObjectGrowthDetector(gcRootProvider, referenceReaderFactory)
+    return ObjectGrowthDetector(gcRootProvider, referenceReaderFactory)
   }
 
   private fun dumpHeapGraph(): CloseableHeapGraph {

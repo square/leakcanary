@@ -23,3 +23,8 @@ class DumpingDeletingOnCloseHeapGraphProvider(
     }
   }
 }
+
+fun HeapGraphProvider.Companion.dumpingAndDeletingGraphProvider(
+  heapDumper: HeapDumper,
+  heapDumpFileProvider: HeapDumpFileProvider = TempHeapDumpFileProvider,
+) = DumpingDeletingOnCloseHeapGraphProvider(heapDumpFileProvider, heapDumper)

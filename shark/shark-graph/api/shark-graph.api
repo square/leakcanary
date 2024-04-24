@@ -45,7 +45,11 @@ public abstract interface class shark/HeapGraph {
 }
 
 public abstract interface class shark/HeapGraphProvider {
+	public static final field Companion Lshark/HeapGraphProvider$Companion;
 	public abstract fun openHeapGraph ()Lshark/CloseableHeapGraph;
+}
+
+public final class shark/HeapGraphProvider$Companion {
 }
 
 public abstract class shark/HeapObject {

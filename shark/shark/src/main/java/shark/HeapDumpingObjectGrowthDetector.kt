@@ -1,39 +1,44 @@
 package shark
 
 class HeapDumpingObjectGrowthDetector(
-  private val maxHeapDumps: Int,
   private val heapGraphProvider: HeapGraphProvider,
-  private val scenarioLoopsPerDump: Int,
-  private val detector: RepeatedObjectGrowthDetector
-) : LiveObjectGrowthDetector {
+  private val detector: HeapGraphSequenceObjectGrowthDetector,
+  maxHeapDumps: Int,
+  scenarioLoopsPerDump: Int,
+) {
 
-  init {
-    check(maxHeapDumps >= 2) {
-      "There should be at least 2 heap dumps"
-    }
-    check(scenarioLoopsPerDump >= 1) {
-      "There should be at least 1 scenario loop per dump"
-    }
-  }
+  private val initialState = InitialState(
+    scenarioLoopsPerGraph = scenarioLoopsPerDump,
+    heapGraphCount = maxHeapDumps
+  )
 
-  override fun findRepeatedlyGrowingObjects(roundTripScenario: () -> Unit): List<ShortestPathObjectNode> {
-    val heapDumpSequence = dumpHeapOnNext(roundTripScenario)
+  fun findRepeatedlyGrowingObjects(roundTripScenario: () -> Unit): HeapGrowth {
+    val heapGraphSequence = dumpHeapOnNext(roundTripScenario)
     return detector.findRepeatedlyGrowingObjects(
-      heapGraphs = heapDumpSequence,
-      scenarioLoopsPerGraph = scenarioLoopsPerDump,
-      heapGraphCount = maxHeapDumps
+      initialState = initialState,
+      heapGraphSequence = heapGraphSequence,
     )
   }
 
   private fun dumpHeapOnNext(
     repeatedScenario: () -> Unit,
   ): Sequence<CloseableHeapGraph> {
-    val heapDumps = (1..maxHeapDumps).asSequence().map {
-      repeat(scenarioLoopsPerDump) {
+    val heapDumps = (1..initialState.heapGraphCount!!).asSequence().map {
+      repeat(initialState.scenarioLoopsPerGraph) {
         repeatedScenario()
       }
       heapGraphProvider.openHeapGraph()
     }
     return heapDumps
   }
+}
+
+fun ObjectGrowthDetector.fromHeapDumpingRepeatedScenario(
+  heapGraphProvider: HeapGraphProvider,
+  maxHeapDumps: Int = 5,
+  scenarioLoopsPerDump: Int = 1,
+): HeapDumpingObjectGrowthDetector {
+  return HeapDumpingObjectGrowthDetector(
+    heapGraphProvider, fromHeapGraphSequence(), maxHeapDumps, scenarioLoopsPerDump
+  )
 }

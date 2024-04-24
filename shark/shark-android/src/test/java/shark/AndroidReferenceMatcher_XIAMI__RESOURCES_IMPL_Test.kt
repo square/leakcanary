@@ -31,7 +31,7 @@ class AndroidReferenceMatcher_XIAMI__RESOURCES_IMPL_Test(
 
     /**
      * It's known that some device manufacturers on SDK 30 and above leak
-     * a statically held [android.content.Context] from a class [android.content.res.ResourcesImpl]
+     * a statically held [androidDetector.content.Context] from a class [androidDetector.content.res.ResourcesImpl]
      * in a variable named [mContext].
      */
     const val expectedKnownClassLeakingContext = "android.content.res.ResourcesImpl"

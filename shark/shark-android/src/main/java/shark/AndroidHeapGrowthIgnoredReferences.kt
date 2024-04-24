@@ -17,7 +17,7 @@ enum class AndroidHeapGrowthIgnoredReferences {
 
   HEAP_TRAVERSAL {
     override fun add(patterns: MutableList<ReferencePattern>) {
-      patterns += HeapTraversal.ignoredReferences.map { it.pattern }
+      patterns += HeapTraversalOutput.ignoredReferences.map { it.pattern }
     }
   },
 

@@ -62,7 +62,8 @@ class HeapGrowthCommand : CliktCommand(
       ignoredInstanceFieldReferences +
       ignoredStaticFieldReferences
 
-    val detector = RepeatedObjectGrowthDetectorAndroidFactory.create(referenceMatchers)
+    val androidDetector = ObjectGrowthDetector
+      .androidDetector(referenceMatchers)
 
     data class Metrics(
       val randomAccessByteReads: Long,
@@ -106,10 +107,11 @@ class HeapGrowthCommand : CliktCommand(
           previousStartTime = openTime
           sourceProvider.openHeapGraph()
         }
+        val detector = androidDetector
+          .fromHeapGraphSequence()
         detector.findRepeatedlyGrowingObjects(
-          heapGraphs = heapGraphs,
-          scenarioLoopsPerGraph = scenarioLoopsPerDump,
-          heapGraphCount = hprofFiles.size
+          heapGraphSequence = heapGraphs,
+          initialState = InitialState(scenarioLoopsPerDump, hprofFiles.size),
         ).also {
           previous?.let {
             val finishTime = System.nanoTime().nanoseconds
@@ -123,13 +125,12 @@ class HeapGrowthCommand : CliktCommand(
       is ProcessSource -> {
         echo("Detecting heap growth live")
 
-        val liveDetector = HeapDumpingObjectGrowthDetector(
-          maxHeapDumps = maxHeapDumps,
+        val liveDetector = androidDetector.fromHeapDumpingRepeatedScenario(
           heapGraphProvider = {
             dumpHeap(source.processName, source.deviceId).openHeapGraph()
           },
-          scenarioLoopsPerDump = scenarioLoopsPerDump,
-          detector = detector
+          maxHeapDumps = maxHeapDumps,
+          scenarioLoopsPerDump = scenarioLoopsPerDump
         )
 
         val nTimes = if (scenarioLoopsPerDump > 1) "$scenarioLoopsPerDump times" else "once"
@@ -139,8 +140,8 @@ class HeapGrowthCommand : CliktCommand(
         }
       }
     }
-    echo("Results:\n" + results.joinToString("\n"))
-    echo("Found ${results.size} growing objects")
+    echo("Results: $results")
+    echo("Found ${results.growingNodes.size} growing objects")
     SharkLog.d { "Metrics:\n${metrics.joinToString("\n")}" }
   }
 }

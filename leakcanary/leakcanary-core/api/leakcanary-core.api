@@ -9,9 +9,19 @@ public final class leakcanary/DateFormatHeapDumpFileProvider : leakcanary/HeapDu
 public final class leakcanary/DateFormatHeapDumpFileProvider$Companion {
 }
 
+public final class leakcanary/DateFormatHeapDumpFileProviderKt {
+	public static final fun dateFormattedFileProvider (Lleakcanary/HeapDumpFileProvider$Companion;Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Lleakcanary/HeapDumpFileProvider;
+	public static synthetic fun dateFormattedFileProvider$default (Lleakcanary/HeapDumpFileProvider$Companion;Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Lleakcanary/HeapDumpFileProvider;
+}
+
 public final class leakcanary/DumpingDeletingOnCloseHeapGraphProvider : shark/HeapGraphProvider {
 	public fun <init> (Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;)V
 	public fun openHeapGraph ()Lshark/CloseableHeapGraph;
+}
+
+public final class leakcanary/DumpingDeletingOnCloseHeapGraphProviderKt {
+	public static final fun dumpingAndDeletingGraphProvider (Lshark/HeapGraphProvider$Companion;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpFileProvider;)Lleakcanary/DumpingDeletingOnCloseHeapGraphProvider;
+	public static synthetic fun dumpingAndDeletingGraphProvider$default (Lshark/HeapGraphProvider$Companion;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpFileProvider;ILjava/lang/Object;)Lleakcanary/DumpingDeletingOnCloseHeapGraphProvider;
 }
 
 public abstract interface class leakcanary/HeapDumpFileProvider {
@@ -20,11 +30,22 @@ public abstract interface class leakcanary/HeapDumpFileProvider {
 }
 
 public final class leakcanary/HeapDumpFileProvider$Companion {
-	public final fun dateFormatted (Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Lleakcanary/HeapDumpFileProvider;
-	public static synthetic fun dateFormatted$default (Lleakcanary/HeapDumpFileProvider$Companion;Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Lleakcanary/HeapDumpFileProvider;
 }
 
 public abstract interface class leakcanary/HeapDumper {
+	public static final field Companion Lleakcanary/HeapDumper$Companion;
 	public abstract fun dumpHeap (Ljava/io/File;)V
+}
+
+public final class leakcanary/HeapDumper$Companion {
+}
+
+public final class leakcanary/TempHeapDumpFileProvider : leakcanary/HeapDumpFileProvider {
+	public static final field INSTANCE Lleakcanary/TempHeapDumpFileProvider;
+	public fun newHeapDumpFile ()Ljava/io/File;
+}
+
+public final class leakcanary/TempHeapDumpFileProviderKt {
+	public static final fun tempFileProvider (Lleakcanary/HeapDumpFileProvider$Companion;)Lleakcanary/HeapDumpFileProvider;
 }
 

@@ -10,21 +10,32 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.ReferenceLocationType.ARRAY_ENTRY
-import shark.ReferenceReader.Factory
 import shark.ShortestPathObjectNode.Retained
 import shark.internal.hppc.LongScatterSet
 
-class HeapGraphObjectGrowthDetector(
+/**
+ * Looks for objects that have grown in outgoing references in a new heap dump compared to a
+ * previous heap dump by diffing heap traversals.
+ */
+class ObjectGrowthDetector(
   private val gcRootProvider: GcRootProvider,
-  private val referenceReaderFactory: Factory<HeapObject>,
+  private val referenceReaderFactory: ReferenceReader.Factory<HeapObject>,
 ) {
 
   fun findGrowingObjects(
     heapGraph: CloseableHeapGraph,
-    scenarioLoops: Int,
-    previousTraversal: InputHeapTraversal = NoHeapTraversalYet,
-    computeRetainedHeapSize: Boolean
-  ): HeapTraversal {
+    previousTraversal: HeapTraversalInput = InitialState(),
+  ): HeapTraversalOutput {
+    check(previousTraversal !is HeapGrowth || previousTraversal.isGrowing) {
+      "Previous HeapGrowth traversal was not growing, there's no reason to run this again. " +
+        "previousTraversal:$previousTraversal"
+    }
+
+    val computeRetainedHeapSize = previousTraversal.heapGraphCount?.let { heapGraphCount ->
+      // Compute retained size for the prior to last and the last graphs.
+      previousTraversal.traversalCount >= heapGraphCount - 1
+    } ?: (previousTraversal.traversalCount > 1)
+
     // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
     // visit more than that but this limits the number of early array growths.
     val estimatedVisitedObjects = (heapGraph.instanceCount / 2).coerceAtLeast(4)
@@ -35,9 +46,16 @@ class HeapGraphObjectGrowthDetector(
     return heapGraph.use {
       state.traverseHeapDiffingShortestPaths(
         heapGraph,
-        scenarioLoops,
         previousTraversal
       )
+    }.also { output ->
+      if (output is HeapGrowth) {
+        val scenarioCount = output.traversalCount * output.scenarioLoopsPerGraph
+        SharkLog.d {
+          "After $scenarioCount scenario iterations and ${output.traversalCount} heap dumps: " +
+            "${output.growingNodes.size} growing nodes"
+        }
+      }
     }
   }
 
@@ -69,18 +87,17 @@ class HeapGraphObjectGrowthDetector(
   @Suppress("ComplexMethod")
   private fun TraversalState.traverseHeapDiffingShortestPaths(
     graph: CloseableHeapGraph,
-    detectedGrowth: Int,
-    previousTraversal: InputHeapTraversal
-  ): HeapTraversal {
+    previousTraversal: HeapTraversalInput
+  ): HeapTraversalOutput {
 
     // First iteration, all nodes are growing.
-    if (previousTraversal is NoHeapTraversalYet) {
+    if (previousTraversal is InitialState) {
       tree.growing = true
     }
 
     val previousTree = when (previousTraversal) {
-      NoHeapTraversalYet -> null
-      is HeapTraversal -> previousTraversal.shortestPathTree
+      is InitialState -> null
+      is HeapTraversalOutput -> previousTraversal.shortestPathTree
     }
 
     val objectReferenceReader = referenceReaderFactory.createFor(graph)
@@ -217,7 +234,7 @@ class HeapGraphObjectGrowthDetector(
           // Existing node. Growing if was growing (already true) and edges increased at least detectedGrowth.
           // Why detectedGrowth? We perform N scenarios and only take N/detectedGrowth heap dumps, which avoids including
           // any side effects of heap dumps in our leak detection.
-          shortestPathNode.childrenObjectCount >= node.previousPathNode.childrenObjectCount + detectedGrowth
+          shortestPathNode.childrenObjectCount >= node.previousPathNode.childrenObjectCount + previousTraversal.scenarioLoopsPerGraph
         } else {
           val parent = shortestPathNode.parent!!
           // New node. Growing if parent is growing.
@@ -299,11 +316,11 @@ class HeapGraphObjectGrowthDetector(
     }
 
     return if (growingNodes == null) {
-      check(previousTraversal is NoHeapTraversalYet)
-      InitialHeapTraversal(tree)
+      check(previousTraversal is InitialState)
+      FirstHeapTraversal(tree, previousTraversal)
     } else {
-      check(previousTraversal !is NoHeapTraversalYet)
-      HeapTraversalWithDiff(tree, growingNodes)
+      check(previousTraversal !is InitialState)
+      HeapGrowth(previousTraversal.traversalCount + 1, tree, growingNodes, previousTraversal)
     }
   }
 
@@ -406,4 +423,10 @@ class HeapGraphObjectGrowthDetector(
     val previousPathNode: ShortestPathObjectNode?,
     val isLeafObject: Boolean,
   )
+
+  /**
+   * This allows external modules to add factory methods for configured instances of this class as
+   * extension functions of this companion object.
+   */
+  companion object
 }
