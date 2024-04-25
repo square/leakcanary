@@ -73,10 +73,12 @@ class FlatteningPartitionedInstanceReferenceReader(
 ) {
   private val objectArrayReferenceReader = ObjectArrayReferenceReader()
 
-
   private val visited = LongScatterSet()
 
- fun read(virtualInstanceReader: VirtualInstanceReferenceReader, source: HeapInstance): Sequence<Reference> {
+  fun read(
+    virtualInstanceReader: VirtualInstanceReferenceReader,
+    source: HeapInstance
+  ): Sequence<Reference> {
     visited.clear()
     val toVisit = mutableListOf<Reference>()
     visited += source.objectId
