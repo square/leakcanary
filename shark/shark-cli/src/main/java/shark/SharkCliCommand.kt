@@ -48,7 +48,7 @@ class SharkCliCommand : CliktCommand(
   private class ProcessOptions : OptionGroup() {
     val processName by option(
       "--process", "-p",
-      help = "Full or partial name of a process, e.g. \"example\" would match \"com.example.app\""
+      help = "Full name of a process, e.g. \"com.example.app\""
     ).required()
 
     val device by option(
@@ -207,6 +207,7 @@ class SharkCliCommand : CliktCommand(
       directory: File,
       vararg arguments: String
     ): String {
+      SharkLog.d { "Running command [${arguments.joinToString(" ")}]" }
       val process = ProcessBuilder(*arguments)
         .directory(directory)
         .start()
@@ -216,6 +217,7 @@ class SharkCliCommand : CliktCommand(
       // On Windows, the process doesn't always exit; calling to readText() makes it finish, so
       // we're reading the output before checking for the exit value
       val output = process.inputStream.bufferedReader().readText()
+
       if (process.exitValue() != 0) {
         val command = arguments.joinToString(" ")
         val errorOutput = process.errorStream.bufferedReader()

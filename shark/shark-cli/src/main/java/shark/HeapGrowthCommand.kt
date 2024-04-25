@@ -2,12 +2,14 @@ package shark
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.CliktError
+import com.github.ajalt.clikt.core.PrintMessage
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.split
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.int
 import jline.console.ConsoleReader
+import jline.console.UserInterruptException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 import shark.DumpProcessCommand.Companion.dumpHeap
@@ -27,11 +29,6 @@ class HeapGrowthCommand : CliktCommand(
     "--loops", "-l",
     help = "The number of scenario iteration in between each heap dump."
   ).int().default(1).validate { if (it <= 0) fail("$it is not greater than 0") }
-
-  private val maxHeapDumps by option(
-    "--max", "-m",
-    help = "The max number of heap dumps to perform live before returning the results."
-  ).int().default(5).validate { if (it <= 1) fail("$it is not greater than 1") }
 
   private val ignoredFields by option("--ignored-fields")
     .split(",")
@@ -73,7 +70,7 @@ class HeapGrowthCommand : CliktCommand(
 
     val metrics = mutableListOf<Metrics>()
 
-    val results = when (val source = params.source) {
+    when (val source = params.source) {
       is HprofFileSource -> throw CliktError(
         "$commandName requires passing in a directory containing more than one hprof files."
       )
@@ -109,7 +106,7 @@ class HeapGrowthCommand : CliktCommand(
         }
         val detector = androidDetector
           .fromHeapGraphSequence()
-        detector.findRepeatedlyGrowingObjects(
+        val results = detector.findRepeatedlyGrowingObjects(
           heapGraphSequence = heapGraphs,
           initialState = InitialState(scenarioLoopsPerDump, hprofFiles.size),
         ).also {
@@ -120,28 +117,106 @@ class HeapGrowthCommand : CliktCommand(
             )
           }
         }
+        echo("Results: $results")
+        echo("Found ${results.growingNodes.size} growing objects")
       }
 
       is ProcessSource -> {
         echo("Detecting heap growth live")
 
-        val liveDetector = androidDetector.fromHeapDumpingRepeatedScenario(
-          heapGraphProvider = {
-            dumpHeap(source.processName, source.deviceId).openHeapGraph()
-          },
-          maxHeapDumps = maxHeapDumps,
-          scenarioLoopsPerDump = scenarioLoopsPerDump
+        ConsoleReader().readLine("Press ENTER to dump heap when ready to start")
+
+        val firstTraversal = androidDetector.findGrowingObjects(
+          heapGraph = source.dumpHeapAndOpenGraph(),
+          previousTraversal = InitialState(scenarioLoopsPerDump)
         )
 
         val nTimes = if (scenarioLoopsPerDump > 1) "$scenarioLoopsPerDump times" else "once"
 
-        liveDetector.findRepeatedlyGrowingObjects {
-          ConsoleReader().readLine("Go through scenario $nTimes then press ENTER to dump heap")
+        ConsoleReader().readLine("Go through scenario $nTimes then press ENTER to dump heap")
+        var latestTraversal = androidDetector.findGrowingObjects(
+          heapGraph = source.dumpHeapAndOpenGraph(),
+          previousTraversal = firstTraversal
+        ) as HeapGrowth
+
+        while (true) {
+
+          echo("Results: $latestTraversal")
+          echo(
+            "Found ${latestTraversal.growingNodes.size} objects growing over the last ${latestTraversal.traversalCount} heap dumps."
+          )
+
+          val consoleReader = ConsoleReader()
+
+          var reset = false
+
+          var promptForCommand = true
+          while (promptForCommand) {
+            if (latestTraversal.isGrowing) {
+              echo("To keep going, go through scenario $nTimes.")
+              echo("Then, either press ENTER or enter 'r' to reset and use the last heap dump as the new baseline.")
+              echo("To quit, enter 'q'.")
+              val command = consoleReader.readCommand(
+
+              )
+              when (command) {
+                "q" -> throw PrintMessage("Quitting.")
+                "r" -> {
+                  reset = true
+                  promptForCommand = false
+                }
+
+                "" -> promptForCommand = false
+                else -> {
+                  echo("Invalid command '$command'")
+                }
+              }
+            } else {
+              echo("As the last heap dump found 0 growing objects, there's no point continuing with the same heap dump baseline.")
+              echo("To keep going, go through scenario $nTimes then press ENTER to use the last heap dump as the NEW baseline.")
+              echo("To quit, enter 'q'.")
+              val command = consoleReader.readCommand()
+              when (command) {
+                "q" -> throw PrintMessage("Quitting.")
+                "" -> {
+                  promptForCommand = false
+                  reset = true
+                }
+
+                else -> {
+                  echo("Invalid command '$command'")
+                }
+              }
+            }
+          }
+          val nextInputTraversal = if (reset) {
+            FirstHeapTraversal(
+              shortestPathTree = latestTraversal.shortestPathTree.copyResettingAsInitialTree(),
+              previousTraversal = InitialState(latestTraversal.scenarioLoopsPerGraph, null)
+            )
+          } else {
+            latestTraversal
+          }
+          latestTraversal = androidDetector.findGrowingObjects(
+            heapGraph = source.dumpHeapAndOpenGraph(),
+            previousTraversal = nextInputTraversal
+          ) as HeapGrowth
         }
       }
     }
-    echo("Results: $results")
-    echo("Found ${results.growingNodes.size} growing objects")
+
     SharkLog.d { "Metrics:\n${metrics.joinToString("\n")}" }
   }
+
+  private fun ConsoleReader.readCommand(): String? {
+    val input = try {
+      readLine()
+    } catch (ignored: UserInterruptException) {
+      throw PrintMessage("Program interrupted by user")
+    }
+    return input
+  }
+
+  private fun ProcessSource.dumpHeapAndOpenGraph(): CloseableHeapGraph =
+    dumpHeap(processName, deviceId).openHeapGraph()
 }
