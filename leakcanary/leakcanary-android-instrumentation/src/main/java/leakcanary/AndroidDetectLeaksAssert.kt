@@ -61,7 +61,7 @@ class AndroidDetectLeaksAssert(
       }
     }
 
-    val heapDumpFileProvider = HeapDumpFileProvider.dateFormattedFileProvider(
+    val heapDumpFileProvider = HeapDumpFileProvider.datetimeFormattedFileProvider(
       directory = File(
         InstrumentationRegistry.getInstrumentation().targetContext.filesDir,
         "instrumentation_tests"
@@ -104,7 +104,6 @@ class AndroidDetectLeaksAssert(
             TOTAL_DURATION to totalDurationMillis.toString()
           ),
         )
-
         is HeapAnalysisFailure -> it.copy(dumpDurationMillis = heapDumpDurationMillis)
       }
     }

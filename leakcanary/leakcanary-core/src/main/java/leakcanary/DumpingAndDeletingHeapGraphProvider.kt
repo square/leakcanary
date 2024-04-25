@@ -4,7 +4,7 @@ import shark.CloseableHeapGraph
 import shark.HeapGraphProvider
 import shark.HprofHeapGraph.Companion.openHeapGraph
 
-class DumpingDeletingOnCloseHeapGraphProvider(
+class DumpingAndDeletingHeapGraphProvider(
   private val heapDumpFileProvider: HeapDumpFileProvider,
   private val heapDumper: HeapDumper
 ) : HeapGraphProvider {
@@ -27,4 +27,4 @@ class DumpingDeletingOnCloseHeapGraphProvider(
 fun HeapGraphProvider.Companion.dumpingAndDeletingGraphProvider(
   heapDumper: HeapDumper,
   heapDumpFileProvider: HeapDumpFileProvider = TempHeapDumpFileProvider,
-) = DumpingDeletingOnCloseHeapGraphProvider(heapDumpFileProvider, heapDumper)
+) = DumpingAndDeletingHeapGraphProvider(heapDumpFileProvider, heapDumper)
