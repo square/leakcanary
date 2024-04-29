@@ -20,8 +20,3 @@ dependencies {
   testImplementation projects.shark.sharkTest
   testImplementation projects.shark.sharkHprofTest
 }
-
-test {
-  minHeapSize = "128m" // initial heap size
-  maxHeapSize = "4g" // maximum heap size
-}
