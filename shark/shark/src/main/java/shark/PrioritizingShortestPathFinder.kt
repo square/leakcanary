@@ -191,7 +191,11 @@ class PrioritizingShortestPathFinder private constructor(
           parent = node,
           lazyDetailsResolver = reference.lazyDetailsResolver
         )
-        enqueue(newNode, isLowPriority = reference.isLowPriority)
+        enqueue(
+          node = newNode,
+          isLowPriority = reference.isLowPriority,
+          isLeafObject = reference.isLeafObject
+        )
       }
     }
     return PathFindingResults(
@@ -216,7 +220,7 @@ class PrioritizingShortestPathFinder private constructor(
   private fun State.enqueueGcRoots() {
     gcRootProvider.provideGcRoots(graph).forEach { gcRootReference ->
       enqueue(
-        gcRootReference.matchedLibraryLeak?.let { matchedLibraryLeak ->
+        node = gcRootReference.matchedLibraryLeak?.let { matchedLibraryLeak ->
           LibraryLeakRootNode(
             gcRootReference.gcRoot,
             matchedLibraryLeak
@@ -224,7 +228,8 @@ class PrioritizingShortestPathFinder private constructor(
         } ?: NormalRootNode(
           gcRootReference.gcRoot
         ),
-        isLowPriority = gcRootReference.isLowPriority
+        isLowPriority = gcRootReference.isLowPriority,
+        isLeafObject = false
       )
     }
   }
@@ -232,7 +237,8 @@ class PrioritizingShortestPathFinder private constructor(
   @Suppress("ReturnCount")
   private fun State.enqueue(
     node: ReferencePathNode,
-    isLowPriority: Boolean
+    isLowPriority: Boolean,
+    isLeafObject: Boolean
   ) {
     if (node.objectId == ValueHolder.NULL_REFERENCE) {
       return
@@ -246,6 +252,16 @@ class PrioritizingShortestPathFinder private constructor(
     // Note: when computing dominators, this has a side effects of updating
     // the dominator for node.objectId.
     val alreadyEnqueued = visitTracker.visited(node.objectId, parentObjectId)
+
+    /**
+     * A leaf object has no children to explore. We're calling into enqueue() only so that
+     * VisitTracker.visited() gets invoked so we know that we've seen it.
+     *
+     * However, if this is an object we're looking for, we shouldn't skip.
+     */
+    if (isLeafObject && node.objectId !in leakingObjectIds) {
+      return
+    }
 
     val visitLast = visitingLast || isLowPriority
 

@@ -281,7 +281,7 @@ public final class shark/HeapAnalyzer {
 
 public final class shark/HeapDumpingObjectGrowthDetector {
 	public fun <init> (Lshark/HeapGraphProvider;Lshark/HeapGraphSequenceObjectGrowthDetector;II)V
-	public final fun findRepeatedlyGrowingObjects (Lkotlin/jvm/functions/Function0;)Lshark/HeapGrowth;
+	public final fun findRepeatedlyGrowingObjects (Lkotlin/jvm/functions/Function0;)Lshark/HeapGrowthTraversal;
 }
 
 public final class shark/HeapDumpingObjectGrowthDetectorKt {
@@ -291,17 +291,17 @@ public final class shark/HeapDumpingObjectGrowthDetectorKt {
 
 public final class shark/HeapGraphSequenceObjectGrowthDetector {
 	public fun <init> (Lshark/ObjectGrowthDetector;)V
-	public final fun findRepeatedlyGrowingObjects (Lshark/InitialState;Lkotlin/sequences/Sequence;)Lshark/HeapGrowth;
-	public static synthetic fun findRepeatedlyGrowingObjects$default (Lshark/HeapGraphSequenceObjectGrowthDetector;Lshark/InitialState;Lkotlin/sequences/Sequence;ILjava/lang/Object;)Lshark/HeapGrowth;
+	public final fun findRepeatedlyGrowingObjects (Lshark/InitialState;Lkotlin/sequences/Sequence;)Lshark/HeapGrowthTraversal;
+	public static synthetic fun findRepeatedlyGrowingObjects$default (Lshark/HeapGraphSequenceObjectGrowthDetector;Lshark/InitialState;Lkotlin/sequences/Sequence;ILjava/lang/Object;)Lshark/HeapGrowthTraversal;
 }
 
 public final class shark/HeapGraphSequenceObjectGrowthDetectorKt {
 	public static final fun fromHeapGraphSequence (Lshark/ObjectGrowthDetector;)Lshark/HeapGraphSequenceObjectGrowthDetector;
 }
 
-public final class shark/HeapGrowth : shark/HeapTraversalOutput {
+public final class shark/HeapGrowthTraversal : shark/HeapTraversalOutput {
 	public fun <init> (ILshark/ShortestPathObjectNode;Ljava/util/List;Lshark/HeapTraversalInput;)V
-	public final fun getGrowingNodes ()Ljava/util/List;
+	public final fun getGrowingObjects ()Ljava/util/List;
 	public fun getHeapGraphCount ()Ljava/lang/Integer;
 	public fun getScenarioLoopsPerGraph ()I
 	public fun getShortestPathTree ()Lshark/ShortestPathObjectNode;
@@ -944,7 +944,7 @@ public final class shark/ShortestPathObjectNode {
 	public final fun getChildren ()Ljava/util/List;
 	public final fun getChildrenObjectCount ()I
 	public final fun getChildrenObjectCountIncrease ()I
-	public final fun getNodeAndEdgeName ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
 	public final fun getParent ()Lshark/ShortestPathObjectNode;
 	public final fun getRetained ()Lshark/ShortestPathObjectNode$Retained;
 	public final fun getRetainedIncrease ()Lshark/ShortestPathObjectNode$Retained;

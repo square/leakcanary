@@ -22,7 +22,6 @@ data class Reference(
    */
   val isLowPriority: Boolean,
 
-  // TODO Leverage this on the leakcanary side.
   /**
    * Whether this object should be treated as a leaf / sink object with no outgoing references
    * (regardless of its actual content).
