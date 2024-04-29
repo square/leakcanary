@@ -3,8 +3,6 @@ package shark
 import java.io.File
 import kotlin.reflect.KClass
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder

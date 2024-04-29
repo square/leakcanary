@@ -14,8 +14,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 import shark.DumpProcessCommand.Companion.dumpHeap
 import shark.HprofHeapGraph.Companion.openHeapGraph
-import shark.ReferencePattern.InstanceFieldPattern
-import shark.ReferencePattern.StaticFieldPattern
 import shark.SharkCliCommand.Companion.sharkCliParams
 import shark.SharkCliCommand.HeapDumpSource.HprofDirectorySource
 import shark.SharkCliCommand.HeapDumpSource.HprofFileSource
@@ -43,7 +41,7 @@ class HeapGrowthCommand : CliktCommand(
       ignoredFields.map { ignoredField ->
         val className = ignoredField.substringBeforeLast(".")
         val fieldName = ignoredField.substringAfterLast(".")
-        IgnoredReferenceMatcher(InstanceFieldPattern(className, fieldName))
+        ReferencePattern.instanceField(className, fieldName).ignored()
       }
     } ?: emptyList()
 
@@ -51,11 +49,11 @@ class HeapGrowthCommand : CliktCommand(
       ignoredStaticFields.map { ignoredStaticField ->
         val className = ignoredStaticField.substringBeforeLast(".")
         val fieldName = ignoredStaticField.substringAfterLast(".")
-        IgnoredReferenceMatcher(StaticFieldPattern(className, fieldName))
+        ReferencePattern.staticField(className, fieldName).ignored()
       }
     } ?: emptyList()
 
-    val referenceMatchers = AndroidHeapGrowthIgnoredReferences.defaults +
+    val referenceMatchers = AndroidHeapGrowthReferenceMatchers.defaults +
       ignoredInstanceFieldReferences +
       ignoredStaticFieldReferences
 

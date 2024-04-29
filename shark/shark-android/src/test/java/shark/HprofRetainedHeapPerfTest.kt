@@ -12,7 +12,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.AndroidReferenceMatchers.Companion.buildKnownReferences
 import shark.AndroidReferenceMatchers.FINALIZER_WATCHDOG_DAEMON
 import shark.AndroidReferenceMatchers.REFERENCES
 import shark.GcRoot.ThreadObject
@@ -185,7 +184,7 @@ class HprofRetainedHeapPerfTest {
       val analysis = heapAnalyzer.analyze(
         heapDumpFile = this,
         graph = graph,
-        referenceMatchers = buildKnownReferences(
+        referenceMatchers = ReferenceMatcher.fromListBuilders(
           EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
         ),
         leakingObjectFinder = {
@@ -205,7 +204,7 @@ class HprofRetainedHeapPerfTest {
 
       val dominatorTree = if (computeDominators) {
         val weakAndFinalizerRefs = EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
-        val ignoredRefs = buildKnownReferences(weakAndFinalizerRefs).map { matcher ->
+        val ignoredRefs = ReferenceMatcher.fromListBuilders(weakAndFinalizerRefs).map { matcher ->
           matcher as IgnoredReferenceMatcher
         }
         ObjectDominators().renderDominatorTree(

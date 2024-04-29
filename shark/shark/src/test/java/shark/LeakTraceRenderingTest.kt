@@ -1,5 +1,6 @@
 package shark
 
+import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
@@ -7,10 +8,9 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapInstance
-import shark.ReferencePattern.InstanceFieldPattern
-import shark.ReferencePattern.StaticFieldPattern
+import shark.ReferencePattern.Companion.instanceField
+import shark.ReferencePattern.Companion.staticField
 import shark.ValueHolder.ReferenceHolder
-import java.io.File
 
 class LeakTraceRenderingTest {
 
@@ -103,9 +103,11 @@ class LeakTraceRenderingTest {
               leakingReasons += "because reasons"
             }
           }
-        }), leakingObjectFinder = FilteringLeakingObjectFinder(listOf(LeakingObjectFilter { heapObject ->
+        }), leakingObjectFinder = FilteringLeakingObjectFinder(
+        listOf(LeakingObjectFilter { heapObject ->
           heapObject is HeapInstance && heapObject instanceOf "ClassB"
-      }))
+        })
+      )
       )
 
     analysis renders """
@@ -172,7 +174,10 @@ class LeakTraceRenderingTest {
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
         referenceMatchers = listOf(
-          LibraryLeakReferenceMatcher(pattern = InstanceFieldPattern("ClassA", "leak"))
+          instanceField(
+            className = "ClassA",
+            fieldName = "leak"
+          ).leak()
         )
       )
 
@@ -207,7 +212,10 @@ class LeakTraceRenderingTest {
     val analysis =
       hprofFile.checkForLeaks<HeapAnalysisSuccess>(
         referenceMatchers = listOf(
-          LibraryLeakReferenceMatcher(pattern = StaticFieldPattern("GcRoot", "leak"))
+          staticField(
+            className = "GcRoot",
+            fieldName = "leak"
+          ).leak()
         )
       )
 

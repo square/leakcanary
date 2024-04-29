@@ -38,5 +38,12 @@ class AndroidBuildMirror(
         AndroidBuildMirror(manufacturer, sdkInt, id)
       }
     }
+
+    fun applyIf(patternApplies: AndroidBuildMirror.() -> Boolean): (HeapGraph) -> Boolean {
+      return { graph ->
+        fromHeapGraph(graph)
+          .patternApplies()
+      }
+    }
   }
 }

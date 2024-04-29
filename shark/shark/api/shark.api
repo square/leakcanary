@@ -326,8 +326,10 @@ public final class shark/HeapTraversalOutput$Companion {
 }
 
 public final class shark/IgnoredReferenceMatcher : shark/ReferenceMatcher {
-	public fun <init> (Lshark/ReferencePattern;)V
+	public fun <init> (Lshark/ReferencePattern;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lshark/ReferencePattern;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getPattern ()Lshark/ReferencePattern;
+	public fun getPatternApplies ()Lkotlin/jvm/functions/Function1;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -349,7 +351,7 @@ public final class shark/JavaLocalReferenceReader : shark/ChainingInstanceRefere
 	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
 
-public abstract class shark/JdkReferenceMatchers : java/lang/Enum {
+public abstract class shark/JdkReferenceMatchers : java/lang/Enum, shark/ReferenceMatcher$ListBuilder {
 	public static final field Companion Lshark/JdkReferenceMatchers$Companion;
 	public static final field FINALIZER_WATCHDOG_DAEMON Lshark/JdkReferenceMatchers;
 	public static final field MAIN Lshark/JdkReferenceMatchers;
@@ -576,7 +578,7 @@ public final class shark/LibraryLeakReferenceMatcher : shark/ReferenceMatcher {
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDescription ()Ljava/lang/String;
 	public fun getPattern ()Lshark/ReferencePattern;
-	public final fun getPatternApplies ()Lkotlin/jvm/functions/Function1;
+	public fun getPatternApplies ()Lkotlin/jvm/functions/Function1;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -824,7 +826,25 @@ public final class shark/ReferenceLocationType : java/lang/Enum {
 }
 
 public abstract class shark/ReferenceMatcher {
+	public static final field Companion Lshark/ReferenceMatcher$Companion;
 	public abstract fun getPattern ()Lshark/ReferencePattern;
+	public abstract fun getPatternApplies ()Lkotlin/jvm/functions/Function1;
+}
+
+public final class shark/ReferenceMatcher$Companion {
+	public final fun fromListBuilders (Ljava/util/Collection;)Ljava/util/List;
+	public final fun getALWAYS ()Lkotlin/jvm/functions/Function1;
+}
+
+public abstract interface class shark/ReferenceMatcher$ListBuilder {
+	public abstract fun add (Ljava/util/List;)V
+}
+
+public final class shark/ReferenceMatcherKt {
+	public static final fun ignored (Lshark/ReferencePattern;Lkotlin/jvm/functions/Function1;)Lshark/IgnoredReferenceMatcher;
+	public static synthetic fun ignored$default (Lshark/ReferencePattern;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lshark/IgnoredReferenceMatcher;
+	public static final fun leak (Lshark/ReferencePattern;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lshark/LibraryLeakReferenceMatcher;
+	public static synthetic fun leak$default (Lshark/ReferencePattern;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lshark/LibraryLeakReferenceMatcher;
 }
 
 public abstract class shark/ReferencePattern : java/io/Serializable {
@@ -832,6 +852,10 @@ public abstract class shark/ReferencePattern : java/io/Serializable {
 }
 
 public final class shark/ReferencePattern$Companion {
+	public final fun instanceField (Ljava/lang/String;Ljava/lang/String;)Lshark/ReferencePattern$InstanceFieldPattern;
+	public final fun javaLocal (Ljava/lang/String;)Lshark/ReferencePattern$JavaLocalPattern;
+	public final fun nativeGlobalVariable (Ljava/lang/String;)Lshark/ReferencePattern$NativeGlobalVariablePattern;
+	public final fun staticField (Ljava/lang/String;Ljava/lang/String;)Lshark/ReferencePattern$StaticFieldPattern;
 }
 
 public final class shark/ReferencePattern$InstanceFieldPattern : shark/ReferencePattern {
@@ -916,6 +940,7 @@ public abstract interface class shark/ShortestPathFinder$Factory {
 
 public final class shark/ShortestPathObjectNode {
 	public fun <init> (Ljava/lang/String;Lshark/ShortestPathObjectNode;Z)V
+	public final fun copyResettingAsInitialTree ()Lshark/ShortestPathObjectNode;
 	public final fun getChildren ()Ljava/util/List;
 	public final fun getChildrenObjectCount ()I
 	public final fun getChildrenObjectCountIncrease ()I

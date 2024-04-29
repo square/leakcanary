@@ -1,5 +1,6 @@
 package shark
 
+import shark.ReferencePattern.Companion.instanceField
 import shark.ReferencePattern.InstanceFieldPattern
 
 sealed interface HeapTraversalInput {
@@ -56,7 +57,10 @@ sealed interface HeapTraversalOutput : HeapTraversalInput {
       get() {
         val shortestPathNodeClass = ShortestPathObjectNode::class.java
         return shortestPathNodeClass.declaredFields.map { classField ->
-          IgnoredReferenceMatcher(InstanceFieldPattern(shortestPathNodeClass.name, classField.name))
+          instanceField(
+            className = shortestPathNodeClass.name,
+            fieldName = classField.name
+          ).ignored()
         }
       }
   }
