@@ -32,7 +32,7 @@ class ObjectGrowthDetectorTest {
       previousTraversal = first,
     )
 
-    assertThat(secondTraversal).isInstanceOf(HeapGrowth::class.java)
+    assertThat(secondTraversal).isInstanceOf(HeapGrowthTraversal::class.java)
   }
 
   @Test
@@ -139,7 +139,7 @@ class ObjectGrowthDetectorTest {
         heapGraphCount = heapDumps.size
       ),
       heapGraphSequence = heapDumps.asSequence()
-    ).growingNodes
+    ).growingObjects
   }
 
   private fun HprofWriterHelper.classWithStringsInStaticField(vararg strings: String) {

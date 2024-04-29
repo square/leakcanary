@@ -26,7 +26,7 @@ class ObjectGrowthDetector(
     heapGraph: CloseableHeapGraph,
     previousTraversal: HeapTraversalInput = InitialState(),
   ): HeapTraversalOutput {
-    check(previousTraversal !is HeapGrowth || previousTraversal.isGrowing) {
+    check(previousTraversal !is HeapGrowthTraversal || previousTraversal.isGrowing) {
       "Previous HeapGrowth traversal was not growing, there's no reason to run this again. " +
         "previousTraversal:$previousTraversal"
     }
@@ -49,11 +49,11 @@ class ObjectGrowthDetector(
         previousTraversal
       )
     }.also { output ->
-      if (output is HeapGrowth) {
+      if (output is HeapGrowthTraversal) {
         val scenarioCount = output.traversalCount * output.scenarioLoopsPerGraph
         SharkLog.d {
           "After $scenarioCount scenario iterations and ${output.traversalCount} heap dumps: " +
-            "${output.growingNodes.size} growing nodes"
+            "${output.growingObjects.size} growing nodes"
         }
       }
     }
@@ -186,9 +186,9 @@ class ObjectGrowthDetector(
         val parent = node.shortestPathNode.parent!!
         val current = node.shortestPathNode
         parent._children += current
-        if (current.nodeAndEdgeName == parent.nodeAndEdgeName) {
+        if (current.name == parent.name) {
           var linkedListStartNode = current
-          while (linkedListStartNode.nodeAndEdgeName == linkedListStartNode.parent!!.nodeAndEdgeName) {
+          while (linkedListStartNode.name == linkedListStartNode.parent!!.name) {
             // Never null, we don't expect to ever see "root" -> "root"
             linkedListStartNode = linkedListStartNode.parent!!
           }
@@ -203,7 +203,7 @@ class ObjectGrowthDetector(
       }
 
       val previousNodeMap = node.previousPathNode?.let { shortestPathNode ->
-        shortestPathNode._children.associateBy { it.nodeAndEdgeName }
+        shortestPathNode._children.associateBy { it.name }
       }
 
       edges.forEach { (_, expandedObjects) ->
@@ -246,9 +246,9 @@ class ObjectGrowthDetector(
         if (growing) {
           if (node.previousPathNode != null) {
             val previousChildrenByName =
-              node.previousPathNode._children.associateBy { it.nodeAndEdgeName }
+              node.previousPathNode._children.associateBy { it.name }
             shortestPathNode._children.forEach { child ->
-              val previousChild = previousChildrenByName[child.nodeAndEdgeName]
+              val previousChild = previousChildrenByName[child.name]
               if (previousChild != null) {
                 child.selfObjectCountIncrease =
                   child.selfObjectCount - previousChild.selfObjectCount
@@ -320,7 +320,7 @@ class ObjectGrowthDetector(
       FirstHeapTraversal(tree, previousTraversal)
     } else {
       check(previousTraversal !is InitialState)
-      HeapGrowth(previousTraversal.traversalCount + 1, tree, growingNodes, previousTraversal)
+      HeapGrowthTraversal(previousTraversal.traversalCount + 1, tree, growingNodes, previousTraversal)
     }
   }
 
@@ -346,7 +346,7 @@ class ObjectGrowthDetector(
     roots: Map<String, List<Pair<String, GcRootReference>>>
   ) {
     val previousTreeRootMap = previousTree?.let { tree ->
-      tree._children.associateBy { it.nodeAndEdgeName }
+      tree._children.associateBy { it.name }
     }
 
     roots.forEach { (_, gcRootReferences) ->

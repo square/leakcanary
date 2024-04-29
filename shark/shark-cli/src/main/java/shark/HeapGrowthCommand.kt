@@ -116,7 +116,7 @@ class HeapGrowthCommand : CliktCommand(
           }
         }
         echo("Results: $results")
-        echo("Found ${results.growingNodes.size} growing objects")
+        echo("Found ${results.growingObjects.size} growing objects")
       }
 
       is ProcessSource -> {
@@ -135,13 +135,13 @@ class HeapGrowthCommand : CliktCommand(
         var latestTraversal = androidDetector.findGrowingObjects(
           heapGraph = source.dumpHeapAndOpenGraph(),
           previousTraversal = firstTraversal
-        ) as HeapGrowth
+        ) as HeapGrowthTraversal
 
         while (true) {
 
           echo("Results: $latestTraversal")
           echo(
-            "Found ${latestTraversal.growingNodes.size} objects growing over the last ${latestTraversal.traversalCount} heap dumps."
+            "Found ${latestTraversal.growingObjects.size} objects growing over the last ${latestTraversal.traversalCount} heap dumps."
           )
 
           val consoleReader = ConsoleReader()
@@ -198,7 +198,7 @@ class HeapGrowthCommand : CliktCommand(
           latestTraversal = androidDetector.findGrowingObjects(
             heapGraph = source.dumpHeapAndOpenGraph(),
             previousTraversal = nextInputTraversal
-          ) as HeapGrowth
+          ) as HeapGrowthTraversal
         }
       }
     }

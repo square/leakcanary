@@ -5,7 +5,7 @@ import shark.ByteSize.Companion.bytes
 typealias GrowingObjectNodes = List<ShortestPathObjectNode>
 
 class ShortestPathObjectNode(
-  val nodeAndEdgeName: String,
+  val name: String,
   val parent: ShortestPathObjectNode?,
   internal val newNode: Boolean
 ) {
@@ -52,7 +52,7 @@ class ShortestPathObjectNode(
   }
 
   private fun copyResetRecursive(newParent: ShortestPathObjectNode?): ShortestPathObjectNode {
-    val newNode = ShortestPathObjectNode(nodeAndEdgeName, newParent, true)
+    val newNode = ShortestPathObjectNode(name, newParent, true)
     newNode.selfObjectCount = selfObjectCount
     newNode.selfObjectCountIncrease = 0
     newNode.retainedOrNull = retainedOrNull
@@ -86,7 +86,7 @@ class ShortestPathObjectNode(
       } else {
         result.append("╰→")
       }
-      result.append(pathNode.nodeAndEdgeName)
+      result.append(pathNode.name)
       result.append(" (")
       result.append(pathNode.selfObjectCount)
       result.append(" objects)")
@@ -112,7 +112,7 @@ class ShortestPathObjectNode(
             separator = "\n",
             postfix = "\n"
           ) { child ->
-            "    ${child.selfObjectCount} objects (${child.selfObjectCountIncrease} new): ${child.nodeAndEdgeName}"
+            "    ${child.selfObjectCount} objects (${child.selfObjectCountIncrease} new): ${child.name}"
           })
       } else {
         result.appendLine()

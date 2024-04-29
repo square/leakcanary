@@ -3,7 +3,6 @@ package shark
 import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
 
 // TODO Move to shark-android once HeapAnalyzer is removed.
-// TODO This should be configurable to provide your own ref readers. Maybe just
 /**
  * Creates [ReferenceReader] instances that will follow references from all [HeapObject]s,
  * applying matching rules provided by [referenceMatchers], creating additional virtual instance

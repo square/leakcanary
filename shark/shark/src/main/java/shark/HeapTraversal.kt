@@ -1,7 +1,6 @@
 package shark
 
 import shark.ReferencePattern.Companion.instanceField
-import shark.ReferencePattern.InstanceFieldPattern
 
 sealed interface HeapTraversalInput {
   val traversalCount: Int
@@ -75,18 +74,18 @@ class FirstHeapTraversal constructor(
   override val heapGraphCount: Int? = previousTraversal.heapGraphCount
 }
 
-class HeapGrowth(
+class HeapGrowthTraversal(
   override val traversalCount: Int,
   override val shortestPathTree: ShortestPathObjectNode,
   /**
    * Nodes that already existed in the previous traversal, still exist in this
    * [shortestPathTree], and have grown compared to the previous traversal.
    */
-  val growingNodes: GrowingObjectNodes,
+  val growingObjects: GrowingObjectNodes,
   previousTraversal: HeapTraversalInput
 ) : HeapTraversalOutput {
 
-  val isGrowing: Boolean get() = growingNodes.isNotEmpty()
+  val isGrowing: Boolean get() = growingObjects.isNotEmpty()
 
   override val scenarioLoopsPerGraph = previousTraversal.scenarioLoopsPerGraph
   override val heapGraphCount: Int? = previousTraversal.heapGraphCount
@@ -97,10 +96,10 @@ class HeapGrowth(
       "traversal=$traversalCount"
     }
 
-    return "HeapGrowth($traversal, " +
+    return "HeapGrowthTraversal($traversal, " +
       "isGrowing=$isGrowing, " +
       "scenarioLoopsPerGraph=$scenarioLoopsPerGraph, " +
-      "growingNodes=\n${growingNodes.joinToString("\n")}\n" +
+      "growingNodes=\n${growingObjects.joinToString("\n")}\n" +
       ")"
   }
 }

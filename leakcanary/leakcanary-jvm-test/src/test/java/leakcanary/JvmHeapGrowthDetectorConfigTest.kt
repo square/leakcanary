@@ -24,7 +24,7 @@ class JvmHeapGrowthDetectorConfigTest {
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakies += Leaky()
-    }.growingNodes
+    }.growingObjects
 
     assertThat(growingNodes).hasSize(1)
   }

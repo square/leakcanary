@@ -12,7 +12,7 @@ class HeapDumpingObjectGrowthDetector(
     heapGraphCount = maxHeapDumps
   )
 
-  fun findRepeatedlyGrowingObjects(roundTripScenario: () -> Unit): HeapGrowth {
+  fun findRepeatedlyGrowingObjects(roundTripScenario: () -> Unit): HeapGrowthTraversal {
     val heapGraphSequence = dumpHeapOnNext(roundTripScenario)
     return detector.findRepeatedlyGrowingObjects(
       initialState = initialState,

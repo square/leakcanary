@@ -37,7 +37,7 @@ class LiveObjectGrowthDetectorTest {
     val emptyScenario = {}
 
     val growingNodes = detector.findRepeatedlyGrowingObjects(roundTripScenario = emptyScenario)
-      .growingNodes
+      .growingObjects
 
     assertThat(growingNodes).isEmpty()
   }
@@ -48,7 +48,7 @@ class LiveObjectGrowthDetectorTest {
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakies += Leaky()
-    }.growingNodes
+    }.growingObjects
 
     assertThat(growingNodes).isNotEmpty
   }
@@ -60,7 +60,7 @@ class LiveObjectGrowthDetectorTest {
     var index = 0
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       stringLeaks += "Yo ${++index}"
-    }.growingNodes
+    }.growingObjects
 
     assertThat(growingNodes).isNotEmpty
   }
@@ -76,7 +76,7 @@ class LiveObjectGrowthDetectorTest {
       if (++index < stopLeakingIndex) {
         leakies += Leaky()
       }
-    }.growingNodes
+    }.growingObjects
 
     assertThat(growingNodes).isEmpty()
   }
@@ -89,7 +89,7 @@ class LiveObjectGrowthDetectorTest {
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakies += Leaky()
-    }.growingNodes
+    }.growingObjects
 
     assertThat(growingNodes).hasSize(1)
 
@@ -103,7 +103,7 @@ class LiveObjectGrowthDetectorTest {
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
-    }.growingNodes
+    }.growingObjects
 
     assertThat(growingNodes).isNotEmpty
   }
@@ -117,7 +117,7 @@ class LiveObjectGrowthDetectorTest {
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
-    }.growingNodes
+    }.growingObjects
 
     assertThat(growingNodes).hasSize(1)
 
@@ -132,12 +132,12 @@ class LiveObjectGrowthDetectorTest {
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       multiLeakies += MultiLeaky()
-    }.growingNodes
+    }.growingObjects
 
     assertThat(growingNodes).hasSize(1)
 
     val growingNode = growingNodes.first()
-    assertThat(growingNode.nodeAndEdgeName).contains("ArrayList")
+    assertThat(growingNode.name).contains("ArrayList")
   }
 
   @Test
@@ -147,10 +147,10 @@ class LiveObjectGrowthDetectorTest {
     var index = 0
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakyHashMap["key${++index}"] = Leaky()
-    }.growingNodes
+    }.growingObjects
 
     val growingNode = growingNodes.first()
-    assertThat(growingNode.nodeAndEdgeName).contains("leakyHashMap")
+    assertThat(growingNode.name).contains("leakyHashMap")
   }
 
   @Test
@@ -159,10 +159,10 @@ class LiveObjectGrowthDetectorTest {
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakies += Leaky()
-    }.growingNodes
+    }.growingObjects
 
     val growingNode = growingNodes.first()
-    assertThat(growingNode.nodeAndEdgeName).contains("leakies")
+    assertThat(growingNode.name).contains("leakies")
   }
 
   private fun ObjectGrowthDetector.fromScenario(

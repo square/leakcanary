@@ -164,7 +164,6 @@ enum class AndroidReferenceReaders : OptionalFactory {
         override fun matches(instance: HeapInstance) =
           instance.instanceClassId == messageQueueClassId
 
-        // TODO Figure out whether this one could be true.
         override val readsCutSet = false
 
         override fun read(source: HeapInstance): Sequence<Reference> {
