@@ -78,7 +78,6 @@ fun ReferencePattern.ignored(
   patternApplies: (HeapGraph) -> Boolean = ALWAYS
 ) = IgnoredReferenceMatcher(this, patternApplies)
 
-
 internal fun Iterable<ReferenceMatcher>.filterFor(graph: HeapGraph): List<ReferenceMatcher> {
   return filter { matcher ->
     matcher.patternApplies(graph)
