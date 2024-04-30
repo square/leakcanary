@@ -74,7 +74,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ matrix.api-level }}-${{ matrix.os }}-${{ matrix.target }}
+          key: avd-cached-${{ matrix.api-level }}-${{ matrix.os }}-${{ matrix.target }}
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
