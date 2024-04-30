@@ -8,10 +8,4 @@ targetCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
   api projects.shark.shark
-  api projects.shark.sharkGraph
-
-  testImplementation libs.assertjCore
-  testImplementation libs.junit
-  testImplementation projects.shark.sharkTest
-  testImplementation projects.shark.sharkHprofTest
 }

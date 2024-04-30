@@ -4,7 +4,7 @@ import shark.HeapObject.HeapObjectArray
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.ARRAY_ENTRY
 
-internal class ObjectArrayReferenceReader : ReferenceReader<HeapObjectArray> {
+class ObjectArrayReferenceReader : ReferenceReader<HeapObjectArray> {
   override fun read(source: HeapObjectArray): Sequence<Reference> {
     if (source.isSkippablePrimitiveWrapperArray) {
       // primitive wrapper arrays aren't interesting.

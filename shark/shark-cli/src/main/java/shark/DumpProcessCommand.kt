@@ -66,7 +66,7 @@ class DumpProcessCommand : CliktCommand(
         }
       }
 
-      val processList = runCommand(workingDirectory, "adb", "-s", deviceId, "shell", "ps")
+      val processList = runCommand(workingDirectory, "adb", "-s", deviceId, "shell", "run-as", processNameParam, "ps")
 
       val matchingProcesses = processList.lines()
         .filter { it.contains(processNameParam) }
@@ -80,7 +80,7 @@ class DumpProcessCommand : CliktCommand(
           matchingProcesses[0]
         }
         matchingProcesses.isEmpty() -> {
-          throw PrintMessage("Error: No process matching \"$processNameParam\"")
+          throw PrintMessage("Error: No process named \"$processNameParam\"")
         }
         else -> {
           matchingProcesses.firstOrNull { it.first == processNameParam }

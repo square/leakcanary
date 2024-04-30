@@ -5,12 +5,12 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.HeapAnalysisSuccess
 import shark.HeapGraph
-import shark.IgnoredReferenceMatcher
 import shark.JdkReferenceMatchers
 import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakingObjectFinder
-import shark.ReferencePattern.StaticFieldPattern
+import shark.ReferencePattern
 import shark.checkForLeaks
+import shark.ignored
 
 class AndroidReferenceReadersHprofTest {
 
@@ -78,12 +78,10 @@ fun File.checkForFakeArraySetLeak(): HeapAnalysisSuccess {
     }
   }
   return checkForLeaks(
-    referenceMatchers = JdkReferenceMatchers.defaults + IgnoredReferenceMatcher(
-      StaticFieldPattern(
-        instanceHeldByArraySet,
-        "ACTION_FOCUS"
-      )
-    ),
+    referenceMatchers = JdkReferenceMatchers.defaults + ReferencePattern.staticField(
+      className = instanceHeldByArraySet,
+      fieldName = "ACTION_FOCUS"
+    ).ignored(),
     leakingObjectFinder = ArraySetFakeLeakingObjectFinder()
   )
 }

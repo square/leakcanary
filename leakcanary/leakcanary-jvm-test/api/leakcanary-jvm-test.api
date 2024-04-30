@@ -1,0 +1,9 @@
+public final class leakcanary/HotSpotHeapDumper : leakcanary/HeapDumper {
+	public static final field INSTANCE Lleakcanary/HotSpotHeapDumper;
+	public fun dumpHeap (Ljava/io/File;)V
+}
+
+public final class leakcanary/HotSpotHeapDumperKt {
+	public static final fun jvmDumper (Lleakcanary/HeapDumper$Companion;)Lleakcanary/HotSpotHeapDumper;
+}
+

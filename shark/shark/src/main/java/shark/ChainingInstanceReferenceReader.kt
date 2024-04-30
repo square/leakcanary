@@ -11,26 +11,36 @@ import shark.HeapObject.HeapInstance
  */
 class ChainingInstanceReferenceReader(
   private val virtualRefReaders: List<VirtualInstanceReferenceReader>,
+  private val flatteningInstanceReader: FlatteningPartitionedInstanceReferenceReader?,
   private val fieldRefReader: FieldInstanceReferenceReader
 ) : ReferenceReader<HeapInstance> {
 
   override fun read(source: HeapInstance): Sequence<Reference> {
-    val virtualRefs = expandVirtualRefs(source)
-    // Note: always forwarding to fieldRefReader means we may navigate the structure twice
-    // which increases IO reads. However this is a trade-of that allows virtualRef impls to
-    // focus on a subset of references and more importantly it means we still get a proper
-    // calculation of retained size as we don't skip any instance.
-    val fieldRefs = fieldRefReader.read(source)
-    return virtualRefs + fieldRefs
-  }
-
-  private fun expandVirtualRefs(instance: HeapInstance): Sequence<Reference> {
-    for (expander in virtualRefReaders) {
-      if (expander.matches(instance)) {
-        return expander.read(instance)
+    val virtualRefReader = findMatchingVirtualReader(source)
+    return if (virtualRefReader == null) {
+      fieldRefReader.read(source)
+    } else {
+      if (flatteningInstanceReader != null && virtualRefReader.readsCutSet) {
+        flatteningInstanceReader.read(virtualRefReader, source)
+      } else {
+        val virtualRefs = virtualRefReader.read(source)
+        // Note: always forwarding to fieldRefReader means we may navigate the structure twice
+        // which increases IO reads. However this is a trade-of that allows virtualRef impls to
+        // focus on a subset of references and more importantly it means we still get a proper
+        // calculation of retained size as we don't skip any instance.
+        val fieldRefs = fieldRefReader.read(source)
+        virtualRefs + fieldRefs
       }
     }
-    return emptySequence()
+  }
+
+  private fun findMatchingVirtualReader(instance: HeapInstance): VirtualInstanceReferenceReader? {
+    for (expander in virtualRefReaders) {
+      if (expander.matches(instance)) {
+        return expander
+      }
+    }
+    return null
   }
 
   /**
@@ -41,6 +51,22 @@ class ChainingInstanceReferenceReader(
    */
   interface VirtualInstanceReferenceReader : ReferenceReader<HeapInstance> {
     fun matches(instance: HeapInstance): Boolean
+
+    /**
+     * https://en.wikipedia.org/wiki/Cut_(graph_theory)
+     * A cut is a partition of the vertices of a graph into two disjoint subsets. Any cut
+     * determines a cut-set, the set of edges that have one endpoint in each subset of the
+     * partition. These edges are said to cross the cut.
+     *
+     * If true, the references returned by [read] will include the cut-set, which means any other
+     * object reacheable from the source instance but not returned by [read] has no outgoing
+     * edge to the rest of the graph. In other words, the internals of the data structure cannot
+     * reach beyond the data structure itself.
+     *
+     * When this is true then [ChainingInstanceReferenceReader] can leverage
+     * [FlatteningPartitionedInstanceReferenceReader].
+     */
+    val readsCutSet: Boolean
 
     /**
      * May create a new [VirtualInstanceReferenceReader], depending on what's in the heap graph.

@@ -12,6 +12,10 @@ public final class leakcanary/AndroidDebugHeapDumper : leakcanary/HeapDumper {
 	public fun dumpHeap (Ljava/io/File;)V
 }
 
+public final class leakcanary/AndroidDebugHeapDumperKt {
+	public static final fun androidDumper (Lleakcanary/HeapDumper$Companion;)Lleakcanary/AndroidDebugHeapDumper;
+}
+
 public final class leakcanary/BackgroundThreadHeapAnalyzer : leakcanary/EventListener {
 	public static final field INSTANCE Lleakcanary/BackgroundThreadHeapAnalyzer;
 	public fun onEvent (Lleakcanary/EventListener$Event;)V
@@ -62,10 +66,6 @@ public final class leakcanary/EventListener$Event$HeapDumpFailed : leakcanary/Ev
 	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;Z)V
 	public final fun getException ()Ljava/lang/Throwable;
 	public final fun getWillRetryLater ()Z
-}
-
-public abstract interface class leakcanary/HeapDumper {
-	public abstract fun dumpHeap (Ljava/io/File;)V
 }
 
 public final class leakcanary/LazyForwardingEventListener : leakcanary/EventListener {

@@ -68,5 +68,19 @@ sealed class ReferencePattern : Serializable {
 
   companion object {
     private const val serialVersionUID: Long = -5113635523713591133
+
+    fun javaLocal(threadName: String) = JavaLocalPattern(threadName)
+
+    fun staticField(
+      className: String,
+      fieldName: String
+    ) = StaticFieldPattern(className, fieldName)
+
+    fun instanceField(
+      className: String,
+      fieldName: String
+    ) = InstanceFieldPattern(className, fieldName)
+
+    fun nativeGlobalVariable(className: String) = NativeGlobalVariablePattern(className)
   }
 }

@@ -56,6 +56,12 @@ internal class LongScatterSet(expectedElements: Int = 4) {
    */
   private val loadFactor = 0.75
 
+  fun clear() {
+    keys.fill(0)
+    assigned = 0
+    hasEmptyKey = false
+  }
+
   init {
     ensureCapacity(expectedElements)
   }

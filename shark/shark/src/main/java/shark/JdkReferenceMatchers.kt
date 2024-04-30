@@ -4,27 +4,42 @@ import java.lang.ref.PhantomReference
 import java.lang.ref.SoftReference
 import java.lang.ref.WeakReference
 import java.util.EnumSet
+import shark.ReferenceMatcher.Companion.ALWAYS
+import shark.ReferencePattern.Companion.instanceField
+import shark.ReferencePattern.Companion.javaLocal
 import shark.ReferencePattern.InstanceFieldPattern
 import shark.ReferencePattern.JavaLocalPattern
 
-enum class JdkReferenceMatchers {
+enum class JdkReferenceMatchers : ReferenceMatcher.ListBuilder {
 
   REFERENCES {
     override fun add(
       references: MutableList<ReferenceMatcher>
     ) {
-      references += ignoredInstanceField(WeakReference::class.java.name, "referent")
-      references += ignoredInstanceField("leakcanary.KeyedWeakReference", "referent")
-      references += ignoredInstanceField(SoftReference::class.java.name, "referent")
-      references += ignoredInstanceField(PhantomReference::class.java.name, "referent")
-      references += ignoredInstanceField("java.lang.ref.Finalizer", "prev")
-      references += ignoredInstanceField("java.lang.ref.Finalizer", "element")
-      references += ignoredInstanceField("java.lang.ref.Finalizer", "next")
-      references += ignoredInstanceField("java.lang.ref.FinalizerReference", "prev")
-      references += ignoredInstanceField("java.lang.ref.FinalizerReference", "element")
-      references += ignoredInstanceField("java.lang.ref.FinalizerReference", "next")
-      references += ignoredInstanceField("sun.misc.Cleaner", "prev")
-      references += ignoredInstanceField("sun.misc.Cleaner", "next")
+      references += instanceField(WeakReference::class.java.name, "referent")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField("leakcanary.KeyedWeakReference", "referent")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField(SoftReference::class.java.name, "referent")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField(PhantomReference::class.java.name, "referent")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField("java.lang.ref.Finalizer", "prev")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField("java.lang.ref.Finalizer", "element")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField("java.lang.ref.Finalizer", "next")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField("java.lang.ref.FinalizerReference", "prev")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField("java.lang.ref.FinalizerReference", "element")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField("java.lang.ref.FinalizerReference", "next")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField("sun.misc.Cleaner", "prev")
+        .ignored(patternApplies = ALWAYS)
+      references += instanceField("sun.misc.Cleaner", "next")
+        .ignored(patternApplies = ALWAYS)
     }
   },
 
@@ -34,7 +49,8 @@ enum class JdkReferenceMatchers {
     ) {
       // If the FinalizerWatchdogDaemon thread is on the shortest path, then there was no other
       // reference to the object and it was about to be GCed.
-      references += ignoredJavaLocal("FinalizerWatchdogDaemon")
+      references += javaLocal("FinalizerWatchdogDaemon")
+        .ignored(patternApplies = ALWAYS)
     }
   },
 
@@ -45,12 +61,11 @@ enum class JdkReferenceMatchers {
       // The main thread stack is ever changing so local variables aren't likely to hold references
       // for long. If this is on the shortest path, it's probably that there's a longer path with
       // a real leak.
-      references += ignoredJavaLocal("main")
+      references += javaLocal("main")
+        .ignored(patternApplies = ALWAYS)
     }
   },
   ;
-
-  internal abstract fun add(references: MutableList<ReferenceMatcher>)
 
   companion object {
 
@@ -59,40 +74,50 @@ enum class JdkReferenceMatchers {
      */
     @JvmStatic
     val defaults: List<ReferenceMatcher>
-      get() = buildKnownReferences(EnumSet.allOf(JdkReferenceMatchers::class.java))
+      get() = ReferenceMatcher.fromListBuilders(EnumSet.allOf(JdkReferenceMatchers::class.java))
 
     /**
      * Builds a list of [ReferenceMatcher] from the [referenceMatchers] set of
      * [AndroidReferenceMatchers].
      */
     @JvmStatic
+    @Deprecated(
+      "Use ReferenceMatcher.fromListBuilders instead.",
+      ReplaceWith("ReferenceMatcher.fromListBuilders")
+    )
     fun buildKnownReferences(referenceMatchers: Set<JdkReferenceMatchers>): List<ReferenceMatcher> {
-      val resultSet = mutableListOf<ReferenceMatcher>()
-      referenceMatchers.forEach {
-        it.add(resultSet)
-      }
-      return resultSet
+      return ReferenceMatcher.fromListBuilders(referenceMatchers)
     }
 
     /**
      * Creates a [IgnoredReferenceMatcher] that matches a [InstanceFieldPattern].
      */
+    @Deprecated(
+      "Use ReferencePattern.instanceField instead",
+      ReplaceWith("ReferencePattern.instanceField")
+    )
     @JvmStatic
     fun ignoredInstanceField(
       className: String,
       fieldName: String
     ): IgnoredReferenceMatcher {
-      return IgnoredReferenceMatcher(pattern = InstanceFieldPattern(className, fieldName))
+      return instanceField(className, fieldName)
+        .ignored(patternApplies = ALWAYS)
     }
 
     /**
      * Creates a [IgnoredReferenceMatcher] that matches a [JavaLocalPattern].
      */
+    @Deprecated(
+      "Use ReferencePattern.javaLocal instead",
+      ReplaceWith("ReferencePattern.javaLocal")
+    )
     @JvmStatic
     fun ignoredJavaLocal(
       threadName: String
     ): IgnoredReferenceMatcher {
-      return IgnoredReferenceMatcher(pattern = JavaLocalPattern(threadName))
+      return javaLocal(threadName)
+        .ignored(patternApplies = ALWAYS)
     }
   }
 }

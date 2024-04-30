@@ -165,6 +165,8 @@ enum class ApacheHarmonyInstanceRefReaders : OptionalFactory {
           return (instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId)
         }
 
+        override val readsCutSet = true
+
         override fun read(source: HeapInstance): Sequence<Reference> {
           // "HashSet.backingMap" is never null.
           val map = source["java.util.HashSet", "backingMap"]!!.valueAsInstance!!

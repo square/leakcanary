@@ -1,14 +1,14 @@
 package shark
 
+import java.io.File
+import java.io.FileWriter
+import java.util.EnumSet
+import java.util.UUID
 import okio.buffer
 import okio.source
 import shark.AndroidReferenceMatchers.FINALIZER_WATCHDOG_DAEMON
 import shark.AndroidReferenceMatchers.REFERENCES
 import shark.HprofHeapGraph.Companion.openHeapGraph
-import java.io.File
-import java.io.FileWriter
-import java.util.EnumSet
-import java.util.UUID
 
 /**
  * Tests different values for the lru cache size when performing the leak analysss, measuring IO
@@ -105,7 +105,7 @@ private fun trackAnalyzeMetrics(
 
   val lruCacheAnalysis = heapAnalyzer.analyze(
     heapDumpFile = heapAfterAnalysis,
-    referenceMatchers = AndroidReferenceMatchers.buildKnownReferences(
+    referenceMatchers = ReferenceMatcher.fromListBuilders(
       EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
     ),
     leakingObjectFinder = { graph ->

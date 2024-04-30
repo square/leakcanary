@@ -1,16 +1,17 @@
 package leakcanary
 
 import android.os.SystemClock
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 import leakcanary.internal.InstrumentationHeapAnalyzer
-import leakcanary.internal.InstrumentationHeapDumpFileProvider
 import leakcanary.internal.RetryingHeapAnalyzer
 import leakcanary.internal.friendly.checkNotMainThread
 import leakcanary.internal.friendly.measureDurationMillis
 import shark.HeapAnalysisFailure
 import shark.HeapAnalysisSuccess
 import shark.SharkLog
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Default [DetectLeaksAssert] implementation. Uses public helpers so you should be able to
@@ -40,7 +41,10 @@ class AndroidDetectLeaksAssert(
     }
   }
 
-  private fun runLeakChecks(tag: String, assertionStartUptimeMillis: Long) {
+  private fun runLeakChecks(
+    tag: String,
+    assertionStartUptimeMillis: Long
+  ) {
     if (TestDescriptionHolder.isEvaluating()) {
       val testDescription = TestDescriptionHolder.testDescription
       if (SkipLeakDetection.shouldSkipTest(testDescription, tag)) {
@@ -57,7 +61,15 @@ class AndroidDetectLeaksAssert(
       }
     }
 
-    val heapDumpFile = InstrumentationHeapDumpFileProvider().newHeapDumpFile()
+    val heapDumpFileProvider = HeapDumpFileProvider.datetimeFormattedFileProvider(
+      directory = File(
+        InstrumentationRegistry.getInstrumentation().targetContext.filesDir,
+        "instrumentation_tests"
+      ),
+      prefix = "instrumentation_tests"
+    )
+
+    val heapDumpFile = heapDumpFileProvider.newHeapDumpFile()
 
     val config = LeakCanary.config
 

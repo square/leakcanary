@@ -3,6 +3,50 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Version 3.0 Alpha 2 (not released yet)
+
+### Heap Growth
+
+* Deleted the `shark-heap-growth` artifact, the code has been merged into the `shark*` and `leakcanary*` modules.
+* New `leakcanary-core` module that includes runtime leak detection utilities that aren't Android specific.
+* Optimization: for known data structures that don't reference the rest of the graph beyond the references we
+known about, we explore them locally at once and stop enqueuing their internals, which reduces the memory
+footprint and the IO reads.
+* Revamped the APIs for setup. Here's an updated example usage:
+
+```groovy
+dependencies {
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-core:3.0-alpha-2'
+  androidTestImplementation 'com.squareup.leakcanary:shark-android:3.0-alpha-2'
+}
+```
+
+```kotlin
+class MyEspressoTest {
+  val detector = ObjectGrowthDetector
+    .androidDetector()
+    .fromHeapDumpingRepeatedScenario(
+      heapGraphProvider = HeapGraphProvider.dumpingAndDeletingGraphProvider(
+        heapDumper = { Debug.dumpHprofData(it.absolutePath) },
+      ),
+      maxHeapDumps = 5,
+      scenarioLoopsPerDump = 1,
+    )
+
+  @Test
+  fun greeter_says_hello_does_not_leak() {
+    // Runs repeatedly until the heap stops growing or we reach max heap dumps.
+    val heapGrowth = detector.findRepeatedlyGrowingObjects {
+      onView(withId(R.id.name_field)).perform(typeText("Steve"))
+      onView(withId(R.id.greet_button)).perform(click())
+      onView(withText("Hello Steve!")).check(matches(isDisplayed()))
+    }
+
+    assertThat(heapGrowth.growingObjects).isEmpty()
+  }
+}
+```
+
 ## Version 2.14 (2024-04-17)
 
 * 🐛 [#2650](https://github.com/square/leakcanary/issues/2650) Removed accidental usage of `SettableFuture`, a `WorkManager` internal class, which will be removed in a **future release** of WorkManager. After updating WorkManager to that future release, **all versions of LeakCanary from 2.8 to 2.13 will crash on leak analysis**. To avoid a nasty surprise in the near future, **update to LeakCanary 2.14**.

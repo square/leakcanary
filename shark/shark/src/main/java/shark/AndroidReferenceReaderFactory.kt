@@ -17,9 +17,9 @@ class AndroidReferenceReaderFactory(
       listOf(
         JavaLocalReferenceReader(graph, referenceMatchers),
       ) +
+        AndroidReferenceReaders.values().mapNotNull { it.create(graph) } +
         OpenJdkInstanceRefReaders.values().mapNotNull { it.create(graph) } +
-        ApacheHarmonyInstanceRefReaders.values().mapNotNull { it.create(graph) } +
-        AndroidReferenceReaders.values().mapNotNull { it.create(graph) }
+        ApacheHarmonyInstanceRefReaders.values().mapNotNull { it.create(graph) }
     }
   )
 

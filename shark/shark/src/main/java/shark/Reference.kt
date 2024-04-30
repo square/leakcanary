@@ -5,7 +5,7 @@ import shark.Reference.LazyDetails.Resolver
 /**
  * TODO Review as public API.
  */
-class Reference(
+data class Reference(
   /**
    * The value of the reference, i.e. the object the reference is pointing to.
    */
@@ -22,7 +22,13 @@ class Reference(
    */
   val isLowPriority: Boolean,
 
-  val lazyDetailsResolver: Resolver
+  /**
+   * Whether this object should be treated as a leaf / sink object with no outgoing references
+   * (regardless of its actual content).
+   */
+  val isLeafObject: Boolean = false,
+
+  val lazyDetailsResolver: Resolver,
 ) {
   class LazyDetails(
     val name: String,

@@ -2,38 +2,37 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.DiffingHeapGrowthDetector.HeapDumpAfterLoopingScenario
 import shark.HprofHeapGraph.Companion.openHeapGraph
 
-class HeapGrowthDetectorFakeDumpTest {
+class ObjectGrowthDetectorTest {
 
   @Test
   fun `first traversal returns InitialHeapTraversal`() {
     val detector = newSimpleDetector()
 
-    val heapTraversal = detector.detectHeapGrowth(
-      heapDump = dump {
+    val heapTraversal = detector.findGrowingObjects(
+      heapGraph = dump {
       },
-      previousTraversal = NoHeapTraversalYet
+      previousTraversal = InitialState(scenarioLoopsPerGraph = 1),
     )
 
-    assertThat(heapTraversal).isInstanceOf(InitialHeapTraversal::class.java)
+    assertThat(heapTraversal).isInstanceOf(FirstHeapTraversal::class.java)
   }
 
   @Test
   fun `second traversal returns HeapTraversalWithDiff`() {
     val detector = newSimpleDetector()
-    val first = detector.detectHeapGrowth(
-      heapDump = emptyHeapDump(),
-      previousTraversal = NoHeapTraversalYet
+    val first = detector.findGrowingObjects(
+      heapGraph = emptyHeapDump(),
+      previousTraversal = InitialState(scenarioLoopsPerGraph = 1),
     )
 
-    val secondTraversal = detector.detectHeapGrowth(
-      heapDump = emptyHeapDump(),
-      previousTraversal = first
+    val secondTraversal = detector.findGrowingObjects(
+      heapGraph = emptyHeapDump(),
+      previousTraversal = first,
     )
 
-    assertThat(secondTraversal).isInstanceOf(HeapTraversalWithDiff::class.java)
+    assertThat(secondTraversal).isInstanceOf(HeapGrowthTraversal::class.java)
   }
 
   @Test
@@ -48,9 +47,9 @@ class HeapGrowthDetectorFakeDumpTest {
       }
     )
 
-    val traversal = detector.detectHeapGrowth(dumps)
+    val growingNodes = detector.detectHeapGrowth(dumps)
 
-    assertThat(traversal.growingNodes).isEmpty()
+    assertThat(growingNodes).isEmpty()
   }
 
   @Test
@@ -66,9 +65,9 @@ class HeapGrowthDetectorFakeDumpTest {
       }
     )
 
-    val traversal = detector.detectHeapGrowth(dumps)
+    val growingNodes = detector.detectHeapGrowth(dumps)
 
-    assertThat(traversal.growingNodes).isEmpty()
+    assertThat(growingNodes).isEmpty()
   }
 
   @Test
@@ -83,9 +82,9 @@ class HeapGrowthDetectorFakeDumpTest {
       }
     )
 
-    val traversal = detector.detectHeapGrowth(dumps)
+    val growingNodes = detector.detectHeapGrowth(dumps)
 
-    assertThat(traversal.growingNodes).hasSize(1)
+    assertThat(growingNodes).hasSize(1)
   }
 
   @Test
@@ -95,14 +94,14 @@ class HeapGrowthDetectorFakeDumpTest {
       dump {
         classWithStringsInStaticField("Hello")
       },
-      dump(2) {
+      dump {
         classWithStringsInStaticField("Hello", "World!")
       }
     )
 
-    val traversal = detector.detectHeapGrowth(dumps)
+    val growingNodes = detector.detectHeapGrowth(dumps, 2)
 
-    assertThat(traversal.growingNodes).isEmpty()
+    assertThat(growingNodes).isEmpty()
   }
 
   @Test
@@ -120,9 +119,9 @@ class HeapGrowthDetectorFakeDumpTest {
       }
     }
 
-    val traversal = detector.detectHeapGrowth(dumps)
+    val growingNodes = detector.detectHeapGrowth(dumps)
 
-    val growingNode = traversal.growingNodes.first()
+    val growingNode = growingNodes.first()
 
     assertThat(growingNode.selfObjectCount).isEqualTo(1)
     assertThat(growingNode.childrenObjectCount).isEqualTo(heapDumpCount * scenarioLoopCount)
@@ -130,12 +129,17 @@ class HeapGrowthDetectorFakeDumpTest {
     assertThat(growingNode.children).hasSize(1)
   }
 
-  private fun DiffingHeapGrowthDetector.detectHeapGrowth(heapDumps: List<HeapDumpAfterLoopingScenario>): HeapTraversalWithDiff {
-    return heapDumps.fold<HeapDumpAfterLoopingScenario, InputHeapTraversal>(
-      initial = NoHeapTraversalYet
-    ) { previous, dump ->
-      detectHeapGrowth(dump, previous)
-    } as HeapTraversalWithDiff
+  private fun ObjectGrowthDetector.detectHeapGrowth(
+    heapDumps: List<CloseableHeapGraph>,
+    scenarioLoopsPerGraph: Int = 1
+  ): GrowingObjectNodes {
+    return fromHeapGraphSequence().findRepeatedlyGrowingObjects(
+      initialState = InitialState(
+        scenarioLoopsPerGraph = scenarioLoopsPerGraph,
+        heapGraphCount = heapDumps.size
+      ),
+      heapGraphSequence = heapDumps.asSequence()
+    ).growingObjects
   }
 
   private fun HprofWriterHelper.classWithStringsInStaticField(vararg strings: String) {
@@ -148,16 +152,12 @@ class HeapGrowthDetectorFakeDumpTest {
   private fun emptyHeapDump() = dump {}
 
   private fun dump(
-    scenarioLoopCount: Int = 1,
     block: HprofWriterHelper.() -> Unit
-  ): HeapDumpAfterLoopingScenario {
-    return HeapDumpAfterLoopingScenario(
-      heapGraph = dump(HprofHeader(), block).openHeapGraph(),
-      scenarioLoopCount = scenarioLoopCount
-    )
+  ): CloseableHeapGraph {
+    return dump(HprofHeader(), block).openHeapGraph()
   }
 
-  private fun newSimpleDetector(): DiffingHeapGrowthDetector {
+  private fun newSimpleDetector(): ObjectGrowthDetector {
     val referenceReaderFactory = ActualMatchingReferenceReaderFactory(
       referenceMatchers = emptyList()
     )
@@ -170,6 +170,6 @@ class HeapGrowthDetectorFakeDumpTest {
         )
       }
     }
-    return DiffingHeapGrowthDetector(referenceReaderFactory, gcRootProvider)
+    return ObjectGrowthDetector(gcRootProvider, referenceReaderFactory)
   }
 }

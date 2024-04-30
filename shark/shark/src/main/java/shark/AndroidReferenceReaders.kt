@@ -10,6 +10,8 @@ import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader.Opti
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.ARRAY_ENTRY
 import shark.ReferenceLocationType.INSTANCE_FIELD
+import shark.ReferencePattern.Companion
+import shark.ReferencePattern.Companion.instanceField
 
 enum class AndroidReferenceReaders : OptionalFactory {
 
@@ -65,7 +67,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
         .toList()
 
       if ("nextIdle" !in activityClientRecordFieldNames ||
-        "activity" !in activityClientRecordFieldNames) {
+        "activity" !in activityClientRecordFieldNames
+      ) {
         return null
       }
 
@@ -76,6 +79,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
         override fun matches(instance: HeapInstance) =
           instance.instanceClassId == activityThreadClassId ||
             instance.instanceClassId == activityClientRecordClassId
+
+        override val readsCutSet = false
 
         override fun read(source: HeapInstance): Sequence<Reference> {
           return if (source.instanceClassId == activityThreadClassId) {
@@ -95,10 +100,10 @@ enum class AndroidReferenceReaders : OptionalFactory {
                       locationClassObjectId = activityThreadClassId,
                       locationType = INSTANCE_FIELD,
                       isVirtual = false,
-                      matchedLibraryLeak = LibraryLeakReferenceMatcher(
-                        pattern = InstanceFieldPattern(
-                          "android.app.ActivityThread", "mNewActivities"
-                        ),
+                      matchedLibraryLeak = instanceField(
+                        className = "android.app.ActivityThread",
+                        fieldName = "mNewActivities"
+                      ).leak(
                         description = """
                        New activities are leaked by ActivityThread until the main thread becomes idle.
                        Tracked here: https://issuetracker.google.com/issues/258390457
@@ -118,7 +123,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
                 node["android.app.ActivityThread\$ActivityClientRecord", "nextIdle"]!!.valueAsInstance
               }.withIndex().mapNotNull { (index, node) ->
 
-                val activity = node["android.app.ActivityThread\$ActivityClientRecord", "activity"]!!.valueAsInstance
+                val activity =
+                  node["android.app.ActivityThread\$ActivityClientRecord", "activity"]!!.valueAsInstance
                 if (activity == null ||
                   // Skip non destroyed activities.
                   // (!= true because we also skip if mDestroyed is missing)
@@ -147,7 +153,6 @@ enum class AndroidReferenceReaders : OptionalFactory {
     }
   },
 
-
   MESSAGE_QUEUE {
     override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
       val messageQueueClass =
@@ -158,6 +163,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
       return object : VirtualInstanceReferenceReader {
         override fun matches(instance: HeapInstance) =
           instance.instanceClassId == messageQueueClassId
+
+        override val readsCutSet = false
 
         override fun read(source: HeapInstance): Sequence<Reference> {
           val firstMessage = source["android.os.MessageQueue", "mMessages"]!!.valueAsInstance
@@ -198,6 +205,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
       return object : VirtualInstanceReferenceReader {
         override fun matches(instance: HeapInstance) =
           instance.instanceClassId == objectAnimatorClassId
+
+        override val readsCutSet = false
 
         override fun read(source: HeapInstance): Sequence<Reference> {
           val mTarget = source["android.animation.ObjectAnimator", "mTarget"]?.valueAsInstance
@@ -248,6 +257,8 @@ enum class AndroidReferenceReaders : OptionalFactory {
           instance.instanceClassId.let { classId ->
             classId == mapClassId || classId == fastMapClassId
           }
+
+        override val readsCutSet = true
 
         override fun read(source: HeapInstance): Sequence<Reference> {
           val start = source[SAFE_ITERABLE_MAP_CLASS_NAME, "mStart"]!!.valueAsInstance
@@ -303,10 +314,12 @@ enum class AndroidReferenceReaders : OptionalFactory {
 
   ARRAY_SET {
     override fun create(graph: HeapGraph): VirtualInstanceReferenceReader? {
-      val arraySetClassId = graph.findClassByName(ARRAY_SET_CLASS_NAME)?.objectId ?:return null
+      val arraySetClassId = graph.findClassByName(ARRAY_SET_CLASS_NAME)?.objectId ?: return null
 
       return object : VirtualInstanceReferenceReader {
         override fun matches(instance: HeapInstance) = instance.instanceClassId == arraySetClassId
+
+        override val readsCutSet = true
 
         override fun read(source: HeapInstance): Sequence<Reference> {
           val mArray = source[ARRAY_SET_CLASS_NAME, "mArray"]!!.valueAsObjectArray!!

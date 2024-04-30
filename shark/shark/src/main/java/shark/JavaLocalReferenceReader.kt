@@ -38,6 +38,8 @@ class JavaLocalReferenceReader(
       ThreadObjects.getByThreadObjectId(graph, instance.objectId) != null
   }
 
+  override val readsCutSet = false
+
   override fun read(source: HeapInstance): Sequence<Reference> {
     val referenceMatcher =  source[Thread::class, "name"]?.value?.readAsJavaString()?.let { threadName ->
       threadNameReferenceMatchers[threadName]

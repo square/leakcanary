@@ -11,4 +11,10 @@ fun interface HeapDumper {
    * Implementations can throw a runtime exception if heap dumping failed.
    */
   fun dumpHeap(heapDumpFile: File)
+
+  /**
+   * This allows external modules to add factory methods for implementations of this interface as
+   * extension functions of this companion object.
+   */
+  companion object
 }

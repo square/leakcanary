@@ -11,8 +11,9 @@ class ActualMatchingReferenceReaderFactory(
     return DelegatingObjectReferenceReader(
       classReferenceReader = ClassReferenceReader(heapGraph, referenceMatchers),
       instanceReferenceReader = ChainingInstanceReferenceReader(
-        listOf(JavaLocalReferenceReader(heapGraph, referenceMatchers)),
-        FieldInstanceReferenceReader(heapGraph, referenceMatchers)
+        virtualRefReaders = listOf(JavaLocalReferenceReader(heapGraph, referenceMatchers)),
+        flatteningInstanceReader = null,
+        fieldRefReader = FieldInstanceReferenceReader(heapGraph, referenceMatchers)
       ), objectArrayReferenceReader = ObjectArrayReferenceReader()
     )
   }

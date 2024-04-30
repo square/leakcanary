@@ -14,3 +14,5 @@ object AndroidDebugHeapDumper : HeapDumper {
     Debug.dumpHprofData(heapDumpFile.absolutePath)
   }
 }
+
+fun HeapDumper.Companion.androidDumper() = AndroidDebugHeapDumper

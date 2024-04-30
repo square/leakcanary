@@ -216,6 +216,8 @@ enum class OpenJdkInstanceRefReaders : OptionalFactory {
           return instanceClassId == hashSetClassId || instanceClassId == linkedHashSetClassId
         }
 
+        override val readsCutSet = true
+
         override fun read(source: HeapInstance): Sequence<Reference> {
           // "HashSet.map" is never null when looking at the Android sources history, however
           // we've had a crash report where it was null on API 24.

@@ -38,6 +38,7 @@ import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.IgnoredReferenceMatcher
 import shark.ObjectDominators
 import shark.ObjectDominators.OfflineDominatorNode
+import shark.ReferenceMatcher
 import shark.ValueHolder
 
 sealed interface TreeMapState {
@@ -65,7 +66,7 @@ class TreeMapViewModel @Inject constructor(
           AndroidReferenceMatchers.REFERENCES, AndroidReferenceMatchers.FINALIZER_WATCHDOG_DAEMON
         )
         val ignoredRefs =
-          AndroidReferenceMatchers.buildKnownReferences(weakAndFinalizerRefs).map { matcher ->
+          ReferenceMatcher.fromListBuilders(weakAndFinalizerRefs).map { matcher ->
             matcher as IgnoredReferenceMatcher
           }
 
@@ -153,7 +154,7 @@ fun OnDeviceHeapTreemapPreview() {
       AndroidReferenceMatchers.REFERENCES, AndroidReferenceMatchers.FINALIZER_WATCHDOG_DAEMON
     )
     val ignoredRefs =
-      AndroidReferenceMatchers.buildKnownReferences(weakAndFinalizerRefs).map { matcher ->
+      ReferenceMatcher.fromListBuilders(weakAndFinalizerRefs).map { matcher ->
         matcher as IgnoredReferenceMatcher
       }
 
