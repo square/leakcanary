@@ -51,6 +51,22 @@ enum class AndroidHeapGrowthReferenceMatchers : ReferenceMatcher.ListBuilder {
     }
   },
 
+  BINDER_PROXY {
+    override fun add(references: MutableList<ReferenceMatcher>) {
+      // BinderProxy is a manually implemented hashtable of weak refs to BinderProxy instances.
+      // The hashtable is optimized so that it has a fixed large array size that never grows,
+      // and every entry points to a list of weak refs. The weak references aren't removed when the
+      // BinderProxy instances are garbage collected, instead relying on random access to
+      // occasionally prune entries. This leads to BinderProxy being reported as a growing object.
+      // Interestingly, we've only observed this on API 34+ so far, so there might be something
+      // there that led to cleanups happening less often (?).
+      references += staticField("android.os.BinderProxy", "sProxyMap")
+        .ignored(patternApplies = AndroidBuildMirror.applyIf {
+          sdkInt >= 34
+        })
+    }
+  }
+
   ;
 
   companion object {
