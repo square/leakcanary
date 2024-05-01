@@ -1,6 +1,6 @@
 package leakcanary
 
-interface DeletableObjectReporter {
+fun interface DeletableObjectReporter {
 
   /**
    * Start tracking the provided [target] object, with the expectation that it should be eligible
