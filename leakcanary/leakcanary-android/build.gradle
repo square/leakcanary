@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-  api projects.leakcanary.leakcanaryAndroidCore
+  api projects.leakcanary.leakcanaryAndroidDebug
   // AppWatcher auto installer
   api projects.objectWatcher.objectWatcherAndroid
   // Plumber auto installer

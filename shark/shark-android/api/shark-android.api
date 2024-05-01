@@ -18,6 +18,7 @@ public final class shark/AndroidExtensionsKt {
 
 public abstract class shark/AndroidHeapGrowthReferenceMatchers : java/lang/Enum, shark/ReferenceMatcher$ListBuilder {
 	public static final field ANDROID_LEAK_DETECTION_IGNORED_MATCHERS Lshark/AndroidHeapGrowthReferenceMatchers;
+	public static final field BINDER_PROXY Lshark/AndroidHeapGrowthReferenceMatchers;
 	public static final field COMPOSE_TEST_CONTEXT_STATES Lshark/AndroidHeapGrowthReferenceMatchers;
 	public static final field Companion Lshark/AndroidHeapGrowthReferenceMatchers$Companion;
 	public static final field HEAP_TRAVERSAL Lshark/AndroidHeapGrowthReferenceMatchers;
