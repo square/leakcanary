@@ -85,7 +85,7 @@ class MainActivity : Activity() {
     }
     findViewById<Button>(R.id.message_leak_button).setOnClickListener {
       val leaky = Any()
-      AppWatcher.objectWatcher.expectDeletionFor(leaky, "Repeated Message")
+      AppWatcher.objectWatcher.expectWeaklyReachable(leaky, "Repeated Message")
       @Suppress("unused")
       class LeakyReschedulingRunnable(private val leaky: Any) : Runnable {
         private val handler = Handler(Looper.getMainLooper())
