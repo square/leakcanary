@@ -29,7 +29,7 @@ class ObjectInspectorTest : HasActivityTestRule<TestActivity> {
       runOnMainSync {
         val observer = object : LifecycleObserver {}
         activity.lifecycle.addObserver(observer)
-        AppWatcher.objectWatcher.expectDeletionFor(observer, "observer")
+        AppWatcher.objectWatcher.expectWeaklyReachable(observer, "observer")
       }
       triggersOnActivityDestroyed {
         activityRule.finishActivity()

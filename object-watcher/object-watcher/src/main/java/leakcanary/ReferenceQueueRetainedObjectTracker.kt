@@ -8,7 +8,7 @@ import leakcanary.TriggeredDeletableObjectReporter.RetainTrigger
 import shark.SharkLog
 
 /**
- * [ReferenceQueueRetainedObjectTracker] can be passed objects to [expectDeletionFor].
+ * [ReferenceQueueRetainedObjectTracker] can be passed objects to [expectDeletionOnTriggerFor].
  * It will create [KeyedWeakReference] instances that reference tracked objects, and check if those
  * references have been cleared as expected. If not, these
  * objects are considered retained and [ReferenceQueueRetainedObjectTracker] will then notify
