@@ -37,7 +37,7 @@ import leakcanary.internal.friendly.mainHandler
  */
 class RootViewWatcher(
   private val deletableObjectReporter: DeletableObjectReporter,
-  private val watchDismissedDialogs: Boolean
+  private val watchDismissedDialogs: Boolean = false
 ) : InstallableWatcher {
 
   private val listener = OnRootViewAddedListener { rootView ->

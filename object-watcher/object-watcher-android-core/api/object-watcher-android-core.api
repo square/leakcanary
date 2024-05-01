@@ -34,6 +34,7 @@ public abstract interface class leakcanary/InstallableWatcher {
 
 public final class leakcanary/RootViewWatcher : leakcanary/InstallableWatcher {
 	public fun <init> (Lleakcanary/DeletableObjectReporter;Z)V
+	public synthetic fun <init> (Lleakcanary/DeletableObjectReporter;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun install ()V
 	public fun uninstall ()V
 }
