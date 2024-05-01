@@ -5,19 +5,25 @@ import android.app.Service
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
-import leakcanary.internal.friendly.checkMainThread
-import shark.SharkLog
 import java.lang.ref.WeakReference
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Proxy
 import java.util.WeakHashMap
+import leakcanary.internal.friendly.checkMainThread
+import shark.SharkLog
 
 /**
  * Expects services to become weakly reachable soon after they receive the [Service.onDestroy]
  * callback.
  */
 @SuppressLint("PrivateApi")
-class ServiceWatcher(private val deletableObjectReporter: DeletableObjectReporter) : InstallableWatcher {
+class ServiceWatcher(private val deletableObjectReporter: DeletableObjectReporter) :
+  InstallableWatcher {
+
+  // Kept for backward compatibility.
+  constructor(reachabilityWatcher: ReachabilityWatcher) : this(
+    reachabilityWatcher.asDeletableObjectReporter()
+  )
 
   private val servicesToBeDestroyed = WeakHashMap<IBinder, WeakReference<Service>>()
 

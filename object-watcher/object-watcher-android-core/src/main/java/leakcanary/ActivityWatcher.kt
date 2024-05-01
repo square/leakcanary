@@ -13,6 +13,12 @@ class ActivityWatcher(
   private val deletableObjectReporter: DeletableObjectReporter
 ) : InstallableWatcher {
 
+  // Kept for backward compatibility.
+  constructor(
+    application: Application,
+    reachabilityWatcher: ReachabilityWatcher
+  ) : this(application, reachabilityWatcher.asDeletableObjectReporter())
+
   private val lifecycleCallbacks =
     object : Application.ActivityLifecycleCallbacks by noOpDelegate() {
       override fun onActivityDestroyed(activity: Activity) {

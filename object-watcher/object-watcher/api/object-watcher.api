@@ -54,11 +54,11 @@ public final class leakcanary/ObjectWatcher : leakcanary/ReachabilityWatcher, le
 	public fun <init> (Lleakcanary/Clock;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function0;)V
 	public synthetic fun <init> (Lleakcanary/Clock;Ljava/util/concurrent/Executor;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun addOnObjectRetainedListener (Lleakcanary/OnObjectRetainedListener;)V
+	public fun asDeletableObjectReporter ()Lleakcanary/DeletableObjectReporter;
 	public fun clearAllObjectsTracked ()V
 	public fun clearObjectsTrackedBefore-LRDsOJo (J)V
 	public final fun clearObjectsWatchedBefore (J)V
 	public final fun clearWatchedObjects ()V
-	public fun expectDeletionFor (Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TrackedObjectReachability;
 	public fun expectWeaklyReachable (Ljava/lang/Object;Ljava/lang/String;)V
 	public fun getHasRetainedObjects ()Z
 	public fun getHasTrackedObjects ()Z
@@ -75,13 +75,13 @@ public abstract interface class leakcanary/OnObjectRetainedListener {
 	public abstract fun onObjectRetained ()V
 }
 
-public abstract interface class leakcanary/ReachabilityWatcher : leakcanary/DeletableObjectReporter {
-	public abstract fun expectDeletionFor (Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TrackedObjectReachability;
+public abstract interface class leakcanary/ReachabilityWatcher {
+	public abstract fun asDeletableObjectReporter ()Lleakcanary/DeletableObjectReporter;
 	public abstract fun expectWeaklyReachable (Ljava/lang/Object;Ljava/lang/String;)V
 }
 
 public final class leakcanary/ReachabilityWatcher$DefaultImpls {
-	public static fun expectDeletionFor (Lleakcanary/ReachabilityWatcher;Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TrackedObjectReachability;
+	public static fun asDeletableObjectReporter (Lleakcanary/ReachabilityWatcher;)Lleakcanary/DeletableObjectReporter;
 }
 
 public final class leakcanary/ReferenceQueueRetainedObjectTracker : leakcanary/RetainedObjectTracker, leakcanary/TriggeredDeletableObjectReporter {

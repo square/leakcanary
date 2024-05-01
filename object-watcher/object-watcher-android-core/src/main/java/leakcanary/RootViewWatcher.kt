@@ -37,25 +37,39 @@ import leakcanary.internal.friendly.mainHandler
  */
 class RootViewWatcher(
   private val deletableObjectReporter: DeletableObjectReporter,
-  private val watchDismissedDialogs: Boolean = false
+  private val rootViewFilter: Filter = WindowTypeFilter(watchDismissedDialogs = false)
 ) : InstallableWatcher {
 
-  private val listener = OnRootViewAddedListener { rootView ->
-    val trackDetached = when(rootView.windowType) {
-      PHONE_WINDOW -> {
-        when (rootView.phoneWindow?.callback?.wrappedCallback) {
-          // Activities are already tracked by ActivityWatcher
-          is Activity -> false
-          is Dialog -> watchDismissedDialogs
-          // Probably a DreamService
-          else -> true
+  fun interface Filter {
+    fun shouldExpectDeletionOnDetached(rootView: View): Boolean
+  }
+
+  class WindowTypeFilter(private val watchDismissedDialogs: Boolean) : Filter {
+    override fun shouldExpectDeletionOnDetached(rootView: View): Boolean {
+      return when (rootView.windowType) {
+        PHONE_WINDOW -> {
+          when (rootView.phoneWindow?.callback?.wrappedCallback) {
+            // Activities are already tracked by ActivityWatcher
+            is Activity -> false
+            is Dialog -> watchDismissedDialogs
+            // Probably a DreamService
+            else -> true
+          }
         }
+        // Android widgets keep detached popup window instances around.
+        POPUP_WINDOW -> false
+        TOOLTIP, TOAST, UNKNOWN -> true
       }
-      // Android widgets keep detached popup window instances around.
-      POPUP_WINDOW -> false
-      TOOLTIP, TOAST, UNKNOWN -> true
     }
-    if (trackDetached) {
+  }
+
+  // Kept for backward compatibility.
+  constructor(reachabilityWatcher: ReachabilityWatcher) : this(
+    deletableObjectReporter = reachabilityWatcher.asDeletableObjectReporter()
+  )
+
+  private val listener = OnRootViewAddedListener { rootView ->
+    if (rootViewFilter.shouldExpectDeletionOnDetached(rootView)) {
       rootView.addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
 
         val watchDetachedView = Runnable {

@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.SystemClock
 import com.squareup.leakcanary.objectwatcher.core.R
 import java.util.concurrent.TimeUnit
+import leakcanary.RootViewWatcher.WindowTypeFilter
 import leakcanary.internal.LeakCanaryDelegate
 import leakcanary.internal.friendly.checkMainThread
 import leakcanary.internal.friendly.mainHandler
@@ -127,7 +128,7 @@ object AppWatcher {
    */
   fun appDefaultWatchers(
     application: Application,
-    deletableObjectReporter: DeletableObjectReporter = objectWatcher
+    deletableObjectReporter: DeletableObjectReporter = objectWatcher.asDeletableObjectReporter()
   ): List<InstallableWatcher> {
     // Use app context resources to avoid NotFoundException
     // https://github.com/square/leakcanary/issues/2137
@@ -136,7 +137,7 @@ object AppWatcher {
     return listOf(
       ActivityWatcher(application, deletableObjectReporter),
       FragmentAndViewModelWatcher(application, deletableObjectReporter),
-      RootViewWatcher(deletableObjectReporter, watchDismissedDialogs),
+      RootViewWatcher(deletableObjectReporter, WindowTypeFilter(watchDismissedDialogs)),
       ServiceWatcher(deletableObjectReporter)
     )
   }

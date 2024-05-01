@@ -75,7 +75,7 @@ class ExampleSetup {
       // Or maybe just delete support for support lib.
       FragmentAndViewModelWatcher(application, deletableObjectReporter),
       // TODO should configure this
-      RootViewWatcher(deletableObjectReporter, false),
+      RootViewWatcher(deletableObjectReporter),
       ServiceWatcher(deletableObjectReporter)
     )
 

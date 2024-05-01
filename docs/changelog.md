@@ -8,6 +8,7 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 ### Heap Growth
 
 * Deleted the `shark-heap-growth` artifact, the code has been merged into the `shark*` and `leakcanary*` modules.
+* Undo of breaking API changes that were introduced in alpha 1. The goal is to make the upgrade seamless. Please file an issue if you find an API breaking change from a 2.x release.
 * New `leakcanary-core` module that includes runtime leak detection utilities that aren't Android specific.
 * Optimization: for known data structures that don't reference the rest of the graph beyond the references we
 known about, we explore them locally at once and stop enqueuing their internals, which reduces the memory

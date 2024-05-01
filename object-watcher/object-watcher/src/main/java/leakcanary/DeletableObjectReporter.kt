@@ -16,5 +16,26 @@ fun interface DeletableObjectReporter {
   fun expectDeletionFor(
     target: Any,
     reason: String
-  ) : TrackedObjectReachability
+  ): TrackedObjectReachability
+}
+
+/**
+ * Creates a wrapper around [DeletableObjectReporter] that will run any instance of [T] by [apply]
+ * to decide whether to forward to [DeletableObjectReporter.expectDeletionFor] calls. Objects
+ * that do not extend [T] will always be forwarded.
+ */
+inline fun <reified T> DeletableObjectReporter.filteringInstances(
+  crossinline apply: (T) -> Boolean
+): DeletableObjectReporter {
+  val delegate = this
+  return DeletableObjectReporter { target, reason ->
+    if (target !is T || apply(target)) {
+      delegate.expectDeletionFor(target, reason)
+    } else object : TrackedObjectReachability {
+      override val isStronglyReachable: Boolean
+        get() = false
+      override val isRetained: Boolean
+        get() = false
+    }
+  }
 }
