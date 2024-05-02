@@ -12,5 +12,5 @@ object TempHeapDumpFileProvider : HeapDumpFileProvider {
   }
 }
 
-fun HeapDumpFileProvider.Companion.tempFileProvider(): HeapDumpFileProvider =
+fun HeapDumpFileProvider.Companion.tempFile(): HeapDumpFileProvider =
   TempHeapDumpFileProvider

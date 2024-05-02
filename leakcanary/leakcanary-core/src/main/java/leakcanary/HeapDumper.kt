@@ -18,3 +18,11 @@ fun interface HeapDumper {
    */
   companion object
 }
+
+fun HeapDumper.withGc(gcTrigger: GcTrigger = GcTrigger.inProcess()): HeapDumper {
+  val delegate = this
+  return HeapDumper { file ->
+    gcTrigger.runGc()
+    delegate.dumpHeap(file)
+  }
+}

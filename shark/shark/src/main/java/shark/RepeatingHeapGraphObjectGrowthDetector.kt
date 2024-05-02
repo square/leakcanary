@@ -1,9 +1,18 @@
 package shark
 
-class HeapGraphSequenceObjectGrowthDetector(
+/**
+ * @see findRepeatedlyGrowingObjects
+ */
+class RepeatingHeapGraphObjectGrowthDetector(
   private val objectGrowthDetector: ObjectGrowthDetector
 ) {
 
+  /**
+   * Detects object growth by iterating through [heapGraphSequence] repeatedly until no object
+   * growth is detected or the sequence ends. Returns the [HeapGrowthTraversal] for the last
+   * iteration. You can check [HeapGrowthTraversal.isGrowing] and
+   * [HeapGrowthTraversal.growingObjects] to report object growth.
+   */
   fun findRepeatedlyGrowingObjects(
     initialState: InitialState = InitialState(),
     heapGraphSequence: Sequence<CloseableHeapGraph>,
@@ -27,6 +36,9 @@ class HeapGraphSequenceObjectGrowthDetector(
   }
 }
 
-fun ObjectGrowthDetector.fromHeapGraphSequence(): HeapGraphSequenceObjectGrowthDetector {
-  return HeapGraphSequenceObjectGrowthDetector(this)
+/**
+ * @see RepeatingHeapGraphObjectGrowthDetector.findRepeatedlyGrowingObjects
+ */
+fun ObjectGrowthDetector.repeatingHeapGraph(): RepeatingHeapGraphObjectGrowthDetector {
+  return RepeatingHeapGraphObjectGrowthDetector(this)
 }

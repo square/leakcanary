@@ -4,7 +4,7 @@ import java.util.EnumSet
 import shark.ReferencePattern.Companion.instanceField
 import shark.ReferencePattern.Companion.staticField
 
-enum class AndroidHeapGrowthReferenceMatchers : ReferenceMatcher.ListBuilder {
+enum class AndroidObjectGrowthReferenceMatchers : ReferenceMatcher.ListBuilder {
 
   ANDROID_LEAK_DETECTION_IGNORED_MATCHERS {
     override fun add(references: MutableList<ReferenceMatcher>) {
@@ -72,7 +72,7 @@ enum class AndroidHeapGrowthReferenceMatchers : ReferenceMatcher.ListBuilder {
   companion object {
     val defaults: List<ReferenceMatcher>
       get() = ReferenceMatcher.fromListBuilders(
-        EnumSet.allOf(AndroidHeapGrowthReferenceMatchers::class.java)
+        EnumSet.allOf(AndroidObjectGrowthReferenceMatchers::class.java)
       )
   }
 }

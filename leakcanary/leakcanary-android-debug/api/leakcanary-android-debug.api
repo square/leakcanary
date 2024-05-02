@@ -7,15 +7,6 @@ public final class com/squareup/leakcanary/debug/BuildConfig {
 	public fun <init> ()V
 }
 
-public final class leakcanary/AndroidDebugHeapDumper : leakcanary/HeapDumper {
-	public static final field INSTANCE Lleakcanary/AndroidDebugHeapDumper;
-	public fun dumpHeap (Ljava/io/File;)V
-}
-
-public final class leakcanary/AndroidDebugHeapDumperKt {
-	public static final fun androidDumper (Lleakcanary/HeapDumper$Companion;)Lleakcanary/AndroidDebugHeapDumper;
-}
-
 public final class leakcanary/BackgroundThreadHeapAnalyzer : leakcanary/EventListener {
 	public static final field INSTANCE Lleakcanary/BackgroundThreadHeapAnalyzer;
 	public fun onEvent (Lleakcanary/EventListener$Event;)V

@@ -22,6 +22,7 @@ import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakCanaryAndroidInternalUtils
 import leakcanary.OnObjectRetainedListener
+import leakcanary.inProcess
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
 import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
@@ -122,7 +123,7 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
     AppWatcher.objectWatcher.addOnObjectRetainedListener(this)
 
-    val gcTrigger = GcTrigger.Default
+    val gcTrigger = GcTrigger.inProcess()
 
     val configProvider = { LeakCanary.config }
 

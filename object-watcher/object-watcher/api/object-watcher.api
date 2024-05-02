@@ -20,15 +20,6 @@ public abstract interface class leakcanary/DeletableObjectReporter {
 	public abstract fun expectDeletionFor (Ljava/lang/Object;Ljava/lang/String;)Lleakcanary/TrackedObjectReachability;
 }
 
-public abstract interface class leakcanary/GcTrigger {
-	public abstract fun runGc ()V
-}
-
-public final class leakcanary/GcTrigger$Default : leakcanary/GcTrigger {
-	public static final field INSTANCE Lleakcanary/GcTrigger$Default;
-	public fun runGc ()V
-}
-
 public final class leakcanary/KeyedWeakReference : java/lang/ref/WeakReference {
 	public static final field Companion Lleakcanary/KeyedWeakReference$Companion;
 	public fun <init> (Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;JLjava/lang/ref/ReferenceQueue;)V

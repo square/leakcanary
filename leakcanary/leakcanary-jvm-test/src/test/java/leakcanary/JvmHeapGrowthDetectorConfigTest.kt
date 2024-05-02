@@ -4,8 +4,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.HeapGraphProvider
 import shark.ObjectGrowthDetector
-import shark.fromHeapDumpingRepeatedScenario
-import shark.jvmDetector
+import shark.repeatingScenario
+import shark.forJvmHeap
 
 class JvmHeapGrowthDetectorConfigTest {
 
@@ -15,12 +15,7 @@ class JvmHeapGrowthDetectorConfigTest {
 
   @Test
   fun `leaky increase leads to heap growth`() {
-    val detector = ObjectGrowthDetector.jvmDetector()
-      .fromHeapDumpingRepeatedScenario(
-        heapGraphProvider = HeapGraphProvider.dumpingAndDeletingGraphProvider(
-          heapDumper = HeapDumper.jvmDumper()
-        )
-      )
+    val detector = ObjectGrowthDetector.forJvmHeap().repeatingJvmInProcessScenario()
 
     val growingNodes = detector.findRepeatedlyGrowingObjects {
       leakies += Leaky()

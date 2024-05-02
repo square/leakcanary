@@ -24,7 +24,7 @@ class DumpingAndDeletingHeapGraphProvider(
   }
 }
 
-fun HeapGraphProvider.Companion.dumpingAndDeletingGraphProvider(
+fun HeapGraphProvider.Companion.dumpingAndDeleting(
   heapDumper: HeapDumper,
   heapDumpFileProvider: HeapDumpFileProvider = TempHeapDumpFileProvider,
 ) = DumpingAndDeletingHeapGraphProvider(heapDumpFileProvider, heapDumper)
