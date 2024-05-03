@@ -15,4 +15,4 @@ object AndroidDebugHeapDumper : HeapDumper {
   }
 }
 
-fun HeapDumper.Companion.androidDumper() = AndroidDebugHeapDumper
+fun HeapDumper.Companion.forAndroidInProcess() = AndroidDebugHeapDumper

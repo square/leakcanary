@@ -133,7 +133,7 @@ class ObjectGrowthDetectorTest {
     heapDumps: List<CloseableHeapGraph>,
     scenarioLoopsPerGraph: Int = 1
   ): GrowingObjectNodes {
-    return fromHeapGraphSequence().findRepeatedlyGrowingObjects(
+    return repeatingHeapGraph().findRepeatedlyGrowingObjects(
       initialState = InitialState(
         scenarioLoopsPerGraph = scenarioLoopsPerGraph,
         heapGraphCount = heapDumps.size

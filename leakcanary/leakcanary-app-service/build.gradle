@@ -24,7 +24,7 @@ android {
 
 dependencies {
   implementation projects.leakcanary.leakcanaryAppAidl
-  implementation projects.leakcanary.leakcanaryAndroidCore
+  implementation projects.leakcanary.leakcanaryAndroidDebug
   implementation projects.shark.shark
   implementation projects.shark.sharkAndroid
 }

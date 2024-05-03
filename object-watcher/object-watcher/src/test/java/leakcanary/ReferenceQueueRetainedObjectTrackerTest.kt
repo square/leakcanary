@@ -1,7 +1,6 @@
 package leakcanary
 
 import kotlin.time.Duration.Companion.milliseconds
-import leakcanary.GcTrigger.Default.runGc
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
@@ -25,7 +24,7 @@ class ReferenceQueueRetainedObjectTrackerTest {
         ref!!, "unreachable object not retained"
       )
     ref = null
-    runGc()
+    GcTrigger.inProcess().runGc()
     retainTrigger.markRetainedIfStronglyReachable()
     assertThat(referenceQueueReachabilityWatcher.hasRetainedObjects).isFalse()
     assertThat(objectRetainedListenerInvoked).isFalse()
@@ -36,7 +35,7 @@ class ReferenceQueueRetainedObjectTrackerTest {
       referenceQueueReachabilityWatcher.expectDeletionOnTriggerFor(
         ref!!, "reachable object retained"
       )
-    runGc()
+    GcTrigger.inProcess().runGc()
     retainTrigger.markRetainedIfStronglyReachable()
     assertThat(referenceQueueReachabilityWatcher.hasRetainedObjects).isTrue()
     assertThat(objectRetainedListenerInvoked).isTrue()

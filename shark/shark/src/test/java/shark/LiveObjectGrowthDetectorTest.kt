@@ -168,8 +168,8 @@ class LiveObjectGrowthDetectorTest {
   private fun ObjectGrowthDetector.fromScenario(
     scenarioLoopsPerDump: Int = 1,
     maxHeapDumps: Int = 5
-  ): HeapDumpingObjectGrowthDetector {
-    return fromHeapDumpingRepeatedScenario(
+  ): RepeatingScenarioObjectGrowthDetector {
+    return repeatingScenario(
       heapGraphProvider = ::dumpHeapGraph,
       maxHeapDumps = maxHeapDumps,
       scenarioLoopsPerDump = scenarioLoopsPerDump

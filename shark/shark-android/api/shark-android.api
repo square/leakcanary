@@ -16,31 +16,32 @@ public final class shark/AndroidExtensionsKt {
 	public static final fun getIdentityHashCode (Lshark/HeapObject$HeapInstance;)Ljava/lang/Integer;
 }
 
-public abstract class shark/AndroidHeapGrowthReferenceMatchers : java/lang/Enum, shark/ReferenceMatcher$ListBuilder {
-	public static final field ANDROID_LEAK_DETECTION_IGNORED_MATCHERS Lshark/AndroidHeapGrowthReferenceMatchers;
-	public static final field COMPOSE_TEST_CONTEXT_STATES Lshark/AndroidHeapGrowthReferenceMatchers;
-	public static final field Companion Lshark/AndroidHeapGrowthReferenceMatchers$Companion;
-	public static final field HEAP_TRAVERSAL Lshark/AndroidHeapGrowthReferenceMatchers;
-	public static final field RESOURCES_THEME_REFS Lshark/AndroidHeapGrowthReferenceMatchers;
-	public static final field STRICT_MODE_VIOLATION_TIME Lshark/AndroidHeapGrowthReferenceMatchers;
-	public static final field VIEW_ROOT_IMPL_W_VIEW_ANCESTOR Lshark/AndroidHeapGrowthReferenceMatchers;
-	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public static fun valueOf (Ljava/lang/String;)Lshark/AndroidHeapGrowthReferenceMatchers;
-	public static fun values ()[Lshark/AndroidHeapGrowthReferenceMatchers;
-}
-
-public final class shark/AndroidHeapGrowthReferenceMatchers$Companion {
-	public final fun getDefaults ()Ljava/util/List;
-}
-
 public final class shark/AndroidMetadataExtractor : shark/MetadataExtractor {
 	public static final field INSTANCE Lshark/AndroidMetadataExtractor;
 	public fun extractMetadata (Lshark/HeapGraph;)Ljava/util/Map;
 }
 
 public final class shark/AndroidObjectGrowthDetectorKt {
-	public static final fun androidDetector (Lshark/ObjectGrowthDetector$Companion;Ljava/util/List;)Lshark/ObjectGrowthDetector;
-	public static synthetic fun androidDetector$default (Lshark/ObjectGrowthDetector$Companion;Ljava/util/List;ILjava/lang/Object;)Lshark/ObjectGrowthDetector;
+	public static final fun forAndroidHeap (Lshark/ObjectGrowthDetector$Companion;Ljava/util/List;)Lshark/ObjectGrowthDetector;
+	public static synthetic fun forAndroidHeap$default (Lshark/ObjectGrowthDetector$Companion;Ljava/util/List;ILjava/lang/Object;)Lshark/ObjectGrowthDetector;
+}
+
+public abstract class shark/AndroidObjectGrowthReferenceMatchers : java/lang/Enum, shark/ReferenceMatcher$ListBuilder {
+	public static final field ANDROID_LEAK_DETECTION_IGNORED_MATCHERS Lshark/AndroidObjectGrowthReferenceMatchers;
+	public static final field BINDER_PROXY Lshark/AndroidObjectGrowthReferenceMatchers;
+	public static final field COMPOSE_TEST_CONTEXT_STATES Lshark/AndroidObjectGrowthReferenceMatchers;
+	public static final field Companion Lshark/AndroidObjectGrowthReferenceMatchers$Companion;
+	public static final field HEAP_TRAVERSAL Lshark/AndroidObjectGrowthReferenceMatchers;
+	public static final field RESOURCES_THEME_REFS Lshark/AndroidObjectGrowthReferenceMatchers;
+	public static final field STRICT_MODE_VIOLATION_TIME Lshark/AndroidObjectGrowthReferenceMatchers;
+	public static final field VIEW_ROOT_IMPL_W_VIEW_ANCESTOR Lshark/AndroidObjectGrowthReferenceMatchers;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/AndroidObjectGrowthReferenceMatchers;
+	public static fun values ()[Lshark/AndroidObjectGrowthReferenceMatchers;
+}
+
+public final class shark/AndroidObjectGrowthReferenceMatchers$Companion {
+	public final fun getDefaults ()Ljava/util/List;
 }
 
 public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/ObjectInspector {

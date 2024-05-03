@@ -1,7 +1,7 @@
 package shark
 
-fun ObjectGrowthDetector.Companion.androidDetector(
-  referenceMatchers: List<ReferenceMatcher> = AndroidHeapGrowthReferenceMatchers.defaults
+fun ObjectGrowthDetector.Companion.forAndroidHeap(
+  referenceMatchers: List<ReferenceMatcher> = AndroidObjectGrowthReferenceMatchers.defaults
 ): ObjectGrowthDetector {
   return ObjectGrowthDetector(
     gcRootProvider = MatchingGcRootProvider(referenceMatchers),

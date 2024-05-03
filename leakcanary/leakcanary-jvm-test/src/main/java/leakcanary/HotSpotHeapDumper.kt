@@ -20,5 +20,5 @@ object HotSpotHeapDumper : HeapDumper {
   }
 }
 
-fun HeapDumper.Companion.jvmDumper() = HotSpotHeapDumper
+fun HeapDumper.Companion.forJvmInProcess() = HotSpotHeapDumper
 

@@ -61,7 +61,7 @@ class AndroidDetectLeaksAssert(
       }
     }
 
-    val heapDumpFileProvider = HeapDumpFileProvider.datetimeFormattedFileProvider(
+    val heapDumpFileProvider = HeapDumpFileProvider.datetimeFormatted(
       directory = File(
         InstrumentationRegistry.getInstrumentation().targetContext.filesDir,
         "instrumentation_tests"

@@ -4,6 +4,11 @@ public final class leakcanary/HotSpotHeapDumper : leakcanary/HeapDumper {
 }
 
 public final class leakcanary/HotSpotHeapDumperKt {
-	public static final fun jvmDumper (Lleakcanary/HeapDumper$Companion;)Lleakcanary/HotSpotHeapDumper;
+	public static final fun forJvmInProcess (Lleakcanary/HeapDumper$Companion;)Lleakcanary/HotSpotHeapDumper;
+}
+
+public final class leakcanary/RepeatingJvmInProcessScenarioKt {
+	public static final fun repeatingJvmInProcessScenario (Lshark/ObjectGrowthDetector;II)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static synthetic fun repeatingJvmInProcessScenario$default (Lshark/ObjectGrowthDetector;IIILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
 }
 

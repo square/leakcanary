@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (C) 2015 Square, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- To store the heap dumps and leak analysis results. -->
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+  <!-- To allow posting notifications on Android 13 -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+  <application>
+    <provider
+        android:name="leakcanary.internal.LeakCanaryFileProvider"
+        android:authorities="com.squareup.leakcanary.fileprovider.${applicationId}"
+        android:exported="false"
+        android:grantUriPermissions="true"
+        >
+      <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/leak_canary_file_paths"/>
+    </provider>
+
+    <activity
+        android:name="leakcanary.internal.activity.LeakActivity"
+        android:icon="@mipmap/leak_canary_icon"
+        android:exported="true"
+        android:label="@string/leak_canary_display_activity_label"
+        android:taskAffinity="com.squareup.leakcanary.${applicationId}"
+        android:theme="@style/leak_canary_LeakCanary.Base"
+        >
+      <intent-filter android:label="@string/leak_canary_import_hprof_file">
+        <action android:name="android.intent.action.VIEW"/>
+
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+
+        <data android:scheme="file"/>
+        <data android:scheme="content"/>
+        <data android:mimeType="*/*"/>
+        <data android:host="*"/>
+
+        <data android:pathPattern=".*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.hprof"/>
+        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.hprof"/>
+        <!--
+            Since hprof isn't a standard MIME type, we have to declare such patterns.
+            Most file providers will generate URIs including their own package name,
+            which contains `.` characters that must be explicitly escaped in pathPattern.
+            @see https://stackoverflow.com/a/31028507/703646
+        -->
+      </intent-filter>
+    </activity>
+
+    <activity-alias
+        android:name="leakcanary.internal.activity.LeakLauncherActivity"
+        android:enabled="@bool/leak_canary_add_launcher_icon"
+        android:icon="@mipmap/leak_canary_icon"
+        android:banner="@drawable/leak_canary_tv_icon"
+        android:label="@string/leak_canary_display_activity_label"
+        android:targetActivity="leakcanary.internal.activity.LeakActivity"
+        android:taskAffinity="com.squareup.leakcanary.${applicationId}"
+        android:theme="@style/leak_canary_LeakCanary.Base"
+        android:exported="true"
+        >
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+        <!-- Android TV launcher intent -->
+        <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+
+    <activity
+        android:name="leakcanary.internal.RequestPermissionActivity"
+        android:excludeFromRecents="true"
+        android:icon="@mipmap/leak_canary_icon"
+        android:label="@string/leak_canary_storage_permission_activity_label"
+        android:taskAffinity="com.squareup.leakcanary.${applicationId}"
+        android:theme="@style/leak_canary_Theme.Transparent"
+        />
+
+    <receiver android:name="leakcanary.internal.NotificationReceiver" />
+
+  </application>
+</manifest>

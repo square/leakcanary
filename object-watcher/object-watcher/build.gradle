@@ -9,6 +9,7 @@ targetCompatibility = JavaVersion.VERSION_1_8
 dependencies {
   implementation libs.kotlin.stdlib
   api projects.shark.sharkLog
+  api projects.leakcanary.leakcanaryGc
 
   testImplementation libs.assertjCore
   testImplementation libs.junit

@@ -38,7 +38,7 @@ class DateFormatHeapDumpFileProvider(
   }
 }
 
-fun HeapDumpFileProvider.Companion.datetimeFormattedFileProvider(
+fun HeapDumpFileProvider.Companion.datetimeFormatted(
   directory: File,
   prefix: String = "",
   suffix: String = "",

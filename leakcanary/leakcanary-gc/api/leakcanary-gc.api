@@ -1,0 +1,18 @@
+public final class leakcanary/FinalizingInProcessGcTrigger : leakcanary/GcTrigger {
+	public static final field INSTANCE Lleakcanary/FinalizingInProcessGcTrigger;
+	public fun runGc ()V
+}
+
+public final class leakcanary/FinalizingInProcessGcTriggerKt {
+	public static final fun inProcess (Lleakcanary/GcTrigger$Companion;)Lleakcanary/FinalizingInProcessGcTrigger;
+}
+
+public abstract interface class leakcanary/GcTrigger {
+	public static final field Companion Lleakcanary/GcTrigger$Companion;
+	public abstract fun runGc ()V
+}
+
+public final class leakcanary/GcTrigger$Companion {
+	public final fun getDefault ()Lleakcanary/FinalizingInProcessGcTrigger;
+}
+

@@ -53,12 +53,12 @@ class HeapGrowthCommand : CliktCommand(
       }
     } ?: emptyList()
 
-    val referenceMatchers = AndroidHeapGrowthReferenceMatchers.defaults +
+    val referenceMatchers = AndroidObjectGrowthReferenceMatchers.defaults +
       ignoredInstanceFieldReferences +
       ignoredStaticFieldReferences
 
     val androidDetector = ObjectGrowthDetector
-      .androidDetector(referenceMatchers)
+      .forAndroidHeap(referenceMatchers)
 
     data class Metrics(
       val randomAccessByteReads: Long,
@@ -103,7 +103,7 @@ class HeapGrowthCommand : CliktCommand(
           sourceProvider.openHeapGraph()
         }
         val detector = androidDetector
-          .fromHeapGraphSequence()
+          .repeatingHeapGraph()
         val results = detector.findRepeatedlyGrowingObjects(
           heapGraphSequence = heapGraphs,
           initialState = InitialState(scenarioLoopsPerDump, hprofFiles.size),

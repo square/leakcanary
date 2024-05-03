@@ -3,7 +3,6 @@ package leakcanary
 import android.app.Instrumentation
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
-import leakcanary.GcTrigger.Default
 import leakcanary.HeapAnalysisDecision.AnalyzeHeap
 import leakcanary.HeapAnalysisDecision.NoHeapAnalysis
 
@@ -26,7 +25,7 @@ class AndroidDetectLeaksInterceptor(
       return NoHeapAnalysis("No watched objects after waiting for idle sync.")
     }
 
-    Default.runGc()
+    GcTrigger.inProcess().runGc()
     if (!retainedObjectTracker.hasTrackedObjects) {
       return NoHeapAnalysis("No watched objects after triggering an explicit GC.")
     }
@@ -49,7 +48,7 @@ class AndroidDetectLeaksInterceptor(
       SystemClock.sleep(endOfWatchDelay)
     }
 
-    Default.runGc()
+    GcTrigger.inProcess().runGc()
 
     if (!retainedObjectTracker.hasRetainedObjects) {
       return NoHeapAnalysis("No retained objects after waiting for retained delay.")

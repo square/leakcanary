@@ -1,6 +1,6 @@
 package shark
 
-fun ObjectGrowthDetector.Companion.jvmDetector(
+fun ObjectGrowthDetector.Companion.forJvmHeap(
   referenceMatchers: List<ReferenceMatcher> = JdkReferenceMatchers.defaults +
     HeapTraversalOutput.ignoredReferences
 ): ObjectGrowthDetector {
