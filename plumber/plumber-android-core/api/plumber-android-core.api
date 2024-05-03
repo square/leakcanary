@@ -17,6 +17,7 @@ public abstract class leakcanary/AndroidLeakFixes : java/lang/Enum {
 	public static final field VIEW_LOCATION_HOLDER Lleakcanary/AndroidLeakFixes;
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	protected abstract fun apply (Landroid/app/Application;)V
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lleakcanary/AndroidLeakFixes;
 	public static fun values ()[Lleakcanary/AndroidLeakFixes;
 }

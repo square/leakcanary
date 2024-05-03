@@ -10,18 +10,18 @@ jobs:
   validation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: gradle/wrapper-validation-action@v1
+      - uses: actions/checkout@v4
+      - uses: gradle/wrapper-validation-action@v2
 
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: 'zulu'
-      - uses: gradle/gradle-build-action@v2
+      - uses: gradle/actions/setup-gradle@v3
       - name: Build project
         run: ./gradlew build --stacktrace
 
@@ -66,7 +66,7 @@ jobs:
         with:
           java-version: 17
           distribution: 'zulu'
-      - uses: gradle/gradle-build-action@v2
+      - uses: gradle/actions/setup-gradle@v3
       - name: AVD cache
         uses: actions/cache@v4
         id: avd-cache
@@ -101,7 +101,7 @@ jobs:
             ./gradlew leakcanary:leakcanary-android-debug:connectedCheck leakcanary:leakcanary-android:connectedCheck leakcanary:leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
       - name: Upload results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.api-level }}-${{ matrix.arch }}-instrumentation-test-results
           path: |
@@ -113,12 +113,12 @@ jobs:
     needs: [ checks, instrumentation-tests ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: 'zulu'
-      - uses: gradle/gradle-build-action@v2
+      - uses: gradle/actions/setup-gradle@v3
       - name: Deploy snapshot
         run: ./gradlew publish
         env:
