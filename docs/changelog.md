@@ -5,34 +5,25 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 
 ## Version 3.0 Alpha 2 (not released yet)
 
-### Heap Growth
-
 * Deleted the `shark-heap-growth` artifact, the code has been merged into the `shark*` and `leakcanary*` modules.
+* The `leakcanary-android-core` artifact was renamed `leakcanary-android-debug`. `leakcanary-android-core` is now a much smaller artifact with a few shared utilities.
 * Undo of breaking API changes that were introduced in alpha 1. The goal is to make the upgrade seamless. Please file an issue if you find an API breaking change from a 2.x release.
-* New `leakcanary-core` module that includes runtime leak detection utilities that aren't Android specific.
 * Optimization: for known data structures that don't reference the rest of the graph beyond the references we
 known about, we explore them locally at once and stop enqueuing their internals, which reduces the memory
 footprint and the IO reads.
-* Revamped the APIs for setup. Here's an updated example usage:
+* Revamped the heap growth detection APIs. Here's the updated Espresso test example:
 
 ```groovy
 dependencies {
-  androidTestImplementation 'com.squareup.leakcanary:leakcanary-core:3.0-alpha-2'
-  androidTestImplementation 'com.squareup.leakcanary:shark-android:3.0-alpha-2'
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-test:3.0-alpha-2'
 }
 ```
 
 ```kotlin
 class MyEspressoTest {
   val detector = ObjectGrowthDetector
-    .androidDetector()
-    .fromHeapDumpingRepeatedScenario(
-      heapGraphProvider = HeapGraphProvider.dumpingAndDeletingGraphProvider(
-        heapDumper = { Debug.dumpHprofData(it.absolutePath) },
-      ),
-      maxHeapDumps = 5,
-      scenarioLoopsPerDump = 1,
-    )
+    .forAndroidHeap()
+    .repeatingAndroidInProcessScenario()
 
   @Test
   fun greeter_says_hello_does_not_leak() {
@@ -46,6 +37,19 @@ class MyEspressoTest {
     assertThat(heapGrowth.growingObjects).isEmpty()
   }
 }
+```
+
+Ensure your UI tests have enough heap by updating `src/androidTest/AndroidManifest.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Performing the heap growth analysis in process requires more heap. -->
+  <application
+      android:largeHeap="true"/>
+</manifest>
 ```
 
 ## Version 2.14 (2024-04-17)
