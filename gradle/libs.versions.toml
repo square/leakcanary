@@ -44,6 +44,7 @@ androidX-fragment = { module = "androidx.fragment:fragment", version = "1.0.0" }
 # Exposed transitively, avoid increasing
 androidX-startup = { module = "androidx.startup:startup-runtime", version = "1.0.0" }
 androidX-test-core = { module = "androidx.test:core", version = "1.4.0" }
+androidX-test-monitor = { module = "androidx.test:monitor", version = "1.4.0" }
 androidX-test-rules = { module = "androidx.test:rules", version.ref = "androidXTest" }
 # Exposed transitively, avoid increasing
 androidX-test-runner = { module = "androidx.test:runner", version = "1.4.0" }
@@ -51,6 +52,7 @@ androidX-test-orchestrator = { module = "androidx.test:orchestrator", version = 
 androidX-test-espresso = { module = "androidx.test.espresso:espresso-core", version = "3.4.0" }
 androidX-test-junit = { module = "androidx.test.ext:junit", version.ref = "androidXJunit" }
 androidX-test-junitKtx = { module = "androidx.test.ext:junit-ktx", version.ref = "androidXJunit" }
+androidX-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version = "2.2.0" }
 androidX-work-runtime = { module = "androidx.work:work-runtime", version.ref = "workManager" }
 androidX-work-multiprocess = { module = "androidx.work:work-multiprocess", version.ref = "workManager" }
 

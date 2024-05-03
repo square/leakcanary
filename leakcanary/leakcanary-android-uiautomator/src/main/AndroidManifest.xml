@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!--
+    Performing the heap growth analysis requires more heap. We avoid doing this for
+    in process LeakCanary because apps might not expect it, but that seems more ok
+    for a ui automation app.
+  -->
+  <application
+    android:largeHeap="true"/>
+
+</manifest>

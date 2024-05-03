@@ -1,0 +1,14 @@
+public final class leakcanary/RepeatingUiAutomatorScenarioKt {
+	public static final fun repeatingUiAutomatorScenario (Lshark/ObjectGrowthDetector;II)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static synthetic fun repeatingUiAutomatorScenario$default (Lshark/ObjectGrowthDetector;IIILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
+}
+
+public final class leakcanary/UiAutomatorShellHeapDumper : leakcanary/HeapDumper {
+	public fun <init> (Z)V
+	public fun dumpHeap (Ljava/io/File;)V
+}
+
+public final class leakcanary/UiAutomatorShellHeapDumperKt {
+	public static final fun forUiAutomatorAsShell (Lleakcanary/HeapDumper$Companion;Z)Lleakcanary/UiAutomatorShellHeapDumper;
+}
+
