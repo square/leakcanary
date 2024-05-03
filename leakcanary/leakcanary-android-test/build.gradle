@@ -6,21 +6,16 @@ plugins {
 
 dependencies {
   api projects.leakcanary.leakcanaryCore
-  api projects.shark.sharkLog
-
-  implementation libs.kotlin.stdlib
+  api projects.leakcanary.leakcanaryAndroidUtils
+  api projects.shark.sharkAndroid
 }
 
 android {
   compileSdk versions.compileSdk
   defaultConfig {
+    targetSdk versions.compileSdk
     minSdk versions.minSdk
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.utils'
-  lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
-    error 'ObsoleteSdkInt'
-  }
+  namespace 'com.squareup.leakcanary.core'
 }
