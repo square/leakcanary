@@ -1,8 +1,8 @@
 public final class leakcanary/DateFormatHeapDumpFileProvider : leakcanary/HeapDumpFileProvider {
 	public static final field Companion Lleakcanary/DateFormatHeapDumpFileProvider$Companion;
 	public static final field TIME_PATTERN Ljava/lang/String;
-	public fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/String;)V
-	public synthetic fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/io/File;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/io/File;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun newHeapDumpFile ()Ljava/io/File;
 }
 
@@ -15,13 +15,17 @@ public final class leakcanary/DateFormatHeapDumpFileProviderKt {
 }
 
 public final class leakcanary/DumpingAndDeletingHeapGraphProvider : shark/HeapGraphProvider {
-	public fun <init> (Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;)V
+	public fun <init> (Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lleakcanary/FileDeleter;)V
 	public fun openHeapGraph ()Lshark/CloseableHeapGraph;
 }
 
 public final class leakcanary/DumpingAndDeletingHeapGraphProviderKt {
-	public static final fun dumpingAndDeleting (Lshark/HeapGraphProvider$Companion;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpFileProvider;)Lleakcanary/DumpingAndDeletingHeapGraphProvider;
-	public static synthetic fun dumpingAndDeleting$default (Lshark/HeapGraphProvider$Companion;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpFileProvider;ILjava/lang/Object;)Lleakcanary/DumpingAndDeletingHeapGraphProvider;
+	public static final fun dumpingAndDeleting (Lshark/HeapGraphProvider$Companion;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpFileProvider;Lleakcanary/FileDeleter;)Lleakcanary/DumpingAndDeletingHeapGraphProvider;
+	public static synthetic fun dumpingAndDeleting$default (Lshark/HeapGraphProvider$Companion;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpFileProvider;Lleakcanary/FileDeleter;ILjava/lang/Object;)Lleakcanary/DumpingAndDeletingHeapGraphProvider;
+}
+
+public abstract interface class leakcanary/FileDeleter {
+	public abstract fun delete (Ljava/io/File;)V
 }
 
 public abstract interface class leakcanary/HeapDumpFileProvider {

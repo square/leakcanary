@@ -1,5 +1,7 @@
 package leakcanary
 
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
 import shark.RepeatingScenarioObjectGrowthDetector
 import shark.HeapGraphProvider
 import shark.ObjectGrowthDetector
@@ -15,15 +17,21 @@ import shark.repeatingScenario
  * @see [RepeatingScenarioObjectGrowthDetector.findRepeatedlyGrowingObjects]
  */
 fun ObjectGrowthDetector.repeatingUiAutomatorScenario(
+  dumpedAppPackageName: String = InstrumentationRegistry.getInstrumentation().targetContext.packageName,
   maxHeapDumps: Int = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS,
   scenarioLoopsPerDump: Int = RepeatingScenarioObjectGrowthDetector.DEFAULT_SCENARIO_LOOPS_PER_DUMP,
 ): RepeatingScenarioObjectGrowthDetector {
   return repeatingScenario(
-    // TODO Add a way to delete by running "rm", custom lambda in dumpingAndDeleting
     heapGraphProvider = HeapGraphProvider.dumpingAndDeleting(
-      heapDumper = HeapDumper.forUiAutomatorAsShell(withGc = true),
-      // TODO This probs won't work, let's try and see.
-      heapDumpFileProvider = HeapDumpFileProvider.tempFile()
+      heapDumper = HeapDumper.forUiAutomatorAsShell(
+        withGc = true,
+        dumpedAppPackageName = dumpedAppPackageName
+      ),
+      heapDumpFileProvider = HeapDumpFileProvider.datetimeFormatted(
+        directory = File("/data/local/tmp/"),
+        suffix = "-$dumpedAppPackageName"
+      ),
+      fileDeleter = UiAutomatorShellFileDeleter
     ),
     maxHeapDumps = maxHeapDumps,
     scenarioLoopsPerDump = scenarioLoopsPerDump,

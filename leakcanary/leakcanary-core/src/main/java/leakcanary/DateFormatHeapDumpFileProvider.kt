@@ -6,11 +6,20 @@ import java.util.Date
 import java.util.Locale
 
 class DateFormatHeapDumpFileProvider(
-  private val heapDumpDirectoryProvider: () -> File,
+  private val heapDumpDirectory: File,
   private val dateProvider: () -> Date = { Date() },
   prefix: String = "",
   suffix: String = ""
 ) : HeapDumpFileProvider {
+
+  init {
+    heapDumpDirectory.apply {
+      mkdirs()
+      check(exists()) {
+        "Expected heap dump folder to exist: $absolutePath"
+      }
+    }
+  }
 
   private val dateFormatPattern =
     "${escape(prefix)}$TIME_PATTERN${escape("$suffix.hprof")}"
@@ -23,7 +32,6 @@ class DateFormatHeapDumpFileProvider(
   }
 
   override fun newHeapDumpFile(): File {
-    val heapDumpDirectory = heapDumpDirectoryProvider()
     val date = dateProvider()
     val fileName = timeFormatThreadLocal.get()!!.format(date)
     return File(heapDumpDirectory, fileName)
@@ -45,14 +53,7 @@ fun HeapDumpFileProvider.Companion.datetimeFormatted(
   dateProvider: () -> Date = { Date() },
 ): HeapDumpFileProvider {
   return DateFormatHeapDumpFileProvider(
-    heapDumpDirectoryProvider = {
-      directory.apply {
-        mkdirs()
-        check(exists()) {
-          "Expected heap dump folder to exist: $absolutePath"
-        }
-      }
-    },
+    heapDumpDirectory = directory,
     dateProvider = dateProvider,
     prefix = prefix,
     suffix = suffix
