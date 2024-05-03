@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+  api projects.leakcanary.leakcanaryCore
   api projects.shark.sharkLog
 
   implementation libs.kotlin.stdlib

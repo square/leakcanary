@@ -1,0 +1,5 @@
+public final class leakcanary/RepeatingAndroidInProcessScenarioKt {
+	public static final fun repeatingAndroidInProcessScenario (Lshark/ObjectGrowthDetector;II)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static synthetic fun repeatingAndroidInProcessScenario$default (Lshark/ObjectGrowthDetector;IIILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
+}
+

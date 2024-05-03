@@ -1,3 +1,12 @@
+public final class leakcanary/AndroidDebugHeapDumper : leakcanary/HeapDumper {
+	public static final field INSTANCE Lleakcanary/AndroidDebugHeapDumper;
+	public fun dumpHeap (Ljava/io/File;)V
+}
+
+public final class leakcanary/AndroidDebugHeapDumperKt {
+	public static final fun forAndroidInProcess (Lleakcanary/HeapDumper$Companion;)Lleakcanary/AndroidDebugHeapDumper;
+}
+
 public final class leakcanary/LogcatSharkLog : shark/SharkLog$Logger {
 	public static final field Companion Lleakcanary/LogcatSharkLog$Companion;
 	public fun <init> ()V

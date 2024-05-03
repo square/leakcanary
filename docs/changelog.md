@@ -5,34 +5,25 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 
 ## Version 3.0 Alpha 2 (not released yet)
 
-### Heap Growth
-
 * Deleted the `shark-heap-growth` artifact, the code has been merged into the `shark*` and `leakcanary*` modules.
+* The `leakcanary-android-core` artifact was renamed `leakcanary-android-debug`. `leakcanary-android-core` is now a much smaller artifact with a few shared utilities.
 * Undo of breaking API changes that were introduced in alpha 1. The goal is to make the upgrade seamless. Please file an issue if you find an API breaking change from a 2.x release.
-* New `leakcanary-core` module that includes runtime leak detection utilities that aren't Android specific.
 * Optimization: for known data structures that don't reference the rest of the graph beyond the references we
 known about, we explore them locally at once and stop enqueuing their internals, which reduces the memory
 footprint and the IO reads.
-* Revamped the APIs for setup. Here's an updated example usage:
+* Revamped the heap growth detection APIs. Here's the updated Espresso test example:
 
 ```groovy
 dependencies {
-  androidTestImplementation 'com.squareup.leakcanary:leakcanary-core:3.0-alpha-2'
-  androidTestImplementation 'com.squareup.leakcanary:shark-android:3.0-alpha-2'
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-test:3.0-alpha-2'
 }
 ```
 
 ```kotlin
 class MyEspressoTest {
   val detector = ObjectGrowthDetector
-    .androidDetector()
-    .fromHeapDumpingRepeatedScenario(
-      heapGraphProvider = HeapGraphProvider.dumpingAndDeletingGraphProvider(
-        heapDumper = { Debug.dumpHprofData(it.absolutePath) },
-      ),
-      maxHeapDumps = 5,
-      scenarioLoopsPerDump = 1,
-    )
+    .forAndroidHeap()
+    .repeatingAndroidInProcessScenario()
 
   @Test
   fun greeter_says_hello_does_not_leak() {
@@ -46,6 +37,19 @@ class MyEspressoTest {
     assertThat(heapGrowth.growingObjects).isEmpty()
   }
 }
+```
+
+Ensure your UI tests have enough heap by updating `src/androidTest/AndroidManifest.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Performing the heap growth analysis in process requires more heap. -->
+  <application
+      android:largeHeap="true"/>
+</manifest>
 ```
 
 ## Version 2.14 (2024-04-17)
@@ -563,7 +567,7 @@ dependencies {
 }
 ```
 
-Note 1: `leakcanary-android` adds the code for automatic install to `leakcanary-android-core`. If you're calling `AppWatcher.manualInstall()`, you can depend directly on `leakcanary-android-core` instead of `leakcanary-android`, and you won't need the disable any automatic install.
+Note 1: `leakcanary-android` adds the code for automatic installl to `leakcanary-android-core`. If you're calling `AppWatcher.manualInstall()`, you can depend directly on `leakcanary-android-core` instead of `leakcanary-android`, and you won't need the disable any automatic install.
 
 Note 2: the same principle applies to `leakcanary-object-watcher-android`: it depends on `leakcanary-object-watcher-android-core` and adds automatic install, while `leakcanary-object-watcher-android-startup` leverages the App Startup library. Same for `plumber-android`, `plumber-android-core` and  `plumber-android-startup`.
 
@@ -1432,7 +1436,7 @@ For more details, see the [2.0-beta-2 Milestone](https://github.com/square/leakc
 
 * New standalone library! [Shark](shark.md) is the heap analyzer that powers LeakCanary 2, and it can run in any Java VM. It comes with a [CLI](shark.md#shark-cli): you can now run `shark-cli analyze-process com.example.myapp` from your computer.
 * New Heap Explorer directly on device! Open a Heap Analysis in LeakCanary, tap the options menu and select "Heap Explorer". This is still experimental and not very user friendly, contributions welcome!
-* **Large API rewrite** to improve usability. If you used the alpha with a customized configuration, there are breaking changes. Of note: LeakSentry became [AppWatcher](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/), RefWatcher became [ObjectWatcher](/leakcanary/api/leakcanary-object-watcher/leakcanary/-object-watcher/), AndroidExcludedRefs became [AndroidReferenceMatchers](/leakcanary/api/shark-android/shark/-android-reference-matchers/), AnalysisResultListener became [OnHeapAnalyzedListener](/leakcanary/api/leakcanary-android-debug/leakcanary/-on-heap-analyzed-listener/), AndroidLeakTraceInspectors became [AndroidObjectInspectors](/leakcanary/api/shark-android/shark/-android-object-inspectors/).
+* **Large API rewrite** to improve usability. If you used the alpha with a customized configuration, there are breaking changes. Of note: LeakSentry became [AppWatcher](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/), RefWatcher became [ObjectWatcher](/leakcanary/api/leakcanary-object-watcher/leakcanary/-object-watcher/), AndroidExcludedRefs became [AndroidReferenceMatchers](/leakcanary/api/shark-android/shark/-android-reference-matchers/), AnalysisResultListener became [OnHeapAnalyzedListener](/leakcanary/api/leakcanary-android-core/leakcanary/-on-heap-analyzed-listener/), AndroidLeakTraceInspectors became [AndroidObjectInspectors](/leakcanary/api/shark-android/shark/-android-object-inspectors/).
 * The entire API surface is now documented and the documentation is available on this website: see the **LeakCanary API** tab at the top.
 * Removed the **dependency on Android X**. No more configuration issues! [#1462](https://github.com/square/leakcanary/issues/1462)
 * Added **Proguard rules** for LeakCanary and ObjectWatcher. [#1500](https://github.com/square/leakcanary/pull/1500)

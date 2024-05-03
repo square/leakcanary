@@ -1,0 +1,21 @@
+plugins {
+  id("com.android.library")
+  id("org.jetbrains.kotlin.android")
+  id("com.vanniktech.maven.publish")
+}
+
+dependencies {
+  api projects.leakcanary.leakcanaryCore
+  api projects.leakcanary.leakcanaryAndroidUtils
+  api projects.shark.sharkAndroid
+}
+
+android {
+  compileSdk versions.compileSdk
+  defaultConfig {
+    targetSdk versions.compileSdk
+    minSdk versions.minSdk
+  }
+  buildFeatures.buildConfig = false
+  namespace 'com.squareup.leakcanary.core'
+}
