@@ -150,7 +150,7 @@ class DebugExampleApplication : ExampleApplication() {
 }
 ```
 
-LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing [LeakCanary.config](/leakcanary/api/leakcanary-android-debug/leakcanary/-leak-canary/config/):
+LeakCanary is in charge of taking heap dumps and analyzing them. Its configuration can be updated at any time by replacing [LeakCanary.config](/leakcanary/api/leakcanary-android-core/leakcanary/-leak-canary/config/):
 
 ```kotlin
 disableLeakCanaryButton.setOnClickListener {
