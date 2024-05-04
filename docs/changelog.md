@@ -3,20 +3,37 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-## Version 3.0 Alpha 2 (not released yet)
+## Version 3.0 Alpha 2 (2024-05-03)
 
 * Deleted the `shark-heap-growth` artifact, the code has been merged into the `shark*` and `leakcanary*` modules.
-* The `leakcanary-android-core` artifact was renamed `leakcanary-android-debug`. `leakcanary-android-core` is now a much smaller artifact with a few shared utilities.
+* New `leakcanary-android-test` and `leakcanary-android-uiautomator` artifacts.
 * Undo of breaking API changes that were introduced in alpha 1. The goal is to make the upgrade seamless. Please file an issue if you find an API breaking change from a 2.x release.
 * Optimization: for known data structures that don't reference the rest of the graph beyond the references we
-known about, we explore them locally at once and stop enqueuing their internals, which reduces the memory
+know about, we explore them locally at once and stop enqueuing their internals, which reduces the memory
 footprint and the IO reads.
-* Revamped the heap growth detection APIs. Here's the updated Espresso test example:
+* Revamped the heap growth detection APIs, added support for UI Automator and Shark CLI.
+
+### Heap Growth: Espresso test example
+
+Add the dependency:
 
 ```groovy
 dependencies {
   androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-test:3.0-alpha-2'
 }
+```
+
+Ensure your UI tests have enough heap by updating `src/androidTest/AndroidManifest.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Performing the heap growth analysis in process requires more heap. -->
+  <application
+      android:largeHeap="true"/>
+</manifest>
 ```
 
 ```kotlin
@@ -39,17 +56,47 @@ class MyEspressoTest {
 }
 ```
 
-Ensure your UI tests have enough heap by updating `src/androidTest/AndroidManifest.xml`:
+### Heap Growth: UI Automator test example.
 
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android">
+Add the dependency:
 
-  <!-- Performing the heap growth analysis in process requires more heap. -->
-  <application
-      android:largeHeap="true"/>
-</manifest>
+```groovy
+dependencies {
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-uiautomator:3.0-alpha-2'
+}
+```
+
+```kotlin
+class MyUiAutomatorTest {
+  val detector = ObjectGrowthDetector
+    .forAndroidHeap()
+    .repeatingUiAutomatorScenario()
+
+  @Test
+  fun clicking_welcome_does_not_leak() {
+    val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+    // Runs repeatedly until the heap stops growing or we reach max heap dumps.
+    val heapGrowth = detector.findRepeatedlyGrowingObjects {
+      device.findObject(By.text("Welcome!")).click()
+    }
+
+    assertThat(heapGrowth.growingObjects).isEmpty()
+  }
+}
+```
+
+### Heap Growth: Shark CLI
+
+Install Shark CLI:
+
+```
+brew install leakcanary-shark
+```
+
+Run the `heap-growth` command:
+
+```
+$ shark-cli -p com.example.app.debug heap-growth
 ```
 
 ## Version 2.14 (2024-04-17)
