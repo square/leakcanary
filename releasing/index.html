@@ -1054,7 +1054,8 @@ git<span class="w"> </span>merge<span class="w"> </span>--no-ff<span class="w"> 
 </li>
 <li>
 <p>Deploy the docs locally then <a href="http://127.0.0.1:8000/leakcanary/changelog/">open the changelog</a> and check everything looks good
-<div class="highlight"><pre><span></span><code>mkdocs<span class="w"> </span>serve
+<div class="highlight"><pre><span></span><code><span class="nb">source</span><span class="w"> </span>venv/bin/activate<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mkdocs<span class="w"> </span>serve
 </code></pre></div></p>
 </li>
 <li>
@@ -1063,14 +1064,15 @@ git<span class="w"> </span>merge<span class="w"> </span>--no-ff<span class="w"> 
 </ul>
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>commit<span class="w"> </span>-am<span class="w"> </span><span class="s2">&quot;Prepare for next development iteration&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 git<span class="w"> </span>push<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="nb">source</span><span class="w"> </span>venv/bin/activate<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+mkdocs<span class="w"> </span>gh-deploy<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+gh<span class="w"> </span>release<span class="w"> </span>create<span class="w"> </span>v3.0-alpha-5<span class="w"> </span>./shark/shark-cli/build/distributions/shark-cli-3.0-alpha-5.zip<span class="w"> </span>--title<span class="w"> </span>v3.0-alpha-5<span class="w"> </span>--notes<span class="w"> </span><span class="s1">&#39;See [Change Log](https://square.github.io/leakcanary/changelog)&#39;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 gh<span class="w"> </span>listOpenMilestones<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.data.repository.milestones.nodes[0].number&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>gh<span class="w"> </span>closeMilestone<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;{</span>
 <span class="s1">  &quot;title&quot;: &quot;REPLACE_WITH_NEXT_VERSION_NUMBER&quot;,</span>
 <span class="s1">  &quot;state&quot;: &quot;open&quot;,</span>
 <span class="s1">  &quot;description&quot;: &quot;&quot;</span>
-<span class="s1">}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>gh<span class="w"> </span>createMilestone<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-mkdocs<span class="w"> </span>gh-deploy
-gh<span class="w"> </span>release<span class="w"> </span>create<span class="w"> </span>v3.0-alpha-5<span class="w"> </span>./shark/shark-cli/build/distributions/shark-cli-3.0-alpha-5.zip<span class="w"> </span>--title<span class="w"> </span>v3.0-alpha-5<span class="w"> </span>--notes<span class="w"> </span><span class="s1">&#39;See [Change Log](https://square.github.io/leakcanary/changelog)&#39;</span>
+<span class="s1">}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>gh<span class="w"> </span>createMilestone
 </code></pre></div>
 <ul>
 <li>
