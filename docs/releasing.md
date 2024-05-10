@@ -151,6 +151,7 @@ mate docs/changelog.md
 
 * Deploy the docs locally then [open the changelog](http://127.0.0.1:8000/leakcanary/changelog/) and check everything looks good
 ```bash
+source venv/bin/activate && \
 mkdocs serve
 ```
 
@@ -159,14 +160,15 @@ mkdocs serve
 ```bash
 git commit -am "Prepare for next development iteration" && \
 git push && \
+source venv/bin/activate && \
+mkdocs gh-deploy && \
+gh release create v{{ leak_canary.next_release }} ./shark/shark-cli/build/distributions/shark-cli-{{ leak_canary.next_release }}.zip --title v{{ leak_canary.next_release }} --notes 'See [Change Log](https://square.github.io/leakcanary/changelog)' && \
 gh listOpenMilestones | jq '.data.repository.milestones.nodes[0].number' | xargs gh closeMilestone && \
 echo '{
   "title": "REPLACE_WITH_NEXT_VERSION_NUMBER",
   "state": "open",
   "description": ""
-}' | gh createMilestone && \
-mkdocs gh-deploy
-gh release create v{{ leak_canary.next_release }} ./shark/shark-cli/build/distributions/shark-cli-{{ leak_canary.next_release }}.zip --title v{{ leak_canary.next_release }} --notes 'See [Change Log](https://square.github.io/leakcanary/changelog)'
+}' | gh createMilestone
 ```
 
 * Open the [v{{ leak_canary.next_release }} release](https://github.com/square/leakcanary/releases/tag/v{{ leak_canary.next_release }}) to confirm everything looks good.
