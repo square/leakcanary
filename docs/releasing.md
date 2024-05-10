@@ -89,6 +89,8 @@ gh alias set --shell closeMilestone "echo '{\"state\": \"closed\"}' | gh api --m
 ### Install or update the doc generation dependencies
 
 ```bash
+python3 -m venv venv
+source venv/bin/activate
 pip3 install --requirement docs/requirements.txt
 ```
 
@@ -164,7 +166,7 @@ echo '{
   "description": ""
 }' | gh createMilestone && \
 mkdocs gh-deploy
-gh release create v{{ leak_canary.next_release }} ./shark-cli/build/distributions/shark-cli-{{ leak_canary.next_release }}.zip --title v{{ leak_canary.next_release }} --notes 'See [Change Log](https://square.github.io/leakcanary/changelog)'
+gh release create v{{ leak_canary.next_release }} ./shark/shark-cli/build/distributions/shark-cli-{{ leak_canary.next_release }}.zip --title v{{ leak_canary.next_release }} --notes 'See [Change Log](https://square.github.io/leakcanary/changelog)'
 ```
 
 * Open the [v{{ leak_canary.next_release }} release](https://github.com/square/leakcanary/releases/tag/v{{ leak_canary.next_release }}) to confirm everything looks good.

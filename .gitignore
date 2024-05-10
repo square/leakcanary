@@ -40,3 +40,6 @@ site
 
 # Generated dokka
 docs/api
+
+# Python virtual env
+venv
