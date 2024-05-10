@@ -3,9 +3,9 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-## Version 3.0 Alpha 3 (2024-05-09)
+## Version 3.0 Alpha 4 (2024-05-10)
 
-(note: alpha 2 was borked, I messed up)
+
 
 * Deleted the `shark-heap-growth` artifact, the code has been merged into the `shark*` and `leakcanary*` modules.
 * New `leakcanary-android-test` and `leakcanary-android-uiautomator` artifacts.
@@ -14,6 +14,8 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 know about, we explore them locally at once and stop enqueuing their internals, which reduces the memory
 footprint and the IO reads.
 * Revamped the heap growth detection APIs, added support for UI Automator and Shark CLI.
+
+(_note: I skipped from alpha 1 to alpha 4 because I messed up a few releases. Sorry!_)
 
 ### Heap Growth: Espresso test example
 
