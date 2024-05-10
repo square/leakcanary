@@ -638,7 +638,7 @@ private constructor(
     private const val INITIAL_TMP_STORAGE_LENGTH = 256
 
     /**
-     * Asserts have been placed in if-statements for performace. To enable them,
+     * Asserts have been placed in if-statements for performance. To enable them,
      * set this field to true and enable them in VM with a command line flag.
      * If you modify this class, please do test the asserts!
      */
