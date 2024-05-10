@@ -59,7 +59,7 @@ class ChainingInstanceReferenceReader(
      * partition. These edges are said to cross the cut.
      *
      * If true, the references returned by [read] will include the cut-set, which means any other
-     * object reacheable from the source instance but not returned by [read] has no outgoing
+     * object reachable from the source instance but not returned by [read] has no outgoing
      * edge to the rest of the graph. In other words, the internals of the data structure cannot
      * reach beyond the data structure itself.
      *
