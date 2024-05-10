@@ -87,16 +87,12 @@ class MyUiAutomatorTest {
 
 ### Heap Growth: Shark CLI
 
-Install Shark CLI:
-
-```
-brew install leakcanary-shark
-```
+Download the [Shark CLI Zip](https://github.com/square/leakcanary/releases/download/v3.0-alpha-2/shark-cli-3.0-alpha-2.zip) (alphas cannot be released to brew) and unzip it.
 
 Run the `heap-growth` command:
 
 ```
-$ shark-cli -p com.example.app.debug heap-growth
+$ ~/Downloads/shark-cli-3.0-alpha-2/bin/shark-cli -p com.example.app.debug heap-growth
 ```
 
 ## Version 2.14 (2024-04-17)

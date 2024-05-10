@@ -52,8 +52,8 @@ class ObjectGrowthDetector(
       if (output is HeapGrowthTraversal) {
         val scenarioCount = output.traversalCount * output.scenarioLoopsPerGraph
         SharkLog.d {
-          "After $scenarioCount scenario iterations and ${output.traversalCount} heap dumps: " +
-            "${output.growingObjects.size} growing nodes"
+          "After $scenarioCount scenario iterations and ${output.traversalCount} heap dumps, " +
+            "${output.growingObjects.size} growing nodes:\n" + output.growingObjects
         }
       }
     }
