@@ -1003,27 +1003,27 @@ pip3<span class="w"> </span>install<span class="w"> </span>--requirement<span cl
 <p>Create a local release branch from <code>main</code>
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>checkout<span class="w"> </span>main<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 git<span class="w"> </span>pull<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>release_3.0-alpha-4
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>release_3.0-alpha-5
 </code></pre></div></p>
 </li>
 <li>
 <p>Update <code>VERSION_NAME</code> in <code>gradle.properties</code> (remove <code>-SNAPSHOT</code>)
-<div class="highlight"><pre><span></span><code>sed -i &#39;&#39; &#39;s/VERSION_NAME=3.0-alpha-4-SNAPSHOT/VERSION_NAME=3.0-alpha-4/&#39; gradle.properties
+<div class="highlight"><pre><span></span><code>sed -i &#39;&#39; &#39;s/VERSION_NAME=3.0-alpha-5-SNAPSHOT/VERSION_NAME=3.0-alpha-5/&#39; gradle.properties
 </code></pre></div></p>
 </li>
 <li>
 <p>Update the current version and next version in <code>mkdocs.yml</code>
-<div class="highlight"><pre><span></span><code>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="s1">&#39;s/3.0-alpha-4/NEXT/&#39;</span><span class="w"> </span>mkdocs.yml
-sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="s1">&#39;s/2.14/3.0-alpha-4/&#39;</span><span class="w"> </span>mkdocs.yml
+<div class="highlight"><pre><span></span><code>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="s1">&#39;s/3.0-alpha-5/NEXT/&#39;</span><span class="w"> </span>mkdocs.yml
+sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="s1">&#39;s/2.14/3.0-alpha-5/&#39;</span><span class="w"> </span>mkdocs.yml
 </code></pre></div></p>
 </li>
 <li>
 <p>Create the release
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>commit<span class="w"> </span>-am<span class="w"> </span><span class="s2">&quot;Prepare 3.0-alpha-4 release&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>commit<span class="w"> </span>-am<span class="w"> </span><span class="s2">&quot;Prepare 3.0-alpha-5 release&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 ./gradlew<span class="w"> </span>clean<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 ./gradlew<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-git<span class="w"> </span>tag<span class="w"> </span>v3.0-alpha-4<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>v3.0-alpha-4<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+git<span class="w"> </span>tag<span class="w"> </span>v3.0-alpha-5<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>v3.0-alpha-5<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 ./gradlew<span class="w"> </span>publish<span class="w"> </span>--no-daemon<span class="w"> </span>--no-parallel<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 ./gradlew<span class="w"> </span>closeAndReleaseRepository<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 ./gradlew<span class="w"> </span>shark:shark-cli:distZip
@@ -1035,11 +1035,11 @@ git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </
 <li>Merge back to main
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>checkout<span class="w"> </span>main<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 git<span class="w"> </span>pull<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-git<span class="w"> </span>merge<span class="w"> </span>--no-ff<span class="w"> </span>release_3.0-alpha-4
+git<span class="w"> </span>merge<span class="w"> </span>--no-ff<span class="w"> </span>release_3.0-alpha-5
 </code></pre></div></li>
 <li>
 <p>Update <code>VERSION_NAME</code> in <code>gradle.properties</code> (increase version and add <code>-SNAPSHOT</code>)
-<div class="highlight"><pre><span></span><code>sed -i &#39;&#39; &#39;s/VERSION_NAME=3.0-alpha-4/VERSION_NAME=NEXT-SNAPSHOT/&#39; gradle.properties
+<div class="highlight"><pre><span></span><code>sed -i &#39;&#39; &#39;s/VERSION_NAME=3.0-alpha-5/VERSION_NAME=NEXT-SNAPSHOT/&#39; gradle.properties
 </code></pre></div></p>
 </li>
 <li>
@@ -1070,15 +1070,15 @@ gh<span class="w"> </span>listOpenMilestones<span class="w"> </span><span class=
 <span class="s1">  &quot;description&quot;: &quot;&quot;</span>
 <span class="s1">}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>gh<span class="w"> </span>createMilestone<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 mkdocs<span class="w"> </span>gh-deploy
-gh<span class="w"> </span>release<span class="w"> </span>create<span class="w"> </span>v3.0-alpha-4<span class="w"> </span>./shark/shark-cli/build/distributions/shark-cli-3.0-alpha-4.zip<span class="w"> </span>--title<span class="w"> </span>v3.0-alpha-4<span class="w"> </span>--notes<span class="w"> </span><span class="s1">&#39;See [Change Log](https://square.github.io/leakcanary/changelog)&#39;</span>
+gh<span class="w"> </span>release<span class="w"> </span>create<span class="w"> </span>v3.0-alpha-5<span class="w"> </span>./shark/shark-cli/build/distributions/shark-cli-3.0-alpha-5.zip<span class="w"> </span>--title<span class="w"> </span>v3.0-alpha-5<span class="w"> </span>--notes<span class="w"> </span><span class="s1">&#39;See [Change Log](https://square.github.io/leakcanary/changelog)&#39;</span>
 </code></pre></div>
 <ul>
 <li>
-<p>Open the <a href="https://github.com/square/leakcanary/releases/tag/v3.0-alpha-4">v3.0-alpha-4 release</a> to confirm everything looks good.</p>
+<p>Open the <a href="https://github.com/square/leakcanary/releases/tag/v3.0-alpha-5">v3.0-alpha-5 release</a> to confirm everything looks good.</p>
 </li>
 <li>
 <p>Upload shark-cli to <a href="https://brew.sh/">brew</a>:
-<div class="highlight"><pre><span></span><code>brew<span class="w"> </span>bump-formula-pr<span class="w"> </span>--url<span class="w"> </span>https://github.com/square/leakcanary/releases/download/v3.0-alpha-4/shark-cli-3.0-alpha-4.zip<span class="w"> </span>leakcanary-shark
+<div class="highlight"><pre><span></span><code>brew<span class="w"> </span>bump-formula-pr<span class="w"> </span>--url<span class="w"> </span>https://github.com/square/leakcanary/releases/download/v3.0-alpha-5/shark-cli-3.0-alpha-5.zip<span class="w"> </span>leakcanary-shark
 </code></pre></div></p>
 </li>
 <li>
