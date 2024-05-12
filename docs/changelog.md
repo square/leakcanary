@@ -66,7 +66,7 @@ Add the dependency:
 
 ```groovy
 dependencies {
-  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-uiautomator:3.0-alpha-2'
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-uiautomator:3.0-alpha-4'
 }
 ```
 
@@ -91,7 +91,7 @@ class MyUiAutomatorTest {
 
 ### Heap Growth: Shark CLI
 
-Download the [Shark CLI Zip](https://github.com/square/leakcanary/releases/download/v3.0-alpha-2/shark-cli-3.0-alpha-2.zip) (alphas cannot be released to brew) and unzip it.
+Download the [Shark CLI Zip](https://github.com/square/leakcanary/releases/download/v3.0-alpha-4/shark-cli-3.0-alpha-4.zip) (alphas cannot be released to brew) and unzip it.
 
 Run the `heap-growth` command:
 
