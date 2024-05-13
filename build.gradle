@@ -166,7 +166,7 @@ tasks.register("siteDokka", Copy) {
   // Copy the files instead of configuring a different output directory on the dokka task itself
   // since the default output directories disambiguate between different types of outputs, and our
   // custom directory doesn't.
-  from(layout.buildDirectory.dir("dokka/gfmCollector/leakcanary"))
+  from(layout.buildDirectory.dir("dokka/gfmCollector/leakcanary-repo"))
   // For whatever reason Dokka doesn't want to ignore the packages we told it to ignore.
   // Fine, we'll just ignore it here.
   exclude '**/com.example.leakcanary/**'
