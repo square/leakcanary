@@ -47,7 +47,7 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val growingNodes = detector.detectHeapGrowth(dumps)
+    val growingNodes = detector.detectHeapGrowth(dumps, 1).growingObjects
 
     assertThat(growingNodes).isEmpty()
   }
@@ -65,7 +65,7 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val growingNodes = detector.detectHeapGrowth(dumps)
+    val growingNodes = detector.detectHeapGrowth(dumps, 1).growingObjects
 
     assertThat(growingNodes).isEmpty()
   }
@@ -82,7 +82,7 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val growingNodes = detector.detectHeapGrowth(dumps)
+    val growingNodes = detector.detectHeapGrowth(dumps, 1).growingObjects
 
     assertThat(growingNodes).hasSize(1)
   }
@@ -99,7 +99,7 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val growingNodes = detector.detectHeapGrowth(dumps, 2)
+    val growingNodes = detector.detectHeapGrowth(dumps, 2).growingObjects
 
     assertThat(growingNodes).isEmpty()
   }
@@ -119,45 +119,20 @@ class ObjectGrowthDetectorTest {
       }
     }
 
-    val growingNodes = detector.detectHeapGrowth(dumps)
+    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopCount).growingObjects
 
     val growingNode = growingNodes.first()
 
     assertThat(growingNode.selfObjectCount).isEqualTo(1)
-    assertThat(growingNode.childrenObjectCount).isEqualTo(heapDumpCount * scenarioLoopCount)
-    assertThat(growingNode.childrenObjectCountIncrease).isEqualTo(scenarioLoopCount)
+    assertThat(growingNode.children.sumOf { it.selfObjectCount }).isEqualTo(heapDumpCount * scenarioLoopCount)
+    val growingChildren = growingNode.growingChildren
+    assertThat(growingChildren).hasSize(1)
+    assertThat(growingChildren.first().objectCountIncrease).isEqualTo(scenarioLoopCount)
     assertThat(growingNode.children).hasSize(1)
   }
 
   @Test
-  fun `detect no growth if sum of children over threshold but individual children under threshold`() {
-    val detector = newSimpleDetector()
-
-    val dumps = listOf(
-      dump {
-        clazz(
-          "ClassWithStatics",
-          staticFields = listOf("strings1" to objectArray(string("Hello")))
-        )
-      },
-      dump {
-        clazz(
-          "ClassWithStatics",
-          staticFields = listOf(
-            "strings1" to objectArray(string("Hello")),
-            "strings2" to objectArray(string("World")),
-            "strings3" to objectArray(string("!")),
-          )
-        )
-      }
-    )
-
-    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2)
-    assertThat(growingNodes).isEmpty()
-  }
-
-  @Test
-  fun `detect no growth if different individual children over threshold each iteration`() {
+  fun `no heap growth when node with no children grows`() {
     val detector = newSimpleDetector()
 
     val dumps = listOf(
@@ -182,39 +157,148 @@ class ObjectGrowthDetectorTest {
           )
         )
       },
+    )
+    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2).growingObjects
+    assertThat(growingNodes).isEmpty()
+  }
+
+  @Test
+  fun `detect heap growth when node with existing children grows`() {
+    val detector = newSimpleDetector()
+
+    val dumps = listOf(
       dump {
-        val newChildrenType = clazz("SomeClass")
+        clazz("SomeClass")
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf(
+            "strings" to objectArray(
+              string("Hello 1"),
+              string("Hello 2")
+            ),
+          )
+        )
+      },
+      dump {
+        clazz("SomeClass")
         clazz(
           "ClassWithStatics",
           staticFields = listOf(
             "strings" to objectArray(
               string("Hello 1"),
               string("Hello 2"),
-              instance(newChildrenType),
-              instance(newChildrenType),
-              instance(newChildrenType),
-              instance(newChildrenType),
+              string("Hello 3"),
+              string("Hello 4"),
+            ),
+          )
+        )
+      },
+    )
+    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2).growingObjects
+    assertThat(growingNodes).hasSize(1)
+  }
+
+  @Test
+  fun `detect no growth if sum of children over threshold but individual children under threshold`() {
+    val detector = newSimpleDetector()
+
+    val dumps = listOf(
+      dump {
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf("strings1" to objectArray(string("Hello")))
+        )
+      },
+      dump {
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf(
+            "strings1" to objectArray(string("Hello")),
+            "strings2" to objectArray(string("World")),
+            "strings3" to objectArray(string("!")),
+          )
+        )
+      }
+    )
+    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2).growingObjects
+    assertThat(growingNodes).isEmpty()
+  }
+
+  @Test
+  fun `detect no growth if different individual children over threshold`() {
+    val detector = newSimpleDetector()
+
+    val dumps = listOf(
+      dump {
+        val otherType = clazz("SomeClass")
+        clazz("SomeClass")
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf(
+            "list" to objectArray(
+              string("Hello 1"),
+              string("Hello 2"),
+              instance(otherType),
+              instance(otherType),
+            ),
+          )
+        )
+      },
+      dump {
+        val otherType = clazz("SomeClass")
+        clazz("SomeClass")
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf(
+            "list" to objectArray(
+              string("Hello 1"),
+              string("Hello 2"),
+              string("Hello 3"),
+              string("Hello 4"),
+              instance(otherType),
+              instance(otherType),
+            ),
+          )
+        )
+      },
+      dump {
+        val otherType = clazz("SomeClass")
+        clazz("SomeClass")
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf(
+            "list" to objectArray(
+              string("Hello 1"),
+              string("Hello 2"),
+              string("Hello 3"),
+              string("Hello 4"),
+              instance(otherType),
+              instance(otherType),
+              instance(otherType),
+              instance(otherType),
             ),
           )
         )
       },
     )
 
-    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2)
+    val heapGrowthTraversal = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2)
+    assertThat(heapGrowthTraversal.traversalCount).isEqualTo(dumps.size)
+    val growingNodes = heapGrowthTraversal.growingObjects
     assertThat(growingNodes).isEmpty()
   }
 
   private fun ObjectGrowthDetector.detectHeapGrowth(
     heapDumps: List<CloseableHeapGraph>,
     scenarioLoopsPerGraph: Int = 1
-  ): GrowingObjectNodes {
+  ): HeapGrowthTraversal {
     return repeatingHeapGraph().findRepeatedlyGrowingObjects(
       initialState = InitialState(
         scenarioLoopsPerGraph = scenarioLoopsPerGraph,
         heapGraphCount = heapDumps.size
       ),
       heapGraphSequence = heapDumps.asSequence()
-    ).growingObjects
+    )
   }
 
   private fun HprofWriterHelper.classWithStringsInStaticField(vararg strings: String) {

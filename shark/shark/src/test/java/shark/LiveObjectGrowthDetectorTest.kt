@@ -94,7 +94,9 @@ class LiveObjectGrowthDetectorTest {
     assertThat(growingNodes).hasSize(1)
 
     val growingNode = growingNodes.first()
-    assertThat(growingNode.childrenObjectCountIncrease).isEqualTo(scenarioLoopsPerDump)
+    val growingChildren = growingNode.growingChildren
+    assertThat(growingChildren).hasSize(1)
+    assertThat(growingChildren.first().objectCountIncrease).isEqualTo(scenarioLoopsPerDump)
   }
 
   @Test
@@ -123,7 +125,7 @@ class LiveObjectGrowthDetectorTest {
 
     val growingNode = growingNodes.first()
     assertThat(growingNode.children.size).isEqualTo(1)
-    assertThat(growingNode.childrenObjectCountIncrease).isEqualTo(4)
+    assertThat(growingNode.growingChildren.first().objectCountIncrease).isEqualTo(4)
   }
 
   @Test
