@@ -129,6 +129,33 @@ class ObjectGrowthDetectorTest {
     assertThat(growingNode.children).hasSize(1)
   }
 
+  @Test
+  fun `detect no growth if sum of children over threshold but individual children under threshold`() {
+    val detector = newSimpleDetector()
+
+    val dumps = listOf(
+      dump {
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf("strings1" to objectArray(string("Hello")))
+        )
+      },
+      dump {
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf(
+            "strings1" to objectArray(string("Hello")),
+            "strings2" to objectArray(string("World")),
+            "strings3" to objectArray(string("!")),
+          )
+        )
+      }
+    )
+
+    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2)
+    assertThat(growingNodes).isEmpty()
+  }
+
   private fun ObjectGrowthDetector.detectHeapGrowth(
     heapDumps: List<CloseableHeapGraph>,
     scenarioLoopsPerGraph: Int = 1
