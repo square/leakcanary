@@ -55,26 +55,41 @@ class HprofWriterHelper constructor(
 
   private val classDumps = mutableMapOf<Long, ClassDumpRecord>()
 
-  private val objectClassId = clazz(superclassId = 0, className = "java.lang.Object")
-  private val objectArrayClassId = arrayClass("java.lang.Object")
-  private val stringClassId = clazz(
-    className = "java.lang.String", fields = listOf(
-    "value" to ReferenceHolder::class,
-    "count" to IntHolder::class
-  )
-  )
-
-  private val referenceClassId = clazz(
-    className = "java.lang.ref.Reference",
-    fields = listOf(
-      "referent" to ReferenceHolder::class
+  val objectClassId by lazy {
+    clazz(
+      superclassId = 0,
+      className = "java.lang.Object"
     )
-  )
+  }
+  private val objectArrayClassId by lazy {
+    arrayClass("java.lang.Object")
+  }
 
-  private val weakReferenceClassId = clazz(
-    className = "java.lang.ref.WeakReference",
-    superclassId = referenceClassId
-  )
+  private val stringClassId by lazy {
+    clazz(
+      className = "java.lang.String",
+      fields = listOf(
+        "value" to ReferenceHolder::class,
+        "count" to IntHolder::class
+      )
+    )
+  }
+
+  private val referenceClassId by lazy {
+    clazz(
+      className = "java.lang.ref.Reference",
+      fields = listOf(
+        "referent" to ReferenceHolder::class
+      )
+    )
+  }
+
+  private val weakReferenceClassId by lazy {
+    clazz(
+      className = "java.lang.ref.WeakReference",
+      superclassId = referenceClassId
+    )
+  }
   private val keyedWeakReferenceClassId = clazz(
     superclassId = weakReferenceClassId,
     className = "leakcanary.KeyedWeakReference",

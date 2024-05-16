@@ -23,7 +23,8 @@ fun ObjectGrowthDetector.repeatingJvmInProcessScenario(
   return repeatingScenario(
     heapGraphProvider = HeapGraphProvider.dumpingAndDeleting(
       heapDumper = HeapDumper.forJvmInProcess()
-        .withGc(gcTrigger = GcTrigger.inProcess()),
+        .withGc(gcTrigger = GcTrigger.inProcess())
+        .withDetectorWarmup(this),
       heapDumpFileProvider = HeapDumpFileProvider.tempFile()
     ),
     maxHeapDumps = maxHeapDumps,

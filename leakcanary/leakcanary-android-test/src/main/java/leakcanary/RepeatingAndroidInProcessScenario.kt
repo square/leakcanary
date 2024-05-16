@@ -1,8 +1,8 @@
 package leakcanary
 
-import shark.RepeatingScenarioObjectGrowthDetector
 import shark.HeapGraphProvider
 import shark.ObjectGrowthDetector
+import shark.RepeatingScenarioObjectGrowthDetector
 import shark.repeatingScenario
 
 /**
@@ -23,7 +23,8 @@ fun ObjectGrowthDetector.repeatingAndroidInProcessScenario(
   return repeatingScenario(
     heapGraphProvider = HeapGraphProvider.dumpingAndDeleting(
       heapDumper = HeapDumper.forAndroidInProcess()
-        .withGc(gcTrigger = GcTrigger.inProcess()),
+        .withGc(gcTrigger = GcTrigger.inProcess())
+        .withDetectorWarmup(this),
       heapDumpFileProvider = HeapDumpFileProvider.tempFile()
     ),
     maxHeapDumps = maxHeapDumps,
