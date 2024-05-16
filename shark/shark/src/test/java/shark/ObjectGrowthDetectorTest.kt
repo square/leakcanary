@@ -3,6 +3,7 @@ package shark
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.ValueHolder.Companion.NULL_REFERENCE
 
 class ObjectGrowthDetectorTest {
 
@@ -84,6 +85,83 @@ class ObjectGrowthDetectorTest {
     val growingObjects = detector.findRepeatedlyGrowingObjects(dumps).growingObjects
 
     assertThat(growingObjects).hasSize(1)
+  }
+
+  @Test
+  fun `detect growth of custom linked list`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = listOf(
+      dump {
+        val customLinkedListClass = clazz(
+          className = "CustomLinkedList",
+          fields = listOf("next" to ValueHolder.ReferenceHolder::class),
+        )
+        val linkedListTail = instance(customLinkedListClass, listOf(nullReference()))
+        val linkedListHead = instance(customLinkedListClass, listOf(linkedListTail))
+        clazz(
+          className = "ListHolder",
+          staticFields = listOf("staticList" to linkedListHead)
+        )
+      },
+      dump {
+        val customLinkedListClass = clazz(
+          className = "CustomLinkedList",
+          fields = listOf("next" to ValueHolder.ReferenceHolder::class),
+        )
+        val linkedListTail = instance(customLinkedListClass, listOf(nullReference()))
+        val linkedListMiddle = instance(customLinkedListClass, listOf(linkedListTail))
+        val linkedListHead = instance(customLinkedListClass, listOf(linkedListMiddle))
+        clazz(
+          className = "ListHolder",
+          staticFields = listOf("staticList" to linkedListHead)
+        )
+      }
+    )
+
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
+
+    assertThat(heapTraversal.growingObjects).hasSize(1)
+  }
+
+  @Test
+  fun `custom leaky linked list reports descendant to root as flattened collection`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = listOf(
+      dump {
+        val customLinkedListClass = clazz(
+          className = "CustomLinkedList",
+          fields = listOf("next" to ValueHolder.ReferenceHolder::class),
+        )
+        val linkedListTail = instance(customLinkedListClass, listOf(nullReference()))
+        val linkedListHead = instance(customLinkedListClass, listOf(linkedListTail))
+        clazz(
+          className = "ListHolder",
+          staticFields = listOf("staticList" to linkedListHead)
+        )
+      },
+      dump {
+        val customLinkedListClass = clazz(
+          className = "CustomLinkedList",
+          fields = listOf("next" to ValueHolder.ReferenceHolder::class),
+        )
+        val linkedListTail = instance(customLinkedListClass, listOf(nullReference()))
+        val linkedListMiddle1 = instance(customLinkedListClass, listOf(linkedListTail))
+        val linkedListMiddle2 = instance(customLinkedListClass, listOf(linkedListMiddle1))
+        val linkedListMiddle3 = instance(customLinkedListClass, listOf(linkedListMiddle2))
+        val linkedListMiddle4 = instance(customLinkedListClass, listOf(linkedListMiddle3))
+        val linkedListHead = instance(customLinkedListClass, listOf(linkedListMiddle4))
+        clazz(
+          className = "ListHolder",
+          staticFields = listOf("staticList" to linkedListHead)
+        )
+      }
+    )
+
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
+
+    val growingObject = heapTraversal.growingObjects.single()
+    val growingChild = growingObject.growingChildren.single()
+    assertThat(growingChild.objectCountIncrease).isEqualTo(4)
   }
 
   @Test
@@ -347,4 +425,6 @@ class ObjectGrowthDetectorTest {
   ): CloseableHeapGraph {
     return dump(HprofHeader(), block).openHeapGraph()
   }
+
+  private fun nullReference() = ValueHolder.ReferenceHolder(NULL_REFERENCE)
 }
