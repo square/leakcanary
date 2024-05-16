@@ -19,7 +19,7 @@ sealed interface HeapTraversalInput {
 }
 
 class InitialState(
-  override val scenarioLoopsPerGraph: Int = 1,
+  override val scenarioLoopsPerGraph: Int = DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
   override val heapGraphCount: Int? = null
 ) : HeapTraversalInput {
   override val traversalCount = 0
@@ -31,6 +31,10 @@ class InitialState(
     check(heapGraphCount == null || heapGraphCount >= 2) {
       "There should be at least 2 heap dumps to detect growing objects"
     }
+  }
+
+  companion object {
+    const val DEFAULT_SCENARIO_LOOPS_PER_GRAPH = 1
   }
 }
 

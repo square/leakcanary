@@ -7,21 +7,21 @@ import shark.HprofHeapGraph.Companion.openHeapGraph
 class ObjectGrowthDetectorTest {
 
   @Test
-  fun `first traversal returns InitialHeapTraversal`() {
-    val detector = newSimpleDetector()
+  fun `first traversal returns FirstHeapTraversal`() {
+    val detector = ObjectGrowthDetector.forJvmHeap()
 
-    val heapTraversal = detector.findGrowingObjects(
+    val firstTraversal = detector.findGrowingObjects(
       heapGraph = dump {
       },
       previousTraversal = InitialState(scenarioLoopsPerGraph = 1),
     )
 
-    assertThat(heapTraversal).isInstanceOf(FirstHeapTraversal::class.java)
+    assertThat(firstTraversal).isInstanceOf(FirstHeapTraversal::class.java)
   }
 
   @Test
   fun `second traversal returns HeapTraversalWithDiff`() {
-    val detector = newSimpleDetector()
+    val detector = ObjectGrowthDetector.forJvmHeap()
     val first = detector.findGrowingObjects(
       heapGraph = emptyHeapDump(),
       previousTraversal = InitialState(scenarioLoopsPerGraph = 1),
@@ -37,7 +37,7 @@ class ObjectGrowthDetectorTest {
 
   @Test
   fun `detect no growth on identical heaps`() {
-    val detector = newSimpleDetector()
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
       dump {
         classWithStringsInStaticField("Hi")
@@ -47,15 +47,14 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val growingNodes = detector.detectHeapGrowth(dumps, 1).growingObjects
+    val growingObjects = detector.findRepeatedlyGrowingObjects(dumps).growingObjects
 
-    assertThat(growingNodes).isEmpty()
+    assertThat(growingObjects).isEmpty()
   }
 
   @Test
   fun `detect no growth on structurally identical heap`() {
-    val detector = newSimpleDetector()
-
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
       dump {
         classWithStringsInStaticField("Hi")
@@ -65,14 +64,14 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val growingNodes = detector.detectHeapGrowth(dumps, 1).growingObjects
+    val growingObjects = detector.findRepeatedlyGrowingObjects(dumps).growingObjects
 
-    assertThat(growingNodes).isEmpty()
+    assertThat(growingObjects).isEmpty()
   }
 
   @Test
   fun `detect static field growth`() {
-    val detector = newSimpleDetector()
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
       dump {
         classWithStringsInStaticField("Hello")
@@ -82,14 +81,14 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val growingNodes = detector.detectHeapGrowth(dumps, 1).growingObjects
+    val growingObjects = detector.findRepeatedlyGrowingObjects(dumps).growingObjects
 
-    assertThat(growingNodes).hasSize(1)
+    assertThat(growingObjects).hasSize(1)
   }
 
   @Test
   fun `detect no growth if more loops than node increase`() {
-    val detector = newSimpleDetector()
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
       dump {
         classWithStringsInStaticField("Hello")
@@ -99,14 +98,17 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val growingNodes = detector.detectHeapGrowth(dumps, 2).growingObjects
+    val growingObjects = detector.findRepeatedlyGrowingObjects(
+      heapGraphs = dumps,
+      scenarioLoopsPerGraph = 2
+    ).growingObjects
 
-    assertThat(growingNodes).isEmpty()
+    assertThat(growingObjects).isEmpty()
   }
 
   @Test
   fun `detect static field growth counts`() {
-    val detector = newSimpleDetector()
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
 
     val heapDumpCount = 3
     val scenarioLoopCount = 7
@@ -119,12 +121,17 @@ class ObjectGrowthDetectorTest {
       }
     }
 
-    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopCount).growingObjects
+    val growingObjects = detector.findRepeatedlyGrowingObjects(
+      heapGraphs = dumps,
+      scenarioLoopsPerGraph = scenarioLoopCount
+    ).growingObjects
 
-    val growingNode = growingNodes.first()
+    val growingNode = growingObjects.first()
 
     assertThat(growingNode.selfObjectCount).isEqualTo(1)
-    assertThat(growingNode.children.sumOf { it.selfObjectCount }).isEqualTo(heapDumpCount * scenarioLoopCount)
+    assertThat(growingNode.children.sumOf { it.selfObjectCount }).isEqualTo(
+      heapDumpCount * scenarioLoopCount
+    )
     val growingChildren = growingNode.growingChildren
     assertThat(growingChildren).hasSize(1)
     assertThat(growingChildren.first().objectCountIncrease).isEqualTo(scenarioLoopCount)
@@ -133,7 +140,7 @@ class ObjectGrowthDetectorTest {
 
   @Test
   fun `no heap growth when node with no children grows`() {
-    val detector = newSimpleDetector()
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
 
     val dumps = listOf(
       dump {
@@ -158,13 +165,16 @@ class ObjectGrowthDetectorTest {
         )
       },
     )
-    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2).growingObjects
-    assertThat(growingNodes).isEmpty()
+    val growingObjects = detector.findRepeatedlyGrowingObjects(
+      heapGraphs = dumps,
+      scenarioLoopsPerGraph = 2
+    ).growingObjects
+    assertThat(growingObjects).isEmpty()
   }
 
   @Test
   fun `detect heap growth when node with existing children grows`() {
-    val detector = newSimpleDetector()
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
 
     val dumps = listOf(
       dump {
@@ -194,13 +204,16 @@ class ObjectGrowthDetectorTest {
         )
       },
     )
-    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2).growingObjects
-    assertThat(growingNodes).hasSize(1)
+    val growingObjects = detector.findRepeatedlyGrowingObjects(
+      heapGraphs = dumps,
+      scenarioLoopsPerGraph = 2
+    ).growingObjects
+    assertThat(growingObjects).hasSize(1)
   }
 
   @Test
   fun `detect no growth if sum of children over threshold but individual children under threshold`() {
-    val detector = newSimpleDetector()
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
 
     val dumps = listOf(
       dump {
@@ -220,13 +233,16 @@ class ObjectGrowthDetectorTest {
         )
       }
     )
-    val growingNodes = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2).growingObjects
-    assertThat(growingNodes).isEmpty()
+    val growingObjects = detector.findRepeatedlyGrowingObjects(
+      heapGraphs = dumps,
+      scenarioLoopsPerGraph = 2
+    ).growingObjects
+    assertThat(growingObjects).isEmpty()
   }
 
   @Test
   fun `detect no growth if different individual children over threshold`() {
-    val detector = newSimpleDetector()
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
 
     val dumps = listOf(
       dump {
@@ -282,24 +298,40 @@ class ObjectGrowthDetectorTest {
       },
     )
 
-    val heapGrowthTraversal = detector.detectHeapGrowth(dumps, scenarioLoopsPerGraph = 2)
+    val heapGrowthTraversal = detector.findRepeatedlyGrowingObjects(
+      heapGraphs = dumps,
+      scenarioLoopsPerGraph = 2
+    )
     assertThat(heapGrowthTraversal.traversalCount).isEqualTo(dumps.size)
-    val growingNodes = heapGrowthTraversal.growingObjects
-    assertThat(growingNodes).isEmpty()
+    val growingObjects = heapGrowthTraversal.growingObjects
+    assertThat(growingObjects).isEmpty()
   }
 
-  private fun ObjectGrowthDetector.detectHeapGrowth(
-    heapDumps: List<CloseableHeapGraph>,
-    scenarioLoopsPerGraph: Int = 1
-  ): HeapGrowthTraversal {
-    return repeatingHeapGraph().findRepeatedlyGrowingObjects(
-      initialState = InitialState(
-        scenarioLoopsPerGraph = scenarioLoopsPerGraph,
-        heapGraphCount = heapDumps.size
-      ),
-      heapGraphSequence = heapDumps.asSequence()
-    )
+  class ListRepeatingHeapGraphObjectGrowthDetector(
+    objectGrowthDetector: ObjectGrowthDetector
+  ) {
+    private val delegate = objectGrowthDetector.repeatingHeapGraph()
+
+    fun findRepeatedlyGrowingObjects(
+      heapGraphs: List<CloseableHeapGraph>,
+      scenarioLoopsPerGraph: Int = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
+    ): HeapGrowthTraversal {
+      return delegate.findRepeatedlyGrowingObjects(
+        initialState = InitialState(
+          scenarioLoopsPerGraph = scenarioLoopsPerGraph,
+          heapGraphCount = heapGraphs.size
+        ),
+        heapGraphSequence = heapGraphs.asSequence()
+      ).apply {
+        check(traversalCount == heapGraphs.size) {
+          "Expected traversalCount $traversalCount to be equal to heapGraphs size ${heapGraphs.size} for $this"
+        }
+      }
+    }
   }
+
+  private fun ObjectGrowthDetector.listRepeatingHeapGraph(): ListRepeatingHeapGraphObjectGrowthDetector =
+    ListRepeatingHeapGraphObjectGrowthDetector(this)
 
   private fun HprofWriterHelper.classWithStringsInStaticField(vararg strings: String) {
     clazz(
@@ -314,21 +346,5 @@ class ObjectGrowthDetectorTest {
     block: HprofWriterHelper.() -> Unit
   ): CloseableHeapGraph {
     return dump(HprofHeader(), block).openHeapGraph()
-  }
-
-  private fun newSimpleDetector(): ObjectGrowthDetector {
-    val referenceReaderFactory = ActualMatchingReferenceReaderFactory(
-      referenceMatchers = emptyList()
-    )
-    val gcRootProvider = GcRootProvider { graph ->
-      graph.gcRoots.asSequence().map {
-        GcRootReference(
-          gcRoot = it,
-          isLowPriority = false,
-          matchedLibraryLeak = null
-        )
-      }
-    }
-    return ObjectGrowthDetector(gcRootProvider, referenceReaderFactory)
   }
 }
