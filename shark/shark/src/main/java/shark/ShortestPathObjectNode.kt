@@ -7,7 +7,6 @@ typealias GrowingObjectNodes = List<ShortestPathObjectNode>
 class ShortestPathObjectNode(
   val name: String,
   val parent: ShortestPathObjectNode?,
-  internal val newNode: Boolean
 ) {
   // Null at first, then created with capacity set to the number of edges enqueued from that node.
   // This means we'll sometimes use a little more space than what we actually need, but the
@@ -44,7 +43,6 @@ class ShortestPathObjectNode(
   /**
    * Set for growing nodes if the traversal requested the computation of retained sizes, otherwise
    * null.
-   * This is on the last 2 traversals.
    */
   var retainedOrNull: Retained? = null
     internal set
@@ -52,7 +50,6 @@ class ShortestPathObjectNode(
   /**
    * Set for growing nodes if [retainedOrNull] is not null. Non 0 if the previous traversal also
    * computed retained size.
-   * This is on the last 2 traversals.
    */
   var retainedIncreaseOrNull: Retained? = null
     internal set
@@ -82,7 +79,7 @@ class ShortestPathObjectNode(
   }
 
   private fun copyResetRecursive(newParent: ShortestPathObjectNode?): ShortestPathObjectNode {
-    val newNode = ShortestPathObjectNode(name, newParent, true)
+    val newNode = ShortestPathObjectNode(name, newParent)
     newNode.selfObjectCount = selfObjectCount
     newNode.retainedOrNull = retainedOrNull
     if (retainedOrNull != null) {
@@ -164,5 +161,9 @@ class ShortestPathObjectNode(
      * released.
      */
     val objectCount: Int,
-  )
+  ) {
+    companion object {
+      val ZERO = Retained(ByteSize.ZERO, 0)
+    }
+  }
 }

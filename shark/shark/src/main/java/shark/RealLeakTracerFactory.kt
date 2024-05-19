@@ -15,6 +15,8 @@
  */
 package shark
 
+import androidx.collection.LongLongMap
+import androidx.collection.MutableLongSet
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -27,20 +29,17 @@ import shark.LeakTraceObject.LeakingStatus.UNKNOWN
 import shark.LeakTraceObject.ObjectType.ARRAY
 import shark.LeakTraceObject.ObjectType.CLASS
 import shark.LeakTraceObject.ObjectType.INSTANCE
-import shark.internal.ReferencePathNode
-import shark.internal.ReferencePathNode.ChildNode
-import shark.internal.ReferencePathNode.RootNode
-import shark.internal.ShallowSizeCalculator
-import shark.internal.createSHA1Hash
-import shark.internal.lastSegment
-import java.util.ArrayList
 import shark.RealLeakTracerFactory.Event.StartedBuildingLeakTraces
 import shark.RealLeakTracerFactory.Event.StartedComputingJavaHeapRetainedSize
-import shark.RealLeakTracerFactory.Event.StartedComputingNativeRetainedSize
 import shark.RealLeakTracerFactory.Event.StartedInspectingObjects
 import shark.RealLeakTracerFactory.TrieNode.LeafNode
 import shark.RealLeakTracerFactory.TrieNode.ParentNode
+import shark.internal.ReferencePathNode
+import shark.internal.ReferencePathNode.ChildNode
+import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
+import shark.internal.createSHA1Hash
+import shark.internal.lastSegment
 
 // TODO kdoc
 // TODO better name than "real"
@@ -50,16 +49,17 @@ class RealLeakTracerFactory constructor(
   private val shortestPathFinderFactory: ShortestPathFinder.Factory,
   private val objectInspectors: List<ObjectInspector>,
   private val listener: Event.Listener
-): LeakTracer.Factory {
+) : LeakTracer.Factory {
 
   // TODO Enum or sealed? class makes it possible to report progress. Enum
   // provides ordering of events.
   sealed interface Event {
     object StartedBuildingLeakTraces : Event
     object StartedInspectingObjects : Event
+
     @Deprecated("Event not sent anymore")
-    object StartedComputingNativeRetainedSize: Event
-    object StartedComputingJavaHeapRetainedSize: Event
+    object StartedComputingNativeRetainedSize : Event
+    object StartedComputingJavaHeapRetainedSize : Event
 
     fun interface Listener {
       fun onEvent(event: Event)
@@ -73,7 +73,7 @@ class RealLeakTracerFactory constructor(
     //  traversed the whole graph.
     //  referenceMatchers are only needed for the NativeGlobalVariablePattern, which is related
     //  to GC roots
-    return LeakTracer { objectIds->
+    return LeakTracer { objectIds ->
       val helpers = FindLeakInput(
         heapGraph,
         shortestPathFinderFactory.createFor(heapGraph),
@@ -82,7 +82,6 @@ class RealLeakTracerFactory constructor(
       helpers.findLeaks(objectIds)
     }
   }
-
 
   private class FindLeakInput(
     val graph: HeapGraph,
@@ -236,6 +235,7 @@ class RealLeakTracerFactory constructor(
         is ParentNode -> {
           findResultsInTrie(childNode, outputPathResults)
         }
+
         is LeafNode -> {
           outputPathResults += childNode.pathNode
         }
@@ -270,7 +270,7 @@ class RealLeakTracerFactory constructor(
   private fun FindLeakInput.buildLeakTraces(
     shortestPaths: List<ShortestPath>,
     inspectedObjectsByPath: List<List<InspectedObject>>,
-    retainedSizes: Map<Long, Pair<Int, Int>>?
+    retainedSizes: LongLongMap?
   ): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
     listener.onEvent(StartedBuildingLeakTraces)
 
@@ -345,20 +345,26 @@ class RealLeakTracerFactory constructor(
   private fun FindLeakInput.computeRetainedSizes(
     inspectedObjectsByPath: List<List<InspectedObject>>,
     dominatorTree: DominatorTree
-  ): Map<Long, Pair<Int, Int>> {
+  ): LongLongMap {
     val nodeObjectIds = inspectedObjectsByPath.flatMap { inspectedObjects ->
       // TODO Stop at the first leaking object
       inspectedObjects.filter { it.leakingStatus == UNKNOWN || it.leakingStatus == LEAKING }
         .map { it.heapObject.objectId }
-    }.toSet()
+    }
+
+    val nodeObjectIdsSet = MutableLongSet(nodeObjectIds.size)
+    nodeObjectIds.forEach {
+      nodeObjectIdsSet += it
+    }
+
     listener.onEvent(StartedComputingJavaHeapRetainedSize)
     val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
-    return dominatorTree.computeRetainedSizes(nodeObjectIds, objectSizeCalculator)
+    return dominatorTree.computeRetainedSizes(nodeObjectIdsSet, objectSizeCalculator)
   }
 
   private fun buildLeakTraceObjects(
     inspectedObjects: List<InspectedObject>,
-    retainedSizes: Map<Long, Pair<Int, Int>>?
+    retainedSizes: LongLongMap?
   ): List<LeakTraceObject> {
     return inspectedObjects.map { inspectedObject ->
       val heapObject = inspectedObject.heapObject
@@ -370,7 +376,18 @@ class RealLeakTracerFactory constructor(
         else -> INSTANCE
       }
 
-      val retainedSizeAndObjectCount = retainedSizes?.get(inspectedObject.heapObject.objectId)
+      var retainedHeapByteSize: Int? = null
+      var retainedObjectCount: Int? = null
+
+      if (retainedSizes != null) {
+        val missing = -1 packedWith -1
+        val retainedSizeAndObjectCount =
+          retainedSizes.getOrDefault(inspectedObject.heapObject.objectId, missing)
+        if (retainedSizeAndObjectCount != missing) {
+          retainedHeapByteSize = retainedSizeAndObjectCount.unpackAsFirstInt
+          retainedObjectCount = retainedSizeAndObjectCount.unpackAsSecondInt
+        }
+      }
 
       LeakTraceObject(
         type = objectType,
@@ -378,8 +395,8 @@ class RealLeakTracerFactory constructor(
         labels = inspectedObject.labels,
         leakingStatus = inspectedObject.leakingStatus,
         leakingStatusReason = inspectedObject.leakingStatusReason,
-        retainedHeapByteSize = retainedSizeAndObjectCount?.first,
-        retainedObjectCount = retainedSizeAndObjectCount?.second
+        retainedHeapByteSize = retainedHeapByteSize,
+        retainedObjectCount = retainedObjectCount
       )
     }
   }

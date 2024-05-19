@@ -1,9 +1,13 @@
 package shark.internal
 
+import androidx.collection.mutableLongSetOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.DominatorTree
 import shark.ValueHolder
+import shark.packedWith
+import shark.unpackAsFirstInt
+import shark.unpackAsSecondInt
 
 @Suppress("UsePropertyAccessSyntax")
 class DominatorTreeTest {
@@ -39,18 +43,21 @@ class DominatorTreeTest {
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val child = newObjectId().apply { tree.updateDominated(this, root) }
 
-    val sizes = tree.computeRetainedSizes(setOf(child), `10 bytes per object`)
+    val sizes = tree.computeRetainedSizes(mutableLongSetOf(child), `10 bytes per object`)
 
-    assertThat(sizes).containsOnlyKeys(child)
+    val keys = mutableSetOf<Long>()
+    sizes.forEachKey { keys += it }
+
+    assertThat(keys).containsOnly(child)
   }
 
   @Test fun `single root has self size as retained size`() {
     val tree = DominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
 
-    val sizes = tree.computeRetainedSizes(setOf(root), `10 bytes per object`)
+    val sizes = tree.computeRetainedSizes(mutableLongSetOf(root), `10 bytes per object`)
 
-    assertThat(sizes[root]).isEqualTo(10 to 1)
+    assertThat(sizes[root]).isEqualTo(10 packedWith 1)
   }
 
   @Test fun `size of dominator includes dominated`() {
@@ -58,9 +65,9 @@ class DominatorTreeTest {
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     tree.updateDominated(newObjectId(), root)
 
-    val sizes = tree.computeRetainedSizes(setOf(root), `10 bytes per object`)
+    val sizes = tree.computeRetainedSizes(mutableLongSetOf(root), `10 bytes per object`)
 
-    assertThat(sizes[root]).isEqualTo(20 to 2)
+    assertThat(sizes[root]).isEqualTo(20 packedWith 2)
   }
 
   @Test fun `size of chain of dominators is additive`() {
@@ -69,10 +76,10 @@ class DominatorTreeTest {
     val child = newObjectId().apply { tree.updateDominated(this, root) }
     tree.updateDominated(newObjectId(), child)
 
-    val sizes = tree.computeRetainedSizes(setOf(root, child), `10 bytes per object`)
+    val sizes = tree.computeRetainedSizes(mutableLongSetOf(root, child), `10 bytes per object`)
 
-    assertThat(sizes[root]).isEqualTo(30 to 3)
-    assertThat(sizes[child]).isEqualTo(20 to 2)
+    assertThat(sizes[root]).isEqualTo(30 packedWith 3)
+    assertThat(sizes[child]).isEqualTo(20 packedWith 2)
   }
 
   @Test fun `diamond dominators don't dominate`() {
@@ -84,11 +91,11 @@ class DominatorTreeTest {
     tree.updateDominated(grandChild, child1)
     tree.updateDominated(grandChild, child2)
 
-    val sizes = tree.computeRetainedSizes(setOf(root, child1, child2), `10 bytes per object`)
+    val sizes = tree.computeRetainedSizes(mutableLongSetOf(root, child1, child2), `10 bytes per object`)
 
-    assertThat(sizes[child1]).isEqualTo(10 to 1)
-    assertThat(sizes[child2]).isEqualTo(10 to 1)
-    assertThat(sizes[root]).isEqualTo(40 to 4)
+    assertThat(sizes[child1]).isEqualTo(10 packedWith 1)
+    assertThat(sizes[child2]).isEqualTo(10 packedWith 1)
+    assertThat(sizes[root]).isEqualTo(40 packedWith 4)
   }
 
   @Test fun `two dominators dominated by common ancestor`() {
@@ -100,11 +107,11 @@ class DominatorTreeTest {
     tree.updateDominated(grandChild, child1)
     tree.updateDominated(grandChild, child2)
 
-    val sizes = tree.computeRetainedSizes(setOf(root, child1, child2), `10 bytes per object`)
+    val sizes = tree.computeRetainedSizes(mutableLongSetOf(root, child1, child2), `10 bytes per object`)
 
-    assertThat(sizes[child1]).isEqualTo(10 to 1)
-    assertThat(sizes[child2]).isEqualTo(10 to 1)
-    assertThat(sizes[root]).isEqualTo(40 to 4)
+    assertThat(sizes[child1]).isEqualTo(10 packedWith 1)
+    assertThat(sizes[child2]).isEqualTo(10 packedWith 1)
+    assertThat(sizes[root]).isEqualTo(40 packedWith 4)
   }
 
   @Test fun `two dominators dominated by lowest common ancestor`() {
@@ -118,12 +125,12 @@ class DominatorTreeTest {
     tree.updateDominated(grandGrandChild, grandChild2)
 
     val sizes =
-      tree.computeRetainedSizes(setOf(root, child, grandChild1, grandChild2), `10 bytes per object`)
+      tree.computeRetainedSizes(mutableLongSetOf(root, child, grandChild1, grandChild2), `10 bytes per object`)
 
-    assertThat(sizes[grandChild1]).isEqualTo(10 to 1)
-    assertThat(sizes[grandChild1]).isEqualTo(10 to 1)
-    assertThat(sizes[child]).isEqualTo(40 to 4)
-    assertThat(sizes[root]).isEqualTo(50 to 5)
+    assertThat(sizes[grandChild1]).isEqualTo(10 packedWith 1)
+    assertThat(sizes[grandChild2]).isEqualTo(10 packedWith 1)
+    assertThat(sizes[child]).isEqualTo(40 packedWith 4)
+    assertThat(sizes[root]).isEqualTo(50 packedWith 5)
   }
 
   @Test fun `two separate trees do not share size`() {
@@ -138,10 +145,10 @@ class DominatorTreeTest {
     }
 
     val sizes =
-      tree.computeRetainedSizes(setOf(root1, root2), `10 bytes per object`)
+      tree.computeRetainedSizes(mutableLongSetOf(root1, root2), `10 bytes per object`)
 
-    assertThat(sizes[root1]).isEqualTo(110 to 11)
-    assertThat(sizes[root2]).isEqualTo(110 to 11)
+    assertThat(sizes[root1]).isEqualTo(110 packedWith 11)
+    assertThat(sizes[root2]).isEqualTo(110 packedWith 11)
   }
 
   @Test fun `no common descendant does not include size`() {
@@ -155,10 +162,10 @@ class DominatorTreeTest {
     tree.updateDominated(descendant, root2)
 
     val sizes =
-      tree.computeRetainedSizes(setOf(root1, root2), `10 bytes per object`)
+      tree.computeRetainedSizes(mutableLongSetOf(root1, root2), `10 bytes per object`)
 
-    assertThat(sizes[root1]).isEqualTo(100 to 10)
-    assertThat(sizes[root2]).isEqualTo(10 to 1)
+    assertThat(sizes[root1]).isEqualTo(100 packedWith 10)
+    assertThat(sizes[root2]).isEqualTo(10 packedWith 1)
   }
 
   @Test fun `only compute retained size for retained objects`() {
@@ -171,7 +178,7 @@ class DominatorTreeTest {
     tree.updateDominated(grandGrandChild, root2)
 
     val objectsWithComputedSize = mutableSetOf<Long>()
-    tree.computeRetainedSizes(setOf(child)) { objectId ->
+    tree.computeRetainedSizes(mutableLongSetOf(child)) { objectId ->
       objectsWithComputedSize += objectId
       1
     }

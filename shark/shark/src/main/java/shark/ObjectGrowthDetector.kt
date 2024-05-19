@@ -2,6 +2,9 @@
 
 package shark
 
+import androidx.collection.IntIntPair
+import androidx.collection.MutableLongLongMap
+import androidx.collection.MutableLongSet
 import java.util.ArrayDeque
 import java.util.Deque
 import shark.ByteSize.Companion.bytes
@@ -31,18 +34,10 @@ class ObjectGrowthDetector(
         "previousTraversal:$previousTraversal"
     }
 
-    val computeRetainedHeapSize = previousTraversal.heapGraphCount?.let { heapGraphCount ->
-      // Compute retained size for the prior to last and the last graphs.
-      previousTraversal.traversalCount >= heapGraphCount - 1
-    } ?: (previousTraversal.traversalCount > 1)
-
     // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
     // visit more than that but this limits the number of early array growths.
     val estimatedVisitedObjects = (heapGraph.instanceCount / 2).coerceAtLeast(4)
-    val state = TraversalState(
-      estimatedVisitedObjects = estimatedVisitedObjects,
-      computeRetainedHeapSize = computeRetainedHeapSize
-    )
+    val state = TraversalState(estimatedVisitedObjects = estimatedVisitedObjects)
     return heapGraph.use {
       state.traverseHeapDiffingShortestPaths(
         heapGraph,
@@ -60,8 +55,7 @@ class ObjectGrowthDetector(
   }
 
   private class TraversalState(
-    estimatedVisitedObjects: Int,
-    computeRetainedHeapSize: Boolean
+    estimatedVisitedObjects: Int
   ) {
     var visitingLast = false
 
@@ -74,10 +68,13 @@ class ObjectGrowthDetector(
     val toVisitLastQueue: Deque<Node> = ArrayDeque()
 
     val visitedSet = LongScatterSet(estimatedVisitedObjects)
-    val dominatorTree =
-      if (computeRetainedHeapSize) DominatorTree(estimatedVisitedObjects) else null
 
-    val tree = ShortestPathObjectNode("root", null, newNode = false).apply {
+    // Not using estimatedVisitedObjects because there could be a lot less nodes than objects.
+    // This is a list because order matters.
+    val dequeuedNodes = mutableListOf<Node>()
+    val dominatorTree = DominatorTree(estimatedVisitedObjects)
+
+    val tree = ShortestPathObjectNode("root", null).apply {
       selfObjectCount = 1
     }
     val queuesNotEmpty: Boolean
@@ -102,22 +99,15 @@ class ObjectGrowthDetector(
     val roots = graph.groupRoots()
     enqueueRoots(previousTree, roots)
 
-    val nodesMaybeGrowing = mutableListOf<Node>()
+    val nodesPreviouslyGrowing = mutableListOf<Node>()
 
     while (queuesNotEmpty) {
       val node = poll()
 
-      if (previousTree != null) {
-        if (node.previousPathNode == null) {
-          // This is a new node, not seen in the previous iteration. If its parent is growing
-          // then we'll consider this one as growing as well.
-          nodesMaybeGrowing += node
-        } else {
-          if (node.previousPathNode.growing) {
-            nodesMaybeGrowing += node
-          }
-        }
+      if (node.previousPathNode != null && node.previousPathNode.growing) {
+        nodesPreviouslyGrowing += node
       }
+      dequeuedNodes += node
 
       class ExpandedObject(
         val valueObjectId: Long,
@@ -146,7 +136,7 @@ class ObjectGrowthDetector(
               // parent object id information. visitedSet is updated on dequeuing, because bumping
               // node priority would be complex when as we'd need to move object ids between nodes
               // rather than just move nodes.
-              dominatorTree?.updateDominated(
+              dominatorTree.updateDominated(
                 objectId = reference.valueObjectId,
                 parentObjectId = objectId
               )
@@ -228,9 +218,18 @@ class ObjectGrowthDetector(
     }
 
     val growingNodes = if (previousTree != null) {
-      val growingNodePairs = mutableListOf<Pair<Node, ShortestPathObjectNode>>()
-      val growingNodes = nodesMaybeGrowing.mapNotNull { node ->
+      val growingNodesForDominators = mutableListOf<Node>()
+      // TODO Maybe don't create that list immediately, instead just add a flag, replacing "growing" with a bit
+      // Actually we probably don't need to change anything from a data structure perspective, we have all we need locally in node.
+      // This allows to get rid of the growingNodesForDominators list and just iterate on the full list.
+      // We could also precompute the object id set needed for dominators as part of this loop.
+      // Then we only need one more full iteration to go apply retained size.
+      // TODO For the first traversal we'll have to compute the full retained size.. or at least
+      // that of "growing" nodes i.e. non leaf nodes. Not sure what's most efficient, all vs a really large hashset.
+      val growingNodes = nodesPreviouslyGrowing.mapNotNull { node ->
         val shortestPathNode = node.shortestPathNode
+
+        // TODO Update, here node.previousPathNode is always non null.
         val growing = if (node.previousPathNode != null) {
           // Existing node. Growing if was growing (already true) and edges increased at least
           // detectedGrowth for at least one children which was already growing.
@@ -286,18 +285,22 @@ class ObjectGrowthDetector(
           false
         }
         if (growing) {
-          // Mark as growing in the tree (useful for next iteration)
+          // Mark as growing in the tree (useful for next iteration): if we conditioned setting this
+          // to "parentGrowing", then adding an identical subgraph to an array would otherwise lead
+          // to each distinct paths from roots to a node of a subgraph to be surfaced as a distinct
+          // path.
+          // We're traversing from parents to child. If we didn't mark here, then a path of
+          // 3 growing nodes A->B->C would see B not marked as growing (because it's parent is)
+          // and then C would end up being reported as really growing.
           shortestPathNode.growing = true
 
-          val previouslyGrowing = !shortestPathNode.newNode
-          val parentAlreadyReported = (shortestPathNode.parent?.growing) ?: false
+          val parentGrowing = (shortestPathNode.parent?.growing) ?: false
 
-          val repeatedlyGrowingNode = previouslyGrowing && !parentAlreadyReported
+          val isGrowingRoot = !parentGrowing
+
           // Return in list of growing nodes.
-          if (repeatedlyGrowingNode) {
-            if (dominatorTree != null) {
-              growingNodePairs += node to shortestPathNode
-            }
+          if (isGrowingRoot) {
+            growingNodesForDominators += node
             shortestPathNode
           } else {
             null
@@ -306,33 +309,54 @@ class ObjectGrowthDetector(
           null
         }
       }
-      dominatorTree?.let { dominatorTree ->
-        val growingNodeObjectIds = growingNodePairs.flatMapTo(LinkedHashSet()) { (node, _) ->
-          node.objectIds
+
+      // TODO we want to do several things:
+      // We have the list of previously growing nodes
+      // Identify nodes growing in this tree.
+      // Identify nodes growing that don't have a parent growing. Those are the nodes to report,
+      // and we'll want to build that list.
+      // Get a list of those nodes to compute the hashset of all object ids, plus update them
+      // after computing dominators.
+
+      // if we don't build the list immediately, we can iterate on it, and check growing + parent
+      // growing status.
+      // 1. growingNodeObjectIds can be built as part of the original iteration rather than as a next step
+      // 2. Instead of building growingNodesForDominators, we can iterate on nodesPreviouslyGrowing
+      // directly and check if a node is a growing root to decide that the node should be updated.
+      // 3. We should probably keep the mapNotNull that builds up growingNodes
+      // 4. We should update those APIs to take the efficient hashset and return a LongObjectScatterMap
+
+      val growingNodeObjectIds = MutableLongSet(growingNodesForDominators.size)
+      growingNodesForDominators.forEach { node ->
+        val objectIdsArray = node.objectIds.toLongArray()
+        growingNodeObjectIds.addAll(objectIdsArray)
+      }
+
+      val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
+      val retainedMap =
+        dominatorTree.computeRetainedSizes(growingNodeObjectIds, objectSizeCalculator)
+      growingNodesForDominators.forEach { node ->
+        val shortestPathNode = node.shortestPathNode
+        var heapSize = ByteSize.ZERO
+        var objectCount = 0
+        for (objectId in node.objectIds) {
+          val packed = retainedMap[objectId]
+          val additionalByteSize = packed.unpackAsFirstInt
+          val additionalObjectCount = packed.unpackAsSecondInt
+          heapSize += additionalByteSize.bytes
+          objectCount += additionalObjectCount
         }
-        val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
-        val retainedMap =
-          dominatorTree.computeRetainedSizes(growingNodeObjectIds, objectSizeCalculator)
-        growingNodePairs.forEach { (node, shortestPathNode) ->
-          var heapSize = ByteSize.ZERO
-          var objectCount = 0
-          for (objectId in node.objectIds) {
-            val (additionalByteSize, additionalObjectCount) = retainedMap.getValue(objectId)
-            heapSize += additionalByteSize.bytes
-            objectCount += additionalObjectCount
-          }
-          shortestPathNode.retainedOrNull = Retained(
-            heapSize = heapSize,
-            objectCount = objectCount
+        shortestPathNode.retainedOrNull = Retained(
+          heapSize = heapSize,
+          objectCount = objectCount
+        )
+        val previousRetained = node.previousPathNode?.retainedOrNull
+        shortestPathNode.retainedIncreaseOrNull = if (previousRetained == null) {
+          Retained.ZERO
+        } else {
+          Retained(
+            heapSize - previousRetained.heapSize, objectCount - previousRetained.objectCount
           )
-          val previousRetained = node.previousPathNode?.retainedOrNull
-          shortestPathNode.retainedIncreaseOrNull = if (previousRetained == null) {
-            Retained(ByteSize.ZERO, 0)
-          } else {
-            Retained(
-              heapSize - previousRetained.heapSize, objectCount - previousRetained.objectCount
-            )
-          }
         }
       }
       growingNodes
@@ -342,6 +366,38 @@ class ObjectGrowthDetector(
 
     return if (growingNodes == null) {
       check(previousTraversal is InitialState)
+      // Iterating on last dequeued first means we'll get dominated first and progressively go
+      // up the dominator tree.
+      val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
+      // A map that stores two ints, size and count, in a single long value with bit packing.
+      val retainedSizeAndCountMap = MutableLongLongMap(dequeuedNodes.size)
+      for (node in dequeuedNodes.asReversed()) {
+        var nodeRetainedSize = ByteSize.ZERO
+        var nodeRetainedCount = 0
+
+        for (objectId in node.objectIds) {
+          val objectShallowSize = objectSizeCalculator.computeSize(objectId)
+
+          val (retainedSize, retainedCount) = retainedSizeAndCountMap.increase(
+            objectId, objectShallowSize, 1
+          )
+          val dominatorObjectId = dominatorTree[objectId]
+          if (dominatorObjectId != ValueHolder.NULL_REFERENCE) {
+            retainedSizeAndCountMap.increase(dominatorObjectId, retainedSize, retainedCount)
+          }
+          nodeRetainedSize += retainedSize.bytes
+          nodeRetainedCount += retainedCount
+        }
+
+        if (node.shortestPathNode.growing) {
+          node.shortestPathNode.retainedOrNull = Retained(
+            heapSize = nodeRetainedSize,
+            objectCount = nodeRetainedCount
+          )
+          // First traversal, can't compute an increase, nothing to diff on.
+          node.shortestPathNode.retainedIncreaseOrNull = Retained.ZERO
+        }
+      }
       FirstHeapTraversal(tree, previousTraversal)
     } else {
       check(previousTraversal !is InitialState)
@@ -385,10 +441,8 @@ class ObjectGrowthDetector(
         null
       }
       val objectIds = gcRootReferences.map { it.second.gcRoot.id }
-      dominatorTree?.let {
-        objectIds.forEach { objectId ->
-          it.updateDominatedAsRoot(objectId)
-        }
+      objectIds.forEach { objectId ->
+        dominatorTree.updateDominatedAsRoot(objectId)
       }
 
       enqueue(
@@ -428,7 +482,7 @@ class ObjectGrowthDetector(
     }
 
     val shortestPathNode =
-      ShortestPathObjectNode(nodeAndEdgeName, parentPathNode, newNode = previousPathNode == null)
+      ShortestPathObjectNode(nodeAndEdgeName, parentPathNode)
 
     val node = Node(
       objectIds = filteredObjectIds,
@@ -443,6 +497,28 @@ class ObjectGrowthDetector(
       toVisitQueue += node
     }
     return true
+  }
+
+  private fun MutableLongLongMap.increase(
+    objectId: Long,
+    addedValue1: Int,
+    addedValue2: Int,
+  ): IntIntPair {
+    val missing = ValueHolder.NULL_REFERENCE
+    val packedValue = getOrDefault(objectId, ValueHolder.NULL_REFERENCE)
+    return if (packedValue == missing) {
+      val newPackedValue = ((addedValue1.toLong()) shl 32) or (addedValue2.toLong() and 0xffffffffL)
+      put(objectId, newPackedValue)
+      IntIntPair(addedValue1, addedValue2)
+    } else {
+      val existingValue1 = (packedValue shr 32).toInt()
+      val existingValue2 = (packedValue and 0xFFFFFFFF).toInt()
+      val newValue1 = existingValue1 + addedValue1
+      val newValue2 = existingValue2 + addedValue2
+      val newPackedValue = ((newValue1.toLong()) shl 32) or (newValue2.toLong() and 0xffffffffL)
+      put(objectId, newPackedValue)
+      IntIntPair(newValue1, newValue2)
+    }
   }
 
   private data class Node(

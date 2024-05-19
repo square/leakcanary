@@ -2,6 +2,7 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.ByteSize.Companion.bytes
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.ValueHolder.Companion.NULL_REFERENCE
 
@@ -86,6 +87,50 @@ class ObjectGrowthDetectorTest {
 
     assertThat(growingObjects).hasSize(1)
   }
+
+  @Test
+  fun `object growth computes retained size increase with 2 iterations`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = listOf(
+      dump {
+        classWithStringsInStaticField("Hello")
+      },
+      dump {
+        classWithStringsInStaticField("Hello", "World!")
+      }
+    )
+
+    val heapTraversal =  detector.findRepeatedlyGrowingObjects(dumps)
+
+    val growingObject = heapTraversal.growingObjects.single()
+    assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
+    val expectedRetainedSizeIncrease = (12 + "World!".length * 2).bytes
+    assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
+  }
+
+  @Test
+  fun `object growth computes retained size increase with 3 iterations`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = listOf(
+      dump {
+        classWithStringsInStaticField("Hello")
+      },
+      dump {
+        classWithStringsInStaticField("Hello", "World!")
+      },
+      dump {
+        classWithStringsInStaticField("Hello", "World!", "Turtles")
+      }
+    )
+
+    val heapTraversal =  detector.findRepeatedlyGrowingObjects(dumps)
+
+    val growingObject = heapTraversal.growingObjects.single()
+    assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
+    val expectedRetainedSizeIncrease = (12 + "Turtles".length * 2).bytes
+    assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
+  }
+
 
   @Test
   fun `detect growth of custom linked list`() {

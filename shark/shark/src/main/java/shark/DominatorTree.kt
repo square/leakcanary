@@ -1,6 +1,11 @@
 @file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER", "CANNOT_OVERRIDE_INVISIBLE_MEMBER")
+
 package shark
 
+import androidx.collection.LongLongMap
+import androidx.collection.LongSet
+import androidx.collection.MutableLongLongMap
+import androidx.collection.MutableLongSet
 import shark.ObjectDominators.DominatorNode
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongLongScatterMap.ForEachCallback
@@ -21,6 +26,12 @@ class DominatorTree(expectedElements: Int = 4) {
   private val dominated = LongLongScatterMap(expectedElements)
 
   operator fun contains(objectId: Long): Boolean = dominated.containsKey(objectId)
+
+  /**
+   * Returns the dominator object id or [ValueHolder.NULL_REFERENCE] if [dominatedObjectId] is the
+   * root dominator.
+   */
+  operator fun get(dominatedObjectId: Long) = dominated[dominatedObjectId]
 
   /**
    * Records that [objectId] is a root.
@@ -106,7 +117,8 @@ class DominatorTree(expectedElements: Int = 4) {
 
   fun buildFullDominatorTree(objectSizeCalculator: ObjectSizeCalculator): Map<Long, DominatorNode> {
     val dominators = mutableMapOf<Long, MutableDominatorNode>()
-    dominated.forEach(ForEachCallback {key, value ->
+    // Reverse the dominated map to have dominators ids as keys and list of dominated as values
+    dominated.forEach(ForEachCallback { key, value ->
       // create entry for dominated
       dominators.getOrPut(key) {
         MutableDominatorNode()
@@ -118,7 +130,12 @@ class DominatorTree(expectedElements: Int = 4) {
       }.dominated += key
     })
 
-    val allReachableObjectIds = dominators.keys.toSet() - ValueHolder.NULL_REFERENCE
+    val allReachableObjectIds = MutableLongSet(dominators.size)
+    dominators.forEach { (key, _) ->
+      if (key != ValueHolder.NULL_REFERENCE) {
+        allReachableObjectIds += key
+      }
+    }
 
     val retainedSizes = computeRetainedSizes(allReachableObjectIds) { objectId ->
       val shallowSize = objectSizeCalculator.computeSize(objectId)
@@ -128,7 +145,9 @@ class DominatorTree(expectedElements: Int = 4) {
 
     dominators.forEach { (objectId, node) ->
       if (objectId != ValueHolder.NULL_REFERENCE) {
-        val (retainedSize, retainedCount) = retainedSizes.getValue(objectId)
+        val retainedPacked = retainedSizes[objectId]
+        val retainedSize = retainedPacked.unpackAsFirstInt
+        val retainedCount = retainedPacked.unpackAsSecondInt
         node.retainedSize = retainedSize
         node.retainedCount = retainedCount
       }
@@ -157,12 +176,12 @@ class DominatorTree(expectedElements: Int = 4) {
    * @return a map of object id to retained size.
    */
   fun computeRetainedSizes(
-    retainedObjectIds: Set<Long>,
+    retainedObjectIds: LongSet,
     objectSizeCalculator: ObjectSizeCalculator
-  ): Map<Long, Pair<Int, Int>> {
-    val nodeRetainedSizes = mutableMapOf<Long, Pair<Int, Int>>()
+  ): LongLongMap {
+    val nodeRetainedSizes = MutableLongLongMap(retainedObjectIds.size)
     retainedObjectIds.forEach { objectId ->
-      nodeRetainedSizes[objectId] = 0 to 0
+      nodeRetainedSizes[objectId] = 0 packedWith 0
     }
 
     dominated.forEach(object : ForEachCallback {
@@ -174,9 +193,15 @@ class DominatorTree(expectedElements: Int = 4) {
         var instanceSize = -1
 
         // If the entry is a node, add its size to nodeRetainedSizes
-        nodeRetainedSizes[key]?.let { (currentRetainedSize, currentRetainedCount) ->
+
+        val missing = -1 packedWith -1
+        val packedRetained = nodeRetainedSizes.getOrDefault(key, missing)
+        if (packedRetained != missing) {
+          val currentRetainedSize = packedRetained.unpackAsFirstInt
+          val currentRetainedCount = packedRetained.unpackAsSecondInt
           instanceSize = objectSizeCalculator.computeSize(key)
-          nodeRetainedSizes[key] = currentRetainedSize + instanceSize to currentRetainedCount + 1
+          nodeRetainedSizes[key] =
+            (currentRetainedSize + instanceSize) packedWith currentRetainedCount + 1
         }
 
         if (value != ValueHolder.NULL_REFERENCE) {
@@ -195,11 +220,11 @@ class DominatorTree(expectedElements: Int = 4) {
                 instanceSize = objectSizeCalculator.computeSize(key)
               }
               // Update retained size for that node
-              val (currentRetainedSize, currentRetainedCount) = nodeRetainedSizes.getValue(
-                dominator
-              )
+              val dominatorRetained = nodeRetainedSizes[dominator]
+              val currentRetainedSize = dominatorRetained.unpackAsFirstInt
+              val currentRetainedCount = dominatorRetained.unpackAsSecondInt
               nodeRetainedSizes[dominator] =
-                (currentRetainedSize + instanceSize) to currentRetainedCount + 1
+                (currentRetainedSize + instanceSize) packedWith (currentRetainedCount + 1)
               dominatedByNextNode.clear()
             } else {
               dominatedByNextNode += dominator
@@ -218,3 +243,13 @@ class DominatorTree(expectedElements: Int = 4) {
     return nodeRetainedSizes
   }
 }
+
+// TODO Move somewhere else.
+infix fun Int.packedWith(that: Int) =
+  ((toLong()) shl 32) or (that.toLong() and 0xffffffffL)
+
+inline val Long.unpackAsFirstInt: Int
+  get() = (this shr 32).toInt()
+
+inline val Long.unpackAsSecondInt: Int
+  get() = (this and 0xFFFFFFFF).toInt()
