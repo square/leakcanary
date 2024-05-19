@@ -5,9 +5,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.DominatorTree
 import shark.ValueHolder
-import shark.packedWith
-import shark.unpackAsFirstInt
-import shark.unpackAsSecondInt
 
 @Suppress("UsePropertyAccessSyntax")
 class DominatorTreeTest {

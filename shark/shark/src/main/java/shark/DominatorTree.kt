@@ -10,6 +10,9 @@ import shark.ObjectDominators.DominatorNode
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongLongScatterMap.ForEachCallback
 import shark.internal.hppc.LongScatterSet
+import shark.internal.packedWith
+import shark.internal.unpackAsFirstInt
+import shark.internal.unpackAsSecondInt
 
 class DominatorTree(expectedElements: Int = 4) {
 
@@ -244,12 +247,3 @@ class DominatorTree(expectedElements: Int = 4) {
   }
 }
 
-// TODO Move somewhere else.
-infix fun Int.packedWith(that: Int) =
-  ((toLong()) shl 32) or (that.toLong() and 0xffffffffL)
-
-inline val Long.unpackAsFirstInt: Int
-  get() = (this shr 32).toInt()
-
-inline val Long.unpackAsSecondInt: Int
-  get() = (this and 0xFFFFFFFF).toInt()

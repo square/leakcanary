@@ -40,6 +40,9 @@ import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.createSHA1Hash
 import shark.internal.lastSegment
+import shark.internal.packedWith
+import shark.internal.unpackAsFirstInt
+import shark.internal.unpackAsSecondInt
 
 // TODO kdoc
 // TODO better name than "real"
