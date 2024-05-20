@@ -441,7 +441,6 @@ class ObjectGrowthDetectorTest {
       return delegate.findRepeatedlyGrowingObjects(
         initialState = InitialState(
           scenarioLoopsPerGraph = scenarioLoopsPerGraph,
-          heapGraphCount = heapGraphs.size
         ),
         heapGraphSequence = heapGraphs.asSequence()
       ).apply {

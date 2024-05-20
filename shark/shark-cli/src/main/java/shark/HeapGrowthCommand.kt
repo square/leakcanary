@@ -106,7 +106,7 @@ class HeapGrowthCommand : CliktCommand(
           .repeatingHeapGraph()
         val results = detector.findRepeatedlyGrowingObjects(
           heapGraphSequence = heapGraphs,
-          initialState = InitialState(scenarioLoopsPerDump, hprofFiles.size),
+          initialState = InitialState(scenarioLoopsPerDump),
         ).also {
           previous?.let {
             val finishTime = System.nanoTime().nanoseconds
@@ -173,8 +173,7 @@ class HeapGrowthCommand : CliktCommand(
               echo("As the last heap dump found 0 growing objects, there's no point continuing with the same heap dump baseline.")
               echo("To keep going, go through scenario $nTimes then press ENTER to use the last heap dump as the NEW baseline.")
               echo("To quit, enter 'q'.")
-              val command = consoleReader.readCommand()
-              when (command) {
+              when (val command = consoleReader.readCommand()) {
                 "q" -> throw PrintMessage("Quitting.")
                 "" -> {
                   promptForCommand = false
@@ -190,7 +189,7 @@ class HeapGrowthCommand : CliktCommand(
           val nextInputTraversal = if (reset) {
             FirstHeapTraversal(
               shortestPathTree = latestTraversal.shortestPathTree.copyResettingAsInitialTree(),
-              previousTraversal = InitialState(latestTraversal.scenarioLoopsPerGraph, null)
+              previousTraversal = InitialState(latestTraversal.scenarioLoopsPerGraph)
             )
           } else {
             latestTraversal

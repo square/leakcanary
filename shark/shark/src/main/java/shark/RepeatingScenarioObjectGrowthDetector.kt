@@ -9,7 +9,7 @@ class RepeatingScenarioObjectGrowthDetector(
    */
   private val heapGraphProvider: HeapGraphProvider,
   objectGrowthDetector: ObjectGrowthDetector,
-  maxHeapDumps: Int = DEFAULT_MAX_HEAP_DUMPS,
+  private val maxHeapDumps: Int = DEFAULT_MAX_HEAP_DUMPS,
   scenarioLoopsPerDump: Int = DEFAULT_SCENARIO_LOOPS_PER_DUMP,
 ) {
 
@@ -17,7 +17,6 @@ class RepeatingScenarioObjectGrowthDetector(
 
   private val initialState = InitialState(
     scenarioLoopsPerGraph = scenarioLoopsPerDump,
-    heapGraphCount = maxHeapDumps
   )
 
   /**
@@ -37,7 +36,7 @@ class RepeatingScenarioObjectGrowthDetector(
   private fun dumpHeapOnNext(
     repeatedScenario: () -> Unit,
   ): Sequence<CloseableHeapGraph> {
-    val heapDumps = (1..initialState.heapGraphCount!!).asSequence().map {
+    val heapDumps = (1..maxHeapDumps).asSequence().map {
       repeat(initialState.scenarioLoopsPerGraph) {
         repeatedScenario()
       }
