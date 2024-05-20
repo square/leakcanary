@@ -871,17 +871,6 @@ public final class shark/ReferencePattern$InstanceFieldPattern : shark/Reference
 public final class shark/ReferencePattern$InstanceFieldPattern$Companion {
 }
 
-public final class shark/ReferencePattern$JavaLocalAllowListPattern : shark/ReferencePattern {
-	public fun <init> (Ljava/util/List;)V
-	public final fun component1 ()Ljava/util/List;
-	public final fun copy (Ljava/util/List;)Lshark/ReferencePattern$JavaLocalAllowListPattern;
-	public static synthetic fun copy$default (Lshark/ReferencePattern$JavaLocalAllowListPattern;Ljava/util/List;ILjava/lang/Object;)Lshark/ReferencePattern$JavaLocalAllowListPattern;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getThreadNames ()Ljava/util/List;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
 public final class shark/ReferencePattern$JavaLocalPattern : shark/ReferencePattern {
 	public static final field Companion Lshark/ReferencePattern$JavaLocalPattern$Companion;
 	public fun <init> (Ljava/lang/String;)V
