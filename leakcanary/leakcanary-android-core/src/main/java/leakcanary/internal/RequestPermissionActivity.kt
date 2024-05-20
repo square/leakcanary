@@ -56,7 +56,7 @@ internal class RequestPermissionActivity : Activity() {
     grantResults: IntArray
   ) {
     if (!hasTargetPermission()) {
-      Toast.makeText(application, R.string.leak_canary_permission_not_granted, LENGTH_LONG)
+      Toast.makeText(this, R.string.leak_canary_permission_not_granted, LENGTH_LONG)
         .show()
     }
     finish()
