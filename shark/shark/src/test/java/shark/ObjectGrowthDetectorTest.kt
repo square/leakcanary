@@ -365,7 +365,6 @@ class ObjectGrowthDetectorTest {
   @Test
   fun `detect no growth if different individual children over threshold`() {
     val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
-
     val dumps = listOf(
       dump {
         val otherType = clazz("SomeClass")
@@ -427,6 +426,52 @@ class ObjectGrowthDetectorTest {
     assertThat(heapGrowthTraversal.traversalCount).isEqualTo(dumps.size)
     val growingObjects = heapGrowthTraversal.growingObjects
     assertThat(growingObjects).isEmpty()
+  }
+
+  @Test
+  fun `growth along shared sub paths reported as single growth of shortest path`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = listOf(
+      dump {
+        val pairClass = clazz("Pair", fields = listOf(
+          "first" to ValueHolder.ReferenceHolder::class,
+          "second" to ValueHolder.ReferenceHolder::class,
+        ))
+        val growingClass = clazz("GrowingClass", fields = listOf("growingField" to ValueHolder.ReferenceHolder::class))
+        val pair = instance(pairClass, listOf(instance(objectClassId), instance(objectClassId)))
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf(
+            "list" to objectArray(
+              instance(growingClass, listOf(pair)),
+            ),
+          )
+        )
+      },
+      dump {
+        val pairClass = clazz("Pair", fields = listOf(
+          "first" to ValueHolder.ReferenceHolder::class,
+          "second" to ValueHolder.ReferenceHolder::class,
+        ))
+        val growingClass = clazz("GrowingClass", fields = listOf("growingField" to ValueHolder.ReferenceHolder::class))
+        val pair1 = instance(pairClass, listOf(instance(objectClassId), instance(objectClassId)))
+        val pair2 = instance(pairClass, listOf(instance(objectClassId), instance(objectClassId)))
+        clazz(
+          "ClassWithStatics",
+          staticFields = listOf(
+            "list" to objectArray(
+              instance(growingClass, listOf(pair1)),
+              instance(growingClass, listOf(pair2)),
+            ),
+          )
+        )
+      },
+    )
+
+    val heapGrowthTraversal = detector.findRepeatedlyGrowingObjects(dumps)
+
+    val growingObject = heapGrowthTraversal.growingObjects.single()
+    assertThat(growingObject.name).startsWith("STATIC_FIELD ClassWithStatics.list")
   }
 
   class ListRepeatingHeapGraphObjectGrowthDetector(
