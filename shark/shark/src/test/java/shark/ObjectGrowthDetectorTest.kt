@@ -2,7 +2,6 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.ByteSize.Companion.bytes
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.ValueHolder.Companion.NULL_REFERENCE
 

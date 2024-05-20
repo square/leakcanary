@@ -6,13 +6,11 @@ import androidx.collection.MutableLongLongMap
 import androidx.collection.MutableLongSet
 import java.util.ArrayDeque
 import java.util.Deque
-import shark.ByteSize.Companion.bytes
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.ReferenceLocationType.ARRAY_ENTRY
-import shark.ShortestPathObjectNode.Retained
 import shark.internal.hppc.LongScatterSet
 import shark.internal.unpackAsFirstInt
 import shark.internal.unpackAsSecondInt
@@ -220,7 +218,7 @@ class ObjectGrowthDetector(
       // A map that stores two ints, size and count, in a single long value with bit packing.
       val retainedSizeAndCountMap = MutableLongLongMap(dequeuedNodes.size)
       for (node in dequeuedNodes.asReversed()) {
-        var nodeRetainedSize = ByteSize.ZERO
+        var nodeRetainedSize = ZERO_BYTES
         var nodeRetainedCount = 0
 
         for (objectId in node.objectIds) {
@@ -242,17 +240,17 @@ class ObjectGrowthDetector(
         }
 
         if (node.shortestPathNode.growing) {
-          node.shortestPathNode.retainedOrNull = Retained(
+          node.shortestPathNode.retained = Retained(
             heapSize = nodeRetainedSize,
             objectCount = nodeRetainedCount
           )
           // First traversal, can't compute an increase, nothing to diff on.
-          node.shortestPathNode.retainedIncreaseOrNull = Retained.ZERO
+          node.shortestPathNode.retainedIncrease = ZERO_RETAINED
         }
       }
       FirstHeapTraversal(tree, previousTraversal)
     } else {
-      val reportedGrowingNodeObjectIds = MutableLongSet()
+      val reportedGrowingNodeObjectIdsForRetainedSize = MutableLongSet()
       // Marks node as "growing" if we can find a corresponding previous node that was growing and
       // we see at least one child node that increased its number of objects over our threshold.
       val reportedGrowingNodes = dequeuedNodes.mapNotNull reportedGrowingNodeOrNull@{ node ->
@@ -327,13 +325,14 @@ class ObjectGrowthDetector(
         }
 
         node.objectIds.forEach { objectId ->
-          reportedGrowingNodeObjectIds.add(objectId)
+          reportedGrowingNodeObjectIdsForRetainedSize.add(objectId)
         }
         return@reportedGrowingNodeOrNull shortestPathNode
       }
       val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
-      val retainedMap =
-        dominatorTree.computeRetainedSizes(reportedGrowingNodeObjectIds, objectSizeCalculator)
+      val retainedMap = dominatorTree.computeRetainedSizes(
+          reportedGrowingNodeObjectIdsForRetainedSize, objectSizeCalculator
+        )
       dequeuedNodes.forEach reportedGrowingNodeRetainedSize@{ node ->
         val shortestPathNode = node.shortestPathNode
         // If not growing, or growing but with a parent that's growing, skip.
@@ -343,7 +342,7 @@ class ObjectGrowthDetector(
           return@reportedGrowingNodeRetainedSize
         }
 
-        var heapSize = ByteSize.ZERO
+        var heapSize = ZERO_BYTES
         var objectCount = 0
         for (objectId in node.objectIds) {
           val packed = retainedMap[objectId]
@@ -352,13 +351,13 @@ class ObjectGrowthDetector(
           heapSize += additionalByteSize.bytes
           objectCount += additionalObjectCount
         }
-        shortestPathNode.retainedOrNull = Retained(
+        shortestPathNode.retained = Retained(
           heapSize = heapSize,
           objectCount = objectCount
         )
-        val previousRetained = node.previousPathNode?.retainedOrNull
-        shortestPathNode.retainedIncreaseOrNull = if (previousRetained == null) {
-          Retained.ZERO
+        val previousRetained = node.previousPathNode?.retained ?: UNKNOWN_RETAINED
+        shortestPathNode.retainedIncrease = if (previousRetained.isUnknown) {
+          ZERO_RETAINED
         } else {
           Retained(
             heapSize - previousRetained.heapSize, objectCount - previousRetained.objectCount

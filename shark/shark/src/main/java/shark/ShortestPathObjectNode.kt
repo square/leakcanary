@@ -1,7 +1,5 @@
 package shark
 
-import shark.ByteSize.Companion.bytes
-
 typealias GrowingObjectNodes = List<ShortestPathObjectNode>
 
 class ShortestPathObjectNode(
@@ -44,19 +42,15 @@ class ShortestPathObjectNode(
    * Set for growing nodes if the traversal requested the computation of retained sizes, otherwise
    * null.
    */
-  var retainedOrNull: Retained? = null
+  var retained: Retained = UNKNOWN_RETAINED
     internal set
 
   /**
    * Set for growing nodes if [retainedOrNull] is not null. Non 0 if the previous traversal also
    * computed retained size.
    */
-  var retainedIncreaseOrNull: Retained? = null
+  var retainedIncrease: Retained = UNKNOWN_RETAINED
     internal set
-
-  val retained: Retained get() = retainedOrNull!!
-
-  val retainedIncrease: Retained get() = retainedIncreaseOrNull!!
 
   internal var growing = false
 
@@ -81,9 +75,9 @@ class ShortestPathObjectNode(
   private fun copyResetRecursive(newParent: ShortestPathObjectNode?): ShortestPathObjectNode {
     val newNode = ShortestPathObjectNode(name, newParent)
     newNode.selfObjectCount = selfObjectCount
-    newNode.retainedOrNull = retainedOrNull
-    if (retainedOrNull != null) {
-      newNode.retainedIncreaseOrNull = Retained(0L.bytes, 0)
+    newNode.retained = retained
+    if (!retained.isUnknown) {
+      newNode.retainedIncrease = ZERO_RETAINED
     }
     newNode.growing = true
     newNode.createChildrenBackingList(children.size)
@@ -119,7 +113,7 @@ class ShortestPathObjectNode(
       result.append(pathNode.selfObjectCount)
       result.append(" objects)")
       if (index == pathAfterRoot.lastIndex) {
-        if (retainedOrNull != null) {
+        if (!retained.isUnknown) {
           result.appendLine()
           result.append("    Retained size: ${retained.heapSize} (+ ${retainedIncrease.heapSize})")
           result.appendLine()
@@ -147,23 +141,5 @@ class ShortestPathObjectNode(
       }
     }
     return result.toString()
-  }
-
-  class Retained(
-    /**
-     * The minimum number of bytes which would be freed if all references to this object were
-     * released.
-     */
-    val heapSize: ByteSize,
-
-    /**
-     * The minimum number of objects which would be unreachable if all references to this object were
-     * released.
-     */
-    val objectCount: Int,
-  ) {
-    companion object {
-      val ZERO = Retained(ByteSize.ZERO, 0)
-    }
   }
 }

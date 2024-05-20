@@ -3,8 +3,10 @@ package shark
 /**
  * Inspired by https://github.com/saket/file-size as well as Kotlin's Duration API.
  */
+// DO NOT ADD A COMPANION OBJECT: a value class is supposed to be lightweight and its usage inlined
+// into few instructions. After adding a companion object, call sites get a lot more instructions.
 @JvmInline
-value class ByteSize private constructor(
+value class ByteSize internal constructor(
   val inWholeBytes: Long
 ) : Comparable<ByteSize> {
 
@@ -39,22 +41,20 @@ value class ByteSize private constructor(
 
   operator fun div(other: ByteSize): ByteSize =
     ByteSize(inWholeBytes / other.inWholeBytes)
-
-  companion object {
-    const val BYTES_PER_KB: Long = 1_000L
-    const val BYTES_PER_MB: Long = 1_000L * BYTES_PER_KB
-    const val BYTES_PER_GB: Long = 1_000L * BYTES_PER_MB
-
-    val ZERO: ByteSize = ByteSize(0L)
-
-    val Long.bytes get() = ByteSize(this)
-    val Long.kilobytes get() = ByteSize(this * BYTES_PER_KB)
-    val Long.megabytes get() = ByteSize(this * BYTES_PER_MB)
-    val Long.gigabytes get() = ByteSize(this * BYTES_PER_GB)
-
-    val Int.bytes get() = ByteSize(toLong())
-    val Int.kilobytes get() = ByteSize(this * BYTES_PER_KB)
-    val Int.megabytes get() = ByteSize(this * BYTES_PER_MB)
-    val Int.gigabytes get() = ByteSize(this * BYTES_PER_GB)
-  }
 }
+
+const val BYTES_PER_KB: Long = 1_000L
+const val BYTES_PER_MB: Long = 1_000L * BYTES_PER_KB
+const val BYTES_PER_GB: Long = 1_000L * BYTES_PER_MB
+
+val ZERO_BYTES: ByteSize = ByteSize(0L)
+
+val Long.bytes get() = ByteSize(this)
+val Long.kilobytes get() = ByteSize(this * BYTES_PER_KB)
+val Long.megabytes get() = ByteSize(this * BYTES_PER_MB)
+val Long.gigabytes get() = ByteSize(this * BYTES_PER_GB)
+
+val Int.bytes get() = ByteSize(toLong())
+val Int.kilobytes get() = ByteSize(this * BYTES_PER_KB)
+val Int.megabytes get() = ByteSize(this * BYTES_PER_MB)
+val Int.gigabytes get() = ByteSize(this * BYTES_PER_GB)
