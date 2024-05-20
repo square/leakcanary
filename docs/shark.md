@@ -92,84 +92,118 @@ Commands:
 ### Reading records in a hprof file
 
 ```groovy
+// build.gradle
 dependencies {
   implementation 'com.squareup.leakcanary:shark-hprof:$sharkVersion'
 }
 ```
 
 ```kotlin
-// Prints all class and field names
-Hprof.open(heapDumpFile)
-    .use { hprof ->
-      hprof.reader.readHprofRecords(
-          recordTypes = setOf(StringRecord::class),
-          listener = OnHprofRecordListener { position, record ->
-            println((record as StringRecord).string)
-          })
-    }
+import java.io.File
+import shark.Hprof
+import shark.HprofRecord.StringRecord
+import shark.OnHprofRecordListener
+
+fun main(args: Array<String>) {
+  val heapDumpFile = File(args[0])
+
+  // Prints all class and field names
+  Hprof.open(heapDumpFile).use { hprof ->
+    hprof.reader.readHprofRecords(
+      recordTypes = setOf(StringRecord::class),
+      listener =
+        OnHprofRecordListener { position, record -> println((record as StringRecord).string) },
+    )
+  }
+}
 ```
 
 ### Navigating the heap object graph
 
 ```groovy
+// build.gradle
 dependencies {
   implementation 'com.squareup.leakcanary:shark-graph:$sharkVersion'
 }
 ```
 
 ```kotlin
-// Prints all thread names
-Hprof.open(heapDumpFile)
-    .use { hprof ->
-      val heapGraph = HprofHeapGraph.indexHprof(hprof)
-      val threadClass = heapGraph.findClassByName("java.lang.Thread")!!
-      val threadNames: Sequence<String> = threadClass.instances.map { instance ->
+import java.io.File
+import shark.Hprof
+import shark.HprofHeapGraph
+
+fun main(args: Array<String>) {
+  val heapDumpFile = File(args[0])
+
+  // Prints all thread names
+  Hprof.open(heapDumpFile).use { hprof ->
+    val heapGraph = HprofHeapGraph.indexHprof(hprof)
+    val threadClass = heapGraph.findClassByName("java.lang.Thread")!!
+    val threadNames: Sequence<String> =
+      threadClass.instances.map { instance ->
         val nameField = instance["java.lang.Thread", "name"]!!
         nameField.value.readAsJavaString()!!
       }
-      threadNames.forEach { println(it) }
-    }
+    threadNames.forEach { println(it) }
+  }
+}
 ```
 
 ### Generating a heap analysis report
 
 ```groovy
+// build.gradle
 dependencies {
   implementation 'com.squareup.leakcanary:shark:$sharkVersion'
 }
 ```
 
 ```kotlin
+import java.io.File
+import shark.FilteringLeakingObjectFinder
+import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
+import shark.HeapAnalyzer
+import shark.HeapObject
+import shark.HeapObject.HeapInstance
+import shark.Hprof
+import shark.HprofHeapGraph
+
 // Marks any instance of com.example.ThingWithLifecycle with
 // ThingWithLifecycle.destroyed=true as leaking
-val leakingObjectFilter = object : LeakingObjectFilter {
-  override fun isLeakingObject(heapObject: HeapObject): Boolean {
-    return if (heapObject instanceOf "com.example.ThingWithLifecycle") {
-      val instance = heapObject as HeapInstance
-      val destroyedField = instance["com.example.ThingWithLifecycle", "destroyed"]!!
-      destroyedField.value.asBoolean!!
-    } else false
+val leakingObjectFilter =
+  object : LeakingObjectFilter {
+    override fun isLeakingObject(heapObject: HeapObject): Boolean {
+      return if (
+        heapObject is HeapInstance && heapObject instanceOf "com.example.ThingWithLifecycle"
+      ) {
+        val destroyedField = heapObject["com.example.ThingWithLifecycle", "destroyed"]!!
+        destroyedField.value.asBoolean!!
+      } else false
+    }
   }
-}
 
 val leakingObjectFinder = FilteringLeakingObjectFinder(listOf(leakingObjectFilter))
 
-val heapAnalysis = Hprof.open(heapDumpFile)
-    .use { hprof ->
+fun main(args: Array<String>) {
+  val heapDumpFile = File(args[0])
+  val heapAnalysis =
+    Hprof.open(heapDumpFile).use { hprof ->
       val heapGraph = HprofHeapGraph.indexHprof(hprof)
-      val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
+      val heapAnalyzer = HeapAnalyzer({})
       heapAnalyzer.analyze(
-          heapDumpFile = heapDumpFile,
-          graph = heapGraph,
-          leakingObjectFinder = leakingObjectFinder,
+        heapDumpFile = heapDumpFile,
+        graph = heapGraph,
+        leakingObjectFinder = leakingObjectFinder,
       )
     }
-println(analysis)
+  println(heapAnalysis)
+}
 ```
 
 ### Generating an Android heap analysis report
 
 ```groovy
+// build.gradle
 dependencies {
   implementation 'com.squareup.leakcanary:shark-android:$sharkVersion'
 }
@@ -177,11 +211,50 @@ dependencies {
 
 
 ```kotlin
-val heapAnalyzer = HeapAnalyzer(AnalyzerProgressListener.NONE)
-val analysis = heapAnalyzer.checkForLeaks(
-    heapDumpFile = heapDumpFile,
-    referenceMatchers = AndroidReferenceMatchers.appDefaults,
-    objectInspectors = AndroidObjectInspectors.appDefaults
-)
-println(analysis)
+import java.io.File
+import shark.AndroidObjectInspectors
+import shark.AndroidReferenceMatchers
+import shark.FilteringLeakingObjectFinder
+import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
+import shark.HeapAnalyzer
+import shark.HeapObject
+import shark.HeapObject.HeapInstance
+import shark.Hprof
+import shark.HprofHeapGraph
+
+// Marks any instance of com.example.ThingWithLifecycle with
+// ThingWithLifecycle.destroyed=true as leaking
+val leakingObjectFilter =
+  object : LeakingObjectFilter {
+    override fun isLeakingObject(heapObject: HeapObject): Boolean {
+      return if (
+        heapObject is HeapInstance && heapObject instanceOf "com.example.ThingWithLifecycle"
+      ) {
+        val instance = heapObject as HeapInstance
+        val destroyedField = instance["com.example.ThingWithLifecycle", "destroyed"]!!
+        destroyedField.value.asBoolean!!
+      } else false
+    }
+  }
+
+val leakingObjectFinder = FilteringLeakingObjectFinder(listOf(leakingObjectFilter))
+
+fun main(args: Array<String>) {
+  val heapDumpFile = File(args[0])
+
+  val heapAnalysis =
+    Hprof.open(heapDumpFile).use { hprof ->
+      val heapGraph = HprofHeapGraph.indexHprof(hprof)
+      val heapAnalyzer = HeapAnalyzer({})
+      heapAnalyzer.analyze(
+        heapDumpFile = heapDumpFile,
+        graph = heapGraph,
+        leakingObjectFinder = leakingObjectFinder,
+        referenceMatchers = AndroidReferenceMatchers.appDefaults,
+        objectInspectors = AndroidObjectInspectors.appDefaults,
+      )
+    }
+
+  println(heapAnalysis)
+}
 ```
