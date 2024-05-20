@@ -404,17 +404,19 @@ class ObjectGrowthDetector(
     previousTree: ShortestPathObjectNode?,
     heapGraph: CloseableHeapGraph
   ) {
+    val previousTreeRootMap = previousTree?.let { tree ->
+      tree.children.associateBy { it.name }
+    }
 
     val edgesByNodeName = mutableMapOf<EdgeKey, MutableLongList>()
     gcRootProvider.provideGcRoots(heapGraph).forEach { gcRootReference ->
-      val name = "GcRoot(${gcRootReference.gcRoot::class.java.simpleName})"
-      val edgeKey = EdgeKey(name, gcRootReference.isLowPriority)
-
       val objectId = gcRootReference.gcRoot.id
-
       if (objectId == ValueHolder.NULL_REFERENCE) {
         return@forEach
       }
+
+      val name = "GcRoot(${gcRootReference.gcRoot::class.java.simpleName})"
+      val edgeKey = EdgeKey(name, gcRootReference.isLowPriority)
 
       val edgeObjectIds = edgesByNodeName[edgeKey]
       if (edgeObjectIds == null) {
@@ -425,11 +427,6 @@ class ObjectGrowthDetector(
         }
       }
     }
-
-    val previousTreeRootMap = previousTree?.let { tree ->
-      tree.children.associateBy { it.name }
-    }
-
     val enqueuedCount = edgesByNodeName.count { (edgeKey, edgeObjectIds) ->
       val previousPathNode = previousTreeRootMap?.get(edgeKey.nodeAndEdgeName)
 
