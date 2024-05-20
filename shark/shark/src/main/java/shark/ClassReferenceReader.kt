@@ -32,13 +32,20 @@ class ClassReferenceReader(
   override fun read(source: HeapClass): Sequence<Reference> {
     val ignoredStaticFields = staticFieldNameByClassName[source.name] ?: emptyMap()
 
-    return source.readStaticFields().mapNotNull {  staticField ->
+    return source.readStaticFields().mapNotNull { staticField ->
       // not non null: no null + no primitives.
       if (!staticField.value.isNonNullReference) {
         return@mapNotNull null
       }
       val fieldName = staticField.name
-      if (fieldName == "\$staticOverhead" || fieldName == "\$classOverhead") {
+      if (
+      // Android noise
+        fieldName == "\$staticOverhead" ||
+        // Android noise
+        fieldName == "\$classOverhead" ||
+        // JVM noise
+        fieldName == "<resolved_references>"
+      ) {
         return@mapNotNull null
       }
 
