@@ -73,10 +73,6 @@ public final class shark/ApplicationLeak$Companion {
 }
 
 public final class shark/ByteSize : java/lang/Comparable {
-	public static final field BYTES_PER_GB J
-	public static final field BYTES_PER_KB J
-	public static final field BYTES_PER_MB J
-	public static final field Companion Lshark/ByteSize$Companion;
 	public static final synthetic fun box-impl (J)Lshark/ByteSize;
 	public synthetic fun compareTo (Ljava/lang/Object;)I
 	public fun compareTo-rK2stxE (J)I
@@ -99,16 +95,19 @@ public final class shark/ByteSize : java/lang/Comparable {
 	public final synthetic fun unbox-impl ()J
 }
 
-public final class shark/ByteSize$Companion {
-	public final fun getBytes-1A9dbZA (I)J
-	public final fun getBytes-1A9dbZA (J)J
-	public final fun getGigabytes-1A9dbZA (I)J
-	public final fun getGigabytes-1A9dbZA (J)J
-	public final fun getKilobytes-1A9dbZA (I)J
-	public final fun getKilobytes-1A9dbZA (J)J
-	public final fun getMegabytes-1A9dbZA (I)J
-	public final fun getMegabytes-1A9dbZA (J)J
-	public final fun getZERO-UyN4wxk ()J
+public final class shark/ByteSizeKt {
+	public static final field BYTES_PER_GB J
+	public static final field BYTES_PER_KB J
+	public static final field BYTES_PER_MB J
+	public static final fun getBytes (I)J
+	public static final fun getBytes (J)J
+	public static final fun getGigabytes (I)J
+	public static final fun getGigabytes (J)J
+	public static final fun getKilobytes (I)J
+	public static final fun getKilobytes (J)J
+	public static final fun getMegabytes (I)J
+	public static final fun getMegabytes (J)J
+	public static final fun getZERO_BYTES ()J
 }
 
 public final class shark/ChainingInstanceReferenceReader : shark/ReferenceReader {
@@ -141,8 +140,9 @@ public final class shark/DominatorTree {
 	public fun <init> (I)V
 	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun buildFullDominatorTree (Lshark/DominatorTree$ObjectSizeCalculator;)Ljava/util/Map;
-	public final fun computeRetainedSizes (Ljava/util/Set;Lshark/DominatorTree$ObjectSizeCalculator;)Ljava/util/Map;
+	public final fun computeRetainedSizes (Landroidx/collection/LongSet;Lshark/DominatorTree$ObjectSizeCalculator;)Landroidx/collection/LongLongMap;
 	public final fun contains (J)Z
+	public final fun get (J)J
 	public final fun updateDominated (JJ)Z
 	public final fun updateDominatedAsRoot (J)Z
 }
@@ -314,12 +314,17 @@ public final class shark/IgnoredReferenceMatcher : shark/ReferenceMatcher {
 }
 
 public final class shark/InitialState : shark/HeapTraversalInput {
+	public static final field Companion Lshark/InitialState$Companion;
+	public static final field DEFAULT_SCENARIO_LOOPS_PER_GRAPH I
 	public fun <init> ()V
 	public fun <init> (ILjava/lang/Integer;)V
 	public synthetic fun <init> (ILjava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getHeapGraphCount ()Ljava/lang/Integer;
 	public fun getScenarioLoopsPerGraph ()I
 	public fun getTraversalCount ()I
+}
+
+public final class shark/InitialState$Companion {
 }
 
 public final class shark/JavaLocalReferenceReader : shark/ChainingInstanceReferenceReader$VirtualInstanceReferenceReader {
@@ -355,6 +360,20 @@ public final class shark/JdkReferenceMatchers$Companion {
 public final class shark/JvmObjectGrowthDetectorKt {
 	public static final fun forJvmHeap (Lshark/ObjectGrowthDetector$Companion;Ljava/util/List;)Lshark/ObjectGrowthDetector;
 	public static synthetic fun forJvmHeap$default (Lshark/ObjectGrowthDetector$Companion;Ljava/util/List;ILjava/lang/Object;)Lshark/ObjectGrowthDetector;
+}
+
+public abstract class shark/JvmObjectGrowthReferenceMatchers : java/lang/Enum, shark/ReferenceMatcher$ListBuilder {
+	public static final field Companion Lshark/JvmObjectGrowthReferenceMatchers$Companion;
+	public static final field HEAP_TRAVERSAL Lshark/JvmObjectGrowthReferenceMatchers;
+	public static final field JVM_LEAK_DETECTION_IGNORED_MATCHERS Lshark/JvmObjectGrowthReferenceMatchers;
+	public static final field PARALLEL_LOCK_MAP Lshark/JvmObjectGrowthReferenceMatchers;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static fun valueOf (Ljava/lang/String;)Lshark/JvmObjectGrowthReferenceMatchers;
+	public static fun values ()[Lshark/JvmObjectGrowthReferenceMatchers;
+}
+
+public final class shark/JvmObjectGrowthReferenceMatchers$Companion {
+	public final fun getDefaults ()Ljava/util/List;
 }
 
 public final class shark/KeyedWeakReferenceFinder : shark/LeakingObjectFinder {
@@ -855,6 +874,17 @@ public final class shark/ReferencePattern$InstanceFieldPattern : shark/Reference
 public final class shark/ReferencePattern$InstanceFieldPattern$Companion {
 }
 
+public final class shark/ReferencePattern$JavaLocalAllowListPattern : shark/ReferencePattern {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lshark/ReferencePattern$JavaLocalAllowListPattern;
+	public static synthetic fun copy$default (Lshark/ReferencePattern$JavaLocalAllowListPattern;Ljava/util/List;ILjava/lang/Object;)Lshark/ReferencePattern$JavaLocalAllowListPattern;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getThreadNames ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class shark/ReferencePattern$JavaLocalPattern : shark/ReferencePattern {
 	public static final field Companion Lshark/ReferencePattern$JavaLocalPattern$Companion;
 	public fun <init> (Ljava/lang/String;)V
@@ -937,6 +967,28 @@ public final class shark/RepeatingScenarioObjectGrowthDetectorKt {
 	public static synthetic fun repeatingScenario$default (Lshark/ObjectGrowthDetector;Lshark/HeapGraphProvider;IIILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
 }
 
+public final class shark/Retained {
+	public static final synthetic fun box-impl (J)Lshark/Retained;
+	public static fun constructor-impl (JI)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public static final fun getHeapSize-UyN4wxk (J)J
+	public static final fun getObjectCount-impl (J)I
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public static final fun isUnknown-impl (J)Z
+	public static final fun isZero-impl (J)Z
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class shark/RetainedKt {
+	public static final fun getUNKNOWN_RETAINED ()J
+	public static final fun getZERO_RETAINED ()J
+}
+
 public abstract interface class shark/ShortestPathFinder {
 	public abstract fun findShortestPathsFromGcRoots (Ljava/util/Set;)Lshark/PathFindingResults;
 }
@@ -946,27 +998,30 @@ public abstract interface class shark/ShortestPathFinder$Factory {
 }
 
 public final class shark/ShortestPathObjectNode {
-	public fun <init> (Ljava/lang/String;Lshark/ShortestPathObjectNode;Z)V
+	public fun <init> (Ljava/lang/String;Lshark/ShortestPathObjectNode;)V
 	public final fun copyResettingAsInitialTree ()Lshark/ShortestPathObjectNode;
 	public final fun getChildren ()Ljava/util/List;
-	public final fun getChildrenObjectCount ()I
-	public final fun getChildrenObjectCountIncrease ()I
+	public final fun getGrowingChildren ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getParent ()Lshark/ShortestPathObjectNode;
-	public final fun getRetained ()Lshark/ShortestPathObjectNode$Retained;
-	public final fun getRetainedIncrease ()Lshark/ShortestPathObjectNode$Retained;
-	public final fun getRetainedIncreaseOrNull ()Lshark/ShortestPathObjectNode$Retained;
-	public final fun getRetainedOrNull ()Lshark/ShortestPathObjectNode$Retained;
+	public final fun getRetained-bh0qJVg ()J
+	public final fun getRetainedIncrease-bh0qJVg ()J
 	public final fun getSelfObjectCount ()I
-	public final fun getSelfObjectCountIncrease ()I
 	public final fun pathFromRootAsString ()Ljava/lang/String;
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class shark/ShortestPathObjectNode$Retained {
-	public synthetic fun <init> (JILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun getHeapSize-UyN4wxk ()J
-	public final fun getObjectCount ()I
+public final class shark/ShortestPathObjectNode$GrowingChildNode {
+	public fun <init> (Lshark/ShortestPathObjectNode;I)V
+	public final fun component1 ()Lshark/ShortestPathObjectNode;
+	public final fun component2 ()I
+	public final fun copy (Lshark/ShortestPathObjectNode;I)Lshark/ShortestPathObjectNode$GrowingChildNode;
+	public static synthetic fun copy$default (Lshark/ShortestPathObjectNode$GrowingChildNode;Lshark/ShortestPathObjectNode;IILjava/lang/Object;)Lshark/ShortestPathObjectNode$GrowingChildNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChild ()Lshark/ShortestPathObjectNode;
+	public final fun getObjectCountIncrease ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class shark/VirtualizingMatchingReferenceReaderFactory : shark/ReferenceReader$Factory {
