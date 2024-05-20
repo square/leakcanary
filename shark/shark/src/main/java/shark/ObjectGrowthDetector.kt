@@ -11,7 +11,6 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.ReferenceLocationType.ARRAY_ENTRY
-import shark.internal.hppc.LongScatterSet
 import shark.internal.unpackAsFirstInt
 import shark.internal.unpackAsSecondInt
 
@@ -66,7 +65,7 @@ class ObjectGrowthDetector(
      */
     val toVisitLastQueue: Deque<Node> = ArrayDeque()
 
-    val visitedSet = LongScatterSet(estimatedVisitedObjects)
+    val visitedSet = MutableLongSet(estimatedVisitedObjects)
 
     // Not using estimatedVisitedObjects because there could be a lot less nodes than objects.
     // This is a list because order matters.
