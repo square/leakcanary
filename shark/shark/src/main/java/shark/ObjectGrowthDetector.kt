@@ -2,8 +2,10 @@
 
 package shark
 
+import androidx.collection.MutableLongList
 import androidx.collection.MutableLongLongMap
 import androidx.collection.MutableLongSet
+import androidx.collection.mutableLongListOf
 import java.util.ArrayDeque
 import java.util.Deque
 import shark.HeapObject.HeapClass
@@ -52,6 +54,17 @@ class ObjectGrowthDetector(
     }
   }
 
+  // data class to be a properly implemented key.
+  private data class EdgeKey(
+    val nodeAndEdgeName: String,
+    val isLowPriority: Boolean
+  )
+
+  private class Edge(
+    val nonVisitedDistinctObjectIds: MutableLongList,
+    var isLeafObject: Boolean
+  )
+
   private class TraversalState(
     estimatedVisitedObjects: Int
   ) {
@@ -69,7 +82,7 @@ class ObjectGrowthDetector(
 
     // Not using estimatedVisitedObjects because there could be a lot less nodes than objects.
     // This is a list because order matters.
-    val dequeuedNodes = mutableListOf<Node>()
+    val dequeuedNodes = mutableListOf<DequeuedNode>()
     val dominatorTree = DominatorTree(estimatedVisitedObjects)
 
     val tree = ShortestPathObjectNode("root", null).apply {
@@ -94,77 +107,88 @@ class ObjectGrowthDetector(
     val secondTraversal = previousTraversal is FirstHeapTraversal
     val objectReferenceReader = referenceReaderFactory.createFor(graph)
 
-    val roots = graph.groupRoots()
-    enqueueRoots(previousTree, roots)
+    enqueueRoots(previousTree, graph)
 
     while (queuesNotEmpty) {
       val node = poll()
 
-      dequeuedNodes += node
-
-      class ExpandedObject(
-        val valueObjectId: Long,
-        val nodeAndEdgeName: String,
-        val isLowPriority: Boolean,
-        val isLeafObject: Boolean
-      )
+      val dequeuedNode = DequeuedNode(node)
+      dequeuedNodes.add(dequeuedNode)
+      val current = dequeuedNode.shortestPathNode
 
       // Note: this is different from visitedSet.size(), which includes gc roots.
       var countOfVisitedObjectForCurrentNode = 0
 
-      val edges = node.objectIds.flatMap { objectId ->
+      val edgesByNodeName = mutableMapOf<EdgeKey, Edge>()
+      // Each object we've found for that node is returning a set of edges.
+      node.objectIds.forEach exploreObjectEdges@{ objectId ->
         // This is when we actually visit.
         val added = visitedSet.add(objectId)
+
         if (!added) {
-          emptySequence()
-        } else {
-          countOfVisitedObjectForCurrentNode++
-          if (node.isLeafObject) {
-            emptySequence()
+          return@exploreObjectEdges
+        }
+
+        countOfVisitedObjectForCurrentNode++
+
+        if (node.isLeafObject) {
+          return@exploreObjectEdges
+        }
+
+        val heapObject = graph.findObjectById(objectId)
+        val refs = objectReferenceReader.read(heapObject)
+        refs.forEach recordEdge@{ reference ->
+          // dominatorTree is updated prior to enqueueing, because that's where we have the
+          // parent object id information. visitedSet is updated on dequeuing, because bumping
+          // node priority would be complex when as we'd need to move object ids between nodes
+          // rather than just move nodes.
+          dominatorTree.updateDominated(
+            objectId = reference.valueObjectId,
+            parentObjectId = objectId
+          )
+          // note: we only update visitedSet once dequeued. This could lead
+          // to duplicates in queue, but avoids having to bump priority of already
+          // enqueued low priority nodes.
+          if (reference.valueObjectId in visitedSet) {
+            return@recordEdge
+          }
+          val details = reference.lazyDetailsResolver.resolve()
+          val refType = details.locationType.name
+          val owningClassSimpleName =
+            graph.findObjectById(details.locationClassObjectId).asClass!!.simpleName
+          val refName = if (details.locationType == ARRAY_ENTRY) "[x]" else details.name
+          val referencedObjectName =
+            when (val referencedObject = graph.findObjectById(reference.valueObjectId)) {
+              is HeapClass -> "class ${referencedObject.name}"
+              is HeapInstance -> "instance of ${referencedObject.instanceClassName}"
+              is HeapObjectArray -> "array of ${referencedObject.arrayClassName}"
+              is HeapPrimitiveArray -> "array of ${referencedObject.primitiveType.name.lowercase()}"
+            }
+
+          val nodeAndEdgeName =
+            "$refType ${owningClassSimpleName}.${refName} -> $referencedObjectName"
+
+          val edgeKey = EdgeKey(nodeAndEdgeName, reference.isLowPriority)
+
+          val edge = edgesByNodeName[edgeKey]
+          if (edge == null) {
+            edgesByNodeName[edgeKey] = Edge(
+              nonVisitedDistinctObjectIds = mutableLongListOf(reference.valueObjectId),
+              isLeafObject = reference.isLeafObject,
+            )
           } else {
-            val heapObject = graph.findObjectById(objectId)
-            val refs = objectReferenceReader.read(heapObject)
-            refs.mapNotNull { reference ->
-              // dominatorTree is updated prior to enqueueing, because that's where we have the
-              // parent object id information. visitedSet is updated on dequeuing, because bumping
-              // node priority would be complex when as we'd need to move object ids between nodes
-              // rather than just move nodes.
-              dominatorTree.updateDominated(
-                objectId = reference.valueObjectId,
-                parentObjectId = objectId
-              )
-              if (reference.valueObjectId in visitedSet) {
-                null
-              } else {
-                val details = reference.lazyDetailsResolver.resolve()
-                val refType = details.locationType.name
-                val owningClassSimpleName =
-                  graph.findObjectById(details.locationClassObjectId).asClass!!.simpleName
-                val refName = if (details.locationType == ARRAY_ENTRY) "[x]" else details.name
-                val referencedObjectName =
-                  when (val referencedObject = graph.findObjectById(reference.valueObjectId)) {
-                    is HeapClass -> "class ${referencedObject.name}"
-                    is HeapInstance -> "instance of ${referencedObject.instanceClassName}"
-                    is HeapObjectArray -> "array of ${referencedObject.arrayClassName}"
-                    is HeapPrimitiveArray -> "array of ${referencedObject.primitiveType.name.lowercase()}"
-                  }
-                val nodeAndEdgeName =
-                  "$refType ${owningClassSimpleName}.${refName} -> $referencedObjectName"
-                ExpandedObject(
-                  reference.valueObjectId, nodeAndEdgeName, reference.isLowPriority,
-                  reference.isLeafObject
-                )
-              }
+            // node is leaf object if all objects in node are leaf objects.
+            edge.isLeafObject = edge.isLeafObject && reference.isLeafObject
+            // Make it distinct
+            if (reference.valueObjectId !in edge.nonVisitedDistinctObjectIds) {
+              edge.nonVisitedDistinctObjectIds += reference.valueObjectId
             }
           }
         }
-      }.groupBy {
-        it.nodeAndEdgeName + if (it.isLowPriority) "low-priority" else ""
       }
 
       if (countOfVisitedObjectForCurrentNode > 0) {
-        val parent = node.shortestPathNode.parent!!
-        val current = node.shortestPathNode
+        val parent = node.parentPathNode
         parent.addChild(current)
         // First traversal, all nodes with children are growing.
         if (firstTraversal) {
@@ -182,31 +206,31 @@ class ObjectGrowthDetector(
         }
       }
 
-      val previousNodeMap = node.previousPathNode?.let { shortestPathNode ->
-        shortestPathNode.children.associateBy { it.name }
+      val previousNodeChildrenMapOrNull = node.previousPathNode?.let { previousPathNode ->
+        previousPathNode.children.associateBy { it.name }
       }
 
-      val edgesEnqueued = edges.map { (_, expandedObjects) ->
-        val firstOfGroup = expandedObjects.first()
-        val leafObject = expandedObjects.all { it.isLeafObject }
-        val nodeAndEdgeName = firstOfGroup.nodeAndEdgeName
-        val previousPathNode = if (previousNodeMap != null) {
-          previousNodeMap[nodeAndEdgeName]
-        } else {
-          null
+      val edgesEnqueued = edgesByNodeName.count { (edgeKey, edge) ->
+        val previousPathNodeChildOrNull =
+          previousNodeChildrenMapOrNull?.get(edgeKey.nodeAndEdgeName)
+        val nonVisitedDistinctObjectIdsArray = LongArray(edge.nonVisitedDistinctObjectIds.size)
+        edge.nonVisitedDistinctObjectIds.forEachIndexed { index, objectId ->
+          nonVisitedDistinctObjectIdsArray[index] = objectId
         }
+
         enqueue(
-          parentPathNode = node.shortestPathNode,
-          previousPathNode = previousPathNode,
-          objectIds = expandedObjects.map { it.valueObjectId },
-          nodeAndEdgeName = nodeAndEdgeName,
-          isLowPriority = firstOfGroup.isLowPriority,
-          isLeafObject = leafObject
+          parentPathNode = current,
+          previousPathNode = previousPathNodeChildOrNull,
+          objectIds = nonVisitedDistinctObjectIdsArray,
+          nodeAndEdgeName = edgeKey.nodeAndEdgeName,
+          isLowPriority = edgeKey.isLowPriority,
+          isLeafObject = edge.isLeafObject
         )
-      }.count { enqueued -> enqueued }
+        return@count true
+      }
 
       if (edgesEnqueued > 0) {
-        node.shortestPathNode.createChildrenBackingList(edgesEnqueued)
+        current.createChildrenBackingList(edgesEnqueued)
       }
     }
 
@@ -301,8 +325,6 @@ class ObjectGrowthDetector(
           return@reportedGrowingNodeOrNull null
         }
 
-        mutableListOf(3).toIntArray()
-
         shortestPathNode.growingChildrenArray = growingChildren.toTypedArray()
         shortestPathNode.growingChildrenIncreasesArray =
           growingChildrenIncreases.copyOf(growingChildren.size)
@@ -330,8 +352,8 @@ class ObjectGrowthDetector(
       }
       val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
       val retainedMap = dominatorTree.computeRetainedSizes(
-          reportedGrowingNodeObjectIdsForRetainedSize, objectSizeCalculator
-        )
+        reportedGrowingNodeObjectIdsForRetainedSize, objectSizeCalculator
+      )
       dequeuedNodes.forEach reportedGrowingNodeRetainedSize@{ node ->
         val shortestPathNode = node.shortestPathNode
         // If not growing, or growing but with a parent that's growing, skip.
@@ -369,14 +391,6 @@ class ObjectGrowthDetector(
     }
   }
 
-  private fun HeapGraph.groupRoots() =
-    gcRootProvider.provideGcRoots(this).map { gcRootReference ->
-      val name = "GcRoot(${gcRootReference.gcRoot::class.java.simpleName})"
-      name to gcRootReference
-    }
-      // sort preserved
-      .groupBy { it.first + if (it.second.isLowPriority) "low-priority" else "" }
-
   private fun TraversalState.poll(): Node {
     return if (!visitingLast && !toVisitQueue.isEmpty()) {
       toVisitQueue.poll()
@@ -388,67 +402,71 @@ class ObjectGrowthDetector(
 
   private fun TraversalState.enqueueRoots(
     previousTree: ShortestPathObjectNode?,
-    roots: Map<String, List<Pair<String, GcRootReference>>>
+    heapGraph: CloseableHeapGraph
   ) {
+
+    val edgesByNodeName = mutableMapOf<EdgeKey, MutableLongList>()
+    gcRootProvider.provideGcRoots(heapGraph).forEach { gcRootReference ->
+      val name = "GcRoot(${gcRootReference.gcRoot::class.java.simpleName})"
+      val edgeKey = EdgeKey(name, gcRootReference.isLowPriority)
+
+      val objectId = gcRootReference.gcRoot.id
+
+      if (objectId == ValueHolder.NULL_REFERENCE) {
+        return@forEach
+      }
+
+      val edgeObjectIds = edgesByNodeName[edgeKey]
+      if (edgeObjectIds == null) {
+        edgesByNodeName[edgeKey] = mutableLongListOf(objectId)
+      } else {
+        if (objectId !in edgeObjectIds) {
+          edgeObjectIds += objectId
+        }
+      }
+    }
+
     val previousTreeRootMap = previousTree?.let { tree ->
       tree.children.associateBy { it.name }
     }
 
-    val enqueuedCount = roots.map { (_, gcRootReferences) ->
-      val firstOfGroup = gcRootReferences.first()
-      val nodeAndEdgeName = firstOfGroup.first
-      val previousPathNode = if (previousTreeRootMap != null) {
-        previousTreeRootMap[nodeAndEdgeName]
-      } else {
-        null
-      }
-      val objectIds = gcRootReferences.map { it.second.gcRoot.id }
-      objectIds.forEach { objectId ->
+    val enqueuedCount = edgesByNodeName.count { (edgeKey, edgeObjectIds) ->
+      val previousPathNode = previousTreeRootMap?.get(edgeKey.nodeAndEdgeName)
+
+      edgeObjectIds.forEach { objectId ->
         dominatorTree.updateDominatedAsRoot(objectId)
       }
 
+      val edgeObjectIdsArray = LongArray(edgeObjectIds.size)
+
+      edgeObjectIds.forEachIndexed { index, objectId ->
+        edgeObjectIdsArray[index] = objectId
+      }
       enqueue(
         parentPathNode = tree,
         previousPathNode = previousPathNode,
-        objectIds = objectIds,
-        nodeAndEdgeName = nodeAndEdgeName,
-        isLowPriority = firstOfGroup.second.isLowPriority,
+        objectIds = edgeObjectIdsArray,
+        nodeAndEdgeName = edgeKey.nodeAndEdgeName,
+        isLowPriority = edgeKey.isLowPriority,
         isLeafObject = false
       )
-    }.count { enqueued -> enqueued }
+      return@count true
+    }
     tree.createChildrenBackingList(enqueuedCount)
   }
 
   private fun TraversalState.enqueue(
     parentPathNode: ShortestPathObjectNode,
     previousPathNode: ShortestPathObjectNode?,
-    objectIds: List<Long>,
+    objectIds: LongArray,
     nodeAndEdgeName: String,
     isLowPriority: Boolean,
     isLeafObject: Boolean
-  ): Boolean {
-    // TODO Maybe the filtering should happen at the callsite.
-    // TODO we already filter visited on the traversal side. maybe crash?
-    val filteredObjectIds = objectIds.filter { objectId ->
-      objectId != ValueHolder.NULL_REFERENCE &&
-        // note: we only update visitedSet once dequeued. This could lead
-        // to duplicates in queue, but avoids having to bump priority of already
-        // enqueued low priority nodes.
-        objectId !in visitedSet
-    }
-      // Deduplicate object ids
-      .toSet()
-
-    if (filteredObjectIds.isEmpty()) {
-      return false
-    }
-
-    val shortestPathNode =
-      ShortestPathObjectNode(nodeAndEdgeName, parentPathNode)
-
+  ) {
     val node = Node(
-      objectIds = filteredObjectIds,
-      shortestPathNode = shortestPathNode,
+      objectIds = objectIds,
+      parentPathNode = parentPathNode,
+      nodeAndEdgeName = nodeAndEdgeName,
       previousPathNode = previousPathNode,
       isLeafObject = isLeafObject
     )
@@ -458,7 +476,6 @@ class ObjectGrowthDetector(
     } else {
       toVisitQueue += node
     }
-    return true
   }
 
   private fun MutableLongLongMap.increase(
@@ -483,15 +500,23 @@ class ObjectGrowthDetector(
     }
   }
 
-  private data class Node(
+  private class Node(
     // All objects that you can reach through paths that all resolves to the same structure.
-    // TODO Move to LongSet. Or actually make this an array.
-    val objectIds: Set<Long>,
-    val shortestPathNode: ShortestPathObjectNode,
+    val objectIds: LongArray,
+    val parentPathNode: ShortestPathObjectNode,
+    val nodeAndEdgeName: String,
     val previousPathNode: ShortestPathObjectNode?,
-    // TODO Create a new Node class for the second phase that doesn't have this boolean.
     val isLeafObject: Boolean,
   )
+
+  private class DequeuedNode(
+    node: Node
+  ) {
+    // All objects that you can reach through paths that all resolves to the same structure.
+    val objectIds = node.objectIds
+    val shortestPathNode = ShortestPathObjectNode(node.nodeAndEdgeName, node.parentPathNode)
+    val previousPathNode = node.previousPathNode
+  }
 
   /**
    * This allows external modules to add factory methods for configured instances of this class as
