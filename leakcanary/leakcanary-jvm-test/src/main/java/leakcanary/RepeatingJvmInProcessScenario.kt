@@ -17,14 +17,13 @@ import shark.repeatingScenario
  */
 fun ObjectGrowthDetector.repeatingJvmInProcessScenario(
   maxHeapDumps: Int = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS,
-  // In process => More than one to account for the impact of running the analysis.
-  scenarioLoopsPerDump: Int = 2,
+  scenarioLoopsPerDump: Int = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP,
 ): RepeatingScenarioObjectGrowthDetector {
   return repeatingScenario(
     heapGraphProvider = HeapGraphProvider.dumpingAndDeleting(
       heapDumper = HeapDumper.forJvmInProcess()
         .withGc(gcTrigger = GcTrigger.inProcess())
-        .withDetectorWarmup(this),
+        .withDetectorWarmup(this, androidHeap = false),
       heapDumpFileProvider = HeapDumpFileProvider.tempFile()
     ),
     maxHeapDumps = maxHeapDumps,
