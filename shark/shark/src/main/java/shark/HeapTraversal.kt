@@ -11,16 +11,10 @@ sealed interface HeapTraversalInput {
    * growing at least [scenarioLoopsPerGraph] times since the previous traversal.
    */
   val scenarioLoopsPerGraph: Int
-
-  /**
-   * The expected max number of traversals, or null if unknown.
-   */
-  val heapGraphCount: Int?
 }
 
 class InitialState(
-  override val scenarioLoopsPerGraph: Int = 1,
-  override val heapGraphCount: Int? = null
+  override val scenarioLoopsPerGraph: Int = DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
 ) : HeapTraversalInput {
   override val traversalCount = 0
 
@@ -28,9 +22,10 @@ class InitialState(
     check(scenarioLoopsPerGraph >= 1) {
       "There should be at least 1 scenario loop per heap dump"
     }
-    check(heapGraphCount == null || heapGraphCount >= 2) {
-      "There should be at least 2 heap dumps to detect growing objects"
-    }
+  }
+
+  companion object {
+    const val DEFAULT_SCENARIO_LOOPS_PER_GRAPH = 1
   }
 }
 
@@ -71,7 +66,6 @@ class FirstHeapTraversal constructor(
 ) : HeapTraversalOutput {
   override val traversalCount = 1
   override val scenarioLoopsPerGraph = previousTraversal.scenarioLoopsPerGraph
-  override val heapGraphCount: Int? = previousTraversal.heapGraphCount
 }
 
 class HeapGrowthTraversal(
@@ -88,15 +82,8 @@ class HeapGrowthTraversal(
   val isGrowing: Boolean get() = growingObjects.isNotEmpty()
 
   override val scenarioLoopsPerGraph = previousTraversal.scenarioLoopsPerGraph
-  override val heapGraphCount: Int? = previousTraversal.heapGraphCount
   override fun toString(): String {
-    val traversal = if (heapGraphCount != null) {
-      "traversal=$traversalCount/$heapGraphCount"
-    } else {
-      "traversal=$traversalCount"
-    }
-
-    return "HeapGrowthTraversal($traversal, " +
+    return "HeapGrowthTraversal(traversal=$traversalCount, " +
       "isGrowing=$isGrowing, " +
       "scenarioLoopsPerGraph=$scenarioLoopsPerGraph, " +
       "growingNodes=\n${growingObjects.joinToString("\n")}\n" +

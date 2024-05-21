@@ -41,6 +41,7 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 # and they'll automatically resolve to higher version without having to necessarily resort to a
 # resolution strategy.
 androidX-fragment = { module = "androidx.fragment:fragment", version = "1.0.0" }
+androidX-multidex = { module = "androidx.multidex:multidex", version = "2.0.1" }
 # Exposed transitively, avoid increasing
 androidX-startup = { module = "androidx.startup:startup-runtime", version = "1.0.0" }
 androidX-test-core = { module = "androidx.test:core", version = "1.4.0" }
@@ -55,6 +56,7 @@ androidX-test-junitKtx = { module = "androidx.test.ext:junit-ktx", version.ref =
 androidX-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version = "2.2.0" }
 androidX-work-runtime = { module = "androidx.work:work-runtime", version.ref = "workManager" }
 androidX-work-multiprocess = { module = "androidx.work:work-multiprocess", version.ref = "workManager" }
+androidX-collections = { module = "androidx.collection:collection-ktx", version = "1.4.0" }
 
 androidSupport = { module = "com.android.support:support-v4", version = "28.0.0" }
 assertjCore = { module = "org.assertj:assertj-core", version = "3.9.1" }

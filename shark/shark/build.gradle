@@ -15,7 +15,6 @@ dependencies {
 
   testImplementation libs.assertjCore
   testImplementation libs.junit
-  testImplementation libs.okio2
   testImplementation projects.shark.sharkTest
   testImplementation projects.shark.sharkHprofTest
 }

@@ -1,67 +1,89 @@
 package shark
 
-import shark.ByteSize.Companion.bytes
-
 typealias GrowingObjectNodes = List<ShortestPathObjectNode>
 
 class ShortestPathObjectNode(
   val name: String,
   val parent: ShortestPathObjectNode?,
-  internal val newNode: Boolean
 ) {
-  @Suppress("VariableNaming")
-  internal val _children = mutableListOf<ShortestPathObjectNode>()
+  // Null at first, then created with capacity set to the number of edges enqueued from that node.
+  // This means we'll sometimes use a little more space than what we actually need, but the
+  // trade-off is that we only get to create the array once, and there's no array size doubling.
+  private var _children: MutableList<ShortestPathObjectNode>? = null
+
+  // Null on initial run (all children are growing). After the first run, set with only
+  // children that are constantly growing over the per children threshold.
+  internal var growingChildrenArray: Array<ShortestPathObjectNode>? = null
+  internal var growingChildrenIncreasesArray: IntArray? = null
+
   val children: List<ShortestPathObjectNode>
-    get() = _children
+    get() = _children ?: emptyList()
+
+  data class GrowingChildNode(
+    val child: ShortestPathObjectNode,
+    val objectCountIncrease: Int
+  )
+
+  /**
+   * Returns a list of pair of child [ShortestPathObjectNode] and associated object count
+   * increase, filtered to only the children nodes that were marked as growing, i.e. children
+   * that had an object count increase greater or equal to the scenario loop count.
+   */
+  val growingChildren: List<GrowingChildNode>
+    get() = growingChildrenArray!!.withIndex()
+      .map { indexedValue ->
+        GrowingChildNode(indexedValue.value, growingChildrenIncreasesArray!![indexedValue.index])
+      }
 
   var selfObjectCount = 0
-    internal set
-  var selfObjectCountIncrease = 0
     internal set
 
   /**
    * Set for growing nodes if the traversal requested the computation of retained sizes, otherwise
    * null.
-   * This is on the last 2 traversals.
    */
-  var retainedOrNull: Retained? = null
+  var retained: Retained = UNKNOWN_RETAINED
     internal set
 
   /**
    * Set for growing nodes if [retainedOrNull] is not null. Non 0 if the previous traversal also
    * computed retained size.
-   * This is on the last 2 traversals.
    */
-  var retainedIncreaseOrNull: Retained? = null
+  var retainedIncrease: Retained = UNKNOWN_RETAINED
     internal set
-
-  val retained: Retained get() = retainedOrNull!!
-
-  val retainedIncrease: Retained get() = retainedIncreaseOrNull!!
 
   internal var growing = false
 
-  val childrenObjectCount: Int
-    get() = _children.sumOf { it.selfObjectCount }
+  internal fun createChildrenBackingList(maxChildren: Int) {
+    check(_children == null) {
+      "Expected createChildList() to be called at most once per node."
+    }
+    _children = ArrayList(maxChildren)
+  }
 
-  val childrenObjectCountIncrease: Int
-    get() = _children.sumOf { it.selfObjectCountIncrease }
+  internal fun addChild(child: ShortestPathObjectNode) {
+    val children = checkNotNull(_children) {
+      "Excepted createChildList() to have been called"
+    }
+    children.add(child)
+  }
 
   fun copyResettingAsInitialTree(): ShortestPathObjectNode {
     return copyResetRecursive(null)
   }
 
   private fun copyResetRecursive(newParent: ShortestPathObjectNode?): ShortestPathObjectNode {
-    val newNode = ShortestPathObjectNode(name, newParent, true)
+    val newNode = ShortestPathObjectNode(name, newParent)
     newNode.selfObjectCount = selfObjectCount
-    newNode.selfObjectCountIncrease = 0
-    newNode.retainedOrNull = retainedOrNull
-    if (retainedOrNull != null) {
-      newNode.retainedIncreaseOrNull = Retained(0L.bytes, 0)
+    newNode.retained = retained
+    if (!retained.isUnknown) {
+      newNode.retainedIncrease = ZERO_RETAINED
     }
     newNode.growing = true
-    _children.forEach { child ->
-      newNode._children += child.copyResetRecursive(newNode)
+    newNode.createChildrenBackingList(children.size)
+    val newChildren = newNode._children!!
+    children.forEach { child ->
+      newChildren += child.copyResetRecursive(newNode)
     }
     return newNode
   }
@@ -91,7 +113,7 @@ class ShortestPathObjectNode(
       result.append(pathNode.selfObjectCount)
       result.append(" objects)")
       if (index == pathAfterRoot.lastIndex) {
-        if (retainedOrNull != null) {
+        if (!retained.isUnknown) {
           result.appendLine()
           result.append("    Retained size: ${retained.heapSize} (+ ${retainedIncrease.heapSize})")
           result.appendLine()
@@ -102,17 +124,16 @@ class ShortestPathObjectNode(
         result.appendLine()
         result.append("    Children:")
         result.appendLine()
-        val childrenByMostIncreasedFirst =
-          pathNode.children
-            // TODO Ideally here we'd filter on the increase threshold (e.g. 5 instead of 0)
-            .filter { it.selfObjectCountIncrease > 0 }
-            .sortedBy { -it.selfObjectCountIncrease }
+
+        val childrenByMostIncreasedFirst = growingChildren
+          .sortedBy { -it.objectCountIncrease }
+
         result.append(
           childrenByMostIncreasedFirst.joinToString(
             separator = "\n",
             postfix = "\n"
-          ) { child ->
-            "    ${child.selfObjectCount} objects (${child.selfObjectCountIncrease} new): ${child.name}"
+          ) { (child, increase) ->
+            "    ${child.selfObjectCount} objects (${increase} new): ${child.name}"
           })
       } else {
         result.appendLine()
@@ -121,18 +142,4 @@ class ShortestPathObjectNode(
     }
     return result.toString()
   }
-
-  class Retained(
-    /**
-     * The minimum number of bytes which would be freed if all references to this object were
-     * released.
-     */
-    val heapSize: ByteSize,
-
-    /**
-     * The minimum number of objects which would be unreachable if all references to this object were
-     * released.
-     */
-    val objectCount: Int,
-  )
 }

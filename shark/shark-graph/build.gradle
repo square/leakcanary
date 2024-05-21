@@ -8,6 +8,7 @@ targetCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
   api projects.shark.sharkHprof
+  api libs.androidX.collections
 
   implementation libs.kotlin.stdlib
   implementation libs.okio2

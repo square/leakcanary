@@ -15,6 +15,7 @@ dependencies {
   androidTestImplementation projects.objectWatcher.objectWatcherAndroid
   // Plumber auto installer for running tests
   androidTestImplementation projects.plumber.plumberAndroid
+  androidTestImplementation libs.androidX.multidex
   androidTestImplementation libs.androidX.test.core
   androidTestImplementation libs.androidX.test.espresso
   androidTestImplementation libs.androidX.test.rules
@@ -28,6 +29,7 @@ android {
     targetSdk versions.compileSdk
     minSdk versions.minSdk
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    multiDexEnabled true
   }
   buildFeatures.buildConfig = false
   namespace 'com.squareup.leakcanary.instrumentation'

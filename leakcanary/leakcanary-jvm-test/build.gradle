@@ -12,4 +12,5 @@ dependencies {
 
   testImplementation libs.assertjCore
   testImplementation libs.junit
+  testImplementation projects.shark.sharkHprofTest
 }

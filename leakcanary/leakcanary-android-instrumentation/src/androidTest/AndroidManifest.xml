@@ -16,7 +16,9 @@
   -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-  <application>
+  <application
+    android:name="androidx.multidex.MultiDexApplication"
+    >
     <activity android:name="leakcanary.TestActivity"/>
   </application>
 </manifest>
